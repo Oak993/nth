@@ -1659,71 +1659,15 @@
     "Core.Support.Text"
    ],
    "records_total": 25,
-   "records_todo": [
-    "PR-CHAT-001",
-    "PR-CHAT-002",
-    "PR-CHAT-003",
-    "PR-CHAT-004",
-    "PR-CHAT-005",
-    "PR-CHAT-006",
-    "PR-CHAT-007",
-    "PR-CHAT-008",
-    "PR-CHAT-009",
-    "PR-CHAT-010",
-    "PR-CHAT-012",
-    "PR-CHAT-013",
-    "PR-CHAT-014",
-    "PR-CHAT-015",
-    "PR-CHAT-016",
-    "PR-CHAT-017",
-    "PR-CHAT-018",
-    "PR-CHAT-019",
-    "PR-CHAT-169",
-    "PR-CHAT-190",
-    "PR-GIT-148",
-    "PR-HYDRAMERGE-081",
-    "PR-RUNTIME-150",
-    "PR-USAGE-084",
-    "PR-USAGE-085"
-   ],
-   "parts": [
-    [
-     "PR-CHAT-001",
-     "PR-CHAT-002",
-     "PR-CHAT-003",
-     "PR-CHAT-004",
-     "PR-CHAT-005",
-     "PR-CHAT-006",
-     "PR-CHAT-007",
-     "PR-CHAT-008",
-     "PR-CHAT-009",
-     "PR-CHAT-010",
-     "PR-CHAT-012",
-     "PR-CHAT-013",
-     "PR-CHAT-014",
-     "PR-CHAT-015",
-     "PR-CHAT-016",
-     "PR-CHAT-017",
-     "PR-CHAT-018",
-     "PR-CHAT-019",
-     "PR-CHAT-169",
-     "PR-CHAT-190",
-     "PR-GIT-148",
-     "PR-HYDRAMERGE-081",
-     "PR-RUNTIME-150",
-     "PR-USAGE-084"
-    ],
-    [
-     "PR-USAGE-085"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M2-054",
     "T-M2-055",
     "T-M2-056"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Core.Models.TokenSpend",
@@ -4086,46 +4030,14 @@
    ],
    "intra_deps": [],
    "records_total": 14,
-   "records_todo": [
-    "PR-MCP-038",
-    "PR-MCP-039",
-    "PR-MCP-040",
-    "PR-MCP-041",
-    "PR-MCP-042",
-    "PR-MCP-043",
-    "PR-MCP-044",
-    "PR-MCP-045",
-    "PR-MCP-046",
-    "PR-MCP-047",
-    "PR-MCP-048",
-    "PR-MCP-084",
-    "PR-MCP-119",
-    "PR-STORE-011"
-   ],
-   "parts": [
-    [
-     "PR-MCP-038",
-     "PR-MCP-039",
-     "PR-MCP-040",
-     "PR-MCP-041",
-     "PR-MCP-042",
-     "PR-MCP-043",
-     "PR-MCP-044",
-     "PR-MCP-045",
-     "PR-MCP-046",
-     "PR-MCP-047",
-     "PR-MCP-048",
-     "PR-MCP-084",
-     "PR-MCP-119",
-     "PR-STORE-011"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M2-024",
     "T-M2-025"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.MCP.MCPKeychain",

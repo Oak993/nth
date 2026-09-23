@@ -2132,7 +2132,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same document field names; the document store belongs to the storage area.",
       "verification_method": "restart test: report usage, reopen the thread, assert the ring and the context row return with the same numbers",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2154,7 +2154,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same computed property; keeping it derived preserves the implication the floating panel's predicate relies on (PR-USAGE-060).",
       "verification_method": "unit test at windowTokens nil, 0, -1, and used greater than window",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

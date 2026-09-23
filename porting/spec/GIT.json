@@ -3975,7 +3975,7 @@
       "cancellation": "not applicable",
       "windows_path": "Keep the exact key names and the per-field defaulting; a strict decoder would drop the user's history.",
       "verification_method": "restart test over documents missing each field in turn",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

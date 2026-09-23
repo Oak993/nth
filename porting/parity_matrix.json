@@ -7,11 +7,11 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "SPECIFIED": 3606,
+      "IMPLEMENTED": 306,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
-      "DISCOVERED": 34,
+      "SPECIFIED": 3568,
       "RETIRED": 6,
-      "IMPLEMENTED": 267
+      "DISCOVERED": 33
     },
     "by_area": {
       "CHAT": 193,
@@ -57,7 +57,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A discriminated-union record type in the Windows model layer, serialized with the same key names and the same single-key-object shape for the union, so a thread written by either build round-trips.",
       "verification_method": "contract fixture: encode/decode round-trip against a pinned JSON fixture per content case",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -78,7 +78,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Trim against the same Unicode whitespace and newline set (not ASCII-only), because a redacted reasoning stream can leave non-breaking or line-separator characters behind.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -102,7 +102,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three cases only. Do not extend the cleanup to tool output: a command's stdout containing an em dash must survive verbatim.",
       "verification_method": "unit: one fixture item per content case, asserting only the three named cases change",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -124,7 +124,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep the three-way branch and its order. Windows must distinguish an absent hydraHeads key from an empty array: an empty array is a note from Hydra itself and still takes the report row.",
       "verification_method": "unit plus interaction test over the three branches",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -154,7 +154,7 @@
       "cancellation": "not cancellable",
       "windows_path": "URL(fileURLWithPath:) becomes a Windows absolute path; the stored path is the platform path as captured. Base64 encoding and any downscaling must run off the UI thread: the source comment records that a photo is megabytes and its string a third larger again. The returned copy's mime type must follow the bytes actually sent (image/jpeg after a downscale), because the Claude session sends it as the image's media_type (ClaudeSession.swift:228-232).",
       "verification_method": "unit with a fixture directory holding one unreadable path, one image at most 2000 pixels on its longest side and one larger image, asserting order, skipped entries, returned bytes and returned mime types",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -180,7 +180,7 @@
       "cancellation": "not cancellable",
       "windows_path": "String-valued enums with the identical raw values, so a thread file is interchangeable.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -203,7 +203,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the byte-count guard and the Character-count suffix exactly, including the unit mismatch. Windows string indices are UTF-16 code units: suffix must be taken over grapheme clusters, not code units, or a surrogate pair is split.",
       "verification_method": "unit with an ASCII case, a CJK case and an emoji case at the boundary",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -224,7 +224,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same first-write-wins rule on finishedAt.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -246,7 +246,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical raw values; the todo list is positional, so a step is identified by its index (see PR-CHAT-117).",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -270,7 +270,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep an optional limit on the notice model so the document shape matches, but nothing sets it: the marker is dead in the shipped flow (porting/dead_code.md entry 24, ED-061), and the only view that would read it is dead too (entry 21, PR-CHAT-011).",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -320,7 +320,7 @@
       "cancellation": "not cancellable",
       "windows_path": "duration is seconds as a double, not milliseconds.",
       "verification_method": "contract fixture - (1) round-trip a TimelineItem whose content is .turnEnd(TurnSummary(..., changes: a two-file summary, one of them binary)) through JSONEncoder.storage: assert the exact bytes (content.turnEnd._0 holding additions, changes, deletions, duration, filesChanged, status, turnID in sorted order; changes holding additions, deletions, files; each file holding additions, deletions, isBinary, path) and decode it back equal; (2) the same row with changes nil: assert the changes key is absent and that it decodes back to nil; (3) the same bytes with \"changes\":null decode to changes nil",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -344,7 +344,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Implement the same tolerant per-key read. A strict schema validator here would silently lose a user's turn history.",
       "verification_method": "restart test: write with the new shape, read a fixture missing touchedPaths, tokenSpends and hydraMerged",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -365,7 +365,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Integer division must not be used; the ratio is computed in floating point.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -386,7 +386,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same rule, same short-circuit (the source uses the same idiom in PromptEdit.isEmpty at ThreadRuntime.swift:154-156).",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -407,7 +407,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Group by bundleID with null treated as ungrouped.",
       "verification_method": "unit",
-      "status": "DISCOVERED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -432,7 +432,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same shape and same required/optional split.",
       "verification_method": "restart test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -453,7 +453,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same five raw outcome strings, spelled exactly merged, failed, stray, held and settled.",
       "verification_method": "contract fixture with one record per outcome",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -477,7 +477,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Implement the same per-element tolerant decode. Note the data-loss consequence on the next save; it is upstream behavior and is reproduced.",
       "verification_method": "restart test with a corrupted element in a fixture thread",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4033,7 +4033,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce. Flagged here because it silently edits stored user-visible content; it is an ordinary parity quirk rather than a destructive or security-sensitive behavior, so it needs no escalation.",
       "verification_method": "restart test with an em dash inside a fenced code block in a reply",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4575,7 +4575,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Windows needs a decoder that reads the pixel dimensions and the orientation flag, an orientation-aware resize to at most 2000 pixels on the longest side that keeps the aspect ratio, and a JPEG encoder at quality 0.8 (for example Windows Imaging Component). The comparison is strictly greater than 2000.",
       "verification_method": "unit over fixture images: 2000 by 1000 (original bytes and mime), 2001 by 1000 and 4000 by 3000 (JPEG, longest side at most 2000, mime image/jpeg), a photo with a rotating orientation flag (upright JPEG) and a corrupt file (original bytes)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -13866,7 +13866,7 @@
       "cancellation": "not applicable",
       "windows_path": "Keep the exact key names and the per-field defaulting; a strict decoder would drop the user's history.",
       "verification_method": "restart test over documents missing each field in turn",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -22331,7 +22331,7 @@
       "cancellation": "n/a",
       "windows_path": "Identical field names and raw values on the wire so documents stay readable across both builds.",
       "verification_method": "contract fixture on the serialized JSON for each of the five outcomes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -26708,12 +26708,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed English strings; no localization layer exists in the source.",
       "verification_method": "unit plus an interaction test reading the seven headers",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-023",
-      "rework": true
+      "implemented_by_task": "T-M2-023"
     },
     {
       "area": "MCP",
@@ -26736,13 +26735,12 @@
       "windows_path": "Replacement in field order that matches by Unicode canonical equivalence, as Foundation's non-literal replacingOccurrences does (for ASCII-only keys and text, ordinal replacement gives the same result). Do not use a regular expression that would also match tokens for non-fields.",
       "spec_fix": "expected_result and windows_path called the token match literal and prescribed literal string replacement -> the source calls out.replacingOccurrences(of: token, with: value) without the .literal option, a non-literal Foundation search that treats canonically equivalent strings as equal, and looks the value up as values[field.key] in a Swift String dictionary, also canonical equivalence (B2 DroppyCode/Core/Models/MCP.swift:138, :147)",
       "verification_method": "unit with an empty value, a missing value, a repeated token and an unknown token",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
       "implemented_by_task": "T-M2-023",
-      "b2_change": "Refactor only, no shift: B1 :141 value = value.trimmingCharacters(in: .whitespacesAndNewlines) -> B2 :141 value = value.trimmed; `trimmed` is defined at B2 DroppyCode/Core/Support/Text.swift:132 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, so the result is identical.",
-      "rework": true
+      "b2_change": "Refactor only, no shift: B1 :141 value = value.trimmingCharacters(in: .whitespacesAndNewlines) -> B2 :141 value = value.trimmed; `trimmed` is defined at B2 DroppyCode/Core/Support/Text.swift:132 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, so the result is identical."
     },
     {
       "area": "MCP",
@@ -26764,13 +26762,12 @@
       "cancellation": "not cancellable",
       "windows_path": "Same conditional normalization, and only for tokens directly after \"://\".",
       "verification_method": "unit with whitespace, both schemes, multiple trailing slashes, and a token not preceded by \"://\" (which must be left alone)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
       "implemented_by_task": "T-M2-023",
-      "b2_change": "Refactor only, no shift: B1 :141 value = value.trimmingCharacters(in: .whitespacesAndNewlines) -> B2 :141 value = value.trimmed; `trimmed` is defined at B2 DroppyCode/Core/Support/Text.swift:132 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, so the result is identical.",
-      "rework": true
+      "b2_change": "Refactor only, no shift: B1 :141 value = value.trimmingCharacters(in: .whitespacesAndNewlines) -> B2 :141 value = value.trimmed; `trimmed` is defined at B2 DroppyCode/Core/Support/Text.swift:132 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, so the result is identical."
     },
     {
       "area": "MCP",
@@ -26792,12 +26789,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. The command string is not path-resolved here; resolution to an executable happens in the probe and the hub.",
       "verification_method": "unit with an optional field left blank",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-023",
-      "rework": true
+      "implemented_by_task": "T-M2-023"
     },
     {
       "area": "MCP",
@@ -26819,12 +26815,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same, including the \"Bearer \" edge case for context7 and huggingface with no key.",
       "verification_method": "unit asserting \"Bearer \" survives the filter",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-023",
-      "rework": true
+      "implemented_by_task": "T-M2-023"
     },
     {
       "area": "MCP",
@@ -26850,12 +26845,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same shape. The proxy is a loopback HTTP listener in the main process; the route URL string must be byte-identical because it is written into files providers read.",
       "verification_method": "contract fixture comparing a resolved OAuth server against the expected provider-config JSON",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-023",
-      "rework": true
+      "implemented_by_task": "T-M2-023"
     },
     {
       "area": "MCP",
@@ -26877,12 +26871,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-023",
-      "rework": true
+      "implemented_by_task": "T-M2-023"
     },
     {
       "area": "MCP",
@@ -26904,12 +26897,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. Note the asymmetry: an optional-field server never gets the key panel from the card, only from the info popover's \"Change the …\" button.",
       "verification_method": "unit plus interaction tests on gitlab (no panel) and brave-search (panel)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-023",
-      "rework": true
+      "implemented_by_task": "T-M2-023"
     },
     {
       "area": "MCP",
@@ -26932,12 +26924,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same derivations; do not persist either flag.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-023",
-      "rework": true
+      "implemented_by_task": "T-M2-023"
     },
     {
       "area": "MCP",
@@ -26959,12 +26950,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same field names and JSON shape: the file is user-visible and is the migration surface.",
       "verification_method": "restart test plus a JSON schema fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-023",
-      "rework": true
+      "implemented_by_task": "T-M2-023"
     },
     {
       "area": "MCP",
@@ -26987,7 +26977,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A discriminated union in the renderer state, mirrored from the main process.",
       "verification_method": "unit plus a restart test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -28035,7 +28025,7 @@
       "cancellation": "not cancellable",
       "windows_path": "<data root> is %LOCALAPPDATA%\\<AppName>\\ and the mcp subdirectory is %LOCALAPPDATA%\\<AppName>\\mcp\\. Putting mcp.json or custom-mcp.json inside mcp\\ silently loses every connection and custom server. The bridge file, which macOS writes to <Application Support>/<AppName>/MCP/, collapses onto the same mcp\\ folder on a case-insensitive filesystem and is written there (PR-MCP-193). managed.json is used only by MCPExternalSync, which is not ported (ED-061, PR-MCP-176), so the port neither reads nor writes it.",
       "verification_method": "restart test plus a file-inventory assertion",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -28987,7 +28977,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same six fields. gitLabServerDisabled is the only producer in the shipped source.",
       "verification_method": "unit plus a restart test asserting the state is not restored",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -61328,7 +61318,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the byte-versus-character mismatch: a UTF-8-heavy output is trimmed to more than 30000 bytes on purpose, because that is what the source does.",
       "verification_method": "unit - ASCII and multi-byte fixtures at the boundary",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -76025,7 +76015,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One root constant with these eleven names hanging off it, and one migration routine that moves the whole folder rather than named files.",
       "verification_method": "restart test over a populated store, asserting all eleven entries survive a root move",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -93377,7 +93367,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same document field names; the document store belongs to the storage area.",
       "verification_method": "restart test: report usage, reopen the thread, assert the ring and the context row return with the same numbers",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -93400,7 +93390,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same computed property; keeping it derived preserves the implication the floating panel's predicate relies on (PR-USAGE-060).",
       "verification_method": "unit test at windowTokens nil, 0, -1, and used greater than window",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
