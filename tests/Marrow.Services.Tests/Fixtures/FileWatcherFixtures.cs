@@ -47,27 +47,29 @@ public sealed class ScratchFolder : IDisposable
 }
 
 /// <summary>
-/// What a watch handed its handler: every call, whether each ran on the main actor outside any Swift task, the
-/// paths in arrival order, and whether any batch said everything may have changed.
+/// What a watch handed its handler: every call, whether each ran where its source delivers (ED-116) outside any Swift
+/// task, the paths in arrival order, and whether any batch said everything may have changed. A log for
+/// <c>FileWatcher.WatchTree</c> is built with the SerialQueue the watch delivers on and records with <see cref="Record"/>;
+/// a log for <c>FileWatcher.WatchDirectory</c> is built without one and records with <see cref="RecordCall"/>.
 /// </summary>
-public sealed class WatchLog
+public sealed class WatchLog(SerialQueue? queue = null)
 {
     private readonly Lock gate = new();
     private readonly List<string> order = [];
     private readonly HashSet<string> seen = new(StringComparer.Ordinal);
     private int calls;
     private bool everything;
-    private bool offMainOrInTask;
+    private bool offTargetOrInTask;
     private bool emptyBatch;
 
-    /// <summary>The handler for <c>FileWatcher.WatchTree</c>.</summary>
+    /// <summary>The handler for <c>FileWatcher.WatchTree</c>: checks <c>queue.IsCurrent &amp;&amp; !SwiftTask.IsInTask</c>.</summary>
     public void Record(FileWatcherBatch batch)
     {
-        var onMainOutsideTask = MainActor.IsIsolated && !SwiftTask.IsInTask;
+        var onQueueOutsideTask = queue is not null && queue.IsCurrent && !SwiftTask.IsInTask;
         lock (gate)
         {
             calls++;
-            if (!onMainOutsideTask) offMainOrInTask = true;
+            if (!onQueueOutsideTask) offTargetOrInTask = true;
             if (batch.Everything) everything = true;
             if (batch.Paths.Count == 0 && !batch.Everything) emptyBatch = true;
             foreach (var path in batch.Paths)
@@ -78,14 +80,14 @@ public sealed class WatchLog
         }
     }
 
-    /// <summary>The handler for <c>FileWatcher.WatchDirectory</c>.</summary>
+    /// <summary>The handler for <c>FileWatcher.WatchDirectory</c>: checks <c>MainActor.IsIsolated &amp;&amp; !SwiftTask.IsInTask</c>.</summary>
     public void RecordCall()
     {
-        var onMainOutsideTask = MainActor.IsIsolated && !SwiftTask.IsInTask;
+        var onMainOutsideTask = queue is null && MainActor.IsIsolated && !SwiftTask.IsInTask;
         lock (gate)
         {
             calls++;
-            if (!onMainOutsideTask) offMainOrInTask = true;
+            if (!onMainOutsideTask) offTargetOrInTask = true;
         }
     }
 
@@ -99,10 +101,24 @@ public sealed class WatchLog
         get { lock (gate) return everything; }
     }
 
-    /// <summary>Every call so far ran on the main actor and outside any Swift task.</summary>
+    /// <summary>Every call so far ran on the log's SerialQueue and outside any Swift task (a tree-watch log only).</summary>
+    public bool AllOnTheirQueueOutsideAnyTask
+    {
+        get
+        {
+            if (queue is null) throw new InvalidOperationException("A directory-watch log has no queue; use AllOnMainOutsideAnyTask.");
+            lock (gate) return !offTargetOrInTask;
+        }
+    }
+
+    /// <summary>Every call so far ran on the main actor and outside any Swift task (a directory-watch log only).</summary>
     public bool AllOnMainOutsideAnyTask
     {
-        get { lock (gate) return !offMainOrInTask; }
+        get
+        {
+            if (queue is not null) throw new InvalidOperationException("A tree-watch log delivers on its queue; use AllOnTheirQueueOutsideAnyTask.");
+            lock (gate) return !offTargetOrInTask;
+        }
     }
 
     /// <summary>Some call carried no path and did not say everything.</summary>
