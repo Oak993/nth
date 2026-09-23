@@ -670,7 +670,9 @@ public sealed class MCPOAuthTests
         await Json(openid, 404, "{}");
         var error = await Fails(flow);
         Assert.IsType<MCPOAuthError.Case.MetadataFailed>(error.ErrorCase);
-        Assert.Equal("The server's sign-in details didn't make sense. The server answered 404.", error.ErrorDescription);
+        // :348 keeps the caught error's whole errorDescription as lastError and :351 wraps it in metadataFailed again, so
+        // fetchJSON's own "The server's sign-in details didn't make sense." prefix (:739) appears twice.
+        Assert.Equal("The server's sign-in details didn't make sense. The server's sign-in details didn't make sense. The server answered 404.", error.ErrorDescription);
     }
 
     [Fact]
@@ -861,7 +863,8 @@ public sealed class MCPOAuthTests
         Assert.Equal("/.well-known/openid-configuration", second.Target);
         await second.Respond(200, "OK", Encoding.UTF8.GetBytes("<html>not json</html>"), ("Content-Type", "text/html"));
         var error = await Fails(flow);
-        Assert.Equal("The server's sign-in details didn't make sense. The server answered 200.", error.ErrorDescription);
+        // :348 then :351: the caught metadataFailed's whole description becomes the detail, so the prefix appears twice.
+        Assert.Equal("The server's sign-in details didn't make sense. The server's sign-in details didn't make sense. The server answered 200.", error.ErrorDescription);
     }
 
     [Fact]
@@ -1435,6 +1438,8 @@ public sealed class MCPOAuthTests
         h.Runtime.Advance(TimeSpan.FromSeconds(29));
         await Json(second, 404, "{}");
         var error = await Fails(flow);
-        Assert.Equal("The server's sign-in details didn't make sense. The server answered 404.", error.ErrorDescription);
+        // :348 keeps the caught error's whole errorDescription as lastError and :351 wraps it in metadataFailed again, so
+        // fetchJSON's own "The server's sign-in details didn't make sense." prefix (:739) appears twice.
+        Assert.Equal("The server's sign-in details didn't make sense. The server's sign-in details didn't make sense. The server answered 404.", error.ErrorDescription);
     }
 }
