@@ -8,10 +8,10 @@ namespace Marrow.UI.Port;
 // Source: draft C (proto-C Port/Observation.cs), with task bodies on the ED-066 task model.
 
 /// <summary>
-/// A SwiftUI animation value. Abstract on purpose: the concrete curves (easeOut, spring with response and
-/// damping, ED-011) are defined by the UI units that port Chrome.swift, not by the foundation.
+/// A SwiftUI animation value. The concrete curves (the timing curves, springs and delay of ED-092 (2), ED-011) are
+/// records in SwiftAnimation.cs; the Chrome units define which curve each Chrome value is.
 /// </summary>
-public abstract record Animation;
+public abstract partial record Animation;
 
 /// <summary>
 /// The SwiftUI transaction: <c>withAnimation(anim) { mutate }</c> marks only the state changes made inside the
