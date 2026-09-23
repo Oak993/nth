@@ -579,7 +579,8 @@ public sealed class TimelineTests
         var json =
             "{\"threadID\":\"" + SwiftUUID.UuidString(threadID) + "\"," +
             "\"turns\":[{\"index\":0},\"not-an-object\",{\"index\":1}]," +
-            "\"followUps\":[{\"text\":\"ok\"},{\"attachments\":\"not-array\"}]," +
+            "\"followUps\":[{\"id\":\"" + SwiftUUID.UuidString(Guid.NewGuid()) + "\",\"text\":\"ok\",\"attachments\":[]," +
+            "\"createdAt\":\"2026-01-01T00:00:00Z\"},{\"attachments\":\"not-array\"}]," +
             "\"hydraMerges\":[{\"at\":\"2026-01-01T00:00:00Z\",\"outcome\":\"merged\",\"files\":1}," +
             "{\"at\":\"2026-01-01T00:00:00Z\",\"outcome\":\"not-a-real-outcome\",\"files\":1}]}";
         var document = Decode<ThreadDocument>(json);
