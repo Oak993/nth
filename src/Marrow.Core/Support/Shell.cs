@@ -232,15 +232,22 @@ public static class ShellCommandKind
         "var", "version", "help",
     };
 
-    /// <summary>
-    /// :161-162 Searches that run something of their own, which may well write.
-    /// DEVIATION ED-060 (1)-(2): OD-0008 A8 adds find's -fprint, -fprint0, -fprintf and -fls and fd's --exec and
-    /// --exec-batch to the seven upstream entries.
-    /// </summary>
+    /// <summary>:161-162 Searches that run something of their own, which may well write.</summary>
     private static readonly HashSet<string> SearchActions = new(SwiftStringComparer.Instance)
     {
         "-delete", "-exec", "-execdir", "-ok", "-okdir", "-x", "-X",
-        "-fprint", "-fprint0", "-fprintf", "-fls", "--exec", "--exec-batch",
+    };
+
+    // DEVIATION ED-060 (1): find's write actions that SearchActions lacks at B2.
+    private static readonly HashSet<string> FindWriteActions = new(SwiftStringComparer.Instance)
+    {
+        "-fprint", "-fprint0", "-fprintf", "-fls",
+    };
+
+    // DEVIATION ED-060 (2): fd's long spellings of -x and -X.
+    private static readonly HashSet<string> FdWriteActions = new(SwiftStringComparer.Instance)
+    {
+        "--exec", "--exec-batch",
     };
 
     // DEVIATION ED-060 (4): the read forms of git config. The key or pattern a getter takes belongs to it.
@@ -331,11 +338,17 @@ public static class ShellCommandKind
                 // :196-197 Redirection is already ruled out; awk can still shell out through system().
                 return !part.Contains("system(", StringComparison.Ordinal);
             case "find" or "fd":
+            {
                 // :198-199
-                return !arguments.Any(SearchActions.Contains);
+                if (arguments.Any(SearchActions.Contains)) return false;
+                // DEVIATION OD-0008 A8, ED-060 (1)-(2): each tool's own further write actions, by exact equality.
+                var further = SwiftString.Equal(tool, "find") ? FindWriteActions : FdWriteActions;
+                return !arguments.Any(further.Contains);
+            }
             case "sort":
-                // :200-201. DEVIATION ED-060 (3): -o in any spelling, --output and --output= included.
-                return !arguments.Any(a => SwiftString.HasPrefix(a, "-o") || SwiftString.HasPrefix(a, "--output"));
+                // :200-201. DEVIATION OD-0008 A8, ED-060 (3): also an argument that is --output or starts with --output=
+                // (PR-TERM-119 names only these two forms).
+                return !arguments.Any(a => SwiftString.HasPrefix(a, "-o") || SwiftString.Equal(a, "--output") || SwiftString.HasPrefix(a, "--output="));
             case "git":
             {
                 // :203
