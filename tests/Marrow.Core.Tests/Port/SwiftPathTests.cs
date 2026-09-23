@@ -779,6 +779,50 @@ public sealed class SwiftPathTests
         Assert.True(SwiftPath.IsAbsolute(@"\\?\UNC\srv\share\a"));
     }
 
+    [Fact]
+    [Trait("Decision", "ED-036")]
+    [Trait("Decision", "ED-139")]
+    [Trait("Decision", "ED-142")]
+    public void The_long_UNC_share_is_a_fixed_point_of_DeletingLastPathComponent()
+    {
+        // ED-139: \\?\UNC\srv\share is the same path as \\srv\share, so ED-036 applies to it: the upward walk of
+        // AppModel+Hydra.swift:332-340 (dir = deletingLastPathComponent until it stops shortening) ends at the share.
+        // ED-142: the root keeps its \\?\UNC\ lead-in. A port whose root is only the four-character \\?\ returns
+        // \\?\UNC\srv here.
+        Assert.Equal(@"\\?\UNC\srv\share", SwiftPath.DeletingLastPathComponent(@"\\?\UNC\srv\share"));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-036")]
+    [Trait("Decision", "ED-139")]
+    [Trait("Decision", "ED-142")]
+    public void Upward_walk_from_a_long_UNC_path_stops_at_the_share()
+    {
+        // ED-036 via ED-139: the walk of AppModel+Hydra.swift:332-340 ends at the share, never at \\?\UNC\srv.
+        Assert.Equal(@"\\?\UNC\srv\share", FixedPoint(@"\\?\UNC\srv\share\a\b"));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-036")]
+    [Trait("Decision", "ED-139")]
+    [Trait("Decision", "ED-142")]
+    public void Dot_dot_never_climbs_above_a_long_UNC_share()
+    {
+        // Standardization (AppModel+Hydra.swift:323, :326; TouchedPaths.swift:23, :25) treats the share as the root,
+        // as ED-036 does for \\srv\share; a port that pops the share returns "//srv/x".
+        Assert.Equal("//srv/share/x", SwiftPath.Normalize(SwiftPath.StandardizingPath(@"\\?\UNC\srv\share\..\x")));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-036")]
+    [Trait("Decision", "ED-139")]
+    [Trait("Decision", "ED-142")]
+    public void A_long_UNC_share_dot_dot_is_the_same_path_as_the_share()
+    {
+        // AppModel+Hydra.swift:326 compares standardized paths; ".." at the long-form share stays at the share.
+        Assert.True(SwiftPath.SamePath(@"\\?\UNC\srv\share\..", @"\\srv\share"));
+    }
+
     // ---- ED-140: URL.pathExtension (swift-foundation) and deletingLastPathComponent at a root (O-42, O-43) --------
 
     [Theory]
