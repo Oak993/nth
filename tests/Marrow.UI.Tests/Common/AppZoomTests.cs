@@ -218,28 +218,13 @@ public sealed class AppZoomTests(HeadlessSession headless)
         Assert.Equal(new Size(ContentWants.Width * scale, ContentWants.Height * scale), zoomed.DesiredSize);
     });
 
-    [Theory]
-    [InlineData(200, 700, 500, 1400, 1000)]
-    [InlineData(75, 1500, 1200, 1125, 900)]
-    [Trait("Req", "PR-WIN-220")] // UI/Common/AppZoom.swift:34-38 (:37 multiplies the content's size, no clamp)
-    public void Content_that_wants_more_than_the_unscaled_proposal_is_reported_at_its_size_times_the_scale_unclamped(
-        int level, double wantsWidth, double wantsHeight, double reportedWidth, double reportedHeight) => headless.OnUiThread(() =>
-    {
-        // :36 asks the content for its size under the unscaled proposal; :37 returns that size times the scale
-        // with no min against the proposal, so a report bigger than the host is kept as it is. If Avalonia's
-        // Layoutable clamps DesiredSize itself, this test exposes that as a platform divergence to report.
-        var scale = ScaleOf(level);
-        var content = new LayoutProbe(new Size(wantsWidth, wantsHeight));
-        var zoomed = new AppZoomModifier(level).Body(content);
-        zoomed.UseLayoutRounding = false;
-
-        zoomed.Measure(new Size(HostWidth, HostHeight));
-
-        Assert.True(wantsWidth > HostWidth / scale && wantsHeight > HostHeight / scale);
-        Assert.Equal(new Size(HostWidth / scale, HostHeight / scale), content.Measured[^1]);
-        Assert.Equal(new Size(wantsWidth * scale, wantsHeight * scale), zoomed.DesiredSize);
-        Assert.Equal(new Size(reportedWidth, reportedHeight), zoomed.DesiredSize);
-    });
+    // PENDING RULING (STOP UI.Common.AppZoom #1, platform gap): AppZoom.swift:36-37 reports the content's size
+    // under the unscaled proposal times the scale with no clamp, so content wanting 700x500 under a 1000x800 host
+    // at 200 would report 1400x1000, and content wanting 1500x1200 at 75 would report 1125x900. Avalonia 12.1.2
+    // Layoutable.MeasureCore clamps DesiredSize to the available size (in the child and again in the zoom panel),
+    // so no faithful Panel can report those sizes. No test encodes that case until an ED or platform-adaptation
+    // ruling is recorded; the expectation is never rewritten to the clamped 1000x800. When the ruling exists,
+    // encode it here with its Req trait and cite the ruling as the deviation.
 
     [Fact]
     [Trait("Req", "PR-WIN-220")] // UI/Common/AppZoom.swift:48-50 (proposal.width.map / proposal.height.map)
@@ -285,6 +270,34 @@ public sealed class AppZoomTests(HeadlessSession headless)
         Assert.Equal(new Point(placed.Width * scale, placed.Height * scale), farCorner);
         Assert.Equal(HostWidth, farCorner.X, 9);
         Assert.Equal(HostHeight, farCorner.Y, 9);
+    });
+
+    [Theory]
+    [InlineData(150, 600, 300, 400, 200)]
+    [InlineData(200, 1200, 900, 600, 450)]
+    [Trait("Req", "PR-WIN-220")] // UI/Common/AppZoom.swift:40-46 (:44 unscaled(ProposedViewSize(bounds.size))), :48-50
+    public void Placing_divides_the_bounds_it_is_arranged_in_not_the_size_it_was_measured_with(
+        int level, double boundsWidth, double boundsHeight, double placedWidth, double placedHeight) => headless.OnUiThread(() =>
+    {
+        // :36 proposes unscaled(proposal) when measuring; :44 proposes unscaled(bounds.size) when placing, a
+        // separate value. Measured under the 1000x800 host and then arranged in other bounds, the content is
+        // placed with those bounds divided by the scale, not with the measure proposal divided by it.
+        var scale = ScaleOf(level);
+        var content = new LayoutProbe(ContentWants);
+        var zoomed = new AppZoomModifier(level).Body(content);
+        zoomed.UseLayoutRounding = false;
+
+        zoomed.Measure(new Size(HostWidth, HostHeight));
+        zoomed.Arrange(new Rect(0, 0, boundsWidth, boundsHeight));
+
+        Assert.Equal(new Size(HostWidth / scale, HostHeight / scale), content.Measured[^1]);
+        Assert.Equal(new Size(boundsWidth / scale, boundsHeight / scale), content.Arranged[^1]);
+        Assert.Equal(new Size(placedWidth, placedHeight), content.Arranged[^1]);
+        var toHost = content.TransformToVisual(zoomed);
+        Assert.NotNull(toHost);
+        // :42-43 at bounds.origin, anchored top-leading, drawn back up by :24: the far corner is the bounds' far corner.
+        Assert.Equal(new Point(0, 0), toHost.Value.Transform(new Point(0, 0)));
+        Assert.Equal(new Point(boundsWidth, boundsHeight), toHost.Value.Transform(new Point(placedWidth, placedHeight)));
     });
 
     [Fact]
