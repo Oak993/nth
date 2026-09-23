@@ -7,11 +7,14 @@ using Marrow.Services.MCP;
 // Source: DroppyCode/Services/Providers/ACPSession.swift (B2 1fbf81e), :1-921. Part 1 of 8: the launch gate,
 // launchArguments, and start() through the initialize reply (PR-PROVACP-001..024). Part 2 of 8: openSession,
 // applySessionState, resolveModes, applyModels, applyConfigOptions and its static helpers (flatten,
-// isEffortScale, orderedEfforts, baseModelID, sameModel) (PR-PROVACP-025..047, 049). Part 3 of 8 (this change):
-// applySelection, setConfigOption, send, interrupt, resolveApproval (PR-PROVACP-053..073; compact and
-// answerQuestion were already implemented in part 1). probeModelEfforts, probeModels and the update/request/close
-// handlers belong to later parts' own records; they stay MARROW_STUB pending those parts (R-FILE-1: one file
-// per Swift file, but a function whose OWN records sit in a later part is left unimplemented until that part).
+// isEffortScale, orderedEfforts, baseModelID, sameModel) (PR-PROVACP-025..047, 049). Part 3 of 8: applySelection,
+// setConfigOption, send, interrupt, resolveApproval (PR-PROVACP-053..073; compact and answerQuestion were
+// already implemented in part 1). Part 4 of 8: finishPrompt, handleNotification, handleRequest, handleClose and
+// their static mapping helpers (PR-PROVACP-074..097). Part 5 of 8: makeToolCall/makeToolUpdate's title
+// synthesis machinery up through the command, read and edit branches (PR-PROVACP-098..121). Part 6 of 8 (this
+// change): the rest of makeToolCall/makeToolUpdate's title and detail synthesis (search, web, mcp/agent/other,
+// the fallback and isFallbackTitle tables, diffs()) and the catalog probe, probeModels and probeModelEfforts
+// (PR-PROVACP-122..138).
 
 namespace Marrow.Services.Providers;
 
@@ -253,9 +256,70 @@ public sealed class ACPSession : ProviderSession
         connection?.Close();
     }
 
-    // MARK: - Catalog (part 6+: uses ApplySelection/ProbeModelEfforts)
-    public static Task<ValueList<ModelOption>> ProbeModels(ProviderKind provider, SwiftURL executable, ValueMap<string, string> environment) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ACPSession.swift:228-247, part 6+"); // :228
+    // MARK: - Catalog
+
+    /// <summary>:229-230. Creates the probe's throwaway working directory under the system temp folder,
+    /// swallowing any failure (try?), and returns its path. Factored out (behaviourally identical to inline
+    /// code) so it can be proven without a live agent round trip, the same technique InitializeParams and
+    /// ApplyInitializeReply already use (part 1's header note). DEVIATION OD-0008 (OD-PENDING-17): named
+    /// "marrow-catalog", not upstream's "droppy-code-catalog".</summary>
+    private static string PrepareProbeCatalogDirectory()
+    {
+        var path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "marrow-catalog"); // :229
+        try { System.IO.Directory.CreateDirectory(path); } catch { } // :230
+        return path;
+    }
+
+    /// <summary>ENGINEERING DECISION mirroring Core/Models/Library.cs Url and Core/Models/Timeline.cs
+    /// Attachment.Url: F.URL (SwiftURL) only builds URL(string:); there is no ported fileURLWithPath
+    /// initializer, so a plain directory path is percent-encoded into a file:// URL by hand.</summary>
+    private static SwiftURL DirectoryFileUrl(string path)
+    {
+        var normalized = path.Replace('\\', '/');
+        var builder = new System.Text.StringBuilder();
+        if (normalized.Length == 0 || normalized[0] != '/') builder.Append('/');
+        foreach (var b in System.Text.Encoding.UTF8.GetBytes(normalized))
+        {
+            var c = (char)b;
+            if (b < 0x80 && (char.IsAsciiLetterOrDigit(c) || "-._~/:".IndexOf(c, StringComparison.Ordinal) >= 0)) builder.Append(c);
+            else builder.Append('%').Append(b.ToString("X2", System.Globalization.CultureInfo.InvariantCulture));
+        }
+        return SwiftURL.Create("file://" + builder) ?? throw SwiftTraps.Fatal("Invalid probe directory path.");
+    }
+
+    /// <summary>:231-238. The throwaway probe session's configuration: always supervised/build, so the probe
+    /// never launches with a permissive flag or opens a session in the user's project. :898-920's convenience
+    /// init (resumeID, resumeAt, model, effort all nil) is reached directly here, since those properties
+    /// already default to null on the record.</summary>
+    private static SessionConfiguration ProbeConfiguration(ProviderKind provider, SwiftURL executable, string directoryPath, ValueMap<string, string> environment) =>
+        new()
+        {
+            Provider = provider, // :232
+            Executable = executable, // :233
+            WorkingDirectory = DirectoryFileUrl(directoryPath), // :234
+            Environment = environment, // :235
+            RuntimeMode = RuntimeMode.Supervised, // :236
+            InteractionMode = InteractionMode.Build, // :237
+        };
+
+    // :228-247. Part 6 of 8 (PR-PROVACP-136, 137, 138).
+    public static async Task<ValueList<ModelOption>> ProbeModels(ProviderKind provider, SwiftURL executable, ValueMap<string, string> environment)
+    {
+        var directoryPath = PrepareProbeCatalogDirectory(); // :229-230
+        var session = new ACPSession(ProbeConfiguration(provider, executable, directoryPath, environment)); // :231-238
+        var models = ValueList<ModelOption>.Empty; // :239
+        session.OnEvent = evt => { if (evt is ProviderEvent.Models list) models = list.Value; }; // :240-242, only .models events; the last one wins
+        try
+        {
+            _ = await session.Start(); // :244
+            await session.ProbeModelEfforts(); // :245
+        }
+        finally
+        {
+            session.Stop(); // :243 defer { session.stop() }, runs on every exit path
+        }
+        return models; // :246
+    }
 
     // MARK: - Session state
 
@@ -306,8 +370,25 @@ public sealed class ACPSession : ProviderSession
     /// made current in turn and its scale read off the reply, and the model the session started on is put
     /// back. Models that arrived with a scale (Grok lists them in _meta.reasoningEfforts) are skipped by the
     /// where filter. :281-286. Part 6 of 8.</summary>
-    private Task ProbeModelEfforts() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ACPSession.swift:287-298, part 6+"); // :287
+    private async Task ProbeModelEfforts()
+    {
+        if (modelConfigID is not { } modelConfigIDValue) return; // :288
+        var original = currentModel; // :289
+        // :290 `for model in models where ...` iterates a snapshot of the array as it stood when the loop
+        // started (Swift array value semantics); `models` is reassigned inside the loop body (SetConfigOption
+        // -> ApplyConfigOptions), so the walk is taken over a materialized copy, never the live field.
+        var toWalk = models.Where(model => model.Efforts.Count == 0).ToList();
+        foreach (var model in toWalk)
+        {
+            await SetConfigOption(modelConfigIDValue, model.Id); // :291
+            currentModel = model.Id; // :292
+        }
+        if (original is { } originalValue && !SameModel(originalValue, currentModel)) // :294
+        {
+            await SetConfigOption(modelConfigIDValue, originalValue); // :295
+            currentModel = originalValue; // :296
+        }
+    }
 
     // :300-304. Part 2 of 8 (PR-PROVACP-035, PR-PROVACP-036).
     private void ResolveModes(IReadOnlyList<string> ids)
