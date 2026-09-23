@@ -13,6 +13,14 @@ namespace Marrow.App.Tests.Views.Composer;
 public sealed class AttachmentFlightTests(HeadlessSession headless)
 {
     [Fact]
+    [Trait("Decision", "ED-155")]
+    public void The_flight_window_extended_style_is_noactivate_layered_toolwindow_transparent()
+    {
+        Assert.Equal((nint)0x080800A0, AttachmentFlightWindow.WithFlightStyle(0));
+        Assert.Equal((nint)0x080800A8, AttachmentFlightWindow.WithFlightStyle(0x8));
+    }
+
+    [Fact]
     [Trait("Req", "UI-COMPOSER-080")] // App/Views/Composer/AttachmentFlight.swift:126-141
     public void The_flight_surface_is_borderless_transparent_nonactivating_and_click_through()
     {
