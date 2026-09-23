@@ -749,7 +749,9 @@ public sealed class SwiftPathTests
     public void OrdinalIgnoreCase_calls_final_sigma_and_capital_sigma_equal()
     {
         // The pitfall ED-137 names: .NET's OrdinalIgnoreCase is wider than NTFS (409 BMP pairs on this PC).
-        Assert.True(string.Equals("\U000003C2", "\U000003A3", StringComparison.OrdinalIgnoreCase)); // U+03C2, U+03A3
+        // string.Equals("\U000003C2", "\U000003A3", StringComparison.OrdinalIgnoreCase) is true (U+03C2, U+03A3); stated
+        // through the comparer because xUnit2010 rejects Assert.True over string.Equals.
+        Assert.Equal("\U000003C2", "\U000003A3", StringComparer.OrdinalIgnoreCase);
         Assert.False(SwiftPath.SamePath("C:\\\U000003C2", "C:\\\U000003A3"));
     }
 
