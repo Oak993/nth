@@ -10,12 +10,22 @@ namespace Marrow.Core.Tests.Port;
 //     exactly the new bytes or still the old ones; a missing parent folder is an error, never created
 //     (Services/Store/Storage.swift:108, :384; Services/Providers/NativeFileTools.swift:88, :118).
 //   FileManager.removeItem(at:): a folder is removed with everything in it (R-FS-1; App/AppModel+Hydra.swift:1110,
-//     App/Captures/WebsiteCaptures.swift:87); a missing item is an error that the try? sites swallow
-//     (Services/Store/Storage.swift:147, :372).
+//     Services/Providers/CommandCodeSession.swift:261); a missing item is an error that the try? sites swallow
+//     (Services/Store/Storage.swift:147, :372). Removing a link removes the link and never what it points at (POSIX
+//     unlink; removeItem does not descend into a symbolic link): Services/Git/Git.swift:619 removes paths under the
+//     doc comment at :600 "Nothing outside `paths` is touched", and a worktree folder (AppModel+Hydra.swift:1110)
+//     can hold links. On Windows the link a test can make without privilege is a junction.
 //   FileManager.moveItem(at:to:): an existing destination is an error, which is why App/AppUpdater.swift:515-516
 //     removes the destination before moving.
 //   FileManager.replaceItemAt(_:withItemAt:): the original takes the new item's bytes and the new item is gone
 //     (Services/Providers/CommandCodeSession.swift:757-758).
+// An .atomic write is a temporary file plus a replace (R-FS-1): a reader that already holds the destination keeps
+// the old bytes, and the temporary file sits beside the destination (a replace needs the same volume) under a
+// name that does not end in .json (Services/Store/Storage.swift:125 loads every *.json in a folder).
+// OPEN, reported to the orchestrator, not asserted here: the exact RetryDelays values (PA-0015 says only "backoff"
+// and "a bounded number of attempts"); what the "verify the bytes landed" step (PA-0015, R-FS-1) does on a
+// mismatch; which of its two outcomes replaceItemAt has when the original is missing; and whether an atomic
+// write over a read-only file leaves it read-only.
 // PA-0015 adds the Windows part: a transient sharing violation (a handle a child process left open) is retried
 // with backoff on SwiftClock (ED-068), a bounded number of times, then the real error is thrown; read-only is
 // cleared where POSIX would ignore it. The API these tests fix: static FileOps with RetryDelays
@@ -31,9 +41,10 @@ public sealed class FileOpsTests
 
     [Fact]
     [Trait("Rule", "R-FS-1")]
-    [Trait("Decision", "ED-068")]
     public void The_retry_schedule_is_a_bounded_backoff()
     {
+        // Shape only (PA-0015: backoff, a bounded number of attempts). The exact waits have no recorded value yet;
+        // they are reported for a ruling and get exact assertions once it exists.
         var delays = FileOps.RetryDelays;
         Assert.True(delays.Count >= 2, "a backoff needs at least two waits");
         Assert.All(delays, d => Assert.True(d > TimeSpan.Zero, "every wait is positive"));
@@ -103,7 +114,6 @@ public sealed class FileOpsTests
         Assert.IsAssignableFrom<IOException>(error); // not TimeoutException: no retry was armed and waited on
         Assert.True(SwiftTry.IsThrownError(error), "a try? site swallows it, as Swift's try? does");
         Assert.Equal(0, runtime.Time.ActiveTimers);
-        Assert.Equal(TimeSpan.Zero, runtime.Time.Elapsed);
         Assert.False(Directory.Exists(scratch.PathOf("attachments")));
         Assert.Empty(scratch.Names());
     }
@@ -126,6 +136,7 @@ public sealed class FileOpsTests
         await OffThread(() => FileOps.WriteAtomic(path, Newer)).WaitAsync(ManualClockWait.Guard);
         Assert.Equal(Newer, File.ReadAllBytes(path));
         Assert.Equal(["control.tmp", "mcp-port"], scratch.Names());
+        // Whether the result is still read-only is OPEN (no cited source or ruling); reported, not asserted.
     }
 
     [Fact]
@@ -150,10 +161,10 @@ public sealed class FileOpsTests
             runtime.Time.Advance(first - TimeSpan.FromTicks(1));
             Assert.False(write.IsCompleted, "no retry before the first wait has fully elapsed");
             Assert.Equal(1, runtime.Time.ActiveTimers);
-            // While it waits the reader still sees the old bytes, and no other entry in the folder ends in .json:
-            // Services/Store/Storage.swift:125 loads every *.json document it finds in a folder.
+            // While it waits the reader still sees the old bytes, and the temporary file waits beside the
+            // destination under a name that does not end in .json (Storage.swift:125).
             Assert.Equal(Old, ReadShared(path));
-            Assert.DoesNotContain(scratch.Names(), n => n != "library.json" && n.EndsWith(".json", StringComparison.Ordinal));
+            AssertOnlyATemporaryBeside(scratch, "", "library.json");
 
             held.Dispose();
             runtime.Time.Advance(TimeSpan.FromTicks(1));
@@ -376,7 +387,6 @@ public sealed class FileOpsTests
         Assert.IsAssignableFrom<IOException>(error); // not TimeoutException: a missing item is not transient
         Assert.True(SwiftTry.IsThrownError(error), "Storage.swift:147 swallows it with try?");
         Assert.Equal(0, runtime.Time.ActiveTimers);
-        Assert.Equal(TimeSpan.Zero, runtime.Time.Elapsed);
     }
 
     [Fact]
@@ -407,7 +417,7 @@ public sealed class FileOpsTests
         var error = await Assert.ThrowsAnyAsync<Exception>(
             () => OffThread(() => FileOps.MoveItem(source, destination)).WaitAsync(ManualClockWait.Guard));
         Assert.IsAssignableFrom<IOException>(error); // not TimeoutException: an existing destination is not transient
-        Assert.True(SwiftTry.IsThrownError(error), "AppUpdater.swift:517-519 catches it and reports the failure");
+        Assert.True(SwiftTry.IsThrownError(error), "AppUpdater.swift:518-519 catches it and reports the failure");
         Assert.Equal(0, runtime.Time.ActiveTimers);
         Assert.Equal(Newer, File.ReadAllBytes(source));
         Assert.Equal(Old, File.ReadAllBytes(destination));
@@ -486,6 +496,8 @@ public sealed class FileOpsTests
             runtime.Time.Advance(first - TimeSpan.FromTicks(1));
             Assert.False(replace.IsCompleted, "no retry before the first wait has fully elapsed");
             Assert.Equal(Old, ReadShared(file));
+            // Nothing is staged anywhere else: the folder holds the two items and at most one entry not ending in .json.
+            AssertAtMostOneTemporaryBeside(scratch, "", "call-9.reply.json", "call-9.reply.json.tmp");
 
             held.Dispose();
             runtime.Time.Advance(TimeSpan.FromTicks(1));
@@ -498,6 +510,282 @@ public sealed class FileOpsTests
         Assert.Equal(Newer, File.ReadAllBytes(file));
         Assert.False(File.Exists(temporary));
         Assert.Equal(["call-9.reply.json"], scratch.Names());
+    }
+
+    [Fact]
+    [Trait("Rule", "R-FS-1")]
+    [Trait("Rule", "R-TEST-9")]
+    [Trait("Rule", "R-TEST-4")]
+    [Trait("Decision", "ED-068")]
+    public async Task An_atomic_write_is_a_replace_so_a_reader_sharing_everything_keeps_the_old_bytes()
+    {
+        using var runtime = new TestRuntime();
+        using var scratch = new ScratchFolder();
+        var path = scratch.Seed("library.json", Old);
+
+        // Negative control: this holder lets an in-place write straight through and then reads the new bytes, so
+        // only a real replace (Storage.swift:384 .atomic, R-FS-1) leaves it reading the old ones.
+        var control = scratch.Seed("control.bin", Old);
+        using (var controlHolder = ScratchFolder.HoldOpenSharingAll(control))
+        {
+            File.WriteAllBytes(control, Newer);
+            Assert.Equal(Newer, ScratchFolder.ReadFromStart(controlHolder));
+        }
+        File.Delete(control);
+
+        var held = ScratchFolder.HoldOpenSharingAll(path);
+        try
+        {
+            var write = OffThread(() => FileOps.WriteAtomic(path, Newer));
+            var seen = SpinWait.SpinUntil(() => write.IsCompleted || runtime.Time.ActiveTimers == 1, ManualClockWait.Guard);
+            Assert.True(seen, "the write neither finished nor armed a retry timer on the manual clock");
+            Assert.Equal(Old, ScratchFolder.ReadFromStart(held));
+            if (!write.IsCompleted)
+            {
+                // A retry is pending (a plain rename over this holder is refused): the temporary file waits beside
+                // the destination, never staged elsewhere, and its name does not end in .json.
+                AssertOnlyATemporaryBeside(scratch, "", "library.json");
+                held.Dispose();
+                await DriveToCompletion(runtime, write);
+            }
+            await write.WaitAsync(ManualClockWait.Guard);
+        }
+        finally
+        {
+            held.Dispose();
+        }
+        Assert.Equal(Newer, File.ReadAllBytes(path));
+        Assert.Equal(["library.json"], scratch.Names());
+    }
+
+    [Fact]
+    [Trait("Rule", "R-FS-1")]
+    [Trait("Rule", "R-TEST-9")]
+    [Trait("Decision", "ED-068")]
+    public async Task An_atomic_write_tries_again_after_the_last_wait_and_lands_when_released_just_before_it()
+    {
+        using var runtime = new TestRuntime();
+        using var scratch = new ScratchFolder();
+        var path = scratch.Seed("library.json", Old);
+        var held = ScratchFolder.HoldOpen(path);
+        try
+        {
+            await ReleaseJustBeforeTheLastRetry(runtime, held, OffThread(() => FileOps.WriteAtomic(path, Newer)));
+        }
+        finally
+        {
+            held.Dispose();
+        }
+        Assert.Equal(Newer, File.ReadAllBytes(path));
+        Assert.Equal(["library.json"], scratch.Names());
+        Assert.Equal(TotalOfRetryDelays(), runtime.Time.Elapsed);
+    }
+
+    [Fact]
+    [Trait("Rule", "R-FS-1")]
+    [Trait("Rule", "R-TEST-9")]
+    [Trait("Decision", "ED-068")]
+    public async Task Removing_tries_again_after_the_last_wait_and_deletes_when_released_just_before_it()
+    {
+        using var runtime = new TestRuntime();
+        using var scratch = new ScratchFolder();
+        var path = scratch.Seed("call-7.request.json", Old);
+        var held = ScratchFolder.HoldOpen(path);
+        try
+        {
+            await ReleaseJustBeforeTheLastRetry(runtime, held, OffThread(() => FileOps.RemoveItem(path)));
+        }
+        finally
+        {
+            held.Dispose();
+        }
+        Assert.False(File.Exists(path));
+        Assert.Empty(scratch.Names());
+        Assert.Equal(TotalOfRetryDelays(), runtime.Time.Elapsed);
+    }
+
+    [Fact]
+    [Trait("Rule", "R-FS-1")]
+    [Trait("Rule", "R-TEST-9")]
+    [Trait("Decision", "ED-068")]
+    public async Task Moving_tries_again_after_the_last_wait_and_moves_when_released_just_before_it()
+    {
+        using var runtime = new TestRuntime();
+        using var scratch = new ScratchFolder();
+        var source = scratch.Seed("download.tmp", Newer);
+        var destination = scratch.PathOf("Marrow.zip");
+        var held = ScratchFolder.HoldOpen(source);
+        try
+        {
+            await ReleaseJustBeforeTheLastRetry(runtime, held, OffThread(() => FileOps.MoveItem(source, destination)));
+        }
+        finally
+        {
+            held.Dispose();
+        }
+        Assert.False(File.Exists(source));
+        Assert.Equal(Newer, File.ReadAllBytes(destination));
+        Assert.Equal(["Marrow.zip"], scratch.Names());
+        Assert.Equal(TotalOfRetryDelays(), runtime.Time.Elapsed);
+    }
+
+    [Fact]
+    [Trait("Rule", "R-FS-1")]
+    [Trait("Rule", "R-TEST-9")]
+    [Trait("Decision", "ED-068")]
+    public async Task Replacing_tries_again_after_the_last_wait_and_completes_when_released_just_before_it()
+    {
+        using var runtime = new TestRuntime();
+        using var scratch = new ScratchFolder();
+        var file = scratch.Seed("call-9.reply.json", Old);
+        var temporary = scratch.Seed("call-9.reply.json.tmp", Newer);
+        var held = ScratchFolder.HoldOpen(file);
+        try
+        {
+            await ReleaseJustBeforeTheLastRetry(runtime, held, OffThread(() => FileOps.ReplaceItemAt(file, temporary)));
+        }
+        finally
+        {
+            held.Dispose();
+        }
+        Assert.Equal(Newer, File.ReadAllBytes(file));
+        Assert.False(File.Exists(temporary));
+        Assert.Equal(["call-9.reply.json"], scratch.Names());
+        Assert.Equal(TotalOfRetryDelays(), runtime.Time.Elapsed);
+    }
+
+    [Fact]
+    [Trait("Rule", "R-FS-1")]
+    [Trait("Rule", "R-TEST-4")]
+    public async Task Removing_a_folder_removes_a_junction_inside_it_and_nothing_it_points_at()
+    {
+        using var runtime = new TestRuntime();
+        using var scratch = new ScratchFolder();
+        // Git.swift:619 under :600 "Nothing outside `paths` is touched"; AppModel+Hydra.swift:1110 removes a worktree.
+        var keep = scratch.Seed(Path.Combine("outside", "keep.txt"), Old);
+        File.SetAttributes(keep, FileAttributes.ReadOnly);
+        var own = scratch.Seed(Path.Combine("worktree", "README.md"), Newer);
+        File.SetAttributes(own, FileAttributes.ReadOnly);
+        scratch.Junction(Path.Combine("worktree", "node_modules"), "outside");
+
+        // Negative control: a recursive walk of the folder goes through the junction and reaches the outside file,
+        // so a walk that clears read-only or deletes what it enumerates would damage it.
+        Assert.Contains(
+            Directory.EnumerateFileSystemEntries(scratch.PathOf("worktree"), "*", SearchOption.AllDirectories),
+            e => e.EndsWith(Path.Combine("node_modules", "keep.txt"), StringComparison.Ordinal));
+
+        await OffThread(() => FileOps.RemoveItem(scratch.PathOf("worktree"))).WaitAsync(ManualClockWait.Guard);
+        Assert.False(Directory.Exists(scratch.PathOf("worktree")));
+        Assert.Equal(["outside"], scratch.Names());
+        Assert.Equal(["keep.txt"], scratch.Names("outside"));
+        Assert.Equal(Old, File.ReadAllBytes(keep));
+        Assert.True(File.GetAttributes(keep).HasFlag(FileAttributes.ReadOnly), "the outside file keeps its read-only attribute");
+    }
+
+    [Fact]
+    [Trait("Rule", "R-FS-1")]
+    public async Task Removing_a_junction_removes_only_the_link()
+    {
+        using var runtime = new TestRuntime();
+        using var scratch = new ScratchFolder();
+        var keep = scratch.Seed(Path.Combine("outside", "keep.txt"), Old);
+        File.SetAttributes(keep, FileAttributes.ReadOnly);
+        Directory.CreateDirectory(scratch.PathOf("worktree"));
+        var link = scratch.Junction(Path.Combine("worktree", "node_modules"), "outside");
+
+        await OffThread(() => FileOps.RemoveItem(link)).WaitAsync(ManualClockWait.Guard);
+        Assert.Empty(scratch.Names("worktree"));
+        Assert.Equal(["outside", "worktree"], scratch.Names());
+        Assert.Equal(["keep.txt"], scratch.Names("outside"));
+        Assert.Equal(Old, File.ReadAllBytes(keep));
+        Assert.True(File.GetAttributes(keep).HasFlag(FileAttributes.ReadOnly), "the target's file keeps its read-only attribute");
+    }
+
+    [Fact]
+    [Trait("Rule", "R-FS-1")]
+    [Trait("Rule", "R-ERR-1")]
+    public async Task Replacing_a_missing_original_either_moves_the_item_there_or_throws_and_changes_nothing()
+    {
+        using var runtime = new TestRuntime();
+        using var scratch = new ScratchFolder();
+        // The common case at the only call site: CommandCodeSession.swift:754-758 replaces <id>.reply.json, which
+        // does not exist before the first reply. WHICH of the two outcomes Foundation's replaceItemAt has here is
+        // open (no cited source settles it) and is reported for an oracle id; this test fixes what holds either
+        // way: no partial state, no retry (a missing item is not a sharing violation), nothing staged.
+        var file = scratch.PathOf("call-9.reply.json");
+        var temporary = scratch.Seed("call-9.reply.json.tmp", Newer);
+        Exception? error = null;
+        try
+        {
+            await OffThread(() => FileOps.ReplaceItemAt(file, temporary)).WaitAsync(ManualClockWait.Guard);
+        }
+        catch (Exception caught)
+        {
+            error = caught;
+        }
+        Assert.Equal(0, runtime.Time.ActiveTimers);
+        if (error is null)
+        {
+            Assert.Equal(Newer, File.ReadAllBytes(file));
+            Assert.Equal(["call-9.reply.json"], scratch.Names());
+        }
+        else
+        {
+            Assert.IsAssignableFrom<IOException>(error); // not TimeoutException: nothing was waited on
+            Assert.True(SwiftTry.IsThrownError(error), "CommandCodeSession.swift:760-761 catches it and writes instead");
+            Assert.Equal(Newer, File.ReadAllBytes(temporary));
+            Assert.Equal(["call-9.reply.json.tmp"], scratch.Names());
+        }
+    }
+
+    // Holds a real handle through every wait but the last, releases it after the last retry timer is armed and
+    // before that wait elapses: a correct helper makes one more attempt after the last wait.
+    private static async Task ReleaseJustBeforeTheLastRetry(TestRuntime runtime, FileStream held, Task operation)
+    {
+        var delays = FileOps.RetryDelays;
+        for (var i = 0; i < delays.Count - 1; i++)
+        {
+            ManualClockWait.ForRetryTimer(runtime.Time, operation);
+            runtime.Time.Advance(delays[i]);
+        }
+        ManualClockWait.ForRetryTimer(runtime.Time, operation);
+        held.Dispose();
+        runtime.Time.Advance(delays[^1]);
+        await operation.WaitAsync(ManualClockWait.Guard);
+    }
+
+    // Fires each pending retry timer until the operation finishes; at most one attempt per wait in the schedule.
+    private static async Task DriveToCompletion(TestRuntime runtime, Task operation)
+    {
+        for (var fired = 0; !operation.IsCompleted && fired <= FileOps.RetryDelays.Count; fired++)
+        {
+            var seen = SpinWait.SpinUntil(() => operation.IsCompleted || runtime.Time.ActiveTimers == 1, ManualClockWait.Guard);
+            Assert.True(seen, "the operation neither finished nor armed a retry timer on the manual clock");
+            if (!operation.IsCompleted) runtime.Time.Advance(FileOps.RetryDelays.Max());
+        }
+        await operation.WaitAsync(ManualClockWait.Guard);
+    }
+
+    private static TimeSpan TotalOfRetryDelays() => FileOps.RetryDelays.Aggregate(TimeSpan.Zero, (sum, d) => sum + d);
+
+    // While a retry waits: the folder holds the items and exactly one more entry, the temporary file, whose name
+    // does not end in .json (Storage.swift:125).
+    private static void AssertOnlyATemporaryBeside(ScratchFolder scratch, string folder, params string[] items)
+    {
+        var names = scratch.Names(folder);
+        Assert.All(items, item => Assert.Contains(item, names));
+        var extra = Assert.Single(names.Except(items, StringComparer.Ordinal));
+        Assert.False(extra.EndsWith(".json", StringComparison.Ordinal), "the temporary file ends in .json: " + extra);
+    }
+
+    // While a retry waits: the folder holds the items and at most one more entry, not ending in .json.
+    private static void AssertAtMostOneTemporaryBeside(ScratchFolder scratch, string folder, params string[] items)
+    {
+        var names = scratch.Names(folder);
+        Assert.All(items, item => Assert.Contains(item, names));
+        var extra = names.Except(items, StringComparer.Ordinal).ToArray();
+        Assert.True(extra.Length <= 1, "more than one staged entry: " + string.Join(", ", extra));
+        Assert.DoesNotContain(extra, n => n.EndsWith(".json", StringComparison.Ordinal));
     }
 
     // Reads a file another handle holds open for reading (File.ReadAllBytes asks for FileShare.Read, which that

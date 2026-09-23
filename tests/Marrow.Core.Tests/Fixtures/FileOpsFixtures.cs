@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Marrow.Testing;
 
 namespace Marrow.Core.Tests.Fixtures;
@@ -11,8 +12,10 @@ public sealed class ScratchFolder : IDisposable
 {
     public ScratchFolder()
     {
+        // R-TEST-9: the variable is set before anything runs. No fallback folder is invented when it is missing.
         var root = Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR");
-        if (string.IsNullOrEmpty(root)) root = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "marrow-port-tests");
+        if (string.IsNullOrEmpty(root))
+            throw new InvalidOperationException("MARROW_PORT_DATA_DIR is not set; R-TEST-9 requires it before any test runs");
         FullPath = System.IO.Path.Combine(root, "FileOpsTests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(FullPath);
     }
@@ -44,17 +47,80 @@ public sealed class ScratchFolder : IDisposable
     /// </summary>
     public static FileStream HoldOpen(string path) => new(path, FileMode.Open, FileAccess.Read, FileShare.Read);
 
+    /// <summary>
+    /// A reader that shares everything (read, write and delete), the way Node and git open files. It does not block
+    /// an in-place write, so it tells a real replace (the handle keeps the old bytes) from an overwrite (the handle
+    /// sees the new ones).
+    /// </summary>
+    public static FileStream HoldOpenSharingAll(string path) =>
+        new(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+
+    /// <summary>Everything <paramref name="stream"/> reads from position 0.</summary>
+    public static byte[] ReadFromStart(FileStream stream)
+    {
+        stream.Position = 0;
+        using var copy = new MemoryStream();
+        stream.CopyTo(copy);
+        return copy.ToArray();
+    }
+
+    /// <summary>
+    /// Makes the folder <paramref name="linkRelative"/> a junction to <paramref name="targetRelative"/> with the
+    /// system's <c>mklink /J</c>, which needs no privilege (R-TEST-10: a system binary, no network).
+    /// </summary>
+    public string Junction(string linkRelative, string targetRelative)
+    {
+        var link = PathOf(linkRelative);
+        var start = new ProcessStartInfo(System.IO.Path.Combine(Environment.SystemDirectory, "cmd.exe"))
+        {
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            CreateNoWindow = true,
+        };
+        foreach (var argument in new[] { "/d", "/c", "mklink", "/J", link, PathOf(targetRelative) }) start.ArgumentList.Add(argument);
+        using var process = Process.Start(start)!;
+        var output = process.StandardOutput.ReadToEnd() + process.StandardError.ReadToEnd();
+        Assert.True(process.WaitForExit(ManualClockWait.Guard), "mklink did not finish");
+        Assert.True(process.ExitCode == 0, "mklink /J failed: " + output);
+        Assert.True(File.GetAttributes(link).HasFlag(FileAttributes.ReparsePoint), "the link is not a reparse point");
+        return link;
+    }
+
     public void Dispose()
     {
         try
         {
-            if (!Directory.Exists(FullPath)) return;
-            foreach (var entry in Directory.EnumerateFileSystemEntries(FullPath, "*", SearchOption.AllDirectories))
-                File.SetAttributes(entry, FileAttributes.Normal);
-            Directory.Delete(FullPath, recursive: true);
+            if (Directory.Exists(FullPath)) RemoveTree(FullPath);
         }
         catch (IOException) { }
         catch (UnauthorizedAccessException) { }
+    }
+
+    // Removes a folder without ever following a junction or link inside it: a link is removed as itself, so the
+    // clean-up cannot clear attributes on, or delete, anything the link points at.
+    private static void RemoveTree(string directory)
+    {
+        foreach (var entry in Directory.EnumerateFileSystemEntries(directory))
+        {
+            var attributes = File.GetAttributes(entry);
+            if (attributes.HasFlag(FileAttributes.ReparsePoint))
+            {
+                if (attributes.HasFlag(FileAttributes.Directory)) Directory.Delete(entry);
+                else File.Delete(entry);
+            }
+            else if (attributes.HasFlag(FileAttributes.Directory))
+            {
+                RemoveTree(entry);
+            }
+            else
+            {
+                File.SetAttributes(entry, FileAttributes.Normal);
+                File.Delete(entry);
+            }
+        }
+        File.SetAttributes(directory, FileAttributes.Directory);
+        Directory.Delete(directory);
     }
 }
 
