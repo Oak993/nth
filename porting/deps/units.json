@@ -509,24 +509,14 @@
    ],
    "intra_deps": [],
    "records_total": 3,
-   "records_todo": [
-    "PR-COMPOSER-083",
-    "PR-COMPOSER-084",
-    "UI-COMPOSER-080"
-   ],
-   "parts": [
-    [
-     "PR-COMPOSER-083",
-     "PR-COMPOSER-084",
-     "UI-COMPOSER-080"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M7-071",
     "T-M7-072"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "App.Views.Terminal.TerminalFont",
