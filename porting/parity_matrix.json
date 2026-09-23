@@ -7,11 +7,11 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "IMPLEMENTED": 707,
+      "IMPLEMENTED": 713,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
-      "SPECIFIED": 3173,
+      "SPECIFIED": 3168,
       "RETIRED": 6,
-      "DISCOVERED": 27
+      "DISCOVERED": 26
     },
     "by_area": {
       "CHAT": 193,
@@ -16050,7 +16050,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Port both readers with their own patterns.",
       "verification_method": "unit asserting that a hydra-leaving opener matches the whole-message reader and not either streaming reader",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "porting/extracts/hydra-prompt-corpus.md section 16 item 2",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -16164,7 +16164,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Seven exact key names. TextCleanup.singleLine's exact truncation behaviour (whether it appends an ellipsis) is owned by the shared text layer and must match, because it decides the head's visible title.",
       "verification_method": "unit over each field, each alias and the missing-prompt case",
-      "status": "DISCOVERED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -16188,7 +16188,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A port that falls through on emptiness would name heads the macOS app leaves unnamed. Reproduce the shadowing exactly.",
       "verification_method": "unit over {\"name\": \"\", \"head\": \"Otto\"} and {\"project\": \"\", \"repo\": \"gaze-site\"}",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "28",
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -16358,7 +16358,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Walk UTF-8 bytes, not UTF-16 code units, so a multi-byte character can never be mistaken for an ASCII delimiter. Braces are ASCII so both ends of an entry sit on character boundaries.",
       "verification_method": "unit over a partial array, a bare object, an escaped quote inside a prompt, a column-0 backtick inside a JSON string and one outside an entry",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -16385,7 +16385,7 @@
       "cancellation": "The parser is discarded when the turn ends or the message is replaced.",
       "windows_path": "Reproduce the state machine including the extra-backtick tolerance at state 3 and the reset-to-1-on-backtick rule. Feed it only newly appended bytes.",
       "verification_method": "unit feeding the same text in one chunk and in many one-byte chunks, asserting identical results",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -16409,7 +16409,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Test the two implementations against each other over a corpus of block texts.",
       "verification_method": "property test comparing the two readers over generated block texts",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
