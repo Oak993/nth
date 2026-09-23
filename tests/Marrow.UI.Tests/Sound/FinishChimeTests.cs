@@ -1,5 +1,7 @@
 using System.Reflection;
+using Marrow.UI.Port;
 using Marrow.UI.Sound;
+using Marrow.UI.Tests.Fixtures;
 
 namespace Marrow.UI.Tests.Sound;
 
@@ -12,18 +14,11 @@ namespace Marrow.UI.Tests.Sound;
 // 0.349999994...), so the test below checks the field's declared type, not just its value. Notes and
 // Partials are checked against the literals at :25-36, independently of any C# implementation.
 //
-// What this file cannot test, and why (see the STOP filed for this part for the full reasoning):
-// - Actual audio output on the system device (side effect, not observable in an automated test).
-// - "NSSound declines a play while one is in flight" (:18-21), "play() is a silent no-op" when the
-//   sound could not be created (:18-22, failure_cases), "the tone is rendered on first use, not at
-//   launch, once" (:12-16, `static let` lazy init), and whether FinishChime hands ToneSynth the exact
-//   Notes/Partials at duration 0.7 (:13): the Swift source has no seam for any of these (`sound?.play()`
-//   runs straight to the real NSSound object, `sound` is a plain `static let`), and no port-only voice
-//   abstraction FinishChime could be tested through exists anywhere in the tree yet (src/Marrow.UI/Port
-//   holds only AvaloniaMainExecutor, ViewLifetime and ViewSupport). Inventing that abstraction's shape
-//   here, as a test-only part barred from writing implementation code, would commit the not-yet-written
-//   FinishChime.cs to an injection pattern no ED or work packet settles. Filed as a STOP rather than
-//   guessed; see the report for this unit.
+// ED-151 gives the seam this file previously stopped on: F.Sound's SwiftSound and SoundOutput, with
+// FakeSoundOutput (tests/Marrow.UI.Tests/Fixtures/FakeSoundOutput.cs) recording every play. The four
+// behavioural tests below run against the fake and reach into the private `Sound`/`SoundBuilt` fields
+// with reflection (saving and restoring them) so each test starts from a known, unbuilt state
+// regardless of test order and leaves the type's static state as it found it.
 public sealed class FinishChimeTests
 {
     [Fact]
@@ -84,6 +79,97 @@ public sealed class FinishChimeTests
 
         Assert.NotNull(method);
         Assert.Equal(typeof(void), method!.ReturnType);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-THEME-081")] // UI/Sound/FinishChime.swift:12-16
+    public void Play_builds_the_one_sound_from_ToneSynth_wave_over_notes_partials_duration_0_7_at_volume_0_35()
+    {
+        ResetSoundState();
+        var fake = new FakeSoundOutput();
+        using var _ = SoundOutput.Current.Override(fake);
+
+        FinishChime.Play();
+
+        var play = Assert.Single(fake.Plays);
+        var expectedBytes = ToneSynth.Wave(
+            GetPrivateStatic<IReadOnlyList<ToneSynth.Note>>("Notes"),
+            GetPrivateStatic<IReadOnlyList<ToneSynth.Partial>>("Partials"),
+            0.7);
+        Assert.Equal(expectedBytes, play.Sound.Data.ToArray());
+        Assert.Equal(0.35f, play.Volume);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-THEME-081")] // UI/Sound/FinishChime.swift:12-16
+    public void The_sound_is_built_on_first_play_and_not_before_or_again()
+    {
+        ResetSoundState();
+        var fake = new FakeSoundOutput();
+        using var _ = SoundOutput.Current.Override(fake);
+
+        Assert.Null(GetSoundField());
+
+        FinishChime.Play();
+        var built = GetSoundField();
+        Assert.NotNull(built);
+
+        fake.CompleteLast();
+        FinishChime.Play();
+
+        Assert.Same(built, GetSoundField());
+        Assert.Equal(2, fake.Plays.Count);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-THEME-081")] // UI/Sound/FinishChime.swift:18-21
+    public void A_play_while_the_chime_is_still_sounding_makes_no_second_chime()
+    {
+        ResetSoundState();
+        var fake = new FakeSoundOutput();
+        using var _ = SoundOutput.Current.Override(fake);
+
+        FinishChime.Play();
+        FinishChime.Play();
+
+        Assert.Single(fake.Plays);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-THEME-081")] // UI/Sound/FinishChime.swift:18-22 failure_cases
+    public void Play_does_nothing_when_the_sound_could_not_be_created()
+    {
+        ResetSoundState();
+        SetSoundField(built: true, sound: null);
+        var fake = new FakeSoundOutput();
+        using var _ = SoundOutput.Current.Override(fake);
+
+        var exception = Record.Exception(FinishChime.Play);
+
+        Assert.Null(exception);
+        Assert.Empty(fake.Plays);
+    }
+
+    /// <summary>Leaves FinishChime's static sound cache as if Play had never run, saving nothing back:
+    /// each test that calls this starts clean and the real chime is rebuilt (harmlessly, no output
+    /// attached) the next time any later test plays it.</summary>
+    private static void ResetSoundState() => SetSoundField(built: false, sound: null);
+
+    private static void SetSoundField(bool built, SwiftSound? sound)
+    {
+        var builtField = typeof(FinishChime).GetField("SoundBuilt", BindingFlags.NonPublic | BindingFlags.Static);
+        var soundField = typeof(FinishChime).GetField("Sound", BindingFlags.NonPublic | BindingFlags.Static);
+        Assert.NotNull(builtField);
+        Assert.NotNull(soundField);
+        builtField!.SetValue(null, built);
+        soundField!.SetValue(null, sound);
+    }
+
+    private static SwiftSound? GetSoundField()
+    {
+        var soundField = typeof(FinishChime).GetField("Sound", BindingFlags.NonPublic | BindingFlags.Static);
+        Assert.NotNull(soundField);
+        return (SwiftSound?)soundField!.GetValue(null);
     }
 
     private static T GetPrivateStatic<T>(string name)
