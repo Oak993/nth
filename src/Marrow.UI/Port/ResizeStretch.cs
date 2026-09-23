@@ -1,6 +1,7 @@
 // PORT-ONLY: the live-resize remedy `stretch` of OD-0017 as ED-101 builds it; Droppy Code has no Swift twin (AppKit
 // windows need no remedy). Evidence: porting/probes/p4b/RESULT.md, "What the strip is" and "How the production chrome
 // should implement it" (steps 1 to 5, cited below as RESULT.md step n).
+using System.Collections.Frozen;
 using System.Diagnostics;
 using System.Globalization;
 using System.Numerics;
@@ -26,6 +27,13 @@ public sealed class ResizeStretchLog(Action<string> write)
         if (Interlocked.Exchange(ref written, 1) == 0) write(message);
     }
 }
+
+/// <summary>
+/// Passes on what RESULT.md step 3 reads back: the content visual's RelativeSizeAdjustment and the surface brush's
+/// Stretch (a CompositionStretch value). The process default returns both unchanged; tests replace it through
+/// ResizeStretch.ReadBack to make a read-back differ or fail, which ED-101's failure path must survive.
+/// </summary>
+public delegate (Vector2 Relative, object Stretch) ResizeStretchReadBack(Vector2 relative, object stretch);
 
 /// <summary>
 /// `stretch` on one Avalonia.Win32 top-level window (ED-101). Avalonia 12.1.2 sizes its content SpriteVisual absolutely
@@ -60,6 +68,17 @@ public sealed class ResizeStretch
 
     /// <summary>The one-time log. The process default writes to System.Diagnostics.Trace.</summary>
     public static Ambient<ResizeStretchLog> Log { get; } = new(() => new ResizeStretchLog(message => Trace.WriteLine(message)));
+
+    /// <summary>The step 3 read-back (ResizeStretchReadBack). The process default passes the values on unchanged.</summary>
+    public static Ambient<ResizeStretchReadBack> ReadBack { get; } =
+        new(new ResizeStretchReadBack((relative, stretch) => (relative, stretch)));
+
+    /// <summary>
+    /// RequiredMembers that Apply treats as not found, as if the Avalonia.Win32 in use lacked them (ED-101: "if any
+    /// member is missing"). Empty in the process; tests replace it to run the missing-member path on a real window.
+    /// MissingMembers ignores it, so the Avalonia 12.1.2 pin always reads the real assembly.
+    /// </summary>
+    public static Ambient<IReadOnlySet<string>> Unresolved { get; } = new(FrozenSet<string>.Empty);
 
     /// <summary>Every member the remedy resolves, as "Type.Member" (ED-101; RESULT.md steps 1 and 2).</summary>
     public static IReadOnlyList<string> RequiredMembers { get; } =
@@ -180,9 +199,11 @@ public sealed class ResizeStretch
             return null;
         }
         var members = Members.For(implType.Assembly);
-        if (members.Missing.Count > 0)
+        var unresolved = Unresolved.Current;
+        var missing = members.Missing.Concat(RequiredMembers.Where(unresolved.Contains)).Distinct(StringComparer.Ordinal).ToList();
+        if (missing.Count > 0)
         {
-            log.Once("ResizeStretch: " + implType.Assembly.GetName() + " lacks " + string.Join(", ", members.Missing) + Keeps);
+            log.Once("ResizeStretch: " + implType.Assembly.GetName() + " lacks " + string.Join(", ", missing) + Keeps);
             return null;
         }
         var surface = members.GlSurface.GetValue(impl);
@@ -226,8 +247,8 @@ public sealed class ResizeStretch
                 members.Visual.SetValue(compositedWindow, parked);
 
                 // RESULT.md step 3: read both back.
-                var relative = (Vector2)members.GetRelative.Invoke(content2, null)!;
-                var stretch = members.GetStretch.Invoke(brush, null)!;
+                var (relative, stretch) = ReadBack.Current(
+                    (Vector2)members.GetRelative.Invoke(content2, null)!, members.GetStretch.Invoke(brush, null)!);
                 failure = relative == Vector2.One && Equals(stretch, members.Fill)
                     ? null
                     : string.Create(CultureInfo.InvariantCulture,
