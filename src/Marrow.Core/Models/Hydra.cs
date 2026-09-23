@@ -66,17 +66,11 @@ namespace Marrow.Core.Models;
 // surface in this file is HydraMergeStage.Words alone (already implemented and tested, part 1); its
 // geometry, typography, colors, transitions and shimmer belong to App/Views/Chat/TimelineRows.swift, a UI
 // unit, and are untestable here.
-// STOP (missing dependency, PR-HYDRA-084/085/098): Delegations(string) stays MARROW_STUB. Its Swift
-// twin's private helper delegations(fromBody:) (:1156-1162) calls delegation(fromEntry:), which Swift
-// declares as an extension of HydraPrompts in a DIFFERENT file, DroppyCode/Core/Models/
-// HydraDelegationStream.swift:110-118 - not this unit's Hydra.swift. That extension's C# twin belongs in
-// HydraDelegationStream.cs (R-FILE-1: "an extension X in another file is a partial of X in that file's
-// twin"), a file that does not exist anywhere in this tree (grepped, none found) because unit
-// Core.Models.HydraDelegationStream has not been built yet, and this packet's own "C# this unit depends
-// on" section does not list it. Per the packet's hard fences ("If ... a dependency ... is missing from the
-// C# tree, STOP and report it; never write a stand-in") this call is left unwritten rather than inlined
-// into this file (which would also violate R-FILE-1) or stood in with a guess at delegation(fromEntry:)'s
-// exact keep/reject/title/name rules. See the STOP block in this unit's report.
+// Orchestrator ruling (run4, on this unit's STOP over PR-HYDRA-084/085/098): delegation(fromEntry:)
+// (DroppyCode/Core/Models/HydraDelegationStream.swift:110-118, an extension of HydraPrompts) is ported
+// as the HydraPrompts partial src/Marrow.Core/Models/HydraDelegationStream.cs (R-FILE-1), containing only
+// that member; Delegations(string)/DelegationsFromBody below call it directly. The rest of
+// HydraDelegationStream.swift is left for unit Core.Models.HydraDelegationStream to add to that file.
 
 // :17-51. Codable is synthesized (no CodingKeys, no custom init(from:)/encode(to:)): id and name are strictly
 // required in declaration order, provider/model/effort are decodeIfPresent/encodeIfPresent (R-CODE-1).
@@ -1434,14 +1428,35 @@ public static partial class HydraPrompts
     // PR-HYDRA-089
     public static bool HasDelegationOpener(string @in) => DelegationOpenerPattern().IsMatch(@in);
 
-    // :1140-1149, :1156-1162. Blocked: delegations(fromBody:) calls delegation(fromEntry:), declared as an
-    // extension of HydraPrompts in DroppyCode/Core/Models/HydraDelegationStream.swift:110-118, a different
-    // Swift file whose C# twin (a separate unit, Core.Models.HydraDelegationStream) does not exist yet in
-    // this tree. Per R-FILE-1 that function belongs in HydraDelegationStream.cs, not here, and per the
-    // packet's hard fences a missing cross-file dependency is never stood in for. STOP (see report):
-    // PR-HYDRA-084, PR-HYDRA-085, PR-HYDRA-098 stay unwritten.
-    public static ValueList<HydraDelegation>? Delegations(string @in) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Hydra.swift:1140 - blocked, see STOP in report: HydraDelegationStream.swift:110 delegation(fromEntry:) is not yet ported (Core.Models.HydraDelegationStream)");
+    // :1156-1162. A body that is not valid JSON returns nil. An explicitly empty array
+    // returns an empty list (PR-HYDRA-098). A bare object is treated as a one-entry array.
+    // An array/object whose entries all fail Delegation(fromEntry:) returns nil, not [],
+    // so the caller (Delegations) keeps walking earlier fence candidates. PR-HYDRA-085
+    private static ValueList<HydraDelegation>? DelegationsFromBody(string body)
+    {
+        if (JSONValue.Parse(body) is not { } json) return null;
+        if (json.JSONValueArray is { Count: 0 }) return new ValueList<HydraDelegation>([]);
+        var entries = json.JSONValueArray ?? (json.JSONValueObject is null ? [] : [json]);
+        var parsed = entries.Select(Delegation).Where(d => d is not null).Select(d => d!).ToList();
+        return parsed.Count == 0 ? null : new ValueList<HydraDelegation>(parsed);
+    }
+
+    // :1140-1149. Candidate ends are every line-start fence after the opener's body start,
+    // walked LAST first, then the end of the text; the first candidate body that parses
+    // wins. PR-HYDRA-084
+    public static ValueList<HydraDelegation>? Delegations(string @in)
+    {
+        if (DelegationOpener(@in) is not { } opener) return null;
+        var bodyStart = opener.Upper;
+        var ends = LineStartFences(@in, bodyStart).AsEnumerable().Reverse().Select(f => f.Lower)
+            .Append(@in.Length);
+        foreach (var end in ends)
+        {
+            var body = @in[bodyStart..end];
+            if (DelegationsFromBody(body) is { } result) return result;
+        }
+        return null;
+    }
 
     // :1165-1169. `.trimmed` is `trimmingCharacters(in: .whitespacesAndNewlines)`, ported as StringExtensions.
     // Trimmed (Support/Text.cs). PR-HYDRA-088
