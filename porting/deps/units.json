@@ -928,25 +928,13 @@
    ],
    "intra_deps": [],
    "records_total": 4,
-   "records_todo": [
-    "PR-PROVREG-219",
-    "PR-PROVREG-220",
-    "PR-PROVREG-221",
-    "PR-PROVREG-222"
-   ],
-   "parts": [
-    [
-     "PR-PROVREG-219",
-     "PR-PROVREG-220",
-     "PR-PROVREG-221",
-     "PR-PROVREG-222"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-141"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "UI.Chrome.ProjectSymbolCatalogue",

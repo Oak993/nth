@@ -7,11 +7,11 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "SPECIFIED": 3717,
+      "SPECIFIED": 3713,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
       "DISCOVERED": 34,
       "RETIRED": 6,
-      "IMPLEMENTED": 156
+      "IMPLEMENTED": 160
     },
     "by_area": {
       "CHAT": 193,
@@ -56969,7 +56969,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same five substrings and the same single lowercasing.",
       "verification_method": "unit over each substring plus near misses",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -56992,7 +56992,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same pattern, the same nine-digit minimum and the same 1e11 threshold.",
       "verification_method": "unit over second and millisecond timestamps and short digit runs",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -57016,7 +57016,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same patterns. PLATFORM BOUNDARY: the time zone identifier lookup must resolve IANA names, which Windows does not use natively, so a mapping is required.",
       "verification_method": "unit with a fixed now over the documented examples",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -57039,7 +57039,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same four branches and the same two literals. Date and time formatting must follow the same styles.",
       "verification_method": "unit with a fixed now across the four branches",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
