@@ -19,6 +19,7 @@
     "F.SettingsStore",
     "F.SwiftAnimation",
     "F.HTTPMove",
-    "F.LoadingMark"
+    "F.LoadingMark",
+    "F.SymbolImage"
   ]
 }

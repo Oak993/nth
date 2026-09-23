@@ -905,4 +905,123 @@ public sealed class SwiftFontTests(HeadlessSession headless)
         var typeface = new Typeface(new FontFamily("fonts:CascadiaMono#Inter"), FontStyle.Normal, Avalonia.Media.FontWeight.Normal);
         Assert.False(FontManager.Current.TryGetGlyphTypeface(typeface, out _));
     });
+
+    // ---- ED-175: Named, FamilyName, PointSize, Covers and AvailableFontFamilies, for TerminalFont ----
+    // TerminalFont.swift's own NSFont(name:size:), NSFont.familyName, NSFont.pointSize, NSFont.coveredCharacterSet
+    // and NSFontManager.shared.availableFontFamilies (:94-129). A test never depends on the fonts installed on
+    // the machine it runs on: SwiftFont.InstalledFontFamilyNames (the seam) is scripted directly (Oracle O-61 for
+    // the sort order).
+
+    [Fact]
+    [Trait("Decision", "ED-175")]
+    public void Named_is_null_when_no_installed_family_matches_case_insensitively()
+    {
+        using var families = SwiftFont.InstalledFontFamilyNames.Override(new[] { "Consolas", "Cascadia Code" });
+        Assert.Null(SwiftFont.Named("Nonexistent Font", 12));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-175")]
+    public void Named_matches_case_insensitively_and_carries_the_installed_spelling_and_size()
+    {
+        using var families = SwiftFont.InstalledFontFamilyNames.Override(new[] { "Consolas", "JetBrains Mono NF" });
+        var font = SwiftFont.Named("consolas", 13.5);
+        Assert.NotNull(font);
+        Assert.Equal("Consolas", font!.FamilyName);
+        Assert.Equal(13.5, font.PointSize);
+
+        var nerd = SwiftFont.Named("JETBRAINS MONO NF", 12);
+        Assert.NotNull(nerd);
+        Assert.Equal("JetBrains Mono NF", nerd!.FamilyName);
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-175")]
+    public void Named_never_treats_Avalonias_silent_substitution_as_a_match()
+    {
+        // ED-107 finding 1: a bare FontFamily lookup for a missing name still resolves, to a substituted face.
+        // Named must not be fooled by that the way a plain TryGetGlyphTypeface boolean would be.
+        using var families = SwiftFont.InstalledFontFamilyNames.Override(Array.Empty<string>());
+        Assert.Null(SwiftFont.Named("SF Mono", 12));
+        Assert.Null(SwiftFont.Named("Anything At All", 12));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-175")]
+    [Trait("Oracle", "O-61")]
+    public void AvailableFontFamilies_is_the_seam_sorted_ordinal_case_insensitively()
+    {
+        using var families = SwiftFont.InstalledFontFamilyNames.Override(new[] { "zebra", "Apple", "banana", "APPLE2" });
+        Assert.Equal(new[] { "Apple", "APPLE2", "banana", "zebra" }, SwiftFont.AvailableFontFamilies);
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-175")]
+    public void AvailableFontFamilies_excludes_the_embedded_Inter_and_Cascadia_Mono_faces()
+    {
+        using var families = SwiftFont.InstalledFontFamilyNames.Override(new[] { "Inter", "Cascadia Mono", "cascadia mono", "Consolas" });
+        Assert.Equal(new[] { "Consolas" }, SwiftFont.AvailableFontFamilies);
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-175")]
+    public void Named_reads_the_unfiltered_seam_so_a_genuinely_installed_Inter_or_Cascadia_Mono_still_resolves()
+    {
+        // ED-175 (1): Named checks the unfiltered seam, so a real system font named "Inter" or "Cascadia Mono"
+        // (distinct from the app's own embedded faces, ED-107) still resolves; only AvailableFontFamilies excludes them.
+        using var families = SwiftFont.InstalledFontFamilyNames.Override(new[] { "Inter", "Cascadia Mono" });
+        Assert.NotNull(SwiftFont.Named("Inter", 12));
+        Assert.NotNull(SwiftFont.Named("Cascadia Mono", 12));
+        Assert.Empty(SwiftFont.AvailableFontFamilies);
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-175")]
+    public void PointSize_is_the_given_size_or_the_ED_059_style_size()
+    {
+        Assert.Equal(13.0, SwiftFont.Headline.PointSize);
+        Assert.Equal(10.0, SwiftFont.Caption2.PointSize);
+        Assert.Equal(12.5, SwiftFont.System(size: 12.5).PointSize);
+        using var families = SwiftFont.InstalledFontFamilyNames.Override(new[] { "Consolas" });
+        Assert.Equal(9.0, SwiftFont.Named("Consolas", 9)!.PointSize);
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-175")]
+    public void Resolve_of_a_Named_font_uses_its_own_family_not_Inter_or_Cascadia_Mono()
+    {
+        using var families = SwiftFont.InstalledFontFamilyNames.Override(new[] { "Consolas" });
+        var resolved = SwiftFont.Named("Consolas", 11)!.Resolve();
+        Assert.Equal("Consolas", resolved.FontFamily.Name);
+        Assert.Null(resolved.FontFamily.Key);
+        Assert.Equal(11.0, resolved.FontSize);
+        Assert.Equal(400, (int)resolved.FontWeight);
+        Assert.Equal(FontStyle.Normal, resolved.FontStyle);
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-175")]
+    public void Covers_checks_the_regular_face_of_the_bundled_Cascadia_Mono_glyph_map() => headless.OnUiThread(() =>
+    {
+        // TerminalFont.swift :94-96: a powerline cap, two Font Awesome marks and a Material one from the
+        // supplementary plane. The bundled file is the plain Microsoft release (CASCADIA.md), not a Nerd Font
+        // patched variant: it covers ASCII but none of the probe glyphs.
+        var font = SwiftFont.MonospacedSystemFont(ofSize: 12, weight: SwiftFont.Weight.Regular);
+        Assert.True(font.Covers('A'));
+        Assert.True(font.Covers('0'));
+        Assert.False(font.Covers(0xE0B0));
+        Assert.False(font.Covers(0xE0B6));
+        Assert.False(font.Covers(0xF015));
+        Assert.False(font.Covers(0xF0035));
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-175")]
+    public void Covers_always_checks_the_regular_face_regardless_of_this_values_own_weight_and_italic() => headless.OnUiThread(() =>
+    {
+        var regular = SwiftFont.MonospacedSystemFont(ofSize: 12, weight: SwiftFont.Weight.Regular);
+        var boldItalic = SwiftFont.MonospacedSystemFont(ofSize: 12, weight: SwiftFont.Weight.Bold).Italic();
+        Assert.Equal(regular.Covers('A'), boldItalic.Covers('A'));
+        Assert.Equal(regular.Covers(0xE0B0), boldItalic.Covers(0xE0B0));
+    });
 }
