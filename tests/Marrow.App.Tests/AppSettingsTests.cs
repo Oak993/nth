@@ -1,0 +1,1035 @@
+using System.Text;
+using System.Text.Json;
+using Marrow.App.Tests.Fixtures;
+using Marrow.Core.Models;
+using Marrow.Core.Port;
+using Marrow.Core.Support;
+using Marrow.Services.Port;
+using Marrow.Services.Providers;
+using Marrow.UI.Chrome;
+
+namespace Marrow.App.Tests;
+
+// Source under test: DroppyCode/App/AppSettings.swift (B2 1fbf81e), part 1 of 5: the Hydra keys and pair lookup, the
+// API key fields over the protected store (OD-0008 A6, B3; OD-0012 E5), the provider switches, binary paths and last
+// models, and the first eight General settings. Every test builds AppSettings on the main loop over a throwaway
+// settings file and an in-memory Credential Manager (Fixtures/AppSettingsFixtures.cs).
+[Collection("AppSettings")]
+public sealed class AppSettingsTests
+{
+    // OD-0012 E5: the one line shown under a key field whose key the protected store refused.
+    private const string RefusalLine = "Credential Manager did not accept this key, so it was not saved.";
+
+    private static readonly ProviderKind[] AllProviders =
+    [
+        ProviderKind.Codex, ProviderKind.Claude, ProviderKind.Cursor, ProviderKind.Opencode, ProviderKind.OpencodeGo,
+        ProviderKind.Grok, ProviderKind.Deepseek, ProviderKind.Meta, ProviderKind.Zai, ProviderKind.Devin,
+        ProviderKind.Antigravity, ProviderKind.Copilot, ProviderKind.Commandcode, ProviderKind.Pi,
+    ];
+
+    private static void WithSettings(Action<AppSettingsScope, AppSettings> body)
+    {
+        using var scope = AppSettingsScope.Create();
+        scope.OnMain(() => body(scope, new AppSettings()));
+    }
+
+    private static string CredentialTarget(string account) => SecretStore.TargetName(AppInfo.Current.Name, account);
+
+    // Provider.swift:133-141 apiKeyEnvVar, read at AppSettings.swift:915 from the captured login environment, trimmed.
+    private static string EnvironmentKey(string name) =>
+        LoginEnvironment.Current.TryGetValue(name, out var value) ? value.Trimmed() : "";
+
+    private static string[] StoredStrings(AppSettingsScope scope, string key) =>
+        Assert.IsAssignableFrom<IReadOnlyList<object>>(scope.Defaults.Object(key)).Cast<string>().ToArray();
+
+    private static Dictionary<string, object> StoredMap(AppSettingsScope scope, string key) =>
+        new(Assert.IsAssignableFrom<IReadOnlyDictionary<string, object>>(scope.Defaults.Object(key)));
+
+    private static int WritesOf(AppSettingsScope scope, string key) => scope.Defaults.Writes.Count(w => w.Key == key);
+
+    // ---- The shared shapes of PR-SETTINGS-029 to PR-SETTINGS-036 (AppSettings.swift:189-223, :705-712) -------------
+
+    // A String-raw-value setting: `T(rawValue: defaults.string(forKey: k) ?? "") ?? default`, written by its didSet as
+    // `defaults.set(x.rawValue, forKey: k)`.
+    private static void AssertRawValueSetting<T>(string key, T fallback, Func<AppSettings, T> get, Action<AppSettings, T> set,
+        (T Value, string Raw)[] cases)
+    {
+        // Absent: the default, and building the settings writes nothing (init assigns without didSet).
+        WithSettings((scope, settings) =>
+        {
+            Assert.Equal(fallback, get(settings));
+            Assert.Empty(scope.Defaults.Writes);
+            Assert.Null(scope.Defaults.Object(key));
+        });
+        foreach (var (value, raw) in cases)
+        {
+            // A stored raw value is read back as its case.
+            using (var scope = AppSettingsScope.Create())
+            {
+                scope.Defaults.Seed(key, raw);
+                scope.OnMain(() => Assert.Equal(value, get(new AppSettings())));
+            }
+            // Assigning writes the raw value at once, with no save step, and a relaunch reads it back.
+            using (var scope = AppSettingsScope.Create())
+            {
+                scope.OnMain(() =>
+                {
+                    var settings = new AppSettings();
+                    set(settings, value);
+                    Assert.Equal(raw, scope.Defaults.Object(key));
+                    Assert.Contains(("set", key), scope.Defaults.Writes);
+                    scope.Relaunch();
+                    Assert.Equal(value, get(new AppSettings()));
+                });
+            }
+        }
+        // An unknown raw value and a value of the wrong type both give the default and stay in the store until the
+        // next write replaces them.
+        using (var scope = AppSettingsScope.Create())
+        {
+            scope.Defaults.Seed(key, "notACase");
+            scope.OnMain(() =>
+            {
+                Assert.Equal(fallback, get(new AppSettings()));
+                Assert.Equal("notACase", scope.Defaults.Object(key));
+            });
+        }
+        using (var scope = AppSettingsScope.Create())
+        {
+            scope.Defaults.Seed(key, new List<object> { cases[0].Raw });
+            scope.OnMain(() =>
+            {
+                var settings = new AppSettings();
+                Assert.Equal(fallback, get(settings));
+                Assert.IsAssignableFrom<IReadOnlyList<object>>(scope.Defaults.Object(key));
+                set(settings, cases[^1].Value);
+                Assert.Equal(cases[^1].Raw, scope.Defaults.Object(key));
+            });
+        }
+    }
+
+    // A Bool setting read as `defaults.object(forKey: k) as? Bool ?? default` and written by its didSet as
+    // `defaults.set(x, forKey: k)`.
+    private static void AssertBoolSetting(string key, bool fallback, Func<AppSettings, bool> get, Action<AppSettings, bool> set)
+    {
+        WithSettings((scope, settings) =>
+        {
+            Assert.Equal(fallback, get(settings));
+            Assert.Empty(scope.Defaults.Writes);
+            Assert.Null(scope.Defaults.Object(key));
+            set(settings, !fallback);
+            Assert.Equal(!fallback, scope.Defaults.Object(key));
+            Assert.Equal([("set", key)], scope.Defaults.Writes);
+            scope.Relaunch();
+            Assert.Equal(!fallback, get(new AppSettings()));
+        });
+        foreach (var stored in new[] { true, false })
+        {
+            using var scope = AppSettingsScope.Create();
+            scope.Defaults.Seed(key, stored);
+            scope.OnMain(() => Assert.Equal(stored, get(new AppSettings())));
+        }
+        // A wrong type fails the `as? Bool` cast: the default, with the bad value left until the next write.
+        using (var scope = AppSettingsScope.Create())
+        {
+            scope.Defaults.Seed(key, "yes");
+            scope.OnMain(() =>
+            {
+                var settings = new AppSettings();
+                Assert.Equal(fallback, get(settings));
+                Assert.Equal("yes", scope.Defaults.Object(key));
+                set(settings, fallback);
+                Assert.Equal(fallback, scope.Defaults.Object(key));
+            });
+        }
+    }
+
+    // ---- PR-SETTINGS-029 to PR-SETTINGS-036 --------------------------------------------------------------------------
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-029")] // App/AppSettings.swift:118, :189-191, :705
+    public void DefaultProvider_is_stored_under_defaultProvider_as_its_raw_value_and_defaults_to_codex() =>
+        AssertRawValueSetting("defaultProvider", ProviderKind.Codex, s => s.DefaultProvider, (s, v) => s.DefaultProvider = v,
+        [
+            (ProviderKind.Claude, "claude"), (ProviderKind.Cursor, "cursor"), (ProviderKind.Opencode, "opencode"),
+            (ProviderKind.OpencodeGo, "opencodeGo"), (ProviderKind.Grok, "grok"), (ProviderKind.Deepseek, "deepseek"),
+            (ProviderKind.Meta, "meta"), (ProviderKind.Zai, "zai"), (ProviderKind.Devin, "devin"),
+            (ProviderKind.Antigravity, "antigravity"), (ProviderKind.Copilot, "copilot"),
+            (ProviderKind.Commandcode, "commandcode"), (ProviderKind.Pi, "pi"), (ProviderKind.Codex, "codex"),
+        ]);
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-030")] // App/AppSettings.swift:119, :193-195, :706
+    public void DefaultRuntimeMode_is_stored_under_defaultRuntimeMode_and_defaults_to_full_access() =>
+        AssertRawValueSetting("defaultRuntimeMode", RuntimeMode.FullAccess, s => s.DefaultRuntimeMode, (s, v) => s.DefaultRuntimeMode = v,
+        [
+            (RuntimeMode.Supervised, "supervised"), (RuntimeMode.AutoAcceptEdits, "autoAcceptEdits"),
+            (RuntimeMode.Auto, "auto"), (RuntimeMode.FullAccess, "fullAccess"),
+        ]);
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-031")] // App/AppSettings.swift:120, :197-199, :707
+    public void DefaultWorkspaceMode_is_stored_under_defaultWorkspaceMode_and_defaults_to_local() =>
+        AssertRawValueSetting("defaultWorkspaceMode", WorkspaceMode.Local, s => s.DefaultWorkspaceMode, (s, v) => s.DefaultWorkspaceMode = v,
+        [(WorkspaceMode.Worktree, "worktree"), (WorkspaceMode.Local, "local")]);
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-032")] // App/AppSettings.swift:121, :201-203, :708
+    public void NotifyWhenFinished_is_stored_under_notifyWhenFinished_and_an_absent_value_is_true() =>
+        AssertBoolSetting("notifyWhenFinished", true, s => s.NotifyWhenFinished, (s, v) => s.NotifyWhenFinished = v);
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-033")] // App/AppSettings.swift:122, :206-208, :709
+    public void ChimeWhenFinished_is_stored_under_chimeWhenFinished_and_defaults_to_true() =>
+        AssertBoolSetting("chimeWhenFinished", true, s => s.ChimeWhenFinished, (s, v) => s.ChimeWhenFinished = v);
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-034")] // App/AppSettings.swift:123, :210-212, :710
+    public void ConfirmBeforeDeleting_is_stored_under_confirmBeforeDeleting_and_defaults_to_true() =>
+        AssertBoolSetting("confirmBeforeDeleting", true, s => s.ConfirmBeforeDeleting, (s, v) => s.ConfirmBeforeDeleting = v);
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-035")] // App/AppSettings.swift:124, :216-218, :711
+    public void AutoContinueAfterLimit_is_stored_under_autoContinueAfterLimit_and_defaults_to_false() =>
+        AssertBoolSetting("autoContinueAfterLimit", false, s => s.AutoContinueAfterLimit, (s, v) => s.AutoContinueAfterLimit = v);
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-036")] // App/AppSettings.swift:125, :221-223, :712
+    public void ThreadFinishAction_is_stored_under_threadFinishAction_and_defaults_to_settle() =>
+        AssertRawValueSetting("threadFinishAction", ThreadFinishAction.Settle, s => s.ThreadFinishAction, (s, v) => s.ThreadFinishAction = v,
+        [(ThreadFinishAction.Archive, "archive"), (ThreadFinishAction.Settle, "settle")]);
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-029")] // App/AppSettings.swift:703-786
+    [Trait("Req", "PR-SETTINGS-030")] // App/AppSettings.swift:703-786
+    [Trait("Req", "PR-SETTINGS-031")] // App/AppSettings.swift:703-786
+    [Trait("Req", "PR-SETTINGS-032")] // App/AppSettings.swift:703-786
+    [Trait("Req", "PR-SETTINGS-033")] // App/AppSettings.swift:703-786
+    [Trait("Req", "PR-SETTINGS-034")] // App/AppSettings.swift:703-786
+    [Trait("Req", "PR-SETTINGS-035")] // App/AppSettings.swift:703-786
+    [Trait("Req", "PR-SETTINGS-036")] // App/AppSettings.swift:703-786
+    [Trait("Req", "PR-HYDRA-029")] // App/AppSettings.swift:752-785
+    public void Building_the_settings_over_stored_values_writes_nothing_back() => WithSettings((scope, _) =>
+    {
+        // Seeded values of every kind, including wrong types: init reads them and writes none of them back.
+        scope.Defaults.Seed("defaultProvider", "grok");
+        scope.Defaults.Seed("notifyWhenFinished", "yes");
+        scope.Defaults.Seed("hydraMaxHeads", 12L);
+        scope.Defaults.Seed("disabledProviders", new List<object> { "pi" });
+        _ = new AppSettings();
+        Assert.Empty(scope.Defaults.Writes);
+        Assert.Equal("yes", scope.Defaults.Object("notifyWhenFinished"));
+        Assert.Equal(12L, scope.Defaults.Object("hydraMaxHeads"));
+    });
+
+    // ---- PR-HYDRA-029 ------------------------------------------------------------------------------------------------
+
+    private static readonly (string Key, bool Default, Func<AppSettings, bool> Get, Action<AppSettings, bool> Set)[] HydraSwitches =
+    [
+        ("hydraEnabled", true, s => s.HydraEnabled, (s, v) => s.HydraEnabled = v),
+        ("hydraDefaultEnabled", true, s => s.HydraDefaultEnabled, (s, v) => s.HydraDefaultEnabled = v),
+        ("hydraQueueHeads", true, s => s.HydraQueueHeads, (s, v) => s.HydraQueueHeads = v),
+        ("hydraAlwaysHeads", false, s => s.HydraAlwaysHeads, (s, v) => s.HydraAlwaysHeads = v),
+        ("hydraIsolateHeads", true, s => s.HydraIsolateHeads, (s, v) => s.HydraIsolateHeads = v),
+        ("hydraAutoMerge", false, s => s.HydraAutoMerge, (s, v) => s.HydraAutoMerge = v),
+        ("hydraReviewHeads", false, s => s.HydraReviewHeads, (s, v) => s.HydraReviewHeads = v),
+        ("hydraAutoClearFinished", false, s => s.HydraAutoClearFinished, (s, v) => s.HydraAutoClearFinished = v),
+        ("hydraAutoHidesIdleHeads", false, s => s.HydraAutoHidesIdleHeads, (s, v) => s.HydraAutoHidesIdleHeads = v),
+        ("hydraShowsHeadDetails", false, s => s.HydraShowsHeadDetails, (s, v) => s.HydraShowsHeadDetails = v),
+        ("hydraAutoPopsHeads", false, s => s.HydraAutoPopsHeads, (s, v) => s.HydraAutoPopsHeads = v),
+        ("hydraTempersHeadEffort", true, s => s.HydraTempersHeadEffort, (s, v) => s.HydraTempersHeadEffort = v),
+    ];
+
+    [Fact]
+    [Trait("Req", "PR-HYDRA-029")] // App/AppSettings.swift:752-785
+    public void Hydra_settings_start_with_Hydra_on_and_the_upstream_defaults() => WithSettings((scope, settings) =>
+    {
+        Assert.True(settings.HydraEnabled);
+        Assert.True(settings.HydraDefaultEnabled);
+        Assert.True(settings.HydraQueueHeads);
+        Assert.True(settings.HydraIsolateHeads);
+        Assert.True(settings.HydraTempersHeadEffort);
+        Assert.False(settings.HydraAlwaysHeads);
+        Assert.False(settings.HydraAutoMerge);
+        Assert.False(settings.HydraReviewHeads);
+        Assert.False(settings.HydraAutoClearFinished);
+        Assert.False(settings.HydraAutoHidesIdleHeads);
+        Assert.False(settings.HydraShowsHeadDetails);
+        Assert.False(settings.HydraAutoPopsHeads);
+        Assert.Null(settings.HydraMaxHeads); // genuinely absent: not 0 and not 8
+        Assert.Empty(settings.HydraPairs);
+        Assert.Empty(scope.Defaults.Writes);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-HYDRA-029")] // App/AppSettings.swift:156-177, :529-625
+    public void Each_Hydra_switch_is_written_under_its_exact_key_at_once_and_read_back_after_a_relaunch() => WithSettings((scope, settings) =>
+    {
+        foreach (var (key, fallback, get, set) in HydraSwitches)
+        {
+            Assert.Equal(fallback, get(settings));
+            set(settings, !fallback);
+            Assert.Equal(!fallback, scope.Defaults.Object(key));
+            Assert.Equal(("set", key), scope.Defaults.Writes[^1]);
+        }
+        scope.Relaunch();
+        var relaunched = new AppSettings();
+        foreach (var (key, fallback, get, _) in HydraSwitches)
+            Assert.True(!fallback == get(relaunched), key);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-HYDRA-029")] // App/AppSettings.swift:115, :158, :536-538; Core/Models/Library.swift:195-201
+    public void The_per_chat_Hydra_default_shares_its_key_with_ChatThread() => WithSettings((scope, settings) =>
+    {
+        Assert.Equal("hydraDefaultEnabled", AppSettings.HydraDefaultEnabledKey);
+        Assert.Equal(ChatThread.HydraDefaultKey, AppSettings.HydraDefaultEnabledKey);
+        Assert.True(ChatThread.HydraDefaultEnabled());
+        settings.HydraDefaultEnabled = false;
+        Assert.False(ChatThread.HydraDefaultEnabled()); // the thread layer reads the same entry without the settings
+    });
+
+    [Theory]
+    [InlineData(12L, 8L)]
+    [InlineData(9L, 8L)]
+    [InlineData(8L, 8L)]
+    [InlineData(3L, 3L)]
+    [InlineData(1L, 1L)]
+    [InlineData(0L, 1L)]
+    [InlineData(-4L, 1L)]
+    [Trait("Req", "PR-HYDRA-029")] // App/AppSettings.swift:762; Core/Models/Hydra.swift:109-111
+    public void A_stored_hydraMaxHeads_is_clamped_into_one_to_eight_when_read(long stored, long expected)
+    {
+        using var scope = AppSettingsScope.Create();
+        scope.Defaults.Seed("hydraMaxHeads", stored);
+        scope.OnMain(() => Assert.Equal(expected, new AppSettings().HydraMaxHeads));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-HYDRA-029")] // App/AppSettings.swift:762 (`as? Int` fails, clampedCap(nil) is nil)
+    public void A_hydraMaxHeads_of_the_wrong_type_reads_as_no_cap()
+    {
+        using var scope = AppSettingsScope.Create();
+        scope.Defaults.Seed("hydraMaxHeads", "4");
+        scope.OnMain(() => Assert.Null(new AppSettings().HydraMaxHeads));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-HYDRA-029")] // App/AppSettings.swift:571-579
+    public void Setting_hydraMaxHeads_writes_the_number_and_setting_nil_removes_the_key() => WithSettings((scope, settings) =>
+    {
+        settings.HydraMaxHeads = 4;
+        Assert.Equal(4L, scope.Defaults.Object("hydraMaxHeads"));
+        scope.Relaunch();
+        var relaunched = new AppSettings();
+        Assert.Equal(4L, relaunched.HydraMaxHeads);
+        relaunched.HydraMaxHeads = null;
+        Assert.Null(scope.Defaults.Object("hydraMaxHeads")); // removed, no sentinel written
+        Assert.DoesNotContain(("set", "hydraMaxHeads"), scope.Defaults.Writes);
+        scope.Relaunch();
+        Assert.Null(new AppSettings().HydraMaxHeads);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-HYDRA-029")] // App/AppSettings.swift:785; Core/Models/Hydra.swift:82-94
+    public void A_stored_pair_that_fails_to_decode_is_dropped_and_the_others_survive_in_order()
+    {
+        using var scope = AppSettingsScope.Create();
+        var first = new Guid("0B5F1C9E-5D2A-4F7B-9C1E-2A3B4C5D6E7F");
+        var broken = new Guid("1C6A2D0F-6E3B-4A8C-8D2F-3B4C5D6E7F80");
+        var third = new Guid("2D7B3E1A-7F4C-4B9D-9E3A-4C5D6E7F8091");
+        // Bytes a plain JSONEncoder writes for [HydraPair] (Hydra.swift:58-72), the middle one from a newer build
+        // naming a provider this build does not know, which `decode(ProviderKind.self, forKey: .provider)` rejects.
+        var json = "[{\"id\":\"0B5F1C9E-5D2A-4F7B-9C1E-2A3B4C5D6E7F\",\"provider\":\"claude\",\"headProfiles\":[]},"
+            + "{\"id\":\"1C6A2D0F-6E3B-4A8C-8D2F-3B4C5D6E7F80\",\"provider\":\"futureProvider\",\"headProfiles\":[]},"
+            + "{\"id\":\"2D7B3E1A-7F4C-4B9D-9E3A-4C5D6E7F8091\",\"provider\":\"codex\",\"orchestratorModel\":\"gpt-5\",\"maxHeads\":3,\"headProfiles\":[]}]";
+        scope.Defaults.Seed("hydraPairs", Encoding.UTF8.GetBytes(json));
+        scope.OnMain(() =>
+        {
+            var pairs = new AppSettings().HydraPairs;
+            Assert.Equal(2, pairs.Count);
+            Assert.Equal(first, pairs[0].Id);
+            Assert.Equal(ProviderKind.Claude, pairs[0].Provider);
+            Assert.Equal(third, pairs[1].Id);
+            Assert.Equal(ProviderKind.Codex, pairs[1].Provider);
+            Assert.Equal("gpt-5", pairs[1].OrchestratorModel);
+            Assert.Equal(3L, pairs[1].MaxHeads);
+            Assert.DoesNotContain(pairs, p => p.Id == broken);
+        });
+    }
+
+    [Theory]
+    [InlineData("not json")]
+    [InlineData("{\"provider\":\"claude\"}")]
+    [Trait("Req", "PR-HYDRA-029")] // App/AppSettings.swift:785, :864-867 (`try?` gives nil, `?? []`)
+    public void A_stored_pair_list_that_cannot_be_read_as_a_list_gives_no_pairs(string stored)
+    {
+        using var scope = AppSettingsScope.Create();
+        scope.Defaults.Seed("hydraPairs", Encoding.UTF8.GetBytes(stored));
+        scope.OnMain(() => Assert.Empty(new AppSettings().HydraPairs));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-HYDRA-029")] // App/AppSettings.swift:699-701, :790-792, :785
+    public void An_added_pair_is_written_under_hydraPairs_and_read_back_after_a_relaunch() => WithSettings((scope, settings) =>
+    {
+        var pair = new HydraPair(ProviderKind.Claude) with { OrchestratorModel = "opus", MaxHeads = 5 };
+        settings.AddHydraPair(pair);
+        Assert.IsType<byte[]>(scope.Defaults.Object("hydraPairs"));
+        Assert.Contains(("set", "hydraPairs"), scope.Defaults.Writes);
+        scope.Relaunch();
+        var pairs = new AppSettings().HydraPairs;
+        Assert.Single(pairs);
+        Assert.Equal(pair, pairs[0]);
+    });
+
+    // ---- PR-HYDRA-151 ------------------------------------------------------------------------------------------------
+
+    [Fact]
+    [Trait("Req", "PR-HYDRA-151")] // App/AppSettings.swift:814-819
+    public void The_pair_for_a_chat_is_the_exact_lead_model_then_an_any_model_pair_then_the_providers_first() => WithSettings((_, settings) =>
+    {
+        var claudeSonnet = new HydraPair(ProviderKind.Claude) with { OrchestratorModel = "sonnet" };
+        var codexAny = new HydraPair(ProviderKind.Codex);
+        var claudeAny = new HydraPair(ProviderKind.Claude);
+        var claudeOpus = new HydraPair(ProviderKind.Claude) with { OrchestratorModel = "opus" };
+        var claudeAnySecond = new HydraPair(ProviderKind.Claude);
+        foreach (var pair in new[] { claudeSonnet, codexAny, claudeAny, claudeOpus, claudeAnySecond }) settings.AddHydraPair(pair);
+
+        Assert.Equal(claudeOpus.Id, settings.HydraPair(ProviderKind.Claude, "opus")?.Id);      // exact wins over earlier ones
+        Assert.Equal(claudeSonnet.Id, settings.HydraPair(ProviderKind.Claude, "sonnet")?.Id);
+        Assert.Equal(claudeAny.Id, settings.HydraPair(ProviderKind.Claude, "haiku")?.Id);      // first any-model pair
+        Assert.Equal(claudeAny.Id, settings.HydraPair(ProviderKind.Claude, null)?.Id);         // nil model skips the exact step
+        Assert.Equal(codexAny.Id, settings.HydraPair(ProviderKind.Codex, "opus")?.Id);         // only that provider's pairs
+    });
+
+    [Fact]
+    [Trait("Req", "PR-HYDRA-151")] // App/AppSettings.swift:815-818
+    public void With_no_any_model_pair_the_providers_first_pair_is_chosen_and_a_provider_without_pairs_has_none() => WithSettings((_, settings) =>
+    {
+        var codexOnly = new HydraPair(ProviderKind.Codex) with { OrchestratorModel = "gpt-5" };
+        var claudeSonnet = new HydraPair(ProviderKind.Claude) with { OrchestratorModel = "sonnet" };
+        var claudeOpus = new HydraPair(ProviderKind.Claude) with { OrchestratorModel = "opus" };
+        settings.AddHydraPair(codexOnly);
+        settings.AddHydraPair(claudeSonnet);
+        settings.AddHydraPair(claudeOpus);
+
+        Assert.Equal(claudeSonnet.Id, settings.HydraPair(ProviderKind.Claude, "haiku")?.Id);
+        Assert.Equal(claudeSonnet.Id, settings.HydraPair(ProviderKind.Claude, null)?.Id);
+        Assert.Null(settings.HydraPair(ProviderKind.Grok, "grok-4"));
+        Assert.Null(settings.HydraPair(ProviderKind.Grok, null));
+    });
+
+    // ---- PR-PROVAPI-008 to PR-PROVAPI-011, PR-PROVREG-239: key edits over the protected store ------------------------
+
+    // (provider, account, legacy settings key, stored-key reader)
+    private static readonly (ProviderKind Provider, string Account, string LegacyKey, Func<string> Stored)[] KeyProviders =
+    [
+        (ProviderKind.Deepseek, "DeepSeek API Key", "deepseekAPIKey", () => DeepSeekKeychain.ApiKey(fallback: "")),
+        (ProviderKind.Meta, "Meta API Key", "metaAPIKey", () => MetaKeychain.ApiKey(fallback: "")),
+        (ProviderKind.Zai, "Z.ai API Key", "zaiAPIKey", () => ZaiKeychain.ApiKey(fallback: "")),
+        (ProviderKind.Commandcode, "Command Code API Key", "commandcodeAPIKey", () => CommandCodeKeychain.ApiKey(fallback: "")),
+    ];
+
+    private static (ProviderKind Provider, string Account, string LegacyKey, Func<string> Stored) KeyProvider(ProviderKind provider) =>
+        KeyProviders.Single(k => k.Provider == provider);
+
+    // The accepted half: the key goes to the protected store (trimmed by APIKeychain.swift:23), the provider's legacy
+    // plaintext entry is removed (AppSettings.swift:371 with :489-490), and no refusal is shown.
+    private static void AssertAcceptedKeyIsStoredAndItsLegacyEntryRemoved(ProviderKind provider, Action<AppSettings, string> edit)
+    {
+        var (_, account, legacyKey, stored) = KeyProvider(provider);
+        using var scope = AppSettingsScope.Create();
+        foreach (var other in KeyProviders) scope.Defaults.Seed(other.LegacyKey, "legacy-plain-" + other.LegacyKey);
+        scope.OnMain(() =>
+        {
+            var settings = new AppSettings();
+            _ = settings.ApiKeyInput(provider); // keys loaded, so the edit below is a user edit
+            scope.Credentials.Operations.Clear();
+
+            edit(settings, "  sk-accepted-key \n");
+
+            Assert.Equal("sk-accepted-key", stored());
+            Assert.Contains(scope.Credentials.Operations, o => o.Op == "write" && o.Target == CredentialTarget(account));
+            Assert.Null(scope.Defaults.Object(legacyKey));
+            Assert.DoesNotContain(("set", legacyKey), scope.Defaults.Writes);
+            foreach (var other in KeyProviders.Where(k => k.Provider != provider))
+                Assert.Equal("legacy-plain-" + other.LegacyKey, scope.Defaults.Object(other.LegacyKey)); // only its own entry
+            Assert.Null(settings.APIKeyRefusal(provider));
+            Assert.Equal("  sk-accepted-key \n", settings.ApiKeyInput(provider));
+            scope.Relaunch();
+            var relaunched = new AppSettings();
+            Assert.Equal("sk-accepted-key", relaunched.ApiKeyInput(provider)); // read back from the store
+        });
+    }
+
+    // The refused half (OD-0008 A6, OD-0012 E5): nothing is stored anywhere, the line is shown, and upstream's
+    // plaintext write under the legacy key never happens.
+    private static void AssertRefusedKeyIsReportedAndStoredNowhere(ProviderKind provider, Action<AppSettings, string> edit)
+    {
+        var (_, account, legacyKey, stored) = KeyProvider(provider);
+        const string key = "sk-refused-5f2c9a7e";
+        using var scope = AppSettingsScope.Create();
+        scope.OnMain(() =>
+        {
+            var settings = new AppSettings();
+            _ = settings.ApiKeyInput(provider);
+            scope.Credentials.RefuseWrites = true;
+            scope.Credentials.Operations.Clear();
+
+            edit(settings, " " + key + " ");
+
+            Assert.Contains(scope.Credentials.Operations, o => o.Op == "write" && o.Target == CredentialTarget(account));
+            Assert.Equal(RefusalLine, settings.APIKeyRefusal(provider));
+            foreach (var other in KeyProviders.Where(k => k.Provider != provider))
+                Assert.Null(settings.APIKeyRefusal(other.Provider));
+            Assert.Equal("", stored());
+            Assert.False(scope.Credentials.AnyBlobContains(key));
+            Assert.Null(scope.Defaults.Object(legacyKey));
+            Assert.DoesNotContain(scope.Defaults.Writes, w => w.Op == "set" && KeyProviders.Any(k => k.LegacyKey == w.Key));
+            Assert.False(scope.AnyFileContains(key)); // never on disk in plain text
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVAPI-008")] // App/AppSettings.swift:367-373, :152, :485-494
+    [Trait("Req", "PR-PROVREG-239")] // App/AppSettings.swift:367-373
+    public void A_DeepSeek_key_the_store_accepts_is_kept_there_and_its_legacy_plaintext_entry_is_removed() =>
+        AssertAcceptedKeyIsStoredAndItsLegacyEntryRemoved(ProviderKind.Deepseek, (s, v) => s.DeepseekAPIKeyInput = v);
+
+    [Fact]
+    [Trait("Req", "PR-PROVAPI-008")] // App/AppSettings.swift:367-373, :485-494
+    [Trait("Req", "PR-PROVAPI-011")] // App/AppSettings.swift:371, :487-494
+    [Trait("Req", "PR-PROVREG-239")] // App/AppSettings.swift:367-373
+    public void A_DeepSeek_key_the_store_refuses_is_reported_under_the_field_and_stored_nowhere() =>
+        AssertRefusedKeyIsReportedAndStoredNowhere(ProviderKind.Deepseek, (s, v) => s.DeepseekAPIKeyInput = v);
+
+    [Fact]
+    [Trait("Req", "PR-PROVAPI-009")] // App/AppSettings.swift:378-384, :153, :485-494
+    [Trait("Req", "PR-PROVREG-239")] // App/AppSettings.swift:378-384
+    public void A_Meta_key_the_store_accepts_is_kept_there_and_its_legacy_plaintext_entry_is_removed() =>
+        AssertAcceptedKeyIsStoredAndItsLegacyEntryRemoved(ProviderKind.Meta, (s, v) => s.MetaAPIKeyInput = v);
+
+    [Fact]
+    [Trait("Req", "PR-PROVAPI-009")] // App/AppSettings.swift:378-384, :485-494
+    [Trait("Req", "PR-PROVAPI-011")] // App/AppSettings.swift:382, :487-494
+    [Trait("Req", "PR-PROVREG-239")] // App/AppSettings.swift:378-384
+    public void A_Meta_key_the_store_refuses_is_reported_under_the_field_and_stored_nowhere() =>
+        AssertRefusedKeyIsReportedAndStoredNowhere(ProviderKind.Meta, (s, v) => s.MetaAPIKeyInput = v);
+
+    [Fact]
+    [Trait("Req", "PR-PROVAPI-010")] // App/AppSettings.swift:391-397, :154, :485-494
+    [Trait("Req", "PR-PROVREG-239")] // App/AppSettings.swift:391-397
+    public void A_Zai_key_the_store_accepts_is_kept_there_and_its_legacy_plaintext_entry_is_removed() =>
+        AssertAcceptedKeyIsStoredAndItsLegacyEntryRemoved(ProviderKind.Zai, (s, v) => s.ZaiAPIKeyInput = v);
+
+    [Fact]
+    [Trait("Req", "PR-PROVAPI-010")] // App/AppSettings.swift:391-397, :485-494
+    [Trait("Req", "PR-PROVAPI-011")] // App/AppSettings.swift:395, :487-494
+    [Trait("Req", "PR-PROVREG-239")] // App/AppSettings.swift:391-397
+    public void A_Zai_key_the_store_refuses_is_reported_under_the_field_and_stored_nowhere() =>
+        AssertRefusedKeyIsReportedAndStoredNowhere(ProviderKind.Zai, (s, v) => s.ZaiAPIKeyInput = v);
+
+    [Fact]
+    [Trait("Req", "PR-PROVREG-239")] // App/AppSettings.swift:402-408, :155, :485-494
+    public void A_Command_Code_key_the_store_accepts_is_kept_there_and_its_legacy_plaintext_entry_is_removed() =>
+        AssertAcceptedKeyIsStoredAndItsLegacyEntryRemoved(ProviderKind.Commandcode, (s, v) => s.CommandcodeAPIKeyInput = v);
+
+    [Fact]
+    [Trait("Req", "PR-PROVREG-239")] // App/AppSettings.swift:402-408, :485-494
+    [Trait("Req", "PR-PROVAPI-011")] // App/AppSettings.swift:406, :487-494
+    public void A_Command_Code_key_the_store_refuses_is_reported_under_the_field_and_stored_nowhere() =>
+        AssertRefusedKeyIsReportedAndStoredNowhere(ProviderKind.Commandcode, (s, v) => s.CommandcodeAPIKeyInput = v);
+
+    [Theory]
+    [InlineData(ProviderKind.Deepseek)]
+    [InlineData(ProviderKind.Meta)]
+    [InlineData(ProviderKind.Zai)]
+    [InlineData(ProviderKind.Commandcode)]
+    [Trait("Req", "PR-PROVAPI-008")] // App/AppSettings.swift:934-943, :367-373
+    [Trait("Req", "PR-PROVAPI-009")] // App/AppSettings.swift:934-943, :378-384
+    [Trait("Req", "PR-PROVAPI-010")] // App/AppSettings.swift:934-943, :391-397
+    [Trait("Req", "PR-PROVREG-239")] // App/AppSettings.swift:934-943, :402-408
+    public void SetAPIKeyInput_edits_the_same_field_as_the_Settings_page(ProviderKind provider)
+    {
+        AssertAcceptedKeyIsStoredAndItsLegacyEntryRemoved(provider, (s, v) => s.SetAPIKeyInput(v, provider));
+        AssertRefusedKeyIsReportedAndStoredNowhere(provider, (s, v) => s.SetAPIKeyInput(v, provider));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVAPI-008")] // App/AppSettings.swift:369 (`deepseekAPIKeyInput != oldValue`)
+    public void Assigning_the_key_it_already_holds_touches_neither_store() => WithSettings((scope, settings) =>
+    {
+        settings.DeepseekAPIKeyInput = "sk-same";
+        scope.Credentials.Operations.Clear();
+        scope.Defaults.Writes.Clear();
+        settings.DeepseekAPIKeyInput = "sk-same";
+        Assert.Empty(scope.Credentials.Operations);
+        Assert.Empty(scope.Defaults.Writes);
+    });
+
+    [Theory]
+    [InlineData(ProviderKind.Deepseek)]
+    [InlineData(ProviderKind.Meta)]
+    [InlineData(ProviderKind.Zai)]
+    [InlineData(ProviderKind.Commandcode)]
+    [Trait("Req", "PR-PROVAPI-011")] // App/AppSettings.swift:487-490; Services/Providers/APIKeychain.swift:24-27
+    [Trait("Req", "PR-PROVREG-239")] // App/AppSettings.swift:367-408; Services/Providers/APIKeychain.swift:24-27
+    public void Emptying_a_key_field_deletes_the_credential_and_removes_the_legacy_entry(ProviderKind provider)
+    {
+        var (_, account, legacyKey, stored) = KeyProvider(provider);
+        using var scope = AppSettingsScope.Create();
+        scope.OnMain(() =>
+        {
+            var settings = new AppSettings();
+            settings.SetAPIKeyInput("sk-to-clear", provider);
+            Assert.Equal("sk-to-clear", stored());
+            scope.Defaults.Seed(legacyKey, "legacy-plain");
+            scope.Credentials.Operations.Clear();
+
+            settings.SetAPIKeyInput(" \t\n ", provider); // empty once trimmed: a delete, which counts as stored
+
+            Assert.Contains(scope.Credentials.Operations, o => o.Op == "delete" && o.Target == CredentialTarget(account));
+            Assert.Equal("", stored());
+            Assert.Null(scope.Defaults.Object(legacyKey));
+            Assert.Null(settings.APIKeyRefusal(provider));
+            Assert.Equal(" \t\n ", settings.ApiKeyInput(provider));
+            Assert.DoesNotContain(("set", legacyKey), scope.Defaults.Writes);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVREG-239")] // App/AppSettings.swift:367-373, :904-910
+    public void A_refused_key_stays_in_the_field_for_the_session_and_is_gone_after_a_relaunch()
+    {
+        using var scope = AppSettingsScope.Create();
+        scope.OnMain(() =>
+        {
+            var settings = new AppSettings();
+            _ = settings.ApiKeyInput(ProviderKind.Zai);
+            scope.Credentials.RefuseWrites = true;
+            settings.ZaiAPIKeyInput = " zai-typed-key ";
+            Assert.Equal(" zai-typed-key ", settings.ApiKeyInput(ProviderKind.Zai));
+            Assert.Equal("zai-typed-key", settings.ApiKey(ProviderKind.Zai));
+            scope.Relaunch();
+            var relaunched = new AppSettings();
+            Assert.Equal("", relaunched.ApiKeyInput(ProviderKind.Zai));
+            Assert.Null(relaunched.APIKeyRefusal(ProviderKind.Zai));
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVREG-239")] // App/AppSettings.swift:367-373 (the line speaks of the last edit only)
+    public void A_later_key_the_store_accepts_takes_the_refusal_line_away() => WithSettings((scope, settings) =>
+    {
+        _ = settings.ApiKeyInput(ProviderKind.Deepseek);
+        scope.Credentials.RefuseWrites = true;
+        settings.DeepseekAPIKeyInput = "sk-first";
+        Assert.Equal(RefusalLine, settings.APIKeyRefusal(ProviderKind.Deepseek));
+        scope.Credentials.RefuseWrites = false;
+        settings.DeepseekAPIKeyInput = "sk-second";
+        Assert.Null(settings.APIKeyRefusal(ProviderKind.Deepseek));
+        Assert.Equal("sk-second", DeepSeekKeychain.ApiKey(fallback: ""));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-PROVREG-239")] // App/AppSettings.swift:367-408 (a store unavailable altogether refuses every edit)
+    public void With_the_store_refusing_everything_every_key_edit_shows_the_same_line_and_nothing_reaches_disk() => WithSettings((scope, settings) =>
+    {
+        _ = settings.ApiKeyInput(ProviderKind.Deepseek);
+        scope.Credentials.RefuseWrites = true;
+        foreach (var (provider, _, _, _) in KeyProviders) settings.SetAPIKeyInput("sk-everywhere-" + SwiftEnum<ProviderKind>.RawValue(provider), provider);
+        foreach (var (provider, _, legacyKey, _) in KeyProviders)
+        {
+            Assert.Equal(RefusalLine, settings.APIKeyRefusal(provider));
+            Assert.Null(scope.Defaults.Object(legacyKey));
+        }
+        Assert.False(scope.AnyFileContains("sk-everywhere-"));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-PROVREG-239")] // OD-0012 E5 wording, byte for byte
+    public void The_refusal_line_is_the_exact_ruled_sentence() => WithSettings((scope, settings) =>
+    {
+        _ = settings.ApiKeyInput(ProviderKind.Meta);
+        scope.Credentials.RefuseWrites = true;
+        settings.MetaAPIKeyInput = "sk-meta";
+        var line = Assert.IsType<string>(settings.APIKeyRefusal(ProviderKind.Meta));
+        Assert.Equal(Encoding.UTF8.GetBytes("Credential Manager did not accept this key, so it was not saved."),
+            Encoding.UTF8.GetBytes(line));
+        Assert.Null(settings.APIKeyRefusal(ProviderKind.Codex));
+    });
+
+    // ---- PR-PROVAPI-012, PR-PROVAPI-013: the one deferred read of the stored keys ------------------------------------
+
+    private static void SeedCredentials(AppSettingsScope scope, params ProviderKind[] providers)
+    {
+        foreach (var provider in providers)
+        {
+            var (_, account, _, _) = KeyProvider(provider);
+            Assert.True(SecretStore.Shared.Current.SetReplacing(AppInfo.Current.Name, account, "stored-" + account));
+        }
+        scope.Credentials.Operations.Clear();
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVAPI-012")] // App/AppSettings.swift:740-744
+    public void Building_the_settings_reads_no_credential_and_every_key_field_starts_empty()
+    {
+        using var scope = AppSettingsScope.Create();
+        SeedCredentials(scope, ProviderKind.Deepseek, ProviderKind.Meta, ProviderKind.Zai, ProviderKind.Commandcode);
+        scope.OnMain(() =>
+        {
+            var settings = new AppSettings();
+            Assert.Empty(scope.Credentials.Operations);
+            Assert.Equal("", settings.DeepseekAPIKeyInput);
+            Assert.Equal("", settings.MetaAPIKeyInput);
+            Assert.Equal("", settings.ZaiAPIKeyInput);
+            Assert.Equal("", settings.CommandcodeAPIKeyInput);
+            Assert.Empty(scope.Credentials.Operations);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVAPI-012")] // App/AppSettings.swift:441-449, :459-466
+    [Trait("Req", "PR-PROVAPI-013")] // App/AppSettings.swift:468-476
+    public void The_background_load_reads_each_account_once_off_the_main_thread_and_fills_the_fields_without_writing_back()
+    {
+        using var scope = AppSettingsScope.Create();
+        SeedCredentials(scope, ProviderKind.Deepseek, ProviderKind.Meta, ProviderKind.Zai, ProviderKind.Commandcode);
+        scope.Runtime.Loop.Run(async () =>
+        {
+            var settings = new AppSettings();
+            await settings.LoadKeychainInBackground();
+
+            Assert.Equal("stored-DeepSeek API Key", settings.DeepseekAPIKeyInput);
+            Assert.Equal("stored-Meta API Key", settings.MetaAPIKeyInput);
+            Assert.Equal("stored-Z.ai API Key", settings.ZaiAPIKeyInput);
+            Assert.Equal("stored-Command Code API Key", settings.CommandcodeAPIKeyInput);
+            var operations = scope.Credentials.Operations.ToList();
+            Assert.All(operations, o => Assert.Equal("read", o.Op));      // the fill never writes a key back
+            Assert.All(operations, o => Assert.False(o.OnMain));          // detached, off the main loop
+            Assert.Equal(
+                new[] { "DeepSeek API Key", "Meta API Key", "Z.ai API Key", "Command Code API Key" }.Select(CredentialTarget).Order(StringComparer.Ordinal),
+                operations.Select(o => o.Target).Order(StringComparer.Ordinal));
+            Assert.DoesNotContain(scope.Defaults.Writes, w => w.Op == "set");
+
+            // Once per process: a second load, an ask and an edit-free read all reach the store no more.
+            await settings.LoadKeychainInBackground();
+            _ = settings.ApiKeyInput(ProviderKind.Meta);
+            _ = settings.ApiKey(ProviderKind.Zai);
+            Assert.Equal(operations.Count, scope.Credentials.Operations.Count);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVAPI-012")] // App/AppSettings.swift:454-457, :923-925
+    [Trait("Req", "PR-PROVREG-089")] // App/AppSettings.swift:904-905 (read at most once per run, on the first call)
+    public void The_first_ask_reads_the_credentials_itself_exactly_once()
+    {
+        using var scope = AppSettingsScope.Create();
+        SeedCredentials(scope, ProviderKind.Deepseek, ProviderKind.Commandcode);
+        scope.Runtime.Loop.Run(async () =>
+        {
+            var settings = new AppSettings();
+            Assert.Equal("stored-DeepSeek API Key", settings.ApiKey(ProviderKind.Deepseek));
+            var reads = scope.Credentials.Operations.Count;
+            Assert.Equal(4, scope.Credentials.Operations.Select(o => o.Target).Distinct().Count()); // one batch, four accounts
+            Assert.All(scope.Credentials.Operations, o => Assert.Equal("read", o.Op));
+            Assert.Equal("stored-Command Code API Key", settings.ApiKeyInput(ProviderKind.Commandcode));
+            _ = settings.ApiKey(ProviderKind.Commandcode);
+            _ = settings.HasAPIKey(ProviderKind.Deepseek);
+            await settings.LoadKeychainInBackground(); // the ask came first: the background load has nothing to do
+            Assert.Equal(reads, scope.Credentials.Operations.Count);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVAPI-012")] // App/AppSettings.swift:419-422, :432-439 (DEVIATION OD-0008 A6: no plaintext read)
+    [Trait("Req", "PR-PROVAPI-013")] // App/AppSettings.swift:477-482
+    [Trait("Req", "PR-PROVREG-089")] // App/AppSettings.swift:904-916 (DEVIATION OD-0008 A6)
+    public void Filling_removes_legacy_entries_only_for_accounts_the_store_holds_and_never_reads_them_as_keys()
+    {
+        using var scope = AppSettingsScope.Create();
+        SeedCredentials(scope, ProviderKind.Deepseek, ProviderKind.Zai);
+        foreach (var (_, _, legacyKey, _) in KeyProviders) scope.Defaults.Seed(legacyKey, "legacy-plain-" + legacyKey);
+        scope.Runtime.Loop.Run(async () =>
+        {
+            var settings = new AppSettings();
+            await settings.LoadKeychainInBackground();
+
+            Assert.Equal("stored-DeepSeek API Key", settings.DeepseekAPIKeyInput);
+            Assert.Equal("stored-Z.ai API Key", settings.ZaiAPIKeyInput);
+            Assert.Equal("", settings.MetaAPIKeyInput);          // upstream would take the plaintext copy here
+            Assert.Equal("", settings.CommandcodeAPIKeyInput);
+            Assert.Null(scope.Defaults.Object("deepseekAPIKey"));
+            Assert.Null(scope.Defaults.Object("zaiAPIKey"));
+            Assert.Equal("legacy-plain-metaAPIKey", scope.Defaults.Object("metaAPIKey"));
+            Assert.Equal("legacy-plain-commandcodeAPIKey", scope.Defaults.Object("commandcodeAPIKey"));
+            Assert.DoesNotContain(scope.Defaults.Writes, w => w.Op == "set");
+            Assert.All(scope.Credentials.Operations, o => Assert.Equal("read", o.Op));
+            Assert.Equal("", settings.ApiKeyInput(ProviderKind.Meta));
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVREG-089")] // App/AppSettings.swift:904-916 (DEVIATION OD-0008 A6: no plaintext fallback)
+    [Trait("Req", "PR-PROVAPI-012")] // App/AppSettings.swift:419-422 (DEVIATION OD-0008 A6)
+    public void A_legacy_plaintext_entry_is_never_sent_as_the_key_the_environment_is_used_instead()
+    {
+        using var scope = AppSettingsScope.Create();
+        scope.Defaults.Seed("metaAPIKey", "legacy-plain-meta");
+        scope.OnMain(() =>
+        {
+            var settings = new AppSettings();
+            Assert.Equal(EnvironmentKey("MODEL_API_KEY"), settings.ApiKey(ProviderKind.Meta));
+            Assert.NotEqual("legacy-plain-meta", settings.ApiKey(ProviderKind.Meta));
+            Assert.Equal("legacy-plain-meta", scope.Defaults.Object("metaAPIKey")); // not in the store: left alone
+        });
+    }
+
+    // ---- PR-PROVAPI-014, PR-PROVREG-089, PR-PROVREG-090: the key a provider receives ---------------------------------
+
+    [Theory]
+    [InlineData(ProviderKind.Deepseek, "DEEPSEEK_API_KEY")]
+    [InlineData(ProviderKind.Meta, "MODEL_API_KEY")]
+    [InlineData(ProviderKind.Zai, "ZAI_API_KEY")]
+    [InlineData(ProviderKind.Commandcode, "COMMAND_CODE_API_KEY")]
+    [Trait("Req", "PR-PROVAPI-014")] // App/AppSettings.swift:913-915; Core/Models/Provider.swift:133-141
+    [Trait("Req", "PR-PROVREG-089")] // App/AppSettings.swift:913-915
+    [Trait("Decision", "ED-028")]
+    public void With_nothing_stored_the_key_is_the_providers_environment_variable_trimmed(ProviderKind provider, string variable) =>
+        WithSettings((_, settings) =>
+        {
+            // ED-028 (3): the login environment is the process environment Windows populated at logon.
+            Assert.Equal(EnvironmentKey(variable), settings.ApiKey(provider));
+            Assert.Equal(EnvironmentKey(variable).Length != 0, settings.HasAPIKey(provider));
+        });
+
+    [Theory]
+    [InlineData(ProviderKind.Deepseek)]
+    [InlineData(ProviderKind.Meta)]
+    [InlineData(ProviderKind.Zai)]
+    [InlineData(ProviderKind.Commandcode)]
+    [Trait("Req", "PR-PROVAPI-014")] // App/AppSettings.swift:906-913
+    [Trait("Req", "PR-PROVREG-089")] // App/AppSettings.swift:906-913
+    public void A_stored_key_wins_over_the_environment_and_is_sent_trimmed(ProviderKind provider) => WithSettings((_, settings) =>
+    {
+        settings.SetAPIKeyInput(" \n sk-typed-key \t", provider);
+        Assert.Equal("sk-typed-key", settings.ApiKey(provider));
+        Assert.True(settings.HasAPIKey(provider));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-PROVREG-089")] // App/AppSettings.swift:911, :914
+    public void Providers_that_take_no_key_get_the_empty_string() => WithSettings((_, settings) =>
+    {
+        foreach (var provider in AllProviders.Where(p => !p.AcceptsAPIKey))
+        {
+            Assert.Equal("", settings.ApiKey(provider));
+            Assert.False(settings.HasAPIKey(provider));
+        }
+    });
+
+    [Theory]
+    [InlineData(ProviderKind.Deepseek)]
+    [InlineData(ProviderKind.Meta)]
+    [InlineData(ProviderKind.Zai)]
+    [InlineData(ProviderKind.Commandcode)]
+    [Trait("Req", "PR-PROVREG-090")] // App/AppSettings.swift:904-910, :923-931
+    public void The_field_value_is_untrimmed_while_the_key_sent_is_trimmed(ProviderKind provider) => WithSettings((_, settings) =>
+    {
+        settings.SetAPIKeyInput("  sk-spaced ", provider);
+        Assert.Equal("  sk-spaced ", settings.ApiKeyInput(provider));
+        Assert.Equal("sk-spaced", settings.ApiKey(provider));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-PROVREG-090")] // App/AppSettings.swift:925-931, :936-942
+    public void Providers_without_a_key_field_read_an_empty_field_and_ignore_edits() => WithSettings((scope, settings) =>
+    {
+        foreach (var provider in AllProviders.Where(p => !p.AcceptsAPIKey))
+        {
+            settings.SetAPIKeyInput("sk-ignored", provider);
+            Assert.Equal("", settings.ApiKeyInput(provider));
+        }
+        Assert.DoesNotContain(scope.Credentials.Operations, o => o.Op != "read");
+        Assert.Empty(scope.Defaults.Writes);
+    });
+
+    // ---- PR-PROVREG-084, PR-PROVREG-085: provider switches --------------------------------------------------------------
+
+    [Fact]
+    [Trait("Req", "PR-PROVREG-084")] // App/AppSettings.swift:746, :878-880
+    public void Every_provider_is_enabled_on_a_fresh_store() => WithSettings((scope, settings) =>
+    {
+        foreach (var provider in AllProviders) Assert.True(settings.IsEnabled(provider));
+        Assert.Empty(settings.DisabledProviders);
+        Assert.Null(scope.Defaults.Object("disabledProviders"));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-PROVREG-084")] // App/AppSettings.swift:139, :746, :878-880
+    public void Only_a_raw_value_listed_under_disabledProviders_disables_and_unknown_entries_are_kept()
+    {
+        using var scope = AppSettingsScope.Create();
+        scope.Defaults.Seed("disabledProviders", new List<object> { "grok", "someFutureProvider", "opencodeGo" });
+        scope.OnMain(() =>
+        {
+            var settings = new AppSettings();
+            foreach (var provider in AllProviders)
+                Assert.Equal(provider is not (ProviderKind.Grok or ProviderKind.OpencodeGo), settings.IsEnabled(provider));
+            Assert.Equal(["grok", "someFutureProvider", "opencodeGo"], settings.DisabledProviders);
+            settings.SetEnabled(false, ProviderKind.Pi);
+            Assert.Equal(["grok", "someFutureProvider", "opencodeGo", "pi"], StoredStrings(scope, "disabledProviders"));
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVREG-084")] // App/AppSettings.swift:746 (`stringArray(forKey:) ?? []`)
+    public void A_disabledProviders_value_that_is_not_a_list_of_strings_disables_nothing()
+    {
+        using var scope = AppSettingsScope.Create();
+        scope.Defaults.Seed("disabledProviders", new List<object> { "grok", 5L });
+        scope.OnMain(() =>
+        {
+            var settings = new AppSettings();
+            Assert.True(settings.IsEnabled(ProviderKind.Grok));
+            Assert.Empty(settings.DisabledProviders);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVREG-085")] // App/AppSettings.swift:882-885, :500-502
+    public void Disabling_moves_the_provider_to_the_end_and_enabling_removes_every_copy_one_write_each()
+    {
+        using var scope = AppSettingsScope.Create();
+        scope.Defaults.Seed("disabledProviders", new List<object> { "codex", "claude", "codex", "grok" });
+        scope.OnMain(() =>
+        {
+            var settings = new AppSettings();
+
+            settings.SetEnabled(false, ProviderKind.Codex);
+            Assert.Equal(["claude", "grok", "codex"], StoredStrings(scope, "disabledProviders"));
+            Assert.Equal(1, WritesOf(scope, "disabledProviders"));
+            Assert.False(settings.IsEnabled(ProviderKind.Codex));
+
+            settings.SetEnabled(false, ProviderKind.Claude);
+            Assert.Equal(["grok", "codex", "claude"], StoredStrings(scope, "disabledProviders"));
+            Assert.Equal(2, WritesOf(scope, "disabledProviders"));
+
+            settings.SetEnabled(true, ProviderKind.Codex);
+            Assert.Equal(["grok", "claude"], StoredStrings(scope, "disabledProviders"));
+            Assert.Equal(3, WritesOf(scope, "disabledProviders"));
+            Assert.True(settings.IsEnabled(ProviderKind.Codex));
+
+            settings.SetEnabled(true, ProviderKind.Pi); // not listed: still one write of the unchanged list
+            Assert.Equal(["grok", "claude"], StoredStrings(scope, "disabledProviders"));
+            Assert.Equal(4, WritesOf(scope, "disabledProviders"));
+
+            scope.Relaunch();
+            var relaunched = new AppSettings();
+            Assert.Equal(["grok", "claude"], relaunched.DisabledProviders);
+            Assert.False(relaunched.IsEnabled(ProviderKind.Claude));
+        });
+    }
+
+    // ---- PR-PROVREG-086: binary paths ---------------------------------------------------------------------------------
+
+    [Fact]
+    [Trait("Req", "PR-PROVREG-086")] // App/AppSettings.swift:138, :496-498, :869-876
+    public void A_binary_path_is_stored_trimmed_under_the_providers_raw_value_one_write_per_change() => WithSettings((scope, settings) =>
+    {
+        Assert.Equal("", settings.BinaryPath(ProviderKind.OpencodeGo));
+        settings.SetBinaryPath("  C:\\Tools\\opencode.exe \n", ProviderKind.OpencodeGo);
+        Assert.Equal("C:\\Tools\\opencode.exe", settings.BinaryPath(ProviderKind.OpencodeGo));
+        Assert.Equal(new Dictionary<string, object> { ["opencodeGo"] = "C:\\Tools\\opencode.exe" }, StoredMap(scope, "providerBinaryPaths"));
+        Assert.Equal(1, WritesOf(scope, "providerBinaryPaths"));
+        settings.SetBinaryPath("C:\\Tools\\claude.cmd", ProviderKind.Claude);
+        Assert.Equal(2, WritesOf(scope, "providerBinaryPaths"));
+        scope.Relaunch();
+        var relaunched = new AppSettings();
+        Assert.Equal("C:\\Tools\\opencode.exe", relaunched.BinaryPath(ProviderKind.OpencodeGo));
+        Assert.Equal("C:\\Tools\\claude.cmd", relaunched.BinaryPath(ProviderKind.Claude));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-PROVREG-086")] // App/AppSettings.swift:873-876
+    public void Clearing_a_binary_path_removes_its_entry_instead_of_storing_an_empty_string() => WithSettings((scope, settings) =>
+    {
+        settings.SetBinaryPath("C:\\Tools\\codex.exe", ProviderKind.Codex);
+        settings.SetBinaryPath("C:\\Tools\\grok.exe", ProviderKind.Grok);
+        settings.SetBinaryPath(" \t\n", ProviderKind.Codex);
+        Assert.Equal("", settings.BinaryPath(ProviderKind.Codex));
+        Assert.Equal(new Dictionary<string, object> { ["grok"] = "C:\\Tools\\grok.exe" }, StoredMap(scope, "providerBinaryPaths"));
+        Assert.False(settings.BinaryPaths.ContainsKey("codex"));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-PROVREG-086")] // App/AppSettings.swift:745 (`as? [String: String] ?? [:]`)
+    public void A_stored_binary_path_map_holding_a_non_string_is_discarded_on_load()
+    {
+        using var scope = AppSettingsScope.Create();
+        scope.Defaults.Seed("providerBinaryPaths", new Dictionary<string, object> { ["codex"] = "C:\\codex.exe", ["claude"] = 5L });
+        scope.OnMain(() =>
+        {
+            var settings = new AppSettings();
+            Assert.Equal("", settings.BinaryPath(ProviderKind.Codex));
+            Assert.Empty(settings.BinaryPaths);
+        });
+    }
+
+    // ---- PR-PROVREG-087: last model per provider ----------------------------------------------------------------------
+
+    [Fact]
+    [Trait("Req", "PR-PROVREG-087")] // App/AppSettings.swift:140-141, :504-510, :887-898
+    public void Remember_stores_the_last_model_and_effort_by_raw_value_and_a_relaunch_reads_them_back() => WithSettings((scope, settings) =>
+    {
+        Assert.Null(settings.LastModel(ProviderKind.Codex));
+        settings.Remember("gpt-5-codex", "high", ProviderKind.Codex);
+        Assert.Equal("gpt-5-codex", settings.LastModel(ProviderKind.Codex));
+        Assert.Equal("high", settings.LastEffort(ProviderKind.Codex));
+        Assert.Equal(new Dictionary<string, object> { ["codex"] = "gpt-5-codex" }, StoredMap(scope, "lastModels"));
+        Assert.Equal(new Dictionary<string, object> { ["codex"] = "high" }, StoredMap(scope, "lastEfforts"));
+        scope.Relaunch();
+        var relaunched = new AppSettings();
+        Assert.Equal("gpt-5-codex", relaunched.LastModel(ProviderKind.Codex));
+        Assert.Null(relaunched.LastModel(ProviderKind.Claude));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-PROVREG-087")] // App/AppSettings.swift:747, :887-889 (a stale id is kept, never cleared)
+    public void A_stored_model_id_is_returned_as_is_and_reading_it_writes_nothing()
+    {
+        using var scope = AppSettingsScope.Create();
+        scope.Defaults.Seed("lastModels", new Dictionary<string, object> { ["claude"] = "retired-model-2024" });
+        scope.OnMain(() =>
+        {
+            var settings = new AppSettings();
+            Assert.Equal("retired-model-2024", settings.LastModel(ProviderKind.Claude));
+            Assert.Empty(scope.Defaults.Writes);
+        });
+    }
+
+    // ---- ED-149: ModelPin as a value RowDrag can hold -----------------------------------------------------------------
+
+    [Fact]
+    [Trait("Decision", "ED-149")]
+    public void ModelPin_is_a_value_with_a_real_nil_in_RowDrag_content_equality_and_a_two_member_encoding() => WithSettings((scope, settings) =>
+    {
+        Assert.Null(new RowDrag<ModelPin>().Id);
+        var pin = new ModelPin(ProviderKind.OpencodeGo, "kimi-k2");
+        Assert.True(pin == new ModelPin(ProviderKind.OpencodeGo, "kimi-k2"));
+        Assert.False(pin == new ModelPin(ProviderKind.Opencode, "kimi-k2"));
+        Assert.Equal("opencodeGo/kimi-k2", pin.Id); // AppSettings.swift:100
+        Assert.True(new RowDrag<ModelPin> { Id = pin }.Id == pin);
+
+        settings.AddToModelList(pin);
+        var data = Assert.IsType<byte[]>(scope.Defaults.Object("modelList"));
+        using var document = JsonDocument.Parse(data);
+        var entry = Assert.Single(document.RootElement.EnumerateArray().ToList());
+        Assert.Equal(["modelID", "provider"], entry.EnumerateObject().Select(p => p.Name).Order(StringComparer.Ordinal));
+        Assert.Equal("opencodeGo", entry.GetProperty("provider").GetString());
+        Assert.Equal("kimi-k2", entry.GetProperty("modelID").GetString());
+    });
+}
