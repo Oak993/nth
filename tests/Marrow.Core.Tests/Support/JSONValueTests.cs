@@ -105,6 +105,24 @@ public sealed class JSONValueTests
         Assert.Null(JSONValue.Parse(text));
     }
 
+    public static TheoryData<byte[]> UndecodableBytes() => new()
+    {
+        new byte[] { 0x22, 0xFF, 0x22 }, // a string holding 0xFF, which is never a UTF-8 byte
+        new byte[] { 0x22, 0xC3, 0x22 }, // a string holding a truncated two-byte sequence (C3 with no continuation)
+    };
+
+    [Theory]
+    [Trait("Req", "PR-STORE-115")] // Core/Support/JSONValue.swift:15-18
+    [MemberData(nameof(UndecodableBytes))]
+    public void Bytes_that_are_not_valid_UTF8_return_nil(byte[] bytes)
+    {
+        // :16 hands the raw Data to JSONSerialization.jsonObject, which rejects data it cannot decode, so the guard
+        // returns nil. Negative control (R-TEST-4): decoding first with Encoding.UTF8.GetString repairs the bytes to
+        // U+FFFD REPLACEMENT CHARACTER, which is valid JSON text, so a port that decodes before parsing gets a string.
+        Assert.Equal("\"\U0000FFFD\"", Encoding.UTF8.GetString(bytes)); // U+FFFD
+        Assert.Null(JSONValue.Parse(bytes));
+    }
+
     [Fact]
     [Trait("Req", "PR-STORE-115")] // Core/Support/JSONValue.swift:22-24
     public void Parsing_a_string_is_parsing_its_UTF8_bytes()
@@ -629,6 +647,9 @@ public sealed class JSONValueTests
     [InlineData(0.1, "0.1")]
     [InlineData(0.30000000000000004, "0.30000000000000004")]
     [InlineData(123456789.0, "123456789.0")]
+    // 1e15 is below every candidate exponent threshold of O-03 (2^53, 1e16, 2^54), so Swift prints it in full with
+    // ".0"; .NET round-trip text is "1E+15". Values between 2^53 and 2^54 are O-03 and are not asserted here.
+    [InlineData(1e15, "1000000000000000.0")]
     [InlineData(0.0001, "0.0001")]
     [InlineData(0.00001, "1e-05")]
     [InlineData(1e20, "1e+20")]
@@ -660,6 +681,43 @@ public sealed class JSONValueTests
         Assert.NotEqual(arr.CompactString, arr.DisplayText);
         Assert.Equal(JSONValue.FromArrayLiteral().PrettyString, JSONValue.FromArrayLiteral().DisplayText);
         Assert.Equal(JSONValue.FromDictionaryLiteral().PrettyString, JSONValue.FromDictionaryLiteral().DisplayText);
+    }
+
+    [Fact]
+    [Trait("Rule", "R-CODE-4")]
+    [Trait("Rule", "R-CODE-5")]
+    [Trait("Oracle", "O-09")]
+    [Trait("Oracle", "O-04")]
+    public void A_double_inside_a_tool_argument_object_is_written_with_the_serialization_number_text()
+    {
+        // UNVERIFIED O-09 (number text in JSONSerialization) and O-04 (pretty layout), so no Req trait (R-TEST-6).
+        // This is the risk PR-STORE-120's windows_path names: a numeric tool argument shown through displayText.
+        // Fixture (R-TEST-8): Services/Providers/PiSession.swift:443 and :446 set a tool row's detail to
+        // args.prettyString after testing args.compactString == "{}"; :128 routes displayText of an object to the same
+        // prettyString. Keys and values are samples. Parked choice: the SwiftJson SerializationCompact and
+        // SerializationPretty styles (R-CODE-4), whose numbers are SwiftJson.WriteDouble text (R-CODE-5): Swift's
+        // text without a trailing ".0", so 1.0 is 1 and 1e-05 stays 1e-05 (never the .NET "1E-05").
+        var args = JSONValue.FromDictionaryLiteral(("threshold", 0.1), ("scale", 2.5), ("ratio", 1.0), ("epsilon", 1e-05));
+
+        // Compact: Swift Dictionary order is unspecified (R-COLL-2), so members are asserted one by one.
+        var compact = args.CompactString;
+        Assert.Contains("\"threshold\":0.1", compact, StringComparison.Ordinal);
+        Assert.Contains("\"scale\":2.5", compact, StringComparison.Ordinal);
+        Assert.Contains("\"ratio\":1", compact, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"ratio\":1.0", compact, StringComparison.Ordinal);
+        Assert.Contains("\"epsilon\":1e-05", compact, StringComparison.Ordinal);
+        Assert.DoesNotContain("E", compact, StringComparison.Ordinal);
+        Assert.Equal(Utf8(compact), args.Data());
+        Assert.Equal("{\"ratio\":1}", JSONValue.FromDictionaryLiteral(("ratio", 1.0)).CompactString);
+        Assert.Equal("{\"epsilon\":1e-05}", JSONValue.FromDictionaryLiteral(("epsilon", 1e-05)).CompactString);
+
+        // Pretty and displayText: keys sorted, so the whole text is fixed.
+        const string pretty = "{\n  \"epsilon\" : 1e-05,\n  \"ratio\" : 1,\n  \"scale\" : 2.5,\n  \"threshold\" : 0.1\n}";
+        Assert.Equal(pretty, args.PrettyString);
+        Assert.Equal(pretty, args.DisplayText);
+
+        // The same Double shown alone goes through String(value) (:127) and keeps its ".0" (R-NUM-2).
+        Assert.Equal("1.0", new JSONValue.Double(1.0).DisplayText);
     }
 
     // ---- PR-STORE-121: optional(_:) -------------------------------------------------------------------------
@@ -729,6 +787,13 @@ public sealed class JSONValueTests
         Assert.Single(value.JSONValueObject!);
         Assert.Equal(new JSONValue.Int(2), value["\U000000E9"]); // U+00E9
         Assert.Equal(new JSONValue.Int(2), value["e\U00000301"]); // U+0301
+        // Dictionary(_:uniquingKeysWith:) merges by replacing only the value in the bucket it found (stdlib
+        // NativeDictionary.merge), so the FIRST spelling, U+00E9, is the key that survives and is written.
+        var key = Assert.Single(value.JSONValueObject!.Keys);
+        Assert.Equal(1, key.Length);
+        Assert.Equal('\U000000E9', key[0]); // U+00E9, ordinal
+        // {"é":2}, with é as C3 A9
+        Assert.Equal(new byte[] { 0x7B, 0x22, 0xC3, 0xA9, 0x22, 0x3A, 0x32, 0x7D }, value.Data());
     }
 
     [Fact]
@@ -769,5 +834,44 @@ public sealed class JSONValueTests
         Assert.Equal(JSONValue.FromDictionaryLiteral(("a", 1), ("b", 2)), JSONValue.FromDictionaryLiteral(("b", 2), ("a", 1)));
         Assert.Equal(JSONValue.FromArrayLiteral(1, 2).GetHashCode(), JSONValue.FromArrayLiteral(1, 2).GetHashCode());
         Assert.Equal(JSONValue.Parse("[1,2]"), JSONValue.FromArrayLiteral(1, 2));
+    }
+
+    // ---- :4 `enum JSONValue: Sendable, Hashable`: synthesized Equatable and Hashable (no record requirement) -------
+
+    [Fact]
+    [Trait("Rule", "R-ENUM-2")]
+    [Trait("Rule", "R-COLL-2")]
+    public void Objects_with_the_same_members_hash_the_same_whatever_their_literal_order()
+    {
+        // Core/Support/JSONValue.swift:4: synthesized Hashable hashes .object through Dictionary's hash, which does
+        // not depend on insertion order, and equal values must hash equally.
+        var ab = JSONValue.FromDictionaryLiteral(("a", 1), ("b", 2));
+        var ba = JSONValue.FromDictionaryLiteral(("b", 2), ("a", 1));
+        Assert.Equal(ab, ba);
+        Assert.Equal(ab.GetHashCode(), ba.GetHashCode());
+    }
+
+    [Fact]
+    [Trait("Rule", "R-STR-2")]
+    public void Canonically_equivalent_strings_are_equal_and_hash_the_same()
+    {
+        // Core/Support/JSONValue.swift:4: synthesized == compares .string payloads with Swift String ==, which is
+        // canonical equivalence: U+00E9 equals e followed by U+0301 COMBINING ACUTE ACCENT. Ordinal record equality fails.
+        var precomposed = new JSONValue.String("\U000000E9"); // U+00E9
+        var decomposed = new JSONValue.String("e\U00000301"); // U+0301
+        Assert.Equal(precomposed, decomposed);
+        Assert.Equal(precomposed.GetHashCode(), decomposed.GetHashCode());
+    }
+
+    [Fact]
+    [Trait("Rule", "R-ENUM-2")]
+    public void A_NaN_double_is_not_equal_to_another_NaN_double()
+    {
+        // Core/Support/JSONValue.swift:4: synthesized == compares .double payloads with Double ==, where NaN != NaN.
+        // A C# record's default equality uses double.Equals, where NaN equals NaN.
+        var first = new JSONValue.Double(double.NaN);
+        var second = new JSONValue.Double(double.NaN);
+        Assert.NotEqual(first, second);
+        Assert.False(first.Equals(second));
     }
 }
