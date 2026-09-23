@@ -4,14 +4,37 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
 
 namespace Marrow.Services.Store;
 
-// :6-15. StoredContinuation is used only by sweepOrphanedAttachments (:117-149), which is not a record of this
-// part (no PR-STORE-01x/02x names it here); left for a later part of this unit.
+/// <summary>:6-15. Just enough of a stored thread to read the files a forwarded continuation points at
+/// (PR-STORE-076): sweepOrphanedAttachments scans whole thread files as text, so this is the only key it ever
+/// decodes. Synthesized Decodable in Swift, both members optional -> DecodeIfPresent (R-CODE-1).</summary>
+file sealed record StoredContinuation
+{
+    public ContinuationPayload? Continuation { get; init; } // :14
+
+    public static StoredContinuation Decode(JsonElement element) => new()
+    {
+        Continuation = SwiftDecoding.DecodeIfPresent(element, "continuation", ContinuationPayload.Decode),
+    };
+
+    // :10-12
+    public sealed record ContinuationPayload
+    {
+        public ValueList<Attachment>? Attachments { get; init; } // :11
+
+        public static ContinuationPayload Decode(JsonElement element) => new()
+        {
+            Attachments = SwiftDecoding.DecodeIfPresent(element, "attachments",
+                e => SwiftDecoding.ReadArray(e, item => item.Deserialize<Attachment>(Coding.StorageOptions)!)),
+        };
+    }
+}
 
 /// <summary>
 /// PORT-ONLY seam for Storage.swift's side-effecting <c>static let</c> roots (R-LIFE-2), styled on
@@ -404,7 +427,7 @@ public sealed class DiskWriter
 }
 
 /// <summary>Where the app keeps its library, thread histories and attachments (:18).</summary>
-public static class Storage
+public static partial class Storage
 {
     public static Ambient<IStorageLocations> Locations { get; } = new(new UnboundStorageLocations());
 
@@ -526,6 +549,124 @@ public static class Storage
         return new Attachment { Id = id, Name = name, Path = destination, MimeType = MimeType.Of(fileExtension) }; // :109
     }
 
+    /// <summary>:112-149. Removes attachment files no thread refers to any more, once they are a day old
+    /// (PR-STORE-078), so a draft still open at relaunch keeps its files (PR-STORE-074 empty-attachments
+    /// guard) and only files named the way ImportAttachment names them ever go (PR-STORE-077). Directory
+    /// URLs are captured here, on the calling actor (PR-STORE-073), before the scan runs on a detached
+    /// utility task whose completion is awaited (:117-120, :149 .value); the scan itself never decodes a
+    /// thread document (PR-STORE-073), scanning each file as raw, repair-decoded text (PR-STORE-073).</summary>
+    public static async Task SweepOrphanedAttachments()
+    {
+        var attachments = AttachmentsDirectory; // :118
+        var threads = ThreadsDirectory; // :119
+        await TaskHandle.Detached(() =>
+        {
+            SweepOrphanedAttachmentsCore(attachments, threads); // :120-149
+            return Task.CompletedTask;
+        }).Completion;
+    }
+
+    // :121-148, the body of the detached task.
+    private static void SweepOrphanedAttachmentsCore(string attachmentsDirectory, string threadsDirectory)
+    {
+        // :122-123. PR-STORE-074: a listing failure for EITHER directory aborts the whole sweep; an empty
+        // attachments/ also stops here (nothing to sweep). Only a threads/ listing that truly succeeds (even
+        // as an empty array) lets the scan continue.
+        string[] names;
+        try
+        {
+            names = Directory.GetFileSystemEntries(attachmentsDirectory).Select(SwiftPath.LastPathComponent).ToArray();
+        }
+        catch (Exception e) when (SwiftTry.IsThrownError(e))
+        {
+            return;
+        }
+        if (names.Length == 0) return; // :122 !names.isEmpty
+
+        string[] documents;
+        try
+        {
+            documents = Directory.GetFileSystemEntries(threadsDirectory).Select(SwiftPath.LastPathComponent).ToArray();
+        }
+        catch (Exception e) when (SwiftTry.IsThrownError(e))
+        {
+            return; // PR-STORE-074: a threads/ listing failure never treats every attachment as unreferenced.
+        }
+
+        var referenced = new HashSet<string>(SwiftStringComparer.Instance); // :124
+        foreach (var document in documents)
+        {
+            if (!SwiftString.HasSuffix(document, ".json")) continue; // :125
+
+            byte[] data;
+            try
+            {
+                data = File.ReadAllBytes(SwiftPath.AppendingPathComponent(threadsDirectory, document)); // :126
+            }
+            catch (Exception e) when (SwiftTry.IsThrownError(e))
+            {
+                continue; // PR-STORE-075: an unreadable thread file is skipped; its attachments become candidates.
+            }
+            var text = SwiftText.DecodeUtf8Repairing(data); // :127, R-STR-8
+
+            // :128-131. DEVIATION windows_path (PR-STORE-075): the source pattern looks for the macOS encoder's
+            // "attachments\/UUID.ext" (an escaped forward slash). The port's encoder writes Windows separators,
+            // so a persisted path reads "attachments\\UUID.ext" in the raw JSON text (one backslash character,
+            // JSON-escaped to two); the pattern is adjusted to that separator, or the sweep matches nothing and
+            // every attachment is deleted a day after it is written (the record's own highest-risk warning).
+            foreach (Match match in AttachmentPathPattern().Matches(text))
+                referenced.Add(match.Groups[1].Value); // :130
+
+            // :132-139. A forwarded continuation keeps its own copy of the metadata, and the files it names stay
+            // referenced while the thread holding it is on disk.
+            if (text.Contains("\"continuation\"", StringComparison.Ordinal)) // :134
+            {
+                StoredContinuation? stored = null;
+                try
+                {
+                    using var document2 = JsonDocument.Parse(data, SwiftJson.DocumentOptions);
+                    stored = StoredContinuation.Decode(document2.RootElement); // :135
+                }
+                catch (Exception e) when (SwiftTry.IsThrownError(e))
+                {
+                    // PR-STORE-076: a continuation decode failure contributes nothing; its files can be swept later.
+                }
+                foreach (var attachment in stored?.Continuation?.Attachments ?? ValueList<Attachment>.Empty) // :136
+                    referenced.Add(SwiftPath.LastPathComponent(attachment.Path)); // :137, Swift: attachment.url.lastPathComponent
+            }
+        }
+
+        var cutoff = SwiftDate.AddingTimeInterval(SwiftDate.Now, -24 * 60 * 60); // :141
+        foreach (var name in names) // :142
+        {
+            if (referenced.Contains(name)) continue; // :142
+            if (!OrphanFileNamePattern().IsMatch(name)) continue; // :143, wholeMatch
+            var url = SwiftPath.AppendingPathComponent(attachmentsDirectory, name); // :144
+            if (!File.Exists(url)) continue; // :145 a modification date that cannot be read is skipped and kept.
+            DateTimeOffset modified;
+            try
+            {
+                modified = new DateTimeOffset(File.GetLastWriteTimeUtc(url), TimeSpan.Zero); // :145, contentModificationDateKey
+            }
+            catch (Exception e) when (SwiftTry.IsThrownError(e))
+            {
+                continue;
+            }
+            if (!(modified < cutoff)) continue; // :146
+            SwiftTry.Ignore(() => FileOps.RemoveItem(url)); // :147
+        }
+    }
+
+    // :129. Swift #/attachments\\?\/([0-9A-Fa-f-]{36}\.[A-Za-z0-9]+)/#, adapted per the windows_path DEVIATION
+    // above: one or two raw backslash characters (a JSON-escaped Windows path separator) in place of the
+    // optional-backslash-then-forward-slash the macOS encoder produces.
+    [GeneratedRegex(@"attachments\\{1,2}([0-9A-Fa-f-]{36}\.[A-Za-z0-9]+)", RegexOptions.CultureInvariant)]
+    private static partial Regex AttachmentPathPattern();
+
+    // :143. Swift #/[0-9A-Fa-f-]{36}\.[A-Za-z0-9]+/#.wholeMatch -> anchored \A...\z (R-RE-1).
+    [GeneratedRegex(@"\A[0-9A-Fa-f-]{36}\.[A-Za-z0-9]+\z", RegexOptions.CultureInvariant)]
+    private static partial Regex OrphanFileNamePattern();
+
     // :153
     public const int AttachmentLimit = 8;
 
@@ -567,7 +708,7 @@ public static class Storage
                 var fileExtension = SwiftString.Lowercased(SwiftPath.PathExtension(file.Path)); // :184
                 if (fileExtension != "heic" && fileExtension != "heif")
                     return SwiftTry.Optional(() => ImportAttachment(file.Path)); // :185
-                var jpeg = TranscodeFileToJpeg(file.Path, 0.88); // :186-187
+                var jpeg = TranscodeFileToJpeg(file.Path, HeicTranscodeQuality); // :186-187
                 if (jpeg is null) return null;
                 var last = SwiftPath.LastPathComponent(file.Path);
                 var dot = last.LastIndexOf('.');
@@ -584,6 +725,10 @@ public static class Storage
                 throw new UnreachableException();
         }
     }
+
+    // :215 kCGImageDestinationLossyCompressionQuality: 0.88, PR-STORE-071. Named so a test can assert the literal
+    // without re-deriving it from encoded JPEG bytes.
+    internal const double HeicTranscodeQuality = 0.88;
 
     // :201-219 transcode(_:to:), private to Storage.swift. PORT-ONLY WIC machinery styled on the interop pattern
     // in Core/Port/WicImageDecoder.cs, but with no downscale step: the requested pixel size is always
