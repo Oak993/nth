@@ -1,53 +1,50 @@
 using System.Globalization;
-using System.Text;
-using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Marrow.Core.Port;
 
 namespace Marrow.Core.Support;
 
+// Source: DroppyCode/Core/Support/Coding.swift (B2 1fbf81e), :3-34.
 public static class Coding
 {
+    // :19-33
     public static JsonSerializerOptions StorageOptions { get; } = CreateOptions();
 
     private static JsonSerializerOptions CreateOptions()
     {
-        var options = new JsonSerializerOptions
-        {
-            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-        };
+        var options = new JsonSerializerOptions { MaxDepth = SwiftJson.DocumentOptions.MaxDepth };
         options.Converters.Add(new StorageDateConverter());
         options.Converters.Add(new StorageIntegerConverter());
+        options.Converters.Add(new StorageDoubleConverter());
+        options.Converters.Add(new SwiftUUID.JsonConverter());
         options.MakeReadOnly(populateMissingResolver: true);
         return options;
     }
 
-    /// <summary>Use this entry point for storage: sorting and slash escaping are part of its wire format.</summary>
+    /// <summary>Use this entry point for the shared storage encoder's wire format.</summary>
+    // :19-26
     public static byte[] Encode<T>(T value)
     {
-        var element = JsonSerializer.SerializeToElement(value, StorageOptions);
-        using var stream = new MemoryStream();
-        using (var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Encoder = StorageOptions.Encoder }))
-            WriteSorted(writer, element);
-        return Encoding.UTF8.GetBytes(Encoding.UTF8.GetString(stream.ToArray()).Replace("/", "\\/", StringComparison.Ordinal));
+        return SwiftJson.Encode(value, StorageOptions, SwiftJsonStyle.Storage);
     }
 
-    public static T? Decode<T>(ReadOnlySpan<byte> data) => JsonSerializer.Deserialize<T>(data, StorageOptions);
-
-    public static T Value<T>(JsonElement container, string key, Func<T> fallback)
+    // :28-34
+    public static T? Decode<T>(ReadOnlySpan<byte> data)
     {
-        if (container.TryGetProperty(key, out var field) && field.ValueKind != JsonValueKind.Null)
-        {
-            try
-            {
-                var value = field.Deserialize<T>(StorageOptions);
-                if (value is not null) return value;
-            }
-            catch (JsonException) { }
-        }
-        return fallback();
+        using var document = JsonDocument.Parse(data.ToArray(), SwiftJson.DocumentOptions);
+        if (typeof(T) == typeof(DateTimeOffset))
+            return (T)(object)SwiftDecoding.ReadStorageDate(document.RootElement);
+        return document.RootElement.Deserialize<T>(StorageOptions);
     }
+
+    // :3-8
+    public static T Value<T>(JsonElement container, string key, SwiftDecoding.Reader<T> read, Func<T> fallback) =>
+        SwiftDecoding.Value(container, key, read, fallback);
+
+    // :10-17; container.value(...).compactMap at the model call sites.
+    public static ValueList<T> LenientList<T>(JsonElement container, string key, SwiftDecoding.Reader<T> read, Func<ValueList<T>> fallback) =>
+        SwiftDecoding.LenientList(container, key, read, fallback);
 
     private static void WriteSorted(Utf8JsonWriter writer, JsonElement value)
     {
@@ -90,6 +87,19 @@ public static class Coding
         }
 
         public override void Write(Utf8JsonWriter writer, long value, JsonSerializerOptions options) => writer.WriteNumberValue(value);
+    }
+
+    private sealed class StorageDoubleConverter : JsonConverter<double>
+    {
+        public override double Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            if (reader.TokenType != JsonTokenType.Number || !reader.TryGetDouble(out var value) || !double.IsFinite(value))
+                throw new JsonException();
+            return value;
+        }
+
+        public override void Write(Utf8JsonWriter writer, double value, JsonSerializerOptions options) =>
+            SwiftJson.WriteDouble(writer, value);
     }
 
     private sealed class StorageDateConverter : JsonConverter<DateTimeOffset>
