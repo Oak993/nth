@@ -999,6 +999,43 @@ public sealed class HttpTests
 
     [Fact]
     [Trait("Rule", "R-NET-1")]
+    [Trait("Decision", "ED-068")]
+    public async Task Completing_while_a_cancellation_callback_waits_for_the_gate_does_not_deadlock()
+    {
+        // The timer pauses Complete after it takes the gate. Cancellation then enters Exchange.Fail and waits for
+        // that gate. Complete must release the gate before synchronously unregistering the callback.
+        using var runtime = new TestRuntime();
+        using var callbackFinished = new ManualResetEventSlim();
+        var clock = new HttpCompletionRaceClock();
+        await using var server = new LoopbackHttpServer();
+        var handle = TaskHandle.DetachedThrowing(async () =>
+        {
+            using var clockScope = SwiftClock.Provider.Override(clock);
+            using var witness = SwiftTask.CancellationToken.Register(() => callbackFinished.Set());
+            return await URLSession.Shared.Data(new URLRequest(server.Url("/race")));
+        });
+        var request = await server.NextExchange();
+        await request.Respond(200, "OK", Ascii("done"));
+        Assert.True(clock.WaitForIdleDispose(Guard));
+        var cancelThread = new Thread(handle.Cancel) { IsBackground = true };
+        cancelThread.Start();
+        try
+        {
+            Assert.True(SpinWait.SpinUntil(
+                () => (cancelThread.ThreadState & System.Threading.ThreadState.WaitSleepJoin) != 0, Guard));
+            Assert.False(callbackFinished.IsSet);
+        }
+        finally
+        {
+            clock.ReleaseIdleDispose();
+        }
+        Assert.Equal(Ascii("done"), (await handle.Value.WaitAsync(Guard)).Data);
+        Assert.True(cancelThread.Join(Guard));
+        Assert.True(callbackFinished.IsSet);
+    }
+
+    [Fact]
+    [Trait("Rule", "R-NET-1")]
     [Trait("Rule", "R-TASK-2")]
     [Trait("Decision", "ED-066")]
     public async Task Cancelling_the_task_fails_the_request_with_URLError_cancelled_not_CancellationError()
