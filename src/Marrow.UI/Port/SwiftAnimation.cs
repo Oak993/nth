@@ -93,41 +93,53 @@ public sealed record SwiftTransition
 
     public static void Insert(Panel panel, int index, Control child)
     {
-        var state = attachments.GetValue(child, _ => new Attachment(Identity));
-        var transition = state.Transition.ForInsert();
-        state.Wrapper ??= state.Transition.CreateBody(child);
+        // A view with no `.transition(_:)` uses SwiftUI's default `.opacity`: documented SwiftUI behaviour, UNVERIFIED
+        // under OD-0001 as ED-092 records for the other documented defaults.
+        var state = attachments.GetValue(child, _ => new Attachment(Opacity));
+        // ED-159 follow-up (interruption): an insertion cancels whatever transition of this child is still running and
+        // starts afresh; a removal still in flight gives its wrapper back before the insertion places it again.
+        state.Stop();
+        if (state.RemovingFrom is { } lingering)
+        {
+            lingering.Children.Remove(state.Wrapper ?? child);
+            state.RemovingFrom = null;
+        }
+        state.Wrapper ??= state.Transition.CreateBody(child, state.Bodies);
         panel.Children.Insert(index, state.Wrapper);
-        var animation = transition.OwnAnimation() ?? Transaction.Current;
+        var animation = state.Transition.ForInsert().OwnAnimation() ?? Transaction.Current;
         if (animation is null)
         {
-            transition.Apply(child, state.Wrapper, 1, inserting: true);
+            state.Transition.Apply(child, state.Bodies, 1, inserting: true);
             return;
         }
-        transition.Apply(child, state.Wrapper, 0, inserting: true);
-        state.Run(animation, (p, _) => transition.Apply(child, state.Wrapper, p, inserting: true));
+        state.Transition.Apply(child, state.Bodies, 0, inserting: true);
+        state.Run(animation, (p, _) => state.Transition.Apply(child, state.Bodies, p, inserting: true));
     }
 
     public static void Remove(Panel panel, Control child)
     {
-        if (!attachments.TryGetValue(child, out var state))
-        {
-            panel.Children.Remove(child);
-            return;
-        }
+        // The same `.opacity` default (UNVERIFIED under OD-0001, ED-092) for a child that carries no transition.
+        var state = attachments.GetValue(child, _ => new Attachment(Opacity));
         state.Stop();
-        var transition = state.Transition.ForRemove();
         var wrapper = state.Wrapper ?? child;
-        var animation = transition.OwnAnimation() ?? Transaction.Current;
+        var animation = state.Transition.ForRemove().OwnAnimation() ?? Transaction.Current;
         if (animation is null)
         {
             panel.Children.Remove(wrapper);
+            state.RemovingFrom = null;
             return;
         }
-        transition.Apply(child, wrapper, 0, inserting: false);
+        if (state.Wrapper is null && state.Transition.ModifierCount() > 0)
+            throw new InvalidOperationException(
+                "A child with a modifier transition can leave with an animation only after SwiftTransition.Insert built its wrappers.");
+        state.RemovingFrom = panel;
+        state.Transition.Apply(child, state.Bodies, 0, inserting: false);
         state.Run(animation, (p, complete) =>
         {
-            transition.Apply(child, wrapper, p, inserting: false);
-            if (complete && panel.Children.Contains(wrapper)) panel.Children.Remove(wrapper);
+            state.Transition.Apply(child, state.Bodies, p, inserting: false);
+            if (!complete) return;
+            if (panel.Children.Contains(wrapper)) panel.Children.Remove(wrapper);
+            state.RemovingFrom = null;
         });
     }
 
@@ -136,35 +148,42 @@ public sealed record SwiftTransition
     private Marrow.UI.Port.Animation? OwnAnimation() => kind == Kind.Animated ? animation :
         kind == Kind.Pair ? first!.OwnAnimation() ?? second!.OwnAnimation() : null;
 
-    private Control CreateBody(Control child)
+    // The modifier transitions in the tree, counted in the order CreateBody and Gather walk it.
+    private int ModifierCount() => kind switch
     {
-        if (kind == Kind.Mod)
+        Kind.Mod => 1,
+        Kind.Animated => first!.ModifierCount(),
+        Kind.Asym or Kind.Pair => first!.ModifierCount() + second!.ModifierCount(),
+        _ => 0,
+    };
+
+    // ED-098 (2): every modifier in the tree wraps the content itself, as SwiftUI applies each one: both halves of an
+    // asymmetric transition (UI/Chrome/Chrome.swift:994-999 settleGlide) and both sides of a combined one. The walk
+    // takes the first half, then the second; each wrapper encloses the ones before it and starts at its identity.
+    private Control CreateBody(Control content, List<Control> bodies)
+    {
+        switch (kind)
         {
-            var body = identity!.Body(child);
-            // The removal modifier may own the wrapper even when the insertion half is Identity.
-            // Initialize it at identity before any transition-specific frame is applied.
-            identity.Update(body);
-            return body;
+            case Kind.Mod:
+                var body = identity!.Body(content);
+                identity.Update(body);
+                bodies.Add(body);
+                return body;
+            case Kind.Animated:
+                return first!.CreateBody(content, bodies);
+            case Kind.Asym or Kind.Pair:
+                return second!.CreateBody(first!.CreateBody(content, bodies), bodies);
+            default:
+                return content;
         }
-        if (kind == Kind.Animated) return first!.CreateBody(child);
-        if (kind == Kind.Asym)
-        {
-            var body = first!.CreateBody(child);
-            return ReferenceEquals(body, child) ? second!.CreateBody(child) : body;
-        }
-        if (kind == Kind.Pair)
-        {
-            var body = first!.CreateBody(child);
-            return ReferenceEquals(body, child) ? second!.CreateBody(child) : body;
-        }
-        return child;
     }
 
-    private void Apply(Control child, Control body, double progress, bool inserting)
+    private void Apply(Control child, List<Control> bodies, double progress, bool inserting)
     {
         // ED-159: gather nested transitions before writing any property, then leave untouched properties alone.
         var effects = new AppliedEffects();
-        Gather(child, body, progress, inserting, effects);
+        var cursor = 0;
+        Gather(child, bodies, ref cursor, progress, inserting, effects);
         if (effects.OpacityTouched) child.Opacity = effects.Opacity;
         if (effects.TransformTouched)
         {
@@ -191,7 +210,7 @@ public sealed record SwiftTransition
         public bool EffectTouched { get; set; }
     }
 
-    private void Gather(Control child, Control body, double progress, bool inserting, AppliedEffects effects)
+    private void Gather(Control child, List<Control> bodies, ref int cursor, double progress, bool inserting, AppliedEffects effects)
     {
         switch (kind)
         {
@@ -231,6 +250,8 @@ public sealed record SwiftTransition
                 effects.Transforms.Add(new ScaleTransform(blurScale, blurScale));
                 break;
             case Kind.Mod:
+                // Each modifier updates the wrapper its own Body built (ED-098 (2)).
+                var body = bodies[cursor++];
                 var from = inserting ? active! : identity!;
                 var to = inserting ? identity! : active!;
                 var a = from.AnimatableData;
@@ -245,11 +266,23 @@ public sealed record SwiftTransition
                 break;
             case Kind.Pair:
                 // UNVERIFIED O-52: combined(with:) nests first inside second (ChatView.swift:1098-1099).
-                first!.Gather(child, body, progress, inserting, effects);
-                second!.Gather(child, body, progress, inserting, effects);
+                first!.Gather(child, bodies, ref cursor, progress, inserting, effects);
+                second!.Gather(child, bodies, ref cursor, progress, inserting, effects);
                 break;
-            case Kind.Asym: (inserting ? first! : second!).Gather(child, body, progress, inserting, effects); break;
-            case Kind.Animated: first!.Gather(child, body, progress, inserting, effects); break;
+            case Kind.Asym:
+                // The half not in play stays at identity: its wrappers keep the state they were built or left in.
+                if (inserting)
+                {
+                    first!.Gather(child, bodies, ref cursor, progress, inserting, effects);
+                    cursor += second!.ModifierCount();
+                }
+                else
+                {
+                    cursor += first!.ModifierCount();
+                    second!.Gather(child, bodies, ref cursor, progress, inserting, effects);
+                }
+                break;
+            case Kind.Animated: first!.Gather(child, bodies, ref cursor, progress, inserting, effects); break;
         }
     }
 
@@ -257,6 +290,8 @@ public sealed record SwiftTransition
     {
         public SwiftTransition Transition { get; } = transition;
         public Control? Wrapper { get; set; }
+        public List<Control> Bodies { get; } = [];
+        public Panel? RemovingFrom { get; set; }
         private Action<TimeSpan>? callback;
         private IFrameSource? source;
 
