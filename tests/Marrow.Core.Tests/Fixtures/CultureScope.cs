@@ -23,5 +23,8 @@ public sealed class CultureScope : IDisposable
     /// <summary>Any named culture, for the tests that show the calendar following it.</summary>
     public static CultureScope Of(string name) => new(CultureInfo.GetCultureInfo(name));
 
+    /// <summary>A given culture, such as a writable clone with a changed short-time pattern (ED-134).</summary>
+    public static CultureScope Of(CultureInfo culture) => new(culture);
+
     public void Dispose() => CultureInfo.CurrentCulture = previous;
 }

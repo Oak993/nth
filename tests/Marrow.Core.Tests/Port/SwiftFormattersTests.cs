@@ -48,9 +48,11 @@ namespace Marrow.Core.Tests.Port;
 //   ICURelativeDateFormatter.swift (sortedAllowedComponents :28 includes weekOfMonth; ureldatefmt_format for .named).
 // - CLDR (github.com/unicode-org/cldr, release-42 and release-46, common/main): de.xml and fr.xml percentFormat,
 //   zh_Hant.xml gregorian availableFormats "hm"/"Bhm" and dayPeriods.
-// - Not asserted, open questions reported to the orchestrator: what CurrentLocale's default is derived from on
-//   Windows; whether the Windows 12/24-hour preference is honoured (ICUPatternGenerator.swift:60-75 applies the macOS
-//   one); ByteCountFormatter wording in a non-English locale.
+// - Rulings on the questions an earlier attempt reported: CurrentLocale's default is the bundle-matched en_<region>
+//   id (ED-132, swift-foundation Locale_ICU.swift:229-279 and :1639-1743); the Windows short-time pattern stands for
+//   the macOS 12/24-hour preference, as an hours keyword on that default only (ED-134); ByteCountFormatter words stay
+//   English in every locale (ED-133); U+202F before the day period in the en family (ED-135). Their tests carry
+//   Oracle O-37 (the default locale) and O-23 (ICU and CLDR text).
 // - ByteCountFormatter: swift-corelibs-foundation Tests/Foundation/TestByteCountFormatter.swift test_DefaultValues,
 //   test_zeroBytes, test_oneByte and test_isAdaptiveTrue, which pin the Darwin defaults and outputs.
 // - ICU and CLDR output text (U+202F before AM/PM since CLDR 42, the medium date-time glue "{1}, {0}", fr grouping
@@ -496,8 +498,8 @@ public sealed class SwiftFormattersTests
     public void With_no_override_the_formatters_read_the_ambients_own_default()
     {
         // Int.formatted() (CommandCodeSession.swift:406) uses Locale.autoupdatingCurrent. What that default is derived
-        // from on Windows is not ruled (ED-094 covers only Calendar.current, ED-096 says only "an ICU id"), so this
-        // test pins only that the omitted locale IS the ambient's current value, not what that value is.
+        // from on Windows is ED-132 (the bundle-matched en_<region> id, pinned per culture by the O-37 tests below);
+        // this test pins only that the omitted locale IS the ambient's current value, whatever the process culture.
         var current = SwiftFormatters.CurrentLocale.Current;
         Assert.False(string.IsNullOrEmpty(current));
         Assert.Equal(SwiftFormatters.Formatted(12345L, current), SwiftFormatters.Formatted(12345L));
@@ -587,10 +589,192 @@ public sealed class SwiftFormattersTests
     [Trait("Oracle", "O-23")]
     public void File_byte_counts_use_the_locales_decimal_separator()
     {
-        // Only the separator is pinned. Whether "Zero KB", "1 byte" and "bytes" stay English or are localized under a
-        // non-English locale (DownloadsPopover.swift:33-37 and AttachmentPreview.swift:96-100 set no locale) has no
-        // parked choice: the O-23 row of IMPLEMENTING.md Appendix B says "none yet", and the corelibs tests are
-        // en-only. Reported to the orchestrator; no test asserts that wording until it is ruled.
+        // The separator follows the locale. The words ("Zero KB", "1 byte", "bytes", "KB", "MB", "GB") stay English
+        // in every locale by ED-133 (the O-23 parked choice in IMPLEMENTING.md Appendix B); the tests after this one
+        // pin that wording (DownloadsPopover.swift:33-37 and AttachmentPreview.swift:96-100 set no locale).
         Assert.Equal("12,3 MB", SwiftFormatters.FileByteCount(12345678L, "de_DE"));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-FMT-2")]
+    [Trait("Decision", "ED-133")]
+    [Trait("Oracle", "O-23")]
+    public void Byte_count_words_stay_English_in_every_locale_and_only_the_number_follows_it()
+    {
+        // ED-133: the words are Foundation.framework strings in the app's only localization, en; the number is
+        // NumberFormatter .decimal in the locale (swift-corelibs-foundation ByteCountFormatter.swift string(fromByteCount:)
+        // and formatNumberFor(bytes:unit:), zeroPadsFractionDigits false, isAdaptive true).
+        Assert.Equal("Zero KB", SwiftFormatters.FileByteCount(0L, "de_DE"));
+        Assert.Equal("1 byte", SwiftFormatters.FileByteCount(1L, "de_DE"));
+        Assert.Equal("12,3 MB", SwiftFormatters.FileByteCount(12345678L, "fr_FR"));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-FMT-2")]
+    [Trait("Decision", "ED-132")]
+    [Trait("Decision", "ED-133")]
+    [Trait("Oracle", "O-23")]
+    [Trait("Oracle", "O-37")]
+    public void A_source_site_passes_the_current_locale_so_the_byte_count_number_follows_the_users_region()
+    {
+        // DownloadsPopover.swift:33-37 and AttachmentPreview.swift:96-100 set no locale, so the port's caller passes
+        // SwiftFormatters.CurrentLocale.Current (ED-133), which under de-DE is en_DE (ED-132): decimal comma.
+        using var culture = CultureScope.Of("de-DE");
+        Assert.Equal("12,3 MB", SwiftFormatters.FileByteCount(12345678L, SwiftFormatters.CurrentLocale.Current));
+    }
+
+    // ---- ED-132: the default of CurrentLocale --------------------------------------------------------------------
+
+    [Theory]
+    [Trait("Rule", "R-FMT-2")]
+    [Trait("Decision", "ED-132")]
+    [Trait("Oracle", "O-37")]
+    [InlineData("de-DE", "en_DE")]
+    [InlineData("fr-FR", "en_FR")]
+    [InlineData("en-GB", "en_GB")]
+    [InlineData("en-US", "en_US")]
+    [InlineData("", "en_001")] // the invariant culture: uloc_forLanguageTag("") is empty, so the fallback en_001 (:274-279)
+    public void The_default_locale_keeps_the_users_region_and_takes_the_apps_only_language_en(string culture, string expected)
+    {
+        // Locale_ICU.swift:229-279 with bundle matching on and Bundle.main.localizations == ["en"] (ED-132):
+        // localeIdentifierForCanonicalizedLocalizations (:1712-1743) keeps an en preferred locale and otherwise replaces
+        // its language and script (:1657-1708). Not CurrentCulture.Name with '-' replaced by '_' (that gives de_DE).
+        using var scope = CultureScope.Of(culture);
+        Assert.Equal(expected, SwiftFormatters.CurrentLocale.Current);
+    }
+
+    [Fact]
+    [Trait("Rule", "R-FMT-2")]
+    [Trait("Decision", "ED-132")]
+    [Trait("Oracle", "O-37")]
+    public void Under_de_DE_the_default_locale_formats_German_region_numbers_with_English_words()
+    {
+        // ED-132 pinned results: en_DE groups with a period, and its long date is day-first in English.
+        using var culture = CultureScope.Of("de-DE");
+        Assert.Equal("12.345", SwiftFormatters.Formatted(12345L));
+        Assert.Equal("17 January 2021", SwiftFormatters.Formatted(Birthday, DateFormatStyle.Of(DateFormatStyle.DateStyle.Long, DateFormatStyle.TimeStyle.Omitted), zone: TimeZoneInfo.Utc));
+    }
+
+    [Theory]
+    [Trait("Rule", "R-FMT-2")]
+    [Trait("Decision", "ED-132")]
+    [Trait("Oracle", "O-37")]
+    [InlineData("fr-FR")]
+    [InlineData("")]
+    public void Under_fr_FR_and_the_invariant_culture_the_default_locale_groups_with_a_comma(string culture)
+    {
+        // ED-132 pinned results: en_FR and en_001 both give "12,345".
+        using var scope = CultureScope.Of(culture);
+        Assert.Equal("12,345", SwiftFormatters.Formatted(12345L));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-FMT-2")]
+    [Trait("Decision", "ED-094")]
+    [Trait("Decision", "ED-132")]
+    [Trait("Oracle", "O-23")]
+    [Trait("Oracle", "O-37")]
+    public void Relative_week_alignment_takes_the_first_weekday_from_the_current_locale_not_the_style_locale()
+    {
+        // Date+RelativeFormatStyle.swift:260: the style's calendar is Calendar.autoupdatingCurrent, whose locale is
+        // Locale.current, so :349 aligns weeks with its firstWeekday; the style locale (en_US here) only words the
+        // result. dest is Sun 2026-09-13 12:00Z, 9 days before Now (week -1 unaligned, so the week is aligned).
+        // en_US weeks start on Sunday: the week of Now ends Sat 09-26 23:59:59, 13 days 11:59:59 after dest: week -1.
+        // en_DE weeks start on Monday: the week of Now ends Sun 09-27 23:59:59, 14 days 11:59:59 after dest: week -2.
+        var dest = Now.AddDays(-9);
+        using (CultureScope.Gregorian())
+        {
+            Assert.Equal("last week", SwiftFormatters.RelativeNamed(dest, Now, EnUS, TimeZoneInfo.Utc));
+        }
+
+        using (CultureScope.Of("de-DE"))
+        {
+            Assert.Equal("2 weeks ago", SwiftFormatters.RelativeNamed(dest, Now, EnUS, TimeZoneInfo.Utc));
+        }
+    }
+
+    // ---- ED-134: the Windows short-time pattern as the 12/24-hour preference --------------------------------------
+
+    private static CultureInfo WithShortTime(string culture, string shortTimePattern)
+    {
+        var clone = (CultureInfo)CultureInfo.GetCultureInfo(culture).Clone();
+        clone.DateTimeFormat.ShortTimePattern = shortTimePattern;
+        return clone;
+    }
+
+    private static DateFormatStyle Shortened => DateFormatStyle.Of(DateFormatStyle.DateStyle.Omitted, DateFormatStyle.TimeStyle.Shortened);
+
+    [Fact]
+    [Trait("Rule", "R-FMT-2")]
+    [Trait("Decision", "ED-134")]
+    [Trait("Oracle", "O-37")]
+    public void A_24_hour_short_time_in_a_12_hour_region_gives_the_default_locale_24_hours()
+    {
+        // Locale_Preferences.swift:193-198 (AppleICUForce24HourTime -> h23) reaches the pattern generator through the
+        // hours keyword of identifierCapturingPreferences (ICUPatternGenerator.swift:88-94); ED-134 reads it from the
+        // user's short-time pattern.
+        using var culture = CultureScope.Of(WithShortTime("en-US", "HH:mm"));
+        Assert.Equal("22:03", SwiftFormatters.Formatted(Birthday, Shortened, zone: TimeZoneInfo.Utc));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-FMT-2")]
+    [Trait("Decision", "ED-134")]
+    [Trait("Oracle", "O-37")]
+    public void An_explicit_locale_or_an_override_carries_no_hour_preference()
+    {
+        // ED-134: the keyword is appended to the ED-132 default id only; Locale(identifier:) has no preferences.
+        using var culture = CultureScope.Of(WithShortTime("en-US", "HH:mm"));
+        Assert.Equal("10:03" + NarrowNoBreakSpace + "PM", SwiftFormatters.Formatted(Birthday, Shortened, EnUS, TimeZoneInfo.Utc));
+        using (SwiftFormatters.CurrentLocale.Override(EnUS))
+        {
+            Assert.Equal("10:03" + NarrowNoBreakSpace + "PM", SwiftFormatters.Formatted(Birthday, Shortened, zone: TimeZoneInfo.Utc));
+        }
+    }
+
+    [Fact]
+    [Trait("Rule", "R-FMT-2")]
+    [Trait("Decision", "ED-134")]
+    [Trait("Oracle", "O-37")]
+    public void An_unchanged_short_time_pattern_is_no_preference()
+    {
+        // ED-134: a preference exists only when the first unquoted H or h differs from the culture's own pattern.
+        using (CultureScope.Of("en-US"))
+        {
+            Assert.Equal("10:03" + NarrowNoBreakSpace + "PM", SwiftFormatters.Formatted(Birthday, Shortened, zone: TimeZoneInfo.Utc));
+        }
+
+        using (CultureScope.Of("en-GB"))
+        {
+            Assert.Equal("22:03", SwiftFormatters.Formatted(Birthday, Shortened, zone: TimeZoneInfo.Utc));
+        }
+    }
+
+    [Fact]
+    [Trait("Rule", "R-FMT-2")]
+    [Trait("Decision", "ED-134")]
+    [Trait("Decision", "ED-135")]
+    [Trait("Oracle", "O-23")]
+    [Trait("Oracle", "O-37")]
+    public void A_12_hour_short_time_in_a_24_hour_region_gives_the_default_locale_a_day_period()
+    {
+        // AppleICUForce12HourTime -> h12 (Locale_Preferences.swift:193-198); ED-134 reads it from "h:mm tt". The day
+        // period follows U+202F in the en family (ED-135).
+        using var culture = CultureScope.Of(WithShortTime("en-GB", "h:mm tt"));
+        Assert.Equal("10:03" + NarrowNoBreakSpace + "PM", SwiftFormatters.Formatted(Birthday, Shortened, zone: TimeZoneInfo.Utc));
+    }
+
+    // ---- ED-135: U+202F before the day period in the en family ------------------------------------------------------
+
+    [Fact]
+    [Trait("Rule", "R-FMT-2")]
+    [Trait("Decision", "ED-135")]
+    [Trait("Oracle", "O-23")]
+    public void A_pattern_that_already_has_the_narrow_no_break_space_keeps_exactly_one()
+    {
+        // ED-135: icu.dll already gives U+202F for en_TW, and the repair is idempotent.
+        using var culture = CultureScope.Gregorian();
+        var text = SwiftFormatters.Formatted(Birthday, Shortened, "en_TW", TimeZoneInfo.Utc);
+        Assert.Equal("10:03" + NarrowNoBreakSpace + "PM", text);
     }
 }
