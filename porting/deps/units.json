@@ -26,8 +26,8 @@
    "packets": [],
    "risk": "STANDARD",
    "spec": "ED-169: Foundation URLComponents and URLQueryItem as port types, built on SwiftURL parsing and percent-coding (swift-foundation 6.2), members exactly as the call sites use them; oracle items O-57 to O-60.",
-   "extends_existing": false,
-   "status": "TODO"
+   "extends_existing": true,
+   "status": "DONE"
   },
   {
    "id": "F.HTTPMove",
@@ -419,8 +419,8 @@
    "packets": [],
    "risk": "STANDARD",
    "spec": "Production settings store behind the UserDefaults seam of ED-079: a per-user JSON store under the Marrow Code data folder (OD-0008 C7), keys and defaults exactly as the source names them, absent versus present kept distinct, integer(forKey:), double(forKey:) and bool(forKey:) conversions as Foundation performs them, atomic writes through F.FileOps. First tests: absent versus present, key names, write order, the type conversions.",
-   "extends_existing": false,
-   "status": "TODO"
+   "extends_existing": true,
+   "status": "DONE"
   },
   {
    "id": "F.FileOps",
@@ -925,46 +925,14 @@
    ],
    "intra_deps": [],
    "records_total": 14,
-   "records_todo": [
-    "PR-GIT-071",
-    "PR-GIT-072",
-    "PR-GIT-073",
-    "PR-GIT-074",
-    "PR-GIT-075",
-    "PR-GIT-076",
-    "PR-GIT-077",
-    "PR-GIT-078",
-    "PR-GIT-079",
-    "PR-GIT-153",
-    "PR-GIT-154",
-    "PR-GIT-155",
-    "PR-GIT-156",
-    "PR-GIT-157"
-   ],
-   "parts": [
-    [
-     "PR-GIT-071",
-     "PR-GIT-072",
-     "PR-GIT-073",
-     "PR-GIT-074",
-     "PR-GIT-075",
-     "PR-GIT-076",
-     "PR-GIT-077",
-     "PR-GIT-078",
-     "PR-GIT-079",
-     "PR-GIT-153",
-     "PR-GIT-154",
-     "PR-GIT-155",
-     "PR-GIT-156",
-     "PR-GIT-157"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M3-014",
     "T-M3-015"
    ],
    "risk": "HIGH",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.Providers.UsageLimitSignal",
@@ -2083,80 +2051,8 @@
    ],
    "intra_deps": [],
    "records_total": 33,
-   "records_todo": [
-    "PR-GIT-004",
-    "PR-GIT-006",
-    "PR-TERM-081",
-    "PR-TERM-082",
-    "PR-TERM-083",
-    "PR-TERM-084",
-    "PR-TERM-085",
-    "PR-TERM-086",
-    "PR-TERM-087",
-    "PR-TERM-088",
-    "PR-TERM-089",
-    "PR-TERM-090",
-    "PR-TERM-091",
-    "PR-TERM-092",
-    "PR-TERM-093",
-    "PR-TERM-094",
-    "PR-TERM-095",
-    "PR-TERM-096",
-    "PR-TERM-097",
-    "PR-TERM-098",
-    "PR-TERM-100",
-    "PR-TERM-101",
-    "PR-TERM-102",
-    "PR-TERM-103",
-    "PR-TERM-104",
-    "PR-TERM-105",
-    "PR-TERM-106",
-    "PR-TERM-118",
-    "PR-TERM-119",
-    "PR-TERM-120",
-    "PR-TERM-121",
-    "PR-TERM-122",
-    "PR-UPDATE-048"
-   ],
-   "parts": [
-    [
-     "PR-GIT-004",
-     "PR-GIT-006",
-     "PR-TERM-081",
-     "PR-TERM-082",
-     "PR-TERM-083",
-     "PR-TERM-084",
-     "PR-TERM-085",
-     "PR-TERM-086",
-     "PR-TERM-087",
-     "PR-TERM-088",
-     "PR-TERM-089",
-     "PR-TERM-090",
-     "PR-TERM-091",
-     "PR-TERM-092",
-     "PR-TERM-093",
-     "PR-TERM-094",
-     "PR-TERM-095",
-     "PR-TERM-096",
-     "PR-TERM-097",
-     "PR-TERM-098",
-     "PR-TERM-100",
-     "PR-TERM-101",
-     "PR-TERM-102",
-     "PR-TERM-103"
-    ],
-    [
-     "PR-TERM-104",
-     "PR-TERM-105",
-     "PR-TERM-106",
-     "PR-TERM-118",
-     "PR-TERM-119",
-     "PR-TERM-120",
-     "PR-TERM-121",
-     "PR-TERM-122",
-     "PR-UPDATE-048"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M2-067",
     "T-M2-068",
@@ -2164,7 +2060,7 @@
     "T-M2-070"
    ],
    "risk": "HIGH",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Core.Support.SwitchLatency",
