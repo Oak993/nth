@@ -269,3 +269,18 @@ instruction may change one.
   loads, and a launch splash while the prologue runs. Small and mini inline spinners stay the system spinner, as
   upstream. Where, when and how it moves is ED-097. The motion is option A "Orbit" from
   `E:/Droppy/work/icon/loading_preview.html` unless the owner picks B "Ratchet" or C "Bloom".
+
+## OD-0017 Live resize: adopt `stretch`, accept the Windows residual
+
+- **Asked:** 2026-09-23, after probe P4b (porting/probes/p4b/RESULT.md) found no remedy that removes every edge strip,
+  as OD-0013 required it to come back.
+- **Put to the owner:** `stretch` lowers the moving grow-edge strip from 2.54 % to 0.16 % of samples and removes every
+  shrink clip; the rest is a one-frame lag composed by DWM that also occurs without the remedy and that no app code
+  reaches, and about 2 % of moving samples show the previous frame scaled by up to 5 px for one frame instead of a
+  strip; nothing changes at rest. Options: adopt and accept the rest as a named deviation (recommended); adopt and keep
+  the chrome open; keep the chrome blocked.
+- **Answer, verbatim (selected option):** "Adopt fix, accept rest (Recommended)"
+- **Effect:** every resizable top-level window uses `stretch` as ED-101 builds it, and the window chrome is accepted
+  once that is in and verified. The DWM type B frame (one frame, 3 to 9 px of what is behind the window, about 1 resize
+  step in 150 to 250 at P4's drag speed) and the one-frame scaled frames are a named deviation in the final report.
+  OD-0013 is closed by this decision.
