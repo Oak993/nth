@@ -416,6 +416,35 @@ public sealed class SettingsStoreTests
         Assert.Equal("dark", new SettingsStore(path).String("appTheme"));
     }
 
+    // ED-156 (2): a top-level value that is valid JSON but not an object is a "non-object root": Load does not take
+    // every top-level entry, so the store opens empty, the main file is left as it is and its original bytes are
+    // preserved in <path>.unreadable before the first write can replace them.
+    [Theory]
+    [Trait("Decision", "ED-079")]
+    [Trait("Decision", "ED-156")]
+    [InlineData("[]")]
+    [InlineData("[{\"appTheme\":{\"string\":\"dark\"}}]")]
+    [InlineData("\"x\"")]
+    [InlineData("7")]
+    [InlineData("null")]
+    [InlineData("true")]
+    public void A_file_whose_root_is_not_an_object_reads_as_an_empty_store_and_is_preserved(string json)
+    {
+        using var folder = new SettingsScratchFolder();
+        var path = folder.PathOf("UserDefaults.json");
+        var original = Encoding.UTF8.GetBytes(json);
+        File.WriteAllBytes(path, original);
+
+        var store = new SettingsStore(path);
+        Assert.Null(store.Object("appTheme"));
+        Assert.Equal(original, File.ReadAllBytes(path));
+        Assert.Equal(original, File.ReadAllBytes(path + ".unreadable"));
+        store.Set("appTheme", "dark");
+        Assert.True(store.Synchronize());
+        Assert.Equal("dark", new SettingsStore(path).String("appTheme"));
+        Assert.Equal(original, File.ReadAllBytes(path + ".unreadable"));
+    }
+
     [Fact]
     [Trait("Decision", "ED-079")]
     [Trait("Decision", "ED-156")]
