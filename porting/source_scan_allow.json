@@ -21,7 +21,7 @@
     "file": "src/Marrow.Core/Support/JSONValue.cs",
     "pattern": "WriteNumberValue(",
     "text": "case Int i: writer.WriteNumberValue(i.Value); break;",
-    "swift": "DroppyCode/Core/Support/JSONValue.swift:51, :59-62"
+    "swift": "DroppyCode/Core/Support/JSONValue.swift:51-62"
   },
   {
     "file": "src/Marrow.Core/Models/Timeline.cs",
@@ -33,18 +33,18 @@
     "file": "src/Marrow.Core/Support/Shell.cs",
     "pattern": "IgnoreCase",
     "text": "if (string.Equals(key, name, StringComparison.OrdinalIgnoreCase)) return candidate;",
-    "swift": "DroppyCode/Core/Support/Shell.swift:376-386 (ED-128, ED-171)"
+    "swift": "DroppyCode/Core/Support/Shell.swift:376-386"
   },
   {
     "file": "src/Marrow.Core/Support/Shell.cs",
     "pattern": "IgnoreCase",
     "text": "var environment = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);",
-    "swift": "DroppyCode/Core/Support/Shell.swift:456 (ED-128 (1))"
+    "swift": "DroppyCode/Core/Support/Shell.swift:456"
   },
   {
     "file": "src/Marrow.Core/Support/Shell.cs",
     "pattern": "IgnoreCase",
     "text": "return new ValueMap<string, string>(environment, StringComparer.OrdinalIgnoreCase);",
-    "swift": "DroppyCode/Core/Support/Shell.swift:460 (ED-128 (1))"
+    "swift": "DroppyCode/Core/Support/Shell.swift:460"
   }
 ]

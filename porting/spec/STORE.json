@@ -402,7 +402,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Per-element tolerant decoding with the same order-preserving drop. Do not substitute a strict decoder; a strict one would turn a single bad record into the whole-file loss described in the previous requirement.",
       "verification_method": "unit with a fixture holding one good and one bad project",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1947,7 +1947,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same single-string encoding. The symbol case names an SF Symbol, which does not exist on Windows; the port maps the stored symbol name to its own icon set, but the persisted string must stay the SF Symbol name so a store moved between platforms still reads.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1969,7 +1969,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three-way parse.",
       "verification_method": "unit on all three forms",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1991,7 +1991,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same message string, same swallow at the field level.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2014,7 +2014,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same required fields and same eight defaults. The name fallback takes the last path component of a path string; on Windows that must split on the Windows separator, or a project restored without a name shows the whole path as its name.",
       "verification_method": "unit over a minimal record",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2037,7 +2037,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same six initial values.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2059,7 +2059,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same required fields, same three defaults, and the same project-level blast radius. Do not add per-script leniency; that is a behaviour change.",
       "verification_method": "unit with a malformed script inside an otherwise valid project",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2107,7 +2107,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two required fields.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2127,7 +2127,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One constant with this exact string used in all three roles.",
       "verification_method": "capture comparison against the sidebar screenshot plus a unit test on the default",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2150,7 +2150,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same ordering dependency between the two lines.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2172,7 +2172,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A separate decode-fallback constant from the settings default, with the same three-way collapse (missing, null, wrong type) onto supervised. Sharing one constant is a security regression.",
       "verification_method": "unit covering missing, null and wrong-type fields",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2195,7 +2195,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same literal decode default.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2223,7 +2223,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep this nullable and keep nil distinct from the empty string; a port that substitutes \"\" or a hard-coded model id pins every legacy thread to that model.",
       "verification_method": "unit test decoding a thread record that carries only id and projectID, plus one carrying the key as null and one carrying it as the wrong JSON type, asserting the same result in all three",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2239,7 +2239,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three fields with the same types. Doubles, not integers: the drag inserts between neighbours by averaging.",
       "verification_method": "restart test: drag a thread, quit, relaunch, assert the order holds",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "title": "sortOrder, activityOrder and activityOrderDay are the persisted manual orderings",
@@ -2263,7 +2263,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the whole three-line migration including the unconditional write of the explicit flag. Dropping it makes the migration re-run forever and silently re-enables Hydra for a user who turned it off.",
       "verification_method": "unit over an old-shaped record, a new-shaped record and a restart test proving the migration is one-shot",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2289,7 +2289,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name in the Windows settings store, same absent-means-true rule, same non-Bool-means-true coercion.",
       "verification_method": "restart test: switch a chat off, create a new chat, assert it starts off",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2313,7 +2313,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same initializer signature and the same nine explicit values.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "title": "A new chat is created unpinned, unarchived, read, with no custom title and in build mode",
@@ -2332,7 +2332,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Persist the same key with the same polarity. Persisting the inverted name instead would invert every existing library.",
       "verification_method": "unit plus a restart test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2352,7 +2352,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same computed predicates; do not persist them.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2374,7 +2374,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep the field so an existing library round-trips unchanged, and do not read it. Dropping it would silently rewrite every old record.",
       "verification_method": "contract fixture proving a decode-encode round trip preserves the field",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2395,7 +2395,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same field, same default.",
       "verification_method": "restart test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2418,7 +2418,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two fields.",
       "verification_method": "restart test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3145,7 +3145,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same table as static data, same best-first ordering on both lists, same omit-when-unavailable rule. The doc comment says \"this Mac\"; the rule is about installed providers, not about the platform.",
       "verification_method": "contract fixture over a synthetic catalog, plus a capture comparison of the pair list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3169,7 +3169,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static data, reproduced byte for byte including the colons, semicolons and the apostrophe in any possessive. The model and provider names are literals, not computed.",
       "verification_method": "contract fixture over the table plus a capture comparison of the pair list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3191,7 +3191,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static data, reproduced byte for byte including the colons, semicolons and the apostrophe in any possessive. The model and provider names are literals, not computed.",
       "verification_method": "contract fixture over the table plus a capture comparison of the pair list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3213,7 +3213,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static data, reproduced byte for byte including the colons, semicolons and the apostrophe in any possessive. The model and provider names are literals, not computed.",
       "verification_method": "contract fixture over the table plus a capture comparison of the pair list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3235,7 +3235,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static data, reproduced byte for byte including the colons, semicolons and the apostrophe in any possessive. The model and provider names are literals, not computed.",
       "verification_method": "contract fixture over the table plus a capture comparison of the pair list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3257,7 +3257,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static data, reproduced byte for byte including the colons, semicolons and the apostrophe in any possessive. The model and provider names are literals, not computed.",
       "verification_method": "contract fixture over the table plus a capture comparison of the pair list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3279,7 +3279,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static data, reproduced byte for byte including the colons, semicolons and the apostrophe in any possessive. The model and provider names are literals, not computed.",
       "verification_method": "contract fixture over the table plus a capture comparison of the pair list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3301,7 +3301,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static data, reproduced byte for byte including the colons, semicolons and the apostrophe in any possessive. The model and provider names are literals, not computed.",
       "verification_method": "contract fixture over the table plus a capture comparison of the pair list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3323,7 +3323,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static data, reproduced byte for byte including the colons, semicolons and the apostrophe in any possessive. The model and provider names are literals, not computed.",
       "verification_method": "contract fixture over the table plus a capture comparison of the pair list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3345,7 +3345,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static data, reproduced byte for byte including the colons, semicolons and the apostrophe in any possessive. The model and provider names are literals, not computed.",
       "verification_method": "contract fixture over the table plus a capture comparison of the pair list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3367,7 +3367,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static data, reproduced byte for byte including the colons, semicolons and the apostrophe in any possessive. The model and provider names are literals, not computed.",
       "verification_method": "contract fixture over the table plus a capture comparison of the pair list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3389,7 +3389,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same exact-match rule with no normalisation.",
       "verification_method": "unit over a model with and without the wanted effort",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3411,7 +3411,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Compare exactly these four fields and no more.",
       "verification_method": "unit with two pairs differing only in effort",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3439,7 +3439,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Nullable free-text field; do not narrow it to an enum, or an effort written by a newer build is silently dropped on load.",
       "verification_method": "unit test decoding a thread record that carries only id and projectID, plus one carrying the key as null and one carrying it as the wrong JSON type, asserting the same result in all three",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3463,7 +3463,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same literal false decode default.",
       "verification_method": "unit test decoding a thread record that carries only id and projectID, plus one carrying the key as null and one carrying it as the wrong JSON type, asserting the same result in all three",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3487,7 +3487,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two-case enum with the same build fallback, including for an unknown raw value.",
       "verification_method": "unit test over a missing key, a null, and an unknown raw string such as \"review\", all asserting build",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3511,7 +3511,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Nullable string holding a native Windows absolute path; nil keeps its meaning of \"no worktree\", which is not the same as an empty string or a path that no longer exists.",
       "verification_method": "unit test decoding a thread record that carries only id and projectID, plus one carrying the key as null and one carrying it as the wrong JSON type, asserting the same result in all three",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3535,7 +3535,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same nullable string.",
       "verification_method": "unit test decoding a thread record that carries only id and projectID, plus one carrying the key as null and one carrying it as the wrong JSON type, asserting the same result in all three",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null
     },
@@ -3558,7 +3558,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Nullable string; nil must stay distinct from the empty string, because nil alone means \"start fresh\".",
       "verification_method": "unit test decoding a thread record that carries only id and projectID, plus one carrying the key as null and one carrying it as the wrong JSON type, asserting the same result in all three",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null
     },
@@ -3581,7 +3581,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Nullable string carried through untouched; do not coerce it to a date type.",
       "verification_method": "unit test decoding a thread record that carries only id and projectID, plus one carrying the key as null and one carrying it as the wrong JSON type, asserting the same result in all three",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null
     },
@@ -3604,7 +3604,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same literal false decode default.",
       "verification_method": "unit test decoding a thread record that carries only id and projectID, plus one carrying the key as null and one carrying it as the wrong JSON type, asserting the same result in all three",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null
     },
@@ -3627,7 +3627,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same literal false decode default; a corrupt value must surface the thread, never hide it.",
       "verification_method": "unit test decoding a thread record that carries only id and projectID, plus one carrying the key as null and one carrying it as the wrong JSON type, asserting the same result in all three",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null
     },
@@ -3650,7 +3650,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same literal false decode default.",
       "verification_method": "unit test decoding a thread record that carries only id and projectID, plus one carrying the key as null and one carrying it as the wrong JSON type, asserting the same result in all three",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null
     },
@@ -3673,7 +3673,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Nullable date decoded from the ISO 8601 string the storage encoder writes (Coding.swift:19-25 sets dateEncodingStrategy .iso8601); nil stays nil.",
       "verification_method": "unit test decoding a thread record that carries only id and projectID, plus one carrying the key as null and one carrying it as the wrong JSON type, asserting the same result in all three",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null
     },
@@ -3696,7 +3696,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same literal false decode default.",
       "verification_method": "unit test decoding a thread record that carries only id and projectID, plus one carrying the key as null and one carrying it as the wrong JSON type, asserting the same result in all three",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null
     },
@@ -3728,7 +3728,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Lenient decode with the default true for hasCustomTitle, and only for that field; every other field keeps its upstream default.",
       "verification_method": "unit test decoding a thread record that carries only id and projectID, plus one carrying the key as null and one carrying it as the wrong JSON type, asserting the same result in all three",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "blocked_by": null,
@@ -3757,7 +3757,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Nullable double. Not an Int and not 0: 0 is a real position, nil is \"no manual position\".",
       "verification_method": "unit test decoding a thread record that carries only id and projectID, plus one carrying the key as null and one carrying it as the wrong JSON type, asserting the same result in all three",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null
     },
@@ -3780,7 +3780,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Nullable double, distinct from 0.",
       "verification_method": "unit test decoding a thread record that carries only id and projectID, plus one carrying the key as null and one carrying it as the wrong JSON type, asserting the same result in all three",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3804,7 +3804,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Nullable date from the ISO 8601 string; nil stays nil rather than becoming today, which would make a manual position expire immediately.",
       "verification_method": "unit test decoding a thread record that carries only id and projectID, plus one carrying the key as null and one carrying it as the wrong JSON type, asserting the same result in all three",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3828,7 +3828,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Nullable enum with the same forgiving decode: an unknown case becomes nil, it does not throw.",
       "verification_method": "unit test over a missing key, a null and an unknown raw status string, all asserting nil",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3852,7 +3852,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Nullable UUID with the same lenient decode; a malformed id promotes the thread to top level instead of throwing.",
       "verification_method": "unit test over a missing key, a null and a malformed UUID string, all asserting nil and isHelper false",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3876,7 +3876,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same literal false decode default; never default it to true.",
       "verification_method": "unit test decoding a thread record that carries only id and projectID, plus one carrying the key as null and one carrying it as the wrong JSON type, asserting the same result in all three",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3900,7 +3900,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Persist expandsHelpers, not foldsHelpers, under exactly this key, with false meaning folded; storing the inverted sense flips the fold state of every existing chat.",
       "verification_method": "unit test decoding a thread record that carries only id and projectID, plus one carrying the key as null and one carrying it as the wrong JSON type, asserting the same result in all three",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3924,7 +3924,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep the field decodable with a nil default so old library files still load; do not resurrect it as a live selection.",
       "verification_method": "unit test decoding a thread record that carries only id and projectID, plus one carrying the key as null and one carrying it as the wrong JSON type, asserting the same result in all three",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3948,7 +3948,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same integer field with the literal 0 default; do not make it nullable.",
       "verification_method": "unit test decoding a thread record that carries only id and projectID, plus one carrying the key as null and one carrying it as the wrong JSON type, asserting the same result in all three",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3972,7 +3972,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Nullable nested record with the same lenient decode; a payload that cannot be read demotes the thread to an ordinary one instead of throwing.",
       "verification_method": "unit test over a missing key, a null and a structurally wrong hydra object, all asserting nil and isHydraHead false",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4181,7 +4181,8 @@
       "notes": "One constant, ChatThread.untitled, serves three roles: the stored decode default, the value a new chat is created with, and the displayed placeholder (port_impacts.md entry 112). Exactly \"New thread\": capital N, lowercase t, a single space, no ellipsis and no trailing punctuation.",
       "screen": "Sidebar thread row, activity list row, command palette row and the chat header",
       "element": "Title of a chat that has never been titled",
-      "role": "label"
+      "role": "label",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-STORE-004",
@@ -4252,7 +4253,8 @@
       "notes": "Storage-side fact: the mark is one persisted string, \"emoji:<value>\" or \"symbol:<name>\", and a bare value with neither prefix is read as a symbol name. nil is not a stored value; it is the absence of the key, or the result of an empty string failing to decode.",
       "screen": "Activity list project row and the sidebar project header",
       "element": "Project mark for a project with no icon chosen",
-      "role": "icon"
+      "role": "icon",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-STORE-007",
@@ -4275,7 +4277,8 @@
       "notes": "The persisted field is the SF Symbol name itself, not the friendly key from droppy-code.json: the six friendly keys are mapped to symbol names at read time and the symbol name is what is stored. A Windows port maps the stored symbol names to its own icons and must keep the stored strings unchanged.",
       "screen": "Project script buttons in the sidebar and the worktree creation flow",
       "element": "Icon on a project script button with no icon set",
-      "role": "icon"
+      "role": "icon",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-STORE-008",
@@ -4297,7 +4300,8 @@
       "notes": "Storage-side fact only: isSettled and settledAt are the two persisted fields that drive this row, both survive a restart, and isSettled true with settledAt nil is a decodable state. The literal grey and the row metrics belong to the sidebar area and are not specified here.",
       "screen": "Sidebar thread list",
       "element": "Settled thread row",
-      "role": "row"
+      "role": "row",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-STORE-009",
@@ -4321,7 +4325,8 @@
       "notes": "Only expandsHelpers is persisted; foldsHelpers is a computed inverse and must not be written to disk under its own name, or every existing library inverts. The exact wording of the folded line belongs to the sidebar area.",
       "screen": "Sidebar thread list",
       "element": "Folded helpers line under a chat that has helper threads",
-      "role": "row"
+      "role": "row",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-STORE-010",
@@ -4343,7 +4348,8 @@
       "notes": "Tagline, verbatim: \"The deepest lead over the strongest builders: Fable plans and checks, Opus heads build. Set the thinking effort of each side yourself.\". Stable id \"claude-fable-opus\". Lead: providers [.claude, .commandcode], models [\"Fable\"], effort nil. Heads: providers [.claude, .commandcode], models [\"Opus\"], effort nil. maxHeads: nil (uncapped). The title and tagline are literals in the cookbook table and must not be reworded, re-punctuated or localised.",
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 1 of 10",
-      "role": "row"
+      "role": "row",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-STORE-011",
@@ -4365,7 +4371,8 @@
       "notes": "Tagline, verbatim: \"A careful lead and a wide, fast team: Opus writes the briefs, six Gemini Flash heads sprint through them.\". Stable id \"claude-opus-gemini-flash\". Lead: providers [.claude, .commandcode], models [\"Opus\"], effort \"high\". Heads: providers [.antigravity, .commandcode], models [\"Gemini 3.8 Flash\", \"Gemini\", \"Flash\"], effort \"medium\". maxHeads: 6 - the only capped recipe in the table. The title and tagline are literals in the cookbook table and must not be reworded, re-punctuated or localised.",
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 2 of 10",
-      "role": "row"
+      "role": "row",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-STORE-012",
@@ -4387,7 +4394,8 @@
       "notes": "Tagline, verbatim: \"Opus keeps the plan tight; DeepSeek V4.1 Flash heads keep the bill small on the routine parts.\". Stable id \"claude-opus-deepseek\". Lead: providers [.claude, .commandcode], models [\"Opus\"], effort \"high\". Heads: providers [.deepseek, .commandcode], models [\"V4.1 Flash\", \"V4.1\", \"DeepSeek\"], effort \"high\". maxHeads: nil (uncapped). The title and tagline are literals in the cookbook table and must not be reworded, re-punctuated or localised.",
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 3 of 10",
-      "role": "row"
+      "role": "row",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-STORE-013",
@@ -4409,7 +4417,8 @@
       "notes": "Tagline, verbatim: \"Opus keeps the plan tight; GLM-5.3 Flash heads on a Z.ai Coding Plan keep the bill flat.\". Stable id \"claude-opus-glm\". Lead: providers [.claude, .commandcode], models [\"Opus\"], effort \"high\". Heads: providers [.zai, .commandcode], models [\"5.3 Flash\", \"GLM\"], effort \"high\". maxHeads: nil (uncapped). The title and tagline are literals in the cookbook table and must not be reworded, re-punctuated or localised.",
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 4 of 10",
-      "role": "row"
+      "role": "row",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-STORE-014",
@@ -4431,7 +4440,8 @@
       "notes": "Tagline, verbatim: \"Fable thinks; Cursor's Composer heads type at the speed Composer is known for.\". Stable id \"claude-fable-composer\". Lead: providers [.claude, .commandcode], models [\"Fable\"], effort \"high\". Heads: providers [.cursor], models [\"Composer\"], effort nil - the only single-provider side in the table. maxHeads: nil (uncapped). The title and tagline are literals in the cookbook table and must not be reworded, re-punctuated or localised.",
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 5 of 10",
-      "role": "row"
+      "role": "row",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-STORE-015",
@@ -4453,7 +4463,8 @@
       "notes": "Tagline, verbatim: \"GPT-6 Astra orchestrates at high; Muse Spark Contributor heads build at medium.\". Stable id \"astra-spark\". Lead: providers [.codex, .commandcode], models [\"Astra\"], effort \"high\". Heads: providers [.meta, .commandcode], models [\"Contributor\"], effort \"medium\". maxHeads: nil (uncapped). The title and tagline are literals in the cookbook table and must not be reworded, re-punctuated or localised.",
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 6 of 10",
-      "role": "row"
+      "role": "row",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-STORE-016",
@@ -4475,7 +4486,8 @@
       "notes": "Tagline, verbatim: \"OpenAI top to bottom: Astra plans and reviews, Terra does the work at medium.\". Stable id \"astra-terra\". Lead: providers [.codex, .commandcode], models [\"Astra\"], effort \"high\". Heads: providers [.codex, .commandcode], models [\"Terra\"], effort \"medium\". maxHeads: nil (uncapped). The title and tagline are literals in the cookbook table and must not be reworded, re-punctuated or localised.",
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 7 of 10",
-      "role": "row"
+      "role": "row",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-STORE-017",
@@ -4497,7 +4509,8 @@
       "notes": "Tagline, verbatim: \"One model, two efforts: Astra thinks hard about the plan and the review, and Astra heads build at a working effort.\". Stable id \"astra-astra\". Lead: providers [.codex, .commandcode], models [\"Astra\"], effort \"high\". Heads: providers [.codex, .commandcode], models [\"Astra\"], effort \"medium\". maxHeads: nil (uncapped). The title and tagline are literals in the cookbook table and must not be reworded, re-punctuated or localised.",
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 8 of 10",
-      "role": "row"
+      "role": "row",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-STORE-018",
@@ -4519,7 +4532,8 @@
       "notes": "Tagline, verbatim: \"Opus thinks as hard as it can where it counts; Opus heads at medium do the building.\". Stable id \"claude-opus-opus\". Lead: providers [.claude, .commandcode], models [\"Opus\"], effort \"max\". Heads: providers [.claude, .commandcode], models [\"Opus\"], effort \"medium\". maxHeads: nil (uncapped). The title and tagline are literals in the cookbook table and must not be reworded, re-punctuated or localised.",
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 9 of 10",
-      "role": "row"
+      "role": "row",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-STORE-019",
@@ -4541,7 +4555,8 @@
       "notes": "Tagline, verbatim: \"For the hardest, longest jobs: every seat on the most capable model, the lead at high and the heads at medium.\". Stable id \"claude-fable-fable\". Lead: providers [.claude, .commandcode], models [\"Fable\"], effort \"high\". Heads: providers [.claude, .commandcode], models [\"Fable\"], effort \"medium\". maxHeads: nil (uncapped). The title and tagline are literals in the cookbook table and must not be reworded, re-punctuated or localised.",
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 10 of 10",
-      "role": "row"
+      "role": "row",
+      "status": "IMPLEMENTED"
     }
   ]
 }
