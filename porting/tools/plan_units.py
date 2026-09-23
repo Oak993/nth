@@ -133,22 +133,26 @@ if os.path.exists(fpath):
     RANK = {'Marrow.Core': 0, 'Marrow.Services': 1, 'Marrow.UI': 1, 'Marrow.App': 2, 'Marrow.Testing': 9}
     REF = deps.get('reference') or json.load(open(os.path.join(ROOT, 'porting', 'baseline.json'), encoding='utf-8'))['current']['reference_path']
     fdoc = json.load(open(fpath, encoding='utf-8'))
-    fdeps = {'F.SettingsStore': ['F.FileOps'], 'F.StyledText': ['F.SwiftFont', 'F.SwiftColor']}
+    fdeps = {'F.SettingsStore': ['F.FileOps'], 'F.StyledText': ['F.SwiftFont', 'F.SwiftColor'], 'F.SwiftAnimation': ['F.FrameClock']}
     for u in units:
         src = open(os.path.join(REF, u['swift']), encoding='utf-8', errors='replace').read()
         for f in fdoc['units']:
             if RANK[f['project']] > RANK[u['project']] or RANK[f['project']] == 1 and u['project'] != 'Marrow.App' and f['project'] != u['project']:
                 continue
-            if any(p in src for p in f['patterns']):
+            if any(p in src for p in f['patterns']) or u['id'] in f.get('dependents', []):
                 u['deps'] = sorted(set(u['deps']) | {f['id']})
+    lv = {u['id']: u['level'] for u in units}
+    fdone_path = os.path.join(ROOT, 'porting', 'deps', 'foundation_done.json')
+    fdone = set(json.load(open(fdone_path, encoding='utf-8'))['done']) if os.path.exists(fdone_path) else set()
     for f in fdoc['units']:
-        exists = os.path.exists(os.path.join(ROOT, f['target']))
+        exists = os.path.exists(os.path.join(ROOT, f['target'].split(' ')[0]))
         units.insert(0, {
             'id': f['id'], 'kind': 'foundation', 'swift': None, 'target': f['target'], 'project': f['project'],
             'test_project': 'tests/Marrow.Core.Tests' if f['project'] in ('Marrow.Core', 'Marrow.Testing') else f'tests/{f["project"]}.Tests',
-            'level': -1, 'component': None, 'component_members': [], 'deps': fdeps.get(f['id'], []), 'intra_deps': [],
+            'level': max([-1] + [lv[d] + 1 for d in f.get('deps', []) if d in lv]), 'component': None, 'component_members': [], 'deps': sorted(set(fdeps.get(f['id'], []) + f.get('deps', []))), 'intra_deps': [],
+            'noMerge': f.get('noMerge', False), 'base': f.get('base'),
             'records_total': 0, 'records_todo': [], 'parts': [[]], 'packets': [], 'risk': f['risk'],
-            'spec': f['spec'], 'extends_existing': exists, 'status': 'TODO',
+            'spec': f['spec'], 'extends_existing': exists, 'status': 'DONE' if f['id'] in fdone else 'TODO',
         })
 
 os.makedirs(os.path.dirname(os.path.join(ROOT, out)), exist_ok=True)

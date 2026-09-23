@@ -1912,7 +1912,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Synthesize the same PCM and hand it to the Windows audio stack. Shipping a pre-rendered .wav asset produced by this same algorithm is acceptable only if it is bit-identical; the tuning constants stay in code either way.",
       "verification_method": "contract fixture: the generated buffer's bytes for both chimes are checked against a recorded golden buffer",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1936,7 +1936,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pure arithmetic; port it directly in double precision. The partial set is shared by every note of a chime, not per note.",
       "verification_method": "unit: sample-by-sample comparison against the formula for a known note and partial list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1961,7 +1961,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The normalization means the declared per-note levels set the balance between notes, not the absolute loudness; the absolute loudness comes only from the per-chime volume (PR-THEME-081, PR-THEME-082).",
       "verification_method": "unit: peak sample equals 29490 for both chimes; the last sample is near zero",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1989,7 +1989,7 @@
       "cancellation": "not cancellable once started",
       "windows_path": "Platform boundary: one shared voice per chime. The swallow-while-playing behaviour must be reproduced deliberately; a Windows API that mixes each request would turn a burst of finished turns into a pile-up, which upstream specifically avoids.",
       "verification_method": "unit: constants; interaction test: two finishes in the same frame produce one chime",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2017,7 +2017,7 @@
       "cancellation": "A later play() cancels the current one by restarting it.",
       "windows_path": "Platform boundary: reproduce stop-then-play on one shared voice, not a mix of two overlapping voices. The declared partial order (3rd harmonic before the octave) does not change the sum but is recorded for fidelity of the constant table.",
       "verification_method": "unit: constants; interaction test: two settles in quick succession are audibly two ticks",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

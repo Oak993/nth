@@ -732,7 +732,12 @@
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0018",
+        "upstream": "DroppyCode/App/AppDelegate.swift: the main window is shown once the launch prologue has run; nothing is shown before it",
+        "port": "Every launch opens with the boot sequence of ED-102 and ED-103: particles gather into the loading mark, its pulse starts the Comet turn, the mark comes to rest after the first turn that ends once the app is ready, and then breaks into particles that build the main window, edge first; the main window is shown as its outline completes and its contents fade in as the particles land. The launch prologue keeps its order (PR-LAUNCH-001)."
+      }
     },
     {
       "id": "PR-LAUNCH-029",

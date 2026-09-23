@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Marrow boot sequence</title>
+<style>
+  :root { --page: #0B0C10; --ink: #F3F5F9; --muted: #8B92A5; --line: #23262F; }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; background: var(--page); color: var(--ink); font-family: "Segoe UI Variable Text", "Segoe UI", Inter, sans-serif; padding: 28px 16px 40px; }
+  .wrap { max-width: 1000px; margin: 0 auto; }
+  h1 { font-size: 26px; font-weight: 650; margin: 0 0 6px; letter-spacing: -0.01em; }
+  p.lead { margin: 0 0 20px; color: var(--muted); font-size: 15px; line-height: 1.5; max-width: 760px; }
+  .desk { position: relative; border-radius: 16px; overflow: hidden; border: 1px solid var(--line); transition: background .4s;
+          background: radial-gradient(90% 80% at 20% 10%, #2B2F52 0%, transparent 60%), radial-gradient(80% 70% at 85% 90%, #123C3A 0%, transparent 55%), #0E1016; }
+  .desk.light { background: radial-gradient(90% 80% at 20% 10%, #DCE3FF 0%, transparent 60%), radial-gradient(80% 70% at 85% 90%, #D2F2EA 0%, transparent 55%), #EEF0F5; }
+  canvas { width: 100%; aspect-ratio: 16 / 10; display: block; }
+  .controls { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; align-items: center; }
+  button { font: inherit; font-size: 14px; color: var(--ink); background: #1A1D25; border: 1px solid #2C303B; border-radius: 10px; padding: 9px 16px; cursor: pointer; }
+  button:hover { background: #222632; }
+  button[aria-pressed="true"] { background: #2A3042; border-color: #3B4256; }
+  .state { color: var(--muted); font-size: 14px; margin-left: 4px; }
+  ol { color: var(--muted); font-size: 14px; line-height: 1.6; padding-left: 20px; margin: 18px 0 0; }
+  ol b { color: var(--ink); font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Marrow boot sequence</h1>
+  <p class="lead">Particles form the mark, the core's pulse sets one turn going, the turn comes to rest, and the mark breaks back into particles that fly out and build the main window: its edge first, then its contents.</p>
+
+  <div class="desk" id="desk"><canvas id="c" width="2000" height="1250" aria-label="Marrow is starting"></canvas></div>
+
+  <div class="controls">
+    <button id="replay" type="button">Replay</button>
+    <button id="slow" type="button" aria-pressed="false">Slow start (app ready at 6 s)</button>
+    <button id="theme" type="button">Light desktop</button>
+    <span class="state" id="state"></span>
+  </div>
+
+  <ol>
+    <li><b>0 to 1.45 s, gather.</b> 216 particles in the arms' colours spiral in from around the mark and form it; the tile rises in behind.</li>
+    <li><b>1.45 s, pulse.</b> The core draws in, flashes and releases one ring of light, and that pulse starts the turn.</li>
+    <li><b>1.45 to 3.85 s, one turn.</b> One eased turn, trails only at speed, ending at rest. If the app is not ready yet, the core pulses again at rest and another turn follows, until it is.</li>
+    <li><b>3.95 s, disintegrate.</b> At rest, the mark dissolves into its particles, which lift off, burst outward a little, and sweep out along curved paths without crossing.</li>
+    <li><b>About 4.1 to 5.4 s, the window forms.</b> The first particles trace the window's edge, which lights up as they land; the rest settle into the sidebar, the conversation and the composer, and the window's contents fade in under them as they melt away.</li>
+  </ol>
+</div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;           // backing pixels; the desk is 1000 x 625 CSS px at 2x
+  const px = v => v * 2;                                // CSS px -> backing px
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const desk = document.getElementById('desk');
+  const light = () => desk.classList.contains('light');
+
+  // ---- the mark: 210 CSS px, centred ----
+  const MARK = px(210), S = MARK / 1024, MX = W / 2 - MARK / 2, MY = H / 2 - MARK / 2;
+  const U = (u, v) => [MX + u * S, MY + v * S];         // icon units -> backing px
+  const ARMS = [
+    { p1: [392.88, 217.16], p2: [654.59, 415.82], c0: [0x9C, 0xBB, 0xFF], c1: [0x4F, 0x7D, 0xFF] },
+    { p1: [826.91, 556.26], p2: [524, 683.58],    c0: [0xCB, 0xA6, 0xFF], c1: [0x8A, 0x5C, 0xF6] },
+    { p1: [316.22, 762.59], p2: [357.41, 436.6],  c0: [0x74, 0xF2, 0xD0], c1: [0x2F, 0xC6, 0xA0] },
+  ];
+  const R = 236.58, STROKE = 92, CORE_R = 82, C = 512;
+  for (const a of ARMS) {                               // SVG "A r r 0 0 1": the small arc, clockwise
+    const [x1, y1] = a.p1, [x2, y2] = a.p2, mx = (x1 + x2) / 2, my = (y1 + y2) / 2, dx = x2 - x1, dy = y2 - y1, half = Math.hypot(dx, dy) / 2;
+    const h = Math.sqrt(R * R - half * half), nx = -dy / (2 * half), ny = dx / (2 * half);
+    for (const sgn of [1, -1]) {
+      const cx = mx + sgn * h * nx, cy = my + sgn * h * ny, s = Math.atan2(y1 - cy, x1 - cx);
+      let d = Math.atan2(y2 - cy, x2 - cx) - s; while (d < 0) d += 2 * Math.PI;
+      if (d < Math.PI) { Object.assign(a, { cx, cy, a0: s, sweep: d }); break; }
+    }
+  }
+
+  // ---- the main window it builds: 780 x 480 CSS px, centred ----
+  const WIN = { x: W / 2 - px(390), y: H / 2 - px(240), w: px(780), h: px(480), r: px(14) };
+
+  // ---- easing ----
+  const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+  const smooth = (e0, e1, x) => { const t = clamp((x - e0) / (e1 - e0)); return t * t * (3 - 2 * t); };
+  const outCubic = t => 1 - Math.pow(1 - t, 3), outQuart = t => 1 - Math.pow(1 - t, 4);
+  const inOutCubic = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  const outBack = t => { const k = 1.4; return 1 + (k + 1) * Math.pow(t - 1, 3) + k * Math.pow(t - 1, 2); };
+  function bezier(x1, y1, x2, y2) {
+    const cx = 3 * x1, bx = 3 * (x2 - x1) - cx, ax = 1 - cx - bx, cy = 3 * y1, by = 3 * (y2 - y1) - cy, ay = 1 - cy - by;
+    const X = t => ((ax * t + bx) * t + cx) * t, Y = t => ((ay * t + by) * t + cy) * t, dX = t => (3 * ax * t + 2 * bx) * t + cx;
+    return x => { let t = x; for (let i = 0; i < 8; i++) { const e = X(t) - x, d = dX(t); if (Math.abs(e) < 1e-6 || Math.abs(d) < 1e-6) break; t -= e / d; }
+      if (Math.abs(X(t) - x) > 1e-4 || t < 0 || t > 1) { let lo = 0, hi = 1; t = x; for (let i = 0; i < 30; i++) { if (X(t) < x) lo = t; else hi = t; t = (lo + hi) / 2; } }
+      return Y(t); };
+  }
+  const turnEase = bezier(.45, .05, .55, .95), ringEase = bezier(.2, .6, .3, 1);
+
+  // ---- timeline (seconds) ----
+  const IGNITE = 1.45, TURN = 2.4, RING = 1.9, WIND = .28, HOLD = .1;
+  let readyAtApp = 2.5;                                  // when the app says it is ready (the Slow start button moves it)
+
+  // ---- particles ----
+  let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const G = [];                                          // gather particles: around the mark -> the mark
+  function buildGather() {
+    G.length = 0; seed = 7;
+    ARMS.forEach((a, k) => {
+      for (let i = 0; i < 60; i++) {
+        const u = (i + rnd()) / 60, ang = a.a0 + a.sweep * u, across = (rnd() - .5) * STROKE * .8;
+        const col = a.c0.map((v, j) => Math.round(v + (a.c1[j] - v) * u));
+        G.push(gather(a.cx + Math.cos(ang) * (R + across), a.cy + Math.sin(ang) * (R + across), col, k, .06 + k * .09 + rnd() * .34, .7 + rnd() * .28));
+      }
+    });
+    for (let i = 0; i < 36; i++) {
+      const r = Math.sqrt(rnd()) * CORE_R * .9, ang = rnd() * Math.PI * 2;
+      G.push(gather(C + Math.cos(ang) * r, C + Math.sin(ang) * r, [236, 242, 255], 3, .5 + rnd() * .22, .6 + rnd() * .15));
+    }
+  }
+  function gather(tu, tv, col, group, delay, dur) {
+    const rt = Math.hypot(tu - C, tv - C), at = Math.atan2(tv - C, tu - C);
+    return { tu, tv, col, group, delay, dur, rt, at, rs: 820 + rnd() * 260, as: at - (1.3 + rnd() * .9), size: 9 + rnd() * 11, tw: rnd() * 6.28 };
+  }
+  const landed = (p, t) => clamp((t - p.delay) / p.dur);
+
+  // Window particles: every gather particle plus the tile's own, from where they sit on the resting mark to a point on
+  // the window. Sources and targets are both ordered by angle about the centre and paired in that order, so the flight
+  // lines fan out without crossing.
+  const D = [];
+  function buildWindowParticles() {
+    D.length = 0; seed = 99;
+    const src = G.map(p => ({ u: p.tu, v: p.tv, col: p.col, size: p.size * .7 }));
+    for (let i = 0; i < 84; i++) {                     // the tile: its edge and its body
+      let u, v;
+      if (i < 56) { const side = Math.floor(rnd() * 4), f = rnd(); [u, v] = [[72 + f * 880, 72], [952, 72 + f * 880], [72 + f * 880, 952], [72, 72 + f * 880]][side]; }
+      else { u = 150 + rnd() * 724; v = 150 + rnd() * 724; }
+      src.push({ u, v, col: [110, 124, 210], size: 7 + rnd() * 6 });
+    }
+    const n = src.length, nEdge = Math.round(n * .58);
+    const per = 2 * (WIN.w + WIN.h - 4 * WIN.r) + 2 * Math.PI * WIN.r;
+    const targets = [];
+    for (let i = 0; i < nEdge; i++) targets.push({ ...pointOnRoundRect((i + .5) / nEdge * per), edge: true });
+    const features = featureRects();
+    for (let i = nEdge; i < n; i++) {
+      const f = features[Math.floor(rnd() * features.length)];
+      targets.push({ x: f.x + rnd() * f.w, y: f.y + rnd() * f.h, edge: false });
+    }
+    const cx = W / 2, cy = H / 2, ang = (x, y) => Math.atan2(y - cy, x - cx);
+    const edgeT = targets.filter(t => t.edge).map(t => ({ ...t, a: ang(t.x, t.y) })).sort((a, b) => a.a - b.a);
+    const innerT = targets.filter(t => !t.edge).map(t => ({ ...t, a: ang(t.x, t.y) })).sort((a, b) => a.a - b.a);
+    const srcPx = src.map(s => { const [x, y] = U(s.u, s.v); return { ...s, x, y, a: ang(x, y), r: Math.hypot(x - cx, y - cy) }; });
+    // the outermost sources go to the edge, the inner ones to the contents; each set is paired by angle
+    const byR = srcPx.slice().sort((a, b) => b.r - a.r);
+    const edgeS = byR.slice(0, nEdge).sort((a, b) => a.a - b.a), innerS = byR.slice(nEdge).sort((a, b) => a.a - b.a);
+    const pair = (S1, T1, edge) => S1.forEach((s, i) => {
+      const t = T1[i], out = Math.atan2(s.y - cy, s.x - cx), kick = px(18 + rnd() * 36);
+      D.push({ sx: s.x, sy: s.y, kx: s.x + Math.cos(out) * kick, ky: s.y + Math.sin(out) * kick, tx: t.x, ty: t.y, edge,
+               col: s.col, size: s.size, delay: .14 + (edge ? 0 : .24) + rnd() * .2, dur: .72 + rnd() * .26, bend: (rnd() - .5) * px(80) });
+    });
+    pair(edgeS, edgeT, true); pair(innerS, innerT, false);
+  }
+  function pointOnRoundRect(d) {                         // distance d along the window's rounded outline, clockwise
+    const { x, y, w, h, r } = WIN, sw = w - 2 * r, sh = h - 2 * r, q = Math.PI * r / 2;
+    const arc = (cx, cy, a) => [cx + Math.cos(a) * r, cy + Math.sin(a) * r];
+    const segs = [
+      [sw, s => [x + r + s, y]], [q, s => arc(x + w - r, y + r, -Math.PI / 2 + s / r)],
+      [sh, s => [x + w, y + r + s]], [q, s => arc(x + w - r, y + h - r, s / r)],
+      [sw, s => [x + w - r - s, y + h]], [q, s => arc(x + r, y + h - r, Math.PI / 2 + s / r)],
+      [sh, s => [x, y + h - r - s]], [q, s => arc(x + r, y + r, Math.PI + s / r)],
+    ];
+    for (const [len, f] of segs) { if (d <= len) { const [a, b] = f(d); return { x: a, y: b }; } d -= len; }
+    return { x: x + r, y };
+  }
+  function featureRects() {                              // where the window's contents are, for the inner particles
+    const { x, y, w, h } = WIN, side = px(232);
+    return [
+      { x: x + px(14), y: y + px(52), w: side - px(28), h: px(150) },
+      { x: x + px(14), y: y + px(230), w: side - px(28), h: px(110) },
+      { x: x + side + px(40), y: y + px(70), w: w - side - px(80), h: px(220) },
+      { x: x + side + px(48), y: y + h - px(84), w: w - side - px(96), h: px(52) },
+      { x: x + px(20), y: y + px(8), w: w - px(40), h: px(28) },
+    ];
+  }
+
+  // ---- drawing the mark (icon units, via a transform) ----
+  function markSpace() { ctx.setTransform(S, 0, 0, S, MX, MY); }
+  function drawArms(alpha, rot, blurUnits, mul) {
+    ctx.save(); markSpace();
+    ctx.translate(C, C); ctx.rotate(rot); ctx.translate(-C, -C);
+    if (blurUnits) ctx.filter = `blur(${blurUnits * S}px)`;
+    ctx.lineWidth = STROKE; ctx.lineCap = 'round';
+    ARMS.forEach((a, k) => {
+      const al = alpha[k] * mul; if (al <= .001) return;
+      const g = ctx.createLinearGradient(a.p1[0], a.p1[1], a.p2[0], a.p2[1]);
+      g.addColorStop(0, `rgb(${a.c0})`); g.addColorStop(1, `rgb(${a.c1})`);
+      ctx.globalAlpha = al; ctx.strokeStyle = g; ctx.beginPath(); ctx.arc(a.cx, a.cy, R, a.a0, a.a0 + a.sweep); ctx.stroke();
+    });
+    ctx.restore();
+  }
+  function drawTile(alpha, scale) {
+    if (alpha <= .001) return;
+    ctx.save(); markSpace(); ctx.globalAlpha = alpha;
+    ctx.translate(C, C); ctx.scale(scale, scale); ctx.translate(-C, -C);
+    ctx.shadowColor = 'rgba(4,8,30,.45)'; ctx.shadowBlur = 110 * S; ctx.shadowOffsetY = 44 * S;
+    ctx.beginPath(); ctx.roundRect(72, 72, 880, 880, 204);
+    const g = ctx.createLinearGradient(160, 72, 864, 952);
+    g.addColorStop(0, '#1D2147'); g.addColorStop(.55, '#121529'); g.addColorStop(1, '#0A0C18');
+    ctx.fillStyle = g; ctx.fill(); ctx.shadowColor = 'transparent';
+    const rg = ctx.createRadialGradient(336, 213, 0, 336, 213, 722);
+    rg.addColorStop(0, 'rgba(147,172,255,.22)'); rg.addColorStop(1, 'rgba(147,172,255,0)');
+    ctx.fillStyle = rg; ctx.fill();
+    const kl = ctx.createLinearGradient(0, 72, 0, 952);
+    kl.addColorStop(0, 'rgba(255,255,255,.22)'); kl.addColorStop(.6, 'rgba(255,255,255,.03)'); kl.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.beginPath(); ctx.roundRect(73.5, 73.5, 877, 877, 202.5); ctx.lineWidth = 3; ctx.strokeStyle = kl; ctx.stroke();
+    ctx.restore();
+  }
+  function drawCore(alpha, scale, glowA, glowS) {
+    if (alpha <= .001) return;
+    ctx.save(); markSpace(); ctx.globalAlpha = alpha;
+    const gr = 230 * glowS, gg = ctx.createRadialGradient(C, C, 0, C, C, gr);
+    gg.addColorStop(0, `rgba(255,255,255,${clamp(.55 * glowA)})`); gg.addColorStop(.35, `rgba(185,200,255,${clamp(.28 * glowA)})`); gg.addColorStop(1, 'rgba(147,172,255,0)');
+    ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(C, C, gr, 0, Math.PI * 2); ctx.fill();
+    if (scale > .001) {
+      const r = CORE_R * scale, fx = C - r * .24, fy = C - r * .36, cg = ctx.createRadialGradient(fx, fy, 0, fx, fy, r * 1.6);
+      cg.addColorStop(0, '#FFFFFF'); cg.addColorStop(.72, '#F2F5FF'); cg.addColorStop(1, '#D6DEFB');
+      ctx.fillStyle = cg; ctx.beginPath(); ctx.arc(C, C, r, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+  }
+  function drawRing(age) {
+    if (age < 0 || age >= RING) return;
+    const e = ringEase(age / RING);
+    ctx.save(); markSpace(); ctx.globalAlpha = .6 * (1 - e); ctx.strokeStyle = '#DCE6FF'; ctx.lineWidth = px(3) / S;
+    ctx.beginPath(); ctx.arc(C, C, 96 * (1 + 2.6 * e), 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+  }
+  function dot(x, y, radius, col, a) {                   // backing px
+    if (a <= .005) return;
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1;
+    const g = ctx.createRadialGradient(x, y, 0, x, y, radius);
+    g.addColorStop(0, `rgba(255,255,255,${a})`); g.addColorStop(.25, `rgba(${col},${a})`); g.addColorStop(1, `rgba(${col},0)`);
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // ---- drawing the window (backing px) ----
+  function drawWindow(content, edge) {
+    const { x, y, w, h, r } = WIN, L = light();
+    ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
+    if (content > .001) {
+      const s = .985 + .015 * outCubic(content);
+      ctx.translate(W / 2, H / 2); ctx.scale(s, s); ctx.translate(-W / 2, -H / 2);
+      ctx.globalAlpha = content;
+      ctx.shadowColor = L ? 'rgba(20,30,70,.25)' : 'rgba(0,0,0,.5)'; ctx.shadowBlur = px(40); ctx.shadowOffsetY = px(14);
+      ctx.beginPath(); ctx.roundRect(x, y, w, h, r);
+      const bg = ctx.createLinearGradient(x, y, x, y + h);
+      bg.addColorStop(0, L ? 'rgba(252,252,254,.94)' : 'rgba(30,33,46,.93)'); bg.addColorStop(1, L ? 'rgba(242,244,248,.96)' : 'rgba(18,20,28,.95)');
+      ctx.fillStyle = bg; ctx.fill(); ctx.shadowColor = 'transparent';
+      ctx.save(); ctx.clip();
+      const side = px(232), ink = L ? '20,24,40' : '235,238,248', accent = '79,125,255';
+      ctx.fillStyle = L ? 'rgba(20,24,40,.035)' : 'rgba(255,255,255,.03)'; ctx.fillRect(x, y, side, h);
+      ctx.fillStyle = `rgba(${ink},.07)`; ctx.fillRect(x + side, y, 1.5, h);
+      ctx.strokeStyle = `rgba(${ink},.55)`; ctx.lineWidth = px(1);
+      const cy = y + px(22), bx = x + w - px(28);
+      ctx.beginPath(); ctx.moveTo(bx - px(6), cy - px(6)); ctx.lineTo(bx + px(6), cy + px(6)); ctx.moveTo(bx + px(6), cy - px(6)); ctx.lineTo(bx - px(6), cy + px(6)); ctx.stroke();
+      ctx.strokeRect(bx - px(52), cy - px(6), px(12), px(12));
+      ctx.beginPath(); ctx.moveTo(bx - px(104), cy); ctx.lineTo(bx - px(92), cy); ctx.stroke();
+      const row = (yy, ww, a, sel) => {
+        if (sel) { ctx.fillStyle = `rgba(${accent},.18)`; ctx.beginPath(); ctx.roundRect(x + px(10), yy - px(9), side - px(20), px(30), px(8)); ctx.fill(); }
+        ctx.fillStyle = `rgba(${ink},${a})`; ctx.beginPath(); ctx.roundRect(x + px(22), yy, ww, px(12), px(6)); ctx.fill();
+      };
+      ctx.fillStyle = `rgba(${ink},.06)`; ctx.beginPath(); ctx.roundRect(x + px(12), y + px(52), side - px(24), px(30), px(9)); ctx.fill();
+      [[104, 120, .32], [134, 150, .22], [164, 96, .22, true], [194, 132, .22], [236, 70, .18], [266, 140, .22], [296, 110, .22], [326, 124, .22]]
+        .forEach(([yy, ww, a, sel]) => row(y + px(yy), px(ww), a, sel));
+      const mx0 = x + side + px(48), mw = w - side - px(96);
+      ctx.fillStyle = `rgba(${accent},.16)`; ctx.beginPath(); ctx.roundRect(mx0 + mw - px(260), y + px(70), px(260), px(40), px(14)); ctx.fill();
+      [[128, .9], [150, .75], [172, .82], [194, .55], [232, .7], [254, .86], [276, .4]]
+        .forEach(([yy, f]) => { ctx.fillStyle = `rgba(${ink},.14)`; ctx.beginPath(); ctx.roundRect(mx0, y + px(yy), mw * f, px(10), px(5)); ctx.fill(); });
+      ctx.fillStyle = L ? 'rgba(255,255,255,.8)' : 'rgba(255,255,255,.05)'; ctx.strokeStyle = `rgba(${ink},.12)`; ctx.lineWidth = px(1);
+      ctx.beginPath(); ctx.roundRect(mx0, y + h - px(84), mw, px(52), px(16)); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = `rgba(${accent},.9)`; ctx.beginPath(); ctx.arc(mx0 + mw - px(26), y + h - px(58), px(12), 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+      ctx.strokeStyle = L ? 'rgba(0,0,0,.1)' : 'rgba(255,255,255,.12)'; ctx.lineWidth = px(1);
+      ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.stroke();
+    }
+    if (edge > .001) {                                  // the outline the first particles trace, glowing as they land
+      ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = edge;
+      ctx.shadowColor = 'rgba(156,187,255,.9)'; ctx.shadowBlur = px(14);
+      ctx.strokeStyle = 'rgba(190,210,255,.85)'; ctx.lineWidth = px(1.5);
+      ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // ---- the sequence ----
+  // Pulses at IGNITE + n TURN. The mark comes to its final rest at the first turn end at or after the app is ready
+  // (never before the first turn has ended), holds for HOLD, then disintegrates.
+  const turnsNeeded = () => Math.max(1, Math.ceil((readyAtApp - IGNITE) / TURN));
+  let start = performance.now(), frozen = null;
+  function frame(now) {
+    const t = frozen ?? (now - start) / 1000;
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.clearRect(0, 0, W, H);
+    const turns = turnsNeeded(), finalRest = IGNITE + turns * TURN, DIS = finalRest + HOLD;
+
+    if (reduce) {                                        // reduce motion: the still mark, then the window; no particles
+      const a = smooth(0, .3, t) * (1 - smooth(2.4, 2.7, t));
+      drawTile(a, 1); drawArms([a, a, a], 0, 0, 1); drawCore(a, 1, .6, 1);
+      drawWindow(smooth(2.5, 2.9, t), 0);
+      return finish(t < 2.9 ? 'Starting' : 'Main window shown.', t > 3);
+    }
+
+    const markA = 1 - smooth(DIS, DIS + .22, t);          // the mark dissolves into its particles
+
+    // the turn and its pulses
+    let rot = 0, speed = 0, last = null, next = IGNITE;
+    if (t >= IGNITE) {
+      if (t >= finalRest) { last = finalRest - TURN; next = Infinity; }   // at rest: the last turn's pulse was its start
+      else {
+        const n = Math.floor((t - IGNITE) / TURN), k = (t - IGNITE - n * TURN) / TURN, e = turnEase(k);
+        rot = 2 * Math.PI * (n + e); speed = (turnEase(Math.min(1, k + .005)) - e) / .005;
+        last = IGNITE + n * TURN; next = IGNITE + (n + 1) * TURN;
+        if (next >= finalRest - 1e-9) next = Infinity;   // no pulse at the final rest: the mark breaks up instead
+      }
+    }
+
+    drawTile(smooth(.55, 1.2, t) * markA, .94 + .06 * outBack(clamp((t - .55) / .65)));
+    if (last !== null) drawRing(t - last);
+
+    const reveal = [0, 1, 2].map(k => { const ps = G.filter(p => p.group === k); return smooth(0, 1, ps.reduce((s, p) => s + smooth(.7, 1, landed(p, t)), 0) / ps.length) * markA; });
+    const trail = clamp((speed - .35) / 1.4);
+    if (trail > 0) { drawArms(reveal, rot - 30 * Math.PI / 180, 20, .2 * trail); drawArms(reveal, rot - 14 * Math.PI / 180, 10, .42 * trail); }
+    drawArms(reveal, rot, 0, 1);
+
+    const cps = G.filter(p => p.group === 3), base = smooth(0, 1, cps.reduce((s, p) => s + smooth(.7, 1, landed(p, t)), 0) / cps.length);
+    const wind = next === Infinity ? 0 : smooth(next - WIND, next, t);
+    let scale, glowA, glowS = 1;
+    if (last === null) { scale = base * (1 - .1 * wind); glowA = (.25 + .3 * base) * (1 - .45 * wind); }
+    else { const since = t - last, flash = Math.exp(-since * 7), rise = smooth(0, .06, since);
+      scale = ((1 - rise) * .9 + rise * (1 + .14 * flash)) * (1 - .1 * wind); glowA = .55 * (1 - .45 * wind) + 1.1 * flash * rise; glowS = 1 + .5 * flash * rise; }
+    drawCore(markA, scale, glowA, glowS);
+
+    for (const p of G) {                                  // gather particles
+      const raw = (t - p.delay) / p.dur;
+      if (raw <= 0) { const [x, y] = U(C + Math.cos(p.as) * p.rs, C + Math.sin(p.as) * p.rs); dot(x, y, p.size * S * 1.8, p.col, smooth(0, .18, t) * .35 * (.6 + .4 * Math.sin(p.tw + t * 9))); continue; }
+      const q = clamp(raw), rr = p.rs + (p.rt - p.rs) * outCubic(q), aa = p.as + (p.at - p.as) * outQuart(q);
+      const fade = raw < 1 ? 1 : 1 - smooth(1, 1.35, raw); if (fade <= 0) continue;
+      const [x, y] = U(C + Math.cos(aa) * rr, C + Math.sin(aa) * rr);
+      dot(x, y, p.size * S * 2.2 * (1 - .45 * q), p.col, fade * (.55 + .45 * smooth(0, .25, q)));
+    }
+
+    let label;
+    if (t >= DIS) {                                       // disintegration and the window
+      const td = t - DIS;
+      let edgeLanded = 0, edgeN = 0, allLanded = 0;
+      for (const p of D) {
+        const appear = smooth(0, .2, td), kickK = outCubic(clamp(td / .28)), fly = inOutCubic(clamp((td - p.delay) / p.dur));
+        let x = p.sx + (p.kx - p.sx) * kickK, y = p.sy + (p.ky - p.sy) * kickK;
+        if (fly > 0) {                                    // a curved sweep from the kicked point to the target
+          const mx = (x + p.tx) / 2, my = (y + p.ty) / 2, dx = p.tx - x, dy = p.ty - y, len = Math.hypot(dx, dy) || 1;
+          const cx = mx - dy / len * p.bend, cy = my + dx / len * p.bend, u = fly, iu = 1 - u;
+          x = iu * iu * x + 2 * iu * u * cx + u * u * p.tx; y = iu * iu * y + 2 * iu * u * cy + u * u * p.ty;
+        }
+        const melt = 1 - smooth(p.delay + p.dur, p.delay + p.dur + .35, td);
+        if (p.edge) { edgeN++; edgeLanded += smooth(.85, 1, fly); }
+        allLanded += smooth(.85, 1, fly);
+        dot(x, y, p.size * S * 2.2 * (1 - .3 * fly), p.col, appear * melt * (.6 + .4 * (1 - fly)));
+      }
+      const edgeShare = edgeLanded / Math.max(1, edgeN), allShare = allLanded / D.length;
+      drawWindow(smooth(.45, 1, allShare), smooth(0, 1, edgeShare) * (1 - .85 * smooth(.55, 1, allShare)));
+      label = allShare >= .999 && td > 1.6 ? 'Main window shown.' : 'Building the window';
+      return finish(label, td > 2.2);
+    }
+    label = t < IGNITE ? 'Gathering' : t < finalRest ? (t >= readyAtApp ? 'App ready, finishing the turn' : 'Turning, waiting for the app') : 'At rest';
+    finish(label, false);
+  }
+  function finish(label, done) {
+    document.getElementById('state').textContent = label;
+    if (frozen === null && !done) requestAnimationFrame(frame);
+  }
+
+  function restart() { buildGather(); buildWindowParticles(); start = performance.now(); requestAnimationFrame(frame); }
+  buildGather(); buildWindowParticles();
+
+  document.getElementById('replay').onclick = restart;
+  document.getElementById('slow').onclick = e => {
+    const on = e.currentTarget.getAttribute('aria-pressed') !== 'true';
+    e.currentTarget.setAttribute('aria-pressed', String(on)); readyAtApp = on ? 6 : 2.5; restart();
+  };
+  document.getElementById('theme').onclick = e => {
+    desk.classList.toggle('light'); e.currentTarget.textContent = light() ? 'Dark desktop' : 'Light desktop';
+    if (frozen !== null) requestAnimationFrame(frame);
+  };
+  // Preview aid: ?t=<seconds> draws that single moment (for checking frames headlessly).
+  const q = new URLSearchParams(location.search).get('t');
+  if (q !== null) frozen = parseFloat(q);
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
