@@ -237,6 +237,14 @@ public sealed class ProcessLauncherTests
 
     [Fact]
     [Trait("Rule", "R-PROC-1")]
+    public void An_empty_environment_block_still_ends_with_two_NULs()
+    {
+        // CreateProcessW's environment block is terminated by two NULs, including an empty replacement.
+        Assert.Equal("\0\0", ProcessLauncher.BuildEnvironmentBlock(new Dictionary<string, string>()));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-PROC-1")]
     public void Sorting_by_ordinal_by_lowercase_or_by_the_whole_entry_would_each_give_another_order()
     {
         // Negative controls for the test above (R-TEST-4): each tempting .NET sort puts these names elsewhere.
