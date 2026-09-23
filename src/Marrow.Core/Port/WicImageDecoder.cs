@@ -11,6 +11,40 @@ public static class WicImageDecoder
     private static readonly Guid FactoryInterface = new("ec5ec8a9-c395-4314-9c77-54d7a935ff70");
     private static readonly Guid Pbgra32 = new("6fddc324-4e03-4bfe-b185-3d77768dc910");
 
+    // PR-COMPOSER-073 (Marrow.UI.Common.AttachmentPreview): AttachmentPreview.swift:246-255 imageDisplaySize reads
+    // only the pixel width, height and EXIF orientation (kCGImagePropertyPixelWidth/Height/Orientation) through
+    // ImageIO, never decoding pixels ("this reads the header through ImageIO rather than decoding the image").
+    // The width/height/orientation-only equivalent of Decode's first three WIC calls, with no flip/scale/convert.
+    public static (uint Width, uint Height, ushort Orientation)? ReadHeader(string path)
+    {
+        if (!OperatingSystem.IsWindows()) return null;
+        var initialized = CoInitializeEx(IntPtr.Zero, 0);
+        if (initialized < 0 && initialized != unchecked((int)0x80010106)) return null;
+        IntPtr factory = IntPtr.Zero, decoder = IntPtr.Zero, frame = IntPtr.Zero, reader = IntPtr.Zero;
+        try
+        {
+            var clsid = FactoryClass;
+            var iid = FactoryInterface;
+            if (CoCreateInstance(ref clsid, IntPtr.Zero, 1, ref iid, out factory) < 0) return null;
+            if (Method<CreateDecoderFromFilename>(factory, 3)(factory, path, IntPtr.Zero, 0x80000000, 0, out decoder) < 0)
+                return null;
+            if (Method<GetFrame>(decoder, 13)(decoder, 0, out frame) < 0) return null;
+            if (Method<GetSize>(frame, 3)(frame, out var width, out var height) < 0 || width == 0 || height == 0)
+                return null;
+            var orientation = ReadOrientation(frame, ref reader);
+            return (width, height, orientation);
+        }
+        catch (Exception error) when (error is COMException or OverflowException or OutOfMemoryException)
+        {
+            return null;
+        }
+        finally
+        {
+            Release(ref reader); Release(ref frame); Release(ref decoder); Release(ref factory);
+            if (initialized >= 0) CoUninitialize();
+        }
+    }
+
     public static DecodedBitmap? Decode(string path, long requestedPixels, bool fillingSquare)
     {
         if (!OperatingSystem.IsWindows()) return null;
