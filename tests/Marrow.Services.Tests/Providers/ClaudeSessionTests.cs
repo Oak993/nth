@@ -1371,4 +1371,838 @@ public sealed class ClaudeSessionTests
         session.HandleSystem(JSONValue.FromDictionaryLiteral(("subtype", "task_notification"), ("task_id", "missing")));
         Assert.Empty(events);
     }
+
+    // ==================================================================================================
+    // Part 3 (PR-PROVCLI-049 to 064, 354 to 361): the four per-event-type transcript handlers
+    // (handleStreamEvent, handleAssistant, handleToolResults, handleResult), handleControlRequest's own
+    // body, didClose (implemented in part 1, tested here), and the toolCall mapping table.
+    // ==================================================================================================
+
+    // ---- PR-PROVCLI-049 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-049")] // ClaudeSession.swift:352-370
+    public void Handle_keeps_independent_stream_state_per_head_and_wraps_head_events_as_agentEvent()
+    {
+        var events = new List<ProviderEvent>();
+        var session = new ClaudeSession(MinimalConfig()) { OnEvent = events.Add };
+
+        // The lead's own stream_event goes out unwrapped.
+        session.Handle(JSONValue.FromDictionaryLiteral(
+            ("type", "stream_event"),
+            ("event", JSONValue.FromDictionaryLiteral(("type", "message_start"), ("message", JSONValue.FromDictionaryLiteral(("id", "lead-msg")))))));
+        session.Handle(JSONValue.FromDictionaryLiteral(
+            ("type", "stream_event"),
+            ("event", JSONValue.FromDictionaryLiteral(("type", "content_block_start"), ("index", 0L), ("content_block", JSONValue.FromDictionaryLiteral(("type", "text"), ("text", "lead")))))));
+        var leadDelta = Assert.Single(events.OfType<ProviderEvent.MessageDelta>());
+        Assert.Equal("lead-msg-0", leadDelta.Id);
+        events.Clear();
+
+        // Two different heads' stream_events each keep their own bookkeeping and are wrapped as agentEvent.
+        session.Handle(JSONValue.FromDictionaryLiteral(
+            ("type", "stream_event"), ("parent_tool_use_id", "head-a"),
+            ("event", JSONValue.FromDictionaryLiteral(("type", "message_start"), ("message", JSONValue.FromDictionaryLiteral(("id", "a-msg")))))));
+        session.Handle(JSONValue.FromDictionaryLiteral(
+            ("type", "stream_event"), ("parent_tool_use_id", "head-b"),
+            ("event", JSONValue.FromDictionaryLiteral(("type", "message_start"), ("message", JSONValue.FromDictionaryLiteral(("id", "b-msg")))))));
+        session.Handle(JSONValue.FromDictionaryLiteral(
+            ("type", "stream_event"), ("parent_tool_use_id", "head-a"),
+            ("event", JSONValue.FromDictionaryLiteral(("type", "content_block_start"), ("index", 0L), ("content_block", JSONValue.FromDictionaryLiteral(("type", "text"), ("text", "a-text")))))));
+        session.Handle(JSONValue.FromDictionaryLiteral(
+            ("type", "stream_event"), ("parent_tool_use_id", "head-b"),
+            ("event", JSONValue.FromDictionaryLiteral(("type", "content_block_start"), ("index", 0L), ("content_block", JSONValue.FromDictionaryLiteral(("type", "text"), ("text", "b-text")))))));
+
+        var wrapped = events.OfType<ProviderEvent.AgentEvent>().ToList();
+        Assert.Equal(2, wrapped.Count);
+        Assert.All(wrapped, e => Assert.IsType<ProviderEvent.MessageDelta>(e.Value));
+        var aDelta = (ProviderEvent.MessageDelta)wrapped.First(e => e.AgentID == "head-a").Value;
+        var bDelta = (ProviderEvent.MessageDelta)wrapped.First(e => e.AgentID == "head-b").Value;
+        Assert.Equal("a-msg-0", aDelta.Id); // each head's index-0 block id is namespaced by its own currentMessageID
+        Assert.Equal("b-msg-0", bDelta.Id);
+    }
+
+    // ---- PR-PROVCLI-050 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-050")] // ClaudeSession.swift:457-497
+    public void HandleStreamEvent_opens_and_extends_text_thinking_and_tool_blocks_by_index()
+    {
+        var events = new List<ProviderEvent>();
+        var session = new ClaudeSession(MinimalConfig());
+        var stream = new ClaudeSession.StreamState();
+
+        session.HandleStreamEvent(JSONValue.FromDictionaryLiteral(("type", "message_start"), ("message", JSONValue.FromDictionaryLiteral(("id", "m1")))), ref stream, events.Add);
+        Assert.Equal("m1", stream.CurrentMessageID);
+
+        session.HandleStreamEvent(JSONValue.FromDictionaryLiteral(("type", "content_block_start"), ("index", 0L), ("content_block", JSONValue.FromDictionaryLiteral(("type", "text"), ("text", "he")))), ref stream, events.Add);
+        var textStart = Assert.Single(events.OfType<ProviderEvent.MessageDelta>());
+        Assert.Equal("m1-0", textStart.Id);
+        Assert.Equal("he", textStart.Text);
+        events.Clear();
+
+        session.HandleStreamEvent(JSONValue.FromDictionaryLiteral(("type", "content_block_start"), ("index", 1L), ("content_block", JSONValue.FromDictionaryLiteral(("type", "thinking"), ("thinking", "hm")))), ref stream, events.Add);
+        var thinkStart = Assert.Single(events.OfType<ProviderEvent.ReasoningDelta>());
+        Assert.Equal("m1-1", thinkStart.Id);
+        Assert.Equal("hm", thinkStart.Text);
+        events.Clear();
+
+        session.HandleStreamEvent(JSONValue.FromDictionaryLiteral(("type", "content_block_start"), ("index", 2L), ("content_block", JSONValue.FromDictionaryLiteral(("type", "tool_use"), ("id", "t1"), ("name", "Bash")))), ref stream, events.Add);
+        var toolStart = Assert.Single(events.OfType<ProviderEvent.ToolStarted>());
+        Assert.Equal("t1", toolStart.Id);
+        Assert.Equal(ToolCall.Kind.Command, toolStart.Call.ToolCallKind);
+        Assert.Equal("Shell command", toolStart.Call.Title); // built from an empty input (:478)
+        events.Clear();
+
+        // A tool_use that maps to no row (TodoWrite, PR-PROVCLI-354) emits nothing.
+        session.HandleStreamEvent(JSONValue.FromDictionaryLiteral(("type", "content_block_start"), ("index", 3L), ("content_block", JSONValue.FromDictionaryLiteral(("type", "tool_use"), ("id", "t2"), ("name", "TodoWrite")))), ref stream, events.Add);
+        Assert.Empty(events);
+
+        session.HandleStreamEvent(JSONValue.FromDictionaryLiteral(("type", "content_block_delta"), ("index", 0L), ("delta", JSONValue.FromDictionaryLiteral(("type", "text_delta"), ("text", "llo")))), ref stream, events.Add);
+        var textDelta = Assert.Single(events.OfType<ProviderEvent.MessageDelta>());
+        Assert.Equal("m1-0", textDelta.Id);
+        Assert.Equal("llo", textDelta.Text);
+        events.Clear();
+
+        session.HandleStreamEvent(JSONValue.FromDictionaryLiteral(("type", "content_block_delta"), ("index", 1L), ("delta", JSONValue.FromDictionaryLiteral(("type", "thinking_delta"), ("thinking", "m")))), ref stream, events.Add);
+        var thinkDelta = Assert.Single(events.OfType<ProviderEvent.ReasoningDelta>());
+        Assert.Equal("m1-1", thinkDelta.Id);
+        events.Clear();
+
+        // A delta for an index with no recorded block id (the tool_use block at index 2) is dropped.
+        session.HandleStreamEvent(JSONValue.FromDictionaryLiteral(("type", "content_block_delta"), ("index", 2L), ("delta", JSONValue.FromDictionaryLiteral(("type", "text_delta"), ("text", "x")))), ref stream, events.Add);
+        Assert.Empty(events);
+
+        // Unrecognized event/block/delta types are ignored.
+        session.HandleStreamEvent(JSONValue.FromDictionaryLiteral(("type", "ping")), ref stream, events.Add);
+        Assert.Empty(events);
+    }
+
+    // ---- PR-PROVCLI-051 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-051")] // ClaudeSession.swift:499-519
+    public void HandleAssistant_drops_synthetic_placeholders_and_surfaces_synthetic_api_errors_as_warnings()
+    {
+        var events = new List<ProviderEvent>();
+        var session = new ClaudeSession(MinimalConfig());
+        var stream = new ClaudeSession.StreamState();
+
+        JSONValue SyntheticMessage(string text, bool isApiError) => JSONValue.FromDictionaryLiteral(
+            ("message", JSONValue.FromDictionaryLiteral(
+                ("model", "<synthetic>"),
+                ("content", JSONValue.FromArrayLiteral(JSONValue.FromDictionaryLiteral(("type", "text"), ("text", text)))))),
+            ("isApiErrorMessage", isApiError));
+
+        // A placeholder is dropped even when flagged as an API error.
+        session.HandleAssistant(SyntheticMessage("No response requested.", true), ref stream, events.Add);
+        Assert.Empty(events);
+        session.HandleAssistant(SyntheticMessage("(no content)", true), ref stream, events.Add);
+        Assert.Empty(events);
+
+        // A non-placeholder synthetic message without the API-error flag is dropped too.
+        session.HandleAssistant(SyntheticMessage("Something else.", false), ref stream, events.Add);
+        Assert.Empty(events);
+
+        // Only isApiErrorMessage true, non-empty and non-placeholder text becomes a warning notice.
+        session.HandleAssistant(SyntheticMessage("The API failed.", true), ref stream, events.Add);
+        var notice = Assert.Single(events.OfType<ProviderEvent.Notice>());
+        Assert.Equal(Notice.Level.Warning, notice.Value.NoticeLevel);
+        Assert.Equal("The API failed.", notice.Value.Message);
+        events.Clear();
+
+        // Multiple text blocks join with a single newline and the whole joined text is trimmed.
+        var multi = JSONValue.FromDictionaryLiteral(
+            ("message", JSONValue.FromDictionaryLiteral(
+                ("model", "<synthetic>"),
+                ("content", JSONValue.FromArrayLiteral(
+                    JSONValue.FromDictionaryLiteral(("type", "text"), ("text", "  line one  ")),
+                    JSONValue.FromDictionaryLiteral(("type", "other")),
+                    JSONValue.FromDictionaryLiteral(("type", "text"), ("text", "line two")))))),
+            ("isApiErrorMessage", true));
+        session.HandleAssistant(multi, ref stream, events.Add);
+        Assert.Equal("line one  \nline two", Assert.Single(events.OfType<ProviderEvent.Notice>()).Value.Message);
+    }
+
+    // ---- PR-PROVCLI-052 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-052")] // ClaudeSession.swift:520-545
+    public void HandleAssistant_completes_blocks_against_opened_stream_ids_and_mints_uuids_when_none_are_open()
+    {
+        var events = new List<ProviderEvent>();
+        var session = new ClaudeSession(MinimalConfig());
+        var stream = new ClaudeSession.StreamState();
+        stream.OpenText["m1"] = ["m1-0"];
+        stream.OpenThinking["m1"] = ["m1-1"];
+
+        var message = JSONValue.FromDictionaryLiteral(
+            ("uuid", "u-1"),
+            ("message", JSONValue.FromDictionaryLiteral(
+                ("id", "m1"),
+                ("content", JSONValue.FromArrayLiteral(
+                    JSONValue.FromDictionaryLiteral(("type", "text"), ("text", "hello")),
+                    JSONValue.FromDictionaryLiteral(("type", "thinking"), ("thinking", "hmm")),
+                    JSONValue.FromDictionaryLiteral(("type", "tool_use"), ("id", "t1"), ("name", "Bash"), ("input", JSONValue.FromDictionaryLiteral(("command", "ls")))))))));
+        session.HandleAssistant(message, ref stream, events.Add);
+
+        Assert.IsType<ProviderEvent.AssistantMessageID>(events[0]); // emitted first
+        Assert.Equal("u-1", ((ProviderEvent.AssistantMessageID)events[0]).Value);
+        var textDone = Assert.Single(events.OfType<ProviderEvent.MessageCompleted>());
+        Assert.Equal("m1-0", textDone.Id);
+        Assert.Equal("hello", textDone.Text);
+        var thinkDone = Assert.Single(events.OfType<ProviderEvent.ReasoningCompleted>());
+        Assert.Equal("m1-1", thinkDone.Id);
+        var toolStarted = Assert.Single(events.OfType<ProviderEvent.ToolStarted>());
+        Assert.Equal("t1", toolStarted.Id);
+        var toolUpdated = Assert.Single(events.OfType<ProviderEvent.ToolUpdated>());
+        Assert.Equal("t1", toolUpdated.Id);
+        Assert.Equal("ls", toolUpdated.Update.Title);
+
+        events.Clear();
+        // No id was ever opened: a fresh, uniquely minted id is used.
+        var noOpenIds = JSONValue.FromDictionaryLiteral(
+            ("message", JSONValue.FromDictionaryLiteral(
+                ("id", "m2"),
+                ("content", JSONValue.FromArrayLiteral(JSONValue.FromDictionaryLiteral(("type", "text"), ("text", "x")))))));
+        session.HandleAssistant(noOpenIds, ref stream, events.Add);
+        var minted = Assert.Single(events.OfType<ProviderEvent.MessageCompleted>());
+        Assert.StartsWith("m2-text-", minted.Id, StringComparison.Ordinal);
+        Assert.NotEqual("m2-text-", minted.Id);
+
+        // TodoWrite emits .todos, never a tool row.
+        events.Clear();
+        var todoEntry = JSONValue.FromDictionaryLiteral(("content", "step"), ("status", "completed"));
+        var todoInput = JSONValue.FromDictionaryLiteral(("todos", JSONValue.FromArrayLiteral(todoEntry)));
+        var todoBlock = JSONValue.FromDictionaryLiteral(("type", "tool_use"), ("id", "t9"), ("name", "TodoWrite"), ("input", todoInput));
+        var todo = JSONValue.FromDictionaryLiteral(("message", JSONValue.FromDictionaryLiteral(("id", "m3"), ("content", JSONValue.FromArrayLiteral(todoBlock)))));
+        session.HandleAssistant(todo, ref stream, events.Add);
+        var todos = Assert.Single(events.OfType<ProviderEvent.Todos>());
+        Assert.Single(todos.Value);
+        Assert.Equal("step", todos.Value[0].Text);
+        Assert.Equal(TodoStep.Status.Done, todos.Value[0].TodoStepStatus);
+        Assert.Empty(events.OfType<ProviderEvent.ToolStarted>());
+    }
+
+    // ---- PR-PROVCLI-053 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-053")] // ClaudeSession.swift:548-562
+    public void HandleToolResults_closes_the_row_hides_five_tools_and_reads_a_decline_from_the_error_text()
+    {
+        var events = new List<ProviderEvent>();
+        var session = new ClaudeSession(MinimalConfig());
+        var stream = new ClaudeSession.StreamState();
+
+        JSONValue ToolResultMessage(params JSONValue[] blocks) => JSONValue.FromDictionaryLiteral(
+            ("message", JSONValue.FromDictionaryLiteral(("content", JSONValue.FromArrayLiteral(blocks)))));
+
+        void OpenTool(string id, string name) =>
+            session.HandleStreamEvent(JSONValue.FromDictionaryLiteral(("type", "content_block_start"), ("index", 0L), ("content_block", JSONValue.FromDictionaryLiteral(("type", "tool_use"), ("id", id), ("name", name)))), ref stream, events.Add);
+
+        OpenTool("t-hidden", "AskUserQuestion");
+        OpenTool("t-ok", "Bash");
+        events.Clear();
+
+        // A hidden tool's result never becomes a row.
+        session.HandleToolResults(ToolResultMessage(JSONValue.FromDictionaryLiteral(
+            ("type", "tool_result"), ("tool_use_id", "t-hidden"), ("content", "ignored"))), events.Add);
+        Assert.Empty(events);
+
+        // A successful, non-hidden result.
+        session.HandleToolResults(ToolResultMessage(JSONValue.FromDictionaryLiteral(
+            ("type", "tool_result"), ("tool_use_id", "t-ok"), ("content", "ok"))), events.Add);
+        var ok = Assert.Single(events.OfType<ProviderEvent.ToolUpdated>());
+        Assert.Equal(ToolCall.Status.Completed, ok.Update.Status);
+        Assert.Equal("ok", ok.Update.Output);
+        events.Clear();
+
+        // is_error true with no decline wording -> failed. Output from an array of text fields, newline joined.
+        OpenTool("t-fail", "Bash");
+        events.Clear();
+        session.HandleToolResults(ToolResultMessage(JSONValue.FromDictionaryLiteral(
+            ("type", "tool_result"), ("tool_use_id", "t-fail"), ("is_error", true),
+            ("content", JSONValue.FromArrayLiteral(
+                JSONValue.FromDictionaryLiteral(("type", "text"), ("text", "line one")),
+                JSONValue.FromDictionaryLiteral(("type", "text"), ("text", "line two")))))), events.Add);
+        var failed = Assert.Single(events.OfType<ProviderEvent.ToolUpdated>());
+        Assert.Equal(ToolCall.Status.Failed, failed.Update.Status);
+        Assert.Equal("line one\nline two", failed.Update.Output);
+        events.Clear();
+
+        // is_error true with "declined" (case-insensitive) -> declined.
+        OpenTool("t-declined", "Bash");
+        events.Clear();
+        session.HandleToolResults(ToolResultMessage(JSONValue.FromDictionaryLiteral(
+            ("type", "tool_result"), ("tool_use_id", "t-declined"), ("is_error", true), ("content", "User DECLINED the request"))), events.Add);
+        Assert.Equal(ToolCall.Status.Declined, Assert.Single(events.OfType<ProviderEvent.ToolUpdated>()).Update.Status);
+        events.Clear();
+
+        // is_error true with "doesn't want" -> declined too.
+        OpenTool("t-doesnt", "Bash");
+        events.Clear();
+        session.HandleToolResults(ToolResultMessage(JSONValue.FromDictionaryLiteral(
+            ("type", "tool_result"), ("tool_use_id", "t-doesnt"), ("is_error", true), ("content", "the user doesn't want this"))), events.Add);
+        Assert.Equal(ToolCall.Status.Declined, Assert.Single(events.OfType<ProviderEvent.ToolUpdated>()).Update.Status);
+        events.Clear();
+
+        // A non-tool_result block is skipped.
+        session.HandleToolResults(ToolResultMessage(JSONValue.FromDictionaryLiteral(("type", "other"))), events.Add);
+        Assert.Empty(events);
+    }
+
+    // ---- PR-PROVCLI-054 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-054")] // ClaudeSession.swift:564-573
+    public void HandleResult_before_started_stores_the_joined_errors_as_launchError_and_emits_no_turn_event()
+    {
+        var events = new List<ProviderEvent>();
+        var session = new ClaudeSession(MinimalConfig()) { OnEvent = events.Add };
+        session.HandleResult(JSONValue.FromDictionaryLiteral(("errors", JSONValue.FromArrayLiteral("session not found", "try again"))));
+        Assert.Empty(events);
+        Assert.Equal("session not found\ntry again", session.LaunchError);
+
+        // An empty errors array leaves launchError unset.
+        var fresh = new ClaudeSession(MinimalConfig());
+        fresh.HandleResult(JSONValue.FromDictionaryLiteral(("errors", JSONValue.FromArrayLiteral())));
+        Assert.Null(fresh.LaunchError);
+    }
+
+    // ---- PR-PROVCLI-055 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-055")] // ClaudeSession.swift:574-609
+    public async Task HandleResult_after_start_ends_the_turn_with_usage_spend_cleared_state_and_status()
+    {
+        using var runtime = new TestRuntime();
+        using var storage_runtime = new StorageScratchFolder();
+        var events = new List<ProviderEvent>();
+        var session = new ClaudeSession(MinimalConfig()) { OnEvent = events.Add };
+        session.MarkStarted();
+        session.SeedPendingTool("req-1", "Bash", JSONValue.FromDictionaryLiteral(("command", "ls")));
+
+        // A head's own stream state (:592-595): populate one head and the lead before the result.
+        session.Handle(JSONValue.FromDictionaryLiteral(
+            ("type", "stream_event"), ("parent_tool_use_id", "head-x"),
+            ("event", JSONValue.FromDictionaryLiteral(("type", "message_start"), ("message", JSONValue.FromDictionaryLiteral(("id", "keep-me")))))));
+        session.Handle(JSONValue.FromDictionaryLiteral(
+            ("type", "stream_event"),
+            ("event", JSONValue.FromDictionaryLiteral(("type", "message_start"), ("message", JSONValue.FromDictionaryLiteral(("id", "lead-before")))))));
+        events.Clear();
+
+        // HandleResult's usage branch reaches TokenLedger.Shared.Current, a MainActorModel: run it on main.
+        runtime.OnMain(() => session.HandleResult(JSONValue.FromDictionaryLiteral(
+            ("subtype", "success"),
+            ("usage", JSONValue.FromDictionaryLiteral(
+                ("input_tokens", 10L), ("output_tokens", 5L), ("cache_read_input_tokens", 2L), ("cache_creation_input_tokens", 1L))))));
+
+        // usage precedes tokenSpend precedes requestResolved (:576-588).
+        var usageIndex = events.FindIndex(e => e is ProviderEvent.Usage);
+        var spendIndex = events.FindIndex(e => e is ProviderEvent.TokenSpend);
+        var resolvedIndex = events.FindIndex(e => e is ProviderEvent.RequestResolved);
+        Assert.True(usageIndex >= 0 && usageIndex < spendIndex && spendIndex < resolvedIndex);
+        var usage = ((ProviderEvent.Usage)events[usageIndex]).Value;
+        Assert.Equal(18, usage.UsedTokens);
+        var spend = ((ProviderEvent.TokenSpend)events[spendIndex]).Value;
+        Assert.Equal(18, spend.TotalTokens);
+        Assert.Single(events.OfType<ProviderEvent.RequestResolved>());
+        var completed = Assert.Single(events.OfType<ProviderEvent.TurnCompleted>());
+        Assert.Equal(TurnStatus.Completed, completed.Status);
+        Assert.Null(completed.Error);
+
+        // The head's stream survived the result; the lead's was reset to a fresh StreamState.
+        events.Clear();
+        session.Handle(JSONValue.FromDictionaryLiteral(
+            ("type", "stream_event"), ("parent_tool_use_id", "head-x"),
+            ("event", JSONValue.FromDictionaryLiteral(("type", "content_block_start"), ("index", 0L), ("content_block", JSONValue.FromDictionaryLiteral(("type", "text"), ("text", "t")))))));
+        var headWrapped = (ProviderEvent.MessageDelta)Assert.Single(events.OfType<ProviderEvent.AgentEvent>()).Value;
+        Assert.Equal("keep-me-0", headWrapped.Id);
+
+        events.Clear();
+        session.Handle(JSONValue.FromDictionaryLiteral(
+            ("type", "stream_event"),
+            ("event", JSONValue.FromDictionaryLiteral(("type", "content_block_start"), ("index", 0L), ("content_block", JSONValue.FromDictionaryLiteral(("type", "text"), ("text", "t")))))));
+        var leadDelta = Assert.Single(events.OfType<ProviderEvent.MessageDelta>());
+        Assert.Equal("message-0", leadDelta.Id); // mainStream's currentMessageID is null again after the reset
+
+        // Failed status, falling back to the exact literal message when both result and errors are empty.
+        events.Clear();
+        session.MarkStarted();
+        session.HandleResult(JSONValue.FromDictionaryLiteral(("subtype", "error_during_execution")));
+        var failed = Assert.Single(events.OfType<ProviderEvent.TurnCompleted>());
+        Assert.Equal(TurnStatus.Failed, failed.Status);
+        Assert.Equal("Claude stopped before finishing.", failed.Error);
+
+        // Interrupted always wins over a result that otherwise reads as an error, with a nil error.
+        events.Clear();
+        session.MarkStarted();
+        session.MarkTurnActive();
+        await session.Interrupt();
+        session.HandleResult(JSONValue.FromDictionaryLiteral(("subtype", "error_during_execution"), ("result", "real failure text")));
+        var interrupted = Assert.Single(events.OfType<ProviderEvent.TurnCompleted>());
+        Assert.Equal(TurnStatus.Interrupted, interrupted.Status);
+        Assert.Null(interrupted.Error);
+
+        // interruptRequested is reset last: a further result reads normally again.
+        events.Clear();
+        session.MarkStarted();
+        session.HandleResult(JSONValue.FromDictionaryLiteral(("subtype", "success")));
+        Assert.Equal(TurnStatus.Completed, Assert.Single(events.OfType<ProviderEvent.TurnCompleted>()).Status);
+    }
+
+    // ---- PR-PROVCLI-056 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-056")] // ClaudeSession.swift:375-382
+    public void Handle_rate_limit_event_reports_a_rejected_limit_as_warning_plus_usageLimit()
+    {
+        var events = new List<ProviderEvent>();
+        var session = new ClaudeSession(MinimalConfig()) { OnEvent = events.Add };
+
+        // Non-"rejected" status does nothing.
+        session.Handle(JSONValue.FromDictionaryLiteral(("type", "rate_limit_event"), ("rate_limit_info", JSONValue.FromDictionaryLiteral(("status", "ok")))));
+        Assert.Empty(events);
+
+        // Rejected with no reset time: no suffix.
+        session.Handle(JSONValue.FromDictionaryLiteral(("type", "rate_limit_event"), ("rate_limit_info", JSONValue.FromDictionaryLiteral(("status", "rejected")))));
+        var notice = Assert.Single(events.OfType<ProviderEvent.Notice>());
+        Assert.Equal("Claude hit a usage limit.", notice.Value.Message);
+        var limit = Assert.Single(events.OfType<ProviderEvent.UsageLimit>());
+        Assert.Null(limit.ResetsAt);
+        events.Clear();
+
+        // Rejected with a reset time (falls back to resetsAtSeconds when resetsAt is absent).
+        const double seconds = 1_700_000_000.0;
+        session.Handle(JSONValue.FromDictionaryLiteral(("type", "rate_limit_event"), ("rate_limit_info", JSONValue.FromDictionaryLiteral(("status", "rejected"), ("resetsAtSeconds", seconds)))));
+        var notice2 = Assert.Single(events.OfType<ProviderEvent.Notice>());
+        var expectedDate = SwiftDate.From1970Seconds(seconds);
+        Assert.Equal($"Claude hit a usage limit. It resets at {UsageLimitSignal.Format(expectedDate)}.", notice2.Value.Message);
+        Assert.Equal(expectedDate, Assert.Single(events.OfType<ProviderEvent.UsageLimit>()).ResetsAt);
+    }
+
+    // ---- PR-PROVCLI-057 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-057")] // ClaudeSession.swift:611-619
+    public void HandleControlRequest_refuses_every_subtype_except_can_use_tool_with_the_marrow_error_string()
+    {
+        using var runtime = new TestRuntime();
+        using var storage_runtime = new StorageScratchFolder();
+        var script = Script("control-refuse");
+        var session = new ClaudeSession(Config(script));
+        RunStart(runtime, session);
+
+        session.HandleControlRequest(JSONValue.FromDictionaryLiteral(
+            ("request_id", "req-x"), ("request", JSONValue.FromDictionaryLiteral(("subtype", "some_other_kind")))));
+        var line = script.CapturedLine(1, 1); // 0: the initialize handshake
+        Assert.Contains("\"type\":\"control_response\"", line, StringComparison.Ordinal);
+        Assert.Contains("\"subtype\":\"error\"", line, StringComparison.Ordinal);
+        Assert.Contains("\"request_id\":\"req-x\"", line, StringComparison.Ordinal);
+        // DEVIATION OD-0012 F1: upstream sends "Droppy Code does not support this request."
+        Assert.Contains("\"error\":\"Marrow does not support this request.\"", line, StringComparison.Ordinal);
+
+        // A request without a string request_id, or without a request object, is ignored entirely.
+        var countAfterRefusal = script.MessageCount(1);
+        session.HandleControlRequest(JSONValue.FromDictionaryLiteral(("request", JSONValue.FromDictionaryLiteral(("subtype", "x")))));
+        session.HandleControlRequest(JSONValue.FromDictionaryLiteral(("request_id", "r2")));
+        Assert.Equal(countAfterRefusal, script.MessageCount(1));
+    }
+
+    // ---- PR-PROVCLI-058 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-058")] // ClaudeSession.swift:620-641
+    public void HandleControlRequest_askUserQuestion_builds_a_multi_question_prompt_that_always_allows_a_free_answer()
+    {
+        var events = new List<ProviderEvent>();
+        var session = new ClaudeSession(MinimalConfig()) { OnEvent = events.Add };
+        var options = JSONValue.FromArrayLiteral(
+            JSONValue.FromDictionaryLiteral(("label", "A"), ("description", "first")),
+            JSONValue.FromDictionaryLiteral(("no_label_here", true)));
+        var questionWithId = JSONValue.FromDictionaryLiteral(("question", "Pick one"), ("options", options), ("multiSelect", true));
+        var questionWithoutId = JSONValue.FromDictionaryLiteral(("no_question_key", true));
+        var questions = JSONValue.FromArrayLiteral(questionWithId, questionWithoutId);
+        var input = JSONValue.FromDictionaryLiteral(("questions", questions));
+        var request = JSONValue.FromDictionaryLiteral(("subtype", "can_use_tool"), ("tool_name", "AskUserQuestion"), ("input", input));
+        session.HandleControlRequest(JSONValue.FromDictionaryLiteral(("request_id", "req-q"), ("request", request)));
+        var question = Assert.Single(events.OfType<ProviderEvent.Question>()).Value;
+        Assert.Equal("req-q", question.Id);
+        var q = Assert.Single(question.Questions); // the entry with no "question" key is skipped
+        Assert.Equal("Pick one", q.Id);
+        Assert.Equal("Pick one", q.Prompt);
+        Assert.Equal("", q.Header);
+        Assert.True(q.AllowsMultiple);
+        Assert.True(q.AllowsOther);
+        Assert.False(q.IsSecret);
+        var choice = Assert.Single(q.Choices); // the option with no "label" is skipped
+        Assert.Equal("A", choice.Label);
+        Assert.Equal("first", choice.Detail);
+    }
+
+    // ---- PR-PROVCLI-059 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-059")] // ClaudeSession.swift:642-653
+    public void HandleControlRequest_exitPlanMode_emits_plan_then_a_two_option_approval()
+    {
+        var events = new List<ProviderEvent>();
+        var session = new ClaudeSession(MinimalConfig()) { OnEvent = events.Add };
+        session.HandleControlRequest(JSONValue.FromDictionaryLiteral(
+            ("request_id", "req-p"),
+            ("request", JSONValue.FromDictionaryLiteral(
+                ("subtype", "can_use_tool"), ("tool_name", "ExitPlanMode"), ("tool_use_id", "tu-1"),
+                ("input", JSONValue.FromDictionaryLiteral(("plan", "do the thing")))))));
+        var plan = Assert.Single(events.OfType<ProviderEvent.PlanCompleted>());
+        Assert.Equal("tu-1", plan.Id);
+        Assert.Equal("do the thing", plan.Markdown);
+        var approval = Assert.Single(events.OfType<ProviderEvent.Approval>()).Value;
+        Assert.Equal("req-p", approval.Id);
+        Assert.Equal(ApprovalRequest.Kind.Plan, approval.RequestKind);
+        Assert.Equal("Implement this plan", approval.Title);
+        Assert.Equal("tu-1", approval.ToolItemID);
+        Assert.Equal(2, approval.Options.Count);
+        Assert.Equal("allow", approval.Options[0].Id);
+        Assert.Equal("Implement plan", approval.Options[0].Title);
+        Assert.Equal(ApprovalRequest.Option.Role.Approve, approval.Options[0].OptionRole);
+        Assert.Equal("deny", approval.Options[1].Id);
+        Assert.Equal("Keep planning", approval.Options[1].Title);
+        Assert.Equal(ApprovalRequest.Option.Role.Decline, approval.Options[1].OptionRole);
+
+        // A missing plan shows an empty plan body; the id falls back to the control request id.
+        events.Clear();
+        session.HandleControlRequest(JSONValue.FromDictionaryLiteral(
+            ("request_id", "req-p2"), ("request", JSONValue.FromDictionaryLiteral(("subtype", "can_use_tool"), ("tool_name", "ExitPlanMode")))));
+        var plan2 = Assert.Single(events.OfType<ProviderEvent.PlanCompleted>());
+        Assert.Equal("req-p2", plan2.Id);
+        Assert.Equal("", plan2.Markdown);
+    }
+
+    // ---- PR-PROVCLI-060 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-060")] // ClaudeSession.swift:654-677
+    public void HandleControlRequest_default_tool_builds_an_approval_whose_kind_follows_the_call_with_edits_suppressed()
+    {
+        var events = new List<ProviderEvent>();
+        var session = new ClaudeSession(MinimalConfig()) { OnEvent = events.Add };
+
+        // A command call, with permission_suggestions present -> "always" offered; detail is request.description.
+        session.HandleControlRequest(JSONValue.FromDictionaryLiteral(
+            ("request_id", "req-1"),
+            ("request", JSONValue.FromDictionaryLiteral(
+                ("subtype", "can_use_tool"), ("tool_name", "Bash"), ("description", "list files"), ("tool_use_id", "tu-1"),
+                ("decision_reason", "matches an allowlist"),
+                ("input", JSONValue.FromDictionaryLiteral(("command", "ls"))),
+                ("permission_suggestions", JSONValue.FromArrayLiteral(JSONValue.FromDictionaryLiteral(("tool", "Bash"))))))));
+        var approval = Assert.Single(events.OfType<ProviderEvent.Approval>()).Value;
+        Assert.Equal(ApprovalRequest.Kind.Command, approval.RequestKind);
+        Assert.Equal("ls", approval.Title); // the ToolCall built with edits suppressed
+        Assert.Equal("list files", approval.Detail); // command kind: request.description, not the tool call's own detail
+        Assert.Equal("matches an allowlist", approval.Reason);
+        Assert.Equal("tu-1", approval.ToolItemID);
+        Assert.Equal(3, approval.Options.Count);
+        Assert.Equal("always", approval.Options[1].Id);
+        Assert.Equal(ApprovalRequest.Option.Role.ApproveAlways, approval.Options[1].OptionRole);
+
+        // An edit call, with no permission_suggestions -> only allow/deny; Write's edits stay suppressed.
+        events.Clear();
+        session.HandleControlRequest(JSONValue.FromDictionaryLiteral(
+            ("request_id", "req-2"),
+            ("request", JSONValue.FromDictionaryLiteral(
+                ("subtype", "can_use_tool"), ("tool_name", "Write"),
+                ("input", JSONValue.FromDictionaryLiteral(("file_path", "a.txt"), ("content", "hi")))))));
+        var approval2 = Assert.Single(events.OfType<ProviderEvent.Approval>()).Value;
+        Assert.Equal(ApprovalRequest.Kind.FileChange, approval2.RequestKind);
+        Assert.Equal(2, approval2.Options.Count);
+        Assert.DoesNotContain(approval2.Options, o => o.Id == "always");
+
+        // Any other kind (e.g. Read) maps to .tool; a non-command kind's detail is the tool call's own (nil here).
+        events.Clear();
+        session.HandleControlRequest(JSONValue.FromDictionaryLiteral(
+            ("request_id", "req-3"),
+            ("request", JSONValue.FromDictionaryLiteral(("subtype", "can_use_tool"), ("tool_name", "Read"), ("input", JSONValue.FromDictionaryLiteral(("file_path", "b.txt")))))));
+        var approval3 = Assert.Single(events.OfType<ProviderEvent.Approval>()).Value;
+        Assert.Equal(ApprovalRequest.Kind.Tool, approval3.RequestKind);
+        Assert.Equal("b.txt", approval3.Title);
+        Assert.Null(approval3.Detail);
+    }
+
+    // ---- PR-PROVCLI-061 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-061")] // ClaudeSession.swift:680-698
+    public void DidClose_fails_every_waiting_request_clears_prompts_and_reports_exited_only_for_a_started_session()
+    {
+        using var runtime = new TestRuntime();
+        using var storage_runtime = new StorageScratchFolder();
+        var script = Script("didclose-started");
+        script.SetExitAfterReply();
+        var events = new List<ProviderEvent>();
+        var session = new ClaudeSession(Config(script)) { OnEvent = events.Add };
+        RunStart(runtime, session);
+        session.SeedPendingTool("req-1", "Bash", JSONValue.FromDictionaryLiteral(("command", "ls")));
+
+        var deadline = DateTime.UtcNow.AddSeconds(20);
+        while (session.IsRunning && DateTime.UtcNow < deadline)
+        {
+            runtime.RunUntilIdle();
+            System.Threading.Thread.Sleep(20);
+        }
+        Assert.False(session.IsRunning);
+        runtime.RunUntilIdle();
+
+        Assert.Contains(events, e => e is ProviderEvent.RequestResolved r && r.Id == "req-1"); // pending tools fail
+        Assert.NotEmpty(events.OfType<ProviderEvent.Exited>()); // a started session says it exited
+    }
+
+    // ---- PR-PROVCLI-062 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-062")] // ClaudeSession.swift:705-763
+    public void ToolCall_dispatches_by_exact_case_sensitive_name_and_the_default_falls_through_to_other()
+    {
+        var session = new ClaudeSession(MinimalConfig());
+
+        // Case sensitive, no normalization: a differently-cased name is unrecognized.
+        var lower = session.ToolCall("bash", JSONValue.FromDictionaryLiteral(("command", "ls")))!;
+        Assert.Equal(ToolCall.Kind.Other, lower.ToolCallKind);
+        Assert.Equal("bash", lower.Title); // the catch-all default (:761), not Bash's own command title
+
+        // withEdits is read only by Write/Edit/MultiEdit; Bash and Read ignore it either way.
+        Assert.Empty(session.ToolCall("Bash", JSONValue.FromDictionaryLiteral(("command", "ls")), withEdits: false)!.Edits);
+        Assert.Empty(session.ToolCall("Read", JSONValue.FromDictionaryLiteral(("file_path", "a.txt")), withEdits: true)!.Edits);
+    }
+
+    // ---- PR-PROVCLI-354 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-354")] // ClaudeSession.swift:709-711
+    public void ToolCall_five_hidden_tools_never_make_a_row()
+    {
+        var session = new ClaudeSession(MinimalConfig());
+        foreach (var name in new[] { "TodoWrite", "AskUserQuestion", "ExitPlanMode", "EnterPlanMode", "ToolSearch" })
+            Assert.Null(session.ToolCall(name, JSONValue.FromDictionaryLiteral()));
+    }
+
+    // ---- PR-PROVCLI-355 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-355")] // ClaudeSession.swift:712-713
+    public void ToolCall_bash_titles_the_row_with_the_command_and_subtitles_with_the_description()
+    {
+        var session = new ClaudeSession(MinimalConfig());
+        var call = session.ToolCall("Bash", JSONValue.FromDictionaryLiteral(("command", "ls -la"), ("description", "list files")))!;
+        Assert.Equal(ToolCall.Kind.Command, call.ToolCallKind);
+        Assert.Equal("ls -la", call.Title);
+        Assert.Equal("list files", call.Detail);
+
+        var fallback = session.ToolCall("Bash", JSONValue.FromDictionaryLiteral())!;
+        Assert.Equal("Shell command", fallback.Title);
+        Assert.Null(fallback.Detail); // no detail fallback string
+    }
+
+    // ---- PR-PROVCLI-356 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-356")] // ClaudeSession.swift:714-715
+    public void ToolCall_six_shell_management_tools_title_the_row_with_the_tool_name_verbatim()
+    {
+        var session = new ClaudeSession(MinimalConfig());
+        foreach (var name in new[] { "BashOutput", "KillShell", "KillBash", "Monitor", "TaskOutput", "TaskStop" })
+        {
+            var call = session.ToolCall(name, JSONValue.FromDictionaryLiteral(("ignored", "value")))!;
+            Assert.Equal(ToolCall.Kind.Command, call.ToolCallKind);
+            Assert.Equal(name, call.Title);
+            Assert.Null(call.Detail);
+        }
+    }
+
+    // ---- PR-PROVCLI-357 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-357")] // ClaudeSession.swift:716-717
+    public void ToolCall_read_titles_the_row_with_the_relative_file_path()
+    {
+        var session = new ClaudeSession(MinimalConfig());
+        var call = session.ToolCall("Read", JSONValue.FromDictionaryLiteral(("file_path", "notes.txt")))!;
+        Assert.Equal(ToolCall.Kind.Read, call.ToolCallKind);
+        Assert.Equal("notes.txt", call.Title);
+        Assert.Null(call.Detail);
+        Assert.Empty(call.Edits);
+
+        var fallback = session.ToolCall("Read", JSONValue.FromDictionaryLiteral())!;
+        Assert.Equal("Read file", fallback.Title);
+    }
+
+    // ---- PR-PROVCLI-358 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-358")] // ClaudeSession.swift:718-723
+    public void ToolCall_write_makes_an_edit_row_whose_single_fileEdit_has_an_empty_old_side()
+    {
+        var session = new ClaudeSession(MinimalConfig());
+        var call = session.ToolCall("Write", JSONValue.FromDictionaryLiteral(("file_path", "new.txt"), ("content", "hello")))!;
+        Assert.Equal(ToolCall.Kind.Edit, call.ToolCallKind);
+        Assert.Equal("new.txt", call.Title);
+        var edit = Assert.Single(call.Edits);
+        Assert.Equal("new.txt", edit.Path);
+        Assert.Equal(0, edit.Deletions); // the old side is empty: a whole-file addition
+        Assert.True(edit.Additions > 0);
+
+        // withEdits false: the row is returned without edits.
+        Assert.Empty(session.ToolCall("Write", JSONValue.FromDictionaryLiteral(("file_path", "new.txt"), ("content", "hello")), withEdits: false)!.Edits);
+
+        // Missing content: no edit attached even with withEdits true.
+        Assert.Empty(session.ToolCall("Write", JSONValue.FromDictionaryLiteral(("file_path", "new.txt")))!.Edits);
+
+        var fallback = session.ToolCall("Write", JSONValue.FromDictionaryLiteral())!;
+        Assert.Equal("Write file", fallback.Title);
+    }
+
+    // ---- PR-PROVCLI-359 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-359")] // ClaudeSession.swift:724-729
+    public void ToolCall_edit_makes_an_edit_row_whose_single_fileEdit_takes_both_sides_defaulting_to_empty()
+    {
+        var session = new ClaudeSession(MinimalConfig());
+        var call = session.ToolCall("Edit", JSONValue.FromDictionaryLiteral(("file_path", "a.txt"), ("old_string", "foo"), ("new_string", "bar")))!;
+        Assert.Equal(ToolCall.Kind.Edit, call.ToolCallKind);
+        var edit = Assert.Single(call.Edits);
+        Assert.Equal("a.txt", edit.Path);
+
+        // Unlike Write, there is no third condition on content: a call with neither string still attaches one
+        // FileEdit with both sides empty.
+        var bothEmpty = session.ToolCall("Edit", JSONValue.FromDictionaryLiteral(("file_path", "a.txt")))!;
+        var emptyEdit = Assert.Single(bothEmpty.Edits);
+        Assert.Equal(0, emptyEdit.Additions);
+        Assert.Equal(0, emptyEdit.Deletions);
+
+        var fallback = session.ToolCall("Edit", JSONValue.FromDictionaryLiteral())!;
+        Assert.Equal("Edit file", fallback.Title); // the same fallback MultiEdit uses
+    }
+
+    // ---- PR-PROVCLI-360 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-360")] // ClaudeSession.swift:730-737
+    public void ToolCall_multiEdit_makes_one_row_with_one_fileEdit_per_entry_against_the_same_path()
+    {
+        var session = new ClaudeSession(MinimalConfig());
+        var call = session.ToolCall("MultiEdit", JSONValue.FromDictionaryLiteral(
+            ("file_path", "a.txt"),
+            ("edits", JSONValue.FromArrayLiteral(
+                JSONValue.FromDictionaryLiteral(("old_string", "a"), ("new_string", "b")),
+                JSONValue.FromDictionaryLiteral(), // neither key: still becomes an empty-to-empty FileEdit (map, not compactMap)
+                JSONValue.FromDictionaryLiteral(("old_string", "c"), ("new_string", "d"))))))!;
+        Assert.Equal(ToolCall.Kind.Edit, call.ToolCallKind);
+        Assert.Equal(3, call.Edits.Count);
+        Assert.All(call.Edits, edit => Assert.Equal("a.txt", edit.Path));
+
+        // Missing "edits": an empty array, not an omitted list.
+        var noEdits = session.ToolCall("MultiEdit", JSONValue.FromDictionaryLiteral(("file_path", "a.txt")))!;
+        Assert.Empty(noEdits.Edits);
+
+        var fallback = session.ToolCall("MultiEdit", JSONValue.FromDictionaryLiteral())!;
+        Assert.Equal("Edit file", fallback.Title);
+    }
+
+    // ---- PR-PROVCLI-361 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-361")] // ClaudeSession.swift:738-739
+    public void ToolCall_notebookEdit_titles_from_notebook_path_and_attaches_no_edits()
+    {
+        var session = new ClaudeSession(MinimalConfig());
+        var call = session.ToolCall("NotebookEdit", JSONValue.FromDictionaryLiteral(("notebook_path", "nb.ipynb")), withEdits: true)!;
+        Assert.Equal(ToolCall.Kind.Edit, call.ToolCallKind);
+        Assert.Equal("nb.ipynb", call.Title);
+        Assert.Empty(call.Edits); // no FileEdit is ever attached, even with withEdits true
+
+        var fallback = session.ToolCall("NotebookEdit", JSONValue.FromDictionaryLiteral())!;
+        Assert.Equal("Edit notebook", fallback.Title);
+
+        // file_path is not read for this tool; only notebook_path.
+        var wrongKey = session.ToolCall("NotebookEdit", JSONValue.FromDictionaryLiteral(("file_path", "should-not-be-used.ipynb")))!;
+        Assert.Equal("Edit notebook", wrongKey.Title);
+    }
+
+    // ---- PR-PROVCLI-063 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-063")] // ClaudeSession.swift:765-775
+    public void Todos_maps_three_status_strings_and_skips_entries_without_content()
+    {
+        var todos = JSONValue.FromArrayLiteral(
+            JSONValue.FromDictionaryLiteral(("content", "done one"), ("status", "completed")),
+            JSONValue.FromDictionaryLiteral(("content", "active one"), ("status", "in_progress")),
+            JSONValue.FromDictionaryLiteral(("content", "pending one"), ("status", "something_else")),
+            JSONValue.FromDictionaryLiteral(("content", "no status one")),
+            JSONValue.FromDictionaryLiteral(("status", "completed"))); // no "content": skipped
+        var input = JSONValue.FromDictionaryLiteral(("todos", todos));
+        var steps = ClaudeSession.Todos(input);
+        Assert.Equal(4, steps.Count);
+        Assert.Equal(TodoStep.Status.Done, steps[0].TodoStepStatus);
+        Assert.Equal(TodoStep.Status.Active, steps[1].TodoStepStatus);
+        Assert.Equal(TodoStep.Status.Pending, steps[2].TodoStepStatus);
+        Assert.Equal(TodoStep.Status.Pending, steps[3].TodoStepStatus); // missing status also -> pending
+        Assert.Equal("done one", steps[0].Text);
+
+        Assert.Empty(ClaudeSession.Todos(JSONValue.FromDictionaryLiteral())); // a missing todos array yields an empty list
+    }
+
+    // ---- PR-PROVCLI-064 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-064")] // ClaudeSession.swift:783-797, :826-836
+    public void TurnSpend_sums_four_token_fields_across_iterations_while_contextUsage_reads_the_last_iteration()
+    {
+        // No usage object: zero spend, no context usage.
+        Assert.Equal(0, ClaudeSession.TurnSpend(JSONValue.FromDictionaryLiteral()));
+        Assert.Null(ClaudeSession.ContextUsageOf(JSONValue.FromDictionaryLiteral()));
+
+        // A single usage object, no iterations: the four fields summed, missing ones zero.
+        var single = JSONValue.FromDictionaryLiteral(("usage", JSONValue.FromDictionaryLiteral(("input_tokens", 3L), ("output_tokens", 4L))));
+        Assert.Equal(7, ClaudeSession.TurnSpend(single));
+        var singleUsage = ClaudeSession.ContextUsageOf(single)!;
+        Assert.Equal(7, singleUsage.UsedTokens);
+        Assert.Null(singleUsage.WindowTokens);
+
+        // With iterations: turnSpend sums every iteration; contextUsage reads only the LAST one.
+        var multi = JSONValue.FromDictionaryLiteral(
+            ("usage", JSONValue.FromDictionaryLiteral(
+                ("iterations", JSONValue.FromArrayLiteral(
+                    JSONValue.FromDictionaryLiteral(("input_tokens", 1L), ("output_tokens", 1L)),
+                    JSONValue.FromDictionaryLiteral(("input_tokens", 2L), ("cache_read_input_tokens", 3L), ("cache_creation_input_tokens", 4L), ("output_tokens", 5L)))))),
+            ("modelUsage", JSONValue.FromDictionaryLiteral(
+                ("m1", JSONValue.FromDictionaryLiteral(("contextWindow", 100L))),
+                ("m2", JSONValue.FromDictionaryLiteral(("contextWindow", 200L))))));
+        Assert.Equal(1 + 1 + 2 + 3 + 4 + 5, ClaudeSession.TurnSpend(multi));
+        var multiUsage = ClaudeSession.ContextUsageOf(multi)!;
+        Assert.Equal(2 + 3 + 4 + 5, multiUsage.UsedTokens); // the last iteration only
+        Assert.Equal(200, multiUsage.WindowTokens); // the max across modelUsage's values
+
+        // Zero usage: no ContextUsage, no TokenSpend event.
+        var zero = JSONValue.FromDictionaryLiteral(("usage", JSONValue.FromDictionaryLiteral()));
+        Assert.Null(ClaudeSession.ContextUsageOf(zero));
+        Assert.Null(ClaudeSession.TurnSpendEvent(zero, null));
+
+        // turnSpendEvent: with iterations, totalTokens only, no parts guessed.
+        var eventWithIterations = ClaudeSession.TurnSpendEvent(multi, "claude-x")!;
+        Assert.Equal(1 + 1 + 2 + 3 + 4 + 5, eventWithIterations.TotalTokens);
+        Assert.Null(eventWithIterations.InputTokens);
+        Assert.Null(eventWithIterations.OutputTokens);
+        Assert.Null(eventWithIterations.CachedInputTokens);
+        Assert.Equal("claude-x", eventWithIterations.Model);
+        Assert.Equal(ProviderKind.Claude, eventWithIterations.Provider);
+
+        // turnSpendEvent: single usage object, inputTokens folds in the cache fields, cachedInputTokens stays a slice.
+        var singleUsageObj = JSONValue.FromDictionaryLiteral(("usage", JSONValue.FromDictionaryLiteral(
+            ("input_tokens", 3L), ("cache_read_input_tokens", 2L), ("cache_creation_input_tokens", 1L), ("output_tokens", 4L))));
+        var eventSingle = ClaudeSession.TurnSpendEvent(singleUsageObj, null)!;
+        Assert.Equal(3 + 2 + 1 + 4, eventSingle.TotalTokens);
+        Assert.Equal(3 + 2 + 1, eventSingle.InputTokens);
+        Assert.Equal(4, eventSingle.OutputTokens);
+        Assert.Equal(2, eventSingle.CachedInputTokens);
+    }
 }
