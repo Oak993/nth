@@ -4529,7 +4529,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One generic control reused by nine call sites; build it once. The drag exclusion matters because the window is dragged by its empty chrome. The caller's symbols are SF Symbols; sF Symbols are drawn as their Lucide counterparts from the published symbol-by-symbol table (owner ruling OD-0010).",
       "verification_method": "unit: tile width 76 for two and for three options, row spacing 12, selection written on click; interaction test: pressing a tile does not move the window, and the chosen tile exposes the selected accessibility trait",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4556,7 +4556,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Stroke the ring inside the padded bounds (strokeBorder), not centred on its edge, and clip the fill to the stage before padding, so a chosen tile shows a 1 point gap between fill and ring. SF Symbols are drawn as their Lucide counterparts from the published symbol-by-symbol table (owner ruling OD-0010). Text is set in the port's text face, Inter (owner ruling OD-0009); where its wrap points differ from the macOS face that is OD-0009's named deviation. Text size (ED-059): .title2 17 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:49), .subheadline 11 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:53) in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal is superseded for this token.",
       "verification_method": "capture comparison: a two-option and a three-option picker with one tile chosen and one hovered, in light and dark themes; unit: fill opacities 0.06 and 0.10, ring width 2, ring corner radius 9, caption line limit 2",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5794,7 +5794,8 @@
         "DroppyCode/UI/Chrome/Chrome.swift:1106-1131"
       ],
       "notes": "The caller supplies one symbol per option, for example the Sidebar row's sidebar.left, macwindow.on.rectangle and macwindow (SettingsView.swift:433-435). Dense and regular widths are both 76, so two- and three-option pickers line up. SF Symbols are drawn as their Lucide counterparts from the published symbol-by-symbol table (owner ruling OD-0010).",
-      "b2_change": "No B2 change to the row; not covered by any record before."
+      "b2_change": "No B2 change to the row; not covered by any record before.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-THEME-053",
@@ -5820,7 +5821,8 @@
         "DroppyCode/UI/Chrome/Chrome.swift:71-85"
       ],
       "notes": "The caption is always shown under the tile, because the symbol alone does not say what the choice is (ChromeVisualPicker.swift:76). SF Symbols are drawn as their Lucide counterparts from the published symbol-by-symbol table (owner ruling OD-0010). Text is set in the port's text face, Inter (owner ruling OD-0009); where its wrap points differ from the macOS face that is OD-0009's named deviation.",
-      "b2_change": "Symbol font `.system(size: 17, weight: .medium)` (B1 ChromeVisualPicker.swift:88) -> `.system(.title2, weight: .medium)` (B2 :88); caption font `.system(size: 11)` (B1 :79) -> `.system(.subheadline)` (B2 :79); Chrome.secondaryText `Color(nsColor: .secondaryLabelColor)` (B1 Chrome.swift:77) -> `primaryText.opacity(0.7)` (B2 Chrome.swift:79)."
+      "b2_change": "Symbol font `.system(size: 17, weight: .medium)` (B1 ChromeVisualPicker.swift:88) -> `.system(.title2, weight: .medium)` (B2 :88); caption font `.system(size: 11)` (B1 :79) -> `.system(.subheadline)` (B2 :79); Chrome.secondaryText `Color(nsColor: .secondaryLabelColor)` (B1 Chrome.swift:77) -> `primaryText.opacity(0.7)` (B2 Chrome.swift:79).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-THEME-054",
