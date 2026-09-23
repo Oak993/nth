@@ -205,8 +205,8 @@ public sealed class SwiftImageTests(HeadlessSession headless)
         Assert.True(IsRed(Pixel(bitmap, 24, 24)));
         Assert.True(IsRed(Pixel(bitmap, 16, 16)));
         Assert.True(IsRed(Pixel(bitmap, 32, 16)));
-        Assert.True(IsRed(Pixel(bitmap, 25, 23))); // 1.4 px off the diagonal: inside the 2 px half width
-        Assert.True(IsWhite(Pixel(bitmap, 28, 20))); // 5.7 px off both diagonals
+        Assert.True(IsRed(Pixel(bitmap, 24, 23))); // 0.7 px off the diagonal: inside the 2 px half width
+        Assert.True(IsWhite(Pixel(bitmap, 24, 16))); // 5.7 and 4.9 px off the two diagonals
         Assert.True(IsWhite(Pixel(bitmap, 24, 12)));
         Assert.True(IsWhite(Pixel(bitmap, 4, 4)));
         // round caps: the cap reaches one unit (2 px) past the end point along the line's direction
