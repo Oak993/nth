@@ -2,6 +2,7 @@ using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Input;
 using Avalonia.Media;
 using Marrow.Core.Port;
 using Marrow.UI.Port;
@@ -417,4 +418,282 @@ public sealed class SidebarLayout : MainActorModel
         defaults.Set(Key.Width, restingWidth); // :368 defaults.set(Double(restingWidth), forKey: Key.width)
         defaults.Set(Key.StartsOpen, StartsOpen); // :369
     }
+}
+
+// MARK: - Resize handle
+
+/// <summary>
+/// :376-400 <c>struct SidebarResizeHandle: NSViewRepresentable</c>. In SwiftUI this is the two grab strips
+/// RootView installs (App/Views/RootView.swift:22-31, :54-63); porting that installation site is App's job
+/// (outside Core/Services/UI, section 2.1), so this type is the plain updater App's binding calls into
+/// <see cref="Update"/>.
+/// </summary>
+public sealed class SidebarResizeHandle
+{
+    public const double HitWidth = 9; // :377 static let hitWidth: CGFloat = 9, PR-WIN-049
+
+    public bool IsActive { get; set; } = true; // :379 let isActive: Bool
+    public Action? OnBegin { get; set; } // :380 let onBegin: () -> Void
+    public Action<double>? OnChange { get; set; } // :381 let onChange: (CGFloat) -> Void
+    public Action? OnEnd { get; set; } // :382 let onEnd: () -> Void
+
+    // :384-388 func makeNSView(context:) -> SidebarResizeHandleView
+    public SidebarResizeHandleView MakeNSView()
+    {
+        var view = new SidebarResizeHandleView();
+        Update(view); // :386
+        return view;
+    }
+
+    // :390-392 func updateNSView(_:context:)
+    public void UpdateNSView(SidebarResizeHandleView view) => Update(view);
+
+    // :394-399 private func update(_ view:)
+    private void Update(SidebarResizeHandleView view)
+    {
+        view.OnBegin = OnBegin; // :395
+        view.OnChange = OnChange; // :396
+        view.OnEnd = OnEnd; // :397
+        view.IsActive = IsActive; // :398
+    }
+}
+
+/// <summary>:402-571 <c>final class SidebarResizeHandleView: NSView</c>. Ported as an Avalonia <see
+/// cref="Canvas"/> hosting the two CALayer stand-ins (<see cref="glowLayer"/>, <see cref="gripLayer"/>) as
+/// child <see cref="Border"/> controls positioned with Canvas.Left/Canvas.Top, the same technique
+/// <see cref="WindowChrome.PlaceTrafficLights"/> already uses for the CALayer-backed traffic-light buttons.</summary>
+public sealed class SidebarResizeHandleView : Canvas
+{
+    // :416-425 private enum Grip
+    private static class Grip
+    {
+        public const double Width = 2.5; // :417
+        public const double RestHeight = 10; // :418
+        public const double ShownHeight = 22; // :419
+        public const double Alpha = 0.6; // :420
+        public const double HoverGlow = 0.05; // :421
+        public const double DragGlow = 0.10; // :422
+        public const double Duration = 0.18; // :423
+        public static double VerticalInset => Chrome.TrafficLightTop + Chrome.TrafficLightDiameter; // :424
+    }
+
+    // ENGINEERING DECISION: the platform read behind `window.mouseLocationOutsideOfEventStream` (:493), seamed
+    // the way Chrome.ReduceMotionPlatform seams NSWorkspace's reduce-motion read (Port/GeniePlatform.cs), so a
+    // test can script the cursor position deterministically instead of moving the real OS pointer.
+    public static Ambient<ICursorPlatform> CursorPlatform { get; } = new(() => new WindowsCursorPlatform());
+
+    private static readonly Cursor ColumnResizeCursor = new(StandardCursorType.SizeWestEast); // :377 IDC_SIZEWE, PR-WIN-049
+
+    public Action? OnBegin; // :403 var onBegin: (() -> Void)?
+    public Action<double>? OnChange; // :404 var onChange: ((CGFloat) -> Void)?
+    public Action? OnEnd; // :405 var onEnd: (() -> Void)?
+
+    private bool isActive = true; // :407 var isActive = true { didSet { ... } }
+    public bool IsActive
+    {
+        get => isActive;
+        set
+        {
+            if (value == isActive) return; // :409 guard isActive != oldValue
+            isActive = value;
+            IsHitTestVisible = value; // :530-532 hitTest returns nil (the whole subtree) when inactive
+            Cursor = value ? ColumnResizeCursor : null; // :524-528 resetCursorRects, guarded on isActive
+            RefreshHover(); // :411
+            UpdateGrip(animated: false); // :412
+        }
+    }
+
+    private double pressOriginX; // :427 private var pressOriginX: CGFloat = 0
+    private bool isHovering; // :429 private var isHovering = false
+    private bool isDragging; // :430 private var isDragging = false
+    private readonly Border gripLayer; // :431 private let gripLayer = CALayer()
+    private readonly Border glowLayer; // :432 private let glowLayer = CALayer()
+
+    /// <summary>:434-437 <c>init(frame:)</c> / :439-442 <c>init?(coder:)</c>, both routing through
+    /// <c>configureLayers()</c> (:444-453).</summary>
+    public SidebarResizeHandleView()
+    {
+        // ED-063 (probe P7), PR-WIN-053: a client hit inside the caption band, so pressing the strip never moves
+        // the window even where its top runs through the title bar (:520-522 mouseDownCanMoveWindow == false).
+        Win32Properties.SetNonClientHitTestResult(this, Win32Properties.Win32HitTestValue.Client);
+        Cursor = ColumnResizeCursor; // isActive starts true (:407)
+        Background = Brushes.Transparent; // takes the hit across the whole strip, like NSView's opaque event area
+
+        // :446-449. glowLayer added first, gripLayer second (:451-452), so the grip draws on top (PR-WIN-057).
+        glowLayer = new Border { CornerRadius = new CornerRadius(4), Opacity = 0, IsHitTestVisible = false };
+        gripLayer = new Border { CornerRadius = new CornerRadius(Grip.Width / 2), Opacity = 0, IsHitTestVisible = false };
+        ApplyColors(); // :450 applyColors()
+        Children.Add(glowLayer); // :451 layer?.addSublayer(glowLayer)
+        Children.Add(gripLayer); // :452 layer?.addSublayer(gripLayer)
+    }
+
+    // :455-461 applyColors(). SwiftColor.LabelColor.Brush(control) installs a binding that re-resolves on the
+    // control's own theme change (Port/SwiftColor.cs), which is exactly what :463-466
+    // viewDidChangeEffectiveAppearance exists to do by hand in AppKit: PR-WIN-057 is satisfied by installing it
+    // once here, with no separate override needed.
+    private void ApplyColors()
+    {
+        var brush = SwiftColor.LabelColor.Brush(this); // :457-459 NSColor.labelColor resolved in effectiveAppearance
+        gripLayer.Background = brush;
+        glowLayer.Background = brush;
+    }
+
+    // :468-476 override func layout(). AppKit calls layout() once bounds already reflect the current frame;
+    // Avalonia's ArrangeOverride instead receives that size as `finalSize` while `Bounds` still holds the
+    // PREVIOUS frame until this method returns, so `finalSize` (never `Bounds`) is what UpdateGrip uses here.
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        var result = base.ArrangeOverride(finalSize);
+        var hovered = isHovering; // :473
+        RefreshHover(); // :474
+        UpdateGrip(animated: hovered != isHovering, result); // :475
+        return result;
+    }
+
+    // :478-482 override func viewDidMoveToWindow()
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        RefreshHover(); // :480
+        UpdateGrip(animated: false); // :481
+    }
+
+    private bool ShowsGrip => IsActive && (isHovering || isDragging); // :484
+
+    /// <summary>:486-495 <c>refreshHover()</c>. Reads the cursor's actual position rather than trusting the
+    /// last enter/exit event (PR-WIN-056): the strip moves out from under a stationary cursor when the sidebar
+    /// toggles or springs back, and AppKit only reports enter/exit for the mouse itself moving.</summary>
+    private void RefreshHover()
+    {
+        if (TopLevel.GetTopLevel(this) is not Window window ||
+            !IsActive || !IsEffectivelyVisible) // :489 guard isActive, let window, !isHiddenOrHasHiddenAncestor
+        {
+            isHovering = false; // :490
+            return;
+        }
+        if (CursorPlatform.Current.ScreenPosition is not { } screen) // :493 window.mouseLocationOutsideOfEventStream
+        {
+            isHovering = false;
+            return;
+        }
+        var client = window.PointToClient(screen); // window-space, as `from: nil` in AppKit means window space
+        var local = window.TranslatePoint(client, this); // :493 convert(_:from:)
+        isHovering = local is { } point && new Rect(Bounds.Size).Contains(point); // :494 bounds.contains(point)
+    }
+
+    /// <summary>:497-516 <c>updateGrip(animated:)</c>.</summary>
+    private void UpdateGrip(bool animated) => UpdateGrip(animated, Bounds.Size);
+
+    private void UpdateGrip(bool animated, Size size)
+    {
+        var height = ShowsGrip ? Grip.ShownHeight : Grip.RestHeight; // :498
+        // :499-505 CATransaction.begin()/setAnimationDuration/setAnimationTimingFunction or setDisableActions(true).
+        ApplyTransitions(gripLayer, animated);
+        ApplyTransitions(glowLayer, animated);
+
+        // :506-507 gripLayer.frame, gripLayer.opacity
+        gripLayer.Width = Grip.Width;
+        gripLayer.Height = height;
+        SetLeft(gripLayer, (size.Width - Grip.Width) / 2);
+        SetTop(gripLayer, (size.Height - height) / 2);
+        gripLayer.Opacity = ShowsGrip ? Grip.Alpha : 0;
+
+        // :508-514 glowLayer.frame, glowLayer.opacity. bounds.minX is 0 for the strip's own bounds.
+        var glowWidth = Math.Max(0, size.Width - 1); // :511
+        var glowHeight = Math.Max(0, size.Height - Grip.VerticalInset); // :512
+        SetLeft(glowLayer, 0.5); // :509 bounds.minX + 0.5
+        SetTop(glowLayer, Grip.VerticalInset); // :510
+        glowLayer.Width = glowWidth;
+        glowLayer.Height = glowHeight;
+        glowLayer.Opacity = ShowsGrip ? (isDragging ? Grip.DragGlow : Grip.HoverGlow) : 0; // :514
+        // :515 CATransaction.commit(): nothing further to flush; the Transitions installed above already carry
+        // the animated case and the values just assigned always land, animated or not.
+    }
+
+    private static void ApplyTransitions(Border layer, bool animated)
+    {
+        if (!animated) // :504 CATransaction.setDisableActions(true)
+        {
+            layer.Transitions = null;
+            return;
+        }
+        var duration = TimeSpan.FromSeconds(Grip.Duration); // :501 CATransaction.setAnimationDuration
+        var easing = PortAnimation.EaseOut(Grip.Duration).ToEasing(); // :502 CAMediaTimingFunction(name: .easeOut)
+        layer.Transitions =
+        [
+            new Avalonia.Animation.DoubleTransition { Property = WidthProperty, Duration = duration, Easing = easing },
+            new Avalonia.Animation.DoubleTransition { Property = HeightProperty, Duration = duration, Easing = easing },
+            new Avalonia.Animation.DoubleTransition { Property = LeftProperty, Duration = duration, Easing = easing },
+            new Avalonia.Animation.DoubleTransition { Property = TopProperty, Duration = duration, Easing = easing },
+            new Avalonia.Animation.DoubleTransition { Property = OpacityProperty, Duration = duration, Easing = easing },
+        ];
+    }
+
+    // :518 override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+    public bool AcceptsFirstMouse(PointerEventArgs? @for) => true;
+
+    // :521-522 override var mouseDownCanMoveWindow: Bool { false }. Declared through the Win32 client hit test
+    // set in the constructor instead of a queried property (PR-WIN-053; matches Chrome.cs's NoWindowDragView).
+    public bool MouseDownCanMoveWindow => false;
+
+    // :534-539 override func mouseDown(with event: NSEvent)
+    protected override void OnPointerPressed(PointerPressedEventArgs e)
+    {
+        base.OnPointerPressed(e);
+        if (e.GetCurrentPoint(this).Properties.PointerUpdateKind != PointerUpdateKind.LeftButtonPressed) return;
+        var window = TopLevel.GetTopLevel(this) as Window;
+        pressOriginX = window is null ? 0 : e.GetPosition(window).X; // :535 event.locationInWindow.x
+        isDragging = true; // :536
+        UpdateGrip(animated: true); // :537
+        OnBegin?.Invoke(); // :538
+        e.Pointer.Capture(this); // windows_path (PR-WIN-055): captured so moves outside the strip still report
+        e.Handled = true;
+    }
+
+    // :541-543 override func mouseDragged(with event: NSEvent)
+    protected override void OnPointerMoved(PointerEventArgs e)
+    {
+        base.OnPointerMoved(e);
+        if (!isDragging) return;
+        var window = TopLevel.GetTopLevel(this) as Window;
+        var x = window is null ? 0 : e.GetPosition(window).X;
+        OnChange?.Invoke(x - pressOriginX); // :542
+    }
+
+    // :545-552 override func mouseUp(with event: NSEvent)
+    protected override void OnPointerReleased(PointerReleasedEventArgs e)
+    {
+        base.OnPointerReleased(e);
+        if (!isDragging) return;
+        var window = TopLevel.GetTopLevel(this) as Window;
+        var x = window is null ? 0 : e.GetPosition(window).X;
+        OnChange?.Invoke(x - pressOriginX); // :546. Reported BEFORE ending the drag (PR-WIN-055).
+        isDragging = false; // :547
+        OnEnd?.Invoke(); // :548
+        RefreshHover(); // :550. No exit event arrives while the button is held.
+        UpdateGrip(animated: true); // :551
+        e.Pointer.Capture(null);
+    }
+
+    // :562-565 override func mouseEntered(with event: NSEvent)
+    protected override void OnPointerEntered(PointerEventArgs e)
+    {
+        base.OnPointerEntered(e);
+        isHovering = IsActive; // :563
+        UpdateGrip(animated: true); // :564
+    }
+
+    // :567-570 override func mouseExited(with event: NSEvent)
+    protected override void OnPointerExited(PointerEventArgs e)
+    {
+        base.OnPointerExited(e);
+        isHovering = false; // :568
+        UpdateGrip(animated: true); // :569
+    }
+
+    // Test-only readback (InternalsVisibleTo), matching WindowChrome.Buttons's own pattern above.
+    internal bool IsHoveringForTest => isHovering;
+    internal bool IsDraggingForTest => isDragging;
+    internal Border GripLayerForTest => gripLayer;
+    internal Border GlowLayerForTest => glowLayer;
 }
