@@ -336,7 +336,7 @@ public sealed class JSONValueTests
 
     [Theory]
     [Trait("Rule", "R-CODE-4")]
-    [Trait("Oracle", "O-25")]
+    [Trait("Oracle", "O-47")]
     [InlineData(double.NaN)]
     [InlineData(double.PositiveInfinity)]
     [InlineData(double.NegativeInfinity)]
@@ -346,9 +346,12 @@ public sealed class JSONValueTests
         // Core/Support/JSONValue.swift:62 is `(try? JSONSerialization.data(...)) ?? Data("null".utf8)`, and `try?`
         // catches only a thrown Swift error. Whether Darwin JSONSerialization throws for a non-finite NSNumber (so the
         // fallback gives "null") or raises an Objective-C NSInvalidArgumentException (an uncatchable crash) is not
-        // settled; swift-corelibs-foundation throws. No Swift site reaches this path (.double(NaN) is built only at
-        // :32 and :150, and parsed JSON holds no NaN). "O-25" is the id proposed for this new oracle item; it is not
-        // yet in IMPLEMENTING.md Appendix B. Parked choice: the whole write, compact and pretty, is the bytes "null".
+        // settled; swift-corelibs-foundation throws. No Swift construction reaches this path (.double(NaN) is built
+        // only at :32 and :150): true for NaN, since parsed JSON holds no NaN, but not for infinity, since the port's
+        // parse can reach a non-finite .double through an overflowing literal such as "1e400" or a 400-digit integer
+        // (.NET JsonElement.GetDouble returns +/-infinity for either); whether Darwin's parse does the same is O-09.
+        // Oracle item O-47 (IMPLEMENTING.md Appendix B, ED-146). Parked choice: the whole write, compact and pretty,
+        // is the bytes "null".
         Assert.Equal(new byte[] { 0x6E, 0x75, 0x6C, 0x6C }, new JSONValue.Double(value).Data());
         var nested = JSONValue.FromDictionaryLiteral(("ok", 1), ("bad", JSONValue.FromArrayLiteral(value)));
         Assert.Equal(Utf8("null"), nested.Data());
