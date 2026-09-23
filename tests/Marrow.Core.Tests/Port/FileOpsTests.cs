@@ -22,10 +22,12 @@ namespace Marrow.Core.Tests.Port;
 // An .atomic write is a temporary file plus a replace (R-FS-1): a reader that already holds the destination keeps
 // the old bytes, and the temporary file sits beside the destination (a replace needs the same volume) under a
 // name that does not end in .json (Services/Store/Storage.swift:125 loads every *.json in a folder).
-// OPEN, reported to the orchestrator, not asserted here: the exact RetryDelays values (PA-0015 says only "backoff"
-// and "a bounded number of attempts"); what the "verify the bytes landed" step (PA-0015, R-FS-1) does on a
-// mismatch; which of its two outcomes replaceItemAt has when the original is missing; and whether an atomic
-// write over a read-only file leaves it read-only.
+// Rulings this file rests on: ED-121 (only WriteAtomic verifies: the temporary file is flushed, read back and
+// compared before the replace; a mismatch deletes it and counts as a failed attempt), ED-122 (RetryDelays 100 to
+// 700 ms in 100 ms steps, 8 attempts, 2.8 s of waiting, the same for write, remove, move and replace), ED-123
+// (replaceItemAt with a missing original throws at once, parked as oracle O-35), ED-124 (an atomic write keeps
+// the destination's read-only state, parked as oracle O-36) and ED-125 (sharing, lock and access-denied errors are
+// transient; everything else throws at once).
 // PA-0015 adds the Windows part: a transient sharing violation (a handle a child process left open) is retried
 // with backoff on SwiftClock (ED-068), a bounded number of times, then the real error is thrown; read-only is
 // cleared where POSIX would ignore it. The API these tests fix: static FileOps with RetryDelays
@@ -41,15 +43,16 @@ public sealed class FileOpsTests
 
     [Fact]
     [Trait("Rule", "R-FS-1")]
-    public void The_retry_schedule_is_a_bounded_backoff()
+    [Trait("Decision", "ED-122")]
+    public void The_retry_schedule_waits_100_to_700_ms_in_100_ms_steps_for_2_8_s_in_all()
     {
-        // Shape only (PA-0015: backoff, a bounded number of attempts). The exact waits have no recorded value yet;
-        // they are reported for a ruling and get exact assertions once it exists.
-        var delays = FileOps.RetryDelays;
-        Assert.True(delays.Count >= 2, "a backoff needs at least two waits");
-        Assert.All(delays, d => Assert.True(d > TimeSpan.Zero, "every wait is positive"));
-        for (var i = 1; i < delays.Count; i++) Assert.True(delays[i] >= delays[i - 1], "waits never shrink");
-        Assert.True(delays[^1] > delays[0], "the waits grow: a backoff, not a fixed interval");
+        // ED-122: the 100 ms step is negative_test.mjs:68 (100*(i+1) ms); the count keeps the total under the
+        // HangWatchdog bound, 4 s (HangWatchdog.swift:24) minus one 0.5 s ping (:52). Eight attempts: the first,
+        // then one after each of the seven waits.
+        Assert.Equal(
+            new[] { 100, 200, 300, 400, 500, 600, 700 }.Select(ms => TimeSpan.FromMilliseconds(ms)),
+            FileOps.RetryDelays);
+        Assert.Equal(TimeSpan.FromMilliseconds(2800), FileOps.RetryDelays.Aggregate(TimeSpan.Zero, (sum, d) => sum + d));
     }
 
     [Fact]
@@ -104,6 +107,7 @@ public sealed class FileOpsTests
 
     [Fact]
     [Trait("Rule", "R-FS-1")]
+    [Trait("Decision", "ED-125")]
     public async Task An_atomic_write_into_a_missing_folder_throws_at_once_and_does_not_create_it()
     {
         using var runtime = new TestRuntime();
@@ -121,8 +125,13 @@ public sealed class FileOpsTests
     [Fact]
     [Trait("Rule", "R-FS-1")]
     [Trait("Rule", "R-TEST-4")]
+    [Trait("Decision", "ED-124")]
+    [Trait("Oracle", "O-36")]
     public async Task An_atomic_write_over_a_read_only_file_succeeds_as_a_POSIX_rename_does()
     {
+        // The read-only state of the result is PARKED on oracle O-36 (ED-124, R-TEST-6): swift-foundation
+        // writeToFileAux copies the destination's mode to the temporary file before the rename, so the result stays
+        // read-only; whether macOS 26 behaves so is unverified. No Req trait until it is settled.
         using var runtime = new TestRuntime();
         using var scratch = new ScratchFolder();
         var path = scratch.Seed("mcp-port", Old);
@@ -136,7 +145,27 @@ public sealed class FileOpsTests
         await OffThread(() => FileOps.WriteAtomic(path, Newer)).WaitAsync(ManualClockWait.Guard);
         Assert.Equal(Newer, File.ReadAllBytes(path));
         Assert.Equal(["control.tmp", "mcp-port"], scratch.Names());
-        // Whether the result is still read-only is OPEN (no cited source or ruling); reported, not asserted.
+        Assert.True(File.GetAttributes(path).HasFlag(FileAttributes.ReadOnly), "O-36: the result keeps ReadOnly");
+    }
+
+    [Fact]
+    [Trait("Rule", "R-FS-1")]
+    [Trait("Decision", "ED-124")]
+    [Trait("Oracle", "O-36")]
+    public async Task An_atomic_write_to_a_new_path_or_over_a_writable_file_does_not_make_it_read_only()
+    {
+        // PARKED on oracle O-36 (ED-124, R-TEST-6): only a read-only destination's mode is carried to the result.
+        using var runtime = new TestRuntime();
+        using var scratch = new ScratchFolder();
+        var created = scratch.PathOf("library.json");
+        var replaced = scratch.Seed("0F1E2D3C-4B5A-6978-8796-A5B4C3D2E1F0.json", Old);
+        await OffThread(() => FileOps.WriteAtomic(created, Newer)).WaitAsync(ManualClockWait.Guard);
+        await OffThread(() => FileOps.WriteAtomic(replaced, Newer)).WaitAsync(ManualClockWait.Guard);
+        Assert.False(File.GetAttributes(created).HasFlag(FileAttributes.ReadOnly), "a new file is not made read-only");
+        Assert.False(File.GetAttributes(replaced).HasFlag(FileAttributes.ReadOnly), "a writable file stays writable");
+        Assert.Equal(Newer, File.ReadAllBytes(created));
+        Assert.Equal(Newer, File.ReadAllBytes(replaced));
+        Assert.Equal(["0F1E2D3C-4B5A-6978-8796-A5B4C3D2E1F0.json", "library.json"], scratch.Names());
     }
 
     [Fact]
@@ -144,6 +173,8 @@ public sealed class FileOpsTests
     [Trait("Rule", "R-TEST-9")]
     [Trait("Rule", "R-TEST-4")]
     [Trait("Decision", "ED-068")]
+    [Trait("Decision", "ED-121")]
+    [Trait("Decision", "ED-125")]
     public async Task An_atomic_write_blocked_by_a_held_handle_retries_on_the_manual_clock_and_lands_once_released()
     {
         using var runtime = new TestRuntime();
@@ -184,6 +215,8 @@ public sealed class FileOpsTests
     [Trait("Rule", "R-TEST-9")]
     [Trait("Rule", "R-ERR-1")]
     [Trait("Decision", "ED-068")]
+    [Trait("Decision", "ED-121")]
+    [Trait("Decision", "ED-125")]
     public async Task An_atomic_write_still_blocked_after_every_retry_throws_the_real_error_and_keeps_the_old_file()
     {
         using var runtime = new TestRuntime();
@@ -206,6 +239,43 @@ public sealed class FileOpsTests
         Assert.Equal(FileOps.RetryDelays.Aggregate(TimeSpan.Zero, (sum, d) => sum + d), runtime.Time.Elapsed);
         Assert.Equal(Old, File.ReadAllBytes(path));
         Assert.Equal(["library.json"], scratch.Names());
+    }
+
+    [Fact]
+    [Trait("Rule", "R-FS-1")]
+    [Trait("Rule", "R-TEST-9")]
+    [Trait("Rule", "R-ERR-1")]
+    [Trait("Decision", "ED-068")]
+    [Trait("Decision", "ED-124")]
+    [Trait("Decision", "ED-125")]
+    [Trait("Oracle", "O-36")]
+    public async Task An_atomic_write_over_a_read_only_file_still_blocked_after_every_retry_keeps_it_read_only()
+    {
+        // PARKED on oracle O-36 (ED-124, R-TEST-6): when the retries run out the old file keeps its bytes and its
+        // ReadOnly exactly as before, and the temporary file is gone.
+        using var runtime = new TestRuntime();
+        using var scratch = new ScratchFolder();
+        var path = scratch.Seed("mcp-port", Old);
+        File.SetAttributes(path, FileAttributes.ReadOnly);
+        Exception error;
+        using (ScratchFolder.HoldOpen(path))
+        {
+            var write = OffThread(() => FileOps.WriteAtomic(path, Newer));
+            foreach (var delay in FileOps.RetryDelays)
+            {
+                ManualClockWait.ForRetryTimer(runtime.Time, write);
+                // ED-124: the destination's ReadOnly is set again before each wait.
+                Assert.True(File.GetAttributes(path).HasFlag(FileAttributes.ReadOnly), "ReadOnly is restored before the wait");
+                runtime.Time.Advance(delay);
+            }
+            error = await Assert.ThrowsAnyAsync<Exception>(() => write.WaitAsync(ManualClockWait.Guard));
+        }
+        Assert.True(error is IOException or UnauthorizedAccessException, "the Windows error itself, not a timeout: " + error);
+        Assert.True(SwiftTry.IsThrownError(error), "a thrown error, not a trap: try? sites swallow it");
+        Assert.Equal(0, runtime.Time.ActiveTimers);
+        Assert.Equal(Old, File.ReadAllBytes(path));
+        Assert.True(File.GetAttributes(path).HasFlag(FileAttributes.ReadOnly), "O-36: the old file keeps ReadOnly");
+        Assert.Equal(["mcp-port"], scratch.Names());
     }
 
     [Fact]
@@ -289,6 +359,7 @@ public sealed class FileOpsTests
     [Trait("Rule", "R-TEST-9")]
     [Trait("Rule", "R-TEST-4")]
     [Trait("Decision", "ED-068")]
+    [Trait("Decision", "ED-125")]
     public async Task Removing_a_file_held_open_retries_and_deletes_it_once_released()
     {
         using var runtime = new TestRuntime();
@@ -323,6 +394,7 @@ public sealed class FileOpsTests
     [Trait("Rule", "R-FS-1")]
     [Trait("Rule", "R-TEST-9")]
     [Trait("Decision", "ED-068")]
+    [Trait("Decision", "ED-125")]
     public async Task Removing_a_folder_with_a_file_held_open_retries_and_removes_it_once_released()
     {
         using var runtime = new TestRuntime();
@@ -352,6 +424,7 @@ public sealed class FileOpsTests
     [Trait("Rule", "R-TEST-9")]
     [Trait("Rule", "R-ERR-1")]
     [Trait("Decision", "ED-068")]
+    [Trait("Decision", "ED-125")]
     public async Task Removing_a_file_still_held_after_every_retry_throws_the_real_error_and_keeps_it()
     {
         using var runtime = new TestRuntime();
@@ -378,6 +451,7 @@ public sealed class FileOpsTests
     [Fact]
     [Trait("Rule", "R-FS-1")]
     [Trait("Rule", "R-ERR-1")]
+    [Trait("Decision", "ED-125")]
     public async Task Removing_a_missing_item_throws_at_once()
     {
         using var runtime = new TestRuntime();
@@ -407,6 +481,7 @@ public sealed class FileOpsTests
     [Fact]
     [Trait("Rule", "R-FS-1")]
     [Trait("Rule", "R-ERR-1")]
+    [Trait("Decision", "ED-125")]
     public async Task Moving_onto_an_existing_item_throws_at_once_and_changes_nothing()
     {
         using var runtime = new TestRuntime();
@@ -428,6 +503,7 @@ public sealed class FileOpsTests
     [Trait("Rule", "R-TEST-9")]
     [Trait("Rule", "R-TEST-4")]
     [Trait("Decision", "ED-068")]
+    [Trait("Decision", "ED-125")]
     public async Task Moving_a_file_held_open_retries_and_moves_it_once_released()
     {
         using var runtime = new TestRuntime();
@@ -477,6 +553,7 @@ public sealed class FileOpsTests
     [Trait("Rule", "R-TEST-9")]
     [Trait("Rule", "R-TEST-4")]
     [Trait("Decision", "ED-068")]
+    [Trait("Decision", "ED-125")]
     public async Task Replacing_an_item_held_open_retries_and_completes_once_released()
     {
         using var runtime = new TestRuntime();
@@ -517,6 +594,7 @@ public sealed class FileOpsTests
     [Trait("Rule", "R-TEST-9")]
     [Trait("Rule", "R-TEST-4")]
     [Trait("Decision", "ED-068")]
+    [Trait("Decision", "ED-125")]
     public async Task An_atomic_write_is_a_replace_so_a_reader_sharing_everything_keeps_the_old_bytes()
     {
         using var runtime = new TestRuntime();
@@ -562,6 +640,7 @@ public sealed class FileOpsTests
     [Trait("Rule", "R-FS-1")]
     [Trait("Rule", "R-TEST-9")]
     [Trait("Decision", "ED-068")]
+    [Trait("Decision", "ED-125")]
     public async Task An_atomic_write_tries_again_after_the_last_wait_and_lands_when_released_just_before_it()
     {
         using var runtime = new TestRuntime();
@@ -585,6 +664,7 @@ public sealed class FileOpsTests
     [Trait("Rule", "R-FS-1")]
     [Trait("Rule", "R-TEST-9")]
     [Trait("Decision", "ED-068")]
+    [Trait("Decision", "ED-125")]
     public async Task Removing_tries_again_after_the_last_wait_and_deletes_when_released_just_before_it()
     {
         using var runtime = new TestRuntime();
@@ -608,6 +688,7 @@ public sealed class FileOpsTests
     [Trait("Rule", "R-FS-1")]
     [Trait("Rule", "R-TEST-9")]
     [Trait("Decision", "ED-068")]
+    [Trait("Decision", "ED-125")]
     public async Task Moving_tries_again_after_the_last_wait_and_moves_when_released_just_before_it()
     {
         using var runtime = new TestRuntime();
@@ -633,6 +714,7 @@ public sealed class FileOpsTests
     [Trait("Rule", "R-FS-1")]
     [Trait("Rule", "R-TEST-9")]
     [Trait("Decision", "ED-068")]
+    [Trait("Decision", "ED-125")]
     public async Task Replacing_tries_again_after_the_last_wait_and_completes_when_released_just_before_it()
     {
         using var runtime = new TestRuntime();
@@ -704,38 +786,26 @@ public sealed class FileOpsTests
     [Fact]
     [Trait("Rule", "R-FS-1")]
     [Trait("Rule", "R-ERR-1")]
-    public async Task Replacing_a_missing_original_either_moves_the_item_there_or_throws_and_changes_nothing()
+    [Trait("Decision", "ED-123")]
+    [Trait("Decision", "ED-125")]
+    [Trait("Oracle", "O-35")]
+    public async Task Replacing_a_missing_original_throws_file_not_found_at_once_and_moves_nothing()
     {
         using var runtime = new TestRuntime();
         using var scratch = new ScratchFolder();
         // The common case at the only call site: CommandCodeSession.swift:754-758 replaces <id>.reply.json, which
-        // does not exist before the first reply. WHICH of the two outcomes Foundation's replaceItemAt has here is
-        // open (no cited source settles it) and is reported for an oracle id; this test fixes what holds either
-        // way: no partial state, no retry (a missing item is not a sharing violation), nothing staged.
+        // does not exist before the first reply. This expectation is PARKED on oracle O-35 (ED-123, R-TEST-6):
+        // swift-corelibs-foundation _replaceItem runs attributesOfItem on the original first, so it throws, and
+        // CommandCodeSession.swift:759-760 then falls back to a direct write. No Req trait until it is settled.
         var file = scratch.PathOf("call-9.reply.json");
         var temporary = scratch.Seed("call-9.reply.json.tmp", Newer);
-        Exception? error = null;
-        try
-        {
-            await OffThread(() => FileOps.ReplaceItemAt(file, temporary)).WaitAsync(ManualClockWait.Guard);
-        }
-        catch (Exception caught)
-        {
-            error = caught;
-        }
+        var error = await Assert.ThrowsAnyAsync<Exception>(
+            () => OffThread(() => FileOps.ReplaceItemAt(file, temporary)).WaitAsync(ManualClockWait.Guard));
+        Assert.IsAssignableFrom<FileNotFoundException>(error); // an IOException; not TimeoutException: nothing waited
+        Assert.True(SwiftTry.IsThrownError(error), "CommandCodeSession.swift:759-760 catches it and writes instead");
         Assert.Equal(0, runtime.Time.ActiveTimers);
-        if (error is null)
-        {
-            Assert.Equal(Newer, File.ReadAllBytes(file));
-            Assert.Equal(["call-9.reply.json"], scratch.Names());
-        }
-        else
-        {
-            Assert.IsAssignableFrom<IOException>(error); // not TimeoutException: nothing was waited on
-            Assert.True(SwiftTry.IsThrownError(error), "CommandCodeSession.swift:760-761 catches it and writes instead");
-            Assert.Equal(Newer, File.ReadAllBytes(temporary));
-            Assert.Equal(["call-9.reply.json.tmp"], scratch.Names());
-        }
+        Assert.Equal(Newer, File.ReadAllBytes(temporary));
+        Assert.Equal(["call-9.reply.json.tmp"], scratch.Names());
     }
 
     // Holds a real handle through every wait but the last, releases it after the last retry timer is armed and
