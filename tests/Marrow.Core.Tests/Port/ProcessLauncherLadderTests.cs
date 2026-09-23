@@ -31,16 +31,12 @@ namespace Marrow.Core.Tests.Port;
 // TerminateProcess on that pid alone. R-PROC-1: the delays go through GlobalQueue.AsyncAfter, so SwiftClock drives
 // them and a test moves time with TestRuntime.Advance.
 //
-// CONFLICT, reported to the orchestrator (STOP F.ProcessLauncher #1): for the Stdio graceful step ED-027 says
-// "Step 2 becomes Node's subprocess.kill(), which on Windows is TerminateProcess with exit code 1", while ED-047 (b)
-// says "graceful step = CTRL_BREAK_EVENT to that child only". These tests follow ED-047 because (1) ED-047 is the
-// decision on the termination ladders themselves (Q127 [TERM]) and names StdioProcess.terminate line by line;
-// (2) ED-027 predates ADR-0002 and names a Node API, and IMPLEMENTING.md 1.6 keeps only the intent of such
-// decisions: ED-027's stated intent is "preserve all three steps and the 3-second timing", which a
-// TerminateProcess step 2 defeats (step 3 becomes a no-op); (3) probe P6 measured CTRL_BREAK ending a cooperating
-// pipe child (M3) and the callers depend on the graceful step being graceful (CommandCodeSession.swift:232-234).
-// The orchestrator is asked to confirm, or to amend one of the two decisions. The fake here cannot tell the two
-// readings apart (its Terminate is one call); ProcessLauncherSpawnTests and ProcessLauncherSignalTests can.
+// ED-126 (the ruling on STOP F.ProcessLauncher #1): ED-047 (b) governs the Stdio ladder. Close stdin first, even when
+// the child has exited; if it is still running, CTRL_BREAK_EVENT through the AttachConsole helper to the child's
+// process group on its own hidden console; at +3 s TerminateProcess on that pid alone, with no job. ED-027's
+// "subprocess.kill() / TerminateProcess at step 2" is withdrawn; only its intent (all three steps, in order, and the
+// 3 s wait) stands. The fake here cannot tell a graceful Terminate from a forceful one (its Terminate is one call);
+// ProcessLauncherSpawnTests and ProcessLauncherSignalTests can.
 //
 // The surface these tests assume, in namespace Marrow.Core.Port:
 //   interface IProcessControl { bool IsRunning { get; } void Terminate(); void KillTree(); void KillProcess(); }

@@ -23,10 +23,10 @@ namespace Marrow.Core.Tests.Port;
 //   static string ProcessLauncher.BuildEnvironmentBlock(IReadOnlyDictionary<string, string> environment)
 //       "KEY=VALUE" + NUL per entry, sorted by name as CreateProcessW requires, then one more NUL.
 //   static string? ProcessLauncher.Which(string name, string path, string pathExt, string? home = null)   ED-031
-//       Shell.swift:415-427 with ED-031's Windows rules. `home` is the folder `(name as NSString)
+//       Shell.swift:415-427 with the Windows rules of ED-031, ED-129, ED-130, ED-131. `home` is the folder `(name as NSString)
 //       .expandingTildeInPath` (Shell.swift:418) puts in place of a leading "~"; null means the user's own home
 //       folder. The seam exists so a test never touches the user's profile (R-TEST-9).
-//   static bool ProcessLauncher.IsWindowsCommandInterpreter(string path)                  PA-0016, ED-020
+//   static bool ProcessLauncher.IsWindowsCommandInterpreter(string path)                  PA-0016 steps 3, 2 (ED-127)
 //   sealed class CommandLineTooLongException : Exception, with int Length                 ED-024 (3)
 // The rest of the surface (the launcher instance, ProcessPipe, IProcessControl, TerminationLadder) is described in
 // ProcessLauncherLadderTests.cs and ProcessLauncherSpawnTests.cs.
@@ -250,30 +250,31 @@ public sealed class ProcessLauncherTests
 
     [Fact]
     [Trait("Rule", "R-PROC-1")]
+    [Trait("Decision", "ED-128")]
     public void Names_that_differ_only_in_case_give_one_entry_in_the_block()
     {
-        // Windows names are case-insensitive; a Swift [String: String] can hold both spellings. R-PROC-1: keys are
-        // compared OrdinalIgnoreCase. This test holds only what every reading agrees on: one entry. Which spelling
-        // and which value survive is the open item of the next test.
+        // Windows names are case-insensitive; a case-sensitive dictionary can hold both spellings. ED-128 (2): the
+        // block folds them as successive OrdinalIgnoreCase assignments in the input's enumeration order (first
+        // spelling, last value). This dictionary has no removals, so its enumeration order is its insertion order.
         var environment = new Dictionary<string, string>(StringComparer.Ordinal) { ["Path"] = "C:\\one", ["PATH"] = "C:\\two", ["X"] = "1" };
         var entries = ProcessLauncher.BuildEnvironmentBlock(environment).Split('\0');
         Assert.Single(entries, e => e.StartsWith("path=", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains("Path=C:\\two", entries);
         Assert.Contains("X=1", entries);
     }
 
     [Fact]
     [Trait("Rule", "R-PROC-1")]
-    [Trait("Oracle", "O-25")]
+    [Trait("Decision", "ED-128")]
     public void A_name_set_again_in_another_case_keeps_the_inherited_spelling_and_takes_the_later_value()
     {
-        // UNVERIFIED O-25 (proposed here, STOP F.ProcessLauncher #3; the orchestrator records or renumbers it).
-        // MCPHub.swift:329-330: `var environment = LoginEnvironment.current; for (key, value) in env
-        // { environment[key] = value }`. On macOS a user's `PATH` beside an inherited `Path` are two variables and
-        // the child sees both; on Windows one must go. R-PROC-1 says "keeping the first spelling", but "first" has
-        // no meaning for an unordered Swift Dictionary, and no rule says whose VALUE survives. Parked choice: the
-        // spelling that entered the dictionary first (the inherited one, as Windows keeps the existing spelling when
-        // SetEnvironmentVariable sets a name again in another case) and the value assigned later (the override,
-        // which is what the loop at MCPHub.swift:330 is for). The dictionary is built in that order here.
+        // ED-128: MCPHub.swift:329-330 `var environment = LoginEnvironment.current; for (key, value) in env
+        // { environment[key] = value }`. The rule is (1): environment dictionaries are OrdinalIgnoreCase, so the
+        // assignment keeps the inherited spelling and takes the MCP config's value (3), as SetEnvironmentVariableW
+        // does; that is the LoginEnvironment/Shell unit's job. What is pinned here is the launcher's defensive fold
+        // (2) for a caller that still hands it a case-sensitive dictionary: successive OrdinalIgnoreCase
+        // assignments in enumeration order, first spelling and last value, then the sort. The dictionary below has
+        // no removals, so its order is defined. Nothing is asserted about two spellings inside one MCP env (4).
         var environment = new Dictionary<string, string>(StringComparer.Ordinal) { ["Path"] = "C:\\inherited", ["X"] = "1" };
         environment["PATH"] = "C:\\override";
         Assert.Equal("Path=C:\\override\0X=1\0\0", ProcessLauncher.BuildEnvironmentBlock(environment));
@@ -363,23 +364,139 @@ public sealed class ProcessLauncherTests
     [Fact]
     [Trait("Rule", "R-PROC-1")]
     [Trait("Decision", "ED-031")]
-    public void Which_skips_a_directory_that_carries_the_tools_name_and_takes_the_file_in_a_later_PATH_entry()
+    [Trait("Decision", "ED-131")]
+    public void Which_accepts_a_directory_whose_name_passes_the_PATHEXT_test_and_Run_on_it_throws_without_a_process()
     {
-        // ED-031 (2): "the file exists and its extension is in PATHEXT"; R-FS-1: fileExists(atPath:) is also true
-        // for a directory, so a bare existence test would stop at the first entry. (Reported: Darwin's
-        // isExecutableFile, Shell.swift:424, is true for a searchable directory; this follows ED-031's wording.)
+        // ED-131: Shell.swift:424 isExecutableFile is Darwin's access(X_OK), true for a searchable directory, and
+        // R-FS-1's existence test is dir-inclusive; so the first entry's tool.exe DIRECTORY is the match, and the
+        // file in the later entry is never reached. Run on it fails from CreateProcessW, as posix_spawn fails on
+        // macOS: no process, no termination handler.
         var first = ProcessTestFolders.Create("which dir first");
         var second = ProcessTestFolders.Create("which dir second");
-        Directory.CreateDirectory(Path.Join(first, "tool.exe"));
-        var file = ProcessTestFolders.Touch(second, "tool.exe");
-        Assert.Equal(file, ProcessLauncher.Which("tool", first + ";" + second, ".exe"));
-        Assert.Equal(file, ProcessLauncher.Which("tool.exe", first + ";" + second, ".exe"));
-        Assert.Null(ProcessLauncher.Which("tool", first, ".exe"));
+        var directory = Path.Join(first, "tool.exe");
+        Directory.CreateDirectory(directory);
+        ProcessTestFolders.Touch(second, "tool.exe");
+        Assert.Equal(directory, ProcessLauncher.Which("tool", first + ";" + second, ".exe"));
+        Assert.Equal(directory, ProcessLauncher.Which("tool.exe", first + ";" + second, ".exe"));
+        Assert.Equal(directory, ProcessLauncher.Which("tool", first, ".exe"));
+        var launcher = new ProcessLauncher { ExecutableURL = directory, CurrentDirectoryURL = second };
+        var handled = 0;
+        launcher.TerminationHandler = _ => Interlocked.Increment(ref handled);
+        Assert.ThrowsAny<Exception>(launcher.Run);
+        Assert.False(launcher.IsRunning);
+        Assert.Equal(0, Volatile.Read(ref handled));
     }
 
     [Fact]
     [Trait("Rule", "R-PROC-1")]
     [Trait("Decision", "ED-031")]
+    [Trait("Decision", "ED-129")]
+    public void Which_given_a_path_without_an_extension_appends_each_PATHEXT_extension_in_PATHEXT_order()
+    {
+        // ED-129: the path branch uses the PATH walk's test. `codex` beside `codex.cmd` (npm's shape) gives the
+        // .cmd; with codex.exe present too, .exe comes first in PATHEXT and wins. PATH holds a codex.exe of its own
+        // and is never searched on this branch (ED-031 (3)).
+        var folder = ProcessTestFolders.Create("which path ext");
+        var onPath = ProcessTestFolders.Create("which path ext onpath");
+        ProcessTestFolders.Touch(onPath, "codex.exe");
+        ProcessTestFolders.Touch(folder, "codex");
+        var shim = ProcessTestFolders.Touch(folder, "codex.cmd");
+        Assert.Equal(shim, ProcessLauncher.Which(Path.Join(folder, "codex"), onPath, ".com;.exe;.bat;.cmd"));
+        var exe = ProcessTestFolders.Touch(folder, "codex.exe");
+        Assert.Equal(exe, ProcessLauncher.Which(Path.Join(folder, "codex"), onPath, ".com;.exe;.bat;.cmd"));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-PROC-1")]
+    [Trait("Decision", "ED-031")]
+    [Trait("Decision", "ED-129")]
+    public void Which_given_a_path_whose_extension_is_not_in_PATHEXT_appends_each_PATHEXT_extension()
+    {
+        // ED-129: "no extension, or one not in PATHEXT, such as '.txt'" (measured: where and cmd resolve foo.txt
+        // to foo.txt.cmd).
+        var folder = ProcessTestFolders.Create("which path txt");
+        var onPath = ProcessTestFolders.Create("which path txt onpath");
+        ProcessTestFolders.Touch(folder, "codex.txt");
+        var shim = ProcessTestFolders.Touch(folder, "codex.txt.cmd");
+        Assert.Equal(shim, ProcessLauncher.Which(Path.Join(folder, "codex.txt"), onPath, ".com;.exe;.bat;.cmd"));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-PROC-1")]
+    [Trait("Decision", "ED-031")]
+    [Trait("Decision", "ED-129")]
+    public void Which_on_PATH_appends_each_PATHEXT_extension_to_a_name_whose_extension_is_not_in_PATHEXT()
+    {
+        // ED-129, the PATH-walk twin of the test above.
+        var folder = ProcessTestFolders.Create("which walk txt");
+        ProcessTestFolders.Touch(folder, "foo.txt");
+        var shim = ProcessTestFolders.Touch(folder, "foo.txt.cmd");
+        Assert.Equal(shim, ProcessLauncher.Which("foo.txt", folder, ".com;.exe;.bat;.cmd"));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-PROC-1")]
+    [Trait("Decision", "ED-031")]
+    [Trait("Decision", "ED-130")]
+    public void Which_expands_a_leading_tilde_backslash_exactly_as_it_expands_a_leading_tilde_slash()
+    {
+        // ED-130: with '\' a separator (ED-031 (3)), '~\' is the leading '~' component expandingTildeInPath
+        // (Shell.swift:418) expands, in Windows spelling. The home folder comes through the seam (R-TEST-9).
+        var home = ProcessTestFolders.Create("which home back");
+        var onPath = ProcessTestFolders.Create("which tilde back path");
+        ProcessTestFolders.Touch(onPath, "tool.exe");
+        Directory.CreateDirectory(Path.Join(home, "bin"));
+        var inHome = ProcessTestFolders.Touch(Path.Join(home, "bin"), "tool.exe");
+        var found = ProcessLauncher.Which("~\\bin\\tool.exe", onPath, ".exe", home);
+        Assert.NotNull(found);
+        Assert.Equal(inHome, Path.GetFullPath(found));
+        Assert.Null(ProcessLauncher.Which("~\\bin\\absent.exe", onPath, ".exe", home));
+        Assert.Null(ProcessLauncher.Which("~\\tool.exe", onPath, ".exe", home)); // PATH has tool.exe; it is not asked
+    }
+
+    [Fact]
+    [Trait("Rule", "R-PROC-1")]
+    [Trait("Decision", "ED-129")]
+    [Trait("Decision", "ED-130")]
+    public void Which_appends_the_PATHEXT_extensions_after_expanding_the_tilde()
+    {
+        // ED-129: "After the tilde expansion of ED-130", the name without a PATHEXT extension takes each one.
+        var home = ProcessTestFolders.Create("which home ext");
+        var onPath = ProcessTestFolders.Create("which tilde ext path");
+        Directory.CreateDirectory(Path.Join(home, "bin"));
+        var inHome = ProcessTestFolders.Touch(Path.Join(home, "bin"), "tool.exe");
+        foreach (var name in (string[])["~\\bin\\tool", "~/bin/tool"])
+        {
+            var found = ProcessLauncher.Which(name, onPath, ".com;.exe;.bat;.cmd", home);
+            Assert.NotNull(found);
+            Assert.Equal(inHome, Path.GetFullPath(found));
+        }
+    }
+
+    [Fact]
+    [Trait("Rule", "R-PROC-1")]
+    [Trait("Decision", "ED-130")]
+    public void Which_leaves_a_leading_tilde_followed_by_a_name_unexpanded()
+    {
+        // ED-130: '~name' (NSString's other-user form) is left unchanged; there is no user database on Windows, and
+        // Foundation leaves the text unchanged when that user does not exist, so the path fails the existence test.
+        // The files below are where a port that expanded '~' anyway would look: <home><rest> and <home>\<rest>.
+        var home = ProcessTestFolders.Create("which home user");
+        var user = "marrow" + Guid.NewGuid().ToString("N");
+        foreach (var root in (string[])[home + user, Path.Join(home, user)])
+        {
+            Directory.CreateDirectory(Path.Join(root, "bin"));
+            ProcessTestFolders.Touch(Path.Join(root, "bin"), "tool.exe");
+        }
+        var onPath = ProcessTestFolders.Create("which tilde user path");
+        Assert.Null(ProcessLauncher.Which("~" + user + "\\bin\\tool.exe", onPath, ".exe", home));
+        Assert.Null(ProcessLauncher.Which("~" + user + "/bin/tool.exe", onPath, ".exe", home));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-PROC-1")]
+    [Trait("Decision", "ED-031")]
+    [Trait("Decision", "ED-129")]
     public void Which_given_a_path_rejects_a_file_whose_extension_is_not_in_PATHEXT()
     {
         // Shell.swift:419 `isExecutableFile(atPath: path) ? ... : nil`; ED-031 (2) replaces the execute bit with
@@ -430,27 +547,40 @@ public sealed class ProcessLauncherTests
 
     [Fact]
     [Trait("Decision", "ED-020")]
+    [Trait("Decision", "ED-127")]
     public void The_system_command_interpreter_is_recognised_so_Command_Code_is_not_reported_installed()
     {
-        // Provider.swift:54 executableName "cmd", resolved by ProviderRegistry.swift:243 `for name in
-        // ["command-code", "commandcode", "cmd"] { if let found = LoginEnvironment.which(name) ... }`; on Windows
-        // PATH finds %SystemRoot%\System32\cmd.exe. Both PA-0016 (step 3, the canonical path) and ED-020 (a
-        // directory under %SystemRoot%) reject it. (ED-020 and PA-0016 cite the B1 lines :51 and :240.)
+        // Provider.swift:54 executableName "cmd"; ProviderRegistry.swift:221 reads the custom binaryPath, :223
+        // resolves `LoginEnvironment.which(custom.isEmpty ? provider.executableName : custom)`, and :243 tries
+        // `for name in ["command-code", "commandcode", "cmd"]`; on Windows PATH finds %SystemRoot%\System32\cmd.exe.
+        // ED-127: IsWindowsCommandInterpreter is PA-0016 steps 3 (the canonical path) and 2 (the version resource).
+        // ED-020's %SystemRoot% exclusion and its name order live in the Command Code resolver, not here.
         Assert.True(ProcessLauncher.IsWindowsCommandInterpreter(SystemTools.Interpreter));
     }
 
     [Fact]
     [Trait("Decision", "ED-020")]
+    [Trait("Decision", "ED-127")]
+    public void Another_program_in_the_system_folder_is_not_the_interpreter()
+    {
+        // ED-127: "IsWindowsCommandInterpreter(%SystemRoot%\System32\where.exe) is false". ED-020's directory
+        // exclusion would reject it; PA-0016 steps 3 and 2 do not (another path, and no interpreter resource).
+        Assert.False(ProcessLauncher.IsWindowsCommandInterpreter(SystemTools.Where));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-020")]
+    [Trait("Decision", "ED-127")]
     public void The_32_bit_interpreter_in_SysWOW64_is_recognised_too()
     {
-        // PA-0016 step 3: "%SystemRoot%\System32\cmd.exe and %SystemRoot%\SysWOW64\cmd.exe outright"; ED-020:
-        // "under %SystemRoot% (System32 or SysWOW64)".
+        // PA-0016 step 3: "%SystemRoot%\System32\cmd.exe and %SystemRoot%\SysWOW64\cmd.exe outright" (ED-127).
         Assert.True(File.Exists(SystemTools.InterpreterWow64));
         Assert.True(ProcessLauncher.IsWindowsCommandInterpreter(SystemTools.InterpreterWow64));
     }
 
     [Fact]
     [Trait("Decision", "ED-020")]
+    [Trait("Decision", "ED-127")]
     public void The_canonical_path_is_recognised_in_any_letter_case()
     {
         // Windows paths are case-insensitive; PATH entries come in any case (this machine's SystemDirectory is
@@ -461,6 +591,7 @@ public sealed class ProcessLauncherTests
 
     [Fact]
     [Trait("Decision", "ED-020")]
+    [Trait("Decision", "ED-127")]
     public void A_byte_copy_of_the_interpreter_placed_outside_the_system_folder_is_still_recognised()
     {
         // PA-0016 step 2 rejects on the version resource: "Rejecting on the version resource rather than on the
@@ -476,6 +607,7 @@ public sealed class ProcessLauncherTests
 
     [Fact]
     [Trait("Decision", "ED-020")]
+    [Trait("Decision", "ED-127")]
     public void Another_Microsoft_program_named_cmd_outside_the_system_folder_is_accepted()
     {
         // PA-0016 step 2 needs CompanyName "Microsoft Corporation" TOGETHER WITH OriginalFilename "Cmd.Exe" or
@@ -490,10 +622,11 @@ public sealed class ProcessLauncherTests
 
     [Fact]
     [Trait("Decision", "ED-020")]
+    [Trait("Decision", "ED-127")]
     public void A_stub_named_cmd_outside_the_system_folder_is_accepted()
     {
         // PA-0016 verification method: "a stub executable whose version resource does not identify the command
-        // interpreter IS accepted"; ED-020 accepts it too (not under %SystemRoot%). An empty file has no version
+        // interpreter IS accepted" (ED-127: steps 3 and 2 both pass it). An empty file has no version
         // resource at all. The .cmd shim case is PA-0016's residual risk: a shim named cmd.cmd must not be rejected.
         var folder = ProcessTestFolders.Create("stub cmd");
         Assert.False(ProcessLauncher.IsWindowsCommandInterpreter(ProcessTestFolders.Touch(folder, "cmd.exe")));

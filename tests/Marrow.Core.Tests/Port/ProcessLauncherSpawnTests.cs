@@ -31,7 +31,7 @@ namespace Marrow.Core.Tests.Port;
 //                                                    process group (the child is created with
 //                                                    CREATE_NEW_PROCESS_GROUP), sent from outside the test host's
 //                                                    console as probe P6 did (an AttachConsole helper); never
-//                                                    TerminateProcess (see the conflict note in
+//                                                    TerminateProcess (ED-126; see the note in
 //                                                    ProcessLauncherLadderTests.cs)
 //     void KillTree()                                TerminateJobObject
 //     void KillProcess()                             TerminateProcess on the pid alone
@@ -353,8 +353,8 @@ public sealed class ProcessLauncherSpawnTests
     [Trait("Decision", "ED-047")]
     public void Terminate_alone_ends_a_cooperating_pipe_child_that_has_no_job_the_Stdio_shape()
     {
-        // ED-047 (b): StdioProcess.swift:123 process.terminate(), "graceful step = CTRL_BREAK_EVENT to that child
-        // only", with NO job object; StdioProcess.swift:18 and :42 always give the child a stdin pipe.
+        // ED-047 (b) as ED-126 words it: StdioProcess.swift:123 process.terminate() is CTRL_BREAK_EVENT to the child's
+        // process group, with NO job object; StdioProcess.swift:18 and :42 always give the child a stdin pipe.
         TerminateEndsACooperatingChild(usesJobObject: false, withInput: true);
     }
 
@@ -552,25 +552,29 @@ public sealed class ProcessLauncherSpawnTests
 
     // ---- A .cmd or .bat target (PA-0010: npm installs provider CLIs as .cmd shims) -----------------------------
 
-    [Fact]
+    [Theory]
     [Trait("Rule", "R-PROC-1")]
     [Trait("Decision", "ED-024")]
-    public void A_cmd_shim_target_passes_its_arguments_on_literally_or_fails_explicitly_and_never_runs_them_as_commands()
+    [InlineData("tool.cmd", "")]
+    [InlineData("tool.bat", "")]
+    [InlineData("TOOL.CMD", "")]
+    [InlineData("tool.cmd", ".")]   // GetFullPath strips a trailing dot; measured: 'tool.cmd.' reaches cmd.exe through CreateProcessW
+    [InlineData("tool.cmd", " ")]   // and a trailing space likewise ('tool.cmd ')
+    public void A_cmd_or_bat_target_is_refused_before_any_process_starts_so_no_argument_runs_as_a_command(string shimName, string suffix)
     {
-        // STOP F.ProcessLauncher #4: no recorded decision covers a .cmd or .bat ExecutableURL. CreateProcessW runs one
-        // through cmd.exe, which re-parses the MSVCRT-quoted command line by cmd's rules: %VAR% expands, `\"`
-        // flips cmd's quote state, and `&` or `|` inside the --agents JSON (ClaudeSession.swift:108) would run as
-        // commands. R-PROC-1: "nothing passes through cmd /c unless a recorded decision says so". Until a decision
-        // pins one behaviour, this test holds what any faithful decision keeps: on macOS Foundation passes the argv
-        // to the program with no shell, so the arguments reach the program behind the shim literally (a) or the
-        // launcher refuses the target with an error from Run (b); in no case does any of them run as a command.
-        // The shim has npm's shape (the program, then %*); its program records its own raw command line, which is
-        // parsed here by CommandLineToArgvW, as node (the program behind a real npm shim) would parse it.
+        // STOP F.ProcessLauncher #4, INTERIM ruling (the lasting behaviour is owner question 4): CreateProcessW runs a
+        // .cmd or .bat through cmd.exe, which re-parses the MSVCRT-quoted command line by cmd's rules: %VAR%
+        // expands, `\"` flips cmd's quote state, and `&` or `|` inside the --agents JSON (ClaudeSession.swift:108)
+        // would run as commands, where Foundation on macOS passes the argv with no shell. R-PROC-1: "nothing passes
+        // through cmd /c unless a recorded decision says so". So Run refuses when the extension of
+        // Path.GetFullPath(ExecutableURL) is .cmd or .bat (OrdinalIgnoreCase), before CreateProcessW: it throws (the
+        // type is not pinned), starts no process, leaves IsRunning false and never calls the termination handler.
+        // The shim has npm's shape (the program, then %*); its program would record its own raw command line.
         var folder = ProcessTestFolders.Create("cmd shim");
         File.WriteAllText(
             Path.Join(folder, "echo-args.ps1"),
             "[IO.File]::WriteAllText((Join-Path $PSScriptRoot 'args.txt'), [Environment]::CommandLine, (New-Object Text.UTF8Encoding $false))\r\n");
-        var shim = Path.Join(folder, "tool.cmd");
+        var shim = Path.Join(folder, shimName);
         File.WriteAllText(
             shim,
             "@\"%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\" -NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"%~dp0echo-args.ps1\" %*\r\n");
@@ -582,7 +586,9 @@ public sealed class ProcessLauncherSpawnTests
         ];
         var output = new ProcessPipe();
         var stdout = new PipeRecorder(output);
-        var launcher = new ProcessLauncher { ExecutableURL = shim, Arguments = arguments, CurrentDirectoryURL = folder, StandardOutput = output };
+        var launcher = new ProcessLauncher { ExecutableURL = shim + suffix, Arguments = arguments, CurrentDirectoryURL = folder, StandardOutput = output };
+        var handled = 0;
+        launcher.TerminationHandler = _ => Interlocked.Increment(ref handled);
         Exception? refused = null;
         try
         {
@@ -592,29 +598,14 @@ public sealed class ProcessLauncherSpawnTests
         {
             refused = error;
         }
-        var recorded = Path.Join(folder, "args.txt");
-        if (refused is null)
+        finally
         {
-            try
-            {
-                WaitForExit(launcher);
-            }
-            finally
-            {
-                if (launcher.IsRunning) launcher.KillTree();
-            }
-            Assert.True(stdout.WaitForEnd(Bound));
-            Assert.True(File.Exists(recorded), "the program behind the shim never ran");
-            var argv = WindowsCommandLine.Parse(File.ReadAllText(recorded));
-            var file = argv.ToList().IndexOf("-File");
-            Assert.True(file >= 0);
-            Assert.Equal(arguments, argv.Skip(file + 2).ToArray());
+            if (launcher.IsRunning) launcher.KillTree();
         }
-        else
-        {
-            Assert.False(launcher.IsRunning);
-            Assert.False(File.Exists(recorded));
-        }
+        Assert.NotNull(refused);
+        Assert.False(launcher.IsRunning);
+        Assert.Equal(0, Volatile.Read(ref handled));
+        Assert.False(File.Exists(Path.Join(folder, "args.txt")), "the program behind the shim ran");
         Assert.DoesNotContain("INJECTED", stdout.Text, StringComparison.Ordinal);
         Assert.False(File.Exists(Path.Join(folder, "INJECTED-C.txt")));
     }
