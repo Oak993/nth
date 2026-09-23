@@ -1467,4 +1467,900 @@ public sealed class HydraTests
         Assert.Equal("gpt-5", variant["model"]!.JSONValueString);
         Assert.Null(variant["tools"]);
     }
+
+    // ==== Core.Models.Hydra part 3 of 4 (PR-HYDRA-053 to 079, excluding 054's own duplicate coverage) ====
+    // Every expected value is transcribed from the cited Swift lines or the record itself (R-TEST-4).
+
+    private static HydraLaunch FallbackLaunch(string? headsLabel = null, long? maxHeads = null, bool isolatesHeads = true,
+        bool autoMerges = false, bool reviewsHeads = false, IReadOnlyList<HydraProjectRef>? projects = null,
+        IReadOnlyList<HydraHeadProfile>? headProfiles = null) =>
+        new()
+        {
+            HeadsProvider = ProviderKind.Claude,
+            RunsNatively = false,
+            HeadsLabel = headsLabel,
+            MaxHeads = maxHeads,
+            IsolatesHeads = isolatesHeads,
+            AutoMerges = autoMerges,
+            ReviewsHeads = reviewsHeads,
+            Projects = new ValueList<HydraProjectRef>(projects ?? []),
+            HeadProfiles = new ValueList<HydraHeadProfile>(headProfiles ?? []),
+        };
+
+    // ---- PR-HYDRA-053: codexConfig always emits agents and features, no model sentinel at all ----
+
+    [Trait("Req", "PR-HYDRA-053")] // DroppyCode/Core/Models/Hydra.swift:894-904
+    [Fact]
+    public void CodexConfig_emits_an_empty_agents_object_and_a_features_object_with_no_cap_model_or_effort()
+    {
+        var config = HydraPrompts.CodexConfig(NativeLaunch(ProviderKind.Codex));
+
+        var agents = Assert.IsType<JSONValue.Object>(config["agents"]);
+        Assert.Empty(agents.Value);
+        Assert.Equal(true, config["features"]!["multi_agent"]!.JSONValueBool);
+        Assert.Null(config["features"]!["multi_agent_v2"]);
+    }
+
+    [Trait("Req", "PR-HYDRA-053")] // DroppyCode/Core/Models/Hydra.swift:896-898
+    [Fact]
+    public void CodexConfig_sets_cap_model_and_effort_keys_only_when_present_and_model_has_no_sentinel_check()
+    {
+        var launch = NativeLaunch(ProviderKind.Codex, maxHeads: 4) with { WorkerModel = "default", WorkerEffort = "high" };
+
+        var config = HydraPrompts.CodexConfig(launch);
+
+        var agents = Assert.IsType<JSONValue.Object>(config["agents"]);
+        Assert.Equal(4, agents.Value["max_concurrent_threads_per_session"]!.JSONValueInt);
+        // Unlike Claude/Copilot, Codex's model test is only !model.isEmpty: "default" is NOT a sentinel here.
+        Assert.Equal("default", agents.Value["default_subagent_model"]!.JSONValueString);
+        Assert.Equal("high", agents.Value["default_subagent_reasoning_effort"]!.JSONValueString);
+    }
+
+    [Trait("Req", "PR-HYDRA-053")] // DroppyCode/Core/Models/Hydra.swift:900-902
+    [Fact]
+    public void CodexConfig_adds_multi_agent_v2_only_when_a_native_routable_profile_exists()
+    {
+        var deep = new HydraHeadProfile("deep") with { Model = "o1" };
+        var launch = NativeLaunch(ProviderKind.Codex, headProfiles: [deep]);
+
+        var config = HydraPrompts.CodexConfig(launch);
+
+        Assert.Equal(true, config["features"]!["multi_agent_v2"]!["expose_spawn_agent_model_overrides"]!.JSONValueBool);
+    }
+
+    // ---- PR-HYDRA-054: workerPrompt and scoutPrompt are two exact system prompts (implemented in part 2; proved here) ----
+
+    [Trait("Req", "PR-HYDRA-054")] // DroppyCode/Core/Models/Hydra.swift:793-797
+    [Fact]
+    public void WorkerPrompt_is_the_exact_two_paragraph_literal_with_Marrow_and_howToReport()
+    {
+        Assert.Equal(
+            "You are a Hydra head in Marrow: one of several helpers working in parallel for a lead agent, in the lead's own checkout, where the lead and the other heads are changing other files at the same time. Do exactly the task you were given, and only that: do not widen it, do not touch files it does not name unless the task cannot be done otherwise, and never revert, reformat or clean up work that is not yours. Changes you did not make are expected in the checkout: leave them alone, never stash, check out, reset, restore or clean anything, and never move work into a branch or worktree, whatever the project's own guidelines say about agents and worktrees. Do not use git status or git diff to check your work: they show everyone's changes. Never run a build, a test, a lint or any other check of your work: the lead runs every check itself. Make the edits your brief names and report. If something blocks you, say so instead of guessing.\n\n" +
+            HydraPrompts.HowToReport,
+            HydraPrompts.WorkerPrompt);
+    }
+
+    [Trait("Req", "PR-HYDRA-054")] // DroppyCode/Core/Models/Hydra.swift:800-804
+    [Fact]
+    public void ScoutPrompt_second_paragraph_is_its_own_text_not_howToReport()
+    {
+        Assert.Equal(
+            "You are a Hydra head in Marrow: a read-only researcher working in parallel for a lead agent, in the lead's own checkout, where the lead and other heads are changing files at the same time; uncommitted changes there are theirs and expected. Answer exactly the question you were given, from the code and sources you can read. Change nothing.\n\n" +
+            "Reply with a short report the lead can act on: the findings, with file paths and line references, and anything that contradicts what the lead assumed. No preamble.",
+            HydraPrompts.ScoutPrompt);
+        Assert.DoesNotContain(HydraPrompts.HowToReport, HydraPrompts.ScoutPrompt, StringComparison.Ordinal);
+    }
+
+    // ---- PR-HYDRA-056, 057, 058: fallbackPolicy body, its computed pieces and the naming paragraph ----
+
+    [Trait("Req", "PR-HYDRA-056")] // DroppyCode/Core/Models/Hydra.swift:961 nine spaces before "Finish your reply"
+    [Fact]
+    public void FallbackPolicy_first_paragraph_ends_with_exactly_nine_spaces_before_Finish_your_reply()
+    {
+        var text = HydraPrompts.FallbackPolicy(null, isolated: true);
+
+        Assert.Contains("not a team of heads.         Finish your reply with one fenced block", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("not a team of heads.          Finish", text, StringComparison.Ordinal); // ten spaces
+        Assert.DoesNotContain("not a team of heads.        Finish", text, StringComparison.Ordinal); // eight spaces
+    }
+
+    [Trait("Req", "PR-HYDRA-056")] // DroppyCode/Core/Models/Hydra.swift:963-965 the embedded fenced hydra example
+    [Fact]
+    public void FallbackPolicy_embeds_the_fenced_hydra_example_between_blank_lines()
+    {
+        var text = HydraPrompts.FallbackPolicy(null, isolated: true);
+
+        Assert.Contains(
+            "block\n\n```hydra\n[{\"task\": \"short title\", \"prompt\": \"complete, self-contained instructions with the exact files and acceptance criteria\"}]\n```\n\nand stop there",
+            text, StringComparison.Ordinal);
+    }
+
+    [Trait("Req", "PR-HYDRA-056")] // DroppyCode/Core/Models/Hydra.swift:967 the closing paragraph, DEVIATION OD-0012 F1
+    [Fact]
+    public void FallbackPolicy_closing_paragraph_says_Marrow_not_Droppy_Code_and_appends_conditional_tails_and_reportStyleRule()
+    {
+        var plain = HydraPrompts.FallbackPolicy(null, isolated: true);
+        Assert.Contains("A message that opens with [Hydra] is from Marrow, not the user. " + HydraPrompts.ReportStyleRule, plain, StringComparison.Ordinal);
+
+        var both = HydraPrompts.FallbackPolicy(null, isolated: true, autoMerges: true, reviewsHeads: true);
+        Assert.Contains(
+            "A message that opens with [Hydra] is from Marrow, not the user. " + HydraPrompts.ReviewRule + " " + HydraPrompts.AutoMergeRule + " " + HydraPrompts.ReportStyleRule,
+            both, StringComparison.Ordinal);
+    }
+
+    [Trait("Req", "PR-HYDRA-057")] // DroppyCode/Core/Models/Hydra.swift:942-944 whereHeadsWork
+    [Fact]
+    public void FallbackPolicy_whereHeadsWork_says_Marrow_lands_its_changes_when_isolated_else_your_checkout()
+    {
+        var isolated = HydraPrompts.FallbackPolicy(null, isolated: true);
+        Assert.Contains("Each head works in a copy of its project of its own and Marrow lands its changes in that project's checkout when it reports; heads never see your context", isolated, StringComparison.Ordinal);
+
+        var shared = HydraPrompts.FallbackPolicy(null, isolated: false);
+        Assert.Contains("The heads work in your checkout; heads never see your context", shared, StringComparison.Ordinal);
+    }
+
+    [Trait("Req", "PR-HYDRA-057")] // DroppyCode/Core/Models/Hydra.swift:945 team, :950-952 whoTheHeadsAre, :955 whatHeadsCanDo, :959 profileRule
+    [Fact]
+    public void FallbackPolicy_team_whoTheHeadsAre_whatHeadsCanDo_and_profileRule_have_their_exact_forms()
+    {
+        var capped = HydraPrompts.FallbackPolicy(6, isolated: true);
+        Assert.Contains("You lead a team of up to 6 helper agents (\"heads\")", capped, StringComparison.Ordinal);
+
+        var uncapped = HydraPrompts.FallbackPolicy(null, isolated: true);
+        Assert.Contains("You lead a team of helper agents (\"heads\")", uncapped, StringComparison.Ordinal);
+
+        var noHeadsLabel = HydraPrompts.FallbackPolicy(null, isolated: true, heads: null);
+        Assert.DoesNotContain("Your heads run on", noHeadsLabel, StringComparison.Ordinal);
+        // whatHeadsCanDo is unconditional.
+        Assert.Contains(" Every head, whatever its provider, can read files, edit files and run commands in its copy, with no permission prompts to wait on; brief it to do the work, not just to describe it.", noHeadsLabel, StringComparison.Ordinal);
+
+        var withLabel = HydraPrompts.FallbackPolicy(null, isolated: true, heads: "GPT-5");
+        Assert.Contains(
+            " Your heads run on GPT-5, a different model from yours: it is quick, so give each one a well-bounded task with everything it needs written down, and keep the design, the judgement calls and the integration for yourself. The block is the only way to send heads out: never use an agent, task or sub-agent tool of your own, which would run heads on your own model instead of the one the user chose.",
+            withLabel, StringComparison.Ordinal);
+
+        var noProfiles = HydraPrompts.FallbackPolicy(null, isolated: true, profiles: []);
+        Assert.DoesNotContain("Some heads are tuned for a purpose", noProfiles, StringComparison.Ordinal);
+
+        var deep = new HydraHeadProfile("deep") with { Model = "o1" };
+        var withProfiles = HydraPrompts.FallbackPolicy(null, isolated: true, profiles: [deep]);
+        Assert.Contains(
+            " Some heads are tuned for a purpose: deep (o1). Route a task to one with \"profile\", as in `{\"task\": \"...\", \"prompt\": \"...\", \"profile\": \"deep\"}`; a task that fits none of them goes without a profile and runs on the heads' shared model, as does one whose profile names none of these.",
+            withProfiles, StringComparison.Ordinal);
+    }
+
+    [Trait("Req", "PR-HYDRA-058")] // DroppyCode/Core/Models/Hydra.swift:967 the naming paragraph, both statements verbatim
+    [Fact]
+    public void FallbackPolicy_naming_paragraph_states_both_authoritative_names_and_off_roster_fallback_verbatim()
+    {
+        var text = HydraPrompts.FallbackPolicy(null, isolated: true);
+
+        Assert.Contains(
+            "the announced name is authoritative and the spawned head carries exactly it, so repeating the same block spawns the same names.",
+            text, StringComparison.Ordinal);
+        Assert.Contains(
+            "Never invent names outside the roster: there is no head called Ives (the roster has Ivo), and an unknown name falls back to the next head in order rather than renaming anyone.",
+            text, StringComparison.Ordinal);
+        Assert.Contains("(Hank, Walter, Ada, Otto, Nova, Remy, Iris, Milo, Juno, Ezra, Lena, Bo, Kai, Vera, Finn, Mira, Odin, Suki, Rex, Zola, Pip, Ivo, Lux, Tova, Gus, then Hank 2 and so on)", text, StringComparison.Ordinal);
+    }
+
+    // ---- PR-HYDRA-059: fallbackPolicy(_ launch:) forwards headProfiles unfiltered, unlike the native Policy path ----
+
+    [Trait("Req", "PR-HYDRA-059")] // DroppyCode/Core/Models/Hydra.swift:974-976
+    [Fact]
+    public void FallbackPolicy_from_launch_lists_every_head_profile_even_one_that_tunes_nothing_or_runs_elsewhere()
+    {
+        var untuned = new HydraHeadProfile("blank"); // no model, no effort: nativeRoutableProfiles would drop this
+        var elsewhere = new HydraHeadProfile("far") with { Provider = ProviderKind.Codex, Model = "o1" }; // another provider
+        var launch = FallbackLaunch(headProfiles: [untuned, elsewhere]);
+
+        var text = HydraPrompts.FallbackPolicy(launch);
+
+        Assert.Contains("Some heads are tuned for a purpose: blank, far (o1 on Codex).", text, StringComparison.Ordinal);
+    }
+
+    // ---- PR-HYDRA-061: delegatedHeadPrompt is the five-section brief, task on the heading line, filtered prompt ----
+
+    [Trait("Req", "PR-HYDRA-061")] // DroppyCode/Core/Models/Hydra.swift:1241-1257
+    [Fact]
+    public void DelegatedHeadPrompt_is_the_exact_five_section_brief_with_the_task_on_the_heading_line()
+    {
+        var persona = HydraRoster.Persona(3);
+        var delegation = new HydraDelegation { Task = "Fix the widget", Prompt = "Edit Widget.swift.\nrun the tests" };
+        var workplace = new HydraPrompts.Workplace.Shared("C:\\repo");
+
+        var text = HydraPrompts.DelegatedHeadPrompt(persona, delegation, workplace);
+
+        Assert.Equal(
+            $"You are {persona.Name}, a Hydra head in Marrow: one of several helpers working in parallel for a lead agent. The lead delegated this task to you.\n\n" +
+            "## Your task: Fix the widget\n" +
+            HydraPrompts.WithoutVerificationSteps(delegation.Prompt) + "\n\n" +
+            "## Where you work\n" +
+            HydraPrompts.WorkplaceRules(workplace) + "\n\n" +
+            "## How to work\n" +
+            HydraPrompts.HowToWork + "\n\n" +
+            "## Your report\n" +
+            HydraPrompts.HowToReport,
+            text);
+    }
+
+    // ---- PR-HYDRA-062: queuedHeadPrompt builds a context block and passes the task through raw ----
+
+    [Trait("Req", "PR-HYDRA-062")] // DroppyCode/Core/Models/Hydra.swift:1271-1305
+    [Fact]
+    public void QueuedHeadPrompt_with_no_context_says_the_lead_has_not_said_anything_yet_and_keeps_the_task_raw()
+    {
+        var persona = HydraRoster.Persona(0);
+        var context = new HydraPrompts.ChatContext();
+        var workplace = new HydraPrompts.Workplace.Shared("C:\\repo");
+
+        var text = HydraPrompts.QueuedHeadPrompt(persona, "run the tests everywhere", context, workplace);
+
+        Assert.Contains("## What is going on in the main chat\nThe lead has not said anything yet.\n\n", text, StringComparison.Ordinal);
+        // The task is NOT filtered through withoutVerificationSteps: "run the tests" stays verbatim.
+        Assert.Contains("## Your task\nrun the tests everywhere\n\n", text, StringComparison.Ordinal);
+        Assert.Contains($"You are {persona.Name}, a Hydra head in Marrow: a helper running in parallel with the lead agent. The user queued this task for you while the lead works on something else.\n\n", text, StringComparison.Ordinal);
+    }
+
+    [Trait("Req", "PR-HYDRA-062")] // DroppyCode/Core/Models/Hydra.swift:1273-1282 the three context lines, in order
+    [Fact]
+    public void QueuedHeadPrompt_context_block_has_up_to_three_lines_in_order_and_the_leadIsWorking_wording()
+    {
+        var persona = HydraRoster.Persona(0);
+        var context = new HydraPrompts.ChatContext
+        {
+            LastUserPrompt = "fix the bug",
+            LastReply = "working on it",
+            TouchedPaths = new ValueList<string>(["a.cs", "b.cs"]),
+        };
+        var workplace = new HydraPrompts.Workplace.Shared("C:\\repo");
+
+        var working = HydraPrompts.QueuedHeadPrompt(persona, "task", context, workplace, leadIsWorking: true);
+        Assert.Contains(
+            "- The user last asked the lead: \u201Cfix the bug\u201D\n" + // U+201C U+201D
+            "- The lead's latest reply so far: \u201Cworking on it\u201D\n" +
+            "- Files the lead is changing in its current turn: a.cs, b.cs. Leave these alone; if your task cannot be done without touching one, keep the change minimal and say so in your report.",
+            working, StringComparison.Ordinal);
+        Assert.Contains("The user queued this task for you while the lead works on something else.", working, StringComparison.Ordinal);
+
+        var idle = HydraPrompts.QueuedHeadPrompt(persona, "task", context, workplace, leadIsWorking: false);
+        Assert.Contains("- The lead's latest reply: \u201Cworking on it\u201D\n", idle, StringComparison.Ordinal); // no " so far"
+        Assert.DoesNotContain("Files the lead is changing", idle, StringComparison.Ordinal); // only shown while leadIsWorking
+        Assert.Contains("The user sent this task straight to you; the lead is idle and will hear your report.", idle, StringComparison.Ordinal);
+    }
+
+    [Trait("Req", "PR-HYDRA-062")] // DroppyCode/Core/Models/Hydra.swift:1280 prefix(20) and ", " join
+    [Fact]
+    public void QueuedHeadPrompt_caps_touched_paths_at_twenty_joined_by_comma_space()
+    {
+        var paths = Enumerable.Range(0, 25).Select(i => $"file{i}.cs").ToArray();
+        var context = new HydraPrompts.ChatContext { TouchedPaths = new ValueList<string>(paths) };
+        var workplace = new HydraPrompts.Workplace.Shared("C:\\repo");
+
+        var text = HydraPrompts.QueuedHeadPrompt(HydraRoster.Persona(0), "task", context, workplace);
+
+        Assert.Contains("Files the lead is changing in its current turn: " + string.Join(", ", paths.Take(20)) + ".", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("file20.cs", text, StringComparison.Ordinal);
+    }
+
+    // ---- PR-HYDRA-063: quoted() trims, truncates with U+2026 and wraps in curly quotes U+201C/U+201D ----
+
+    [Trait("Req", "PR-HYDRA-063")] // DroppyCode/Core/Models/Hydra.swift:1429-1433
+    [Fact]
+    public void QueuedHeadPrompt_quotes_the_last_user_prompt_trimmed_and_untruncated_when_under_the_limit()
+    {
+        var context = new HydraPrompts.ChatContext { LastUserPrompt = "  hello world  \n" };
+        var text = HydraPrompts.QueuedHeadPrompt(HydraRoster.Persona(0), "task", context, new HydraPrompts.Workplace.Shared("C:\\repo"));
+
+        Assert.Contains("- The user last asked the lead: \u201Chello world\u201D\n", text, StringComparison.Ordinal);
+    }
+
+    [Trait("Req", "PR-HYDRA-063")] // DroppyCode/Core/Models/Hydra.swift:1431 truncation appends U+2026 beyond the limit
+    [Fact]
+    public void QueuedHeadPrompt_truncates_a_long_user_prompt_at_1200_characters_and_appends_the_ellipsis()
+    {
+        var longPrompt = new string('x', 1201);
+        var context = new HydraPrompts.ChatContext { LastUserPrompt = longPrompt };
+        var text = HydraPrompts.QueuedHeadPrompt(HydraRoster.Persona(0), "task", context, new HydraPrompts.Workplace.Shared("C:\\repo"));
+
+        var expected = "\u201C" + new string('x', 1200) + "\u2026\u201D"; // U+201C, 1200 x's, U+2026, U+201D
+        Assert.Contains("- The user last asked the lead: " + expected + "\n", text, StringComparison.Ordinal);
+    }
+
+    // ---- PR-HYDRA-064: withoutVerificationSteps drops lines matching any of 34 markers, unanchored substring ----
+
+    [Trait("Req", "PR-HYDRA-064")] // DroppyCode/Core/Models/Hydra.swift:1230-1238
+    [Fact]
+    public void WithoutVerificationSteps_returns_the_prompt_unchanged_when_no_line_matches_a_marker()
+    {
+        const string prompt = "Edit Foo.cs\nAdd a null check";
+        Assert.Same(prompt, HydraPrompts.WithoutVerificationSteps(prompt));
+    }
+
+    [Trait("Req", "PR-HYDRA-064")] // DroppyCode/Core/Models/Hydra.swift:1231-1237 drop, then append the closing sentence
+    [Fact]
+    public void WithoutVerificationSteps_drops_a_matching_line_and_appends_the_closing_sentence()
+    {
+        var prompt = "Edit Foo.cs\nrun the tests\nAdd a null check";
+
+        var result = HydraPrompts.WithoutVerificationSteps(prompt);
+
+        Assert.Equal("Edit Foo.cs\nAdd a null check\nMake the assigned edits and report; the lead handles all validation.", result);
+    }
+
+    [Trait("Req", "PR-HYDRA-064")] // DroppyCode/Core/Models/Hydra.swift:1225 "pytest" matches unanchored, even inside a path
+    [Fact]
+    public void WithoutVerificationSteps_matches_unanchored_so_a_marker_inside_a_file_path_drops_the_whole_line()
+    {
+        var prompt = "Edit tools/pytest_helpers.py\nAdd a null check";
+
+        var result = HydraPrompts.WithoutVerificationSteps(prompt);
+
+        Assert.Equal("Add a null check\nMake the assigned edits and report; the lead handles all validation.", result);
+    }
+
+    [Trait("Req", "PR-HYDRA-064")] // DroppyCode/Core/Models/Hydra.swift:1219 "tsc " keeps its trailing space
+    [Fact]
+    public void WithoutVerificationSteps_tsc_marker_keeps_its_trailing_space_so_a_bare_tsc_word_is_not_dropped()
+    {
+        var prompt = "Edit tsconfig.json\nAdd a null check";
+
+        var result = HydraPrompts.WithoutVerificationSteps(prompt);
+
+        Assert.Same(prompt, result); // "tsconfig" does not contain "tsc " (with the space)
+    }
+
+    [Trait("Req", "PR-HYDRA-064")] // DroppyCode/Core/Models/Hydra.swift:1231 omittingEmptySubsequences: false preserves blank lines
+    [Fact]
+    public void WithoutVerificationSteps_preserves_blank_lines_when_nothing_is_dropped()
+    {
+        const string prompt = "Edit Foo.cs\n\nAdd a null check";
+        Assert.Same(prompt, HydraPrompts.WithoutVerificationSteps(prompt));
+    }
+
+    // ---- PR-HYDRA-065: teamStatus renders nine shapes and joins with ", " after the fixed opener ----
+
+    [Trait("Req", "PR-HYDRA-065")] // DroppyCode/Core/Models/Hydra.swift:917
+    [Fact]
+    public void TeamStatus_is_nil_for_an_empty_team()
+    {
+        Assert.Null(HydraPrompts.TeamStatus([]));
+    }
+
+    [Trait("Req", "PR-HYDRA-065")] // DroppyCode/Core/Models/Hydra.swift:920-923 running: 0 minutes vs N minutes
+    [Fact]
+    public void TeamStatus_running_head_shows_working_with_no_minutes_at_zero_and_working_for_Nm_after()
+    {
+        var now = SwiftDate.Now;
+        var justStarted = new HydraHeadInfo(0, "t", HydraHeadInfo.Kind.Droppy, HydraHeadInfo.Origin.Delegated) with { StartedAt = now };
+        var fiveMinutesIn = new HydraHeadInfo(1, "t", HydraHeadInfo.Kind.Droppy, HydraHeadInfo.Origin.Delegated) with { StartedAt = SwiftDate.AddingTimeInterval(now, -5 * 60) };
+
+        Assert.Equal("Your heads so far: Hank (working).", HydraPrompts.TeamStatus([justStarted], now));
+        Assert.Equal("Your heads so far: Walter (working for 5m).", HydraPrompts.TeamStatus([fiveMinutesIn], now));
+    }
+
+    [Trait("Req", "PR-HYDRA-065")] // DroppyCode/Core/Models/Hydra.swift:925-930 completed: empty landing, landed N files, patch kept, no landing
+    [Fact]
+    public void TeamStatus_completed_head_shows_changed_nothing_landed_count_patch_kept_or_plain_done()
+    {
+        var now = SwiftDate.Now;
+        HydraHeadInfo Head(long index, HydraLanding? landing) =>
+            new HydraHeadInfo(index, "t", HydraHeadInfo.Kind.Droppy, HydraHeadInfo.Origin.Delegated) with
+            {
+                HydraHeadInfoStatus = HydraHeadInfo.Status.Completed,
+                Landing = landing,
+            };
+
+        Assert.Equal("Your heads so far: Hank (done, changed nothing).", HydraPrompts.TeamStatus([Head(0, new HydraLanding())], now));
+        Assert.Equal("Your heads so far: Walter (done, landed 1 file).", HydraPrompts.TeamStatus([Head(1, new HydraLanding { Files = new ValueList<HydraLanding.File>([new() { Path = "a", Additions = 1, Deletions = 0 }]) })], now));
+        Assert.Equal("Your heads so far: Ada (done, landed 2 files).", HydraPrompts.TeamStatus([Head(2, new HydraLanding { Files = new ValueList<HydraLanding.File>([new() { Path = "a", Additions = 1, Deletions = 0 }, new() { Path = "b", Additions = 1, Deletions = 0 }]) })], now));
+        Assert.Equal("Your heads so far: Otto (done, patch kept).", HydraPrompts.TeamStatus([Head(3, new HydraLanding { PatchPath = "p.patch" })], now));
+        Assert.Equal("Your heads so far: Nova (done).", HydraPrompts.TeamStatus([Head(4, null)], now));
+    }
+
+    [Trait("Req", "PR-HYDRA-065")] // DroppyCode/Core/Models/Hydra.swift:931-932 failed and stopped
+    [Fact]
+    public void TeamStatus_failed_and_stopped_heads_and_the_join_with_a_fixed_opener()
+    {
+        var now = SwiftDate.Now;
+        var failed = new HydraHeadInfo(0, "t", HydraHeadInfo.Kind.Droppy, HydraHeadInfo.Origin.Delegated) with { HydraHeadInfoStatus = HydraHeadInfo.Status.Failed };
+        var stopped = new HydraHeadInfo(1, "t", HydraHeadInfo.Kind.Droppy, HydraHeadInfo.Origin.Delegated) with { HydraHeadInfoStatus = HydraHeadInfo.Status.Stopped };
+
+        Assert.Equal("Your heads so far: Hank (failed), Walter (stopped).", HydraPrompts.TeamStatus([failed, stopped], now));
+    }
+
+    // ---- PR-HYDRA-066: mergeStatus renders eight shapes; the failed branch omits the pending sentence ----
+
+    private static HydraMergeRecord Merge(HydraMergeRecord.Outcome outcome, DateTimeOffset at, long files = 0,
+        string? label = null, SwiftURL? url = null, string? project = null, string? detail = null) => new()
+    {
+        At = at,
+        HydraMergeRecordOutcome = outcome,
+        Files = files,
+        Label = label,
+        Url = url,
+        Project = project,
+        Detail = detail,
+    };
+
+    [Trait("Req", "PR-HYDRA-066")] // DroppyCode/Core/Models/Hydra.swift:994-997 no records
+    [Fact]
+    public void MergeStatus_with_no_records_is_nil_when_nothing_unmerged_else_the_pending_line()
+    {
+        var now = SwiftDate.Now;
+        Assert.Null(HydraPrompts.MergeStatus([], 0, now));
+        Assert.Equal(
+            "Merge state: 2 files changed in this chat are not merged yet; they go out by themselves once you finish this answer with every head back.",
+            HydraPrompts.MergeStatus([], 2, now));
+    }
+
+    [Trait("Req", "PR-HYDRA-066")] // DroppyCode/Core/Models/Hydra.swift:999-1000 merged
+    [Fact]
+    public void MergeStatus_merged_outcome_gives_the_merged_sentence_then_the_pending_sentence()
+    {
+        var now = SwiftDate.Now;
+        var url = SwiftURL.Create("https://example.com/mr/1")!;
+        var record = Merge(HydraMergeRecord.Outcome.Merged, now, files: 3, label: "!1", url: url, project: "gaze-site");
+
+        var text = HydraPrompts.MergeStatus([record], 0, now);
+
+        Assert.StartsWith(
+            $"Merge state: the team's work already merged as !1 {url.AbsoluteString} in gaze-site at ",
+            text, StringComparison.Ordinal);
+        Assert.EndsWith(" (3 files). Nothing has changed since, so no merge is pending and none is coming.", text, StringComparison.Ordinal);
+    }
+
+    [Trait("Req", "PR-HYDRA-066")] // DroppyCode/Core/Models/Hydra.swift:1001-1002 failed omits the pending sentence
+    [Fact]
+    public void MergeStatus_failed_outcome_never_appends_the_pending_sentence()
+    {
+        var now = SwiftDate.Now;
+        var record = Merge(HydraMergeRecord.Outcome.Failed, now, detail: "sign-in required");
+
+        var text = HydraPrompts.MergeStatus([record], 5, now);
+
+        Assert.Contains("sign-in required. The work is still in the checkout and is retried once you finish this answer; if the reason needs the user (a sign-in, a conflict), say exactly that.", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("not merged yet", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Nothing has changed since", text, StringComparison.Ordinal);
+    }
+
+    [Trait("Req", "PR-HYDRA-066")] // DroppyCode/Core/Models/Hydra.swift:1001-1002 no reason recorded fallback
+    [Fact]
+    public void MergeStatus_failed_outcome_with_no_detail_says_no_reason_recorded()
+    {
+        var now = SwiftDate.Now;
+        var record = Merge(HydraMergeRecord.Outcome.Failed, now);
+
+        var text = HydraPrompts.MergeStatus([record], 0, now);
+
+        Assert.Contains(": no reason recorded. The work is still", text, StringComparison.Ordinal);
+    }
+
+    [Trait("Req", "PR-HYDRA-066")] // DroppyCode/Core/Models/Hydra.swift:1003-1007 held, no files left vs waiting with the run-on fallback
+    [Fact]
+    public void MergeStatus_held_outcome_has_two_shapes_and_the_nil_fallback_run_on_sentence()
+    {
+        var now = SwiftDate.Now;
+        var record = Merge(HydraMergeRecord.Outcome.Held, now);
+
+        Assert.Equal(
+            "Merge state: the earlier wait has no recorded files left to merge. Do not claim a new merge or promise another one.",
+            HydraPrompts.MergeStatus([record], 0, now));
+
+        var text = HydraPrompts.MergeStatus([record], 4, now);
+        Assert.Contains(
+            "another chat holds this job's files The work is still in the checkout. Explain the recorded dependency without assuming a completed chat needs more work: active work must finish, while completed jobs merge in order. Hydra retries automatically while this job remains eligible. Do not claim a successful merge.",
+            text, StringComparison.Ordinal);
+    }
+
+    [Trait("Req", "PR-HYDRA-066")] // DroppyCode/Core/Models/Hydra.swift:1008-1009 settled, exact assembly
+    [Fact]
+    public void MergeStatus_settled_outcome_exact_text_with_pending_and_do_not_describe_sentence()
+    {
+        var now = SwiftDate.Now;
+        var record = Merge(HydraMergeRecord.Outcome.Settled, now);
+
+        var text = HydraPrompts.MergeStatus([record], 0, now);
+
+        Assert.Equal(
+            "Merge state: at " + FormattedShortTime(now) + ", Hydra found no recorded files left to merge. Nothing has changed since, so no merge is pending and none is coming. Do not describe this as a new merge.",
+            text);
+    }
+
+    [Trait("Req", "PR-HYDRA-066")] // DroppyCode/Core/Models/Hydra.swift:1010-1016 stray: footnote to the last merged record, then the stray detail, then pending
+    [Fact]
+    public void MergeStatus_stray_outcome_footnotes_the_last_merged_record_then_its_own_detail_then_pending()
+    {
+        var now = SwiftDate.Now;
+        var merged = Merge(HydraMergeRecord.Outcome.Merged, now, files: 1, label: "!2");
+        var stray = Merge(HydraMergeRecord.Outcome.Stray, now, detail: "a rogue edit");
+
+        var text = HydraPrompts.MergeStatus([merged, stray], 0, now);
+
+        Assert.StartsWith("Merge state: the team's work already merged as !2", text, StringComparison.Ordinal);
+        Assert.Contains(" At " + FormattedShortTime(now) + " a rogue edit ", text, StringComparison.Ordinal);
+        Assert.EndsWith("Nothing has changed since, so no merge is pending and none is coming.", text, StringComparison.Ordinal);
+    }
+
+    private static string FormattedShortTime(DateTimeOffset date) =>
+        SwiftFormatters.Formatted(date, DateFormatStyle.Of(DateFormatStyle.DateStyle.Omitted, DateFormatStyle.TimeStyle.Shortened));
+
+    // ---- PR-HYDRA-067: delegationRequest is prepended only in front of an ordinary user message ----
+
+    [Trait("Req", "PR-HYDRA-067")] // DroppyCode/Core/Models/Hydra.swift:1023-1035
+    [Fact]
+    public void DelegationRequest_native_route_says_use_the_configured_agent_tools()
+    {
+        var launch = NativeLaunch(ProviderKind.Claude);
+
+        var text = HydraPrompts.DelegationRequest(launch);
+
+        Assert.Equal(
+            "[Hydra setting: enabled]\n" +
+            "Use Hydra heads for this request when it involves multiple files, an audit, broad research, or independent tasks. Keep a single obvious change in one file with the lead. Use the configured Hydra agent tools and head profiles. Follow any explicit request below to work alone or limit delegation.\n" +
+            "\n---\n\n",
+            text);
+    }
+
+    [Trait("Req", "PR-HYDRA-067")] // DroppyCode/Core/Models/Hydra.swift:1026 fallback route, DEVIATION OD-0012 F1
+    [Fact]
+    public void DelegationRequest_fallback_route_says_Marrow_runs_the_selected_heads()
+    {
+        var launch = FallbackLaunch();
+
+        var text = HydraPrompts.DelegationRequest(launch);
+
+        Assert.Contains("Delegate through the final hydra block so Marrow runs the selected heads; do not use native agent tools. Follow any explicit request below", text, StringComparison.Ordinal);
+        Assert.EndsWith("\n\n---\n\n", text, StringComparison.Ordinal);
+    }
+
+    // ---- PR-HYDRA-068: fallbackTurnNote is empty with nothing to say, else a [Hydra] line ----
+
+    [Trait("Req", "PR-HYDRA-068")] // DroppyCode/Core/Models/Hydra.swift:1038-1042
+    [Fact]
+    public void FallbackTurnNote_is_empty_with_neither_team_nor_merge_else_joins_them_with_the_trailer()
+    {
+        Assert.Equal("", HydraPrompts.FallbackTurnNote(null));
+        Assert.Equal("[Hydra] team-line\n\n---\n\n", HydraPrompts.FallbackTurnNote("team-line"));
+        Assert.Equal("[Hydra] team-line merge-line\n\n---\n\n", HydraPrompts.FallbackTurnNote("team-line", "merge-line"));
+        Assert.Equal("[Hydra] merge-line\n\n---\n\n", HydraPrompts.FallbackTurnNote(null, "merge-line"));
+    }
+
+    // ---- PR-HYDRA-069: fallbackReportNote always opens the same way and carries a literal ```hydra when it can delegate ----
+
+    [Trait("Req", "PR-HYDRA-069")] // DroppyCode/Core/Models/Hydra.swift:1047-1052
+    [Fact]
+    public void FallbackReportNote_opens_the_same_way_and_the_more_clause_has_an_unconditional_leading_space()
+    {
+        var noneText = HydraPrompts.FallbackReportNote(null, canDelegate: false);
+        Assert.Equal("[Hydra] Your heads reported back below. Send out no more heads for this request; whatever is left, do yourself.\n\n---\n\n", noneText);
+
+        var withBoth = HydraPrompts.FallbackReportNote("team-line", canDelegate: true, merge: "merge-line");
+        Assert.StartsWith("[Hydra] Your heads reported back below. team-line merge-line ", withBoth, StringComparison.Ordinal);
+        Assert.Contains("with the same ```hydra block at the end of your reply; never for verifying, redoing or finishing what a head already did.", withBoth, StringComparison.Ordinal);
+    }
+
+    [Trait("Req", "PR-HYDRA-069")] // DroppyCode/Core/Models/Hydra.swift:1051 team.map/merge.map contribute a literal space even for an empty (non-nil) string
+    [Fact]
+    public void FallbackReportNote_never_collapses_the_space_a_present_but_empty_team_or_merge_string_contributes()
+    {
+        // team is present (not null) but empty: team.map{" "+$0} still fires, contributing a bare space, so the
+        // unconditional " " before "more" then yields two adjacent spaces. The concatenation is never collapsed.
+        var text = HydraPrompts.FallbackReportNote("", canDelegate: false);
+
+        Assert.Equal("[Hydra] Your heads reported back below.  Send out no more heads for this request; whatever is left, do yourself.\n\n---\n\n", text);
+    }
+
+    // ---- PR-HYDRA-070: fallbackPreamble substitutes a bare separator when the turn note is empty ----
+
+    [Trait("Req", "PR-HYDRA-070")] // DroppyCode/Core/Models/Hydra.swift:1056-1062
+    [Fact]
+    public void FallbackPreamble_substitutes_a_bare_separator_when_the_turn_note_is_empty()
+    {
+        var launch = FallbackLaunch();
+
+        var text = HydraPrompts.FallbackPreamble(launch, null);
+
+        Assert.Equal(HydraPrompts.FallbackPolicy(launch) + "\n\n---\n\n", text);
+    }
+
+    [Trait("Req", "PR-HYDRA-070")] // DroppyCode/Core/Models/Hydra.swift:1058
+    [Fact]
+    public void FallbackPreamble_uses_the_turn_note_when_it_is_not_empty()
+    {
+        var launch = FallbackLaunch();
+
+        var text = HydraPrompts.FallbackPreamble(launch, "team-line");
+
+        Assert.Equal(HydraPrompts.FallbackPolicy(launch) + "\n\n" + HydraPrompts.FallbackTurnNote("team-line"), text);
+    }
+
+    [Trait("Req", "PR-HYDRA-070")] // DroppyCode/Core/Models/Hydra.swift:1060-1062 fallbackReportPreamble is never empty
+    [Fact]
+    public void FallbackReportPreamble_is_the_policy_then_the_report_note()
+    {
+        var launch = FallbackLaunch();
+
+        var text = HydraPrompts.FallbackReportPreamble(launch, "team-line", canDelegate: true);
+
+        Assert.Equal(HydraPrompts.FallbackPolicy(launch) + "\n\n" + HydraPrompts.FallbackReportNote("team-line", true), text);
+    }
+
+    // ---- PR-HYDRA-072: maxDelegationRounds is 3 and heldBackMessage is emitted verbatim ----
+
+    [Trait("Req", "PR-HYDRA-072")] // DroppyCode/Core/Models/Hydra.swift:912
+    [Fact]
+    public void MaxDelegationRounds_is_3()
+    {
+        Assert.Equal(3, HydraPrompts.MaxDelegationRounds);
+    }
+
+    [Trait("Req", "PR-HYDRA-072")] // DroppyCode/Core/Models/Hydra.swift:1066-1071
+    [Fact]
+    public void HeldBackMessage_singular_and_plural_head_wording()
+    {
+        Assert.Equal(
+            "Hydra held back a head.\n" +
+            "None of the heads you asked for went out: this request has had all 3 of its rounds of heads already. Do the rest yourself now, without git status or git diff on the heads' work, and answer the user.",
+            HydraPrompts.HeldBackMessage(1));
+        Assert.StartsWith("Hydra held back 2 heads.\n", HydraPrompts.HeldBackMessage(2), StringComparison.Ordinal);
+    }
+
+    // ---- PR-HYDRA-073: unreadableBlockMessage with its reason branch structurally present but unreachable ----
+
+    [Trait("Req", "PR-HYDRA-073")] // DroppyCode/Core/Models/Hydra.swift:1207-1213, the single call site passes nil
+    [Fact]
+    public void UnreadableBlockMessage_with_no_reason_is_the_exact_base_plus_tail()
+    {
+        Assert.Equal(
+            "[Hydra] Your delegation block could not be read, so no heads went out. Write the block again at the end of your reply: one fenced block whose info string is hydra, holding a JSON array of objects with a task string and a prompt string. Inside a prompt never open a fenced code block of your own (no three backticks): describe code in words, quote identifiers with single backticks, or indent snippets. This does not count as a round of heads.",
+            HydraPrompts.UnreadableBlockMessage(null));
+    }
+
+    [Trait("Req", "PR-HYDRA-073")] // DroppyCode/Core/Models/Hydra.swift:1210 the reason clause and its terminal-punctuation set
+    [Fact]
+    public void UnreadableBlockMessage_reason_branch_adds_a_period_unless_the_reason_already_ends_in_terminal_punctuation()
+    {
+        Assert.StartsWith("[Hydra] Your delegation block could not be read, so no heads went out. bad json. Write the block again", HydraPrompts.UnreadableBlockMessage("bad json"), StringComparison.Ordinal);
+        Assert.StartsWith("[Hydra] Your delegation block could not be read, so no heads went out. bad json! Write the block again", HydraPrompts.UnreadableBlockMessage("bad json!"), StringComparison.Ordinal);
+        Assert.StartsWith("[Hydra] Your delegation block could not be read, so no heads went out. Write the block again", HydraPrompts.UnreadableBlockMessage("   "), StringComparison.Ordinal); // blank reason after trim is dropped entirely
+    }
+
+    // ---- PR-HYDRA-074, 075, 076, 077, 078, 079: reportMessage's three blocks ----
+
+    private static HydraReport Report(long headIndex, HydraHeadInfo.Origin origin, HydraHeadInfo.Status status, string text,
+        HydraLanding? landing = null, string? copyPath = null, double? elapsed = null, long toolCalls = 0) => new()
+    {
+        HeadIndex = headIndex,
+        Task = "the task",
+        Origin = origin,
+        Status = status,
+        Text = text,
+        Landing = landing,
+        CopyPath = copyPath,
+        Elapsed = elapsed,
+        ToolCalls = toolCalls,
+    };
+
+    [Trait("Req", "PR-HYDRA-074")] // DroppyCode/Core/Models/Hydra.swift:1386-1392
+    [Fact]
+    public void ReportMessage_has_three_blocks_separated_by_blank_lines()
+    {
+        var report = Report(0, HydraHeadInfo.Origin.Delegated, HydraHeadInfo.Status.Completed, "done");
+
+        var text = HydraPrompts.ReportMessage([report]);
+        var blocks = text.Split("\n\n");
+
+        Assert.Equal(3, blocks.Length);
+        Assert.StartsWith("Hydra reports:", blocks[0], StringComparison.Ordinal);
+        Assert.StartsWith("## Hank:", blocks[1], StringComparison.Ordinal);
+        Assert.Contains("Build on the reports", blocks[2], StringComparison.Ordinal);
+    }
+
+    [Trait("Req", "PR-HYDRA-075")] // DroppyCode/Core/Models/Hydra.swift:1311-1315, :1421-1427 list() with no Oxford comma
+    [Fact]
+    public void ReportMessage_opening_lists_finished_names_with_no_oxford_comma_and_names_the_still_working_heads()
+    {
+        var reports = new[]
+        {
+            Report(0, HydraHeadInfo.Origin.Delegated, HydraHeadInfo.Status.Completed, "a"),
+            Report(1, HydraHeadInfo.Origin.Delegated, HydraHeadInfo.Status.Completed, "b"),
+            Report(2, HydraHeadInfo.Origin.Delegated, HydraHeadInfo.Status.Completed, "c"),
+        };
+
+        var noneWorking = HydraPrompts.ReportMessage(reports);
+        Assert.StartsWith("Hydra reports: Hank, Walter and Ada finished.\n\n", noneWorking, StringComparison.Ordinal);
+
+        var oneStillWorking = HydraPrompts.ReportMessage(reports[..1], stillWorking: ["Otto"]);
+        Assert.StartsWith("Hydra reports: Hank finished. Otto is still at work; its report comes as a later message.\n\n", oneStillWorking, StringComparison.Ordinal);
+
+        var twoStillWorking = HydraPrompts.ReportMessage(reports[..1], stillWorking: ["Otto", "Nova"]);
+        Assert.StartsWith("Hydra reports: Hank finished. Otto and Nova are still at work; their reports come as a later message.\n\n", twoStillWorking, StringComparison.Ordinal);
+    }
+
+    [Trait("Req", "PR-HYDRA-076")] // DroppyCode/Core/Models/Hydra.swift:1318-1335, :1416-1419 duration()
+    [Fact]
+    public void ReportMessage_per_head_section_header_has_outcome_and_effort_and_falls_back_to_No_report()
+    {
+        var completed = Report(0, HydraHeadInfo.Origin.Delegated, HydraHeadInfo.Status.Completed, "", elapsed: 125, toolCalls: 3);
+        var failed = Report(1, HydraHeadInfo.Origin.Delegated, HydraHeadInfo.Status.Failed, "found the bug", elapsed: 0.4);
+        var stopped = Report(2, HydraHeadInfo.Origin.Delegated, HydraHeadInfo.Status.Stopped, "partial", toolCalls: 1);
+
+        var text = HydraPrompts.ReportMessage([completed, failed, stopped]);
+
+        Assert.Contains("## Hank: the task (2m 5s, 3 tools)\nNo report.", text, StringComparison.Ordinal);
+        Assert.Contains("## Walter: the task (failed)\nfound the bug", text, StringComparison.Ordinal); // elapsed 0.4s < 1 contributes nothing
+        Assert.Contains("## Ada: the task (stopped by the user before finishing) (1 tool)\npartial", text, StringComparison.Ordinal);
+    }
+
+    [Trait("Req", "PR-HYDRA-077")] // DroppyCode/Core/Models/Hydra.swift:1397-1414 landingLine's seven shapes
+    [Fact]
+    public void ReportMessage_landing_line_shapes_for_no_landing_empty_landed_conflicts_patch_and_error()
+    {
+        var noLandingNoCopy = Report(0, HydraHeadInfo.Origin.Delegated, HydraHeadInfo.Status.Completed, "t");
+        Assert.Contains("## Hank: the task\nt", HydraPrompts.ReportMessage([noLandingNoCopy]), StringComparison.Ordinal); // no landing line at all
+
+        var completedWithCopy = Report(0, HydraHeadInfo.Origin.Delegated, HydraHeadInfo.Status.Completed, "t", copyPath: "C:\\copy");
+        Assert.Contains("## Hank: the task\nChanged nothing.\nt", HydraPrompts.ReportMessage([completedWithCopy]), StringComparison.Ordinal);
+
+        var stoppedWithCopy = Report(0, HydraHeadInfo.Origin.Delegated, HydraHeadInfo.Status.Stopped, "t", copyPath: "C:\\copy");
+        Assert.Contains("Nothing landed; its unfinished work is in its copy at C:\\copy.", HydraPrompts.ReportMessage([stoppedWithCopy]), StringComparison.Ordinal);
+
+        var emptyLanding = Report(0, HydraHeadInfo.Origin.Delegated, HydraHeadInfo.Status.Completed, "t", landing: new HydraLanding());
+        Assert.Contains("## Hank: the task\nChanged nothing.\nt", HydraPrompts.ReportMessage([emptyLanding]), StringComparison.Ordinal);
+
+        var landed = Report(0, HydraHeadInfo.Origin.Delegated, HydraHeadInfo.Status.Completed, "t",
+            landing: new HydraLanding { Files = new ValueList<HydraLanding.File>([new() { Path = "a.cs", Additions = 3, Deletions = 1 }]) });
+        Assert.Contains("Landed in your checkout: a.cs (+3 \u22121).", HydraPrompts.ReportMessage([landed]), StringComparison.Ordinal); // U+2212 MINUS SIGN
+
+        var withConflict = Report(0, HydraHeadInfo.Origin.Delegated, HydraHeadInfo.Status.Completed, "t",
+            landing: new HydraLanding
+            {
+                Files = new ValueList<HydraLanding.File>([new() { Path = "a.cs", Additions = 1, Deletions = 0 }]),
+                Conflicts = new ValueList<string>(["a.cs"]),
+            });
+        Assert.Contains("Landed in your checkout: a.cs (+1 \u22120) with conflicts.", HydraPrompts.ReportMessage([withConflict]), StringComparison.Ordinal);
+
+        var patched = Report(0, HydraHeadInfo.Origin.Delegated, HydraHeadInfo.Status.Completed, "t",
+            landing: new HydraLanding
+            {
+                Files = new ValueList<HydraLanding.File>([new() { Path = "a.cs", Additions = 1, Deletions = 0 }]),
+                PatchPath = "p.patch",
+            });
+        Assert.Contains("Did not land: a.cs (+1 \u22120).", HydraPrompts.ReportMessage([patched]), StringComparison.Ordinal);
+
+        var errored = Report(0, HydraHeadInfo.Origin.Delegated, HydraHeadInfo.Status.Completed, "t",
+            landing: new HydraLanding
+            {
+                Files = new ValueList<HydraLanding.File>([new() { Path = "a.cs", Additions = 1, Deletions = 0 }]),
+                Error = "disk full",
+            });
+        Assert.Contains("Did not land (disk full): a.cs (+1 \u22120).", HydraPrompts.ReportMessage([errored]), StringComparison.Ordinal);
+    }
+
+    [Trait("Req", "PR-HYDRA-077")] // DroppyCode/Core/Models/Hydra.swift:1403-1410 the 25-file cap and dropped build outputs
+    [Fact]
+    public void ReportMessage_landing_line_caps_at_25_files_and_reports_dropped_build_output_files()
+    {
+        var files = Enumerable.Range(0, 30).Select(i => new HydraLanding.File { Path = $"f{i}.cs", Additions = 1, Deletions = 0 }).ToArray();
+        var landing = new HydraLanding { Files = new ValueList<HydraLanding.File>(files), DroppedBuildOutputFiles = 2 };
+        var report = Report(0, HydraHeadInfo.Origin.Delegated, HydraHeadInfo.Status.Completed, "t", landing: landing);
+
+        var text = HydraPrompts.ReportMessage([report]);
+
+        Assert.Contains(", and 5 more; 2 build-output files were left out.", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("f25.cs", text, StringComparison.Ordinal);
+    }
+
+    [Trait("Req", "PR-HYDRA-078")] // DroppyCode/Core/Models/Hydra.swift:1337-1384 the closing sentences, fixed order and conditions
+    [Fact]
+    public void ReportMessage_closing_emits_landed_and_worked_in_checkout_sentences_when_both_apply()
+    {
+        var landedReport = Report(0, HydraHeadInfo.Origin.Delegated, HydraHeadInfo.Status.Completed, "t",
+            landing: new HydraLanding { Files = new ValueList<HydraLanding.File>([new() { Path = "a.cs", Additions = 1, Deletions = 0 }]) });
+        var checkoutReport = Report(1, HydraHeadInfo.Origin.Delegated, HydraHeadInfo.Status.Completed, "t");
+
+        var closing = HydraPrompts.ReportMessage([landedReport, checkoutReport]).Split("\n\n")[^1];
+
+        Assert.StartsWith(
+            "The changes listed above are in your checkout already; nothing needs applying. The heads worked in your checkout, so their changes are there already.",
+            closing, StringComparison.Ordinal);
+    }
+
+    [Trait("Req", "PR-HYDRA-078")] // DroppyCode/Core/Models/Hydra.swift:1349-1357 shared-file sentence uses "both" and is sorted by path
+    [Fact]
+    public void ReportMessage_closing_names_two_heads_that_changed_the_same_file_sorted_by_path()
+    {
+        var a = Report(0, HydraHeadInfo.Origin.Delegated, HydraHeadInfo.Status.Completed, "t",
+            landing: new HydraLanding { Files = new ValueList<HydraLanding.File>([new() { Path = "b.cs", Additions = 1, Deletions = 0 }, new() { Path = "a.cs", Additions = 1, Deletions = 0 }]) });
+        var b = Report(1, HydraHeadInfo.Origin.Delegated, HydraHeadInfo.Status.Completed, "t",
+            landing: new HydraLanding { Files = new ValueList<HydraLanding.File>([new() { Path = "a.cs", Additions = 1, Deletions = 0 }]) });
+
+        var closing = HydraPrompts.ReportMessage([a, b]).Split("\n\n")[^1];
+
+        Assert.Contains("Hank and Walter both changed a.cs: read it as it is now before you build on it.", closing, StringComparison.Ordinal);
+        Assert.DoesNotContain("changed b.cs", closing, StringComparison.Ordinal); // b.cs was touched by only one head
+    }
+
+    [Trait("Req", "PR-HYDRA-078")] // DroppyCode/Core/Models/Hydra.swift:1358-1361 the kept-patch sentence, in report order
+    [Fact]
+    public void ReportMessage_closing_names_a_kept_patch_with_the_git_apply_command()
+    {
+        var report = Report(0, HydraHeadInfo.Origin.Delegated, HydraHeadInfo.Status.Completed, "t",
+            landing: new HydraLanding
+            {
+                Files = new ValueList<HydraLanding.File>([new() { Path = "a.cs", Additions = 1, Deletions = 0 }]),
+                PatchPath = "C:\\p.patch",
+            });
+
+        var closing = HydraPrompts.ReportMessage([report]).Split("\n\n")[^1];
+
+        Assert.Contains("Hank's changes would not apply on their own; the patch is at C:\\p.patch. Apply it with `git apply --3way C:\\p.patch` and settle what conflicts.", closing, StringComparison.Ordinal);
+    }
+
+    [Trait("Req", "PR-HYDRA-078")] // DroppyCode/Core/Models/Hydra.swift:1362-1373 failed, stopped, queued, sent sentences
+    [Fact]
+    public void ReportMessage_closing_names_failed_stopped_queued_and_sent_conditions()
+    {
+        var failed = Report(0, HydraHeadInfo.Origin.Delegated, HydraHeadInfo.Status.Failed, "t");
+        var stopped = Report(1, HydraHeadInfo.Origin.Delegated, HydraHeadInfo.Status.Stopped, "t");
+        var queued = Report(2, HydraHeadInfo.Origin.Queued, HydraHeadInfo.Status.Completed, "t");
+        var sent = Report(3, HydraHeadInfo.Origin.Sent, HydraHeadInfo.Status.Completed, "t");
+
+        var closing = HydraPrompts.ReportMessage([failed, stopped, queued, sent]).Split("\n\n")[^1];
+
+        Assert.Contains("A head that failed leaves its part to you: do it yourself or send it out again.", closing, StringComparison.Ordinal);
+        Assert.Contains("A head the user stopped leaves its part alone unless the user asks for it.", closing, StringComparison.Ordinal);
+        Assert.Contains("The user queued that work for the heads while you were busy; take it into account and carry on with the main job.", closing, StringComparison.Ordinal);
+        Assert.Contains("The user sent that work straight to the heads instead of to you; take it into account, and reply to the user on it as if they had asked you.", closing, StringComparison.Ordinal);
+    }
+
+    [Trait("Req", "PR-HYDRA-078")] // DroppyCode/Core/Models/Hydra.swift:1382-1384 the still-working closing sentence, singular and plural
+    [Fact]
+    public void ReportMessage_closing_names_still_working_heads_it_or_them_singular_and_plural()
+    {
+        var report = Report(0, HydraHeadInfo.Origin.Delegated, HydraHeadInfo.Status.Completed, "t");
+
+        var oneStillWorking = HydraPrompts.ReportMessage([report], stillWorking: ["Otto"]).Split("\n\n")[^1];
+        Assert.Contains("Do not wait for Otto and do not take over its tasks; tell the user it is still at work and that you will hear from it.", oneStillWorking, StringComparison.Ordinal);
+
+        var twoStillWorking = HydraPrompts.ReportMessage([report], stillWorking: ["Otto", "Nova"]).Split("\n\n")[^1];
+        Assert.Contains("Do not wait for Otto and Nova and do not take over their tasks; tell the user they are still at work and that you will hear from them.", twoStillWorking, StringComparison.Ordinal);
+    }
+
+    [Trait("Req", "PR-HYDRA-078")] // DroppyCode/Core/Models/Hydra.swift:1344-1346 the conflicts sentence
+    [Fact]
+    public void ReportMessage_closing_adds_the_conflicts_sentence_when_any_landing_has_a_conflict()
+    {
+        var report = Report(0, HydraHeadInfo.Origin.Delegated, HydraHeadInfo.Status.Completed, "t",
+            landing: new HydraLanding
+            {
+                Files = new ValueList<HydraLanding.File>([new() { Path = "a.cs", Additions = 1, Deletions = 0 }]),
+                Conflicts = new ValueList<string>(["a.cs"]),
+            });
+
+        var closing = HydraPrompts.ReportMessage([report]).Split("\n\n")[^1];
+
+        Assert.Contains("A file listed with conflicts was merged three-way and keeps conflict markers: resolve those first, and tell the user in one line that you settled them, so the landing card above does not read as broken.", closing, StringComparison.Ordinal);
+    }
+
+    // ---- PR-HYDRA-079: the closing carries exactly one of two review/no-review sentences ----
+
+    [Trait("Req", "PR-HYDRA-079")] // DroppyCode/Core/Models/Hydra.swift:1376-1380
+    [Fact]
+    public void ReportMessage_closing_picks_the_review_variant_by_reviewsHeads()
+    {
+        var report = Report(0, HydraHeadInfo.Origin.Delegated, HydraHeadInfo.Status.Completed, "t");
+
+        var reviewing = HydraPrompts.ReportMessage([report], reviewsHeads: true).Split("\n\n")[^1];
+        Assert.Contains(
+            "Do not check any of this with git status or git diff: the checkout changes under you while heads work, and the user may be editing too. Do not reconcile or revert anything. " + HydraPrompts.ReviewRule,
+            reviewing, StringComparison.Ordinal);
+        Assert.DoesNotContain("Do not reconcile, revert or redo anything.", reviewing, StringComparison.Ordinal);
+
+        var notReviewing = HydraPrompts.ReportMessage([report], reviewsHeads: false).Split("\n\n")[^1];
+        Assert.Contains(
+            "Do not check any of this with git status or git diff: the checkout changes under you while heads work, and the user may be editing too. Do not reconcile, revert or redo anything. Build on the reports, read the files they name if something matters, run one verification if it matters, and finish the job.",
+            notReviewing, StringComparison.Ordinal);
+    }
 }
