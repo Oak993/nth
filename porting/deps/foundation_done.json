@@ -14,6 +14,7 @@
     "F.URL",
     "F.HTTP",
     "F.ICUFormatters",
-    "F.StyledText"
+    "F.StyledText",
+    "F.URLComponents"
   ]
 }
