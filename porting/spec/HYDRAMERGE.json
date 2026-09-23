@@ -2006,7 +2006,7 @@
       "cancellation": "n/a",
       "windows_path": "Identical field names and raw values on the wire so documents stay readable across both builds.",
       "verification_method": "contract fixture on the serialized JSON for each of the five outcomes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
