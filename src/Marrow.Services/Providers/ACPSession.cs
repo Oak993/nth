@@ -5,10 +5,11 @@ using Marrow.Core.Support;
 using Marrow.Services.MCP;
 
 // Source: DroppyCode/Services/Providers/ACPSession.swift (B2 1fbf81e), :1-921. Part 1 of 8: the launch gate,
-// launchArguments, and start() through the initialize reply (PR-PROVACP-001..024). Part 2 of 8 (this change):
-// openSession, applySessionState, resolveModes, applyModels, applyConfigOptions and its static helpers
-// (flatten, isEffortScale, orderedEfforts, baseModelID, sameModel) (PR-PROVACP-025..047, 049). applySelection,
-// setConfigOption, probeModelEfforts, probeModels, send, interrupt, resolveApproval and the update/request/close
+// launchArguments, and start() through the initialize reply (PR-PROVACP-001..024). Part 2 of 8: openSession,
+// applySessionState, resolveModes, applyModels, applyConfigOptions and its static helpers (flatten,
+// isEffortScale, orderedEfforts, baseModelID, sameModel) (PR-PROVACP-025..047, 049). Part 3 of 8 (this change):
+// applySelection, setConfigOption, send, interrupt, resolveApproval (PR-PROVACP-053..073; compact and
+// answerQuestion were already implemented in part 1). probeModelEfforts, probeModels and the update/request/close
 // handlers belong to later parts' own records; they stay MARROW_STUB pending those parts (R-FILE-1: one file
 // per Swift file, but a function whose OWN records sit in a later part is left unimplemented until that part).
 
@@ -45,13 +46,18 @@ public sealed class ACPSession : ProviderSession
     private bool canLoadSessions; // :34
     private bool supportsHTTPMCP; // :35
     private ValueList<string> authMethods = ValueList<string>.Empty; // :33
-#pragma warning disable CS0169, CS0414, CS0649 // set/read by Send, Interrupt, HandleClose: part 3+
     private string? sessionID; // :32
+#pragma warning disable CS0414 // set here, read by HandleNotification/HandleClose: part 4+
     private bool isReplaying; // :36
     private bool isStopping; // :37
+#pragma warning restore CS0414
     private bool promptActive; // :43
+#pragma warning disable CS0414 // set here (Send, Interrupt), read by FinishPrompt: part 4+
     private bool cancelRequested; // :44
-#pragma warning restore CS0169, CS0414, CS0649
+    private string? messageID; // :39
+    private string? thoughtID; // :40
+#pragma warning restore CS0414
+    private readonly Dictionary<string, RPCID> pendingPermissions = new(); // :42; R-COLL-2: iteration order unspecified
     private RuntimeMode runtimeMode; // :38
 
     // :50-62. Model/mode/effort state discovered from the session reply and config options.
@@ -185,14 +191,61 @@ public sealed class ACPSession : ProviderSession
         }
     }
 
-    public Task Send(TurnInput input) => throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ACPSession.swift:167-196, part 3+"); // :167
+    // :167-196. Part 3 of 8 (PR-PROVACP-063..067).
+    public async Task Send(TurnInput input)
+    {
+        if (connection is not { } conn || conn.IsClosed || sessionID is not { } sid) throw new ProviderError(new ProviderError.Case.NotRunning()); // :168
+        runtimeMode = input.RuntimeMode; // :169
+        await ApplySelection(input.Model, input.Effort, input.FastMode, input.InteractionMode); // :170-175
+        var prompt = new List<JSONValue> { JSONValue.FromDictionaryLiteral(("type", "text"), ("text", input.Text)) }; // :176
+        foreach (var (image, base64) in await Attachment.Base64Images(input.Images)) // :177
+            prompt.Add(JSONValue.FromDictionaryLiteral(("type", "image"), ("mimeType", image.MimeType), ("data", base64))); // :178
+        messageID = null; // :180
+        thoughtID = null; // :181
+        promptActive = true; // :182
+        cancelRequested = false; // :183
+        OnEvent?.Invoke(new ProviderEvent.TurnStarted(null)); // :184
+        var promptArray = new ValueList<JSONValue>(prompt);
+        MainActor.Spawn(async () => // :185-195. A floating task: send() does not await it.
+        {
+            try
+            {
+                var result = await conn.Request("session/prompt", JSONValue.FromDictionaryLiteral( // :187-190
+                    ("sessionId", sid), ("prompt", new JSONValue.Array(promptArray))));
+                FinishPrompt(result["stopReason"]?.JSONValueString, null); // :191
+            }
+            catch (Exception error) when (SwiftTry.IsThrownError(error)) // :192
+            {
+                FinishPrompt(null, error); // :193
+            }
+        });
+    }
 
-    public Task Interrupt() => throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ACPSession.swift:198-207, part 3+"); // :198
+    // :198-207. Part 3 of 8 (PR-PROVACP-068..070). No await in the Swift body: nothing here interleaves.
+    public Task Interrupt()
+    {
+        if (!promptActive || connection is not { } conn || sessionID is not { } sid) return Task.CompletedTask; // :199
+        cancelRequested = true; // :200
+        foreach (var (key, id) in pendingPermissions) // :201
+        {
+            conn.Respond(id, JSONValue.FromDictionaryLiteral(("outcome", JSONValue.FromDictionaryLiteral(("outcome", "cancelled"))))); // :202
+            OnEvent?.Invoke(new ProviderEvent.RequestResolved(key)); // :203
+        }
+        pendingPermissions.Clear(); // :205
+        conn.Notify("session/cancel", JSONValue.FromDictionaryLiteral(("sessionId", sid))); // :206
+        return Task.CompletedTask;
+    }
 
     public Task Compact() => throw new ProviderError(new ProviderError.Case.Failed($"{configuration.Provider.DisplayName} compacts its own context.")); // :209-211
 
-    public void ResolveApproval(string requestID, string optionID) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ACPSession.swift:213-217, part 3+"); // :213
+    // :213-217. Part 3 of 8 (PR-PROVACP-072).
+    public void ResolveApproval(string requestID, string optionID)
+    {
+        if (!pendingPermissions.Remove(requestID, out var id)) return; // :214
+        connection?.Respond(id, JSONValue.FromDictionaryLiteral( // :215
+            ("outcome", JSONValue.FromDictionaryLiteral(("outcome", "selected"), ("optionId", optionID)))));
+        OnEvent?.Invoke(new ProviderEvent.RequestResolved(requestID)); // :216
+    }
 
     public void AnswerQuestion(string requestID, ValueMap<string, ValueList<string>> answers) { } // :219
 
@@ -432,21 +485,70 @@ public sealed class ACPSession : ProviderSession
         return SwiftString.Equal(BaseModelID(lhs), BaseModelID(rhs)); // :440
     }
 
-    // :443-475. Part 3 of 8 (PR-PROVACP-053..061, 064).
-    private Task ApplySelection(string? model, string? effort, bool fastMode, InteractionMode interaction) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ACPSession.swift:443-475, part 3+"); // :443
+    /// <summary>String comparison local to applySelection's three "differs from the current value" guards
+    /// (effort, fast, mode): Swift's `x != optionalCurrent` is false-when-equal, true whenever the current
+    /// value is nil. R-STR-2: SwiftString.Equal, not the CLR operator.</summary>
+    private static bool Differs(string wanted, string? current) => current is null || !SwiftString.Equal(wanted, current);
+
+    // :443-475. Part 3 of 8 (PR-PROVACP-054..061, 064).
+    private async Task ApplySelection(string? model, string? effort, bool fastMode, InteractionMode interaction)
+    {
+        if (connection is not { } conn || sessionID is not { } sid) return; // :444
+        if (model is { Length: > 0 } wantedModel) // :445
+        {
+            var wireID = UsesParameterizedModels ? BaseModelID(wantedModel) : wantedModel; // :446
+            if (!SameModel(wireID, currentModel)) // :447
+            {
+                if (modelConfigID is { } modelConfigIDValue) await SetConfigOption(modelConfigIDValue, wireID); // :448-449
+                else await SwiftTry.IgnoreAsync(async () => await conn.Request("session/set_model", // :450-451
+                    JSONValue.FromDictionaryLiteral(("sessionId", sid), ("modelId", wireID))));
+                currentModel = wireID; // :453, set even when the fallback request above was swallowed by try?
+            }
+        }
+        if (effort is { Length: > 0 } wantedEffort && effortConfigID is { } effortConfigIDValue && Differs(wantedEffort, currentEffort)) // :456
+        {
+            await SetConfigOption(effortConfigIDValue, wantedEffort); // :457
+            currentEffort = wantedEffort; // :458
+        }
+        if (fastConfigID is { } fastConfigIDValue) // :460
+        {
+            var wantedFast = fastMode ? "true" : "false"; // :461
+            if (Differs(wantedFast, currentFast)) // :462
+            {
+                await SetConfigOption(fastConfigIDValue, wantedFast); // :463
+                currentFast = wantedFast; // :464
+            }
+        }
+        var wantedMode = interaction == InteractionMode.Plan ? planMode : buildMode; // :467
+        if (wantedMode is { } modeValue && Differs(modeValue, currentMode)) // :467
+        {
+            if (modeConfigID is { } modeConfigIDValue) await SetConfigOption(modeConfigIDValue, modeValue); // :468-469
+            else if (hasModeAPI) await SwiftTry.IgnoreAsync(async () => await conn.Request("session/set_mode", // :470-471
+                JSONValue.FromDictionaryLiteral(("sessionId", sid), ("modeId", modeValue))));
+            currentMode = modeValue; // :473, outside the transport branch: PR-PROVACP-061, reproduce as shipped.
+        }
+    }
 
     // :477-485. Part 3 of 8 (PR-PROVACP-062).
-    private Task SetConfigOption(string configID, string value) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ACPSession.swift:477-485, part 3+"); // :477
+    private async Task SetConfigOption(string configID, string value)
+    {
+        if (connection is not { } conn || sessionID is not { } sid) return; // :478
+        var result = await SwiftTry.OptionalAsync(async () => await conn.Request("session/set_config_option", // :479-483
+            JSONValue.FromDictionaryLiteral(("sessionId", sid), ("configId", configID), ("value", value))));
+        if (result?["configOptions"]?.JSONValueArray is { } options) ApplyConfigOptions(new ValueList<JSONValue>(options)); // :484
+    }
 
-    // MARK: - Updates (part 3+)
+    // :604-623. Part 4 of 8's own records; called from Send's floating task (part 3) and, later, HandleClose.
+    private void FinishPrompt(string? stopReason, Exception? error) =>
+        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ACPSession.swift:604-623, part 4+"); // :604
+
+    // MARK: - Updates (part 4+)
     private void HandleNotification(string method, JSONValue parameters) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ACPSession.swift:489-553, part 3+"); // :489
+        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ACPSession.swift:489-553, part 4+"); // :489
 
     private void HandleRequest(RPCID id, string method, JSONValue parameters) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ACPSession.swift:555-590, part 3+"); // :555
+        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ACPSession.swift:555-590, part 4+"); // :555
 
     private void HandleClose(string tail) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ACPSession.swift:625-631, part 3+"); // :625
+        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ACPSession.swift:625-631, part 4+"); // :625
 }
