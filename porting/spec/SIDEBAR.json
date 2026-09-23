@@ -1180,8 +1180,8 @@
       "id": "PR-SIDEBAR-051",
       "title": "RowDrag.settle walks the grabbed row past every neighbour whose crossing threshold it has passed, folding each slot shift into the compensation",
       "source_evidence": [
-        "DroppyCode/UI/Chrome/RowDrag.swift:41-77 settle - guards on `let id, let index = order.firstIndex(of: id)`; `let own = heights[id] ?? fallbackHeight`; loop: downward when `offset > 0, current + 1 < order.count` with `let slot = heights[next] ?? fallbackHeight` and `guard offset > (own + slot) / 2 + slot * pastCentre, move(next, true) else { break }` then `settled += slot; current += 1; moved = true`; upward mirrored with `-offset` and `settled -= slot`; returns `moved`",
-        "DroppyCode/UI/Chrome/RowDrag.swift:36 - `pastCentre: CGFloat = 0` default",
+        "DroppyCode/UI/Chrome/RowDrag.swift:29-61 settle - guards on `let id, let index = order.firstIndex(of: id)`; `let own = heights[id] ?? fallbackHeight`; loop: downward when `offset > 0, current + 1 < order.count` with `let slot = heights[next] ?? fallbackHeight` and `guard offset > (own + slot) / 2 + slot * pastCentre, move(next, true) else { break }` then `settled += slot; current += 1; moved = true`; upward mirrored with `-offset` and `settled -= slot`; returns `moved`",
+        "DroppyCode/UI/Chrome/RowDrag.swift:33 - `pastCentre: CGFloat = 0` default",
         "DroppyCode/App/Views/Sidebar/SidebarView.swift:782-801 dragChanged - calls `drag.settle(order:heights:fallbackHeight: Chrome.rowHeight + 1)` with no pastCentre",
         "E:/Droppy/port/porting/port_impacts.md:316 entry 154 - the move callback returns Bool; break on false WITHOUT advancing index or compensation; strict `>`; fallbackHeight = rowHeight + 1 = 29"
       ],
@@ -1199,7 +1199,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct translation of the arithmetic. A void-returning move callback would reorder forever past a refused move (port_impacts 154), so the Bool return is mandatory. The fallback height is the literal 29 (Chrome.rowHeight 28 plus the list's 1 pt spacing).",
       "verification_method": "unit test on RowDrag.settle covering multi-row flicks, a refused move, a missing id and both directions.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4052,7 +4052,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The 27 titles, their order, each group's names and their order are data and are carried over verbatim from :25-51 at 1fbf81e. The glyph drawn for each name comes from the published symbol-to-icon mapping table (owner ruling OD-0010), which this record does not restate. The double appearance of Popular symbols and their double selection ring are reproduced.",
       "verification_method": "contract fixture generated from ProjectSymbolCatalogue.swift:25-51 at 1fbf81e asserting the 27 titles in order, each group's count and name sequence, the total of 2,630 with no duplicates, and the four names without `.fill`; interaction test with a Popular symbol chosen asserting two ringed tiles (Popular and its category) with an empty query.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5521,7 +5521,8 @@
         "DroppyCode/UI/Chrome/ProjectIconPicker.swift:174-186",
         "DroppyCode/UI/Chrome/ProjectIconPicker.swift:232-239"
       ],
-      "notes": "Tiles per section: Communication 88, Maps 20, Objects & Tools 283, Devices 140, Camera & Photos 45, Gaming 90, Connectivity 35, Transportation 15, Automotive 278, Accessibility 37, Privacy & Security 16, Human 87, Home 126, Fitness 120, Nature 109, Editing 34, Text Formatting 5, Media 31, Keyboard 17, Commerce 141, Time 1, Health 45, Shapes 17, Arrows 186, Indices 176, Math 24, Other 464 (2,630 in all). Every name is a `.fill` mark except `apple.logo`, `curlybraces`, `swift` and `terminal` in Other. The behaviour is PR-SIDEBAR-164."
+      "notes": "Tiles per section: Communication 88, Maps 20, Objects & Tools 283, Devices 140, Camera & Photos 45, Gaming 90, Connectivity 35, Transportation 15, Automotive 278, Accessibility 37, Privacy & Security 16, Human 87, Home 126, Fitness 120, Nature 109, Editing 34, Text Formatting 5, Media 31, Keyboard 17, Commerce 141, Time 1, Health 45, Shapes 17, Arrows 186, Indices 176, Math 24, Other 464 (2,630 in all). Every name is a `.fill` mark except `apple.logo`, `curlybraces`, `swift` and `terminal` in Other. The behaviour is PR-SIDEBAR-164.",
+      "status": "IMPLEMENTED"
     }
   ]
 }

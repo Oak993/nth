@@ -46,7 +46,7 @@ if (existsSync('porting/deps/swift_deps.json')) {
     if (!m) continue;
     swift++;
     const proj = { Core: 'Marrow.Core', Services: 'Marrow.Services', UI: 'Marrow.UI', App: 'Marrow.App' }[m[1]];
-    const target = join('src', proj, `${m[2].replace(/\+/g, '.')}.cs`);
+    const target = join('src', proj, `${m[2]}.cs`);
     if (existsSync(target) && !/MARROW_STUB|NotImplementedException/.test(readFileSync(target, 'utf8'))) ported++;
   }
 }
