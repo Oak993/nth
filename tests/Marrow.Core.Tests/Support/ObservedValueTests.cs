@@ -15,12 +15,16 @@ namespace Marrow.Core.Tests.Support;
 // Hashable, Sendable {" ... "var id: UUID" ... "var title: String") kept in Fixtures/ObservationSamples.cs. ChatThread
 // is Hashable, so Equatable: record equality models it, and two equal values really are equal Swift values.
 //
-// PARTIAL PROOF. The Req("PR-STORE-128") traits in this file prove only the ObservedValue.swift:4-13 clauses of the
-// record: per-item re-render isolation (:4-5), exactly one property (:9), main-actor isolation (:6) and init storing
-// the value (:11-13). The record's other clauses, "is created once per item" and "Cells are built inside
-// AppModel.init because property observers do not fire there" (DroppyCode/App/AppModel.swift:137-139; the record
-// cites :138-140), stay open until the App.AppModel unit proves them. App.AppModel is not ported, so no test here
-// covers them and no stand-in AppModel is written (STOP Core.Support.ObservedValue #1, missing dependency).
+// PARTIAL PROOF, PENDING A RULING (STOP Core.Support.ObservedValue #1). The Req("PR-STORE-128") traits in this file
+// prove only the ObservedValue.swift:4-13 clauses of the record: per-item re-render isolation (:4-5), exactly one
+// property (:9), main-actor isolation (:6) and init storing the value (:11-13). The record's other clauses, "is
+// created once per item" and "Cells are built inside AppModel.init because property observers do not fire there"
+// (DroppyCode/App/AppModel.swift:137-139; the record cites :138-140), are not proven here, and no stand-in AppModel
+// is written. No other unit owns them: porting/deps/units.json gives PR-STORE-128 to this unit alone, and
+// req_verify.mjs marks a record VERIFIED as soon as every Req test for it passes. The orchestrator chooses between
+// (a) splitting the record, so that these traits prove only the :4-13 clauses and a new id owned by App.AppModel
+// takes the other two, or (b) adding PR-STORE-128 to App.AppModel's records and removing the Req traits here until
+// that unit's test exists. Until that ruling, a green run of this file must not be read as verifying the record.
 public sealed class ObservedValueTests
 {
     private static readonly Guid A = Guid.Parse("00000000-0000-0000-0000-00000000000A");
@@ -156,11 +160,16 @@ public sealed class ObservedValueTests
     [Fact]
     [Trait("Rule", "R-OBS-3")]
     [Trait("Decision", "ED-070")]
+    [Trait("Oracle", "O-05")]
     public void Every_assignment_notifies_because_the_value_type_is_unconstrained()
     {
-        // ObservedValue.swift:8-9: Value has no Equatable constraint, so the observable cannot compare old and new
-        // and every assignment is a change (SetAlways, R-OBS-3), even an equal one. The two values below are equal
-        // Swift values: ChatThread is Hashable, so Equatable (Library.swift:121), and the record compares by fields.
+        // UNVERIFIED (O-05, R-TEST-6): this expectation is the port's parked rule, not a Swift fact.
+        // ObservedValue.swift:8-9 puts no Equatable constraint on Value, so R-OBS-3 ports the property with
+        // SetAlways, which tells trackers and bindings on every assignment. Whether Swift 6.2 Observation notifies
+        // for an equal value is open item O-05, and the Swift file does not say. The two values below are equal
+        // (ChatThread is Hashable, so Equatable, Library.swift:121; the record compares by fields), so this test
+        // asserts the parked rule and carries no Req trait. When O-05 settles, the expectation is replaced by the
+        // settled value.
         using var runtime = new TestRuntime();
         runtime.OnMain(() =>
         {
