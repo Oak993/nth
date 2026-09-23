@@ -48,6 +48,13 @@ public sealed class FakeGeniePlatform : IGeniePlatform
     }
 }
 
+/// <summary>A scripted cursor position for WindowChrome.swift's SidebarResizeHandleView (PR-WIN-056): the
+/// strip's real-cursor re-read.</summary>
+public sealed class FakeCursorPlatform(PixelPoint? position) : ICursorPlatform
+{
+    public PixelPoint? ScreenPosition { get; set; } = position;
+}
+
 /// <summary>An image with a size and nothing to draw, for tests that only follow the records.</summary>
 public sealed class StandInImage : IImage
 {

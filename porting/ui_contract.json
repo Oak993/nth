@@ -3843,7 +3843,8 @@
         "decision": "OD-0016",
         "upstream": "DroppyCode/UI/Common/AttachmentPreview.swift:299 and :319 `ProgressView()` in the image and video slots",
         "port": "The 48 px loading mark replaces the spinner in the slot, after 400 ms (ED-097)."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "COMPOSER",
@@ -3867,7 +3868,8 @@
         "decision": "OD-0008 B1",
         "upstream": "Button(\"Show in Finder\") at DroppyCode/UI/Common/AttachmentPreview.swift:360, revealing the file with NSWorkspace.shared.activateFileViewerSelecting([attachment.url]) at :361",
         "port": "The link reads \"Show in File Explorer\" and reveals the file in File Explorer with it selected."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "COMPOSER",
@@ -3886,7 +3888,8 @@
       "source_evidence": [
         "DroppyCode/UI/Common/AttachmentPreview.swift:365-369"
       ],
-      "notes": null
+      "notes": null,
+      "status": "IMPLEMENTED"
     },
     {
       "area": "COMPOSER",
@@ -3934,7 +3937,8 @@
         "DroppyCode/UI/Common/AttachmentPreview.swift:193-224",
         "DroppyCode/UI/Common/AttachmentPreview.swift:153-165"
       ],
-      "notes": "Deliberately identical to the photo thumbnail in box, radius, placeholder fill and content mode; the only difference is the badge and the frame source. The frame is taken 0.5 s into the movie so a black first frame is not used."
+      "notes": "Deliberately identical to the photo thumbnail in box, radius, placeholder fill and content mode; the only difference is the badge and the frame source. The frame is taken 0.5 s into the movie so a black first frame is not used.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "COMPOSER",
@@ -3956,7 +3960,8 @@
         "DroppyCode/UI/Common/AttachmentPreview.swift:176-191 `struct AttachmentPlayBadge: View` - `Circle().fill(.black.opacity(0.45)).frame(width: 30, height: 30)`; `Image(systemName: \"play.fill\").foregroundStyle(.white).font(.system(.body, weight: .semibold)).offset(x: 1)`; `.accessibilityHidden(true)`"
       ],
       "notes": "The 1-point rightward offset optically centres the triangle in the circle; without it the glyph reads as sitting left.",
-      "b2_change": "B1 DroppyCode/UI/Common/AttachmentPreview.swift:186 `.font(.system(size: 13, weight: .semibold))` -> B2 :186 `.font(.system(.body, weight: .semibold))`, 13 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2; the port uses these sizes per ED-059). Geometry, colours and accessibilityHidden unchanged; the range is still 176-191."
+      "b2_change": "B1 DroppyCode/UI/Common/AttachmentPreview.swift:186 `.font(.system(size: 13, weight: .semibold))` -> B2 :186 `.font(.system(.body, weight: .semibold))`, 13 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2; the port uses these sizes per ED-059). Geometry, colours and accessibilityHidden unchanged; the range is still 176-191.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "COMPOSER",
@@ -3980,7 +3985,8 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:2117-2119"
       ],
       "notes": "The file-name colour was .secondary at B1 (AttachmentPreview.swift:415) and is Chrome.secondaryText at B2 (:425). This footer has only \"Open\"; there is no reveal link here. Any tool kind can show it: a non-read call is matched by splitting its title and detail into tokens (AttachmentPreview.swift:51-58).",
-      "b2_change": "B1 DroppyCode/UI/Common/AttachmentPreview.swift:415 `.foregroundStyle(.secondary)` -> B2 :425 `.foregroundStyle(Chrome.secondaryText)`. New record: no UI record covered this view before."
+      "b2_change": "B1 DroppyCode/UI/Common/AttachmentPreview.swift:415 `.foregroundStyle(.secondary)` -> B2 :425 `.foregroundStyle(Chrome.secondaryText)`. New record: no UI record covered this view before.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "GIT",
@@ -6169,7 +6175,8 @@
       "source_evidence": [
         "DroppyCode/UI/Chrome/HydraPairMark.swift:5-23"
       ],
-      "notes": "Every place a pair is drawn uses this one view, so the proportions are the same everywhere. Round the derived sizes."
+      "notes": "Every place a pair is drawn uses this one view, so the proportions are the same everywhere. Round the derived sizes.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "HYDRA",
@@ -6200,7 +6207,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:44-57 Font.chatBaseSize, the table ED-059 takes text-style point sizes from (the file is deleted at B2): :51 body 13 | :52 callout 12 | :53 subheadline 11"
       ],
       "notes": "The card must be measured with its width PINNED to 300 and never laid out narrower, or the popover wraps the task a couple of words a line in a card that had the room for it. The ellipsis in \"Working…\" is U+2026 and the separators are U+00B7.",
-      "b2_change": "B1 HydraHeadHoverPopover.swift:66, :69, :73 .system(size: 13, weight: .semibold) / .system(size: 12) / .system(size: 11) -> B2 same lines .system(.body, weight: .semibold) / .system(.callout) / .system(.subheadline), the same 13/12/11 points. Chrome.secondaryText changed value: B1 Chrome.swift:77 Color(nsColor: .secondaryLabelColor) -> B2 Chrome.swift:79 primaryText.opacity(0.7). Geometry, states, strings and interactions are unchanged."
+      "b2_change": "B1 HydraHeadHoverPopover.swift:66, :69, :73 .system(size: 13, weight: .semibold) / .system(size: 12) / .system(size: 11) -> B2 same lines .system(.body, weight: .semibold) / .system(.callout) / .system(.subheadline), the same 13/12/11 points. Chrome.secondaryText changed value: B1 Chrome.swift:77 Color(nsColor: .secondaryLabelColor) -> B2 Chrome.swift:79 primaryText.opacity(0.7). Geometry, states, strings and interactions are unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "HYDRA",
@@ -21112,7 +21120,8 @@
         "DroppyCode/UI/Chrome/Chrome.swift:1106-1131"
       ],
       "notes": "The caller supplies one symbol per option, for example the Sidebar row's sidebar.left, macwindow.on.rectangle and macwindow (SettingsView.swift:433-435). Dense and regular widths are both 76, so two- and three-option pickers line up. SF Symbols are drawn as their Lucide counterparts from the published symbol-by-symbol table (owner ruling OD-0010).",
-      "b2_change": "No B2 change to the row; not covered by any record before."
+      "b2_change": "No B2 change to the row; not covered by any record before.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "THEME",
@@ -21139,7 +21148,8 @@
         "DroppyCode/UI/Chrome/Chrome.swift:71-85"
       ],
       "notes": "The caption is always shown under the tile, because the symbol alone does not say what the choice is (ChromeVisualPicker.swift:76). SF Symbols are drawn as their Lucide counterparts from the published symbol-by-symbol table (owner ruling OD-0010). Text is set in the port's text face, Inter (owner ruling OD-0009); where its wrap points differ from the macOS face that is OD-0009's named deviation.",
-      "b2_change": "Symbol font `.system(size: 17, weight: .medium)` (B1 ChromeVisualPicker.swift:88) -> `.system(.title2, weight: .medium)` (B2 :88); caption font `.system(size: 11)` (B1 :79) -> `.system(.subheadline)` (B2 :79); Chrome.secondaryText `Color(nsColor: .secondaryLabelColor)` (B1 Chrome.swift:77) -> `primaryText.opacity(0.7)` (B2 Chrome.swift:79)."
+      "b2_change": "Symbol font `.system(size: 17, weight: .medium)` (B1 ChromeVisualPicker.swift:88) -> `.system(.title2, weight: .medium)` (B2 :88); caption font `.system(size: 11)` (B1 :79) -> `.system(.subheadline)` (B2 :79); Chrome.secondaryText `Color(nsColor: .secondaryLabelColor)` (B1 Chrome.swift:77) -> `primaryText.opacity(0.7)` (B2 Chrome.swift:79).",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "THEME",
@@ -23684,7 +23694,8 @@
         "decision": "OD-0008 C1",
         "upstream": "DroppyCode/App/Window/WindowManager.swift:98 `window.isReleasedWhenClosed = false`; closing the main window leaves the app running (DroppyCode/App/AppDelegate.swift:30-33 reopens it)",
         "port": "Closing the main window quits the app, keeping the upstream wait while a Hydra merge is running."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "WIN",
@@ -23706,7 +23717,8 @@
       "source_evidence": [
         "DroppyCode/UI/Chrome/WindowChrome.swift:183-199",
         "DroppyCode/UI/Chrome/Chrome.swift:15-17"
-      ]
+      ],
+      "status": "IMPLEMENTED"
     },
     {
       "area": "WIN",
@@ -23729,7 +23741,8 @@
       "source_evidence": [
         "DroppyCode/UI/Chrome/WindowChrome.swift:183-199",
         "DroppyCode/App/Window/WindowManager.swift:81 settings window resizable: false"
-      ]
+      ],
+      "status": "IMPLEMENTED"
     },
     {
       "area": "WIN",
@@ -23758,7 +23771,8 @@
       "source_evidence": [
         "DroppyCode/UI/Chrome/WindowChrome.swift:376-570",
         "DroppyCode/App/Views/RootView.swift:22-31 and :54-63"
-      ]
+      ],
+      "status": "IMPLEMENTED"
     },
     {
       "area": "WIN",
