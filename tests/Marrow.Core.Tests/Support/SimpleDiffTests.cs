@@ -68,4 +68,26 @@ public sealed class SimpleDiffTests
         Assert.Equal(1, stats.Additions);
         Assert.Equal(1, stats.Deletions);
     }
+
+    [Fact] // Trailing context is sliced from OLD lines (Text.swift:100), never from the new side.
+    [Trait("Req", "PR-STORE-112")]
+    public void Trailing_context_is_taken_from_the_old_texts_spelling()
+    {
+        var stats = SimpleDiff.Unified("old\né", "new\ne\u0301");
+        Assert.Equal("@@ -1,2 +1,2 @@\n-old\n+new\n é", stats.Diff);
+        Assert.Equal(1, stats.Additions);
+        Assert.Equal(1, stats.Deletions);
+    }
+
+    [Theory] // Text.swift:92 bounds suffix against BOTH sides' remaining length so prefix and suffix cannot overlap.
+    [Trait("Req", "PR-STORE-112")]
+    [InlineData("a\na", "a", 0, 1)]
+    [InlineData("a", "a\na", 1, 0)]
+    public void Overlapping_prefix_and_suffix_candidates_stop_at_the_shorter_side(
+        string oldText, string newText, int additions, int deletions)
+    {
+        var stats = SimpleDiff.Unified(oldText, newText);
+        Assert.Equal(additions, stats.Additions);
+        Assert.Equal(deletions, stats.Deletions);
+    }
 }
