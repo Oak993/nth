@@ -627,7 +627,7 @@ public sealed class ProviderTests
     public void Meta_installURL_is_dev_meta_ai_including_trailing_slash()
     {
         Assert.Equal("https://dev.meta.ai/", ProviderKind.Meta.InstallURL.AbsoluteString);
-        Assert.EndsWith("/", ProviderKind.Meta.InstallURL.AbsoluteString);
+        Assert.EndsWith("/", ProviderKind.Meta.InstallURL.AbsoluteString, StringComparison.Ordinal);
     }
 
     [Trait("Req", "PR-PROVREG-048")] // Core/Models/Provider.swift:91

@@ -108,16 +108,79 @@ public static class ProviderKindExtensions
             _ => throw new UnreachableException(),
         };
 
-        public SwiftURL InstallURL => throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Provider.swift:81");
-        public bool IsAPIKeyBased => throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Provider.swift:101");
-        public bool UsesACP => throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Provider.swift:104");
-        public bool AcceptsAPIKey => throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Provider.swift:109");
-        public string? ApiHost => throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Provider.swift:112");
-        public string? ApiKeySource => throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Provider.swift:122");
-        public string? ApiKeyEnvVar => throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Provider.swift:133");
-        public bool SupportsRewind => throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Provider.swift:144");
-        public bool SupportsCompact => throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Provider.swift:149");
-        public bool SupportsImages => throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Provider.swift:158");
+        // :81-98. `URL(string:)!` force-unwraps: every literal below is a valid URL, so the bang never
+        // traps; SwiftURL.Create mirrors that constructor and the "!" is SwiftTraps.Unwrap (R-NAME-5).
+        public SwiftURL InstallURL => kind switch
+        {
+            ProviderKind.Codex => SwiftTraps.Unwrap(SwiftURL.Create("https://developers.openai.com/codex/cli")), // :83 - PR-PROVREG-041
+            ProviderKind.Claude => SwiftTraps.Unwrap(SwiftURL.Create("https://claude.com/product/claude-code")), // :84 - PR-PROVREG-042
+            ProviderKind.Cursor => SwiftTraps.Unwrap(SwiftURL.Create("https://cursor.com/cli")), // :85 - PR-PROVREG-043
+            ProviderKind.Opencode => SwiftTraps.Unwrap(SwiftURL.Create("https://opencode.ai")), // :86 - PR-PROVREG-044
+            ProviderKind.OpencodeGo => SwiftTraps.Unwrap(SwiftURL.Create("https://opencode.ai")), // :87
+            ProviderKind.Grok => SwiftTraps.Unwrap(SwiftURL.Create("https://x.ai/cli")), // :88 - PR-PROVREG-045
+            ProviderKind.Deepseek => SwiftTraps.Unwrap(SwiftURL.Create("https://platform.deepseek.com/api_keys")), // :89 - PR-PROVREG-046
+            ProviderKind.Meta => SwiftTraps.Unwrap(SwiftURL.Create("https://dev.meta.ai/")), // :90 - PR-PROVREG-047
+            ProviderKind.Zai => SwiftTraps.Unwrap(SwiftURL.Create("https://z.ai/manage-apikey/apikey-list")), // :91 - PR-PROVREG-048
+            ProviderKind.Devin => SwiftTraps.Unwrap(SwiftURL.Create("https://cli.devin.ai")), // :92 - PR-PROVREG-049
+            ProviderKind.Antigravity => SwiftTraps.Unwrap(SwiftURL.Create("https://antigravity.google/docs/cli/overview")), // :93 - PR-PROVREG-050
+            ProviderKind.Copilot => SwiftTraps.Unwrap(SwiftURL.Create("https://github.com/github/copilot-cli")), // :94 - PR-PROVREG-051
+            ProviderKind.Commandcode => SwiftTraps.Unwrap(SwiftURL.Create("https://commandcode.ai/docs/quickstart")), // :95 - PR-PROVREG-052
+            ProviderKind.Pi => SwiftTraps.Unwrap(SwiftURL.Create("https://pi.dev/docs/latest")), // :96 - PR-PROVREG-053
+            _ => throw new UnreachableException(),
+        };
+
+        // :101 `self == .deepseek || self == .meta || self == .zai`.
+        public bool IsAPIKeyBased => kind is ProviderKind.Deepseek or ProviderKind.Meta or ProviderKind.Zai; // PR-PROVREG-059, 060
+
+        // :104 `self == .cursor || self == .opencode || self == .opencodeGo || self == .grok || self == .devin`.
+        public bool UsesACP => kind is ProviderKind.Cursor or ProviderKind.Opencode or ProviderKind.OpencodeGo
+            or ProviderKind.Grok or ProviderKind.Devin; // PR-PROVREG-056, 057, 058
+
+        // :109 `isAPIKeyBased || self == .commandcode`.
+        public bool AcceptsAPIKey => kind.IsAPIKeyBased || kind == ProviderKind.Commandcode; // PR-PROVREG-059
+
+        // :112-119.
+        public string? ApiHost => kind switch
+        {
+            ProviderKind.Deepseek => "api.deepseek.com", // :114 - PR-PROVREG-059
+            ProviderKind.Meta => "api.meta.ai/v1", // :115 - PR-PROVREG-060
+            ProviderKind.Zai => "api.z.ai/api/coding/paas/v4", // :116
+            _ => null, // :117
+        };
+
+        // :122-130.
+        public string? ApiKeySource => kind switch
+        {
+            ProviderKind.Deepseek => "platform.deepseek.com", // :124 - PR-PROVREG-059
+            ProviderKind.Meta => "dev.meta.ai", // :125 - PR-PROVREG-060
+            ProviderKind.Zai => "z.ai/manage-apikey/apikey-list", // :126
+            ProviderKind.Commandcode => "commandcode.ai/studio", // :127 - PR-PROVREG-039
+            _ => null, // :128
+        };
+
+        // :133-141.
+        public string? ApiKeyEnvVar => kind switch
+        {
+            ProviderKind.Deepseek => "DEEPSEEK_API_KEY", // :135 - PR-PROVREG-059
+            ProviderKind.Meta => "MODEL_API_KEY", // :136 - PR-PROVREG-060
+            ProviderKind.Zai => "ZAI_API_KEY", // :137
+            ProviderKind.Commandcode => "COMMAND_CODE_API_KEY", // :138
+            _ => null, // :139
+        };
+
+        // :144 `self == .codex || self == .claude || self == .copilot`.
+        public bool SupportsRewind => kind is ProviderKind.Codex or ProviderKind.Claude or ProviderKind.Copilot; // PR-PROVREG-054, 055
+
+        // :149-154.
+        public bool SupportsCompact => kind switch
+        {
+            ProviderKind.Codex or ProviderKind.Claude or ProviderKind.Copilot or ProviderKind.Deepseek
+                or ProviderKind.Meta or ProviderKind.Zai or ProviderKind.Pi => true, // :151
+            _ => false, // :152 - PR-PROVREG-057
+        };
+
+        // :158 `self != .grok && self != .antigravity`.
+        public bool SupportsImages => kind != ProviderKind.Grok && kind != ProviderKind.Antigravity; // PR-PROVREG-058
     }
 }
 
