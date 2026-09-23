@@ -632,7 +632,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Development-only; not user-visible in a shipped build.",
       "verification_method": "unit test with an injected clock over both line shapes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

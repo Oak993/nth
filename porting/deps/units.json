@@ -2454,19 +2454,13 @@
    ],
    "intra_deps": [],
    "records_total": 1,
-   "records_todo": [
-    "PR-LAUNCH-024"
-   ],
-   "parts": [
-    [
-     "PR-LAUNCH-024"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M2-074"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.Git.TouchedPaths",
@@ -2484,25 +2478,13 @@
    ],
    "intra_deps": [],
    "records_total": 4,
-   "records_todo": [
-    "PR-GIT-093",
-    "PR-GIT-094",
-    "PR-GIT-095",
-    "PR-GIT-096"
-   ],
-   "parts": [
-    [
-     "PR-GIT-093",
-     "PR-GIT-094",
-     "PR-GIT-095",
-     "PR-GIT-096"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M3-012"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.Providers.APIKeychain",
@@ -2520,27 +2502,13 @@
    ],
    "intra_deps": [],
    "records_total": 5,
-   "records_todo": [
-    "PR-PROVAPI-001",
-    "PR-PROVAPI-002",
-    "PR-PROVAPI-003",
-    "PR-PROVAPI-004",
-    "PR-PROVREG-088"
-   ],
-   "parts": [
-    [
-     "PR-PROVAPI-001",
-     "PR-PROVAPI-002",
-     "PR-PROVAPI-003",
-     "PR-PROVAPI-004",
-     "PR-PROVREG-088"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-036"
    ],
    "risk": "HIGH",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.Providers.MetaAPI",
@@ -2615,40 +2583,14 @@
    ],
    "intra_deps": [],
    "records_total": 11,
-   "records_todo": [
-    "PR-PROVAPI-148",
-    "PR-PROVREG-223",
-    "PR-PROVREG-224",
-    "PR-PROVREG-225",
-    "PR-PROVREG-226",
-    "PR-PROVREG-227",
-    "PR-PROVREG-228",
-    "PR-PROVREG-229",
-    "PR-PROVREG-230",
-    "PR-PROVREG-231",
-    "PR-PROVREG-232"
-   ],
-   "parts": [
-    [
-     "PR-PROVAPI-148",
-     "PR-PROVREG-223",
-     "PR-PROVREG-224",
-     "PR-PROVREG-225",
-     "PR-PROVREG-226",
-     "PR-PROVREG-227",
-     "PR-PROVREG-228",
-     "PR-PROVREG-229",
-     "PR-PROVREG-230",
-     "PR-PROVREG-231",
-     "PR-PROVREG-232"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-123",
     "T-M4-124"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.Providers.ProviderSession",
