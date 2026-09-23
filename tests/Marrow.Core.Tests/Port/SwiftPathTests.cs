@@ -1,3 +1,4 @@
+using System.Globalization;
 using Marrow.Core.Port;
 
 namespace Marrow.Core.Tests.Port;
@@ -5,15 +6,32 @@ namespace Marrow.Core.Tests.Port;
 // F.PathIdentity (IMPLEMENTING.md 3.13 R-PATH-1 and 4.3): NSString and URL path semantics with both Windows
 // separators, one absoluteness predicate and one normalization (ED-019, ED-026, ED-036, ED-038, ED-039, ED-045).
 // Expected values come from the Foundation behaviour the pinned Swift relies on (call sites cited per test) and
-// from the literal text of the decisions; none is taken from running the port.
+// from the literal text of the decisions; none is taken from running the port. The .NET results asserted in the
+// negative controls were observed on .NET 10 (Windows 11) in a scratch console program, not in the port.
 //
 // Proposed port-only surface these tests fix (static members of SwiftPath):
-//   LastPathComponent(path), DeletingLastPathComponent(path), AppendingPathComponent(path, component),
-//   PathExtension(path), StandardizingPath(path), ExpandingTildeInPath(path),
-//   StandardizedFileURLPath(path, relativeTo) = URL(fileURLWithPath:relativeTo:).standardizedFileURL.path,
-//   IsAbsolute(path), Normalize(path), TailUnder(path, root), SamePath(a, b).
+//   NSString forms: LastPathComponent(path), DeletingLastPathComponent(path), AppendingPathComponent(path, component),
+//     PathExtension(path), StandardizingPath(path), ExpandingTildeInPath(path).
+//   URL forms, each on the path string of a file URL and each returning what Swift reads back:
+//     FileURLPathExtension(path) = URL(fileURLWithPath: path).pathExtension,
+//     FileURLDeletingLastPathComponentPath(path) = URL(fileURLWithPath: path).deletingLastPathComponent().path,
+//     FileURLAppendingPathComponentPath(path, component) = URL(fileURLWithPath: path).appendingPathComponent(component).path,
+//     StandardizedFileURLPath(path, relativeTo) = URL(fileURLWithPath: path, relativeTo: dir).standardizedFileURL.path.
+//   Rules: IsAbsolute(path), Normalize(path), TailUnder(path, root), SamePath(a, b).
 // Where no decision fixes which separator a result carries, the test compares through Normalize, so either
 // separator passes and only the Swift semantics are asserted.
+//
+// Every path in this file is a lexical fixture that does not exist on disk (C:\Repo, C:\r, \\server\share and the
+// rest). NSString.standardizingPath consults the file system (it resolves symbolic links for an absolute path that
+// contains "..", and drops a leading /private only while the file exists, AppModel+HydraMerge.swift:197-200), so the
+// lexical expectations here are the full Swift semantics only for paths that do not exist. Whether a Windows
+// junction or symbolic link is resolved is not decided by any ED; it is an open stop item (F.PathIdentity #5) and
+// no test here asserts either reading.
+//
+// Not written, pending rulings (stop items reported with this commit): the U+212A KELVIN SIGN fold row
+// (ED-019 lowercase fold against ED-039 ordinal fold, #1); whether "~" and "://" are part of the one exported
+// predicate (ED-038 against ED-036/ED-045, #2); the \\?\UNC\ long form (#3); URL.pathExtension of a dot-file name
+// or a name ending in "." and URL.deletingLastPathComponent at a root (#4); junction resolution (#5).
 public sealed class SwiftPathTests
 {
     private static string Home => Environment.GetEnvironmentVariable("USERPROFILE")!;
@@ -36,7 +54,9 @@ public sealed class SwiftPathTests
     public void LastPathComponent_follows_NSString_with_both_separators(string path, string expected)
     {
         // NSString.lastPathComponent: "/tmp/" is "tmp", "scratch///" is "scratch", "/" is "/", "" is "".
-        // Callers: Storage.swift:188, AppUpdater.swift:313, CodingSamples (Attachment name, Storage.swift:86).
+        // NSString callers: Shell.swift:188, DiffParser.swift:22, TerminalStore.swift:35, ComposerView.swift:461,
+        // :1168, TimelineRows.swift:764, OpenAICompatibleSession.swift:939, TokenLedger.swift:257,
+        // AttachmentPreview.swift:88, :423.
         Assert.Equal(expected, SwiftPath.LastPathComponent(path));
     }
 
@@ -48,7 +68,7 @@ public sealed class SwiftPathTests
         Assert.Equal("b", SwiftPath.LastPathComponent("a/b/"));
     }
 
-    // ---- deletingLastPathComponent ----------------------------------------------------------------------------
+    // ---- deletingLastPathComponent (NSString) -----------------------------------------------------------------
 
     [Theory]
     [Trait("Rule", "R-PATH-1")]
@@ -59,16 +79,21 @@ public sealed class SwiftPathTests
     [InlineData("/", "/")]
     [InlineData("scratch.tiff", "")]
     [InlineData("", "")]
+    [InlineData("/tmp//scratch.tiff", "/tmp")]
     [InlineData(@"\tmp\scratch.tiff", @"\tmp")]
     [InlineData(@"\tmp\lock\", @"\tmp")]
     [InlineData(@"\tmp", @"\")]
     [InlineData(@"\", @"\")]
+    [InlineData(@"\tmp\\scratch.tiff", @"\tmp")]
     [InlineData(@"a\b\", "a")]
     [InlineData(@"a/b", "a")]
     public void DeletingLastPathComponent_follows_NSString_with_both_separators(string path, string expected)
     {
         // NSString.deletingLastPathComponent: "/tmp/lock/" gives "/tmp", "/tmp" gives "/", "/" stays "/",
-        // "scratch.tiff" gives "". Callers: DiffParser.swift:24, Git.swift:467, AppModel+Hydra.swift:338.
+        // "scratch.tiff" gives "". NSString path methods fold a doubled separator before they act (the same fix
+        // that makes "scratch///" give "scratch" above), so "/tmp//scratch.tiff" gives "/tmp", never "/tmp/": a port
+        // that cuts at the last separator shows the doubled separator at DiffParser.swift:24-25, which appends "/"
+        // to the parent. NSString callers: DiffParser.swift:24, Git.swift:467, AppModel+Hydra.swift:338.
         Assert.Equal(expected, SwiftPath.DeletingLastPathComponent(path));
     }
 
@@ -79,17 +104,31 @@ public sealed class SwiftPathTests
     [InlineData(@"C:\Users", @"C:\")]
     [InlineData(@"C:\Users\", @"C:\")]
     [InlineData(@"C:\", @"C:\")]
+    [InlineData(@"C:\a\\b", @"C:\a")]
     [InlineData("C:/Users/a", "C:/Users")]
     [InlineData("C:/Users", "C:/")]
     [InlineData("C:/", "C:/")]
     [InlineData(@"\\server\share\dir\file", @"\\server\share\dir")]
     [InlineData(@"\\server\share\dir", @"\\server\share")]
+    [InlineData(@"\\server\share\", @"\\server\share")]
     [InlineData(@"\\server\share", @"\\server\share")]
+    [InlineData(@"\\?\C:\", @"\\?\C:\")]
     public void DeletingLastPathComponent_stops_at_the_drive_root_and_the_share_root(string path, string expected)
     {
         // ED-036: the upward walk (AppModel+Hydra.swift:332-340, `if dir == "/"`) ends where
-        // deletingLastPathComponent stops shortening the path, "at C:\ or \\server\share".
+        // deletingLastPathComponent stops shortening the path, "at C:\ or \\server\share". As NSString keeps "/"
+        // for "/", a root keeps its own spelling: removing components never rewrites what is left, so the long
+        // form \\?\C:\ is its own fixed point.
         Assert.Equal(expected, SwiftPath.DeletingLastPathComponent(path));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-036")]
+    [Trait("Decision", "ED-045")]
+    public void DeletingLastPathComponent_of_a_long_form_path_reaches_the_drive_root()
+    {
+        // ED-036 root "C:\" compared through the one normalization of ED-045 (\\?\ stripped).
+        Assert.Equal("C:/", SwiftPath.Normalize(SwiftPath.DeletingLastPathComponent(@"\\?\C:\a")));
     }
 
     [Fact]
@@ -110,29 +149,29 @@ public sealed class SwiftPathTests
         Assert.Equal(new[] { @"\\server\share\a\b", @"\\server\share\a", @"\\server\share" }, seen);
     }
 
-    [Theory]
+    [Fact]
     [Trait("Decision", "ED-036")]
-    [InlineData(@"\\?\C:\a\b")]
-    [InlineData(@"C:/a/b/c/")]
-    [InlineData(@"\\server\share\x\")]
-    public void Upward_walk_always_reaches_a_non_empty_fixed_point(string start)
+    [Trait("Decision", "ED-045")]
+    public void Upward_walk_from_a_long_form_path_ends_at_the_drive_root()
     {
-        // The walk has no `dir == "/"` exit on Windows (ED-036), so it must end on its own: every step either
-        // shortens the path or returns it unchanged, and the fixed point is never "" (the source's
-        // `if dir.isEmpty { dir = "/" }` guard at AppModel+Hydra.swift:339 has no drive-root analogue).
-        var dir = start;
-        for (var step = 0; step < 32; step++)
-        {
-            var parent = SwiftPath.DeletingLastPathComponent(dir);
-            if (parent == dir)
-            {
-                Assert.NotEqual("", dir);
-                return;
-            }
-            Assert.True(parent.Length < dir.Length, $"'{dir}' -> '{parent}' did not shorten");
-            dir = parent;
-        }
-        Assert.Fail($"no fixed point within 32 steps from '{start}'");
+        // ED-036: the walk ends "at C:\ or \\server\share". A port that walks \\?\C: to \\? to "\" ends on a
+        // non-empty fixed point too, and fails here.
+        Assert.Equal("C:/", SwiftPath.Normalize(FixedPoint(@"\\?\C:\a\b")));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-036")]
+    public void Upward_walk_from_a_trailing_separator_share_path_ends_at_the_share()
+    {
+        // A port that goes on from the share to \\server and "\" fails here.
+        Assert.Equal(@"\\server\share", FixedPoint(@"\\server\share\x\"));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-036")]
+    public void Upward_walk_from_a_forward_slash_drive_path_ends_at_the_drive_root()
+    {
+        Assert.Equal("C:/", FixedPoint("C:/a/b/c/"));
     }
 
     [Fact]
@@ -145,7 +184,7 @@ public sealed class SwiftPathTests
         Assert.Equal(@"C:\", SwiftPath.DeletingLastPathComponent(@"C:\a\"));
     }
 
-    // ---- appendingPathComponent -------------------------------------------------------------------------------
+    // ---- appendingPathComponent (NSString) --------------------------------------------------------------------
 
     [Theory]
     [Trait("Rule", "R-PATH-1")]
@@ -161,8 +200,9 @@ public sealed class SwiftPathTests
     public void AppendingPathComponent_joins_with_exactly_one_separator(string path, string component, string expected)
     {
         // NSString.appendingPathComponent: "/tmp" and "/tmp/" plus "scratch.tiff" both give "/tmp/scratch.tiff",
-        // "/" gives "/scratch.tiff". Callers: TouchedPaths.swift:24, AppModel+HydraMerge.swift:496, :499, :540,
-        // ThreadRuntime.swift:3376. Which separator is inserted is not fixed by any decision: compared normalized.
+        // "/" gives "/scratch.tiff". NSString callers: TouchedPaths.swift:24, AppModel+HydraMerge.swift:140, :253,
+        // :496, :499, :540, ThreadRuntime.swift:3376, AttachmentPreview.swift:71. Which separator is inserted is not
+        // fixed by any decision: compared normalized.
         Assert.Equal(expected, SwiftPath.Normalize(SwiftPath.AppendingPathComponent(path, component)));
     }
 
@@ -197,7 +237,7 @@ public sealed class SwiftPathTests
         Assert.Equal("C:/r/a.txt", SwiftPath.Normalize(SwiftPath.AppendingPathComponent(@"C:\r", @"\a.txt")));
     }
 
-    // ---- pathExtension ----------------------------------------------------------------------------------------
+    // ---- pathExtension (NSString) -----------------------------------------------------------------------------
 
     [Theory]
     [Trait("Rule", "R-PATH-1")]
@@ -218,9 +258,9 @@ public sealed class SwiftPathTests
     public void PathExtension_is_read_from_the_last_component_only(string path, string expected)
     {
         // NSString.pathExtension: "/tmp/scratch.tiff" "tiff", ".scratch.tiff" "tiff", "/tmp/scratch" "",
-        // "/tmp/" "", "/tmp/scratch..tiff" "tiff"; a leading dot starts no extension. Case is kept: callers
-        // lowercase themselves (Storage.swift:99, AttachmentPreview.swift:15, :130, DownloadsPopover.swift:70).
-        // A dot in a parent folder behind a backslash must not count.
+        // "/tmp/" "", "/tmp/scratch..tiff" "tiff"; a leading dot starts no extension. Case is kept: the NSString
+        // callers lowercase themselves (AttachmentPreview.swift:15, :89, :130, :150). A dot in a parent folder
+        // behind a backslash must not count.
         Assert.Equal(expected, SwiftPath.PathExtension(path));
     }
 
@@ -232,6 +272,88 @@ public sealed class SwiftPathTests
         Assert.Equal(".PNG", System.IO.Path.GetExtension("photo.PNG"));           // and it keeps the dot
         Assert.Equal("", SwiftPath.PathExtension(@"C:\dir\.bashrc"));
         Assert.Equal("PNG", SwiftPath.PathExtension("photo.PNG"));
+    }
+
+    // ---- URL forms: pathExtension, deletingLastPathComponent().path, appendingPathComponent().path ------------
+    // Only rows where Foundation's URL result is settled. URL.pathExtension of a dot-file name (".bashrc") or of a
+    // name ending in "." (the Storage.swift:99 "bin" fallback) and URL.deletingLastPathComponent at a root may
+    // differ from NSString and nothing settles them: stop item #4, no row.
+
+    [Theory]
+    [Trait("Rule", "R-PATH-1")]
+    [InlineData("/tmp/scratch.tiff", "tiff")]
+    [InlineData(@"C:\Users\me\Pictures\photo.PNG", "PNG")]
+    [InlineData(@"C:\Users\me\Downloads\archive.tar.gz", "gz")]
+    [InlineData(@"C:\dir.d\noext", "")]
+    [InlineData("C:/Users/me/.claude/projects/x/2026-09-22.jsonl", "jsonl")]
+    [InlineData(@"C:\Staging\Marrow.app\", "app")]
+    public void FileURL_pathExtension_is_read_from_the_last_component_and_keeps_its_case(string path, string expected)
+    {
+        // URL.pathExtension of the last path component, case kept (callers lowercase: Storage.swift:99, :184,
+        // Wallpaper.swift:127, DownloadsPopover.swift:70; compare as written: Wallpaper.swift:99-100,
+        // TokenLedger.swift:421 `== "jsonl"`). A directory URL's trailing separator does not hide the extension:
+        // AppUpdater.swift:317 finds the bundle among directory contents by `$0.pathExtension == "app"`.
+        Assert.Equal(expected, SwiftPath.FileURLPathExtension(path));
+    }
+
+    [Theory]
+    [Trait("Rule", "R-PATH-1")]
+    [InlineData(@"C:\r\src\a.txt", "C:/r/src")]
+    [InlineData("C:/r/src/a.txt", "C:/r/src")]
+    [InlineData(@"C:\Users\me\.codex\config.toml", "C:/Users/me/.codex")]
+    [InlineData(@"C:\Program Files\nodejs\node.exe", "C:/Program Files/nodejs")]
+    [InlineData(@"C:\Repo\a\b\", "C:/Repo/a")]
+    [InlineData(@"\\srv\share\d\f.txt", "//srv/share/d")]
+    public void FileURL_deletingLastPathComponent_path_is_the_parent_without_a_trailing_separator(string path, string expected)
+    {
+        // URL.deletingLastPathComponent().path: the parent folder, and URL.path never ends in a separator except
+        // at the root. Callers: NativeFileTools.swift:86 and MCPProviderConfig.swift:241 (the folder to create),
+        // ProviderRegistry.swift:262 (the executable's folder, `.path`), Git.swift:71 and ThreadRuntime.swift:1971
+        // (a directory URL walked up once per --show-prefix component).
+        Assert.Equal(expected, SwiftPath.Normalize(SwiftPath.FileURLDeletingLastPathComponentPath(path)));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-PATH-1")]
+    public void FileURL_repository_root_walk_removes_one_component_per_prefix_component()
+    {
+        // Git.swift:68-73: `var root = directory; for _ in prefix.trimmed.split(separator: "/") {
+        // root.deleteLastPathComponent() }`, with --show-prefix "a/b/" printed by git for C:\Repo\a\b.
+        var root = @"C:\Repo\a\b";
+        var components = "a/b/".Split('/', StringSplitOptions.RemoveEmptyEntries).Length;
+        for (var i = 0; i < components; i++)
+        {
+            root = SwiftPath.FileURLDeletingLastPathComponentPath(root);
+        }
+        Assert.Equal("C:/Repo", SwiftPath.Normalize(root));
+    }
+
+    [Theory]
+    [Trait("Rule", "R-PATH-1")]
+    [InlineData(@"C:\dev", "usr/bin/git", "C:/dev/usr/bin/git")]
+    [InlineData(@"C:\Repo", @"src\a.txt", "C:/Repo/src/a.txt")]
+    [InlineData(@"C:\Repo", "src/a.txt", "C:/Repo/src/a.txt")]
+    [InlineData(@"C:\Repo\", "a.txt", "C:/Repo/a.txt")]
+    [InlineData(@"C:\Repo", "sub/", "C:/Repo/sub")]
+    [InlineData(@"C:\Repo", @"..\outside.txt", "C:/Repo/../outside.txt")]
+    [InlineData(@"\\srv\share", "a.txt", "//srv/share/a.txt")]
+    public void FileURL_appendingPathComponent_path_joins_once_and_resolves_nothing(string path, string component, string expected)
+    {
+        // URL.appendingPathComponent(_:).path: a multi-component string is appended whole (Shell.swift:410,
+        // "usr/bin/git"), exactly one separator between, no trailing separator in `.path`, and ".." is kept for the
+        // standardization that follows (NativeFileTools.swift:25-26 appends model-supplied text, then
+        // standardizes, then checks containment at :27). Storage.swift:100 appends "<uuid>.<ext>".
+        Assert.Equal(expected, SwiftPath.Normalize(SwiftPath.FileURLAppendingPathComponentPath(path, component)));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-PATH-1")]
+    public void FileURL_appended_climb_is_removed_by_standardization()
+    {
+        // NativeFileTools.swift:22-26: root.appendingPathComponent(trimmed).standardizedFileURL; "..\outside.txt"
+        // lands beside the root, where the check at :27 rejects it.
+        var appended = SwiftPath.FileURLAppendingPathComponentPath(@"C:\Repo", @"..\outside.txt");
+        Assert.Equal("C:/outside.txt", SwiftPath.Normalize(SwiftPath.StandardizedFileURLPath(appended, null)));
     }
 
     // ---- absoluteness (one predicate) -------------------------------------------------------------------------
@@ -254,9 +376,12 @@ public sealed class SwiftPathTests
     [InlineData(@"\", false)]
     [InlineData("/x", false)]
     [InlineData("/", false)]
+    [InlineData("//server/share", false)]
+    [InlineData(@"\\\server\share", false)]
     [InlineData("C:", false)]
     [InlineData("C:x", false)]
     [InlineData(@"1:\x", false)]
+    [InlineData("\U000000C4:\\x", false)] // U+00C4 LATIN CAPITAL LETTER A WITH DIAERESIS: [A-Za-z] only
     [InlineData(@"CC:\x", false)]
     [InlineData(@" C:\x", false)]
     [InlineData(@"\\server", false)]
@@ -267,26 +392,31 @@ public sealed class SwiftPathTests
     public void IsAbsolute_is_drive_rooted_or_UNC_or_a_long_path_prefix(string path, bool expected)
     {
         // ED-036/038/045: absolute iff /^[A-Za-z]:[\\/]/, or /^\\\\[^\\/]+[\\/][^\\/]+/, or begins \\?\ ;
-        // a bare leading "\" is not absolute; case-insensitive only in the drive letter. Replaces
-        // `hasPrefix("/")` at TouchedPaths.swift:24, TurnDiff.swift:34, :41, AppModel+Hydra.swift:329,
-        // AppModel+HydraMerge.swift:498, :537.
+        // a bare leading "\" is not absolute; case-insensitive only in the drive letter. Read literally: the UNC
+        // form needs two backslashes (so "//server/share" is not absolute), its server name may not begin with a
+        // separator (so "\\\server\share" is not), and the drive letter is ASCII (a char.IsLetter port fails the
+        // U+00C4 row). Replaces `hasPrefix("/")` at TouchedPaths.swift:24, TurnDiff.swift:34, :41,
+        // AppModel+Hydra.swift:329, AppModel+HydraMerge.swift:498, :537. No row here contains "~" or "://": which
+        // predicate carries those is stop item #2.
         Assert.Equal(expected, SwiftPath.IsAbsolute(path));
     }
 
     [Theory]
-    [Trait("Decision", "ED-038")]
-    [Trait("Decision", "ED-039")]
+    [Trait("Decision", "ED-036")]
+    [Trait("Decision", "ED-045")]
     [InlineData("~")]
     [InlineData("~/x")]
     [InlineData(@"~\x")]
     [InlineData("~name/x")]
     [InlineData("https://example.com/a")]
-    public void Tilde_and_URL_forms_stay_separate_clauses_at_the_call_site(string path)
+    public void IsAbsolute_is_false_for_tilde_and_URL_forms_under_the_three_form_predicate(string path)
     {
-        // The shared predicate is the three forms ED-045 names. "~" and "://" stay the call sites' own literal
-        // clauses (AppModel+HydraMerge.swift:498, :537; TouchedPaths.swift:21-22 rejects "://" and expands "~"
-        // before the test at :24), so "~name/x", which expansion leaves alone, is still joined onto the root
-        // exactly as the source joins it.
+        // ED-036 and ED-045 give the predicate as exactly three forms (drive-rooted, UNC, \\?\), none of which a
+        // "~" or "://" string matches. ED-038's text instead lists "contains ://" and "begins ~" inside the one
+        // exported predicate; the two readings disagree on every row here, so ED-038 is deliberately not cited
+        // (stop item #2). The source differs by site: AppModel+HydraMerge.swift:498, :537 test
+        // `hasPrefix("/") || hasPrefix("~") || contains("://")`, while TouchedPaths.swift:21-24 rejects "://",
+        // expands "~" and then tests only `hasPrefix("/")`, so "~name/x" is joined onto the root there.
         Assert.False(SwiftPath.IsAbsolute(path));
     }
 
@@ -319,7 +449,7 @@ public sealed class SwiftPathTests
     {
         // ED-045: "one path-normalization step (backslashes to forward slashes, \\?\ stripped, drive letter
         // upper-cased) applied before any comparison". Nothing else: the rest of the case, trailing separators and
-        // dot segments are left to the comparison and to standardization.
+        // dot segments are left to the comparison and to standardization. The \\?\UNC\ form is stop item #3.
         Assert.Equal(expected, SwiftPath.Normalize(path));
     }
 
@@ -331,6 +461,7 @@ public sealed class SwiftPathTests
     [InlineData(@"C:\a\.\b", "C:/a/b")]
     [InlineData(@"C:\a\\b", "C:/a/b")]
     [InlineData(@"C:\a\b\..\c", "C:/a/c")]
+    [InlineData(@"C:\..\a", "C:/a")]
     [InlineData(@"C:\a\b\", "C:/a/b")]
     [InlineData("C:/a/b/", "C:/a/b")]
     [InlineData(@"C:\", "C:/")]
@@ -341,10 +472,11 @@ public sealed class SwiftPathTests
     [InlineData("", "")]
     public void StandardizingPath_reduces_dots_and_empty_components_and_drops_the_trailing_separator(string path, string expected)
     {
-        // NSString.standardizingPath: "//" and "/./" become one separator, ".." is resolved in absolute paths only
-        // (a relative path keeps it), a trailing separator is removed, the root keeps its own. The UNC lead-in
-        // "\\" is not an empty component. Callers: TouchedPaths.swift:23, :25, AppModel+Hydra.swift:323, :332,
-        // AppModel+HydraMerge.swift:191, :202.
+        // NSString.standardizingPath on a path that does not exist: "//" and "/./" become one separator, ".." is
+        // resolved in absolute paths only (a relative path keeps it), ".." at the root stays at the root ("/../a"
+        // is "/a", so a port that pops the drive fails the C:\..\a row), a trailing separator is removed, the root
+        // keeps its own. The UNC lead-in "\\" is not an empty component. Callers: TouchedPaths.swift:23, :25,
+        // AppModel+Hydra.swift:323, :326, :332, AppModel+HydraMerge.swift:191, :192, :202.
         Assert.Equal(expected, SwiftPath.Normalize(SwiftPath.StandardizingPath(path)));
     }
 
@@ -364,20 +496,45 @@ public sealed class SwiftPathTests
     [InlineData("src/a.txt", @"C:\Repo\", "C:/Repo/src/a.txt")]
     [InlineData(@".\a.txt", @"C:\Repo", "C:/Repo/a.txt")]
     [InlineData(@"..\other\a", @"C:\Repo\sub", "C:/Repo/other/a")]
+    [InlineData(@"..\..\x", @"C:\Repo", "C:/x")]
+    [InlineData(@"src\a.", @"C:\Repo", "C:/Repo/src/a.")]
     [InlineData(@"D:\x\y.txt", @"C:\Repo", "D:/x/y.txt")]
     [InlineData(@"\\?\D:\x", @"C:\Repo", "D:/x")]
-    [InlineData(@"\\srv\share\d\.\f", @"C:\Repo", "//srv/share/d/f")]
     [InlineData(@"\a.txt", @"C:\Repo", "C:/Repo/a.txt")]
     [InlineData(@"C:\Repo\sub\..\a.txt", @"C:\Other", "C:/Repo/a.txt")]
     public void StandardizedFileURLPath_resolves_a_relative_path_against_the_directory(string path, string directory, string expected)
     {
         // URL(fileURLWithPath: path, relativeTo: directory).standardizedFileURL.path: a relative path is resolved
-        // against the directory, an absolute one ignores it, "." and ".." are removed. The bare "\" form is not
-        // absolute (ED-045) and so is resolved against the directory. Callers: TouchedPaths.swift:9,
-        // TurnDiff.swift:8, ThreadRuntime.swift:3518.
+        // against the directory, an absolute one ignores it, whole "." and ".." segments are removed (RFC 3986:
+        // ".." above the root stays at the root), and a trailing dot inside a name is kept ("a." stays "a."). The
+        // bare "\" form is not absolute (ED-045) and so is resolved against the directory. Every expected value
+        // here is drive-rooted, and both separators after "C:" satisfy the predicate, so the result is also
+        // asserted absolute. Callers: TouchedPaths.swift:8-9, TurnDiff.swift:8, ThreadRuntime.swift:3518.
         var result = SwiftPath.StandardizedFileURLPath(path, directory);
         Assert.Equal(expected, SwiftPath.Normalize(result));
         Assert.True(SwiftPath.IsAbsolute(result), $"'{result}' is not absolute");
+    }
+
+    [Fact]
+    [Trait("Rule", "R-PATH-1")]
+    [Trait("Decision", "ED-045")]
+    public void StandardizedFileURLPath_keeps_a_UNC_path_and_ignores_the_directory()
+    {
+        // No decision fixes which separator a standardized UNC result carries, and the literal UNC predicate
+        // accepts only the backslash form, so this row is compared normalized and absoluteness is not asserted.
+        Assert.Equal("//srv/share/d/f", SwiftPath.Normalize(SwiftPath.StandardizedFileURLPath(@"\\srv\share\d\.\f", @"C:\Repo")));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-PATH-1")]
+    [Trait("Decision", "ED-045")]
+    public void Path_GetFullPath_escapes_the_root_and_strips_a_trailing_dot()
+    {
+        // The obvious .NET stand-in for standardizedFileURL and standardizingPath. Observed on .NET 10, Windows 11:
+        Assert.Equal(@"C:\a.txt", System.IO.Path.GetFullPath(@"\a.txt", @"C:\Repo"));      // "\" escapes the root
+        Assert.Equal(@"C:\Repo\src\a", System.IO.Path.GetFullPath(@"src\a.", @"C:\Repo")); // GetFullPathNameW drops the dot
+        Assert.Equal("C:/Repo/a.txt", SwiftPath.Normalize(SwiftPath.StandardizedFileURLPath(@"\a.txt", @"C:\Repo")));
+        Assert.Equal("C:/Repo/src/a.", SwiftPath.Normalize(SwiftPath.StandardizedFileURLPath(@"src\a.", @"C:\Repo")));
     }
 
     [Theory]
@@ -411,7 +568,8 @@ public sealed class SwiftPathTests
     public void ExpandingTildeInPath_expands_a_tilde_followed_by_either_separator(string path)
     {
         // ED-036: 'expand a leading "~" that is the whole string or is followed by \ or / to %USERPROFILE%'.
-        // Callers: TouchedPaths.swift:22, AppModel+Hydra.swift:321, NativeFileTools.swift:24, Shell.swift:418.
+        // Callers: TouchedPaths.swift:22, AppModel+Hydra.swift:321, AppModel+HydraMerge.swift:191,
+        // NativeFileTools.swift:24, Shell.swift:418, AttachmentPreview.swift:69.
         Assert.Equal(SwiftPath.Normalize(Home) + "/a/b.txt", SwiftPath.Normalize(SwiftPath.ExpandingTildeInPath(path)));
     }
 
@@ -449,7 +607,7 @@ public sealed class SwiftPathTests
     [InlineData("C:/a/b", "c:/", "a/b")]
     public void TailUnder_compares_folded_and_normalized_and_returns_the_callers_own_tail(string path, string root, string expected)
     {
-        // ProviderSession.swift:194-195 and TouchedPaths.swift:26-28: prefix = root ending in one separator, then
+        // ProviderSession.swift:194-196 and TouchedPaths.swift:26-28: prefix = root ending in one separator, then
         // the rest of the path. ED-019/026: compare on the forward-slash form, folded for case (NTFS), and "return
         // the untouched tail of the caller's original string"; ED-039(2): ordinal, drive letter upper-cased, any
         // \\?\ prefix stripped. A root already ending in a separator is used as it is (`root.hasSuffix("/")`).
@@ -470,7 +628,7 @@ public sealed class SwiftPathTests
     public void TailUnder_is_nil_outside_the_root_and_for_the_root_itself(string path, string root)
     {
         // `path.hasPrefix(root + "/")`: a sibling that merely shares the spelling ("/Repo2") is outside, and the
-        // root itself without a trailing separator is not under itself (ProviderSession.swift:194-195 returns the
+        // root itself without a trailing separator is not under itself (ProviderSession.swift:194-196 returns the
         // path whole; TouchedPaths.swift:27 returns nil).
         Assert.Null(SwiftPath.TailUnder(path, root));
     }
@@ -480,15 +638,40 @@ public sealed class SwiftPathTests
     [Trait("Decision", "ED-039")]
     public void TailUnder_folds_non_ASCII_letters_too()
     {
-        // ED-019 "locale-invariant lowercase fold" and ED-039 "ordinal" case-insensitive agree on these letters.
-        Assert.Equal("a.txt", SwiftPath.TailUnder("C:\\\u00DCber\\a.txt", "c:\\\u00FCber"));
+        // U+00DC LATIN CAPITAL LETTER U WITH DIAERESIS against U+00FC LATIN SMALL LETTER U WITH DIAERESIS: a pair
+        // with a one-to-one case mapping, on which a lowercase fold (ED-019) and an ordinal case-insensitive
+        // comparison (ED-039) give the same answer. Letters on which the two folds differ (U+212A KELVIN SIGN) are
+        // stop item #1 and have no row.
+        Assert.Equal("a.txt", SwiftPath.TailUnder("C:\\\U000000DCber\\a.txt", "c:\\\U000000FCber"));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-019")]
+    [Trait("Decision", "ED-026")]
+    [Trait("Decision", "ED-039")]
+    public void TailUnder_and_SamePath_fold_the_same_under_a_Turkish_current_culture()
+    {
+        // ED-019(1)/ED-026: a "locale-invariant" fold; ED-039(2): ordinal. Neither follows the current culture.
+        // Under tr-TR, "I".ToLower() is U+0131 LATIN SMALL LETTER DOTLESS I, so a culture fold misses "C:\IMG".
+        var saved = CultureInfo.CurrentCulture;
+        try
+        {
+            CultureInfo.CurrentCulture = new CultureInfo("tr-TR");
+            Assert.Equal("\U00000131", "I".ToLower(CultureInfo.CurrentCulture)); // the culture pitfall
+            Assert.Equal("a", SwiftPath.TailUnder(@"C:\IMG\a", @"c:\img"));
+            Assert.True(SwiftPath.SamePath(@"C:\IMG", @"c:\img"));
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = saved;
+        }
     }
 
     [Fact]
     [Trait("Decision", "ED-019")]
     public void An_ordinal_forward_slash_prefix_test_misses_a_Windows_path_inside_the_root()
     {
-        // The literal port of ProviderSession.swift:194-195 reports the file as outside: the failure ED-019 fixes.
+        // The literal port of ProviderSession.swift:194-196 reports the file as outside: the failure ED-019 fixes.
         const string root = @"C:\Repo";
         Assert.False(@"c:\repo\a.swift".StartsWith(root + "/", StringComparison.Ordinal));
         Assert.Equal(@"a.swift", SwiftPath.TailUnder(@"c:\repo\a.swift", root));
@@ -510,6 +693,7 @@ public sealed class SwiftPathTests
     {
         // `(p as NSString).standardizingPath == standard` (AppModel+Hydra.swift:326) and
         // `standardized.path == root.path` (NativeFileTools.swift:27), under the one comparison of ED-019/039/045.
+        // The fixtures do not exist on disk, so standardization is lexical (see the note at the top).
         Assert.Equal(expected, SwiftPath.SamePath(a, b));
         Assert.Equal(expected, SwiftPath.SamePath(b, a));
     }
@@ -526,5 +710,13 @@ public sealed class SwiftPathTests
             dir = parent;
         }
         return seen;
+    }
+
+    private static string FixedPoint(string start)
+    {
+        var seen = Walk(start);
+        var last = seen[^1];
+        Assert.Equal(last, SwiftPath.DeletingLastPathComponent(last)); // the walk ended by reaching a fixed point
+        return last;
     }
 }
