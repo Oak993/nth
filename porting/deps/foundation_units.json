@@ -302,6 +302,19 @@
     "URLComponents",
     "URLQueryItem"
    ]
+  },
+  {
+   "id": "F.SymbolImage",
+   "project": "Marrow.UI",
+   "target": "src/Marrow.UI/Port/SwiftImage.cs",
+   "risk": "STANDARD",
+   "spec": "ED-179 and ED-182: Image(systemName:) as Lucide icons (OD-0010, porting/icons) through an SVG-subset converter, Image(_ name:) for the three asset images, sizing, fill, composition and effects per ED-182 (oracle O-63).",
+   "patterns": [
+    "systemName:",
+    "systemImage:",
+    "systemSymbolName:",
+    "Image(\""
+   ]
   }
  ]
 }

@@ -7136,7 +7136,8 @@
       "b2_change": "B1 TimelineRows.swift:1050-1086 (fonts at :1063, :1068, :1094 with `zoom: zoom`) -> B2 :1044-1080 (fonts at :1057, :1062, :1088 without zoom). Words, transitions and shimmer are unchanged. Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table.",
       "engineering_decisions": [
         "ED-059: each text style is drawn at the size in upstream's B1 chatBaseSize table: callout 12 points (B1:DroppyCode/UI/Common/ChatZoom.swift:52). Set in Inter (OD-0009); the size is fixed per style and scales only through the app zoom (DroppyCode/UI/Common/AppZoom.swift), with no hook for a system text-size preference. Visual size parity stays UNVERIFIED under OD-0001."
-      ]
+      ],
+      "status": "IMPLEMENTED"
     },
     {
       "area": "HYDRAMERGE",
@@ -18557,7 +18558,8 @@
       "notes": "One constant, ChatThread.untitled, serves three roles: the stored decode default, the value a new chat is created with, and the displayed placeholder (port_impacts.md entry 112). Exactly \"New thread\": capital N, lowercase t, a single space, no ellipsis and no trailing punctuation.",
       "screen": "Sidebar thread row, activity list row, command palette row and the chat header",
       "element": "Title of a chat that has never been titled",
-      "role": "label"
+      "role": "label",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "STORE",
@@ -18579,7 +18581,8 @@
       "notes": "The literal is \"Pasted image.png\": capital P, lowercase i, one space, the extension in lowercase. It is stored in the Attachment record and therefore persists in the thread document, so it is visible again after a restart. The name is not deduplicated and does not carry a counter.",
       "screen": "Composer attachment chip, attachment strip in a sent message, attachment preview popover",
       "element": "Name of an attachment created by pasting an image",
-      "role": "label"
+      "role": "label",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "STORE",
@@ -18631,7 +18634,8 @@
       "notes": "Storage-side fact: the mark is one persisted string, \"emoji:<value>\" or \"symbol:<name>\", and a bare value with neither prefix is read as a symbol name. nil is not a stored value; it is the absence of the key, or the result of an empty string failing to decode.",
       "screen": "Activity list project row and the sidebar project header",
       "element": "Project mark for a project with no icon chosen",
-      "role": "icon"
+      "role": "icon",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "STORE",
@@ -18655,7 +18659,8 @@
       "notes": "The persisted field is the SF Symbol name itself, not the friendly key from droppy-code.json: the six friendly keys are mapped to symbol names at read time and the symbol name is what is stored. A Windows port maps the stored symbol names to its own icons and must keep the stored strings unchanged.",
       "screen": "Project script buttons in the sidebar and the worktree creation flow",
       "element": "Icon on a project script button with no icon set",
-      "role": "icon"
+      "role": "icon",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "STORE",
@@ -18678,7 +18683,8 @@
       "notes": "Storage-side fact only: isSettled and settledAt are the two persisted fields that drive this row, both survive a restart, and isSettled true with settledAt nil is a decodable state. The literal grey and the row metrics belong to the sidebar area and are not specified here.",
       "screen": "Sidebar thread list",
       "element": "Settled thread row",
-      "role": "row"
+      "role": "row",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "STORE",
@@ -18703,7 +18709,8 @@
       "notes": "Only expandsHelpers is persisted; foldsHelpers is a computed inverse and must not be written to disk under its own name, or every existing library inverts. The exact wording of the folded line belongs to the sidebar area.",
       "screen": "Sidebar thread list",
       "element": "Folded helpers line under a chat that has helper threads",
-      "role": "row"
+      "role": "row",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "STORE",
@@ -18726,7 +18733,8 @@
       "notes": "Tagline, verbatim: \"The deepest lead over the strongest builders: Fable plans and checks, Opus heads build. Set the thinking effort of each side yourself.\". Stable id \"claude-fable-opus\". Lead: providers [.claude, .commandcode], models [\"Fable\"], effort nil. Heads: providers [.claude, .commandcode], models [\"Opus\"], effort nil. maxHeads: nil (uncapped). The title and tagline are literals in the cookbook table and must not be reworded, re-punctuated or localised.",
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 1 of 10",
-      "role": "row"
+      "role": "row",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "STORE",
@@ -18749,7 +18757,8 @@
       "notes": "Tagline, verbatim: \"A careful lead and a wide, fast team: Opus writes the briefs, six Gemini Flash heads sprint through them.\". Stable id \"claude-opus-gemini-flash\". Lead: providers [.claude, .commandcode], models [\"Opus\"], effort \"high\". Heads: providers [.antigravity, .commandcode], models [\"Gemini 3.8 Flash\", \"Gemini\", \"Flash\"], effort \"medium\". maxHeads: 6 - the only capped recipe in the table. The title and tagline are literals in the cookbook table and must not be reworded, re-punctuated or localised.",
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 2 of 10",
-      "role": "row"
+      "role": "row",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "STORE",
@@ -18772,7 +18781,8 @@
       "notes": "Tagline, verbatim: \"Opus keeps the plan tight; DeepSeek V4.1 Flash heads keep the bill small on the routine parts.\". Stable id \"claude-opus-deepseek\". Lead: providers [.claude, .commandcode], models [\"Opus\"], effort \"high\". Heads: providers [.deepseek, .commandcode], models [\"V4.1 Flash\", \"V4.1\", \"DeepSeek\"], effort \"high\". maxHeads: nil (uncapped). The title and tagline are literals in the cookbook table and must not be reworded, re-punctuated or localised.",
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 3 of 10",
-      "role": "row"
+      "role": "row",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "STORE",
@@ -18795,7 +18805,8 @@
       "notes": "Tagline, verbatim: \"Opus keeps the plan tight; GLM-5.3 Flash heads on a Z.ai Coding Plan keep the bill flat.\". Stable id \"claude-opus-glm\". Lead: providers [.claude, .commandcode], models [\"Opus\"], effort \"high\". Heads: providers [.zai, .commandcode], models [\"5.3 Flash\", \"GLM\"], effort \"high\". maxHeads: nil (uncapped). The title and tagline are literals in the cookbook table and must not be reworded, re-punctuated or localised.",
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 4 of 10",
-      "role": "row"
+      "role": "row",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "STORE",
@@ -18818,7 +18829,8 @@
       "notes": "Tagline, verbatim: \"Fable thinks; Cursor's Composer heads type at the speed Composer is known for.\". Stable id \"claude-fable-composer\". Lead: providers [.claude, .commandcode], models [\"Fable\"], effort \"high\". Heads: providers [.cursor], models [\"Composer\"], effort nil - the only single-provider side in the table. maxHeads: nil (uncapped). The title and tagline are literals in the cookbook table and must not be reworded, re-punctuated or localised.",
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 5 of 10",
-      "role": "row"
+      "role": "row",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "STORE",
@@ -18841,7 +18853,8 @@
       "notes": "Tagline, verbatim: \"GPT-6 Astra orchestrates at high; Muse Spark Contributor heads build at medium.\". Stable id \"astra-spark\". Lead: providers [.codex, .commandcode], models [\"Astra\"], effort \"high\". Heads: providers [.meta, .commandcode], models [\"Contributor\"], effort \"medium\". maxHeads: nil (uncapped). The title and tagline are literals in the cookbook table and must not be reworded, re-punctuated or localised.",
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 6 of 10",
-      "role": "row"
+      "role": "row",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "STORE",
@@ -18864,7 +18877,8 @@
       "notes": "Tagline, verbatim: \"OpenAI top to bottom: Astra plans and reviews, Terra does the work at medium.\". Stable id \"astra-terra\". Lead: providers [.codex, .commandcode], models [\"Astra\"], effort \"high\". Heads: providers [.codex, .commandcode], models [\"Terra\"], effort \"medium\". maxHeads: nil (uncapped). The title and tagline are literals in the cookbook table and must not be reworded, re-punctuated or localised.",
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 7 of 10",
-      "role": "row"
+      "role": "row",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "STORE",
@@ -18887,7 +18901,8 @@
       "notes": "Tagline, verbatim: \"One model, two efforts: Astra thinks hard about the plan and the review, and Astra heads build at a working effort.\". Stable id \"astra-astra\". Lead: providers [.codex, .commandcode], models [\"Astra\"], effort \"high\". Heads: providers [.codex, .commandcode], models [\"Astra\"], effort \"medium\". maxHeads: nil (uncapped). The title and tagline are literals in the cookbook table and must not be reworded, re-punctuated or localised.",
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 8 of 10",
-      "role": "row"
+      "role": "row",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "STORE",
@@ -18910,7 +18925,8 @@
       "notes": "Tagline, verbatim: \"Opus thinks as hard as it can where it counts; Opus heads at medium do the building.\". Stable id \"claude-opus-opus\". Lead: providers [.claude, .commandcode], models [\"Opus\"], effort \"max\". Heads: providers [.claude, .commandcode], models [\"Opus\"], effort \"medium\". maxHeads: nil (uncapped). The title and tagline are literals in the cookbook table and must not be reworded, re-punctuated or localised.",
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 9 of 10",
-      "role": "row"
+      "role": "row",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "STORE",
@@ -18933,7 +18949,8 @@
       "notes": "Tagline, verbatim: \"For the hardest, longest jobs: every seat on the most capable model, the lead at high and the heads at medium.\". Stable id \"claude-fable-fable\". Lead: providers [.claude, .commandcode], models [\"Fable\"], effort \"high\". Heads: providers [.claude, .commandcode], models [\"Fable\"], effort \"medium\". maxHeads: nil (uncapped). The title and tagline are literals in the cookbook table and must not be reworded, re-punctuated or localised.",
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 10 of 10",
-      "role": "row"
+      "role": "row",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "TERM",
@@ -21047,7 +21064,8 @@
         "DroppyCode/UI/Common/Genie.swift:130-176",
         "DroppyCode/UI/Common/Genie.swift:182-213"
       ],
-      "notes": "The default landing point for a flight with no target is x 24, y canvas height minus 12: the archive corner at the bottom left. The command palette sits above this layer (PR-WIN-067)."
+      "notes": "The default landing point for a flight with no target is x 24, y canvas height minus 12: the archive corner at the bottom left. The command palette sits above this layer (PR-WIN-067).",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "THEME",

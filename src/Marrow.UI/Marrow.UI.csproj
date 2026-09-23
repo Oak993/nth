@@ -13,6 +13,8 @@
   <ItemGroup>
     <!-- ED-107, OD-0020: Cascadia Mono ships inside the app (porting/probes/p9/CASCADIA.md). -->
     <AvaloniaResource Include="Assets/Fonts/**" />
+    <AvaloniaResource Include="Assets/Icons/**" />
+    <AvaloniaResource Include="Assets/Images/**" />
   </ItemGroup>
 
   <PropertyGroup>

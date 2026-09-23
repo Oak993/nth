@@ -17,7 +17,7 @@ silently; where a rule restates or refines one, it names it.
   tests: 204 tests (190 Core, 14 UI including headless Avalonia), 0 warnings under the proposed settings, green
   in 5 consecutive runs.
 - Appendix A scores every draft per construct; Appendix B lists the Swift behaviours no one could settle (the
-  oracle list, O-01 to O-61); Appendix C is the evidence.
+  oracle list, O-01 to O-63); Appendix C is the evidence.
 
 Labels, as the port uses them: **SOURCE FACT** (the pinned tree, `path:line`), **SEMANTICS** (documented or
 well-established Swift, Foundation or .NET behaviour), **ENGINEERING DECISION**, **UNVERIFIED** (believed, not
@@ -1773,6 +1773,8 @@ to macOS 26 is itself to be confirmed).
 | O-59 | whether macOS 26's URLComponents.host IDNA-decodes a host that was not percent-encoded, keeps ASCII case as written and keeps IP-literal brackets (`[::1]`), unlike URL.host | `MCPCustom.swift:174-180`; `MCPOAuth.swift:801-810` | yes, per swift-foundation 6.2 URLComponents.swift:184-193, IDNA through Windows icu.dll as SwiftURL does (ED-169) | URLComponentsTests (Oracle trait) | no (a macOS run) |
 | O-60 | whether macOS 26's URLComponents.url rebuilds the string as computedString does (the port rewritten from Int, so `0443` becomes `443`; user, password and `@` dropped when both are nil) and parses it through URL(stringOrEmpty:) on the Swift URL path rather than CFURLCreateWithString | `AppModel+HydraMerge.swift:384-388`; `MCPOAuth.swift:598`; `LinkTitles.swift:67` | yes, per swift-foundation 6.2 URLComponents.swift:434-490, :765-773 and URL.swift:611-614 (ED-169) | URLComponentsTests (Oracle trait) | no (a macOS run) |
 | O-61 | the order of macOS 26 NSFontManager.shared.availableFontFamilies (sorted by name, or another order) | `TerminalFont.swift:108`, `:115`, `:126` (first match wins in nerdSibling, firstInstalledNerdFont and resolve) | sorted ordinal case-insensitively (ED-175) | SwiftFont and TerminalFont tests with Oracle O-61 | no (a macOS run) |
+| O-62 | the curve of a lone SwiftUI CubicKeyframe with no velocities or neighbours (from initialValue to its target) | `Genie.swift:155-168` | Catmull-Rom with duplicated endpoints: start + (end - start) * (-t^3 + 1.5 t^2 + 0.5 t) (ED-178) | GenieTests with Oracle O-62 | no (a macOS run) |
+| O-63 | SF Symbol metrics against the Lucide stand-in: the square a symbol takes beside text of point size S, its vertical placement, the .imageScale factors, how a .fill variant fills and knocks out, and the geometry of composed renderings | every `Image(systemName:)` site (PA-0012) | ED-182's values (1.2 S square on the cap-height centre; 0.8/1.0/1.25; container filled, inner knocked out; 50 % inner glyph, (2,2)-(22,22) slash, r 4 badge at (18,6), Inter Semibold 11/24 text) | SwiftImageTests with Oracle O-63 | yes: measure the eight tour screenshots (OD-0004) |
 
 ---
 
