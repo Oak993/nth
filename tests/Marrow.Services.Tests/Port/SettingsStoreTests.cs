@@ -597,4 +597,92 @@ public sealed class SettingsStoreTests
         Assert.True(store.Synchronize());
         Assert.Equal(Encoding.UTF8.GetBytes("{\"appTheme\":{\"string\":\"light\"}}"), File.ReadAllBytes(path));
     }
+
+    // ED-156 (2): bytes that are not UTF-8 inside a key or a string make an entry the store cannot read (JSON text is
+    // UTF-8, RFC 8259 section 8.1); that entry is skipped, the rest load, and the original bytes are preserved. An editor
+    // saving in a Windows ANSI code page writes e-acute as the single byte 0xE9. Each '#' below becomes the given byte.
+    [Theory]
+    [Trait("Decision", "ED-156")]
+    [InlineData("{\"a\":{\"string\":\"x#\"},\"b\":{\"bool\":true}}", 0xFF)]
+    [InlineData("{\"a#\":{\"string\":\"x\"},\"b\":{\"bool\":true}}", 0xFF)]
+    [InlineData("{\"a\":{\"string\":\"caf#\"},\"b\":{\"bool\":true}}", 0xE9)]
+    [InlineData("{\"a\":{\"date\":\"2026-01-01T00:00:00.0000000Z#\"},\"b\":{\"bool\":true}}", 0xFF)]
+    [InlineData("{\"a\":{\"real\":\"nan#\"},\"b\":{\"bool\":true}}", 0xFF)]
+    [InlineData("{\"a\":{\"string#\":\"x\"},\"b\":{\"bool\":true}}", 0xFF)]
+    [InlineData("{\"a\":{\"array\":[{\"string\":\"x#\"}]},\"b\":{\"bool\":true}}", 0xFF)]
+    [InlineData("{\"a\":{\"dict\":{\"k#\":{\"string\":\"x\"}}},\"b\":{\"bool\":true}}", 0xFF)]
+    [InlineData("{\"a\":{\"dict\":{\"k\":{\"string\":\"x#\"}}},\"b\":{\"bool\":true}}", 0xE9)]
+    public void An_entry_holding_bytes_that_are_not_UTF8_is_skipped_and_the_file_is_preserved(string ascii, byte raw)
+    {
+        using var folder = new SettingsScratchFolder();
+        var path = folder.PathOf("UserDefaults.json");
+        var original = Encoding.ASCII.GetBytes(ascii).Select(b => b == (byte)'#' ? raw : b).ToArray();
+        File.WriteAllBytes(path, original);
+
+        var store = new SettingsStore(path);
+        Assert.Null(store.Object("a"));
+        Assert.Equal(true, store.Object("b"));
+        Assert.Equal(original, File.ReadAllBytes(path));
+        Assert.Equal(original, File.ReadAllBytes(path + ".unreadable"));
+    }
+
+    // ED-156 (1)/(2), format as fcd7934 has it: a top-level entry is read whole, so one nested item TryRead rejects makes
+    // the whole entry unread; it is skipped (never loaded in part) and the file is preserved.
+    [Theory]
+    [Trait("Decision", "ED-156")]
+    [InlineData("{\"a\":{\"array\":[{\"real\":1},{\"bogus\":2}]},\"b\":{\"bool\":true}}")]
+    [InlineData("{\"a\":{\"array\":[{\"real\":1},7]},\"b\":{\"bool\":true}}")]
+    [InlineData("{\"a\":{\"dict\":{\"k\":{\"string\":\"x\"},\"m\":{\"integer\":1.5}}},\"b\":{\"bool\":true}}")]
+    [InlineData("{\"a\":{\"dict\":{\"k\":{\"array\":[{\"bool\":true},{\"bool\":1}]}}},\"b\":{\"bool\":true}}")]
+    public void A_nested_item_the_store_cannot_read_skips_its_whole_entry_and_the_file_is_preserved(string json)
+    {
+        using var folder = new SettingsScratchFolder();
+        var path = folder.PathOf("UserDefaults.json");
+        var original = Encoding.UTF8.GetBytes(json);
+        File.WriteAllBytes(path, original);
+
+        var store = new SettingsStore(path);
+        Assert.Null(store.Object("a"));
+        Assert.Equal(true, store.Object("b"));
+        Assert.Equal(original, File.ReadAllBytes(path));
+        Assert.Equal(original, File.ReadAllBytes(path + ".unreadable"));
+    }
+
+    // ED-156 (2): a folder holding a copy's name counts as taken (File.Exists || Directory.Exists); the copy goes to the
+    // first free name and the folders are left alone.
+    [Fact]
+    [Trait("Decision", "ED-156")]
+    public void A_folder_with_an_unreadable_copy_name_counts_as_taken()
+    {
+        using var folder = new SettingsScratchFolder();
+        var path = folder.PathOf("UserDefaults.json");
+        Directory.CreateDirectory(path + ".unreadable");
+        Directory.CreateDirectory(path + ".unreadable-2");
+        var original = Encoding.UTF8.GetBytes("{bad");
+        File.WriteAllBytes(path, original);
+
+        _ = new SettingsStore(path);
+        Assert.Empty(Directory.EnumerateFileSystemEntries(path + ".unreadable"));
+        Assert.Empty(Directory.EnumerateFileSystemEntries(path + ".unreadable-2"));
+        Assert.Equal(original, File.ReadAllBytes(path + ".unreadable-3"));
+        Assert.Equal(original, File.ReadAllBytes(path));
+    }
+
+    // ED-156 (2): "if that write fails, the constructor throws", so the store never opens empty over settings it could
+    // not keep a copy of. The copy is made unwritable by length: the settings file's name is 250 characters, so
+    // "<name>.unreadable" exceeds the 255-character limit of an NTFS name component and cannot be created.
+    [Fact]
+    [Trait("Rule", "R-FS-1")]
+    [Trait("Decision", "ED-156")]
+    public void A_failed_copy_of_an_unreadable_file_fails_the_open_and_leaves_the_file_untouched()
+    {
+        using var folder = new SettingsScratchFolder();
+        var path = folder.PathOf(new string('s', 245) + ".json");
+        var original = Encoding.UTF8.GetBytes("{bad");
+        File.WriteAllBytes(path, original);
+
+        Assert.ThrowsAny<IOException>(() => new SettingsStore(path));
+        Assert.Equal(original, File.ReadAllBytes(path));
+        Assert.Equal([Path.GetFileName(path)], Directory.EnumerateFileSystemEntries(Path.GetDirectoryName(path)!).Select(Path.GetFileName));
+    }
 }
