@@ -1,4 +1,5 @@
 using System.Text;
+using System.Threading;
 using Marrow.Core.Support;
 
 namespace Marrow.Services.Tests.Fixtures;
@@ -88,8 +89,17 @@ public sealed class ClaudeScript
     public void SetExitAfterReply() => File.WriteAllText(Path.Combine(ControlDirectory, "exit-after-reply.txt"), "1");
 
     /// <summary>The raw text of the m-th non-empty stdin line (0-based) call n (0-based) received; the session
-    /// process is normally the last call, after the --help probe.</summary>
-    public string CapturedLine(int call, int message) => File.ReadAllText(Path.Combine(ControlDirectory, "captured-" + call + "-" + message + ".txt"));
+    /// process is normally the last call, after the --help probe. The stand-in now reads stdin on its own
+    /// thread (so it can give up on an idle process instead of blocking forever), which makes writing the
+    /// captured-<c>-<m>.txt file genuinely asynchronous with the client's own pipe write, so this polls for
+    /// the file to appear rather than assuming it is already there.</summary>
+    public string CapturedLine(int call, int message)
+    {
+        var path = Path.Combine(ControlDirectory, "captured-" + call + "-" + message + ".txt");
+        var deadline = DateTime.UtcNow.AddSeconds(20);
+        while (!File.Exists(path) && DateTime.UtcNow < deadline) Thread.Sleep(10);
+        return File.ReadAllText(path);
+    }
 
     /// <summary>The FIRST line call <paramref name="call"/> received (its initialize control_request).</summary>
     public string CapturedControlRequestLine(int call) => CapturedLine(call, 0);

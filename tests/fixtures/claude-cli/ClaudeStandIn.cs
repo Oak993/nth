@@ -22,10 +22,16 @@
 //                          first reply, reproducing part 1's original single-reply-then-exit shape for a test
 //                          that needs the child to close its own stdout quickly (e.g. a probe whose stream
 //                          ends without ever matching).
+// The run also exits on its own after 20 real seconds with no new stdin line, so a test that starts a session
+// and never explicitly stops it does not leave the process (and its reader thread) running for the rest of
+// the test suite: every test's own sequence of calls happens well inside that window, and the process is
+// gone shortly after the test that started it moves on.
 // Without CLAUDE_STANDIN_DIR set, the run does nothing and exits 0.
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Threading;
 
 internal static class ClaudeStandIn
 {
@@ -64,10 +70,45 @@ internal static class ClaudeStandIn
         string responsePath = Path.Combine(dir, "response.json");
         string responseTemplate = File.Exists(responsePath) ? File.ReadAllText(responsePath, Encoding.UTF8) : null;
         int message = 0;
+
+        // Read stdin on its own thread so the main loop can give up after an idle period instead of blocking
+        // forever on ReadLine once the test that started this process has moved on.
+        Queue<string> pending = new Queue<string>();
+        object gate = new object();
+        bool closed = false;
+        AutoResetEvent signal = new AutoResetEvent(false);
+        Thread reader = new Thread(delegate ()
+        {
+            while (true)
+            {
+                string read = Console.In.ReadLine();
+                lock (gate)
+                {
+                    if (read == null) { closed = true; }
+                    else { pending.Enqueue(read); }
+                }
+                signal.Set();
+                if (read == null) break;
+            }
+        });
+        reader.IsBackground = true;
+        reader.Start();
+
         while (true)
         {
-            string line = Console.In.ReadLine();
-            if (line == null) break;
+            if (!signal.WaitOne(TimeSpan.FromSeconds(20))) break; // idle timeout: no line in 20s, exit on our own
+            string line = null;
+            bool isClosed;
+            lock (gate)
+            {
+                isClosed = closed && pending.Count == 0;
+                if (pending.Count > 0) line = pending.Dequeue();
+            }
+            if (line == null)
+            {
+                if (isClosed) break;
+                continue;
+            }
             if (line.Length == 0) continue;
             File.WriteAllText(Path.Combine(dir, "captured-" + call + "-" + message + ".txt"), line, new UTF8Encoding(false));
             message++;

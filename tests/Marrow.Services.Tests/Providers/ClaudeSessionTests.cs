@@ -1216,29 +1216,34 @@ public sealed class ClaudeSessionTests
 
     [Fact]
     [Trait("Req", "PR-PROVCLI-042")] // ClaudeSession.swift:335-343
-    public async Task Control_resolves_by_matching_request_id_and_throws_for_an_error_subtype()
+    public Task Control_resolves_by_matching_request_id_and_throws_for_an_error_subtype()
     {
+        // Start() spawns the readTask via MainActor.Spawn, which needs a pumped loop to deliver the
+        // control_response back to Control()'s awaiter: run it through runtime.Loop like every other live
+        // session test (RunStart), not a bare await, or the readTask never gets to run.
         using var runtime = new TestRuntime();
         using var storage_runtime = new StorageScratchFolder();
         var script = new ClaudeScript("control-error");
         script.SetResponse("{\"type\":\"control_response\",\"response\":{\"request_id\":\"__REQUEST_ID__\",\"subtype\":\"error\",\"error\":\"nope\"}}");
         var session = new ClaudeSession(Config(script));
-        var error = await Assert.ThrowsAsync<ProviderError>(() => session.Start());
+        var error = Assert.Throws<ProviderError>(() => RunStart(runtime, session));
         Assert.IsType<ProviderError.Case.Failed>(error.ErrorCase);
         Assert.Equal("nope", error.ErrorDescription);
+        return Task.CompletedTask;
     }
 
     [Fact]
     [Trait("Req", "PR-PROVCLI-042")] // ClaudeSession.swift:340-341 - the fallback message when no error text is given
-    public async Task Control_error_without_a_message_uses_the_verbatim_fallback()
+    public Task Control_error_without_a_message_uses_the_verbatim_fallback()
     {
         using var runtime = new TestRuntime();
         using var storage_runtime = new StorageScratchFolder();
         var script = new ClaudeScript("control-error-fallback");
         script.SetResponse("{\"type\":\"control_response\",\"response\":{\"request_id\":\"__REQUEST_ID__\",\"subtype\":\"error\"}}");
         var session = new ClaudeSession(Config(script));
-        var error = await Assert.ThrowsAsync<ProviderError>(() => session.Start());
+        var error = Assert.Throws<ProviderError>(() => RunStart(runtime, session));
         Assert.Equal("Claude rejected the request.", error.ErrorDescription);
+        return Task.CompletedTask;
     }
 
     // ---- PR-PROVCLI-044 ----
