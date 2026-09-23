@@ -336,3 +336,15 @@ instruction may change one.
   (8) Dates follow the Windows custom short and long date formats and first day of the week, as the Mac follows its
   own settings. (9) The agent file-access containment check compares case-sensitively (drive letter aside), as on the
   Mac. Where a ruling differs from the Mac this is a named deviation.
+
+## OD-0021 Build first, verify later
+
+- **Asked by the owner, 2026-09-23, verbatim:** "We can create the app and get it running first, then anything missed or a
+  proper review can be scheduled later?" (after OD-0019 and the lean-mode answer "Lean for ordinary units
+  (Recommended)", given when the projection showed the full pipeline would not fit the week's remaining limit).
+- **Effect:** implementation runs in build mode: each unit part is written tests-first by one agent (Sonnet 5 for
+  ordinary units, Opus 5.5 for high-risk and foundation units) and merged when the full build and every test pass;
+  foundation units alone get one Opus review before merging. Units merged this way are IMPLEMENTED, never VERIFIED. A
+  verification wave runs after the app runs: the full review (fidelity, test adequacy, mutation, safety for high-risk
+  units) of every unit merged in build mode, with fixes. Gate D and the final parity claim wait for that wave; nothing
+  about the target or the contract changes.
