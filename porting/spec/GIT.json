@@ -2681,7 +2681,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Read stdout as bytes and decode UTF-8 with no CRLF translation: -z output carries no newlines and normalising a path containing a carriage return would corrupt it.",
       "verification_method": "unit over a text record, a binary record, an empty input and three malformed shapes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2705,7 +2705,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port.",
       "verification_method": "unit with a mixed kept and restorable preview",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

@@ -120,6 +120,22 @@ public static class SwiftDecoding
         throw new DecodingError("dataCorrupted", $"Parsed JSON number <{element.GetRawText()}> does not fit in Int.");
     }
 
+    /// <summary>
+    /// Swift <c>UInt</c> is 64-bit and unsigned (R-NUM-4): the same rule as <see cref="ReadInt"/> over 0 to
+    /// UInt.max, so a negative number or one past 2^64 - 1 does not fit and throws, as JSONDecoder's does.
+    /// First needed by Core/Models/Shortcuts.swift:9 (<c>KeyChord.modifiers</c>).
+    /// </summary>
+    public static ulong ReadUInt(JsonElement element)
+    {
+        if (element.ValueKind != JsonValueKind.Number) throw Mismatch("UInt", element);
+        if (element.TryGetUInt64(out var integer)) return integer;
+        if (element.TryGetDouble(out var number) && double.IsFinite(number) && Math.Truncate(number) == number &&
+            number >= 0 && number < 9007199254740992d) return (ulong)number;
+        if (element.TryGetDecimal(out var precise) && decimal.Truncate(precise) == precise && precise >= ulong.MinValue && precise <= ulong.MaxValue)
+            return (ulong)precise;
+        throw new DecodingError("dataCorrupted", $"Parsed JSON number <{element.GetRawText()}> does not fit in UInt.");
+    }
+
     /// <summary>Any JSON number.</summary>
     public static double ReadDouble(JsonElement element) =>
         element.ValueKind == JsonValueKind.Number && element.TryGetDouble(out var value) ? value : throw Mismatch("Double", element);
