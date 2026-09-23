@@ -17,7 +17,7 @@ silently; where a rule restates or refines one, it names it.
   tests: 204 tests (190 Core, 14 UI including headless Avalonia), 0 warnings under the proposed settings, green
   in 5 consecutive runs.
 - Appendix A scores every draft per construct; Appendix B lists the Swift behaviours no one could settle (the
-  oracle list, O-01 to O-55); Appendix C is the evidence.
+  oracle list, O-01 to O-56); Appendix C is the evidence.
 
 Labels, as the port uses them: **SOURCE FACT** (the pinned tree, `path:line`), **SEMANTICS** (documented or
 well-established Swift, Foundation or .NET behaviour), **ENGINEERING DECISION**, **UNVERIFIED** (believed, not
@@ -1767,6 +1767,7 @@ to macOS 26 is itself to be confirmed).
 | O-53 | whether `CGImageSourceCreateThumbnailAtIndex` with the options at `ThumbnailCache.swift:54-59` returns an image for WebP, AVIF, HEIC/HEIF and subsampled YCbCr TIFF on macOS 26, and applies their orientation (HEIF irot/imir, EXIF) | `ThumbnailCache.swift:44-62`; callers `AttachmentPreview.swift:9-12`, `:376`, `:437`, `DownloadsPopover.swift:29-31`, `:79`, `TimelineRows.swift:1346` | yes to both on the Mac (believed: support predates the 26.0 target); the port decodes through WIC where the running user has the codec, else null, and reads only JPEG/TIFF orientation (NAMED DEVIATION, ED-160) | none (the codec is per user; a test would depend on the account) | no (a macOS run) |
 | O-54 | whether `CGImageSourceCreateThumbnailAtIndex` yields an image for an SVG file on macOS 26 | `ThumbnailCache.swift:44-62` via `AttachmentPreview.swift:9-12`, `:376`, `:437` | nil (ImageIO sources are raster); the port also gives null, WIC has no SVG decoder (ED-160) | `ThumbnailCacheTests.An_svg_file_yields_no_thumbnail_and_is_decoded_again_next_time` | no (a macOS run) |
 | O-55 | whether a macOS FSEvents stream (FileEvents) reports a write made through a descriptor still open before a later cookie file's event | `WorkingTreeWatch.swift:15-18`, `:241-273`, `:300-301` (a cached tree reused while a writer holds a file open) | no: a write is counted when its handle closes; NTFS notifies at handle cleanup (measured by gpt6-workingtree-test-run1..5.log once they exist); xnu main `vfs_vnops.c` `vn_close` emits FSE_CONTENT_MODIFIED under FWASWRITTEN; no flush or probe is added (ED-161) | `WorkingTreeWatchTests.Write_through_a_handle_still_open_is_counted_once_the_handle_closes` | no (kernel behaviour; a macOS run) |
+| O-56 | whether a macOS FSEvents stream created with kFSEventStreamCreateFlagFileEvents reports a directory whose entries were created or deleted (as well as the entries) | `WorkingTreeWatch.swift:142`, `:195-196` (cookie files inside the git directory, skipped by the gitPrefix match only) | no: only the entries' own paths; the port's FileWatcher drops a directory's Changed event (ED-166) | `FileWatcherTests` Decision ED-166 test; `WorkingTreeWatchTests.Cookie_event_allows_a_cached_tree_to_be_reused` | no (a macOS run) |
 
 ---
 
