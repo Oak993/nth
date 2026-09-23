@@ -7,6 +7,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Marrow.Core.Port;
 using Marrow.UI.Port;
 
 // Source: DroppyCode/UI/Chrome/ChromeSegmentedPicker.swift (B2 1fbf81e), :1-82.
@@ -180,13 +181,31 @@ namespace Marrow.UI.Chrome
     /// </summary>
     internal sealed class ChromeSegment<TValue> : Decorator
     {
+        /// <summary>
+        /// Observable hover state model to enable animation tracking (R-OBS-1, ED-070).
+        /// </summary>
+        private sealed class HoverState : ObservableModel
+        {
+            private double hoverOpacity = 0;
+
+            /// <summary>
+            /// The hover state as an opacity value between 0 (not hovering) and 0.08 (hovering).
+            /// This value is animated when changed within a Transaction.WithAnimation block.
+            /// </summary>
+            public double HoverOpacity
+            {
+                get => Read(hoverOpacity);
+                set => Set(ref hoverOpacity, value);
+            }
+        }
         // :48-51 The segment's state and data.
         private readonly ChromeSegmentedOption<TValue> _option;
         private readonly Binding<TValue> _selection;
         private bool _isSelected;
 
         // :52 @State private var isHovering = false
-        private bool _isHovering;
+        // Use an observable model with animated opacity to enable smooth hover transitions
+        private readonly HoverState _hoverState = new();
 
         // The selectable button that handles clicks.
         private SelectableSegmentButton? _button;
@@ -209,7 +228,6 @@ namespace Marrow.UI.Chrome
             _selection = selection;
             _isSelected = EqualityComparer<TValue>.Default.Equals(option.Value, selection.Value);
             _selectionState.IsSelected = _isSelected;
-            _isHovering = false;
 
             // Build the visual tree once (ED-095, R-VIEW-1).
             Child = BuildSegmentBody();
@@ -222,6 +240,12 @@ namespace Marrow.UI.Chrome
             this.Track(
                 () => EqualityComparer<TValue>.Default.Equals(_option.Value, _selection.Value),
                 isNowSelected => UpdateSelected(isNowSelected));
+
+            // Track hover opacity changes and update background with animation (R-VIEW-5).
+            // The HoverOpacity is animated when changed within Transaction.WithAnimation blocks.
+            this.Track(
+                () => _hoverState.HoverOpacity,
+                _ => UpdateBackgroundColor());
         }
 
         /// <summary>
@@ -280,11 +304,17 @@ namespace Marrow.UI.Chrome
             };
 
             // :67-69 .onHover { hovering in ... }
-            _button.OnHover(hovering =>
+            // Track hover state changes and animate the background color (R-VIEW-4, R-VIEW-5).
+            // Use PointerEntered/PointerExited for hover detection with animated state transition.
+            // The HoverOpacity will be animated from 0 to 0.08 (or vice versa) over 0.1 seconds.
+            _button.PointerEntered += (_, _) =>
             {
-                _isHovering = hovering;
-                Transaction.WithAnimation(Chrome.Hover, UpdateBackgroundColor);
-            });
+                Transaction.WithAnimation(Chrome.Hover, () => _hoverState.HoverOpacity = 0.08);
+            };
+            _button.PointerExited += (_, _) =>
+            {
+                Transaction.WithAnimation(Chrome.Hover, () => _hoverState.HoverOpacity = 0);
+            };
 
             // :71 .accessibilityLabel(Text(verbatim: title))
             AutomationProperties.SetName(_button, _option.Title);
@@ -344,15 +374,26 @@ namespace Marrow.UI.Chrome
         /// <summary>
         /// Update the background color based on selection and hover state.
         /// :63 .background(Capsule(...).fill(isSelected ? Chrome.accent.opacity(0.22) : Chrome.overlay(isHovering ? 0.08 : 0)))
+        /// The _hoverState.HoverOpacity is animated between 0 (not hovering) and 0.08 (hovering) over 0.1 seconds,
+        /// allowing smooth opacity transitions as the user moves the pointer in and out.
         /// </summary>
         private void UpdateBackgroundColor()
         {
             if (_capsuleBorder is null)
                 return;
 
-            var bgColor = _isSelected
-                ? Chrome.Accent.Opacity(0.22)
-                : Chrome.Overlay(_isHovering ? 0.08 : 0);
+            SwiftColor bgColor;
+            if (_isSelected)
+            {
+                // :63 When selected, show accent at 22% opacity, regardless of hover state
+                bgColor = Chrome.Accent.Opacity(0.22);
+            }
+            else
+            {
+                // :63 When not selected, show label color at opacity interpolated by animated hover state
+                // HoverOpacity is animated between 0 and 0.08, providing smooth visual feedback
+                bgColor = Chrome.Overlay(_hoverState.HoverOpacity);
+            }
             _capsuleBorder.Background = bgColor.Brush(_capsuleBorder);
         }
 
