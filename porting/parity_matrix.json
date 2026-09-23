@@ -7,11 +7,11 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "SPECIFIED": 3747,
+      "SPECIFIED": 3743,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
       "DISCOVERED": 34,
       "RETIRED": 6,
-      "IMPLEMENTED": 126
+      "IMPLEMENTED": 130
     },
     "by_area": {
       "CHAT": 193,
@@ -11108,12 +11108,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port, including the asymmetry between the searched GitLab index and the fixed index 2 for the other two.",
       "verification_method": "unit table over a GitLab subgroup URL, a /diffs suffix, github.com, a GitHub Enterprise host, Codeberg and a non-matching URL",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-030",
-      "rework": true
+      "implemented_by_task": "T-M2-030"
     },
     {
       "area": "GIT",
@@ -11135,12 +11134,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port.",
       "verification_method": "unit for both forms",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-030",
-      "rework": true
+      "implemented_by_task": "T-M2-030"
     },
     {
       "area": "GIT",
@@ -11162,12 +11160,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port.",
       "verification_method": "unit for both forges",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-030",
-      "rework": true
+      "implemented_by_task": "T-M2-030"
     },
     {
       "area": "GIT",
@@ -11189,13 +11186,12 @@
       "cancellation": "The helper thread can be stopped like any other.",
       "windows_path": "Reproduce every character including the backticks and the parenthetical \"(a 405)\". The prompt is deliberately self-contained because a native provider reads no AGENTS.md before it starts.",
       "verification_method": "unit asserting the three assembled strings byte for byte",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
       "implemented_by_task": "T-M2-030",
-      "spec_fix": "expected_result said the first line holds \"<absolute url>\" and the citation began at :46 inside the doc comment -> the source interpolates url.absoluteString, the URL's own text as stored at MergeRequestLink.swift:38 (MergeRequestLink.swift:57), and `var prompt` begins at :47 (verify finding, packet T-M2-030)",
-      "rework": true
+      "spec_fix": "expected_result said the first line holds \"<absolute url>\" and the citation began at :46 inside the doc comment -> the source interpolates url.absoluteString, the URL's own text as stored at MergeRequestLink.swift:38 (MergeRequestLink.swift:57), and `var prompt` begins at :47 (verify finding, packet T-M2-030)"
     },
     {
       "area": "GIT",

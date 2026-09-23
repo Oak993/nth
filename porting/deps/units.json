@@ -630,25 +630,13 @@
    ],
    "intra_deps": [],
    "records_total": 4,
-   "records_todo": [
-    "PR-GIT-052",
-    "PR-GIT-053",
-    "PR-GIT-054",
-    "PR-GIT-055"
-   ],
-   "parts": [
-    [
-     "PR-GIT-052",
-     "PR-GIT-053",
-     "PR-GIT-054",
-     "PR-GIT-055"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M2-031"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Core.Models.Requests",
