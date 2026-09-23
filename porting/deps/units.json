@@ -417,8 +417,8 @@
    "packets": [],
    "risk": "HIGH",
    "spec": "Process launcher: ADR-0002 CreateProcessW with a Job Object and ConPTY in one attribute list (probe P5), the three termination shapes of probe P6 (1 s, 3 s, none); PA-0007, PA-0008, PA-0009, PA-0010, PA-0016; ED-020, ED-024, ED-027, ED-047; rules R-PROC-1 to R-PROC-3. First tests: the ladders under the manual clock; environment block order; argument quoting round trip; the 32,767 character command-line limit.",
-   "extends_existing": false,
-   "status": "TODO"
+   "extends_existing": true,
+   "status": "DONE"
   },
   {
    "id": "F.ICUFormatters",

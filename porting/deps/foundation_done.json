@@ -9,6 +9,7 @@
     "F.SwiftColor",
     "F.SwiftFont",
     "F.PathIdentity",
-    "F.ResizeStretch"
+    "F.ResizeStretch",
+    "F.ProcessLauncher"
   ]
 }
