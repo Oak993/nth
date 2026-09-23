@@ -1701,6 +1701,7 @@ to macOS 26 is itself to be confirmed).
 | O-22 | `Duration.seconds` of NaN, infinity or a huge Double | computed delays | traps; huge saturates (`SwiftTask.Seconds`) | `Seconds_traps_on_a_non_finite_interval_...` | yes |
 | O-23 | ICU formatter outputs (U+202F before AM/PM, named relative dates, spell-out, currency, `ByteCountFormatter` wording) | dates, sizes and credits in the UI | none yet (the formatter unit, 4.3) | none yet | FormatStyle yes; ByteCountFormatter no |
 | O-24 | JSON nesting limit (512) in JSONDecoder and JSONSerialization | deep MCP schemas and values | 512 (`SwiftJson.DocumentOptions`) | `Nesting_past_64_levels_needs_the_document_options` | decoder yes; serialization no |
+| O-25 | Foundation’s English text for `CocoaError` 256 and 259 with no file name | `RevertPreview.swift:33`, `:36`, `WorkingTreeWatch.swift:333` | "The file couldn’t be opened." and "The file couldn’t be opened because it isn’t in the correct format." (ED-100) | `CocoaErrorTests` | no (a macOS run) |
 
 ---
 

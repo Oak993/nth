@@ -241,3 +241,31 @@ instruction may change one.
 - **Answer, verbatim (selected option):** "Keep upstream default (Recommended)"
 - **Effect:** exact parity. Over the desktop the material is Acrylic plus the app-drawn scrim (OD-0005,
   probe P3); the richer drawn material appears once the user sets a wallpaper. UNK-0023 is resolved.
+
+## OD-0015 App icon: the Marrow icon the owner already finalized
+
+- **Asked:** 2026-09-22, in decision batch 2 (UNK-0008, the app icon under the Marrow name). The answer then was
+  "Design a new icon"; three drafts and a Stitch board followed, and a round-3 board on 2026-09-23.
+- **Answer, verbatim (2026-09-23):** "As for the icon, I don't like any of stitch's generated icons. LEt's stick to
+  our original finalized icon."
+- **Effect:** the port ships the icon of the owner's own Marrow app: `resources/icon.svg` (three arcs round a white
+  core on a dark navy tile), `resources/icon-small.svg` for 24 px and below, `resources/icon-mono.svg`, and the
+  rendered `build/icon.ico` and `resources/icon.png`, copied unchanged into `src/Marrow.App/Assets/`. The files say
+  they are original artwork, not derived from Droppy or Droppy Code artwork. The executable, installer, taskbar and
+  window use it, and so does every place upstream shows its own app icon or logo. It supersedes the batch-2 answer
+  "Design a new icon". This is part of the identity deviation of OD-0002 and is listed with it in the final report.
+
+## OD-0016 The Marrow icon, animated, on loading screens
+
+- **Asked by the owner, 2026-09-23, verbatim:** "I need that icon animated in the app for loading screens"
+- **What upstream does:** it has no loading screen. A thread whose history is still being read shows an empty
+  canvas on purpose, so the new-thread prompt does not flash (ThreadTimeline.swift:132-135); launch shows the main
+  window once the prologue has run (PR-LAUNCH-001, PR-LAUNCH-028); area-sized waits show the system spinner
+  (DiffInspector.swift:76 "Reading the diff...", AttachmentPreview.swift:299 and :319); small inline waits show
+  small or mini system spinners.
+- **Effect:** an owner-requested addition, listed as a named deviation in the final report. The animated Marrow
+  icon (the loading mark) appears where the app waits with a screen or a pane to fill: the thread history load, the
+  diff pane while it reads the diff (its label kept), the large attachment preview while its image or video frame
+  loads, and a launch splash while the prologue runs. Small and mini inline spinners stay the system spinner, as
+  upstream. Where, when and how it moves is ED-097. The motion is option A "Orbit" from
+  `E:/Droppy/work/icon/loading_preview.html` unless the owner picks B "Ratchet" or C "Bloom".
