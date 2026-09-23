@@ -2017,7 +2017,7 @@
       "cancellation": "A later play() cancels the current one by restarting it.",
       "windows_path": "Platform boundary: reproduce stop-then-play on one shared voice, not a mix of two overlapping voices. The declared partial order (3rd harmonic before the octave) does not change the sum but is recorded for fidelity of the constant table.",
       "verification_method": "unit: constants; interaction test: two settles in quick succession are audibly two ticks",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
