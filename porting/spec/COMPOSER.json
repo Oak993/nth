@@ -1953,7 +1953,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A critically damped spring integrator (m=1, k=170, c=26) run to its settling time, driving all three properties together, per port_impacts X8(d).",
       "verification_method": "capture comparison at three frames of the flight",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1976,7 +1976,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the three early returns and the ordering exactly. Read the Windows animation-effects system setting for the reduce-motion test.",
       "verification_method": "interaction test with reduced motion on, asserting the chip appears and nothing animates",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "51, 52",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -6651,7 +6651,8 @@
         "DroppyCode/App/Views/Composer/AttachmentFlight.swift:42-141",
         "DroppyCode/App/Views/Composer/AttachmentFlight.swift:186-207"
       ],
-      "notes": "The armed drop is consumed before the flight decides whether to play, so under reduced motion it is silently discarded; the chip appears regardless."
+      "notes": "The armed drop is consumed before the flight decides whether to play, so under reduced motion it is silently discarded; the chip appears regardless.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-081",
