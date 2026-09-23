@@ -2202,43 +2202,15 @@
    ],
    "intra_deps": [],
    "records_total": 12,
-   "records_todo": [
-    "PR-PROVAPI-034",
-    "PR-PROVAPI-035",
-    "PR-PROVAPI-036",
-    "PR-PROVAPI-037",
-    "PR-PROVAPI-038",
-    "PR-PROVAPI-039",
-    "PR-PROVAPI-040",
-    "PR-PROVAPI-041",
-    "PR-PROVAPI-042",
-    "PR-PROVAPI-043",
-    "PR-PROVAPI-044",
-    "UI-PROVAPI-027"
-   ],
-   "parts": [
-    [
-     "PR-PROVAPI-034",
-     "PR-PROVAPI-035",
-     "PR-PROVAPI-036",
-     "PR-PROVAPI-037",
-     "PR-PROVAPI-038",
-     "PR-PROVAPI-039",
-     "PR-PROVAPI-040",
-     "PR-PROVAPI-041",
-     "PR-PROVAPI-042",
-     "PR-PROVAPI-043",
-     "PR-PROVAPI-044",
-     "UI-PROVAPI-027"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-092",
     "T-M4-093",
     "T-M4-094"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.Providers.ProjectGuidance",

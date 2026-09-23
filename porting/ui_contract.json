@@ -11912,7 +11912,8 @@
         "DroppyCode/Services/Providers/MetaSession.swift:38-49",
         "DroppyCode/Services/Providers/ProviderRegistry.swift:128-129 metaSeed"
       ],
-      "notes": "The separators inside the detail strings are U+00B7 with single spaces. The seed is exactly those five ids in that order."
+      "notes": "The separators inside the detail strings are U+00B7 with single spaces. The seed is exactly those five ids in that order.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVAPI",
