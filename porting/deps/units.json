@@ -24,8 +24,8 @@
    "packets": [],
    "risk": "STANDARD",
    "spec": "NSSound as ED-151 gives it: SwiftSound.Create(byte[]) returning null for data that is not a playable PCM WAV; float Volume; Play() returning false and doing nothing while playing; Stop(); IsPlaying; output through the Ambient<ISoundOutput> seam SoundOutput.Current, production on the Windows waveOut API by P/Invoke with Volume applied to the samples, tests on a fake that records plays, stops and volumes and completes on demand. First tests: Create null for bad data; play then play again while playing is declined; stop then play replays; the volume reaches the output; a playback completes and IsPlaying turns false.",
-   "extends_existing": false,
-   "status": "TODO"
+   "extends_existing": true,
+   "status": "DONE"
   },
   {
    "id": "F.ResizeStretch",
@@ -49,8 +49,8 @@
    "packets": [],
    "risk": "HIGH",
    "spec": "The live-resize remedy of OD-0017 exactly as ED-101 gives it: after a window's first frame, resolve PlatformImpl, _glSurface, _window, _shared (SyncRoot, Compositor), _visual and _surfaceBrush by reflection; under lock(SyncRoot) size the content visual to zero with RelativeSizeAdjustment (1,1), set the surface brush Stretch to Fill, park a detached sprite visual in _visual; read both back and, if a member is missing or a read-back differs, log once and leave the window as Avalonia made it; on close put the real visual back under the lock before Avalonia disposes the surface. Evidence: porting/probes/p4b/RESULT.md section How the production chrome should implement it. First tests: a test pinned to Avalonia 12.1.2 that fails if any member is not found; the read-backs on a real window; the restore on close; nothing changes at rest.",
-   "extends_existing": false,
-   "status": "TODO"
+   "extends_existing": true,
+   "status": "DONE"
   },
   {
    "id": "F.LoadingMark",
@@ -190,8 +190,8 @@
    "packets": [],
    "risk": "STANDARD",
    "spec": "SwiftUI Color model (ED-092 part 1, ED-051, ED-062; R-VIEW-11). One immutable SwiftColor: fixed sRGB with alpha (red/green/blue, white, white+alpha, and the Core hex extension), an appearance pair resolved per ActualThemeVariant (NSColor dynamicProvider, the ED-051/ED-062 token pairs), or a named system colour (clear, white, black, primary, secondary, accentColor, yellow, NSColor labelColor, placeholderTextColor, controlAccentColor). Opacity(x) multiplies alpha and returns a new value. Resolve(theme) gives an Avalonia Color; Brush(control) gives a brush that follows the control theme changes. The accent is the Windows personalization accent. System colours with no B2 value use the macOS documented values, UNVERIFIED under OD-0001. First tests: opacity arithmetic, the token pairs in light and dark, a brush updating when the theme flips, hex parsing through the Core extension, and that Opacity does not change the receiver.",
-   "extends_existing": false,
-   "status": "TODO"
+   "extends_existing": true,
+   "status": "DONE"
   },
   {
    "id": "F.SwiftFont",
@@ -215,8 +215,8 @@
    "packets": [],
    "risk": "STANDARD",
    "spec": "SwiftUI Font model (ED-091, ED-059, OD-0009, PA-0013; R-VIEW-11). One immutable SwiftFont value: text style or fixed size, optional weight, design default or monospaced, monospacedDigit/italic/bold modifiers returning new values; factories System(style, design), System(size, weight, design) and one static per text style; NSFont.systemFont(ofSize:weight:), monospacedSystemFont(ofSize:weight:) and boldSystemFont(ofSize:) through the same type. Resolve() gives Avalonia FontFamily (Inter, or Cascadia Mono for monospaced), FontSize (ED-059 table from B1:DroppyCode/UI/Common/ChatZoom.swift:44-57, or the fixed size), FontWeight (100..900), FontStyle and font features (tnum for monospacedDigit); plus an Apply helper for TextBlock and TemplatedControl. Headline with no weight resolves bold; every other style regular. No zoom. First tests: the size per style, the weight map, the headline default, the monospaced face, the digits feature, and that modifiers do not change the receiver.",
-   "extends_existing": false,
-   "status": "TODO"
+   "extends_existing": true,
+   "status": "DONE"
   },
   {
    "id": "F.SourceScan",
@@ -265,8 +265,8 @@
    "packets": [],
    "risk": "HIGH",
    "spec": "File-system watcher (R-GCD-3): tree watch events on the caller's SerialQueue and directory watch events on main (ED-116); overflow or any Error means rescan (probe P8: FileSystemWatcher.Error with InternalBufferOverflowException maps to everything = true / changed = nil; ED-114); batching of events waiting for the handler, no latency (ED-115); no order between roots (ED-113). First tests: a real temporary folder, including a forced overflow.",
-   "extends_existing": false,
-   "status": "TODO"
+   "extends_existing": true,
+   "status": "DONE"
   },
   {
    "id": "F.FrameClock",
@@ -290,8 +290,8 @@
    "packets": [],
    "risk": "STANDARD",
    "spec": "Frame clock (ED-083; R-VIEW-10): frame-driven work runs on Avalonia's frame clock, the system timer resolution is never changed. Every other unit reads time only through this seam (ED-098): a public frame-source interface (request the next frame; the callback gets the frame time), the production source on TopLevel.RequestAnimationFrame, and a public manual source whose Advance(TimeSpan) runs the pending frame callbacks, for headless tests. First tests: a manual frame source.",
-   "extends_existing": false,
-   "status": "TODO"
+   "extends_existing": true,
+   "status": "DONE"
   },
   {
    "id": "F.HTTP",
@@ -340,8 +340,8 @@
    "packets": [],
    "risk": "HIGH",
    "spec": "Secret store in Windows Credential Manager (OD-0008 B3, ADR-0002 deviation 8; R-SEC-1): trimming, empty means delete, the Boolean result the Keychain helpers return, never a plain-text fallback (OD-0008 A6). Credential mapping, case-safe target names, 2560-byte chunking, the SecItem status contract and the backend seam per ED-093. First tests: trimming, empty deletes, the Boolean result, a refused write reports false, case-different accounts stay separate, a 2561-byte value round-trips in chunks, the live test only under MARROW_PORT_CREDMAN_LIVE=1.",
-   "extends_existing": false,
-   "status": "TODO"
+   "extends_existing": true,
+   "status": "DONE"
   },
   {
    "id": "F.SettingsStore",
@@ -392,8 +392,8 @@
    "packets": [],
    "risk": "HIGH",
    "spec": "File operations: PA-0015 retried replace, rename and delete under Windows sharing violations, read-only clearing, atomic write, verification (R-FS-1). First tests: a handle held open while the helper retries under the manual clock.",
-   "extends_existing": false,
-   "status": "TODO"
+   "extends_existing": true,
+   "status": "DONE"
   },
   {
    "id": "F.ProcessLauncher",
@@ -417,8 +417,8 @@
    "packets": [],
    "risk": "HIGH",
    "spec": "Process launcher: ADR-0002 CreateProcessW with a Job Object and ConPTY in one attribute list (probe P5), the three termination shapes of probe P6 (1 s, 3 s, none); PA-0007, PA-0008, PA-0009, PA-0010, PA-0016; ED-020, ED-024, ED-027, ED-047; rules R-PROC-1 to R-PROC-3. First tests: the ladders under the manual clock; environment block order; argument quoting round trip; the 32,767 character command-line limit.",
-   "extends_existing": false,
-   "status": "TODO"
+   "extends_existing": true,
+   "status": "DONE"
   },
   {
    "id": "F.ICUFormatters",
@@ -467,8 +467,8 @@
    "packets": [],
    "risk": "STANDARD",
    "spec": "URL(string:): the macOS 14 leniency, host case and brackets, decoded path (R-PATH-1). First tests: \"foo bar\", IPv6 hosts, MarkdownView.swift:677. url.pathComponents is SwiftURL.PathComponents (ED-143): the swift-foundation 6.2 split of the encoded path on runs of \"/\", each component percent-decoded as UTF-8, a final \"/\" dropped, \"\\\" kept percent-encoded; its tests carry Oracle O-44.",
-   "extends_existing": false,
-   "status": "TODO"
+   "extends_existing": true,
+   "status": "DONE"
   },
   {
    "id": "F.PathIdentity",
@@ -493,7 +493,7 @@
    "risk": "HIGH",
    "spec": "Path identity: appendingPathComponent, deletingLastPathComponent, pathExtension, standardizedFileURL, .path, absoluteness, normalization, containment. Implements ED-019, ED-026, ED-036, ED-038, ED-039, ED-045 as one predicate and one normalization; rule R-PATH-1. First tests: the cases each ED lists; drive letters, UNC, \\\\?\\ prefixes, a bare backslash, trailing separators.",
    "extends_existing": true,
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "App.Views.Composer.AttachmentFlight",
@@ -608,19 +608,13 @@
    "deps": [],
    "intra_deps": [],
    "records_total": 1,
-   "records_todo": [
-    "PR-RUNTIME-264"
-   ],
-   "parts": [
-    [
-     "PR-RUNTIME-264"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M2-002"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Core.Models.MergeRequestLink",
@@ -636,25 +630,13 @@
    ],
    "intra_deps": [],
    "records_total": 4,
-   "records_todo": [
-    "PR-GIT-052",
-    "PR-GIT-053",
-    "PR-GIT-054",
-    "PR-GIT-055"
-   ],
-   "parts": [
-    [
-     "PR-GIT-052",
-     "PR-GIT-053",
-     "PR-GIT-054",
-     "PR-GIT-055"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M2-031"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Core.Models.Requests",
@@ -668,27 +650,13 @@
    "deps": [],
    "intra_deps": [],
    "records_total": 5,
-   "records_todo": [
-    "PR-RUNTIME-016",
-    "PR-RUNTIME-017",
-    "PR-RUNTIME-018",
-    "PR-RUNTIME-019",
-    "PR-RUNTIME-020"
-   ],
-   "parts": [
-    [
-     "PR-RUNTIME-016",
-     "PR-RUNTIME-017",
-     "PR-RUNTIME-018",
-     "PR-RUNTIME-019",
-     "PR-RUNTIME-020"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M2-044"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Core.Models.Shortcuts",
@@ -702,146 +670,8 @@
    "deps": [],
    "intra_deps": [],
    "records_total": 65,
-   "records_todo": [
-    "PR-GIT-141",
-    "PR-SETTINGS-104",
-    "PR-SETTINGS-193",
-    "PR-SETTINGS-194",
-    "PR-SETTINGS-195",
-    "PR-SETTINGS-196",
-    "PR-SETTINGS-197",
-    "PR-SETTINGS-198",
-    "PR-SETTINGS-199",
-    "PR-SETTINGS-200",
-    "PR-SETTINGS-201",
-    "PR-SETTINGS-202",
-    "PR-SETTINGS-203",
-    "PR-SETTINGS-204",
-    "PR-SETTINGS-205",
-    "PR-SETTINGS-206",
-    "PR-SETTINGS-207",
-    "PR-SETTINGS-208",
-    "PR-SETTINGS-209",
-    "PR-SETTINGS-210",
-    "PR-SETTINGS-211",
-    "PR-SETTINGS-219",
-    "PR-SETTINGS-223",
-    "PR-TERM-068",
-    "PR-TERM-069",
-    "PR-WIN-116",
-    "PR-WIN-117",
-    "PR-WIN-118",
-    "PR-WIN-119",
-    "PR-WIN-120",
-    "PR-WIN-121",
-    "PR-WIN-122",
-    "PR-WIN-123",
-    "PR-WIN-124",
-    "PR-WIN-125",
-    "PR-WIN-126",
-    "PR-WIN-127",
-    "PR-WIN-128",
-    "PR-WIN-129",
-    "PR-WIN-130",
-    "PR-WIN-131",
-    "PR-WIN-132",
-    "PR-WIN-133",
-    "PR-WIN-134",
-    "PR-WIN-135",
-    "PR-WIN-136",
-    "PR-WIN-137",
-    "PR-WIN-138",
-    "PR-WIN-139",
-    "PR-WIN-140",
-    "PR-WIN-141",
-    "PR-WIN-142",
-    "PR-WIN-143",
-    "PR-WIN-144",
-    "PR-WIN-145",
-    "PR-WIN-146",
-    "PR-WIN-147",
-    "PR-WIN-148",
-    "PR-WIN-149",
-    "PR-WIN-150",
-    "PR-WIN-151",
-    "PR-WIN-152",
-    "PR-WIN-153",
-    "UI-TERM-034",
-    "UI-TERM-035"
-   ],
-   "parts": [
-    [
-     "PR-GIT-141",
-     "PR-SETTINGS-104",
-     "PR-SETTINGS-193",
-     "PR-SETTINGS-194",
-     "PR-SETTINGS-195",
-     "PR-SETTINGS-196",
-     "PR-SETTINGS-197",
-     "PR-SETTINGS-198",
-     "PR-SETTINGS-199",
-     "PR-SETTINGS-200",
-     "PR-SETTINGS-201",
-     "PR-SETTINGS-202",
-     "PR-SETTINGS-203",
-     "PR-SETTINGS-204",
-     "PR-SETTINGS-205",
-     "PR-SETTINGS-206",
-     "PR-SETTINGS-207",
-     "PR-SETTINGS-208",
-     "PR-SETTINGS-209",
-     "PR-SETTINGS-210",
-     "PR-SETTINGS-211",
-     "PR-SETTINGS-219",
-     "PR-SETTINGS-223",
-     "PR-TERM-068"
-    ],
-    [
-     "PR-TERM-069",
-     "PR-WIN-116",
-     "PR-WIN-117",
-     "PR-WIN-118",
-     "PR-WIN-119",
-     "PR-WIN-120",
-     "PR-WIN-121",
-     "PR-WIN-122",
-     "PR-WIN-123",
-     "PR-WIN-124",
-     "PR-WIN-125",
-     "PR-WIN-126",
-     "PR-WIN-127",
-     "PR-WIN-128",
-     "PR-WIN-129",
-     "PR-WIN-130",
-     "PR-WIN-131",
-     "PR-WIN-132",
-     "PR-WIN-133",
-     "PR-WIN-134",
-     "PR-WIN-135",
-     "PR-WIN-136",
-     "PR-WIN-137",
-     "PR-WIN-138"
-    ],
-    [
-     "PR-WIN-139",
-     "PR-WIN-140",
-     "PR-WIN-141",
-     "PR-WIN-142",
-     "PR-WIN-143",
-     "PR-WIN-144",
-     "PR-WIN-145",
-     "PR-WIN-146",
-     "PR-WIN-147",
-     "PR-WIN-148",
-     "PR-WIN-149",
-     "PR-WIN-150",
-     "PR-WIN-151",
-     "PR-WIN-152",
-     "PR-WIN-153",
-     "UI-TERM-034",
-     "UI-TERM-035"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M2-045",
     "T-M2-046",
@@ -853,7 +683,7 @@
     "T-M2-052"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Core.Support.CaptureRun",
@@ -887,23 +717,13 @@
    "deps": [],
    "intra_deps": [],
    "records_total": 3,
-   "records_todo": [
-    "PR-STORE-017",
-    "PR-STORE-018",
-    "PR-STORE-020"
-   ],
-   "parts": [
-    [
-     "PR-STORE-017",
-     "PR-STORE-018",
-     "PR-STORE-020"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M2-058"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Core.Support.ISO8601",
@@ -917,23 +737,13 @@
    "deps": [],
    "intra_deps": [],
    "records_total": 3,
-   "records_todo": [
-    "PR-STORE-168",
-    "PR-STORE-169",
-    "PR-STORE-170"
-   ],
-   "parts": [
-    [
-     "PR-STORE-168",
-     "PR-STORE-169",
-     "PR-STORE-170"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M2-061"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Core.Support.JSONValue",
@@ -947,33 +757,13 @@
    "deps": [],
    "intra_deps": [],
    "records_total": 8,
-   "records_todo": [
-    "PR-STORE-115",
-    "PR-STORE-116",
-    "PR-STORE-117",
-    "PR-STORE-118",
-    "PR-STORE-119",
-    "PR-STORE-120",
-    "PR-STORE-121",
-    "PR-STORE-122"
-   ],
-   "parts": [
-    [
-     "PR-STORE-115",
-     "PR-STORE-116",
-     "PR-STORE-117",
-     "PR-STORE-118",
-     "PR-STORE-119",
-     "PR-STORE-120",
-     "PR-STORE-121",
-     "PR-STORE-122"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M2-064"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Core.Support.ObservedValue",
@@ -987,19 +777,13 @@
    "deps": [],
    "intra_deps": [],
    "records_total": 1,
-   "records_todo": [
-    "PR-STORE-128"
-   ],
-   "parts": [
-    [
-     "PR-STORE-128"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M2-065"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Core.Support.RecentCache",
@@ -1033,27 +817,13 @@
    "deps": [],
    "intra_deps": [],
    "records_total": 5,
-   "records_todo": [
-    "PR-PROVACP-149",
-    "PR-PROVACP-150",
-    "PR-PROVACP-151",
-    "PR-PROVACP-152",
-    "PR-PROVACP-153"
-   ],
-   "parts": [
-    [
-     "PR-PROVACP-149",
-     "PR-PROVACP-150",
-     "PR-PROVACP-151",
-     "PR-PROVACP-152",
-     "PR-PROVACP-153"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M2-071"
    ],
    "risk": "HIGH",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.Git.DiffParser",
@@ -1069,29 +839,13 @@
    ],
    "intra_deps": [],
    "records_total": 6,
-   "records_todo": [
-    "PR-GIT-083",
-    "PR-GIT-084",
-    "PR-GIT-085",
-    "PR-GIT-086",
-    "PR-GIT-087",
-    "PR-GIT-088"
-   ],
-   "parts": [
-    [
-     "PR-GIT-083",
-     "PR-GIT-084",
-     "PR-GIT-085",
-     "PR-GIT-086",
-     "PR-GIT-087",
-     "PR-GIT-088"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M3-001"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.Git.RevertPreview",
@@ -1105,21 +859,13 @@
    "deps": [],
    "intra_deps": [],
    "records_total": 2,
-   "records_todo": [
-    "PR-GIT-099",
-    "PR-GIT-100"
-   ],
-   "parts": [
-    [
-     "PR-GIT-099",
-     "PR-GIT-100"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M3-011"
    ],
    "risk": "HIGH",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.Git.WorkingTreeWatch",
@@ -1245,19 +991,13 @@
    "deps": [],
    "intra_deps": [],
    "records_total": 1,
-   "records_todo": [
-    "PR-SIDEBAR-051"
-   ],
-   "parts": [
-    [
-     "PR-SIDEBAR-051"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M5-021"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "UI.Common.AppZoom",
@@ -1271,30 +1011,14 @@
    "deps": [],
    "intra_deps": [],
    "records_total": 6,
-   "records_todo": [
-    "PR-WIN-216",
-    "PR-WIN-217",
-    "PR-WIN-218",
-    "PR-WIN-219",
-    "PR-WIN-220",
-    "UI-WIN-078"
-   ],
-   "parts": [
-    [
-     "PR-WIN-216",
-     "PR-WIN-217",
-     "PR-WIN-218",
-     "PR-WIN-219",
-     "PR-WIN-220",
-     "UI-WIN-078"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M5-027",
     "T-M5-028"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "UI.Common.ChatFont",
@@ -1310,24 +1034,14 @@
    ],
    "intra_deps": [],
    "records_total": 3,
-   "records_todo": [
-    "PR-CHAT-193",
-    "PR-THEME-179",
-    "UI-CHAT-082"
-   ],
-   "parts": [
-    [
-     "PR-CHAT-193",
-     "PR-THEME-179",
-     "UI-CHAT-082"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M5-033",
     "T-M5-034"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "UI.Common.Genie",
@@ -1402,27 +1116,13 @@
    ],
    "intra_deps": [],
    "records_total": 5,
-   "records_todo": [
-    "PR-WIN-154",
-    "PR-WIN-155",
-    "PR-WIN-156",
-    "PR-WIN-157",
-    "PR-WIN-158"
-   ],
-   "parts": [
-    [
-     "PR-WIN-154",
-     "PR-WIN-155",
-     "PR-WIN-156",
-     "PR-WIN-157",
-     "PR-WIN-158"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M6-087"
    ],
    "risk": "HIGH",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Core.Models.Hydra",
@@ -2150,56 +1850,14 @@
    ],
    "intra_deps": [],
    "records_total": 19,
-   "records_todo": [
-    "PR-PROVACP-154",
-    "PR-PROVACP-155",
-    "PR-PROVACP-156",
-    "PR-PROVACP-157",
-    "PR-PROVACP-158",
-    "PR-PROVACP-159",
-    "PR-PROVACP-160",
-    "PR-PROVACP-161",
-    "PR-PROVACP-162",
-    "PR-PROVACP-163",
-    "PR-TERM-107",
-    "PR-TERM-108",
-    "PR-TERM-109",
-    "PR-TERM-110",
-    "PR-TERM-111",
-    "PR-TERM-112",
-    "PR-TERM-113",
-    "PR-TERM-114",
-    "PR-TERM-115"
-   ],
-   "parts": [
-    [
-     "PR-PROVACP-154",
-     "PR-PROVACP-155",
-     "PR-PROVACP-156",
-     "PR-PROVACP-157",
-     "PR-PROVACP-158",
-     "PR-PROVACP-159",
-     "PR-PROVACP-160",
-     "PR-PROVACP-161",
-     "PR-PROVACP-162",
-     "PR-PROVACP-163",
-     "PR-TERM-107",
-     "PR-TERM-108",
-     "PR-TERM-109",
-     "PR-TERM-110",
-     "PR-TERM-111",
-     "PR-TERM-112",
-     "PR-TERM-113",
-     "PR-TERM-114",
-     "PR-TERM-115"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M2-072",
     "T-M2-073"
    ],
    "risk": "HIGH",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Core.Support.Text",
@@ -2306,7 +1964,7 @@
   {
    "id": "Services.Git.FileChangeSummary_Diff",
    "swift": "DroppyCode/Services/Git/FileChangeSummary+Diff.swift",
-   "target": "src/Marrow.Services/Git/FileChangeSummary.Diff.cs",
+   "target": "src/Marrow.Services/Git/FileChangeSummary+Diff.cs",
    "project": "Marrow.Services",
    "test_project": "tests/Marrow.Services.Tests",
    "level": 1,
@@ -2318,19 +1976,13 @@
    ],
    "intra_deps": [],
    "records_total": 1,
-   "records_todo": [
-    "PR-GIT-092"
-   ],
-   "parts": [
-    [
-     "PR-GIT-092"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M3-002"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "UI.Sound.FinishChime",
@@ -2347,19 +1999,13 @@
    ],
    "intra_deps": [],
    "records_total": 1,
-   "records_todo": [
-    "PR-THEME-081"
-   ],
-   "parts": [
-    [
-     "PR-THEME-081"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M5-064"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "UI.Sound.SettleChime",
@@ -2376,19 +2022,13 @@
    ],
    "intra_deps": [],
    "records_total": 1,
-   "records_todo": [
-    "PR-THEME-082"
-   ],
-   "parts": [
-    [
-     "PR-THEME-082"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M5-065"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "App.LegacyMigration",
@@ -20256,7 +19896,7 @@
   {
    "id": "App.AppModel_Hydra",
    "swift": "DroppyCode/App/AppModel+Hydra.swift",
-   "target": "src/Marrow.App/AppModel.Hydra.cs",
+   "target": "src/Marrow.App/AppModel+Hydra.cs",
    "project": "Marrow.App",
    "test_project": "tests/Marrow.App.Tests",
    "level": 10,
@@ -20409,7 +20049,7 @@
   {
    "id": "App.AppModel_HydraMerge",
    "swift": "DroppyCode/App/AppModel+HydraMerge.swift",
-   "target": "src/Marrow.App/AppModel.HydraMerge.cs",
+   "target": "src/Marrow.App/AppModel+HydraMerge.cs",
    "project": "Marrow.App",
    "test_project": "tests/Marrow.App.Tests",
    "level": 10,
@@ -20657,7 +20297,7 @@
   {
    "id": "App.AppModel_HydraPairs",
    "swift": "DroppyCode/App/AppModel+HydraPairs.swift",
-   "target": "src/Marrow.App/AppModel.HydraPairs.cs",
+   "target": "src/Marrow.App/AppModel+HydraPairs.cs",
    "project": "Marrow.App",
    "test_project": "tests/Marrow.App.Tests",
    "level": 10,
@@ -20702,7 +20342,7 @@
   {
    "id": "App.HydraCookbook_Resolve",
    "swift": "DroppyCode/App/HydraCookbook+Resolve.swift",
-   "target": "src/Marrow.App/HydraCookbook.Resolve.cs",
+   "target": "src/Marrow.App/HydraCookbook+Resolve.cs",
    "project": "Marrow.App",
    "test_project": "tests/Marrow.App.Tests",
    "level": 10,
