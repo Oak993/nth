@@ -338,6 +338,28 @@ public sealed class TourViewTests(HeadlessSession headless)
         Assert.Equal("Continue", TextOf(button));
     });
 
+    // UI-UPDATE-036: the card's own shape, glass background and hairline border (TourView.swift's part of this
+    // record; the window-level key/main capability and drag-by-background belong to TourWindowController.swift,
+    // a separate unit, and are not testable here).
+    [Fact]
+    [Trait("Req", "UI-UPDATE-036")] // App/Views/Tour/TourView.swift:79-95
+    public void The_card_is_a_continuous_20pt_rounded_shape_with_glass_and_a_hairline_border() => headless.OnUiThread(() =>
+    {
+        var view = new TourView(SamplePages());
+        ShowInFrame(view);
+
+        var rounded = view.GetVisualDescendants().OfType<Border>().Where(b => b.CornerRadius == new CornerRadius(20)).ToArray();
+        Assert.NotEmpty(rounded); // :63, :80-95 shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
+
+        var glass = Assert.Single(rounded, b => SwiftGlass.GetEffect(b) is not null); // :82 .glassEffect(.regular, in: shape)
+        var effect = SwiftGlass.GetEffect(glass)!;
+        Assert.Equal(GlassShapeKind.RoundedRectangle, effect.Shape.Kind);
+        Assert.Equal(20, effect.Shape.CornerRadius);
+
+        var stroke = Assert.Single(rounded, b => b.BorderThickness == new Thickness(1)); // :88-90 strokeBorder(..., lineWidth: 1)
+        Assert.False(stroke.IsHitTestVisible);
+    });
+
     private static Button ButtonFor(TourView view) =>
         view.GetVisualDescendants().OfType<Button>().First(b => b.GetVisualDescendants().OfType<Border>().Any(f => f.Width == 220 && f.Height == 42));
 
