@@ -39,7 +39,9 @@ public readonly record struct SvgPaint(SvgPaintKind Kind, Color Color)
     }
 }
 
-/// <summary>One drawable SVG element, as geometry in view-box units and the paint it is drawn with.</summary>
+/// <summary>One drawable SVG element, as geometry in view-box units and the paint it is drawn with. <see cref="IsClosed"/>
+/// is true for circle, ellipse, rect and polygon, and for a path whose every subpath is closed by Z or ends on its own
+/// start point (ED-182 (Q4): only a closed shape can be the container a .fill name fills).</summary>
 public sealed record SvgShape(
     string Element,
     Geometry Geometry,
@@ -48,7 +50,8 @@ public sealed record SvgShape(
     double StrokeWidth,
     PenLineCap LineCap,
     PenLineJoin LineJoin,
-    FillRule FillRule);
+    FillRule FillRule,
+    bool IsClosed = false);
 
 /// <summary>An SVG document reduced to its view box and its drawable shapes in document order.</summary>
 public sealed class SvgIcon
@@ -145,18 +148,18 @@ public sealed class SvgIcon
                 Walk(element, own, shapes);
                 continue;
             }
-            var geometry = name switch
+            var (geometry, closed) = name switch
             {
-                "path" => ParsePathData(Required(element, "d"), own.FillRule),
-                "circle" => Circle(element),
-                "ellipse" => Ellipse(element),
-                "line" => Line(element),
-                "polyline" => Poly(element, closed: false, own.FillRule),
-                "polygon" => Poly(element, closed: true, own.FillRule),
-                "rect" => RoundedRect(element),
+                "path" => ParsePath(Required(element, "d"), own.FillRule),
+                "circle" => (Circle(element), true),
+                "ellipse" => (Ellipse(element), true),
+                "line" => (Line(element), false),
+                "polyline" => (Poly(element, closed: false, own.FillRule), false),
+                "polygon" => (Poly(element, closed: true, own.FillRule), true),
+                "rect" => (RoundedRect(element), true),
                 _ => throw new FormatException($"Unsupported SVG element <{name}>"),
             };
-            shapes.Add(new SvgShape(name, geometry, own.Fill, own.Stroke, own.StrokeWidth, own.LineCap, own.LineJoin, own.FillRule));
+            shapes.Add(new SvgShape(name, geometry, own.Fill, own.Stroke, own.StrokeWidth, own.LineCap, own.LineJoin, own.FillRule, closed));
         }
     }
 
@@ -230,17 +233,19 @@ public sealed class SvgIcon
     /// Parses SVG path data (every command of SVG 1.1 section 8.3: M L H V C S Q T A Z, absolute and relative, with
     /// implicit repeats) into a StreamGeometry. Malformed data is a <see cref="FormatException"/>.
     /// </summary>
-    public static Geometry ParsePathData(string d) => ParsePathData(d, FillRule.NonZero);
+    public static Geometry ParsePathData(string d) => ParsePath(d, FillRule.NonZero).Geometry;
 
-    private static Geometry ParsePathData(string d, FillRule fillRule)
+    private static (Geometry Geometry, bool Closed) ParsePath(string d, FillRule fillRule)
     {
         var geometry = new StreamGeometry();
+        PathBuilder builder;
         using (var context = geometry.Open())
         {
             context.SetFillRule(fillRule);
-            new PathBuilder(context).Run(new PathReader(d));
+            builder = new PathBuilder(context);
+            builder.Run(new PathReader(d));
         }
-        return geometry;
+        return (geometry, builder.Closed);
     }
 
     private sealed class PathBuilder(StreamGeometryContext context)
@@ -251,6 +256,10 @@ public sealed class SvgIcon
         private Point? lastQuadControl;
         private bool figureOpen;
         private bool anyFigure;
+        private bool everyFigureClosed = true;
+
+        /// <summary>True when the path has a subpath and every subpath is closed by Z or ends on its own start point.</summary>
+        public bool Closed => anyFigure && everyFigureClosed;
 
         public void Run(PathReader reader)
         {
@@ -268,7 +277,7 @@ public sealed class SvgIcon
                 else if (command == 'M') command = 'L';
                 else if (command == 'm') command = 'l';
             }
-            if (figureOpen) context.EndFigure(false);
+            if (figureOpen) EndOpenFigure();
         }
 
         private void Apply(char command, PathReader r)
@@ -281,7 +290,7 @@ public sealed class SvgIcon
                 case 'M':
                 {
                     var p = P(r.ReadNumber(), r.ReadNumber());
-                    if (figureOpen) context.EndFigure(false);
+                    if (figureOpen) EndOpenFigure();
                     context.BeginFigure(p, true);
                     figureOpen = anyFigure = true;
                     current = start = p;
@@ -370,6 +379,12 @@ public sealed class SvgIcon
             }
             lastCubicControl = cubic;
             lastQuadControl = quad;
+        }
+
+        private void EndOpenFigure()
+        {
+            if (Math.Abs(current.X - start.X) > 1e-3 || Math.Abs(current.Y - start.Y) > 1e-3) everyFigureClosed = false;
+            context.EndFigure(false);
         }
 
         private void RequireFigure()

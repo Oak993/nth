@@ -13,7 +13,7 @@ namespace Marrow.UI.Tests.Port;
 //   enum SvgPaintKind { None, CurrentColor, Color }
 //   readonly record struct SvgPaint(SvgPaintKind Kind, Color Color)
 //   sealed record SvgShape(string Element, Geometry Geometry, SvgPaint Fill, SvgPaint Stroke, double StrokeWidth,
-//       PenLineCap LineCap, PenLineJoin LineJoin, FillRule FillRule)
+//       PenLineCap LineCap, PenLineJoin LineJoin, FillRule FillRule, bool IsClosed = false) (IsClosed: ED-182, SwiftImageTests)
 //   sealed class SvgIcon { Rect ViewBox; IReadOnlyList<SvgShape> Shapes;
 //       static SvgIcon Parse(string svgText); static Geometry ParsePathData(string d); }
 // Hit tests run on the headless UI thread because geometry hit testing goes through the Skia render interface.
