@@ -2266,23 +2266,13 @@
    ],
    "intra_deps": [],
    "records_total": 3,
-   "records_todo": [
-    "PR-THEME-134",
-    "PR-THEME-135",
-    "PR-THEME-136"
-   ],
-   "parts": [
-    [
-     "PR-THEME-134",
-     "PR-THEME-135",
-     "PR-THEME-136"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M5-051"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "UI.Markdown.MarkdownParser",
