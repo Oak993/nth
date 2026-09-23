@@ -18,6 +18,7 @@
     "F.URLComponents",
     "F.SettingsStore",
     "F.SwiftAnimation",
-    "F.HTTPMove"
+    "F.HTTPMove",
+    "F.LoadingMark"
   ]
 }

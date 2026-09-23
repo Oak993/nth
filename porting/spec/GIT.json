@@ -2409,7 +2409,7 @@
       "cancellation": "Runs off the main actor; not separately cancellable.",
       "windows_path": "Normalise agent-reported paths to forward slashes before they enter this function, since every comparison here is forward-slash based.",
       "verification_method": "unit with a snapshot containing another thread's file, asserting it is dropped",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2433,7 +2433,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Sort with an ordinal comparison so the order matches.",
       "verification_method": "unit with an edit whose patch is empty but whose counts are set",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2458,7 +2458,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Port the loop as written: re-read the last id after each append (ED-172).",
       "verification_method": "unit merging two multi-hunk files for one path and asserting the consecutive ids",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
