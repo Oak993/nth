@@ -2,20 +2,13 @@ using System.Linq;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
+using Marrow.Services.Models;
 
 // Source: DroppyCode/Services/MCP/MCPProviderConfig.swift (B2 1fbf81e), :1-253.
 //
-// PARTIAL PORT. Claude, Codex, Copilot, Gemini and CodexUserServerNames (:4-146, :161-197) are pure builders
-// and a pure parser and are ported below (PR-MCP-165 to PR-MCP-168, and the codexUserServerNames half of
-// PR-MCP-171). WriteAll, AcpServers, CodexOverrides (its MCPPaths.codexConfigURL read) and the four accessors
-// ClaudeConfigPath, CopilotConfigJSON, GeminiSettingsPath, ConnectedIDs plus the private ServersPresent
-// (:148-159, :77-124, :199-210, :212-251 -- PR-MCP-169, PR-MCP-170, PR-MCP-172, and the rest of PR-MCP-171) all
-// read or write through Marrow.Services.Models.MCPPaths (src/Marrow.Services/Models/MCP.cs), whose members are
-// still `throw new NotImplementedException("MARROW_STUB ...")`: that type builds its paths from Storage.root
-// (Services/Store/Storage.swift:18), a Services type with no C# twin in the tree yet (no Storage.cs under
-// src/Marrow.Services/Store/). This is a missing dependency (IMPLEMENTING.md section 6); those sites are left
-// unwritten rather than stubbed, per "no shipped NotImplementedException" for a record this part covers. See the
-// unit's STOP report.
+// ED-177 RESUME: Services.Store.Storage merged, so Marrow.Services.Models.MCPPaths (src/Marrow.Services/Models/MCP.cs)
+// now builds its paths from Storage.Root instead of throwing. This part completes WriteAll, AcpServers,
+// CodexOverrides and the four accessors (PR-MCP-169 to PR-MCP-172, and the rest of PR-MCP-171) on top of it.
 
 namespace Marrow.Services.MCP;
 
@@ -184,6 +177,169 @@ public static class MCPProviderConfig
             names.Add(name); // :194
         }
         return new ValueList<string>(names.OrderBy(n => n, SwiftStringComparer.Instance)); // :196, R-COLL-1/R-STR-2
+    }
+
+    // :148-159. PR-MCP-169. An empty list removes all four provider files (in claude, codex, copilot, gemini
+    // order) and returns; a non-empty list writes all four in that same order. Individual write/delete failures
+    // are swallowed (try?).
+    public static void WriteAll(IReadOnlyList<MCPResolvedServer> servers) // :148
+    {
+        if (servers.Count == 0) // :149
+        {
+            foreach (var url in new[] { MCPPaths.ClaudeConfigURL, MCPPaths.CodexConfigURL, MCPPaths.CopilotConfigURL, GeminiSettingsURL }) // :150
+                SwiftTry.Ignore(() => FileOps.RemoveItem(url)); // :151
+            return; // :153
+        }
+        Write(Claude(servers), MCPPaths.ClaudeConfigURL); // :155
+        Write(Codex(servers), MCPPaths.CodexConfigURL); // :156
+        Write(Copilot(servers), MCPPaths.CopilotConfigURL); // :157
+        Write(Gemini(servers), GeminiSettingsURL); // :158
+    }
+
+    // :77-124. PR-MCP-170. Re-reads claude.json and rebuilds an ACP server array in sorted id order; a remote
+    // entry (type "http" or a non-nil url) becomes an http server when allowsHTTP, else an npx mcp-remote stdio
+    // launch; a local entry keeps its raw args array and a sorted env list.
+    public static JSONValue AcpServers(bool allowsHTTP) // :77
+    {
+        var data = SwiftTry.Optional(() => File.ReadAllBytes(MCPPaths.ClaudeConfigURL)); // :78
+        var parsed = data is null ? null : JSONValue.Parse(data); // :79
+        var mcpServers = parsed?["mcpServers"]?.JSONValueObject; // :80
+        if (mcpServers is null || mcpServers.Count == 0) return new JSONValue.Array(ValueList<JSONValue>.Empty); // :80-81
+
+        var servers = new List<JSONValue>(); // :82
+        foreach (var id in mcpServers.Keys.OrderBy(k => k, SwiftStringComparer.Instance)) // :83, R-COLL-1/R-STR-2
+        {
+            var entry = mcpServers[id]; // :84
+            if (entry["type"]?.JSONValueString == "http" || entry["url"]?.JSONValueString is not null) // :85
+            {
+                var url = entry["url"]?.JSONValueString ?? ""; // :86
+                var headers = entry["headers"]?.JSONValueObject ?? new Dictionary<string, JSONValue>(); // :87
+                var headerList = headers.Keys.OrderBy(k => k, SwiftStringComparer.Instance) // :88
+                    .Select(key => (JSONValue)ObjectOf(new Dictionary<string, JSONValue>
+                    {
+                        ["name"] = key, // :89
+                        ["value"] = headers[key].JSONValueString ?? "", // :89
+                    })).ToList();
+                if (allowsHTTP) // :91
+                {
+                    servers.Add(ObjectOf(new Dictionary<string, JSONValue> // :92-97
+                    {
+                        ["type"] = "http", // :93
+                        ["name"] = id, // :94
+                        ["url"] = url, // :95
+                        ["headers"] = new JSONValue.Array(new ValueList<JSONValue>(headerList)), // :96
+                    }));
+                }
+                else
+                {
+                    var args = new List<JSONValue> { "-y", "mcp-remote", url }; // :99
+                    foreach (var key in headers.Keys.OrderBy(k => k, SwiftStringComparer.Instance)) // :100
+                        args.AddRange(new JSONValue[] { "--header", $"{key}: {headers[key].JSONValueString ?? ""}" }); // :101
+                    servers.Add(ObjectOf(new Dictionary<string, JSONValue> // :103-108
+                    {
+                        ["name"] = id, // :104
+                        ["command"] = "npx", // :105
+                        ["args"] = new JSONValue.Array(new ValueList<JSONValue>(args)), // :106
+                        ["env"] = new JSONValue.Array(ValueList<JSONValue>.Empty), // :107
+                    }));
+                }
+            }
+            else
+            {
+                var env = entry["env"]?.JSONValueObject ?? new Dictionary<string, JSONValue>(); // :111
+                var envList = env.Keys.OrderBy(k => k, SwiftStringComparer.Instance) // :112
+                    .Select(key => (JSONValue)ObjectOf(new Dictionary<string, JSONValue>
+                    {
+                        ["name"] = key, // :113
+                        ["value"] = env[key].JSONValueString ?? "", // :113
+                    })).ToList();
+                servers.Add(ObjectOf(new Dictionary<string, JSONValue> // :115-120
+                {
+                    ["name"] = id, // :116
+                    ["command"] = entry["command"]?.JSONValueString ?? "", // :117
+                    ["args"] = new JSONValue.Array(new ValueList<JSONValue>(entry["args"]?.JSONValueArray ?? Array.Empty<JSONValue>())), // :118
+                    ["env"] = new JSONValue.Array(new ValueList<JSONValue>(envList)), // :119
+                }));
+            }
+        }
+        return new JSONValue.Array(new ValueList<JSONValue>(servers)); // :123
+    }
+
+    // :199-210. PR-MCP-171 (MCPPaths-reading half). Returns nil unless codex.json parses to a non-empty
+    // mcp_servers object; otherwise adds {"enabled": false} for every user server name not already a key. The
+    // public overload reads the real ~/.codex/config.toml via CodexUserServerNames(); the internal overload is
+    // the tests' seam.
+    public static JSONValue? CodexOverrides() => CodexOverrides(CodexUserServerNames()); // :199, :206
+
+    internal static JSONValue? CodexOverrides(IReadOnlyList<string> userServerNames) // :199-203
+    {
+        var data = SwiftTry.Optional(() => File.ReadAllBytes(MCPPaths.CodexConfigURL)); // :200
+        var parsed = data is null ? null : JSONValue.Parse(data); // :201
+        var mcpServers = parsed?["mcp_servers"]?.JSONValueObject; // :202
+        if (mcpServers is null || mcpServers.Count == 0) return null; // :202-203
+
+        var @object = new Dictionary<string, JSONValue>(mcpServers);
+        foreach (var name in userServerNames) // :206
+        {
+            if (!@object.ContainsKey(name)) // :206
+                @object[name] = ObjectOf(new Dictionary<string, JSONValue> { ["enabled"] = false }); // :207
+        }
+        return ObjectOf(@object); // :209
+    }
+
+    // :212-215. PR-MCP-172.
+    public static string? ClaudeConfigPath() // :212
+    {
+        if (!ServersPresent(MCPPaths.ClaudeConfigURL, "mcpServers")) return null; // :213
+        return MCPPaths.ClaudeConfigURL; // :214
+    }
+
+    // :217-223. PR-MCP-172. Returns the whole copilot.json re-serialized as a compact JSON string, not a path.
+    public static string? CopilotConfigJSON() // :217
+    {
+        var data = SwiftTry.Optional(() => File.ReadAllBytes(MCPPaths.CopilotConfigURL)); // :218
+        var parsed = data is null ? null : JSONValue.Parse(data); // :219
+        var mcpServers = parsed?["mcpServers"]?.JSONValueObject; // :220
+        if (mcpServers is null || mcpServers.Count == 0) return null; // :220-221
+        return parsed!.CompactString; // :222
+    }
+
+    // :225-228. PR-MCP-172.
+    public static string? GeminiSettingsPath() // :225
+    {
+        if (!ServersPresent(GeminiSettingsURL, "mcpServers")) return null; // :226
+        return GeminiSettingsURL; // :227
+    }
+
+    // :230-236. PR-MCP-172.
+    public static ValueList<string> ConnectedIDs() // :230
+    {
+        var data = SwiftTry.Optional(() => File.ReadAllBytes(MCPPaths.ClaudeConfigURL)); // :231
+        var parsed = data is null ? null : JSONValue.Parse(data); // :232
+        var mcpServers = parsed?["mcpServers"]?.JSONValueObject; // :233
+        if (mcpServers is null || mcpServers.Count == 0) return ValueList<string>.Empty; // :233-234
+        return new ValueList<string>(mcpServers.Keys.OrderBy(k => k, SwiftStringComparer.Instance)); // :235
+    }
+
+    // :238. private static let geminiSettingsURL. ENGINEERING DECISION: like MCPPaths.Directory (MCP.cs, ED-177),
+    // Storage.Root is an Ambient scoped per async flow, so a process-wide cached field here would freeze on
+    // whichever test's root won the race to evaluate it first. Recomputed on every access instead.
+    private static string GeminiSettingsURL => SwiftPath.AppendingPathComponent(MCPPaths.Directory, "gemini-settings.json"); // :238
+
+    // :240-243. Creates the parent directory then writes pretty-printed JSON atomically; both are try? in Swift.
+    private static void Write(JSONValue value, string url) // :240
+    {
+        SwiftTry.Ignore(() => Directory.CreateDirectory(Path.GetDirectoryName(url) ?? url)); // :241
+        SwiftTry.Ignore(() => FileOps.WriteAtomic(url, value.Data(pretty: true))); // :242
+    }
+
+    // :245-251. True only when the file reads, parses, and the named key holds a non-empty object.
+    private static bool ServersPresent(string url, string key) // :245
+    {
+        var data = SwiftTry.Optional(() => File.ReadAllBytes(url)); // :246
+        var parsed = data is null ? null : JSONValue.Parse(data); // :247
+        var @object = parsed?[key]?.JSONValueObject; // :248
+        return @object is not null && @object.Count > 0; // :248-249
     }
 
     private static JSONValue ObjectOf(IEnumerable<KeyValuePair<string, JSONValue>> pairs) =>
