@@ -11,7 +11,10 @@
  *     case, and every case must have passed),
  *   - nothing it names failed, was skipped or did not execute, and
  *   - the run is bound to the exact source tree being reported: git HEAD recorded, and no
- *     uncommitted change under src/ or tests/ at run time (otherwise the result is UNBOUND).
+ *     uncommitted change under src/ or tests/ at run time (otherwise the result is UNBOUND), and
+ *   - its depends_on_unknown does not name an unknown that was closed without an answer or is still open
+ *     (UNANSWERED below). Such a record whose tests all pass is PARTIAL: it is not counted in `verified`, it
+ *     names the unknown, and Gate D still refuses it (Core.Support.Coding rulings, 2026-09-23).
  *
  * Status is DERIVED on every run and written to porting/verification/requirements.json. It is never
  * set by hand, so a code change that breaks a test takes the requirement out of VERIFIED on the next
@@ -36,9 +39,12 @@ const OUT = join(ROOT, 'porting', 'verification', 'requirements.json');
 // ---------------------------------------------------------------- requirement list
 const matrix = JSON.parse(readFileSync(join(ROOT, 'porting', 'parity_matrix.json'), 'utf8'));
 const ui = JSON.parse(readFileSync(join(ROOT, 'porting', 'ui_contract.json'), 'utf8'));
+// UNK-0003 was closed without an answer under OD-0001 (no macOS reference run); UNK-0011 is still open.
+const UNANSWERED = new Set(['UNK-0003', 'UNK-0011']);
+const unanswered = (r) => (UNANSWERED.has(r.depends_on_unknown) ? r.depends_on_unknown : null);
 const reqs = new Map();
-for (const r of matrix.requirements) reqs.set(r.id, { kind: 'behaviour', blocked: !!r.blocked_by, retired: r.status === 'RETIRED' });
-for (const u of ui.records || []) if (u.id) reqs.set(u.id, { kind: 'ui', blocked: !!u.blocked_by, retired: u.status === 'RETIRED' });
+for (const r of matrix.requirements) reqs.set(r.id, { kind: 'behaviour', blocked: !!r.blocked_by, retired: r.status === 'RETIRED', unknown: unanswered(r) });
+for (const u of ui.records || []) if (u.id) reqs.set(u.id, { kind: 'ui', blocked: !!u.blocked_by, retired: u.status === 'RETIRED', unknown: unanswered(u) });
 
 // ---------------------------------------------------------------- traits from test source
 function walk(dir, out = []) {
@@ -146,8 +152,9 @@ for (const [id, r] of reqs) {
   else if (!tests.length) s = 'NO_TEST';
   else if (per.some((p) => p.outcomes.some((o) => o !== 'Passed'))) s = 'FAILING';
   else if (per.some((p) => !p.outcomes.length)) s = 'NOT_RUN';
-  else s = bound ? 'VERIFIED' : 'UNBOUND';
-  status[id] = { kind: r.kind, status: s, tests: per };
+  else if (!bound) s = 'UNBOUND';
+  else s = r.unknown ? 'PARTIAL' : 'VERIFIED';
+  status[id] = r.unknown ? { kind: r.kind, status: s, unknown: r.unknown, tests: per } : { kind: r.kind, status: s, tests: per };
   counts[s] = (counts[s] || 0) + 1;
 }
 

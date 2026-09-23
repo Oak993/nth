@@ -41,6 +41,7 @@ const PROTECTED = [
   'porting/critiques/', 'porting/extracts/', 'porting/reference_captures/',
   // the gates and the tools that feed them
   'porting/tools/',
+  'porting/source_scan_allow.json',
   // the work queue and packets
   'porting/tasks/',
   // build configuration and architecture guards
