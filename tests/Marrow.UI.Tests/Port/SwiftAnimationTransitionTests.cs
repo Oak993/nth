@@ -255,6 +255,69 @@ public sealed class SwiftAnimationTransitionTests(HeadlessSession headless)
     [Fact]
     [Trait("Rule", "R-VIEW-4")]
     [Trait("Decision", "ED-092")]
+    public void The_identity_transition_leaves_at_once_even_under_an_animation() => headless.OnUiThread(() =>
+    {
+        using var clocks = new AnimationClocks();
+        // App/Views/Chat/ChatView.swift:283-288: the swap "must replace in place, never slide or fade" with
+        // `.transition(.identity)`: a removal that touches nothing does not linger for the transaction's animation
+        // (documented SwiftUI behaviour the source relies on, UNVERIFIED under OD-0001 as ED-092 records).
+        var (window, panel) = Host();
+        var child = Box().Transition(SwiftTransition.Identity);
+        InsertAnimated(window, panel, child);
+        Transaction.WithAnimation(Animation.EaseOut(duration: 0.2), () => SwiftTransition.Remove(panel, child));
+        Assert.False(IsUnder(child, panel));
+        Assert.DoesNotContain(child, panel.Children);
+        Assert.Empty(panel.Children);
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Rule", "R-VIEW-4")]
+    [Trait("Decision", "ED-092")]
+    public void An_asymmetric_transition_with_an_identity_removal_leaves_at_once_under_an_animation() => headless.OnUiThread(() =>
+    {
+        using var clocks = new AnimationClocks();
+        // UI/Markdown/MarkdownView.swift:46-53 `.asymmetric(insertion: .softAppear, removal: .identity)`: the card "goes
+        // without a transition of its own"; the opacity insertion half stands in for the soft appear here.
+        var (window, panel) = Host();
+        var child = Box().Transition(SwiftTransition.Asymmetric(
+            insertion: SwiftTransition.Opacity,
+            removal: SwiftTransition.Identity));
+        InsertAnimated(window, panel, child);
+        Transaction.WithAnimation(Animation.EaseOut(duration: 0.2), () => SwiftTransition.Remove(panel, child));
+        Assert.False(IsUnder(child, panel));
+        Assert.Empty(panel.Children);
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Rule", "R-VIEW-4")]
+    [Trait("Decision", "ED-092")]
+    public void A_modifier_insertion_with_an_identity_removal_takes_its_wrapper_out_at_once_under_an_animation() => headless.OnUiThread(() =>
+    {
+        using var clocks = new AnimationClocks();
+        // App/Views/Chat/ThreadTimeline.swift:316-320 rowTransition: insertion `.modifier(...).animation(.softAppear)`,
+        // removal `.identity`. The row and the wrapper its modifier built leave the panel together, at once.
+        var (window, panel) = Host();
+        List<Control> bodies = [];
+        List<double> updates = [];
+        var child = Box().Transition(SwiftTransition.Asymmetric(
+            insertion: SwiftTransition.Modifier(
+                active: new SettleGlideSample(1, bodies, updates), identity: new SettleGlideSample(0, bodies, updates))
+                .Animation(Animation.EaseOut(duration: 0.2)),
+            removal: SwiftTransition.Identity));
+        SwiftTransition.Insert(panel, 0, child);
+        window.UpdateLayout();
+        Assert.Single(bodies);
+        Transaction.WithAnimation(Animation.EaseOut(duration: 0.2), () => SwiftTransition.Remove(panel, child));
+        Assert.False(IsUnder(child, panel));
+        Assert.Empty(panel.Children);
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Rule", "R-VIEW-4")]
+    [Trait("Decision", "ED-092")]
     public void A_transition_with_its_own_animation_animates_without_a_transaction_animation() => headless.OnUiThread(() =>
     {
         using var clocks = new AnimationClocks();
