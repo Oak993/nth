@@ -315,6 +315,51 @@ public sealed class RowDragTests
     }
 
     [Fact]
+    [Trait("Req", "PR-SIDEBAR-051")] // UI/Chrome/RowDrag.swift:37, :44-46, :51-53
+    public void Past_centre_scales_the_neighbour_slot_not_the_grabbed_row_or_the_average_of_the_two()
+    {
+        // G own 20, both neighbours 40, pastCentre 0.25.
+        // Swift :45 / :52: (own + slot) / 2 + slot * pastCentre = (20 + 40) / 2 + 40 * 0.25 = 30 + 10 = 40.
+        // Scaling own instead gives 30 + 20 * 0.25 = 35; scaling the average gives 30 + 30 * 0.25 = 37.5.
+        // Translation 39 lies above both wrong thresholds and below the right one, so it must not swap.
+        ValueList<Guid> order = new[] { A, G, B };
+        var heights = Heights((A, 40), (G, 20), (B, 40));
+        var calls = new List<(Guid Neighbour, bool PlaceAfter)>();
+        Func<Guid, bool, bool> log = (neighbour, placeAfter) => { calls.Add((neighbour, placeAfter)); return true; };
+
+        var (heldDown, movedHeldDown) = new RowDrag<Guid> { Id = G, Translation = 39 }.Settle(
+            order: order, heights: heights, fallbackHeight: SidebarFallback, move: log, pastCentre: 0.25);
+        Assert.False(movedHeldDown);
+        Assert.Empty(calls);
+        Assert.Equal(0.0, heldDown.Settled);
+        Assert.Equal(39.0, heldDown.VisualOffset);
+
+        // 40.5 > 40: move(B, true) once, settled += 40, visual 0.5; then B was the last row, so the walk stops.
+        var (down, movedDown) = new RowDrag<Guid> { Id = G, Translation = 40.5 }.Settle(
+            order: order, heights: heights, fallbackHeight: SidebarFallback, move: log, pastCentre: 0.25);
+        Assert.True(movedDown);
+        Assert.Equal(new[] { (B, true) }, calls);
+        Assert.Equal(40.0, down.Settled);
+        Assert.Equal(0.5, down.VisualOffset);
+
+        calls.Clear();
+        var (heldUp, movedHeldUp) = new RowDrag<Guid> { Id = G, Translation = -39 }.Settle(
+            order: order, heights: heights, fallbackHeight: SidebarFallback, move: log, pastCentre: 0.25);
+        Assert.False(movedHeldUp);
+        Assert.Empty(calls);
+        Assert.Equal(0.0, heldUp.Settled);
+        Assert.Equal(-39.0, heldUp.VisualOffset);
+
+        // -40.5: 40.5 > 40, move(A, false) once, settled -= 40, visual -0.5; then A was the first row, so it stops.
+        var (up, movedUp) = new RowDrag<Guid> { Id = G, Translation = -40.5 }.Settle(
+            order: order, heights: heights, fallbackHeight: SidebarFallback, move: log, pastCentre: 0.25);
+        Assert.True(movedUp);
+        Assert.Equal(new[] { (A, false) }, calls);
+        Assert.Equal(-40.0, up.Settled);
+        Assert.Equal(-0.5, up.VisualOffset);
+    }
+
+    [Fact]
     [Trait("Req", "PR-SIDEBAR-051")] // UI/Chrome/RowDrag.swift:17-27, :36
     public void Settle_leaves_the_original_value_alone_and_the_next_delivery_continues_from_the_returned_settled()
     {
