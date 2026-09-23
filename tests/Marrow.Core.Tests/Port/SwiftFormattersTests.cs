@@ -41,9 +41,16 @@ namespace Marrow.Core.Tests.Port;
 //   hour(_ = .defaultDigits(amPM: .abbreviated)), minute(_ = .defaultDigits));
 //   Formatting/Date/DateFieldSymbol.swift (raw values y, M, MMM, MMMM, d, EEE, EEEE, j, m, mm, s, ss, z);
 //   ICU/ICUPatternGenerator.swift (udatpg_getBestPatternWithOptions with UDATPG_MATCH_ALL_FIELDS_LENGTH);
-//   Formatting/Date/Date+RelativeFormatStyle.swift (format uses Date.now :293-295; _largestNonZeroComponent
-//   :431-460 rounds hour, minute and second to the next smaller unit and aligns day, week, month and year to the
-//   reference's component boundary :341-362); ICURelativeDateFormatter.swift (ureldatefmt_format for .named).
+//   Formatting/Date/Date+RelativeFormatStyle.swift (format uses Date.now :293-295; the calendar defaults to
+//   Calendar.autoupdatingCurrent :260 and every field is allowed :256; _largestNonZeroComponent :431-460 rounds the
+//   reference to whole seconds :437, rounds hour, minute and second to the next smaller unit and re-computes after a
+//   carry :418-427, and aligns day, week, month and year to the reference's component boundary :341-362);
+//   ICURelativeDateFormatter.swift (sortedAllowedComponents :28 includes weekOfMonth; ureldatefmt_format for .named).
+// - CLDR (github.com/unicode-org/cldr, release-42 and release-46, common/main): de.xml and fr.xml percentFormat,
+//   zh_Hant.xml gregorian availableFormats "hm"/"Bhm" and dayPeriods.
+// - Not asserted, open questions reported to the orchestrator: what CurrentLocale's default is derived from on
+//   Windows; whether the Windows 12/24-hour preference is honoured (ICUPatternGenerator.swift:60-75 applies the macOS
+//   one); ByteCountFormatter wording in a non-English locale.
 // - ByteCountFormatter: swift-corelibs-foundation Tests/Foundation/TestByteCountFormatter.swift test_DefaultValues,
 //   test_zeroBytes, test_oneByte and test_isAdaptiveTrue, which pin the Darwin defaults and outputs.
 // - ICU and CLDR output text (U+202F before AM/PM since CLDR 42, the medium date-time glue "{1}, {0}", fr grouping
@@ -124,7 +131,22 @@ public sealed class SwiftFormattersTests
         Assert.Equal("yMMMMdEEEE", DateFormatStyle.Of(DateFormatStyle.DateStyle.Complete, DateFormatStyle.TimeStyle.Omitted).Template);
         Assert.Equal("jmmss", DateFormatStyle.Of(DateFormatStyle.DateStyle.Omitted, DateFormatStyle.TimeStyle.Standard).Template);
         Assert.Equal("jmmssz", DateFormatStyle.Of(DateFormatStyle.DateStyle.Omitted, DateFormatStyle.TimeStyle.Complete).Template);
-        Assert.Equal("", DateFormatStyle.Of(DateFormatStyle.DateStyle.Omitted, DateFormatStyle.TimeStyle.Omitted).Template);
+    }
+
+    [Fact]
+    [Trait("Rule", "R-FMT-2")]
+    [Trait("Decision", "ED-096")]
+    [Trait("Oracle", "O-23")]
+    public void A_style_with_no_fields_falls_back_to_a_numeric_date_and_shortened_time()
+    {
+        // DateFormatStyle.swift:525-531 leaves _symbols nil when both styles are .omitted, and the symbols getter at
+        // :452-457 then returns DateFieldCollection().collection(date: .numeric).collection(time: .shortened):
+        // "yMd" + "jmm". Not an empty string.
+        Assert.Equal("yMdjmm", DateFormatStyle.Of(DateFormatStyle.DateStyle.Omitted, DateFormatStyle.TimeStyle.Omitted).Template);
+        // A bare .dateTime is .init() (:1238), so its _symbols are nil as well and it reads the same fallback; a field
+        // modifier with a non-nil option starts from an empty collection instead (:691-692), which is why
+        // .dateTime.weekday(.wide) is "EEEE" and not "yMdjmmEEEE".
+        Assert.Equal("yMdjmm", DateFormatStyle.DateTime.Template);
     }
 
     [Fact]
@@ -213,6 +235,32 @@ public sealed class SwiftFormattersTests
 
     [Fact]
     [Trait("Rule", "R-FMT-2")]
+    [Trait("Oracle", "O-23")]
+    public void In_zh_TW_the_shortened_time_uses_the_conversational_hour()
+    {
+        // DateFormatStyle.swift:106-150 (preferredHour, called by formatterTemplate at :167-168): when the locale's
+        // hour cycle shows a day period and locale.language.languageCode == .chinese && locale.region == .taiwan,
+        // hour .defaultDigits(amPM: .abbreviated) "j" becomes .conversationalDefaultDigitsWithAbbreviatedAMPM "C"
+        // (DateFieldSymbol.swift:707). So time .shortened is skeleton "Cmm" in zh_TW, and stays "jmm" in en_US (the
+        // locale-free Template above). The ED-096 Template takes no locale, so the zh_TW skeleton is proven through its
+        // text: CLDR zh_Hant maps "C" through TW's first allowed hour format "hB" to "Bh:mm", and "j" through the
+        // preferred "h" to "ah:mm". At 22:03 the flexible day period B is evening1 U+665A U+4E0A, where the AM/PM
+        // marker a would be U+4E0B U+5348; so a port that always sends "j" writes U+4E0B U+5348 "10:03".
+        using var culture = CultureScope.Gregorian();
+        var shortened = DateFormatStyle.Of(DateFormatStyle.DateStyle.Omitted, DateFormatStyle.TimeStyle.Shortened);
+
+        var text = SwiftFormatters.Formatted(Birthday, shortened, "zh_TW", TimeZoneInfo.Utc);
+
+        // U+665A CJK UNIFIED IDEOGRAPH-665A, U+4E0A CJK UNIFIED IDEOGRAPH-4E0A (evening1), then 10:03
+        Assert.Equal("\U0000665A\U00004E0A10:03", text);
+        // U+4E0B CJK UNIFIED IDEOGRAPH-4E0B, U+5348 CJK UNIFIED IDEOGRAPH-5348 (pm): what "j" would give
+        Assert.DoesNotContain("\U00004E0B\U00005348", text, StringComparison.Ordinal);
+        // The same instant in en_US: "j" and "C" both give h:mm a there, and the hour cycle is unchanged.
+        Assert.Equal("10:03" + NarrowNoBreakSpace + "PM", SwiftFormatters.Formatted(Birthday, shortened, EnUS, TimeZoneInfo.Utc));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-FMT-2")]
     [Trait("Decision", "ED-096")]
     [Trait("Oracle", "O-23")]
     public void Without_a_locale_or_zone_the_date_follows_the_current_ones()
@@ -290,11 +338,68 @@ public sealed class SwiftFormattersTests
     [InlineData(-86400, "yesterday")]    // day, measured from the end of today: -1 day
     [InlineData(-172800, "2 days ago")]
     [InlineData(86400, "tomorrow")]      // day, measured from the start of today: +1 day
+    // weekOfMonth is an allowed component (ICURelativeDateFormatter.swift:28; all fields allowed by default,
+    // Date+RelativeFormatStyle.swift:256) and is aligned like day (:341-362). en-US weeks start on Sunday, so the
+    // week of Now ends Sat 2026-09-26 23:59:59.
+    [InlineData(-604800, "last week")]   // Tue 09-15 12:00: 11 days 11:59:59 back from the week end, week -1
+    [InlineData(-864000, "2 weeks ago")] // Sat 09-12 12:00: 14 days 11:59:59 back from the week end, week -2
+                                         // (unaligned, 10 days would be week -1, "last week")
+    [InlineData(-3888000, "last month")] // Sat 08-08 12:00: month -1, aligned to the end of September
+    // The re-computation after a carry (:418-427): the rounded value is shifted off destDate and the components are
+    // measured again; when a larger component comes out, that one is used.
+    [InlineData(-85200, "yesterday")]    // 23h40m: hour -23, minute -40 carries to hour -24, which re-computes as day -1
+                                         // (without :422-424, "24 hours ago")
+    [InlineData(-3570, "1 hour ago")]    // 59m30s: minute -59, second -30 carries to minute -60, which re-computes as
+                                         // hour -1 (without :422-424, "60 minutes ago")
     public void Named_relative_dates_pick_the_largest_component_as_swift_foundation_does(long secondsFromNow, string expected)
     {
         // AboutUpdateViews.swift:838 ("Checked \(...).")
         using var culture = CultureScope.Gregorian();
         Assert.Equal(expected, SwiftFormatters.RelativeNamed(Now.AddSeconds(secondsFromNow), Now, EnUS, TimeZoneInfo.Utc));
+    }
+
+    [Theory]
+    [Trait("Rule", "R-FMT-2")]
+    [Trait("Oracle", "O-23")]
+    [InlineData(-29.5, "30 seconds ago")] // 29.5 rounds away from zero to 30
+    [InlineData(-29.4, "29 seconds ago")]
+    public void Sub_second_differences_round_to_the_nearest_second_away_from_zero(double secondsFromNow, string expected)
+    {
+        // Date+RelativeFormatStyle.swift:437: refDate = destDate.addingTimeInterval(refDate.timeIntervalSince(destDate)
+        // .rounded(increment: 1.0, rule: .toNearestOrAwayFromZero)), before any component is measured. A port that
+        // truncates ticks says "29 seconds ago" for both.
+        using var culture = CultureScope.Gregorian();
+        Assert.Equal(expected, SwiftFormatters.RelativeNamed(Now.AddSeconds(secondsFromNow), Now, EnUS, TimeZoneInfo.Utc));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-FMT-2")]
+    [Trait("Decision", "ED-094")]
+    [Trait("Oracle", "O-23")]
+    public void The_zone_reaches_the_relative_day_alignment()
+    {
+        // RelativeFormatStyle has no time zone of its own: day alignment uses calendar.dateInterval(of:start:interval:
+        // for:) (:349), and the calendar is Calendar.autoupdatingCurrent (:260), whose zone ED-094 makes the local one.
+        // date is 2026-09-21 00:00Z.
+        using var culture = CultureScope.Gregorian();
+        var date = Now.AddHours(-36);
+
+        // UTC: the day of Now ends 09-22 23:59:59, 1 day 23:59:59 after date: day -1.
+        Assert.Equal("yesterday", SwiftFormatters.RelativeNamed(date, Now, EnUS, TimeZoneInfo.Utc));
+        // America/Chicago (CDT, UTC-5): Now is 09-22 07:00 and date is 09-20 19:00; the day ends 09-22 23:59:59 CDT,
+        // 2 days 04:59:59 after date: day -2.
+        Assert.Equal("2 days ago", SwiftFormatters.RelativeNamed(date, Now, EnUS, Chicago));
+
+        // The same pair with the zone omitted, through the CurrentTimeZone ambient (the default path).
+        using (SwiftFormatters.CurrentTimeZone.Override(TimeZoneInfo.Utc))
+        {
+            Assert.Equal("yesterday", SwiftFormatters.RelativeNamed(date, Now, EnUS));
+        }
+
+        using (SwiftFormatters.CurrentTimeZone.Override(Chicago))
+        {
+            Assert.Equal("2 days ago", SwiftFormatters.RelativeNamed(date, Now, EnUS));
+        }
     }
 
     [Fact]
@@ -385,6 +490,19 @@ public sealed class SwiftFormattersTests
         }
     }
 
+    [Fact]
+    [Trait("Rule", "R-FMT-2")]
+    [Trait("Decision", "ED-096")]
+    public void With_no_override_the_formatters_read_the_ambients_own_default()
+    {
+        // Int.formatted() (CommandCodeSession.swift:406) uses Locale.autoupdatingCurrent. What that default is derived
+        // from on Windows is not ruled (ED-094 covers only Calendar.current, ED-096 says only "an ICU id"), so this
+        // test pins only that the omitted locale IS the ambient's current value, not what that value is.
+        var current = SwiftFormatters.CurrentLocale.Current;
+        Assert.False(string.IsNullOrEmpty(current));
+        Assert.Equal(SwiftFormatters.Formatted(12345L, current), SwiftFormatters.Formatted(12345L));
+    }
+
     // ---- Double.formatted(.number / .percent / .currency) -----------------------------------------------------------
 
     [Theory]
@@ -408,6 +526,17 @@ public sealed class SwiftFormattersTests
     public void Percent_with_no_fraction_digits(double value, string expected) =>
         // AboutUpdateViews.swift:422 (accessibility value of the download progress)
         Assert.Equal(expected, SwiftFormatters.Percent(value, 0, EnUS));
+
+    [Theory]
+    [Trait("Rule", "R-FMT-2")]
+    [Trait("Oracle", "O-23")]
+    [InlineData("de_DE")]
+    [InlineData("fr_FR")]
+    public void Percent_follows_the_locales_percent_pattern(string locale) =>
+        // AboutUpdateViews.swift:422 sets no locale, so the user's applies. CLDR de and fr percentFormat is
+        // "#,##0" U+00A0 "%" (common/main/de.xml and fr.xml, release-42 and release-46 alike): a port that appends
+        // "%" to the number fails here.
+        Assert.Equal("50" + NoBreakSpace + "%", SwiftFormatters.Percent(0.5, 0, locale));
 
     [Fact]
     [Trait("Rule", "R-FMT-2")]
@@ -458,6 +587,10 @@ public sealed class SwiftFormattersTests
     [Trait("Oracle", "O-23")]
     public void File_byte_counts_use_the_locales_decimal_separator()
     {
+        // Only the separator is pinned. Whether "Zero KB", "1 byte" and "bytes" stay English or are localized under a
+        // non-English locale (DownloadsPopover.swift:33-37 and AttachmentPreview.swift:96-100 set no locale) has no
+        // parked choice: the O-23 row of IMPLEMENTING.md Appendix B says "none yet", and the corelibs tests are
+        // en-only. Reported to the orchestrator; no test asserts that wording until it is ruled.
         Assert.Equal("12,3 MB", SwiftFormatters.FileByteCount(12345678L, "de_DE"));
     }
 }
