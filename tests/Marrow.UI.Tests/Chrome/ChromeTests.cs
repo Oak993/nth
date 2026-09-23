@@ -61,6 +61,10 @@ public sealed class ChromeTests(HeadlessSession headless)
             window.RequestedThemeVariant = theme;
         window.Show();
         Dispatcher.UIThread.RunJobs();
+        // Window.InputHitTest reads the last composed scene; once the session has handled any input, a new window's
+        // scene is composed only on a render tick, so tick once before a test hit-tests it directly.
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        Dispatcher.UIThread.RunJobs();
         return window;
     }
 
