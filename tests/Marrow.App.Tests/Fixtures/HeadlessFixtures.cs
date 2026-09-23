@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.LogicalTree;
+using Avalonia.Media;
 using Marrow.Core.Port;
 using Marrow.UI.Port;
 
@@ -14,7 +15,10 @@ public sealed class TestApp : Application
 {
     public static AppBuilder BuildAvaloniaApp() => AppBuilder.Configure<TestApp>()
         .UseSkia()
-        .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false });
+        .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
+        .WithSwiftFonts(); // ED-107 (5): the one font registration point, shared with the app shell's AppBuilder and
+                            // with tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs's TestApp; a TextBlock's layout
+                            // pass needs a resolvable Inter glyph typeface even under headless drawing.
 }
 
 /// <summary>One headless session per test assembly, held by a collection fixture (xunit 2, no Avalonia.Headless.XUnit).</summary>
@@ -22,12 +26,26 @@ public sealed class HeadlessSession : IDisposable
 {
     public HeadlessUnitTestSession Session { get; } = HeadlessUnitTestSession.StartNew(typeof(TestApp));
 
+    public HeadlessSession() => OnUiThread(WarmFonts);
+
     /// <summary>Runs a test body on the headless UI thread with MainActor bound to Avalonia, and waits for it.</summary>
     public void OnUiThread(Action body) => Session.Dispatch(() =>
     {
         MainActor.Bind(AvaloniaMainExecutor.Instance);
         body();
     }, CancellationToken.None).GetAwaiter().GetResult();
+
+    // Forces the embedded Inter release files to resolve every weight this assembly's tests draw with (Regular, Bold,
+    // SemiBold) before any test measures text, so a test whose first layout pass needs two glyph typefaces of the
+    // same weight at once (two crossfading pages, each titled in Bold) never races the collection's own first load.
+    private static void WarmFonts()
+    {
+        foreach (var weight in new[] { FontWeight.Normal, FontWeight.SemiBold, FontWeight.Bold })
+        {
+            var block = new TextBlock { Text = "Warm", FontFamily = new FontFamily("fonts:Inter#Inter"), FontWeight = weight };
+            block.Measure(Size.Infinity);
+        }
+    }
 
     public void Dispose() => Session.Dispose();
 }
