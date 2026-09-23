@@ -20,7 +20,7 @@ namespace Marrow.Services.Tests.Port;
 //   (:501, read at :739), a Date a Date (UpdateChecker.swift:238, read `as? Date` at :118), Data a Data;
 // - UserDefaults copies what it stores (property-list values are values), and refuses a non-property-list object
 //   ("Attempt to insert non-property list object"), which the port models as a trap.
-// The file format itself is port-only (ED-079 left it open; this unit's spec fixes a JSON file): the tags are the XML
+// The file format is port-only and approved by ED-156: the tags are the XML
 // property-list element names, keys are written in ordinal order, and every write is one atomic replace through
 // FileOps (PA-0015, R-FS-1).
 public sealed class SettingsStoreTests
@@ -28,6 +28,7 @@ public sealed class SettingsStoreTests
     [Fact]
     [Trait("Rule", "R-SET-1")]
     [Trait("Decision", "ED-079")]
+    [Trait("Decision", "ED-156")]
     public void An_absent_key_reads_nil_while_a_stored_false_or_zero_reads_back_as_present()
     {
         using var folder = new SettingsScratchFolder();
@@ -48,6 +49,7 @@ public sealed class SettingsStoreTests
         Assert.False(Plist.AsBool(store.Object("notifyWhenFinished")) ?? true);
         Assert.Equal(0L, Plist.AsInt(store.Object("hydraMaxHeads")));
 
+        Assert.True(store.Synchronize());
         var reopened = new SettingsStore(path);
         Assert.False(Plist.AsBool(reopened.Object("notifyWhenFinished")) ?? true);
         Assert.Equal(0L, Plist.AsInt(reopened.Object("hydraMaxHeads")));
@@ -57,6 +59,7 @@ public sealed class SettingsStoreTests
     [Fact]
     [Trait("Rule", "R-SET-1")]
     [Trait("Decision", "ED-079")]
+    [Trait("Decision", "ED-156")]
     public void A_store_on_a_missing_file_is_empty_and_creates_nothing_until_the_first_write()
     {
         using var folder = new SettingsScratchFolder();
@@ -69,6 +72,7 @@ public sealed class SettingsStoreTests
 
         // The data folder does not exist on a first launch; the first write makes it (AppSettings.swift:288).
         store.Set("appTheme", "dark");
+        Assert.True(store.Synchronize());
         Assert.True(File.Exists(path));
         Assert.Equal("dark", new SettingsStore(path).String("appTheme"));
     }
@@ -76,6 +80,7 @@ public sealed class SettingsStoreTests
     [Fact]
     [Trait("Rule", "R-SET-1")]
     [Trait("Decision", "ED-079")]
+    [Trait("Decision", "ED-156")]
     public void Each_value_survives_a_relaunch_with_its_property_list_type()
     {
         using var folder = new SettingsScratchFolder();
@@ -93,6 +98,7 @@ public sealed class SettingsStoreTests
         store.Set("updateChecker_lastChecked", checkedAt);         // UpdateChecker.swift:238
         store.Set("modelList", new byte[] { 0x5B, 0x00, 0xFF, 0x5D }); // AppSettings.swift:860-861, Data
 
+        Assert.True(store.Synchronize());
         var reopened = new SettingsStore(path);
 
         Assert.IsType<bool>(reopened.Object("showReasoning"));
@@ -123,6 +129,7 @@ public sealed class SettingsStoreTests
     [Fact]
     [Trait("Rule", "R-SET-1")]
     [Trait("Decision", "ED-079")]
+    [Trait("Decision", "ED-156")]
     public void The_type_conversions_read_the_stored_type_as_Foundation_bridges_it()
     {
         using var folder = new SettingsScratchFolder();
@@ -135,6 +142,7 @@ public sealed class SettingsStoreTests
         store.Set("lastProjectID", 42L);       // string(forKey:) renders an integer as text
         store.Set("recentDownloadsPicker", true);
 
+        Assert.True(store.Synchronize());
         var reopened = new SettingsStore(path);
         Assert.True(Plist.AsBool(reopened.Object("hasSeenTour")));
         Assert.True(reopened.Bool("hasSeenTour"));
@@ -150,6 +158,7 @@ public sealed class SettingsStoreTests
     [Fact]
     [Trait("Rule", "R-SET-1")]
     [Trait("Decision", "ED-079")]
+    [Trait("Decision", "ED-156")]
     public void Doubles_round_trip_bit_for_bit_including_negative_zero_and_non_finite_values()
     {
         using var folder = new SettingsScratchFolder();
@@ -158,6 +167,7 @@ public sealed class SettingsStoreTests
         double[] values = [0.1, -0.0, double.NaN, double.PositiveInfinity, double.NegativeInfinity, double.Epsilon, double.MaxValue, 1e-5];
         for (var i = 0; i < values.Length; i++) store.Set("real" + i, values[i]);
 
+        Assert.True(store.Synchronize());
         var reopened = new SettingsStore(path);
         for (var i = 0; i < values.Length; i++)
         {
@@ -169,6 +179,7 @@ public sealed class SettingsStoreTests
     [Fact]
     [Trait("Rule", "R-SET-1")]
     [Trait("Decision", "ED-079")]
+    [Trait("Decision", "ED-156")]
     public void Keys_are_kept_exactly_as_written_and_are_case_sensitive()
     {
         using var folder = new SettingsScratchFolder();
@@ -179,6 +190,7 @@ public sealed class SettingsStoreTests
         store.Set("updateChecker_lastChecked", 1L);       // UpdateChecker.swift:79
         store.Set("MCP \"quoted\" key \u2019", "x");
 
+        Assert.True(store.Synchronize());
         var reopened = new SettingsStore(path);
         Assert.Equal("dark", reopened.String("appTheme"));
         Assert.Equal("light", reopened.String("apptheme"));
@@ -193,24 +205,28 @@ public sealed class SettingsStoreTests
     [Fact]
     [Trait("Rule", "R-SET-1")]
     [Trait("Decision", "ED-079")]
+    [Trait("Decision", "ED-156")]
     public void Setting_nil_removes_the_key_as_set_nil_forKey_does()
     {
         using var folder = new SettingsScratchFolder();
         var path = folder.PathOf("UserDefaults.json");
         var store = new SettingsStore(path);
         store.Set("lastHydraPairID", "6F9619FF-8B86-D011-B42D-00C04FC964FF");
+        Assert.True(store.Synchronize());
         Assert.NotNull(new SettingsStore(path).Object("lastHydraPairID"));
 
         // AppSettings.swift:516: defaults.set(lastHydraPairID?.uuidString, forKey: Key.lastHydraPair)
         store.Set("lastHydraPairID", null);
 
         Assert.Null(store.Object("lastHydraPairID"));
+        Assert.True(store.Synchronize());
         Assert.Null(new SettingsStore(path).Object("lastHydraPairID"));
     }
 
     [Fact]
     [Trait("Rule", "R-SET-1")]
     [Trait("Decision", "ED-079")]
+    [Trait("Decision", "ED-156")]
     public void RemoveObject_removes_the_key_and_the_removal_survives_a_relaunch()
     {
         using var folder = new SettingsScratchFolder();
@@ -223,6 +239,7 @@ public sealed class SettingsStoreTests
         store.RemoveObject("neverStored");        // removing an absent key is not an error
 
         Assert.Null(store.Object("floatingPanelSize"));
+        Assert.True(store.Synchronize());
         var reopened = new SettingsStore(path);
         Assert.Null(reopened.Object("floatingPanelSize"));
         Assert.Null(reopened.Object("neverStored"));
@@ -233,15 +250,18 @@ public sealed class SettingsStoreTests
     [Trait("Rule", "R-SET-1")]
     [Trait("Rule", "R-FS-1")]
     [Trait("Decision", "ED-079")]
-    public void Writes_apply_in_order_and_each_is_on_disk_when_the_call_returns()
+    [Trait("Decision", "ED-156")]
+    public void Writes_apply_in_order_and_are_on_disk_once_Synchronize_returns()
     {
         using var folder = new SettingsScratchFolder();
         var path = folder.PathOf("UserDefaults.json");
         var store = new SettingsStore(path);
 
         store.Set("appZoom", 90L);
+        Assert.True(store.Synchronize());
         Assert.Equal(90L, new SettingsStore(path).Object("appZoom"));
         store.Set("appZoom", 110L);
+        Assert.True(store.Synchronize());
         Assert.Equal(110L, new SettingsStore(path).Object("appZoom"));
         store.Set("appTheme", "dark");
         store.RemoveObject("appZoom");
@@ -249,6 +269,7 @@ public sealed class SettingsStoreTests
         store.Set("appZoom", 125L);
         store.Set("appTheme", null);
 
+        Assert.True(store.Synchronize());
         var reopened = new SettingsStore(path);
         Assert.Equal(125L, reopened.Object("appZoom"));
         Assert.Null(reopened.Object("appTheme"));
@@ -259,6 +280,7 @@ public sealed class SettingsStoreTests
     [Fact]
     [Trait("Rule", "R-FS-1")]
     [Trait("Decision", "ED-079")]
+    [Trait("Decision", "ED-156")]
     public void The_file_is_replaced_atomically_and_leaves_no_temporary_file_behind()
     {
         using var folder = new SettingsScratchFolder();
@@ -266,12 +288,14 @@ public sealed class SettingsStoreTests
         var store = new SettingsStore(path);
         for (var i = 0; i < 20; i++) store.Set("terminalHeight", 200.0 + i);
 
+        Assert.True(store.Synchronize());
         Assert.Equal(new[] { "UserDefaults.json" }, Directory.EnumerateFileSystemEntries(folder.FullPath).Select(entry => Path.GetFileName(entry)).ToArray());
         Assert.Equal(219.0, new SettingsStore(path).Object("terminalHeight"));
     }
 
     [Fact]
     [Trait("Decision", "ED-079")]
+    [Trait("Decision", "ED-156")]
     public void The_file_is_compact_JSON_with_property_list_tags_and_keys_in_ordinal_order()
     {
         using var folder = new SettingsScratchFolder();
@@ -287,6 +311,7 @@ public sealed class SettingsStoreTests
         store.Set("providerBinaryPaths", new Dictionary<string, object> { ["b"] = "2", ["a"] = "1" });
         store.Set("inf", double.PositiveInfinity);
 
+        Assert.True(store.Synchronize());
         var expected =
             "{\"Zed\":{\"array\":[{\"real\":1},{\"string\":\"a\"}]}," +
             "\"appTheme\":{\"string\":\"dark\"}," +
@@ -303,6 +328,7 @@ public sealed class SettingsStoreTests
     [Fact]
     [Trait("Rule", "R-SET-1")]
     [Trait("Decision", "ED-079")]
+    [Trait("Decision", "ED-156")]
     public void Stored_values_are_copies_that_later_changes_to_the_argument_do_not_reach()
     {
         using var folder = new SettingsScratchFolder();
@@ -322,11 +348,13 @@ public sealed class SettingsStoreTests
         Assert.Equal(new byte[] { 1, 2, 3 }, store.Data("modelList"));
         Assert.Equal(new[] { "grok" }, store.StringArray("disabledProviders"));
         Assert.Single(store.Dictionary("providerBinaryPaths")!);
+        Assert.True(store.Synchronize());
     }
 
     [Fact]
     [Trait("Rule", "R-SET-1")]
     [Trait("Decision", "ED-079")]
+    [Trait("Decision", "ED-156")]
     public void Typed_collections_are_stored_as_property_list_arrays_and_dictionaries()
     {
         using var folder = new SettingsScratchFolder();
@@ -338,6 +366,7 @@ public sealed class SettingsStoreTests
         store.Set("floatingPanelSize", new[] { 1320.0, 860.0 });
         store.Set("hydraQueueHeads", 3); // an Int32 is an integer
 
+        Assert.True(store.Synchronize());
         foreach (var s in new[] { store, new SettingsStore(path) })
         {
             Assert.Equal("C:\\codex.exe", s.Dictionary("providerBinaryPaths")!["codex"]);
@@ -350,6 +379,7 @@ public sealed class SettingsStoreTests
     [Fact]
     [Trait("Rule", "R-SET-1")]
     [Trait("Decision", "ED-079")]
+    [Trait("Decision", "ED-156")]
     public void A_non_property_list_value_traps_and_stores_nothing()
     {
         using var folder = new SettingsScratchFolder();
@@ -363,47 +393,60 @@ public sealed class SettingsStoreTests
         Assert.Null(store.Object("lastProjectID"));
         Assert.Null(store.Object("disabledProviders"));
         Assert.Null(store.Object("providerBinaryPaths"));
+        Assert.True(store.Synchronize());
         Assert.False(File.Exists(path));
     }
 
     [Fact]
     [Trait("Decision", "ED-079")]
+    [Trait("Decision", "ED-156")]
     public void A_file_that_is_not_a_settings_document_reads_as_an_empty_store()
     {
         using var folder = new SettingsScratchFolder();
         var path = folder.PathOf("UserDefaults.json");
-        File.WriteAllBytes(path, Encoding.UTF8.GetBytes("{not json"));
+        var original = Encoding.UTF8.GetBytes("{not json");
+        File.WriteAllBytes(path, original);
 
         var store = new SettingsStore(path);
         Assert.Null(store.Object("appTheme"));
+        Assert.Equal(original, File.ReadAllBytes(path));
+        Assert.Equal(original, File.ReadAllBytes(path + ".unreadable"));
         store.Set("appTheme", "dark");
+        Assert.True(store.Synchronize());
         Assert.Equal("dark", new SettingsStore(path).String("appTheme"));
     }
 
     [Fact]
     [Trait("Decision", "ED-079")]
+    [Trait("Decision", "ED-156")]
     public void An_entry_the_store_cannot_read_is_skipped_and_the_rest_load()
     {
         using var folder = new SettingsScratchFolder();
         var path = folder.PathOf("UserDefaults.json");
-        File.WriteAllBytes(path, Encoding.UTF8.GetBytes(
-            "{\"appZoom\":{\"integer\":1.5},\"x\":{\"unknown\":1},\"y\":7,\"appTheme\":{\"string\":\"dark\"}}"));
+        var original = Encoding.UTF8.GetBytes(
+            "{\"appZoom\":{\"integer\":1.5},\"x\":{\"unknown\":1},\"y\":7,\"appTheme\":{\"string\":\"dark\"}}");
+        File.WriteAllBytes(path, original);
 
         var store = new SettingsStore(path);
         Assert.Null(store.Object("appZoom"));
         Assert.Null(store.Object("x"));
         Assert.Null(store.Object("y"));
         Assert.Equal("dark", store.String("appTheme"));
+        Assert.Equal(original, File.ReadAllBytes(path));
+        Assert.Equal(original, File.ReadAllBytes(path + ".unreadable"));
     }
 
     [Fact]
     [Trait("Rule", "R-FS-1")]
     [Trait("Decision", "ED-079")]
+    [Trait("Decision", "ED-156")]
     public void An_existing_file_that_cannot_be_read_fails_the_open_instead_of_starting_empty()
     {
         using var folder = new SettingsScratchFolder();
         var path = folder.PathOf("UserDefaults.json");
-        new SettingsStore(path).Set("appTheme", "dark");
+        var first = new SettingsStore(path);
+        first.Set("appTheme", "dark");
+        Assert.True(first.Synchronize());
 
         using (new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
             Assert.ThrowsAny<IOException>(() => new SettingsStore(path));
@@ -413,6 +456,7 @@ public sealed class SettingsStoreTests
 
     [Fact]
     [Trait("Decision", "ED-079")]
+    [Trait("Decision", "ED-156")]
     public void A_failed_write_keeps_the_value_readable_and_records_the_error()
     {
         using var folder = new SettingsScratchFolder();
@@ -424,11 +468,13 @@ public sealed class SettingsStoreTests
         store.Set("appTheme", "dark"); // UserDefaults.set never throws at the call site (AppSettings.swift:288)
 
         Assert.Equal("dark", store.String("appTheme"));
+        Assert.False(store.Synchronize());
         Assert.NotNull(store.LastWriteError);
     }
 
     [Fact]
     [Trait("Decision", "ED-079")]
+    [Trait("Decision", "ED-156")]
     public void The_production_file_lives_in_the_Marrow_Code_folder_of_local_app_data()
     {
         // OD-0008 C7: the port stores its data under %LOCALAPPDATA%\Marrow Code, never the Electron app's folder.
@@ -440,23 +486,27 @@ public sealed class SettingsStoreTests
     [Fact]
     [Trait("Rule", "R-SET-1")]
     [Trait("Decision", "ED-079")]
+    [Trait("Decision", "ED-156")]
     public void Bound_as_UserDefaults_Standard_it_serves_the_Swift_reads_and_writes()
     {
         using var runtime = new TestRuntime();
         using var folder = new SettingsScratchFolder();
         var path = folder.PathOf("UserDefaults.json");
-        using (UserDefaults.Standard.Override(new SettingsStore(path)))
+        var store = new SettingsStore(path);
+        using (UserDefaults.Standard.Override(store))
         {
             var defaults = UserDefaults.Standard.Current;
             defaults.Set("chimeWhenFinished", false);            // AppSettings.swift:207
             Assert.False(Plist.AsBool(defaults.Object("chimeWhenFinished")) ?? true); // :709
         }
+        Assert.True(store.Synchronize());
         Assert.False(Plist.AsBool(new SettingsStore(path).Object("chimeWhenFinished")) ?? true);
     }
 
     [Fact]
     [Trait("Rule", "R-SET-1")]
     [Trait("Decision", "ED-079")]
+    [Trait("Decision", "ED-156")]
     public void Concurrent_writers_lose_no_key()
     {
         using var folder = new SettingsScratchFolder();
@@ -465,7 +515,86 @@ public sealed class SettingsStoreTests
 
         Parallel.For(0, 16, i => store.Set("key" + i, (long)i));
 
+        Assert.True(store.Synchronize());
         var reopened = new SettingsStore(path);
         for (var i = 0; i < 16; i++) Assert.Equal((long)i, reopened.Object("key" + i));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-FS-1")]
+    [Trait("Decision", "ED-156")]
+    public void Set_returns_and_reads_the_new_value_while_the_file_is_held()
+    {
+        using var runtime = new TestRuntime();
+        using var folder = new SettingsScratchFolder();
+        var path = folder.PathOf("UserDefaults.json");
+        var store = new SettingsStore(path);
+        store.Set("appTheme", "dark");
+        Assert.True(store.Synchronize());
+
+        using (var held = new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+        {
+            store.Set("appTheme", "light");
+            Assert.Equal("light", store.Object("appTheme"));
+            var flush = Task.Run(store.Synchronize);
+            Assert.True(SpinWait.SpinUntil(() => runtime.Time.ActiveTimers == 1 || flush.IsCompleted,
+                TimeSpan.FromSeconds(10)), "writer did not reach its retry timer");
+            Assert.False(flush.IsCompleted);
+            Assert.Equal(1, runtime.Time.ActiveTimers);
+            held.Dispose();
+            runtime.Time.Advance(FileOps.RetryDelays[0]);
+            Assert.True(flush.GetAwaiter().GetResult());
+        }
+        Assert.Equal("light", new SettingsStore(path).String("appTheme"));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-156")]
+    public void Unreadable_copies_are_deduplicated_and_new_bytes_use_the_first_free_suffix()
+    {
+        using var folder = new SettingsScratchFolder();
+        var path = folder.PathOf("UserDefaults.json");
+        var first = Encoding.UTF8.GetBytes("{bad one");
+        var second = Encoding.UTF8.GetBytes("{bad two");
+        File.WriteAllBytes(path, first);
+        _ = new SettingsStore(path);
+        Assert.Equal(first, File.ReadAllBytes(path + ".unreadable"));
+        _ = new SettingsStore(path);
+        Assert.False(File.Exists(path + ".unreadable-2"));
+
+        File.WriteAllBytes(path, second);
+        _ = new SettingsStore(path);
+        Assert.Equal(second, File.ReadAllBytes(path));
+        Assert.Equal(first, File.ReadAllBytes(path + ".unreadable"));
+        Assert.Equal(second, File.ReadAllBytes(path + ".unreadable-2"));
+        _ = new SettingsStore(path);
+        Assert.False(File.Exists(path + ".unreadable-3"));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-156")]
+    public void A_well_formed_file_has_no_unreadable_copy()
+    {
+        using var folder = new SettingsScratchFolder();
+        var path = folder.PathOf("UserDefaults.json");
+        File.WriteAllBytes(path, Encoding.UTF8.GetBytes("{\"appTheme\":{\"string\":\"dark\"}}"));
+        Assert.Equal("dark", new SettingsStore(path).String("appTheme"));
+        Assert.False(File.Exists(path + ".unreadable"));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-156")]
+    public void A_leading_UTF8_BOM_is_ignored_when_reading_and_never_written()
+    {
+        using var folder = new SettingsScratchFolder();
+        var path = folder.PathOf("UserDefaults.json");
+        var body = Encoding.UTF8.GetBytes("{\"appTheme\":{\"string\":\"dark\"}}");
+        File.WriteAllBytes(path, [0xEF, 0xBB, 0xBF, .. body]);
+        var store = new SettingsStore(path);
+        Assert.Equal("dark", store.String("appTheme"));
+        Assert.False(File.Exists(path + ".unreadable"));
+        store.Set("appTheme", "light");
+        Assert.True(store.Synchronize());
+        Assert.Equal(Encoding.UTF8.GetBytes("{\"appTheme\":{\"string\":\"light\"}}"), File.ReadAllBytes(path));
     }
 }
