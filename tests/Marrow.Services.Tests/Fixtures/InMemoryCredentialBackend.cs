@@ -80,10 +80,18 @@ public sealed class InMemoryCredentialBackend : ICredentialBackend
     /// </summary>
     public Action<string>? BeforeDelete { get; set; }
 
+    /// <summary>
+    /// Runs before a delete is applied, after <see cref="BeforeDelete"/>, with the target name as passed. A nonzero
+    /// result refuses the delete with that Win32 error and removes nothing. A test uses it to refuse a delete.
+    /// </summary>
+    public Func<string, int>? RefuseDelete { get; set; }
+
     public int Delete(string targetName)
     {
         Operations.Add("delete " + targetName);
         BeforeDelete?.Invoke(targetName);
+        var refused = RefuseDelete?.Invoke(targetName) ?? ErrorSuccess;
+        if (refused != ErrorSuccess) return refused;
         return credentials.Remove(targetName) ? ErrorSuccess : ErrorNotFound;
     }
 

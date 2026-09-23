@@ -21,9 +21,10 @@ namespace Marrow.Services.Tests.Port;
 // The capture-run guards (APIKeychain.swift:14, MCPKeychain.swift:12) belong to the callers and are always false
 // on Windows (dead_code.md entry 44, ED-001); they are not part of the store.
 //
-// ED-093 fixes the Credential Manager encoding these tests check through the in-memory backend
-// (Fixtures/InMemoryCredentialBackend.cs), which compares targets without case and refuses a blob over 2560 bytes
-// as Credential Manager does. Win32 numbers from wincred.h: CRED_TYPE_GENERIC 1, CRED_PERSIST_LOCAL_MACHINE 2.
+// ED-093, with its chunk paragraph amended by ED-120, fixes the Credential Manager encoding these tests check
+// through the in-memory backend (Fixtures/InMemoryCredentialBackend.cs), which compares targets without case and
+// refuses a blob over 2560 bytes as Credential Manager does. ED-120: a longer value keeps chunk 1 in the primary with
+// the one attribute Marrow_Chunks = ASCII "<count>/<slot>", and continuations <target>#<slot>.<n> for n = 2..count. Win32 numbers from wincred.h: CRED_TYPE_GENERIC 1, CRED_PERSIST_LOCAL_MACHINE 2.
 // No real secret appears here; every value is made up. Only the last test touches the real Credential Manager,
 // and only when MARROW_PORT_CREDMAN_LIVE=1 (ED-093, R-TEST-9).
 public sealed class SecretStoreTests
@@ -44,6 +45,18 @@ public sealed class SecretStoreTests
     // APIKeychain.setKey (delete, then add) when deleteFirst; MCPKeychain.set (update, then add) otherwise.
     private static bool Set(SecretStore store, bool deleteFirst, string account, string value) =>
         deleteFirst ? store.SetReplacing(Service, account, value) : store.SetUpdating(Service, account, value);
+
+    // ED-120 (1): the primary of a chunked value carries exactly one attribute, keyword Marrow_Chunks, whose value is
+    // the ASCII bytes of "<count>/<slot>".
+    private static void AssertChunkAttribute(GenericCredential primary, string countSlashSlot)
+    {
+        var attribute = Assert.Single(primary.Attributes);
+        Assert.Equal("Marrow_Chunks", attribute.Keyword);
+        Assert.Equal(Encoding.ASCII.GetBytes(countSlashSlot), attribute.Value);
+    }
+
+    private static GenericCredential Leftover(string targetName, int length, byte seed = 0) =>
+        new(targetName, "MCP notes oauth", Bytes(length, seed), 1, 2, []);
 
     private static void AssertRefusedStatus(SecretStoreStatus status)
     {
@@ -193,26 +206,28 @@ public sealed class SecretStoreTests
 
     [Fact]
     [Trait("Decision", "ED-093")]
+    [Trait("Decision", "ED-120")]
     [Trait("Rule", "R-SEC-1")]
     public void A_2561_byte_value_round_trips_in_two_chunks_written_continuation_first()
     {
         // The Keychain has no small size limit and field "oauth" holds whole OAuth token JSON (MCPOAuth.swift:712).
-        // ED-093: 2560-byte chunks; the continuation <target>#2 is written first and the primary last, the primary
-        // holding the first chunk and the chunk count in a credential attribute.
+        // ED-093 as amended by ED-120: 2560-byte chunks; with no item before, the slot is 1, so the continuation
+        // <target>#1.2 is written first and the primary last, the primary holding the first chunk and the one
+        // attribute Marrow_Chunks = "2/1".
         var store = NewStore();
         var value = Bytes(Chunk + 1);
         var target = SecretStore.TargetName(Service, "MCP notes oauth");
 
         Assert.Equal(SecretStoreStatus.Success, store.Add(Service, "MCP notes oauth", value));
 
-        Assert.Equal([target, target + "#2"], backend.TargetNames);
+        Assert.Equal([target, target + "#1.2"], backend.TargetNames);
         var primary = backend.Peek(target)!;
         Assert.Equal(value[..Chunk], primary.Blob);
         Assert.Equal("MCP notes oauth", primary.UserName);
-        Assert.NotEmpty(primary.Attributes);
-        Assert.Equal(value[Chunk..], backend.Peek(target + "#2")!.Blob);
+        AssertChunkAttribute(primary, "2/1");
+        Assert.Equal(value[Chunk..], backend.Peek(target + "#1.2")!.Blob);
         var writes = backend.Operations.Where(o => o.StartsWith("write ", StringComparison.Ordinal)).ToList();
-        Assert.Equal(["write " + target + "#2", "write " + target], writes);
+        Assert.Equal(["write " + target + "#1.2", "write " + target], writes);
 
         Assert.Equal(value, Stored(store, Service, "MCP notes oauth"));
         Assert.Equal(Encoding.ASCII.GetString(value), store.Read(Service, "MCP notes oauth"));
@@ -220,6 +235,7 @@ public sealed class SecretStoreTests
 
     [Fact]
     [Trait("Decision", "ED-093")]
+    [Trait("Decision", "ED-120")]
     public void A_four_chunk_value_writes_every_continuation_before_the_primary_and_each_is_a_generic_local_machine_credential()
     {
         var store = NewStore();
@@ -228,22 +244,28 @@ public sealed class SecretStoreTests
 
         Assert.Equal(SecretStoreStatus.Success, store.Add(Service, "MCP notes oauth", value));
 
-        Assert.Equal([target, target + "#2", target + "#3", target + "#4"], backend.TargetNames);
+        Assert.Equal([target, target + "#1.2", target + "#1.3", target + "#1.4"], backend.TargetNames);
         var writes = backend.Operations.Where(o => o.StartsWith("write ", StringComparison.Ordinal)).ToList();
         Assert.Equal(4, writes.Count);
         Assert.Equal("write " + target, writes[^1]);
+        // ED-120 (2): continuations .2..count in ascending order, then the primary.
         Assert.Equal(
-            ["write " + target + "#2", "write " + target + "#3", "write " + target + "#4"],
-            writes.Take(3).Order(StringComparer.Ordinal));
+            ["write " + target + "#1.2", "write " + target + "#1.3", "write " + target + "#1.4"],
+            writes.Take(3));
+        AssertChunkAttribute(backend.Peek(target)!, "4/1");
         Assert.Equal(value[..Chunk], backend.Peek(target)!.Blob);
-        Assert.Equal(value[Chunk..(2 * Chunk)], backend.Peek(target + "#2")!.Blob);
-        Assert.Equal(value[(2 * Chunk)..(3 * Chunk)], backend.Peek(target + "#3")!.Blob);
-        Assert.Equal(value[(3 * Chunk)..], backend.Peek(target + "#4")!.Blob);
+        Assert.Equal(value[Chunk..(2 * Chunk)], backend.Peek(target + "#1.2")!.Blob);
+        Assert.Equal(value[(2 * Chunk)..(3 * Chunk)], backend.Peek(target + "#1.3")!.Blob);
+        Assert.Equal(value[(3 * Chunk)..], backend.Peek(target + "#1.4")!.Blob);
         foreach (var name in backend.TargetNames)
         {
             Assert.Equal(1, backend.Peek(name)!.Type);
             Assert.Equal(2, backend.Peek(name)!.Persist);
+            Assert.Equal("MCP notes oauth", backend.Peek(name)!.UserName);
         }
+        // ED-120 (1): continuations carry no attributes.
+        foreach (var name in backend.TargetNames.Where(n => n != target))
+            Assert.Empty(backend.Peek(name)!.Attributes);
 
         Assert.Equal(value, Stored(store, Service, "MCP notes oauth"));
     }
@@ -251,6 +273,7 @@ public sealed class SecretStoreTests
     [Fact]
     [Trait("Decision", "ED-093")]
     [Trait("Rule", "R-STR-8")]
+    [Trait("Decision", "ED-120")]
     public void A_character_split_across_the_chunk_boundary_reads_back_whole()
     {
         // 2559 ASCII bytes, then U+00E9 (C3 A9) across bytes 2559 and 2560: chunks are cut on bytes and joined
@@ -262,7 +285,7 @@ public sealed class SecretStoreTests
 
         var target = SecretStore.TargetName(Service, "MCP notes oauth");
         Assert.Equal(0xC3, backend.Peek(target)!.Blob[^1]);
-        Assert.Equal(new byte[] { 0xA9 }, backend.Peek(target + "#2")!.Blob);
+        Assert.Equal(new byte[] { 0xA9 }, backend.Peek(target + "#1.2")!.Blob);
         Assert.Equal(value, store.Read(Service, "MCP notes oauth"));
     }
 
@@ -287,6 +310,7 @@ public sealed class SecretStoreTests
 
     [Fact]
     [Trait("Decision", "ED-093")]
+    [Trait("Decision", "ED-120")]
     public void A_reader_while_a_short_value_grows_into_chunks_sees_the_old_value_until_the_primary_is_written()
     {
         // MCPKeychain.swift:42 updates in place. ED-093: continuations first, primary last, so until the primary
@@ -306,18 +330,19 @@ public sealed class SecretStoreTests
 
         Assert.Equal(["old", "old"], seen);
         Assert.Equal(grown, store.Read(Service, "MCP notes oauth"));
-        Assert.Equal([target, target + "#2"], backend.TargetNames);
+        Assert.Equal([target, target + "#1.2"], backend.TargetNames);
     }
 
     [Fact]
     [Trait("Decision", "ED-093")]
+    [Trait("Decision", "ED-120")]
     public void A_missing_chunk_reads_as_item_not_found()
     {
         var store = NewStore();
         var target = SecretStore.TargetName(Service, "MCP notes oauth");
         Assert.Equal(SecretStoreStatus.Success, store.Add(Service, "MCP notes oauth", Bytes(2 * Chunk + 1)));
 
-        Assert.True(backend.Remove(target + "#2"));
+        Assert.True(backend.Remove(target + "#1.2"));
 
         Assert.Equal(SecretStoreStatus.ItemNotFound, store.CopyMatching(Service, "MCP notes oauth", out var data));
         Assert.Null(data);
@@ -326,6 +351,7 @@ public sealed class SecretStoreTests
 
     [Fact]
     [Trait("Decision", "ED-093")]
+    [Trait("Decision", "ED-120")]
     public void A_shorter_update_removes_the_chunks_it_no_longer_needs()
     {
         var store = NewStore();
@@ -334,17 +360,20 @@ public sealed class SecretStoreTests
 
         var twoChunks = Bytes(Chunk + 3, seed: 3);
         Assert.Equal(SecretStoreStatus.Success, store.Update(Service, "MCP notes oauth", twoChunks));
-        Assert.Equal([target, target + "#2"], backend.TargetNames);
+        Assert.Equal([target, target + "#2.2"], backend.TargetNames); // ED-120: slot 1 to slot 2
+        AssertChunkAttribute(backend.Peek(target)!, "2/2");
         Assert.Equal(twoChunks, Stored(store, Service, "MCP notes oauth"));
 
         var oneChunk = "short"u8.ToArray();
         Assert.Equal(SecretStoreStatus.Success, store.Update(Service, "MCP notes oauth", oneChunk));
         Assert.Equal([target], backend.TargetNames);
+        Assert.Empty(backend.Peek(target)!.Attributes); // ED-120 (1): a one-chunk value is a bare primary
         Assert.Equal(oneChunk, Stored(store, Service, "MCP notes oauth"));
     }
 
     [Fact]
     [Trait("Decision", "ED-093")]
+    [Trait("Decision", "ED-120")]
     public void Delete_removes_the_primary_first_then_every_chunk()
     {
         var store = NewStore();
@@ -357,9 +386,199 @@ public sealed class SecretStoreTests
         Assert.Empty(backend.TargetNames);
         var deletes = backend.Operations.Where(o => o.StartsWith("delete ", StringComparison.Ordinal)).ToList();
         Assert.Equal("delete " + target, deletes[0]);
-        Assert.Contains("delete " + target + "#2", deletes);
-        Assert.Contains("delete " + target + "#3", deletes);
+        Assert.Contains("delete " + target + "#1.2", deletes);
+        Assert.Contains("delete " + target + "#1.3", deletes);
         Assert.Equal(SecretStoreStatus.ItemNotFound, store.CopyMatching(Service, "MCP notes oauth", out _));
+    }
+
+    // ---- ED-120: two slots, so a chunked update never touches a chunk the live primary references ----
+
+    [Fact]
+    [Trait("Decision", "ED-120")]
+    public void Two_chunk_to_two_chunk_updates_alternate_between_slot_2_and_slot_1()
+    {
+        // ED-120 (2): the new slot is 2 if the old slot is 1, and 1 otherwise; after the primary, the other slot is
+        // swept from .2 upward.
+        var store = NewStore();
+        var target = SecretStore.TargetName(Service, "MCP notes oauth");
+        var first = Bytes(Chunk + 1);
+        var second = Bytes(Chunk + 2, seed: 1);
+        var third = Bytes(Chunk + 3, seed: 2);
+        Assert.Equal(SecretStoreStatus.Success, store.Add(Service, "MCP notes oauth", first));
+        Assert.Equal([target, target + "#1.2"], backend.TargetNames);
+
+        Assert.Equal(SecretStoreStatus.Success, store.Update(Service, "MCP notes oauth", second));
+
+        Assert.Equal([target, target + "#2.2"], backend.TargetNames);
+        AssertChunkAttribute(backend.Peek(target)!, "2/2");
+        Assert.Equal(second[Chunk..], backend.Peek(target + "#2.2")!.Blob);
+        Assert.Equal(second, Stored(store, Service, "MCP notes oauth"));
+
+        Assert.Equal(SecretStoreStatus.Success, store.Update(Service, "MCP notes oauth", third));
+
+        Assert.Equal([target, target + "#1.2"], backend.TargetNames);
+        AssertChunkAttribute(backend.Peek(target)!, "2/1");
+        Assert.Equal(third[Chunk..], backend.Peek(target + "#1.2")!.Blob);
+        Assert.Equal(third, Stored(store, Service, "MCP notes oauth"));
+    }
+
+    [Theory]
+    [Trait("Decision", "ED-120")]
+    [InlineData("")]
+    [InlineData("2")]
+    [InlineData("2/")]
+    [InlineData("/1")]
+    [InlineData("1/1")]
+    [InlineData("0/1")]
+    [InlineData("2/0")]
+    [InlineData("2/3")]
+    [InlineData("02/1")]
+    [InlineData("2/01")]
+    [InlineData("+2/1")]
+    [InlineData("-2/1")]
+    [InlineData(" 2/1")]
+    [InlineData("2/1 ")]
+    [InlineData("2 /1")]
+    [InlineData("2/1/1")]
+    [InlineData("x/1")]
+    public void A_malformed_Marrow_Chunks_value_reads_as_item_not_found(string attributeValue)
+    {
+        // ED-120 (1): the value is the ASCII bytes of "<count>/<slot>" in decimal with no leading zeros, count >= 2,
+        // slot 1 or 2; (4): a malformed attribute is ItemNotFound. Continuations exist under every slot a lenient
+        // parse could land on, so only the strict parse decides.
+        var store = NewStore();
+        var target = SecretStore.TargetName(Service, "MCP notes oauth");
+        var primary = new GenericCredential(target, "MCP notes oauth", Bytes(Chunk), 1, 2,
+            [new CredentialAttribute("Marrow_Chunks", Encoding.ASCII.GetBytes(attributeValue))]);
+        Assert.Equal(0, backend.Write(primary));
+        foreach (var slot in new[] { 0, 1, 2, 3 })
+        {
+            Assert.Equal(0, backend.Write(Leftover(target + "#" + slot + ".2", 5)));
+            Assert.Equal(0, backend.Write(Leftover(target + "#" + slot + ".3", 5)));
+        }
+
+        Assert.Equal(SecretStoreStatus.ItemNotFound, store.CopyMatching(Service, "MCP notes oauth", out var data));
+        Assert.Null(data);
+        Assert.Null(store.Read(Service, "MCP notes oauth"));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-120")]
+    public void An_add_over_leftover_continuations_with_no_primary_succeeds_and_leaves_only_its_own_chunks()
+    {
+        // ED-120 (2): no primary means old slot 0, so the new slot is 1; #1.2 is overwritten, #1.3 is the stale tail
+        // swept from count + 1, and slot 2 is swept from .2.
+        var store = NewStore();
+        var target = SecretStore.TargetName(Service, "MCP notes oauth");
+        Assert.Equal(0, backend.Write(Leftover(target + "#1.2", Chunk, seed: 1)));
+        Assert.Equal(0, backend.Write(Leftover(target + "#1.3", Chunk, seed: 2)));
+        Assert.Equal(0, backend.Write(Leftover(target + "#2.2", Chunk, seed: 3)));
+        var value = Bytes(Chunk + 7, seed: 4);
+
+        Assert.Equal(SecretStoreStatus.Success, store.Add(Service, "MCP notes oauth", value));
+
+        Assert.Equal(value, Stored(store, Service, "MCP notes oauth"));
+        Assert.Equal([target, target + "#1.2"], backend.TargetNames);
+        AssertChunkAttribute(backend.Peek(target)!, "2/1");
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-120")]
+    [Trait("Rule", "R-SEC-1")]
+    public void A_refused_continuation_write_during_a_two_chunk_to_three_chunk_update_keeps_the_old_value_and_names()
+    {
+        // ED-120 (3): after a refused continuation the primary is never written, the new slot's continuations already
+        // written are deleted, and the refusal status is returned; MCPKeychain.swift:42-44 then reports false and the
+        // item keeps its old value.
+        var store = NewStore();
+        var target = SecretStore.TargetName(Service, "MCP notes oauth");
+        var old = Bytes(Chunk + 5);
+        Assert.Equal(SecretStoreStatus.Success, store.Add(Service, "MCP notes oauth", old));
+        var namesBefore = backend.TargetNames.ToList();
+        var continuationWrites = 0;
+        backend.BeforeWrite = credential =>
+            string.Equals(credential.TargetName, target, StringComparison.OrdinalIgnoreCase)
+                ? InMemoryCredentialBackend.ErrorSuccess
+                : ++continuationWrites == 2 ? InMemoryCredentialBackend.ErrorAccessDenied : InMemoryCredentialBackend.ErrorSuccess;
+        backend.Operations.Clear();
+
+        AssertRefusedStatus(store.Update(Service, "MCP notes oauth", Bytes(2 * Chunk + 5, seed: 9)));
+
+        Assert.Equal(2, continuationWrites);
+        Assert.DoesNotContain("write " + target, backend.Operations);
+        backend.BeforeWrite = null;
+        Assert.Equal(old, Stored(store, Service, "MCP notes oauth"));
+        Assert.Equal(namesBefore, backend.TargetNames);
+        AssertChunkAttribute(backend.Peek(target)!, "2/1");
+
+        continuationWrites = 0;
+        backend.BeforeWrite = credential =>
+            string.Equals(credential.TargetName, target, StringComparison.OrdinalIgnoreCase)
+                ? InMemoryCredentialBackend.ErrorSuccess
+                : ++continuationWrites == 2 ? InMemoryCredentialBackend.ErrorAccessDenied : InMemoryCredentialBackend.ErrorSuccess;
+
+        Assert.False(store.SetUpdating(Service, "MCP notes oauth", new string('n', 2 * Chunk + 5)));
+
+        backend.BeforeWrite = null;
+        Assert.Equal(old, Stored(store, Service, "MCP notes oauth"));
+        Assert.Equal(namesBefore, backend.TargetNames);
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-120")]
+    public void A_sweep_delete_that_fails_after_the_primary_is_written_still_reports_success()
+    {
+        // ED-120 (2): a failed sweep delete does not change Success; the value was saved.
+        var store = NewStore();
+        var target = SecretStore.TargetName(Service, "MCP notes oauth");
+        Assert.Equal(SecretStoreStatus.Success, store.Add(Service, "MCP notes oauth", Bytes(Chunk + 1)));
+        backend.RefuseDelete = name =>
+            string.Equals(name, target + "#1.2", StringComparison.OrdinalIgnoreCase) ? InMemoryCredentialBackend.ErrorAccessDenied : 0;
+        var updated = Bytes(Chunk + 2, seed: 5);
+
+        Assert.Equal(SecretStoreStatus.Success, store.Update(Service, "MCP notes oauth", updated));
+
+        Assert.Contains("delete " + target + "#1.2", backend.Operations);
+        Assert.Equal(updated, Stored(store, Service, "MCP notes oauth"));
+        Assert.Equal([target, target + "#1.2", target + "#2.2"], backend.TargetNames);
+        AssertChunkAttribute(backend.Peek(target)!, "2/2");
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-120")]
+    public void Delete_with_no_primary_removes_leftover_continuations_and_reports_ItemNotFound()
+    {
+        // ED-120 (5): both slots are swept from .2 upward even when the primary is absent; the status is the
+        // primary delete's, ItemNotFound.
+        var store = NewStore();
+        var target = SecretStore.TargetName(Service, "MCP notes oauth");
+        Assert.Equal(0, backend.Write(Leftover(target + "#1.2", Chunk)));
+        Assert.Equal(0, backend.Write(Leftover(target + "#1.3", 9)));
+        Assert.Equal(0, backend.Write(Leftover(target + "#2.2", Chunk)));
+        Assert.Equal(0, backend.Write(Leftover(target + "#2.3", 9)));
+
+        Assert.Equal(SecretStoreStatus.ItemNotFound, store.Delete(Service, "MCP notes oauth"));
+
+        Assert.Empty(backend.TargetNames);
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-120")]
+    public void A_delete_whose_continuation_delete_is_refused_reports_that_failure()
+    {
+        // ED-120 (5), OD-0008 A12: stored values remain, so the failure is returned instead of Success. The primary
+        // was deleted first, so a reader already gets ItemNotFound.
+        var store = NewStore();
+        var target = SecretStore.TargetName(Service, "MCP notes oauth");
+        Assert.Equal(SecretStoreStatus.Success, store.Add(Service, "MCP notes oauth", Bytes(2 * Chunk + 1)));
+        backend.RefuseDelete = name =>
+            string.Equals(name, target + "#1.3", StringComparison.OrdinalIgnoreCase) ? InMemoryCredentialBackend.ErrorAccessDenied : 0;
+
+        AssertRefusedStatus(store.Delete(Service, "MCP notes oauth"));
+
+        backend.RefuseDelete = null;
+        Assert.Equal(SecretStoreStatus.ItemNotFound, store.CopyMatching(Service, "MCP notes oauth", out _));
+        Assert.Equal([target + "#1.3"], backend.TargetNames);
     }
 
     [Theory]
@@ -489,9 +708,9 @@ public sealed class SecretStoreTests
     }
 
     // A refused continuation write. For a 2561-byte value the only write that is not the primary is its one
-    // continuation (`<target>#2` under ED-093); the predicate refuses every non-primary write so it holds whatever
-    // continuation names ED-093 settles on. The primary must never be written: a port that ignores the continuation's
-    // error and writes the primary anyway would report a value that can never be read back.
+    // continuation (`<target>#1.2` under ED-120 when no item was there before); the predicate refuses every
+    // non-primary write. ED-120 (3): the primary must never be written after a refused continuation; a port that
+    // ignores the continuation's error and writes the primary anyway would report a value that can never be read back.
     private Func<GenericCredential, int> RefuseEveryContinuationOf(string target) => credential =>
         string.Equals(credential.TargetName, target, StringComparison.OrdinalIgnoreCase)
             ? InMemoryCredentialBackend.ErrorSuccess
@@ -573,10 +792,7 @@ public sealed class SecretStoreTests
     // ---- A chunked value updated to another chunked value (MCPOAuth.swift:712 rewrites the OAuth JSON on every
     // token refresh). SecItemUpdate is atomic: a reader sees the old value or the new one, and a refused update
     // leaves the item as it was (MCPKeychain.swift:42-44). These tests observe only Read, CopyMatching and the set
-    // of target names, never the continuation names, so they hold for any encoding ED-093 settles on.
-    // NOTE (reported to the orchestrator): ED-093 as written writes continuations in place at the fixed names
-    // <target>#2, #3 before the primary, which overwrites the old #2 while the old primary still points at it, so
-    // the first two tests below cannot pass under ED-093 as written; they wait for an ED-093 amendment. ----
+    // of target names, never the continuation names, so they hold for any encoding ED-093 settles on. ----
 
     [Fact]
     [Trait("Rule", "R-SEC-1")]
@@ -991,6 +1207,7 @@ public sealed class SecretStoreTests
     [Fact]
     [Trait("Decision", "ED-093")]
     [Trait("Rule", "R-TEST-9")]
+    [Trait("Decision", "ED-120")]
     public void The_real_Credential_Manager_holds_a_chunked_item_under_a_throwaway_service_when_MARROW_PORT_CREDMAN_LIVE_is_1()
     {
         // ED-093: the one live test, run only when MARROW_PORT_CREDMAN_LIVE=1, so nothing touches the user's
@@ -1025,14 +1242,16 @@ public sealed class SecretStoreTests
         }
         finally
         {
-            // A write that failed after its continuations but before its primary leaves chunks that Delete, finding
-            // no primary, cannot know about; remove them by name too (ED-093 "deletes in finally", R-TEST-9).
+            // Delete sweeps both slots even with no primary (ED-120 (5)); the chunk names are removed by name too, so
+            // nothing survives a store that fails mid-test (ED-093 "deletes in finally", R-TEST-9).
             foreach (var account in accounts)
             {
                 store.Delete(service, account);
                 var target = SecretStore.TargetName(service, account);
-                live.Delete(target + "#2");
-                live.Delete(target + "#3");
+                live.Delete(target + "#1.2");
+                live.Delete(target + "#1.3");
+                live.Delete(target + "#2.2");
+                live.Delete(target + "#2.3");
             }
             live.Delete(probe);
         }
@@ -1042,7 +1261,7 @@ public sealed class SecretStoreTests
         foreach (var account in accounts)
         {
             var target = SecretStore.TargetName(service, account);
-            leftovers.AddRange([target, target + "#2", target + "#3"]);
+            leftovers.AddRange([target, target + "#1.2", target + "#1.3", target + "#2.2", target + "#2.3"]);
         }
         foreach (var name in leftovers)
             Assert.Equal(1168, live.Read(name, out _));
