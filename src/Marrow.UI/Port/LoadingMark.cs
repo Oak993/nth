@@ -167,6 +167,9 @@ public sealed class BootSequence
     public const double OutlineOpacity = .85;
     public const double OutlineGlow = 14;
     public static Color OutlineColor { get; } = Color.Parse("#BED2FF");
+    // boot_sequence.html:285 shadowColor 'rgba(156,187,255,.9)'.
+    public static Color OutlineGlowColor { get; } = Color.Parse("#9CBBFF");
+    public const double OutlineGlowOpacity = .9;
 
     private readonly BootWindowLayout window;
     private readonly bool reduceMotion;
@@ -777,6 +780,7 @@ public sealed class BootStage : Control
     private bool waiting;
     private bool shown;
     private bool closed;
+    private bool attached;
     private double? readyAt;
 
     public BootStage(BootSequence sequence)
@@ -790,6 +794,7 @@ public sealed class BootStage : Control
         AttachedToVisualTree += (_, _) =>
         {
             started = SwiftClock.Now;
+            attached = true;
             source = FrameClock.Source.Current;
             Request();
         };
@@ -805,7 +810,9 @@ public sealed class BootStage : Control
     public BootFrame Frame { get; private set; }
     public event EventHandler? MainWindowShown;
     public event EventHandler? Closed;
-    public void Ready() => readyAt ??= Elapsed;
+    // ED-103 (3): the moment the app is ready, read from the clock at the call (not the last frame's time, which would
+    // pick a turn end already past); readiness before the stage starts counts as ready at 0.
+    public void Ready() => readyAt ??= attached ? (SwiftClock.Now - started).TotalSeconds : 0;
 
     private void Request()
     {
@@ -887,17 +894,32 @@ public sealed class BootStage : Control
                 CometPainter.DrawDot(context, p.Position(td), p.Radius(td) * 2.2, p.Color, alpha);
             }
         }
-        if (Frame.OutlineOpacity > 0)
+        if (Frame.OutlineOpacity > 0) DrawOutline(context, sequence.WindowLayout, Frame.OutlineOpacity);
+    }
+
+    /// <summary>
+    /// ED-103 (5): the window outline, 1.5 DIP of #BED2FF at .85 with a 14 DIP glow, all under <paramref name="share"/>
+    /// (boot_sequence.html:283-288, globalAlpha = edge). The glow colour is the reference's shadowColor
+    /// rgba(156,187,255,.9) (:285), which ED-103 does not restate.
+    /// </summary>
+    public static void DrawOutline(DrawingContext context, BootWindowLayout layout, double share)
+    {
+        var outline = layout.Frame;
+        var radius = layout.CornerRadius;
+        // ENGINEERING DECISION: a canvas shadow takes the drawn shape's alpha times the shadow colour's alpha, so the
+        // glow is #9CBBFF at .9 * .85, blurred under the stroke.
+        var glow = Color.FromArgb((byte)Math.Round(255 * BootSequence.OutlineGlowOpacity * BootSequence.OutlineOpacity),
+            BootSequence.OutlineGlowColor.R, BootSequence.OutlineGlowColor.G, BootSequence.OutlineGlowColor.B);
+        var stroke = Color.FromArgb((byte)Math.Round(255 * BootSequence.OutlineOpacity),
+            BootSequence.OutlineColor.R, BootSequence.OutlineColor.G, BootSequence.OutlineColor.B);
+        using (context.PushOpacity(share))
         {
-            var outline = sequence.WindowLayout.Frame;
-            using (context.PushOpacity(Frame.OutlineOpacity))
             using (context.PushEffect(new BlurEffect { Radius = BootSequence.OutlineGlow },
                        new Rect(outline.X - 14, outline.Y - 14, outline.Width + 28, outline.Height + 28)))
-                context.DrawRectangle(null, new Pen(new SolidColorBrush(BootSequence.OutlineColor), BootSequence.OutlineWidth),
-                    outline, sequence.WindowLayout.CornerRadius, sequence.WindowLayout.CornerRadius);
-            using (context.PushOpacity(Frame.OutlineOpacity))
-                context.DrawRectangle(null, new Pen(new SolidColorBrush(BootSequence.OutlineColor), BootSequence.OutlineWidth),
-                    outline, sequence.WindowLayout.CornerRadius, sequence.WindowLayout.CornerRadius);
+                context.DrawRectangle(null, new Pen(new SolidColorBrush(glow), BootSequence.OutlineWidth),
+                    outline, radius, radius);
+            context.DrawRectangle(null, new Pen(new SolidColorBrush(stroke), BootSequence.OutlineWidth),
+                outline, radius, radius);
         }
     }
 
