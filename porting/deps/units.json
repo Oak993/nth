@@ -1936,30 +1936,14 @@
    ],
    "intra_deps": [],
    "records_total": 6,
-   "records_todo": [
-    "PR-STORE-123",
-    "PR-STORE-124",
-    "PR-STORE-125",
-    "PR-STORE-126",
-    "PR-STORE-127",
-    "UI-STORE-005"
-   ],
-   "parts": [
-    [
-     "PR-STORE-123",
-     "PR-STORE-124",
-     "PR-STORE-125",
-     "PR-STORE-126",
-     "PR-STORE-127",
-     "UI-STORE-005"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M2-077",
     "T-M2-078"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.Git.FileChangeSummary_Diff",
