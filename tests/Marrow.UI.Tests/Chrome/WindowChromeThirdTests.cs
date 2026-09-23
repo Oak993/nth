@@ -565,9 +565,3 @@ public sealed class WindowChromeThirdTests(HeadlessSession headless)
         });
     }
 }
-
-/// <summary>A scripted cursor position for PR-WIN-056: the strip's real-cursor re-read.</summary>
-public sealed class FakeCursorPlatform(PixelPoint? position) : ICursorPlatform
-{
-    public PixelPoint? ScreenPosition { get; set; } = position;
-}
