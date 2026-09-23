@@ -84,6 +84,34 @@ public sealed class StdioProcessTests
     }
 
     [Fact]
+    [Trait("Req", "PR-PROVACP-160")] // Core/Support/StdioProcess.swift:55-77,89-103,141-151
+    [Trait("Req", "PR-TERM-109")] // Core/Support/StdioProcess.swift:89-103
+    public async Task Back_to_back_sends_each_get_their_reply_in_order_over_fifty_rounds()
+    {
+        // ClaudeSession.Interrupt's wire shape (ClaudeSession.swift:238-247): a line that gets no reply (the tool
+        // deny), then with no await between, requests whose replies are awaited. The child answers only lines
+        // holding "ask", each flushed at once, so every reply the test waits for was really written.
+        using var runtime = new TestRuntime();
+        var child = Child("$i=[Console]::In; $o=[Console]::Out; " +
+            "while(($l=$i.ReadLine()) -ne $null){ if($l.Contains('ask')){ $o.WriteLine($l); $o.Flush() } }");
+        child.Start();
+        await using var reader = child.Messages.GetAsyncEnumerator();
+        for (var round = 0; round < 50; round++)
+        {
+            child.Send(new JSONValue.String($"note {round}"));
+            child.Send(new JSONValue.String($"ask {round} a"));
+            child.Send(new JSONValue.String($"ask {round} b"));
+            Assert.True(await reader.MoveNextAsync().AsTask().WaitAsync(Bound));
+            Assert.Equal($"ask {round} a", reader.Current.JSONValueString);
+            Assert.True(await reader.MoveNextAsync().AsTask().WaitAsync(Bound));
+            Assert.Equal($"ask {round} b", reader.Current.JSONValueString);
+        }
+        child.CloseInput();
+        Assert.False(await reader.MoveNextAsync().AsTask().WaitAsync(Bound));
+        Assert.Equal(0, await child.WaitForExit().WaitAsync(Bound));
+    }
+
+    [Fact]
     [Trait("Req", "PR-PROVACP-157")] // Core/Support/StdioProcess.swift:119-128
     [Trait("Req", "PR-TERM-111")] // Core/Support/StdioProcess.swift:119-128
     public async Task Terminate_closes_input_and_stops_the_child()
