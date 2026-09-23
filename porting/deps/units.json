@@ -2209,32 +2209,14 @@
     "UI.Chrome.Chrome"
    ],
    "records_total": 7,
-   "records_todo": [
-    "PR-SIDEBAR-104",
-    "PR-SIDEBAR-105",
-    "PR-SIDEBAR-106",
-    "PR-THEME-041",
-    "UI-SIDEBAR-011",
-    "UI-SIDEBAR-012",
-    "UI-SIDEBAR-013"
-   ],
-   "parts": [
-    [
-     "PR-SIDEBAR-104",
-     "PR-SIDEBAR-105",
-     "PR-SIDEBAR-106",
-     "PR-THEME-041",
-     "UI-SIDEBAR-011",
-     "UI-SIDEBAR-012",
-     "UI-SIDEBAR-013"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M5-015",
     "T-M5-016"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "UI.Common.RenderBudget",
@@ -2555,65 +2537,15 @@
    ],
    "intra_deps": [],
    "records_total": 23,
-   "records_todo": [
-    "PR-TERM-011",
-    "PR-TERM-037",
-    "PR-TERM-038",
-    "PR-TERM-039",
-    "PR-TERM-040",
-    "PR-TERM-041",
-    "PR-TERM-042",
-    "PR-TERM-043",
-    "PR-TERM-044",
-    "PR-TERM-045",
-    "PR-TERM-046",
-    "PR-TERM-047",
-    "PR-TERM-048",
-    "PR-TERM-049",
-    "PR-TERM-050",
-    "PR-TERM-051",
-    "PR-TERM-052",
-    "PR-TERM-053",
-    "PR-TERM-054",
-    "PR-TERM-056",
-    "PR-TERM-117",
-    "PR-TERM-123",
-    "PR-TERM-124"
-   ],
-   "parts": [
-    [
-     "PR-TERM-011",
-     "PR-TERM-037",
-     "PR-TERM-038",
-     "PR-TERM-039",
-     "PR-TERM-040",
-     "PR-TERM-041",
-     "PR-TERM-042",
-     "PR-TERM-043",
-     "PR-TERM-044",
-     "PR-TERM-045",
-     "PR-TERM-046",
-     "PR-TERM-047",
-     "PR-TERM-048",
-     "PR-TERM-049",
-     "PR-TERM-050",
-     "PR-TERM-051",
-     "PR-TERM-052",
-     "PR-TERM-053",
-     "PR-TERM-054",
-     "PR-TERM-056",
-     "PR-TERM-117",
-     "PR-TERM-123",
-     "PR-TERM-124"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M7-219",
     "T-M7-220",
     "T-M7-221"
    ],
    "risk": "HIGH",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "App.Views.Tour.TourView",
@@ -2811,54 +2743,14 @@
     "Services.MCP.MCPOAuth"
    ],
    "records_total": 18,
-   "records_todo": [
-    "PR-MCP-121",
-    "PR-MCP-122",
-    "PR-MCP-123",
-    "PR-MCP-124",
-    "PR-MCP-125",
-    "PR-MCP-126",
-    "PR-MCP-127",
-    "PR-MCP-128",
-    "PR-MCP-129",
-    "PR-MCP-130",
-    "PR-MCP-131",
-    "PR-MCP-132",
-    "PR-MCP-133",
-    "PR-MCP-134",
-    "PR-MCP-135",
-    "PR-MCP-136",
-    "PR-MCP-137",
-    "PR-MCP-138"
-   ],
-   "parts": [
-    [
-     "PR-MCP-121",
-     "PR-MCP-122",
-     "PR-MCP-123",
-     "PR-MCP-124",
-     "PR-MCP-125",
-     "PR-MCP-126",
-     "PR-MCP-127",
-     "PR-MCP-128",
-     "PR-MCP-129",
-     "PR-MCP-130",
-     "PR-MCP-131",
-     "PR-MCP-132",
-     "PR-MCP-133",
-     "PR-MCP-134",
-     "PR-MCP-135",
-     "PR-MCP-136",
-     "PR-MCP-137",
-     "PR-MCP-138"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-011",
     "T-M4-012"
    ],
    "risk": "HIGH",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.Store.TokenLedger",
@@ -2881,65 +2773,15 @@
    ],
    "intra_deps": [],
    "records_total": 23,
-   "records_todo": [
-    "PR-SETTINGS-136",
-    "PR-USAGE-089",
-    "PR-USAGE-090",
-    "PR-USAGE-091",
-    "PR-USAGE-092",
-    "PR-USAGE-093",
-    "PR-USAGE-094",
-    "PR-USAGE-095",
-    "PR-USAGE-096",
-    "PR-USAGE-097",
-    "PR-USAGE-098",
-    "PR-USAGE-099",
-    "PR-USAGE-100",
-    "PR-USAGE-101",
-    "PR-USAGE-102",
-    "PR-USAGE-103",
-    "PR-USAGE-104",
-    "PR-USAGE-105",
-    "PR-USAGE-106",
-    "PR-USAGE-107",
-    "PR-USAGE-108",
-    "PR-USAGE-109",
-    "PR-USAGE-110"
-   ],
-   "parts": [
-    [
-     "PR-SETTINGS-136",
-     "PR-USAGE-089",
-     "PR-USAGE-090",
-     "PR-USAGE-091",
-     "PR-USAGE-092",
-     "PR-USAGE-093",
-     "PR-USAGE-094",
-     "PR-USAGE-095",
-     "PR-USAGE-096",
-     "PR-USAGE-097",
-     "PR-USAGE-098",
-     "PR-USAGE-099",
-     "PR-USAGE-100",
-     "PR-USAGE-101",
-     "PR-USAGE-102",
-     "PR-USAGE-103",
-     "PR-USAGE-104",
-     "PR-USAGE-105",
-     "PR-USAGE-106",
-     "PR-USAGE-107",
-     "PR-USAGE-108",
-     "PR-USAGE-109",
-     "PR-USAGE-110"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M3-023",
     "T-M3-024",
     "T-M3-025"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "UI.Chrome.ChromeSegmentedPicker",
@@ -3061,38 +2903,14 @@
    ],
    "intra_deps": [],
    "records_total": 10,
-   "records_todo": [
-    "PR-SIDEBAR-150",
-    "PR-SIDEBAR-151",
-    "PR-SIDEBAR-152",
-    "PR-SIDEBAR-153",
-    "UI-SIDEBAR-052",
-    "UI-SIDEBAR-053",
-    "UI-SIDEBAR-054",
-    "UI-SIDEBAR-055",
-    "UI-SIDEBAR-056",
-    "UI-SIDEBAR-057"
-   ],
-   "parts": [
-    [
-     "PR-SIDEBAR-150",
-     "PR-SIDEBAR-151",
-     "PR-SIDEBAR-152",
-     "PR-SIDEBAR-153",
-     "UI-SIDEBAR-052",
-     "UI-SIDEBAR-053",
-     "UI-SIDEBAR-054",
-     "UI-SIDEBAR-055",
-     "UI-SIDEBAR-056",
-     "UI-SIDEBAR-057"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M5-017",
     "T-M5-018"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "UI.Chrome.WindowChrome",
@@ -3340,28 +3158,14 @@
    ],
    "intra_deps": [],
    "records_total": 5,
-   "records_todo": [
-    "PR-HYDRA-193",
-    "PR-HYDRA-194",
-    "PR-HYDRA-195",
-    "UI-HYDRA-032",
-    "UI-HYDRA-033"
-   ],
-   "parts": [
-    [
-     "PR-HYDRA-193",
-     "PR-HYDRA-194",
-     "PR-HYDRA-195",
-     "UI-HYDRA-032",
-     "UI-HYDRA-033"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M5-039",
     "T-M5-040"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "UI.Common.WorkingIndicators",
@@ -3381,45 +3185,15 @@
    ],
    "intra_deps": [],
    "records_total": 13,
-   "records_todo": [
-    "PR-CHAT-118",
-    "PR-THEME-162",
-    "PR-THEME-163",
-    "PR-THEME-164",
-    "PR-THEME-165",
-    "PR-THEME-166",
-    "PR-THEME-167",
-    "PR-THEME-168",
-    "PR-THEME-169",
-    "PR-THEME-170",
-    "PR-THEME-171",
-    "UI-THEME-049",
-    "UI-THEME-050"
-   ],
-   "parts": [
-    [
-     "PR-CHAT-118",
-     "PR-THEME-162",
-     "PR-THEME-163",
-     "PR-THEME-164",
-     "PR-THEME-165",
-     "PR-THEME-166",
-     "PR-THEME-167",
-     "PR-THEME-168",
-     "PR-THEME-169",
-     "PR-THEME-170",
-     "PR-THEME-171",
-     "UI-THEME-049",
-     "UI-THEME-050"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M5-042",
     "T-M5-043",
     "T-M5-044"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "UI.Theme.ShortcutTint",

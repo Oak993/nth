@@ -3403,7 +3403,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three passes with the same treatment of out-of-year cells, which differs between weekly (0) and cumulative (the running total).",
       "verification_method": "unit test over a small fixture year in all three modes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

@@ -4711,7 +4711,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exact proportions, all derived from the glyph size, so one implementation serves every call site from 14 to 30 points. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 DroppyCode/UI/Chrome/Chrome.swift:79 defines it.",
       "verification_method": "capture comparison at sizes 14, 16, 20, 22, 24, 28 and 30 in light and dark for each status",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4736,7 +4736,7 @@
       "cancellation": "The ring is torn down with the glyph when the head stops running.",
       "windows_path": "1600 ms from an absolute origin, so several rings stay in step. Do not clip the glyph's box.",
       "verification_method": "capture comparison at fixed phases plus a unit test on the constants",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4758,7 +4758,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One template asset. Do not style the round number separately.",
       "verification_method": "capture comparison of a round-2 name",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -6675,7 +6675,8 @@
         "DroppyCode/UI/Common/HydraGlyph.swift:9-41",
         "DroppyCode/UI/Common/HydraGlyph.swift:87-212"
       ],
-      "notes": "The 25 assets are hydra-head-01 through hydra-head-25 and are template images, so one colour tints each whole. The ring must not be clipped by the glyph's frame."
+      "notes": "The 25 assets are hydra-head-01 through hydra-head-25 and are template images, so one colour tints each whole. The ring must not be clipped by the glyph's frame.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRA-033",
@@ -6697,7 +6698,8 @@
         "DroppyCode/UI/Common/HydraGlyph.swift:35-39",
         "DroppyCode/UI/Common/HydraGlyph.swift:45-65"
       ],
-      "notes": "Every proportion derives from the glyph size, so one implementation serves every call site from 14 to 30 points."
+      "notes": "Every proportion derives from the glyph size, so one implementation serves every call site from 14 to 30 points.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRA-034",

@@ -940,7 +940,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the raw-optional read, not Chrome.accent. This is an upstream inconsistency that is observable only on the three system-hue themes.",
       "verification_method": "unit: the popover tint equals spec.accent, including nil for system/light/dark",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "66",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4026,7 +4026,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The blend fractions, the blend targets and the sRGB conversion are exact and observable. A Windows colour mix must be in sRGB, not in a linear or perceptual space, or the top row reads visibly lighter or darker than upstream.",
       "verification_method": "unit test over a fixed accent asserting the three sRGB component triples",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4047,7 +4047,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the piecewise function exactly, including the negative-phase wrap and the asymmetric 0.45 / 0.92 / 0.08 split. A symmetric ease reads as a different animation.",
       "verification_method": "unit test sampling the curve at 0, 0.2, 0.45, 0.7, 0.92, 0.96 and 1, and at a negative phase, against pinned values",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4071,7 +4071,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The divisor 2.5 and the bottom-centre origin are exact. The indicator must not be redrawn on a per-frame timer: the source's own comment records that a 30 Hz timeline inside a lazy list was the cost this replaced, so the Windows build drives it from a composited animation, not from a render loop on the UI thread.",
       "verification_method": "unit test asserting the nine lag values against pinned numbers, and that the 3 by 3 is hidden from accessibility",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4095,7 +4095,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The ring order is the animation and must be copied literally; deriving it from an angle sweep gives a different order. The accessibility label \"Working\" is a user-visible assistive string and is kept verbatim.",
       "verification_method": "unit test asserting the six lag values in ring order and the accessibility label string",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4119,7 +4119,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A top-origin coordinate system removes the row reversal but must keep row 0 at the top; getting this backwards flips the 3 by 3's wave to travel downward and reverses the mini spinner's ring. The rounding of the centring origin is deliberate and keeps 2.4-point cells crisp.",
       "verification_method": "unit test over both grids asserting content size and every cell frame for a known bounds rectangle",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4143,7 +4143,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The shared begin-time origin is the observable part: two working threads in the sidebar must not pulse out of phase. A Windows composition animation needs the same absolute-clock anchor, not a per-view start time. Forty samples is the stated minimum that keeps both the soft and the sharp edge of the curve without a visible step; using the curve directly as an easing function is acceptable only if it is sampled at least this finely.",
       "verification_method": "unit test asserting 41 sample values against the curve, the duration, the repeat and the non-removal; capture comparison of two spinners appearing at different times and pulsing in step",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4165,7 +4165,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reduce Motion maps to the Windows 'Show animations' accessibility preference. Freezing at the start of the wave, not at full opacity, is the observable behaviour.",
       "verification_method": "unit test asserting no animation and the per-cell frozen opacity values under the reduced-motion flag",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4191,7 +4191,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The critical case is a spinner in a row that never re-renders: without an explicit theme signal it keeps the old accent indefinitely. A Windows implementation needs the same three triggers, including a light/dark change, and must write the colours without an implicit transition.",
       "verification_method": "interaction test switching the theme and the system appearance while a sidebar row is working, asserting the new tints and, for the window case, a reinstalled in-phase animation",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4215,7 +4215,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A Windows composition layer that animates property changes by default will crossfade the tint on a theme switch and slide the cells on a layout pass; both must be suppressed. The pass-through hit test is required or a working row becomes partly unclickable.",
       "verification_method": "interaction test that a click on the indicator selects the row; unit test that a frame and colour write produce no transition",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4238,7 +4238,7 @@
       "cancellation": "not cancellable",
       "windows_path": "If the Windows archive ghost is rendered by a mechanism that CAN capture the live indicator, this variant collapses to an implementation detail; but as long as the ghost is produced by an offscreen renderer, the frozen-shape fallback is required or the ghost shows an empty gap where the indicator was.",
       "verification_method": "capture comparison of the archive ghost against a live row, asserting the indicator is present and frozen at the wave's first frame",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5720,7 +5720,8 @@
         "DroppyCode/UI/Common/WorkingIndicators.swift:196-205",
         "DroppyCode/UI/Common/WorkingIndicators.swift:295-316"
       ],
-      "notes": "Hidden from assistive technology; the working line's own text carries the meaning. Every spinner in the app shares one animation clock origin, so two of them never pulse out of phase."
+      "notes": "Hidden from assistive technology; the working line's own text carries the meaning. Every spinner in the app shares one animation clock origin, so two of them never pulse out of phase.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-THEME-050",
@@ -5743,7 +5744,8 @@
         "DroppyCode/UI/Common/WorkingIndicators.swift:81-110",
         "DroppyCode/UI/Common/WorkingIndicators.swift:112-138"
       ],
-      "notes": "Accessibility label exactly \"Working\", applied outside the still/animated branch so both forms carry it. Its still form is the one that appears in the flying archive ghost (SidebarView.swift:2101)."
+      "notes": "Accessibility label exactly \"Working\", applied outside the still/animated branch so both forms carry it. Its still form is the one that appears in the flying archive ghost (SidebarView.swift:2101).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-THEME-051",

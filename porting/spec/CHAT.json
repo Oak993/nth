@@ -2637,7 +2637,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the twenty-two words in order, the seven-second step, and the FNV-1a hash over the uppercase-hyphenated UUID string with 64-bit wrapping arithmetic. A different hash or a different UUID spelling changes every thread's word sequence.",
       "verification_method": "unit with a fixed thread id asserting the first several words",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
