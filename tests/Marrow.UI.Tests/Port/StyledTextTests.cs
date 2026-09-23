@@ -1,10 +1,19 @@
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.Documents;
+using Avalonia.Media;
+using Avalonia.Media.Imaging;
+using Avalonia.Platform;
+using Avalonia.Styling;
 using Marrow.UI.Port;
+using Marrow.UI.Tests.Fixtures;
 
 namespace Marrow.UI.Tests.Port;
 
-// ED-092(3): pure value coverage only. Render(TextBlock), including numeric baseline offset,
-// is still unimplemented because Avalonia 12.1.2 Run has no numeric baseline extension point.
-public sealed class StyledTextTests
+// ED-092(3), ED-158: SwiftUI Text values render one inline per run, including image runs.
+// O-49 pins the image baseline and O-50 pins inner modifier precedence.
+[Collection("Headless")]
+public sealed class StyledTextTests(HeadlessSession headless)
 {
     [Theory]
     [Trait("Decision", "ED-092")]
@@ -22,6 +31,8 @@ public sealed class StyledTextTests
         Assert.Null(run.IsStrikethrough);
         Assert.Null(run.HasMonospacedDigits);
         Assert.Null(run.BaselineOffset);
+        Assert.Null(run.Image);
+        Assert.False(run.IsTemplateImage);
     }
 
     [Fact]
@@ -94,7 +105,6 @@ public sealed class StyledTextTests
         Assert.Equal("Merge", run.Text);
         Assert.Same(font, run.Font);
         Assert.Same(color, run.Color);
-        Assert.Equal(SwiftFont.Weight.Bold, run.Weight);
         Assert.True(run.IsItalic);
         Assert.True(run.IsUnderlined);
         Assert.True(run.IsStrikethrough);
@@ -129,4 +139,172 @@ public sealed class StyledTextTests
         Assert.Throws<NotSupportedException>(() => list.Clear());
         Assert.Equal("Merge", Assert.Single(text.Runs).Text);
     }
+
+    [Fact]
+    [Trait("Decision", "ED-158")]
+    [Trait("Oracle", "O-50")]
+    public void An_inner_trait_wins_over_the_same_trait_applied_outside()
+    {
+        var c1 = SwiftColor.Primary;
+        var c2 = SwiftColor.Secondary;
+        var f1 = SwiftFont.Callout;
+        var f2 = SwiftFont.Body;
+        var text = (new StyledText("Merge").FontWeight(SwiftFont.Weight.Semibold).ForegroundColor(c1)
+            .Font(f1).BaselineOffset(-3.2) + new StyledText(" x"))
+            .FontWeight(SwiftFont.Weight.Bold).ForegroundColor(c2).Font(f2).BaselineOffset(2);
+        Assert.Equal(SwiftFont.Weight.Semibold, text.Runs[0].Weight);
+        Assert.Same(c1, text.Runs[0].Color);
+        Assert.Same(f1, text.Runs[0].Font);
+        Assert.Equal(-3.2, text.Runs[0].BaselineOffset);
+        Assert.Equal(SwiftFont.Weight.Bold, text.Runs[1].Weight);
+        Assert.Same(c2, text.Runs[1].Color);
+        Assert.Same(f2, text.Runs[1].Font);
+        Assert.Equal(2, text.Runs[1].BaselineOffset);
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-158")]
+    public void Image_constructor_keeps_an_empty_image_run() => headless.OnUiThread(() =>
+    {
+        using var bitmap = Bitmap();
+        var run = Assert.Single(new StyledText(bitmap, isTemplate: true).Runs);
+        Assert.Equal("", run.Text);
+        Assert.Same(bitmap, run.Image);
+        Assert.True(run.IsTemplateImage);
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-158")]
+    public void Rendering_keeps_three_runs_and_resolves_weight_and_font() => headless.OnUiThread(() =>
+    {
+        // UI/Markdown/LinkPopover.swift:80.
+        var text = new StyledText("Merge").FontWeight(SwiftFont.Weight.Semibold)
+            + new StyledText(" ") + new StyledText("request");
+        var host = new TextBlock();
+        text.Render(host);
+        Assert.Equal(3, host.Inlines!.Count);
+        Assert.Equal(600, (int)Assert.IsType<Run>(host.Inlines[0]).FontWeight);
+        Assert.Equal(" ", Assert.IsType<Run>(host.Inlines[1]).Text);
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-158")]
+    public void Rendering_applies_tabular_digits_and_text_decorations() => headless.OnUiThread(() =>
+    {
+        foreach (var font in new[] { SwiftFont.System(12, weight: SwiftFont.Weight.Medium),
+                                     SwiftFont.System(SwiftFont.TextStyle.Callout, weight: SwiftFont.Weight.Medium) })
+        {
+            var host = new TextBlock();
+            new StyledText("123").Font(font).MonospacedDigit().Underline().Strikethrough().Render(host);
+            var run = Assert.IsType<Run>(Assert.Single(host.Inlines!));
+            Assert.Equal(500, (int)run.FontWeight);
+            Assert.Equal(12, run.FontSize);
+            Assert.Equal("Inter", run.FontFamily.Name);
+            Assert.Contains(run.FontFeatures!, feature => feature.Tag == "tnum" && feature.Value == 1);
+            Assert.Equal(2, run.TextDecorations!.Count);
+        }
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-158")]
+    public void Rendering_reuses_a_brush_on_one_host_and_re_resolves_on_theme_change() => headless.OnUiThread(() =>
+    {
+        var host = new TextBlock();
+        var scope = new ThemeVariantScope { RequestedThemeVariant = ThemeVariant.Light, Child = host };
+        var window = new Window { Content = scope };
+        window.Show();
+        var text = new StyledText("a").ForegroundColor(SwiftColor.LabelColor);
+        text.Render(host);
+        var brush = Assert.IsAssignableFrom<ISolidColorBrush>(Assert.IsType<Run>(Assert.Single(host.Inlines!)).Foreground);
+        text.Render(host);
+        Assert.Same(brush, Assert.IsType<Run>(Assert.Single(host.Inlines!)).Foreground);
+        var light = brush.Color;
+        scope.RequestedThemeVariant = ThemeVariant.Dark;
+        Assert.NotEqual(light, brush.Color);
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-158")]
+    public void AppendTo_keeps_existing_inlines_and_render_replaces_them() => headless.OnUiThread(() =>
+    {
+        var host = new TextBlock { Inlines = new InlineCollection { new Run("before") } };
+        (new StyledText("") + new StyledText("after")).AppendTo(host.Inlines!, host);
+        Assert.Equal(new[] { "before", "", "after" }, host.Inlines!.Cast<Run>().Select(r => r.Text));
+        new StyledText("again").Render(host);
+        Assert.Equal("again", Assert.IsType<Run>(Assert.Single(host.Inlines)).Text);
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-158")]
+    [Trait("Oracle", "O-49")]
+    public void Image_baseline_is_always_local_and_uses_height_plus_offset() => headless.OnUiThread(() =>
+    {
+        using var bitmap = Bitmap();
+        var host = new TextBlock();
+        TextBlock.SetBaselineOffset(host, 5);
+        foreach (var (offset, expected) in new (double?, double)[] { (-3.2, 12.8), (null, 16), (-16, 1e-6) })
+        {
+            var text = new StyledText(bitmap, isTemplate: false);
+            if (offset is { } value) text = text.BaselineOffset(value);
+            text.Render(host);
+            var child = Assert.IsType<Image>(Assert.IsType<InlineUIContainer>(Assert.Single(host.Inlines!)).Child);
+            Assert.Equal(expected, TextBlock.GetBaselineOffset(child), 6);
+            Assert.True(child.IsSet(TextBlock.BaselineOffsetProperty));
+        }
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-158")]
+    [Trait("Oracle", "O-49")]
+    public void Mention_image_bottom_is_below_the_first_line_baseline() => headless.OnUiThread(() =>
+    {
+        using var bitmap = Bitmap();
+        var host = new TextBlock { UseLayoutRounding = false };
+        (new StyledText("name ") + new StyledText(bitmap, isTemplate: false).BaselineOffset(-3.2)).Render(host);
+        host.Measure(new Size(300, 100));
+        host.Arrange(new Rect(host.DesiredSize));
+        var image = Assert.IsType<Image>(Assert.IsType<InlineUIContainer>(host.Inlines![1]).Child);
+        var baseline = host.TextLayout.TextLines[0].Baseline;
+        Assert.InRange(image.Bounds.Bottom - baseline, 3.19, 3.21);
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-158")]
+    public void Template_and_plain_images_use_the_expected_controls() => headless.OnUiThread(() =>
+    {
+        using var bitmap = Bitmap();
+        var host = new TextBlock { Foreground = Brushes.Red };
+        new StyledText(bitmap, isTemplate: true).Render(host);
+        var border = Assert.IsType<Border>(Assert.IsType<InlineUIContainer>(Assert.Single(host.Inlines!)).Child);
+        Assert.Equal(16, border.Width);
+        Assert.Equal(16, border.Height);
+        Assert.IsType<ImageBrush>(border.OpacityMask);
+        Assert.Equal(Brushes.Red, border.Background);
+        host.Foreground = Brushes.Blue;
+        Assert.Equal(Brushes.Blue, border.Background);
+        new StyledText(bitmap, isTemplate: false).Render(host);
+        Assert.IsType<Image>(Assert.IsType<InlineUIContainer>(Assert.Single(host.Inlines!)).Child);
+
+        var drawing = new DrawingImage(new GeometryDrawing
+        {
+            Brush = Brushes.Red,
+            Geometry = new RectangleGeometry(new Rect(0, 0, 16, 16)),
+        });
+        new StyledText(drawing, isTemplate: true).Render(host);
+        var drawn = Assert.IsType<Border>(Assert.IsType<InlineUIContainer>(Assert.Single(host.Inlines!)).Child);
+        Assert.IsType<DrawingBrush>(drawn.OpacityMask);
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-158")]
+    public void Numeric_offset_on_text_throws_but_zero_renders() => headless.OnUiThread(() =>
+    {
+        var host = new TextBlock();
+        Assert.Throws<NotSupportedException>(() => new StyledText("x").BaselineOffset(-3.2).Render(host));
+        new StyledText("x").BaselineOffset(0).Render(host);
+        Assert.IsType<Run>(Assert.Single(host.Inlines!));
+    });
+
+    private static WriteableBitmap Bitmap() => new(new PixelSize(16, 16), new Vector(96, 96), PixelFormat.Bgra8888);
 }
