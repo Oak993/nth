@@ -2,6 +2,8 @@ using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
 using Marrow.Services.MCP;
+using Marrow.Services.Models;
+using Marrow.Services.Store;
 using Marrow.Services.Tests.Fixtures;
 
 namespace Marrow.Services.Tests.MCP;
@@ -15,12 +17,10 @@ namespace Marrow.Services.Tests.MCP;
 // order would depend on that unspecified order. Only an EMPTY object ("{}") or a genuinely single-key object is
 // compared as an exact byte string.
 //
-// NOT TESTED HERE, and not implemented in this part: WriteAll (PR-MCP-169), AcpServers (PR-MCP-170), CodexOverrides
-// and the four accessors ClaudeConfigPath/CopilotConfigJSON/GeminiSettingsPath/ConnectedIDs plus the private
-// ServersPresent (PR-MCP-172, and the MCPPaths-reading half of PR-MCP-171). All of them read or write through
-// Marrow.Services.Models.MCPPaths, whose members are still MARROW_STUB (throw NotImplementedException) because
-// they build on Storage.root (Services/Store/Storage.swift:18), which has no C# twin in the tree yet. This is a
-// missing dependency (IMPLEMENTING.md section 6); see the unit's STOP report.
+// ED-177 RESUME: Services.Store.Storage merged (Storage.cs) and Marrow.Services.Models.MCPPaths now builds its
+// locations from Storage.Root, so the file-touching members (WriteAll, AcpServers, CodexOverrides,
+// ClaudeConfigPath/CopilotConfigJSON/GeminiSettingsPath/ConnectedIDs, private ServersPresent) are tested below
+// using StorageScratchFolder (R-TEST-9), never the real %LOCALAPPDATA%\Marrow Code.
 public sealed class MCPProviderConfigTests
 {
     private static MCPResolvedServer Remote(string id, string? url = "https://example.test/mcp",
@@ -347,5 +347,269 @@ public sealed class MCPProviderConfigTests
         home.WriteCodexConfig("[other_table.foo]\nname = \"bar\"\n");
         var names = MCPProviderConfig.CodexUserServerNames(home.FullPath);
         Assert.Empty(names);
+    }
+
+    // ===== PR-MCP-169: writeAll(_:) =====
+
+    [Fact]
+    [Trait("Req", "PR-MCP-169")] // :149-153, empty list deletes all four and writes nothing
+    public void WriteAll_with_no_servers_deletes_all_four_files_and_writes_nothing()
+    {
+        using var storage = new StorageScratchFolder();
+        var directory = MCPPaths.Directory; // creates <root>/mcp
+        File.WriteAllText(Path.Combine(directory, "claude.json"), "stale");
+        File.WriteAllText(Path.Combine(directory, "codex.json"), "stale");
+        File.WriteAllText(Path.Combine(directory, "copilot.json"), "stale");
+        File.WriteAllText(Path.Combine(directory, "gemini-settings.json"), "stale");
+
+        MCPProviderConfig.WriteAll(Array.Empty<MCPResolvedServer>());
+
+        Assert.False(File.Exists(MCPPaths.ClaudeConfigURL));
+        Assert.False(File.Exists(MCPPaths.CodexConfigURL));
+        Assert.False(File.Exists(MCPPaths.CopilotConfigURL));
+        Assert.False(File.Exists(Path.Combine(directory, "gemini-settings.json")));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-MCP-169")] // :149-153, no files present is not an error (try? removeItem)
+    public void WriteAll_with_no_servers_and_no_existing_files_does_not_throw()
+    {
+        using var storage = new StorageScratchFolder();
+        var exception = Record.Exception(() => MCPProviderConfig.WriteAll(Array.Empty<MCPResolvedServer>()));
+        Assert.Null(exception);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-MCP-169")] // :155-158, a non-empty list writes all four provider files
+    public void WriteAll_with_servers_writes_all_four_files()
+    {
+        using var storage = new StorageScratchFolder();
+        MCPProviderConfig.WriteAll(new[] { Remote("s1") });
+
+        Assert.True(File.Exists(MCPPaths.ClaudeConfigURL));
+        Assert.True(File.Exists(MCPPaths.CodexConfigURL));
+        Assert.True(File.Exists(MCPPaths.CopilotConfigURL));
+        Assert.True(File.Exists(Path.Combine(MCPPaths.Directory, "gemini-settings.json")));
+
+        var claude = JSONValue.Parse(File.ReadAllBytes(MCPPaths.ClaudeConfigURL))!;
+        Assert.Equal("http", claude["mcpServers"]!["s1"]!["type"]!.JSONValueString);
+        var codex = JSONValue.Parse(File.ReadAllBytes(MCPPaths.CodexConfigURL))!;
+        AssertKeys(codex["mcp_servers"]!["s1"]!, "url");
+    }
+
+    [Fact]
+    [Trait("Req", "PR-MCP-169")] // :156, codex writes to codex.json under the mcp directory
+    public void WriteAll_writes_codex_file_at_codex_json()
+    {
+        using var storage = new StorageScratchFolder();
+        MCPProviderConfig.WriteAll(new[] { Remote("s1") });
+        Assert.Equal(Path.Combine(MCPPaths.Directory, "codex.json"), MCPPaths.CodexConfigURL);
+        Assert.True(File.Exists(MCPPaths.CodexConfigURL));
+    }
+
+    // ===== PR-MCP-170: acpServers(allowsHTTP:) =====
+
+    [Fact]
+    [Trait("Req", "PR-MCP-170")] // :78-81, a missing claude.json yields an empty array
+    public void AcpServers_returns_empty_array_when_claude_config_file_is_missing()
+    {
+        using var storage = new StorageScratchFolder();
+        var result = MCPProviderConfig.AcpServers(allowsHTTP: true);
+        Assert.Equal("[]", result.CompactString);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-MCP-170")] // :91-97, a remote entry with allowsHTTP true becomes an http server object
+    public void AcpServers_remote_entry_with_allowsHTTP_true_becomes_http_type_with_sorted_headers()
+    {
+        using var storage = new StorageScratchFolder();
+        MCPProviderConfig.WriteAll(new[] { Remote("s1", url: "https://x.test", headers: new[] { ("Z", "z"), ("A", "a") }) });
+
+        var result = MCPProviderConfig.AcpServers(allowsHTTP: true);
+        var entry = result.JSONValueArray![0];
+        Assert.Equal("http", entry["type"]!.JSONValueString);
+        Assert.Equal("s1", entry["name"]!.JSONValueString);
+        Assert.Equal("https://x.test", entry["url"]!.JSONValueString);
+        var headerList = entry["headers"]!.JSONValueArray!;
+        Assert.Equal(2, headerList.Count);
+        Assert.Equal("A", headerList[0]["name"]!.JSONValueString); // :88 headers.keys.sorted()
+        Assert.Equal("Z", headerList[1]["name"]!.JSONValueString);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-MCP-170")] // :98-108, allowsHTTP false rewrites a remote entry as an npx mcp-remote stdio launch
+    public void AcpServers_remote_entry_with_allowsHTTP_false_becomes_npx_mcp_remote_launch()
+    {
+        using var storage = new StorageScratchFolder();
+        MCPProviderConfig.WriteAll(new[] { Remote("s1", url: "https://x.test", headers: new[] { ("X-Key", "abc") }) });
+
+        var result = MCPProviderConfig.AcpServers(allowsHTTP: false);
+        var entry = result.JSONValueArray![0];
+        Assert.Null(entry["type"]); // :103-108, no type key
+        Assert.Equal("s1", entry["name"]!.JSONValueString);
+        Assert.Equal("npx", entry["command"]!.JSONValueString);
+        var args = entry["args"]!.JSONValueArray!;
+        Assert.Equal("-y", args[0].JSONValueString);
+        Assert.Equal("mcp-remote", args[1].JSONValueString);
+        Assert.Equal("https://x.test", args[2].JSONValueString);
+        Assert.Equal("--header", args[3].JSONValueString);
+        Assert.Equal("X-Key: abc", args[4].JSONValueString); // :101, "<key>: <value>" with one space
+        Assert.Equal("[]", entry["env"]!.CompactString); // :107, env is an empty ARRAY not an object
+    }
+
+    [Fact]
+    [Trait("Req", "PR-MCP-170")] // :110-121, a local entry keeps its command, raw args array and sorted env list
+    public void AcpServers_local_entry_keeps_command_and_raw_args_with_sorted_env_list()
+    {
+        using var storage = new StorageScratchFolder();
+        MCPProviderConfig.WriteAll(new[]
+        {
+            Local("s1", command: "npx", args: new[] { "-y", "pkg" }, env: new[] { ("Z", "z"), ("A", "a") }),
+        });
+
+        var result = MCPProviderConfig.AcpServers(allowsHTTP: true);
+        var entry = result.JSONValueArray![0];
+        Assert.Null(entry["type"]);
+        Assert.Equal("npx", entry["command"]!.JSONValueString);
+        var args = entry["args"]!.JSONValueArray!;
+        Assert.Equal("-y", args[0].JSONValueString);
+        Assert.Equal("pkg", args[1].JSONValueString);
+        var env = entry["env"]!.JSONValueArray!;
+        Assert.Equal(2, env.Count);
+        Assert.Equal("A", env[0]["name"]!.JSONValueString); // :112 env.keys.sorted()
+        Assert.Equal("Z", env[1]["name"]!.JSONValueString);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-MCP-170")] // :83, ids are iterated in sorted order
+    public void AcpServers_returns_entries_in_sorted_id_order()
+    {
+        using var storage = new StorageScratchFolder();
+        MCPProviderConfig.WriteAll(new[] { Remote("zebra"), Remote("alpha") });
+
+        var result = MCPProviderConfig.AcpServers(allowsHTTP: true).JSONValueArray!;
+        Assert.Equal("alpha", result[0]["name"]!.JSONValueString);
+        Assert.Equal("zebra", result[1]["name"]!.JSONValueString);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-MCP-170")] // :85, an entry counts as remote when type is "http" OR it has a url string
+    public void AcpServers_treats_entry_with_url_but_no_type_as_remote()
+    {
+        using var storage = new StorageScratchFolder();
+        Directory.CreateDirectory(MCPPaths.Directory);
+        File.WriteAllText(MCPPaths.ClaudeConfigURL, "{\"mcpServers\":{\"s1\":{\"url\":\"https://x.test\"}}}");
+
+        var result = MCPProviderConfig.AcpServers(allowsHTTP: true).JSONValueArray!;
+        Assert.Equal("http", result[0]["type"]!.JSONValueString);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-MCP-170")] // :80, an empty mcpServers object yields an empty array
+    public void AcpServers_returns_empty_array_when_claude_config_has_empty_mcpServers()
+    {
+        using var storage = new StorageScratchFolder();
+        Directory.CreateDirectory(MCPPaths.Directory);
+        File.WriteAllText(MCPPaths.ClaudeConfigURL, "{\"mcpServers\":{}}");
+        var result = MCPProviderConfig.AcpServers(allowsHTTP: true);
+        Assert.Equal("[]", result.CompactString);
+    }
+
+    // ===== PR-MCP-171 (MCPPaths-reading half): codexOverrides() =====
+
+    [Fact]
+    [Trait("Req", "PR-MCP-171")] // :200-203, codex.json missing yields nil
+    public void CodexOverrides_returns_null_when_codex_config_file_is_missing()
+    {
+        using var storage = new StorageScratchFolder();
+        Assert.Null(MCPProviderConfig.CodexOverrides(ValueList<string>.Empty));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-MCP-171")] // :202, an empty mcp_servers object also yields nil
+    public void CodexOverrides_returns_null_when_mcp_servers_object_is_empty()
+    {
+        using var storage = new StorageScratchFolder();
+        Directory.CreateDirectory(MCPPaths.Directory);
+        File.WriteAllText(MCPPaths.CodexConfigURL, "{\"mcp_servers\":{}}");
+        Assert.Null(MCPProviderConfig.CodexOverrides(ValueList<string>.Empty));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-MCP-171")] // :206-208, a user server name not already a key is switched off by name
+    public void CodexOverrides_adds_enabled_false_for_user_server_names_not_already_present()
+    {
+        using var storage = new StorageScratchFolder();
+        MCPProviderConfig.WriteAll(new[] { Local("connected") });
+
+        var overrides = MCPProviderConfig.CodexOverrides(new ValueList<string>(new[] { "connected", "other" }))!;
+        Assert.Equal("false", overrides["other"]!["enabled"]!.CompactString);
+        Assert.Null(overrides["connected"]!["enabled"]); // :206 `where object[name] == nil`, "connected" already a key
+    }
+
+    // ===== PR-MCP-172: the four accessors and serversPresent =====
+
+    [Fact]
+    [Trait("Req", "PR-MCP-172")] // :212-215, claudeConfigPath returns nil when the file is missing
+    public void ClaudeConfigPath_returns_null_when_file_is_missing()
+    {
+        using var storage = new StorageScratchFolder();
+        Assert.Null(MCPProviderConfig.ClaudeConfigPath());
+    }
+
+    [Fact]
+    [Trait("Req", "PR-MCP-172")] // :212-215, claudeConfigPath returns the path when servers are present
+    public void ClaudeConfigPath_returns_path_when_servers_present()
+    {
+        using var storage = new StorageScratchFolder();
+        MCPProviderConfig.WriteAll(new[] { Remote("s1") });
+        Assert.Equal(MCPPaths.ClaudeConfigURL, MCPProviderConfig.ClaudeConfigPath());
+    }
+
+    [Fact]
+    [Trait("Req", "PR-MCP-172")] // :225-228, geminiSettingsPath returns nil when empty and the path when present
+    public void GeminiSettingsPath_returns_null_when_empty_and_path_when_present()
+    {
+        using var storage = new StorageScratchFolder();
+        Assert.Null(MCPProviderConfig.GeminiSettingsPath());
+        MCPProviderConfig.WriteAll(new[] { Remote("s1") });
+        Assert.Equal(Path.Combine(MCPPaths.Directory, "gemini-settings.json"), MCPProviderConfig.GeminiSettingsPath());
+    }
+
+    [Fact]
+    [Trait("Req", "PR-MCP-172")] // :217-223, copilotConfigJSON returns nil when the mcpServers object is empty
+    public void CopilotConfigJSON_returns_null_when_mcpServers_object_is_empty()
+    {
+        using var storage = new StorageScratchFolder();
+        Assert.Null(MCPProviderConfig.CopilotConfigJSON());
+    }
+
+    [Fact]
+    [Trait("Req", "PR-MCP-172")] // :217-223, copilotConfigJSON returns the whole file re-serialized compact
+    public void CopilotConfigJSON_returns_whole_file_as_compact_json_string()
+    {
+        using var storage = new StorageScratchFolder();
+        MCPProviderConfig.WriteAll(new[] { Remote("s1", url: "https://x.test") });
+        var json = MCPProviderConfig.CopilotConfigJSON()!;
+        var parsed = JSONValue.Parse(json)!;
+        Assert.Equal("https://x.test", parsed["mcpServers"]!["s1"]!["url"]!.JSONValueString);
+        Assert.DoesNotContain("\n", json, StringComparison.Ordinal); // :222 compactString, not pretty-printed
+    }
+
+    [Fact]
+    [Trait("Req", "PR-MCP-172")] // :230-236, connectedIDs returns empty when the file is missing
+    public void ConnectedIDs_returns_empty_when_claude_config_missing()
+    {
+        using var storage = new StorageScratchFolder();
+        Assert.Empty(MCPProviderConfig.ConnectedIDs());
+    }
+
+    [Fact]
+    [Trait("Req", "PR-MCP-172")] // :235, connectedIDs returns sorted keys of mcpServers
+    public void ConnectedIDs_returns_sorted_keys_of_mcpServers()
+    {
+        using var storage = new StorageScratchFolder();
+        MCPProviderConfig.WriteAll(new[] { Remote("zebra"), Remote("alpha") });
+        Assert.Equal(new[] { "alpha", "zebra" }, MCPProviderConfig.ConnectedIDs());
     }
 }
