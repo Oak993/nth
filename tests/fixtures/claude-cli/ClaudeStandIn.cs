@@ -76,7 +76,11 @@ internal static class ClaudeStandIn
         Queue<string> pending = new Queue<string>();
         object gate = new object();
         bool closed = false;
-        AutoResetEvent signal = new AutoResetEvent(false);
+        // One count per queued line (and one for the end of stdin), so the main loop takes exactly one wake-up per
+        // line. An AutoResetEvent here lost lines: Set() on an event that is already set does nothing, so when two
+        // lines arrived before the main loop waited again (ClaudeSession.Interrupt writes the tool deny and the
+        // interrupt control_request back to back), the second stayed queued, unanswered, until the 20 s idle exit.
+        SemaphoreSlim signal = new SemaphoreSlim(0);
         Thread reader = new Thread(delegate ()
         {
             while (true)
@@ -87,7 +91,7 @@ internal static class ClaudeStandIn
                     if (read == null) { closed = true; }
                     else { pending.Enqueue(read); }
                 }
-                signal.Set();
+                signal.Release();
                 if (read == null) break;
             }
         });
@@ -96,7 +100,7 @@ internal static class ClaudeStandIn
 
         while (true)
         {
-            if (!signal.WaitOne(TimeSpan.FromSeconds(20))) break; // idle timeout: no line in 20s, exit on our own
+            if (!signal.Wait(TimeSpan.FromSeconds(20))) break; // idle timeout: no line in 20s, exit on our own
             string line = null;
             bool isClosed;
             lock (gate)
