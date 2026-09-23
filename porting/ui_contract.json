@@ -18581,7 +18581,8 @@
       "notes": "The literal is \"Pasted image.png\": capital P, lowercase i, one space, the extension in lowercase. It is stored in the Attachment record and therefore persists in the thread document, so it is visible again after a restart. The name is not deduplicated and does not carry a counter.",
       "screen": "Composer attachment chip, attachment strip in a sent message, attachment preview popover",
       "element": "Name of an attachment created by pasting an image",
-      "role": "label"
+      "role": "label",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "STORE",

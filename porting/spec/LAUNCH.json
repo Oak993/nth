@@ -1833,7 +1833,7 @@
       "cancellation": "not applicable",
       "windows_path": "PLATFORM BOUNDARY (port_impacts.md entry 113): the two-root split must be preserved deliberately, because worktree paths are handed to git and appear in user-visible strings. The store root is %LOCALAPPDATA%\\Marrow Code (OD-0008 C7) in place of ~/Library/Application Support/<AppInfo.name>; a dotted folder under the user profile replaces the home state directory, named under OD-0012 F1 %USERPROFILE%\\.marrow, or %USERPROFILE%\\.marrow-dev in a development build (upstream \".droppy-code\" / \".droppy-code-dev\", Text.swift:6). The development-build suffix rule is reproduced.",
       "verification_method": "integration test asserting both roots exist and hold the expected files after a launch",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
