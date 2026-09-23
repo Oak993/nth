@@ -440,7 +440,16 @@ internal sealed class ChatThreadConverter : JsonConverter<ChatThread>
         const bool hydraEnabledIsExplicit = true; // :260
         var hydraPairID = Coding.Value<Guid?>(element, "hydraPairID", field => SwiftDecoding.ReadUUID(field), () => null); // :261
         var hydraSpawnCount = Coding.Value(element, "hydraSpawnCount", SwiftDecoding.ReadInt, () => 0L);                   // :262
-        var hydra = Coding.Value<HydraHeadInfo?>(element, "hydra", field => field.Deserialize<HydraHeadInfo>(Coding.StorageOptions), () => null); // :263
+        // HydraHeadInfo.init(from:) opens `decoder.container(keyedBy:)` first (Hydra.swift:399); a "hydra"
+        // value that is present, non-null, but not a JSON object cannot supply one, so that Swift init
+        // throws typeMismatch immediately, which container.value(.hydra, default: nil) (:263) swallows to
+        // nil (PR-STORE-166). HydraHeadInfoConverter.Decode (Hydra.cs) is itself fully lenient field by
+        // field and performs no such top-level check, so that guard is reproduced here.
+        var hydra = Coding.Value<HydraHeadInfo?>(element, "hydra", field =>
+            field.ValueKind == JsonValueKind.Object
+                ? field.Deserialize<HydraHeadInfo>(Coding.StorageOptions)
+                : throw new DecodingError("typeMismatch", "Expected to decode Dictionary<String, Any>."),
+            () => null); // :263
 
         return ChatThread.FromDecoded(id, projectID, title, createdAt, updatedAt, provider, model, effort, fastMode,
             runtimeMode, interactionMode, worktreePath, branch, providerSessionID, providerResumeAt, isPinned,
