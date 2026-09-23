@@ -4677,56 +4677,14 @@
    ],
    "intra_deps": [],
    "records_total": 19,
-   "records_todo": [
-    "PR-MCP-177",
-    "PR-MCP-178",
-    "PR-MCP-179",
-    "PR-MCP-180",
-    "PR-MCP-181",
-    "PR-MCP-182",
-    "PR-MCP-183",
-    "PR-MCP-184",
-    "PR-MCP-185",
-    "PR-MCP-186",
-    "PR-MCP-187",
-    "PR-MCP-188",
-    "PR-MCP-189",
-    "PR-MCP-190",
-    "PR-MCP-191",
-    "PR-MCP-192",
-    "PR-MCP-225",
-    "PR-MCP-226",
-    "PR-MCP-227"
-   ],
-   "parts": [
-    [
-     "PR-MCP-177",
-     "PR-MCP-178",
-     "PR-MCP-179",
-     "PR-MCP-180",
-     "PR-MCP-181",
-     "PR-MCP-182",
-     "PR-MCP-183",
-     "PR-MCP-184",
-     "PR-MCP-185",
-     "PR-MCP-186",
-     "PR-MCP-187",
-     "PR-MCP-188",
-     "PR-MCP-189",
-     "PR-MCP-190",
-     "PR-MCP-191",
-     "PR-MCP-192",
-     "PR-MCP-225",
-     "PR-MCP-226",
-     "PR-MCP-227"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-002",
     "T-M4-003"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.MCP.MCPProbe",

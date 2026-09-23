@@ -4815,7 +4815,7 @@
       "cancellation": "awaiting tools() is a cancellation point; a cancelled listTools is treated as a failure and blacklists the server",
       "windows_path": "Same ordering and caching. The sort is observable because it fixes the order tools are presented to the model.",
       "verification_method": "integration test with one good and one failing stand-in server",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "25",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4840,7 +4840,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same grammar; it is the contract between the model, the transcript renderer and the hub.",
       "verification_method": "unit with a tool name containing a double underscore",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4865,7 +4865,7 @@
       "cancellation": "cancellation propagates as CancellationError, not as a server error",
       "windows_path": "Reproduce the asymmetry exactly: do not add a failed-set check to call(). A listing failure hides the server from the tool list yet a direct call still relaunches it.",
       "verification_method": "integration test calling a tool on a server whose listing failed",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "19",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4889,7 +4889,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same: clear first, stop asynchronously. A synchronous stop would block the settings interaction that triggered the export.",
       "verification_method": "integration test asserting a toggled-off server's process ends and the next call re-reads the file",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4913,7 +4913,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same precedence and the same silent dropping of non-string values.",
       "verification_method": "unit over both branches and a member with neither key",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4937,7 +4937,7 @@
       "cancellation": "each request is a cancellation point",
       "windows_path": "Same 400-character cap and the same schema fallback: they are what the model sees.",
       "verification_method": "unit with an over-long description and a tool with no inputSchema",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4961,7 +4961,7 @@
       "cancellation": "the request is a cancellation point",
       "windows_path": "Same flattening and the same two placeholder strings, which appear verbatim in the transcript.",
       "verification_method": "unit over text, image, resource and unknown content items",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4985,7 +4985,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Scope the restart policy to stdio only; the HTTP path has no restart and no dead state at all.",
       "verification_method": "integration test killing a stand-in server twice",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5010,7 +5010,7 @@
       "cancellation": "a cancellation during the handshake stops the client and rethrows CancellationError",
       "windows_path": "Same layering, cwd and stderr discarding. The live-process list must be wired to the app-quit path so no npx or node child survives the app; on Windows an orphan survives until Task Manager.",
       "verification_method": "integration test asserting no child survives app quit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5035,7 +5035,7 @@
       "cancellation": "the sleep is the cancellation point",
       "windows_path": "Same 10 ms interval (the probe uses 5 ms) and the same reply retention. Do not unify the two readers.",
       "verification_method": "integration test issuing two concurrent calls to one stand-in server",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5060,7 +5060,7 @@
       "cancellation": "each POST is a cancellation point",
       "windows_path": "Reproduce: do not clear initialized anywhere but stop, and add no restart to the HTTP path.",
       "verification_method": "integration test dropping the remote session and asserting the client does not re-initialize",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "20",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5084,7 +5084,7 @@
       "cancellation": "the request is a cancellation point",
       "windows_path": "Same headers; the body omission on failure is a deliberate difference from the probe.",
       "verification_method": "contract fixture asserting the headers and the failure message",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5109,7 +5109,7 @@
       "cancellation": "not cancellable",
       "windows_path": "60 seconds, per page. Do not unify the hub's timeouts with the probe's (a flat 30-second remote leg and a 90-second stdio deadline) or the proxy's 3600-second upstream hold.",
       "verification_method": "unit asserting the value at this call site and that a ten-page listing does not share one deadline",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5134,7 +5134,7 @@
       "cancellation": "not cancellable",
       "windows_path": "120 seconds. Do not unify with the listing deadline or with the probe's and proxy's values.",
       "verification_method": "unit asserting the value at this call site",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5161,7 +5161,7 @@
       "cancellation": "not cancellable",
       "windows_path": "60 seconds on both transports. Keep them as two values at two sites so one can be changed without the other, exactly as the source has them. Note the stdio leg starts a child process, which is slower on Windows; do not raise the deadline to compensate.",
       "verification_method": "unit asserting the value at each of the two call sites separately",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5187,7 +5187,7 @@
       "cancellation": "A CancellationError from this post is the one error that propagates.",
       "windows_path": "30 seconds, and keep the swallow-except-cancellation shape exactly: a blanket catch that also swallowed cancellation would leave a stopping client running.",
       "verification_method": "unit asserting the value, that a server error is swallowed, and that a cancellation propagates",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5211,7 +5211,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same field set cleared and the same two flags deliberately left set.",
       "verification_method": "unit asserting the flags after stop",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5236,7 +5236,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Wire this to the app-quit path and kill the whole process tree, not just the immediate child: npx spawns node as a grandchild and a per-pid kill leaks it. This is the platform boundary - Windows has no process groups, so a job object or a tree kill is the equivalent.",
       "verification_method": "integration test quitting the app with two servers running and asserting no orphan remains",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5262,7 +5262,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Hard-code these literals rather than deriving them; keep the two renderings distinct and keep the full stops.",
       "verification_method": "unit with byte-exact comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
