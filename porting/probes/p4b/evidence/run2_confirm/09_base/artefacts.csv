@@ -1,0 +1,15 @@
+t0,rep,phaseByTime,side,offset,calibrated,bandRGB,innerMeanRGB,maxDiffNeighbour,maxDiffReference,visibleNeighbour,visibleReference
+272566.86,1,shrink,right,none,1,"","",0,0,False,False
+272658.35,1,shrink,right,none,1,"","",0,0,False,False
+272754.01,1,shrink,right,none,1,"","",0,0,False,False
+277096.68,2,grow,right,6,1,"(107,137,255)(107,137,255)(108,137,255)(108,137,255)(108,137,255)","(75,94,170)",85,85,True,True
+277113.99,2,grow,right,6,1,"(102,133,255)(102,133,255)(102,133,255)(102,133,255)(102,133,255)","(72,91,170)",85,85,True,True
+277113.99,2,grow,bottom,4,1,"(124,150,255)(124,150,255)(124,150,255)","(84,102,170)",85,85,True,True
+277125.52,2,grow,right,5,1,"(98,129,255)(98,129,255)(99,130,255)(99,130,255)","(68,89,170)",85,85,True,True
+278259.54,2,shrink,right,none,1,"","",0,0,False,False
+278459.21,2,shrink,right,none,1,"","",0,0,False,False
+282568.14,3,grow,right,5,1,"(118,145,255)(118,145,255)(118,145,255)(118,145,255)","(80,98,170)",85,85,True,True
+284585.21,3,shrink,right,none,1,"","",0,0,False,False
+284681.38,3,shrink,right,none,1,"","",0,0,False,False
+290681.93,4,shrink,right,none,1,"","",0,0,False,False
+291036.08,4,shrink,right,none,1,"","",0,0,False,False

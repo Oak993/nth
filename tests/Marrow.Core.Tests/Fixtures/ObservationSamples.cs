@@ -68,7 +68,11 @@ public sealed class MainActorCounterSample : MainActorModel
     public int Count { get => Read(count); set => Set(ref count, value); }
 }
 
-/// <summary>Core/Models/Library.swift ChatThread, trimmed to what the tracking test needs.</summary>
+/// <summary>
+/// DroppyCode/Core/Models/Library.swift:121-126 (B2 1fbf81e), trimmed to what the tracking tests need:
+/// "struct ChatThread: Codable, Identifiable, Hashable, Sendable {" ... "var id: UUID" ... "var title: String".
+/// A record, because ChatThread is Hashable and so Equatable: two threads with the same fields compare equal.
+/// </summary>
 public sealed record ChatThreadSample(Guid Id, string Title);
 
 /// <summary>

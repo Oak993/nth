@@ -4937,7 +4937,7 @@
       "cancellation": "not cancellable",
       "windows_path": "THIS IS THE NAMED WINDOWS HAZARD. Resolving the bare name \"cmd\" through PATH plus PATHEXT on Windows finds C:\\Windows\\System32\\cmd.exe, the command interpreter, long before any provider CLI; launching it with this provider's argv would open a console that speaks no protocol on stdout and the session would hang at the first read. UNK-0006 is RESOLVED by PA-0016 (ENGINEERING DECISION): resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe or Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%\\System32\\cmd.exe or %SystemRoot%\\SysWOW64\\cmd.exe, is rejected. PA-0016 validates identity before any resolution is accepted, so the fallback which(\"cmd\") is checked too. If nothing else resolves, the provider reports not installed, exactly as the source does when nothing is found, and the user can point the existing binaryPath setting at the executable. The fallback directories are macOS and Unix package-manager paths; where an npm or volta install puts the Command Code CLI on Windows is not in the pinned source and stays a live-verification item under PA-0016, which is unverified against a real Command Code Windows install.",
       "verification_method": "PA-0016's Windows contract test: with no Command Code installed, resolution returns not installed rather than System32\\cmd.exe, and a stub executable whose version resource does not identify the command interpreter IS accepted; plus a unit test on the fallback order; plus a live Windows probe recording where the CLI actually installs",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null
     },
@@ -6054,7 +6054,7 @@
         "A failed write leaves the mod polling until the turn ends or its six-hour deadline passes."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "The temp-then-replace sequence must be an atomic replace on Windows, because the mod polls the target file and must never read a partial write. A replace can fail while the mod has the file open; the direct-write fallback is what covers that, and it must also be atomic.",
+      "windows_path": "The temp-then-replace sequence must be an atomic replace on Windows, because the mod polls the target file and must never read a partial write. A replace can fail while the mod has the file open; the direct-write fallback is what covers that, and it must also be atomic. Before the first reply <id>.reply.json does not exist; the replace then throws (O-35, ED-123), the direct atomic write lands the reply, and <id>.reply.json.tmp remains until clearApprovalFiles removes it.",
       "verification_method": "contract fixture asserting both payloads byte for byte, plus a test where the replace fails",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -6484,7 +6484,7 @@
       "cancellation": "not cancellable",
       "windows_path": "PATH plus PATHEXT resolution (PA-0010); an npm install leaves pi.cmd. The six fallback directories are Unix package-manager paths that do not exist on Windows; where the npm package lands on Windows is not in the source and must be probed rather than guessed (UNK-0005 is marked RESOLVED by OD-0008 C5 (\"PowerShell 7 when installed, otherwise Windows PowerShell\"), but C5 rules only which shell the app's own terminal tabs and project scripts use, so it does not settle install locations).",
       "verification_method": "unit test on the message; a probe recording the real Windows install location",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -7732,7 +7732,7 @@
       "cancellation": "not cancellable",
       "windows_path": "PATH plus PATHEXT resolution (PA-0010). With no fallback list there is nothing else to translate, but it also means a Windows install that is not on PATH is simply undetectable, which is the source's own behavior.",
       "verification_method": "unit test asserting the exact message",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -8431,7 +8431,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Both name shapes must be accepted. A port that reads only the object form silently loses every bare-string command Claude publishes.",
       "verification_method": "unit test - an object entry, a bare string entry and an unusable entry in one array",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -8451,7 +8451,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Verbatim string, not a localized or reworded placeholder.",
       "verification_method": "unit test asserting the exact fallback string",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -8473,7 +8473,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Two levels, not one. Reading result[\"skills\"] directly returns nothing for every real Codex response.",
       "verification_method": "unit test with two data entries carrying skills each, and with both keys absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -8493,7 +8493,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Do not write it as `skill[\"enabled\"]?.bool ?? true == true` by reflex and then treat a non-boolean value differently; the three cases kept are true, absent and non-boolean.",
       "verification_method": "unit test - enabled true, enabled false, key absent, enabled as a string",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -8516,7 +8516,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Both fields required, and the path must survive into the command record.",
       "verification_method": "unit test - a skill missing path is dropped; an accepted one carries skillPath",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -8536,7 +8536,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The exact key path interface.shortDescription is part of the contract; a port reading only description silently downgrades every skill that has both.",
       "verification_method": "unit test - a skill with both, with only description, and with neither",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -8559,7 +8559,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The text is passed through unmodified on this path, including its leading slash.",
       "verification_method": "unit test - matching text, mismatched text, and a command with no skillPath",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -8579,7 +8579,7 @@
       "cancellation": "not cancellable",
       "windows_path": "String surgery on the first character, not a search and replace of the command name.",
       "verification_method": "unit test asserting the exact rewritten string for a slash and for a dollar opener",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -8599,7 +8599,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The part order matters: Codex reads the text part first and the skill part as its qualifier.",
       "verification_method": "contract fixture asserting the two-part array shape byte for byte",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

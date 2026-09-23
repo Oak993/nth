@@ -1269,7 +1269,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1298,7 +1298,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1324,7 +1324,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1345,7 +1345,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1737,7 +1737,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2739,7 +2739,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2761,7 +2761,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2789,7 +2789,7 @@
         "An unmapped key code shows as \"Key 63\" rather than being rejected; the chord is still stored and still fires"
       ],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2814,7 +2814,7 @@
         "A key code outside all three tables yields no shortcut; the recording path refuses it with \"Menus cannot use this key.\""
       ],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2835,7 +2835,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2856,7 +2856,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2882,7 +2882,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2912,7 +2912,7 @@
         "Stored data that does not decode: the whole store falls back to empty, so every customisation is lost silently and the defaults apply"
       ],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2934,7 +2934,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2955,7 +2955,7 @@
       "persistence": "Rewrites the keyboardShortcuts blob.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2975,7 +2975,7 @@
       "persistence": "Each removal rewrites the whole keyboardShortcuts blob.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2996,7 +2996,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3022,7 +3022,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3042,7 +3042,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3062,7 +3062,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3087,7 +3087,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3107,7 +3107,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3133,7 +3133,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3153,7 +3153,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3175,7 +3175,7 @@
       "persistence": "An override for this command is stored in the \"keyboardShortcuts\" blob under the key \"newThread\". No entry means the default above applies; an entry whose chord is null means the command has been deliberately cleared and answers to no chord at all.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3199,7 +3199,7 @@
       "persistence": "An override for this command is stored in the \"keyboardShortcuts\" blob under the key \"newWorktreeThread\". No entry means the default above applies; an entry whose chord is null means the command has been deliberately cleared and answers to no chord at all.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3223,7 +3223,7 @@
       "persistence": "An override for this command is stored in the \"keyboardShortcuts\" blob under the key \"addProject\". No entry means the default above applies; an entry whose chord is null means the command has been deliberately cleared and answers to no chord at all.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3247,7 +3247,7 @@
       "persistence": "An override for this command is stored in the \"keyboardShortcuts\" blob under the key \"stopTurn\". No entry means the default above applies; an entry whose chord is null means the command has been deliberately cleared and answers to no chord at all.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3271,7 +3271,7 @@
       "persistence": "An override for this command is stored in the \"keyboardShortcuts\" blob under the key \"queueChat\". No entry means the default above applies; an entry whose chord is null means the command has been deliberately cleared and answers to no chord at all.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3295,7 +3295,7 @@
       "persistence": "An override for this command is stored in the \"keyboardShortcuts\" blob under the key \"togglePlanMode\". No entry means the default above applies; an entry whose chord is null means the command has been deliberately cleared and answers to no chord at all.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3319,7 +3319,7 @@
       "persistence": "An override for this command is stored in the \"keyboardShortcuts\" blob under the key \"previousThread\". No entry means the default above applies; an entry whose chord is null means the command has been deliberately cleared and answers to no chord at all.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3343,7 +3343,7 @@
       "persistence": "An override for this command is stored in the \"keyboardShortcuts\" blob under the key \"nextThread\". No entry means the default above applies; an entry whose chord is null means the command has been deliberately cleared and answers to no chord at all.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3367,7 +3367,7 @@
       "persistence": "An override for this command is stored in the \"keyboardShortcuts\" blob under the key \"runScript\". No entry means the default above applies; an entry whose chord is null means the command has been deliberately cleared and answers to no chord at all.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3391,7 +3391,7 @@
       "persistence": "An override for this command is stored in the \"keyboardShortcuts\" blob under the key \"archiveThread\". No entry means the default above applies; an entry whose chord is null means the command has been deliberately cleared and answers to no chord at all.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3415,7 +3415,7 @@
       "persistence": "An override for this command is stored in the \"keyboardShortcuts\" blob under the key \"archiveThreadPrompt\". No entry means the default above applies; an entry whose chord is null means the command has been deliberately cleared and answers to no chord at all.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3439,7 +3439,7 @@
       "persistence": "An override for this command is stored in the \"keyboardShortcuts\" blob under the key \"settleThread\". No entry means the default above applies; an entry whose chord is null means the command has been deliberately cleared and answers to no chord at all.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3463,7 +3463,7 @@
       "persistence": "An override for this command is stored in the \"keyboardShortcuts\" blob under the key \"commandPalette\". No entry means the default above applies; an entry whose chord is null means the command has been deliberately cleared and answers to no chord at all.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3487,7 +3487,7 @@
       "persistence": "An override for this command is stored in the \"keyboardShortcuts\" blob under the key \"toggleSidebar\". No entry means the default above applies; an entry whose chord is null means the command has been deliberately cleared and answers to no chord at all.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3511,7 +3511,7 @@
       "persistence": "An override for this command is stored in the \"keyboardShortcuts\" blob under the key \"toggleTerminal\". No entry means the default above applies; an entry whose chord is null means the command has been deliberately cleared and answers to no chord at all.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3535,7 +3535,7 @@
       "persistence": "An override for this command is stored in the \"keyboardShortcuts\" blob under the key \"toggleChanges\". No entry means the default above applies; an entry whose chord is null means the command has been deliberately cleared and answers to no chord at all.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3559,7 +3559,7 @@
       "persistence": "An override for this command is stored in the \"keyboardShortcuts\" blob under the key \"toggleActivityView\". No entry means the default above applies; an entry whose chord is null means the command has been deliberately cleared and answers to no chord at all.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3583,7 +3583,7 @@
       "persistence": "An override for this command is stored in the \"keyboardShortcuts\" blob under the key \"showMainWindow\". No entry means the default above applies (in the port no chord, OD-0012 G6); an entry whose chord is null means the command has been deliberately cleared and answers to no chord at all.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3612,7 +3612,7 @@
       "persistence": "An override for this command is stored in the \"keyboardShortcuts\" blob under the key \"openSettings\". No entry means the default above applies; an entry whose chord is null means the command has been deliberately cleared and answers to no chord at all.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3636,7 +3636,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3660,7 +3660,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3681,7 +3681,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3701,7 +3701,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3721,7 +3721,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4218,7 +4218,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4247,7 +4247,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4273,7 +4273,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4294,7 +4294,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4321,7 +4321,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4342,7 +4342,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4362,7 +4362,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4390,7 +4390,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4410,7 +4410,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4438,7 +4438,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4465,7 +4465,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4493,7 +4493,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4517,7 +4517,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4544,7 +4544,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4565,7 +4565,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4587,7 +4587,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4608,7 +4608,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4630,7 +4630,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4651,7 +4651,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4678,7 +4678,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4699,7 +4699,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4721,7 +4721,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4744,7 +4744,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4765,7 +4765,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4788,7 +4788,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4811,7 +4811,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4831,7 +4831,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4852,7 +4852,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4874,7 +4874,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4898,7 +4898,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4922,7 +4922,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4943,7 +4943,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4965,7 +4965,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4998,7 +4998,7 @@
       "cancellation": "not cancellable",
       "windows_path": "If the Windows chrome control has no press animation at all, this requirement is satisfied trivially, but the reverse is the failure to avoid: giving every capsule a press animation for consistency reintroduces exactly the flicker the source removed. Glass follows OD-0005, an owner-approved deviation, not parity (see deviation): where the window shows the desktop, a Windows system material of the Acrylic class, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material is reproduced: shape, corner radius, tint colour and opacity, .interactive() and container spacing. This site is `content.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3)), in: shape)` without .interactive() (DroppyCode/UI/Chrome/Chrome.swift:182): the 0.3 tint is reproduced and no press response is added; no container. UNK-0004 is closed by that ruling.",
       "verification_method": "capture comparison of a click on a field capsule and on a button capsule, frame by frame through the press",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5062,7 +5062,7 @@
       "persistence": "Nothing persisted by the table itself; the setting is stored by the settings area under the key \"appZoom\" (AppSettings.swift:131, :253-254).",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5083,7 +5083,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5105,7 +5105,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5125,7 +5125,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5145,7 +5145,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5157,7 +5157,7 @@
       "preconditions": "A hosted view tree carries the app zoom.",
       "action": "The tree is measured and placed.",
       "expected_result": "Measuring: the child is asked for its size given the proposal divided by the scale in each dimension, an unspecified dimension staying unspecified, and the layout reports that size multiplied by the scale. Placing: the child is placed at the layout's origin, anchored top-leading, with a proposal of the layout's bounds divided by the scale. So at 200% a window 1000 points wide lays its content out 500 points wide and draws it twice as large: forms reflow and their scroll bars stay inside the window. With no child the layout is zero by zero.",
-      "windows_path": "A layout panel whose measure and arrange pass the available size divided by the scale to the child, report the child's desired size times the scale, and arrange the child at the origin.",
+      "windows_path": "A layout panel whose measure and arrange pass the available size divided by the scale to the child, report the child's desired size times the scale, and arrange the child at the origin. Avalonia clamps every DesiredSize to its constraint (ED-150), so when the content wants more than the host divided by the scale, the layout reports the host size rather than the content's wish times the scale; placement from the arranged bounds is unchanged, and hosts arrange the zoom at their own frame as FrameHostingView (sizingOptions = []) does.",
       "verification_method": "unit on the proposal arithmetic at each level; interaction test at 200% that a Settings page scrolls inside the window and nothing is cut off at the right edge"
     },
     {
@@ -5339,7 +5339,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5360,7 +5360,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5380,7 +5380,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "An animated change can be interrupted by another change; the fraction then animates from its current value.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5402,7 +5402,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5423,7 +5423,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": "UNK-0003",
@@ -5565,7 +5565,8 @@
         "DroppyCode/UI/Chrome/Chrome.swift:1085-1102",
         "DroppyCode/UI/Chrome/Chrome.swift:1104-1140",
         "DroppyCode/UI/Chrome/WindowChrome.swift:139-150"
-      ]
+      ],
+      "status": "IMPLEMENTED"
     },
     {
       "exact_text": "Settings…",
@@ -6370,7 +6371,8 @@
         "decision": "OD-0005",
         "upstream": "WindowBackdrop draws macOS Liquid Glass with `shape.fill(.clear).glassEffect(in: shape)` (DroppyCode/UI/Chrome/Chrome.swift:252-254) under the scrim, and over a wallpaper while below 0.98 (:241-247)",
         "port": "Where the window shows the desktop, a Windows system material of the Acrylic class, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material is reproduced: shape, corner radius, tint colour and opacity, .interactive() and container spacing. This site is `.glassEffect(in: shape)`: default glass with no tint, no .interactive() and no container (DroppyCode/UI/Chrome/Chrome.swift:245, :254), so none is added."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "exact_text": null,
@@ -6390,7 +6392,8 @@
       ],
       "source_evidence": [
         "DroppyCode/UI/Chrome/Chrome.swift:187-199"
-      ]
+      ],
+      "status": "IMPLEMENTED"
     },
     {
       "exact_text": null,
@@ -6415,7 +6418,8 @@
         "decision": "OD-0005",
         "upstream": "ChromeCapsule `.chromeGlassCapsule()` (DroppyCode/UI/Chrome/Chrome.swift:317), which renders `content.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3)).interactive(), in: shape)` (DroppyCode/UI/Chrome/Chrome.swift:180), macOS Liquid Glass in a `Capsule(style: .continuous)`",
         "port": "Where the window shows the desktop, a Windows system material of the Acrylic class, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material is reproduced: shape, corner radius, tint colour and opacity, .interactive() and container spacing. This site is `.chromeGlassCapsule()` (DroppyCode/UI/Chrome/Chrome.swift:317), which renders `content.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3)).interactive(), in: shape)` (DroppyCode/UI/Chrome/Chrome.swift:180): the 0.3 tint and the .interactive() press response are reproduced; no container. Inside a glass panel the flat on-panel fill replaces the glass (PR-WIN-214)."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "exact_text": null,
@@ -6435,7 +6439,8 @@
       ],
       "source_evidence": [
         "DroppyCode/UI/Chrome/Chrome.swift:324-331"
-      ]
+      ],
+      "status": "IMPLEMENTED"
     },
     {
       "exact_text": null,
@@ -6461,7 +6466,8 @@
         "DroppyCode/UI/Chrome/Chrome.swift:333-383",
         "DroppyCode/UI/Chrome/Chrome.swift:25-30 `static let iconFont: Font = .system(.callout, weight: .semibold)`, `static let inlineIconFont: Font = .system(.subheadline, weight: .semibold)`, `static let chevronFont: Font = .system(size: 8, weight: .bold)`"
       ],
-      "b2_change": "ChromeIconButton through ChromeIconLabel (B2 :341): Chrome.iconFont B1 DroppyCode/UI/Chrome/Chrome.swift:28 `static let iconFont: Font = .system(size: 12, weight: .semibold)` -> B2 :28 `static let iconFont: Font = .system(.callout, weight: .semibold)`; text styles are sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`, B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Geometry and colours are unchanged."
+      "b2_change": "ChromeIconButton through ChromeIconLabel (B2 :341): Chrome.iconFont B1 DroppyCode/UI/Chrome/Chrome.swift:28 `static let iconFont: Font = .system(size: 12, weight: .semibold)` -> B2 :28 `static let iconFont: Font = .system(.callout, weight: .semibold)`; text styles are sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`, B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Geometry and colours are unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "exact_text": null,
@@ -6484,7 +6490,8 @@
         "DroppyCode/UI/Chrome/Chrome.swift:385-410",
         "DroppyCode/UI/Chrome/Chrome.swift:25-30 `static let iconFont: Font = .system(.callout, weight: .semibold)`, `static let inlineIconFont: Font = .system(.subheadline, weight: .semibold)`, `static let chevronFont: Font = .system(size: 8, weight: .bold)`"
       ],
-      "b2_change": "ChromeMenuButton through ChromeIconLabel (B2 :341): Chrome.iconFont B1 DroppyCode/UI/Chrome/Chrome.swift:28 `static let iconFont: Font = .system(size: 12, weight: .semibold)` -> B2 :28 `static let iconFont: Font = .system(.callout, weight: .semibold)`; text styles are sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`, B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Geometry and colours are unchanged."
+      "b2_change": "ChromeMenuButton through ChromeIconLabel (B2 :341): Chrome.iconFont B1 DroppyCode/UI/Chrome/Chrome.swift:28 `static let iconFont: Font = .system(size: 12, weight: .semibold)` -> B2 :28 `static let iconFont: Font = .system(.callout, weight: .semibold)`; text styles are sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`, B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Geometry and colours are unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "exact_text": null,
@@ -6514,7 +6521,8 @@
         "decision": "OD-0005",
         "upstream": "ChromeCircleButton `.chromeGlassCircle()` (DroppyCode/UI/Chrome/Chrome.swift:429), which renders `content.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3)).interactive(), in: shape)` (DroppyCode/UI/Chrome/Chrome.swift:180), macOS Liquid Glass in a `Circle()`",
         "port": "Where the window shows the desktop, a Windows system material of the Acrylic class, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material is reproduced: shape, corner radius, tint colour and opacity, .interactive() and container spacing. This site is `.chromeGlassCircle()` (DroppyCode/UI/Chrome/Chrome.swift:429), which renders `content.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3)).interactive(), in: shape)` (DroppyCode/UI/Chrome/Chrome.swift:180): the 0.3 tint and the .interactive() press response are reproduced; no container. Inside a glass panel the flat on-panel fill replaces the glass (PR-WIN-214)."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "exact_text": null,
@@ -6542,7 +6550,8 @@
         "decision": "OD-0005",
         "upstream": "ChromeCircleMenu `.chromeGlassCircle()` (DroppyCode/UI/Chrome/Chrome.swift:459), which renders `content.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3)).interactive(), in: shape)` (DroppyCode/UI/Chrome/Chrome.swift:180), macOS Liquid Glass in a `Circle()`",
         "port": "Where the window shows the desktop, a Windows system material of the Acrylic class, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material is reproduced: shape, corner radius, tint colour and opacity, .interactive() and container spacing. This site is `.chromeGlassCircle()` (DroppyCode/UI/Chrome/Chrome.swift:459), which renders `content.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3)).interactive(), in: shape)` (DroppyCode/UI/Chrome/Chrome.swift:180): the 0.3 tint and the .interactive() press response are reproduced; no container. Inside a glass panel the flat on-panel fill replaces the glass (PR-WIN-214)."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "exact_text": null,
@@ -6571,7 +6580,8 @@
         "decision": "OD-0005",
         "upstream": "ChromeTextMenu `.chromeGlassCapsule()` (DroppyCode/UI/Chrome/Chrome.swift:504), which renders `content.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3)).interactive(), in: shape)` (DroppyCode/UI/Chrome/Chrome.swift:180), macOS Liquid Glass in a `Capsule(style: .continuous)`",
         "port": "Where the window shows the desktop, a Windows system material of the Acrylic class, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material is reproduced: shape, corner radius, tint colour and opacity, .interactive() and container spacing. This site is `.chromeGlassCapsule()` (DroppyCode/UI/Chrome/Chrome.swift:504), which renders `content.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3)).interactive(), in: shape)` (DroppyCode/UI/Chrome/Chrome.swift:180): the 0.3 tint and the .interactive() press response are reproduced; no container. Inside a glass panel the flat on-panel fill replaces the glass (PR-WIN-214)."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "exact_text": null,
@@ -6597,7 +6607,8 @@
         "DroppyCode/UI/Chrome/Chrome.swift:516-560",
         "DroppyCode/UI/Chrome/Chrome.swift:25-30 `static let iconFont: Font = .system(.callout, weight: .semibold)`, `static let inlineIconFont: Font = .system(.subheadline, weight: .semibold)`, `static let chevronFont: Font = .system(size: 8, weight: .bold)`"
       ],
-      "b2_change": "Symbol font Chrome.inlineIconFont (B2 :532): B1 DroppyCode/UI/Chrome/Chrome.swift:29 `static let inlineIconFont: Font = .system(size: 11, weight: .semibold)` -> B2 :29 `static let inlineIconFont: Font = .system(.subheadline, weight: .semibold)`; text styles are sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`, B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. The 12.5 medium title and the foreground logic are unchanged."
+      "b2_change": "Symbol font Chrome.inlineIconFont (B2 :532): B1 DroppyCode/UI/Chrome/Chrome.swift:29 `static let inlineIconFont: Font = .system(size: 11, weight: .semibold)` -> B2 :29 `static let inlineIconFont: Font = .system(.subheadline, weight: .semibold)`; text styles are sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`, B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. The 12.5 medium title and the foreground logic are unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "exact_text": "Search",
@@ -6627,7 +6638,8 @@
         "decision": "OD-0005",
         "upstream": "ChromeSearchField `.chromeGlassFieldCapsule()` (DroppyCode/UI/Chrome/Chrome.swift:864), which renders `content.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3)), in: shape)` without `.interactive()` (:182), macOS Liquid Glass",
         "port": "Where the window shows the desktop, a Windows system material of the Acrylic class, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material is reproduced: shape, corner radius, tint colour and opacity, .interactive() and container spacing. This site is `.chromeGlassFieldCapsule()` (DroppyCode/UI/Chrome/Chrome.swift:864), which renders `content.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3)), in: shape)` without .interactive() (DroppyCode/UI/Chrome/Chrome.swift:182): the 0.3 tint is reproduced and no press response is added; no container. Inside a glass panel the flat on-panel fill replaces the glass (PR-WIN-214)."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "exact_text": "Search",
@@ -6653,7 +6665,8 @@
       "source_evidence": [
         "DroppyCode/UI/Chrome/Chrome.swift:775-823"
       ],
-      "b2_change": "Citation B1 Chrome.swift:742-790 -> B2 :775-823. Magnifier B1 :754 `.font(.system(size: 12, weight: .medium))` -> B2 :787 `.font(.system(.callout, weight: .medium))`; text B1 :758 `.font(.system(size: 13))` -> B2 :791 `.font(.system(.body))`; clear B1 :768 `.font(.system(size: 12))` -> B2 :801 `.font(.system(.callout))`; text styles are sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`, B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Chrome.secondaryText redefined: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, i.e. the label colour at 0.7, which ED-062 adopts (B2 :77-78: 'Primary at 70% clears the 4.5:1 floor on both grounds; `secondaryLabelColor`'s 50% alpha does not.')."
+      "b2_change": "Citation B1 Chrome.swift:742-790 -> B2 :775-823. Magnifier B1 :754 `.font(.system(size: 12, weight: .medium))` -> B2 :787 `.font(.system(.callout, weight: .medium))`; text B1 :758 `.font(.system(size: 13))` -> B2 :791 `.font(.system(.body))`; clear B1 :768 `.font(.system(size: 12))` -> B2 :801 `.font(.system(.callout))`; text styles are sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`, B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Chrome.secondaryText redefined: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, i.e. the label colour at 0.7, which ED-062 adopts (B2 :77-78: 'Primary at 70% clears the 4.5:1 floor on both grounds; `secondaryLabelColor`'s 50% alpha does not.').",
+      "status": "IMPLEMENTED"
     },
     {
       "exact_text": null,
@@ -6682,7 +6695,8 @@
         "decision": "OD-0005",
         "upstream": "GlassPickerButton `.chromeGlassCapsule()` (DroppyCode/UI/Chrome/Chrome.swift:916), which renders `content.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3)).interactive(), in: shape)` (DroppyCode/UI/Chrome/Chrome.swift:180), macOS Liquid Glass in a `Capsule(style: .continuous)`",
         "port": "Where the window shows the desktop, a Windows system material of the Acrylic class, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material is reproduced: shape, corner radius, tint colour and opacity, .interactive() and container spacing. This site is `.chromeGlassCapsule()` (DroppyCode/UI/Chrome/Chrome.swift:916), which renders `content.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3)).interactive(), in: shape)` (DroppyCode/UI/Chrome/Chrome.swift:180): the 0.3 tint and the .interactive() press response are reproduced; no container. Inside a glass panel the flat on-panel fill replaces the glass (PR-WIN-214)."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "exact_text": null,
@@ -6703,7 +6717,8 @@
       ],
       "source_evidence": [
         "DroppyCode/UI/Chrome/Chrome.swift:579-627"
-      ]
+      ],
+      "status": "IMPLEMENTED"
     },
     {
       "exact_text": null,
@@ -6726,7 +6741,8 @@
       "source_evidence": [
         "DroppyCode/UI/Chrome/Chrome.swift:630-647"
       ],
-      "b2_change": "Citation B1 Chrome.swift:597-614 -> B2 :630-647. Font B1 :605 `.font(.system(size: 15, weight: .semibold))` -> B2 :638 `.font(.system(.title3, weight: .semibold))`; text styles are sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`, B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001."
+      "b2_change": "Citation B1 Chrome.swift:597-614 -> B2 :630-647. Font B1 :605 `.font(.system(size: 15, weight: .semibold))` -> B2 :638 `.font(.system(.title3, weight: .semibold))`; text styles are sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`, B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001.",
+      "status": "IMPLEMENTED"
     },
     {
       "exact_text": null,
@@ -6751,7 +6767,8 @@
       "source_evidence": [
         "DroppyCode/UI/Chrome/Chrome.swift:681-757"
       ],
-      "b2_change": "Citation B1 Chrome.swift:648-724 -> B2 :681-757. Title B1 :684 `.font(.system(size: 13, weight: isSelected || isEmphasized ? .medium : .regular))` -> B2 :717 `.font(.system(.body, weight: isSelected || isEmphasized ? .medium : .regular))`; text styles are sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`, B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Fills are unchanged."
+      "b2_change": "Citation B1 Chrome.swift:648-724 -> B2 :681-757. Title B1 :684 `.font(.system(size: 13, weight: isSelected || isEmphasized ? .medium : .regular))` -> B2 :717 `.font(.system(.body, weight: isSelected || isEmphasized ? .medium : .regular))`; text styles are sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`, B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Fills are unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "exact_text": null,
@@ -6771,7 +6788,8 @@
       ],
       "source_evidence": [
         "DroppyCode/UI/Chrome/Chrome.swift:651-679"
-      ]
+      ],
+      "status": "IMPLEMENTED"
     },
     {
       "exact_text": null,
@@ -6793,7 +6811,8 @@
         "DroppyCode/UI/Chrome/Chrome.swift:759-773",
         "DroppyCode/UI/Chrome/Chrome.swift:25-30 `static let iconFont: Font = .system(.callout, weight: .semibold)`, `static let inlineIconFont: Font = .system(.subheadline, weight: .semibold)`, `static let chevronFont: Font = .system(size: 8, weight: .bold)`"
       ],
-      "b2_change": "Glyph font Chrome.inlineIconFont (B2 :768): B1 DroppyCode/UI/Chrome/Chrome.swift:29 `static let inlineIconFont: Font = .system(size: 11, weight: .semibold)` -> B2 :29 `static let inlineIconFont: Font = .system(.subheadline, weight: .semibold)`; text styles are sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`, B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Colour: Chrome.secondaryText redefined: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, i.e. the label colour at 0.7, which ED-062 adopts (B2 :77-78: 'Primary at 70% clears the 4.5:1 floor on both grounds; `secondaryLabelColor`'s 50% alpha does not.')."
+      "b2_change": "Glyph font Chrome.inlineIconFont (B2 :768): B1 DroppyCode/UI/Chrome/Chrome.swift:29 `static let inlineIconFont: Font = .system(size: 11, weight: .semibold)` -> B2 :29 `static let inlineIconFont: Font = .system(.subheadline, weight: .semibold)`; text styles are sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`, B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Colour: Chrome.secondaryText redefined: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, i.e. the label colour at 0.7, which ED-062 adopts (B2 :77-78: 'Primary at 70% clears the 4.5:1 floor on both grounds; `secondaryLabelColor`'s 50% alpha does not.').",
+      "status": "IMPLEMENTED"
     },
     {
       "exact_text": null,
@@ -6813,7 +6832,8 @@
       ],
       "source_evidence": [
         "DroppyCode/UI/Chrome/Chrome.swift:1006-1021"
-      ]
+      ],
+      "status": "IMPLEMENTED"
     },
     {
       "exact_text": null,
@@ -6835,7 +6855,8 @@
       "source_evidence": [
         "DroppyCode/UI/Chrome/Chrome.swift:1023-1047"
       ],
-      "b2_change": "Citation B1 Chrome.swift:990-1014 -> B2 :1023-1047. Font B1 :1002 `.font(.system(size: 13, weight: .semibold))` -> B2 :1035 `.font(.system(.body, weight: .semibold))`; text styles are sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`, B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Colour B1 :1003 `.foregroundStyle(.secondary)` -> B2 :1036 `.foregroundStyle(Chrome.secondaryText)`; Chrome.secondaryText redefined: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, i.e. the label colour at 0.7, which ED-062 adopts (B2 :77-78: 'Primary at 70% clears the 4.5:1 floor on both grounds; `secondaryLabelColor`'s 50% alpha does not.')."
+      "b2_change": "Citation B1 Chrome.swift:990-1014 -> B2 :1023-1047. Font B1 :1002 `.font(.system(size: 13, weight: .semibold))` -> B2 :1035 `.font(.system(.body, weight: .semibold))`; text styles are sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`, B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Colour B1 :1003 `.foregroundStyle(.secondary)` -> B2 :1036 `.foregroundStyle(Chrome.secondaryText)`; Chrome.secondaryText redefined: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, i.e. the label colour at 0.7, which ED-062 adopts (B2 :77-78: 'Primary at 70% clears the 4.5:1 floor on both grounds; `secondaryLabelColor`'s 50% alpha does not.').",
+      "status": "IMPLEMENTED"
     },
     {
       "exact_text": null,
@@ -6856,7 +6877,8 @@
       "source_evidence": [
         "DroppyCode/UI/Chrome/Chrome.swift:1049-1074"
       ],
-      "b2_change": "Citation B1 Chrome.swift:1016-1041 -> B2 :1049-1074. Title B1 :1025 `.font(.system(size: 13))` -> B2 :1058 `.font(.system(.body))`; detail B1 :1029 `.font(.system(size: 11))` -> B2 :1062 `.font(.system(.subheadline))`; text styles are sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`, B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Chrome.secondaryText redefined: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, i.e. the label colour at 0.7, which ED-062 adopts (B2 :77-78: 'Primary at 70% clears the 4.5:1 floor on both grounds; `secondaryLabelColor`'s 50% alpha does not.')."
+      "b2_change": "Citation B1 Chrome.swift:1016-1041 -> B2 :1049-1074. Title B1 :1025 `.font(.system(size: 13))` -> B2 :1058 `.font(.system(.body))`; detail B1 :1029 `.font(.system(size: 11))` -> B2 :1062 `.font(.system(.subheadline))`; text styles are sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`, B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Chrome.secondaryText redefined: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, i.e. the label colour at 0.7, which ED-062 adopts (B2 :77-78: 'Primary at 70% clears the 4.5:1 floor on both grounds; `secondaryLabelColor`'s 50% alpha does not.').",
+      "status": "IMPLEMENTED"
     },
     {
       "exact_text": null,
@@ -6877,7 +6899,8 @@
       "source_evidence": [
         "DroppyCode/UI/Chrome/Chrome.swift:1076-1081",
         "DroppyCode/App/Views/RootView.swift:357-358"
-      ]
+      ],
+      "status": "IMPLEMENTED"
     },
     {
       "exact_text": null,
@@ -7411,7 +7434,8 @@
         "DroppyCode/UI/Common/AppZoom.swift:18-51",
         "DroppyCode/App/Window/WindowManager.swift:173-175",
         "DroppyCode/App/Views/RootView.swift:276-282"
-      ]
+      ],
+      "status": "IMPLEMENTED"
     }
   ]
 }

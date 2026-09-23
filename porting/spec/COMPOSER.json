@@ -1405,7 +1405,7 @@
       "cancellation": "The detached task is not cancelled by the composer.",
       "windows_path": "Same double count and orphan cleanup. File copies go to the Windows storage root of the app-paths adaptation.",
       "verification_method": "integration test attaching from two sources at once",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1430,7 +1430,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Use a Windows imaging codec for HEIF where available; the JPEG quality and the PNG naming are verbatim. If HEIF decoding is unavailable the import must fail the same way (dropped silently), not fall back to copying the HEIC.",
       "verification_method": "contract fixture comparing output bytes' dimensions and the stored names",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1953,7 +1953,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A critically damped spring integrator (m=1, k=170, c=26) run to its settling time, driving all three properties together, per port_impacts X8(d).",
       "verification_method": "capture comparison at three frames of the flight",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1976,7 +1976,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the three early returns and the ordering exactly. Read the Windows animation-effects system setting for the reduce-motion test.",
       "verification_method": "interaction test with reduced motion on, asserting the chip appears and nothing animates",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "51, 52",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -6651,7 +6651,8 @@
         "DroppyCode/App/Views/Composer/AttachmentFlight.swift:42-141",
         "DroppyCode/App/Views/Composer/AttachmentFlight.swift:186-207"
       ],
-      "notes": "The armed drop is consumed before the flight decides whether to play, so under reduced motion it is silently discarded; the chip appears regardless."
+      "notes": "The armed drop is consumed before the flight decides whether to play, so under reduced motion it is silently discarded; the chip appears regardless.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-081",

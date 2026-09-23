@@ -10,6 +10,7 @@ public sealed class SwiftDateTests
 {
     [Fact]
     [Trait("Rule", "R-TIME-3")]
+    [Trait("Oracle", "O-46")]
     public void ISO8601_writes_whole_seconds_by_floor_in_UTC()
     {
         var date = new DateTimeOffset(2026, 9, 22, 5, 0, 1, TimeSpan.FromHours(3)).AddMilliseconds(999);
@@ -37,6 +38,14 @@ public sealed class SwiftDateTests
         var fractional = FoundationISO8601.ParseFractional("2026-09-13T18:28:42.057Z")!.Value;
         Assert.Equal(0.057, SwiftDate.TimeIntervalSince(fractional, FoundationISO8601.ParsePlain("2026-09-13T18:28:42Z")!.Value), 6);
         Assert.Null(FoundationISO8601.ParsePlain("2026-09-13 18:28:42Z"));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-TIME-3")]
+    [Trait("Oracle", "O-45")]
+    public void A_bare_date_parses_to_midnight_UTC_as_the_parked_rule_says()
+    {
+        // UNVERIFIED: the default time zone of the date-only style is oracle item O-45 (PR-STORE-169 failure case 2).
         Assert.Equal(new DateTimeOffset(2026, 9, 13, 0, 0, 0, TimeSpan.Zero), FoundationISO8601.ParseDateOnly("2026-09-13"));
     }
 
