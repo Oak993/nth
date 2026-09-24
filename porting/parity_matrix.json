@@ -7,9 +7,9 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "IMPLEMENTED": 1964,
+      "IMPLEMENTED": 2055,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
-      "SPECIFIED": 1926,
+      "SPECIFIED": 1835,
       "RETIRED": 6,
       "DISCOVERED": 17
     },
@@ -43870,7 +43870,7 @@
       "cancellation": "not cancellable",
       "windows_path": "PATH plus PATHEXT (PA-0010). The gh fallback path is built from Unix-style environment variables and a POSIX relative path; on Windows gh stores its data elsewhere, so the fallback location is a platform boundary that must be probed, not assumed.",
       "verification_method": "unit test asserting the exact message; a probe recording where gh actually installs the Copilot CLI on Windows",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -43896,7 +43896,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None beyond executable resolution.",
       "verification_method": "contract fixture asserting the base tokens for each entry point",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -43948,7 +43948,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Content-Length counts BYTES, not characters, and the header terminator is CRLF CRLF; a Windows text-mode pipe that translates line endings would corrupt both the header and the byte count. The stream must be binary.",
       "verification_method": "contract fixture comparing a raw outbound frame byte for byte",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -43976,7 +43976,7 @@
       "cancellation": "Nothing cancels this handshake.",
       "windows_path": "The absence of a watchdog means a Windows CLI that opens but never speaks blocks the calling path. This is upstream behavior and is reproduced; the port must not silently add a timeout. OD-0008 B11 changes only the clientInfo object (PR-PROVCLI-068, PR-PROVACP-019); OD-0012 F1 extends the rename to the client name sent to Copilot, so the ping's \"message\" parameter is the literal \"marrow\".",
       "verification_method": "contract fixture on the ping frame plus a unit test on the failure message",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -44007,7 +44007,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The CLI's session store lives under the user profile on Windows; the app never touches it directly, so its location is the CLI's concern. The unbounded growth is upstream behavior and is reproduced (port_impacts.md entry 4).",
       "verification_method": "interaction test creating, resuming and failing to resume",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -44031,7 +44031,7 @@
       "cancellation": "not cancellable",
       "windows_path": "workingDirectory is a Windows path inside JSON, not an argv token. OD-0008 B11 changes only the clientInfo object (PR-PROVCLI-068, PR-PROVACP-019); OD-0012 F1 extends the rename to the client name sent to Copilot, so the session \"clientName\" field is the literal \"marrow\".",
       "verification_method": "contract fixture over a session.create payload",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -44063,7 +44063,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None. This is a UI-facing rule the port must carry so the mode switch knows when to relaunch (port_impacts.md entry 23).",
       "verification_method": "interaction test switching into Auto and asserting a new session.create",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -44087,7 +44087,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None.",
       "verification_method": "contract fixture over empty and set values",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -44110,7 +44110,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None.",
       "verification_method": "contract fixture over both Hydra shapes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -44133,7 +44133,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None.",
       "verification_method": "contract fixture over all four combinations",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -44158,7 +44158,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None.",
       "verification_method": "interaction test asserting the mode calls follow a resume",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -44184,7 +44184,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None.",
       "verification_method": "interaction test where the server answers with a different mode than requested",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -44207,7 +44207,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None.",
       "verification_method": "unit test over all four modes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -44233,7 +44233,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None.",
       "verification_method": "contract fixture over both modes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -44258,7 +44258,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None.",
       "verification_method": "interaction test over a model change, an effort change, and both together",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -44284,7 +44284,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None. The pattern is a product constant applied to user text.",
       "verification_method": "unit test on the pattern plus an interaction test over a known and an unknown command",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -44310,7 +44310,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -44335,7 +44335,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The paths are Windows paths the CLI must be able to open; they are handed over as filesystem paths, not URLs.",
       "verification_method": "contract fixture with and without attachments",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -44360,7 +44360,7 @@
       "cancellation": "not cancellable",
       "windows_path": "ANSI stripping is load-bearing on Windows, where CLIs emit VT sequences into pipes.",
       "verification_method": "interaction test over each reply kind",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -44387,7 +44387,7 @@
       "cancellation": "The detached Task is not cancelled by stop().",
       "windows_path": "None.",
       "verification_method": "unit test asserting each own command is excluded, including its aliases",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -44412,7 +44412,7 @@
       "cancellation": "This IS the cancellation path.",
       "windows_path": "A wire interrupt, no signal (port_impacts.md entry 24).",
       "verification_method": "interaction test with pending prompts outstanding",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -44437,7 +44437,7 @@
       "cancellation": "This IS the cancellation path.",
       "windows_path": "None. The -32800 code must be emitted as JSON-RPC's request-cancelled code, not folded into -32601.",
       "verification_method": "contract fixture with one of each pending kind outstanding",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -44462,7 +44462,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -44487,7 +44487,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None.",
       "verification_method": "interaction test over a successful rewind, too few points and a non-success outcome",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -44512,7 +44512,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None.",
       "verification_method": "contract fixture over all three options",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -44535,7 +44535,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The url branch parses a host out of a URL string; a malformed URL yields no host and therefore no option.",
       "verification_method": "unit test over every kind including both canOffer states",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -44560,7 +44560,7 @@
       "cancellation": "This is a dismissal, distinct from the -32800 cancellation used when the turn is stopped.",
       "windows_path": "None.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -44585,7 +44585,7 @@
       "cancellation": "A stopped turn answers the same request with {\"approved\":false,\"feedback\":\"The user stopped the turn.\"} instead.",
       "windows_path": "None.",
       "verification_method": "contract fixture over both options",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -44610,7 +44610,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The choices comparison is an exact string match; it must be ordinal, not culture-sensitive.",
       "verification_method": "contract fixture over a chosen answer and a typed one",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -44635,7 +44635,7 @@
       "cancellation": "This IS the stop path.",
       "windows_path": "The 3 second backstop is the only thing bounding a hung shutdown, so it must be a real timer and not tied to the closing process (PA-0007).",
       "verification_method": "interaction test with a stand-in that never answers runtime.shutdown, asserting the 3 second bound",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -44663,7 +44663,7 @@
       "cancellation": "There is no watchdog on listModels.",
       "windows_path": "The temporary directory must exist and be usable as a working directory.",
       "verification_method": "unit test over disabled, unconfigured and ordinary models",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -44687,7 +44687,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The two non-ASCII characters must survive as UTF-8/UTF-16 through to the UI; a code page conversion would replace them.",
       "verification_method": "unit test over an integral multiplier, a fractional one and an unconfigured model",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "provider-argv-and-handshakes.md section 10 item 5 (policy.state read twice through two subscript chains)",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -44713,7 +44713,7 @@
       "cancellation": "not cancellable",
       "windows_path": "port_impacts.md entry 9: a failure to spawn copilot.cmd must reach the .unknown branch, so the connect throw must not be mistaken for an auth answer.",
       "verification_method": "interaction test over an unreachable CLI, a signed-out reply, a plain login and a no_access login",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -44741,7 +44741,7 @@
       "cancellation": "There is no watchdog here.",
       "windows_path": "None.",
       "verification_method": "unit test asserting the three ids, titles and their order",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -44766,7 +44766,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None.",
       "verification_method": "unit test over each of the four skip conditions plus a missing isUnlimitedEntitlement",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -44793,7 +44793,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Floating-point division and the min/max clamps must match IEEE double semantics so the boundary values agree.",
       "verification_method": "unit test over both branches including a negative usedRequests and a remainingPercentage above 100",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "upstream_defects.md entry 3 (Copilot fallback percent branch has no lower clamp)",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -44818,7 +44818,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None.",
       "verification_method": "unit test asserting nil, not an empty PlanLimits",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "provider-argv-and-handshakes.md section 10 item 4 (Copilot returns bare nil where Codex returns a problem string)",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -44844,7 +44844,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None. readPlanLimits therefore makes two requests on one process, while listModels and authStatus each spawn their own; that cost is upstream and must not be optimized with a cached connection (port_impacts.md entry 17).",
       "verification_method": "interaction test asserting one process and two requests",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -44868,7 +44868,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Both parses must be culture-invariant; a locale-aware parser would accept different strings on a non-English Windows.",
       "verification_method": "unit test over a fractional-seconds stamp, a whole-second stamp, a bare date and junk",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -44893,7 +44893,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None.",
       "verification_method": "unit test with a foreign session id",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -44916,7 +44916,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None.",
       "verification_method": "unit test with Hydra off over an assistant.message, an assistant.usage and a permission.requested carrying an agentId",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -44941,7 +44941,7 @@
       "cancellation": "session.idle with aborted true ends the turn as interrupted.",
       "windows_path": "None.",
       "verification_method": "unit test feeding one event of every type plus an unknown one",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -44966,7 +44966,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None.",
       "verification_method": "unit test over a lead report and a head report",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -44994,7 +44994,7 @@
       "cancellation": "shownReasoning is cleared at the start and end of every turn.",
       "windows_path": "Swift's hashValue is randomly seeded per process, so the port must use a hash that is at least stable WITHIN one run; cross-run stability is not relied on and must not be introduced as a persisted key.",
       "verification_method": "unit test where the same text arrives as both an assistant.reasoning event and a message's reasoningText",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -45020,7 +45020,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None.",
       "verification_method": "interaction test over a streamed message ending empty and a whole message",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -45045,7 +45045,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None.",
       "verification_method": "unit test registering the same id twice, plus an update_todo and a task call",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -45071,7 +45071,7 @@
       "cancellation": "declinedTools is cleared when the turn finishes.",
       "windows_path": "None.",
       "verification_method": "unit test over success, failure and a call the user declined",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -45097,7 +45097,7 @@
       "cancellation": "A cancelled sub-agent arrives as subagent.completed with cancelled true.",
       "windows_path": "None.",
       "verification_method": "interaction test over all three events with Hydra on and off",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -45122,7 +45122,7 @@
       "cancellation": "An interrupt takes precedence: the turn is reported interrupted even with a stored error.",
       "windows_path": "None.",
       "verification_method": "interaction test with an error during and between turns",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -45145,7 +45145,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The case-insensitive contains must be culture-invariant.",
       "verification_method": "unit test over a wrapped HTTP failure, a 403, a sign_in remediation and a plain error",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -45171,7 +45171,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None.",
       "verification_method": "unit test over success, failure with an error and failure without one",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -45196,7 +45196,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None.",
       "verification_method": "unit test over all three known values and an unknown one",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -45221,7 +45221,7 @@
       "cancellation": "An abort or an interrupt both produce .interrupted.",
       "windows_path": "None.",
       "verification_method": "interaction test over a clean turn, an errored turn and an aborted turn",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -45247,7 +45247,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None.",
       "verification_method": "unit test over all four modes and each request kind",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -45272,7 +45272,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The diff comes from the CLI and may carry CRLF; diffStats splits on \"\\n\" and keeps empty subsequences, so a CR-terminated line still counts correctly as long as the prefix test sees the first character.",
       "verification_method": "interaction test over a write prompt carrying a diff",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -45297,7 +45297,7 @@
       "cancellation": "An interrupt cancels it with the cancelled decision.",
       "windows_path": "None.",
       "verification_method": "interaction test over a shell prompt with and without session approval",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -45321,7 +45321,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The shell branch compares the resolved working directory against the thread's; on Windows that comparison must tolerate case and separator differences or the directory detail will always appear.",
       "verification_method": "unit test over all nine kinds and the default",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -45346,7 +45346,7 @@
       "cancellation": "The detached task is not cancelled by stop().",
       "windows_path": "None.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -45371,7 +45371,7 @@
       "cancellation": "cancelPendingRequests answers it with -32800.",
       "windows_path": "None.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -45396,7 +45396,7 @@
       "cancellation": "cancelPendingRequests answers it with approved false and the stopped-the-turn feedback.",
       "windows_path": "None.",
       "verification_method": "interaction test asserting both events and the two labels",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -45421,7 +45421,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -45449,7 +45449,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The product name is on the wire; OD-0012 F1 renames it to \"Marrow\". The generic JSONRPC \"Method not found\" on probe connections carries no product name and is unchanged.",
       "verification_method": "contract fixture on a session connection and on a probe connection",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -45479,7 +45479,7 @@
       "cancellation": "stop() sets isStopping before closing.",
       "windows_path": "The tail comes from the bounded stderr collector (PA-0008).",
       "verification_method": "interaction test over a crash mid-turn and a stop",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -45503,7 +45503,7 @@
       "cancellation": "not cancellable",
       "windows_path": "relativePath has the same prefix-stripping caveat as PR-PROVCLI-062. The en dash must survive as a non-ASCII character.",
       "verification_method": "unit test - the case list and order, plus the shared path helper",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -45526,7 +45526,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Line splitting uses a newline predicate that also handles CR, so a CRLF patch is read correctly; the trailing trim then removes any stray CR from the path.",
       "verification_method": "unit test over all three header kinds, a duplicate and an empty patch",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -45549,7 +45549,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The lowercasing must be invariant; a Turkish locale would map a dotted capital I differently and change which marker counts as done.",
       "verification_method": "unit test over every bullet form and all three bracket states",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -45572,7 +45572,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The connection must report closed when the child dies.",
       "verification_method": "unit test plus an interaction test killing the child",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -45599,7 +45599,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The store lives under the user profile on Windows; the growth is the same and is reproduced.",
       "verification_method": "a source-level check that no session delete method name appears in the Windows implementation",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -49823,7 +49823,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Order matters: routing on the name first would show an MCP server's \"edit\" tool as a local edit row.",
       "verification_method": "unit test - one case with a full argument object and one with an empty object",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -49845,7 +49845,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Five literal snake-case names; a port that reuses Claude's list shows rows Copilot means to hide.",
       "verification_method": "unit test - one case with a full argument object and one with an empty object",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -49866,7 +49866,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Both names map identically; the shared fallback literal is exact.",
       "verification_method": "unit test - one case with a full argument object and one with an empty object",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -49888,7 +49888,7 @@
       "cancellation": "not cancellable",
       "windows_path": "humanize capitalizes one character, not each word. The camel-case argument key is easy to mistype as shell_id.",
       "verification_method": "unit test - one case with a full argument object and one with an empty object",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -49909,7 +49909,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The argument key is \"path\", not \"file_path\" as on Claude.",
       "verification_method": "unit test - one case with a full argument object and one with an empty object",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -49930,7 +49930,7 @@
       "cancellation": "not cancellable",
       "windows_path": "No withEdits gate here; do not copy Claude's three-condition shape.",
       "verification_method": "unit test - one case with a full argument object and one with an empty object",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -49951,7 +49951,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The abbreviated key names are the contract; a port sharing one key table across providers breaks this row.",
       "verification_method": "unit test - one case with a full argument object and one with an empty object",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -49972,7 +49972,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The nested switch is on the ARGUMENT named command, not on the tool name.",
       "verification_method": "unit test - one case with a full argument object and one with an empty object",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -49993,7 +49993,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same shape, second call site; both must be implemented.",
       "verification_method": "unit test - one case with a full argument object and one with an empty object",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -50014,7 +50014,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Do not fold insert into the default sub-branch; the empty old side is the whole difference.",
       "verification_method": "unit test - one case with a full argument object and one with an empty object",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -50035,7 +50035,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A missing command argument must land here, not be treated as unknown.",
       "verification_method": "unit test - one case with a full argument object and one with an empty object",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -50057,7 +50057,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The three-step patch lookup and the count-based title are both literal; note that a count of 0 and a count of 2 take the same branch.",
       "verification_method": "unit test - a bare-string patch, an input-keyed patch, one path, two paths and zero paths",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -50078,7 +50078,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The separator is \", \" exactly. A non-string entry is skipped, not stringified.",
       "verification_method": "unit test - one case with a full argument object and one with an empty object",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -50099,7 +50099,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One literal apart from grep and a separate row.",
       "verification_method": "unit test - one case with a full argument object and one with an empty object",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -50120,7 +50120,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same fallback literal as Claude's WebFetch, under a snake-case tool name.",
       "verification_method": "unit test - one case with a full argument object and one with an empty object",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -50141,7 +50141,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same fallback literal as Claude's WebSearch.",
       "verification_method": "unit test - one case with a full argument object and one with an empty object",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -50162,7 +50162,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The order name then agent_type, the U+00B7 separator and the empty-to-nil conversion are all part of the contract.",
       "verification_method": "unit test - one case with a full argument object and one with an empty object",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -50183,7 +50183,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The two-step detail fallback and the humanized titles are both exact.",
       "verification_method": "unit test - one case with a full argument object and one with an empty object",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -50204,7 +50204,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One fallback here, two on Claude; do not unify them.",
       "verification_method": "unit test - one case with a full argument object and one with an empty object",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -50225,7 +50225,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The fallback is \"SQL query\", not \"SQL Query\" and not \"Query\".",
       "verification_method": "unit test - one case with a full argument object and one with an empty object",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -50246,7 +50246,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The row must not be wired to any app action; it is a record of the agent's tool call.",
       "verification_method": "unit test - one case with a full argument object and one with an empty object",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -50267,7 +50267,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The singleLine pass here and its absence on the MCP branch are both deliberate.",
       "verification_method": "unit test - one case with a full argument object and one with an empty object",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -50290,7 +50290,7 @@
       "cancellation": "not cancellable",
       "windows_path": "U+2013 is the character; a hyphen here is a defect. compactMap on .int means a mixed array of one integer and one string is rejected by the count test.",
       "verification_method": "unit test - [10,20], [10,-1], [10], [10,20,30] and a non-array",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
