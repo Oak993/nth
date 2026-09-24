@@ -1,38 +1,35 @@
+using Marrow.App.Views.Settings;
 using Marrow.Core.Port;
+using Marrow.Core.Support;
 
-// Source: DroppyCode/App/AppUpdater.swift (B2 1fbf81e), :1-528. Skeleton (c100 group 1): the milestones (:8-20),
-// the Phase cases (:40-55), the observed stored properties (:37, :57, :63) and the constants (:241-244) are
-// complete; every method, every computed property, the private creep and reset state (:65-68), AppUpdater's
-// install task (:246), the installer script text (:414-442) and the Downloader's delegate callbacks (:496-527,
-// URLSession delegate methods with no .NET counterpart in this form) are left to the implementing unit.
-// Forms: URL is SwiftURL; a stored Task is a TaskHandle (R-TASK-1); a Swift Int64 is long.
+// Source: DroppyCode/App/AppUpdater.swift (B2 1fbf81e), :1-528. The Windows installer boundary is defined by PA-0014.
 
 namespace Marrow.App;
 
-// :8-20. A caseless enum of static lets -> static class of constants.
+// :8-20
 public static class UpdateProgressMilestones
 {
     public const double PreparingCeiling = 0.05; // :10
-    public const double DownloadEnd = 0.55;      // :11
-    public const double VerifyEnd = 0.70;        // :12
-    public const double StagingCeiling = 0.82;   // :14
-    public const double HandoffEnd = 0.86;       // :16
-    public const double InstallDot = 0.96;       // :18
+    public const double DownloadEnd = 0.55; // :11
+    public const double VerifyEnd = 0.70; // :12
+    public const double StagingCeiling = 0.82; // :14
+    public const double HandoffEnd = 0.86; // :16
+    public const double InstallDot = 0.96; // :18
     public static readonly ValueList<double> Dots = new([DownloadEnd, VerifyEnd, HandoffEnd, InstallDot]); // :19
 }
 
-// :27-226. @MainActor @Observable -> MainActorModel (R-OBS-6).
+// :27-226
 public sealed class UpdateInstallProgress : MainActorModel
 {
-    // :30
-    public static UpdateInstallProgress Shared =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppUpdater.swift:30");
+    private static readonly Ambient<UpdateInstallProgress> running = new(() => new());
 
-    // :34-38. `fileprivate(set)`: the containing class sets it, so the setter is internal (a private setter of a
-    // nested class is out of the outer class's reach in C#).
+    // :30
+    public static UpdateInstallProgress Shared => running.Current;
+
+    // :34-38
     public sealed class FractionTarget : MainActorModel
     {
-        private double value = 0.0;
+        private double value;
 
         public double Value { get => Read(value); internal set => Set(ref this.value, value); } // :37
     }
@@ -40,28 +37,31 @@ public sealed class UpdateInstallProgress : MainActorModel
     // :40-55
     public enum Phase
     {
-        Idle,        // :41
-        Preparing,   // :43
-        Downloading, // :44
-        Verifying,   // :46
-        Staging,     // :48
-        Handoff,     // :50
-        Celebrating, // :52
-        Failed,      // :54
+        Idle,
+        Preparing,
+        Downloading,
+        Verifying,
+        Staging,
+        Handoff,
+        Celebrating,
+        Failed,
     }
 
     private Phase phase = Phase.Idle;
-    private bool hasPendingCelebration = false;
+    private bool hasPendingCelebration;
+    private TaskHandle? creepTask;
+    private double creepCeiling;
+    private double creepRate;
+    private TaskHandle? failureReset;
 
-    // :57. Swift: phase (R-NAME-3).
+    // :57
     public Phase UpdateInstallProgressPhase { get => Read(phase); private set => Set(ref phase, value); }
 
-    // :58. Swift: fractionTarget (R-NAME-3).
+    // :58
     public FractionTarget UpdateInstallProgressFractionTarget { get; } = new();
 
     // :59
-    public double Fraction =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppUpdater.swift:59");
+    public double Fraction => UpdateInstallProgressFractionTarget.Value;
 
     // :63
     public bool HasPendingCelebration { get => Read(hasPendingCelebration); private set => Set(ref hasPendingCelebration, value); }
@@ -70,60 +70,189 @@ public sealed class UpdateInstallProgress : MainActorModel
     private UpdateInstallProgress() { }
 
     // :73-78
-    public bool ShowsProgressUI =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppUpdater.swift:73");
+    public bool ShowsProgressUI => UpdateInstallProgressPhase is not (Phase.Idle or Phase.Failed);
 
     // :80-85
-    public bool IsInstallRunning =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppUpdater.swift:80");
+    public bool IsInstallRunning => UpdateInstallProgressPhase is
+        Phase.Preparing or Phase.Downloading or Phase.Verifying or Phase.Staging or Phase.Handoff;
 
     // :89-95
-    public void Begin() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppUpdater.swift:89");
+    public void Begin()
+    {
+        CancelFailureReset();
+        UpdateInstallProgressPhase = Phase.Preparing;
+        UpdateInstallProgressFractionTarget.Value = 0.004;
+        Haptics.Perform(HapticPattern.Generic);
+        StartCreep(UpdateProgressMilestones.PreparingCeiling, 0.05);
+    }
 
     // :99-113
-    public void NoteDownloadProgress(double downloadFraction) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppUpdater.swift:99");
+    public void NoteDownloadProgress(double downloadFraction)
+    {
+        if (UpdateInstallProgressPhase == Phase.Preparing)
+            UpdateInstallProgressPhase = Phase.Downloading;
+        else if (UpdateInstallProgressPhase != Phase.Downloading)
+            return;
+
+        if (!(downloadFraction > 0))
+        {
+            StartCreep(0.50, 0.012);
+            return;
+        }
+
+        StopCreep();
+        Apply(UpdateProgressMilestones.PreparingCeiling +
+              (UpdateProgressMilestones.DownloadEnd - UpdateProgressMilestones.PreparingCeiling) *
+              Math.Min(downloadFraction, 1));
+    }
 
     // :115-121
-    public void BeginVerification() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppUpdater.swift:115");
+    public void BeginVerification()
+    {
+        if (!IsInstallRunning) return;
+        StopCreep();
+        UpdateInstallProgressPhase = Phase.Verifying;
+        Apply(UpdateProgressMilestones.DownloadEnd);
+        StartCreep(UpdateProgressMilestones.VerifyEnd - 0.02, 0.12);
+    }
 
     // :123-129
-    public void BeginStaging() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppUpdater.swift:123");
+    public void BeginStaging()
+    {
+        if (!IsInstallRunning) return;
+        StopCreep();
+        UpdateInstallProgressPhase = Phase.Staging;
+        Apply(UpdateProgressMilestones.VerifyEnd);
+        StartCreep(UpdateProgressMilestones.StagingCeiling, 0.10);
+    }
 
     // :131-136
-    public void NoteHandoff() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppUpdater.swift:131");
+    public void NoteHandoff()
+    {
+        if (!IsInstallRunning) return;
+        StopCreep();
+        UpdateInstallProgressPhase = Phase.Handoff;
+        Apply(UpdateProgressMilestones.HandoffEnd);
+    }
 
     // :139-149
-    public void Fail() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppUpdater.swift:139");
+    public void Fail()
+    {
+        if (!IsInstallRunning) return;
+        StopCreep();
+        UpdateInstallProgressPhase = Phase.Failed;
+        Haptics.Perform(HapticPattern.LevelChange);
+        failureReset = MainActor.Spawn(async () =>
+        {
+            await SwiftTask.TrySleep(TimeSpan.FromMilliseconds(600));
+            if (SwiftTask.IsCancelled || UpdateInstallProgressPhase != Phase.Failed) return;
+            ResetToIdle();
+        });
+    }
 
     // :153-155
-    public void ArmCelebration() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppUpdater.swift:153");
+    public void ArmCelebration() => HasPendingCelebration = true;
 
     // :158-166
-    public bool ConsumePendingCelebration() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppUpdater.swift:158");
+    public bool ConsumePendingCelebration()
+    {
+        if (!HasPendingCelebration) return false;
+        HasPendingCelebration = false;
+        StopCreep();
+        CancelFailureReset();
+        UpdateInstallProgressPhase = Phase.Celebrating;
+        UpdateInstallProgressFractionTarget.Value = UpdateProgressMilestones.HandoffEnd;
+        return true;
+    }
 
     // :168-171
-    public void FinishCelebrationSweep() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppUpdater.swift:168");
+    public void FinishCelebrationSweep()
+    {
+        if (UpdateInstallProgressPhase != Phase.Celebrating) return;
+        Apply(1, firesHaptics: false);
+    }
 
     // :173-176
-    public void CompleteCelebration() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppUpdater.swift:173");
+    public void CompleteCelebration()
+    {
+        if (UpdateInstallProgressPhase != Phase.Celebrating) return;
+        ResetToIdle();
+    }
+
+    // :180-185
+    private void ResetToIdle()
+    {
+        StopCreep();
+        CancelFailureReset();
+        UpdateInstallProgressPhase = Phase.Idle;
+        UpdateInstallProgressFractionTarget.Value = 0;
+    }
+
+    // :187-190
+    private void CancelFailureReset()
+    {
+        failureReset?.Cancel();
+        failureReset = null;
+    }
+
+    // :193-202
+    private void Apply(double newValue, bool firesHaptics = true)
+    {
+        var clamped = 1 < (0 >= newValue ? 0 : newValue) ? 1 : (0 >= newValue ? 0 : newValue);
+        if (!(clamped > Fraction)) return;
+        var previous = Fraction;
+        UpdateInstallProgressFractionTarget.Value = clamped;
+        if (!firesHaptics) return;
+
+        foreach (var dot in UpdateProgressMilestones.Dots)
+        {
+            if (previous < dot && clamped >= dot)
+                Haptics.Perform(dot == UpdateProgressMilestones.HandoffEnd
+                    ? HapticPattern.LevelChange
+                    : HapticPattern.Alignment);
+        }
+    }
+
+    // :204-220
+    private void StartCreep(double ceiling, double rate)
+    {
+        creepCeiling = ceiling;
+        creepRate = rate;
+        if (creepTask is not null) return;
+
+        creepTask = MainActor.Spawn(async () =>
+        {
+            while (!SwiftTask.IsCancelled)
+            {
+                await SwiftTask.TrySleep(TimeSpan.FromMilliseconds(125));
+                if (SwiftTask.IsCancelled) return;
+                var remaining = creepCeiling - Fraction;
+                if (remaining <= 0.0005)
+                {
+                    creepTask = null;
+                    return;
+                }
+                Apply(Fraction + remaining * creepRate);
+            }
+        });
+    }
+
+    // :222-225
+    private void StopCreep()
+    {
+        creepTask?.Cancel();
+        creepTask = null;
+    }
 }
 
-// :237-443. @MainActor final class, not observable: a plain class (R-OBS-1).
+// :237-443
 public sealed class AppUpdater
 {
+    private static readonly Ambient<AppUpdater> running = new(() => new());
+    private TaskHandle? installTask = null;
+
     // :239
-    public static AppUpdater Shared =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppUpdater.swift:239");
+    public static AppUpdater Shared => running.Current;
 
     // :241
     public const string TeamID = "NARHG44L48";
@@ -138,42 +267,56 @@ public sealed class AppUpdater
     private AppUpdater() { }
 
     // :254-259
-    public bool ConsumeRelaunchMarker() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppUpdater.swift:254");
+    public bool ConsumeRelaunchMarker()
+    {
+        var defaults = UserDefaults.Standard.Current;
+        if (defaults.String(RelaunchVersionKey) is not { } pending) return false;
+        defaults.RemoveObject(RelaunchVersionKey);
+        return pending == AppInfo.Current.Version;
+    }
 
     // :261-283
-    public void Install(AvailableUpdate update) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppUpdater.swift:261");
+    public void Install(AvailableUpdate update)
+    {
+        if (installTask is not null || AppInfo.Current.IsDevelopment) return;
 
-    // :346-368. Swift: verifySignature(of:).
-    public static void VerifySignature(SwiftURL appURL) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppUpdater.swift:346");
+        // DEVIATION PA-0014: the current public release feed has no qualifying Windows release asset (UNK-0009).
+        // Do not start an install or present a fabricated failure for an update that cannot qualify on Windows.
+        _ = update;
+    }
+
+    // :346-368
+    public static void VerifySignature(SwiftURL appURL)
+    {
+        // DEVIATION PA-0014: no Windows release qualifies until the feed publishes a Windows asset and its publisher
+        // identity is established; the Apple Developer ID requirement has no Windows meaning.
+        _ = appURL;
+        throw new PlatformNotSupportedException();
+    }
 }
 
-// :445-452 (R-ERR-3). The Swift `message` (:446) is read through Exception.Message, which SwiftError answers with
-// ErrorDescription (the ShellError form, Shell.swift:22-29).
+// :445-452
 public sealed class UpdateInstallError(string message) : SwiftError
 {
     // :447
     public override string? ErrorDescription => message;
 }
 
-// :459-528. `private final class` at file scope -> internal (R-NAME-6); `@unchecked Sendable` with a Mutex
-// (R-ISO-5) is the implementing unit's.
+// :459-528
 internal sealed class Downloader
 {
-    // :460-463
-    private sealed record State
-    {
-        public TaskCompletionSource<SwiftURL>? Continuation { get; init; } // :461
-        public SwiftURL? Destination { get; init; }                        // :462
-    }
+    private readonly Action<double> onProgress;
 
     // :468-470
-    public Downloader(Action<double> onProgress) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppUpdater.swift:468");
+    public Downloader(Action<double> onProgress) => this.onProgress = onProgress;
 
-    // :472-486. Swift: download(_:to:).
-    public Task Download(SwiftURL url, SwiftURL destination) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppUpdater.swift:472");
+    // :472-486
+    public Task Download(SwiftURL url, SwiftURL destination)
+    {
+        // DEVIATION PA-0014: this download path is unreachable until a qualifying Windows release asset is published.
+        _ = onProgress;
+        _ = url;
+        _ = destination;
+        throw new PlatformNotSupportedException();
+    }
 }
