@@ -18,7 +18,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pure logic, no platform boundary. Implement as a TypeScript parse function with the same accept/reject set, including the exact 'reject on any non-digit' rule that excludes prerelease tags.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -42,7 +42,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pure logic. Do NOT substitute semver comparison: there is no prerelease ranking here because prerelease tags never parse at all.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -65,7 +65,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pure logic. Keep the distinction between the display string (unpadded) and the comparison value (padded); conflating them changes every user-visible version string.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -88,7 +88,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Persist the same seven field names in the same JSON object so a stored record survives round-tripping. Swift's JSONEncoder writes Date as a Double seconds-since-2001 by default and URL as a string; a Windows port may choose ISO-8601 for releasedAt but must then own its own store and never claim to read a macOS-written blob.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -114,7 +114,7 @@
       "cancellation": "not cancellable by the user; the request obeys the session timeouts in PR-UPDATE-006.",
       "windows_path": "OD-0008 C6 and OD-0012 I1: the Windows build does not query Droppy's feed. The feed is an internal value, empty by default, with no settings UI until the owner has a Windows release feed. While it is empty no request is made and the check fails with the note \"No update feed is set.\" through the same catch branch every upstream failure takes, so lastError, lastCheckedAt and the persisted \"updateChecker_lastChecked\" behave exactly as for any failed check. Once the owner supplies a feed, the check runs against it with this requirement's upstream shape (one unauthenticated GET, the session of PR-UPDATE-006).",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -143,7 +143,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A plain HTTPS client with the same two timeouts and the same two headers, caching disabled. The User-Agent string embeds the product name; OD-0012 F1 decides it: the network User-Agent is \"Marrow/<version>\".",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -174,7 +174,7 @@
       "cancellation": "The task is cancellable in principle (while !Task.isCancelled) but no code cancels it. Reproduce: no teardown.",
       "windows_path": "A main-process timer started after the window shows. Electron: setTimeout(8000) then setInterval(21600000). Clear it on app quit so the Windows process can exit cleanly, and record that as the one deliberate divergence from the source's no-teardown behavior. OD-0012 I1: while the feed value is empty each scheduled check makes no network request and ends in the failure branch with \"No update feed is set.\" (PR-UPDATE-005); the schedule itself is unchanged.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -203,7 +203,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Two guards on Windows: an 'already started' flag, and a development-build flag equivalent to the .dev bundle identifier (for example an unpackaged/dev run). The capture-mode guard belongs to the capture subsystem, which the port does not need; if the port ships no capture mode, that clause is simply constant-false and the requirement still holds. ED-061 and ED-001: the capture subsystem is dead code in every user launch (porting/dead_code.md:65 entry 28, :93 entry 42, :97 entry 44) and is not ported, so the port carries only the other two guards.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -227,7 +227,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Electron BrowserWindow 'focus' or app 'browser-window-focus' / 'activate' equivalent. Windows has no exact didBecomeActive analogue for the whole app; use the main window gaining focus after the app was unfocused, and name that as the platform boundary. OD-0012 I1: while the feed value is empty the catch-up check makes no network request and ends in the failure branch with \"No update feed is set.\" (PR-UPDATE-005).",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -257,7 +257,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the behavior (a listener that lives as long as the app), but Electron listeners must be removed at quit or the process will not exit. Record that removal as an ENGINEERING DECISION, not a behavior change: nothing user-visible depends on it.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -279,7 +279,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Read the same two keys from the Windows settings store at first access. Keep these keys OUT of the app-settings file if the port ever adds a test/capture profile that redirects settings (port_impacts.md:440 X9).",
       "verification_method": "restart test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -301,7 +301,7 @@
       "cancellation": "not cancellable; there is no way to abort an in-flight check.",
       "windows_path": "Same two guards. isChecking drives the \"Checking…\" button label and its disabled state, so it must be observable by the renderer.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -326,7 +326,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same ordering: state first, then persist, then notify. The notify-only-on-background rule matters: a manual \"Check now\" that finds an update never raises a banner.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -351,7 +351,7 @@
       "cancellation": "not cancellable",
       "windows_path": "OD-0008 C6 (resolving UNK-0009) rules the state only: the update check shows its \"Check failed\" state until the owner has a Windows release feed. OD-0012 I1 rules the message while the feed value is empty (its default): no request is made and lastError is exactly \"No update feed is set.\" (PR-UPDATE-005). Once the owner supplies a feed, the message is whatever lastError the failing branch of check() sets, as upstream: a feed that answers 2xx with releases none of which qualifies reaches this branch and gives \"No release with a disk image was found.\" (UpdateChecker.swift:271); a non-2xx answer gives \"GitLab answered with HTTP <status>.\" (UpdateChecker.swift:191-193, :272); any other failure of the fetch or decode gives \"Couldn't reach GitLab.\" (UpdateChecker.swift:182). Whichever branch runs, its message must not be papered over with a friendlier one.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -378,7 +378,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same five filters and the same tie rule. The asset predicate is the one thing that changes: on Windows the qualifying asset is the Windows release artifact rather than a .dmg. Under OD-0008 C6 (resolving UNK-0009) no release qualifies until the owner has a Windows release feed, and the check shows \"Check failed\"; the artifact's suffix is not fixed by the ruling. None of this is licence to loosen any of the other four filters.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -405,7 +405,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Replace \".dmg\" with the Windows artifact suffix, keeping the identical two-branch shape (direct_asset_url-or-url suffix OR name suffix, both lowercased). Do not add a platform field to the feed; the feed has none. OD-0008 C6 resolves UNK-0009: until the owner has a Windows release feed no link qualifies and the check shows \"Check failed\"; the Windows suffix itself is not fixed by the ruling.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -432,7 +432,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same preference. Note that direct_asset_url is the stable per-release permalink shape the whole distribution surface depends on (port_impacts.md:530 CC4).",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -457,7 +457,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same HEAD, same swallow-on-failure. Use Content-Length; treat a missing or zero length as nil. This is display-only and must never gate the install.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -481,7 +481,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. Reproduce the apostrophe exactly: \"Couldn't reach GitLab.\" uses U+2019, not an ASCII apostrophe. Reproduce the asymmetry that a failure never clears a previously found update. OD-0012 I1: while the feed value is empty (its default) the port reaches this branch without any network request, and lastError is exactly \"No update feed is set.\" (PR-UPDATE-005); lastCheckedAt, the \"updateChecker_lastChecked\" write and the untouched stored release behave exactly as above.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -509,7 +509,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same range test, same two message templates, including the -1 sentinel for a non-HTTP response. Do not add retry: the source does not retry a failed check.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -535,7 +535,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Windows toast notification via Electron Notification. Keep the write-then-send order exactly, including its consequence.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -559,7 +559,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Windows toast. The body stays verbatim, U+203A included: the owner's ruling on OD-PENDING-26 (OD-0008, B15) keeps \"Settings › About\" because the port keeps those page names. The product name in the title is a rename point under OD-0002, and OD-0012 F1 fixes it: the title reads \"Marrow <version> is available\".",
       "verification_method": "capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -588,7 +588,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Windows 10/11 toasts need no runtime permission prompt, so the notDetermined branch has no analogue. Name this as a PLATFORM BOUNDARY: the port sends the toast directly and there is no prompt.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -660,7 +660,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same derivation from the running build's version. Never persist a boolean 'update available' flag; it is always computed.",
       "verification_method": "restart test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -683,7 +683,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same field names, same optionality, same all-or-nothing array decode. Do not become more tolerant: a malformed feed must read as \"Couldn't reach GitLab.\", which is what the source shows.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -706,7 +706,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Two-step parse with the same fallback and the same nil-means-no-filter consequence.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -731,7 +731,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three-way behavior (write / remove / always-write-the-date).",
       "verification_method": "restart test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -754,7 +754,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three names in the Windows settings store, deliberately separate from the app-settings file so a settings reset or a test profile does not silently re-notify or re-offer an installed update.",
       "verification_method": "restart test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1196,7 +1196,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three-way precedence for any child process the Windows install path runs, so the alert text has the same shape.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2382,7 +2382,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same idempotence: one tour window per process, refocused rather than rebuilt.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2413,7 +2413,7 @@
       "cancellation": "not cancellable",
       "windows_path": "port_impacts.md:430 X4: size the window from an off-screen measurement pass before showing it, using the max-across-pages rule. A CSS implementation can measure all eight panels hidden, take the tallest, and fix the card height. Do not let the card resize per page. ED-059: the panel's .body description is measured at 13 point in Inter (B1:DroppyCode/UI/Common/ChatZoom.swift:51) and the .title3 button label at 15 point (:50), so the tallest page no longer depends on a system text size (porting/critiques/spec_audit_findings.md:495); the measured heights use the OD-0012 H wording of pages 1 and 8 (UI-UPDATE-046, UI-UPDATE-053).",
       "verification_method": "capture comparison",
-      "status": "DISCOVERED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2439,7 +2439,7 @@
       "cancellation": "The only dismissals are the checkmark, the Done button, and the controller's own close().",
       "windows_path": "port_impacts.md:428 X3: a frameless movable Electron window, 660 wide, centred on the main window, always on top. Windows will NOT shape the window shadow to the content alpha, so the rounded card must draw its own CSS shadow and the window must be transparent with no frame.",
       "verification_method": "capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2466,7 +2466,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Centre on the main BrowserWindow's bounds directly rather than matching a title string; matching on a title is fragile and the port owns its own window handles. Record that as an ENGINEERING DECISION: it preserves the intent and removes a silent-fallback failure mode, and nothing user-visible changes when the title is what the source expects. Under OD-0012 F1 the main window's title is \"Marrow\", so a port that did match on a title would have to match that string; matching on the window handle avoids the question.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2495,7 +2495,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Null the window reference in the 'closed' handler, not only in the close path.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2522,7 +2522,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same labels, same 220 by 42 size, the label in the .title3 semibold text style (15 point at the macOS default) in both the live button and the off-screen sizing twin, Enter as the default action. This file defines no arrow-key paging and no Escape handling; do not add either.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2551,7 +2551,7 @@
       "cancellation": "not cancellable",
       "windows_path": "opacity 0 rather than display none or disabled, so the hit area survives. A port that hides or disables it diverges observably under pointer testing.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2575,7 +2575,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A 250 ms ease-in-out opacity crossfade on both regions together. The source applies no Reduce Motion exemption here; reproduce it as written.",
       "verification_method": "capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2597,7 +2597,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same fallback with the same two colours and the same glyph treatment; an onerror handler on the image element is the direct analogue.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2619,7 +2619,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the state and the string; it costs nothing and keeps the surface complete. ED-059: the glyph's .title is 22 point and the text's .headline 13 point semibold, from upstream's B1 table (B1:DroppyCode/UI/Common/ChatZoom.swift:48, :51, :63), in Inter (OD-0009).",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2643,7 +2643,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same clamp at construction only.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2665,7 +2665,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Use the array index or a per-process id; never persist a tour page id.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2687,7 +2687,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One aria-label on the container with aria-hidden dots, same wording.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2836,7 +2836,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The Windows build carries the same two values, 1.6.2 and 20, in its own version metadata, and the port's AppInfo readers return them. Where the port's build declares them is an ENGINEERING DECISION not yet made; no port build metadata exists to cite.",
       "verification_method": "unit test that the built app's version and build readers return \"1.6.2\" and \"20\", plus a capture of the About card showing \"Version 1.6.2 (20)\"",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3744,7 +3744,8 @@
         "decision": "OD-0012 F1",
         "upstream": "DroppyCode/App/UpdateChecker.swift:250 'content.title = \"Droppy Code \\(update.version) is available\"'",
         "port": "OD-0012 F1 (porting/decision_batch_20260922b.md:22-36): every remaining \"Droppy Code\" / \"droppy-code\" the app shows or sends out becomes \"Marrow\" / \"marrow\", except droppy-code.json and DROPPY_CODE_PROJECT_ROOT. The notification title reads \"Marrow <version> is available\"."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-UPDATE-036",
@@ -3773,7 +3774,8 @@
         "decision": "OD-0005",
         "upstream": "DroppyCode/App/Views/Tour/TourView.swift:82 '.glassEffect(.regular, in: shape)' with 'shape.fill(Chrome.glassTint.opacity(isDark ? 0.22 : 0.16))' over it (:84), macOS Liquid Glass",
         "port": "Where the window shows the desktop, it uses a Windows system material of the Acrylic class. Lensing, refraction and chromatic fringing are not reproduced there. Where the app draws its own backdrop, the full source-defined material is reproduced: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing at all 22 sites. (OD-0005 as recorded at porting/owner_decisions.md:119-123, verbatim with the bold markup removed.)"
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-UPDATE-037",
@@ -3795,7 +3797,8 @@
         "DroppyCode/App/Views/Tour/TourView.swift:58-60",
         "DroppyCode/App/Views/Tour/TourView.swift:116-147"
       ],
-      "notes": "413 is 412.5 rounded; Swift rounds half away from zero. The eight assets ship as tour-*.imageset in the catalogue. The band is the top of the card with no inset, so the artwork meets the card's rounded corners."
+      "notes": "413 is 412.5 rounded; Swift rounds half away from zero. The eight assets ship as tour-*.imageset in the catalogue. The band is the top of the card with no inset, so the artwork meets the card's rounded corners.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-UPDATE-038",
@@ -3815,7 +3818,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Tour/TourView.swift:124-137"
       ],
-      "notes": "Deliberately only 96 points tall and bottom-anchored: the source comment says it is a seat for the indicator only, so the scrim never reaches into the picture."
+      "notes": "Deliberately only 96 points tall and bottom-anchored: the source comment says it is a seat for the indicator only, so the scrim never reaches into the picture.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-UPDATE-039",
@@ -3836,7 +3840,8 @@
         "DroppyCode/App/Views/Tour/TourView.swift:139-142",
         "DroppyCode/App/Views/Tour/TourView.swift:279-298"
       ],
-      "notes": "Collapsed into one accessibility element labelled \"Page N of M\". Do not make the dots tappable; the source's only paging controls are the back chevron and the primary button."
+      "notes": "Collapsed into one accessibility element labelled \"Page N of M\". Do not make the dots tappable; the source's only paging controls are the back chevron and the primary button.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-UPDATE-040",
@@ -3865,7 +3870,8 @@
         "upstream": "DroppyCode/App/Views/Tour/TourView.swift:222 '.chromeGlassCircle()' on the icon button; '.chromeGlassCircle()' renders 'content.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3)).interactive(), in: shape)' in a Circle() (DroppyCode/UI/Chrome/Chrome.swift:141-143, :167, :180), macOS Liquid Glass",
         "port": "Where the window shows the desktop, it uses a Windows system material of the Acrylic class. Lensing, refraction and chromatic fringing are not reproduced there. Where the app draws its own backdrop, the full source-defined material is reproduced: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing at all 22 sites. (OD-0005 as recorded at porting/owner_decisions.md:119-123, verbatim with the bold markup removed.)"
       },
-      "b2_change": "B1 TourView.swift:217 '.font(.system(size: 13, weight: .semibold))' -> B2 TourView.swift:217 '.font(.system(.body, weight: .semibold))'; the 32x32 frame, the circle content shape and chromeGlassCircle are unchanged. B2 has no file that maps text styles to point sizes; the point figures given are the sizes upstream's own table recorded at B1 (dd2b86ef, 'The point size macOS lays a text style out at', B1:DroppyCode/UI/Common/ChatZoom.swift:44, a file removed at B2): .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50 'case .title3: 15'), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51 'case .headline, .body: 13'), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52 'case .callout: 12'), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53 'case .subheadline: 11') and .footnote 10 point (B1:DroppyCode/UI/Common/ChatZoom.swift:54 'case .footnote, .caption, .caption2: 10'). By ED-059 the port sets each text style at that table's size in Inter (OD-0009), fixed per style; visual size parity stays UNVERIFIED under OD-0001. The tour window does not take the app-wide zoom: TourWindowController hosts its root in a bare 'let hosting = NSHostingView(rootView: rootView)' (DroppyCode/App/Views/Tour/TourWindowController.swift:69), not through WindowManager's HostedRoot, which is where '.modifier(AppZoomModifier(percent: model.settings.appZoom))' is applied (DroppyCode/App/Window/WindowManager.swift:150, :173-175). Whether the text styles follow a macOS text-size setting is UNKNOWN; ED-059 decides the port follows no system text-size preference, because the source gives no hook for one, and the tour window, like upstream's, takes no app zoom."
+      "b2_change": "B1 TourView.swift:217 '.font(.system(size: 13, weight: .semibold))' -> B2 TourView.swift:217 '.font(.system(.body, weight: .semibold))'; the 32x32 frame, the circle content shape and chromeGlassCircle are unchanged. B2 has no file that maps text styles to point sizes; the point figures given are the sizes upstream's own table recorded at B1 (dd2b86ef, 'The point size macOS lays a text style out at', B1:DroppyCode/UI/Common/ChatZoom.swift:44, a file removed at B2): .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50 'case .title3: 15'), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51 'case .headline, .body: 13'), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52 'case .callout: 12'), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53 'case .subheadline: 11') and .footnote 10 point (B1:DroppyCode/UI/Common/ChatZoom.swift:54 'case .footnote, .caption, .caption2: 10'). By ED-059 the port sets each text style at that table's size in Inter (OD-0009), fixed per style; visual size parity stays UNVERIFIED under OD-0001. The tour window does not take the app-wide zoom: TourWindowController hosts its root in a bare 'let hosting = NSHostingView(rootView: rootView)' (DroppyCode/App/Views/Tour/TourWindowController.swift:69), not through WindowManager's HostedRoot, which is where '.modifier(AppZoomModifier(percent: model.settings.appZoom))' is applied (DroppyCode/App/Window/WindowManager.swift:150, :173-175). Whether the text styles follow a macOS text-size setting is UNKNOWN; ED-059 decides the port follows no system text-size preference, because the source gives no hook for one, and the tour window, like upstream's, takes no app zoom.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-UPDATE-041",
@@ -3893,7 +3899,8 @@
         "upstream": "DroppyCode/App/Views/Tour/TourView.swift:222 '.chromeGlassCircle()' on the icon button; '.chromeGlassCircle()' renders 'content.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3)).interactive(), in: shape)' in a Circle() (DroppyCode/UI/Chrome/Chrome.swift:141-143, :167, :180), macOS Liquid Glass",
         "port": "Where the window shows the desktop, it uses a Windows system material of the Acrylic class. Lensing, refraction and chromatic fringing are not reproduced there. Where the app draws its own backdrop, the full source-defined material is reproduced: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing at all 22 sites. (OD-0005 as recorded at porting/owner_decisions.md:119-123, verbatim with the bold markup removed.)"
       },
-      "b2_change": "B1 TourView.swift:217 '.font(.system(size: 13, weight: .semibold))' -> B2 TourView.swift:217 '.font(.system(.body, weight: .semibold))'; the 32x32 frame, the circle content shape and chromeGlassCircle are unchanged. B2 has no file that maps text styles to point sizes; the point figures given are the sizes upstream's own table recorded at B1 (dd2b86ef, 'The point size macOS lays a text style out at', B1:DroppyCode/UI/Common/ChatZoom.swift:44, a file removed at B2): .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50 'case .title3: 15'), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51 'case .headline, .body: 13'), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52 'case .callout: 12'), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53 'case .subheadline: 11') and .footnote 10 point (B1:DroppyCode/UI/Common/ChatZoom.swift:54 'case .footnote, .caption, .caption2: 10'). By ED-059 the port sets each text style at that table's size in Inter (OD-0009), fixed per style; visual size parity stays UNVERIFIED under OD-0001. The tour window does not take the app-wide zoom: TourWindowController hosts its root in a bare 'let hosting = NSHostingView(rootView: rootView)' (DroppyCode/App/Views/Tour/TourWindowController.swift:69), not through WindowManager's HostedRoot, which is where '.modifier(AppZoomModifier(percent: model.settings.appZoom))' is applied (DroppyCode/App/Window/WindowManager.swift:150, :173-175). Whether the text styles follow a macOS text-size setting is UNKNOWN; ED-059 decides the port follows no system text-size preference, because the source gives no hook for one, and the tour window, like upstream's, takes no app zoom."
+      "b2_change": "B1 TourView.swift:217 '.font(.system(size: 13, weight: .semibold))' -> B2 TourView.swift:217 '.font(.system(.body, weight: .semibold))'; the 32x32 frame, the circle content shape and chromeGlassCircle are unchanged. B2 has no file that maps text styles to point sizes; the point figures given are the sizes upstream's own table recorded at B1 (dd2b86ef, 'The point size macOS lays a text style out at', B1:DroppyCode/UI/Common/ChatZoom.swift:44, a file removed at B2): .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50 'case .title3: 15'), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51 'case .headline, .body: 13'), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52 'case .callout: 12'), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53 'case .subheadline: 11') and .footnote 10 point (B1:DroppyCode/UI/Common/ChatZoom.swift:54 'case .footnote, .caption, .caption2: 10'). By ED-059 the port sets each text style at that table's size in Inter (OD-0009), fixed per style; visual size parity stays UNVERIFIED under OD-0001. The tour window does not take the app-wide zoom: TourWindowController hosts its root in a bare 'let hosting = NSHostingView(rootView: rootView)' (DroppyCode/App/Views/Tour/TourWindowController.swift:69), not through WindowManager's HostedRoot, which is where '.modifier(AppZoomModifier(percent: model.settings.appZoom))' is applied (DroppyCode/App/Window/WindowManager.swift:150, :173-175). Whether the text styles follow a macOS text-size setting is UNKNOWN; ED-059 decides the port follows no system text-size preference, because the source gives no hook for one, and the tour window, like upstream's, takes no app zoom.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-UPDATE-042",
@@ -3911,7 +3918,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Tour/TourView.swift:149-181"
       ],
-      "notes": "Text(verbatim:), so no Markdown parsing. The same typography is mirrored in the off-screen sizing view, which is what makes the measured height match."
+      "notes": "Text(verbatim:), so no Markdown parsing. The same typography is mirrored in the off-screen sizing view, which is what makes the measured height match.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-UPDATE-043",
@@ -3930,7 +3938,8 @@
         "DroppyCode/App/Views/Tour/TourView.swift:162-167"
       ],
       "notes": "Upstream the body font is the dynamic system body, not a fixed point size; it is the only text in this area specified by role rather than by number. By ED-059 the port sets it at the 13 point upstream's B1 table gives .body (B1:DroppyCode/UI/Common/ChatZoom.swift:51). The longest description is what fixes the card's height for every page.",
-      "b2_change": "The behaviour and the call site are unchanged; only the colour behind Chrome.secondaryText changed. Chrome.secondaryText changed from 'Color(nsColor: .secondaryLabelColor)' (B1 DroppyCode/UI/Chrome/Chrome.swift:77) to 'primaryText.opacity(0.7)' (B2 Chrome.swift:79, commented at :77-78 as clearing the 4.5:1 contrast floor that secondaryLabelColor's 50% alpha misses). By ED-062 the port's secondaryText is primaryText at 0.7, as B2 states; ED-051's 1.6.0 literal (secondaryLabelColor) is superseded for this token."
+      "b2_change": "The behaviour and the call site are unchanged; only the colour behind Chrome.secondaryText changed. Chrome.secondaryText changed from 'Color(nsColor: .secondaryLabelColor)' (B1 DroppyCode/UI/Chrome/Chrome.swift:77) to 'primaryText.opacity(0.7)' (B2 Chrome.swift:79, commented at :77-78 as clearing the 4.5:1 contrast floor that secondaryLabelColor's 50% alpha misses). By ED-062 the port's secondaryText is primaryText at 0.7, as B2 states; ED-051's 1.6.0 literal (secondaryLabelColor) is superseded for this token.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-UPDATE-044",
@@ -3959,7 +3968,8 @@
         "upstream": "DroppyCode/App/Views/Tour/TourView.swift:210 '.buttonStyle(.glassProminent)', the system prominent Liquid Glass button style",
         "port": "Where the window shows the desktop, it uses a Windows system material of the Acrylic class. Lensing, refraction and chromatic fringing are not reproduced there. Where the app draws its own backdrop, the full source-defined material is reproduced: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing at all 22 sites. (OD-0005 as recorded at porting/owner_decisions.md:119-123, verbatim with the bold markup removed.)"
       },
-      "b2_change": "B1 TourView.swift:207 and its sizing twin B1 TourWindowController.swift:179 '.font(.system(size: 15, weight: .semibold))' -> B2 '.font(.system(.title3, weight: .semibold))' at the same lines. The labels and the 220x42 frame are unchanged. B2 has no file that maps text styles to point sizes; the point figures given are the sizes upstream's own table recorded at B1 (dd2b86ef, 'The point size macOS lays a text style out at', B1:DroppyCode/UI/Common/ChatZoom.swift:44, a file removed at B2): .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50 'case .title3: 15'), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51 'case .headline, .body: 13'), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52 'case .callout: 12'), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53 'case .subheadline: 11') and .footnote 10 point (B1:DroppyCode/UI/Common/ChatZoom.swift:54 'case .footnote, .caption, .caption2: 10'). By ED-059 the port sets each text style at that table's size in Inter (OD-0009), fixed per style; visual size parity stays UNVERIFIED under OD-0001. The tour window does not take the app-wide zoom: TourWindowController hosts its root in a bare 'let hosting = NSHostingView(rootView: rootView)' (DroppyCode/App/Views/Tour/TourWindowController.swift:69), not through WindowManager's HostedRoot, which is where '.modifier(AppZoomModifier(percent: model.settings.appZoom))' is applied (DroppyCode/App/Window/WindowManager.swift:150, :173-175). Whether the text styles follow a macOS text-size setting is UNKNOWN; ED-059 decides the port follows no system text-size preference, because the source gives no hook for one, and the tour window, like upstream's, takes no app zoom."
+      "b2_change": "B1 TourView.swift:207 and its sizing twin B1 TourWindowController.swift:179 '.font(.system(size: 15, weight: .semibold))' -> B2 '.font(.system(.title3, weight: .semibold))' at the same lines. The labels and the 220x42 frame are unchanged. B2 has no file that maps text styles to point sizes; the point figures given are the sizes upstream's own table recorded at B1 (dd2b86ef, 'The point size macOS lays a text style out at', B1:DroppyCode/UI/Common/ChatZoom.swift:44, a file removed at B2): .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50 'case .title3: 15'), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51 'case .headline, .body: 13'), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52 'case .callout: 12'), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53 'case .subheadline: 11') and .footnote 10 point (B1:DroppyCode/UI/Common/ChatZoom.swift:54 'case .footnote, .caption, .caption2: 10'). By ED-059 the port sets each text style at that table's size in Inter (OD-0009), fixed per style; visual size parity stays UNVERIFIED under OD-0001. The tour window does not take the app-wide zoom: TourWindowController hosts its root in a bare 'let hosting = NSHostingView(rootView: rootView)' (DroppyCode/App/Views/Tour/TourWindowController.swift:69), not through WindowManager's HostedRoot, which is where '.modifier(AppZoomModifier(percent: model.settings.appZoom))' is applied (DroppyCode/App/Window/WindowManager.swift:150, :173-175). Whether the text styles follow a macOS text-size setting is UNKNOWN; ED-059 decides the port follows no system text-size preference, because the source gives no hook for one, and the tour window, like upstream's, takes no app zoom.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-UPDATE-045",
@@ -3968,7 +3978,7 @@
       "role": "label",
       "exact_text": "No tour pages",
       "geometry": "VStack(spacing: 12), .frame(maxWidth: .infinity) and .frame(height: 220), which is also the whole window height in this case",
-      "typography": "Glyph .font(.title); text .font(.headline). ED-059: .title is set at 22 point (B1:DroppyCode/UI/Common/ChatZoom.swift:48 'case .title: 22') and .headline at 13 point (B1:DroppyCode/UI/Common/ChatZoom.swift:51 'case .headline, .body: 13'), semibold as the same table's font builder resolves .headline (B1:DroppyCode/UI/Common/ChatZoom.swift:63 'let resolvedWeight = weight ?? (style == .headline ? .semibold : nil)'), in Inter (OD-0009)",
+      "typography": "Glyph .font(.title); text .font(.headline). ED-059: .title is set at 22 point (B1:DroppyCode/UI/Common/ChatZoom.swift:48 'case .title: 22') and .headline at 13 point (B1:DroppyCode/UI/Common/ChatZoom.swift:51 'case .headline, .body: 13'), in the plain system style's weight (ED-186: bold per ED-091, oracle O-64; the chat builder's semibold rule does not apply to a plain .headline) (B1:DroppyCode/UI/Common/ChatZoom.swift:63 'let resolvedWeight = weight ?? (style == .headline ? .semibold : nil)'), in Inter (OD-0009)",
       "colors": "Glyph Chrome.secondaryText; text Chrome.primaryText",
       "states": [
         "Unreachable through the shipped call sites, which always pass eight pages, but it is shipped code"
@@ -3981,7 +3991,8 @@
         "DroppyCode/App/Views/Tour/TourWindowController.swift:44-46"
       ],
       "notes": "The glyph is SF Symbol rectangle.stack. The card's glass, clip and border still apply around it.",
-      "b2_change": "The behaviour and the call site are unchanged; only the colour behind Chrome.secondaryText changed. Chrome.secondaryText changed from 'Color(nsColor: .secondaryLabelColor)' (B1 DroppyCode/UI/Chrome/Chrome.swift:77) to 'primaryText.opacity(0.7)' (B2 Chrome.swift:79, commented at :77-78 as clearing the 4.5:1 contrast floor that secondaryLabelColor's 50% alpha misses). By ED-062 the port's secondaryText is primaryText at 0.7, as B2 states; ED-051's 1.6.0 literal (secondaryLabelColor) is superseded for this token."
+      "b2_change": "The behaviour and the call site are unchanged; only the colour behind Chrome.secondaryText changed. Chrome.secondaryText changed from 'Color(nsColor: .secondaryLabelColor)' (B1 DroppyCode/UI/Chrome/Chrome.swift:77) to 'primaryText.opacity(0.7)' (B2 Chrome.swift:79, commented at :77-78 as clearing the 4.5:1 contrast floor that secondaryLabelColor's 50% alpha misses). By ED-062 the port's secondaryText is primaryText at 0.7, as B2 states; ED-051's 1.6.0 literal (secondaryLabelColor) is superseded for this token.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-UPDATE-046",
@@ -4166,7 +4177,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Tour/TourView.swift:254-276"
       ],
-      "notes": "SF Symbol \"photo\". All eight assets exist at the pinned commit, so this is a safety net rather than a shipped visual; it is still a real user-visible state and must be implemented."
+      "notes": "SF Symbol \"photo\". All eight assets exist at the pinned commit, so this is a safety net rather than a shipped visual; it is still a real user-visible state and must be implemented.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-UPDATE-055",

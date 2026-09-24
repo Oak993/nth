@@ -19,7 +19,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A discriminated-union record type in the Windows model layer, serialized with the same key names and the same single-key-object shape for the union, so a thread written by either build round-trips.",
       "verification_method": "contract fixture: encode/decode round-trip against a pinned JSON fixture per content case",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -39,7 +39,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Trim against the same Unicode whitespace and newline set (not ASCII-only), because a redacted reasoning stream can leave non-breaking or line-separator characters behind.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -62,7 +62,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three cases only. Do not extend the cleanup to tool output: a command's stdout containing an em dash must survive verbatim.",
       "verification_method": "unit: one fixture item per content case, asserting only the three named cases change",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -83,7 +83,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep the three-way branch and its order. Windows must distinguish an absent hydraHeads key from an empty array: an empty array is a note from Hydra itself and still takes the report row.",
       "verification_method": "unit plus interaction test over the three branches",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -112,7 +112,7 @@
       "cancellation": "not cancellable",
       "windows_path": "URL(fileURLWithPath:) becomes a Windows absolute path; the stored path is the platform path as captured. Base64 encoding and any downscaling must run off the UI thread: the source comment records that a photo is megabytes and its string a third larger again. The returned copy's mime type must follow the bytes actually sent (image/jpeg after a downscale), because the Claude session sends it as the image's media_type (ClaudeSession.swift:228-232).",
       "verification_method": "unit with a fixture directory holding one unreadable path, one image at most 2000 pixels on its longest side and one larger image, asserting order, skipped entries, returned bytes and returned mime types",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -137,7 +137,7 @@
       "cancellation": "not cancellable",
       "windows_path": "String-valued enums with the identical raw values, so a thread file is interchangeable.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -159,7 +159,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the byte-count guard and the Character-count suffix exactly, including the unit mismatch. Windows string indices are UTF-16 code units: suffix must be taken over grapheme clusters, not code units, or a surrogate pair is split.",
       "verification_method": "unit with an ASCII case, a CJK case and an emoji case at the boundary",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -179,7 +179,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same first-write-wins rule on finishedAt.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -200,7 +200,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical raw values; the todo list is positional, so a step is identified by its index (see PR-CHAT-117).",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -223,7 +223,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep an optional limit on the notice model so the document shape matches, but nothing sets it: the marker is dead in the shipped flow (porting/dead_code.md entry 24, ED-061), and the only view that would read it is dead too (entry 21, PR-CHAT-011).",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -258,18 +258,20 @@
       "title": "A turn summary records status, duration and the file counts the folded turn shows",
       "source_evidence": [
         "DroppyCode/Core/Models/Timeline.swift:252-257 enum TurnStatus: String - running, completed, interrupted, failed",
-        "DroppyCode/Core/Models/Timeline.swift:259-267 struct TurnSummary - turnID, status, duration: TimeInterval, filesChanged, additions, deletions, changes: FileChangeSummary?"
+        "DroppyCode/Core/Models/Timeline.swift:259-267 struct TurnSummary - turnID, status, duration: TimeInterval, filesChanged, additions, deletions, changes: FileChangeSummary?",
+        "DroppyCode/Core/Models/Timeline.swift:4-26 struct TimelineItem (id, turnID: UUID?, date, content) and enum Content, synthesized, case turnEnd(TurnSummary)",
+        "DroppyCode/Core/Support/Coding.swift:19-25 JSONEncoder.storage - .iso8601 dates, .sortedKeys"
       ],
       "preconditions": "A turn ends.",
       "action": "A turnEnd item is appended.",
-      "expected_result": "The summary names the turn, its final status (one of the four), the elapsed seconds as a floating-point interval, the three integer counts, and optionally the full per-file change summary. changes is null on turns recorded by older builds, which is what drives the legacy back-fill (PR-CHAT-104).",
+      "expected_result": "The summary names the turn, its final status (one of the four), the elapsed seconds as a floating-point interval, the three integer counts, and optionally the full per-file change summary. changes is nil on turns recorded by older builds and on install's synthetic end marker (PR-RUNTIME-161); nil is written by omitting the key (synthesized encodeIfPresent), and an absent key or a stored null both read back as nil (decodeIfPresent), which is what drives the legacy back-fill (PR-CHAT-104). When changes is present it is the FileChangeSummary with the keys of PR-RUNTIME-264.",
       "side_effects": [],
       "persistence": "Stored in the turnEnd item's content.",
       "failure_cases": [],
       "cancellation": "not cancellable",
       "windows_path": "duration is seconds as a double, not milliseconds.",
-      "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "verification_method": "contract fixture - (1) round-trip a TimelineItem whose content is .turnEnd(TurnSummary(..., changes: a two-file summary, one of them binary)) through JSONEncoder.storage: assert the exact bytes (content.turnEnd._0 holding additions, changes, deletions, duration, filesChanged, status, turnID in sorted order; changes holding additions, deletions, files; each file holding additions, deletions, isBinary, path) and decode it back equal; (2) the same row with changes nil: assert the changes key is absent and that it decodes back to nil; (3) the same bytes with \"changes\":null decode to changes nil",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -292,7 +294,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Implement the same tolerant per-key read. A strict schema validator here would silently lose a user's turn history.",
       "verification_method": "restart test: write with the new shape, read a fixture missing touchedPaths, tokenSpends and hydraMerged",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -312,7 +314,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Integer division must not be used; the ratio is computed in floating point.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -332,7 +334,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same rule, same short-circuit (the source uses the same idiom in PromptEdit.isEmpty at ThreadRuntime.swift:154-156).",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -352,7 +354,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Group by bundleID with null treated as ungrouped.",
       "verification_method": "unit",
-      "status": "DISCOVERED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -376,7 +378,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same shape and same required/optional split.",
       "verification_method": "restart test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -396,7 +398,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same five raw outcome strings, spelled exactly merged, failed, stray, held and settled.",
       "verification_method": "contract fixture with one record per outcome",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -419,7 +421,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Implement the same per-element tolerant decode. Note the data-loss consequence on the next save; it is upstream behavior and is reproduced.",
       "verification_method": "restart test with a corrupted element in a fixture thread",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1922,7 +1924,7 @@
       "cancellation": "Dismissing the popover clears the anchor.",
       "windows_path": "Windows has no control-click convention; the trigger is the right mouse button and the context-menu key. The overlay must still be transparent to every other event.",
       "verification_method": "interaction test that a left click on a link inside a message still opens the link",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2285,7 +2287,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Absolute-path detection must accept a drive letter and a UNC path, not only a leading slash. The tilde expansion becomes the user profile directory. Keep the extension pre-check: the source records that the answer ends in a file-existence check, per row, per frame the row is rebuilt.",
       "verification_method": "unit over the candidate splitter plus an interaction test on a fixture screenshot",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2635,7 +2637,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the twenty-two words in order, the seven-second step, and the FNV-1a hash over the uppercase-hyphenated UUID string with 64-bit wrapping arithmetic. A different hash or a different UUID spelling changes every thread's word sequence.",
       "verification_method": "unit with a fixed thread id asserting the first several words",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3825,7 +3827,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce. Flagged here because it silently edits stored user-visible content; it is an ordinary parity quirk rather than a destructive or security-sensitive behavior, so it needs no escalation.",
       "verification_method": "restart test with an em dash inside a fenced code block in a reply",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4107,7 +4109,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Platform boundary: bundle identifiers have no Windows counterpart, so each entry needs a Windows detection key, which is not yet decided (see open_question). OD-0012 G4 settles the substitutions: \"Terminal\" is Windows Terminal, and Xcode and iTerm are left out because they do not exist on Windows. G4 names only Finder, Terminal, Xcode and iTerm, so \"Visual Studio Code\", \"Cursor\", \"Zed\" and \"Ghostty\" stay, with their display names verbatim.",
       "verification_method": "contract fixture over the five display names and their order, and over each entry's Windows detection key once it is decided",
-      "status": "DISCOVERED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4140,7 +4142,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The once-per-launch resolution is deliberate and must survive: the menu is rebuilt on every chrome render, so a per-render installed-application query is exactly the cost the source is avoiding. The stale-after-install and stale-after-uninstall consequences above are upstream behaviour, not defects to repair. The icon cache keyed by the Windows detection key, resized once, carries over unchanged.",
       "verification_method": "unit test that the resolution runs once and the icon cache is consulted on the second build; interaction test that an uninstalled editor's item opens nothing",
-      "status": "DISCOVERED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4196,7 +4198,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The union, the single watchdog, the 2-second poll and the change-only publication are all directly reproducible. This is the receiving half of PR-CHAT-136 and PR-CHAT-163 and of the settings-pane reporter (PR-SETTINGS-018, PR-SETTINGS-019); without it a window closed mid-flick pins the whole app to 'scrolling' and every shimmer, sweep and breathing ring stops for good.",
       "verification_method": "unit test: two timelines reporting, one withdrawing, one released without withdrawing, asserting the flag over the watchdog's passes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4218,7 +4220,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Weak references are the load-bearing detail: a strong map here is both a leak and an app-wide animation freeze. If the Windows object model offers no weak reference for this type, an explicit unregister on teardown plus the watchdog's liveness check must produce the same result.",
       "verification_method": "unit test that releasing a reporter without withdrawing clears the flag within one watchdog pass, and that a stop empties both maps",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4346,7 +4348,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Windows needs a decoder that reads the pixel dimensions and the orientation flag, an orientation-aware resize to at most 2000 pixels on the longest side that keeps the aspect ratio, and a JPEG encoder at quality 0.8 (for example Windows Imaging Component). The comparison is strictly greater than 2000.",
       "verification_method": "unit over fixture images: 2000 by 1000 (original bytes and mime), 2001 by 1000 and 4000 by 3000 (JPEG, longest side at most 2000, mime image/jpeg), a photo with a rotating orientation flag (upright JPEG) and a corrupt file (original bytes)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4418,7 +4420,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One text-style table for the whole app; the conversation carries no second scale and no zoom factor. Per ED-059 each text style takes the size of upstream's B1 table, in Inter, and in Cascadia Mono where the design is .monospaced (OD-0009): largeTitle 26 (B1:DroppyCode/UI/Common/ChatZoom.swift:47), title 22 (B1:DroppyCode/UI/Common/ChatZoom.swift:48), title2 17 (B1:DroppyCode/UI/Common/ChatZoom.swift:49), title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50), headline and body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), footnote, caption and caption2 10 (B1:DroppyCode/UI/Common/ChatZoom.swift:54). The sizes are fixed per style and scale only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); no B2 file restates them, so visual size parity stays UNVERIFIED under OD-0001.",
       "verification_method": "unit over the font helper for every text style with and without an explicit weight, plus a capture comparison showing a chat row and a chrome label at the same text style render at the same size",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5774,7 +5776,8 @@
         "DroppyCode/App/Views/Chat/ChatView.swift:143-145",
         "DroppyCode/App/Views/Chat/ThreadTimeline.swift:484"
       ],
-      "notes": "Two gradient fills and nothing else. The earlier glass-under-a-mask implementation cost a backdrop sample and an offscreen mask pass on every scrolled frame."
+      "notes": "Two gradient fills and nothing else. The earlier glass-under-a-mask implementation cost a backdrop sample and an offscreen mask pass on every scrolled frame.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-059",
@@ -6311,7 +6314,8 @@
         "DroppyCode/UI/Common/ChatFont.swift:1-11",
         "DroppyCode/UI/Common/AppZoom.swift:18-26"
       ],
-      "notes": "Replaces the zoom-aware Font.chat of the deleted B1 UI/Common/ChatZoom.swift (PR-CHAT-138, retired). Every chat view that called .chat(style, zoom: zoom) at B1 calls .chat(style) at B2."
+      "notes": "Replaces the zoom-aware Font.chat of the deleted B1 UI/Common/ChatZoom.swift (PR-CHAT-138, retired). Every chat view that called .chat(style, zoom: zoom) at B1 calls .chat(style) at B2.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-083",

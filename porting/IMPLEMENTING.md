@@ -17,7 +17,7 @@ silently; where a rule restates or refines one, it names it.
   tests: 204 tests (190 Core, 14 UI including headless Avalonia), 0 warnings under the proposed settings, green
   in 5 consecutive runs.
 - Appendix A scores every draft per construct; Appendix B lists the Swift behaviours no one could settle (the
-  oracle list, O-01 to O-24); Appendix C is the evidence.
+  oracle list, O-01 to O-64); Appendix C is the evidence.
 
 Labels, as the port uses them: **SOURCE FACT** (the pinned tree, `path:line`), **SEMANTICS** (documented or
 well-established Swift, Foundation or .NET behaviour), **ENGINEERING DECISION**, **UNVERIFIED** (believed, not
@@ -117,8 +117,8 @@ Greppable, and nothing else is used for these purposes:
 - WORKER_BRIEF and HANDOFF name the B1 reference folder: implement from B2 only.
 - HANDOFF section 9 "persistence must match upstream byte for byte": kept, and enforced by the Swift byte writer
   (ED-072), which closes the emoji, U+2028, U+FEFF and number-text differences the current `Coding.Encode` has.
-- ED-009, ED-022, ED-024, ED-034, ED-042 and ED-044 name JavaScript or Node APIs (they predate ADR-0002). Their
-  intent stands; the C# forms are R-STR-4 and R-STR-6 (ED-009), R-FMT-2 (ED-034) and R-PROC-3 (the other four).
+- ED-009, ED-022, ED-024, ED-027, ED-034, ED-042 and ED-044 name JavaScript or Node APIs (they predate ADR-0002). Their
+  intent stands; the C# forms are R-STR-4 and R-STR-6 (ED-009), R-FMT-2 (ED-034), ED-126 (ED-027) and R-PROC-3 (the other four).
   One correction: ED-009 says Swift `lowercased()` is "exactly `String.prototype.toLowerCase()`". It is not:
   JavaScript applies the Final_Sigma context rule and Swift maps each scalar alone (R-STR-4, O-07).
 - ED-054(3) points at `LEGACY_APP_NAMES` in the Electron Marrow tree. That mechanism is not part of this port;
@@ -185,7 +185,8 @@ tool (ED-081 proposes `porting/tools/cite_check.mjs`, from proto-C, which found 
   name, cited: `MCPField.Kind` and the property `FieldKind` (`// Swift: kind`).
 - **R-NAME-4.** Extensions: of an app type in another file, a `partial` part; of an enum, `static class
   <Enum>Extensions`; of a library type (`String`, `KeyedDecodingContainer`, `Color`) and free functions or globals,
-  a `static class` named after the Swift file.
+  a `static class` named after the Swift file. Across assemblies (a Services, UI or App file extending a type of a
+  lower assembly), one `static class` named after the Swift file with C# 14 extension blocks, per ED-164.
 - **R-NAME-5.** Argument labels become parameter names; a call site names an argument where the Swift label
   carries meaning. A failable `init?` is `static X? Create(...)` (or a `TryX` method), never a throwing
   constructor; a throwing `init` is a constructor that throws.
@@ -355,8 +356,9 @@ code after it runs and checks the task itself. `try await Task.sleep(for: d)` (5
 it throws `CancellationError`, also when the task was cancelled before it started. A zero or negative duration
 suspends once and resumes after work already queued (O-21); there is no 49.7-day cap; the clock is `SwiftClock`.
 `.seconds(x)` with a Double is `SwiftTask.Seconds(x)` (negative kept, huge saturates, NaN or infinity trap: O-22);
-`.milliseconds(n)` is `TimeSpan.FromMilliseconds(n)`. A sleep that emulates a frame tick (17 ms, 30 ms) uses the
-frame clock (R-VIEW-10), because Windows timers quantize to about 15.6 ms; never call `timeBeginPeriod`.
+`.milliseconds(n)` is `TimeSpan.FromMilliseconds(n)`. A sleep that emulates a frame tick (ThreadTimeline.swift:1168, :1211, :1223,
+HydraFusedPairIcon.swift:40; not the Services flush delay at OpenAICompatibleSession.swift:224) is
+`FrameClock.TrySleep` (R-VIEW-10, ED-117 (5)), because Windows timers quantize to about 15.6 ms; never call `timeBeginPeriod`.
 *Pitfalls:* `Task.Delay(t, ct)` throws on cancel where 181 sites continue, throws for a negative span
 (`AutoContinue.swift:105` passes one), waits forever at exactly -1 ms, and rejects more than 49.7 days.
 *Evidence:* `SwiftTaskTests.TrySleep_returns_false_on_cancel_and_the_code_after_it_runs`,
@@ -523,9 +525,16 @@ watchdog starves exactly when it matters. `Timer` (0 sites) and `RunLoop` (only 
 ED-005): nothing to port; product code never creates `System.Threading.Timer`, `System.Timers.Timer` or
 `DispatcherTimer` (ED-076 source scan). `CADisplayLink` and `TimelineView(.animation)` are frame callbacks
 (R-VIEW-10). `DispatchSource.makeFileSystemObjectSource` (`CommandCodeSession.swift:654`) and `FSEventStream`
-(`WorkingTreeWatch.swift:147`) become `FileSystemWatcher` with events marshalled by `MainActor.Post`; the source's
-own rescans absorb duplicate events; the watcher's `Error` event (buffer overflow) means "rescan everything"; the
-latency coalescing is the port's own, a `TaskHandle` re-armed by each event (record it as a platform adaptation).
+(`WorkingTreeWatch.swift:147`) become `FileSystemWatcher` (FileWatcher, F.FSWatcher) with events delivered on the queue
+the source names: the working-tree watch's `SerialQueue` (WorkingTreeWatch.swift:121, :147) and main through
+`MainActor.Post` for the approval directory (CommandCodeSession.swift:654), ED-116; the source's
+own rescans absorb duplicate events; the watcher's `Error` event (buffer overflow) means "rescan everything". Neither source has a
+latency. The one FSEvents stream passes latency 0 with kFSEventStreamCreateFlagNoDefer (WorkingTreeWatch.swift:142,
+:145), and a dispatch source has none (CommandCodeSession.swift:654). The only coalescing is what those APIs do
+without a clock: events that arrive before the handler runs are handed over together. For the tree watch that is
+one batch of paths in order, as the FSEvents callback receives count paths (:172-176). For the directory watch it is
+one handler run, as a vnode source merges pending events. Nothing waits on SwiftClock (ED-115; buffers and loss
+ED-114; PA-0017).
 
 **R-NOTE-1. `NotificationCenter` (33), KVO (0), Combine (0).** The one app-defined notification
 (`ThemeManager.didChange`, `AppTheme.swift:221-226`) is a `public static event Action? DidChange` raised
@@ -650,7 +659,10 @@ because Avalonia 12.1.2 headless cannot open a `Popup` in a theme-less window. W
 
 **R-VIEW-10. Frame-driven work (ED-083).** `TimelineView(.animation)`, `CADisplayLink` and every sleep that stands
 for a frame tick (17 ms, 30 ms) run from Avalonia's frame clock (`TopLevel.RequestAnimationFrame`), behind a seam a
-test drives by hand (section 4.3). Never a `DispatcherTimer`, never `timeBeginPeriod`: Windows timers are
+test drives by hand (section 4.3). Frames are the only wake-ups; durations and dates are read on SwiftClock and
+SwiftDate at the frame; a span is complete at a frame 1 ms early at most; a TimelineView updates relative to its last
+draw and passes SwiftDate.Now; a display link ticks first at the next frame; a schedule change never draws by itself
+(ED-117, O-34). Never a `DispatcherTimer`, never `timeBeginPeriod`: Windows timers are
 quantized to the 15.6 ms system tick, so a 17 ms timer does not tick every 17 ms.
 
 **R-VIEW-11. Numbers, colours, type and symbols.** Sizes, paddings, radii, offsets and font sizes are the
@@ -742,7 +754,8 @@ leading BOM is O-15.
 `ValueCollectionTests.A_repeated_key_keeps_the_last_value`.
 
 **R-CODE-9. Sorted keys are ordinal until O-01 settles them** (`SwiftJson.SortedKeyOrder`). Ordinal equals
-Foundation's order for every fixed `CodingKey`; it can differ only for dictionaries with user keys (environment
+Foundation's order for fixed `CodingKey`s made of lowercase letters; camelCase siblings where an uppercase letter
+meets a lowercase letter or `_` at the same position may differ under the parked comparer, and stay under O-01; it can differ only for dictionaries with user keys (environment
 variables, headers), where Foundation is believed to compare digit runs numerically and letters without case
 (`FoundationKeyComparer`, parked). The oracle's answer is a one-line change.
 *Evidence:* `Sorted_keys_stay_ordinal_until_the_oracle_and_Foundation_order_differs_only_on_user_keys`.
@@ -791,7 +804,9 @@ interface type; `any Encodable & Sendable` (`Storage.swift:343`) is `object` wri
 constraints map directly (`where T : IEquatable<T>`); `some View` is `Control`. Key-path closures (`\.value`) are
 lambdas.
 
-**R-VAL-1. A Swift struct is an immutable `sealed record` (ED-077).** `var copy = x; copy.f = v` is
+**R-VAL-1. A Swift struct is an immutable `sealed record` (ED-077).** Exception: ModelPin (AppSettings.swift:96-101)
+is a `readonly record struct`, because `RowDrag<ModelPin>` needs a value type for its `ID?`; never observe its default
+value (R-COLL-3) (ED-149). Any other exception needs its own ED. `var copy = x; copy.f = v` is
 `var copy = x with { F = v }`; an `(inout T) -> Void` closure is a `Func<T, T>` returning the changed copy; a
 `mutating` method returns the new value. A mutable class never stands in for a Swift struct: `var thread =
 threads[i]` must copy, or `updateThread` compares a thread with itself and skips the save.
@@ -960,7 +975,8 @@ culture in `TimeZoneInfo.FindSystemTimeZoneById("Asia/Shanghai")` (Windows accep
 **R-FMT-2. The user's locale, time zones and calendar (restating ED-034).** `Date.formatted(...)`,
 `.relative(presentation: .named)`, `.spellOut`, `.currency(code:)`, `Int.formatted()` and `ByteCountFormatter`
 follow the user's locale through ICU skeletons; they are ported only by the ICU formatter unit (section 4.3), whose
-outputs are O-23 (U+202F before AM/PM, `ByteCountFormatter` wording). `TimeZone(identifier: id)` is
+outputs are O-23 (U+202F before AM/PM, `ByteCountFormatter` wording). Locale.current is SwiftFormatters.CurrentLocale,
+whose default is the bundle-matched en_<region> id of ED-132 (O-37). `TimeZone(identifier: id)` is
 `TimeZoneInfo.TryFindSystemTimeZoneById(id, out var zone)` (IANA ids work on Windows through ICU), and an unknown id
 falls through to the local zone exactly as ED-034 decides. `Calendar.current` is an open decision (section 7,
 open questions): a site that uses it stops and reports until it is decided.
@@ -1022,7 +1038,8 @@ brackets; `url.path` is decoded: all of that is the URL unit's, never `new Uri(.
 
 **R-FS-1. Files.** Read bytes, then decode as R-STR-8. Every write, replace, rename and delete goes through the
 PA-0015 file unit: `.atomic` writes are a temporary file plus a replace, retried with backoff on a transient sharing
-violation, read-only cleared before delete, and the bytes verified. `fileExists(atPath:)` is true for a directory
+violation (waits 100, 200, ..., 700 ms on SwiftClock, 8 attempts, 2.8 s in total, ED-122; transient errors as
+ED-125 classifies them), read-only cleared before delete, and the bytes verified. `fileExists(atPath:)` is true for a directory
 too (`File.Exists(p) || Directory.Exists(p)`); `removeItem` on a directory is recursive; `contentsOfDirectory` order
 is unspecified (R-COLL-2); `isExecutableFile` is PATHEXT (ED-031). Tests use real temporary folders under
 `MARROW_PORT_DATA_DIR`, never a file-system abstraction.
@@ -1031,10 +1048,12 @@ is unspecified (R-COLL-2); `isExecutableFile` is PATHEXT (ED-031). Tests use rea
 terminal) in one attribute list, in the process unit (section 4.3). `Process.Start` and `UseShellExecute` never
 appear. The command line is built from the Swift argv with the MSVCRT quoting rules (what `CommandLineToArgvW`
 parses back); nothing passes through `cmd /c` unless a recorded decision says so. `process.environment = env`
-replaces the whole environment: the block is built exactly as the Swift builds it (PA-0009), keys compared
-`OrdinalIgnoreCase` keeping the first spelling, and sorted as Windows requires. Executables resolve by PA-0010,
+replaces the whole environment: the block is built exactly as the Swift builds it (PA-0009), environment
+dictionaries use `OrdinalIgnoreCase` (ED-128), so a name set again in another case keeps the first spelling and takes
+the last value, and the block is sorted as Windows requires. Executables resolve by PA-0010,
 PA-0016 and ED-020. No input means stdin at the null device. `Shell.run`'s order is the contract: deadline, the
-termination ladders of ED-027 and ED-047 (through `GlobalQueue.AsyncAfter`), exit status (ED-027).
+termination ladder of ED-047 as ED-126 applies it (through `GlobalQueue.AsyncAfter`), exit status (not decided yet:
+an owner question of 2026-09-23).
 
 **R-PROC-2. Pipes.** Each output stream is read as bytes by its own reader on the pool; lines are split on the byte
 the Swift splits on (`0x0A`), never with `StreamReader.ReadLine`, which also ends a line at a lone `\r`. The bounded
@@ -1237,7 +1256,7 @@ Each is a unit of its own, taken before the first Swift unit that needs it, with
 | Secret store | `Services/Port` | ADR-0002 deviation 8; R-SEC-1 | trimming, empty means delete, the Boolean result |
 | HTTP | `Services/Port` | R-NET-1 (inactivity timeout, decompression, redirects, status handling) | a loopback server |
 | Frame clock | `UI/Port` | ED-083; R-VIEW-10 | a manual frame source |
-| File-system watcher | `Services/Port` | R-GCD-3 (events posted to main, overflow means rescan, coalescing) | a real temporary folder |
+| File-system watcher | `Services/Port` | R-GCD-3 (events delivered where the source delivers them, ED-116; overflow or any Error means rescan, ED-114; events waiting for the handler are batched, no latency, ED-115) | a real temporary folder |
 | Source scan | `tests/Marrow.Testing` plus one test per test project | ED-076; the list in section 5.2 | planted violations |
 | Citation check | `porting/tools/cite_check.mjs` | ED-081 (from proto-C) | the four wrong citations it found |
 
@@ -1256,6 +1275,22 @@ Each is a unit of its own, taken before the first Swift unit that needs it, with
 | `Support/FoundationText.cs` | internal, in `Support/` | `Port/FoundationText.cs`, public | R-FILE-2, ED-085 |
 | `Support/Text.cs` | its own grapheme and NFC helpers | call `SwiftString` where they duplicate it | R-STR-1, R-STR-2 |
 | existing tests | `[Fact] // PR-...`; 8 analyzer errors | traits; the 8 fixes of 4.2 | R-TEST-1, ED-076 |
+| `Models/MCPCatalog.cs:87` | `Enum.GetValues` | `SwiftEnum.AllCases` | R-ENUM-1 |
+| `Support/StdioFramer.cs:125` (the `MergeRequestLink.cs:27` site is gone at afeef2d) | `long.TryParse` | `SwiftNumber.ParseInt` | R-NUM-1 |
+| `Models/MergeRequestLink.cs:55` (was :39), `Models/Requests.cs:35`, `:46` | discard arms | removed | R-ENUM-1, ED-075 |
+| `Support/StdioFramer.cs:118` | `ToLowerInvariant` | `SwiftString.Lowercased` plus `SwiftString.Equal` | R-STR-4, R-STR-2 |
+| `Services/MCP/MCPResolver.cs:21` | discard arm | `UnreachableException` arm plus a UnionCoverage test in Marrow.Services.Tests | R-ENUM-3 |
+| `Models/MCP.cs:234-237` | converter | direct member writes | R-CODE-3 |
+| every R-STR-9 site in src and tests, `Port/CocoaError.cs` included | four-digit escapes, raw non-ASCII | eight-digit escapes, each with a comment naming the character | R-STR-9 |
+| `Support/StdioProcess.cs:90` | bare `catch` | `catch (Exception error) when (SwiftTry.IsThrownError(error))`, same cleanup, then `throw;` (`StdioProcess.swift:78-84`) | R-ERR-1, ED-157 |
+| `Support/StdioProcess.cs:19`, `:152`, `:198` | `TaskCompletionSource<int>` outside `Port/` | `List<CheckedContinuation<int>>`, resumed after the lock is released (`StdioProcess.swift:27`, `:131-139`, `:167-171`) | R-ASYNC-2, ED-157 |
+| `src/Marrow.App/Window/ThreadWindow.cs:132`, `:188` | `_ => null,` over Avalonia `PhysicalKey` | unchanged: an entry in `porting/source_scan_allow.json` (`ThreadWindow.swift:13-59`) | R-ENUM-1, ED-112, ED-157 |
+| `tests/Marrow.UI.Tests/Port/SwiftColorTests.cs:162`, `:165`, `SwiftSoundTests.cs:91`, `tests/Marrow.Services.Tests/Port/FileWatcherTests.cs:217` | four-digit escapes, raw non-ASCII | eight-digit escapes with a comment naming each character, values unchanged | R-STR-9, ED-157 |
+| `Support/Coding.cs:89` (was :92) `StorageIntegerConverter.Write` | `WriteNumberValue(long)` | unchanged: an entry in `porting/source_scan_allow.json` | R-CODE-5, ED-108, ED-157 |
+
+The rows from `Models/MCPCatalog.cs:87` down are the source-scan packet, the unit Core.Repair.ScanClean. It lands
+together with F.SourceScan as one merge and turns F.SourceScan's four real-tree tests green (ED-108). It covers all four layers and every finding the
+real-tree tests print after its last merge of impl/b2; the allowlist holds exactly the two entries named above (ED-157).
 
 ---
 
@@ -1280,7 +1315,7 @@ none): a Req test is `public [async] void|Task|Task<T> Name(`, an instance metho
 `DisplayName` (it renames the TRX entry); no nested types in a test class. Checked by
 `Traceability.AssertShapesReqVerifyCanRead`.
 
-**R-TEST-3. Source layout.** `tests/Marrow.<Layer>.Tests/<Folder>/<SwiftFileBase>Tests.cs` mirrors the source
+**R-TEST-3. Source layout.** `tests/Marrow.<Layer>.Tests/<Folder>/<SwiftFileBase>Tests.cs` (a `+` in the Swift base name is dropped, since a class name cannot hold it: `AppModel+Hydra.swift` is tested by `AppModelHydraTests.cs`, class `AppModelHydraTests`; the source file keeps the `+` per R-FILE-1, ED-164) mirrors the source
 file, one `public sealed class <SwiftFileBase>Tests` per file (a suffix such as `MCPCatalogSecondTests` when one
 Swift file needs several); helper types live in `Fixtures/`. Every attribute fits on one line and a `Req` trait
 starts its own line. No `class X` or `record X` text may appear anywhere else in a test file on a line that is not
@@ -1685,7 +1720,7 @@ to macOS 26 is itself to be confirmed).
 | O-06 | ASCII `hasPrefix` across a CRLF boundary | Windows-origin text | Character boundary kept (`SwiftString.HasPrefix`) | `A_prefix_or_suffix_that_splits_CRLF_...` | yes |
 | O-07 | per-scalar lowercasing; `caseInsensitiveCompare` folding | search, sorting, matching | per-scalar ICU root; default folding (`SwiftString`) | `Lowercase_maps_each_scalar_alone_...` | lowercasing yes; folding no |
 | O-08 | `localizedCaseInsensitiveContains("")` | pickers (all 13 sites also guard) | false (`SwiftString.LocalizedCaseInsensitiveContains`) | `LocalizedCaseInsensitiveContains_rejects_an_empty_needle_...` | no |
-| O-09 | duplicate keys, big integers and number text in JSONSerialization and JSONDecoder | MCP and CLI JSON | last key wins; lexical int or Double (`SwiftJSONNumber.IsInt`, `ValueMap`) | `A_duplicated_key_keeps_its_last_value_once`, `JSONSerialization_numbers_classify_by_lexical_form` | decoder yes; serialization no |
+| O-09 | duplicate keys, big integers and number text in JSONSerialization and JSONDecoder | MCP and CLI JSON | last key wins; lexical int or Double (`SwiftJSONNumber.IsInt`, `ValueMap`); an overflowing literal (`1e400`, a 400-digit integer) parses to +/-infinity in the port (`JsonElement.GetDouble`), which Darwin may reject (ED-146) | `A_duplicated_key_keeps_its_last_value_once`, `JSONSerialization_numbers_classify_by_lexical_form` | decoder yes; serialization no |
 | O-10 | `string(forKey:)` of a stored Double | settings read as text | traps (`Plist.String`) | `String_for_key_renders_integers_and_refuses_to_guess_a_Double` | no |
 | O-11 | buffered `AsyncStream` elements after the consumer is cancelled | stream shutdown | drained first (`AsyncStream`) | `Buffered_elements_drain_after_cancellation` | yes |
 | O-12 | control-character escapes in JSON | any control character in stored text | short forms, lowercase hex (`SwiftJson` writer) | `Controls_use_short_forms_and_lowercase_hex` | encoder yes; serialization no |
@@ -1699,9 +1734,48 @@ to macOS 26 is itself to be confirmed).
 | O-20 | the executor an `async let` child starts on | the 9 `async let` sites | each callee keeps its own isolation (`AsyncLetScope`) | `Async_let_children_run_concurrently_...` | yes |
 | O-21 | `Task.sleep` of zero or a negative duration | `AutoContinue.swift:105` and computed delays | suspends once (`SwiftTask.Sleep`, `TrySleep`) | `A_negative_or_zero_sleep_suspends_once_...` | yes |
 | O-22 | `Duration.seconds` of NaN, infinity or a huge Double | computed delays | traps; huge saturates (`SwiftTask.Seconds`) | `Seconds_traps_on_a_non_finite_interval_...` | yes |
-| O-23 | ICU formatter outputs (U+202F before AM/PM, named relative dates, spell-out, currency, `ByteCountFormatter` wording) | dates, sizes and credits in the UI | none yet (the formatter unit, 4.3) | none yet | FormatStyle yes; ByteCountFormatter no |
+| O-23 | ICU formatter outputs (U+202F before AM/PM, named relative dates, spell-out, currency, `ByteCountFormatter` wording) | dates, sizes and credits in the UI | U+202F before a in the en family (ED-135); `ByteCountFormatter` words English in every locale, number per locale (ED-133); the rest is CLDR/ICU output as `SwiftFormattersTests` states | `SwiftFormattersTests` | FormatStyle yes; ByteCountFormatter no |
 | O-24 | JSON nesting limit (512) in JSONDecoder and JSONSerialization | deep MCP schemas and values | 512 (`SwiftJson.DocumentOptions`) | `Nesting_past_64_levels_needs_the_document_options` | decoder yes; serialization no |
 | O-25 | Foundation’s English text for `CocoaError` 256 and 259 with no file name | `RevertPreview.swift:33`, `:36`, `WorkingTreeWatch.swift:333` | "The file couldn’t be opened." and "The file couldn’t be opened because it isn’t in the correct format." (ED-100) | `CocoaErrorTests` | no (a macOS run) |
+| O-26 | `URLSession.AsyncBytes.lines` (AsyncLineSequence): which bytes end a line, and whether an empty line is yielded | `OpenAICompatibleSession.swift:636-637` (the error body is built as line + "\n", so empty lines change the text), `:742-744` (the SSE drain) | LF, CR, CRLF (one line, also when split across chunks), NEL, LS and PS each end a line; no empty line is yielded (`Http.cs`, `AsyncBytes.Lines`) | `Empty_lines_between_events_are_not_yielded`, `A_carriage_return_line_feed_pair_and_a_lone_carriage_return_each_end_one_line`, `A_next_line_line_separator_or_paragraph_separator_also_ends_a_line` | no (a macOS run) |
+| O-27 | the request headers URLSession adds | `LinkTitles.swift:47`, `MarkdownView.swift:946-949`, `MCPProxy.swift:317-342` | Accept `*/*` when none is set; Accept-Language `en-US,en;q=0.9` (the app ships English only; the region subtag is part of the question); Accept-Encoding `gzip, deflate, br` with the body decoded; Content-Type `application/x-www-form-urlencoded` for a body sent without one (`Http.cs`, ED-118) | `A_request_without_Accept_goes_out_with_the_headers_URLSession_adds`, `A_body_sent_without_a_Content_Type_goes_out_as_a_form` | no (a macOS run) |
+| O-28 | cookie storage | every `URLSession.shared` site; `UpdateChecker.swift:101-110` (ephemeral) | one process-wide RFC 6265 store for `URLSession.Shared`, Set-Cookie stored and sent back to matching requests; each ephemeral session has its own memory store for its life; memory only until the owner answers the persistence question (`Http.cs`, ED-118) | `A_cookie_set_by_a_server_goes_back_to_it_on_the_next_request_of_the_shared_session`, `An_ephemeral_session_keeps_its_cookies_to_itself` | no (a macOS run) |
+| O-29 | which request headers survive a redirect | `PlanLimits.swift:243-246`, `CommandCodeAPI.swift:169-171`, `MCPProxy.swift:326-339` | same origin: every field kept, Authorization included (believed to be CFNetwork's behaviour); another origin (scheme, host and port per RFC 6454): Authorization dropped, the other fields kept. That half is a safety default, not a reading of CFNetwork: if the oracle shows Apple keeps Authorization across origins, the change goes to the owner, not straight into the constant (`Http.cs`) | `A_same_origin_redirect_keeps_Authorization_Accept_and_custom_headers`, the cross-origin test (a second loopback server on another port) | no (a macOS run) |
+| O-30 | a repeated response header | `MCPOAuth.swift:259-280` | one `allHeaderFields` entry holding the values joined with ", " in arrival order; `value(forHTTPHeaderField:)` returns the same string (`Http.cs`) | `Two_challenge_header_lines_become_one_field_with_both_values_joined_by_a_comma_and_space` | no (a macOS run) |
+| O-31 | which idle limit applies when a request keeps its default 60 s on a session that sets `timeoutIntervalForRequest` | `UpdateChecker.swift:105`, `:190`, `:223` | the configuration's value (15 s) (`Http.cs`) | `A_request_made_from_a_URL_alone_on_the_update_checker_session_idles_out_after_the_configuration_s_15_seconds` | no (a macOS run) |
+| O-32 | the error a pending `AsyncBytes` read throws when its task is cancelled; it decides between `coalescer.finish()` and `coalescer.fail(chunkError:)` on a stop | `OpenAICompatibleSession.swift:652-659`, `:784-788` | `URLError(.cancelled)`, as R-NET-1 and R-TASK-2 say for `data(for:)` (`Http.cs`) | `Cancelling_the_task_while_a_stream_read_is_pending_fails_that_read_with_URLError_cancelled` | no (a macOS run) |
+| O-33 | whether `URLCache.shared` answers a `URLSession.shared` GET | `PlanLimits.swift:247`, `LinkTitles.swift:47`, `MarkdownView.swift:949` | in process, a stored answer still fresh is returned without a request: GET, status 200-299, from the server, explicit freshness (max-age or Expires), not no-store; age measured on `SwiftClock`; no heuristic freshness and no size cut-off; memory only until the owner answers the persistence question (`Http.cs`, ED-118) | `A_cacheable_answer_to_a_GET_on_the_shared_session_is_served_again_from_the_cache` | no (a macOS run) |
+| O-34 | `TimelineView(.animation(minimumInterval:paused:))` and `CADisplayLink.preferredFrameRateRange` cadence against the display rate (including whether `CAFrameRateRange.minimum` binds); the date a TimelineView context carries at a frame and at a redraw caused by the parent; the first display-link tick; whether a paused change redraws | the six `TimelineView(.animation)` sites (`HydraProgressBar.swift:142`, `:507`, `TimelineRows.swift:499`, `EffortSlider.swift:1050`, `AboutUpdateViews.swift:364`, `:450`), `StreamVeil.swift:174-178`, the frame-tick sleeps (`ThreadTimeline.swift:1168`, `:1211`, `:1223`, `HydraFusedPairIcon.swift:40`) | measured from the last draw, complete 1 ms early at most; SwiftDate.Now at the frame; the last draw's date on Redraw; first tick at the next frame; Minimum and Maximum not read; no draw on a schedule change (`FrameClock`, ED-117) | the F.FrameClock cadence tests | no (SwiftUI, Core Animation) |
+| O-35 | `FileManager.replaceItemAt(_:withItemAt:)` when the original item does not exist: throw, or move the new item into place | `CommandCodeSession.swift:758` (every first reply) | throws file-not-found, nothing moved, no retry (`FileOps.ReplaceItemAt`, ED-123) | `FileOpsTests.Replacing_a_missing_original_...` | no (swift-corelibs-foundation; a macOS run) |
+| O-36 | whether an `.atomic` write over an existing read-only file succeeds and leaves the result read-only (swift-foundation `writeToFileAux` copies the destination's mode to the temporary file before the rename) | `NativeFileTools.swift:88`, `:118` (an agent's edit to a read-only project file) | the write succeeds and the result is read-only; a new file, or one that was not read-only, is not made read-only (`FileOps.WriteAtomic`, ED-124) | `An_atomic_write_over_a_read_only_file_...` and its retries-exhausted variant | no (the Windows branch differs; a macOS run) |
+| O-37 | `Locale.current` of an English-only app: the user's region with its language replaced by en through swift-foundation bundle matching, with the Windows regional format and short-time hour cycle standing for AppleLocale and AppleICUForce24HourTime/AppleICUForce12HourTime | every default-locale date, number and size in the UI | en_<region> from `CultureInfo.CurrentCulture`, plus the hours keyword (`SwiftFormatters.CurrentLocale`, ED-132, ED-134) | `SwiftFormattersTests` default-locale and hour-cycle cases | yes (swift-foundation; transfer to macOS 26 unconfirmed, ED-086) |
+| O-38 | `URL(string:)` beyond R-PATH-1: nil for a non-digit port or text before the first ":" that is not a valid scheme; the "/?#[]@" no-scheme heuristic; the scheme kept as written; only an invalid component re-encoded, whole, with its own allowed set (an existing escape becomes %25; the user-info, query and fragment sets); the empty scheme and empty port of `allowEmptyScheme: true` | typed and pasted addresses: `MCPOAuth.swift:201`, `MCPCustom.swift:85`, `MCPSettingsPage.swift:1063`, `MCPProbe.swift:363`, `Git.swift:146`, `MarkdownView.swift:743` | swift-foundation 6.2 reading (`SwiftURL.Create`, ED-136) | `SwiftURLTests` (Oracle O-38) | yes |
+| O-39 | "\" in `URL(string:)` on macOS (kept and encoded %5C, where the Windows build turns it into "/", `URLParser.swift:632-634`) and the POSIX shape of a file URL path (`URL.swift:1412-1415`) | `TimelineRows.swift:380`, `LinkParagraphView.swift:95`, `MCPHub.swift:423`, `AttachmentPreview.swift:67` | not converted; POSIX style (`SwiftURL`, ED-136) | `SwiftURLTests` (Oracle O-39) | no (a macOS run) |
+| O-40 | `url.host` and `host()` beyond R-PATH-1: `host()` stays percent-encoded; a non-ASCII host gives the IDNA text from `host` and the percent-encoded Unicode name from `host()` (UIDNAHookICU, here over Windows icu.dll); an empty host is nil unless a user, password or port is present (`URL_Swift.swift:452-457`) | `MCPProbe.swift:362-363`, `MCPCustom.swift:85`, `MCPSettingsPage.swift:1063`, `CopilotSession.swift:888`, `MarkdownView.swift:673`, `Hydra.swift:448` | swift-foundation 6.2 reading (`SwiftURL.Host`, `HostComponent`, ED-136) | `SwiftURLTests` (Oracle O-40) | yes, if the toolchain's FoundationInternationalization supplies the UIDNA hook (to confirm) |
+| O-41 | `url.path` beyond R-PATH-1 and survey 20: every trailing slash dropped after decoding ("%2F" at the end and "//" included); escapes that are not UTF-8 give ""; a file URL keeps %2F and %00 (`URL_Swift.swift:524-530`, `:574-578`, `:616`; `String+Path.swift:413-428`) | `MarkdownView.swift:677`, `LinkTitles.swift:16`, `MCPProbe.swift:355-357`, `AttachmentPreview.swift:67` | swift-foundation 6.2 reading (`SwiftURL.Path`, ED-136) | `SwiftURLTests` (Oracle O-41) | non-file yes; file URLs partly |
+| O-42 | does macOS Foundation's `URL.pathExtension` equal swift-foundation's `String.pathExtension` (hidden name, trailing dot, "." or ".." stem, an extension holding a space, "/" or a bidi control) | `Storage.swift:99`, `:184`, `Wallpaper.swift:127`, `DownloadsPopover.swift:70` | the swift-foundation rule (`SwiftPath.FileURLPathExtension`, ED-140) | `SwiftPathTests` (Oracle O-42) | yes (FoundationEssentials; transfer per ED-086) |
+| O-43 | `URL.deletingLastPathComponent()` at the root on a macOS 26 build: the root itself or "/../" (URL.compatibility1) | none reachable (`Git.swift:66-73`, `ThreadRuntime.swift:1966-1972` stop at the repository root; `NativeFileTools.swift:86` fails at the write either way) | the root itself (`SwiftPath.FileURLDeletingLastPathComponentPath`, ED-140) | `SwiftPathTests` (Oracle O-43) | no (the branch exists only in Foundation.framework) |
+| O-44 | `URL.pathComponents` of a non-file URL: whether each component is percent-decoded, split before or after decoding, empty segments, "." and "..", "\", a relative reference | `MergeRequestLink.swift:24` | swift-foundation 6.2 (`URL_Swift.swift:641-647`, `String+Path.swift:49-77`): split the encoded path on runs of "/", keep "." and "..", decode each component as UTF-8 (undecodable gives ""), drop a final "/"; "\" stays percent-encoded in one component (`SwiftURL.PathComponents`, ED-143, ED-144). Decode-then-split (older Foundation) is a reported alternative, not source-checked | `Oracle_path_shapes_that_pathComponents_decides_*`, the two "%2B95" rows, the F.URL PathComponents tests | yes for swift-foundation, except rows with "\" (the Windows toolchain converts backslashes, `URLParser.swift:632-634`); transfer to macOS 26 per ED-086 |
+| O-45 | the default time zone of `Date.ISO8601FormatStyle().year().month().day()` when it parses a bare date, and whether it rejects text after the day (PR-STORE-169 failure case 2, UNK-0003) | `CopilotSession.parseDate`, the Copilot quota reset date | midnight UTC; text after the day rejected (`FoundationISO8601.ParseDateOnly`) | `ISO8601Tests.A_bare_date_is_midnight_UTC_as_the_parked_rule_says`, `SwiftDateTests.A_bare_date_parses_to_midnight_UTC_as_the_parked_rule_says` | yes (swift-foundation) |
+| O-46 | whether `Date.ISO8601FormatStyle().format` truncates or rounds a sub-second part (PR-STORE-170 failure case, UNK-0003) | `ISO8601.string(from:)`, the hang file name, the prompt date line | floor (`FoundationISO8601.Format`) | `ISO8601Tests.A_sub_second_part_is_dropped_as_the_parked_rule_says`, `SwiftDateTests.ISO8601_writes_whole_seconds_by_floor_in_UTC` | yes (swift-foundation) |
+| O-47 | whether Darwin `JSONSerialization.data(withJSONObject:options:)` throws a Swift error for a non-finite number (NaN, infinity) or raises an NSException that `try?` cannot catch | `JSONValue.swift:62` (`data`, `compactString`, `prettyString`, and `displayText` of an array or object at `:128`); no Swift construction reaches it; the port's parse does (.NET `JsonElement.GetDouble` gives +/-infinity for `1e400` or a 400-digit integer), and whether Darwin's parse does is O-09 | the whole output is the four bytes `null` (the shared writer's `EncodingError`, R-CODE-5, caught by `try?`) (ED-146) | `A_value_the_writer_refuses_falls_back_to_the_four_bytes_null_for_the_whole_output` | no (swift-corelibs-foundation throws; a macOS run) |
+| O-48 | how many redirects URLSession follows before URLError(.httpTooManyRedirects) | `MCPHub.swift:455-465`, `LinkTitles.swift:47-49`, `PlanLimits.swift:243-249`, every `URLSession.shared` site (no redirect delegate in the tree) | 20 followed, the 21st redirect response fails before another request (swift-corelibs-foundation 6.2 `HTTPURLProtocol.swift:459-465`, "This value mirrors Darwin"; `Http.cs` `MaximumRedirects`, ED-152). Not adopted from corelibs: it also follows 305 and 306 and turns HEAD into GET on a 303; `Http.cs` does neither and no Swift site depends on it | `HttpTests.Twenty_redirects_are_followed_and_the_final_response_is_returned`, `HttpTests.The_21st_redirect_fails_with_httpTooManyRedirects_and_is_not_followed` | no (CFNetwork; a macOS run) |
+| O-49 | SwiftUI `Text.baselineOffset` on a `Text(Image)` run: sign (positive raises), magnitude in points, image bottom on the text baseline at 0, and the resulting line height | `MarkdownView.swift:386`, `:491-493` (-3.2 on a 16 pt template glyph) | the port puts the child's baseline h + offset below its top through `TextBlock.BaselineOffset`, set locally, 1e-6 when the sum is 0 (`StyledText`, ED-158) | the `StyledTextTests` image-run baseline tests (12.8 for -3.2; 16 for none; 1e-6 for -16) | no (SwiftUI; a macOS run) |
+| O-50 | whether a Text modifier applied to a concatenated Text overrides the same modifier already on a segment (SwiftUI resolves outside in: the inner one wins) | `LinkPopover.swift:80` with `Popovers.swift:307-308`; every `Text + Text` site with an outer modifier | inner wins: a modifier sets its trait only where the run's trait is still null (`StyledText`, ED-158) | `StyledTextTests.An_inner_trait_wins_over_the_same_trait_applied_outside` | no (SwiftUI; a macOS run) |
+| O-51 | `BlurReplaceTransition(.downUp)` values on macOS 26: opacity, blur radius and scale at the active state, and their order | `UsageViews.swift:273`, `:279`, `:352`, `:360`, `:364` | opacity 0, blur 7, scale 0.9 about the centre for insertion and removal; opacity, then blur, then scale; linear in progress; Avalonia `BlurEffect` radius 7 taken as equal (OpenSwiftUI `BlurTransition.swift`, audited 6.5.4; `SwiftTransition.BlurReplace`, ED-159) | the O-51 insertion and removal tests in `SwiftAnimationTransitionTests` | no (SwiftUI; a macOS run) |
+| O-52 | `AnyTransition.combined(with:)` nesting: whether the first transition's modifiers sit inside the second's | `ChatView.swift:1098-1099`, `:278`, `:603-604`, `TimelineMinimap.swift:237`, `SettingsView.swift:557`, `TimelineRows.swift:1068-1069` | first inside second (OpenSwiftUI `CombiningTransition.swift:69-74`, audited 6.5.4; the accumulator in `SwiftTransition.Apply`, ED-159) | the O-52 composition test in `SwiftAnimationTransitionTests` (corners (20,18)-(80,42)) | no (SwiftUI; a macOS run) |
+| O-53 | whether `CGImageSourceCreateThumbnailAtIndex` with the options at `ThumbnailCache.swift:54-59` returns an image for WebP, AVIF, HEIC/HEIF and subsampled YCbCr TIFF on macOS 26, and applies their orientation (HEIF irot/imir, EXIF) | `ThumbnailCache.swift:44-62`; callers `AttachmentPreview.swift:9-12`, `:376`, `:437`, `DownloadsPopover.swift:29-31`, `:79`, `TimelineRows.swift:1346` | yes to both on the Mac (believed: support predates the 26.0 target); the port decodes through WIC where the running user has the codec, else null, and reads only JPEG/TIFF orientation (NAMED DEVIATION, ED-160) | none (the codec is per user; a test would depend on the account) | no (a macOS run) |
+| O-54 | whether `CGImageSourceCreateThumbnailAtIndex` yields an image for an SVG file on macOS 26 | `ThumbnailCache.swift:44-62` via `AttachmentPreview.swift:9-12`, `:376`, `:437` | nil (ImageIO sources are raster); the port also gives null, WIC has no SVG decoder (ED-160) | `ThumbnailCacheTests.An_svg_file_yields_no_thumbnail_and_is_decoded_again_next_time` | no (a macOS run) |
+| O-55 | whether a macOS FSEvents stream (FileEvents) reports a write made through a descriptor still open before a later cookie file's event | `WorkingTreeWatch.swift:15-18`, `:241-273`, `:300-301` (a cached tree reused while a writer holds a file open) | no: a write is counted when its handle closes; NTFS notifies at handle cleanup (measured by gpt6-workingtree-test-run1..5.log once they exist); xnu main `vfs_vnops.c` `vn_close` emits FSE_CONTENT_MODIFIED under FWASWRITTEN; no flush or probe is added (ED-161) | `WorkingTreeWatchTests.Write_through_a_handle_still_open_is_counted_once_the_handle_closes` | no (kernel behaviour; a macOS run) |
+| O-56 | whether a macOS FSEvents stream created with kFSEventStreamCreateFlagFileEvents reports a directory whose entries were created or deleted (as well as the entries) | `WorkingTreeWatch.swift:142`, `:195-196` (cookie files inside the git directory, skipped by the gitPrefix match only) | no: only the entries' own paths; the port's FileWatcher drops a directory's Changed event (ED-166) | `FileWatcherTests` Decision ED-166 test; `WorkingTreeWatchTests.Cookie_event_allows_a_cached_tree_to_be_reused` | no (a macOS run) |
+| O-57 | whether macOS 26's URLComponents.queryItems setter keeps a name or value as written when every character is in the query-item set (the query set less `&` and `=`) and otherwise percent-encodes every byte outside it (space, `&`, `=`, `#`, `%`, non-ASCII as upper-case UTF-8 hex), keeping `+`, `/`, `?`, `:` and `@` | `MCPOAuth.swift:581-598`, `:772-778`; `LinkTitles.swift:63-67` | yes, per swift-foundation 6.2 URLComponents.swift:638-667 and URLParser.swift:1218-1266 (ED-169) | URLComponentsTests (Oracle trait) | no (a macOS run) |
+| O-58 | whether macOS 26's URLComponents.queryItems getter splits on `&` at the first `=`, reads an item without `=` as a nil value, gives [] for an empty query and nil for none, leaves `+` undecoded, and turns a non-UTF-8 escape into an empty name or a nil value | `MCPOAuth.swift:526-535`, `:582`; `LinkTitles.swift:25-26` | yes, per swift-foundation 6.2 URLComponents.swift:590-636 (ED-169) | URLComponentsTests (Oracle trait) | no (a macOS run) |
+| O-59 | whether macOS 26's URLComponents.host IDNA-decodes a host that was not percent-encoded, keeps ASCII case as written and keeps IP-literal brackets (`[::1]`), unlike URL.host | `MCPCustom.swift:174-180`; `MCPOAuth.swift:801-810` | yes, per swift-foundation 6.2 URLComponents.swift:184-193, IDNA through Windows icu.dll as SwiftURL does (ED-169) | URLComponentsTests (Oracle trait) | no (a macOS run) |
+| O-60 | whether macOS 26's URLComponents.url rebuilds the string as computedString does (the port rewritten from Int, so `0443` becomes `443`; user, password and `@` dropped when both are nil) and parses it through URL(stringOrEmpty:) on the Swift URL path rather than CFURLCreateWithString | `AppModel+HydraMerge.swift:384-388`; `MCPOAuth.swift:598`; `LinkTitles.swift:67` | yes, per swift-foundation 6.2 URLComponents.swift:434-490, :765-773 and URL.swift:611-614 (ED-169) | URLComponentsTests (Oracle trait) | no (a macOS run) |
+| O-61 | the order of macOS 26 NSFontManager.shared.availableFontFamilies (sorted by name, or another order) | `TerminalFont.swift:108`, `:115`, `:126` (first match wins in nerdSibling, firstInstalledNerdFont and resolve) | sorted ordinal case-insensitively (ED-175) | SwiftFont and TerminalFont tests with Oracle O-61 | no (a macOS run) |
+| O-62 | the curve of a lone SwiftUI CubicKeyframe with no velocities or neighbours (from initialValue to its target) | `Genie.swift:155-168` | Catmull-Rom with duplicated endpoints: start + (end - start) * (-t^3 + 1.5 t^2 + 0.5 t) (ED-178) | GenieTests with Oracle O-62 | no (a macOS run) |
+| O-63 | SF Symbol metrics against the Lucide stand-in: the square a symbol takes beside text of point size S, its vertical placement, the .imageScale factors, how a .fill variant fills and knocks out, and the geometry of composed renderings | every `Image(systemName:)` site (PA-0012) | ED-182's values (1.2 S square on the cap-height centre; 0.8/1.0/1.25; container filled, inner knocked out; 50 % inner glyph, (2,2)-(22,22) slash, r 4 badge at (18,6), Inter Semibold 11/24 text) | SwiftImageTests with Oracle O-63 | yes: measure the eight tour screenshots (OD-0004) |
+| O-64 | the weight macOS 26 gives SwiftUI's plain `Font.headline` (bold, as the macOS type ramp lists it, or semibold, as the upstream comment at B1 ChatZoom.swift:59-61 implies) | `TourView.swift:106`, `RequestCards.swift:13` | bold (ED-091, ED-186); `.chat(.headline)` is semibold by the source either way | SwiftFontTests and TourViewTests with Oracle O-64 | no (a macOS run) |
 
 ---
 

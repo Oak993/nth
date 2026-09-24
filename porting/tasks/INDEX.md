@@ -9,14 +9,14 @@ every line, not a sample.
 | Milestone | Packets | Requirements | HIGH risk | Quarantined reqs |
 | --- | --- | --- | --- | --- |
 | M0 Probes that must pass before production code (ADR-0002) | 10 | 0 | 2 | 0 |
-| M2 Core models and pure support | 79 | 546 | 9 | 0 |
+| M2 Core models and pure support | 78 | 546 | 9 | 0 |
 | M3 Services foundation: store and git | 25 | 186 | 12 | 0 |
 | M4 Providers and MCP | 147 | 1062 | 11 | 0 |
 | M5 UI toolkit: theme, chrome, glass, markdown, sound | 77 | 290 | 15 | 0 |
-| M6 App shell, windows, model and runtime | 92 | 704 | 45 | 0 |
+| M6 App shell, windows, model and runtime | 92 | 705 | 45 | 0 |
 | M7 Feature views | 242 | 1062 | 10 | 0 |
 | M8 Update and packaging | 8 | 56 | 4 | 0 |
-| **Total** | **680** | **3906** | **108** | **0** |
+| **Total** | **679** | **3907** | **108** | **0** |
 
 ## M0: Probes that must pass before production code (ADR-0002)
 
@@ -81,48 +81,47 @@ every line, not a sample.
 | [T-M2-042](T-M2-042.md) | Core/Models/Provider.swift (UI) | 0 | STANDARD | `src/Marrow.Core/Models/Provider.cs` |
 | [T-M2-043](T-M2-043.md) | Core/Models/ProviderSettings.swift | 1 | STANDARD | `src/Marrow.Core/Models/ProviderSettings.cs` |
 | [T-M2-044](T-M2-044.md) | Core/Models/Requests.swift | 5 | STANDARD | `src/Marrow.Core/Models/Requests.cs` |
-| [T-M2-045](T-M2-045.md) | Core/Models/Requests.swift (UI) | 0 | STANDARD | `src/Marrow.Core/Models/Requests.cs` |
-| [T-M2-046](T-M2-046.md) | Core/Models/Shortcuts.swift (1 of 7) | 10 | STANDARD | `src/Marrow.Core/Models/Shortcuts.cs` |
-| [T-M2-047](T-M2-047.md) | Core/Models/Shortcuts.swift (2 of 7) | 10 | STANDARD | `src/Marrow.Core/Models/Shortcuts.cs` |
-| [T-M2-048](T-M2-048.md) | Core/Models/Shortcuts.swift (3 of 7) | 10 | STANDARD | `src/Marrow.Core/Models/Shortcuts.cs` |
-| [T-M2-049](T-M2-049.md) | Core/Models/Shortcuts.swift (4 of 7) | 10 | STANDARD | `src/Marrow.Core/Models/Shortcuts.cs` |
-| [T-M2-050](T-M2-050.md) | Core/Models/Shortcuts.swift (5 of 7) | 10 | STANDARD | `src/Marrow.Core/Models/Shortcuts.cs` |
-| [T-M2-051](T-M2-051.md) | Core/Models/Shortcuts.swift (6 of 7) | 10 | STANDARD | `src/Marrow.Core/Models/Shortcuts.cs` |
-| [T-M2-052](T-M2-052.md) | Core/Models/Shortcuts.swift (7 of 7) | 3 | STANDARD | `src/Marrow.Core/Models/Shortcuts.cs` |
-| [T-M2-053](T-M2-053.md) | Core/Models/Shortcuts.swift (UI) | 0 | STANDARD | `src/Marrow.Core/Models/Shortcuts.cs` |
-| [T-M2-054](T-M2-054.md) | Core/Models/ThreadContinuation.swift | 3 | STANDARD | `src/Marrow.Core/Models/ThreadContinuation.cs` |
-| [T-M2-055](T-M2-055.md) | Core/Models/Timeline.swift (1 of 3) | 10 | STANDARD | `src/Marrow.Core/Models/Timeline.cs` |
-| [T-M2-056](T-M2-056.md) | Core/Models/Timeline.swift (2 of 3) | 10 | STANDARD | `src/Marrow.Core/Models/Timeline.cs` |
-| [T-M2-057](T-M2-057.md) | Core/Models/Timeline.swift (3 of 3) | 5 | STANDARD | `src/Marrow.Core/Models/Timeline.cs` |
-| [T-M2-058](T-M2-058.md) | Core/Models/TokenSpend.swift | 3 | STANDARD | `src/Marrow.Core/Models/TokenSpend.cs` |
-| [T-M2-059](T-M2-059.md) | Core/Support/Coding.swift | 3 | STANDARD | `src/Marrow.Core/Support/Coding.cs` |
-| [T-M2-060](T-M2-060.md) | Core/Support/HangWatchdog.swift | 8 | STANDARD | `src/Marrow.Core/Support/HangWatchdog.cs` |
-| [T-M2-061](T-M2-061.md) | Core/Support/HangWatchdog.swift (UI) | 0 | STANDARD | `src/Marrow.Core/Support/HangWatchdog.cs` |
-| [T-M2-062](T-M2-062.md) | Core/Support/ISO8601.swift | 3 | STANDARD | `src/Marrow.Core/Support/ISO8601.cs` |
-| [T-M2-063](T-M2-063.md) | Core/Support/JSONRPC.swift | 9 | HIGH | `src/Marrow.Core/Support/JSONRPC.cs` |
-| [T-M2-064](T-M2-064.md) | Core/Support/JSONRPC.swift (UI) | 0 | HIGH | `src/Marrow.Core/Support/JSONRPC.cs` |
-| [T-M2-065](T-M2-065.md) | Core/Support/JSONValue.swift | 8 | STANDARD | `src/Marrow.Core/Support/JSONValue.cs` |
-| [T-M2-066](T-M2-066.md) | Core/Support/ObservedValue.swift | 1 | STANDARD | `src/Marrow.Core/Support/ObservedValue.cs` |
-| [T-M2-067](T-M2-067.md) | Core/Support/RecentCache.swift | 6 | STANDARD | `src/Marrow.Core/Support/RecentCache.cs` |
-| [T-M2-068](T-M2-068.md) | Core/Support/Shell.swift (1 of 4) | 10 | HIGH | `src/Marrow.Core/Support/Shell.cs` |
-| [T-M2-069](T-M2-069.md) | Core/Support/Shell.swift (2 of 4) | 10 | HIGH | `src/Marrow.Core/Support/Shell.cs` |
-| [T-M2-070](T-M2-070.md) | Core/Support/Shell.swift (3 of 4) | 10 | HIGH | `src/Marrow.Core/Support/Shell.cs` |
-| [T-M2-071](T-M2-071.md) | Core/Support/Shell.swift (4 of 4) | 3 | HIGH | `src/Marrow.Core/Support/Shell.cs` |
-| [T-M2-072](T-M2-072.md) | Core/Support/StdioFramer.swift | 5 | HIGH | `src/Marrow.Core/Support/StdioFramer.cs` |
-| [T-M2-073](T-M2-073.md) | Core/Support/StdioProcess.swift (1 of 2) | 10 | HIGH | `src/Marrow.Core/Support/StdioProcess.cs` |
-| [T-M2-074](T-M2-074.md) | Core/Support/StdioProcess.swift (2 of 2) | 9 | HIGH | `src/Marrow.Core/Support/StdioProcess.cs` |
-| [T-M2-075](T-M2-075.md) | Core/Support/SwitchLatency.swift | 1 | STANDARD | `src/Marrow.Core/Support/SwitchLatency.cs` |
-| [T-M2-076](T-M2-076.md) | Core/Support/Text.swift (1 of 2) | 10 | STANDARD | `src/Marrow.Core/Support/Text.cs` |
-| [T-M2-077](T-M2-077.md) | Core/Support/Text.swift (2 of 2) | 4 | STANDARD | `src/Marrow.Core/Support/Text.cs` |
-| [T-M2-078](T-M2-078.md) | Core/Support/ThumbnailCache.swift | 5 | STANDARD | `src/Marrow.Core/Support/ThumbnailCache.cs` |
-| [T-M2-079](T-M2-079.md) | Core/Support/ThumbnailCache.swift (UI) | 0 | STANDARD | `src/Marrow.Core/Support/ThumbnailCache.cs` |
+| [T-M2-045](T-M2-045.md) | Core/Models/Shortcuts.swift (1 of 7) | 10 | STANDARD | `src/Marrow.Core/Models/Shortcuts.cs` |
+| [T-M2-046](T-M2-046.md) | Core/Models/Shortcuts.swift (2 of 7) | 10 | STANDARD | `src/Marrow.Core/Models/Shortcuts.cs` |
+| [T-M2-047](T-M2-047.md) | Core/Models/Shortcuts.swift (3 of 7) | 10 | STANDARD | `src/Marrow.Core/Models/Shortcuts.cs` |
+| [T-M2-048](T-M2-048.md) | Core/Models/Shortcuts.swift (4 of 7) | 10 | STANDARD | `src/Marrow.Core/Models/Shortcuts.cs` |
+| [T-M2-049](T-M2-049.md) | Core/Models/Shortcuts.swift (5 of 7) | 10 | STANDARD | `src/Marrow.Core/Models/Shortcuts.cs` |
+| [T-M2-050](T-M2-050.md) | Core/Models/Shortcuts.swift (6 of 7) | 10 | STANDARD | `src/Marrow.Core/Models/Shortcuts.cs` |
+| [T-M2-051](T-M2-051.md) | Core/Models/Shortcuts.swift (7 of 7) | 3 | STANDARD | `src/Marrow.Core/Models/Shortcuts.cs` |
+| [T-M2-052](T-M2-052.md) | Core/Models/Shortcuts.swift (UI) | 0 | STANDARD | `src/Marrow.Core/Models/Shortcuts.cs` |
+| [T-M2-053](T-M2-053.md) | Core/Models/ThreadContinuation.swift | 3 | STANDARD | `src/Marrow.Core/Models/ThreadContinuation.cs` |
+| [T-M2-054](T-M2-054.md) | Core/Models/Timeline.swift (1 of 3) | 10 | STANDARD | `src/Marrow.Core/Models/Timeline.cs` |
+| [T-M2-055](T-M2-055.md) | Core/Models/Timeline.swift (2 of 3) | 10 | STANDARD | `src/Marrow.Core/Models/Timeline.cs` |
+| [T-M2-056](T-M2-056.md) | Core/Models/Timeline.swift (3 of 3) | 5 | STANDARD | `src/Marrow.Core/Models/Timeline.cs` |
+| [T-M2-057](T-M2-057.md) | Core/Models/TokenSpend.swift | 3 | STANDARD | `src/Marrow.Core/Models/TokenSpend.cs` |
+| [T-M2-058](T-M2-058.md) | Core/Support/Coding.swift | 3 | STANDARD | `src/Marrow.Core/Support/Coding.cs` |
+| [T-M2-059](T-M2-059.md) | Core/Support/HangWatchdog.swift | 8 | STANDARD | `src/Marrow.Core/Support/HangWatchdog.cs` |
+| [T-M2-060](T-M2-060.md) | Core/Support/HangWatchdog.swift (UI) | 0 | STANDARD | `src/Marrow.Core/Support/HangWatchdog.cs` |
+| [T-M2-061](T-M2-061.md) | Core/Support/ISO8601.swift | 3 | STANDARD | `src/Marrow.Core/Support/ISO8601.cs` |
+| [T-M2-062](T-M2-062.md) | Core/Support/JSONRPC.swift | 9 | HIGH | `src/Marrow.Core/Support/JSONRPC.cs` |
+| [T-M2-063](T-M2-063.md) | Core/Support/JSONRPC.swift (UI) | 0 | HIGH | `src/Marrow.Core/Support/JSONRPC.cs` |
+| [T-M2-064](T-M2-064.md) | Core/Support/JSONValue.swift | 8 | STANDARD | `src/Marrow.Core/Support/JSONValue.cs` |
+| [T-M2-065](T-M2-065.md) | Core/Support/ObservedValue.swift | 1 | STANDARD | `src/Marrow.Core/Support/ObservedValue.cs` |
+| [T-M2-066](T-M2-066.md) | Core/Support/RecentCache.swift | 6 | STANDARD | `src/Marrow.Core/Support/RecentCache.cs` |
+| [T-M2-067](T-M2-067.md) | Core/Support/Shell.swift (1 of 4) | 10 | HIGH | `src/Marrow.Core/Support/Shell.cs` |
+| [T-M2-068](T-M2-068.md) | Core/Support/Shell.swift (2 of 4) | 10 | HIGH | `src/Marrow.Core/Support/Shell.cs` |
+| [T-M2-069](T-M2-069.md) | Core/Support/Shell.swift (3 of 4) | 10 | HIGH | `src/Marrow.Core/Support/Shell.cs` |
+| [T-M2-070](T-M2-070.md) | Core/Support/Shell.swift (4 of 4) | 3 | HIGH | `src/Marrow.Core/Support/Shell.cs` |
+| [T-M2-071](T-M2-071.md) | Core/Support/StdioFramer.swift | 5 | HIGH | `src/Marrow.Core/Support/StdioFramer.cs` |
+| [T-M2-072](T-M2-072.md) | Core/Support/StdioProcess.swift (1 of 2) | 10 | HIGH | `src/Marrow.Core/Support/StdioProcess.cs` |
+| [T-M2-073](T-M2-073.md) | Core/Support/StdioProcess.swift (2 of 2) | 9 | HIGH | `src/Marrow.Core/Support/StdioProcess.cs` |
+| [T-M2-074](T-M2-074.md) | Core/Support/SwitchLatency.swift | 1 | STANDARD | `src/Marrow.Core/Support/SwitchLatency.cs` |
+| [T-M2-075](T-M2-075.md) | Core/Support/Text.swift (1 of 2) | 10 | STANDARD | `src/Marrow.Core/Support/Text.cs` |
+| [T-M2-076](T-M2-076.md) | Core/Support/Text.swift (2 of 2) | 4 | STANDARD | `src/Marrow.Core/Support/Text.cs` |
+| [T-M2-077](T-M2-077.md) | Core/Support/ThumbnailCache.swift | 5 | STANDARD | `src/Marrow.Core/Support/ThumbnailCache.cs` |
+| [T-M2-078](T-M2-078.md) | Core/Support/ThumbnailCache.swift (UI) | 0 | STANDARD | `src/Marrow.Core/Support/ThumbnailCache.cs` |
 
 ## M3: Services foundation: store and git
 
 | Task | Source | Reqs | Risk | Target |
 | --- | --- | --- | --- | --- |
 | [T-M3-001](T-M3-001.md) | Services/Git/DiffParser.swift | 6 | STANDARD | `src/Marrow.Services/Git/DiffParser.cs` |
-| [T-M3-002](T-M3-002.md) | Services/Git/FileChangeSummary+Diff.swift | 1 | STANDARD | `src/Marrow.Services/Git/FileChangeSummary.Diff.cs` |
+| [T-M3-002](T-M3-002.md) | Services/Git/FileChangeSummary+Diff.swift | 1 | STANDARD | `src/Marrow.Services/Git/FileChangeSummary+Diff.cs` |
 | [T-M3-003](T-M3-003.md) | Services/Git/Git.swift (1 of 8) | 10 | HIGH | `src/Marrow.Services/Git/Git.cs` |
 | [T-M3-004](T-M3-004.md) | Services/Git/Git.swift (2 of 8) | 10 | HIGH | `src/Marrow.Services/Git/Git.cs` |
 | [T-M3-005](T-M3-005.md) | Services/Git/Git.swift (3 of 8) | 10 | HIGH | `src/Marrow.Services/Git/Git.cs` |
@@ -398,30 +397,30 @@ every line, not a sample.
 | [T-M6-011](T-M6-011.md) | App/AppDelegate.swift (3 of 4) | 10 | STANDARD | `src/Marrow.App/AppDelegate.cs` |
 | [T-M6-012](T-M6-012.md) | App/AppDelegate.swift (4 of 4) | 3 | STANDARD | `src/Marrow.App/AppDelegate.cs` |
 | [T-M6-013](T-M6-013.md) | App/AppDelegate.swift (UI) | 0 | STANDARD | `src/Marrow.App/AppDelegate.cs` |
-| [T-M6-014](T-M6-014.md) | App/AppModel+Hydra.swift (1 of 6) | 10 | STANDARD | `src/Marrow.App/AppModel.Hydra.cs` |
-| [T-M6-015](T-M6-015.md) | App/AppModel+Hydra.swift (2 of 6) | 10 | STANDARD | `src/Marrow.App/AppModel.Hydra.cs` |
-| [T-M6-016](T-M6-016.md) | App/AppModel+Hydra.swift (3 of 6) | 10 | STANDARD | `src/Marrow.App/AppModel.Hydra.cs` |
-| [T-M6-017](T-M6-017.md) | App/AppModel+Hydra.swift (4 of 6) | 10 | STANDARD | `src/Marrow.App/AppModel.Hydra.cs` |
-| [T-M6-018](T-M6-018.md) | App/AppModel+Hydra.swift (5 of 6) | 10 | STANDARD | `src/Marrow.App/AppModel.Hydra.cs` |
-| [T-M6-019](T-M6-019.md) | App/AppModel+Hydra.swift (6 of 6) | 2 | STANDARD | `src/Marrow.App/AppModel.Hydra.cs` |
-| [T-M6-020](T-M6-020.md) | App/AppModel+HydraMerge.swift (1 of 9) | 10 | HIGH | `src/Marrow.App/AppModel.HydraMerge.cs` |
-| [T-M6-021](T-M6-021.md) | App/AppModel+HydraMerge.swift (2 of 9) | 10 | HIGH | `src/Marrow.App/AppModel.HydraMerge.cs` |
-| [T-M6-022](T-M6-022.md) | App/AppModel+HydraMerge.swift (3 of 9) | 10 | HIGH | `src/Marrow.App/AppModel.HydraMerge.cs` |
-| [T-M6-023](T-M6-023.md) | App/AppModel+HydraMerge.swift (4 of 9) | 10 | HIGH | `src/Marrow.App/AppModel.HydraMerge.cs` |
-| [T-M6-024](T-M6-024.md) | App/AppModel+HydraMerge.swift (5 of 9) | 10 | HIGH | `src/Marrow.App/AppModel.HydraMerge.cs` |
-| [T-M6-025](T-M6-025.md) | App/AppModel+HydraMerge.swift (6 of 9) | 10 | HIGH | `src/Marrow.App/AppModel.HydraMerge.cs` |
-| [T-M6-026](T-M6-026.md) | App/AppModel+HydraMerge.swift (7 of 9) | 10 | HIGH | `src/Marrow.App/AppModel.HydraMerge.cs` |
-| [T-M6-027](T-M6-027.md) | App/AppModel+HydraMerge.swift (8 of 9) | 10 | HIGH | `src/Marrow.App/AppModel.HydraMerge.cs` |
-| [T-M6-028](T-M6-028.md) | App/AppModel+HydraMerge.swift (9 of 9) | 9 | HIGH | `src/Marrow.App/AppModel.HydraMerge.cs` |
-| [T-M6-029](T-M6-029.md) | App/AppModel+HydraMerge.swift (UI) | 0 | HIGH | `src/Marrow.App/AppModel.HydraMerge.cs` |
-| [T-M6-030](T-M6-030.md) | App/AppModel+HydraPairs.swift | 8 | STANDARD | `src/Marrow.App/AppModel.HydraPairs.cs` |
+| [T-M6-014](T-M6-014.md) | App/AppModel+Hydra.swift (1 of 6) | 10 | STANDARD | `src/Marrow.App/AppModel+Hydra.cs` |
+| [T-M6-015](T-M6-015.md) | App/AppModel+Hydra.swift (2 of 6) | 10 | STANDARD | `src/Marrow.App/AppModel+Hydra.cs` |
+| [T-M6-016](T-M6-016.md) | App/AppModel+Hydra.swift (3 of 6) | 10 | STANDARD | `src/Marrow.App/AppModel+Hydra.cs` |
+| [T-M6-017](T-M6-017.md) | App/AppModel+Hydra.swift (4 of 6) | 10 | STANDARD | `src/Marrow.App/AppModel+Hydra.cs` |
+| [T-M6-018](T-M6-018.md) | App/AppModel+Hydra.swift (5 of 6) | 10 | STANDARD | `src/Marrow.App/AppModel+Hydra.cs` |
+| [T-M6-019](T-M6-019.md) | App/AppModel+Hydra.swift (6 of 6) | 2 | STANDARD | `src/Marrow.App/AppModel+Hydra.cs` |
+| [T-M6-020](T-M6-020.md) | App/AppModel+HydraMerge.swift (1 of 9) | 10 | HIGH | `src/Marrow.App/AppModel+HydraMerge.cs` |
+| [T-M6-021](T-M6-021.md) | App/AppModel+HydraMerge.swift (2 of 9) | 10 | HIGH | `src/Marrow.App/AppModel+HydraMerge.cs` |
+| [T-M6-022](T-M6-022.md) | App/AppModel+HydraMerge.swift (3 of 9) | 10 | HIGH | `src/Marrow.App/AppModel+HydraMerge.cs` |
+| [T-M6-023](T-M6-023.md) | App/AppModel+HydraMerge.swift (4 of 9) | 10 | HIGH | `src/Marrow.App/AppModel+HydraMerge.cs` |
+| [T-M6-024](T-M6-024.md) | App/AppModel+HydraMerge.swift (5 of 9) | 10 | HIGH | `src/Marrow.App/AppModel+HydraMerge.cs` |
+| [T-M6-025](T-M6-025.md) | App/AppModel+HydraMerge.swift (6 of 9) | 10 | HIGH | `src/Marrow.App/AppModel+HydraMerge.cs` |
+| [T-M6-026](T-M6-026.md) | App/AppModel+HydraMerge.swift (7 of 9) | 10 | HIGH | `src/Marrow.App/AppModel+HydraMerge.cs` |
+| [T-M6-027](T-M6-027.md) | App/AppModel+HydraMerge.swift (8 of 9) | 10 | HIGH | `src/Marrow.App/AppModel+HydraMerge.cs` |
+| [T-M6-028](T-M6-028.md) | App/AppModel+HydraMerge.swift (9 of 9) | 9 | HIGH | `src/Marrow.App/AppModel+HydraMerge.cs` |
+| [T-M6-029](T-M6-029.md) | App/AppModel+HydraMerge.swift (UI) | 0 | HIGH | `src/Marrow.App/AppModel+HydraMerge.cs` |
+| [T-M6-030](T-M6-030.md) | App/AppModel+HydraPairs.swift | 8 | STANDARD | `src/Marrow.App/AppModel+HydraPairs.cs` |
 | [T-M6-031](T-M6-031.md) | App/AppModel.swift (1 of 7) | 10 | STANDARD | `src/Marrow.App/AppModel.cs` |
 | [T-M6-032](T-M6-032.md) | App/AppModel.swift (2 of 7) | 10 | STANDARD | `src/Marrow.App/AppModel.cs` |
 | [T-M6-033](T-M6-033.md) | App/AppModel.swift (3 of 7) | 10 | STANDARD | `src/Marrow.App/AppModel.cs` |
 | [T-M6-034](T-M6-034.md) | App/AppModel.swift (4 of 7) | 10 | STANDARD | `src/Marrow.App/AppModel.cs` |
 | [T-M6-035](T-M6-035.md) | App/AppModel.swift (5 of 7) | 10 | STANDARD | `src/Marrow.App/AppModel.cs` |
 | [T-M6-036](T-M6-036.md) | App/AppModel.swift (6 of 7) | 10 | STANDARD | `src/Marrow.App/AppModel.cs` |
-| [T-M6-037](T-M6-037.md) | App/AppModel.swift (7 of 7) | 1 | STANDARD | `src/Marrow.App/AppModel.cs` |
+| [T-M6-037](T-M6-037.md) | App/AppModel.swift (7 of 7) | 2 | STANDARD | `src/Marrow.App/AppModel.cs` |
 | [T-M6-038](T-M6-038.md) | App/AppModel.swift (UI) | 0 | STANDARD | `src/Marrow.App/AppModel.cs` |
 | [T-M6-039](T-M6-039.md) | App/AppSettings.swift (1 of 11) | 10 | STANDARD | `src/Marrow.App/AppSettings.cs` |
 | [T-M6-040](T-M6-040.md) | App/AppSettings.swift (2 of 11) | 10 | STANDARD | `src/Marrow.App/AppSettings.cs` |
@@ -437,7 +436,7 @@ every line, not a sample.
 | [T-M6-050](T-M6-050.md) | App/DroppyCodeApp.swift (1 of 2) | 10 | STANDARD | `src/Marrow.App/DroppyCodeApp.cs` |
 | [T-M6-051](T-M6-051.md) | App/DroppyCodeApp.swift (2 of 2) | 3 | STANDARD | `src/Marrow.App/DroppyCodeApp.cs` |
 | [T-M6-052](T-M6-052.md) | App/DroppyCodeApp.swift (UI) | 0 | STANDARD | `src/Marrow.App/DroppyCodeApp.cs` |
-| [T-M6-053](T-M6-053.md) | App/HydraCookbook+Resolve.swift | 2 | STANDARD | `src/Marrow.App/HydraCookbook.Resolve.cs` |
+| [T-M6-053](T-M6-053.md) | App/HydraCookbook+Resolve.swift | 2 | STANDARD | `src/Marrow.App/HydraCookbook+Resolve.cs` |
 | [T-M6-054](T-M6-054.md) | App/Runtime/AutoContinue.swift (1 of 2) | 10 | STANDARD | `src/Marrow.App/Runtime/AutoContinue.cs` |
 | [T-M6-055](T-M6-055.md) | App/Runtime/AutoContinue.swift (2 of 2) | 3 | STANDARD | `src/Marrow.App/Runtime/AutoContinue.cs` |
 | [T-M6-056](T-M6-056.md) | App/Runtime/AutoContinue.swift (UI) | 0 | STANDARD | `src/Marrow.App/Runtime/AutoContinue.cs` |

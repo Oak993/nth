@@ -22,7 +22,7 @@
       "cancellation": "Not cancellable at this layer; the timeout path (PR-GIT-004) is the only interruption.",
       "windows_path": "Spawn git.exe with shell:false and an explicit argv array. Platform boundary: CreateProcess argument quoting. %(refname), --batch-check=%(objecttype), ^{tree} and refs/heads/x:refs/heads/x must never pass through cmd.exe or PowerShell, where % expands and ^ escapes.",
       "verification_method": "contract fixture: a recording git shim asserts the exact argv of every invocation",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -47,7 +47,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three-step precedence. GIT_OPTIONAL_LOCKS=0 is load-bearing on Windows because file locking is mandatory: without it a background snapshot collides with the user's own git on index.lock.",
       "verification_method": "contract fixture: the git shim dumps its environment and the test asserts key presence, values and precedence",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -74,7 +74,7 @@
       "cancellation": "The watchdog is cancelled when the process ends first.",
       "windows_path": "One watchdog per spawn with the same per-site constants. Do not normalise the budgets.",
       "verification_method": "unit: a table test asserting the timeout constant of every one of the 72 invocation sites",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -104,7 +104,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Platform boundary: there is no SIGTERM. Use a Job Object per spawn so the kill reaches the whole tree, with the same 1 s gap between the graceful request and the hard kill, and the same 3 s output-drain ceiling.",
       "verification_method": "interaction test: a git shim that sleeps past its budget, asserting a failed result rather than a thrown timeout",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -130,7 +130,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same wrapper. output(_:) must not grow a timeout or environment parameter, because 16 call sites depend on the defaults.",
       "verification_method": "unit: assert the wrapper neither passes a timeout nor accepts extras",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -155,7 +155,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three-step fallback, verbatim wording including the trailing period.",
       "verification_method": "unit: three cases over the fallback chain, asserting the literal",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -179,7 +179,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port. Note the answer is false inside a bare repository and inside the .git directory.",
       "verification_method": "unit with a git shim returning \"true\", \"false\", \"\" and a non-zero exit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -204,7 +204,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Platform boundary and the highest-risk divergence in this area: the component walk operates on the app's own path string, which on Windows may differ from git's in drive-letter case, 8.3 short names or junction resolution. Reproduce the counting algorithm; do not substitute --show-toplevel.",
       "verification_method": "unit over prefixes \"\", \"a/\", \"a/b/\" plus an interaction test from a repository subdirectory",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "86",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -228,7 +228,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port.",
       "verification_method": "unit against an empty repository and one with a commit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -254,7 +254,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port. Decode stdout as UTF-8 with no CRLF translation; split on \\n only.",
       "verification_method": "unit over recorded porcelain v2 fixtures, detached and with ahead/behind",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -279,7 +279,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port. The %(...) tokens must reach git.exe unexpanded, so no shell.",
       "verification_method": "unit over a recorded for-each-ref fixture including a branch with no upstream",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -304,7 +304,7 @@
       "cancellation": "not cancellable once started",
       "windows_path": "Direct port.",
       "verification_method": "interaction test driving the menu against a real temporary repository",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -330,7 +330,7 @@
       "cancellation": "The alert's \"Cancel\" dismisses without running anything.",
       "windows_path": "Direct port; the space-to-hyphen rule is applied before the argv is built.",
       "verification_method": "unit on the name normalisation plus an interaction test on the alert",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -354,7 +354,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port.",
       "verification_method": "unit with and without an origin remote",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -379,7 +379,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port on the string level. A Windows path remote such as C:\\repos\\x does not start with \"http\" and yields nil, which is correct.",
       "verification_method": "unit table over git@, ssh://git@, https:// with and without .git, and a local path",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -403,7 +403,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port. Git prints forward slashes; keep them as given rather than converting to backslashes, because every path comparison in this area is forward-slash based.",
       "verification_method": "unit against a temporary repository with an ignored file",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -427,7 +427,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port, including the candidate order and the final literal.",
       "verification_method": "unit over the three branches of the resolution",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -451,7 +451,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port.",
       "verification_method": "unit in a temporary repository with two commits",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -475,7 +475,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Read stdout as bytes and split on 0x00 before decoding; never let a text layer translate CRLF.",
       "verification_method": "unit with a file whose name contains a tab",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -500,7 +500,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port over raw bytes.",
       "verification_method": "unit over a recorded porcelain v1 -z fixture containing a rename",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -525,7 +525,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Write the stdin payload as raw bytes with a trailing NUL; close stdin after writing.",
       "verification_method": "unit with a .gitignore covering one of two paths",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -551,7 +551,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port, including the silent truncation. Note this is deliberately asymmetric with workingBlobs, which does check its reply count.",
       "verification_method": "unit with a shim returning fewer answers than paths, asserting the tail is absent and no error is raised",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "80",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -576,7 +576,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Join with a forward slash exactly as the source does; Windows accepts it. --path-format=absolute keeps the answer absolute across drives.",
       "verification_method": "unit creating each marker file in turn",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -600,7 +600,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The ^ and braces must reach git.exe literally, so no shell and no cmd.exe caret escaping.",
       "verification_method": "contract fixture asserting the argument contains a literal ^{tree}",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -624,7 +624,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -648,7 +648,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Join with \"/\" as the source does. Platform boundary: the environment lookup reads the captured login environment, which on Windows is the process environment plus the registry Environment keys.",
       "verification_method": "unit asserting no process is spawned for a plain checkout",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -674,7 +674,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Platform boundary: systemFileNumber has no direct Windows equivalent. Use the NTFS file index (nFileIndexHigh/Low plus volume serial) from GetFileInformationByHandle as the identifier component, and keep the whole-map wipe at 64.",
       "verification_method": "unit: two resolutions of the same worktree spawn one process; touching the .git file spawns a second",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -699,7 +699,7 @@
       "cancellation": "The sheet's task is cancelled when it is dismissed.",
       "windows_path": "Reproduce the mismatch exactly: test UTF-8 byte length, then take a 40000-grapheme prefix. Both literals are 40000.",
       "verification_method": "unit with a patch of 4-byte scalars asserting the retained byte length exceeds 40000",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "75",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -726,7 +726,7 @@
       "cancellation": "not cancellable once started; the sheet is disabled while isCommitting",
       "windows_path": "Write the message bytes to stdin and close it. Do not add an identity. Keep both budgets at 120 s.",
       "verification_method": "interaction test against a temporary repository asserting one commit with the typed message and the user's identity",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -754,7 +754,7 @@
       "cancellation": "not cancellable; only the 300 s timeout ends it",
       "windows_path": "Direct port. Credential helpers are the user's own configuration; the app sets none.",
       "verification_method": "interaction test against a local bare remote",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -780,7 +780,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The refspec is one argv element; never split it on the colon, which a naive Windows path helper might do.",
       "verification_method": "contract fixture asserting the single colon-bearing argument",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -804,7 +804,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port.",
       "verification_method": "interaction test against a local remote",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -829,7 +829,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port; --ff-only is what keeps the app from ever writing a merge commit on the user's behalf.",
       "verification_method": "interaction test with a diverged branch asserting no merge commit is created",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -854,7 +854,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port. A port-branded author here would appear in the user's history and on the forge, so the absence of the identity environment is load-bearing.",
       "verification_method": "contract fixture asserting no GIT_AUTHOR_* variables are present on this invocation",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -879,7 +879,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port with the four literal environment values as ruled by OD-0012 F1 (\"Marrow\" / \"marrow@localhost\"); they are what lets a user with no configured identity still be checkpointed.",
       "verification_method": "contract fixture asserting the four variables and the conditional -p",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -934,7 +934,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The empty fourth argument must actually be passed as an empty argv element, not dropped.",
       "verification_method": "contract fixture asserting a four-element vector with an empty last element when old is nil",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -958,7 +958,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port.",
       "verification_method": "unit asserting working files are unchanged afterwards",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -982,7 +982,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Write the pathspec payload as raw bytes with a trailing NUL.",
       "verification_method": "contract fixture on the stdin encoding",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1007,7 +1007,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the missing --literal-pathspecs. Adding it would change which files a revert touches.",
       "verification_method": "contract fixture asserting the absence of --literal-pathspecs on this vector",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "78",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1032,7 +1032,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the pathspec interpretation as-is.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "78",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1058,7 +1058,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port, lowercasing with an invariant (ordinal) casing rule.",
       "verification_method": "unit table over gitlab.com, github.com, git.acme.com, a self-hosted gitlab host and no remote",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1083,7 +1083,7 @@
       "cancellation": "not cancellable; only the 300 s budget ends it",
       "windows_path": "Resolve glab against PATH split on \";\" with PATHEXT applied. Do not tidy the flag order: --yes must stay before the optional flags.",
       "verification_method": "contract fixture asserting the exact ordered vector",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1108,7 +1108,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Resolve gh.exe/gh.cmd via PATHEXT. Keep --body, not --description.",
       "verification_method": "contract fixture asserting the exact ordered vector",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1133,7 +1133,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Resolve tea via PATHEXT. This is also the path an unrecognised enterprise GitHub host takes.",
       "verification_method": "contract fixture asserting the exact ordered vector",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1157,7 +1157,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Match against the same combined text with the same order and separator. Trailing CR on Windows output is not whitespace-stripped by the pattern, so \\S+ would absorb it: read the CLI output without CRLF translation so the scrape matches macOS.",
       "verification_method": "unit over recorded gh, glab and tea outputs including one with the URL only on stderr",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1186,7 +1186,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port of all three vectors, including both GitLab flags in this order after \"--yes\".",
       "verification_method": "contract fixture per forge with a scripted CLI shim recording its argv; the GitLab vector must be exactly [\"mr\", \"merge\", \"<n>\", \"--yes\", \"--squash\", \"--remove-source-branch\"]",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1213,7 +1213,7 @@
       "cancellation": "The sleep uses a cancellable sleep whose cancellation is swallowed, so a cancelled task proceeds to the next attempt rather than unwinding.",
       "windows_path": "Direct port; do not restructure the loop to skip the last sleep.",
       "verification_method": "unit with a scripted glab shim asserting six attempts and the exact sleep sequence",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "76, 77",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1270,7 +1270,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Attach the null device to stdin. Resolve gh/glab/tea per call against PATH split on \";\" with PATHEXT.",
       "verification_method": "contract fixture comparing a git spawn and a forge spawn side by side",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1319,12 +1319,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port, including the asymmetry between the searched GitLab index and the fixed index 2 for the other two.",
       "verification_method": "unit table over a GitLab subgroup URL, a /diffs suffix, github.com, a GitHub Enterprise host, Codeberg and a non-matching URL",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-030",
-      "rework": true
+      "implemented_by_task": "T-M2-030"
     },
     {
       "id": "PR-GIT-053",
@@ -1345,12 +1344,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port.",
       "verification_method": "unit for both forms",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-030",
-      "rework": true
+      "implemented_by_task": "T-M2-030"
     },
     {
       "id": "PR-GIT-054",
@@ -1371,12 +1369,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port.",
       "verification_method": "unit for both forges",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-030",
-      "rework": true
+      "implemented_by_task": "T-M2-030"
     },
     {
       "id": "PR-GIT-055",
@@ -1397,13 +1394,12 @@
       "cancellation": "The helper thread can be stopped like any other.",
       "windows_path": "Reproduce every character including the backticks and the parenthetical \"(a 405)\". The prompt is deliberately self-contained because a native provider reads no AGENTS.md before it starts.",
       "verification_method": "unit asserting the three assembled strings byte for byte",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
       "implemented_by_task": "T-M2-030",
-      "spec_fix": "expected_result said the first line holds \"<absolute url>\" and the citation began at :46 inside the doc comment -> the source interpolates url.absoluteString, the URL's own text as stored at MergeRequestLink.swift:38 (MergeRequestLink.swift:57), and `var prompt` begins at :47 (verify finding, packet T-M2-030)",
-      "rework": true
+      "spec_fix": "expected_result said the first line holds \"<absolute url>\" and the citation began at :46 inside the doc comment -> the source interpolates url.absoluteString, the URL's own text as stored at MergeRequestLink.swift:38 (MergeRequestLink.swift:57), and `var prompt` begins at :47 (verify finding, packet T-M2-030)"
     },
     {
       "id": "PR-GIT-056",
@@ -1425,7 +1421,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Lowercase the GUID with an invariant rule and keep the hyphens; a .NET uppercase \"D\" format would orphan refs. Git refs are case-sensitive on Windows.",
       "verification_method": "unit asserting the exact assembled string, plus a restart test that an existing checkpoint ref is still found",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1476,7 +1472,7 @@
       "cancellation": "The start checkpoint runs in a detached task that is awaited; it is not separately cancellable.",
       "windows_path": "Direct port. Keeping the commit parentless is what lets gc reclaim a deleted thread's checkpoints and keeps them out of git log --all, fsck and repack traversals in the user's repository.",
       "verification_method": "interaction test asserting git rev-list --count of the checkpoint ref is 1 and its message is the literal",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1506,7 +1502,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same one-entry memo keyed on the snapshot's tree.",
       "verification_method": "unit asserting a second checkpoint of an untouched tree spawns exactly one process",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1583,7 +1579,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Write the stdin batch as raw bytes. The %(refname) token must reach git.exe unexpanded.",
       "verification_method": "interaction test deleting a thread and asserting its refs are gone, plus a shim test asserting a failed batch raises nothing",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "85",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1657,7 +1653,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Use the Windows temporary directory with the same file-name shape. Platform boundary: the copy of the real index must be a byte copy; a hard link would let git rewrite the user's index.",
       "verification_method": "interaction test asserting the user's index file is byte-identical afterwards",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1683,7 +1679,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep --ignore-errors here and keep it absent at the incremental scratch add; the flag sets differ deliberately.",
       "verification_method": "contract fixture asserting both flag sets separately",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "79",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1714,7 +1710,7 @@
       "cancellation": "The capture runs in a detached task; a caller that goes away does not cancel it.",
       "windows_path": "Implement the fast path and the whole rebuild as upstream, plus the A3 proof check before a fast-path tree is handed back; on any doubt throw, so no checkpoint is recorded. How the proof is made is an engineering decision recorded with the implementation. The fresh capture used when no watch can vouch (PR-GIT-068) is unchanged.",
       "verification_method": "unit: (1) with the watch settled and the scratch intact, a fast-path capture yields the same tree as a fresh captureTree(); (2) deleting the scratch index while the fast-path add runs makes captureCheckpoint throw and writes no checkpoint ref; (3) a droppy-code-sync-<n> file created in the git directory by another writer before the watch's own cookie makes the capture unprovable and no checkpoint is recorded; (4) reverting such a turn shows \"No file checkpoint is available for this message. You can still keep the file changes.\"",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "79",
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1746,7 +1742,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A Windows port may legitimately start with no watch at all and still produce byte-identical tree hashes, paying a full add -A per checkpoint. The watch is an optimisation, not a behaviour.",
       "verification_method": "unit asserting identical tree hashes with and without a watch",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1773,7 +1769,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Write all three as raw bytes with no text-mode translation. The restore payloads carry Windows drive letters and backslashes while the numstat-derived halves stay forward-slashed; keep the two path spaces distinct.",
       "verification_method": "contract fixture capturing stdin bytes for each of the three shapes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1799,7 +1795,7 @@
       "cancellation": "The deferred cleanup runs even when the capture throws.",
       "windows_path": "Use the Windows temporary directory. The product-name segment stays \"droppy-code\" in these file names, matching the ref namespace decision.",
       "verification_method": "unit asserting the file is gone after a successful and a failed capture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1826,7 +1822,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Platform boundary: FSEvents becomes ReadDirectoryChangesW over the root, and the locality test becomes GetDriveType. A remote drive must yield nil exactly as a non-local volume does.",
       "verification_method": "unit over the racing-register case plus an eviction at 33 directories",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": "UNK-0011"
@@ -1849,9 +1845,9 @@
         "Stream creation or start failure leaves the watch with no stream; settledGeneration then returns nil at once and every capture is fresh"
       ],
       "cancellation": "The stream is stopped, invalidated and released in teardown, on its own queue, so no callback can be in flight.",
-      "windows_path": "Platform boundary: ReadDirectoryChangesW with FILE_NOTIFY_CHANGE_FILE_NAME, DIR_NAME, LAST_WRITE, SIZE and ATTRIBUTES, recursive, on a dedicated thread or IOCP; two directory handles when the git directory lies outside the root. There is no /private symlink analogue, so the realpath step becomes a full-path canonicalisation.",
+      "windows_path": "Platform boundary: ReadDirectoryChangesW with FILE_NOTIFY_CHANGE_FILE_NAME, DIR_NAME, LAST_WRITE, SIZE and ATTRIBUTES, recursive, on a dedicated thread or IOCP; one FileSystemWatcher (ReadDirectoryChangesW) over the root when the git directory lies under it; when it lies outside (a linked worktree), no watcher is started and the watch holds no stream, as when upstream's stream fails to start (ED-113), because two handles do not order events between them. There is no /private symlink analogue, so the realpath step becomes a full-path canonicalisation.",
       "verification_method": "interaction test observing a write is noticed within the cookie round trip",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": "UNK-0011"
@@ -1877,7 +1873,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Platform boundary: ReadDirectoryChangesW signals loss by an overflow (zero bytes returned), which maps onto the three lost flags as a single 'everything' case. This mapping is one of the open items under UNK-0011 (unknowns.md item 2 names WorkingTreeWatch.swift:180 explicitly).",
       "verification_method": "unit feeding a batch whose second path carries each of the three flags in turn, plus a batch with fewer flags than paths",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": "UNK-0011"
@@ -1902,7 +1898,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same prefix literal and same decimal suffix. The prefix is built from the resolved git directory, so on Windows it carries a drive letter and the platform's separator; keep the comparison in the same path space the events arrive in.",
       "verification_method": "unit over a cookie path, a cookie path with a non-numeric suffix, and a cookie path arriving before a git-directory path",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1926,7 +1922,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same rule. Resolve the git directory to its real path once, as the source does with realpath(3), so a junction, a substituted drive or an 8.3 short name cannot make the prefix test miss.",
       "verification_method": "unit over a path inside the git directory, the git directory itself, and a working file with a similar prefix",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1950,7 +1946,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same rule and the same byte-length comparison. Resolve the working root to its real path once; on Windows the comparison is also case-insensitive in effect, which a prefix test on the raw strings does not give, so normalise case the same way for both the prefix and the incoming path or the branch fires on every event.",
       "verification_method": "unit over the root itself, a path outside the root, and a path one byte longer than the prefix",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1973,7 +1969,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same derivation with the platform's separator. The contribution is later handed to git as a pathspec, so it must end up forward-slashed at that boundary, not here.",
       "verification_method": "unit over a nested file, a file directly at the root, and two files in one directory",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1999,7 +1995,7 @@
       "cancellation": "The timeout path (PR-GIT-077) is the other remover of a waiter, and whichever of the two removes it is the one that resumes it.",
       "windows_path": "Same order and the same resume-outside-the-lock rule. Wrapping addition on the generation must be preserved; a trapping add would crash after 2^64 batches where the source wraps.",
       "verification_method": "unit asserting one generation bump for a multi-path batch, no bump for a cookie-only batch, and that a waiter is resumed after the lock is released",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2025,7 +2021,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Use forward slashes in the relative paths so the top-level split matches; the events must be normalised to the root-relative forward-slash form before insertion.",
       "verification_method": "unit inserting 70 distinct nested directories and asserting the collapse",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2049,7 +2045,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Use ordinal string comparison for the sort so the result matches Swift's default, and forward slashes throughout.",
       "verification_method": "unit over a nested set such as a, a/b, b",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2072,9 +2068,9 @@
         "A volume that does not report events never delivers the cookie, so the watch is torn down and every later snapshot for that directory is taken fresh"
       ],
       "cancellation": "The timer task is cancelled when the event wins.",
-      "windows_path": "Platform boundary: the same cookie file trick maps directly onto ReadDirectoryChangesW, which also delivers in order. Keep the one second ceiling.",
+      "windows_path": "Platform boundary: the same cookie file trick maps onto ReadDirectoryChangesW, which delivers in order within one directory handle; the cookie is only used when the git directory lies under the root, one handle (ED-113); otherwise the watch has no stream and the answer is nil at once. UNVERIFIED on Windows: whether the event of a write made through a handle still open when the cookie is created arrives before the cookie's event (ReadDirectoryChangesW may report a last write only when the cache is flushed). Windows verification item for the GIT unit: append to a tracked file without closing it, write the cookie, and check which event arrives first. Keep the one second ceiling.",
       "verification_method": "interaction test with a shimmed stream that never delivers, asserting the one second timeout and the teardown",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2104,7 +2100,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Implement the teardown as upstream, together with the A3 proof check of PR-GIT-067, so a capture that raced the teardown throws instead of returning a tree.",
       "verification_method": "unit: a watch whose cookie does not arrive within one second is torn down and its scratch file removed; a fast-path capture racing that teardown throws and writes no checkpoint ref; reverting that turn shows \"No file checkpoint is available for this message. You can still keep the file changes.\"",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "81",
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2139,7 +2135,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port. Do not add a restart or a health check; OD-0008 A3 rules only on captures that cannot prove whole-tree coverage.",
       "verification_method": "unit: after a cookie timeout, shared(for:gitDirectory:) returns the same watch, and each following snapshot runs a full add -A -- . on a private index and records its checkpoint",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "82",
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2165,7 +2161,7 @@
       "cancellation": "The capture is detached at utility priority and is not cancelled by a caller going away.",
       "windows_path": "Direct port of the four-state resolution. The index stamp is modification time and size only, with no file identifier.",
       "verification_method": "unit driving two concurrent callers at the same and at different generations",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2190,7 +2186,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port of the assembly order.",
       "verification_method": "contract fixture over the four combinations of paths and binary",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2216,7 +2212,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Chunking matters more on Windows, where the command line limit is 32767 characters. Keep the boundary at strictly greater than 400 regardless.",
       "verification_method": "unit at 400, 401 and 801 paths asserting the call count and the join rule",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2241,7 +2237,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Do NOT add an empty-paths early return; that would be a behaviour change even though latent.",
       "verification_method": "unit calling diff with an empty array and asserting a full-tree result",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "83",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2266,7 +2262,7 @@
       "cancellation": "Parsing runs off the main actor and is not separately cancellable.",
       "windows_path": "Split on \\n only and treat a trailing \\r as ordinary content, as the source does. Deriving oldPath from the \"--- \" line would widen every focus and de-duplication match downstream, so it must not be added.",
       "verification_method": "unit over recorded patches covering add, delete, rename, binary and mode-change headers",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2291,7 +2287,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port. The note text drops exactly two characters, so \"\\\\ No newline at end of file\" becomes \"No newline at end of file\".",
       "verification_method": "unit asserting line numbers and the note text for a patch ending without a trailing newline",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2315,7 +2311,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port with a backwards ordinal search.",
       "verification_method": "unit with a path containing a space and one containing \" b/\"",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2339,7 +2335,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port.",
       "verification_method": "unit over @@ -1,5 +1,7 @@, @@ -0,0 +1 @@ and a malformed header",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2363,7 +2359,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port; the synthetic header uses forward slashes regardless of the platform.",
       "verification_method": "unit with a bare hunk body and with a full patch",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2388,7 +2384,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Split on \"/\" as the source does; git paths are forward-slashed even on Windows.",
       "verification_method": "unit over a root-level file and a nested one",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2413,7 +2409,7 @@
       "cancellation": "Runs off the main actor; not separately cancellable.",
       "windows_path": "Normalise agent-reported paths to forward slashes before they enter this function, since every comparison here is forward-slash based.",
       "verification_method": "unit with a snapshot containing another thread's file, asserting it is dropped",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2437,32 +2433,32 @@
       "cancellation": "not cancellable",
       "windows_path": "Sort with an ordinal comparison so the order matches.",
       "verification_method": "unit with an edit whose patch is empty but whose counts are set",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
     },
     {
       "id": "PR-GIT-091",
-      "title": "Merging two diff entries for the same path renumbers every appended hunk to the same id",
+      "title": "Merging two diff entries for the same path renumbers the appended hunks sequentially from the existing last id",
       "source_evidence": [
-        "DroppyCode/Services/Git/TurnDiff.swift:52-64 append(_:to:) - for var hunk in file.hunks { hunk.id = (existing.hunks.last?.id ?? 0) + 1; existing.hunks.append(hunk) }, with the id computed before the append so every hunk in the batch gets the same value",
-        "porting/extracts/git-command-vectors.md section 8.5 - 'the same value for every hunk in the batch, an upstream id collision to reproduce'"
+        "DroppyCode/Services/Git/TurnDiff.swift:52-64 append(_:to:) - for var hunk in file.hunks { hunk.id = (existing.hunks.last?.id ?? 0) + 1; existing.hunks.append(hunk) }, with existing.hunks.last re-read after each append, so the appended hunks get consecutive ids (ED-172)",
+        "porting/extracts/git-command-vectors.md section 8.5 (its collision reading is superseded by ED-172)"
       ],
       "preconditions": "Two entries name the same path.",
       "action": "They are merged.",
-      "expected_result": "The totals are summed into the reported addition and deletion counts, the binary flag becomes the logical or of the two, and every hunk of the incoming file is appended after having its id set to one more than the id of the existing file's last hunk as read before the loop began. Because that value is read once, every appended hunk receives the identical id, colliding with its siblings. Reproduce.",
+      "expected_result": "The totals are summed into the reported addition and deletion counts, the binary flag becomes the logical or of the two, and every hunk of the incoming file is appended after having its id set to one more than the id of the last hunk of the merged entry at that moment (0 when it has none), read again after each append, so the incoming hunks receive consecutive ids L+1, L+2, ... after the existing last id L and never collide with each other.",
       "side_effects": [
         "None"
       ],
       "persistence": "None.",
       "failure_cases": [
-        "Colliding hunk ids make the view's identity for those sections ambiguous; the section id falls back to the first line's id, which keeps rendering working"
+        "None"
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Reproduce the collision; do not renumber correctly.",
-      "verification_method": "unit merging two multi-hunk files for one path and asserting the duplicate ids",
-      "status": "SPECIFIED",
+      "windows_path": "Port the loop as written: re-read the last id after each append (ED-172).",
+      "verification_method": "unit merging two multi-hunk files for one path and asserting the consecutive ids",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2487,7 +2483,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port; keep the type Codable with the same field names, since old thread documents carry it.",
       "verification_method": "unit plus a restart test reading a thread document written before the change",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2511,7 +2507,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Platform boundary: the absolute test is a leading slash on macOS. On Windows the equivalent is a drive-letter or UNC root, and the upward walk must terminate at the drive or share root. TurnDiff's hasPrefix(\"/\") test must be re-expressed against the same rule.",
       "verification_method": "unit over an in-root relative path, an in-root absolute path and an out-of-root absolute path",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2536,7 +2532,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Platform boundary: the absolute test must accept a drive-letter or UNC root, tilde expansion maps to the user profile, and the standardisation must resolve .. without touching the filesystem. Note a Windows path such as C:/x contains no \"://\" so the URL rejection still behaves.",
       "verification_method": "unit over a URL, a ../ climb, a tilde path, an in-root path and the root itself",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2562,7 +2558,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep the comparison ordinal and case-sensitive despite NTFS being case-insensitive; folding would silently drop a user's Build directory. The macOS-specific entries stay in the set for parity.",
       "verification_method": "unit over each of the seventeen rules plus a negative case for Build and dist",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2587,7 +2583,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Normalise agent-reported paths to forward slashes before calling, since the rule literally concatenates \"/\".",
       "verification_method": "unit over exact, forward-suffix and reverse-suffix matches, and an oldPath-only match",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2616,7 +2612,7 @@
       "cancellation": "The preview task is cached and shared; a caller going away does not cancel it.",
       "windows_path": "Derive the preview's paths against the repository root in every case; the mechanism (for example, git diff's --no-relative, which countermands diff.relative) is an engineering decision recorded with the implementation. The two stdin payloads carry drive letters and backslashes while numstat's paths stay forward-slashed, so the root join must agree on separators. UNK-0011 item 4 (the minimum supported git version) bears on which mechanism is available.",
       "verification_method": "interaction test: a project that is a subfolder of a larger repository, with diff.relative = true and a same-named file at the repository root; the turn edits a file in the subfolder, the preview lists only that file, restore acts only on it, and the root file is untouched; plus the one-file-changed-by-the-thread and one-changed-again case asserting isKept",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "84",
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2651,7 +2647,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Derive the preview's paths against the repository root in every case, as PR-GIT-097 rules; in the default configuration the result equals upstream's, including for a subdirectory project.",
       "verification_method": "interaction test opening a project at a repository subdirectory, once with default configuration and once with diff.relative = true: the preview lists the repository-root-relative path of the file the turn changed, isKept is false for it and true for a file changed again since, and restore acts only on it",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "84",
       "blocked_by": null,
       "depends_on_unknown": "UNK-0011",
@@ -2681,7 +2677,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Read stdout as bytes and decode UTF-8 with no CRLF translation: -z output carries no newlines and normalising a path containing a carriage return would corrupt it.",
       "verification_method": "unit over a text record, a binary record, an empty input and three malformed shapes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2705,7 +2701,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port.",
       "verification_method": "unit with a mixed kept and restorable preview",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2730,7 +2726,7 @@
       "cancellation": "not cancellable once started",
       "windows_path": "The stdin payload carries absolute paths built by joining onto the repository root, so on Windows it carries drive letters and backslashes while the repository-relative paths that produced them are forward-slashed. Keep both spaces exactly as the source has them.",
       "verification_method": "interaction test restoring one modified file the ref holds, asserting the exact argv and the NUL-joined absolute payload",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "78",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2759,7 +2755,7 @@
       "cancellation": "not cancellable once started",
       "windows_path": "Direct port of the deletion and of its swallowed errors, fed only by the A4 path derivation and A3-proven checkpoints. On Windows a file held open by an editor or an indexer makes removeItem fail more often than on the source platform; the swallowed error then leaves the file on disk while the revert reports success.",
       "verification_method": "interaction test: a turn that creates one file and edits another; the revert restores the edited file and deletes the created one; in a subfolder project with diff.relative = true no file at the repository root is deleted",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "78",
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2789,7 +2785,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the absolute-in, relative-out asymmetry and the missing --literal-pathspecs.",
       "verification_method": "unit over a recorded ls-tree -z fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "78",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2814,7 +2810,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the message verbatim including the trailing period. Keep the check here even though presentPaths deliberately omits it.",
       "verification_method": "unit with a shim returning one fewer hash, asserting the exact message",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2840,7 +2836,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep the asymmetric budgets. Write the patch bytes to stdin twice, once per attempt.",
       "verification_method": "contract fixture asserting the two vectors and their budgets",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2864,7 +2860,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Split stderr on \\n and tolerate a trailing carriage return through the whitespace trim, which the source's trim already handles.",
       "verification_method": "unit over a recorded 3way stderr with and without U lines",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2890,7 +2886,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port at 120 s, not 300.",
       "verification_method": "interaction test asserting the vector and the 120 s budget",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2914,7 +2910,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port. On Windows an open handle in that directory can make the removal fail; the silence is reproduced.",
       "verification_method": "interaction test on both delete paths",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2939,7 +2935,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port at 300 s. Note the contrast with addWorktree at 120 s.",
       "verification_method": "contract fixture asserting the vector and budget",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2964,7 +2960,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port.",
       "verification_method": "interaction test deleting a worktree folder by hand and asserting the prune clears the entry",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3796,7 +3792,7 @@
       "cancellation": "not applicable",
       "windows_path": "Platform boundary: Command becomes Control, so the default is Control-D, and the label rendering uses Windows modifier names. The action identity and the two strings are unchanged.",
       "verification_method": "interaction test pressing the chord and reading the three tooltips",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3822,7 +3818,7 @@
       "cancellation": "The refresh checks the revision again after the parse and abandons a stale result.",
       "windows_path": "Direct port.",
       "verification_method": "interaction test asserting the tab appears after the first file-changing turn and not before",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3979,7 +3975,7 @@
       "cancellation": "not applicable",
       "windows_path": "Keep the exact key names and the per-field defaulting; a strict decoder would drop the user's history.",
       "verification_method": "restart test over documents missing each field in turn",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4006,7 +4002,7 @@
       "cancellation": "not applicable",
       "windows_path": "Keep the exact defaults key name; the settings store itself is a Windows decision but the key is not.",
       "verification_method": "restart test asserting the three values survive a relaunch",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4108,7 +4104,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port: pass \"--squash\" to glab.exe in this position, with no shell.",
       "verification_method": "contract fixture with a scripted glab shim recording its argv, asserting [\"mr\", \"merge\", \"<n>\", \"--yes\", \"--squash\", \"--remove-source-branch\"] on each attempt",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4135,7 +4131,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port. Do not add the flags to the agent prompt of PR-GIT-055, which is unchanged at B2.",
       "verification_method": "contract fixture as PR-GIT-159, plus a unit asserting the PR-GIT-055 GitLab paragraph still contains `glab mr merge <number> --yes` byte for byte",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4297,7 +4293,8 @@
         "DroppyCode/UI/Chrome/Chrome.swift:91-93",
         "B1:DroppyCode/UI/Common/ChatZoom.swift:54 - `case .footnote, .caption, .caption2: 10` (ED-059: upstream's table of the size each text style is laid out at)"
       ],
-      "notes": "The deletion marker is the Unicode minus sign, not a hyphen. This one component is reused by the popover header, every file card, the turn file card and the message editor. ED-059: .caption at 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54), set in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001."
+      "notes": "The deletion marker is the Unicode minus sign, not a hyphen. This one component is reused by the popover header, every file card, the turn file card and the message editor. ED-059: .caption at 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54), set in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-GIT-008",
@@ -4646,7 +4643,8 @@
         "decision": "OD-0005",
         "upstream": "`.glassEffect(.regular.interactive(), in: shape)` (DroppyCode/App/Views/Composer/ThreadChangesTab.swift:38), macOS Liquid Glass",
         "port": "Acrylic-class Windows system material where the window shows the desktop, without lensing, refraction or chromatic fringing; over the app's own content a shader reproduces the source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing"
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-GIT-024",

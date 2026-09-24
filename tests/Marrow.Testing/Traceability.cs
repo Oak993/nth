@@ -24,6 +24,8 @@ public static partial class Traceability
 
     [GeneratedRegex(@"\b(?:class|record)\s+(\w+)")] private static partial Regex TypeKeyword();
 
+    [GeneratedRegex(@"\A\[(?:assembly:\s*)?[A-Z][A-Za-z0-9_.]*\s*(?:\(|\]|\z)")] private static partial Regex AttributeStart();
+
     public static IEnumerable<MethodInfo> TestMethods(Assembly tests) =>
         tests.GetTypes()
             .SelectMany(t => t.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly))
@@ -112,7 +114,9 @@ public static partial class Traceability
             {
                 var line = lines[i].TrimStart();
                 if (line.StartsWith("//", StringComparison.Ordinal)) continue;
-                if (line.StartsWith('[') && !line.Contains(']', StringComparison.Ordinal))
+                // Only a line that opens an attribute counts (a capitalised name right after the bracket): a C# collection
+                // expression that starts a line, such as `[`, `["a",` or `[new(...)`, is not an attribute.
+                if (AttributeStart().IsMatch(line) && !line.Contains(']', StringComparison.Ordinal))
                     problems.Add($"{shortName}:{i + 1}: an attribute must fit on one line");
                 if (line.Contains("Trait(\"Req\"", StringComparison.Ordinal) && !line.StartsWith('['))
                     problems.Add($"{shortName}:{i + 1}: a Req trait must start its own attribute line");

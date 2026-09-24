@@ -22,7 +22,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A discriminated union (TypeScript) or sealed type with the same 31 members and the same payload names. Payload field names are part of the contract because adapters and the runtime are written against them.",
       "verification_method": "unit - exhaustiveness test asserting exactly 31 members, in declaration order, with the declared payload shapes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -46,7 +46,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Plain optional-field record. Do not collapse nil and empty string: applyToolUpdate distinguishes them for title.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -66,7 +66,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Record with the same defaults. The default matters: a synthesized spawn in the late-announcement path passes isBackground: false explicitly (PR-RUNTIME-105).",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -86,7 +86,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same record. antiSlopEnabled defaulting to true is load-bearing: a CLI session built without it still launches with the policy on.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -106,7 +106,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same record with the same defaults.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -126,7 +126,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same record.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -148,7 +148,7 @@
       "cancellation": "start(), send(), interrupt() and compact() are async and therefore cancellable by the caller's task; stop() is synchronous.",
       "windows_path": "Interface on the main/UI thread equivalent. The main-actor isolation is what makes the epoch guard in observe() safe without locking (PR-RUNTIME-043).",
       "verification_method": "contract fixture - a scripted stand-in session implementing the full surface",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -170,7 +170,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Default method on the interface, or an explicit false in a base class. Do not make it throw.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -192,7 +192,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep the arrow character and the Settings path wording exactly; the Windows settings window uses the same page names.",
       "verification_method": "unit - exact string comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -214,7 +214,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep the backticks. The Windows loginCommand values come from the provider table, not from this file.",
       "verification_method": "unit - exact string comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -236,7 +236,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same literal.",
       "verification_method": "unit - exact string comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -256,7 +256,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Do not add an error code, a provider name or a prefix.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -278,7 +278,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep all six POSIX prefixes verbatim even on Windows: they appear in output produced by providers running through their own shells and in recorded fixtures. UNK-0005 is marked resolved by OD-0008 C5, which rules the shell of the app's own terminal tabs and project scripts (PowerShell 7 when installed, otherwise Windows PowerShell), not the shells providers run their commands in; that ruling adds no prefix to this table, so the six POSIX prefixes stay the whole list.",
       "verification_method": "unit - table test over all six prefixes, both quote characters and the escape sequence",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -301,7 +301,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Platform boundary: on Windows the separator is a backslash and the file system is case-insensitive, so a literal port of this byte-prefix test will fail to shorten paths it should. The port must decide the separator and case policy once and apply it here and in TouchedPaths.relative together; record the departure.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -323,7 +323,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Split on \\n only, not on \\r\\n: a CRLF diff leaves a trailing \\r on every line, which does not change the prefix test.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -343,12 +343,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same record. The id must stay a free-form string; provider ids are not UUIDs.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-043",
-      "rework": true
+      "implemented_by_task": "T-M2-043"
     },
     {
       "id": "PR-RUNTIME-017",
@@ -366,12 +365,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same five literals.",
       "verification_method": "unit - exact string comparison per kind",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-043",
-      "rework": true
+      "implemented_by_task": "T-M2-043"
     },
     {
       "id": "PR-RUNTIME-018",
@@ -389,13 +387,12 @@
       "cancellation": "not cancellable",
       "windows_path": "Platform boundary: SF Symbols cannot ship on Windows. The port keeps the five-way mapping and, under OD-0010, shows for each identifier its Lucide icon (ISC licence) from the published symbol-by-symbol table, one for one, holding the same semantic per kind; the glyph artwork is an owner-approved deviation, not parity.",
       "verification_method": "unit for the mapping; capture comparison for the glyph is blocked by UNK-0003; the Lucide glyph for each identifier is checked against the published OD-0010 table",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
       "implemented_by_task": "T-M2-043",
-      "b2_change": "No source change: Requests.swift is the same at B1 and B2. Owner ruling applied in this refresh: OD-0010 (Lucide) closes the icon half of UNK-0007 (unknowns.md marks UNK-0007 RESOLVED), so depends_on_unknown is cleared and windows_path names the Lucide table.",
-      "rework": true
+      "b2_change": "No source change: Requests.swift is the same at B1 and B2. Owner ruling applied in this refresh: OD-0010 (Lucide) closes the icon half of UNK-0007 (unknowns.md marks UNK-0007 RESOLVED), so depends_on_unknown is cleared and windows_path names the Lucide table."
     },
     {
       "id": "PR-RUNTIME-019",
@@ -412,12 +409,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same four roles. Note that approveAlways does NOT count as approve for the plan-state write; reproduce that.",
       "verification_method": "unit - one case per role",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-043",
-      "rework": true
+      "implemented_by_task": "T-M2-043"
     },
     {
       "id": "PR-RUNTIME-020",
@@ -435,13 +431,12 @@
       "cancellation": "not cancellable",
       "windows_path": "Same records. isSecret maps to a masked input, as QuestionTab.swift:231-232 shows it in a SecureField(\"Your answer\"). The pinned source states no logging rule for the value, so none is part of this record.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
       "implemented_by_task": "T-M2-043",
-      "spec_fix": "Evidence cited Requests.swift:56-77, but the pinned file has 74 lines -> the doc comment is :55 and QuestionRequest spans :56-74 (Requests.swift at 1fbf81e, wc -l 74); the Windows path said the isSecret value must not be written to any log -> the source only masks the input (QuestionTab.swift:231-232 SecureField(\"Your answer\", text: binding)) and states no logging rule, so that clause is removed as unsupported parity.",
-      "rework": true
+      "spec_fix": "Evidence cited Requests.swift:56-77, but the pinned file has 74 lines -> the doc comment is :55 and QuestionRequest spans :56-74 (Requests.swift at 1fbf81e, wc -l 74); the Windows path said the isSecret value must not be written to any log -> the source only masks the input (QuestionTab.swift:231-232 SecureField(\"Your answer\", text: binding)) and states no logging rule, so that clause is removed as unsupported parity."
     },
     {
       "id": "PR-RUNTIME-021",
@@ -3376,7 +3371,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the byte-versus-character mismatch: a UTF-8-heavy output is trimmed to more than 30000 bytes on purpose, because that is what the source does.",
       "verification_method": "unit - ASCII and multi-byte fixtures at the boundary",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4008,7 +4003,7 @@
       "cancellation": "not cancellable",
       "windows_path": "48000, 4000, the 32 floor, the 400 floor and the two-character separators are all exact. Count characters, not UTF-16 units.",
       "verification_method": "unit - fixtures at each boundary, plus a re-capture of an already-captured snapshot",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4029,7 +4024,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Attachment paths go into the snapshot verbatim and will carry Windows separators.",
       "verification_method": "unit - exact string comparison, with and without attachments, above and below the limit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4049,7 +4044,7 @@
       "cancellation": "not cancellable",
       "windows_path": "This is a prompt the model reads; the second line is a prompt-injection guard and must not be reworded.",
       "verification_method": "unit - exact string comparison for all four conditional combinations",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4070,7 +4065,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The double optional is essential; a port using a plain nullable date cannot distinguish 'no note' from 'note without a time'.",
       "verification_method": "unit - four-way table",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4093,7 +4088,7 @@
       "cancellation": "The previous wait is cancelled here; the new one is cancellable only through this same path, since the user-facing cancel affordance does not ship (dead_code.md items 21 and 22).",
       "windows_path": "port_impacts.md entry 102: reproduce process-lifetime waits with no persistence, no cancel on delete and no relaunch recovery, and with the notice text surviving on disk.",
       "verification_method": "unit - the note is consumed on every path; the chime is suppressed only when a wait starts",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4115,7 +4110,7 @@
       "cancellation": "A cancelled or superseded wait returns before the notice.",
       "windows_path": "Two distinct literals; they are not the same sentence.",
       "verification_method": "unit - exact string comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4139,7 +4134,7 @@
       "cancellation": "The await is cancellable.",
       "windows_path": "95 is exact. Reading the key must go through the secret store; never read a provider credential file directly.",
       "verification_method": "unit with a stubbed PlanLimitsReader",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4163,7 +4158,7 @@
       "cancellation": "The sleep is cancellable; on waking the token is re-checked.",
       "windows_path": "60 seconds and the five-second floor are exact. The formatter is shared with the provider sessions through UsageLimitSignal.format so the times read the same everywhere.",
       "verification_method": "unit with an injected clock and exact string comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4188,7 +4183,7 @@
       "cancellation": "The token check is the cancellation test.",
       "windows_path": "The message is verbatim and identical for every provider. The find-by-text lookup is fragile but is the shipped behavior.",
       "verification_method": "integration test with an injected clock",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4213,7 +4208,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the narrower visibility test; do not substitute AppModel's.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5613,7 +5608,7 @@
       "cancellation": "not cancellable",
       "windows_path": "All six gates are in one guard and are order-independent apart from the two optional bindings; reproduce each as a separate testable condition.",
       "verification_method": "unit - a negative case for this gate alone, with the other five satisfied",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5634,7 +5629,7 @@
       "cancellation": "not cancellable",
       "windows_path": "All six gates are in one guard and are order-independent apart from the two optional bindings; reproduce each as a separate testable condition.",
       "verification_method": "unit - a negative case for this gate alone, with the other five satisfied",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5655,7 +5650,7 @@
       "cancellation": "not cancellable",
       "windows_path": "All six gates are in one guard and are order-independent apart from the two optional bindings; reproduce each as a separate testable condition.",
       "verification_method": "unit - a negative case for this gate alone, with the other five satisfied",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5676,7 +5671,7 @@
       "cancellation": "not cancellable",
       "windows_path": "All six gates are in one guard and are order-independent apart from the two optional bindings; reproduce each as a separate testable condition.",
       "verification_method": "unit - a negative case for this gate alone, with the other five satisfied",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5697,7 +5692,7 @@
       "cancellation": "not cancellable",
       "windows_path": "All six gates are in one guard and are order-independent apart from the two optional bindings; reproduce each as a separate testable condition.",
       "verification_method": "unit - a negative case for this gate alone, with the other five satisfied",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5718,7 +5713,7 @@
       "cancellation": "not cancellable",
       "windows_path": "All six gates are in one guard and are order-independent apart from the two optional bindings; reproduce each as a separate testable condition.",
       "verification_method": "unit - a negative case for this gate alone, with the other five satisfied",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -6052,27 +6047,25 @@
     },
     {
       "id": "PR-RUNTIME-264",
-      "title": "A turn's change summary is stored as FileChangeSummary: per-file path, additions, deletions and isBinary, plus the two totals",
+      "title": "FileChangeSummary is stored with Swift's synthesized keys: per-file path, additions, deletions and isBinary, plus files and the two totals",
       "source_evidence": [
         "DroppyCode/Core/Models/FileChangeSummary.swift:3-15 - the comment \"What a turn changed, file by file, as the timeline and the changes tab show it.\"; struct FileChangeSummary: Codable, Hashable, Sendable { struct File: Codable, Hashable, Sendable { var path: String; var additions: Int; var deletions: Int; var isBinary: Bool }; let files: [File]; let additions: Int; let deletions: Int }",
-        "DroppyCode/Core/Models/Timeline.swift:259-267 struct TurnSummary - turnID, status, duration, filesChanged, additions, deletions, var changes: FileChangeSummary?",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:2384-2395 finishTurn - let changes = FileChangeSummary(files: await parsedDiff(selection: turnID, providerFiles: providerFiles)); TurnSummary(..., filesChanged: changes.files.count, additions: changes.additions, deletions: changes.deletions, changes: changes); append(TimelineItem(turnID: turnID, content: .turnEnd(summary)))",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:609 install - a synthetic end marker is built with changes: nil",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:3751-3757 storeLegacyChanges - fills summary.changes only when it is nil"
+        "DroppyCode/Core/Support/Coding.swift:19-25 JSONEncoder.storage - .iso8601 dates, .sortedKeys"
       ],
       "preconditions": "A turn ends, or a stored turn is shown.",
       "action": "The turn-end row's summary is written or read.",
-      "expected_result": "FileChangeSummary uses Swift's synthesized Codable, so it is stored with exactly the keys files, additions and deletions, and each file with path, additions, deletions and isBinary. finishTurn stores the parsed diff's summary as TurnSummary.changes on the turn-end row and copies its file count and totals into filesChanged, additions and deletions. A synthetic end marker written by install carries changes nil; storeLegacyChanges fills changes later, only while it is still nil. The row is part of ThreadDocument.items, so the summary is on disk and a reopened thread reads it instead of running git again.",
+      "expected_result": "FileChangeSummary uses Swift's synthesized Codable and Hashable, so it is stored with exactly the keys files, additions and deletions, and each file with exactly path, additions, deletions and isBinary. Every key is required on decode, and the totals are stored as given (the memberwise init; the summing init(files:) is PR-GIT-092). Where it is stored: TurnSummary.changes on the turn-end row, PR-CHAT-012. Who writes it: finishTurn, PR-RUNTIME-121; install's nil marker, PR-RUNTIME-161; the legacy back-fill, PR-RUNTIME-200. A summary that fails to decode fails its TimelineItem, which ThreadDocument drops through Lenient (Timeline.swift:356-365, PR-CHAT-019); the thread still opens.",
       "side_effects": [],
-      "persistence": "ThreadDocument.items, inside the .turnEnd row's TurnSummary.changes.",
+      "persistence": "Inside ThreadDocument.items as TurnSummary.changes (PR-CHAT-012); this record fixes only the summary's own keys.",
       "failure_cases": [],
       "cancellation": "not cancellable",
       "windows_path": "Keep these key names; the thread file is the compatibility surface for an existing installation. How the summary is computed from a diff is PR-GIT-092.",
-      "verification_method": "contract fixture - round-trip a turn-end row with a two-file summary, one of them binary, and assert the exact keys",
-      "status": "SPECIFIED",
+      "verification_method": "contract fixture - encode a two-file summary, one of them binary, with JSONEncoder.storage, assert the exact bytes and keys, and decode it back equal",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "spec_fix": "Narrowed by the ruling on STOP Core.Models.FileChangeSummary #1 (2026-09-23): the turn-end-row round trip and the nil cases moved to PR-CHAT-012; finishTurn, install's nil marker and storeLegacyChanges are PR-RUNTIME-121, -161 and -200; this record keeps FileChangeSummary.swift:3-15."
     }
   ],
   "ui": [
@@ -6186,11 +6179,12 @@
         "None on the headline itself."
       ],
       "source_evidence": [
-        "DroppyCode/Core/Models/Requests.swift:34-52 headline and symbol",
-        "DroppyCode/App/Views/Composer/RequestCards.swift:3-65 ApprovalCard"
+        "DroppyCode/App/Views/Composer/RequestCards.swift:3-65 ApprovalCard (headline row :8-15, card padding and glass :62-64)",
+        "DroppyCode/Core/Models/Requests.swift:34-52 headline and symbol"
       ],
       "notes": "The five icons are SF Symbols \"terminal\", \"doc.badge.plus\", \"wrench.and.screwdriver\", \"lock.shield\" and \"checklist\"; icons follow OD-0010 (SF Symbols map to Lucide through the published symbol-by-symbol table, one for one). Glass: OD-0005 applies (Acrylic where the window shows the desktop; where the app draws its own backdrop, a shader reproducing the full source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing); an owner-approved deviation, not parity.",
-      "b2_change": "The flagged range RequestCards.swift:3-65 changed only at :28, :37 and :43 (.secondary -> Chrome.secondaryText on the plan body, the detail and the reason; the plan body is UI-RUNTIME-007). The headline, icon, geometry and glass tint this record states are unchanged. The typography note no longer contrasts the headline with a chat-zoomed font, because B2 removed chat zoom (UI/Common/ChatFont.swift:4-10). Owner rulings applied in this refresh: the glass note states OD-0005 in the ruling's words and as an owner-approved deviation, the icons follow OD-0010 (Lucide) in place of the open UNK-0007, and the face follows OD-0009 (Inter)."
+      "b2_change": "The flagged range RequestCards.swift:3-65 changed only at :28, :37 and :43 (.secondary -> Chrome.secondaryText on the plan body, the detail and the reason; the plan body is UI-RUNTIME-007). The headline, icon, geometry and glass tint this record states are unchanged. The typography note no longer contrasts the headline with a chat-zoomed font, because B2 removed chat zoom (UI/Common/ChatFont.swift:4-10). Owner rulings applied in this refresh: the glass note states OD-0005 in the ruling's words and as an owner-approved deviation, the icons follow OD-0010 (Lucide) in place of the open UNK-0007, and the face follows OD-0009 (Inter).",
+      "spec_fix": "The first source_evidence was Requests.swift, so plan_units.py and gen_tasks.mjs assigned this view record to Core.Models.Requests, whose Marrow.Core tests cannot reach the card. RequestCards.swift is now first, which moves the record to App.Views.Composer.RequestCards beside UI-RUNTIME-006..008. The headline strings and symbol names stay proven at the model by PR-RUNTIME-017 and PR-RUNTIME-018."
     },
     {
       "id": "UI-RUNTIME-006",
@@ -6433,7 +6427,8 @@
       "source_evidence": [
         "DroppyCode/App/Runtime/AutoContinue.swift:95, :104, :150-155"
       ],
-      "notes": "These two bodies are distinct from the two timeline notice texts the same code writes (\"Usage limit reached. Continuing automatically at <time>.\" and \"Usage limit reached, and the provider did not say when it resets. Send a message to continue.\"); all four are separate literals and none may be reused for another."
+      "notes": "These two bodies are distinct from the two timeline notice texts the same code writes (\"Usage limit reached. Continuing automatically at <time>.\" and \"Usage limit reached, and the provider did not say when it resets. Send a message to continue.\"); all four are separate literals and none may be reused for another.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-RUNTIME-017",
@@ -6789,7 +6784,8 @@
         "DroppyCode/App/Runtime/AutoContinue.swift:94 - notice(threadID, .warning, \"Usage limit reached, and the provider did not say when it resets. Send a message to continue.\")"
       ],
       "notes": "Split out of UI-RUNTIME-002. Its paired system notification is a DIFFERENT string, \"Usage limit reached. Send a message to continue.\" (AutoContinue.swift:95).",
-      "b2_change": "Typography restated from the notice row: B1 TimelineRows.swift:2413 `.font(.chat(.callout, zoom: zoom))`; B2 :2397 `.font(.chat(.callout))`, and Font.chat takes no zoom (UI/Common/ChatFont.swift:6-10). Text, geometry and colours unchanged. Owner rulings applied in this refresh: the face follows OD-0009 (Inter)."
+      "b2_change": "Typography restated from the notice row: B1 TimelineRows.swift:2413 `.font(.chat(.callout, zoom: zoom))`; B2 :2397 `.font(.chat(.callout))`, and Font.chat takes no zoom (UI/Common/ChatFont.swift:6-10). Text, geometry and colours unchanged. Owner rulings applied in this refresh: the face follows OD-0009 (Inter).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-RUNTIME-034",

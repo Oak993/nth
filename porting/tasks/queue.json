@@ -184,7 +184,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -210,7 +210,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -236,7 +236,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -262,7 +262,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -288,7 +288,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -314,7 +314,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -340,7 +340,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -366,7 +366,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -392,7 +392,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -418,7 +418,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -435,7 +435,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -461,7 +461,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -484,7 +484,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -510,7 +510,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -532,7 +532,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -558,7 +558,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -584,7 +584,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -610,7 +610,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -636,7 +636,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -662,7 +662,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -680,7 +680,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -701,7 +701,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": "codex-direct",
       "notes": "2026-09-22 TESTS_REVIEW: Read all 263 MCP.swift lines. Latest diff only replaces whitespace trim with Text.swift:132 identical helper. Tests cover PR-MCP-038..047 including ordered fill, host normalization, transport isolation, strict wire schema. Services resolver takes lazy route supplier; proxy lifecycle remains its Services packet. | 2026-09-22 DONE: Director-reviewed PR-MCP-038..047; 99 tests pass, A12 B8 quarantine and protected pass. Latest MCP diff is identical Text.trimmed helper. Added strict connection JSON and Swift collection value semantics after 3 observed failures. Services resolver uses lazy proxy URL supplier (V1); real proxy port persistence and UI/restart integration remain their later packets. Approved tests unchanged."
     },
@@ -727,7 +727,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -747,7 +747,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": "codex-direct",
       "notes": "2026-09-22 TESTS_REVIEW: Frozen PR-MCP-001..010 Expected rows reviewed against all source fields. Fixture covers defaults and order, exact glyph text and hex colors, profile-root adaptation, Bearer-space contract. | 2026-09-22 DONE: PR-MCP-001..010 complete frozen Expected fixtures match all catalog fields; 102 tests pass A12 B8 quarantine protected. No servers contacted/launched. Catalog source identical at latest SHA. Actual connect/probe/secret storage remains Services work. Director reviewed generated C# against source and independent test fixture; tests unchanged."
     },
@@ -773,7 +773,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": "codex-direct",
       "notes": "2026-09-22 TESTS_REVIEW: PR-MCP-011..020 complete Expected table independently frozen and reviewed; both new tests red against 10-entry baseline. Exact strings, case, OAuth URLs, fields and env verified against source. | 2026-09-22 DONE: PR-MCP-011..020 complete independent catalog fixtures, Slack literal env behavior. Director diff review passed; approved tests unchanged. 104 tests pass, A12 B8 quarantine protected. Static metadata only; no external connections or messages."
     },
@@ -799,7 +799,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": "codex-direct",
       "notes": "2026-09-22 TESTS_REVIEW: Independent complete Expected table for PR-MCP-021..030 and argument/env fixtures reviewed against Swift; two expected failures before entries exist. | 2026-09-22 DONE: PR-MCP-021..030 exact catalog fixtures and synthetic DB argv/env contracts, 106 tests passed. Director reviewed source diff; approved fixtures unchanged. Stripe challenge-parser integration remains OAuth Services packet; no network/process/database actions."
     },
@@ -825,7 +825,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": "codex-direct",
       "notes": "2026-09-22 TESTS_REVIEW: Reviewed PR-MCP-031..037 corrected against source. Final three complete fixtures, exact33 IDs/14 OAuth, positive name fallback and negative no-trim cases, seven category memberships. Expected missing-API compile failures observed before implementation. | 2026-09-22 DONE: PR-MCP-031..037: all33 frozen rows, ordered IDs,14 OAuth,exact lookup,normalized name fallback,categories;124 tests pass. Source/spec contradiction fixed before tests. Director diff reviewed,approved tests unchanged. Provider config omission behavior remains later Services integration."
     },
@@ -848,7 +848,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -874,7 +874,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": "codex-direct",
       "notes": "2026-09-22 TESTS_REVIEW: PR-GIT-052..055 reviewed against all62 Swift lines at both source-identical snapshots.21 cases cover asymmetric matching, first invalid GitLab marker fallback, Int64 limits and three independent exact prompt fixtures. Red build missing type observed. | 2026-09-22 DONE: Director reviewed all matching branches and all prompt characters against Swift. A12 B8 quarantine pass;48 tests none failed/skipped. No forge commands executed. URI boundary uses .NET Uri; macOS runtime comparison remains part of full acceptance."
     },
@@ -894,7 +894,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -920,7 +920,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -946,7 +946,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -972,7 +972,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -998,7 +998,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -1024,7 +1024,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -1050,7 +1050,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -1076,7 +1076,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -1102,7 +1102,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -1128,7 +1128,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -1151,7 +1151,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -1168,7 +1168,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -1185,7 +1185,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": "codex-direct",
       "notes": "2026-09-22 DONE: 78 tests pass; five exact headlines and symbol identifiers, provider IDs and fields, four role identities, questions and structural equality. Swift Requests.swift unchanged in 417ab7d3. Runtime plan resolution and masked UI belong to later packets; licensed glyphs await UNK-0007. Director diff review passed, approved tests unchanged."
     },
@@ -1206,29 +1206,12 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
     {
       "id": "T-M2-045",
-      "milestone": "M2",
-      "source": "DroppyCode/Core/Models/Requests.swift",
-      "target": "src/Marrow.Core/Models/Requests.cs",
-      "risk": "STANDARD",
-      "requirements": [],
-      "ui": [
-        "UI-RUNTIME-005"
-      ],
-      "quarantined": [],
-      "needs_desktop": false,
-      "kind": "ui",
-      "status": "TODO",
-      "assignee": null,
-      "notes": ""
-    },
-    {
-      "id": "T-M2-046",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/Shortcuts.swift",
       "target": "src/Marrow.Core/Models/Shortcuts.cs",
@@ -1249,12 +1232,12 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
     {
-      "id": "T-M2-047",
+      "id": "T-M2-046",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/Shortcuts.swift",
       "target": "src/Marrow.Core/Models/Shortcuts.cs",
@@ -1275,12 +1258,12 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
     {
-      "id": "T-M2-048",
+      "id": "T-M2-047",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/Shortcuts.swift",
       "target": "src/Marrow.Core/Models/Shortcuts.cs",
@@ -1301,12 +1284,12 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
     {
-      "id": "T-M2-049",
+      "id": "T-M2-048",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/Shortcuts.swift",
       "target": "src/Marrow.Core/Models/Shortcuts.cs",
@@ -1327,12 +1310,12 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
     {
-      "id": "T-M2-050",
+      "id": "T-M2-049",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/Shortcuts.swift",
       "target": "src/Marrow.Core/Models/Shortcuts.cs",
@@ -1353,12 +1336,12 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
     {
-      "id": "T-M2-051",
+      "id": "T-M2-050",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/Shortcuts.swift",
       "target": "src/Marrow.Core/Models/Shortcuts.cs",
@@ -1379,12 +1362,12 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
     {
-      "id": "T-M2-052",
+      "id": "T-M2-051",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/Shortcuts.swift",
       "target": "src/Marrow.Core/Models/Shortcuts.cs",
@@ -1398,12 +1381,12 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
     {
-      "id": "T-M2-053",
+      "id": "T-M2-052",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/Shortcuts.swift",
       "target": "src/Marrow.Core/Models/Shortcuts.cs",
@@ -1416,12 +1399,12 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
     {
-      "id": "T-M2-054",
+      "id": "T-M2-053",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/ThreadContinuation.swift",
       "target": "src/Marrow.Core/Models/ThreadContinuation.cs",
@@ -1435,12 +1418,12 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
     {
-      "id": "T-M2-055",
+      "id": "T-M2-054",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/Timeline.swift",
       "target": "src/Marrow.Core/Models/Timeline.cs",
@@ -1461,12 +1444,12 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
     {
-      "id": "T-M2-056",
+      "id": "T-M2-055",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/Timeline.swift",
       "target": "src/Marrow.Core/Models/Timeline.cs",
@@ -1487,12 +1470,12 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
     {
-      "id": "T-M2-057",
+      "id": "T-M2-056",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/Timeline.swift",
       "target": "src/Marrow.Core/Models/Timeline.cs",
@@ -1508,12 +1491,12 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
     {
-      "id": "T-M2-058",
+      "id": "T-M2-057",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/TokenSpend.swift",
       "target": "src/Marrow.Core/Models/TokenSpend.cs",
@@ -1527,12 +1510,12 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
     {
-      "id": "T-M2-059",
+      "id": "T-M2-058",
       "milestone": "M2",
       "source": "DroppyCode/Core/Support/Coding.swift",
       "target": "src/Marrow.Core/Support/Coding.cs",
@@ -1546,12 +1529,12 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
-      "assignee": "codex-direct",
-      "notes": "2026-09-22 TESTS_REVIEW: All34 Swift lines read at both identical snapshots. Tests reviewed for recursive sorted compact JSON, escaped slashes, UTC date seconds, strict invalid dates, lazy missing/null/type fallback and shared immutable options. macOS-produced byte oracle unavailable; full parity remains unverified. | 2026-09-22 DONE: Director final review matched field defaults, shared codec lifetime, sorted compact slash-escaped storage and ISO8601. Added independent integer regression fixtures after checking swift-foundation6.0;4 initially failed then fixed production only.70 tests zero skipped, gates A12 B8 quarantine pass. macOS byte/capture oracle still unavailable."
+      "status": "DONE",
+      "assignee": null,
+      "notes": ""
     },
     {
-      "id": "T-M2-060",
+      "id": "T-M2-059",
       "milestone": "M2",
       "source": "DroppyCode/Core/Support/HangWatchdog.swift",
       "target": "src/Marrow.Core/Support/HangWatchdog.cs",
@@ -1570,12 +1553,12 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
-      "assignee": null,
-      "notes": ""
+      "status": "DONE",
+      "assignee": "codex-direct",
+      "notes": "2026-09-22 TESTS_REVIEW: All34 Swift lines read at both identical snapshots. Tests reviewed for recursive sorted compact JSON, escaped slashes, UTC date seconds, strict invalid dates, lazy missing/null/type fallback and shared immutable options. macOS-produced byte oracle unavailable; full parity remains unverified. | 2026-09-22 DONE: Director final review matched field defaults, shared codec lifetime, sorted compact slash-escaped storage and ISO8601. Added independent integer regression fixtures after checking swift-foundation6.0;4 initially failed then fixed production only.70 tests zero skipped, gates A12 B8 quarantine pass. macOS byte/capture oracle still unavailable."
     },
     {
-      "id": "T-M2-061",
+      "id": "T-M2-060",
       "milestone": "M2",
       "source": "DroppyCode/Core/Support/HangWatchdog.swift",
       "target": "src/Marrow.Core/Support/HangWatchdog.cs",
@@ -1587,12 +1570,12 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
     {
-      "id": "T-M2-062",
+      "id": "T-M2-061",
       "milestone": "M2",
       "source": "DroppyCode/Core/Support/ISO8601.swift",
       "target": "src/Marrow.Core/Support/ISO8601.cs",
@@ -1606,12 +1589,12 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
     {
-      "id": "T-M2-063",
+      "id": "T-M2-062",
       "milestone": "M2",
       "source": "DroppyCode/Core/Support/JSONRPC.swift",
       "target": "src/Marrow.Core/Support/JSONRPC.cs",
@@ -1631,12 +1614,12 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
     {
-      "id": "T-M2-064",
+      "id": "T-M2-063",
       "milestone": "M2",
       "source": "DroppyCode/Core/Support/JSONRPC.swift",
       "target": "src/Marrow.Core/Support/JSONRPC.cs",
@@ -1648,12 +1631,12 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
     {
-      "id": "T-M2-065",
+      "id": "T-M2-064",
       "milestone": "M2",
       "source": "DroppyCode/Core/Support/JSONValue.swift",
       "target": "src/Marrow.Core/Support/JSONValue.cs",
@@ -1672,12 +1655,12 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
     {
-      "id": "T-M2-066",
+      "id": "T-M2-065",
       "milestone": "M2",
       "source": "DroppyCode/Core/Support/ObservedValue.swift",
       "target": "src/Marrow.Core/Support/ObservedValue.cs",
@@ -1689,12 +1672,12 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
-      "assignee": "codex-direct",
-      "notes": "2026-09-22 TESTS_REVIEW: Director reviewed PR-STORE-053..058 against all57 source lines; tests cover generation rollover, promotion with original cost, eviction-before-rejection, clamping, replacement and refunds. Swift file unchanged at417ab7d3. Expected red build CS0234 missing Support. | 2026-09-22 DONE: All6 requirements implemented; reviewed source ordering and both cost counters. A12 B8 quarantine pass;27 tests zero failed/skipped. Try/out API preserves missing generic values; caller owns mutable cache and synchronization. Evidence main-T-M2-066-gates-1790045097121.json."
+      "status": "DONE",
+      "assignee": null,
+      "notes": ""
     },
     {
-      "id": "T-M2-067",
+      "id": "T-M2-066",
       "milestone": "M2",
       "source": "DroppyCode/Core/Support/RecentCache.swift",
       "target": "src/Marrow.Core/Support/RecentCache.cs",
@@ -1712,11 +1695,11 @@
       "needs_desktop": false,
       "kind": "behaviour",
       "status": "DONE",
-      "assignee": null,
-      "notes": ""
+      "assignee": "codex-direct",
+      "notes": "2026-09-22 TESTS_REVIEW: Director reviewed PR-STORE-053..058 against all57 source lines; tests cover generation rollover, promotion with original cost, eviction-before-rejection, clamping, replacement and refunds. Swift file unchanged at417ab7d3. Expected red build CS0234 missing Support. | 2026-09-22 DONE: All6 requirements implemented; reviewed source ordering and both cost counters. A12 B8 quarantine pass;27 tests zero failed/skipped. Try/out API preserves missing generic values; caller owns mutable cache and synchronization. Evidence main-T-M2-066-gates-1790045097121.json."
     },
     {
-      "id": "T-M2-068",
+      "id": "T-M2-067",
       "milestone": "M2",
       "source": "DroppyCode/Core/Support/Shell.swift",
       "target": "src/Marrow.Core/Support/Shell.cs",
@@ -1737,12 +1720,12 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
     {
-      "id": "T-M2-069",
+      "id": "T-M2-068",
       "milestone": "M2",
       "source": "DroppyCode/Core/Support/Shell.swift",
       "target": "src/Marrow.Core/Support/Shell.cs",
@@ -1763,12 +1746,12 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
     {
-      "id": "T-M2-070",
+      "id": "T-M2-069",
       "milestone": "M2",
       "source": "DroppyCode/Core/Support/Shell.swift",
       "target": "src/Marrow.Core/Support/Shell.cs",
@@ -1789,12 +1772,12 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
     {
-      "id": "T-M2-071",
+      "id": "T-M2-070",
       "milestone": "M2",
       "source": "DroppyCode/Core/Support/Shell.swift",
       "target": "src/Marrow.Core/Support/Shell.cs",
@@ -1808,12 +1791,12 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
-      "assignee": "codex-direct",
-      "notes": "2026-09-22 TESTS_REVIEW: Director reviewed fixtures against all 81 Swift lines and PR-PROVACP-149..153; initial run failed CS0246/CS0103 because implementation is absent. Swift split and whitespace semantics cross-checked in primary library source. | 2026-09-22 DONE: 53 source-derived tests pass; solution 188/188; A/B/protected/quarantine and build/test floor pass. Director tests review and separate adversarial diff review only: GLM bypassed by explicit owner instruction. Review found U+200B whitespace mismatch, fixed after separately committed regression. Unchanged source blob in upstream 417ab7d3. No invented user-visible strings/numbers; no macOS runtime oracle."
+      "status": "DONE",
+      "assignee": null,
+      "notes": ""
     },
     {
-      "id": "T-M2-072",
+      "id": "T-M2-071",
       "milestone": "M2",
       "source": "DroppyCode/Core/Support/StdioFramer.swift",
       "target": "src/Marrow.Core/Support/StdioFramer.cs",
@@ -1829,12 +1812,12 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
-      "assignee": null,
-      "notes": ""
+      "status": "DONE",
+      "assignee": "codex-direct",
+      "notes": "2026-09-22 TESTS_REVIEW: Director reviewed fixtures against all 81 Swift lines and PR-PROVACP-149..153; initial run failed CS0246/CS0103 because implementation is absent. Swift split and whitespace semantics cross-checked in primary library source. | 2026-09-22 DONE: 53 source-derived tests pass; solution 188/188; A/B/protected/quarantine and build/test floor pass. Director tests review and separate adversarial diff review only: GLM bypassed by explicit owner instruction. Review found U+200B whitespace mismatch, fixed after separately committed regression. Unchanged source blob in upstream 417ab7d3. No invented user-visible strings/numbers; no macOS runtime oracle."
     },
     {
-      "id": "T-M2-073",
+      "id": "T-M2-072",
       "milestone": "M2",
       "source": "DroppyCode/Core/Support/StdioProcess.swift",
       "target": "src/Marrow.Core/Support/StdioProcess.cs",
@@ -1855,12 +1838,12 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
     {
-      "id": "T-M2-074",
+      "id": "T-M2-073",
       "milestone": "M2",
       "source": "DroppyCode/Core/Support/StdioProcess.swift",
       "target": "src/Marrow.Core/Support/StdioProcess.cs",
@@ -1880,12 +1863,12 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
     {
-      "id": "T-M2-075",
+      "id": "T-M2-074",
       "milestone": "M2",
       "source": "DroppyCode/Core/Support/SwitchLatency.swift",
       "target": "src/Marrow.Core/Support/SwitchLatency.cs",
@@ -1897,12 +1880,12 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
-      "assignee": "codex-direct",
-      "notes": "2026-09-22 TESTS_REVIEW: Reviewed eight pure-helper requirements PR-STORE-105..112 against all 129 Swift lines; AppInfo PR-STORE-008/009 remain pending. Tests independently cover exact hunks, UTF8 cap boundaries, grapheme lengths, ANSI pattern, prescan and throughput. | 2026-09-22 DONE: All ten requirements reviewed against Text.swift 1..129 and project.yml metadata. 47 packet tests plus one MCP regression; solution 236 passing. Preserves UTF8 prescan, graphemes, fixed ANSI pattern semantics, 120/119 ellipsis, 200000 input cap and source diff quirks. AssemblyMetadata adapter uses source keys and Debug/Release build channel; OD-0002 Marrow rename. Existing seven runtime call sites await their own packets. Latest Text.swift adds only trimmed helper, no change to covered logic. Self-review caught Swift regex normalization mismatch; separate failing tests committed before fix."
+      "status": "DONE",
+      "assignee": null,
+      "notes": ""
     },
     {
-      "id": "T-M2-076",
+      "id": "T-M2-075",
       "milestone": "M2",
       "source": "DroppyCode/Core/Support/Text.swift",
       "target": "src/Marrow.Core/Support/Text.cs",
@@ -1923,12 +1906,12 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": "codex-direct",
-      "notes": "2026-09-22 TESTS_REVIEW: Reviewed exact Text.swift 114..129 convenience construction and nilIfEmpty, plus unchanged Timeline.swift 170..175 carrier fields. Tests cover source hunk, >200000 cap, no trimming, same-object strings and strict Codable carrier shape. | 2026-09-22 DONE: 15 tests pass; source convenience initializer computes stats once and preserves path; nilIfEmpty preserves all nonempty strings. Minimal FileEdit carrier read from Timeline.swift 170..175, unchanged by latest diff. Exact JSON field keys, strict nonoptional decoding and nil diff omission covered. Director source/diff review; no tests modified after approval. 251 total tests, protected/A/B/quarantine and build floor pass; integration remains unverified."
+      "notes": "2026-09-22 TESTS_REVIEW: Reviewed eight pure-helper requirements PR-STORE-105..112 against all 129 Swift lines; AppInfo PR-STORE-008/009 remain pending. Tests independently cover exact hunks, UTF8 cap boundaries, grapheme lengths, ANSI pattern, prescan and throughput. | 2026-09-22 DONE: All ten requirements reviewed against Text.swift 1..129 and project.yml metadata. 47 packet tests plus one MCP regression; solution 236 passing. Preserves UTF8 prescan, graphemes, fixed ANSI pattern semantics, 120/119 ellipsis, 200000 input cap and source diff quirks. AssemblyMetadata adapter uses source keys and Debug/Release build channel; OD-0002 Marrow rename. Existing seven runtime call sites await their own packets. Latest Text.swift adds only trimmed helper, no change to covered logic. Self-review caught Swift regex normalization mismatch; separate failing tests committed before fix."
     },
     {
-      "id": "T-M2-077",
+      "id": "T-M2-076",
       "milestone": "M2",
       "source": "DroppyCode/Core/Support/Text.swift",
       "target": "src/Marrow.Core/Support/Text.cs",
@@ -1943,12 +1926,12 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
-      "assignee": null,
-      "notes": ""
+      "status": "DONE",
+      "assignee": "codex-direct",
+      "notes": "2026-09-22 TESTS_REVIEW: Reviewed exact Text.swift 114..129 convenience construction and nilIfEmpty, plus unchanged Timeline.swift 170..175 carrier fields. Tests cover source hunk, >200000 cap, no trimming, same-object strings and strict Codable carrier shape. | 2026-09-22 DONE: 15 tests pass; source convenience initializer computes stats once and preserves path; nilIfEmpty preserves all nonempty strings. Minimal FileEdit carrier read from Timeline.swift 170..175, unchanged by latest diff. Exact JSON field keys, strict nonoptional decoding and nil diff omission covered. Director source/diff review; no tests modified after approval. 251 total tests, protected/A/B/quarantine and build floor pass; integration remains unverified."
     },
     {
-      "id": "T-M2-078",
+      "id": "T-M2-077",
       "milestone": "M2",
       "source": "DroppyCode/Core/Support/ThumbnailCache.swift",
       "target": "src/Marrow.Core/Support/ThumbnailCache.cs",
@@ -1964,12 +1947,12 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
     {
-      "id": "T-M2-079",
+      "id": "T-M2-078",
       "milestone": "M2",
       "source": "DroppyCode/Core/Support/ThumbnailCache.swift",
       "target": "src/Marrow.Core/Support/ThumbnailCache.cs",
@@ -1981,7 +1964,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -2003,7 +1986,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -2011,7 +1994,7 @@
       "id": "T-M3-002",
       "milestone": "M3",
       "source": "DroppyCode/Services/Git/FileChangeSummary+Diff.swift",
-      "target": "src/Marrow.Services/Git/FileChangeSummary.Diff.cs",
+      "target": "src/Marrow.Services/Git/FileChangeSummary+Diff.cs",
       "risk": "STANDARD",
       "requirements": [
         "PR-GIT-092"
@@ -2020,7 +2003,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -2046,7 +2029,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -2072,7 +2055,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -2098,7 +2081,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -2124,7 +2107,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -2150,7 +2133,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -2176,7 +2159,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -2202,7 +2185,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -2221,7 +2204,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -2239,7 +2222,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -2259,7 +2242,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -2278,7 +2261,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -2304,7 +2287,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -2324,7 +2307,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -2350,7 +2333,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -2376,7 +2359,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -2402,7 +2385,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -2428,7 +2411,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -2454,7 +2437,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -2480,7 +2463,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -2497,7 +2480,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -2523,7 +2506,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -2549,7 +2532,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -2568,7 +2551,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -2590,7 +2573,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -2616,7 +2599,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -2641,7 +2624,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -2663,7 +2646,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -2689,7 +2672,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -2715,7 +2698,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -2737,7 +2720,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -2763,7 +2746,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -2789,7 +2772,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -2813,7 +2796,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -2839,7 +2822,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -2863,7 +2846,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -2882,7 +2865,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -2908,7 +2891,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -2934,7 +2917,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -2960,7 +2943,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -2980,7 +2963,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -3006,7 +2989,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -3032,7 +3015,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -3058,7 +3041,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -3084,7 +3067,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -3110,7 +3093,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -3136,7 +3119,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -3162,7 +3145,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -3188,7 +3171,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -3214,7 +3197,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -3240,7 +3223,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -3266,7 +3249,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -3292,7 +3275,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -3318,7 +3301,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -3341,7 +3324,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -3367,7 +3350,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -3393,7 +3376,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -3419,7 +3402,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -3437,7 +3420,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -3458,7 +3441,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -3650,7 +3633,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -3676,7 +3659,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -3702,7 +3685,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -3728,7 +3711,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -3754,7 +3737,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -3780,7 +3763,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -3806,7 +3789,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -3832,7 +3815,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -3850,7 +3833,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -3876,7 +3859,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -3894,7 +3877,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -3920,7 +3903,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -3946,7 +3929,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -3972,7 +3955,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -3998,7 +3981,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -4024,7 +4007,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -4050,7 +4033,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -4076,7 +4059,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -4093,7 +4076,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -4116,7 +4099,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -4142,7 +4125,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -4164,7 +4147,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -4182,7 +4165,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -4199,7 +4182,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -4742,7 +4725,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -4792,7 +4775,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -4809,7 +4792,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -4826,7 +4809,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -4843,7 +4826,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -4869,7 +4852,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -4886,7 +4869,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -4912,7 +4895,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -4929,7 +4912,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -4955,7 +4938,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -4981,7 +4964,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -5007,7 +4990,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -5033,7 +5016,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -5059,7 +5042,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -5085,7 +5068,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -5111,7 +5094,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -5137,7 +5120,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -5159,7 +5142,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -5185,7 +5168,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -5206,7 +5189,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -5429,7 +5412,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -5455,7 +5438,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -5477,7 +5460,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -5503,7 +5486,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -5520,7 +5503,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -5874,7 +5857,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -5895,7 +5878,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -5916,7 +5899,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -5936,7 +5919,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -5962,7 +5945,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -5985,7 +5968,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -6002,7 +5985,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -6019,7 +6002,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -6045,7 +6028,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -6066,7 +6049,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -6092,7 +6075,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -6118,7 +6101,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -6144,7 +6127,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -6170,7 +6153,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -6193,7 +6176,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -6219,7 +6202,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -6245,7 +6228,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -6267,7 +6250,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -6284,7 +6267,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -6302,7 +6285,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -6320,7 +6303,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -6338,7 +6321,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -6355,7 +6338,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -6372,7 +6355,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -6392,7 +6375,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -6411,7 +6394,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -6431,7 +6414,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -6453,7 +6436,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -6470,7 +6453,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -6487,7 +6470,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -6504,7 +6487,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -6530,7 +6513,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -6556,7 +6539,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -6582,7 +6565,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -6604,7 +6587,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -6624,7 +6607,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -6645,7 +6628,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -6662,7 +6645,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -6688,7 +6671,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -6707,7 +6690,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -6729,7 +6712,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -6749,7 +6732,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -6767,7 +6750,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -6784,7 +6767,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -6804,7 +6787,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -6821,7 +6804,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -6842,7 +6825,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -6859,7 +6842,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -6878,7 +6861,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -6896,7 +6879,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -6921,7 +6904,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -6947,7 +6930,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -6964,7 +6947,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -6982,7 +6965,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -6999,7 +6982,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -7016,7 +6999,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -7115,7 +7098,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -7141,7 +7124,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -7163,7 +7146,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -7343,7 +7326,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -7402,7 +7385,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -7419,7 +7402,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -7438,7 +7421,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -7464,7 +7447,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -7490,7 +7473,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -7516,7 +7499,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -7539,7 +7522,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -7556,7 +7539,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -7573,7 +7556,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -7590,7 +7573,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -7616,7 +7599,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -7638,7 +7621,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -7956,7 +7939,7 @@
       "id": "T-M6-014",
       "milestone": "M6",
       "source": "DroppyCode/App/AppModel+Hydra.swift",
-      "target": "src/Marrow.App/AppModel.Hydra.cs",
+      "target": "src/Marrow.App/AppModel+Hydra.cs",
       "risk": "STANDARD",
       "requirements": [
         "PR-HYDRA-041",
@@ -7982,7 +7965,7 @@
       "id": "T-M6-015",
       "milestone": "M6",
       "source": "DroppyCode/App/AppModel+Hydra.swift",
-      "target": "src/Marrow.App/AppModel.Hydra.cs",
+      "target": "src/Marrow.App/AppModel+Hydra.cs",
       "risk": "STANDARD",
       "requirements": [
         "PR-HYDRA-106",
@@ -8008,7 +7991,7 @@
       "id": "T-M6-016",
       "milestone": "M6",
       "source": "DroppyCode/App/AppModel+Hydra.swift",
-      "target": "src/Marrow.App/AppModel.Hydra.cs",
+      "target": "src/Marrow.App/AppModel+Hydra.cs",
       "risk": "STANDARD",
       "requirements": [
         "PR-HYDRA-116",
@@ -8034,7 +8017,7 @@
       "id": "T-M6-017",
       "milestone": "M6",
       "source": "DroppyCode/App/AppModel+Hydra.swift",
-      "target": "src/Marrow.App/AppModel.Hydra.cs",
+      "target": "src/Marrow.App/AppModel+Hydra.cs",
       "risk": "STANDARD",
       "requirements": [
         "PR-HYDRA-126",
@@ -8060,7 +8043,7 @@
       "id": "T-M6-018",
       "milestone": "M6",
       "source": "DroppyCode/App/AppModel+Hydra.swift",
-      "target": "src/Marrow.App/AppModel.Hydra.cs",
+      "target": "src/Marrow.App/AppModel+Hydra.cs",
       "risk": "STANDARD",
       "requirements": [
         "PR-HYDRA-136",
@@ -8086,7 +8069,7 @@
       "id": "T-M6-019",
       "milestone": "M6",
       "source": "DroppyCode/App/AppModel+Hydra.swift",
-      "target": "src/Marrow.App/AppModel.Hydra.cs",
+      "target": "src/Marrow.App/AppModel+Hydra.cs",
       "risk": "STANDARD",
       "requirements": [
         "PR-HYDRA-246",
@@ -8104,7 +8087,7 @@
       "id": "T-M6-020",
       "milestone": "M6",
       "source": "DroppyCode/App/AppModel+HydraMerge.swift",
-      "target": "src/Marrow.App/AppModel.HydraMerge.cs",
+      "target": "src/Marrow.App/AppModel+HydraMerge.cs",
       "risk": "HIGH",
       "requirements": [
         "PR-CHAT-189",
@@ -8130,7 +8113,7 @@
       "id": "T-M6-021",
       "milestone": "M6",
       "source": "DroppyCode/App/AppModel+HydraMerge.swift",
-      "target": "src/Marrow.App/AppModel.HydraMerge.cs",
+      "target": "src/Marrow.App/AppModel+HydraMerge.cs",
       "risk": "HIGH",
       "requirements": [
         "PR-HYDRAMERGE-014",
@@ -8156,7 +8139,7 @@
       "id": "T-M6-022",
       "milestone": "M6",
       "source": "DroppyCode/App/AppModel+HydraMerge.swift",
-      "target": "src/Marrow.App/AppModel.HydraMerge.cs",
+      "target": "src/Marrow.App/AppModel+HydraMerge.cs",
       "risk": "HIGH",
       "requirements": [
         "PR-HYDRAMERGE-024",
@@ -8182,7 +8165,7 @@
       "id": "T-M6-023",
       "milestone": "M6",
       "source": "DroppyCode/App/AppModel+HydraMerge.swift",
-      "target": "src/Marrow.App/AppModel.HydraMerge.cs",
+      "target": "src/Marrow.App/AppModel+HydraMerge.cs",
       "risk": "HIGH",
       "requirements": [
         "PR-HYDRAMERGE-035",
@@ -8208,7 +8191,7 @@
       "id": "T-M6-024",
       "milestone": "M6",
       "source": "DroppyCode/App/AppModel+HydraMerge.swift",
-      "target": "src/Marrow.App/AppModel.HydraMerge.cs",
+      "target": "src/Marrow.App/AppModel+HydraMerge.cs",
       "risk": "HIGH",
       "requirements": [
         "PR-HYDRAMERGE-045",
@@ -8234,7 +8217,7 @@
       "id": "T-M6-025",
       "milestone": "M6",
       "source": "DroppyCode/App/AppModel+HydraMerge.swift",
-      "target": "src/Marrow.App/AppModel.HydraMerge.cs",
+      "target": "src/Marrow.App/AppModel+HydraMerge.cs",
       "risk": "HIGH",
       "requirements": [
         "PR-HYDRAMERGE-055",
@@ -8260,7 +8243,7 @@
       "id": "T-M6-026",
       "milestone": "M6",
       "source": "DroppyCode/App/AppModel+HydraMerge.swift",
-      "target": "src/Marrow.App/AppModel.HydraMerge.cs",
+      "target": "src/Marrow.App/AppModel+HydraMerge.cs",
       "risk": "HIGH",
       "requirements": [
         "PR-HYDRAMERGE-065",
@@ -8286,7 +8269,7 @@
       "id": "T-M6-027",
       "milestone": "M6",
       "source": "DroppyCode/App/AppModel+HydraMerge.swift",
-      "target": "src/Marrow.App/AppModel.HydraMerge.cs",
+      "target": "src/Marrow.App/AppModel+HydraMerge.cs",
       "risk": "HIGH",
       "requirements": [
         "PR-HYDRAMERGE-075",
@@ -8312,7 +8295,7 @@
       "id": "T-M6-028",
       "milestone": "M6",
       "source": "DroppyCode/App/AppModel+HydraMerge.swift",
-      "target": "src/Marrow.App/AppModel.HydraMerge.cs",
+      "target": "src/Marrow.App/AppModel+HydraMerge.cs",
       "risk": "HIGH",
       "requirements": [
         "PR-HYDRAMERGE-113",
@@ -8337,7 +8320,7 @@
       "id": "T-M6-029",
       "milestone": "M6",
       "source": "DroppyCode/App/AppModel+HydraMerge.swift",
-      "target": "src/Marrow.App/AppModel.HydraMerge.cs",
+      "target": "src/Marrow.App/AppModel+HydraMerge.cs",
       "risk": "HIGH",
       "requirements": [],
       "ui": [
@@ -8360,7 +8343,7 @@
       "id": "T-M6-030",
       "milestone": "M6",
       "source": "DroppyCode/App/AppModel+HydraPairs.swift",
-      "target": "src/Marrow.App/AppModel.HydraPairs.cs",
+      "target": "src/Marrow.App/AppModel+HydraPairs.cs",
       "risk": "STANDARD",
       "requirements": [
         "PR-HYDRA-143",
@@ -8521,12 +8504,12 @@
         "PR-STORE-085",
         "PR-STORE-101",
         "PR-STORE-102",
+        "PR-STORE-171",
         "PR-TERM-055",
         "PR-TERM-057",
         "PR-TERM-060",
         "PR-TERM-061",
-        "PR-TERM-065",
-        "PR-TERM-066"
+        "PR-TERM-065"
       ],
       "ui": [],
       "quarantined": [],
@@ -8543,6 +8526,7 @@
       "target": "src/Marrow.App/AppModel.cs",
       "risk": "STANDARD",
       "requirements": [
+        "PR-TERM-066",
         "PR-TERM-067"
       ],
       "ui": [],
@@ -8593,7 +8577,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -8619,7 +8603,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -8645,7 +8629,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -8671,7 +8655,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -8697,7 +8681,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -8723,7 +8707,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -8749,7 +8733,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -8775,7 +8759,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -8801,7 +8785,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -8827,7 +8811,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -8848,7 +8832,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -8918,7 +8902,7 @@
       "id": "T-M6-053",
       "milestone": "M6",
       "source": "DroppyCode/App/HydraCookbook+Resolve.swift",
-      "target": "src/Marrow.App/HydraCookbook.Resolve.cs",
+      "target": "src/Marrow.App/HydraCookbook+Resolve.cs",
       "risk": "STANDARD",
       "requirements": [
         "PR-HYDRA-156",
@@ -8954,7 +8938,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -8973,7 +8957,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -8991,7 +8975,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -9781,7 +9765,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -10787,7 +10771,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -11557,7 +11541,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -11574,7 +11558,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -11600,7 +11584,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -11618,7 +11602,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -11916,7 +11900,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -11933,7 +11917,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -11954,7 +11938,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -11976,7 +11960,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -12475,6 +12459,7 @@
         "UI-COMPOSER-063",
         "UI-COMPOSER-064",
         "UI-COMPOSER-065",
+        "UI-RUNTIME-005",
         "UI-RUNTIME-006",
         "UI-RUNTIME-007",
         "UI-RUNTIME-008"
@@ -12501,7 +12486,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -12519,7 +12504,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -13597,7 +13582,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -14164,7 +14149,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -14186,7 +14171,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -14211,7 +14196,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -14233,7 +14218,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -14396,7 +14381,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -14414,7 +14399,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -14898,7 +14883,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -15067,7 +15052,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -15093,7 +15078,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -15112,7 +15097,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -15179,7 +15164,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -15205,7 +15190,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -15222,7 +15207,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -15243,7 +15228,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -15721,7 +15706,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -15747,7 +15732,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -15772,7 +15757,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -15789,7 +15774,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -15806,7 +15791,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -15823,7 +15808,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     }

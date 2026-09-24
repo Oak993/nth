@@ -23,7 +23,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same mapping, including .opencodeGo as a fifth ACP kind that runs the same opencode executable as .opencode. No platform boundary; provider identity is data.",
       "verification_method": "unit (session-factory table over every ProviderKind: ACPSession for exactly .cursor, .opencode, .opencodeGo, .grok and .devin)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -51,7 +51,7 @@
       "cancellation": "The sleep's thrown error is discarded by `try?`, so cancelling the awaiting task does not abort the start at this point.",
       "windows_path": "A single module-level async mutex holding nextSlot, awaited in the Electron main process before child_process.spawn. It must be one instance for the whole app, not per session, per window or per provider.",
       "verification_method": "unit (fake clock: the Nth start releases at (N-1)*1500 ms, a single start at 0 ms)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -76,7 +76,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same guard. Executable resolution itself is outside PROVACP; PROVACP only sees resolved-or-nil.",
       "verification_method": "unit (one assertion per ACP kind on the exact notInstalled message)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -103,7 +103,7 @@
       "cancellation": "not cancellable",
       "windows_path": "child_process.spawn(exe, argv, { cwd, env, stdio: ['pipe','pipe','pipe'], shell: false, windowsHide: true }). shell:false is mandatory: tokens such as --permission-mode and --always-approve must not pass through CMD. The env object is passed whole, not merged with process.env, to match `process.environment = environment`.",
       "verification_method": "contract fixture (spawn recorder asserting exe, argv array, cwd, env map)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -124,7 +124,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical token array passed to spawn with shell:false.",
       "verification_method": "unit (argv table test)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -144,7 +144,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical token array.",
       "verification_method": "unit (argv table test)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -164,7 +164,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical token array.",
       "verification_method": "unit (argv table test)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -184,7 +184,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical token array.",
       "verification_method": "unit (argv table test)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -207,7 +207,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical token array. Never lowercase or kebab-case the value.",
       "verification_method": "unit (argv table test asserting the exact string \"acceptEdits\")",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -227,7 +227,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical token array.",
       "verification_method": "unit (argv table test)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -249,7 +249,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical token array, same order.",
       "verification_method": "unit (argv table test asserting order)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -270,7 +270,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical token array.",
       "verification_method": "unit (argv table test)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -290,7 +290,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical token array.",
       "verification_method": "unit (argv table test asserting the exact string \"accept-edits\")",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -310,7 +310,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical token array.",
       "verification_method": "unit (argv table test)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -332,7 +332,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical token array.",
       "verification_method": "unit (argv table test)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -354,7 +354,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical token array.",
       "verification_method": "unit (argv table test across all four modes for .opencode and .opencodeGo)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -379,7 +379,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. Do not add a relaunch-on-mode-change path; per port_impacts #23 the ACP launch flags require a process restart and the source does not perform one.",
       "verification_method": "interaction test (change mode mid-session, assert no second spawn)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -407,7 +407,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same envelope. Per port_impacts #1 and #18, ACP is lines framing WITH the jsonrpc member; do not share an envelope builder with Codex, which omits it.",
       "verification_method": "contract fixture (wire recorder asserting every frame carries jsonrpc 2.0)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -433,7 +433,7 @@
       "cancellation": "Cancelling the awaiting task removes the pending continuation and resumes it with CancellationError (JSONRPC.swift:82-86).",
       "windows_path": "Same payload with the ruled client identity: `\"clientInfo\": {\"name\": \"marrow\", \"title\": \"Marrow\", \"version\": <app version>}`. Every other field is identical to upstream.",
       "verification_method": "contract fixture (golden initialize frame asserting protocolVersion 1, clientInfo.name \"marrow\", clientInfo.title \"Marrow\" and request id 1)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -458,7 +458,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical payload. Do not opt into fs or terminal capabilities on Windows to work around anything; the agent CLI does its own file and process work in the cwd.",
       "verification_method": "contract fixture (golden initialize frame)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -485,7 +485,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical, provider-gated.",
       "verification_method": "contract fixture (two golden initialize frames: Cursor with _meta, OpenCode Zen without) plus a unit assertion that .opencodeGo, .grok and .devin also omit _meta",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -508,7 +508,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "unit (reply-parsing table)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -529,7 +529,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. Downstream consequence to accept: the false branch makes the agent CLI spawn npx as a grandchild that PROVACP neither manages nor kills.",
       "verification_method": "unit (reply-parsing table)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -549,7 +549,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "unit (reply-parsing table)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -573,7 +573,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -599,7 +599,7 @@
       "cancellation": "not cancellable",
       "windows_path": "cwd must be the Windows path string of the working directory. The mcp-remote fallback spawns npx, which on Windows is npx.cmd; that resolution belongs to the agent CLI, not to PROVACP.",
       "verification_method": "contract fixture (golden session/new frame with zero, one stdio and one http server)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -625,7 +625,7 @@
       "cancellation": "Cancellation of the awaiting task surfaces as CancellationError from the pending request.",
       "windows_path": "Same. Use a case-insensitive indexOf on the message string; do not switch to a code check.",
       "verification_method": "contract fixture (scripted agent that rejects the first session/new with an auth message, then accepts)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -649,7 +649,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -671,7 +671,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same swallow. Do not add a notice; that would be an invented behavior.",
       "verification_method": "contract fixture (scripted agent that errors on session/load and accepts session/new; assert no user-visible event)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -694,7 +694,7 @@
       "cancellation": "If the load throws, isReplaying is still cleared at :260 before the fallthrough.",
       "windows_path": "Same flag, same window.",
       "verification_method": "contract fixture (scripted replay; assert zero timeline events)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -716,7 +716,7 @@
       "cancellation": "Cancellation surfaces as CancellationError.",
       "windows_path": "Same.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -740,7 +740,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same ordering. Do not parallelize; the calls mutate shared session state on the agent.",
       "verification_method": "contract fixture (frame order assertion)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -765,7 +765,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same string, same provider display names.",
       "verification_method": "contract fixture (scripted agent replying {} to session/new), asserting the message for each of the five ACP kinds",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -790,7 +790,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "unit (state-parsing table)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -812,7 +812,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same exact-match test.",
       "verification_method": "unit (mode-resolution table)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -834,7 +834,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. Implement as a first-match over the agent's ordered ids, not as a lookup over the literal set.",
       "verification_method": "unit (mode-resolution table, including the order-sensitivity case where the agent lists code before agent)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -858,7 +858,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. Preserve the currentModelId-vs-availableModels stripping asymmetry exactly.",
       "verification_method": "unit (model-state table for each of the five ACP providers: .cursor, .opencode, .opencodeGo, .grok, .devin)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -882,7 +882,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -909,7 +909,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the reset and its asymmetry exactly. Per port_impacts #13: do not repair it by resetting all four or none; either change alters which controls disappear.",
       "verification_method": "contract fixture (scripted agent: full configOptions, then a partial reply; assert the effort and fast ids are gone while model and mode ids survive)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "1",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -931,7 +931,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "unit (config-option classification table)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -953,7 +953,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same single-level flatMap.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -973,7 +973,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -998,7 +998,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. Build a Map once per call. The renderer must not do this work per value; the 400-model OpenCode walk is the stated stress case.",
       "verification_method": "unit plus a performance guard (400 models x 400 replies completes without blocking)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1018,7 +1018,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1041,7 +1041,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "unit (including the boolean thinking option)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1061,7 +1061,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same seven-member set, same any-match rule. Do not widen it to match the rank table.",
       "verification_method": "unit (table covering all seven plus the ranked-but-unrecognized values)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1083,7 +1083,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. The sort must be stable on the original index; a JS Array.prototype.sort is stable, but the comparator must still return 0 only where the source falls through to the offset comparison.",
       "verification_method": "unit (Grok's descending list, a single-recognized-value list, an unknown level between two known ones)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1128,7 +1128,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same exact-id test.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1150,7 +1150,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. fastTier is the literal string \"true\", not a boolean; ModelOption.supportsFast is `fastTier != nil` (Provider.swift:255).",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1172,7 +1172,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. The catalog probe's model walk emits one .models per model; the receiving side must tolerate that rate (PR-PROVACP-043).",
       "verification_method": "interaction test (count events across a probe walk)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1194,7 +1194,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1214,7 +1214,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same, including the nil-nil false result.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1234,7 +1234,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same guard.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1254,7 +1254,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. Treat empty string as absent.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1278,7 +1278,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same, including the optimistic currentModel assignment after a swallowed failure.",
       "verification_method": "contract fixture (both branches, plus a rejected set_model)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1302,7 +1302,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1326,7 +1326,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. The value must be a JSON string.",
       "verification_method": "contract fixture (assert the string literals)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1348,7 +1348,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "unit plus contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1372,7 +1372,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two-branch preference.",
       "verification_method": "contract fixture (both branches)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1394,7 +1394,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. Do not move the assignment inside the transport branches.",
       "verification_method": "unit (assert currentMode changed with zero frames written)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1418,7 +1418,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. This is the single funnel for model, effort, fast and mode changes; keep it one function so the reply feedback path is shared.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1441,7 +1441,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same string.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1465,7 +1465,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same ordering: selection first, prompt second, on the same connection.",
       "verification_method": "contract fixture (frame order)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1496,7 +1496,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same shape and the same downscale rule: longest side over 2000 px -> JPEG at most 2000 px on the longest side, orientation applied, quality 0.8, mimeType \"image/jpeg\"; otherwise the original bytes and mime type. Read the attachment's bytes and base64-encode them (Convert.ToBase64String); do not prefix a data URL. The image codec is a platform boundary: Windows JPEG bytes will not equal ImageIO's, so verification compares dimensions, mime type and orientation, not bytes.",
       "verification_method": "contract fixture (golden session/prompt frame with two images: one 2000 px or smaller sent byte for byte with its own mime type, one over 2000 px on its longest side with an EXIF orientation flag, asserting mimeType \"image/jpeg\", a longest side of 2000 and upright pixels)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1519,7 +1519,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same, including the nil turn id.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1543,7 +1543,7 @@
       "cancellation": "The request is not cancelled by interrupt(); interruption is signalled out of band by session/cancel (PR-PROVACP-070) and the request still resolves, normally with stopReason \"cancelled\".",
       "windows_path": "Same: a floating promise whose resolution and rejection both route into finishPrompt. Do not await it in the IPC handler.",
       "verification_method": "contract fixture plus interaction test (send resolves before the turn completes)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1563,7 +1563,7 @@
       "cancellation": "This is the cancellation entry point.",
       "windows_path": "Same guard.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1585,7 +1585,7 @@
       "cancellation": "This is the cancellation path.",
       "windows_path": "Same payload shape.",
       "verification_method": "contract fixture (two open approvals, assert two cancelled responses and two resolutions)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1609,7 +1609,7 @@
       "cancellation": "This is the cancellation path.",
       "windows_path": "Same. Do not substitute a process signal; per port_impacts #24 the wire interrupt ports directly and Windows has no SIGTERM equivalent to fall back on.",
       "verification_method": "contract fixture (frame order: responses then notification)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1635,7 +1635,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same string. Whether /compact is run locally at all is decided elsewhere by ProviderKind.supportsCompact (Provider.swift:149-154), which is false for every ACP kind, so a typed /compact is not handled locally for them (ThreadRuntime.swift:1164); PROVACP's contract is the message when compact() is invoked.",
       "verification_method": "unit (one assertion per ACP kind on the exact message)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1661,7 +1661,7 @@
       "cancellation": "Superseded by interrupt() and finishPrompt, which answer cancelled.",
       "windows_path": "Same payload shape and same remove-then-respond order.",
       "verification_method": "contract fixture (double click on one card yields one response)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1681,7 +1681,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same empty implementation. Do not throw 'not supported'; the source returns silently.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1705,7 +1705,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same flag-before-kill ordering; port_impacts #24 calls this ordering out explicitly so the chat does not report an unexpected exit.",
       "verification_method": "interaction test (stop a running session, assert no exited event)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1725,7 +1725,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same definition. Do not implement it as a process liveness probe.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1747,7 +1747,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same ten-value dispatch, same silent default.",
       "verification_method": "unit (dispatch table including an unknown value)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1771,7 +1771,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same, including the \"message-\" prefix literal.",
       "verification_method": "interaction test (two chunks with the same messageId land in one bubble)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1793,7 +1793,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same asymmetry: thoughts clear nothing, messages clear the thought id.",
       "verification_method": "interaction test (thought, message, thought produces two reasoning blocks and one bubble)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1813,7 +1813,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same format. Use a UUID v4 rendered uppercase with hyphens and take its first eight characters, so the shape matches; the value is opaque but the format is observable in stored threads.",
       "verification_method": "unit (regex on the produced id)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1835,7 +1835,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1857,7 +1857,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two-event sequence and the same non-nil test on exactly those two fields.",
       "verification_method": "interaction test (single-notification completed tool call)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1881,7 +1881,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same, including the unconditional emit and the absence of id clearing.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1907,7 +1907,7 @@
       "cancellation": "todoToolCallIDs is cleared by finishPrompt at the end of every turn.",
       "windows_path": "Same. The remembered-id set must be per session and cleared per turn.",
       "verification_method": "interaction test (opencode-style todowrite call plus two updates)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1927,7 +1927,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same presence test; check for key existence, not truthiness.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1948,7 +1948,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. Use a Unicode digit test equivalent to Swift's Character.isNumber, not an ASCII-only regex, since the source accepts any numeric character.",
       "verification_method": "unit (table including \"3 todos\", \"TodoWrite\", \"my todos\", \" todos\")",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1971,7 +1971,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same order and the same JSON-parse-from-text behavior.",
       "verification_method": "unit (one fixture per source, plus a precedence fixture where two sources disagree)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1996,7 +1996,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key order and the same seven status literals, case-sensitive.",
       "verification_method": "unit (status table plus key-precedence table)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2019,7 +2019,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. Per port_impacts #14, emit todos from `plan` even when the parse yields nothing.",
       "verification_method": "interaction test (plan with empty entries clears the checklist)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2041,7 +2041,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. Per port_impacts #14, let an empty array clear the menu.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2065,7 +2065,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same, including the planMode gate and the nil assignment.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2087,7 +2087,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same shared path; per port_impacts #14 route config_option_update through the same function as the set_config_option reply.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "1",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2109,7 +2109,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same emptiness test, with no trimming.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2133,7 +2133,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. Per port_impacts #14, do NOT feed ACP usage_update into the spend ledger.",
       "verification_method": "interaction test plus a guard test asserting the ledger total is unchanged",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2157,7 +2157,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same code and same message string.",
       "verification_method": "contract fixture (send fs/read_text_file, assert the exact error frame)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2179,7 +2179,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same policy, driven by the per-turn runtimeMode, never by the launch argv.",
       "verification_method": "unit (matrix of four runtime modes x the eight tool kinds x option sets)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2201,7 +2201,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "contract fixture (full-access session: assert a selected response and zero approval events)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2224,7 +2224,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same four-way mapping and the same id-as-label fallback.",
       "verification_method": "unit (option-kind table)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2247,7 +2247,7 @@
       "cancellation": "Entries are drained by interrupt() and by finishPrompt.",
       "windows_path": "Same key derivation. A JS implementation must use String(id) for numeric ids, not the raw number, so the key type matches.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2268,7 +2268,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three-way mapping and the same three headline strings.",
       "verification_method": "unit plus capture comparison against a reference approval card",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2292,7 +2292,7 @@
       "cancellation": "The card is dismissed by .requestResolved on interrupt, on turn end, or on the user's choice.",
       "windows_path": "Same, including the null-toolCall fallback.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2312,7 +2312,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same guard-and-clear ordering.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2336,7 +2336,7 @@
       "cancellation": "This is part of the cancellation path.",
       "windows_path": "Same.",
       "verification_method": "interaction test (open approval, let the turn fail, assert the card is gone)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2358,7 +2358,7 @@
       "cancellation": "This is the cancellation outcome.",
       "windows_path": "Same precedence order and the same literal.",
       "verification_method": "unit (outcome table)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2380,7 +2380,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. The error text must be the provider's own message, not a wrapped or prefixed one.",
       "verification_method": "unit (outcome table)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2402,7 +2402,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same string.",
       "verification_method": "unit (outcome table)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2426,7 +2426,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "unit (outcome table including an unknown stop reason)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2451,7 +2451,7 @@
       "cancellation": "A close following a user stop still reports .interrupted, because cancelRequested is checked first in finishPrompt.",
       "windows_path": "Same: strip ANSI, keep the last four non-empty trimmed lines. Windows CLIs may emit CRLF; the newline split must treat CR LF as one break so a blank line is not manufactured.",
       "verification_method": "contract fixture (kill a scripted agent mid-turn with six stderr lines, assert the last four)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2473,7 +2473,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same, including the nil-error case.",
       "verification_method": "interaction test (crash versus stop)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2494,7 +2494,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same six-case mapping.",
       "verification_method": "unit (kind table)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2514,7 +2514,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "unit (status table)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2534,7 +2534,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same eight strings verbatim.",
       "verification_method": "unit plus capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2554,7 +2554,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same ten literals and the same delegation.",
       "verification_method": "unit (table of all ten plus a real path)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2576,7 +2576,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same thirty-five entries. Do not add Windows-flavoured names such as `cmd` or `powershell`; that would be an invention.",
       "verification_method": "unit (set-membership table, count asserted at 35)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2596,7 +2596,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three-character set. A CRLF-terminated title keeps its carriage return, which is observable; do not widen the set to fix it.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2618,7 +2618,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same sixteen entries in the same declared order, matched with a lowercased startsWith.",
       "verification_method": "unit (all sixteen phrases plus the ordering case)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2640,7 +2640,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same forty-eight entries. Split on the ASCII space only, with at most one split, to match maxSplits: 1.",
       "verification_method": "unit (verb table plus the bare-verb retention case)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2661,7 +2661,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same four pairs including the curly quotes U+201C and U+201D, and the same no-break loop.",
       "verification_method": "unit (each pair plus a doubly quoted title)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2682,7 +2682,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same early return order.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2706,7 +2706,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Boundary: relativePath appends a forward slash to the root and does a prefix compare. On Windows the agent reports backslash paths, so the comparison must use the platform separator, and the case-insensitivity of Windows paths means an exact prefix compare can fail where macOS succeeds. Specify the Windows behavior as: same drop-the-root-prefix rule, using the platform separator, with the same case sensitivity the agent's own output uses. This is a named platform boundary and must be probed against each of the four CLIs.",
       "verification_method": "unit plus a Windows interaction test against a real cursor-agent or opencode run",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2728,7 +2728,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Boundary: the six prefixes are all Unix shells. On Windows an agent CLI is more likely to report a bare command or a cmd.exe or powershell wrapper, none of which are in the list, so such a command is shown unwrapped. Reproduce the six-entry list exactly; do NOT add Windows shell prefixes, which would be an invented default. Record the observed Windows wrappers per CLI as evidence before any future change.",
       "verification_method": "unit plus a Windows capture of each CLI's reported command string",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2748,7 +2748,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2768,7 +2768,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same five keys and the same four-part detail condition.",
       "verification_method": "unit (key table plus the four detail conditions)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2788,7 +2788,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three keys in order.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2808,7 +2808,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2828,7 +2828,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2850,7 +2850,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same, with the relativePath boundary of PR-PROVACP-119. Line endings inside oldText and newText are passed through unchanged; do not normalize CRLF.",
       "verification_method": "unit plus capture comparison of a diff row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2870,7 +2870,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same nil-versus-default split.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2890,7 +2890,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two-part guard.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2910,7 +2910,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same, with the unwrapShell boundary of PR-PROVACP-120.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2930,7 +2930,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same, with the relativePath boundary.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2950,7 +2950,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. The separator is a bare line feed, not CRLF.",
       "verification_method": "unit (content-wins fixture plus the stdout/stderr/output order)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2970,7 +2970,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two sources in the same order. Windows exit codes can exceed the signed range Unix uses; store the integer the agent reports without clamping.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2990,7 +2990,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same literal.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3010,7 +3010,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. Note that a Windows command failing with a large unsigned exit code is still non-zero and so is downgraded.",
       "verification_method": "unit (status and exit-code matrix)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3030,7 +3030,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same nil-versus-empty distinction.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3062,7 +3062,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Boundary: the directory is Path.Combine(Path.GetTempPath(), \"marrow-catalog\"), that is %TEMP%\\marrow-catalog, created with Directory.CreateDirectory and a creation failure swallowed. Deviation OD-0008 (OD-PENDING-17): the folder is named \"marrow-catalog\", not upstream's \"droppy-code-catalog\"; it is only the probe session's working directory and nothing reads it across runs.",
       "verification_method": "contract fixture plus a filesystem assertion on the folder name \"marrow-catalog\", plus a spawn counter asserting one opencode probe for a Zen load followed by a Go load, and a second probe after a forced load",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3092,7 +3092,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same: a try/finally around the probe so the child is always terminated.",
       "verification_method": "contract fixture (assert the child exits even when start throws)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3118,7 +3118,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same walk. The performance requirement of PR-PROVACP-043 is what keeps this from blocking the app for a 400-model catalog.",
       "verification_method": "contract fixture (three models, one pre-scaled, assert two set_config_option calls plus one restore)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3163,7 +3163,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same, per connection.",
       "verification_method": "contract fixture (id sequence)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3185,7 +3185,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same code and string. Keep both near-identical sentences distinct; they identify different layers.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3205,7 +3205,7 @@
       "cancellation": "This is the cancellation path for a single request.",
       "windows_path": "An AbortSignal-style cancellation that deletes the pending entry and rejects. The agent is not told; that matches the source.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3227,7 +3227,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same elision rule, per port_impacts #1.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3249,7 +3249,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three shapes, with the id type round-tripped.",
       "verification_method": "contract fixture (golden frames)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3271,7 +3271,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three-way parse including the truncation, which matters because JSON numbers in JS are all doubles: an integral number must map to the integer branch and a fractional one must be truncated, not rejected.",
       "verification_method": "unit (id-parsing table)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3291,7 +3291,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same dispatch.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3313,7 +3313,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same, including the two default values.",
       "verification_method": "unit (reply table)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3338,7 +3338,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same ordering and the same fallback string.",
       "verification_method": "contract fixture (two in-flight requests, kill the child, assert both reject with the tail)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3359,12 +3359,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same: split on 0x0A only, per port_impacts #18. A CRLF-writing Windows CLI therefore yields messages ending in 0x0D, which the delivery step strips (PR-PROVACP-155) - note that port_impacts #18 says the source does not strip CR, which is true of the framer but NOT of StdioProcess.deliver.",
       "verification_method": "unit (CRLF and LF fixtures, plus a message split across two chunks)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-071",
-      "rework": true
+      "implemented_by_task": "T-M2-071"
     },
     {
       "id": "PR-PROVACP-150",
@@ -3381,12 +3380,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same incremental behavior is required, not just the same result: an agent streaming a multi-megabyte tool output in small chunks must not cost quadratic time.",
       "verification_method": "unit (byte-at-a-time feed of a 1 MB message) plus a performance guard",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-071",
-      "rework": true
+      "implemented_by_task": "T-M2-071"
     },
     {
       "id": "PR-PROVACP-151",
@@ -3405,13 +3403,12 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. ACP never uses this mode - ACPSession takes the .lines default - but the framer is shared with the Copilot connection, so the mode must exist and behave identically.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
       "implemented_by_task": "T-M2-071",
-      "spec_fix": "The record said the search pointer is \"rewound to endIndex minus three\" and covered only a header \"whose Content-Length cannot be parsed\" -> StdioFramer.swift:38 clamps it, `search = max(start, buffer.endIndex - 3)`; StdioFramer.swift:41-44 moves start past the separator before `guard let length = Self.contentLength(in: header) else { continue }`, and contentLength returns nil both for an unparsable value and for a block with no Content-Length line (:71-80), so either block is skipped with no body consumed and the bytes meant as the body are scanned as the next header block.",
-      "rework": true
+      "spec_fix": "The record said the search pointer is \"rewound to endIndex minus three\" and covered only a header \"whose Content-Length cannot be parsed\" -> StdioFramer.swift:38 clamps it, `search = max(start, buffer.endIndex - 3)`; StdioFramer.swift:41-44 moves start past the separator before `guard let length = Self.contentLength(in: header) else { continue }`, and contentLength returns nil both for an unparsable value and for a block with no Content-Length line (:71-80), so either block is skipped with no body consumed and the bytes meant as the body are scanned as the next header block."
     },
     {
       "id": "PR-PROVACP-152",
@@ -3428,13 +3425,12 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "unit (header table)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
       "implemented_by_task": "T-M2-071",
-      "spec_fix": "The record (its source_evidence summary and expected_result) said the parser \"splits each line on the first colon\", \"requires two parts\" without the consequence, trims \"spaces\", accepts \"an integer of zero or more\" and splits the header \"on newlines\" -> StdioFramer.swift:72-76: `header.split(whereSeparator: \\.isNewline)` splits on every Character.isNewline (LF, VT, FF, CR, CR LF, NEL, U+2028, U+2029); `line.split(separator: \":\", maxSplits: 1)` omits empty leading pieces and matches only a standalone colon Character; `parts.count == 2` skips \"Content-Length:\" but not \"Content-Length: \", which reaches `Int(...)` with an empty string and returns nil for the block; `.whitespaces` is tab, Zs and U+200B; `Int(...)` accepts '+', \"-0\" and leading zeros and rejects values above Int64.max. source_evidence now quotes :72-79 instead of the summary.",
-      "rework": true
+      "spec_fix": "The record (its source_evidence summary and expected_result) said the parser \"splits each line on the first colon\", \"requires two parts\" without the consequence, trims \"spaces\", accepts \"an integer of zero or more\" and splits the header \"on newlines\" -> StdioFramer.swift:72-76: `header.split(whereSeparator: \\.isNewline)` splits on every Character.isNewline (LF, VT, FF, CR, CR LF, NEL, U+2028, U+2029); `line.split(separator: \":\", maxSplits: 1)` omits empty leading pieces and matches only a standalone colon Character; `parts.count == 2` skips \"Content-Length:\" but not \"Content-Length: \", which reaches `Int(...)` with an empty string and returns nil for the block; `.whitespaces` is tab, Zs and U+200B; `Int(...)` accepts '+', \"-0\" and leading zeros and rejects values above Int64.max. source_evidence now quotes :72-79 instead of the summary."
     },
     {
       "id": "PR-PROVACP-153",
@@ -3451,12 +3447,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same asymmetry.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-071",
-      "rework": true
+      "implemented_by_task": "T-M2-071"
     },
     {
       "id": "PR-PROVACP-154",
@@ -3477,7 +3472,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same: terminate with 0x0A only, and do not let the platform translate it to CRLF - write raw bytes to the stdin stream, not through a text-mode writer. Do not escape forward slashes.",
       "verification_method": "contract fixture (byte-level assertion on a frame containing a URL)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3501,7 +3496,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two-byte strip. This is what makes a CRLF-writing Windows CLI work despite the LF-only framer.",
       "verification_method": "unit (CRLF line, padded line, banner line)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3524,7 +3519,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three limits, measured in bytes not characters.",
       "verification_method": "unit (feed 100 KB, assert the trim points)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3549,7 +3544,7 @@
       "cancellation": "This is the teardown path.",
       "windows_path": "Named platform boundary. Windows has no SIGTERM with delivery semantics: per port_impacts #24, TerminateProcess is the practical equivalent and behaves like SIGKILL, so the graceful window collapses. The specification for Windows is: close stdin first, then request termination, then after the same 3 seconds force-kill if still running - preserving the ordering and the 3-second timing even though the first step is already forceful. Do NOT introduce a Job Object group kill here: the source kills the pid only, and killing the group would change observable behavior for mcp-remote grandchildren. PA-0007's Job Object candidate applies to Shell.swift, which is a different code path.",
       "verification_method": "interaction test on Windows (assert stdin closes first, the child dies, and a grandchild survives, matching macOS)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3571,7 +3566,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same ordering: flush the remainder, then end the stream.",
       "verification_method": "contract fixture (final frame with no trailing newline)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3594,7 +3589,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same 1-second forced close. It matters more on Windows, where an mcp-remote npx grandchild inheriting the handle is common and there is no process-group cleanup (see PR-PROVACP-157).",
       "verification_method": "interaction test (agent exits while a grandchild holds stdout; assert the exited event within about a second)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3621,7 +3616,7 @@
       "cancellation": "not cancellable",
       "windows_path": "In Electron this maps to the main process doing the stdio work and the renderer never touching the pipe. Preserve write ordering with a single serial queue per child; Node streams give this, but a naive `await` per write must not reorder frames.",
       "verification_method": "interaction test (interleaved writes arrive in order) plus a performance guard on a 10 MB tool output",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3648,7 +3643,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same surface. StdioProcess.isRunning is a real process check, unlike ACPSession.isRunning (PR-PROVACP-075).",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3671,7 +3666,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same teardown. On Windows the common causes differ: ENOENT for a bare name that only exists as a .cmd shim, and EACCES for a directory. The error text shown to the user is the platform's, which is an accepted observable difference.",
       "verification_method": "unit (spawn a nonexistent executable, assert the throw and that no reader is left parked)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3691,7 +3686,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3717,7 +3712,8 @@
         "DroppyCode/Services/Providers/ACPSession.swift:801-826 - `subject(from:kind:)`; :819 `text = text.trimmed`, then the four quote pairs at :821"
       ],
       "notes": "The subject-stripping rules are the visible behavior: a row reads \"https://example.com\" rather than \"Fetched https://example.com\", and \"src/main.ts\" rather than \"Edit file\". Porting the strings without the sixteen phrases, forty-eight verbs and four quote pairs produces visibly different rows.",
-      "b2_change": "Re-cited only, behaviour unchanged: B1 `text = text.trimmingCharacters(in: .whitespacesAndNewlines)` -> B2 `text = text.trimmed`; `trimmed` is `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }` (DroppyCode/Core/Support/Text.swift:132). Line :819 at both baselines; the row text is the same."
+      "b2_change": "Re-cited only, behaviour unchanged: B1 `text = text.trimmingCharacters(in: .whitespacesAndNewlines)` -> B2 `text = text.trimmed`; `trimmed` is `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }` (DroppyCode/Core/Support/Text.swift:132). Line :819 at both baselines; the row text is the same.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVACP-002",
@@ -3735,7 +3731,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/ACPSession.swift:868"
       ],
-      "notes": "Sentence case, single space, no trailing punctuation. Also one of the ten labels isFallbackTitle refuses to let overwrite a real path (:882)."
+      "notes": "Sentence case, single space, no trailing punctuation. Also one of the ten labels isFallbackTitle refuses to let overwrite a real path (:882).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVACP-003",
@@ -3753,7 +3750,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/ACPSession.swift:869"
       ],
-      "notes": "Also in the isFallbackTitle list."
+      "notes": "Also in the isFallbackTitle list.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVACP-004",
@@ -3771,7 +3769,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/ACPSession.swift:870"
       ],
-      "notes": "Covers the agent kinds edit, delete and move, all of which map to .edit."
+      "notes": "Covers the agent kinds edit, delete and move, all of which map to .edit.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVACP-005",
@@ -3789,7 +3788,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/ACPSession.swift:871"
       ],
-      "notes": "One word, capital S."
+      "notes": "One word, capital S.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVACP-006",
@@ -3807,7 +3807,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/ACPSession.swift:872"
       ],
-      "notes": "Not \"Fetch URL\" and not \"Browse\"."
+      "notes": "Not \"Fetch URL\" and not \"Browse\".",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVACP-007",
@@ -3825,7 +3826,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/ACPSession.swift:873,875"
       ],
-      "notes": "Two kinds share this one string. In practice ACP payloads only ever reach it through .other, because the kind mapping never yields .mcp."
+      "notes": "Two kinds share this one string. In practice ACP payloads only ever reach it through .other, because the kind mapping never yields .mcp.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVACP-008",
@@ -3844,7 +3846,8 @@
         "DroppyCode/Services/Providers/ACPSession.swift:874",
         "DroppyCode/Services/Providers/ACPSession.swift:855-864"
       ],
-      "notes": "Specified because the table must be complete and the same table serves other callers; do not delete the row, and do not invent an ACP kind that reaches it."
+      "notes": "Specified because the table must be complete and the same table serves other callers; do not delete the row, and do not invent an ACP kind that reaches it.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVACP-009",
@@ -3864,7 +3867,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/ACPSession.swift:723-732"
       ],
-      "notes": "The path is always relative to the working directory. An agent reporting the working directory itself never produces a detail line."
+      "notes": "The path is always relative to the working directory. An agent reporting the working directory itself never produces a detail line.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVACP-010",
@@ -3885,7 +3889,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/ACPSession.swift:756-768"
       ],
-      "notes": "The \"(no output)\" suppression is an exact-string comparison; a padded variant is shown. Output truncation to ToolCall.outputLimit (60000) happens in Timeline.swift, not here."
+      "notes": "The \"(no output)\" suppression is an exact-string comparison; a padded variant is shown. Output truncation to ToolCall.outputLimit (60000) happens in Timeline.swift, not here.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVACP-011",
@@ -3905,7 +3910,8 @@
         "DroppyCode/Services/Providers/ACPSession.swift:840-849",
         "DroppyCode/Services/Providers/ACPSession.swift:734,754-755"
       ],
-      "notes": "Paths are relative to the working directory. Line endings inside the diff text are passed through unchanged."
+      "notes": "Paths are relative to the working directory. Line endings inside the diff text are passed through unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVACP-012",
@@ -3926,7 +3932,8 @@
         "DroppyCode/Services/Providers/ACPSession.swift:889-895",
         "DroppyCode/Services/Providers/ACPSession.swift:769"
       ],
-      "notes": "ToolCall.Status.declined exists but is never produced by this area."
+      "notes": "ToolCall.Status.declined exists but is never produced by this area.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVACP-013",
@@ -3945,7 +3952,8 @@
         "DroppyCode/Services/Providers/ACPSession.swift:577-581",
         "DroppyCode/Core/Models/Requests.swift:36"
       ],
-      "notes": "The question mark is part of the string. PROVACP chooses the kind; Requests.swift owns the wording."
+      "notes": "The question mark is part of the string. PROVACP chooses the kind; Requests.swift owns the wording.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVACP-014",
@@ -3964,7 +3972,8 @@
         "DroppyCode/Services/Providers/ACPSession.swift:579",
         "DroppyCode/Core/Models/Requests.swift:37"
       ],
-      "notes": "A delete or move request is shown with this same wording; that is the source behavior."
+      "notes": "A delete or move request is shown with this same wording; that is the source behavior.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVACP-015",
@@ -3983,7 +3992,8 @@
         "DroppyCode/Services/Providers/ACPSession.swift:580",
         "DroppyCode/Core/Models/Requests.swift:38"
       ],
-      "notes": "PROVACP never produces the .permissions or .plan approval kinds, so \"Grant extra access?\" and \"Ready to build this plan?\" are unreachable from an ACP session."
+      "notes": "PROVACP never produces the .permissions or .plan approval kinds, so \"Grant extra access?\" and \"Ready to build this plan?\" are unreachable from an ACP session.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVACP-016",
@@ -4002,7 +4012,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/ACPSession.swift:560-562,582-589"
       ],
-      "notes": "ApprovalRequest.reason is never set by this area, so any reason line in the card stays empty for ACP providers."
+      "notes": "ApprovalRequest.reason is never set by this area, so any reason line in the card stays empty for ACP providers.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVACP-017",
@@ -4029,7 +4040,8 @@
         "DroppyCode/Services/Providers/ACPSession.swift:213-217",
         "DroppyCode/Core/Models/Requests.swift:13-24"
       ],
-      "notes": "There are no fixed button labels for ACP: every label comes from the agent. A port that hardcodes Allow/Deny would be inventing text. Buttons appear in the agent's order. In full-access mode, and for edits in auto-accept-edits mode, the card never appears at all."
+      "notes": "There are no fixed button labels for ACP: every label comes from the agent. A port that hardcodes Allow/Deny would be inventing text. Buttons appear in the agent's order. In full-access mode, and for edits in auto-accept-edits mode, the card never appears at all.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVACP-018",
@@ -4053,7 +4065,8 @@
         "DroppyCode/Services/Providers/ACPSession.swift:337-362",
         "DroppyCode/Core/Models/Provider.swift:216-291"
       ],
-      "notes": "The row's primary text is ModelOption.name (the agent's name, or the id), and its secondary text is the agent's description. shortName and chipName transformations are applied by the picker, not here."
+      "notes": "The row's primary text is ModelOption.name (the agent's name, or the id), and its secondary text is the agent's description. shortName and chipName transformations are applied by the picker, not here.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVACP-019",
@@ -4077,7 +4090,8 @@
         "DroppyCode/Services/Providers/ACPSession.swift:413-430",
         "DroppyCode/Services/Providers/ACPSession.swift:385-391"
       ],
-      "notes": "The tick labels come from ModelOption.effortTitle (Provider.swift:284-290): \"xhigh\" and \"extra-high\" both render as \"Extra High\", the empty string renders as \"Default\", and anything else is the value with its first letter uppercased. Grok's descending list is the reason orderedEfforts exists; reference_captures/tour/v5/slider.webp is an approximate oracle for the control's structure only, never for measurement."
+      "notes": "The tick labels come from ModelOption.effortTitle (Provider.swift:284-290): \"xhigh\" and \"extra-high\" both render as \"Extra High\", the empty string renders as \"Default\", and anything else is the value with its first letter uppercased. Grok's descending list is the reason orderedEfforts exists; reference_captures/tour/v5/slider.webp is an approximate oracle for the control's structure only, never for measurement.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVACP-020",
@@ -4102,7 +4116,8 @@
         "DroppyCode/Services/Providers/ACPSession.swift:460-466",
         "DroppyCode/Core/Models/Provider.swift:255"
       ],
-      "notes": "In practice this only ever appears for Cursor, because the option rides on the Cursor-only parameterizedModelPicker capability."
+      "notes": "In practice this only ever appears for Cursor, because the option rides on the Cursor-only parameterizedModelPicker capability.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVACP-021",
@@ -4126,7 +4141,8 @@
         "DroppyCode/Services/Providers/ACPSession.swift:467-474",
         "DroppyCode/Services/Providers/ACPSession.swift:534-536"
       ],
-      "notes": "The build mode id is chosen by the agent's own list order over the four candidates agent, build, code, default, then the first id that is neither plan nor ask."
+      "notes": "The build mode id is chosen by the agent's own list order over the four candidates agent, build, code, default, then the first id that is neither plan nor ask.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVACP-022",
@@ -4149,7 +4165,8 @@
         "DroppyCode/Services/Providers/ACPSession.swift:528-533",
         "DroppyCode/Core/Models/Provider.swift:293-299"
       ],
-      "notes": "isBuiltIn stays false and skillPath stays nil for every ACP command, so none of them carries a skill payload."
+      "notes": "isBuiltIn stays false and skillPath stays nil for every ACP command, so none of them carries a skill payload.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVACP-023",
@@ -4173,7 +4190,8 @@
         "DroppyCode/Services/Providers/ACPSession.swift:503-523"
       ],
       "notes": "An OpenCode todowrite call titled \"3 todos\" is routed here and must NOT also appear as a tool row. The step label is the first present string among content, text, step, title.",
-      "b2_change": "Re-cited only, behaviour unchanged: B1 `!text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty` -> B2 `!text.trimmed.isEmpty`; `trimmed` is `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }` (DroppyCode/Core/Support/Text.swift:132). Line :691 at both baselines; the checklist is the same."
+      "b2_change": "Re-cited only, behaviour unchanged: B1 `!text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty` -> B2 `!text.trimmed.isEmpty`; `trimmed` is `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }` (DroppyCode/Core/Support/Text.swift:132). Line :691 at both baselines; the checklist is the same.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVACP-024",
@@ -4193,7 +4211,8 @@
         "DroppyCode/Services/Providers/ACPSession.swift:541-549",
         "DroppyCode/Core/Models/Timeline.swift:331-339"
       ],
-      "notes": "These numbers are occupancy, not spend. They must never reach the token ledger or any cost display; the source comment says so explicitly."
+      "notes": "These numbers are occupancy, not spend. They must never reach the token ledger or any cost display; the source comment says so explicitly.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVACP-025",
@@ -4212,7 +4231,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/ACPSession.swift:539-540"
       ],
-      "notes": "Emitted from session_info_update only."
+      "notes": "Emitted from session_info_update only.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVACP-026",
@@ -4230,7 +4250,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/ACPSession.swift:618"
       ],
-      "notes": "No provider name, trailing full stop, capital T."
+      "notes": "No provider name, trailing full stop, capital T.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVACP-027",
@@ -4250,7 +4271,8 @@
         "DroppyCode/Services/Providers/ACPSession.swift:627",
         "DroppyCode/Core/Support/Text.swift:17-24"
       ],
-      "notes": "The CLI's own error text reaching the chat verbatim is the intended behavior; do not prefix it with the provider name."
+      "notes": "The CLI's own error text reaching the chat verbatim is the intended behavior; do not prefix it with the provider name.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVACP-028",
@@ -4270,7 +4292,8 @@
         "DroppyCode/Services/Providers/ACPSession.swift:629-630",
         "DroppyCode/Services/Providers/ACPSession.swift:221-224"
       ],
-      "notes": "The flag-before-kill ordering in stop() is what keeps a deliberate stop from showing this notice."
+      "notes": "The flag-before-kill ordering in stop() is what keeps a deliberate stop from showing this notice.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVACP-029",
@@ -4294,7 +4317,8 @@
         "DroppyCode/App/Runtime/ThreadRuntime.swift:1738-1747 - `func compact() {` ... `try await session.compact()`; the only call of this function is `compact()` at :1166, inside `case \"/compact\" where thread?.provider.supportsCompact == true:` (:1164); no other code calls a session's compact()"
       ],
       "notes": "The display name is substituted verbatim: \"OpenCode Zen\" and \"OpenCode Go\", each with the internal capital C and a space before the plan name. /compact is run locally only when supportsCompact is true, which is false for every ACP kind (Provider.swift:146-148: for every other provider the command goes to the tool). Because nothing else calls a session's compact(), the message is unreachable in the pinned app (and was at B1, whose /compact case at ThreadRuntime.swift:1146 listed no ACP kind).",
-      "b2_change": "\"OpenCode compacts its own context.\" -> \"OpenCode Zen compacts its own context.\", plus the new \"OpenCode Go compacts its own context.\". B1 Provider.swift:25 `case .opencode: \"OpenCode\"` -> B2 Provider.swift:26-27 `case .opencode: \"OpenCode Zen\"` and the new `case .opencodeGo: \"OpenCode Go\"`; B2 Provider.swift:104 adds .opencodeGo to usesACP, so ACPSession now runs for it too. ACPSession.swift:210 is unchanged."
+      "b2_change": "\"OpenCode compacts its own context.\" -> \"OpenCode Zen compacts its own context.\", plus the new \"OpenCode Go compacts its own context.\". B1 Provider.swift:25 `case .opencode: \"OpenCode\"` -> B2 Provider.swift:26-27 `case .opencode: \"OpenCode Zen\"` and the new `case .opencodeGo: \"OpenCode Go\"`; B2 Provider.swift:104 adds .opencodeGo to usesACP, so ACPSession now runs for it too. ACPSession.swift:210 is unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVACP-030",
@@ -4315,7 +4339,8 @@
         "DroppyCode/Core/Models/Provider.swift:25-28,32 - displayName: `case .cursor: \"Cursor\"`, `case .opencode: \"OpenCode Zen\"`, `case .opencodeGo: \"OpenCode Go\"`, `case .grok: \"Grok\"`, `case .devin: \"Devin\"`"
       ],
       "notes": "The child process is left running when this fires; the guard does not stop it.",
-      "b2_change": "The OpenCode variant \"OpenCode did not start a session.\" -> \"OpenCode Zen did not start a session.\", plus the new \"OpenCode Go did not start a session.\". B1 Provider.swift:25 `case .opencode: \"OpenCode\"` -> B2 Provider.swift:26-27 `case .opencode: \"OpenCode Zen\"` and the new `case .opencodeGo: \"OpenCode Go\"`; B2 Provider.swift:104 adds .opencodeGo to usesACP, so ACPSession now runs for it too. ACPSession.swift:149 is unchanged."
+      "b2_change": "The OpenCode variant \"OpenCode did not start a session.\" -> \"OpenCode Zen did not start a session.\", plus the new \"OpenCode Go did not start a session.\". B1 Provider.swift:25 `case .opencode: \"OpenCode\"` -> B2 Provider.swift:26-27 `case .opencode: \"OpenCode Zen\"` and the new `case .opencodeGo: \"OpenCode Go\"`; B2 Provider.swift:104 adds .opencodeGo to usesACP, so ACPSession now runs for it too. ACPSession.swift:149 is unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVACP-031",
@@ -4341,7 +4366,8 @@
         "DroppyCode/Core/Models/Provider.swift:25-28,32 - displayName: `case .cursor: \"Cursor\"`, `case .opencode: \"OpenCode Zen\"`, `case .opencodeGo: \"OpenCode Go\"`, `case .grok: \"Grok\"`, `case .devin: \"Devin\"`"
       ],
       "notes": "The login command is wrapped in backticks inside the sentence, and the sentence ends with a full stop after the closing backtick.",
-      "b2_change": "The OpenCode variant \"OpenCode is not installed. Install it and sign in with `opencode auth login`.\" -> \"OpenCode Zen is not installed. Install it and sign in with `opencode auth login`.\", plus the new \"OpenCode Go is not installed. Install it and sign in with `opencode auth login`.\". B1 Provider.swift:25 `case .opencode: \"OpenCode\"` -> B2 Provider.swift:26-27 `case .opencode: \"OpenCode Zen\"` and the new `case .opencodeGo: \"OpenCode Go\"`; B2 Provider.swift:104 adds .opencodeGo to usesACP, so ACPSession now runs for it too; B2 Provider.swift:68 `case .opencodeGo: \"opencode auth login\"`."
+      "b2_change": "The OpenCode variant \"OpenCode is not installed. Install it and sign in with `opencode auth login`.\" -> \"OpenCode Zen is not installed. Install it and sign in with `opencode auth login`.\", plus the new \"OpenCode Go is not installed. Install it and sign in with `opencode auth login`.\". B1 Provider.swift:25 `case .opencode: \"OpenCode\"` -> B2 Provider.swift:26-27 `case .opencode: \"OpenCode Zen\"` and the new `case .opencodeGo: \"OpenCode Go\"`; B2 Provider.swift:104 adds .opencodeGo to usesACP, so ACPSession now runs for it too; B2 Provider.swift:68 `case .opencodeGo: \"opencode auth login\"`.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVACP-032",
@@ -4360,7 +4386,8 @@
         "DroppyCode/Services/Providers/ACPSession.swift:168",
         "DroppyCode/Services/Providers/ProviderSession.swift:170-171"
       ],
-      "notes": "Distinct from the JSON-RPC layer's \"The agent process is not running.\" - both sentences ship and must not be merged."
+      "notes": "Distinct from the JSON-RPC layer's \"The agent process is not running.\" - both sentences ship and must not be merged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVACP-033",
@@ -4382,7 +4409,8 @@
         "DroppyCode/Core/Support/JSONRPC.swift:145",
         "DroppyCode/Core/Support/JSONRPC.swift:133"
       ],
-      "notes": "All three reach the user through turnCompleted's error text, because finishPrompt uses the error's localized description, which for an RPCError is its message."
+      "notes": "All three reach the user through turnCompleted's error text, because finishPrompt uses the error's localized description, which for an RPCError is its message.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVACP-034",
@@ -4407,7 +4435,8 @@
         "DroppyCode/Services/Providers/ACPSession.swift:78-106",
         "DroppyCode/Services/Providers/ACPSession.swift:169,592-602"
       ],
-      "notes": "These four rows are the user-facing side of the twelve argv rows in this area. Exact titles, in order: \"Supervised\", \"Auto-accept edits\" (one hyphen, lowercase e), \"Auto\", \"Full access\". The symbols are SF Symbol names with no Windows equivalent; substituting icons is a platform boundary handled by UNK-0007, not by PROVACP. A port that relaunches the child when this changes would be inventing behavior the source does not have."
+      "notes": "These four rows are the user-facing side of the twelve argv rows in this area. Exact titles, in order: \"Supervised\", \"Auto-accept edits\" (one hyphen, lowercase e), \"Auto\", \"Full access\". The symbols are SF Symbol names with no Windows equivalent; substituting icons is a platform boundary handled by UNK-0007, not by PROVACP. A port that relaunches the child when this changes would be inventing behavior the source does not have.",
+      "status": "IMPLEMENTED"
     }
   ]
 }

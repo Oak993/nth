@@ -20,7 +20,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A TypeScript interface with the same five field names, serialized into the same hydraPairs JSON value. No platform boundary.",
       "verification_method": "unit round-trip test over the five field names plus a restart test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -44,7 +44,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pure string function. No platform boundary.",
       "verification_method": "unit test over the four combinations",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -67,7 +67,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pure string function. Must use Unicode letter/number classes, not ASCII-only [a-z0-9], or a non-ASCII profile name would slug differently on Windows.",
       "verification_method": "unit test including a non-ASCII name",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -90,7 +90,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pure function. Case-insensitive comparison must be locale-independent to match Foundation's caseInsensitiveCompare for the ASCII names the roster and profiles use.",
       "verification_method": "unit test: name with surrounding spaces, differing case, and a slug form",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -116,7 +116,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Clamp on read as well as on write. Keep maxHeads genuinely absent when unset: not 0, not 8.",
       "verification_method": "unit test over stored 0, 1, 8, 99 and absent; restart test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -137,7 +137,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pure accessors.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -158,7 +158,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Trim must cover the same whitespace and newline set Foundation uses.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -182,7 +182,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pure function over the picker pair list.",
       "verification_method": "unit over the four branches",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -208,7 +208,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Two distinct values in the port: the nil-able launch cap that feeds prompt text and Codex config, and a literal 8 used only for Droppy-run scheduling.",
       "verification_method": "unit over hasRoom plus a contract fixture asserting no cap number appears in the policy when maxHeads is nil",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "32",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -230,7 +230,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Plain value object, rebuilt per turn. No platform boundary.",
       "verification_method": "unit over the defaults",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -253,7 +253,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pure lookup over the launch's profile list.",
       "verification_method": "unit plus an interaction test that an unknown profile spawns a head on the shared model",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -274,7 +274,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Six literal constants. Windows must express the three durations in milliseconds as 1500000, 2100000 and 180000 if its timer API takes milliseconds.",
       "verification_method": "unit asserting the six values",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -298,7 +298,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Store as an exact string resource with 24 interpolated from the same constant. Never reflow or re-punctuate.",
       "verification_method": "contract fixture comparing the emitted string byte for byte",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -327,7 +327,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exact string resource; the once-per-turn latch is a boolean on the session.",
       "verification_method": "contract fixture plus a unit test that it fires once",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -358,7 +358,7 @@
       "cancellation": "The user stopping the head from the panel interrupts the report turn; the head then finishes as stopped.",
       "windows_path": "Exact string resource used in both places. The backstop timer is an ordinary timer; no platform boundary.",
       "verification_method": "contract fixture on the string plus an interaction test over both injection paths",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -388,7 +388,7 @@
       "cancellation": "The backstop's own interrupt is the cancellation path; a user stop takes precedence and finishes the head as stopped.",
       "windows_path": "Reproduce the ordering exactly; a port that checks wrap-up before budget-spent would emit an extra note the macOS app never emits. The +90 s applies only to API-key-based providers.",
       "verification_method": "unit over the ordering and the three allowance values",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -410,7 +410,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Ship all 25 template artworks under the same 25 names. The artwork is the app's own first-party work, so it ports as-is.",
       "verification_method": "unit asserting the 25 names, assets and hex values in order, plus a capture comparison of the 25 glyphs",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -430,7 +430,7 @@
       "cancellation": "not cancellable",
       "windows_path": "JavaScript's % is already a remainder, so the double modulo must be reproduced literally; floor division must be used for round with the max(0, index) clamp.",
       "verification_method": "unit over indices -1, 0, 24, 25, 49, 50",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -453,7 +453,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Integer parsing must match Swift's Int(String) leniency for the tokens the roster produces (plain decimal digits, optional leading minus).",
       "verification_method": "unit over \"Otto\", \"otto\", \"Otto 2\", \" Otto 2 \", \"Ives\", \"Otto x\"",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -477,7 +477,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pure function.",
       "verification_method": "unit over \"Nova 3\", \"Otto 1\", \"otto\", \"Ives\"",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -499,7 +499,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Emit as an rgb() or #RRGGBB CSS colour. The colour must NOT be adjusted per theme.",
       "verification_method": "unit over all 25 hex values plus a capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -522,7 +522,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same 26 stored names, same defaults, in the SQLite/JSON thread record. Dates must round-trip with the same resolution the macOS store uses.",
       "verification_method": "unit over each default plus a restart test with an unknown status value",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -544,7 +544,7 @@
       "cancellation": "not cancellable",
       "windows_path": "String union types with exactly these nine literals.",
       "verification_method": "unit plus a restart test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -564,7 +564,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Derived getters. hasOwnCopy must key off baseTree, not off worktreePath, which is cleared separately on release.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -588,7 +588,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Electron must not register droppycode-head as a real OS protocol handler; it is an in-renderer link scheme intercepted before navigation. The UUID string casing must match whatever the thread store writes.",
       "verification_method": "unit over url construction and parsing, plus an interaction test on click",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -608,7 +608,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same five field names; File keeps path, additions, deletions. Paths are stored as the diff parser produced them.",
       "verification_method": "unit over the truth table of the two predicates",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -630,7 +630,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Plain value object.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -651,7 +651,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Seven exact strings in the same order; the dot count is derived from the case count.",
       "verification_method": "unit over the seven words plus a capture comparison of the pill",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -677,7 +677,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fourteen keys with the same names in the Windows settings store. Decode the pair list element by element discarding failures; a strict whole-list decoder would wipe every pair when a newer build wrote an unknown provider.",
       "verification_method": "unit over each default, a restart test, and a corruption test that injects one bad pair",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -705,7 +705,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Add the explicit flag with a false decode default and the force-true migration, and set it true on load. Seed new chats by reading the raw settings key at construction time.",
       "verification_method": "restart test over a pre-switch record and a post-switch record",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -725,7 +725,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Store as an exact string resource. Do not reflow, re-wrap or localize; this is model-visible text.",
       "verification_method": "contract fixture comparing byte for byte",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -748,7 +748,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One exact string resource shared by all three call sites.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -770,7 +770,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exact string resource.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -792,7 +792,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exact string resource.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -812,7 +812,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The literal words \"on this Mac\" are hard-coded model-visible text and are reproduced as written; changing them changes what the model is told. Project paths are interpolated raw, so a Windows path appears with backslashes inside single backticks. OD-0012 F1 makes the product name in the same sentence \"Marrow\" (\"which Marrow then adds to the sidebar\"); \"on this Mac\" is not one of the strings OD-0008 B4 or OD-0012 G1 rule on, so it stays verbatim.",
       "verification_method": "contract fixture over zero, one and three projects",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -841,7 +841,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exact string resource with the two different joining conventions preserved.",
       "verification_method": "contract fixture over autoMerges true and false on both policies",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -869,7 +869,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exact string resource; three different joining conventions.",
       "verification_method": "contract fixture over all three positions",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -892,7 +892,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exact string resource; unconditional.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -912,7 +912,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exact string resource with a single \\n between the two lines. {path} is the Windows worktree path verbatim, backslashes included.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -937,7 +937,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exact string resource.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1005,7 +1005,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pure filter. Note that the fallback (Droppy-run) policy deliberately does NOT apply this filter; see PR-HYDRA-059.",
       "verification_method": "unit over the four combinations",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1026,7 +1026,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Two exact literals plus one concatenation rule.",
       "verification_method": "contract fixture over the emitted agent JSON",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1049,7 +1049,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Prefix test plus a fixed-length drop. The drop length is workerAgentName.count + 1 = 14.",
       "verification_method": "unit over the base names, a variant and an unrelated name",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1076,7 +1076,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Store the body as one exact multi-line string resource with named placeholders. The port's own templating must not re-wrap lines, normalize whitespace or convert straight quotes.",
       "verification_method": "contract fixture comparing byte for byte across the four flag combinations",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1102,7 +1102,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce as written. This is an upstream defect kept for parity because it is model-visible text.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "porting/extracts/hydra-prompt-corpus.md section 16 item 4",
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1131,7 +1131,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Three exact string resources plus an empty default.",
       "verification_method": "contract fixture per provider",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1154,7 +1154,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Three exact templates plus the unreachable default; keep the three different cap wordings.",
       "verification_method": "contract fixture per provider, with and without a cap",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1179,7 +1179,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep U+2014 as U+2014. The porting repository's own no-em-dash rule does not apply to model-visible source strings.",
       "verification_method": "contract fixture per provider with one and two profiles",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1207,7 +1207,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Emit identical JSON. The scout's tools array is Claude-specific and must not be copied to Copilot. The environment variable is set the same way on Windows.",
       "verification_method": "contract fixture over the emitted JSON with and without model, effort and profiles",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1235,7 +1235,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Emit no tools concept. Keep U+00B7 in the display name and the \"auto\" sentinel distinct from Claude's \"default\". The Copilot descriptions differ from Claude's (no \"proactively\", and the scout's omits \"gathers facts\"); do not share one string.",
       "verification_method": "contract fixture over the emitted array",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1257,7 +1257,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Emit the always-present empty agents object. Keep three different no-model sentinel conventions across the three providers: \"default\" on Claude, \"auto\" on Copilot, non-empty check only on Codex.",
       "verification_method": "contract fixture over the four combinations",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "porting/extracts/hydra-prompt-corpus.md section 16 item 7",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1278,7 +1278,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Two exact string resources; scoutPrompt's second paragraph is NOT howToReport and must not be shared with it.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1339,7 +1339,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Store as one exact multi-line string resource. The nine-space run and the embedded ```hydra example must survive the port's own templating; a templating engine that trims or collapses whitespace would break parity.",
       "verification_method": "contract fixture comparing byte for byte, with an explicit assertion on the nine-space run",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "porting/extracts/hydra-prompt-corpus.md section 16 item 1",
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1368,7 +1368,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Five exact templates. The leading spaces are part of the strings and must not be trimmed by a join helper.",
       "verification_method": "contract fixture over each piece present and absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1395,7 +1395,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce as written.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "porting/extracts/hydra-prompt-corpus.md section 16 item 2",
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1417,7 +1417,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Two different profile lists for the two policies; do not share one filtered list.",
       "verification_method": "contract fixture with a profile that tunes nothing, asserting it appears in the fallback policy and not in the native one",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "porting/extracts/hydra-prompt-corpus.md section 16 item 10",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1463,7 +1463,7 @@
       "cancellation": "A head stopped while its copy was being made never receives the brief.",
       "windows_path": "Exact template with four literal headings. Heading text and levels are model-visible.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1494,7 +1494,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exact template. The path cap is prefix(20) and the join is exactly \", \".",
       "verification_method": "contract fixture over all eight combinations of the three context lines and both handoffs",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1522,7 +1522,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Count Unicode grapheme clusters the way Swift's String.count does, not UTF-16 code units, or a prompt containing emoji or combining marks would truncate at a different point.",
       "verification_method": "unit over an exactly-at-limit string, an over-limit string and a string with astral characters",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1547,7 +1547,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Ship all 34 strings in this order including the trailing space in 'tsc '. Lowercasing must be locale-independent. Split on \\n only: a CRLF prompt leaves a trailing \\r on each line, which does not affect matching.",
       "verification_method": "unit over each of the 34 markers, the identity case, and the tools/pytest_helpers.py false positive",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "porting/extracts/hydra-prompt-corpus.md section 16 item 5",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1567,7 +1567,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Truncate integer minutes with floor on a non-negative interval; a head whose startedAt is in the future would give a negative minutes value and take the \"(working)\" branch, matching Swift's Int() truncation toward zero for values in (-1, 0).",
       "verification_method": "unit over all nine shapes plus the empty team",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1596,7 +1596,7 @@
       "cancellation": "not cancellable",
       "windows_path": "when() uses the OS locale's short time format; on Windows use the same user-locale short time, not a fixed pattern.",
       "verification_method": "contract fixture over all eight shapes with a pinned locale, including a held record with and without a detail",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "27",
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1618,7 +1618,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exact string resource with the trailing separator preserved.",
       "verification_method": "contract fixture on both routes plus an interaction test that a report relay does not carry it",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1643,7 +1643,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exact template.",
       "verification_method": "contract fixture over the four combinations",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1663,7 +1663,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exact template; keep the unconditional space before the more clause, which yields a double space when neither team nor merge is present.",
       "verification_method": "contract fixture over both branches with and without team and merge",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "porting/extracts/hydra-prompt-corpus.md section 16 item 3",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1685,7 +1685,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exact assembly including the bare separator substitution.",
       "verification_method": "contract fixture with an empty and a non-empty turn note",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "porting/extracts/hydra-prompt-corpus.md section 16 item 9",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1733,7 +1733,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exact two-line string with the count and the round limit interpolated.",
       "verification_method": "contract fixture for count 1 and count 3",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1758,7 +1758,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Port the reason branch for structural parity but do not build behaviour on it; the shipped call passes nothing.",
       "verification_method": "contract fixture on the nil-reason output",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "porting/extracts/hydra-prompt-corpus.md section 16 item 8",
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1781,7 +1781,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exact assembly.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1805,7 +1805,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exact template plus the list() joining rule with no Oxford comma.",
       "verification_method": "unit over list() for 0, 1, 2 and 3 names, plus a contract fixture on the opening",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1828,7 +1828,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exact template; integer truncation toward zero for duration.",
       "verification_method": "contract fixture over each outcome and each effort combination",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1851,7 +1851,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep U+2212. The paths are interpolated as the diff parser produced them, so on Windows they carry whatever separator git emitted.",
       "verification_method": "contract fixture over all seven shapes, a 26-file landing and a conflicted file",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1873,7 +1873,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exact strings and exact order. The git command in sentence 5 is wrapped in single backticks in the literal and the path is interpolated twice.",
       "verification_method": "contract fixture driving each condition individually and a mixed batch",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "porting/extracts/hydra-prompt-corpus.md section 16 item 6",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1893,7 +1893,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Two exact string resources.",
       "verification_method": "contract fixture on both settings",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1915,7 +1915,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the regex exactly, including \\r? so a CRLF reply matches. Case-insensitivity must be ASCII, matching Swift's ignoresCase over this pattern.",
       "verification_method": "unit over ``` hydra, ```HYDRA, ```hydra-sent, ```hydra-leaving, ```hydra\\r\\n and ```hydrax",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1937,7 +1937,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Port both readers with their own patterns.",
       "verification_method": "unit asserting that a hydra-leaving opener matches the whole-message reader and not either streaming reader",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "porting/extracts/hydra-prompt-corpus.md section 16 item 2",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1957,7 +1957,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The newline test is Swift's Character.isNewline, which accepts \\n, \\r, \\r\\n as one character, and several Unicode line separators. Reproduce that breadth, not just \\n.",
       "verification_method": "unit over a fence at text start, after \\n, after \\r\\n, mid-line, and one with an info string",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1977,7 +1977,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Take the LAST fence, not the first.",
       "verification_method": "unit over a block with one fence, a block with a quoted fence inside a prompt, and a block with no closing fence",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1999,7 +1999,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the reverse walk and the appended end-of-text candidate.",
       "verification_method": "unit over a block whose prompt quotes a fence",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2022,7 +2022,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The port's body parser must return three states. JSONValue.parse's leniency (whether it accepts trailing commas or comments) is owned by the shared JSON layer and must match.",
       "verification_method": "unit over invalid JSON, [], a bare object, an array of valid entries and an array of entries with no prompt",
-      "status": "DISCOVERED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "35",
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2046,7 +2046,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Seven exact key names. TextCleanup.singleLine's exact truncation behaviour (whether it appends an ellipsis) is owned by the shared text layer and must match, because it decides the head's visible title.",
       "verification_method": "unit over each field, each alias and the missing-prompt case",
-      "status": "DISCOVERED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2069,7 +2069,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A port that falls through on emptiness would name heads the macOS app leaves unnamed. Reproduce the shadowing exactly.",
       "verification_method": "unit over {\"name\": \"\", \"head\": \"Otto\"} and {\"project\": \"\", \"repo\": \"gaze-site\"}",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "28",
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2093,7 +2093,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same removal and trim.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2115,7 +2115,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Two pure predicates.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2137,7 +2137,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The replacement is always LF, never CRLF, even when the original opener ended with CRLF.",
       "verification_method": "unit including an already-sent block and a CRLF opener",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2159,7 +2159,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same rewrite.",
       "verification_method": "unit plus an interaction test of the three-state card",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2180,7 +2180,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Two more exact patterns; there are four distinct fence patterns in this family in total.",
       "verification_method": "unit over all three info strings against both predicates",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2206,7 +2206,7 @@
       "cancellation": "The sequence is driven by sleeps that are cancelled with the turn; a cancelled sequence leaves the block in its current state.",
       "windows_path": "3200 ms and 450 ms. Timer drift must not be allowed to reorder the two rewrites.",
       "verification_method": "interaction test with a fake clock",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2232,7 +2232,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Walk UTF-8 bytes, not UTF-16 code units, so a multi-byte character can never be mistaken for an ASCII delimiter. Braces are ASCII so both ends of an entry sit on character boundaries.",
       "verification_method": "unit over a partial array, a bare object, an escaped quote inside a prompt, a column-0 backtick inside a JSON string and one outside an entry",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2258,7 +2258,7 @@
       "cancellation": "The parser is discarded when the turn ends or the message is replaced.",
       "windows_path": "Reproduce the state machine including the extra-backtick tolerance at state 3 and the reset-to-1-on-backtick rule. Feed it only newly appended bytes.",
       "verification_method": "unit feeding the same text in one chunk and in many one-byte chunks, asserting identical results",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2281,7 +2281,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Test the two implementations against each other over a corpus of block texts.",
       "verification_method": "property test comparing the two readers over generated block texts",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2303,7 +2303,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce as written.",
       "verification_method": "contract fixture on the sentence plus a unit test proving the parser tolerates both forms",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "porting/extracts/hydra-prompt-corpus.md section 16 item 3",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2327,7 +2327,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Distinguish [] from nil at the body parser.",
       "verification_method": "interaction test asserting no head thread is created and no refusal message appears",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3638,7 +3638,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pure lookup; the order of the stored list decides ties.",
       "verification_method": "unit over all three steps",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3659,7 +3659,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Ten exact records. A recipe names models, not providers: each side lists the providers that serve its model and the first one set up on this machine whose catalogue has the model is the one the pair runs on.",
       "verification_method": "unit asserting all ten ids, titles, caps and sides in order",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3680,7 +3680,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Ten exact strings.",
       "verification_method": "contract fixture over all ten",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3700,7 +3700,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pure function.",
       "verification_method": "unit over all four branches",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3720,7 +3720,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Four-field comparison over headsProvider, not workerProvider.",
       "verification_method": "unit including a pair differing only by effort",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4711,7 +4711,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exact proportions, all derived from the glyph size, so one implementation serves every call site from 14 to 30 points. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 DroppyCode/UI/Chrome/Chrome.swift:79 defines it.",
       "verification_method": "capture comparison at sizes 14, 16, 20, 22, 24, 28 and 30 in light and dark for each status",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4736,7 +4736,7 @@
       "cancellation": "The ring is torn down with the glyph when the head stops running.",
       "windows_path": "1600 ms from an absolute origin, so several rings stay in step. Do not clip the glyph's box.",
       "verification_method": "capture comparison at fixed phases plus a unit test on the constants",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4758,7 +4758,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One template asset. Do not style the round number separately.",
       "verification_method": "capture comparison of a round-2 name",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4778,7 +4778,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Round the derived sizes; do not use fractional pixel sizes. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 DroppyCode/UI/Chrome/Chrome.swift:79 defines it.",
       "verification_method": "capture comparison at lead sizes 16 and 24",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4806,7 +4806,7 @@
       "cancellation": "The pending 250 ms task is cancelled on hide and on a new hover.",
       "windows_path": "250 ms delay, 300 px card, 78 px height fallback. The card must be measured with its width pinned, or the task title wraps after a couple of words in a card that had the room for it. ED-059: each text style is set at the point size in upstream's B1 table (body 13, callout 12, subheadline 11; B1:DroppyCode/UI/Common/ChatZoom.swift:44-57), in Inter (OD-0009), and scales only with the app's own zoom (UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 DroppyCode/UI/Chrome/Chrome.swift:79 defines it.",
       "verification_method": "interaction test with a fake clock plus a capture comparison of all four status lines",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5854,7 +5854,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A plain value type owned by the lead's runtime. No platform boundary.",
       "verification_method": "unit over beginTurn(userAuthored: true) and beginTurn(userAuthored: false), chargeRound, and canDelegate at 0, 1, 2 and 3 rounds",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5881,7 +5881,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same cap of 3, the same single last-wins slot, the same take-once at send time.",
       "verification_method": "unit: four refusals in one request (three true, the fourth false with dropNotice set), two drops in a row (the second wins), takeDropNotice twice (the second returns nil); integration with the offline agent that a fourth malformed block's notice prefixes the next prompt exactly once",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5906,7 +5906,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exact bytes: '[Hydra] ', the message, then LF LF '---' LF LF. No CRLF.",
       "verification_method": "contract fixture over droppedBlockNotice for the unreadable, held-back and interrupted messages, byte for byte, plus one assembled prompt showing the notice ahead of the other prefixes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5929,7 +5929,7 @@
       "cancellation": "The notice exists because the turn was stopped or failed; nothing cancels it before it is delivered.",
       "windows_path": "Exact text; the multi-line literal yields LF line breaks.",
       "verification_method": "integration with the offline agent: stop a turn after its block opened and before any head went out, then send any message; assert the prompt prefix byte for byte for the stopped form, and again for a failed turn",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -6675,7 +6675,8 @@
         "DroppyCode/UI/Common/HydraGlyph.swift:9-41",
         "DroppyCode/UI/Common/HydraGlyph.swift:87-212"
       ],
-      "notes": "The 25 assets are hydra-head-01 through hydra-head-25 and are template images, so one colour tints each whole. The ring must not be clipped by the glyph's frame."
+      "notes": "The 25 assets are hydra-head-01 through hydra-head-25 and are template images, so one colour tints each whole. The ring must not be clipped by the glyph's frame.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRA-033",
@@ -6697,7 +6698,8 @@
         "DroppyCode/UI/Common/HydraGlyph.swift:35-39",
         "DroppyCode/UI/Common/HydraGlyph.swift:45-65"
       ],
-      "notes": "Every proportion derives from the glyph size, so one implementation serves every call site from 14 to 30 points."
+      "notes": "Every proportion derives from the glyph size, so one implementation serves every call site from 14 to 30 points.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRA-034",
@@ -6715,7 +6717,8 @@
       "source_evidence": [
         "DroppyCode/UI/Chrome/HydraPairMark.swift:5-23"
       ],
-      "notes": "Every place a pair is drawn uses this one view, so the proportions are the same everywhere. Round the derived sizes."
+      "notes": "Every place a pair is drawn uses this one view, so the proportions are the same everywhere. Round the derived sizes.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRA-035",
@@ -6745,7 +6748,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:44-57 Font.chatBaseSize, the table ED-059 takes text-style point sizes from (the file is deleted at B2): :51 body 13 | :52 callout 12 | :53 subheadline 11"
       ],
       "notes": "The card must be measured with its width PINNED to 300 and never laid out narrower, or the popover wraps the task a couple of words a line in a card that had the room for it. The ellipsis in \"Working…\" is U+2026 and the separators are U+00B7.",
-      "b2_change": "B1 HydraHeadHoverPopover.swift:66, :69, :73 .system(size: 13, weight: .semibold) / .system(size: 12) / .system(size: 11) -> B2 same lines .system(.body, weight: .semibold) / .system(.callout) / .system(.subheadline), the same 13/12/11 points. Chrome.secondaryText changed value: B1 Chrome.swift:77 Color(nsColor: .secondaryLabelColor) -> B2 Chrome.swift:79 primaryText.opacity(0.7). Geometry, states, strings and interactions are unchanged."
+      "b2_change": "B1 HydraHeadHoverPopover.swift:66, :69, :73 .system(size: 13, weight: .semibold) / .system(size: 12) / .system(size: 11) -> B2 same lines .system(.body, weight: .semibold) / .system(.callout) / .system(.subheadline), the same 13/12/11 points. Chrome.secondaryText changed value: B1 Chrome.swift:77 Color(nsColor: .secondaryLabelColor) -> B2 Chrome.swift:79 primaryText.opacity(0.7). Geometry, states, strings and interactions are unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRA-036",

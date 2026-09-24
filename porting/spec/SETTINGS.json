@@ -455,7 +455,7 @@
       "cancellation": "end() is the cancellation path and is called from onDisappear.",
       "windows_path": "One tracker object per settings view instance with the same 150ms debounce, feeding the same app-wide scroll-activity signal used to pause requestAnimationFrame loops.",
       "verification_method": "unit test on the tracker's state machine including the 150ms debounce and the end() path",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -681,7 +681,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -707,7 +707,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -732,7 +732,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -757,7 +757,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -782,7 +782,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -807,7 +807,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -837,7 +837,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -862,7 +862,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -887,7 +887,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -912,7 +912,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -937,7 +937,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -962,7 +962,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1017,7 +1017,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1042,7 +1042,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1067,7 +1067,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1092,7 +1092,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": 61,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1119,7 +1119,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1144,7 +1144,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults. OD-0014 keeps upstream's clear window by default: until the user sets a wallpaper the glass sits over the desktop, drawn as Acrylic plus the app-drawn scrim (OD-0005, probe P3), and the richer drawn material appears once a wallpaper is set.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1169,7 +1169,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1194,7 +1194,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1219,7 +1219,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": 70,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1245,7 +1245,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1270,7 +1270,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1295,7 +1295,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1320,7 +1320,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1345,7 +1345,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null
     },
@@ -1369,7 +1369,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1394,7 +1394,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1419,7 +1419,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1444,7 +1444,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1469,7 +1469,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1494,7 +1494,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1519,7 +1519,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1544,7 +1544,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1569,7 +1569,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1594,7 +1594,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1619,7 +1619,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1644,7 +1644,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1669,7 +1669,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1694,7 +1694,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1719,7 +1719,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1744,7 +1744,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1769,7 +1769,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1794,7 +1794,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1819,7 +1819,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1844,7 +1844,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1869,7 +1869,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1894,7 +1894,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1919,7 +1919,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1944,7 +1944,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1969,7 +1969,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1994,7 +1994,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2019,7 +2019,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2044,7 +2044,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2069,7 +2069,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2095,7 +2095,7 @@
       "cancellation": "There is no cancel: a change is committed the moment it is made, and closing the window does not revert anything.",
       "windows_path": "Persist on change, but coalesce the disk write behind a short timer so a slider drag does not fsync per frame. The in-memory value must still update synchronously so the UI is identical; only the flush is coalesced. Record the coalescing as a deliberate platform decision.",
       "verification_method": "restart test: change a value, kill the process without a clean quit, restart and assert the value survived",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2119,7 +2119,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One settings store instance resolved once. The capture branch is a screenshot-harness short circuit that is user-unreachable and is not ported; the port keeps a single store path.",
       "verification_method": "unit test that the settings store resolves once and that no test profile writes the real user profile",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2144,7 +2144,7 @@
       "cancellation": "not cancellable",
       "windows_path": "These are already JSON in the port's store, so the encode step disappears; keep the silent fall back to the empty default and the non-destructive behaviour on a bad value.",
       "verification_method": "unit test with a corrupt blob for each of the four keys, asserting the empty default and that the blob is not erased on read",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2178,7 +2178,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The port's secret store over Windows Credential Manager (OD-0008 B3) with no fallback writer of any kind (OD-0008 A6); the clearing half (remove the legacy settings value after a successful store) is kept. The four account names and the one container named by the app display name are carried over verbatim. The same rule is specified from the provider side by PR-PROVREG-239.",
       "verification_method": "unit test with a refusing secret store asserting that no settings, file or registry write contains the key and that the verbatim \"Credential Manager did not accept this key, so it was not saved.\" is shown under the key field; unit test asserting the legacy settings value is removed after a successful write and after clearing",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "blocked_by": null,
@@ -2216,7 +2216,7 @@
       "cancellation": "The background load is a detached task with no cancellation path; a synchronous ask that lands first simply makes it a no-op.",
       "windows_path": "One lazy, cached, asynchronous read of the four secrets from Windows Credential Manager (OD-0008 B3), with the same re-entry guard so hydrating the fields does not re-write the store. Windows has no securityd launch stall, but the single cached read is kept so the observable behaviour and the number of store reads match. A plaintext settings value is only ever deleted, never used as a place to write (OD-0008 A6, PR-SETTINGS-088).",
       "verification_method": "unit test: hydrate the four fields from a stubbed Credential Manager and assert zero writes back; assert exactly four reads per launch",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "deviation": {
@@ -2247,7 +2247,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same precedence. The 'login environment' on Windows is the user and machine environment as the app inherited it, not a login-shell capture; record that substitution. The four variable names are unchanged. The stored key is read from Windows Credential Manager (OD-0008 B3).",
       "verification_method": "unit test over the four providers with and without a stored key and with and without the environment variable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2277,7 +2277,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same four-provider switch with the same silent default branch.",
       "verification_method": "unit test asserting a write for a fifth provider changes nothing",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2303,7 +2303,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same trim-and-remove semantics. Windows paths may contain spaces but not leading or trailing ones in any valid form, so the trim is safe; do not also strip quotes, because the source does not.",
       "verification_method": "unit test on setBinaryPath with \"\", \"   \", \" /usr/bin/x \" and a normal path",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2326,7 +2326,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same remove-then-append. Keep the array, not a set, so the stored order matches.",
       "verification_method": "unit test: disable twice, assert one entry; enable, assert zero",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2349,7 +2349,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two maps and the same nil-removes semantics.",
       "verification_method": "unit test asserting nil removes the entry rather than storing a null",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2375,7 +2375,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three-state model: absent, explicitly true, explicitly false. Do not collapse absent and false.",
       "verification_method": "unit test over the three states with projectsEnabled both true and false",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2403,7 +2403,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same cap constant and the same guard order (already-present first, then full).",
       "verification_method": "unit test at 14, 15 and 16 adds",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2429,7 +2429,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same index arithmetic, including the from < dest correction. Windows has no haptic engine, so the haptic call becomes a no-op shim (port_impacts.md:434 entry 213).",
       "verification_method": "unit test over every from/to pair in a five-item list, both placeAfter values",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2455,7 +2455,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same composite key string with a forward slash, and the same delete-on-default rule so the stored document does not fill with empty objects.",
       "verification_method": "unit test: set effort, clear effort, assert the key is gone",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2484,7 +2484,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three operations with the same clamp and the same equality guard, so the number of store writes matches.",
       "verification_method": "unit test: update with an identity mutation asserts zero writes; update with maxHeads 99 asserts 8 stored",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2506,7 +2506,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three-step precedence over the same ordered list.",
       "verification_method": "unit test over the three precedence cases",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2532,7 +2532,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep the two persisted booleans rather than collapsing them into one enum key, so the store stays migration-compatible, and keep the getter's precedence.",
       "verification_method": "unit test over all four boolean combinations, asserting the resolved mode",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2591,7 +2591,7 @@
       "cancellation": "A newer render cancels the one in flight; a cancelled render leaves the current picture alone.",
       "windows_path": "Same two keys and the same file-name-only storage under the app's data directory. Reproduce the guarded clamp shape, not just its effect, so the re-entrancy is impossible in the port too.",
       "verification_method": "restart test with a wallpaper set; unit test on the softness clamp with values -1, 0.5 and 2 asserting exactly one write each",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2621,7 +2621,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The stored contents cannot be carried over: keyCode values are macOS virtual key codes and modifiers are raw NSEvent.ModifierFlags bits. The port defines its own chord format over Windows virtual-key codes and starts from defaults; this is a recorded, deliberate incompatibility, not a translation. Keep the same key name, the same 'absent means default, present-with-null means cleared' three-state model, and the same 'equal to default removes the override' rule.",
       "verification_method": "unit test over the three states; restart test; explicit test that a macOS blob is discarded rather than misread",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2649,7 +2649,7 @@
       "cancellation": "not cancellable from settings",
       "windows_path": "Same three key names in the port's own store slice, kept out of any profile-redirected settings file. The release payload shape follows whatever release feed the Windows build uses; the three key names and the recompute-never-store rule for availability are what carry over.",
       "verification_method": "restart test: stub a newer release, restart, assert the About page shows it before any network call",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2674,7 +2674,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One string table holding these four titles verbatim, keyed by the raw values, which stay the persisted form.",
       "verification_method": "unit test comparing all four titles and all four raw values byte for byte",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3252,7 +3252,7 @@
       "cancellation": "The refresh task is bound to the view's lifetime and is cancelled when the page is left.",
       "windows_path": "Same structure with no card; the grid takes the page's full content width.",
       "verification_method": "capture comparison of the top of the General page",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3281,7 +3281,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three chips and the same three tooltips. Keep the mode unpersisted so a reopened page always opens on Daily.",
       "verification_method": "interaction test for the three titles and tooltips; restart test asserting the mode is not remembered",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3306,7 +3306,7 @@
       "cancellation": "A newer switch supersedes the running blend.",
       "windows_path": "An animated numeric value driving a canvas redraw, with the same guard-by-counter so a fast double switch does not clear the wrong grid. Reproduce the colour mix per cell rather than cross-fading two canvases, because a cross-fade shows the background through half-transparent cells.",
       "verification_method": "unit test on the blend progress function; capture comparison at the midpoint of a switch",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3330,7 +3330,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same six outcomes (future, empty, and four accent steps) with the same thresholds and opacities, resolving the accent through the theme.",
       "verification_method": "unit test over value/maxValue pairs at every boundary, plus the future and zero-max cases",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3357,7 +3357,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One canvas element with the same derived cell size, the same 4pt gap and the same 2pt radius, redrawn on resize. Do not build 365 DOM nodes.",
       "verification_method": "unit test on the cell-size and height formulas at several widths; capture comparison of a full year",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3381,7 +3381,7 @@
       "cancellation": "Leaving the page cancels the refresh task.",
       "windows_path": "Memoise the grid on the same two inputs with a structural equality check on the totals map, so a re-publish with identical totals does no calendar work.",
       "verification_method": "unit test counting grid builds across a burst of identical publishes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3403,7 +3403,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three passes with the same treatment of out-of-year cells, which differs between weekly (0) and cumulative (the running total).",
       "verification_method": "unit test over a small fixture year in all three modes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3429,7 +3429,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same stride, the same 12-point edge clamp and the same 30-point minimum advance. Keep the English abbreviations hard-coded rather than formatting a date, because the rest of the app reads in English.",
       "verification_method": "unit test on placedTicks at several widths; capture comparison at 780 and at a narrower pane",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3454,7 +3454,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Derive the five swatch colours from the same colour function with the same sample values rather than hard-coding them, so the ladder cannot drift from the grid.",
       "verification_method": "unit test asserting the five ladder colours equal the grid's steps; interaction test for both tooltip strings and both accessibility values; capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3479,7 +3479,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same tooltip and the same two accessibility value forms; no visible second line.",
       "verification_method": "interaction test with a stubbed ledger at zero and non-zero uncertain tokens asserting the tooltip, the accessibility value and the absence of a second line",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4796,7 +4796,7 @@
       "cancellation": "Escape with no modifiers held cancels the recording without changing anything.",
       "windows_path": "The command and its title and tooltip carry over verbatim. The chord does NOT: key code 45 is a macOS virtual key code and the modifier bits are AppKit's, so the port defines the equivalent chord over Windows virtual-key codes and its own modifier set. The Command modifier maps to Control on Windows, which is the default the port ships; port_impacts.md:228 entry 110 requires the persisted blob to be re-defined and the defaults re-derived rather than migrated. Chords render in Windows notation (OD-0008 B7): modifiers as Ctrl, Alt and Shift joined with \"+\" before the key label, with the ED-050 mapping Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl; key labels keep upstream's US-position table (OD-0008 B9). This shortcut therefore reads Ctrl+N.",
       "verification_method": "unit test on the shortcut table asserting the title, tooltip, raw value, section and default chord; interaction test recording and resetting the row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4829,7 +4829,7 @@
       "cancellation": "Escape with no modifiers held cancels the recording without changing anything.",
       "windows_path": "The command and its title and tooltip carry over verbatim. The chord does NOT: key code 45 is a macOS virtual key code and the modifier bits are AppKit's, so the port defines the equivalent chord over Windows virtual-key codes and its own modifier set. The Command modifier maps to Control on Windows, which is the default the port ships; port_impacts.md:228 entry 110 requires the persisted blob to be re-defined and the defaults re-derived rather than migrated. Chords render in Windows notation (OD-0008 B7): modifiers as Ctrl, Alt and Shift joined with \"+\" before the key label, with the ED-050 mapping Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl; key labels keep upstream's US-position table (OD-0008 B9). This shortcut therefore reads Ctrl+Shift+N.",
       "verification_method": "unit test on the shortcut table asserting the title, tooltip, raw value, section and default chord; interaction test recording and resetting the row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4862,7 +4862,7 @@
       "cancellation": "Escape with no modifiers held cancels the recording without changing anything.",
       "windows_path": "The command and its title and tooltip carry over verbatim. The chord does NOT: key code 31 is a macOS virtual key code and the modifier bits are AppKit's, so the port defines the equivalent chord over Windows virtual-key codes and its own modifier set. The Command modifier maps to Control on Windows, which is the default the port ships; port_impacts.md:228 entry 110 requires the persisted blob to be re-defined and the defaults re-derived rather than migrated. Chords render in Windows notation (OD-0008 B7): modifiers as Ctrl, Alt and Shift joined with \"+\" before the key label, with the ED-050 mapping Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl; key labels keep upstream's US-position table (OD-0008 B9). This shortcut therefore reads Ctrl+O.",
       "verification_method": "unit test on the shortcut table asserting the title, tooltip, raw value, section and default chord; interaction test recording and resetting the row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4895,7 +4895,7 @@
       "cancellation": "Escape with no modifiers held cancels the recording without changing anything.",
       "windows_path": "The command and its title and tooltip carry over verbatim. The chord does NOT: key code 47 is a macOS virtual key code and the modifier bits are AppKit's, so the port defines the equivalent chord over Windows virtual-key codes and its own modifier set. The Command modifier maps to Control on Windows, which is the default the port ships; port_impacts.md:228 entry 110 requires the persisted blob to be re-defined and the defaults re-derived rather than migrated. Chords render in Windows notation (OD-0008 B7): modifiers as Ctrl, Alt and Shift joined with \"+\" before the key label, with the ED-050 mapping Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl; key labels keep upstream's US-position table (OD-0008 B9). This shortcut therefore reads Ctrl+..",
       "verification_method": "unit test on the shortcut table asserting the title, tooltip, raw value, section and default chord; interaction test recording and resetting the row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4928,7 +4928,7 @@
       "cancellation": "Escape with no modifiers held cancels the recording without changing anything.",
       "windows_path": "The command and its title and tooltip carry over verbatim. The chord does NOT: key code 36 is a macOS virtual key code and the modifier bits are AppKit's, so the port defines the equivalent chord over Windows virtual-key codes and its own modifier set. The Command modifier maps to Control on Windows, which is the default the port ships; port_impacts.md:228 entry 110 requires the persisted blob to be re-defined and the defaults re-derived rather than migrated. Chords render in Windows notation (OD-0008 B7): modifiers as Ctrl, Alt and Shift joined with \"+\" before the key label, with the ED-050 mapping Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl; key labels keep upstream's US-position table (OD-0008 B9). This shortcut therefore reads Ctrl+Return.",
       "verification_method": "unit test on the shortcut table asserting the title, tooltip, raw value, section and default chord; interaction test recording and resetting the row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4961,7 +4961,7 @@
       "cancellation": "Escape with no modifiers held cancels the recording without changing anything.",
       "windows_path": "The command and its title and tooltip carry over verbatim. The chord does NOT: key code 35 is a macOS virtual key code and the modifier bits are AppKit's, so the port defines the equivalent chord over Windows virtual-key codes and its own modifier set. The Command modifier maps to Control on Windows, which is the default the port ships; port_impacts.md:228 entry 110 requires the persisted blob to be re-defined and the defaults re-derived rather than migrated. Chords render in Windows notation (OD-0008 B7): modifiers as Ctrl, Alt and Shift joined with \"+\" before the key label, with the ED-050 mapping Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl; key labels keep upstream's US-position table (OD-0008 B9). This shortcut therefore reads Ctrl+Shift+P.",
       "verification_method": "unit test on the shortcut table asserting the title, tooltip, raw value, section and default chord; interaction test recording and resetting the row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4994,7 +4994,7 @@
       "cancellation": "Escape with no modifiers held cancels the recording without changing anything.",
       "windows_path": "The command and its title and tooltip carry over verbatim. The chord does NOT: key code 48 is a macOS virtual key code and the modifier bits are AppKit's, so the port defines the equivalent chord over Windows virtual-key codes and its own modifier set. port_impacts.md:228 entry 110 requires the persisted blob to be re-defined and the defaults re-derived rather than migrated. Chords render in Windows notation (OD-0008 B7): modifiers as Ctrl, Alt and Shift joined with \"+\" before the key label, with the ED-050 mapping Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl; key labels keep upstream's US-position table (OD-0008 B9). This shortcut therefore reads Ctrl+Shift+Tab.",
       "verification_method": "unit test on the shortcut table asserting the title, tooltip, raw value, section and default chord; interaction test recording and resetting the row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5027,7 +5027,7 @@
       "cancellation": "Escape with no modifiers held cancels the recording without changing anything.",
       "windows_path": "The command and its title and tooltip carry over verbatim. The chord does NOT: key code 48 is a macOS virtual key code and the modifier bits are AppKit's, so the port defines the equivalent chord over Windows virtual-key codes and its own modifier set. port_impacts.md:228 entry 110 requires the persisted blob to be re-defined and the defaults re-derived rather than migrated. Chords render in Windows notation (OD-0008 B7): modifiers as Ctrl, Alt and Shift joined with \"+\" before the key label, with the ED-050 mapping Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl; key labels keep upstream's US-position table (OD-0008 B9). This shortcut therefore reads Ctrl+Tab.",
       "verification_method": "unit test on the shortcut table asserting the title, tooltip, raw value, section and default chord; interaction test recording and resetting the row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5060,7 +5060,7 @@
       "cancellation": "Escape with no modifiers held cancels the recording without changing anything.",
       "windows_path": "The command and its title and tooltip carry over verbatim. The chord does NOT: key code 15 is a macOS virtual key code and the modifier bits are AppKit's, so the port defines the equivalent chord over Windows virtual-key codes and its own modifier set. The Command modifier maps to Control on Windows, which is the default the port ships; port_impacts.md:228 entry 110 requires the persisted blob to be re-defined and the defaults re-derived rather than migrated. Chords render in Windows notation (OD-0008 B7): modifiers as Ctrl, Alt and Shift joined with \"+\" before the key label, with the ED-050 mapping Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl; key labels keep upstream's US-position table (OD-0008 B9). This shortcut therefore reads Ctrl+R.",
       "verification_method": "unit test on the shortcut table asserting the title, tooltip, raw value, section and default chord; interaction test recording and resetting the row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5093,7 +5093,7 @@
       "cancellation": "Escape with no modifiers held cancels the recording without changing anything.",
       "windows_path": "The command and its title and tooltip carry over verbatim. The chord does NOT: key code 51 is a macOS virtual key code and the modifier bits are AppKit's, so the port defines the equivalent chord over Windows virtual-key codes and its own modifier set. The Command modifier maps to Control on Windows, which is the default the port ships; port_impacts.md:228 entry 110 requires the persisted blob to be re-defined and the defaults re-derived rather than migrated. The Swift case is `finishThread` but its raw value is the literal \"archiveThread\", deliberately: the source comment at Shortcuts.swift:115-116 says \"Stored under its old name, so a chord recorded for 'Archive thread' still applies.\" Persist the raw value, not the case name. Chords render in Windows notation (OD-0008 B7): modifiers as Ctrl, Alt and Shift joined with \"+\" before the key label, with the ED-050 mapping Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl; key labels keep upstream's US-position table (OD-0008 B9). This shortcut therefore reads Ctrl+Shift+Delete.",
       "verification_method": "unit test on the shortcut table asserting the title, tooltip, raw value, section and default chord; interaction test recording and resetting the row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5126,7 +5126,7 @@
       "cancellation": "Escape with no modifiers held cancels the recording without changing anything.",
       "windows_path": "The command and its title and tooltip carry over verbatim. The chord does NOT: key code 13 is a macOS virtual key code and the modifier bits are AppKit's, so the port defines the equivalent chord over Windows virtual-key codes and its own modifier set. The Command modifier maps to Control on Windows, which is the default the port ships; port_impacts.md:228 entry 110 requires the persisted blob to be re-defined and the defaults re-derived rather than migrated. The Swift case is `archiveThread` but its raw value is the literal \"archiveThreadPrompt\", because the plain \"archiveThread\" key belongs to the Finish thread command above. The two must not be swapped. Chords render in Windows notation (OD-0008 B7): modifiers as Ctrl, Alt and Shift joined with \"+\" before the key label, with the ED-050 mapping Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl; key labels keep upstream's US-position table (OD-0008 B9). This shortcut therefore reads Ctrl+W.",
       "verification_method": "unit test on the shortcut table asserting the title, tooltip, raw value, section and default chord; interaction test recording and resetting the row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5159,7 +5159,7 @@
       "cancellation": "Escape with no modifiers held cancels the recording without changing anything.",
       "windows_path": "The command and its title and tooltip carry over verbatim. The chord does NOT: key code 1 is a macOS virtual key code and the modifier bits are AppKit's, so the port defines the equivalent chord over Windows virtual-key codes and its own modifier set. The Command modifier maps to Control on Windows, which is the default the port ships; port_impacts.md:228 entry 110 requires the persisted blob to be re-defined and the defaults re-derived rather than migrated. Chords render in Windows notation (OD-0008 B7): modifiers as Ctrl, Alt and Shift joined with \"+\" before the key label, with the ED-050 mapping Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl; key labels keep upstream's US-position table (OD-0008 B9). This shortcut therefore reads Ctrl+S.",
       "verification_method": "unit test on the shortcut table asserting the title, tooltip, raw value, section and default chord; interaction test recording and resetting the row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5192,7 +5192,7 @@
       "cancellation": "Escape with no modifiers held cancels the recording without changing anything.",
       "windows_path": "The command and its title and tooltip carry over verbatim. The chord does NOT: key code 40 is a macOS virtual key code and the modifier bits are AppKit's, so the port defines the equivalent chord over Windows virtual-key codes and its own modifier set. The Command modifier maps to Control on Windows, which is the default the port ships; port_impacts.md:228 entry 110 requires the persisted blob to be re-defined and the defaults re-derived rather than migrated. Chords render in Windows notation (OD-0008 B7): modifiers as Ctrl, Alt and Shift joined with \"+\" before the key label, with the ED-050 mapping Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl; key labels keep upstream's US-position table (OD-0008 B9). This shortcut therefore reads Ctrl+K.",
       "verification_method": "unit test on the shortcut table asserting the title, tooltip, raw value, section and default chord; interaction test recording and resetting the row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5225,7 +5225,7 @@
       "cancellation": "Escape with no modifiers held cancels the recording without changing anything.",
       "windows_path": "The command and its title and tooltip carry over verbatim. The chord does NOT: key code 11 is a macOS virtual key code and the modifier bits are AppKit's, so the port defines the equivalent chord over Windows virtual-key codes and its own modifier set. The Command modifier maps to Control on Windows, which is the default the port ships; port_impacts.md:228 entry 110 requires the persisted blob to be re-defined and the defaults re-derived rather than migrated. Chords render in Windows notation (OD-0008 B7): modifiers as Ctrl, Alt and Shift joined with \"+\" before the key label, with the ED-050 mapping Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl; key labels keep upstream's US-position table (OD-0008 B9). This shortcut therefore reads Ctrl+B.",
       "verification_method": "unit test on the shortcut table asserting the title, tooltip, raw value, section and default chord; interaction test recording and resetting the row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5258,7 +5258,7 @@
       "cancellation": "Escape with no modifiers held cancels the recording without changing anything.",
       "windows_path": "The command and its title and tooltip carry over verbatim. The chord does NOT: key code 38 is a macOS virtual key code and the modifier bits are AppKit's, so the port defines the equivalent chord over Windows virtual-key codes and its own modifier set. The Command modifier maps to Control on Windows, which is the default the port ships; port_impacts.md:228 entry 110 requires the persisted blob to be re-defined and the defaults re-derived rather than migrated. Chords render in Windows notation (OD-0008 B7): modifiers as Ctrl, Alt and Shift joined with \"+\" before the key label, with the ED-050 mapping Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl; key labels keep upstream's US-position table (OD-0008 B9). This shortcut therefore reads Ctrl+J.",
       "verification_method": "unit test on the shortcut table asserting the title, tooltip, raw value, section and default chord; interaction test recording and resetting the row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5291,7 +5291,7 @@
       "cancellation": "Escape with no modifiers held cancels the recording without changing anything.",
       "windows_path": "The command and its title and tooltip carry over verbatim. The chord does NOT: key code 2 is a macOS virtual key code and the modifier bits are AppKit's, so the port defines the equivalent chord over Windows virtual-key codes and its own modifier set. The Command modifier maps to Control on Windows, which is the default the port ships; port_impacts.md:228 entry 110 requires the persisted blob to be re-defined and the defaults re-derived rather than migrated. Chords render in Windows notation (OD-0008 B7): modifiers as Ctrl, Alt and Shift joined with \"+\" before the key label, with the ED-050 mapping Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl; key labels keep upstream's US-position table (OD-0008 B9). This shortcut therefore reads Ctrl+D.",
       "verification_method": "unit test on the shortcut table asserting the title, tooltip, raw value, section and default chord; interaction test recording and resetting the row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5324,7 +5324,7 @@
       "cancellation": "Escape with no modifiers held cancels the recording without changing anything.",
       "windows_path": "The command and its title and tooltip carry over verbatim. The chord does NOT: key code 32 is a macOS virtual key code and the modifier bits are AppKit's, so the port defines the equivalent chord over Windows virtual-key codes and its own modifier set. The Command modifier maps to Control on Windows, which is the default the port ships; port_impacts.md:228 entry 110 requires the persisted blob to be re-defined and the defaults re-derived rather than migrated. Chords render in Windows notation (OD-0008 B7): modifiers as Ctrl, Alt and Shift joined with \"+\" before the key label, with the ED-050 mapping Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl; key labels keep upstream's US-position table (OD-0008 B9). This shortcut therefore reads Ctrl+Alt+U.",
       "verification_method": "unit test on the shortcut table asserting the title, tooltip, raw value, section and default chord; interaction test recording and resetting the row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5360,7 +5360,7 @@
       "cancellation": "Escape with no modifiers held cancels the recording without changing anything.",
       "windows_path": "The command and its tooltip carry over verbatim; the title carries over except for the product name (OD-0002). The chord does NOT: by owner ruling OD-0012 G6 the command ships with no default chord, because Ctrl+0 is Actual Size and the window can no longer hide (OD-0008 C1). A chord the user records is defined over Windows virtual-key codes and the port's own modifier set (key code 29 is a macOS virtual key code and the modifier bits are AppKit's); port_impacts.md:228 entry 110 requires the persisted blob to be re-defined and the defaults re-derived rather than migrated. The title contains the product name, which the approved rename (OD-0002) changes, so it reads \"Show Marrow\" (OD-0002; OD-0012 F1); every other title is fixed product text. Chords render in Windows notation (OD-0008 B7): modifiers as Ctrl, Alt and Shift joined with \"+\" before the key label, with the ED-050 mapping Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl; key labels keep upstream's US-position table (OD-0008 B9). This shortcut therefore shows \"Record shortcut\" until one is recorded. The hard-coded zoom command \"Actual Size\" keeps Ctrl+0 (PR-WIN-224; OD-0012 G6).",
       "verification_method": "unit test on the shortcut table asserting the title \"Show Marrow\", tooltip, raw value, section and the absence of a default chord (the recorder reads \"Record shortcut\"); interaction test recording and resetting the row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5394,7 +5394,7 @@
       "cancellation": "Escape with no modifiers held cancels the recording without changing anything.",
       "windows_path": "The command and its title and tooltip carry over verbatim. The chord does NOT: key code 43 is a macOS virtual key code and the modifier bits are AppKit's, so the port defines the equivalent chord over Windows virtual-key codes and its own modifier set. The Command modifier maps to Control on Windows, which is the default the port ships; port_impacts.md:228 entry 110 requires the persisted blob to be re-defined and the defaults re-derived rather than migrated. Chords render in Windows notation (OD-0008 B7): modifiers as Ctrl, Alt and Shift joined with \"+\" before the key label, with the ED-050 mapping Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl; key labels keep upstream's US-position table (OD-0008 B9). This shortcut therefore reads Ctrl+,.",
       "verification_method": "unit test on the shortcut table asserting the title, tooltip, raw value, section and default chord; interaction test recording and resetting the row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5422,7 +5422,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three sections in the same order with the same symbols. The Composer section's rows describe composer keys that the port must keep working, but they are not settings.",
       "verification_method": "capture comparison of the whole page; unit test on the section table",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5450,7 +5450,7 @@
       "cancellation": "not cancellable and not undoable",
       "windows_path": "Same header and the same conditional Reset with no confirmation.",
       "verification_method": "interaction test: clear one shortcut, assert Reset appears; click it, assert every shortcut in the section is back to its default and the pill is gone",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5474,7 +5474,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same metrics. Note these rows are NOT ChromeRow: the padding is a uniform 12 rather than 16/10/11, and the detail is a tooltip rather than a line.",
       "verification_method": "capture comparison; interaction test asserting the tooltip carries the detail sentence",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5499,7 +5499,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same fixed 168 x 24 control and the same \"Record shortcut\" wording. The chord reads in Windows notation (OD-0008 B7, ED-050 mapping Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl), modifiers in the order Ctrl, Alt, Shift, so a chord always reads the same way; key labels keep upstream's US-position table (OD-0008 B9).",
       "verification_method": "capture comparison of a set and a cleared row; unit test on the modifier symbol order",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5528,7 +5528,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same nine fill values and the same three-state ink rule. Do not substitute the glass capsule used elsewhere in settings: the flat wash is a deliberate choice for a page with nineteen of these.",
       "verification_method": "capture comparison across the three states and their hover and pressed variants",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5553,7 +5553,7 @@
       "cancellation": "Dismissing the popover, pressing bare Escape, the application losing focus, or the row disappearing all cancel the session.",
       "windows_path": "Same popover contents. The key capture is a window-level keydown/keyup/modifier listener with preventDefault on every captured event; see the session requirement.",
       "verification_method": "interaction test opening and dismissing the recorder",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5589,7 +5589,7 @@
       "cancellation": "Bare Escape, dismissing the popover, the row disappearing, or the app resigning active. The 300ms commit task is cancelled by all of them.",
       "windows_path": "A window-level capture-phase key listener with preventDefault and stopPropagation on every keydown, keyup and modifier change while the popover is open, plus a blur handler that cancels. port_impacts.md:424 entry 208 records that this is one of five separate Escape policies in the family and must be decided on its own: here bare Escape cancels and Escape with a modifier is recordable. The haptics become a no-op shim; do not substitute a sound or an animation.",
       "verification_method": "interaction test covering accept, refuse, replace-while-held, bare Escape, modified Escape, blur, and the 300ms commit delay",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5616,7 +5616,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep the five checks in the same ORDER so the same chord produces the same message. Two messages are reworded by owner ruling: \"Add Ctrl or Alt so typing still works.\" (B7) and \"Windows or Marrow already uses this chord.\" (B8); the other three stay verbatim. The reserved table is kept as is (B8), with Command read as Ctrl per ED-050, and must stay in sync with the hard-coded thread-jump chords as one unit (port_impacts.md:228 entry 110).",
       "verification_method": "unit test over one chord per refusal reason plus the self-match case, asserting the exact Windows strings \"Add Ctrl or Alt so typing still works.\" and \"Windows or Marrow already uses this chord.\", the unchanged three, the 18 reserved chords and the order of precedence",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5650,7 +5650,7 @@
       "cancellation": "not cancellable once clicked",
       "windows_path": "Same two labels, the same presence conditions and the same distinction between clearing and resetting. Every shortcut in the table ships with a default chord, so the second condition's defaultChord check never fails today; keep it anyway.",
       "verification_method": "unit test over the four combinations of has-chord and is-customised; restart test asserting a cleared shortcut stays cleared",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5676,7 +5676,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the cap visuals. Modifier caps follow the Windows notation of OD-0008 B7 (Ctrl, Alt, Shift, with Command read as Ctrl per ED-050) while keeping the symbol-over-name layout and the fixed slot order; which glyph and which name each Windows cap draws is not fixed by the ruling and is UNRESOLVED, not invented here. Key labels keep upstream's US-position table (OD-0008 B9), re-keyed from Windows scan codes.",
       "verification_method": "capture comparison of a neutral, a rejected and an accepted cap set",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5706,7 +5706,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same six rows verbatim apart from the three modifier chords, which render in Windows notation (OD-0008 B7, ED-050 mapping; key labels per OD-0008 B9). The underlying composer keys belong to the composer area and must be kept in sync with the reserved chord list as one unit.",
       "verification_method": "unit test comparing all eighteen strings; capture comparison of the card",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5734,7 +5734,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three-state resolution. Keep the help-suffix helper so a cleared shortcut cannot leave a stale key in a tooltip.",
       "verification_method": "unit test over absent, present-with-chord and present-with-nil; restart test for the cleared case",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -6595,7 +6595,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two strings verbatim; \"grey\" is not Americanised.",
       "verification_method": "unit test comparing the title and the detail byte for byte, including the absent trailing full stop",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -6617,7 +6617,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two strings verbatim, including the capital A in \"Archive page\".",
       "verification_method": "unit test comparing the title and the detail byte for byte",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -6643,7 +6643,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two strings verbatim. Do not persist this enum by its raw value: store the two booleans and derive the mode, or a port silently changes the wire format the defaults already hold.",
       "verification_method": "unit test comparing the title and the detail byte for byte, plus a unit test over the two stored booleans asserting this case round-trips through the computed sidebarMode",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -6669,7 +6669,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two strings verbatim. Do not persist this enum by its raw value: store the two booleans and derive the mode, or a port silently changes the wire format the defaults already hold.",
       "verification_method": "unit test comparing the title and the detail byte for byte, plus a unit test over the two stored booleans asserting this case round-trips through the computed sidebarMode",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -6695,7 +6695,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two strings verbatim. Do not persist this enum by its raw value: store the two booleans and derive the mode, or a port silently changes the wire format the defaults already hold.",
       "verification_method": "unit test comparing the title and the detail byte for byte, plus a unit test over the two stored booleans asserting this case round-trips through the computed sidebarMode",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -6717,7 +6717,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two strings verbatim, with the same apostrophe character.",
       "verification_method": "unit test comparing the title and the detail byte for byte, asserting the apostrophe code point",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -6739,7 +6739,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two strings verbatim; the persisted raw value stays the camel-case \"projectName\".",
       "verification_method": "unit test comparing the title, the detail and the raw value byte for byte",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -6749,7 +6749,7 @@
       "persistence": "None. ScrollActivity holds no persisted state; everything it tracks dies with the process.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -6773,7 +6773,7 @@
       "persistence": "None. ScrollActivity holds no persisted state; everything it tracks dies with the process.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -6794,7 +6794,7 @@
       "persistence": "None. ScrollActivity holds no persisted state; everything it tracks dies with the process.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -6817,7 +6817,7 @@
       "persistence": "None. ScrollActivity holds no persisted state; everything it tracks dies with the process.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -6838,7 +6838,7 @@
       "persistence": "None. ScrollActivity holds no persisted state; everything it tracks dies with the process.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -6880,7 +6880,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name, same default and the same normalize-on-read rule in the port's settings store; do not read or migrate \"chatZoom\". The app-wide scaling it drives is specified with the window area.",
       "verification_method": "unit test: absent reads 100, 125 reads 125, 130 reads 100, a string reads 100; restart test: set 150, restart, assert it is read back",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -6906,7 +6906,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Store and load the key with the same name and default. Add no control for it and do not wire it to the timeline (PR-CHAT-125).",
       "verification_method": "unit test asserting the exact key string and the default when absent; restart test for a stored true; inspection test that no settings control binds it",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -7075,7 +7075,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A thin wrapper over the port's one Credential Manager store with the account string \"Command Code API Key\" carried verbatim (OD-0008 B3); no plaintext fallback (OD-0008 A6). The capture-run guard (APIKeychain.swift:14) is a capture-mode short circuit listed in porting/dead_code.md entry 44 and is not ported (ED-061).",
       "verification_method": "unit test with a stubbed store: a write stores the trimmed key under \"Command Code API Key\", an empty write deletes it, a read returns it, a refused write stores nothing and shows the verbatim \"Credential Manager did not accept this key, so it was not saved.\" under the key field; restart test for a stored key",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -7600,7 +7600,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:50-51 chatBaseSize - .title3 15, .body 13 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "Carries the header accessibility trait. Note it is 15pt semibold in primaryText, unlike a ChromeSection header which is .system(.body, weight: .semibold) in Chrome.secondaryText at B2.",
-      "b2_change": "DroppyCode/App/Views/Settings/TokenActivitySection.swift:56 `.system(size: 15, weight: .semibold)` -> `.system(.title3, weight: .semibold)` at 1fbf81e6; the ChromeSection comparison is updated for DroppyCode/UI/Chrome/Chrome.swift:1035-1036 (`.system(.body, weight: .semibold)`, `Chrome.secondaryText`)."
+      "b2_change": "DroppyCode/App/Views/Settings/TokenActivitySection.swift:56 `.system(size: 15, weight: .semibold)` -> `.system(.title3, weight: .semibold)` at 1fbf81e6; the ChromeSection comparison is updated for DroppyCode/UI/Chrome/Chrome.swift:1035-1036 (`.system(.body, weight: .semibold)`, `Chrome.secondaryText`).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-022",
@@ -7628,7 +7629,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:51 chatBaseSize - .body 13 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "Tooltips in order: \"Each day on its own, against the busiest day of the year\", \"Each week as one shade, against the busiest week\", \"The running total, so the year fills as it goes\". The mode is view-local and is not persisted.",
-      "b2_change": "DroppyCode/App/Views/Settings/TokenActivitySection.swift:77 `.system(size: 13, weight: ...)` -> `.system(.body, weight: ...)` at 1fbf81e6; lines unchanged."
+      "b2_change": "DroppyCode/App/Views/Settings/TokenActivitySection.swift:77 `.system(size: 13, weight: ...)` -> `.system(.body, weight: ...)` at 1fbf81e6; lines unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-023",
@@ -7652,7 +7654,8 @@
         "DroppyCode/App/Views/Settings/TokenActivitySection.swift:207-272",
         "DroppyCode/Services/Store/TokenLedger.swift:609-689"
       ],
-      "notes": "One canvas pass, not 365 nodes: this was the heaviest layout in Settings before it was a canvas. The legend, not the grid, carries the accessible value."
+      "notes": "One canvas pass, not 365 nodes: this was the heaviest layout in Settings before it was a canvas. The legend, not the grid, carries the accessible value.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-024",
@@ -7677,7 +7680,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:53 chatBaseSize - .subheadline 11 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "Never localised. The comment records that the calendar's own symbols come out as \"M01\" without a locale.",
-      "b2_change": "DroppyCode/App/Views/Settings/TokenActivitySection.swift:123 `.system(size: 11)` -> `.system(.subheadline)` at 1fbf81e6; lines unchanged."
+      "b2_change": "DroppyCode/App/Views/Settings/TokenActivitySection.swift:123 `.system(size: 11)` -> `.system(.subheadline)` at 1fbf81e6; lines unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-025",
@@ -7700,7 +7704,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:53 chatBaseSize - .subheadline 11 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "One accessibility element labelled \"Token activity\". The swatch colours must be derived from the grid's colour function, not hard-coded. There is no second line at B2.",
-      "b2_change": "dd2b86ef DroppyCode/App/Views/Settings/TokenActivitySection.swift:144-181: \"<n> tokens recorded\" plus a wrapping second line for uncertain tokens in an outer VStack(spacing 4). 1fbf81e6 :138-172: one line \"<n> tokens\" with a tooltip; the second line is gone."
+      "b2_change": "dd2b86ef DroppyCode/App/Views/Settings/TokenActivitySection.swift:144-181: \"<n> tokens recorded\" plus a wrapping second line for uncertain tokens in an outer VStack(spacing 4). 1fbf81e6 :138-172: one line \"<n> tokens\" with a tooltip; the second line is gone.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-026",
@@ -7833,7 +7838,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:52 chatBaseSize - .callout 12 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "The help string doubles as the accessibility label. SF Symbol \"info.circle\".",
-      "b2_change": "DroppyCode/UI/Chrome/InfoHoverButton.swift:17 `.system(size: 12, weight: .medium)` -> `.system(.callout, weight: .medium)` at 1fbf81e6. Chrome.secondaryText is `primaryText.opacity(0.7)` at 1fbf81e6 (DroppyCode/UI/Chrome/Chrome.swift:79), the label colour at 70% opacity; at dd2b86ef it was `Color(nsColor: .secondaryLabelColor)` (DroppyCode/UI/Chrome/Chrome.swift:77 at dd2b86ef)."
+      "b2_change": "DroppyCode/UI/Chrome/InfoHoverButton.swift:17 `.system(size: 12, weight: .medium)` -> `.system(.callout, weight: .medium)` at 1fbf81e6. Chrome.secondaryText is `primaryText.opacity(0.7)` at 1fbf81e6 (DroppyCode/UI/Chrome/Chrome.swift:79), the label colour at 70% opacity; at dd2b86ef it was `Color(nsColor: .secondaryLabelColor)` (DroppyCode/UI/Chrome/Chrome.swift:77 at dd2b86ef).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-031",
@@ -8141,7 +8147,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:51, :53 chatBaseSize - .body 13, .subheadline 11 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "Section symbols: \"bubble.left.and.bubble.right.fill\", \"macwindow\", \"text.cursor\".",
-      "b2_change": "DroppyCode/App/Views/Settings/ShortcutsSettingsPage.swift:29-30 at 1fbf81e6: title `.system(.body, weight: .semibold)` in Chrome.secondaryText (was `.system(size: 13, weight: .semibold)` in `.secondary`); :272 Reset label `.system(.subheadline, weight: .semibold)`."
+      "b2_change": "DroppyCode/App/Views/Settings/ShortcutsSettingsPage.swift:29-30 at 1fbf81e6: title `.system(.body, weight: .semibold)` in Chrome.secondaryText (was `.system(size: 13, weight: .semibold)` in `.secondary`); :272 Reset label `.system(.subheadline, weight: .semibold)`.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-044",
@@ -8173,7 +8180,8 @@
         "decision": "OD-0008 B7",
         "upstream": "ShortcutsSettingsPage.swift:165-172 draw one glyph per modifier (⌃ ⌥ ⇧ ⌘) then the key label",
         "port": "The chord reads in Windows notation, Ctrl, Alt, Shift then the key, joined with \"+\"."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-045",
@@ -8202,7 +8210,8 @@
         "decision": "OD-0008 B7",
         "upstream": "ShortcutsSettingsPage.swift:296-315 modifier caps \"⌃ ctrl\", \"⌥ opt\", \"⇧ shift\", \"⌘ cmd\"",
         "port": "Windows notation (Ctrl, Alt, Shift); the exact per-cap text is UNRESOLVED."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-046",
@@ -8232,7 +8241,8 @@
         "decision": "OD-0008 B7; OD-0008 B8",
         "upstream": "Core/Models/Shortcuts.swift:326 \"Add ⌘, ⌃ or ⌥ so typing still works.\" Core/Models/Shortcuts.swift:329 \"macOS or Droppy Code already uses this chord.\"",
         "port": "\"Add Ctrl or Alt so typing still works.\" \"Windows or Marrow already uses this chord.\""
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-047",
@@ -8256,7 +8266,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:52 chatBaseSize - .callout 12 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "Clear persists a cleared state (an override holding nil); Reset removes the override. The two are not the same and must not be merged.",
-      "b2_change": "DroppyCode/App/Views/Settings/ShortcutsSettingsPage.swift:452 `.system(size: 12, weight: .semibold)` -> `.system(.callout, weight: .semibold)` at 1fbf81e6."
+      "b2_change": "DroppyCode/App/Views/Settings/ShortcutsSettingsPage.swift:452 `.system(size: 12, weight: .semibold)` -> `.system(.callout, weight: .semibold)` at 1fbf81e6.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-048",
@@ -8283,7 +8294,8 @@
         "decision": "OD-0008 B7",
         "upstream": "ShortcutsSettingsPage.swift:70, :73, :74 \"⇧ Return\", \"⌘ Return\", \"⌘ 1–9\"",
         "port": "\"Shift+Return\", \"Ctrl+Return\", \"Ctrl+1–9\""
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-049",
