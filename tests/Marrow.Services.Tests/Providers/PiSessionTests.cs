@@ -1499,7 +1499,8 @@ public sealed class PiSessionTests
 
     [Fact]
     [Trait("Req", "PR-PROVCLI-299")] // PiSession.swift:638-644,650-651
-    [Trait("Decision", "PA-0008")]
+    // PA-0008: the bounded-tail collector itself (Core/Support/Shell.swift:244-321) is tested at ShellTests;
+    // this test proves only DidClose's own branching over that tail.
     public void DidClose_an_active_turn_reports_failed_with_a_null_error_when_the_stderr_tail_is_empty()
     {
         var (session, events) = Make2();
