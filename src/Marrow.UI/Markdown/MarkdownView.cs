@@ -1,11 +1,25 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
+using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Documents;
+using Avalonia.Controls.Primitives;
+using Avalonia.Input.Platform;
+using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Media.Imaging;
+using Avalonia.Platform;
+using Avalonia.Controls.Shapes;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
+using Marrow.Core.Support;
+using Marrow.UI.Chrome;
+using Marrow.UI.Common;
 using Marrow.UI.Port;
 
 // Source: DroppyCode/UI/Markdown/MarkdownView.swift (B2 1fbf81e), :1-1498.
@@ -54,59 +68,354 @@ public sealed class MarkdownView : Decorator
     private const int StreamingSlots = 48; // :115
 
     /// <param name="text">:10 <c>let text: String</c>.</param>
+    public string Text { get; }
+
     /// <param name="isStreaming">:16 <c>var isStreaming = false</c>.</param>
-    // :63-103 body
-    public MarkdownView(string text, bool isStreaming = false) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:63");
+    public bool IsStreaming { get; }
 
-    // :25-45 static func segments(_ blocks: [MarkdownBlock]) -> [MarkdownSegment]
-    public static ValueList<MarkdownSegment> Segments(IReadOnlyList<MarkdownBlock> blocks) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:25");
+    // :21-23 nonisolated static func ==.
+    public static bool Equatable(MarkdownView lhs, MarkdownView rhs) => lhs.Text == rhs.Text && lhs.IsStreaming == rhs.IsStreaming;
 
-    // :51-56 private static func transition(for block: MarkdownBlock) -> AnyTransition
-    private static SwiftTransition Transition(MarkdownBlock @for) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:51");
+    // :63-103 body. The prose-run branch (PR-THEME-105) builds ProseRunView for each prose run (part 2's sibling
+    // ProseRunView unit; MARROW_STUB there is expected and left alone). The block branch is fully implemented,
+    // via MarkdownBlockView.
+    public MarkdownView(string text, bool isStreaming = false)
+    {
+        Text = text;
+        IsStreaming = isStreaming;
+        var parse = isStreaming ? StreamingParse(text) : (Blocks: Blocks(text), Stable: 0); // :67
+        var blocks = parse.Blocks;
+        var stable = parse.Stable;
+        var last = blocks.Count - 1;
+        var proseRuns = GetMarkdownProseRuns(this); // :71 @Environment(\.markdownProseRuns)
+        Control root;
+        if (!isStreaming && proseRuns) // :71-83
+        {
+            var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 12 }; // :72
+            foreach (var segment in Segments(blocks)) // :73-80
+            {
+                Control child = segment switch
+                {
+                    MarkdownSegment.Prose prose => new ProseRunView(prose.Value), // :75-76
+                    MarkdownSegment.Block block => new MarkdownBlockView(block.Value).Transition(Transition(block.Value)), // :77-79
+                    _ => throw new UnreachableException(),
+                };
+                stack.Children.Add(child);
+            }
+            stack.HorizontalAlignment = HorizontalAlignment.Stretch; // :82 frame(maxWidth: .infinity, alignment: .leading)
+            root = stack;
+        }
+        else // :84-98
+        {
+            var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 12 }; // :86
+            for (var index = 0; index < blocks.Count; index++) // :87
+            {
+                var block = blocks[index];
+                var view = new MarkdownBlockView(block, settled: index < stable); // :88
+                SetMarkdownStreaming(view, isStreaming && index == last); // :89-91
+                view.Transition(Transition(block)); // :92
+                stack.Children.Add(view);
+            }
+            stack.HorizontalAlignment = HorizontalAlignment.Stretch; // :97 frame(maxWidth: .infinity, alignment: .leading)
+            root = stack;
+        }
+        StreamVeil.SetMarkdownVeiled(root, isStreaming); // :80, :96 .environment(\.markdownVeiled, isStreaming)
+        Child = root;
+    }
 
-    // :59-61 static func isDelegationInfo(_ info: String) -> Bool
-    public static bool IsDelegationInfo(string info) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:59");
+    // :25-45 static func segments(_ blocks: [MarkdownBlock]) -> [MarkdownSegment]. PR-THEME-105: headings,
+    // paragraphs, lists and quotes accumulate into a prose run; code, tables and rules close the run and stand
+    // alone.
+    public static ValueList<MarkdownSegment> Segments(IReadOnlyList<MarkdownBlock> blocks)
+    {
+        var outSegments = new List<MarkdownSegment>();
+        var run = new List<MarkdownBlock>();
+        void Close()
+        {
+            if (run.Count > 0)
+            {
+                outSegments.Add(new MarkdownSegment.Prose(new ValueList<MarkdownBlock>([.. run])));
+                run = [];
+            }
+        }
+        foreach (var block in blocks)
+        {
+            switch (block)
+            {
+                case MarkdownBlock.Heading or MarkdownBlock.Paragraph or MarkdownBlock.List or MarkdownBlock.Quote:
+                    run.Add(block);
+                    break;
+                case MarkdownBlock.Code or MarkdownBlock.Table or MarkdownBlock.Rule:
+                    Close();
+                    outSegments.Add(new MarkdownSegment.Block(block));
+                    break;
+                default:
+                    throw new UnreachableException();
+            }
+        }
+        Close();
+        return new ValueList<MarkdownSegment>([.. outSegments]);
+    }
 
-    // :123-133 static func streamingParse(for text: String) -> (blocks: [MarkdownBlock], stable: Int)
-    public static (ValueList<MarkdownBlock> Blocks, int Stable) StreamingParse(string @for) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:123");
+    // :51-56 private static func transition(for block: MarkdownBlock) -> AnyTransition. PR-THEME-107: every
+    // block gets softAppear, except a delegation code block, which leaves with .identity (no transition) so its
+    // already-faded card is never seen to ghost.
+    private static SwiftTransition Transition(MarkdownBlock @for)
+    {
+        if (@for is MarkdownBlock.Code { Language: { } language } && IsDelegationInfo(SwiftString.Lowercased(language)))
+        {
+            return SwiftTransition.Asymmetric(insertion: SwiftTransition.SoftAppear, removal: SwiftTransition.Identity);
+        }
+        return SwiftTransition.SoftAppear;
+    }
 
-    // :135-148 static func blocks(for text: String, streaming: Bool = false) -> [MarkdownBlock]
-    public static ValueList<MarkdownBlock> Blocks(string @for, bool streaming = false) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:135");
+    // :59-61 static func isDelegationInfo(_ info: String) -> Bool. PR-THEME-107/108.
+    public static bool IsDelegationInfo(string info) => info is "hydra" or "hydra-sent" or "hydra-leaving";
 
-    // :154-167 private static func extends(_ earlier: String, to text: String) -> Bool
-    private static bool Extends(string earlier, string to) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:154");
+    // :107 @MainActor private static var blockCache = RecentCache<String, [MarkdownBlock]>(limit: 800). Plain
+    // static field (R-ISO-5): confined to the main actor by convention, as every other MainActor static in the
+    // tree.
+    private static RecentCache<string, ValueList<MarkdownBlock>> blockCache = new(800); // PR-THEME-123
 
-    // :170-176 private static func fenceMarker(in trimmed: String) -> String?
-    private static string? FenceMarker(string @in) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:170");
+    // :111 @MainActor private static var streamingParses: [(text: String, parse: MarkdownParser.Parse)] = [].
+    private static readonly List<(string Text, MarkdownParser.Parse Parse)> streamingParses = []; // PR-THEME-123
 
-    // :180-182 private static func approximateSourceLength(_ blocks: ArraySlice<MarkdownBlock>) -> Int
-    private static int ApproximateSourceLength(IReadOnlyList<MarkdownBlock> blocks) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:180");
+    // :123-133 static func streamingParse(for text: String) -> (blocks: [MarkdownBlock], stable: Int).
+    // PR-THEME-123/125.
+    public static (ValueList<MarkdownBlock> Blocks, int Stable) StreamingParse(string @for)
+    {
+        var text = @for;
+        for (var i = streamingParses.Count - 1; i >= 0; i--)
+        {
+            var candidate = streamingParses[i];
+            if (SwiftString.Utf8Count(candidate.Text) == SwiftString.Utf8Count(text) && candidate.Text == text)
+            {
+                return (candidate.Parse.Blocks, candidate.Parse.Stable);
+            }
+        }
+        var slot = -1;
+        for (var i = streamingParses.Count - 1; i >= 0; i--)
+        {
+            if (Extends(streamingParses[i].Text, text)) { slot = i; break; }
+        }
+        var parsed = MarkdownParser.MarkdownParserParse(text, slot >= 0 ? (streamingParses[slot].Text, streamingParses[slot].Parse) : null);
+        if (slot >= 0) streamingParses.RemoveAt(slot);
+        else if (streamingParses.Count == StreamingSlots) streamingParses.RemoveAt(0);
+        streamingParses.Add((text, parsed));
+        return (parsed.Blocks, parsed.Stable);
+    }
 
-    // :184-199 private static func approximateSourceLength(_ block: MarkdownBlock) -> Int
-    private static int ApproximateSourceLength(MarkdownBlock block) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:184");
+    // :135-148 static func blocks(for text: String, streaming: Bool = false) -> [MarkdownBlock]. PR-THEME-123.
+    public static ValueList<MarkdownBlock> Blocks(string @for, bool streaming = false)
+    {
+        var text = @for;
+        if (streaming) return StreamingParse(text).Blocks;
+        if (blockCache.TryGetValue(text, out var cached)) return cached;
+        ValueList<MarkdownBlock> parsed;
+        var slot = -1;
+        for (var i = streamingParses.Count - 1; i >= 0; i--)
+        {
+            if (streamingParses[i].Text == text) { slot = i; break; }
+        }
+        if (slot >= 0)
+        {
+            parsed = streamingParses[slot].Parse.Blocks;
+            streamingParses.RemoveAt(slot);
+        }
+        else
+        {
+            parsed = MarkdownParser.MarkdownParserParse(text);
+        }
+        blockCache.Insert(parsed, text);
+        return parsed;
+    }
 
-    // :204-219 @MainActor static func warm(_ texts: some Sequence<String>) async throws
-    public static Task Warm(IEnumerable<string> texts) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:204");
+    // :154-167 private static func extends(_ earlier: String, to text: String) -> Bool. PR-THEME-125: byte-probe
+    // extension test, not a whole-text comparison.
+    private static bool Extends(string earlier, string to)
+    {
+        var text = to;
+        var earlierCount = SwiftString.Utf8Count(earlier);
+        var count = SwiftString.Utf8Count(text);
+        if (earlierCount <= 0 || earlierCount >= count) return false;
+        const int probe = 64;
+        var earlierBytes = Encoding.UTF8.GetBytes(earlier);
+        var bytes = Encoding.UTF8.GetBytes(text);
+        if (earlierCount <= probe * 2)
+        {
+            return bytes.Length >= earlierBytes.Length && bytes.AsSpan(0, earlierBytes.Length).SequenceEqual(earlierBytes);
+        }
+        if (!bytes.AsSpan(0, probe).SequenceEqual(earlierBytes.AsSpan(0, probe))) return false;
+        var earlierTail = earlierBytes.AsSpan(earlierBytes.Length - probe, probe);
+        var tailStart = earlierCount - probe;
+        return bytes.AsSpan(tailStart, probe).SequenceEqual(earlierTail);
+    }
 
-    // :221-235 @MainActor static func warmTexts(_ texts: some Sequence<String>) -> [String]
-    public static ValueList<string> WarmTexts(IEnumerable<string> texts) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:221");
+    // :170-176 private static func fenceMarker(in trimmed: String) -> String?. Not cited by any record in this
+    // part (no call site reaches it within :1-1499 either); ported anyway since it is trivial and fully
+    // specified, rather than left as a permanent stub with no owner.
+    private static string? FenceMarker(string @in)
+    {
+        var trimmed = @in;
+        foreach (var marker in new[] { "```", "~~~" })
+        {
+            if (SwiftString.HasPrefix(trimmed, marker))
+            {
+                var first = marker[0];
+                var count = 0;
+                foreach (var ch in trimmed)
+                {
+                    if (ch != first) break;
+                    count++;
+                }
+                return new string(first, count);
+            }
+        }
+        return null;
+    }
 
-    // :257-275 nonisolated private static func inlineSources(of blocks: [MarkdownBlock], into sources: inout Set<String>)
-    // throws; the inout set comes back changed (R-VAL-1).
-    private static ValueSet<string> InlineSources(IReadOnlyList<MarkdownBlock> of, ValueSet<string> into) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:257");
+    // :180-182 private static func approximateSourceLength(_ blocks: ArraySlice<MarkdownBlock>) -> Int. Not
+    // cited by any record in this part; ported for the same reason as FenceMarker above.
+    private static int ApproximateSourceLength(IReadOnlyList<MarkdownBlock> blocks)
+    {
+        var total = 0;
+        foreach (var block in blocks) total += ApproximateSourceLength(block) + 4;
+        return total;
+    }
+
+    // :184-199 private static func approximateSourceLength(_ block: MarkdownBlock) -> Int.
+    private static int ApproximateSourceLength(MarkdownBlock block) => block switch
+    {
+        MarkdownBlock.Paragraph p => SwiftString.Count(p.Text) + 2,
+        MarkdownBlock.Heading h => SwiftString.Count(h.Text) + 2,
+        MarkdownBlock.Code c => SwiftString.Count(c.CodeText) + 8,
+        MarkdownBlock.Quote q => ApproximateSourceLength(q.Blocks) + 2,
+        MarkdownBlock.Table t => SwiftString.Count(string.Join("|", t.Header)) + SumTableRows(t.Rows) + 8,
+        MarkdownBlock.List l => SumListItems(l.Items),
+        MarkdownBlock.Rule => 4,
+        _ => throw new UnreachableException(),
+    };
+
+    private static int SumTableRows(ValueList<ValueList<string>> rows)
+    {
+        var total = 0;
+        foreach (var row in rows) total += SwiftString.Count(string.Join("|", row)) + 2;
+        return total;
+    }
+
+    private static int SumListItems(ValueList<MarkdownListItem> items)
+    {
+        var total = 0;
+        foreach (var item in items) total += SwiftString.Count(item.Text) + ApproximateSourceLength(item.Children) + 4;
+        return total;
+    }
+
+    // :204-219 @MainActor static func warm(_ texts: some Sequence<String>) async throws. PR-THEME-124.
+    public static async Task Warm(IEnumerable<string> texts)
+    {
+        SwiftTask.CheckCancellation();
+        var missing = WarmTexts(texts);
+        if (missing.Count == 0) return;
+        var parsed = await ParseWarm(missing);
+        SwiftTask.CheckCancellation();
+        foreach (var (text, blocks, inline) in parsed)
+        {
+            SwiftTask.CheckCancellation();
+            if (!blockCache.Contains(text)) blockCache.Insert(blocks, text);
+            foreach (var (source, pretty) in inline)
+            {
+                SwiftTask.CheckCancellation();
+                RichLink.Warm(source, pretty);
+            }
+        }
+    }
+
+    // :221-235 @MainActor static func warmTexts(_ texts: some Sequence<String>) -> [String]. PR-THEME-124: the
+    // four hard limits (96 candidates, 262144 bytes per text, 1048576 byte budget, 24 warmed texts).
+    public static ValueList<string> WarmTexts(IEnumerable<string> texts)
+    {
+        var missing = new List<string>();
+        var seen = new ValueSet<string>([], SwiftStringComparer.Instance);
+        var remainingBytes = 1_048_576;
+        var candidateCount = 0;
+        foreach (var text in texts)
+        {
+            if (candidateCount >= WarmCandidateLimit) break;
+            candidateCount++;
+            var bytes = Math.Min(SwiftString.Utf8Count(text), 262_145);
+            if (bytes > 262_144 || bytes > remainingBytes || blockCache.Contains(text) || seen.Contains(text)) continue;
+            seen = seen.Mutating(s => s.Add(text));
+            missing.Add(text);
+            remainingBytes -= bytes;
+            if (missing.Count == 24) break;
+        }
+        return new ValueList<string>([.. missing]);
+    }
+
+    // :237-255 @concurrent private nonisolated static func parseWarm(_ texts: [String]) async throws
+    // -> [(String, [MarkdownBlock], [(String, AttributedString)])]. R-ISO-2: @concurrent -> Task.Run at the
+    // boundary. PR-THEME-124.
+    private static Task<List<(string Text, ValueList<MarkdownBlock> Blocks, List<(string Source, AttributedText Pretty)> Inline)>> ParseWarm(
+        IReadOnlyList<string> texts) => Task.Run(() =>
+    {
+        var parsed = new List<(string, ValueList<MarkdownBlock>, List<(string, AttributedText)>)>();
+        var seenInline = new ValueSet<string>([], SwiftStringComparer.Instance);
+        foreach (var text in texts)
+        {
+            SwiftTask.CheckCancellation();
+            var blocks = MarkdownParser.MarkdownParserParse(text);
+            var sources = InlineSources(blocks, new ValueSet<string>([], SwiftStringComparer.Instance));
+            var inline = new List<(string, AttributedText)>();
+            foreach (var source in sources)
+            {
+                if (seenInline.Contains(source)) continue;
+                seenInline = seenInline.Mutating(s => s.Add(source));
+                SwiftTask.CheckCancellation();
+                inline.Add((source, RichLink.Build(source)));
+            }
+            parsed.Add((text, blocks, inline));
+        }
+        SwiftTask.CheckCancellation();
+        return parsed;
+    });
+
+    // :257-275 nonisolated private static func inlineSources(of blocks: [MarkdownBlock], into sources: inout
+    // Set<String>) throws; the inout set comes back changed (R-VAL-1). PR-THEME-124: paragraphs and headings
+    // contribute their text, list items their text and their children recursively, quotes their children; code,
+    // tables and rules contribute nothing.
+    private static ValueSet<string> InlineSources(IReadOnlyList<MarkdownBlock> of, ValueSet<string> into)
+    {
+        var sources = into;
+        foreach (var block in of)
+        {
+            SwiftTask.CheckCancellation();
+            switch (block)
+            {
+                case MarkdownBlock.Paragraph p:
+                    sources = sources.Mutating(s => s.Add(p.Text));
+                    break;
+                case MarkdownBlock.Heading h:
+                    sources = sources.Mutating(s => s.Add(h.Text));
+                    break;
+                case MarkdownBlock.List l:
+                    foreach (var item in l.Items)
+                    {
+                        SwiftTask.CheckCancellation();
+                        if (item.Text.Length > 0) sources = sources.Mutating(s => s.Add(item.Text));
+                        sources = InlineSources(item.Children, sources);
+                    }
+                    break;
+                case MarkdownBlock.Quote q:
+                    sources = InlineSources(q.Blocks, sources);
+                    break;
+                case MarkdownBlock.Code or MarkdownBlock.Table or MarkdownBlock.Rule:
+                    break;
+                default:
+                    throw new UnreachableException();
+            }
+        }
+        return sources;
+    }
 
     // :547 @Entry var hydraMentionPersonas: [HydraPersona] = [], an inherited environment value (R-VIEW-6).
     public static readonly AttachedProperty<ValueList<HydraPersona>> HydraMentionPersonasProperty =
@@ -196,46 +505,298 @@ public sealed class MarkdownBlockView : Decorator
 
     /// <param name="block">:279 <c>let block: MarkdownBlock</c>.</param>
     /// <param name="settled">:284 <c>var settled = false</c>.</param>
-    // :300-374 body
-    public MarkdownBlockView(MarkdownBlock block, bool settled = false) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:300");
+    public MarkdownBlock Block { get; }
 
-    // :376-383 private func headingFont(_ level: Int) -> Font
-    private static SwiftFont HeadingFont(int level) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:376");
+    public bool Settled { get; }
 
-    // :386 private static func mentionGlyphOffset(size: CGFloat) -> CGFloat
-    private static double MentionGlyphOffset(double size) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:386");
+    // :300-374 body. PR-THEME-110 (paragraph path selection), PR-THEME-111/112/113 (marker, below),
+    // PR-THEME-114 (list spacing), PR-THEME-115 (quote), PR-THEME-116 (rule), PR-THEME-119 (table, via
+    // TableBlock). The .paragraph InlineText/VeiledText paths and the .code CodeBlock path call into this
+    // file's own InlineText/CodeBlock and into part 2's mention helpers above, which stay MARROW_STUB until
+    // part 2 and the sibling StreamVeil/ProseRunView/LinkParagraphView units land (see the unit's dependency
+    // cycle note); this body is otherwise complete and does not stand in for any of them.
+    public MarkdownBlockView(MarkdownBlock block, bool settled = false)
+    {
+        Block = block;
+        Settled = settled;
+        Child = Build(block);
+    }
+
+    // :295-298 nonisolated static func ==. A settled pair is the same block by position and the parser's own
+    // word alone; anything else compares by content.
+    public static bool Equatable(MarkdownBlockView lhs, MarkdownBlockView rhs) =>
+        (lhs.Settled && rhs.Settled) || lhs.Block == rhs.Block;
+
+    private Control Build(MarkdownBlock block)
+    {
+        switch (block)
+        {
+            case MarkdownBlock.Heading heading: // :302-304
+            {
+                var text = new InlineText(heading.Text).Font(HeadingFont(heading.Level));
+                text.Margin = new Thickness(0, heading.Level <= 2 ? 6 : 2, 0, 0);
+                return text;
+            }
+            case MarkdownBlock.Paragraph paragraph: // :306-320
+            {
+                var text = paragraph.Text;
+                var streaming = MarkdownView.GetMarkdownStreaming(this);
+                var listDepth = MarkdownView.GetMarkdownListDepth(this);
+                if (RichLink.ContainsLinks(text, streaming)) return new InlineText(text, hasLinks: true); // :313
+                if (!streaming && listDepth == 0 && MentionsTarget(text)) return new InlineText(text, hasLinks: true); // :314
+                if (listDepth == 0 && MentionSegments(text) is { } segments) // :315-319
+                {
+                    var veiled = new VeiledText(segments); // .modifier(MarkdownBlockSelection()) is identity (:1010-1012)
+                    veiled.HorizontalAlignment = HorizontalAlignment.Stretch; // :318 frame(maxWidth: .infinity, alignment: .leading)
+                    return veiled;
+                }
+                return new InlineText(text, hasLinks: false); // :320
+            }
+            case MarkdownBlock.Code code: // :321-333
+            {
+                var info = code.Language is { } language ? SwiftString.Lowercased(language) : null;
+                if (info is not null && MarkdownView.IsDelegationInfo(info)) // :323-329
+                {
+                    if (HydraDelegationBlock is not { } factory)
+                        throw new InvalidOperationException("MarkdownBlockView.HydraDelegationBlock was not set by the App layer.");
+                    var card = factory(code.CodeText, info != "hydra"); // :326
+                    var leaving = info == "hydra-leaving";
+                    card.Opacity = leaving ? 0 : 1; // :327
+                    card.RenderTransform = new ScaleTransform(leaving ? 0.98 : 1, leaving ? 0.98 : 1); // :328 anchor: .top
+                    card.RenderTransformOrigin = new RelativePoint(0.5, 0, RelativeUnit.Relative);
+                    card.IsHitTestVisible = !leaving; // :329
+                    return card;
+                }
+                return new CodeBlock(code.Language, code.CodeText); // :331
+            }
+            case MarkdownBlock.List list: // :334-353
+            {
+                var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 6 }; // :335
+                for (var index = 0; index < list.Items.Count; index++)
+                {
+                    var item = list.Items[index];
+                    // :337 HStack(alignment: .firstTextBaseline, spacing: 8). True first-text-baseline alignment
+                    // is PR-THEME-151's baseline guides (part 2, InlineText); this row aligns the marker to the
+                    // content's top, an ENGINEERING DECISION UNVERIFIED under OD-0001 until that unit lands.
+                    var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, VerticalAlignment = VerticalAlignment.Top };
+                    row.Children.Add(Marker(list.Ordered, list.Start + index, item.Checked)); // :338
+                    var content = new StackPanel { Orientation = Orientation.Vertical, Spacing = 6 }; // :339
+                    if (item.Text.Length > 0) // :340
+                        content.Children.Add(new InlineText(item.Text, hasLinks: RichLink.ContainsLinks(item.Text, MarkdownView.GetMarkdownStreaming(this))));
+                    foreach (var child in item.Children) // :341-343
+                    {
+                        var childView = new MarkdownBlockView(child);
+                        MarkdownView.SetMarkdownListDepth(childView, MarkdownView.GetMarkdownListDepth(this) + 1); // :345-346
+                        content.Children.Add(childView);
+                    }
+                    row.Children.Add(content);
+                    stack.Children.Add(row);
+                }
+                return stack;
+            }
+            case MarkdownBlock.Quote quote: // :354-364
+            {
+                var capsule = new Border // :356 Capsule().fill(.quaternary).frame(width: 3)
+                {
+                    Width = 3,
+                    HorizontalAlignment = HorizontalAlignment.Left,
+                }.RoundedRectangle(1.5, RoundedCornerStyle.Continuous);
+                capsule.Background = SwiftColor.Quaternary.Brush(capsule);
+                var content = new StackPanel { Orientation = Orientation.Vertical, Spacing = 8 }; // :358
+                foreach (var child in quote.Blocks) // :359-361
+                {
+                    var childView = new MarkdownBlockView(child);
+                    MarkdownView.SetMarkdownDimmed(childView, true); // :364 .environment(\.markdownDimmed, true)
+                    content.Children.Add(childView);
+                }
+                var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,10,*") }; // :355 HStack(alignment: .top, spacing: 10)
+                Grid.SetColumn(capsule, 0);
+                Grid.SetColumn(content, 2);
+                row.Children.Add(capsule);
+                row.Children.Add(content);
+                var foreground = Chrome.Chrome.SecondaryText.Brush(row); // :363 .foregroundStyle(Chrome.secondaryText)
+                TextElement.SetForeground(row, foreground);
+                return row;
+            }
+            case MarkdownBlock.Table table: // :365-366
+                return new TableBlock(table.Header, table.Rows);
+            case MarkdownBlock.Rule: // :367-371
+            {
+                var rule = new Rectangle { Height = 1, Margin = new Thickness(0, 4, 0, 4) };
+                rule.Fill = SwiftColor.Quaternary.Brush(rule);
+                return rule;
+            }
+            default:
+                throw new ArgumentOutOfRangeException(nameof(block));
+        }
+    }
+
+    // :376-383 private func headingFont(_ level: Int) -> Font. PR-THEME-109.
+    private static SwiftFont HeadingFont(int level) => level switch
+    {
+        1 => ChatFont.Chat(SwiftFont.TextStyle.Title2, SwiftFont.Weight.Semibold), // :378
+        2 => ChatFont.Chat(SwiftFont.TextStyle.Title3, SwiftFont.Weight.Semibold), // :379
+        3 => ChatFont.Chat(SwiftFont.TextStyle.Headline), // :380: ChatFont.Chat's own default resolves headline to semibold (ED-186 (1)).
+        _ => ChatFont.Chat(SwiftFont.TextStyle.Subheadline, SwiftFont.Weight.Semibold), // :381
+    };
+
+    // :386 private static func mentionGlyphOffset(size: CGFloat) -> CGFloat. PR-THEME-177: the comment at :385
+    // says "lifts"; the value is negative, so it lowers the glyph -- the port keeps the value, not the comment.
+    private static double MentionGlyphOffset(double size) => -(size * 0.2);
+
+    // :406 @MainActor private static var glyphCache: [String: Image] = [:]. PR-THEME-177.
+    private static readonly Dictionary<string, IImage> glyphCache = new(StringComparer.Ordinal);
 
     // :390-404 @MainActor static func mentionGlyph(_ persona: HydraPersona, size: CGFloat) -> Image; a template image
-    // for a Text run (ED-158).
-    public static IImage MentionGlyph(HydraPersona persona, double size) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:390");
+    // for a Text run (ED-158). PR-THEME-177.
+    public static IImage MentionGlyph(HydraPersona persona, double size)
+    {
+        var key = persona.Asset + "@" + SwiftNumber.Description(size); // :392
+        if (glyphCache.TryGetValue(key, out var cached)) return cached; // :393
+        // Drawn on demand rather than into fixed pixels, so it stays crisp on any display. (:394-395)
+        // ENGINEERING DECISION: NSImage(size:flipped:drawingHandler:) draws the named asset into a fresh
+        // canvas of the requested size; the closest Avalonia equivalent is rasterizing the asset's own
+        // SwiftImage control into a RenderTargetBitmap of that size (precedent: FaviconCache.Cleaned, below,
+        // and GeniePlatform.cs), which implements IImageBrushSource for StyledText's template-image path
+        // (ED-158 (1)).
+        var source = SwiftImage.Named(persona.Asset); // :395
+        source.Width = size;
+        source.Height = size;
+        source.Measure(new Size(size, size));
+        source.Arrange(new Rect(0, 0, size, size));
+        var pixelSize = new PixelSize(Math.Max(1, (int)Math.Ceiling(size)), Math.Max(1, (int)Math.Ceiling(size)));
+        var bitmap = new RenderTargetBitmap(pixelSize, new Vector(96, 96)); // :396-399
+        bitmap.Render(source); // :397 source?.draw(in: rect, ...)
+        IImage image = bitmap; // :400-401 out.isTemplate = true; Image(nsImage: out).renderingMode(.template)
+        glyphCache[key] = image; // :402
+        return image; // :403
+    }
 
-    // :411-414 private func mentionsTarget(in text: String) -> Bool (reads the environment's targets)
-    private bool MentionsTarget(string @in) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:411");
+    // :411-414 private func mentionsTarget(in text: String) -> Bool (reads the environment's targets). Needed by
+    // PR-THEME-110's paragraph-path dispatch (this part); mentionText's own rendering is part 2 (PR-THEME-177/178).
+    private bool MentionsTarget(string @in)
+    {
+        var targets = MarkdownView.GetHydraMentionTargets(this); // :412
+        if (targets.Count == 0) return false;
+        return MentionRanges(@in, [.. targets.Keys]).Count > 0; // :413
+    }
 
-    // :418-441 nonisolated static func mentionRanges(in text: String, names: [String]) -> [Range<String.Index>]
-    public static ValueList<(int LowerBound, int UpperBound)> MentionRanges(string @in, IReadOnlyList<string> names) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:418");
+    // :418-441 nonisolated static func mentionRanges(in text: String, names: [String]) -> [Range<String.Index>].
+    // Word-bounded (a hit's neighbour, if any, is never a letter or digit), longest-name-first, so a name that is
+    // a prefix of a longer one never shadows it (:419 sorted by count descending).
+    public static ValueList<(int LowerBound, int UpperBound)> MentionRanges(string @in, IReadOnlyList<string> names)
+    {
+        var text = @in;
+        var ordered = names.OrderByDescending(n => n.Length).ToList(); // :419
+        var results = new List<(int, int)>();
+        var i = 0;
+        while (i < text.Length) // :421-437
+        {
+            string? hit = null;
+            foreach (var name in ordered) // :423
+            {
+                if (name.Length == 0 || i + name.Length > text.Length) continue;
+                if (string.CompareOrdinal(text, i, name, 0, name.Length) != 0) continue; // :423 hasPrefix
+                var after = i + name.Length;
+                var beforeOk = i == 0 || !IsMentionBoundaryChar(text[i - 1]); // :426-427
+                var afterOk = after == text.Length || !IsMentionBoundaryChar(text[after]); // :428-429
+                if (!beforeOk || !afterOk) continue;
+                hit = name; // :430
+                break;
+            }
+            if (hit is { } matched) // :432-435
+            {
+                results.Add((i, i + matched.Length));
+                i += matched.Length;
+            }
+            else i++; // :436
+        }
+        return new ValueList<(int, int)>(results);
+    }
 
-    // :442-487 private func mentionSegments(in text: String) -> [VeiledText.Segment]?
-    private ValueList<VeiledText.Segment>? MentionSegments(string @in) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:442");
+    // :427, :429 `!c.isLetter && !c.isNumber`. .NET char.IsLetter/IsDigit are UTF-16 code-unit checks, not
+    // Swift's grapheme-cluster Character.isLetter/isNumber; an ENGINEERING DECISION, UNVERIFIED under OD-0001 for
+    // any name adjacent to a combining mark or surrogate pair, consistent with this file's other index-based
+    // scans (autolinkedBareDomains, above).
+    private static bool IsMentionBoundaryChar(char c) => char.IsLetter(c) || char.IsDigit(c);
 
-    // :489-504 private func mentionText(_ persona: HydraPersona) -> Text
-    private StyledText MentionText(HydraPersona persona) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:489");
+    // :442-487 private func mentionSegments(in text: String) -> [VeiledText.Segment]?. The empty-personas guard
+    // (:446) is this part's own PR-THEME-110 routing; building the matched/prose segments (:447-486) waits on
+    // VeiledText.Segment's own .prose case (StreamVeil.cs; not declared until the AttributedString decision
+    // lands, see this file's header), so that half stays MARROW_STUB.
+    private ValueList<VeiledText.Segment>? MentionSegments(string @in)
+    {
+        var personas = MarkdownView.GetHydraMentionPersonas(this); // :446
+        if (personas.Count == 0) return null;
+        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:447");
+    }
 
-    // :506-534 @ViewBuilder private func marker(ordered: Bool, number: Int, checked: Bool?) -> some View
-    private Control Marker(bool ordered, int number, bool? @checked) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:506");
+    // :489-504 private func mentionText(_ persona: HydraPersona) -> Text. PR-THEME-177/178.
+    private StyledText MentionText(HydraPersona persona)
+    {
+        const double size = 16; // :490
+        var color = HydraGlyph.PersonaColor(persona); // :218-224 (Hydra.swift)
+        var glyph = new StyledText(MentionGlyph(persona, size), isTemplate: true) // :491
+            .ForegroundColor(color) // :492
+            .BaselineOffset(MentionGlyphOffset(size)); // :493
+        var targets = MarkdownView.GetHydraMentionTargets(this); // :495
+        if (targets.TryGetValue(persona.Name, out var target)) // :495-500
+        {
+            // A link in a Text keeps the colour the attribute sets and opens through the environment. (:494)
+            var name = new StyledText(persona.Name) // :496 AttributedString(persona.name)
+                .Link(target.Url) // :497 name.link = target.url
+                .ForegroundColor(color) // :498 name.foregroundColor = persona.color
+                .FontWeight(SwiftFont.Weight.Bold); // :499 name.inlinePresentationIntent = .stronglyEmphasized
+            return glyph + new StyledText(" ") + name; // :500 "\(glyph) \(Text(name))"
+        }
+        var plainName = new StyledText(persona.Name) // :502 Text(verbatim: persona.name)
+            .FontWeight(SwiftFont.Weight.Bold) // :502 .fontWeight(.bold)
+            .ForegroundColor(color); // :502 .foregroundColor(persona.color)
+        return glyph + new StyledText(" ") + plainName; // :503
+    }
 
-    // :536-538 private var markerColor: Color
-    private SwiftColor MarkerColor =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:536");
+    // :506-534 @ViewBuilder private func marker(ordered: Bool, number: Int, checked: Bool?) -> some View.
+    // PR-THEME-111/112/113: a checkbox marker (:508-511), an ordered number (:512-516), or an unordered dot/ring
+    // (:517-533).
+    private Control Marker(bool ordered, int number, bool? @checked)
+    {
+        if (@checked is { } isChecked)
+        {
+            // :508-511
+            return SwiftImage.SystemName(isChecked ? "checkmark.circle.fill" : "circle")
+                .ForegroundStyle(isChecked ? Chrome.Chrome.Accent : SwiftColor.Tertiary)
+                .ImageScale(SwiftImage.Scale.Small);
+        }
+        if (ordered)
+        {
+            // :512-516
+            var text = new TextBlock { Text = number + "." };
+            var font = SwiftFont.Body.MonospacedDigit().FontWeight(SwiftFont.Weight.Medium);
+            font.Apply(text);
+            text.Foreground = MarkerColor.Brush(text);
+            return text;
+        }
+        // :517-533: a hidden bullet glyph would only reserve baseline space in a real text layout; the marker
+        // itself is the overlaid circle/ring below (:519-531), which is what every record here specifies.
+        var circle = new Ellipse();
+        if (MarkdownView.GetMarkdownListDepth(this) == 0)
+        {
+            circle.Width = 5; // :521
+            circle.Height = 5;
+            circle.Fill = MarkerColor.Brush(circle);
+        }
+        else
+        {
+            circle.Width = 5.5; // :526
+            circle.Height = 5.5;
+            circle.Stroke = MarkerColor.Brush(circle);
+            circle.StrokeThickness = 1.2;
+        }
+        return circle;
+    }
+
+    // :536-538 private var markerColor: Color. PR-THEME-111/112.
+    private SwiftColor MarkerColor => Chrome.Chrome.Accent.Opacity(MarkdownView.GetMarkdownDimmed(this) ? 0.55 : 0.9);
 }
 
 /// <summary>:542-544 <c>private struct MarkdownListDepthKey: EnvironmentKey</c>.</summary>
@@ -245,29 +806,348 @@ file static class MarkdownListDepthKey
 }
 
 /// <summary>:562-835 <c>enum RichLink</c>: pretty link titles plus favicons for chat markdown.</summary>
-public static class RichLink
+public static partial class RichLink
 {
     private const int StreamingSlots = 4; // :568
 
-    // :623-634 @MainActor static func linkHosts(for source: String, streaming: Bool = false) -> [String]
-    public static ValueList<string> LinkHosts(string @for, bool streaming = false) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:623");
+    // :563 @MainActor private static var prettyCache = RecentCache<String, AttributedString>(limit: 1200).
+    // PR-THEME-123.
+    private static RecentCache<string, AttributedText> prettyCache = new(1200);
 
-    // :637-647 @MainActor static func videoIDs(for source: String, streaming: Bool = false) -> [String]
-    public static ValueList<string> VideoIDs(string @for, bool streaming = false) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:637");
+    // :567-568 @MainActor private static var streamingPretty: [(source: String, value: AttributedString)] = [];
+    // private static let streamingSlots = 4. PR-THEME-148: a small ring of in-flight (not-yet-settled) builds,
+    // searched most-recent-first (:576 last(where:)), so a still-streaming paragraph's latest build is found
+    // without going through the stable prettyCache.
+    private static readonly List<(string Source, AttributedText Value)> streamingPretty = [];
 
-    // :651-657 @MainActor static func linkAssetKey(for source: String, streaming: Bool = false) -> String
-    public static string LinkAssetKey(string @for, bool streaming = false) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:651");
+    // :571-587 static func prettyAttributed(_ source: String, streaming: Bool = false) -> AttributedString.
+    // PR-THEME-148 (via linkHosts/videoIDs/linkAssetKey, below) and InlineText's body: the streaming path keeps a
+    // small ring of the last StreamingSlots builds and never touches the stable cache; the settled path promotes a
+    // matching streaming entry into the stable cache instead of rebuilding.
+    public static AttributedText PrettyAttributed(string source, bool streaming = false)
+    {
+        if (streaming)
+        {
+            for (var i = streamingPretty.Count - 1; i >= 0; i--) // :572 last(where:)
+            {
+                if (SwiftStringComparer.Instance.Equals(streamingPretty[i].Source, source)) return streamingPretty[i].Value;
+            }
+            var built = Build(source); // :573
+            if (streamingPretty.Count == StreamingSlots) streamingPretty.RemoveAt(0); // :574 removeFirst()
+            streamingPretty.Add((source, built)); // :575
+            return built;
+        }
+        if (prettyCache.TryGetValue(source, out var hit)) return hit; // :578
+        AttributedText value;
+        var slot = -1;
+        for (var i = streamingPretty.Count - 1; i >= 0; i--) // :580 lastIndex(where:)
+        {
+            if (SwiftStringComparer.Instance.Equals(streamingPretty[i].Source, source)) { slot = i; break; }
+        }
+        if (slot >= 0)
+        {
+            value = streamingPretty[slot].Value; // :581 remove(at:).value
+            streamingPretty.RemoveAt(slot);
+        }
+        else
+        {
+            value = Build(source); // :583
+        }
+        prettyCache.Insert(value, source); // :585
+        return value;
+    }
 
-    // :660-664 @MainActor static func invalidate(_ source: String)
-    public static void Invalidate(string source) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:660");
+    // :591-594 @MainActor static func warm(_ source: String, with pretty: AttributedString). PR-THEME-124: only
+    // the units this part does not cover (part 2's InlineText/prettyAttributed) call this, but it is declared
+    // here since it lives beside prettyCache and MarkdownView.Warm (PR-THEME-124, above) calls it directly.
+    public static void Warm(string source, AttributedText pretty)
+    {
+        if (!prettyCache.Contains(source)) prettyCache.Insert(pretty, source);
+    }
 
-    // :670-689 static func prettyTitle(for url: URL) -> String
-    public static string PrettyTitle(SwiftURL @for) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:670");
+    // :596-621 nonisolated static func build(_ source: String) -> AttributedString: baseAttributed, then every
+    // link run whose display text is bare gets the pretty title in its place, and every link renders bold.
+    // Referenced by MarkdownView.ParseWarm (PR-THEME-124) and this file's own prettyAttributed/linkHosts family
+    // (part 2's records); IsBareDisplay and PrettyTitle stay MARROW_STUB below (not among this part's records).
+    public static AttributedText Build(string source)
+    {
+        var baseText = BaseAttributed(source);
+        var result = new List<AttributedRun>();
+        foreach (var run in baseText.Runs)
+        {
+            if (run.Link is not { } url)
+            {
+                result.Add(run);
+                continue;
+            }
+            var display = run.Text;
+            var linkRun = IsBareDisplay(display, url)
+                ? new AttributedRun(PrettyTitle(url), Link: url, IsBold: true)
+                : run with { IsBold = true };
+            result.Add(linkRun);
+        }
+        return new AttributedText(result);
+    }
+
+    // :750-755 private static let bareDomainPattern. .NET's Regex supports the look-behind Swift's Regex
+    // cannot, so this needs no NSRegularExpression-only workaround (R-RE-1). PR-THEME-128.
+    [GeneratedRegex(
+        @"(?<![A-Za-z0-9@._/-])((?:[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?\.)+[A-Za-z]{2,24})(/[^\s<>()]*)?",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex BareDomainPattern();
+
+    // :790 let trimSet = ".,;:!?'\"" -- trailing punctuation belongs to the sentence, not the link.
+    private const string TrimSet = ".,;:!?'\"";
+
+    // :772-826 private static func autolinkedBareDomains(_ parsed: AttributedString) -> AttributedString.
+    // PR-THEME-128/129: skip a run already a link or code; otherwise scan it for bare-domain matches, trim
+    // trailing sentence punctuation, and link only when the domain's last label is a curated TLD and
+    // "https://" + the match parses as a URL.
+    private static AttributedText AutolinkedBareDomains(AttributedText parsed)
+    {
+        var outRuns = new List<AttributedRun>();
+        foreach (var run in parsed.Runs)
+        {
+            var text = run.Text;
+            if (run.Link is not null || run.IsCode) // :778-780
+            {
+                outRuns.Add(run);
+                continue;
+            }
+            var matches = BareDomainPattern().Matches(text);
+            if (matches.Count == 0) // :792-795 no pattern match
+            {
+                outRuns.Add(run);
+                continue;
+            }
+            var cursor = 0;
+            foreach (Match match in matches)
+            {
+                var start = match.Index;
+                if (start < cursor) continue; // :801 guard start >= cursor
+                var matchText = match.Value;
+                while (matchText.Length > 0 && TrimSet.IndexOf(matchText[^1], StringComparison.Ordinal) >= 0) matchText = matchText[..^1]; // :803-804
+                var end = start + matchText.Length; // :805
+                if (start > cursor) outRuns.Add(run with { Text = text[cursor..start] }); // :806
+                var slash = matchText.IndexOf('/', StringComparison.Ordinal); // :808
+                var domainPart = slash >= 0 ? matchText[..slash] : matchText; // :809
+                var labels = domainPart.Split('.');
+                var lastLabel = labels.Length > 0 ? SwiftString.Lowercased(labels[^1]) : ""; // :810
+                if (BareDomainTLDs.Contains(lastLabel) && SwiftURL.Create("https://" + matchText) is { } url) // :811
+                {
+                    outRuns.Add(run with { Text = matchText, Link = url }); // :812-814
+                }
+                else if (end > cursor) // :815-816
+                {
+                    outRuns.Add(run with { Text = matchText });
+                }
+                cursor = end; // :818
+            }
+            if (cursor < text.Length) outRuns.Add(run with { Text = text[cursor..] }); // :820
+        }
+        return new AttributedText(outRuns);
+    }
+
+    // ENGINEERING DECISION (ED-158 (7): "Links stay with the MarkdownView unit"; ED-092 (3) leaves AttributedString
+    // undecided otherwise): the port's inline-only markdown scan for baseAttributed (:828-834, PR-THEME-127). No
+    // port type or macOS reference (OD-0001) exists for Foundation's undocumented AttributedString(markdown:)
+    // grammar, so this implements exactly what PR-THEME-127 names -- inline code spans, emphasis, strong
+    // emphasis, `[text](url)` links and `<url>` autolinks -- with one left-to-right scan. An unmatched or
+    // malformed marker is left as literal text; every character the scan does not consume as a marker,
+    // including newlines and runs of spaces, is preserved verbatim in a plain run (PR-THEME-127's whitespace
+    // requirement); the scan never throws. Fidelity beyond what PR-THEME-127 states (nested emphasis, escaped
+    // markers, CommonMark's flanking-delimiter rules) is UNVERIFIED under OD-0001.
+    private static AttributedText ParseInline(string source)
+    {
+        var runs = new List<AttributedRun>();
+        var textStart = 0;
+        var i = 0;
+        var n = source.Length;
+        void FlushText(int end)
+        {
+            if (end > textStart) runs.Add(new AttributedRun(source[textStart..end]));
+        }
+        while (i < n)
+        {
+            var c = source[i];
+            if (c == '`')
+            {
+                var fenceLen = 1;
+                while (i + fenceLen < n && source[i + fenceLen] == '`') fenceLen++;
+                var fence = new string('`', fenceLen);
+                var close = source.IndexOf(fence, i + fenceLen, StringComparison.Ordinal);
+                if (close >= 0)
+                {
+                    FlushText(i);
+                    runs.Add(new AttributedRun(source[(i + fenceLen)..close], IsCode: true));
+                    i = close + fenceLen;
+                    textStart = i;
+                    continue;
+                }
+            }
+            else if ((c == '*' || c == '_') && i + 1 < n && source[i + 1] == c)
+            {
+                var marker = new string(c, 2);
+                var close = source.IndexOf(marker, i + 2, StringComparison.Ordinal);
+                if (close > i + 2)
+                {
+                    FlushText(i);
+                    runs.Add(new AttributedRun(source[(i + 2)..close], IsBold: true));
+                    i = close + 2;
+                    textStart = i;
+                    continue;
+                }
+            }
+            else if (c == '*' || c == '_')
+            {
+                var close = source.IndexOf(c, i + 1);
+                if (close > i + 1)
+                {
+                    FlushText(i);
+                    runs.Add(new AttributedRun(source[(i + 1)..close], IsItalic: true));
+                    i = close + 1;
+                    textStart = i;
+                    continue;
+                }
+            }
+            else if (c == '[')
+            {
+                var closeBracket = source.IndexOf(']', i + 1);
+                if (closeBracket > i && closeBracket + 1 < n && source[closeBracket + 1] == '(')
+                {
+                    var closeParen = source.IndexOf(')', closeBracket + 2);
+                    if (closeParen > closeBracket + 1)
+                    {
+                        var label = source[(i + 1)..closeBracket];
+                        var urlText = source[(closeBracket + 2)..closeParen];
+                        if (SwiftURL.Create(urlText) is { } url)
+                        {
+                            FlushText(i);
+                            runs.Add(new AttributedRun(label, Link: url));
+                            i = closeParen + 1;
+                            textStart = i;
+                            continue;
+                        }
+                    }
+                }
+            }
+            else if (c == '<')
+            {
+                var close = source.IndexOf('>', i + 1);
+                if (close > i + 1)
+                {
+                    var candidate = source[(i + 1)..close];
+                    if (candidate.Contains("://", StringComparison.Ordinal) && SwiftURL.Create(candidate) is { } url)
+                    {
+                        FlushText(i);
+                        runs.Add(new AttributedRun(candidate, Link: url));
+                        i = close + 1;
+                        textStart = i;
+                        continue;
+                    }
+                }
+            }
+            i++;
+        }
+        FlushText(n);
+        return new AttributedText(runs);
+    }
+
+    // :828-834 private static func baseAttributed(_ source: String) -> AttributedString. PR-THEME-127: the parse
+    // is wrapped so it never fails, falling back to plain text, and always passes through the bare-domain
+    // autolinker.
+    private static AttributedText BaseAttributed(string source)
+    {
+        AttributedText parsed;
+        try
+        {
+            parsed = ParseInline(source);
+        }
+        catch
+        {
+            parsed = AttributedText.Plain(source);
+        }
+        return AutolinkedBareDomains(parsed);
+    }
+
+    // :623-634 @MainActor static func linkHosts(for source: String, streaming: Bool = false) -> [String].
+    // PR-THEME-148: first-seen order, lower-cased, each host once.
+    public static ValueList<string> LinkHosts(string @for, bool streaming = false)
+    {
+        var pretty = PrettyAttributed(@for, streaming); // :625
+        var hosts = new List<string>();
+        var seen = new HashSet<string>(SwiftStringComparer.Instance);
+        foreach (var run in pretty.Runs)
+        {
+            if (run.Link?.Host is { Length: > 0 } host)
+            {
+                host = SwiftString.Lowercased(host); // :630
+                if (seen.Add(host)) hosts.Add(host); // :630-631
+            }
+        }
+        return new ValueList<string>(hosts);
+    }
+
+    // :637-647 @MainActor static func videoIDs(for source: String, streaming: Bool = false) -> [String].
+    // PR-THEME-148: first-seen order, each id once.
+    public static ValueList<string> VideoIDs(string @for, bool streaming = false)
+    {
+        var pretty = PrettyAttributed(@for, streaming); // :639
+        var ids = new List<string>();
+        var seen = new HashSet<string>(SwiftStringComparer.Instance);
+        foreach (var run in pretty.Runs)
+        {
+            if (run.Link is not { } link) continue;
+            if (LinkTitles.VideoID(link) is not { } id) continue; // :644
+            if (seen.Add(id)) ids.Add(id); // :644-645
+        }
+        return new ValueList<string>(ids);
+    }
+
+    // :651-657 @MainActor static func linkAssetKey(for source: String, streaming: Bool = false) -> String.
+    // PR-THEME-148: hosts and video ids joined, a vertical bar between; empty when there is neither.
+    public static string LinkAssetKey(string @for, bool streaming = false)
+    {
+        var hosts = LinkHosts(@for, streaming); // :653
+        var videos = VideoIDs(@for, streaming); // :654
+        if (hosts.Count == 0 && videos.Count == 0) return ""; // :655
+        return string.Join(",", hosts) + "|" + string.Join(",", videos); // :656
+    }
+
+    // :660-664 @MainActor static func invalidate(_ source: String). PR-THEME-148.
+    public static void Invalidate(string source)
+    {
+        prettyCache.RemoveValue(source, out _); // :662
+        streamingPretty.RemoveAll(entry => SwiftStringComparer.Instance.Equals(entry.Source, source)); // :663
+    }
+
+    // :670-689 static func prettyTitle(for url: URL) -> String. PR-THEME-132: a strict cascade -- forge reference,
+    // then a cached video title, then host plus last path segment.
+    public static string PrettyTitle(SwiftURL @for)
+    {
+        var url = @for;
+        if (ForgeReference(url) is { } reference) return reference; // :671
+        if (LinkTitles.Cached(url) is { } title) return Capped(title, 48); // :672
+        var host = url.Host;
+        if (string.IsNullOrEmpty(host)) return CompactFallback(url.AbsoluteString); // :673-674
+        host = SwiftString.Lowercased(host);
+        if (SwiftString.HasPrefix(host, "www.")) host = host[4..]; // :676
+        // :677-680 (url.path.removingPercentEncoding ?? url.path): SwiftURL.Path (F.URL) already returns the
+        // percent-decoded path, matching Swift's own url.path, so a further decode here would be redundant.
+        var segments = url.Path.Split('/').Where(s => s.Length > 0).ToList(); // :677-681
+        if (segments.Count == 0) return host; // :682
+        var last = segments[^1];
+        if (NamelessSegments.Contains(SwiftString.Lowercased(last))) return host; // :683
+        var tail = SwiftString.Count(last) > 24
+            ? SwiftString.Prefix(last, 21) + "…"
+            : last; // :684
+        var built = segments.Count == 1 ? host + "/" + tail : host + "/…/" + tail; // :685
+        if (SwiftString.Count(built) > 40) // :686
+        {
+            return SwiftString.Prefix(built, 19) + "…" + SwiftString.Suffix(built, 18); // :687
+        }
+        return built; // :688
+    }
 
     // :692-694 private static let namelessSegments: Set<String>
     private static ValueSet<string> NamelessSegments { get; } = new(
@@ -275,25 +1155,68 @@ public static class RichLink
         "watch", "view", "index", "index.html", "index.php", "home", "default", "page",
     ], SwiftStringComparer.Instance); // R-VAL-2: matched against URL text
 
-    // :697-700 private static func capped(_ title: String, at limit: Int) -> String
-    private static string Capped(string title, int at) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:697");
+    // :697-700 private static func capped(_ title: String, at limit: Int) -> String. PR-THEME-132.
+    private static string Capped(string title, int at)
+    {
+        if (SwiftString.Count(title) <= at) return title; // :698
+        return SwiftString.Prefix(title, at - 3) + "…"; // :699
+    }
 
-    // :705-723 static func forgeReference(for url: URL) -> String?
-    public static string? ForgeReference(SwiftURL @for) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:705");
+    // :705-723 static func forgeReference(for url: URL) -> String?. PR-THEME-133: a GitLab "-" segment followed by
+    // merge_requests/issues and a number, else a GitHub-style pull/issues segment followed by a number.
+    public static string? ForgeReference(SwiftURL @for)
+    {
+        var segments = @for.Path.Split('/').Where(s => s.Length > 0).ToList(); // :706
+        var dash = segments.IndexOf("-"); // :709
+        if (dash >= 0 && dash + 2 < segments.Count && SwiftNumber.ParseInt(segments[dash + 2]) is { } gitlabId) // :709-710
+        {
+            switch (segments[dash + 1]) // :711
+            {
+                case "merge_requests": return "!" + gitlabId; // :712
+                case "issues": return "#" + gitlabId; // :713
+            }
+        }
+        if (segments.Count >= 2 && SwiftNumber.ParseInt(segments[^1]) is { } id) // :719
+        {
+            var kind = segments[^2]; // :720
+            if (kind == "pull" || kind == "issues") return "#" + id; // :721
+        }
+        return null; // :723
+    }
 
-    // :727-730 static func compactFallback(_ absolute: String) -> String
-    public static string CompactFallback(string absolute) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:727");
+    // :727-730 static func compactFallback(_ absolute: String) -> String. PR-THEME-132.
+    public static string CompactFallback(string absolute)
+    {
+        if (SwiftString.Count(absolute) <= 40) return absolute; // :728
+        return SwiftString.Prefix(absolute, 19) + "…" + SwiftString.Suffix(absolute, 18); // :729
+    }
 
     // :732-735 @MainActor static func containsLinks(in source: String, streaming: Bool = false) -> Bool
     public static bool ContainsLinks(string @in, bool streaming = false) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:732");
+        PrettyAttributed(@in, streaming).Runs.Any(run => run.Link is not null); // :733-734
 
-    // :737-748 static func isBareDisplay(_ display: String, url: URL) -> Bool
-    public static bool IsBareDisplay(string display, SwiftURL url) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:737");
+    // :737-748 static func isBareDisplay(_ display: String, url: URL) -> Bool. PR-THEME-131: bare when the display
+    // text, after trimming whitespace, one pair of angle brackets and ten trailing punctuation characters, equals
+    // the URL itself, or starts with an http(s) scheme with no whitespace.
+    public static bool IsBareDisplay(string display, SwiftURL url)
+    {
+        var d = FoundationText.Trim(display, includeNewlines: true); // :738 display.trimmed == whitespacesAndNewlines
+        if (SwiftString.HasPrefix(d, "<") && SwiftString.HasSuffix(d, ">") && SwiftString.Count(d) >= 2) // :739
+        {
+            d = d[1..^1]; // :740 dropFirst().dropLast()
+        }
+        while (d.Length > 0 && ".,;:!?)]}>".IndexOf(d[^1], StringComparison.Ordinal) >= 0) // :742
+        {
+            d = d[..^1]; // :743 removeLast()
+        }
+        if (d == url.AbsoluteString) return true; // :744
+        if ((SwiftString.HasPrefix(d, "http://") || SwiftString.HasPrefix(d, "https://")) // :745
+            && !d.Contains(' ', StringComparison.Ordinal) && !d.Contains('\n', StringComparison.Ordinal))
+        {
+            return true; // :746
+        }
+        return false; // :747
+    }
 
     // :759-768 private static let bareDomainTLDs: Set<String>
     private static ValueSet<string> BareDomainTLDs { get; } = new(
@@ -343,29 +1266,227 @@ file static class MarkdownProseRunsKey
 /// the environment allows blocks their own selection.</summary>
 public sealed record MarkdownBlockSelection
 {
-    // :892-898 func body(content: Content) -> some View
-    public Control Body(Control content) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:892");
+    // :892-898 func body(content: Content) -> some View. PR-THEME-126: the environment's value is always true
+    // (dead_code.md entry 30: markdownBlockSelection has no writer, so the else branch -- .textSelection(.disabled)
+    // -- is dead and, per ED-061, is not implemented). Avalonia has no per-subtree "enable text selection"
+    // modifier the way SwiftUI's `.textSelection` is: the content this wraps (InlineText, VeiledText, the code
+    // and table text) renders its own selectable text directly, so the modifier's one live effect is already
+    // true of its content, and this is the identity transform.
+    public Control Body(Control content) => content;
 }
 
 /// <summary>:901-1099 <c>@MainActor enum FaviconCache</c>.</summary>
 public static class FaviconCache
 {
+    // :903 private static var memory: [String: NSImage] = [:]. PR-THEME-139: flushed wholesale at 300 entries.
+    private static readonly Dictionary<string, IImage> memory = new(SwiftStringComparer.Instance);
+
+    // :911-912: hosts already known to have no icon, and one shared in-flight task per host. PR-THEME-137.
+    private static readonly HashSet<string> failed = new(SwiftStringComparer.Instance);
+    private static readonly Dictionary<string, Task<IImage?>> inFlight = new(SwiftStringComparer.Instance);
+
     // :905-907 static func cached(host: String) -> NSImage?
     public static IImage? Cached(string host) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:905");
+        memory.TryGetValue(SwiftString.Lowercased(host), out var hit) ? hit : null; // :906
 
-    // :914-939 static func image(for host: String) async -> NSImage?
-    public static Task<IImage?> Image(string @for) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:914");
+    // :914-939 static func image(for host: String) async -> NSImage?. PR-THEME-137/139.
+    public static async Task<IImage?> Image(string @for)
+    {
+        var key = SwiftString.Lowercased(@for); // :915
+        if (memory.TryGetValue(key, out var hit)) return hit; // :916
+        if (failed.Contains(key)) return null; // :917
+        if (!IsPublic(key)) // :919
+        {
+            failed.Add(key); // :920
+            return null;
+        }
+        if (inFlight.TryGetValue(key, out var running)) return await running; // :923-924
+        var task = FetchAndPrepare(key); // :925-929
+        inFlight[key] = task;
+        var image = await task; // :930
+        inFlight.Remove(key); // :931
+        if (image is not null) // :932
+        {
+            if (memory.Count >= 300) memory.Clear(); // :933 removeAll(keepingCapacity:)
+            memory[key] = image; // :934
+        }
+        else
+        {
+            failed.Add(key); // :936
+        }
+        return image; // :938
+    }
 
-    // :945-953 private static func iconData(for host: String) async -> Data?
-    private static Task<byte[]?> IconData(string @for) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:945");
+    private static async Task<IImage?> FetchAndPrepare(string key)
+    {
+        var data = await IconData(key); // :926
+        if (data is null) return null;
+        var clean = Cleaned(data); // :926
+        return clean is null ? null : ResizedIcon(clean); // :927
+    }
 
-    // :955-975 private static func cleaned(_ data: Data) -> NSImage?
-    private static IImage? Cleaned(byte[] data) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:955");
+    // :945-953 private static func iconData(for host: String) async -> Data?. ED-168: the host's own
+    // /favicon.ico, over URLSession.Shared, 5 second timeout, accepted only on 2xx with a decodable image body.
+    private static async Task<byte[]?> IconData(string @for)
+    {
+        if (!Uri.TryCreate("https://" + @for + "/favicon.ico", UriKind.Absolute, out var uri)) return null; // :946
+        var request = new URLRequest(uri, timeoutInterval: 5); // :947-948
+        byte[] data;
+        URLResponse response;
+        try
+        {
+            (data, response) = await URLSession.Shared.Data(request); // :949
+        }
+        catch
+        {
+            return null; // :949 try?
+        }
+        if (response is not HTTPURLResponse http || http.StatusCode is < 200 or > 299) return null; // :950
+        if (!TryDecode(data, out _)) return null; // :951 NSImage(data:) != nil
+        return data; // :952
+    }
+
+    // :955-975 private static func cleaned(_ data: Data) -> NSImage?. PR-THEME-138: downscale to at most 64 on
+    // the long side, then flood-fill away a white background plate.
+    private static IImage? Cleaned(byte[] data)
+    {
+        if (!TryDecode(data, out var image) || image.PixelSize.Width <= 0 || image.PixelSize.Height <= 0) return null; // :956
+        double sourceWidth = image.PixelSize.Width, sourceHeight = image.PixelSize.Height;
+        var long_ = Math.Max(sourceWidth, sourceHeight); // :957
+        var scale = long_ > 64 ? 64 / long_ : 1; // :958
+        var width = Math.Max(1, (int)Math.Round(sourceWidth * scale, MidpointRounding.AwayFromZero)); // :959
+        var height = Math.Max(1, (int)Math.Round(sourceHeight * scale, MidpointRounding.AwayFromZero)); // :960
+        var rep = new WriteableBitmap(new PixelSize(width, height), new Vector(96, 96),
+            PixelFormat.Bgra8888, AlphaFormat.Unpremul); // :962-964 samplesPerPixel 4, hasAlpha true
+        DrawScaled(image, rep, width, height); // :965-971 high-interpolation draw into the bitmap
+        RemoveWhitePlate(rep); // :973
+        return rep;
+    }
+
+    /// <summary>Draws <paramref name="source"/> into <paramref name="target"/> at <paramref name="width"/> by
+    /// <paramref name="height"/>, replacing whatever the target held (:965-971 <c>image.draw(in:from:...)</c>).</summary>
+    private static void DrawScaled(Bitmap source, WriteableBitmap target, int width, int height)
+    {
+        using var rtb = new RenderTargetBitmap(new PixelSize(width, height), new Vector(96, 96));
+        using (var ctx = rtb.CreateDrawingContext())
+        {
+            ctx.DrawImage(source, new Rect(0, 0, source.PixelSize.Width, source.PixelSize.Height),
+                new Rect(0, 0, width, height));
+        }
+        using var targetLock = target.Lock();
+        rtb.CopyPixels(new PixelRect(0, 0, width, height), targetLock.Address, targetLock.RowBytes * height, targetLock.RowBytes);
+    }
+
+    private static bool TryDecode(byte[] data, out Bitmap image)
+    {
+        try
+        {
+            using var stream = new MemoryStream(data);
+            image = new Bitmap(stream);
+            return true;
+        }
+        catch
+        {
+            image = null!;
+            return false;
+        }
+    }
+
+    // :977-1048 private static func removeWhitePlate(in rep: NSBitmapImageRep). PR-THEME-138: flood-fills a
+    // white background plate connected to any border to full transparency, and un-premultiplies the one-pixel
+    // fringe next to it against white.
+    private static void RemoveWhitePlate(WriteableBitmap rep)
+    {
+        var width = rep.PixelSize.Width;
+        var height = rep.PixelSize.Height;
+        if (width <= 0 || height <= 0) return; // :980
+        using var buffer = rep.Lock();
+        var stride = buffer.RowBytes;
+        var pixels = new byte[stride * height];
+        System.Runtime.InteropServices.Marshal.Copy(buffer.Address, pixels, 0, pixels.Length);
+        (int R, int G, int B, int A) At(int x, int y)
+        {
+            var i = y * stride + x * 4; // Bgra8888
+            return (pixels[i + 2], pixels[i + 1], pixels[i], pixels[i + 3]); // :981-984 (r, g, b, a) 0-255
+        }
+        void Set(int x, int y, byte r, byte g, byte b, byte a)
+        {
+            var i = y * stride + x * 4;
+            pixels[i] = b; pixels[i + 1] = g; pixels[i + 2] = r; pixels[i + 3] = a;
+        }
+        bool IsWhite((int R, int G, int B, int A) p) // :986-990
+        {
+            if (p.A <= 200) return false;
+            var lo = Math.Min(p.R, Math.Min(p.G, p.B));
+            var hi = Math.Max(p.R, Math.Max(p.G, p.B));
+            return lo >= 236 && hi - lo <= 20;
+        }
+        var plate = new bool[width * height]; // :992
+        var stack = new Stack<int>(); // :993
+        for (var x = 0; x < width; x++) // :994-1000
+        {
+            foreach (var y in new[] { 0, height - 1 })
+            {
+                var idx = y * width + x;
+                if (!plate[idx] && IsWhite(At(x, y))) { plate[idx] = true; stack.Push(idx); }
+            }
+        }
+        for (var y = 0; y < height; y++) // :1002-1008
+        {
+            foreach (var x in new[] { 0, width - 1 })
+            {
+                var idx = y * width + x;
+                if (!plate[idx] && IsWhite(At(x, y))) { plate[idx] = true; stack.Push(idx); }
+            }
+        }
+        while (stack.Count > 0) // :1010-1019
+        {
+            var idx = stack.Pop();
+            var x = idx % width;
+            var y = idx / width;
+            foreach (var (nx, ny) in new[] { (x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1) })
+            {
+                if (nx < 0 || nx >= width || ny < 0 || ny >= height) continue;
+                var nidx = ny * width + nx;
+                if (plate[nidx]) continue;
+                if (!IsWhite(At(nx, ny))) continue;
+                plate[nidx] = true;
+                stack.Push(nidx);
+            }
+        }
+        for (var y = 0; y < height; y++) // :1021-1047
+        {
+            for (var x = 0; x < width; x++)
+            {
+                var (r, g, b, _) = At(x, y);
+                var lo = Math.Min(r, Math.Min(g, b));
+                if (plate[y * width + x]) // :1030-1032
+                {
+                    Set(x, y, (byte)r, (byte)g, (byte)b, 0);
+                    continue;
+                }
+                var hasPlateNeighbour = // :1034-1037
+                    (x + 1 < width && plate[y * width + x + 1]) ||
+                    (x - 1 >= 0 && plate[y * width + x - 1]) ||
+                    (y + 1 < height && plate[(y + 1) * width + x]) ||
+                    (y - 1 >= 0 && plate[(y - 1) * width + x]);
+                if (!hasPlateNeighbour || lo < 160) continue; // :1038
+                var alpha = 1 - lo / 255.0; // :1039
+                if (alpha <= 0.02) // :1040-1042
+                {
+                    Set(x, y, (byte)r, (byte)g, (byte)b, 0);
+                    continue;
+                }
+                double Unpremult(double v) => Math.Min(1, Math.Max(0, (v / 255 - (1 - alpha)) / alpha)); // :1044-1046
+                Set(x, y,
+                    (byte)Math.Round(Unpremult(r) * 255, MidpointRounding.AwayFromZero),
+                    (byte)Math.Round(Unpremult(g) * 255, MidpointRounding.AwayFromZero),
+                    (byte)Math.Round(Unpremult(b) * 255, MidpointRounding.AwayFromZero),
+                    (byte)Math.Round(alpha * 255, MidpointRounding.AwayFromZero)); // :1047
+            }
+        }
+        System.Runtime.InteropServices.Marshal.Copy(pixels, 0, buffer.Address, pixels.Length);
+    }
 
     // :1051-1054 private static let privateSuffixes
     private static ValueList<string> PrivateSuffixes { get; } = new(
@@ -374,33 +1495,230 @@ public static class FaviconCache
         ".lan", ".home", ".home.arpa", ".test", ".invalid", ".corp",
     ]);
 
-    // :1059-1082 static func isPublic(host: String) -> Bool
-    public static bool IsPublic(string host) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:1059");
+    // :1059-1082 static func isPublic(host: String) -> Bool. PR-THEME-137: rejects empty/localhost, an IPv6
+    // literal, a private suffix, a host with no dot, and the four private/CGNAT IPv4 ranges.
+    public static bool IsPublic(string host)
+    {
+        if (host.Length == 0 || host == "localhost") return false; // :1060
+        if (host.Contains(':', StringComparison.Ordinal)) return false; // :1063
+        foreach (var suffix in PrivateSuffixes) // :1064
+        {
+            if (SwiftString.HasSuffix(host, suffix)) return false;
+        }
+        if (!host.Contains('.', StringComparison.Ordinal)) return false; // :1067
+        var labels = host.Split('.'); // :1068 omittingEmptySubsequences: false
+        var octets = new List<int>();
+        foreach (var label in labels) // :1070-1073
+        {
+            if (SwiftNumber.ParseInt(label) is not { } value || value < 0 || value > 255) break;
+            octets.Add((int)value);
+        }
+        if (octets.Count != 4 || octets.Count != labels.Length) return true; // :1074
+        return (octets[0], octets[1]) switch // :1075-1080
+        {
+            (0, _) or (10, _) or (127, _) => false,
+            (169, 254) or (192, 168) => false,
+            (172, >= 16 and <= 31) => false,
+            (100, >= 64 and <= 127) => false, // Carrier-grade NAT.
+            _ => true,
+        };
+    }
 
-    // :1084-1098 private static func resizedIcon(_ image: NSImage) -> NSImage
-    private static IImage ResizedIcon(IImage image) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:1084");
+    // :1084-1098 private static func resizedIcon(_ image: NSImage) -> NSImage. PR-THEME-138: rendered at 28 by
+    // 28 pixels, declared at 14 by 14 points -- a two-times bitmap. Avalonia has no separate "declared size"; the
+    // 28-pixel bitmap with DPI 192 (2x of 96) reports itself as 14 by 14 device-independent units, matching.
+    private static IImage ResizedIcon(IImage image)
+    {
+        if (image is not Bitmap source) return image; // :1085 guard let rep = NSBitmapImageRep(...) else { return image }
+        var rep = new WriteableBitmap(new PixelSize(28, 28), new Vector(192, 192),
+            PixelFormat.Bgra8888, AlphaFormat.Unpremul); // :1086-1088
+        DrawScaled(source, rep, 28, 28); // :1089-1095
+        return rep; // :1096-1098 (declared size 14x14 == 28px / (192/96))
+    }
 }
 
 /// <summary>:1101-1243 <c>struct InlineText: View</c>: one paragraph of inline markdown, as a link text view when it
 /// has links and as veiled Text otherwise.</summary>
 public sealed class InlineText : Decorator
 {
+    /// <summary>The App hook for <c>@Environment(\.openURL)</c> (:1110): set once by the App layer at start-up,
+    /// the same pattern as MarkdownBlockView.HydraDelegationBlock (layering, see the file header). There is no
+    /// port-wide openURL environment yet; this unit adds the one call site MarkdownView.swift needs (:1148).</summary>
+    public static Action<SwiftURL>? OpenUrl { get; set; }
+
     /// <param name="source">:1102 <c>let source: String</c>.</param>
     /// <param name="hasLinks">:1104 <c>let hasLinks: Bool?</c>.</param>
     /// <param name="hugsContent">:1106 <c>var hugsContent = false</c>.</param>
-    // :1121-1125 init(_:hasLinks:hugsContent:); :1127-1208 body
-    public InlineText(string source, bool? hasLinks = null, bool hugsContent = false) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:1127");
+    public string Source { get; }
+    public bool? HasLinks { get; }
+    public bool HugsContent { get; }
 
-    // :1214-1221 @MainActor private static func metrics(pointSize: CGFloat) -> (ascender: CGFloat, lineHeight: CGFloat)
-    private static (double Ascender, double LineHeight) Metrics(double pointSize) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:1214");
+    // :1121-1125 init(_:hasLinks:hugsContent:); :1127-1208 body. PR-THEME-144, PR-THEME-148, PR-THEME-151.
+    // The hasLinkText branch (:1134-1191) builds LinkParagraphView, whose whole constructor is part of the
+    // sibling LinkParagraphView unit and stays MARROW_STUB (see the file header's dependency-cycle note); this
+    // wiring is otherwise complete and does not stand in for it. The link-free branch (:1193-1198) similarly
+    // depends on the sibling StreamVeil unit's VeiledText(AttributedString) constructor.
+    public InlineText(string source, bool? hasLinks = null, bool hugsContent = false)
+    {
+        Source = source;
+        HasLinks = hasLinks;
+        HugsContent = hugsContent;
 
-    // :1226-1237 static func fetchLinkAssets(source: String, streaming: Bool, revision: Binding<Int>) async
-    public static Task FetchLinkAssets(string source, bool streaming, Binding<int> revision) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:1226");
+        var pointSize = MarkdownView.GetMarkdownPointSize(this); // :1108
+        var dimmed = MarkdownView.GetMarkdownDimmed(this); // :1109
+        var streaming = MarkdownView.GetMarkdownStreaming(this); // :1110
+        var personas = MarkdownView.GetHydraMentionPersonas(this); // :1111
+        var targets = MarkdownView.GetHydraMentionTargets(this); // :1112
+
+        var scaled = SwiftNumber.Rounded(pointSize * 2) / 2; // :1130
+        var hosts = RichLink.LinkHosts(source, streaming); // :1132: hosts key the favicon work (PR-THEME-148)
+        var hasLinkText = hasLinks ?? hosts.Count > 0; // :1133
+        Control child;
+        if (hasLinkText) // :1134-1191
+        {
+            var metrics = Metrics(scaled); // :1141 the baseline numbers (PR-THEME-151), measured once per size
+            _ = metrics; // consumed by the alignment-guide wiring once LinkParagraphView exists (:1156-1157)
+            LinkTextView? hostTextView = null;
+            var linkView = new LinkParagraphView( // :1148
+                source,
+                pointSize: scaled,
+                dimmed: dimmed,
+                streaming: streaming,
+                revision: 0, // :1113 @State private var faviconRevision = 0
+                mentions: personas,
+                targets: targets,
+                onOpenHead: url => OpenUrl?.Invoke(url), // :1148 { url in openURL(url) }
+                onHost: view => hostTextView = view); // :1148 { [weak linkBox] view in linkBox?.value = view }
+            linkView.HorizontalAlignment = hugsContent ? HorizontalAlignment.Left : HorizontalAlignment.Stretch; // :1149
+            // :1159-1188 the continuous hover: pushes/pops the pointing hand over a link, shows/hides the head
+            // hover card over a mention, only on change (PR-THEME-144). Avalonia has no onContinuousHover
+            // primitive; PointerMoved/PointerExited stand in for it (ENGINEERING DECISION), matching the
+            // sibling ProseRunView.swift's identical handler (:27-59).
+            var showsHand = false;
+            Guid? hoveredHeadID = null;
+            linkView.PointerMoved += (_, e) =>
+            {
+                if (hostTextView is not { } view) return; // :1163 guard let view = ... as? LinkTextView
+                var point = e.GetPosition(linkView);
+                var overLink = view.HasLink(point); // :1164
+                if (overLink != showsHand) // :1165
+                {
+                    showsHand = overLink;
+                    linkView.Cursor = overLink // :1166 NSCursor.pointingHand.push() / .pop()
+                        ? new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand)
+                        : Avalonia.Input.Cursor.Default;
+                }
+                var mention = view.HeadMentionRect(point); // :1168
+                if (mention is { } m && targets.TryGetValue(m.Name, out var target) && target.Url == m.Url // :1168-1169
+                    && personas.FirstOrDefault(p => p.Name == m.Name) is { } persona) // :1170
+                {
+                    if (hoveredHeadID != target.ThreadID) // :1171
+                    {
+                        hoveredHeadID = target.ThreadID;
+                        HydraHeadHoverPopover.Instance.Show(persona, target, m.Rect, linkView); // :1172-1173
+                    }
+                }
+                else if (hoveredHeadID is not null) // :1175-1178
+                {
+                    hoveredHeadID = null;
+                    HydraHeadHoverPopover.Instance.Hide();
+                }
+            };
+            linkView.PointerExited += (_, _) => // :1179-1183 case .ended
+            {
+                if (showsHand) { linkView.Cursor = Avalonia.Input.Cursor.Default; showsHand = false; }
+                hoveredHeadID = null;
+                HydraHeadHoverPopover.Instance.Hide();
+            };
+            linkView.DetachedFromVisualTree += (_, _) => // :1184-1187 .onDisappear
+            {
+                if (showsHand) { linkView.Cursor = Avalonia.Input.Cursor.Default; showsHand = false; }
+                hoveredHeadID = null;
+                HydraHeadHoverPopover.Instance.Hide();
+            };
+            // :1189-1191 .task(id: hostKey): stable hosts and video ids key the work (PR-THEME-148), so a
+            // streamed token with no new link leaves it alone.
+            var hostKey = RichLink.LinkAssetKey(source, streaming);
+            if (hostKey.Length > 0)
+            {
+                var revision = 0;
+                var viewTask = new ViewTask<string>(hostKey, async _ =>
+                    await FetchLinkAssets(source, streaming, new Binding<int>(() => revision, v => revision = v)));
+                linkView.AttachedToVisualTree += (_, _) => viewTask.Appear();
+                linkView.DetachedFromVisualTree += (_, _) => viewTask.Disappear();
+            }
+            child = linkView;
+        }
+        else // :1193-1198
+        {
+            var veiled = new VeiledText(RichLink.PrettyAttributed(source, streaming)); // :1203
+            var selected = new MarkdownBlockSelection().Body(veiled); // :1204 .modifier(MarkdownBlockSelection())
+            selected.HorizontalAlignment = hugsContent ? HorizontalAlignment.Left : HorizontalAlignment.Stretch; // :1206
+            child = selected;
+        }
+        Child = child;
+    }
+
+    // :1214-1221 @MainActor private static func metrics(pointSize: CGFloat) -> (ascender: CGFloat, lineHeight: CGFloat).
+    // PR-THEME-151: the base font's baseline numbers, measured once per point size and kept.
+    private static readonly Dictionary<double, (double Ascender, double LineHeight)> metricsBySize = new(); // :1212
+
+    private static (double Ascender, double LineHeight) Metrics(double pointSize)
+    {
+        if (metricsBySize.TryGetValue(pointSize, out var known)) return known; // :1216
+        var font = SwiftFont.System(pointSize).Resolve(); // :1217 NSFont.systemFont(ofSize:)
+        var typeface = new Avalonia.Media.Typeface(font.FontFamily, font.FontStyle, font.FontWeight);
+        // NSFont's ascender/descender/leading have no direct Avalonia accessor; IGlyphTypeface's design-unit
+        // metrics, scaled to the point size, are the closest equivalent (ENGINEERING DECISION, visual parity
+        // UNVERIFIED under OD-0001 like SwiftImage.cs's own cap-height measurement above).
+        double ascender, lineHeight;
+        if (Avalonia.Media.FontManager.Current.TryGetGlyphTypeface(typeface, out var glyph))
+        {
+            var scale = pointSize / glyph.Metrics.DesignEmHeight;
+            var rawAscender = -glyph.Metrics.Ascent * scale; // Ascent is stored negative (above the baseline)
+            var descender = -glyph.Metrics.Descent * scale; // Descent is stored positive (below the baseline)
+            var leading = glyph.Metrics.LineGap * scale;
+            ascender = Math.Ceiling(rawAscender); // :1218 ceil(font.ascender)
+            lineHeight = Math.Ceiling(rawAscender - descender + leading); // :1218 ceil(ascender - descender + leading)
+        }
+        else
+        {
+            ascender = Math.Ceiling(pointSize);
+            lineHeight = Math.Ceiling(pointSize * 1.2);
+        }
+        var measured = (ascender, lineHeight);
+        metricsBySize[pointSize] = measured; // :1219
+        return measured;
+    }
+
+    // :1226-1237 static func fetchLinkAssets(source: String, streaming: Bool, revision: Binding<Int>) async. PR-THEME-148.
+    public static async Task FetchLinkAssets(string source, bool streaming, Binding<int> revision)
+    {
+        var hosts = await MainActor.Run(() => RichLink.LinkHosts(source, streaming)); // :1227
+        var changed = false;
+        foreach (var host in hosts) // :1228-1230
+        {
+            if (FaviconCache.Cached(host) is not null) continue;
+            if (await FaviconCache.Image(host) is not null) changed = true;
+        }
+        var videos = await MainActor.Run(() => RichLink.VideoIDs(source, streaming)); // :1232
+        foreach (var id in videos) // :1233-1235
+        {
+            if (await LinkTitles.TitleForVideo(id) is not null) changed = true;
+        }
+        if (changed) // :1236-1237
+        {
+            await MainActor.Run(() =>
+            {
+                RichLink.Invalidate(source);
+                revision.Value += 1;
+            });
+        }
+    }
+
+    // :1240-1242 static func attributed(_ source: String, streaming: Bool = false) -> AttributedString.
+    public static AttributedText Attributed(string source, bool streaming = false) =>
+        RichLink.PrettyAttributed(source, streaming); // :1241
 }
 
 /// <summary>:1249-1253 <c>@MainActor @Observable private final class BlockHover</c> (R-OBS-6).</summary>
@@ -422,8 +1740,12 @@ internal sealed class CodeBlockCopyButton : Decorator
     /// <param name="text">:1258 <c>let text: String</c>.</param>
     /// <param name="hover">:1259 <c>let hover: BlockHover</c>.</param>
     // :1261-1264 body
-    public CodeBlockCopyButton(string text, BlockHover hover) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:1261");
+    public CodeBlockCopyButton(string text, BlockHover hover)
+    {
+        var button = new CopyButton(text); // :1262
+        Child = button;
+        this.Track(() => hover.IsHovering, isHovering => Opacity = isHovering ? 1 : 0); // :1263 .opacity(hover.isHovering ? 1 : 0)
+    }
 }
 
 /// <summary>:1267-1336 <c>struct CodeBlock: View</c>.</summary>
@@ -431,15 +1753,90 @@ public sealed class CodeBlock : Decorator
 {
     private const int CollapsedLineLimit = 120; // :1276
 
+    /// <summary>:1271 <c>@State private var showsAll = false</c>.</summary>
+    private sealed class ViewState : MainActorModel
+    {
+        private bool showsAll;
+
+        public bool ShowsAll { get => Read(showsAll); set => Set(ref showsAll, value); }
+    }
+
     /// <param name="language">:1268 <c>let language: String?</c>.</param>
     /// <param name="code">:1269 <c>let code: String</c>.</param>
-    // :1278-1321 body
-    public CodeBlock(string? language, string code) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:1278");
+    // :1278-1321 body. UI-THEME-034 to 037. The code text itself renders through VeiledText(verbatim:), the
+    // sibling StreamVeil unit's own MARROW_STUB (see the file header's dependency-cycle note); this wiring is
+    // otherwise complete and does not stand in for it.
+    public CodeBlock(string? language, string code)
+    {
+        var hover = new BlockHover(); // :1270 @State private var hover = BlockHover()
+        var state = new ViewState();
 
-    // :1324-1335 private static func head(of code: String, lines: Int) -> String
-    private static string Head(string of, int lines) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:1324");
+        var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 0 }; // :1281
+        stack.Track(() => state.ShowsAll, _ => Rebuild(stack, language, code, hover, state));
+        Rebuild(stack, language, code, hover, state);
+
+        var background = new Border { Child = stack }.RoundedRectangle(12, RoundedCornerStyle.Continuous); // :1317
+        background.Background = SwiftColor.Quaternary.Opacity(0.45).Brush(background); // :1317
+        background.PointerEntered += (_, _) => hover.IsHovering = true; // :1318 .onHover
+        background.PointerExited += (_, _) => hover.IsHovering = false; // :1318
+        Child = background;
+    }
+
+    private static void Rebuild(StackPanel stack, string? language, string code, BlockHover hover, ViewState state)
+    {
+        stack.Children.Clear();
+        var newlines = Encoding.UTF8.GetBytes(code).Count(b => b == 0x0A); // :1281 code.utf8.count { $0 == 0x0A }
+        var lineCount = 1 + newlines; // :1281
+        var truncated = !state.ShowsAll && lineCount > CollapsedLineLimit; // :1282
+        var visible = truncated ? Head(code, CollapsedLineLimit) : code; // :1283
+
+        var header = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto") }; // :1286 HStack { ... Spacer() ... }
+        var langText = new TextBlock { Text = language ?? "code" }; // :1287 Text(language ?? "code")
+        ChatFont.Chat(SwiftFont.TextStyle.Caption).Apply(langText); // :1288
+        langText.Foreground = Chrome.Chrome.SecondaryText.Brush(langText); // :1289
+        Grid.SetColumn(langText, 0);
+        var copyButton = new CodeBlockCopyButton(code, hover); // :1292
+        Grid.SetColumn(copyButton, 2);
+        header.Children.Add(langText);
+        header.Children.Add(copyButton);
+        header.Margin = new Thickness(12, 6, 6, 0); // :1293-1295 leading 12, trailing 6, top 6
+        stack.Children.Add(header);
+
+        var veiled = new VeiledText(visible).Font(ChatFont.Chat(SwiftFont.TextStyle.Callout, design: SwiftFont.Design.Monospaced)); // :1299-1300
+        var selected = new MarkdownBlockSelection().Body(veiled); // :1301
+        selected.Margin = new Thickness(12, 4, 12, 12); // :1302-1304 horizontal 12, bottom 12, top 4
+        var scroll = new ScrollViewer
+        {
+            Content = selected,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Disabled,
+        }; // :1298 ScrollView(.horizontal, showsIndicators: false)
+        stack.Children.Add(scroll);
+
+        if (lineCount > CollapsedLineLimit) // :1310-1316
+        {
+            var title = state.ShowsAll ? "Show less" : "Show all " + lineCount + " lines"; // :1311
+            stack.Children.Add(TableBlock.LinkStyleButton(title, () => state.ShowsAll = !state.ShowsAll)); // :1311-1313
+        }
+    }
+
+    // :1324-1335 private static func head(of code: String, lines: Int) -> String. PR-THEME-118: counts UTF-8
+    // line feeds without splitting the text into an array, and returns everything up to (not including) the
+    // Nth line feed, or the whole text when there are fewer than N line feeds.
+    private static string Head(string of, int lines)
+    {
+        var code = of;
+        var remaining = lines;
+        var utf8 = Encoding.UTF8.GetBytes(code);
+        var end = -1;
+        for (var index = 0; index < utf8.Length; index++)
+        {
+            if (utf8[index] != 0x0A) continue;
+            remaining--;
+            if (remaining == 0) { end = index; break; }
+        }
+        return remaining == 0 && end >= 0 ? Encoding.UTF8.GetString(utf8, 0, end) : code;
+    }
 }
 
 /// <summary>:1338-1397 <c>struct TableBlock: View</c>.</summary>
@@ -447,28 +1844,239 @@ public sealed class TableBlock : Decorator
 {
     private const int CollapsedRowLimit = 30; // :1344
 
+    // :1347 @MainActor private static var cellCache = RecentCache<String, AttributedString>(limit: 1200).
+    private static readonly RecentCache<string, AttributedText> cellCache = new(1200);
+
+    // :1349-1354 @MainActor private static func cell(_ source: String) -> AttributedString. Renders the plain
+    // text of each cell (AttributedText.PlainText): converting a run's bold/link attributes into a control is
+    // left to InlineText's own render path (see AttributedText.cs's header), not duplicated here.
+    private static AttributedText Cell(string source)
+    {
+        if (cellCache.TryGetValue(source, out var hit)) return hit; // :1350
+        var value = InlineText.Attributed(source); // :1351
+        cellCache.Insert(value, source); // :1352
+        return value;
+    }
+
+    // :1341 @State private var showsAll = false
+    private sealed class ViewState : MainActorModel
+    {
+        private bool showsAll;
+
+        public bool ShowsAll { get => Read(showsAll); set => Set(ref showsAll, value); }
+    }
+
     /// <param name="header">:1339 <c>let header: [String]</c>.</param>
     /// <param name="rows">:1340 <c>let rows: [[String]]</c>.</param>
-    // :1357-1396 body
-    public TableBlock(IReadOnlyList<string> header, IReadOnlyList<IReadOnlyList<string>> rows) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:1357");
+    // :1357-1396 body. PR-THEME-119: a horizontally scrolling grid, semibold header, 30 rows at a time, on a
+    // rounded quaternary panel.
+    public TableBlock(IReadOnlyList<string> header, IReadOnlyList<IReadOnlyList<string>> rows)
+    {
+        var state = new ViewState();
+        var host = new StackPanel { Orientation = Orientation.Vertical, Spacing = 0 }; // :1357
+        host.Track(() => state.ShowsAll, showsAll => Rebuild(host, header, rows, showsAll, state));
+        Rebuild(host, header, rows, false, state);
+        var panel = new Border { Child = host }.RoundedRectangle(12, RoundedCornerStyle.Continuous); // :1394 .background(.quaternary.opacity(0.35), in: .rect(cornerRadius: 12))
+        panel.Background = SwiftColor.Quaternary.Opacity(0.35).Brush(panel);
+        Child = panel;
+    }
+
+    private static void Rebuild(StackPanel host, IReadOnlyList<string> header, IReadOnlyList<IReadOnlyList<string>> rows, bool showsAll, ViewState state)
+    {
+        host.Children.Clear();
+        var visible = showsAll ? rows : rows.Take(CollapsedRowLimit).ToList(); // :1358
+        var head = header.Select(Cell).ToList(); // :1359
+        var cells = visible.Select(r => r.Select(Cell).ToList()).ToList(); // :1360
+
+        var grid = new Grid { ColumnDefinitions = new ColumnDefinitions(string.Join(",", head.Select(_ => "Auto"))) }; // :1363 Grid(alignment: .leading, horizontalSpacing: 18, verticalSpacing: 8)
+        for (var row = 0; row <= cells.Count; row++) grid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
+        for (var column = 0; column < head.Count; column++) // :1364-1368 GridRow (header)
+        {
+            var text = new TextBlock { Text = head[column].PlainText, FontWeight = FontWeight.SemiBold, Margin = new Thickness(0, 0, column == head.Count - 1 ? 0 : 18, 8) };
+            Grid.SetRow(text, 0);
+            Grid.SetColumn(text, column);
+            grid.Children.Add(text);
+        }
+        for (var row = 0; row < cells.Count; row++) // :1370-1376 GridRow (body)
+        {
+            for (var column = 0; column < head.Count; column++)
+            {
+                var value = column < cells[row].Count ? cells[row][column].PlainText : ""; // :1373
+                var text = new TextBlock { Text = value, Margin = new Thickness(0, 0, column == head.Count - 1 ? 0 : 18, row == cells.Count - 1 ? 0 : 8) };
+                text.Foreground = SwiftColor.LabelColor.Opacity(0.9).Brush(text); // :1374 .foregroundStyle(.primary.opacity(0.9))
+                Grid.SetRow(text, row + 1);
+                Grid.SetColumn(text, column);
+                grid.Children.Add(text);
+            }
+        }
+        var scroll = new ScrollViewer { Content = grid, Padding = new Thickness(12), HorizontalScrollBarVisibility = ScrollBarVisibility.Auto, VerticalScrollBarVisibility = ScrollBarVisibility.Disabled }; // :1361-1362, :1381
+        host.Children.Add(scroll);
+        if (!showsAll && rows.Count > CollapsedRowLimit) // :1383-1392
+        {
+            var button = LinkStyleButton("Show all " + rows.Count + " rows", () => state.ShowsAll = true); // :1384-1386
+            host.Children.Add(button);
+        }
+    }
+
+    // Shared with CopyButton/CodeBlock's "Show all"/"Show less" links (:1305-1311, :1387-1391): a caption-sized,
+    // accent-coloured plain-text button, the same ENGINEERING DECISION AttachmentPreview.LinkButton already
+    // takes for `.buttonStyle(.link)` (no `.link` style precedent exists; UNVERIFIED under OD-0001 for underline
+    // and hover state).
+    internal static Button LinkStyleButton(string title, Action action)
+    {
+        var label = new TextBlock { Text = title };
+        ChatFont.Chat(SwiftFont.TextStyle.Caption).Apply(label); // :1387-1389 .buttonStyle(.link).font(.chat(.caption))
+        label.Foreground = Chrome.Chrome.SecondaryText.Brush(label); // :1390 .foregroundStyle(Chrome.secondaryText)
+        var button = PlainControls.Button(label, action);
+        button.Cursor = new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand);
+        button.Margin = new Thickness(12, 0, 12, 10); // :1391 .padding(.horizontal, 12).padding(.bottom, 10)
+        return button;
+    }
 }
 
 /// <summary>:1401-1469 <c>enum ProseReflow</c>: unwraps prose the model hard-wrapped before it reaches the
 /// pasteboard.</summary>
-public static class ProseReflow
+public static partial class ProseReflow
 {
-    // :1402-1468 static func reflowed(_ text: String) -> String
-    public static string Reflowed(string text) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:1402");
+    // :1436 .range(of: #"[.!?] "#, options: .regularExpression) != nil
+    [GeneratedRegex(@"[.!?] ", RegexOptions.CultureInvariant)]
+    private static partial Regex SentencePunctuationPattern();
+
+    private const string ListMarkerFirstChars = "#>-*+|"; // :1414
+    private const string NoTrailingChars = "{};:=([\\|"; // :1432
+
+    // :1402-1468 static func reflowed(_ text: String) -> String. PR-THEME-121: joins a hard-wrapped paragraph
+    // into one line only when all eight conditions (:1409-1437) hold; a fenced region, and its own fence lines,
+    // are never reflowed.
+    public static string Reflowed(string text)
+    {
+        var lines = text.Split('\n'); // :1403 components(separatedBy: "\n"), O-13 (R-STR-3)
+        var output = new List<string>();
+        var paragraph = new List<string>();
+        var fenceOpen = false;
+        var fenceLanguage = "";
+
+        void FlushParagraph()
+        {
+            if (paragraph.Count == 0) return; // :1410
+            var trimmed = paragraph.Select(p => FoundationText.Trim(p)).ToList(); // :1411
+            var canReflow = trimmed.Count >= 2 // :1412
+                && fenceLanguage.Length == 0 // :1413
+                && paragraph.Zip(trimmed).All(pair => // :1414-1416
+                    pair.Second.Length > 0 && !(pair.First.Length > 0 && FoundationText.IsWhitespace(pair.First[0])))
+                && trimmed.All(line => // :1417-1425
+                {
+                    if (line.Length == 0) return false;
+                    var first = line[0];
+                    if (ListMarkerFirstChars.IndexOf(first, StringComparison.Ordinal) >= 0) return false;
+                    if (SwiftCharacter.IsNumber(first.ToString()) && line.Length > 1 && (line[1] == '.' || line[1] == ')'))
+                    {
+                        return false;
+                    }
+                    return true;
+                })
+                && trimmed.Take(trimmed.Count - 1).All(line => SwiftString.Count(line) >= 45) // :1426
+                && trimmed.Take(trimmed.Count - 1).All(line => // :1427-1432
+                {
+                    if (line.Length == 0) return true;
+                    var last1 = line[^1];
+                    if (NoTrailingChars.IndexOf(last1, StringComparison.Ordinal) >= 0) return false;
+                    if (SwiftString.HasSuffix(line, "->") || SwiftString.HasSuffix(line, "=>")) return false;
+                    return true;
+                })
+                && trimmed.All(line => !line.Contains("  ", StringComparison.Ordinal) && !line.Contains('\t', StringComparison.Ordinal)) // :1433
+                && SentencePunctuationPattern().IsMatch(string.Join(" ", trimmed)); // :1436
+            if (canReflow)
+            {
+                output.Add(string.Join(" ", trimmed)); // :1438
+            }
+            else
+            {
+                output.AddRange(paragraph); // :1440
+            }
+            paragraph.Clear();
+        }
+
+        foreach (var line in lines)
+        {
+            var trimmedLine = FoundationText.Trim(line);
+            if (SwiftString.HasPrefix(trimmedLine, "```")) // :1446
+            {
+                FlushParagraph();
+                output.Add(line);
+                if (fenceOpen)
+                {
+                    fenceOpen = false;
+                    fenceLanguage = "";
+                }
+                else
+                {
+                    fenceOpen = true;
+                    fenceLanguage = SwiftString.Lowercased(trimmedLine.Length > 3 ? trimmedLine[3..] : "");
+                }
+            }
+            else if (trimmedLine.Length == 0) // :1454
+            {
+                FlushParagraph();
+                output.Add(line);
+            }
+            else if (fenceOpen) // :1457
+            {
+                FlushParagraph();
+                output.Add(line);
+            }
+            else
+            {
+                paragraph.Add(line); // :1460
+            }
+        }
+        FlushParagraph();
+        return string.Join("\n", output);
+    }
 }
 
 /// <summary>:1471-1498 <c>struct CopyButton: View</c>.</summary>
 public sealed class CopyButton : Decorator
 {
+    // :1475 @State private var didCopy = false
+    private sealed class ViewState : MainActorModel
+    {
+        private bool didCopy;
+
+        public bool DidCopy { get => Read(didCopy); set => Set(ref didCopy, value); }
+    }
+
     /// <param name="text">:1472 <c>let text: String</c>.</param>
     /// <param name="label">:1473 <c>var label = "Copy"</c>.</param>
-    // :1477-1497 body
-    public CopyButton(string text, string label = "Copy") =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:1477");
+    // :1477-1497 body. PR-THEME-120: copies the reflowed text, shows a check mark for 1.4 seconds, and carries
+    // the tooltip "Copy" (the default label).
+    public CopyButton(string text, string label = "Copy")
+    {
+        var state = new ViewState();
+        Button button = null!;
+        button = PlainControls.Button(Icon(false), () => // :1477-1490
+        {
+            var clipboard = TopLevel.GetTopLevel(button)?.Clipboard; // NSPasteboard has no Avalonia port type; TopLevel.Clipboard is the platform's own equivalent (precedent: ComposerTextView.cs).
+            _ = clipboard?.SetTextAsync(ProseReflow.Reflowed(text)); // :1478-1479
+            state.DidCopy = true; // :1480
+            MainActor.Spawn(async () => // :1482-1486 Task { ... }
+            {
+                await SwiftTask.Sleep(TimeSpan.FromSeconds(1.4)); // :1483
+                state.DidCopy = false; // :1484
+            });
+        }); // :1494 .buttonStyle(.borderless): no distinct borderless template exists yet (ENGINEERING DECISION,
+            // same as ChromeIconButton's .plain), so this reuses PlainControls.Button's content-only template.
+        button.Track(() => state.DidCopy, didCopy => button.Content = Icon(didCopy)); // :1488 didCopy ? "checkmark" : "doc.on.doc"
+        TextElement.SetForeground(button, Chrome.Chrome.SecondaryText.Brush(button)); // :1495 .foregroundStyle(Chrome.secondaryText)
+        ToolTip.SetTip(button, label); // :1496 .help(label)
+        Child = button;
+    }
+
+    private static Control Icon(bool didCopy)
+    {
+        var image = SwiftImage.SystemName(didCopy ? "checkmark" : "doc.on.doc"); // :1488
+        image.Width = 22; // :1489 .frame(width: 22, height: 22).contentShape(.rect)
+        image.Height = 22;
+        return image;
+    }
 }

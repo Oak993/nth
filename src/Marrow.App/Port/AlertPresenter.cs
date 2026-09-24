@@ -1,0 +1,81 @@
+using Avalonia.Controls;
+using Avalonia.Layout;
+using Avalonia.Media;
+using Marrow.Core.Port;
+using Marrow.UI.Port;
+
+namespace Marrow.App.Port;
+
+// PORT-ONLY: the presentation seam behind NSAlert.runModal() (AppUpdater.swift:274-280 is its only site so
+// far). Mirrors UI.Port.ViewLifetime's Presentation.Presenter seam for popovers (R-VIEW-9): production shows
+// a real modal window and the returned Task does not complete until it closes, matching runModal's block;
+// a test overrides the Ambient and records instead, because Avalonia 12.1.2 headless cannot open a real
+// Window any more than it can a Popup ("Unable to create IPopupImpl and no overlay layer is found").
+
+/// <summary>One alert button: its title and the action a click performs before the alert closes.</summary>
+public sealed record AlertButton(string Title, Action Perform);
+
+/// <summary>NSAlert.Style's one case this app ever sets (AppUpdater.swift:278).</summary>
+public enum AlertStyle
+{
+    Warning,
+}
+
+public interface IAlertPresenter
+{
+    /// <summary>Presents a modal alert; the returned Task completes when the alert closes.</summary>
+    Task Show(string title, string informativeText, AlertStyle style, IReadOnlyList<AlertButton> buttons);
+}
+
+public static class AlertPresentation
+{
+    public static Ambient<IAlertPresenter> Presenter { get; } = new(() => new WindowsAlertPresenter());
+}
+
+/// <summary>The production presenter: a plain modal Avalonia window with the message and its buttons.</summary>
+public sealed class WindowsAlertPresenter : IAlertPresenter
+{
+    public Task Show(string title, string informativeText, AlertStyle style, IReadOnlyList<AlertButton> buttons)
+    {
+        _ = style; // The one style this app shows (Warning) carries no distinct visual treatment yet.
+        var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        MainActor.Post(() =>
+        {
+            var window = new Avalonia.Controls.Window
+            {
+                Title = title,
+                SizeToContent = SizeToContent.WidthAndHeight,
+                CanResize = false,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            };
+            var buttonRow = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Spacing = 8,
+                HorizontalAlignment = HorizontalAlignment.Right,
+            };
+            foreach (var button in buttons)
+            {
+                var control = new Button { Content = button.Title };
+                control.Click += (_, _) =>
+                {
+                    button.Perform();
+                    window.Close();
+                };
+                buttonRow.Children.Add(control);
+            }
+            var content = new StackPanel { Margin = new Avalonia.Thickness(20), Spacing = 16 };
+            content.Children.Add(new TextBlock
+            {
+                Text = informativeText,
+                TextWrapping = TextWrapping.Wrap,
+                MaxWidth = 360,
+            });
+            content.Children.Add(buttonRow);
+            window.Content = content;
+            window.Closed += (_, _) => completion.TrySetResult();
+            window.Show();
+        });
+        return completion.Task;
+    }
+}

@@ -2025,7 +2025,7 @@
       "cancellation": "The read is not cancellable by the caller; the watchdog only releases the loading flag, it does not stop the work.",
       "windows_path": "Same gating, same 60 second freshness and 25 second watchdog. Windows process launch replaces the macOS one; the login-environment preload has its own Windows decision (port_impacts entry 215).",
       "verification_method": "unit test over the gate matrix plus an interaction test that a hung read clears the spinner after 25 seconds",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2052,7 +2052,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same code shape; do not add a timeout, a queue or a timestamp reset.",
       "verification_method": "unit test asserting a forced call during an in-flight read is a no-op, and that an empty key leaves the timestamp intact",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "4, 5",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2103,7 +2103,7 @@
       "cancellation": "not cancellable once sent.",
       "windows_path": "Same routing and the same two-step (spend, then re-read). The Codex path launches the CLI on Windows; the argv belongs to the provider area.",
       "verification_method": "contract fixture per provider, including the default throw and the Z.ai nil-credit case",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

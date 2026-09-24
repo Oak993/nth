@@ -4761,7 +4761,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The settings path is a Windows path handed through the environment, which the provider must accept with backslashes. Pass no \"--allowed-mcp-server-names\" argument.",
       "verification_method": "launch test asserting the environment variable with servers connected and with none, and that the argument vector has no \"--allowed-mcp-server-names\" element",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
