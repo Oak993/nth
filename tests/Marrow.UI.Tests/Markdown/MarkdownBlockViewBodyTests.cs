@@ -145,9 +145,14 @@ public sealed class MarkdownBlockViewBodyTests(HeadlessSession headless)
     // site the construction throws from; this proves it is InlineText's (:1127), not VeiledText's.
     public void A_plain_paragraph_with_no_links_targets_or_personas_reaches_the_default_InlineText_branch()
     {
+        // Part 2 implemented InlineText's constructor (MarkdownView.swift:1121-1208): a link-free paragraph now
+        // reaches its VeiledText(RichLink.prettyAttributed(...)) call (:1203), one level further than before.
+        // That still throws, from the sibling StreamVeil unit's own VeiledText(segments:) MARROW_STUB
+        // (StreamVeil.swift:253), which the new VeiledText(AttributedString) overload (StreamVeil.swift:247-251,
+        // added by this unit per ED-092(3)) delegates to.
         var block = new MarkdownBlock.Paragraph("nothing special here");
         var ex = Assert.Throws<NotImplementedException>(() => new MarkdownBlockView(block));
-        Assert.Contains("MarkdownView.swift:1127", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("StreamVeil.swift:253", ex.Message, StringComparison.Ordinal);
     }
 
     // ---- PR-THEME-111/112/113: marker (:506-538) ----
