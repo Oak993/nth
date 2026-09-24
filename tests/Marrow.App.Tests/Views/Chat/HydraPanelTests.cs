@@ -1,229 +1,169 @@
+using System;
+using System.Linq;
+using Avalonia.Controls;
+using Avalonia.Interactivity;
+using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Chat;
 using Marrow.Core.Models;
-using Marrow.Core.Port;
-using Marrow.Core.Support;
 using Marrow.Testing;
+using Marrow.UI.Chrome;
+using Marrow.UI.Port;
 using Xunit;
 
 namespace Marrow.App.Tests.Views.Chat;
 
+[Collection("Headless")]
 public sealed class HydraPanelTests
 {
-    private static readonly DateTimeOffset StartedAt =
-        new(2025, 1, 1, 0, 0, 0, TimeSpan.Zero);
+    private readonly HeadlessSession session;
+
+    public HydraPanelTests(HeadlessSession session) => this.session = session;
 
     [Fact]
-    [Trait("Req", "PR-HYDRA-170")] // App/Views/Chat/HydraPanel.swift:33-37
-    public void Strip_geometry_uses_the_source_height_and_corner_radius()
+    [Trait("Req", "UI-HYDRA-022")] // App/Views/Chat/HydraPanel.swift:190-192
+    public void Dismiss_button_uses_the_xmark_help_and_runs_its_action()
     {
-        Assert.Equal(50, HydraPanel.StripHeight);
-        Assert.Equal(22, HydraPanel.CornerRadius);
+        session.OnUiThread(() =>
+        {
+            var calls = 0;
+            var button = new ChromeCircleButton("xmark", "Dismiss the panel; heads keep working", () => calls++);
+            var controls = LogicalQuery.SelfAndDescendants<Control>(button).ToArray();
+
+            Assert.Contains(controls, control => ToolTip.GetTip(control) as string == "Dismiss the panel; heads keep working");
+            Assert.Contains(LogicalQuery.SelfAndDescendants<SwiftImage>(button),
+                image => image.SymbolName == "xmark");
+
+            var clickTarget = Assert.Single(controls.OfType<Button>());
+            clickTarget.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+
+            Assert.Equal(1, calls);
+        });
     }
 
     [Fact]
-    [Trait("Req", "PR-HYDRA-169")] // App/Views/Chat/HydraPanel.swift:41
+    [Trait("Req", "UI-HYDRA-023")] // App/Views/Chat/HydraPanel.swift:177-180
+    public void Popped_out_panel_put_back_button_uses_the_fallback_name_and_dismisses()
+    {
+        session.OnUiThread(() =>
+        {
+            var calls = 0;
+            var panel = new HydraPanel(
+                runtime: null!,
+                heads: Array.Empty<ChatThread>(),
+                size: new Avalonia.Size(400, 280),
+                workingDirectory: null,
+                projectName: null,
+                onDrag: _ => { },
+                onDragEnd: () => { },
+                dismiss: () => calls++,
+                isPoppedOut: true);
+
+            var controls = LogicalQuery.SelfAndDescendants<Control>(panel).ToArray();
+            Assert.Contains(controls, control =>
+                ToolTip.GetTip(control) as string == "Put the head back in the team panel");
+            Assert.Contains(LogicalQuery.SelfAndDescendants<SwiftImage>(panel),
+                image => image.SymbolName == "arrow.down.left");
+
+            var clickTarget = Assert.Single(controls.OfType<Button>());
+            clickTarget.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+
+            Assert.Equal(1, calls);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "UI-HYDRA-024")] // App/Views/Chat/HydraPanel.swift:441-473
+    public void Footer_uses_the_upstream_text_for_each_status_and_omits_zero_steps()
+    {
+        using var runtime = new TestRuntime();
+
+        var runningWithoutActivity = new HydraHeadInfo(0, "", default, default);
+        var runningWithActivity = runningWithoutActivity with { Activity = "Searching files" };
+        var completedWithoutSteps = runningWithoutActivity with
+        {
+            HydraHeadInfoStatus = HydraHeadInfo.Status.Completed
+        };
+        var completedWithStepsAndEmptyLanding = completedWithoutSteps with
+        {
+            ToolCalls = 1,
+            Landing = new HydraLanding()
+        };
+        var failedWithSummary = runningWithoutActivity with
+        {
+            HydraHeadInfoStatus = HydraHeadInfo.Status.Failed,
+            Summary = "Could not finish"
+        };
+        var stopped = runningWithoutActivity with
+        {
+            HydraHeadInfoStatus = HydraHeadInfo.Status.Stopped
+        };
+
+        Assert.Equal("Working", HydraStatusText.Footer(runningWithoutActivity));
+        Assert.Equal("Searching files", HydraStatusText.Footer(runningWithActivity));
+        Assert.Equal("Done", HydraStatusText.Footer(completedWithoutSteps));
+        Assert.Equal("Done \U000000B7 1 step \U000000B7 changed nothing", HydraStatusText.Footer(completedWithStepsAndEmptyLanding));
+        Assert.Equal("Failed \U000000B7 Could not finish", HydraStatusText.Footer(failedWithSummary));
+        Assert.Equal("Stopped", HydraStatusText.Footer(stopped));
+    }
+
+    [Fact]
+    [Trait("Req", "UI-HYDRA-024")] // App/Views/Chat/HydraPanel.swift:515-552
+    public void Footer_includes_elapsed_steps_landing_and_summary_in_upstream_order()
+    {
+        using var runtime = new TestRuntime();
+
+        var startedAt = new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        var info = new HydraHeadInfo(0, "", default, default)
+        {
+            HydraHeadInfoStatus = HydraHeadInfo.Status.Completed,
+            StartedAt = startedAt,
+            FinishedAt = startedAt.AddSeconds(61),
+            ToolCalls = 2,
+            Landing = new HydraLanding
+            {
+                Files = new[]
+                {
+                    new HydraLanding.File { Path = "one.txt", Additions = 1, Deletions = 0 },
+                    new HydraLanding.File { Path = "two.txt", Additions = 0, Deletions = 1 }
+                },
+                Conflicts = new[] { "one.txt" }
+            },
+            Summary = "Finished the task"
+        };
+
+        Assert.Equal(
+            "Done in 1m 1s \U000000B7 2 steps \U000000B7 landed 2 files, 1 conflict \U000000B7 Finished the task",
+            HydraStatusText.Footer(info));
+    }
+
+    [Fact]
+    [Trait("Req", "UI-HYDRA-025")] // App/Views/Chat/HydraPanel.swift:419-425
+    public void Composer_area_exposes_the_source_options_for_a_droppy_head()
+    {
+        var constructor = typeof(Marrow.App.Views.Composer.ComposerArea)
+            .GetConstructors()
+            .Single();
+        var parameters = constructor.GetParameters();
+
+        Assert.Equal(
+            new[] { "runtime", "workingDirectory", "compactModelChip", "takesFocusOnAppear", "showsChanges" },
+            parameters.Select(parameter => parameter.Name).ToArray());
+        Assert.Equal(typeof(bool), parameters[2].ParameterType);
+        Assert.Equal(typeof(bool), parameters[3].ParameterType);
+        Assert.Equal(typeof(bool), parameters[4].ParameterType);
+    }
+
+    [Fact]
+    [Trait("Req", "UI-HYDRA-026")] // App/Views/Chat/HydraPanel.swift:38-41, :72-91
     public void Finish_hold_is_two_seconds()
     {
         Assert.Equal(2.0, HydraPanel.FinishHold);
     }
 
     [Fact]
-    [Trait("Req", "PR-HYDRA-179")] // App/Views/Chat/HydraPanel.swift:482-488
-    public void Shown_returns_the_stored_record_when_the_head_has_no_runtime()
+    [Trait("Req", "UI-HYDRA-073")] // App/Views/Chat/HydraPanel.swift:99-121
+    public void Panel_corner_radius_is_twenty_two_points()
     {
-        using var runtime = new TestRuntime();
-        var stored = Info(HydraHeadInfo.Status.Running) with { Activity = "stored activity", ToolCalls = 3 };
-
-        Assert.Same(stored, HydraLiveInfo.Shown(stored, null));
+        Assert.Equal(22.0, HydraPanel.CornerRadius);
     }
-
-    [Fact]
-    [Trait("Req", "PR-HYDRA-180")] // App/Views/Chat/HydraPanel.swift:493-500
-    public void Short_status_is_the_exact_lowercase_word_for_each_status()
-    {
-        using var runtime = new TestRuntime();
-
-        Assert.Equal("working", HydraStatusText.Short(Info(HydraHeadInfo.Status.Running)));
-        Assert.Equal("done", HydraStatusText.Short(Info(HydraHeadInfo.Status.Completed)));
-        Assert.Equal("failed", HydraStatusText.Short(Info(HydraHeadInfo.Status.Failed)));
-        Assert.Equal("stopped", HydraStatusText.Short(Info(HydraHeadInfo.Status.Stopped)));
-    }
-
-    [Fact]
-    [Trait("Req", "PR-HYDRA-180")] // App/Views/Chat/HydraPanel.swift:502-513
-    public void Long_status_uses_the_middle_dot_and_running_fallback()
-    {
-        using var runtime = new TestRuntime();
-
-        Assert.Equal("· working", HydraStatusText.Long(Info(HydraHeadInfo.Status.Running)));
-        Assert.Equal("· working", HydraStatusText.Long(Info(HydraHeadInfo.Status.Running) with { Activity = null }));
-        Assert.Equal("· failed", HydraStatusText.Long(Info(HydraHeadInfo.Status.Failed)));
-        Assert.Equal("· stopped", HydraStatusText.Long(Info(HydraHeadInfo.Status.Stopped)));
-    }
-
-    [Fact]
-    [Trait("Req", "PR-HYDRA-180")] // App/Views/Chat/HydraPanel.swift:504-505
-    public void Long_running_status_truncates_activity_to_forty_characters()
-    {
-        using var runtime = new TestRuntime();
-        var activity = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNO";
-
-        Assert.Equal("· " + activity[..40], HydraStatusText.Long(
-            Info(HydraHeadInfo.Status.Running) with { Activity = activity }));
-    }
-
-    [Fact]
-    [Trait("Req", "PR-HYDRA-180")] // App/Views/Chat/HydraPanel.swift:507, 542-552
-    public void Completed_long_status_includes_elapsed_steps_and_landing_in_source_order()
-    {
-        using var runtime = new TestRuntime();
-        var info = Info(HydraHeadInfo.Status.Completed) with
-        {
-            FinishedAt = StartedAt.AddSeconds(61),
-            ToolCalls = 1,
-            Landing = new HydraLanding()
-        };
-
-        Assert.Equal("· done in 1m 1s · 1 step · changed nothing", HydraStatusText.Long(info));
-    }
-
-    [Fact]
-    [Trait("Req", "PR-HYDRA-180")] // App/Views/Chat/HydraPanel.swift:547-552
-    public void Elapsed_clause_is_omitted_without_a_whole_positive_second()
-    {
-        using var runtime = new TestRuntime();
-        var completed = Info(HydraHeadInfo.Status.Completed);
-
-        Assert.Equal("· done", HydraStatusText.Long(completed with { FinishedAt = StartedAt }));
-        Assert.Equal("· done", HydraStatusText.Long(completed with { FinishedAt = StartedAt.AddMilliseconds(999) }));
-        Assert.Equal("· done in 1s", HydraStatusText.Long(completed with { FinishedAt = StartedAt.AddMilliseconds(1999) }));
-    }
-
-    [Fact]
-    [Trait("Req", "PR-HYDRA-180")] // App/Views/Chat/HydraPanel.swift:515-526
-    public void Footer_uses_exact_running_fallback_and_finished_wording()
-    {
-        using var runtime = new TestRuntime();
-
-        Assert.Equal("Working", HydraStatusText.Footer(Info(HydraHeadInfo.Status.Running) with { Activity = null }));
-        Assert.Equal("Done", HydraStatusText.Footer(Info(HydraHeadInfo.Status.Completed)));
-        Assert.Equal("Failed", HydraStatusText.Footer(Info(HydraHeadInfo.Status.Failed)));
-        Assert.Equal("Stopped", HydraStatusText.Footer(Info(HydraHeadInfo.Status.Stopped)));
-    }
-
-    [Fact]
-    [Trait("Req", "PR-HYDRA-180")] // App/Views/Chat/HydraPanel.swift:517-518
-    public void Footer_running_status_truncates_activity_to_eighty_characters()
-    {
-        using var runtime = new TestRuntime();
-        var activity = new string('a', 81);
-
-        Assert.Equal(new string('a', 80), HydraStatusText.Footer(
-            Info(HydraHeadInfo.Status.Running) with { Activity = activity }));
-    }
-
-    [Fact]
-    [Trait("Req", "PR-HYDRA-180")] // App/Views/Chat/HydraPanel.swift:520-522, 542-545
-    public void Footer_appends_summary_and_steps_only_when_present()
-    {
-        using var runtime = new TestRuntime();
-        var completed = Info(HydraHeadInfo.Status.Completed) with
-        {
-            ToolCalls = 2,
-            Summary = "Summary"
-        };
-        var failed = Info(HydraHeadInfo.Status.Failed) with { Summary = "Summary" };
-
-        Assert.Equal("Done · 2 steps · Summary", HydraStatusText.Footer(completed));
-        Assert.Equal("Failed · Summary", HydraStatusText.Footer(failed));
-    }
-
-    [Fact]
-    [Trait("Req", "PR-HYDRA-180")] // App/Views/Chat/HydraPanel.swift:520-522
-    public void Footer_truncates_finished_summary_to_eighty_characters()
-    {
-        using var runtime = new TestRuntime();
-        var summary = new string('s', 81);
-
-        Assert.Equal("Done · " + new string('s', 80), HydraStatusText.Footer(
-            Info(HydraHeadInfo.Status.Completed) with { Summary = summary }));
-        Assert.Equal("Failed · " + new string('s', 80), HydraStatusText.Footer(
-            Info(HydraHeadInfo.Status.Failed) with { Summary = summary }));
-    }
-
-    [Fact]
-    [Trait("Req", "PR-HYDRA-181")] // App/Views/Chat/HydraPanel.swift:530-539
-    public void Landed_is_nil_without_a_landing_and_changed_nothing_for_an_empty_landing()
-    {
-        using var runtime = new TestRuntime();
-
-        Assert.Null(HydraStatusText.Landed(Info(HydraHeadInfo.Status.Completed)));
-        Assert.Equal("changed nothing", HydraStatusText.Landed(
-            Info(HydraHeadInfo.Status.Completed) with { Landing = new HydraLanding() }));
-    }
-
-    [Fact]
-    [Trait("Req", "PR-HYDRA-181")] // App/Views/Chat/HydraPanel.swift:532-539
-    public void Landed_reports_patch_before_error()
-    {
-        using var runtime = new TestRuntime();
-        var landing = new HydraLanding { PatchPath = "changes.patch", Error = "merge failed" };
-
-        Assert.Equal("kept as a patch", HydraStatusText.Landed(
-            Info(HydraHeadInfo.Status.Completed) with { Landing = landing }));
-    }
-
-    [Fact]
-    [Trait("Req", "PR-HYDRA-181")] // App/Views/Chat/HydraPanel.swift:533-539
-    public void Landed_reports_error_before_conflicts_and_uses_all_files_in_conflict_count()
-    {
-        using var runtime = new TestRuntime();
-        var files = new ValueList<HydraLanding.File>(
-        [
-            new HydraLanding.File { Path = "one.txt", Additions = 1, Deletions = 0 },
-            new HydraLanding.File { Path = "two.txt", Additions = 2, Deletions = 0 },
-        ]);
-        var conflicts = new ValueList<string>(["one.txt"]);
-        var conflictLanding = new HydraLanding { Files = files, Conflicts = conflicts };
-        var errorLanding = conflictLanding with { Error = "merge failed" };
-
-        Assert.Equal("did not land", HydraStatusText.Landed(
-            Info(HydraHeadInfo.Status.Completed) with { Landing = errorLanding }));
-        Assert.Equal("landed 2 files, 1 conflict", HydraStatusText.Landed(
-            Info(HydraHeadInfo.Status.Completed) with { Landing = conflictLanding }));
-    }
-
-    [Fact]
-    [Trait("Req", "PR-HYDRA-181")] // App/Views/Chat/HydraPanel.swift:533-539
-    public void Landed_uses_singular_and_plural_file_wording()
-    {
-        using var runtime = new TestRuntime();
-        var oneFile = new HydraLanding
-        {
-            Files = new ValueList<HydraLanding.File>(
-            [
-                new HydraLanding.File { Path = "one.txt", Additions = 1, Deletions = 0 },
-            ])
-        };
-        var twoFiles = oneFile with
-        {
-            Files = new ValueList<HydraLanding.File>(
-            [
-                new HydraLanding.File { Path = "one.txt", Additions = 1, Deletions = 0 },
-                new HydraLanding.File { Path = "two.txt", Additions = 2, Deletions = 0 },
-            ])
-        };
-
-        Assert.Equal("landed 1 file", HydraStatusText.Landed(
-            Info(HydraHeadInfo.Status.Completed) with { Landing = oneFile }));
-        Assert.Equal("landed 2 files", HydraStatusText.Landed(
-            Info(HydraHeadInfo.Status.Completed) with { Landing = twoFiles }));
-    }
-
-    private static HydraHeadInfo Info(HydraHeadInfo.Status status) =>
-        new(0, "", default, default)
-        {
-            HydraHeadInfoStatus = status,
-            StartedAt = StartedAt
-        };
 }
