@@ -141,13 +141,18 @@ public sealed class VeiledText : Decorator
             throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/StreamVeil.swift:221");
     }
 
-    /// <summary>:230-233 <c>enum Segment</c> (R-ENUM-2). The prose case (:231, <c>prose(AttributedString)</c>)
-    /// waits on the AttributedString decision (see the header).</summary>
+    /// <summary>:230-233 <c>enum Segment</c> (R-ENUM-2). The prose case (:231, <c>prose(AttributedString)</c>):
+    /// the AttributedString decision (see the header) is AttributedText (Port/AttributedText.cs), already the
+    /// tree's answer for the type by the time this unit (UI.Markdown.MarkdownView) needed it; added here per
+    /// ED-092(3), "left with the units that use it" (precedent: StyledText.Run.Link, added the same way for
+    /// ED-158(7)). Its own rendering (FadingText/SettledText/Text(at:), below) stays the StreamVeil unit's.</summary>
     public abstract record Segment
     {
         private Segment() { }
 
         public sealed record Fixed(StyledText Text) : Segment; // :232
+
+        public sealed record Prose(AttributedText Value) : Segment; // :231
     }
 
     // :241 let proseEnds: [Int]
@@ -156,6 +161,12 @@ public sealed class VeiledText : Decorator
     // :253-265 init(segments:); :273-279 body
     public VeiledText(IReadOnlyList<Segment> segments) =>
         throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/StreamVeil.swift:253");
+
+    // :247-251 init(_ attributed: AttributedString), the whole run as one prose segment; delegates to
+    // init(segments:) above (StreamVeil's own MARROW_STUB), added here for the same reason as Segment.Prose.
+    public VeiledText(AttributedText attributed) : this([new Segment.Prose(attributed)])
+    {
+    }
 
     // :267-271 init(verbatim:); :273-279 body
     public VeiledText(string verbatim) =>
