@@ -1373,6 +1373,7 @@ public sealed class CodexSessionTests
     [Fact]
     [Trait("Req", "PR-PROVCLI-101")] // CodexSession.swift:406-411
     [Trait("Req", "PR-PROVCLI-102")] // CodexSession.swift:412-428
+    [Trait("Req", "UI-PROVCLI-026")] // CodexSession.swift:414-436: limitName suffix only when >1 snapshot, id "<limitId>-<primary|secondary>"
     public void ReadPlanLimits_collects_snapshots_by_sorted_limit_id_and_builds_two_windows_each()
     {
         using var storage = new StorageScratchFolder();
@@ -1402,6 +1403,7 @@ public sealed class CodexSessionTests
     [Fact]
     [Trait("Req", "PR-PROVCLI-101")] // CodexSession.swift:409-410
     [Trait("Req", "PR-PROVCLI-102")] // CodexSession.swift:416 (single snapshot: no limitName suffix)
+    [Trait("Req", "UI-PROVCLI-026")] // CodexSession.swift:414-436: single snapshot, id falls back to "codex-primary"
     public void ReadPlanLimits_falls_back_to_the_single_rateLimits_snapshot_with_no_name_suffix()
     {
         using var storage = new StorageScratchFolder();
@@ -1419,6 +1421,7 @@ public sealed class CodexSessionTests
 
     [Fact]
     [Trait("Req", "PR-PROVCLI-103")] // CodexSession.swift:429-434
+    [Trait("Req", "UI-PROVCLI-026")] // CodexSession.swift:429-434: Codex is the only provider that surfaces a problem string in the usage panel
     public void ReadPlanLimits_with_no_windows_returns_a_problem_string_not_null()
     {
         using var storage = new StorageScratchFolder();
@@ -2497,6 +2500,7 @@ public sealed class CodexSessionTests
 
     [Fact]
     [Trait("Req", "PR-PROVCLI-130")]
+    [Trait("Req", "UI-PROVCLI-007")] // CodexSession.swift:1008-1010: "Always allow" only for acceptWithExecpolicyAmendment on a command approval
     public void HandleRequest_commandExecution_requestApproval_adds_the_amend_option_and_drops_unknown_decisions()
     {
         using var storage = new StorageScratchFolder();
@@ -2521,7 +2525,34 @@ public sealed class CodexSessionTests
     }
 
     [Fact]
+    [Trait("Req", "UI-PROVCLI-007")] // CodexSession.swift:1013-1015: two .approveAlways options (acceptForSession, amend) sort stably, server order preserved
+    public void HandleRequest_commandExecution_requestApproval_keeps_the_server_order_of_two_approveAlways_options()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("request-approval-amend-and-session");
+        var session = StartedSession(runtime, script);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+
+        InvokePrivate(session, "HandleRequest", new RPCID.Int(7), "item/commandExecution/requestApproval", JSONValue.FromDictionaryLiteral(
+            ("command", "ls"),
+            ("availableDecisions", new JSONValue.Array(new ValueList<JSONValue>(
+            [
+                JSONValue.FromDictionaryLiteral(("acceptWithExecpolicyAmendment", JSONValue.FromDictionaryLiteral(("x", true)))),
+                new JSONValue.String("acceptForSession"),
+            ])))));
+
+        var approval = Assert.Single(events.OfType<ProviderEvent.Approval>()).Value;
+        // Both are .approveAlways; a stable sort keeps them in the server's own order: amend first, then acceptForSession.
+        Assert.Equal(new[] { "amend", "acceptForSession" }, approval.Options.Select(o => o.Id));
+        Assert.Equal("Always allow", approval.Options[0].Title);
+        Assert.Equal("Approve for session", approval.Options[1].Title);
+    }
+
+    [Fact]
     [Trait("Req", "PR-PROVCLI-125")]
+    [Trait("Req", "UI-PROVCLI-013")] // CodexSession.swift:942: fixed title "Apply file changes", never carries the file name
     public void HandleRequest_fileChange_requestApproval_uses_the_default_four_options_with_no_amend_and_a_verbatim_detail()
     {
         using var storage = new StorageScratchFolder();
@@ -2544,6 +2575,9 @@ public sealed class CodexSessionTests
 
     [Fact]
     [Trait("Req", "PR-PROVCLI-126")]
+    [Trait("Req", "UI-PROVCLI-008")] // CodexSession.swift:959: "Allow once", option id "turn", role .approve
+    [Trait("Req", "UI-PROVCLI-009")] // CodexSession.swift:960: "Allow for session", option id "session", role .approveAlways, always present
+    [Trait("Req", "UI-PROVCLI-015")] // CodexSession.swift:1018-1030: "Write to <paths>" + " \u00b7 " + "Network access"
     public void HandleRequest_permissions_requestApproval_builds_the_three_fixed_options_and_a_described_title()
     {
         using var storage = new StorageScratchFolder();
@@ -2565,10 +2599,37 @@ public sealed class CodexSessionTests
         Assert.Null(approval.Detail);
         Assert.Equal(new[] { "turn", "session", "decline" }, approval.Options.Select(o => o.Id));
         Assert.Equal(new[] { ApprovalRequest.Option.Role.Approve, ApprovalRequest.Option.Role.ApproveAlways, ApprovalRequest.Option.Role.Decline }, approval.Options.Select(o => o.OptionRole));
+        Assert.Equal("Allow once", approval.Options[0].Title);
+        Assert.Equal("Allow for session", approval.Options[1].Title);
+        Assert.Equal("Decline", approval.Options[2].Title);
+    }
+
+    [Fact]
+    [Trait("Req", "UI-PROVCLI-015")] // CodexSession.swift:1023-1025: "Read <paths>" part, and all three parts joined by " · "
+    public void HandleRequest_permissions_requestApproval_title_includes_the_read_part_joined_with_the_others()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("request-approval-permissions-read");
+        var session = StartedSession(runtime, script);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+
+        InvokePrivate(session, "HandleRequest", new RPCID.Int(12), "item/permissions/requestApproval", JSONValue.FromDictionaryLiteral(
+            ("permissions", JSONValue.FromDictionaryLiteral(
+                ("fileSystem", JSONValue.FromDictionaryLiteral(
+                    ("write", new JSONValue.Array(new ValueList<JSONValue>([new JSONValue.String("/a"), new JSONValue.String("/b")]))),
+                    ("read", new JSONValue.Array(new ValueList<JSONValue>([new JSONValue.String("/c")]))))),
+                ("network", JSONValue.FromDictionaryLiteral(("enabled", true))))),
+            ("itemId", "p2")));
+
+        var approval = Assert.Single(events.OfType<ProviderEvent.Approval>()).Value;
+        Assert.Equal("Write to /a, /b · Read /c · Network access", approval.Title);
     }
 
     [Fact]
     [Trait("Req", "PR-PROVCLI-126")]
+    [Trait("Req", "UI-PROVCLI-015")] // CodexSession.swift:1018-1030: literal "Additional permissions" appears only when no part applied
     public void HandleRequest_permissions_requestApproval_with_no_parts_shows_additional_permissions()
     {
         using var storage = new StorageScratchFolder();
@@ -2628,13 +2689,14 @@ public sealed class CodexSessionTests
         var events = new List<ProviderEvent>();
         session.OnEvent = events.Add;
 
+        var before = script.MessageCount(0);
         InvokePrivate(session, "HandleRequest", new RPCID.Int(9), "mcpServer/elicitation/request", JSONValue.FromDictionaryLiteral(("serverName", "files-mcp")));
 
         var notice = Assert.Single(events.OfType<ProviderEvent.Notice>()).Value;
         Assert.Equal(Notice.Level.Warning, notice.NoticeLevel);
         Assert.Equal("files-mcp asked for input, which Marrow cannot show yet.", notice.Message);
         Assert.False(HasPending(session, "9"));
-        var response = JSONValue.Parse(System.Text.Encoding.UTF8.GetBytes(script.CapturedLine(0, script.MessageCount(0) - 1)))!;
+        var response = JSONValue.Parse(System.Text.Encoding.UTF8.GetBytes(script.CapturedLine(0, before)))!;
         Assert.Equal("decline", response["result"]!["action"]!.JSONValueString);
     }
 
@@ -2663,9 +2725,10 @@ public sealed class CodexSessionTests
         var script = Script("unknown-method");
         var session = StartedSession(runtime, script);
 
+        var before = script.MessageCount(0);
         InvokePrivate(session, "HandleRequest", new RPCID.Int(11), "some/unknownMethod", JSONValue.FromDictionaryLiteral());
 
-        var response = JSONValue.Parse(System.Text.Encoding.UTF8.GetBytes(script.CapturedLine(0, script.MessageCount(0) - 1)))!;
+        var response = JSONValue.Parse(System.Text.Encoding.UTF8.GetBytes(script.CapturedLine(0, before)))!;
         Assert.Equal(-32601, response["error"]!["code"]!.JSONValueInt);
         Assert.Equal("Marrow does not support some/unknownMethod.", response["error"]!["message"]!.JSONValueString);
     }
@@ -2711,6 +2774,7 @@ public sealed class CodexSessionTests
         var started = StartedSession(runtime, Script("is-running-2"));
         Assert.True(started.IsRunning);
         started.Stop();
+        runtime.Loop.RunUntil(() => !started.IsRunning, TimeSpan.FromSeconds(5));
         Assert.False(started.IsRunning);
     }
 
