@@ -7,9 +7,9 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "IMPLEMENTED": 1883,
+      "IMPLEMENTED": 1901,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
-      "SPECIFIED": 2007,
+      "SPECIFIED": 1989,
       "RETIRED": 6,
       "DISCOVERED": 17
     },
@@ -36520,7 +36520,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same configuration record.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -36543,7 +36543,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same JSON keys and values.",
       "verification_method": "contract fixture on the request body",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -36566,7 +36566,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same mapping table.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -36589,7 +36589,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same substring tests in the same order and the same message.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -36612,7 +36612,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same test and message.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -36635,7 +36635,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same test and message, with the ASCII apostrophe as written in source.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -36658,7 +36658,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same test and message.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -36681,7 +36681,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same passthrough; never invent a friendlier wording.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -56382,7 +56382,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pure predicate.",
       "verification_method": "unit over all 14 providers",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -56535,7 +56535,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same dispatch.",
       "verification_method": "unit on the dispatch with stubbed readers",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -56561,7 +56561,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Windows default browser. Platform boundary: external link opening.",
       "verification_method": "unit plus interaction test on the link target",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -56633,7 +56633,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same record shape.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -56657,7 +56657,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pin the formatter to en_US explicitly. Do not use the Windows regional settings.",
       "verification_method": "unit run under a non-US locale",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -56681,7 +56681,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same fallback and the same two-decimal precision.",
       "verification_method": "unit over empty, two-letter and four-letter currencies",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -56704,7 +56704,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Transcribe the three labels and the U+00B7 separator verbatim, and keep the fixed order.",
       "verification_method": "unit over split permutations plus capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -56728,7 +56728,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same predicate.",
       "verification_method": "unit over the four combinations",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -92535,7 +92535,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Intl.NumberFormat with the fixed locale \"en-US\"; never the system locale. Verify the currency style output matches macOS for at least USD and CNY.",
       "verification_method": "unit test over (0.43, \"USD\"), (12.5, \"CNY\"), (3, \"\"), (3, \"pts\"), (3, \"US1\")",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -92559,7 +92559,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pure function; keep the label casing exactly (\"Topped up\" has a lowercase u).",
       "verification_method": "unit test over all eight presence combinations plus a zero component",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
