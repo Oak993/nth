@@ -1227,7 +1227,7 @@ public sealed class CommandCodeSessionTests
         Assert.Equal(("pending-one", TodoStep.Status.Pending), (steps[4].Text, steps[4].TodoStepStatus));
     }
 
-    // ---- PR-PROVCLI-244 (dispatch), PR-PROVCLI-394/395 ----
+    // ---- PR-PROVCLI-394/395 ----
 
     [Fact]
     [Trait("Req", "PR-PROVCLI-394")] // DroppyCode/Services/Providers/CommandCodeSession.swift:553-557
@@ -1271,99 +1271,349 @@ public sealed class CommandCodeSessionTests
         Assert.Equal("Monitor command", call.Title);
     }
 
+    // ---- PR-PROVCLI-396 to 412 ----
+
     [Fact]
-    [Trait("Req", "PR-PROVCLI-244")] // DroppyCode/Services/Providers/CommandCodeSession.swift:548-620
-    public void MakeToolCall_read_file_shows_the_line_range_only_with_both_offset_and_limit()
+    [Trait("Req", "PR-PROVCLI-396")] // DroppyCode/Services/Providers/CommandCodeSession.swift:560-561
+    public void MakeToolCall_shell_output_is_a_fixed_title_command_row_subtitled_with_id_then_task_id()
     {
         var session = CreateSession();
-        var input = JSONValue.FromDictionaryLiteral(("file_path", "a.txt"), ("offset", 10L), ("limit", 20L));
-        var call = (ToolCall)InvokeInstance(session, "MakeToolCall", "read_file", input, null)!;
-        Assert.Equal(ToolCall.Kind.Read, call.ToolCallKind);
-        Assert.Equal("lines 10–30", call.Detail);
+        var byId = (ToolCall)InvokeInstance(session, "MakeToolCall", "shell_output",
+            JSONValue.FromDictionaryLiteral(("id", "s1"), ("task_id", "t1")), null)!;
+        Assert.Equal(ToolCall.Kind.Command, byId.ToolCallKind);
+        Assert.Equal("Shell output", byId.Title);
+        Assert.Equal("s1", byId.Detail);
+
+        var byTaskId = (ToolCall)InvokeInstance(session, "MakeToolCall", "shell_output",
+            JSONValue.FromDictionaryLiteral(("task_id", "t1")), null)!;
+        Assert.Equal("Shell output", byTaskId.Title);
+        Assert.Equal("t1", byTaskId.Detail);
+
+        var neither = (ToolCall)InvokeInstance(session, "MakeToolCall", "shell_output", JSONValue.FromDictionaryLiteral(), null)!;
+        Assert.Equal("Shell output", neither.Title);
+        Assert.Null(neither.Detail);
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-244")] // DroppyCode/Services/Providers/CommandCodeSession.swift:548-620
-    public void MakeToolCall_glob_and_grep_build_search_rows()
+    [Trait("Req", "PR-PROVCLI-397")] // DroppyCode/Services/Providers/CommandCodeSession.swift:562-563
+    public void MakeToolCall_shell_tasks_is_a_fixed_title_command_row_with_no_subtitle_and_ignores_input()
     {
         var session = CreateSession();
-        var glob = (ToolCall)InvokeInstance(session, "MakeToolCall", "glob", JSONValue.FromDictionaryLiteral(("pattern", "*.cs")), null)!;
-        Assert.Equal(ToolCall.Kind.Search, glob.ToolCallKind);
-        Assert.Equal("*.cs", glob.Title);
+        var call = (ToolCall)InvokeInstance(session, "MakeToolCall", "shell_tasks",
+            JSONValue.FromDictionaryLiteral(("id", "ignored")), null)!;
+        Assert.Equal(ToolCall.Kind.Command, call.ToolCallKind);
+        Assert.Equal("Shell tasks", call.Title);
+        Assert.Null(call.Detail);
+    }
 
-        var grep = (ToolCall)InvokeInstance(session, "MakeToolCall", "grep",
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-398")] // DroppyCode/Services/Providers/CommandCodeSession.swift:564-565
+    public void MakeToolCall_kill_shell_is_titled_stop_shell_and_chains_id_task_id_then_pid_as_an_integer()
+    {
+        var session = CreateSession();
+        var byId = (ToolCall)InvokeInstance(session, "MakeToolCall", "kill_shell",
+            JSONValue.FromDictionaryLiteral(("id", "s1"), ("task_id", "t1"), ("pid", 42L)), null)!;
+        Assert.Equal(ToolCall.Kind.Command, byId.ToolCallKind);
+        Assert.Equal("Stop shell", byId.Title);
+        Assert.Equal("s1", byId.Detail);
+
+        var byTaskId = (ToolCall)InvokeInstance(session, "MakeToolCall", "kill_shell",
+            JSONValue.FromDictionaryLiteral(("task_id", "t1"), ("pid", 42L)), null)!;
+        Assert.Equal("t1", byTaskId.Detail);
+
+        var byPid = (ToolCall)InvokeInstance(session, "MakeToolCall", "kill_shell",
+            JSONValue.FromDictionaryLiteral(("pid", 42L)), null)!;
+        Assert.Equal("42", byPid.Detail);
+
+        var none = (ToolCall)InvokeInstance(session, "MakeToolCall", "kill_shell", JSONValue.FromDictionaryLiteral(), null)!;
+        Assert.Null(none.Detail);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-399")] // DroppyCode/Services/Providers/CommandCodeSession.swift:566-571
+    public void MakeToolCall_read_file_titles_from_file_path_then_path_and_shows_lines_only_with_both_offset_and_limit()
+    {
+        var session = CreateSession();
+        var byFilePath = (ToolCall)InvokeInstance(session, "MakeToolCall", "read_file",
+            JSONValue.FromDictionaryLiteral(("file_path", "a.txt"), ("path", "b.txt"), ("offset", 10L), ("limit", 20L)), null)!;
+        Assert.Equal(ToolCall.Kind.Read, byFilePath.ToolCallKind);
+        Assert.Equal("a.txt", byFilePath.Title);
+        Assert.Equal("lines 10–30", byFilePath.Detail);
+
+        var byPath = (ToolCall)InvokeInstance(session, "MakeToolCall", "read_file",
+            JSONValue.FromDictionaryLiteral(("path", "b.txt")), null)!;
+        Assert.Equal("b.txt", byPath.Title);
+
+        var fallback = (ToolCall)InvokeInstance(session, "MakeToolCall", "read_file", JSONValue.FromDictionaryLiteral(), null)!;
+        Assert.Equal("Read file", fallback.Title);
+
+        var offsetOnly = (ToolCall)InvokeInstance(session, "MakeToolCall", "read_file",
+            JSONValue.FromDictionaryLiteral(("file_path", "a.txt"), ("offset", 10L)), null)!;
+        Assert.Null(offsetOnly.Detail);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-400")] // DroppyCode/Services/Providers/CommandCodeSession.swift:572-573
+    public void MakeToolCall_read_directory_is_a_search_row_titled_with_the_path_not_a_read_row()
+    {
+        var session = CreateSession();
+        var call = (ToolCall)InvokeInstance(session, "MakeToolCall", "read_directory",
+            JSONValue.FromDictionaryLiteral(("path", "dir")), null)!;
+        Assert.Equal(ToolCall.Kind.Search, call.ToolCallKind);
+        Assert.Equal("dir", call.Title);
+        Assert.Null(call.Detail);
+
+        var fallback = (ToolCall)InvokeInstance(session, "MakeToolCall", "read_directory", JSONValue.FromDictionaryLiteral(), null)!;
+        Assert.Equal("List files", fallback.Title);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-401")] // DroppyCode/Services/Providers/CommandCodeSession.swift:574-579, :629-631
+    [Trait("Req", "PR-PROVCLI-244")] // DroppyCode/Services/Providers/CommandCodeSession.swift:548-620 (the snapshot parameter is read by write_file alone)
+    public void MakeToolCall_write_file_uses_the_snapshot_as_the_old_side_with_no_fallback_to_path()
+    {
+        var session = CreateSession();
+        var withSnapshot = (ToolCall)InvokeInstance(session, "MakeToolCall", "write_file",
+            JSONValue.FromDictionaryLiteral(("file_path", "a.txt"), ("content", "new")), "old")!;
+        Assert.Equal(ToolCall.Kind.Edit, withSnapshot.ToolCallKind);
+        Assert.Equal("a.txt", withSnapshot.Title);
+        var edit = Assert.Single(withSnapshot.Edits!);
+        Assert.Equal(new FileEdit("a.txt", "old", "new"), edit);
+
+        // PR-PROVCLI-244: the snapshot parameter has no effect on any other case (edit_file ignores it).
+        var editFileIgnoresSnapshot = (ToolCall)InvokeInstance(session, "MakeToolCall", "edit_file",
+            JSONValue.FromDictionaryLiteral(("file_path", "a.txt"), ("old_string", "o"), ("new_string", "n")), "ignored-snapshot")!;
+        Assert.Equal(new FileEdit("a.txt", "o", "n"), editFileIgnoresSnapshot.Edits![0]);
+
+        var noSnapshot = (ToolCall)InvokeInstance(session, "MakeToolCall", "write_file",
+            JSONValue.FromDictionaryLiteral(("file_path", "a.txt"), ("content", "new")), null)!;
+        Assert.Equal(new FileEdit("a.txt", "", "new"), noSnapshot.Edits![0]);
+
+        // No "path" fallback for the title, unlike edit_file.
+        var pathOnly = (ToolCall)InvokeInstance(session, "MakeToolCall", "write_file",
+            JSONValue.FromDictionaryLiteral(("path", "b.txt"), ("content", "new")), null)!;
+        Assert.Equal("Write file", pathOnly.Title);
+        Assert.Empty(pathOnly.Edits);
+
+        var noContent = (ToolCall)InvokeInstance(session, "MakeToolCall", "write_file",
+            JSONValue.FromDictionaryLiteral(("file_path", "a.txt")), "old")!;
+        Assert.Empty(noContent.Edits);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-402")] // DroppyCode/Services/Providers/CommandCodeSession.swift:580-587
+    public void MakeToolCall_edit_file_accepts_two_path_keys_and_chains_three_spellings_per_side_independently()
+    {
+        var session = CreateSession();
+        var byFilePath = (ToolCall)InvokeInstance(session, "MakeToolCall", "edit_file",
+            JSONValue.FromDictionaryLiteral(("file_path", "a.txt"), ("old_string", "o"), ("new_string", "n")), null)!;
+        Assert.Equal(ToolCall.Kind.Edit, byFilePath.ToolCallKind);
+        Assert.Equal("a.txt", byFilePath.Title);
+        var edit = Assert.Single(byFilePath.Edits!);
+        Assert.Equal(new FileEdit("a.txt", "o", "n"), edit);
+
+        var byPath = (ToolCall)InvokeInstance(session, "MakeToolCall", "edit_file",
+            JSONValue.FromDictionaryLiteral(("path", "b.txt")), null)!;
+        Assert.Equal("b.txt", byPath.Title);
+        Assert.Equal(new FileEdit("b.txt", "", ""), byPath.Edits![0]);
+
+        var fallback = (ToolCall)InvokeInstance(session, "MakeToolCall", "edit_file", JSONValue.FromDictionaryLiteral(), null)!;
+        Assert.Equal("Edit file", fallback.Title);
+        Assert.Empty(fallback.Edits);
+
+        // The two chains are independent: old from old_text, new from new (mixed spellings).
+        var mixed = (ToolCall)InvokeInstance(session, "MakeToolCall", "edit_file",
+            JSONValue.FromDictionaryLiteral(("file_path", "a.txt"), ("old_text", "ot"), ("new", "nn")), null)!;
+        Assert.Equal(new FileEdit("a.txt", "ot", "nn"), mixed.Edits![0]);
+
+        var thirdSpelling = (ToolCall)InvokeInstance(session, "MakeToolCall", "edit_file",
+            JSONValue.FromDictionaryLiteral(("file_path", "a.txt"), ("old", "o3"), ("new_text", "n3")), null)!;
+        Assert.Equal(new FileEdit("a.txt", "o3", "n3"), thirdSpelling.Edits![0]);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-403")] // DroppyCode/Services/Providers/CommandCodeSession.swift:588-589
+    public void MakeToolCall_glob_titles_with_the_pattern_and_subtitles_with_the_relative_path()
+    {
+        var session = CreateSession();
+        var call = (ToolCall)InvokeInstance(session, "MakeToolCall", "glob", JSONValue.FromDictionaryLiteral(("pattern", "*.cs"), ("path", "src")), null)!;
+        Assert.Equal(ToolCall.Kind.Search, call.ToolCallKind);
+        Assert.Equal("*.cs", call.Title);
+        Assert.Equal("src", call.Detail);
+
+        var fallback = (ToolCall)InvokeInstance(session, "MakeToolCall", "glob", JSONValue.FromDictionaryLiteral(), null)!;
+        Assert.Equal("Find files", fallback.Title);
+        Assert.Null(fallback.Detail);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-404")] // DroppyCode/Services/Providers/CommandCodeSession.swift:590-592
+    public void MakeToolCall_grep_joins_path_and_raw_glob_with_a_middle_dot_and_drops_absent_parts()
+    {
+        var session = CreateSession();
+        var both = (ToolCall)InvokeInstance(session, "MakeToolCall", "grep",
+            JSONValue.FromDictionaryLiteral(("pattern", "foo"), ("path", "src"), ("glob", "*.cs")), null)!;
+        Assert.Equal(ToolCall.Kind.Search, both.ToolCallKind);
+        Assert.Equal("foo", both.Title);
+        Assert.Equal("src · *.cs", both.Detail);
+
+        var pathOnly = (ToolCall)InvokeInstance(session, "MakeToolCall", "grep",
+            JSONValue.FromDictionaryLiteral(("pattern", "foo"), ("path", "src")), null)!;
+        Assert.Equal("src", pathOnly.Detail);
+
+        var globOnly = (ToolCall)InvokeInstance(session, "MakeToolCall", "grep",
             JSONValue.FromDictionaryLiteral(("pattern", "foo"), ("glob", "*.cs")), null)!;
-        Assert.Equal("foo", grep.Title);
-        Assert.Equal("*.cs", grep.Detail);
+        Assert.Equal("*.cs", globOnly.Detail);
+
+        var neither = (ToolCall)InvokeInstance(session, "MakeToolCall", "grep", JSONValue.FromDictionaryLiteral(), null)!;
+        Assert.Equal("Search", neither.Title);
+        Assert.Null(neither.Detail);
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-244")] // DroppyCode/Services/Providers/CommandCodeSession.swift:548-620
-    public void MakeToolCall_web_tools_use_the_url_or_query()
+    [Trait("Req", "PR-PROVCLI-405")] // DroppyCode/Services/Providers/CommandCodeSession.swift:593-596
+    public void MakeToolCall_web_fetch_and_web_search_use_the_same_literals_as_the_other_clis()
     {
         var session = CreateSession();
         var fetch = (ToolCall)InvokeInstance(session, "MakeToolCall", "web_fetch", JSONValue.FromDictionaryLiteral(("url", "https://x")), null)!;
         Assert.Equal(ToolCall.Kind.Web, fetch.ToolCallKind);
         Assert.Equal("https://x", fetch.Title);
-        var search = (ToolCall)InvokeInstance(session, "MakeToolCall", "web_search", JSONValue.FromDictionaryLiteral(), null)!;
-        Assert.Equal("Search the web", search.Title);
+        Assert.Null(fetch.Detail);
+        var fetchFallback = (ToolCall)InvokeInstance(session, "MakeToolCall", "web_fetch", JSONValue.FromDictionaryLiteral(), null)!;
+        Assert.Equal("Fetch page", fetchFallback.Title);
+
+        var search = (ToolCall)InvokeInstance(session, "MakeToolCall", "web_search", JSONValue.FromDictionaryLiteral(("query", "q")), null)!;
+        Assert.Equal(ToolCall.Kind.Web, search.ToolCallKind);
+        Assert.Equal("q", search.Title);
+        Assert.Null(search.Detail);
+        var searchFallback = (ToolCall)InvokeInstance(session, "MakeToolCall", "web_search", JSONValue.FromDictionaryLiteral(), null)!;
+        Assert.Equal("Search the web", searchFallback.Title);
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-244")] // DroppyCode/Services/Providers/CommandCodeSession.swift:548-620
-    public void MakeToolCall_agent_falls_back_from_description_to_a_truncated_prompt_to_the_default()
+    [Trait("Req", "PR-PROVCLI-406")] // DroppyCode/Services/Providers/CommandCodeSession.swift:597-599
+    public void MakeToolCall_agent_falls_back_from_description_to_a_96_char_single_line_prompt_to_sub_agent_hyphenated()
     {
         var session = CreateSession();
         var named = (ToolCall)InvokeInstance(session, "MakeToolCall", "agent",
             JSONValue.FromDictionaryLiteral(("description", "d"), ("subagent_type", "researcher")), null)!;
+        Assert.Equal(ToolCall.Kind.Agent, named.ToolCallKind);
         Assert.Equal("d", named.Title);
         Assert.Equal("researcher", named.Detail);
+
         var fromPrompt = (ToolCall)InvokeInstance(session, "MakeToolCall", "agent",
             JSONValue.FromDictionaryLiteral(("prompt", new string('p', 200))), null)!;
         Assert.Equal(96, fromPrompt.Title.Length);
+
         var fallback = (ToolCall)InvokeInstance(session, "MakeToolCall", "agent", JSONValue.FromDictionaryLiteral(), null)!;
         Assert.Equal("Sub-agent", fallback.Title);
+        Assert.Null(fallback.Detail);
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-244")] // DroppyCode/Services/Providers/CommandCodeSession.swift:602-607
-    public void MakeToolCall_skill_worktree_and_run_command_rows()
+    [Trait("Req", "PR-PROVCLI-407")] // DroppyCode/Services/Providers/CommandCodeSession.swift:600-601
+    public void MakeToolCall_agent_output_is_a_fixed_title_agent_row_subtitled_with_the_agent_id()
     {
         var session = CreateSession();
-        var skill = (ToolCall)InvokeInstance(session, "MakeToolCall", "activate_skill", JSONValue.FromDictionaryLiteral(("name", "s")), null)!;
-        Assert.Equal("Skill · s", skill.Title);
-        var enter = (ToolCall)InvokeInstance(session, "MakeToolCall", "enter_worktree", JSONValue.FromDictionaryLiteral(("name", "wt")), null)!;
-        Assert.Equal("Enter worktree", enter.Title);
-        Assert.Equal("wt", enter.Detail);
-        var run = (ToolCall)InvokeInstance(session, "MakeToolCall", "run_command", JSONValue.FromDictionaryLiteral(("command", "build")), null)!;
-        Assert.Equal("Command · build", run.Title);
+        var call = (ToolCall)InvokeInstance(session, "MakeToolCall", "agent_output", JSONValue.FromDictionaryLiteral(("agent_id", "ag1")), null)!;
+        Assert.Equal(ToolCall.Kind.Agent, call.ToolCallKind);
+        Assert.Equal("Agent output", call.Title);
+        Assert.Equal("ag1", call.Detail);
+
+        var none = (ToolCall)InvokeInstance(session, "MakeToolCall", "agent_output", JSONValue.FromDictionaryLiteral(), null)!;
+        Assert.Null(none.Detail);
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-244")] // DroppyCode/Services/Providers/CommandCodeSession.swift:609-618
-    public void MakeToolCall_mcp_prefix_names_the_server_and_the_remaining_tool_name()
+    [Trait("Req", "PR-PROVCLI-408")] // DroppyCode/Services/Providers/CommandCodeSession.swift:602-603
+    public void MakeToolCall_activate_skill_titles_skill_middle_dot_name_with_the_name_key()
+    {
+        var session = CreateSession();
+        var call = (ToolCall)InvokeInstance(session, "MakeToolCall", "activate_skill", JSONValue.FromDictionaryLiteral(("name", "s")), null)!;
+        Assert.Equal(ToolCall.Kind.Other, call.ToolCallKind);
+        Assert.Equal("Skill · s", call.Title);
+
+        var missing = (ToolCall)InvokeInstance(session, "MakeToolCall", "activate_skill", JSONValue.FromDictionaryLiteral(), null)!;
+        Assert.Equal("Skill · ", missing.Title);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-409")] // DroppyCode/Services/Providers/CommandCodeSession.swift:604-605, :622-627
+    public void MakeToolCall_enter_worktree_and_exit_worktree_humanize_the_name_and_subtitle_with_the_worktree_name()
+    {
+        var session = CreateSession();
+        var enter = (ToolCall)InvokeInstance(session, "MakeToolCall", "enter_worktree", JSONValue.FromDictionaryLiteral(("name", "wt")), null)!;
+        Assert.Equal(ToolCall.Kind.Other, enter.ToolCallKind);
+        Assert.Equal("Enter worktree", enter.Title);
+        Assert.Equal("wt", enter.Detail);
+
+        var exit = (ToolCall)InvokeInstance(session, "MakeToolCall", "exit_worktree", JSONValue.FromDictionaryLiteral(), null)!;
+        Assert.Equal("Exit worktree", exit.Title);
+        Assert.Null(exit.Detail);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-410")] // DroppyCode/Services/Providers/CommandCodeSession.swift:606-607
+    public void MakeToolCall_run_command_titles_command_middle_dot_falling_back_from_command_to_name_to_empty()
+    {
+        var session = CreateSession();
+        var byCommand = (ToolCall)InvokeInstance(session, "MakeToolCall", "run_command",
+            JSONValue.FromDictionaryLiteral(("command", "build"), ("name", "ignored")), null)!;
+        Assert.Equal(ToolCall.Kind.Other, byCommand.ToolCallKind);
+        Assert.Equal("Command · build", byCommand.Title);
+        Assert.Null(byCommand.Detail);
+
+        var byName = (ToolCall)InvokeInstance(session, "MakeToolCall", "run_command", JSONValue.FromDictionaryLiteral(("name", "n")), null)!;
+        Assert.Equal("Command · n", byName.Title);
+
+        var neither = (ToolCall)InvokeInstance(session, "MakeToolCall", "run_command", JSONValue.FromDictionaryLiteral(), null)!;
+        Assert.Equal("Command · ", neither.Title);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-411")] // DroppyCode/Services/Providers/CommandCodeSession.swift:609-614
+    public void MakeToolCall_mcp_prefix_names_the_server_and_the_remaining_tool_name_with_uncapped_detail()
     {
         var session = CreateSession();
         var call = (ToolCall)InvokeInstance(session, "MakeToolCall", "mcp__github__list__issues", JSONValue.FromDictionaryLiteral(("a", 1L)), null)!;
         Assert.Equal(ToolCall.Kind.Mcp, call.ToolCallKind);
         Assert.Equal("github · list__issues", call.Title);
         Assert.Equal("{\"a\":1}", call.Detail);
+
+        var noServer = (ToolCall)InvokeInstance(session, "MakeToolCall", "mcp__", JSONValue.FromDictionaryLiteral(), null)!;
+        Assert.Equal("MCP · mcp__", noServer.Title);
+        Assert.Equal("{}", noServer.Detail); // unlike the default case (PR-PROVCLI-412), the MCP row does not filter "{}".
+
+        var noTool = (ToolCall)InvokeInstance(session, "MakeToolCall", "mcp__github", JSONValue.FromDictionaryLiteral(), null)!;
+        Assert.Equal("github · mcp__github", noTool.Title);
+
+        var longInput = JSONValue.FromDictionaryLiteral(("x", new string('z', 400)));
+        var uncapped = (ToolCall)InvokeInstance(session, "MakeToolCall", "mcp__github__tool", longInput, null)!;
+        Assert.Equal(408, uncapped.Detail!.Length);
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-244")] // DroppyCode/Services/Providers/CommandCodeSession.swift:614-618, :622-627
-    public void MakeToolCall_default_humanizes_the_name_and_caps_detail_at_300()
+    [Trait("Req", "PR-PROVCLI-412")] // DroppyCode/Services/Providers/CommandCodeSession.swift:615-618, :622-627
+    public void MakeToolCall_default_humanizes_the_name_and_drops_the_detail_when_empty_blank_braces_or_over_300()
     {
         var session = CreateSession();
         var empty = (ToolCall)InvokeInstance(session, "MakeToolCall", "task_create", JSONValue.FromDictionaryLiteral(), null)!;
+        Assert.Equal(ToolCall.Kind.Other, empty.ToolCallKind);
         Assert.Equal("Task create", empty.Title);
         Assert.Null(empty.Detail);
 
         var withDetail = (ToolCall)InvokeInstance(session, "MakeToolCall", "task_create", JSONValue.FromDictionaryLiteral(("x", "y")), null)!;
         Assert.Equal("{\"x\":\"y\"}", withDetail.Detail);
 
-        var longInput = JSONValue.FromDictionaryLiteral(("x", new string('z', 400)));
-        var capped = (ToolCall)InvokeInstance(session, "MakeToolCall", "task_create", longInput, null)!;
+        var braces = (ToolCall)InvokeInstance(session, "MakeToolCall", "task_create", JSONValue.FromDictionaryLiteral(), null)!;
+        Assert.Null(braces.Detail); // input.CompactString for an empty dictionary is "{}", dropped by the literal check.
+
+        var at300 = JSONValue.FromDictionaryLiteral(("x", new string('z', 292))); // {"x":"..."} overhead is 8 chars.
+        var kept = (ToolCall)InvokeInstance(session, "MakeToolCall", "task_create", at300, null)!;
+        Assert.Equal(300, kept.Detail!.Length);
+
+        var over300 = JSONValue.FromDictionaryLiteral(("x", new string('z', 293)));
+        var capped = (ToolCall)InvokeInstance(session, "MakeToolCall", "task_create", over300, null)!;
         Assert.Null(capped.Detail);
     }
 
@@ -1603,6 +1853,7 @@ public sealed class CommandCodeSessionTests
 
     [Fact]
     [Trait("Req", "PR-PROVCLI-249")] // DroppyCode/Services/Providers/CommandCodeSession.swift:241-251, :749-762
+    [Trait("Req", "UI-PROVCLI-033")] // DroppyCode/Services/Providers/CommandCodeSession.swift:753 (OD-0012 F1)
     public void ResolveApproval_deny_writes_the_marrow_wording_deny_reply()
     {
         var session = CreateSession();
