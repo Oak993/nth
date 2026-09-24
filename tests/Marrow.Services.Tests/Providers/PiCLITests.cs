@@ -51,7 +51,7 @@ public sealed class PiCLITests
         Assert.Equal(SwiftPath.AppendingPathComponent(LoginEnvironment.HomeDirectory, ".pi/agent"), PiCLI.ConfigDirectoryPath(Env()));
         // The public URL form is a file URL of that directory.
         var url = PiCLI.ConfigDirectory(Env(("HOME", "/home/me")));
-        Assert.True(url.IsFileURL);
+        Assert.Equal("file", url.Scheme);
         Assert.EndsWith("/.pi/agent", url.Path, StringComparison.Ordinal);
     }
 
@@ -106,7 +106,7 @@ public sealed class PiCLITests
     {
         var localAppData = Scratch("support");
         var url = PiCLI.SupportDirectoryUnder(localAppData);
-        Assert.True(url.IsFileURL);
+        Assert.Equal("file", url.Scheme);
         Assert.EndsWith("/Marrow Code/pi", url.Path, StringComparison.Ordinal);
     }
 
@@ -118,7 +118,7 @@ public sealed class PiCLITests
         var url = PiCLI.InstallExtension(localAppData);
         var file = Path.Combine(localAppData, "Marrow Code", "pi", "droppy-gate.ts");
         Assert.Equal(Encoding.UTF8.GetBytes(PiCLI.ExtensionSource), File.ReadAllBytes(file));
-        Assert.True(url.IsFileURL);
+        Assert.Equal("file", url.Scheme);
         Assert.EndsWith("/Marrow Code/pi/droppy-gate.ts", url.Path, StringComparison.Ordinal);
     }
 
@@ -293,7 +293,7 @@ public sealed class PiCLITests
         // Both a provider and an id are needed.
         Assert.Empty(Defaults("{\"data\":{\"model\":{\"id\":\"gemini\"}}}"));
         Assert.Empty(Defaults("{\"data\":{\"model\":{\"provider\":\"google\"}}}"));
-        Assert.Empty(PiCLI.Catalog(null, Json(Models)).Where(o => o.IsDefault));
+        Assert.DoesNotContain(PiCLI.Catalog(null, Json(Models)), o => o.IsDefault);
     }
 
     [Fact]
