@@ -14,10 +14,10 @@ namespace Marrow.Services.Tests.Providers;
 // Tests for unit Services.Providers.ProviderRegistry part 3 of 5: RefreshEverything (PR-PROVREG-131,
 // 132), the constructor's whole-blob cache and date reads and the Claude reseed (PR-PROVREG-133, 135,
 // 136, 137), mergedClaudeCatalog (PR-PROVREG-138), the DeepSeek/Meta/Zai/Antigravity/Copilot/CommandCode/Pi seeds
-// (PR-PROVREG-140 to 146), models/model (PR-PROVREG-147, 148) and loadCatalog with its single-flight,
-// attempt gate, seeded/stale test, OpenCode memo and nine-arm dispatch (PR-PROVREG-149 to 153). A third
-// class in the file this unit's tests mirror (R-TEST-3): parts 1 and 2 live in ProviderRegistryTests.cs
-// and ProviderRegistryRefreshTests.cs.
+// (PR-PROVREG-140 to 146), defaultModel (PR-PROVREG-087), models/model (PR-PROVREG-147, 148), and
+// loadCatalog's single-flight, attempt gate, seeded/stale test, OpenCode memo and nine-arm dispatch
+// (PR-PROVREG-149 to 153). A third class in the file this unit's tests mirror (R-TEST-3): parts 1 and 2
+// live in ProviderRegistryTests.cs and ProviderRegistryRefreshTests.cs.
 //
 // PR-PROVREG-130 (the refreshAPIProvider else arm for a fourth API-key provider) has no test: the record
 // itself says "None reachable" (source_evidence :362 - only the three shipped API-key providers ever
@@ -549,6 +549,43 @@ public sealed class ProviderRegistryCatalogTests
         // The reverse direction never consults Zen.
         withGo.UpdateCatalog(new ValueList<ModelOption>([new ModelOption("opencode/zen-1", "Zen One")]), ProviderKind.Opencode);
         Assert.Null(withGo.Model("opencode/zen-1", ProviderKind.OpencodeGo));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVREG-087")] // ProviderRegistry.swift:451-457; AppSettings.swift:887-897
+    public void default_model_prefers_a_resolving_last_model_then_uses_each_catalog_fallback()
+    {
+        using var runtime = new TestRuntime();
+        SeedUnblockingCache(runtime);
+        var settings = Settings();
+        settings.LastModels[ProviderKind.Cursor] = "cursor-model[effort=high]";
+        var registry = MakeRegistry(runtime, settings);
+
+        registry.UpdateCatalog(new ValueList<ModelOption>(
+        [
+            new ModelOption("cursor-model", "Cursor Model"),
+            new ModelOption("cursor-default", "Cursor Default", isDefault: true),
+        ]), ProviderKind.Cursor);
+
+        // The stored id resolves through Model's bracket-prefix fallback (:435-439, :446-448).
+        Assert.Equal("cursor-model", registry.DefaultModel(ProviderKind.Cursor)?.Id);
+
+        // A stale stored id is left alone; the first explicitly default row wins.
+        settings.LastModels[ProviderKind.Cursor] = "removed-model";
+        Assert.Equal("cursor-default", registry.DefaultModel(ProviderKind.Cursor)?.Id);
+        Assert.Equal("removed-model", settings.LastModel(ProviderKind.Cursor));
+
+        // Without a stored match or default row, the first catalog row is selected.
+        registry.UpdateCatalog(new ValueList<ModelOption>(
+        [
+            new ModelOption("cursor-first", "Cursor First"),
+            new ModelOption("cursor-second", "Cursor Second"),
+        ]), ProviderKind.Cursor);
+        settings.LastModels.Remove(ProviderKind.Cursor);
+        Assert.Equal("cursor-first", registry.DefaultModel(ProviderKind.Cursor)?.Id);
+
+        // A provider with no catalog has no default.
+        Assert.Null(registry.DefaultModel(ProviderKind.OpencodeGo));
     }
 
     // ---- loadCatalog: single-flight and the attempt gate (PR-PROVREG-149, 150) --------------------------------

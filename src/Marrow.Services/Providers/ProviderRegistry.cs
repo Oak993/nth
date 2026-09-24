@@ -818,9 +818,14 @@ public sealed partial class ProviderRegistry : MainActorModel
         return null; // :449
     }
 
-    // :451-457. Swift: defaultModel(for:).
-    public ModelOption? DefaultModel(ProviderKind provider) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ProviderRegistry.swift:451");
+    // :451-457. PR-PROVREG-087: the last model wins when it resolves, then the first default, then the first row.
+    public ModelOption? DefaultModel(ProviderKind provider)
+    {
+        var list = Models(provider); // :452
+        if (settings.LastModel(provider) is { } last && Model(last, provider) is { } match) // :453-455
+            return match;
+        return list.FirstOrDefault(option => option.IsDefault) ?? list.FirstOrDefault(); // :456-457
+    }
 
     // :459-517. PR-PROVREG-149 to PR-PROVREG-153: single-flight per provider, the once-per-launch attempt
     // gate, the seeded/stale test, the nine-arm dispatch table, and the OpenCode sibling delivery.
