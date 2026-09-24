@@ -1819,4 +1819,906 @@ public sealed class CodexSessionTests
         }));
         Assert.Equal("inner", CodexSession.ErrorMessage(nested));
     }
+
+    // ============ part 3 (PR-PROVCLI-113 to 133, 440, 441, UI-PROVCLI-006) ============
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-113")] // CodexSession.swift:910-918
+    public void ErrorMessage_returns_unparseable_raw_text_unchanged_and_prefers_the_inner_error_message()
+    {
+        Assert.Equal("not JSON: \u2026", CodexSession.ErrorMessage(new JSONValue.Object(new ValueMap<string, JSONValue>(
+            new Dictionary<string, JSONValue> { ["message"] = "not JSON: \u2026" }))));
+        // "error.message" over a top-level "message" when the nested payload carries both.
+        var nested = new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>
+        {
+            ["message"] = "{\"error\":{\"message\":\"inner error\"},\"message\":\"outer\"}",
+        }));
+        Assert.Equal("inner error", CodexSession.ErrorMessage(nested));
+    }
+
+    // ---- PR-PROVCLI-114 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-114")]
+    public void HandleNotification_turn_completed_maps_three_statuses_and_clears_the_lead_turn_id()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("turn-completed-lead");
+        var session = StartedSession(runtime, script);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+        InvokePrivate(session, "HandleNotification", "turn/started", JSONValue.FromDictionaryLiteral(("turn", JSONValue.FromDictionaryLiteral(("id", "turn-1")))));
+
+        InvokePrivate(session, "HandleNotification", "turn/completed", JSONValue.FromDictionaryLiteral(("turn", JSONValue.FromDictionaryLiteral(("status", "interrupted")))));
+        var completed = Assert.Single(events.OfType<ProviderEvent.TurnCompleted>());
+        Assert.Equal(TurnStatus.Interrupted, completed.Status);
+        Assert.Null(completed.Error);
+
+        events.Clear();
+        InvokePrivate(session, "HandleNotification", "turn/completed", JSONValue.FromDictionaryLiteral(("turn", JSONValue.FromDictionaryLiteral(("status", "failed")))));
+        Assert.Equal(TurnStatus.Failed, Assert.Single(events.OfType<ProviderEvent.TurnCompleted>()).Status);
+
+        events.Clear();
+        InvokePrivate(session, "HandleNotification", "turn/completed", JSONValue.FromDictionaryLiteral(("turn", JSONValue.FromDictionaryLiteral(("status", "somethingElse")))));
+        Assert.Equal(TurnStatus.Completed, Assert.Single(events.OfType<ProviderEvent.TurnCompleted>()).Status);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-114")]
+    public void HandleNotification_turn_completed_emits_usageLimit_before_turnCompleted_on_a_matching_failure()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("turn-completed-usage-limit");
+        var session = StartedSession(runtime, script);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+
+        InvokePrivate(session, "HandleNotification", "turn/completed", JSONValue.FromDictionaryLiteral(
+            ("turn", JSONValue.FromDictionaryLiteral(("status", "failed"), ("error", JSONValue.FromDictionaryLiteral(("message", "you hit your limit for today")))))));
+
+        Assert.Equal(2, events.Count);
+        Assert.IsType<ProviderEvent.UsageLimit>(events[0]);
+        var completed = Assert.IsType<ProviderEvent.TurnCompleted>(events[1]);
+        Assert.Equal(TurnStatus.Failed, completed.Status);
+        Assert.Equal("you hit your limit for today", completed.Error);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-114")]
+    public void HandleNotification_turn_completed_for_a_head_clears_its_turn_and_emits_agentFinished_with_the_error_as_summary()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("turn-completed-head");
+        var session = StartedSession(runtime, script);
+        PrivateField<HashSet<string>>(session, "headThreads").Add("head-1");
+        PrivateField<Dictionary<string, string>>(session, "headTurns")["head-1"] = "head-turn";
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+
+        InvokePrivate(session, "HandleNotification", "turn/completed", JSONValue.FromDictionaryLiteral(
+            ("threadId", "head-1"), ("turn", JSONValue.FromDictionaryLiteral(("status", "failed"), ("error", JSONValue.FromDictionaryLiteral(("message", "boom")))))));
+
+        var finished = Assert.Single(events.OfType<ProviderEvent.AgentFinished>());
+        Assert.Equal("head-1", finished.AgentID);
+        Assert.Equal(TurnStatus.Failed, finished.Status);
+        Assert.Equal("boom", finished.Summary);
+        Assert.False(PrivateField<Dictionary<string, string>>(session, "headTurns").ContainsKey("head-1"));
+        Assert.Empty(events.OfType<ProviderEvent.TurnCompleted>());
+    }
+
+    // ---- PR-PROVCLI-115 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-115")]
+    public void HandleNotification_serverRequest_resolved_removes_the_pending_entry_and_emits_requestResolved()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("server-request-resolved");
+        var session = StartedSession(runtime, script);
+        SeedQuestion(session, "7", new RPCID.Int(7));
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+
+        InvokePrivate(session, "HandleNotification", "serverRequest/resolved", JSONValue.FromDictionaryLiteral(("requestId", 7L)));
+
+        var resolved = Assert.Single(events.OfType<ProviderEvent.RequestResolved>());
+        Assert.Equal("7", resolved.Id);
+        Assert.False(HasPending(session, "7"));
+
+        events.Clear();
+        InvokePrivate(session, "HandleNotification", "serverRequest/resolved", JSONValue.FromDictionaryLiteral(("requestId", "unknown")));
+        Assert.Empty(events); // unknown id: nothing
+    }
+
+    // ---- PR-PROVCLI-116, PR-PROVCLI-440 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-116")]
+    [Trait("Req", "PR-PROVCLI-440")]
+    public void HandleNotification_thread_started_registers_a_head_whose_parent_is_the_lead_and_records_its_model()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("thread-started-parented");
+        var session = StartedSession(runtime, script); // threadID = "t1"
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+
+        InvokePrivate(session, "HandleNotification", "thread/started", JSONValue.FromDictionaryLiteral(
+            ("thread", JSONValue.FromDictionaryLiteral(("id", "head-1"), ("parentThreadId", "t1"), ("model", "gpt-head"), ("preview", "  do the thing  ")))));
+
+        var started = Assert.Single(events.OfType<ProviderEvent.AgentStarted>());
+        Assert.Equal("head-1", started.Value.Id);
+        Assert.Equal("do the thing", started.Value.Description);
+        Assert.Equal("do the thing", started.Value.Prompt);
+        Assert.Equal("gpt-head", started.Value.Model);
+        Assert.Contains("head-1", PrivateField<HashSet<string>>(session, "headThreads"));
+        Assert.Equal("gpt-head", PrivateField<Dictionary<string, string>>(session, "headModels")["head-1"]);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-116")]
+    [Trait("Req", "PR-PROVCLI-440")]
+    public void HandleNotification_thread_started_adopts_an_unrelated_thread_by_nickname_or_role_and_logs_it()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("thread-started-adopted");
+        var session = StartedSession(runtime, script);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+        var logged = new List<string>();
+        using (Logger.Sink.Override((message, _) => logged.Add(message)))
+        {
+            InvokePrivate(session, "HandleNotification", "thread/started", JSONValue.FromDictionaryLiteral(
+                ("thread", JSONValue.FromDictionaryLiteral(("id", "head-2"), ("parentThreadId", "not-t1"), ("agentNickname", "scout"), ("preview", "")))));
+        }
+
+        var started = Assert.Single(events.OfType<ProviderEvent.AgentStarted>());
+        Assert.Equal("head-2", started.Value.Id);
+        Assert.Equal("scout", started.Value.Description); // nickname alone, no role
+        Assert.Null(started.Value.Prompt); // empty preview
+        Assert.Contains("head-2", PrivateField<HashSet<string>>(session, "headThreads"));
+        Assert.Contains(logged, m => m.Contains("head-2", StringComparison.Ordinal) && m.Contains("not-t1", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-116")]
+    public void HandleNotification_thread_started_ignores_an_unrelated_thread_with_no_nickname_or_role()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("thread-started-dropped");
+        var session = StartedSession(runtime, script);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+
+        InvokePrivate(session, "HandleNotification", "thread/started", JSONValue.FromDictionaryLiteral(
+            ("thread", JSONValue.FromDictionaryLiteral(("id", "head-3"), ("parentThreadId", "not-t1")))));
+
+        Assert.Empty(events);
+        Assert.DoesNotContain("head-3", PrivateField<HashSet<string>>(session, "headThreads"));
+    }
+
+    // ---- PR-PROVCLI-117 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-117")]
+    public void HandleNotification_item_started_maps_message_reasoning_plan_and_ignores_userMessage_for_the_lead()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("item-started-lead");
+        var session = StartedSession(runtime, script);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+
+        InvokePrivate(session, "HandleNotification", "item/started", JSONValue.FromDictionaryLiteral(("item", JSONValue.FromDictionaryLiteral(("id", "m1"), ("type", "agentMessage"), ("text", "hi")))));
+        InvokePrivate(session, "HandleNotification", "item/started", JSONValue.FromDictionaryLiteral(("item", JSONValue.FromDictionaryLiteral(("id", "r1"), ("type", "reasoning")))));
+        InvokePrivate(session, "HandleNotification", "item/started", JSONValue.FromDictionaryLiteral(("item", JSONValue.FromDictionaryLiteral(("id", "p1"), ("type", "plan"), ("text", "step 1")))));
+        InvokePrivate(session, "HandleNotification", "item/started", JSONValue.FromDictionaryLiteral(("item", JSONValue.FromDictionaryLiteral(("id", "u1"), ("type", "userMessage"), ("content", new JSONValue.Array(ValueList<JSONValue>.Empty))))));
+        InvokePrivate(session, "HandleNotification", "item/started", JSONValue.FromDictionaryLiteral(("item", JSONValue.FromDictionaryLiteral(("id", "h1"), ("type", "hookPrompt")))));
+        InvokePrivate(session, "HandleNotification", "item/started", JSONValue.FromDictionaryLiteral(("item", JSONValue.FromDictionaryLiteral(("type", "agentMessage"))))); // no id: dropped
+
+        var msg = Assert.Single(events.OfType<ProviderEvent.MessageDelta>());
+        Assert.Equal("m1", msg.Id);
+        Assert.Equal("hi", msg.Text);
+        var reasoning = Assert.Single(events.OfType<ProviderEvent.ReasoningDelta>());
+        Assert.Equal("", reasoning.Text);
+        var plan = Assert.Single(events.OfType<ProviderEvent.PlanDelta>());
+        Assert.Equal("step 1", plan.Text);
+        Assert.Empty(events.OfType<ProviderEvent.AgentStarted>()); // userMessage on the lead: nothing
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-117")]
+    [Trait("Req", "PR-PROVCLI-133")]
+    public void HandleNotification_item_started_userMessage_on_a_head_announces_its_brief()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("item-started-head-brief");
+        var session = StartedSession(runtime, script);
+        PrivateField<HashSet<string>>(session, "headThreads").Add("head-1");
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+
+        InvokePrivate(session, "HandleNotification", "item/started", JSONValue.FromDictionaryLiteral(
+            ("threadId", "head-1"),
+            ("item", JSONValue.FromDictionaryLiteral(("id", "u1"), ("type", "userMessage"),
+                ("content", new JSONValue.Array(new ValueList<JSONValue>([JSONValue.FromDictionaryLiteral(("text", "  Build the feature  "))])))))));
+
+        var started = Assert.Single(events.OfType<ProviderEvent.AgentStarted>());
+        Assert.Equal("head-1", started.Value.Id);
+        Assert.Equal("Build the feature", started.Value.Description);
+        Assert.Equal("Build the feature", started.Value.Prompt);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-133")]
+    public void UserText_reads_the_type_value_shape_and_returns_nil_when_empty()
+    {
+        var withValueShape = JSONValue.FromDictionaryLiteral(("id", "u1"), ("type", "userMessage"),
+            ("content", new JSONValue.Array(new ValueList<JSONValue>(
+            [
+                JSONValue.FromDictionaryLiteral(("type", "text"), ("value", "line one")),
+                JSONValue.FromDictionaryLiteral(("type", "other"), ("value", "ignored")),
+            ]))));
+        Assert.Equal("line one", InvokeStatic("UserText", withValueShape));
+
+        var empty = JSONValue.FromDictionaryLiteral(("content", new JSONValue.Array(ValueList<JSONValue>.Empty)));
+        Assert.Null(InvokeStatic("UserText", empty));
+    }
+
+    // ---- PR-PROVCLI-118 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-118")]
+    public void HandleNotification_item_completed_maps_message_reasoning_summary_and_plan()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("item-completed-lead");
+        var session = StartedSession(runtime, script);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+
+        InvokePrivate(session, "HandleNotification", "item/completed", JSONValue.FromDictionaryLiteral(("item", JSONValue.FromDictionaryLiteral(("id", "m1"), ("type", "agentMessage"), ("text", "done")))));
+        InvokePrivate(session, "HandleNotification", "item/completed", JSONValue.FromDictionaryLiteral(("item", JSONValue.FromDictionaryLiteral(("id", "p1"), ("type", "plan"), ("text", "done plan")))));
+        InvokePrivate(session, "HandleNotification", "item/completed", JSONValue.FromDictionaryLiteral(("item", JSONValue.FromDictionaryLiteral(("id", "u1"), ("type", "userMessage")))));
+
+        var msg = Assert.Single(events.OfType<ProviderEvent.MessageCompleted>());
+        Assert.Equal("done", msg.Text);
+        var plan = Assert.Single(events.OfType<ProviderEvent.PlanCompleted>());
+        Assert.Equal("done plan", plan.Markdown);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-118")]
+    public void HandleNotification_item_completed_reasoning_prefers_the_summary_over_the_content()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("item-completed-reasoning");
+        var session = StartedSession(runtime, script);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+
+        InvokePrivate(session, "HandleNotification", "item/completed", JSONValue.FromDictionaryLiteral(
+            ("item", JSONValue.FromDictionaryLiteral(("id", "r1"), ("type", "reasoning"),
+                ("summary", new JSONValue.Array(new ValueList<JSONValue>([new JSONValue.String("a"), new JSONValue.String("b")]))),
+                ("content", new JSONValue.Array(new ValueList<JSONValue>([new JSONValue.String("c")])))))));
+        Assert.Equal("a\n\nb", Assert.Single(events.OfType<ProviderEvent.ReasoningCompleted>()).Text);
+
+        events.Clear();
+        InvokePrivate(session, "HandleNotification", "item/completed", JSONValue.FromDictionaryLiteral(
+            ("item", JSONValue.FromDictionaryLiteral(("id", "r2"), ("type", "reasoning"),
+                ("summary", new JSONValue.Array(ValueList<JSONValue>.Empty)),
+                ("content", new JSONValue.Array(new ValueList<JSONValue>([new JSONValue.String("c"), new JSONValue.String("d")])))))));
+        Assert.Equal("c\n\nd", Assert.Single(events.OfType<ProviderEvent.ReasoningCompleted>()).Text);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-118")]
+    public void HandleNotification_item_completed_builds_a_tool_row_and_updates_it_for_an_unannounced_call()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("item-completed-tool");
+        var session = StartedSession(runtime, script);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+
+        InvokePrivate(session, "HandleNotification", "item/completed", JSONValue.FromDictionaryLiteral(
+            ("item", JSONValue.FromDictionaryLiteral(("id", "c1"), ("type", "webSearch"), ("query", "cats")))));
+
+        var started = Assert.Single(events.OfType<ProviderEvent.ToolStarted>());
+        Assert.Equal("c1", started.Id);
+        Assert.Equal(ToolCall.Kind.Web, started.Call.ToolCallKind);
+        var updated = Assert.Single(events.OfType<ProviderEvent.ToolUpdated>());
+        Assert.Equal("c1", updated.Id);
+        Assert.Equal(ToolCall.Status.Completed, updated.Update.Status);
+    }
+
+    // ---- PR-PROVCLI-119 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-119")]
+    public void HandleNotification_collabAgentToolCall_spawnAgent_registers_each_receiver_as_a_head()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("spawn-agent");
+        var session = StartedSession(runtime, script);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+
+        InvokePrivate(session, "HandleNotification", "item/started", JSONValue.FromDictionaryLiteral(("item", JSONValue.FromDictionaryLiteral(
+            ("id", "spawn-1"), ("type", "collabAgentToolCall"), ("tool", "spawnAgent"), ("prompt", "  go build it  "),
+            ("receiverThreadIds", new JSONValue.Array(new ValueList<JSONValue>([new JSONValue.String("head-a"), new JSONValue.String("head-b")])))))));
+
+        var starts = events.OfType<ProviderEvent.AgentStarted>().ToList();
+        Assert.Equal(2, starts.Count);
+        Assert.Equal("head-a", starts[0].Value.Id);
+        Assert.Equal("spawn-1", starts[0].Value.ToolUseID);
+        Assert.Equal("go build it", starts[0].Value.Description);
+        Assert.Equal("go build it", starts[0].Value.Prompt);
+        Assert.Null(starts[0].Value.Profile); // no Hydra configured
+        Assert.Contains("head-a", PrivateField<HashSet<string>>(session, "headThreads"));
+        Assert.Contains("head-b", PrivateField<HashSet<string>>(session, "headThreads"));
+        Assert.False(PrivateField<Dictionary<string, string>>(session, "headModels").ContainsKey("head-a")); // PR-PROVCLI-440: no entry from this path
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-119")]
+    public void HandleNotification_collabAgentToolCall_ignores_a_call_that_is_not_spawnAgent()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("not-spawn-agent");
+        var session = StartedSession(runtime, script);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+
+        InvokePrivate(session, "HandleNotification", "item/started", JSONValue.FromDictionaryLiteral(("item", JSONValue.FromDictionaryLiteral(
+            ("id", "wait-1"), ("type", "collabAgentToolCall"), ("tool", "wait"),
+            ("receiverThreadIds", new JSONValue.Array(new ValueList<JSONValue>([new JSONValue.String("head-c")])))))));
+
+        Assert.DoesNotContain(events.OfType<ProviderEvent.AgentStarted>(), e => e.Value.Id == "head-c");
+        Assert.DoesNotContain("head-c", PrivateField<HashSet<string>>(session, "headThreads"));
+    }
+
+    // ---- PR-PROVCLI-120 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-120")]
+    public void HandleNotification_subAgentActivity_adopts_an_unknown_head_and_logs_it_then_ends_it_on_completed()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("sub-agent-activity-completed");
+        var session = StartedSession(runtime, script);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+        var logged = new List<string>();
+        using (Logger.Sink.Override((message, _) => logged.Add(message)))
+        {
+            InvokePrivate(session, "HandleNotification", "item/completed", JSONValue.FromDictionaryLiteral(("item", JSONValue.FromDictionaryLiteral(
+                ("id", "note-1"), ("type", "subAgentActivity"), ("agentThreadId", "head-x"), ("agentPath", "root/worker_one"), ("kind", "completed")))));
+        }
+
+        var started = Assert.Single(events.OfType<ProviderEvent.AgentStarted>());
+        Assert.Equal("head-x", started.Value.Id);
+        Assert.Equal("worker one", started.Value.Description);
+        Assert.Null(started.Value.Prompt);
+        Assert.Contains(logged, m => m.Contains("head-x", StringComparison.Ordinal));
+        var finished = Assert.Single(events.OfType<ProviderEvent.AgentFinished>());
+        Assert.Equal("head-x", finished.AgentID);
+        Assert.Equal(TurnStatus.Completed, finished.Status);
+        Assert.Null(finished.Summary);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-120")]
+    public void HandleNotification_subAgentActivity_does_not_readopt_an_already_known_head_and_ends_it_on_interrupted()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("sub-agent-activity-known");
+        var session = StartedSession(runtime, script);
+        PrivateField<HashSet<string>>(session, "headThreads").Add("head-y");
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+
+        InvokePrivate(session, "HandleNotification", "item/completed", JSONValue.FromDictionaryLiteral(("item", JSONValue.FromDictionaryLiteral(
+            ("id", "note-2"), ("type", "subAgentActivity"), ("agentThreadId", "head-y"), ("kind", "interrupted")))));
+
+        Assert.Empty(events.OfType<ProviderEvent.AgentStarted>());
+        var finished = Assert.Single(events.OfType<ProviderEvent.AgentFinished>());
+        Assert.Equal(TurnStatus.Interrupted, finished.Status);
+    }
+
+    // ---- PR-PROVCLI-121 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-121")]
+    public void ToolCallFrom_commandExecution_picks_read_search_or_command_by_its_action_kinds()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("tool-call-command-kinds");
+        var session = StartedSession(runtime, script);
+
+        var read = InvokePrivate(session, "ToolCallFrom", JSONValue.FromDictionaryLiteral(
+            ("type", "commandExecution"), ("command", "/bin/zsh -lc 'cat file.txt'"),
+            ("commandActions", new JSONValue.Array(new ValueList<JSONValue>([JSONValue.FromDictionaryLiteral(("type", "read"), ("path", "file.txt"))])))));
+        var readCall = Assert.IsType<ToolCall>(read);
+        Assert.Equal(ToolCall.Kind.Read, readCall.ToolCallKind);
+        Assert.Equal("file.txt", readCall.Title);
+        Assert.Equal("cat file.txt", readCall.Detail);
+
+        var search = InvokePrivate(session, "ToolCallFrom", JSONValue.FromDictionaryLiteral(
+            ("type", "commandExecution"), ("command", "grep -r foo"),
+            ("commandActions", new JSONValue.Array(new ValueList<JSONValue>([JSONValue.FromDictionaryLiteral(("type", "search"))])))));
+        Assert.Equal(ToolCall.Kind.Search, Assert.IsType<ToolCall>(search).ToolCallKind);
+
+        var command = InvokePrivate(session, "ToolCallFrom", JSONValue.FromDictionaryLiteral(
+            ("type", "commandExecution"), ("command", "npm test"),
+            ("commandActions", new JSONValue.Array(ValueList<JSONValue>.Empty))));
+        Assert.Equal(ToolCall.Kind.Command, Assert.IsType<ToolCall>(command).ToolCallKind);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-121")]
+    public void ToolCallFrom_fileChange_titles_a_single_path_or_a_count()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("tool-call-file-change");
+        var session = StartedSession(runtime, script);
+
+        var one = InvokePrivate(session, "ToolCallFrom", JSONValue.FromDictionaryLiteral(
+            ("type", "fileChange"), ("changes", new JSONValue.Array(new ValueList<JSONValue>([JSONValue.FromDictionaryLiteral(("path", "a.txt"))])))));
+        var oneCall = Assert.IsType<ToolCall>(one);
+        Assert.Equal(ToolCall.Kind.Edit, oneCall.ToolCallKind);
+        Assert.Equal("a.txt", oneCall.Title);
+
+        var two = InvokePrivate(session, "ToolCallFrom", JSONValue.FromDictionaryLiteral(
+            ("type", "fileChange"), ("changes", new JSONValue.Array(new ValueList<JSONValue>(
+            [JSONValue.FromDictionaryLiteral(("path", "a.txt")), JSONValue.FromDictionaryLiteral(("path", "b.txt"))])))));
+        Assert.Equal("Edit 2 files", Assert.IsType<ToolCall>(two).Title);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-121")]
+    public void ToolCallFrom_mcpToolCall_titles_server_dot_tool_and_omits_null_arguments()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("tool-call-mcp");
+        var session = StartedSession(runtime, script);
+
+        var withArgs = InvokePrivate(session, "ToolCallFrom", JSONValue.FromDictionaryLiteral(
+            ("type", "mcpToolCall"), ("server", "fs"), ("tool", "read"), ("arguments", JSONValue.FromDictionaryLiteral(("path", "x")))));
+        var withArgsCall = Assert.IsType<ToolCall>(withArgs);
+        Assert.Equal("fs \u00b7 read", withArgsCall.Title);
+        Assert.NotNull(withArgsCall.Detail);
+
+        var noArgs = InvokePrivate(session, "ToolCallFrom", JSONValue.FromDictionaryLiteral(("type", "mcpToolCall")));
+        var noArgsCall = Assert.IsType<ToolCall>(noArgs);
+        Assert.Equal("MCP \u00b7 tool", noArgsCall.Title);
+        Assert.Null(noArgsCall.Detail); // arguments absent -> compact "null" -> omitted
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-121")]
+    public void ToolCallFrom_collabAgentToolCall_picks_a_verb_from_the_table_and_prefers_the_prompt_as_title()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("tool-call-collab");
+        var session = StartedSession(runtime, script);
+
+        var withPrompt = InvokePrivate(session, "ToolCallFrom", JSONValue.FromDictionaryLiteral(
+            ("type", "collabAgentToolCall"), ("tool", "spawnAgent"), ("prompt", "build it")));
+        var withPromptCall = Assert.IsType<ToolCall>(withPrompt);
+        Assert.Equal(ToolCall.Kind.Agent, withPromptCall.ToolCallKind);
+        Assert.Equal("build it", withPromptCall.Title);
+        Assert.Equal("Send out a head", withPromptCall.Detail);
+
+        var noPrompt = InvokePrivate(session, "ToolCallFrom", JSONValue.FromDictionaryLiteral(("type", "collabAgentToolCall"), ("tool", "wait")));
+        var noPromptCall = Assert.IsType<ToolCall>(noPrompt);
+        Assert.Equal("Wait for heads", noPromptCall.Title);
+        Assert.Null(noPromptCall.Detail);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-121")]
+    public void ToolCallFrom_maps_the_remaining_item_types_and_drops_subAgentActivity_and_unknowns()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("tool-call-remaining");
+        var session = StartedSession(runtime, script);
+
+        Assert.Equal(ToolCall.Kind.Other, Assert.IsType<ToolCall>(InvokePrivate(session, "ToolCallFrom", JSONValue.FromDictionaryLiteral(("type", "dynamicToolCall"), ("tool", "custom")))).ToolCallKind);
+        Assert.Equal(ToolCall.Kind.Web, Assert.IsType<ToolCall>(InvokePrivate(session, "ToolCallFrom", JSONValue.FromDictionaryLiteral(("type", "webSearch"), ("query", "cats")))).ToolCallKind);
+        Assert.Equal("Image", Assert.IsType<ToolCall>(InvokePrivate(session, "ToolCallFrom", JSONValue.FromDictionaryLiteral(("type", "imageView")))).Title);
+        Assert.Equal("Generate image", Assert.IsType<ToolCall>(InvokePrivate(session, "ToolCallFrom", JSONValue.FromDictionaryLiteral(("type", "imageGeneration")))).Title);
+        var review = Assert.IsType<ToolCall>(InvokePrivate(session, "ToolCallFrom", JSONValue.FromDictionaryLiteral(("type", "enteredReviewMode"), ("review", "r"))));
+        Assert.Equal("Review", review.Title);
+        Assert.Equal("r", review.Detail);
+        Assert.Null(InvokePrivate(session, "ToolCallFrom", JSONValue.FromDictionaryLiteral(("type", "subAgentActivity"))));
+        Assert.Null(InvokePrivate(session, "ToolCallFrom", JSONValue.FromDictionaryLiteral(("type", "somethingUnmapped"))));
+    }
+
+    // ---- PR-PROVCLI-122, PR-PROVCLI-123 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-122")]
+    [Trait("Req", "PR-PROVCLI-123")]
+    public void ToolUpdateFrom_commandExecution_carries_output_exitCode_and_status_from_the_exit_code()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("tool-update-command");
+        var session = StartedSession(runtime, script);
+
+        var ok = Assert.IsType<ToolUpdate>(InvokePrivate(session, "ToolUpdateFrom", JSONValue.FromDictionaryLiteral(
+            ("type", "commandExecution"), ("aggregatedOutput", "out"), ("exitCode", 0L))));
+        Assert.Equal("out", ok.Output);
+        Assert.Equal(0, ok.ExitCode);
+        Assert.Equal(ToolCall.Status.Completed, ok.Status);
+
+        var failed = Assert.IsType<ToolUpdate>(InvokePrivate(session, "ToolUpdateFrom", JSONValue.FromDictionaryLiteral(
+            ("type", "commandExecution"), ("exitCode", 2L))));
+        Assert.Equal(ToolCall.Status.Failed, failed.Status);
+
+        var interrupted = Assert.IsType<ToolUpdate>(InvokePrivate(session, "ToolUpdateFrom", JSONValue.FromDictionaryLiteral(
+            ("type", "commandExecution"), ("status", "interrupted"))));
+        Assert.Equal(ToolCall.Status.Failed, interrupted.Status); // PR-PROVCLI-123: interrupted reads as failed
+
+        var declined = Assert.IsType<ToolUpdate>(InvokePrivate(session, "ToolUpdateFrom", JSONValue.FromDictionaryLiteral(("type", "commandExecution"), ("status", "declined"))));
+        Assert.Equal(ToolCall.Status.Declined, declined.Status);
+
+        var running = Assert.IsType<ToolUpdate>(InvokePrivate(session, "ToolUpdateFrom", JSONValue.FromDictionaryLiteral(("type", "commandExecution"), ("status", "inProgress"))));
+        Assert.Equal(ToolCall.Status.Running, running.Status);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-122")]
+    public void ToolUpdateFrom_fileChange_builds_one_edit_per_change_with_diff_stats()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("tool-update-file-change");
+        var session = StartedSession(runtime, script);
+
+        var diff = "@@ -1,2 +1,2 @@\n-old\n+new\n+added\n";
+        var update = Assert.IsType<ToolUpdate>(InvokePrivate(session, "ToolUpdateFrom", JSONValue.FromDictionaryLiteral(
+            ("type", "fileChange"),
+            ("changes", new JSONValue.Array(new ValueList<JSONValue>([JSONValue.FromDictionaryLiteral(("path", "a.txt"), ("diff", diff))]))))));
+        var edit = Assert.Single(update.Edits!);
+        Assert.Equal("a.txt", edit.Path);
+        Assert.Equal(2, edit.Additions);
+        Assert.Equal(1, edit.Deletions);
+        Assert.Equal(ToolCall.Status.Completed, update.Status);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-122")]
+    public void ToolUpdateFrom_mcpToolCall_prefers_the_error_message_over_the_result_content()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("tool-update-mcp");
+        var session = StartedSession(runtime, script);
+
+        var withError = Assert.IsType<ToolUpdate>(InvokePrivate(session, "ToolUpdateFrom", JSONValue.FromDictionaryLiteral(
+            ("type", "mcpToolCall"), ("error", JSONValue.FromDictionaryLiteral(("message", "bad"))),
+            ("result", JSONValue.FromDictionaryLiteral(("content", new JSONValue.Array(new ValueList<JSONValue>([JSONValue.FromDictionaryLiteral(("text", "ignored"))]))))))));
+        Assert.Equal("bad", withError.Output);
+
+        var withResult = Assert.IsType<ToolUpdate>(InvokePrivate(session, "ToolUpdateFrom", JSONValue.FromDictionaryLiteral(
+            ("type", "mcpToolCall"),
+            ("result", JSONValue.FromDictionaryLiteral(("content", new JSONValue.Array(new ValueList<JSONValue>(
+            [JSONValue.FromDictionaryLiteral(("text", "line1")), JSONValue.FromDictionaryLiteral(("text", "line2"))]))))))));
+        Assert.Equal("line1\nline2", withResult.Output);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-122")]
+    public void ToolUpdateFrom_webSearch_and_similar_types_are_always_completed_with_no_output()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("tool-update-always-completed");
+        var session = StartedSession(runtime, script);
+
+        foreach (var type in new[] { "webSearch", "imageView", "enteredReviewMode", "exitedReviewMode" })
+        {
+            var update = Assert.IsType<ToolUpdate>(InvokePrivate(session, "ToolUpdateFrom", JSONValue.FromDictionaryLiteral(("type", type), ("status", "failed"))));
+            Assert.Equal(ToolCall.Status.Completed, update.Status); // status ignored for these types
+            Assert.Null(update.Output);
+        }
+    }
+
+    // ---- PR-PROVCLI-124 to 129 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-124")]
+    [Trait("Req", "PR-PROVCLI-130")]
+    [Trait("Req", "UI-PROVCLI-006")]
+    public void HandleRequest_commandExecution_requestApproval_builds_a_command_approval_with_the_default_four_options_sorted()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("request-approval-command");
+        var session = StartedSession(runtime, script);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+
+        InvokePrivate(session, "HandleRequest", new RPCID.Int(1), "item/commandExecution/requestApproval", JSONValue.FromDictionaryLiteral(
+            ("command", "/bin/zsh -lc 'rm -rf x'"), ("cwd", WorkingDir(session)), ("reason", "cleanup"), ("itemId", "c1")));
+
+        var approval = Assert.Single(events.OfType<ProviderEvent.Approval>()).Value;
+        Assert.Equal("1", approval.Id);
+        Assert.Equal(ApprovalRequest.Kind.Command, approval.RequestKind);
+        Assert.Equal("rm -rf x", approval.Title);
+        Assert.Equal("cleanup", approval.Reason);
+        Assert.Equal("c1", approval.ToolItemID);
+        Assert.Equal(4, approval.Options.Count);
+        Assert.Equal(new[] { "accept", "acceptForSession", "decline", "cancel" }, approval.Options.Select(o => o.Id));
+        var stopTurn = approval.Options.Last();
+        Assert.Equal("Stop turn", stopTurn.Title); // UI-PROVCLI-006
+        Assert.Equal(ApprovalRequest.Option.Role.Cancel, stopTurn.OptionRole);
+        Assert.True(HasPending(session, "1"));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-124")]
+    public void HandleRequest_commandExecution_requestApproval_falls_back_to_the_literal_Command_title()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("request-approval-command-fallback");
+        var session = StartedSession(runtime, script);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+
+        InvokePrivate(session, "HandleRequest", new RPCID.Int(2), "item/commandExecution/requestApproval", JSONValue.FromDictionaryLiteral());
+
+        Assert.Equal("Command", Assert.Single(events.OfType<ProviderEvent.Approval>()).Value.Title);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-130")]
+    public void HandleRequest_commandExecution_requestApproval_adds_the_amend_option_and_drops_unknown_decisions()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("request-approval-amend");
+        var session = StartedSession(runtime, script);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+
+        InvokePrivate(session, "HandleRequest", new RPCID.Int(3), "item/commandExecution/requestApproval", JSONValue.FromDictionaryLiteral(
+            ("command", "ls"),
+            ("availableDecisions", new JSONValue.Array(new ValueList<JSONValue>(
+            [
+                new JSONValue.String("accept"),
+                new JSONValue.String("somethingUnrecognized"),
+                JSONValue.FromDictionaryLiteral(("acceptWithExecpolicyAmendment", JSONValue.FromDictionaryLiteral(("x", true)))),
+            ])))));
+
+        var approval = Assert.Single(events.OfType<ProviderEvent.Approval>()).Value;
+        Assert.Equal(new[] { "accept", "amend" }, approval.Options.Select(o => o.Id));
+        Assert.Equal("Always allow", approval.Options[1].Title);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-125")]
+    public void HandleRequest_fileChange_requestApproval_uses_the_default_four_options_with_no_amend_and_a_verbatim_detail()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("request-approval-file-change");
+        var session = StartedSession(runtime, script);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+
+        InvokePrivate(session, "HandleRequest", new RPCID.Int(4), "item/fileChange/requestApproval", JSONValue.FromDictionaryLiteral(
+            ("grantRoot", @"C:\Users\me\project"), ("reason", "writes"), ("itemId", "f1")));
+
+        var approval = Assert.Single(events.OfType<ProviderEvent.Approval>()).Value;
+        Assert.Equal(ApprovalRequest.Kind.FileChange, approval.RequestKind);
+        Assert.Equal("Apply file changes", approval.Title);
+        Assert.Equal(@"C:\Users\me\project", approval.Detail); // not made relative
+        Assert.Equal(4, approval.Options.Count);
+        Assert.DoesNotContain(approval.Options, o => o.Id == "amend"); // command: false
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-126")]
+    public void HandleRequest_permissions_requestApproval_builds_the_three_fixed_options_and_a_described_title()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("request-approval-permissions");
+        var session = StartedSession(runtime, script);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+
+        InvokePrivate(session, "HandleRequest", new RPCID.Int(5), "item/permissions/requestApproval", JSONValue.FromDictionaryLiteral(
+            ("permissions", JSONValue.FromDictionaryLiteral(
+                ("fileSystem", JSONValue.FromDictionaryLiteral(("write", new JSONValue.Array(new ValueList<JSONValue>([new JSONValue.String("/a")]))))),
+                ("network", JSONValue.FromDictionaryLiteral(("enabled", true))))),
+            ("itemId", "p1")));
+
+        var approval = Assert.Single(events.OfType<ProviderEvent.Approval>()).Value;
+        Assert.Equal(ApprovalRequest.Kind.Permissions, approval.RequestKind);
+        Assert.Equal("Write to /a \u00b7 Network access", approval.Title);
+        Assert.Null(approval.Detail);
+        Assert.Equal(new[] { "turn", "session", "decline" }, approval.Options.Select(o => o.Id));
+        Assert.Equal(new[] { ApprovalRequest.Option.Role.Approve, ApprovalRequest.Option.Role.ApproveAlways, ApprovalRequest.Option.Role.Decline }, approval.Options.Select(o => o.OptionRole));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-126")]
+    public void HandleRequest_permissions_requestApproval_with_no_parts_shows_additional_permissions()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("request-approval-permissions-empty");
+        var session = StartedSession(runtime, script);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+
+        InvokePrivate(session, "HandleRequest", new RPCID.Int(6), "item/permissions/requestApproval", JSONValue.FromDictionaryLiteral());
+
+        Assert.Equal("Additional permissions", Assert.Single(events.OfType<ProviderEvent.Approval>()).Value.Title);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-127")]
+    public void HandleRequest_tool_requestUserInput_builds_questions_and_skips_entries_with_no_id()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("request-user-input");
+        var session = StartedSession(runtime, script);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+
+        InvokePrivate(session, "HandleRequest", new RPCID.Int(8), "item/tool/requestUserInput", JSONValue.FromDictionaryLiteral(
+            ("questions", new JSONValue.Array(new ValueList<JSONValue>(
+            [
+                JSONValue.FromDictionaryLiteral(("id", "q1"), ("header", "Pick"), ("question", "Which?"), ("isSecret", true),
+                    ("options", new JSONValue.Array(new ValueList<JSONValue>([JSONValue.FromDictionaryLiteral(("label", "A"), ("description", "first"))])))),
+                JSONValue.FromDictionaryLiteral(("header", "no id")),
+            ])))));
+
+        var question = Assert.Single(events.OfType<ProviderEvent.Question>()).Value;
+        Assert.Equal("8", question.Id);
+        var q = Assert.Single(question.Questions);
+        Assert.Equal("q1", q.Id);
+        Assert.Equal("Pick", q.Header);
+        Assert.Equal("Which?", q.Prompt);
+        Assert.False(q.AllowsMultiple);
+        Assert.False(q.AllowsOther);
+        Assert.True(q.IsSecret);
+        var choice = Assert.Single(q.Choices);
+        Assert.Equal("A", choice.Label);
+        Assert.Equal("first", choice.Detail);
+        Assert.True(HasPending(session, "8"));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-128")]
+    public void HandleRequest_mcpServer_elicitation_request_always_declines_and_warns()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("mcp-elicitation");
+        var session = StartedSession(runtime, script);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+
+        InvokePrivate(session, "HandleRequest", new RPCID.Int(9), "mcpServer/elicitation/request", JSONValue.FromDictionaryLiteral(("serverName", "files-mcp")));
+
+        var notice = Assert.Single(events.OfType<ProviderEvent.Notice>()).Value;
+        Assert.Equal(Notice.Level.Warning, notice.NoticeLevel);
+        Assert.Equal("files-mcp asked for input, which Marrow cannot show yet.", notice.Message);
+        Assert.False(HasPending(session, "9"));
+        var response = JSONValue.Parse(System.Text.Encoding.UTF8.GetBytes(script.CapturedLine(0, script.MessageCount(0) - 1)))!;
+        Assert.Equal("decline", response["result"]!["action"]!.JSONValueString);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-128")]
+    public void HandleRequest_mcpServer_elicitation_request_falls_back_to_An_MCP_server()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("mcp-elicitation-fallback");
+        var session = StartedSession(runtime, script);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+
+        InvokePrivate(session, "HandleRequest", new RPCID.Int(10), "mcpServer/elicitation/request", JSONValue.FromDictionaryLiteral());
+
+        Assert.Equal("An MCP server asked for input, which Marrow cannot show yet.", Assert.Single(events.OfType<ProviderEvent.Notice>()).Value.Message);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-129")]
+    public void HandleRequest_refuses_an_unknown_method_with_JSONRPC_error_32601()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("unknown-method");
+        var session = StartedSession(runtime, script);
+
+        InvokePrivate(session, "HandleRequest", new RPCID.Int(11), "some/unknownMethod", JSONValue.FromDictionaryLiteral());
+
+        var response = JSONValue.Parse(System.Text.Encoding.UTF8.GetBytes(script.CapturedLine(0, script.MessageCount(0) - 1)))!;
+        Assert.Equal(-32601, response["error"]!["code"]!.JSONValueInt);
+        Assert.Equal("Marrow does not support some/unknownMethod.", response["error"]!["message"]!.JSONValueString);
+    }
+
+    // ---- PR-PROVCLI-131 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-131")]
+    public void HandleClose_resolves_every_pending_request_and_reports_exited_only_when_not_stopping()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("handle-close");
+        var session = StartedSession(runtime, script);
+        SeedQuestion(session, "q1", new RPCID.String("q1"));
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+
+        InvokePrivate(session, "HandleClose", "some\ntail");
+
+        var resolved = Assert.Single(events.OfType<ProviderEvent.RequestResolved>());
+        Assert.Equal("q1", resolved.Id);
+        Assert.False(HasPending(session, "q1"));
+        Assert.Single(events.OfType<ProviderEvent.Exited>());
+
+        events.Clear();
+        typeof(CodexSession).GetField("isStopping", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(session, true);
+        InvokePrivate(session, "HandleClose", "tail");
+        Assert.Empty(events.OfType<ProviderEvent.Exited>()); // stopping: no exit notice
+    }
+
+    // ---- PR-PROVCLI-132 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-132")]
+    public void IsRunning_is_false_with_no_connection_and_true_only_while_the_connection_is_open()
+    {
+        var session = new CodexSession(Config(Script("is-running")));
+        Assert.False(session.IsRunning); // no connection yet
+
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var started = StartedSession(runtime, Script("is-running-2"));
+        Assert.True(started.IsRunning);
+        started.Stop();
+        Assert.False(started.IsRunning);
+    }
+
+    // ---- helpers ----
+
+    private static string WorkingDir(CodexSession session) => typeof(CodexSession)
+        .GetProperty("WorkingDirectory", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(session) as string ?? "";
+
+    private static object? InvokeStatic(string method, params object?[] args) =>
+        typeof(CodexSession).GetMethod(method, BindingFlags.Static | BindingFlags.NonPublic)!.Invoke(null, args);
 }
