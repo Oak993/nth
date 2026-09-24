@@ -7,9 +7,9 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "IMPLEMENTED": 2120,
+      "IMPLEMENTED": 2147,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
-      "SPECIFIED": 1770,
+      "SPECIFIED": 1743,
       "RETIRED": 6,
       "DISCOVERED": 17
     },
@@ -88938,7 +88938,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Carry the six literals verbatim as constants. They are the only thing that makes the slider's pacing recognisable.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -88962,7 +88962,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same eight-state machine with the same two predicates, exposed to the renderer.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -88988,7 +88988,7 @@
       "cancellation": "not cancellable at this point; there is no user-facing cancel for an install.",
       "windows_path": "Windows has no haptics. port_impacts.md:434 X6 requires one no-op shim called from the same sites so the call sites stay comparable; do not substitute a sound or an animation. The 0.004 direct assignment must bypass the monotonic guard, otherwise a restart after a celebration would not reset.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -89013,7 +89013,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same mapping and the same unknown-size creep. Node's download stream must report a fraction of 0 when Content-Length is absent, not a NaN or a guess.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -89039,7 +89039,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. The ceiling is verifyEnd minus 0.02, that is 0.68, deliberately short of the 0.70 dot so the dot is only crossed by beginStaging.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -89065,7 +89065,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -89091,7 +89091,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same, with the haptic as a no-op shim.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -89118,7 +89118,7 @@
       "cancellation": "The reset task is cancelled by begin() and by consumePendingCelebration().",
       "windows_path": "Same timing and the same guard-on-phase before resetting.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -89143,7 +89143,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same monotonic guard. The two direct assignments to fractionTarget.value (begin at 0.004, resetToIdle at 0, consumePendingCelebration at 0.86) deliberately bypass it and must stay direct assignments.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -89169,7 +89169,7 @@
       "cancellation": "stopCreep() cancels it; every phase transition calls stopCreep first (except begin, which starts one).",
       "windows_path": "A 125 ms interval in the main process, with the same single-task-with-mutable-ceiling shape. Getting this wrong (restarting the task per phase) doubles the creep rate visibly.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -89192,7 +89192,7 @@
       "cancellation": "not cancellable; nothing cancels installTask.",
       "windows_path": "Same single-flight guard in the main process. The install is genuinely not cancellable once started; do not add a cancel affordance the source does not have.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -89217,7 +89217,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same five reporting points in the same order, even though the Windows work between them differs. UNK-0009 is resolved by OD-0008 C6: until the owner has a Windows release feed no release qualifies, so this path is not reached and its live verification waits on that feed.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -89242,7 +89242,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same shape in the Windows temp directory with the Windows artifact extension. PA-0015 warns that Windows file handles linger after a process exits, so deletion of this file must tolerate a transient sharing violation.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -89267,7 +89267,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Stream to disk, same two timeouts, same User-Agent. Never buffer the artifact in memory.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -89298,7 +89298,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. Reporting a synthetic fraction when Content-Length is missing would break the creep behavior the source depends on.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -89324,7 +89324,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same status check and the same three messages. Node streams do not have the delete-on-return constraint, but the status check must still happen after the body, because the source only checks it there.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -89352,7 +89352,7 @@
       "cancellation": "not cancellable",
       "windows_path": "PLATFORM BOUNDARY. Windows has no disk images, hdiutil or ditto. The structural equivalent is: unpack the downloaded Windows artifact into a per-install staging directory with an ACL restricting it to the current user, locate the payload, and delete the downloaded artifact afterwards on both paths. Keep the staging-directory-per-install shape and the filename-preserving rule. UNK-0009 is resolved by OD-0008 C6: until the owner has a Windows release feed no release qualifies, so this path is not reached and its live verification waits on that feed.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -89400,7 +89400,7 @@
       "cancellation": "not cancellable",
       "windows_path": "PLATFORM BOUNDARY. Authenticode is the structural analogue: verify the downloaded payload's signature chains to the publisher's certificate and that the subject matches the expected publisher, refusing the install otherwise. PA-0014 names Authenticode explicitly. The Apple team id NARHG44L48 and the OIDs have no Windows meaning and must NOT be carried across as literals; the requirement they encode (only a build signed by this publisher is installed) must be. UNK-0009 is resolved by OD-0008 C6: until the owner has a Windows release feed no release qualifies, so this path is not reached and its live verification waits on that feed.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -89423,7 +89423,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Read the equivalent version resource from the downloaded payload and apply the same padded equality and the same message. This is what makes a swapped or stale artifact fail closed.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -89448,7 +89448,7 @@
       "cancellation": "not cancellable",
       "windows_path": "PLATFORM BOUNDARY. Windows has no spctl. PA-0014 makes Authenticode verification the structural analogue of this acceptance gate, so on Windows PR-UPDATE-049 and this requirement collapse into one signature gate. Record that collapse explicitly rather than silently dropping a check. UNK-0009 is resolved by OD-0008 C6: until the owner has a Windows release feed no release qualifies, so this path is not reached and its live verification waits on that feed.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -89471,7 +89471,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The equivalent Windows check is whether the install directory is writable by the current user; a per-machine install under Program Files typically is not, so this path is COMMON on Windows, not rare. OD-0008 B15 and OD-0012 H: 'Move it to your Applications folder and try again.' is untrue on Windows; the message is exactly \"Marrow cannot replace itself in <path>. Reinstall it with the installer and try again.\", <path> being the parent directory's path. UNK-0009 is resolved by OD-0008 C6: until the owner has a Windows release feed no release qualifies, so this path is not reached and its live verification waits on that feed.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -89502,7 +89502,7 @@
       "cancellation": "not cancellable",
       "windows_path": "PLATFORM BOUNDARY. A detached Windows updater process (a small executable or a script run by the platform shell) that receives the same three arguments: the parent process id, the staged payload path and the install destination, with its output captured to a log beside the staging directory. UNK-0009 is resolved by OD-0008 C6: until the owner has a Windows release feed no release qualifies, so this path is not reached and its live verification waits on that feed.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -89529,7 +89529,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key, same 350 ms delay, then app.quit(). Note the app's own quit handling can delay termination (AppDelegate.swift:38-48 waits up to 4 minutes for a running merge), which interacts with the 25 s handoff timeout below.",
       "verification_method": "restart test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -89556,7 +89556,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same 25 s deadline, same phase guard, same marker removal. Reproduce the interaction with the merge-blocked quit; it is a real observable behavior, not a bug to repair.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -89583,7 +89583,7 @@
       "cancellation": "not cancellable",
       "windows_path": "PLATFORM BOUNDARY. The Windows updater must wait for the parent process id to exit (not kill -0), with the same roughly 60 second ceiling and the same give-up-and-clean-up behavior; move the installed files aside to a hidden sibling, move the new ones in, restore on failure, and relaunch. There is no quarantine attribute on Windows, so xattr has no analogue. PA-0015 applies: clear read-only attributes before deleting, and retry replace and delete with backoff. UNK-0009 is resolved by OD-0008 C6: until the owner has a Windows release feed no release qualifies, so this path is not reached and its live verification waits on that feed.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -89608,7 +89608,7 @@
       "cancellation": "The alert has only the default dismiss button; there is no retry affordance.",
       "windows_path": "A modal dialog on the main window with the same title and the same body text. Keep it modal: the source blocks.",
       "verification_method": "capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -89633,7 +89633,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key, same remove-then-compare order, same raw string equality.",
       "verification_method": "restart test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

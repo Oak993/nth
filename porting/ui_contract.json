@@ -22246,7 +22246,8 @@
       "source_evidence": [
         "DroppyCode/App/AppUpdater.swift:274-280"
       ],
-      "notes": "The title is Title Case with no trailing punctuation. This is the ONLY place an install error reaches the user; the installer script's three log lines never do. There is no retry affordance."
+      "notes": "The title is Title Case with no trailing punctuation. This is the ONLY place an install error reaches the user; the installer script's three log lines never do. There is no retry affordance.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "UPDATE",

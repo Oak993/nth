@@ -5119,70 +5119,8 @@
     "App.UpdateChecker"
    ],
    "records_total": 28,
-   "records_todo": [
-    "PR-UPDATE-031",
-    "PR-UPDATE-032",
-    "PR-UPDATE-033",
-    "PR-UPDATE-034",
-    "PR-UPDATE-035",
-    "PR-UPDATE-036",
-    "PR-UPDATE-037",
-    "PR-UPDATE-038",
-    "PR-UPDATE-039",
-    "PR-UPDATE-040",
-    "PR-UPDATE-041",
-    "PR-UPDATE-042",
-    "PR-UPDATE-043",
-    "PR-UPDATE-044",
-    "PR-UPDATE-045",
-    "PR-UPDATE-046",
-    "PR-UPDATE-047",
-    "PR-UPDATE-049",
-    "PR-UPDATE-050",
-    "PR-UPDATE-051",
-    "PR-UPDATE-052",
-    "PR-UPDATE-053",
-    "PR-UPDATE-054",
-    "PR-UPDATE-055",
-    "PR-UPDATE-056",
-    "PR-UPDATE-057",
-    "PR-UPDATE-058",
-    "UI-UPDATE-034"
-   ],
-   "parts": [
-    [
-     "PR-UPDATE-031",
-     "PR-UPDATE-032",
-     "PR-UPDATE-033",
-     "PR-UPDATE-034",
-     "PR-UPDATE-035",
-     "PR-UPDATE-036",
-     "PR-UPDATE-037",
-     "PR-UPDATE-038",
-     "PR-UPDATE-039",
-     "PR-UPDATE-040",
-     "PR-UPDATE-041",
-     "PR-UPDATE-042",
-     "PR-UPDATE-043",
-     "PR-UPDATE-044",
-     "PR-UPDATE-045",
-     "PR-UPDATE-046",
-     "PR-UPDATE-047",
-     "PR-UPDATE-049",
-     "PR-UPDATE-050",
-     "PR-UPDATE-051",
-     "PR-UPDATE-052",
-     "PR-UPDATE-053",
-     "PR-UPDATE-054",
-     "PR-UPDATE-055"
-    ],
-    [
-     "PR-UPDATE-056",
-     "PR-UPDATE-057",
-     "PR-UPDATE-058",
-     "UI-UPDATE-034"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M8-001",
     "T-M8-002",
@@ -5190,7 +5128,7 @@
     "T-M8-004"
    ],
    "risk": "HIGH",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "App.Runtime.AutoContinue",
