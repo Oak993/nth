@@ -520,7 +520,6 @@ public sealed class CopilotSessionThirdTests
     [Fact]
     [Trait("Req", "PR-PROVCLI-195")] // Services/Providers/CopilotSession.swift:768-770
     [Trait("Req", "PR-PROVCLI-196")] // Services/Providers/CopilotSession.swift:771-773
-    [Trait("Decision", "OD-0012")]
     public void An_Auto_tier_switch_is_refused_with_no_and_an_unknown_request_gets_minus_32601_naming_it()
     {
         using var runtime = new TestRuntime();
