@@ -266,10 +266,98 @@ public sealed class AppUpdater
     // :244
     private const double HandoffTimeout = 25;
 
-    // ENGINEERING DECISION: the Windows installer script's own content is PR-UPDATE-056 (part 2's work
-    // packet); this placeholder marks the file part 1 writes and part 2 replaces.
-    private const string InstallerScriptPlaceholder =
-        "# Marrow update installer: content is PR-UPDATE-056 (App.AppUpdater part 2).\r\n";
+    // :412-442. PR-UPDATE-056. ENGINEERING DECISION: PowerShell over powershell.exe (WindowsUpdateInstallBoundary.
+    // LaunchDetachedInstaller) is the Windows analogue of /bin/sh running install.sh; the three positional
+    // arguments ($1 PID, $2 NEW, $3 DEST) are the same argv the source passes, in the same order (:387-391),
+    // plus an optional fourth test-only override of the 0.25 s poll interval so a test can drive the "gives
+    // up" ceiling (:424, roughly 60 s of real wall-clock polling by an out-of-process script cannot use
+    // TestRuntime's manual clock, R-TEST-5) without a multi-second sleep; production never passes it.
+    // - trap '' HUP (:417) has no Windows analogue: a detached PowerShell child is not sent a HUP-equivalent
+    //   signal when its parent's console closes, so nothing is ignored here (PLATFORM BOUNDARY, no-op).
+    // - kill -0 "$PID" (:421) -> Get-Process -Id, an existence probe raising nothing on absence.
+    // - xattr -dr com.apple.quarantine (:439) has no analogue on Windows (no quarantine attribute); the
+    //   record's own windows_path says so. Nothing runs in its place.
+    // - open "$DEST" (:440) relaunches the installed app. DEVIATION (platform gap, PA-0014/UNK-0009): the
+    //   Windows release artifact's shape (a single executable at DEST, or a directory) is not decided until
+    //   a Windows release exists, so this mirrors the source structurally -- one unconditional launch call,
+    //   no error check -- rather than inventing a specific executable name inside DEST.
+    // - PA-0015: Remove-Item/Move-Item retry with backoff, because a just-exited process's file handles can
+    //   still linger on Windows.
+    // internal (not private): so a test can write this exact text to its own script file and run it as a
+    // real process, the way AppUpdaterInstallerScriptTests does, without going through the blocked Stage step.
+    internal const string InstallerScript = """
+        param(
+            [Parameter(Mandatory = $true)][int]$PID_,
+            [Parameter(Mandatory = $true)][string]$New,
+            [Parameter(Mandatory = $true)][string]$Dest,
+            [double]$PollIntervalSeconds = 0.25
+        )
+        $ErrorActionPreference = 'Stop'
+        $Staging = Split-Path -Path $New -Parent
+
+        function Remove-Tree($Path) {
+            for ($attempt = 0; $attempt -lt 5; $attempt++) {
+                try {
+                    if (Test-Path -LiteralPath $Path) {
+                        Get-ChildItem -LiteralPath $Path -Recurse -Force -ErrorAction SilentlyContinue |
+                            ForEach-Object { $_.Attributes = 'Normal' }
+                        Remove-Item -LiteralPath $Path -Recurse -Force
+                    }
+                    return
+                } catch {
+                    Start-Sleep -Milliseconds (100 * ($attempt + 1))
+                }
+            }
+        }
+
+        function Move-Tree($From, $To) {
+            for ($attempt = 0; $attempt -lt 5; $attempt++) {
+                try {
+                    Move-Item -LiteralPath $From -Destination $To -Force
+                    return $true
+                } catch {
+                    Start-Sleep -Milliseconds (100 * ($attempt + 1))
+                }
+            }
+            return $false
+        }
+
+        $i = 0
+        while (Get-Process -Id $PID_ -ErrorAction SilentlyContinue) {
+            Start-Sleep -Seconds $PollIntervalSeconds
+            $i++
+            if ($i -gt 240) {
+                Write-Output 'The app did not quit'
+                Remove-Tree $Staging
+                exit 1
+            }
+        }
+
+        $Backup = Join-Path (Split-Path -Path $Dest -Parent) ('.' + (Split-Path -Path $Dest -Leaf) + '.previous')
+        Remove-Tree $Backup
+        if (Test-Path -LiteralPath $Dest) {
+            if (-not (Move-Tree $Dest $Backup)) {
+                Write-Output 'Could not move the installed app aside'
+                Remove-Tree $Staging
+                exit 1
+            }
+        }
+
+        if (Move-Tree $New $Dest) {
+            Remove-Tree $Backup
+        } else {
+            Write-Output 'Could not move the update into place'
+            if (Test-Path -LiteralPath $Backup) {
+                Move-Tree $Backup $Dest | Out-Null
+            }
+            Remove-Tree $Staging
+            exit 1
+        }
+
+        Start-Process -FilePath $Dest -ErrorAction SilentlyContinue
+        Remove-Tree $Staging
+        exit 0
+        """;
 
     // :249. PORT-ONLY: this overload (ED-188) lets tests inject a fake IUpdateInstallBoundary without an
     // InternalsVisibleTo edit (ED-119 already declined that need for this unit).
@@ -307,9 +395,14 @@ public sealed class AppUpdater
             catch (Exception error) when (SwiftTry.IsThrownError(error))
             {
                 Progress.Fail(); // :273
-                // :274-280. PR-UPDATE-057 / UI-UPDATE-034 (part 2): the modal "Update Failed" alert is that
-                // record's own work packet, not this part's; no alert-presentation seam exists yet to call.
-                _ = error;
+                // :274-280. PR-UPDATE-057 / UI-UPDATE-034: the modal "Update Failed" alert, run modally
+                // (await, not fire-and-forget) so this task does not finish and clear installTask until the
+                // alert is dismissed, matching runModal's block within the same MainActor.run closure.
+                await AlertPresentation.Presenter.Current.Show(
+                    "Update Failed", // :276, title case, no full stop
+                    SwiftErrors.LocalizedDescription(error), // :277
+                    AlertStyle.Warning, // :278
+                    [new AlertButton("OK", () => { })]); // :279, the single default dismiss button, no retry affordance
             }
             finally
             {
@@ -361,7 +454,7 @@ public sealed class AppUpdater
 
         var stagingDirectory = SwiftPath.DeletingLastPathComponent(staged); // :380
         var script = SwiftPath.AppendingPathComponent(stagingDirectory, "install.ps1"); // :380-381, ENGINEERING DECISION: PowerShell; see WindowsUpdateInstallBoundary
-        File.WriteAllText(script, InstallerScriptPlaceholder); // :381
+        File.WriteAllText(script, InstallerScript); // :381
         var log = SwiftPath.AppendingPathComponent(stagingDirectory, "install.log"); // :382-384
 
         boundary.LaunchDetachedInstaller(Environment.ProcessId, staged, destination, script, log); // :385-395

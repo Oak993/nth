@@ -118,8 +118,11 @@ public sealed class WindowsUpdateInstallBoundary : IUpdateInstallBoundary
         var launcher = new ProcessLauncher
         {
             // ENGINEERING DECISION: the Windows analogue of /bin/sh running the installer script; the
-            // script's own content and extension are PR-UPDATE-056 (part 2).
-            ExecutableURL = "powershell.exe",
+            // script's own content and extension are PR-UPDATE-056 (part 2). A full path is required:
+            // ProcessLauncher's CreateProcessW call passes ExecutableURL as lpApplicationName, which (unlike
+            // lpCommandLine with a null lpApplicationName) searches only the calling process's own current
+            // directory for a bare module name, never PATH.
+            ExecutableURL = Path.Join(Environment.SystemDirectory, "WindowsPowerShell", "v1.0", "powershell.exe"),
             Arguments =
             [
                 "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", scriptPath,
