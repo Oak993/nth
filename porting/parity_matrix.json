@@ -7,9 +7,9 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "IMPLEMENTED": 2292,
+      "IMPLEMENTED": 2344,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
-      "SPECIFIED": 1605,
+      "SPECIFIED": 1553,
       "RETIRED": 6,
       "DISCOVERED": 10
     },
@@ -48563,7 +48563,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The working directory is passed BOTH as the process's directory and as this argv token, so a Windows path appears on the command line and must survive quoting with its drive letter, backslashes and any spaces.",
       "verification_method": "contract fixture asserting the eight tokens",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -48620,7 +48620,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The substring and equality tests are ordinal.",
       "verification_method": "unit test over an empty model, a claude slug, gpt-oss-120b with an explicit high, gemini-3.1-pro with medium, and a slug carrying a -low suffix",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -48646,7 +48646,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None.",
       "verification_method": "contract fixture over all four runtime modes crossed with plan and build",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "provider-argv-and-handshakes.md section 10 item 9 (--dangerously-skip-permissions is appended even in plan mode)",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -48670,7 +48670,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None.",
       "verification_method": "contract fixture plus a unit test on the baseline flag for nil, empty and real ids",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -48700,7 +48700,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None. Contrast Pi, where the same switch DOES take effect because the gate file is rewritten every turn (PR-PROVCLI-277). Antigravity and the ACP providers require a process restart for a mode change; Claude, Codex, Copilot outside the Auto boundary, Pi and Command Code apply live (port_impacts.md entry 23).",
       "verification_method": "interaction test changing the runtime mode between turns and asserting the argv of a relaunch is unchanged in its mode flags but updated in its model flag",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "upstream_defects.md entry 2 (runtimeMode and interactionMode are write-only; a mid-thread mode change cannot reach agy)",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -48728,7 +48728,7 @@
       "cancellation": "stop() sets isStopping and terminates.",
       "windows_path": "The lines framer must split on 0x0A only and tolerate a trailing 0x0D (port_impacts.md entry 18). The child belongs in a Job Object (PA-0007).",
       "verification_method": "interaction test with a stand-in emitting an empty-id init followed by a real one",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -48754,7 +48754,7 @@
       "cancellation": "The timer is not cancelled on success; it simply finds the continuation already gone.",
       "windows_path": "The sentence tells the user to run agy in Terminal, which reads as a macOS instruction; whether that wording is right for Windows is a product-text decision, not a source fact, and is NOT changed without one.",
       "verification_method": "interaction test with a silent stand-in, asserting the 30 second bound and the exact message",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -48780,7 +48780,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None.",
       "verification_method": "contract fixture comparing the line byte for byte, and a unit test asserting attachments are dropped",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -48806,7 +48806,7 @@
       "cancellation": "This IS the cancellation path.",
       "windows_path": "TerminateProcess behaves like SIGKILL, which is acceptable because the source already relies only on server-side persistence and nothing is flushed on the signal. The FLAG-BEFORE-KILL ORDERING must be preserved so the chat does not read an unexpected exit (port_impacts.md entry 24).",
       "verification_method": "interaction test asserting no .exited event follows an interrupt",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -48830,7 +48830,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None.",
       "verification_method": "unit test asserting the exact message and that the two methods produce nothing",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -48856,7 +48856,7 @@
       "cancellation": "This IS the stop path.",
       "windows_path": "TerminateProcess; ordering preserved as in PR-PROVCLI-327.",
       "verification_method": "interaction test asserting no .exited after a stop",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -48880,7 +48880,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None.",
       "verification_method": "unit test feeding one line of every event and step type plus unknown ones",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -48907,7 +48907,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None.",
       "verification_method": "unit test over a usage-only step, a text step and a resumed conversation restarting its indices",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -48934,7 +48934,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The file read has the usual locked-file caveat; an unreadable file yields an empty baseline.",
       "verification_method": "unit test over an ACTIVE-then-DONE pair and a DONE-only step",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -48961,7 +48961,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The lowercased substring tests must be invariant.",
       "verification_method": "unit test over ERROR, DONE with an error, DONE clean, and a denied message",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -48987,7 +48987,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None.",
       "verification_method": "unit test over a fresh conversation's first two results and a resumed conversation's first result",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -49012,7 +49012,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The notice names the CLI's settings, not the app's; the wording is source text.",
       "verification_method": "unit test over a streamed turn, a result-only turn and a turn with denied actions",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -49038,7 +49038,7 @@
       "cancellation": "An interrupt short-circuits the whole switch.",
       "windows_path": "None.",
       "verification_method": "unit test over all five branches including WAITING with and without denials",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -49064,7 +49064,7 @@
       "cancellation": "A stop or an interrupt suppresses the exit notice but NOT the turn completion.",
       "windows_path": "The substring tests must be invariant-lowercased. The hint's Terminal wording reads as macOS text; changing it is a product decision. The tail comes from the bounded stderr collector (PA-0008).",
       "verification_method": "interaction test over a crash during start, a crash mid-turn, an interrupt and a stop",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -49090,7 +49090,7 @@
       "cancellation": "The 30 second timeouts.",
       "windows_path": "ANSI stripping is load-bearing on Windows. The TSV parse depends on the CLI emitting a real tab; a Windows console that pads with spaces instead would drop every row, so the real output must be captured on Windows before this is called verified.",
       "verification_method": "unit test against a captured `agy models` output asserting the step order, plus a Windows capture comparison for the tab and ANSI assumptions",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -49116,7 +49116,7 @@
       "cancellation": "The 20 second timeout.",
       "windows_path": "ANSI stripping and invariant lowercasing are both load-bearing.",
       "verification_method": "unit test over a successful listing, a sign-in message and an unclassifiable failure",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -49141,7 +49141,7 @@
       "cancellation": "The 30 second timeouts.",
       "windows_path": "None beyond process spawning.",
       "verification_method": "unit test against recorded envelopes for both routes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -49166,7 +49166,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The ISO 8601 parsing must be culture-invariant. The middle dot must survive as UTF-8.",
       "verification_method": "unit test over the structured envelope and the text fallback, each with a fractional-seconds reset stamp, a whole-second stamp and junk",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -49192,7 +49192,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The case-insensitive contains must be invariant.",
       "verification_method": "unit test over the structured shape, the text fallback and neither",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "provider-argv-and-handshakes.md section 10 item 10 (parseCredits declares a fallback parameter its structured branch never consults)",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -49216,7 +49216,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None. This is a product table and every entry must be transcribed; a dropped name changes which icon and row shape the user sees.",
       "verification_method": "unit test asserting all fifty names map to the stated kind and an unknown name maps to other",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -49242,7 +49242,7 @@
       "cancellation": "not cancellable",
       "windows_path": "relativePath has the same prefix-stripping caveat as PR-PROVCLI-062. The en dash must survive as a non-ASCII character. Note Antigravity's humanize uses `capitalized` on the first word, which lowercases the remaining characters of that word, unlike Command Code's humanize which only uppercases the first character - the two must not be shared.",
       "verification_method": "unit test - the seven name lists and their default, and that the row switch is on the kind rather than the name",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -50714,7 +50714,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Three key spellings in a fixed order, and no detail. \"wait_5_seconds\" is a literal name with a digit in it.",
       "verification_method": "unit test - one case per name in the group, with and without the parameter keys",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -50736,7 +50736,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The path-only gate on the detail is an explicit condition in source, not an accident of the data.",
       "verification_method": "unit test - one case per name in the group, with and without the parameter keys",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -50759,7 +50759,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Do not try to fill the diff from the parameters; the content is not there. The diff is read from the working tree elsewhere.",
       "verification_method": "unit test - one case per name in the group, with and without the parameter keys",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -50781,7 +50781,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The folder key list is its own five-key order and is NOT the same list as Self.path(in:); do not share one helper between them.",
       "verification_method": "unit test - one case per name in the group, with and without the parameter keys",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -50803,7 +50803,7 @@
       "cancellation": "not cancellable",
       "windows_path": "This is the largest name list in the file and the one most likely to be trimmed by accident; every browser_* name belongs to .web, not to .other.",
       "verification_method": "unit test - one case per name in the group, with and without the parameter keys",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -50825,7 +50825,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Six key spellings in a fixed order and the same 96-character limit Command Code uses (PR-PROVCLI-406).",
       "verification_method": "unit test - one case per name in the group, with and without the parameter keys",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -50847,7 +50847,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Unlike Claude and Command Code, nothing is parsed out of the tool name here; the server and tool arrive as parameters. The \"tool\" fallback is lower case while the \"MCP\" fallback is upper case.",
       "verification_method": "unit test - one case per name in the group, with and without the parameter keys",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -50869,7 +50869,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The same four conditions as Command Code, written out twice in source; both call sites must behave identically.",
       "verification_method": "unit test - empty, \"{}\", 300 characters, 301 characters and a null parameter value",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -50893,7 +50893,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The order decides which key wins when a call carries two of them; reordering changes visible titles.",
       "verification_method": "unit test - a parameter object carrying several of the keys asserts which one wins",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -50914,7 +50914,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A port that returns the first PRESENT key rather than the first non-empty one shows blank titles whenever Antigravity sends an empty string for a preferred key.",
       "verification_method": "unit test - first key empty, second key set, asserts the second wins",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -50937,7 +50937,7 @@
       "cancellation": "not cancellable",
       "windows_path": "U+2013, not a hyphen. Note the format differs from the other adapters' \"lines 12–40\" (PR-PROVCLI-393 and PR-PROVCLI-399): here it is an L prefix with no word.",
       "verification_method": "unit test - start only, start with a greater end, start with an equal end, start with a smaller end",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -50958,7 +50958,7 @@
       "cancellation": "not cancellable",
       "windows_path": "This differs from Command Code's humanize (PR-PROVCLI-409), which uses prefix(1).uppercased() + dropFirst() and therefore preserves the case of the rest of the first word, and from Copilot's, which also replaces hyphens. Three providers, three helpers; keep them apart.",
       "verification_method": "unit test - \"run_command\", \"browser_get_dom\" and a first word with inner capitals",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -50979,7 +50979,7 @@
       "cancellation": "The 30 second timeouts on the two shell calls.",
       "windows_path": "Concurrency is observable as one round of latency rather than two. The try? on both awaits is deliberate error suppression, not an oversight.",
       "verification_method": "unit test against a captured `agy models` output",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -51000,7 +51000,7 @@
       "cancellation": "The 30 second timeouts on the two shell calls.",
       "windows_path": "Do not default the id to the first model here; the fallback happens at the end and rewrites a different field.",
       "verification_method": "unit test against a captured `agy models` output",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -51021,7 +51021,7 @@
       "cancellation": "The 30 second timeouts on the two shell calls.",
       "windows_path": "Verbatim message with backticks; UTF-8 is the assumed encoding of the CLI output on Windows too.",
       "verification_method": "unit test against a captured `agy models` output",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -51042,7 +51042,7 @@
       "cancellation": "The 30 second timeouts on the two shell calls.",
       "windows_path": "ANSI stripping is load-bearing: a Windows console that emits colour codes would otherwise break isSlug on every row. The parse depends on a real U+0009 tab, so the real Windows output must be captured before this is called verified.",
       "verification_method": "unit test against a captured `agy models` output",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -51066,7 +51066,7 @@
       "cancellation": "The 30 second timeouts on the two shell calls.",
       "windows_path": "The four allowed punctuation characters are exactly hyphen, underscore, period - and nothing else; a slug with a slash or a colon is rejected.",
       "verification_method": "unit test against a captured `agy models` output",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -51087,7 +51087,7 @@
       "cancellation": "The 30 second timeouts on the two shell calls.",
       "windows_path": "Both conditions on the name are needed; a present-but-empty second part must fall back.",
       "verification_method": "unit test against a captured `agy models` output",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -51108,7 +51108,7 @@
       "cancellation": "The 30 second timeouts on the two shell calls.",
       "windows_path": "All three tests, in a port that may be tempted to keep only the equality. The unanchored prefix is upstream behaviour and is reproduced, not fixed.",
       "verification_method": "unit test against a captured `agy models` output",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -51130,7 +51130,7 @@
       "cancellation": "The 30 second timeouts on the two shell calls.",
       "windows_path": "The order array is separate from the dictionary and is the only thing that fixes output order; a dictionary iteration would be unordered.",
       "verification_method": "unit test against a captured `agy models` output",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -51151,7 +51151,7 @@
       "cancellation": "The 30 second timeouts on the two shell calls.",
       "windows_path": "Three separate rules: name frozen, efforts de-duplicated by value, flag monotonic.",
       "verification_method": "unit test against a captured `agy models` output",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -51172,7 +51172,7 @@
       "cancellation": "The 30 second timeouts on the two shell calls.",
       "windows_path": "The intersection direction matters: it is the fixed list filtered by the collected set, not the collected list sorted.",
       "verification_method": "unit test against a captured `agy models` output",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -51193,7 +51193,7 @@
       "cancellation": "The 30 second timeouts on the two shell calls.",
       "windows_path": "The two-step rule collapses to \"the highest available\" for this fixed order, but must be written as the source has it so a change to the effort list keeps the same behaviour.",
       "verification_method": "unit test against a captured `agy models` output",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -51214,7 +51214,7 @@
       "cancellation": "The 30 second timeouts on the two shell calls.",
       "windows_path": "Two different verbatim messages for two different failures; do not merge them.",
       "verification_method": "unit test against a captured `agy models` output",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -51235,7 +51235,7 @@
       "cancellation": "The 30 second timeouts on the two shell calls.",
       "windows_path": "The rewrite is a whole-value replacement in source; a port with mutable structs may simply set the flag, but every other field must be preserved.",
       "verification_method": "unit test against a captured `agy models` output",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -51266,7 +51266,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The settings path travels in the child process environment block, not on the command line, so no argv quoting applies to it.",
       "verification_method": "contract fixture: start an Antigravity session with three connected MCP servers and assert the spawned argv contains no \"--allowed-mcp-server-names\" token and none of the three ids, and that the child environment carries GEMINI_CLI_SYSTEM_SETTINGS_PATH",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
