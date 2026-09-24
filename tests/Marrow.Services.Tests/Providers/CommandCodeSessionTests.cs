@@ -219,6 +219,14 @@ public sealed class CommandCodeSessionTests
             error.Message);
     }
 
+    // PR-PROVCLI-207 (mod install, approvals-directory creation, watcher start, started/stopped
+    // flags) is the success path immediately past the guard above. Start() calls the parameterless
+    // CommandCodeAPI.InstallMod(), which resolves the real Environment.SpecialFolder.LocalApplicationData
+    // (CommandCodeAPI.cs:643) with no seam Start() passes through, so driving Start() to that success
+    // path in a test would write to the real %LOCALAPPDATA%\Marrow Code\CommandCode - the folder the
+    // hard fences forbid touching. UNTESTABLE at this part's boundary for that reason; the same
+    // filesystem-seam gap is why PR-PROVCLI-216 and PR-PROVCLI-217 (below) are untestable.
+
     [Fact]
     [Trait("Req", "PR-PROVCLI-208")] // DroppyCode/Services/Providers/CommandCodeSession.swift:126-128
     public async Task Send_throws_not_running_when_the_session_has_not_started()
@@ -388,6 +396,13 @@ public sealed class CommandCodeSessionTests
     // Interrupt/Stop's own interruptRequested and turnActive assertions above; the dictionary-clear
     // half and the unconditional-clear-regardless-of-turnActive nuance are UNTESTABLE at this part's
     // boundary for the reason above.
+    //
+    // PR-PROVCLI-216 (StdioProcess construction, the process.Start() failure wrapping and turnActive
+    // reset) and PR-PROVCLI-217 (the stdin prompt write, CloseInput, the .turnStarted event and the
+    // read-then-await-exit task) sit even further past that same MCPBridge.InstallBridge() call
+    // (CommandCodeSession.cs:176, Send :174-176), so reaching either one from a test hits the identical
+    // real-%LOCALAPPDATA%\Marrow Code touch and is UNTESTABLE at this part's boundary for the same
+    // reason as PR-PROVCLI-209 and PR-PROVCLI-207 above.
 
     [Fact]
     [Trait("Req", "PR-PROVCLI-219")] // DroppyCode/Services/Providers/CommandCodeSession.swift:229-235
