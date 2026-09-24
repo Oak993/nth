@@ -1127,11 +1127,11 @@ public sealed class AntigravitySessionTests
         using var runtime = new TestRuntime();
         var script = new AntigravityScript("models");
         script.Set("models.stdout",
-            "\u001b[1mMODEL\u001b[0m\tNAME\n" +
+            "\U0000001B[1mMODEL\U0000001B[0m\tNAME\n" + // U+001B ESCAPE
             "Fetching models...\n" +
             "gemini-3.1-pro-low\tGemini 3.1 Pro (Low)\n" +
             "gemini-3.1-pro-high\tGemini 3.1 Pro (High)\n" +
-            "\u001b[32mgemini-3-flash\u001b[0m\tGemini 3 Flash\n" +
+            "\U0000001B[32mgemini-3-flash\U0000001B[0m\tGemini 3 Flash\n" + // U+001B ESCAPE
             "claude-sonnet-4.5\t\n" +
             "gemini-3.1-pro-low\tRenamed (Low)\n");
         script.Set("model.stdout", "{\"command\":{\"data\":{\"id\":\"gemini-3-flash\"}}}");
@@ -1160,7 +1160,7 @@ public sealed class AntigravitySessionTests
     {
         using var runtime = new TestRuntime();
         var script = new AntigravityScript("auth-in");
-        script.Set("models.stdout", "\u001b[2mgemini-3-flash\u001b[0m\tGemini 3 Flash\n");
+        script.Set("models.stdout", "\U0000001B[2mgemini-3-flash\U0000001B[0m\tGemini 3 Flash\n"); // U+001B ESCAPE
         script.Set("models.stderr", "login required\n");
         Assert.Equal(new ProviderStatus.Auth.SignedIn(null), AuthStatus(runtime, script));
         Assert.Equal(["models"], script.Calls().Single());
