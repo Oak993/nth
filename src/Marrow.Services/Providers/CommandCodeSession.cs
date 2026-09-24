@@ -18,16 +18,18 @@ namespace Marrow.Services.Providers;
 // and HandleEvent's run_start/message_start/text_delta/thinking_start/thinking_delta/thinking_end/
 // message_end cases (:286-337).
 //
-// Part 2 (PR-PROVCLI-228 to 249, 394, 395) and part 3 (PR-PROVCLI-396 to 412, UI-PROVCLI-033) add:
-// the rest of HandleEvent's switch (model_request_start/end, tool_queued/update/completed/errored/
-// tool_hook_blocked/tool_denied, subagent_progress, session_titled, compaction_start/done, notice,
-// run_error, interrupted, run_end, :338-431), DidClose's result/exit-code routing (:434-491),
-// noteTurnCap/isRateLimit/friendlyError (:492-513), makeToolCall/finishEdit/snapshot (:548-649), the
-// approval watcher and scanApprovals/reply/clearApprovalFiles/grantKey (:650-780) and ResolveApproval's
-// body (:241-251). Their call sites exist below where Send/HandleEvent/Stop/DidClose need them
-// (StartWatcher/StopWatcher, the tool_* HandleEvent cases, ResolveApproval) but are no-op placeholders
-// here, never exercised by this part's own tests, so the type keeps compiling while those parts are
-// pending.
+// Part 2 (PR-PROVCLI-228 to 249, 394, 395) added the rest of HandleEvent's switch
+// (model_request_start/end, tool_queued/update/completed/errored/tool_hook_blocked/tool_denied,
+// subagent_progress, session_titled, compaction_start/done, notice, run_error, interrupted, run_end,
+// :338-431), DidClose's result/exit-code routing (:434-491), noteTurnCap/isRateLimit/friendlyError
+// (:492-513), the whole of MakeToolCall/Humanize/FinishEdit/Snapshot (:548-649, including part 3's
+// cases below), the approval watcher and ScanApprovals/Decide/AutoApproves/MakeApproval/GrantKey/
+// Reply/ClearApprovalFiles (:650-780) and ResolveApproval's body (:241-251).
+//
+// Part 3 (PR-PROVCLI-396 to 412, UI-PROVCLI-033) is MakeToolCall's shell_output through the default
+// mcp__/humanized-fallback cases (:560-618), already implemented as part of part 2's MakeToolCall
+// above; this part adds the tests proving each of those cases against the Swift, plus the
+// UI-PROVCLI-033 (OD-0012 F1 "Marrow" decline wording) coverage on Reply's deny branch (:749-762).
 public sealed class CommandCodeSession : ProviderSession
 {
     /// <summary>The result line, kept until the process is gone so the turn closes in order. :60-64</summary>
