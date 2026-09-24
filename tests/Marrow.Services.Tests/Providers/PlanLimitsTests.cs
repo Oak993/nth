@@ -10,6 +10,7 @@ using Xunit;
 namespace Marrow.Services.Tests.Providers;
 
 // Source: DroppyCode/Services/Providers/PlanLimits.swift (B2 1fbf81e), :1-336.
+[Collection(PlanLimitsProcessCollection.Name)]
 public sealed class PlanLimitsTests
 {
     private const string MiddleDot = "·"; // U+00B7 MIDDLE DOT
