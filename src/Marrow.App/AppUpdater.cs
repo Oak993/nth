@@ -1,4 +1,5 @@
 using Marrow.App;
+using Marrow.App.Port;
 using Marrow.App.Views.Settings;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
@@ -20,10 +21,12 @@ public static class UpdateProgressMilestones
 // :27-226
 public sealed class UpdateInstallProgress : MainActorModel
 {
-    private static readonly Ambient<UpdateInstallProgress> running = new(() => new());
+    // PORT-ONLY: an Ambient (not a bare Lazy singleton) so a test can give itself a fresh, isolated instance
+    // the way AppInfo.Running and MainActor.Executor already do; production code never overrides it.
+    internal static readonly Ambient<UpdateInstallProgress> Running = new(() => new());
 
     // :30
-    public static UpdateInstallProgress Shared => running.Current;
+    public static UpdateInstallProgress Shared => Running.Current;
 
     // :34-38
     public sealed class FractionTarget : MainActorModel
@@ -247,8 +250,9 @@ public sealed class UpdateInstallProgress : MainActorModel
 // :237-443
 public sealed class AppUpdater
 {
-    private static readonly Ambient<AppUpdater> running = new(() => new());
+    private static readonly Ambient<AppUpdater> running = new(() => new(new WindowsUpdateInstallBoundary()));
     private TaskHandle? installTask = null;
+    private readonly IUpdateInstallBoundary boundary;
 
     // :239
     public static AppUpdater Shared => running.Current;
@@ -262,8 +266,18 @@ public sealed class AppUpdater
     // :244
     private const double HandoffTimeout = 25;
 
-    // :249
-    private AppUpdater() { }
+    // ENGINEERING DECISION: the Windows installer script's own content is PR-UPDATE-056 (part 2's work
+    // packet); this placeholder marks the file part 1 writes and part 2 replaces.
+    private const string InstallerScriptPlaceholder =
+        "# Marrow update installer: content is PR-UPDATE-056 (App.AppUpdater part 2).\r\n";
+
+    // :249. PORT-ONLY: this overload (ED-188) lets tests inject a fake IUpdateInstallBoundary without an
+    // InternalsVisibleTo edit (ED-119 already declined that need for this unit).
+    private AppUpdater() : this(new WindowsUpdateInstallBoundary()) { }
+
+    public AppUpdater(IUpdateInstallBoundary boundary) => this.boundary = boundary;
+
+    private static UpdateInstallProgress Progress => UpdateInstallProgress.Shared;
 
     // :254-259
     public bool ConsumeRelaunchMarker()
@@ -277,20 +291,122 @@ public sealed class AppUpdater
     // :261-283
     public void Install(AvailableUpdate update)
     {
-        if (installTask is not null || AppInfo.Current.IsDevelopment) return;
+        if (installTask is not null || AppInfo.Current.IsDevelopment) return; // :262
 
-        // DEVIATION PA-0014: the current public release feed has no qualifying Windows release asset (UNK-0009).
-        // Do not start an install or present a fabricated failure for an update that cannot qualify on Windows.
-        _ = update;
+        installTask = MainActor.Spawn(async () =>
+        {
+            try
+            {
+                Progress.Begin(); // :265
+                var image = await Download(update.DownloadURL); // :267
+                Progress.BeginVerification(); // :268
+                var staged = await Stage(image, update.Version); // :269
+                Progress.BeginStaging(); // :270
+                HandOff(staged, update.Version); // :271
+            }
+            catch (Exception error) when (SwiftTry.IsThrownError(error))
+            {
+                Progress.Fail(); // :273
+                // :274-280. PR-UPDATE-057 / UI-UPDATE-034 (part 2): the modal "Update Failed" alert is that
+                // record's own work packet, not this part's; no alert-presentation seam exists yet to call.
+                _ = error;
+            }
+            finally
+            {
+                installTask = null; // :264 defer { installTask = nil }
+            }
+        });
     }
 
-    // :346-368
-    public static void VerifySignature(SwiftURL appURL)
+    // :299-341 stage(image:expectedVersion:). PORT-ONLY: internal (not private) so a test can drive it
+    // directly against a FakeUpdateInstallBoundary without going through the whole install() pipeline.
+    internal async Task<string> Stage(string image, string expectedVersion)
     {
-        // DEVIATION PA-0014: no Windows release qualifies until the feed publishes a Windows asset and its publisher
-        // identity is established; the Apple Developer ID requirement has no Windows meaning.
-        _ = appURL;
-        throw new PlatformNotSupportedException();
+        var staged = await boundary.Stage(image, expectedVersion); // :299-330
+        boundary.Verify(staged); // :337-340, :346-368 (collapsed per PR-UPDATE-051 windows_path)
+        var version = boundary.ReadVersion(staged); // :332-333
+        if (version is null ||
+            AppVersion.Create(version) is not { } actual ||
+            AppVersion.Create(expectedVersion) is not { } expected ||
+            actual != expected)
+        {
+            throw new UpdateInstallError($"The downloaded app is version {version ?? "unknown"}, not {expectedVersion}."); // :334-336
+        }
+        return staged;
+    }
+
+    // :287-295
+    private static async Task<string> Download(SwiftURL url)
+    {
+        // :288-289. DEVIATION OD-0012 F1 ("Droppy Code" -> "Marrow"). No extension: UNK-0009 means the
+        // Windows artifact format, and so its extension, is not decided.
+        var destination = Path.Combine(Path.GetTempPath(), $"MarrowUpdate-{Guid.NewGuid():D}");
+        var downloader = new Downloader(fraction =>
+            MainActor.Spawn(() => { UpdateInstallProgress.Shared.NoteDownloadProgress(fraction); return Task.CompletedTask; })); // :290-291
+        await downloader.Download(url, destination); // :293
+        return destination; // :294
+    }
+
+    // :372-410. PORT-ONLY: internal with an optional destinationOverride (not part of the Swift, which reads
+    // Bundle.main.bundleURL directly) so a test can point the writability gate at a directory it controls.
+    internal void HandOff(string staged, string version, string? destinationOverride = null)
+    {
+        var destination = destinationOverride ?? InstalledAppDirectory(); // :375
+        var parent = SwiftPath.DeletingLastPathComponent(destination); // :376
+        if (!IsWritableDirectory(parent))
+        {
+            // :377-379, DEVIATION OD-0008 B15; OD-0012 H, F1.
+            throw new UpdateInstallError($"Marrow cannot replace itself in {parent}. Reinstall it with the installer and try again.");
+        }
+
+        var stagingDirectory = SwiftPath.DeletingLastPathComponent(staged); // :380
+        var script = SwiftPath.AppendingPathComponent(stagingDirectory, "install.ps1"); // :380-381, ENGINEERING DECISION: PowerShell; see WindowsUpdateInstallBoundary
+        File.WriteAllText(script, InstallerScriptPlaceholder); // :381
+        var log = SwiftPath.AppendingPathComponent(stagingDirectory, "install.log"); // :382-384
+
+        boundary.LaunchDetachedInstaller(Environment.ProcessId, staged, destination, script, log); // :385-395
+
+        UserDefaults.Standard.Current.Set(RelaunchVersionKey, version); // :396
+        Progress.NoteHandoff(); // :397
+
+        // :399-404. If the quit is refused the installer gives up on its own; the pill goes back too.
+        MainActor.Spawn(async () =>
+        {
+            await SwiftTask.TrySleep(SwiftTask.Seconds(HandoffTimeout)); // :400
+            if (UpdateInstallProgress.Shared.UpdateInstallProgressPhase != UpdateInstallProgress.Phase.Handoff) return; // :401
+            UserDefaults.Standard.Current.RemoveObject(RelaunchVersionKey); // :402
+            UpdateInstallProgress.Shared.Fail(); // :403
+        });
+
+        // :405-409. NSApp.terminate(nil): the app-quit seam is not yet ported (App.Window.WindowManager's
+        // own work packet); left unwritten here and reported, per the section 6 stop protocol.
+        MainActor.Spawn(async () =>
+        {
+            await SwiftTask.TrySleep(TimeSpan.FromMilliseconds(350)); // :407
+        });
+    }
+
+    // :375. ENGINEERING DECISION: the Windows analogue of Bundle.main.bundleURL, the running app's own
+    // install directory, is the folder holding its executable.
+    private static string InstalledAppDirectory() =>
+        Path.GetDirectoryName(Environment.ProcessPath) ?? AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, '/');
+
+    // :377. FileManager.default.isWritableFile(atPath:). ENGINEERING DECISION: Windows ACL inspection
+    // alone can be wrong under deny rules and UAC virtualization, so this probes with a real temporary file.
+    private static bool IsWritableDirectory(string path)
+    {
+        if (!Directory.Exists(path)) return false;
+        var probe = Path.Combine(path, $".marrow-write-probe-{Guid.NewGuid():N}");
+        try
+        {
+            using (File.Create(probe)) { }
+            File.Delete(probe);
+            return true;
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        {
+            return false;
+        }
     }
 }
 
@@ -301,7 +417,9 @@ public sealed class UpdateInstallError(string message) : SwiftError
     public override string? ErrorDescription => message;
 }
 
-// :459-528
+// :459-528. ED-119 keeps AppUpdater's downloadTask-with-delegate surface out of F.HTTP (PA-0014 replaces
+// this install path); this streams the same ephemeral-session request over URLSession.Bytes instead,
+// reporting the same byte ratio (:496-502) while writing chunks straight to the destination file.
 internal sealed class Downloader
 {
     private readonly Action<double> onProgress;
@@ -309,13 +427,81 @@ internal sealed class Downloader
     // :468-470
     public Downloader(Action<double> onProgress) => this.onProgress = onProgress;
 
-    // :472-486
-    public Task Download(SwiftURL url, SwiftURL destination)
+    // :472-475. PORT-ONLY: split out so a test can assert the literal timeout and connectivity values
+    // without needing a real, possibly slow, network round trip to observe them.
+    internal static URLSessionConfiguration BuildConfiguration()
     {
-        // DEVIATION PA-0014: this download path is unreachable until a qualifying Windows release asset is published.
-        _ = onProgress;
-        _ = url;
-        _ = destination;
-        throw new PlatformNotSupportedException();
+        var configuration = URLSessionConfiguration.Ephemeral; // :472
+        configuration.TimeoutIntervalForRequest = 30; // :473
+        configuration.TimeoutIntervalForResource = 1800; // :474
+        configuration.WaitsForConnectivity = false; // :475
+        return configuration;
+    }
+
+    // :481, DEVIATION OD-0012 F1. PORT-ONLY: split out for the same reason as BuildConfiguration above.
+    internal static URLRequest BuildRequest(SwiftURL url) =>
+        new URLRequest(new Uri(url.AbsoluteString)).SetValue($"Marrow/{AppInfo.Current.Version}", "User-Agent");
+
+    // :472-486, :496-502, :504-521, :523-527
+    public async Task Download(SwiftURL url, string destination)
+    {
+        var configuration = BuildConfiguration();
+        var session = new URLSession(configuration);
+        var request = BuildRequest(url);
+
+        URLSession.AsyncBytes bytes;
+        URLResponse response;
+        try
+        {
+            (bytes, response) = await session.Bytes(request); // :472, one request-shaped fetch replacing the delegate-driven downloadTask
+        }
+        catch (CancellationError)
+        {
+            throw;
+        }
+        catch (Exception error) when (SwiftTry.IsThrownError(error))
+        {
+            throw new UpdateInstallError($"The update could not be downloaded. {SwiftErrors.LocalizedDescription(error)}"); // :523-527
+        }
+
+        var http = response as HTTPURLResponse;
+        var expected = http?.ExpectedContentLength ?? -1;
+        var buffer = new byte[81_920];
+        var index = 0;
+        var file = File.Create(destination);
+        try
+        {
+            long written = 0;
+            await foreach (var b in bytes)
+            {
+                buffer[index++] = b;
+                if (index < buffer.Length) continue;
+                await file.WriteAsync(buffer.AsMemory(0, index));
+                written += index;
+                index = 0;
+                onProgress(expected > 0 ? (double)written / expected : 0); // :497-502
+            }
+            if (index > 0)
+            {
+                await file.WriteAsync(buffer.AsMemory(0, index));
+                written += index;
+            }
+            onProgress(expected > 0 ? (double)written / expected : 0); // :497-502
+        }
+        catch (Exception error) when (SwiftTry.IsThrownError(error))
+        {
+            await file.DisposeAsync();
+            try { File.Delete(destination); } catch (IOException) { }
+            throw new UpdateInstallError($"The update could not be downloaded. {SwiftErrors.LocalizedDescription(error)}"); // :523-527
+        }
+        finally
+        {
+            await file.DisposeAsync();
+        }
+
+        if (http is null)
+            throw new UpdateInstallError("The download had nowhere to go."); // :508-509
+        if (http.StatusCode is < 200 or > 299)
+            throw new UpdateInstallError($"The download failed with HTTP {http.StatusCode}."); // :510-512
     }
 }
