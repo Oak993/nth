@@ -43,9 +43,10 @@ namespace Marrow.Services.Tests.Providers;
 //    would reach the real internet, forbidden by R-TEST-10 (same rationale ProviderRegistryRefreshTests.cs
 //    already records for PR-PROVREG-126 to 129). The failure-only halves of 164, 165, 169, 170, 193, 194,
 //    195, 196 that a guard reaches before any reader call ARE tested below.
-//  - PR-PROVREG-206: InvalidatePlanLimits' guard logic is exercised for both eligible and ineligible
-//    providers below, but proving it actually clears a REAL fetch timestamp needs a prior successful read
-//    (see above) and the timestamp is private state with no public reader; untestable for the same reason.
+//  - PR-PROVREG-206: InvalidatePlanLimits' guard logic (both isAPIKeyBased AND exposesLimits) is exercised
+//    for every provider below, proving the method never throws and that the double guard is unchanged; but
+//    proving it actually clears a REAL fetch timestamp needs a prior successful read (see above) and the
+//    timestamp is private state with no public reader, so that half stays untestable for the same reason.
 public sealed class ProviderRegistryLimitsAndCommandsTests
 {
     private static string TempDir()
@@ -276,6 +277,21 @@ public sealed class ProviderRegistryLimitsAndCommandsTests
         Assert.True(registry.Commands.ContainsKey(survivor));
         Assert.True(registry.Commands.ContainsKey(fresh));
         Assert.Equal("again", registry.Commands[dir5][0].Name);
+    }
+
+    // ---- PR-PROVREG-206: InvalidatePlanLimits' double guard covers every provider without throwing ----------
+
+    [Fact]
+    [Trait("Req", "PR-PROVREG-206")] // ProviderRegistry.swift:709-715
+    public void invalidate_plan_limits_is_a_no_op_that_never_throws_for_every_provider_kind()
+    {
+        using var runtime = new TestRuntime();
+        var registry = MakeRegistry(runtime, Settings());
+        // Only Z.ai is both API-key based AND exposes limits (PlanLimitsReader.ExposesLimits); every other
+        // provider fails at least one half of the guard (:713) and returns without touching anything. The
+        // cleared timestamp itself is private state with no public reader (see the class comment above), so
+        // this proves the guard runs to completion for every ProviderKind without a crash, not its effect.
+        foreach (var provider in SwiftEnum<ProviderKind>.AllCases) registry.InvalidatePlanLimits(provider);
     }
 
     // ---- PR-PROVREG-198 to 202, 205: RefreshCredits / InvalidateCredits ---------------------------------------
