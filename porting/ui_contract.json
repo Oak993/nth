@@ -12621,7 +12621,8 @@
         "DroppyCode/Services/Providers/AntigravitySession.swift:465-516,:400-412"
       ],
       "notes": "Selecting a model whose base slug contains \"claude\" suppresses --effort entirely, so the slider's value is silently ignored for those rows; and gpt-oss-120b is always forced to medium whatever the slider shows.",
-      "b2_change": "MOVED: B1 AntigravitySession.swift:462-513 -> B2 :465-516 (the catalog grouping in listModels). Nothing visible changed."
+      "b2_change": "MOVED: B1 AntigravitySession.swift:462-513 -> B2 :465-516 (the catalog grouping in listModels). Nothing visible changed.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVCLI",
@@ -12718,7 +12719,8 @@
         "DroppyCode/Services/Providers/AntigravitySession.swift:567-583,:605-627,:560-561"
       ],
       "notes": "The credits bar carries no proportion, so it reads as either empty or full; that is source behavior and is not a rendering bug.",
-      "b2_change": "MOVED: B1 AntigravitySession.swift:564-580 -> B2 :567-583 (parseUsage). Titles, the credits row and the percent are unchanged; the reset stamp parser changed (see PR-PROVCLI-341), which only affects whether a reset time is known."
+      "b2_change": "MOVED: B1 AntigravitySession.swift:564-580 -> B2 :567-583 (parseUsage). Titles, the credits row and the percent are unchanged; the reset stamp parser changed (see PR-PROVCLI-341), which only affects whether a reset time is known.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVCLI",

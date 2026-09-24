@@ -39,12 +39,9 @@ public sealed class ProviderRegistryTests
         return path.Replace('\\', '/');
     }
 
-    // The constructor (:187, :189, :194) seeds Deepseek, Zai and Commandcode from DeepseekSeed, ZaiSeed and
-    // CommandcodeSeed only when their cached catalog is empty. Those three properties are MARROW_STUB
-    // (blocked on DeepSeekAPI.Option, ZaiAPI.Option, CommandCodeAPI.Seed: missing dependencies owned by
-    // other units, section 6). Every test that constructs a ProviderRegistry pre-seeds a non-empty cached
-    // row for those three providers so the constructor never reaches the stubs; a test whose own scenario
-    // already seeds one of them (PR-PROVACP-048's cache test) is not affected by the corresponding default.
+    // The constructor (:187, :189, :194) seeds Deepseek, Zai and Commandcode only when their cached
+    // catalogs are empty. Tests in this class pre-seed rows for those providers to keep unrelated registry
+    // assertions independent of their defaults; ProviderRegistryCatalogTests covers Deepseek's seed.
     private static void SeedUnblockingCache(TestRuntime runtime, params (string Provider, object[] Rows)[] overrides)
     {
         var payload = new Dictionary<string, object[]>
@@ -461,8 +458,8 @@ public sealed class ProviderRegistryTests
                 new { id = "opencode/zen-1", name = "OpenCode Zen/Zen One", efforts = Array.Empty<string>() },
                 new { id = "opencode-go/go-1", name = "OpenCode Go/Go One", efforts = Array.Empty<string>() },
             ],
-            // deepseek/zai/commandcode: any non-empty cached row keeps the constructor away from the
-            // still-stubbed DeepseekSeed/ZaiSeed/CommandcodeSeed (see SeedUnblockingCache's comment).
+            // deepseek/zai/commandcode: non-empty cached rows keep the constructor's default seeding out
+            // of this test's setup (see SeedUnblockingCache's comment).
             ["deepseek"] = [new { id = "seed-ds", name = "Seed", efforts = Array.Empty<string>() }],
             ["zai"] = [new { id = "glm-5.3", name = "GLM 5.3", efforts = Array.Empty<string>() }],
             ["commandcode"] = [new { id = "seed-cc", name = "Seed", efforts = Array.Empty<string>() }],

@@ -13,20 +13,17 @@ namespace Marrow.Services.Tests.Providers;
 //
 // Tests for unit Services.Providers.ProviderRegistry part 3 of 5: RefreshEverything (PR-PROVREG-131,
 // 132), the constructor's whole-blob cache and date reads and the Claude reseed (PR-PROVREG-133, 135,
-// 136, 137), mergedClaudeCatalog (PR-PROVREG-138), the Meta/Zai/Antigravity/Copilot/CommandCode/Pi seeds
-// (PR-PROVREG-141 to 146), models/model (PR-PROVREG-147, 148) and loadCatalog with its single-flight,
-// attempt gate, seeded/stale test, OpenCode memo and nine-arm dispatch (PR-PROVREG-149 to 153). A third
-// class in the file this unit's tests mirror (R-TEST-3): parts 1 and 2 live in ProviderRegistryTests.cs
-// and ProviderRegistryRefreshTests.cs.
+// 136, 137), mergedClaudeCatalog (PR-PROVREG-138), the DeepSeek/Meta/Zai/Antigravity/Copilot/CommandCode/Pi seeds
+// (PR-PROVREG-140 to 146), defaultModel (PR-PROVREG-087), models/model (PR-PROVREG-147, 148), and
+// loadCatalog's single-flight, attempt gate, seeded/stale test, OpenCode memo and nine-arm dispatch
+// (PR-PROVREG-149 to 153). A third class in the file this unit's tests mirror (R-TEST-3): parts 1 and 2
+// live in ProviderRegistryTests.cs and ProviderRegistryRefreshTests.cs.
 //
 // PR-PROVREG-130 (the refreshAPIProvider else arm for a fourth API-key provider) has no test: the record
 // itself says "None reachable" (source_evidence :362 - only the three shipped API-key providers ever
 // reach refresh's API-key branch), so there is no way to drive it without inventing a fourth provider,
-// which R-PROTO-1/section 1.3 forbids. PR-PROVREG-140 (the DeepSeek seed) has no test either: it is built
-// from DeepSeekAPI.Option, still MARROW_STUB (DeepSeekAPI.swift:79) at the time of this part's work
-// (section 6: missing dependency, owned by unit Services.Providers.DeepSeekAPI); ProviderRegistry.DeepseekSeed
-// itself throws that stub's NotImplementedException. RefreshPlanLimits and RefreshCredits (called by
-// RefreshEverything's phase 2 and by RefreshAPIProvider's follow-up reads) are MARROW_STUB, owned by a
+// which R-PROTO-1/section 1.3 forbids. RefreshPlanLimits and RefreshCredits (called by RefreshEverything's
+// phase 2 and by RefreshAPIProvider's follow-up reads) are MARROW_STUB, owned by a
 // later part of this same unit (PR-PROVREG-163 to 170, PR-USAGE-080/081, part 4/5): every scenario below
 // that would reach phase 2 is written to expect that stub's NotImplementedException, proving
 // RefreshEverything's own ordering and single-flight guard up to that point without depending on the
@@ -146,14 +143,9 @@ public sealed class ProviderRegistryCatalogTests
         Assert.Single(registry.Catalogs[ProviderKind.Cursor]);
         Assert.Equal("cursor-model", registry.Catalogs[ProviderKind.Cursor][0].Id);
 
-        // A corrupt blob (:167's try? decode failing) loses every provider's cache together, including
-        // the three whose empty-cache seeding falls to a still-stubbed seed property (DeepseekSeed,
-        // ZaiSeed, CommandcodeSeed: blocked on DeepSeekAPI.Option, ZaiAPI.Option, CommandCodeAPI.Seed,
-        // section 6), so a ProviderRegistry cannot even be constructed over a corrupt cache in this part:
-        // the constructor itself throws that stub's exception before returning. Untestable here without
-        // those units; the decisive half of this record (the blob decodes as ONE value, so an unrelated
-        // provider's cache is unaffected by another provider's row) is proven above by the "cursor" row
-        // surviving alongside a deliberately unknown rawValue key in the same blob.
+        // The decisive half of this record (the blob decodes as ONE value, so an unrelated provider's
+        // cache is unaffected by another provider's row) is proven above by the "cursor" row surviving
+        // alongside a deliberately unknown rawValue key in the same blob.
     }
 
     // ---- Constructor: catalog dates as epoch seconds feed loadCatalog's staleness test (PR-PROVREG-135) -----
@@ -311,12 +303,32 @@ public sealed class ProviderRegistryCatalogTests
     }
 
     // ---- API-provider seeds (PR-PROVREG-140 to 146) --------------------------------------------------------
-    //
-    // PR-PROVREG-140 (the DeepSeek seed, two rows built from DeepSeekAPI.Option) has no test: DeepSeekAPI.Option
-    // (DeepSeekAPI.cs, DeepSeekAPI.swift:79) is still MARROW_STUB at the time of this part's work (section 6:
-    // missing dependency, owned by unit Services.Providers.DeepSeekAPI), so ProviderRegistry.DeepseekSeed itself
-    // throws that stub's NotImplementedException and cannot be exercised without inventing DeepSeekAPI.Option's
-    // behaviour here, which section 1.3 forbids.
+
+    [Fact]
+    [Trait("Req", "PR-PROVREG-140")] // ProviderRegistry.swift:127, :187; DeepSeekAPI.swift:70, :81-84
+    public void an_empty_deepseek_catalog_is_seeded_from_the_two_golden_options()
+    {
+        using var runtime = new TestRuntime();
+        SeedUnblockingCache(runtime, ("deepseek", Array.Empty<object>()));
+        var registry = new ProviderRegistry(Settings());
+
+        var seed = registry.Catalogs[ProviderKind.Deepseek];
+        Assert.Equal(2, seed.Count);
+
+        Assert.Equal("deepseek-v4-pro", seed[0].Id);
+        Assert.Equal("V4 Pro", seed[0].Name);
+        Assert.Equal("Best reasoning and coding quality", seed[0].Detail);
+        Assert.Equal(["low", "high", "max"], seed[0].Efforts.ToArray());
+        Assert.Equal("high", seed[0].DefaultEffort);
+        Assert.True(seed[0].IsDefault);
+
+        Assert.Equal("deepseek-flash", seed[1].Id);
+        Assert.Equal("V4.1 Flash", seed[1].Name);
+        Assert.Equal("Newest, fast, reads images", seed[1].Detail);
+        Assert.Equal(["low", "high", "max"], seed[1].Efforts.ToArray());
+        Assert.Equal("high", seed[1].DefaultEffort);
+        Assert.False(seed[1].IsDefault);
+    }
 
     [Fact]
     [Trait("Req", "PR-PROVREG-141")] // ProviderRegistry.swift:128-129, MetaAPI.swift:55-56, :58-74
@@ -537,6 +549,43 @@ public sealed class ProviderRegistryCatalogTests
         // The reverse direction never consults Zen.
         withGo.UpdateCatalog(new ValueList<ModelOption>([new ModelOption("opencode/zen-1", "Zen One")]), ProviderKind.Opencode);
         Assert.Null(withGo.Model("opencode/zen-1", ProviderKind.OpencodeGo));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVREG-087")] // ProviderRegistry.swift:451-457; AppSettings.swift:887-897
+    public void default_model_prefers_a_resolving_last_model_then_uses_each_catalog_fallback()
+    {
+        using var runtime = new TestRuntime();
+        SeedUnblockingCache(runtime);
+        var settings = Settings();
+        settings.LastModels[ProviderKind.Cursor] = "cursor-model[effort=high]";
+        var registry = MakeRegistry(runtime, settings);
+
+        registry.UpdateCatalog(new ValueList<ModelOption>(
+        [
+            new ModelOption("cursor-model", "Cursor Model"),
+            new ModelOption("cursor-default", "Cursor Default", isDefault: true),
+        ]), ProviderKind.Cursor);
+
+        // The stored id resolves through Model's bracket-prefix fallback (:435-439, :446-448).
+        Assert.Equal("cursor-model", registry.DefaultModel(ProviderKind.Cursor)?.Id);
+
+        // A stale stored id is left alone; the first explicitly default row wins.
+        settings.LastModels[ProviderKind.Cursor] = "removed-model";
+        Assert.Equal("cursor-default", registry.DefaultModel(ProviderKind.Cursor)?.Id);
+        Assert.Equal("removed-model", settings.LastModel(ProviderKind.Cursor));
+
+        // Without a stored match or default row, the first catalog row is selected.
+        registry.UpdateCatalog(new ValueList<ModelOption>(
+        [
+            new ModelOption("cursor-first", "Cursor First"),
+            new ModelOption("cursor-second", "Cursor Second"),
+        ]), ProviderKind.Cursor);
+        settings.LastModels.Remove(ProviderKind.Cursor);
+        Assert.Equal("cursor-first", registry.DefaultModel(ProviderKind.Cursor)?.Id);
+
+        // A provider with no catalog has no default.
+        Assert.Null(registry.DefaultModel(ProviderKind.OpencodeGo));
     }
 
     // ---- loadCatalog: single-flight and the attempt gate (PR-PROVREG-149, 150) --------------------------------
