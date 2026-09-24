@@ -780,3 +780,27 @@ stand-in's control replies; in the full parallel Services run those waits starve
 until the hang detector killed the test host (IMPL_B2_RED reported at b844b35 by the WallpaperCard merge agent; reproduced:
 svc-prov 1014/1014 passed, then the host crash in that test; svc-rest 1072/1072). Passes alone in about 20 s. Same remedy
 as ED-167 (FileWatcherTests). Fix branch fix/b2-planlimits (64723c5).
+
+ED-188 [UPDATE] App.AppUpdater's Windows install boundary. ENGINEERING DECISION, following porting/platform_adaptations.md
+(AppUpdater section: Authenticode is the structural analogue of Gatekeeper acceptance; an out-of-process updater mirrors the
+source's handoff, deadline, give-up and pill-revert behavior) and contract section 17 (UNK-0009: no Windows release asset is
+published, so the live install path stays an explicit blocker). The source's install orchestration is ported exactly over a
+narrow port-only interface IUpdateInstallBoundary whose members map to the macOS steps (hdiutil attach/verify/detach -> Stage,
+Verify; the shell installer script -> LaunchDetachedInstaller). Windows boundary: Verify = WinVerifyTrust
+(WINTRUST_ACTION_GENERIC_VERIFY_V2); staging in a per-update %TEMP% folder whose ACL grants only the current user (analogue of
+0700); a detached installer process (ProcessLauncher) that waits for the app to exit, replaces the files and relaunches.
+Installing a real asset throws PortBlockedException("UNK-0009: ...") - a tracked blocker. Tests: orchestration against a fake
+boundary; Verify against a signed system file and an unsigned temp file; the staging ACL read back. Ruled to the build agent
+as rulings_live/App.AppUpdater.part1.md.
+
+ED-189 [THEME] UI.Theme.Wallpaper's target moves to src/Marrow.App/Theme/Wallpaper.cs (tests in tests/Marrow.App.Tests),
+applying IMPLEMENTING.md 2.1 / HANDOFF 9 ("WallpaperStore to App": it builds on Storage, a Services type, which UI may not
+use). The c100 skeleton (cloud worker S0) placed it there; units.json still named the UI project. build_run7.js and
+luna_build.mjs carry the retarget (RETARGET) until plan_units.py learns it; the unit merged on impl/b2 at fc16861.
+
+ED-190 [TEST] PlanLimitsTests runs in its own non-parallel xUnit collection (tests/Marrow.Services.Tests/Fixtures/
+PlanLimitsProcessCollection.cs), harness only, no expectation changed. Its readClaude dispatch test waits on the Claude
+stand-in's control replies; in the full parallel Services run those waits starved behind other process-heavy test classes
+until the hang detector killed the test host (IMPL_B2_RED reported at b844b35 by the WallpaperCard merge agent; reproduced:
+svc-prov 1014/1014 passed, then the host crash in that test; svc-rest 1072/1072). Passes alone in about 20 s. Same remedy
+as ED-167 (FileWatcherTests). Fix branch fix/b2-planlimits (64723c5).

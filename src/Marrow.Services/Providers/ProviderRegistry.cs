@@ -18,10 +18,9 @@ using Marrow.Services.MCP;
 // Executable(for:)/FallbackExecutables/Environment(for:); the private helpers OpenCodeModels, MergedACPCatalog,
 // IsStaleClaudeSeed (kept internal, not private, so this part's tests can call them directly, matching the
 // convention already used elsewhere in this file's dependency, ClaudeSession.cs); and RefreshAPIProvider,
-// likewise kept internal. DeepseekSeed still stays MARROW_STUB: its Swift callee (DeepSeekAPI.option(for:))
-// is a stub owned by another unit in this file's dependency cycle (section 6: missing dependency, reported,
-// not invented here). ZaiSeed and CommandcodeSeed (part 3, PR-PROVREG-142/145) were un-stubbed once
-// ZaiAPI.Option and CommandCodeAPI.Seed landed as real implementations in this file's dependency cycle.
+// likewise kept internal. DeepseekSeed (PR-PROVREG-140) uses DeepSeekAPI.Option, which landed with unit
+// Services.Providers.DeepSeekAPI. ZaiSeed and CommandcodeSeed (part 3, PR-PROVREG-142/145) likewise use
+// their dependency units' implementations.
 
 namespace Marrow.Services.Providers;
 
@@ -145,11 +144,10 @@ public sealed partial class ProviderRegistry : MainActorModel
     public bool IsRefreshing { get => Read(isRefreshing); private set => Set(ref isRefreshing, value); } // :281
     public ProviderKind? SigningIn { get => Read(signingIn); private set => Set(ref signingIn, value); } // :284
 
-    // :127. DeepSeekAPI.option(for:) (DeepSeekAPI.swift:79) is a MARROW_STUB owned by unit
-    // Services.Providers.DeepSeekAPI: missing dependency (section 6), stays unwritten here.
-    public static ValueList<ModelOption> DeepseekSeed =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ProviderRegistry.swift:127 " +
-            "(blocked on DeepSeekAPI.Option, unit Services.Providers.DeepSeekAPI)");
+    // :127. Built from the same DeepSeekAPI.option(for:) table used by the live fetch.
+    public static ValueList<ModelOption> DeepseekSeed => new(new[] { "deepseek-v4-pro", "deepseek-flash" }
+        .Select(DeepSeekAPI.Option)
+        .OfType<ModelOption>());
 
     // :128-129. Built with MetaAPI.option(for:).
     public static ValueList<ModelOption> MetaSeed => new(new[]
@@ -820,9 +818,14 @@ public sealed partial class ProviderRegistry : MainActorModel
         return null; // :449
     }
 
-    // :451-457. Swift: defaultModel(for:).
-    public ModelOption? DefaultModel(ProviderKind provider) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ProviderRegistry.swift:451");
+    // :451-457. PR-PROVREG-087: the last model wins when it resolves, then the first default, then the first row.
+    public ModelOption? DefaultModel(ProviderKind provider)
+    {
+        var list = Models(provider); // :452
+        if (settings.LastModel(provider) is { } last && Model(last, provider) is { } match) // :453-455
+            return match;
+        return list.FirstOrDefault(option => option.IsDefault) ?? list.FirstOrDefault(); // :456-457
+    }
 
     // :459-517. PR-PROVREG-149 to PR-PROVREG-153: single-flight per provider, the once-per-launch attempt
     // gate, the seeded/stale test, the nine-arm dispatch table, and the OpenCode sibling delivery.
