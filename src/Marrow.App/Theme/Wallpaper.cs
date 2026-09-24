@@ -25,11 +25,13 @@ internal sealed record DecodedPicture(IImage Image);
 // Wallpaper.swift:15-270
 public sealed class WallpaperStore : MainActorModel
 {
+    /// <summary>
+    /// :17 <c>static let shared = WallpaperStore()</c>: an R-LIFE-2 Ambient, matching the same pattern used for
+    /// every other test-replaceable `.shared` singleton in the tree (e.g. Marrow.Services.Port.SecretStore.Shared).
+    /// A test overrides the value for its own async flow only, so parallel xUnit test classes never share one.
+    /// </summary>
     // Wallpaper.swift:17
-    private static readonly Lazy<WallpaperStore> shared = new(() => new WallpaperStore());
-
-    // Wallpaper.swift:17
-    public static WallpaperStore Shared => shared.Value;
+    public static Ambient<WallpaperStore> Shared { get; } = new(() => new WallpaperStore());
 
     /// <summary>:19-22 <c>private enum Key</c>: the store's two defaults keys (PR-SETTINGS-103).</summary>
     // Wallpaper.swift:19-22
