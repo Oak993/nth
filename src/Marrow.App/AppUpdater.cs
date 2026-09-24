@@ -1,10 +1,9 @@
+using Marrow.App;
 using Marrow.App.Views.Settings;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
 
 // Source: DroppyCode/App/AppUpdater.swift (B2 1fbf81e), :1-528. The Windows installer boundary is defined by PA-0014.
-
-namespace Marrow.App;
 
 // :8-20
 public static class UpdateProgressMilestones
@@ -272,7 +271,7 @@ public sealed class AppUpdater
         var defaults = UserDefaults.Standard.Current;
         if (defaults.String(RelaunchVersionKey) is not { } pending) return false;
         defaults.RemoveObject(RelaunchVersionKey);
-        return pending == AppInfo.Current.Version;
+        return string.Equals(pending, AppInfo.Current.Version, StringComparison.Ordinal);
     }
 
     // :261-283
