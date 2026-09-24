@@ -34,10 +34,17 @@ public static class TextGenerationChoiceExtensions
     extension(TextGenerationChoice choice)
     {
         // :9
-        public string Id => throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppSettings.swift:9");
+        public string Id => SwiftEnum<TextGenerationChoice>.RawValue(choice);
 
-        // :11-18
-        public string Title => throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppSettings.swift:11");
+        // :11-18. PR-SETTINGS-106.
+        public string Title => choice switch
+        {
+            TextGenerationChoice.Automatic => "Automatic", // :13
+            TextGenerationChoice.Claude => "Claude",       // :14
+            TextGenerationChoice.Codex => "Codex",         // :15
+            TextGenerationChoice.Off => "Off",             // :16
+            _ => throw new ArgumentOutOfRangeException(nameof(choice), choice, null),
+        };
     }
 }
 
@@ -53,13 +60,25 @@ public static class ThreadFinishActionExtensions
     extension(ThreadFinishAction action)
     {
         // :28
-        public string Id => throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppSettings.swift:28");
+        public string Id => SwiftEnum<ThreadFinishAction>.RawValue(action);
 
-        // :30-35
-        public string Title => throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppSettings.swift:30");
+        // :30-35. PR-SETTINGS-253, PR-SETTINGS-254.
+        public string Title => action switch
+        {
+            ThreadFinishAction.Settle => "Settle",   // :32
+            ThreadFinishAction.Archive => "Archive", // :33
+            _ => throw new ArgumentOutOfRangeException(nameof(action), action, null),
+        };
 
-        // :37-42
-        public string Detail => throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppSettings.swift:37");
+        // :37-42. PR-SETTINGS-253, PR-SETTINGS-254.
+        public string Detail => action switch
+        {
+            ThreadFinishAction.Settle =>
+                "A settled thread drops to the bottom of the sidebar, small and grey, until you reopen it", // :39
+            ThreadFinishAction.Archive =>
+                "An archived thread leaves the sidebar for the Archive page", // :40
+            _ => throw new ArgumentOutOfRangeException(nameof(action), action, null),
+        };
     }
 }
 
@@ -76,13 +95,28 @@ public static class SidebarModeExtensions
     extension(SidebarMode mode)
     {
         // :51
-        public string Id => throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppSettings.swift:51");
+        public string Id => SwiftEnum<SidebarMode>.RawValue(mode);
 
-        // :53-59
-        public string Title => throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppSettings.swift:53");
+        // :53-59. PR-SETTINGS-255, PR-SETTINGS-256, PR-SETTINGS-257.
+        public string Title => mode switch
+        {
+            SidebarMode.Column => "Column",       // :55
+            SidebarMode.Floating => "Floating",   // :56
+            SidebarMode.PanelOnly => "Panel only", // :57
+            _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, null),
+        };
 
-        // :61-67
-        public string Detail => throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppSettings.swift:61");
+        // :61-67. PR-SETTINGS-255, PR-SETTINGS-256, PR-SETTINGS-257.
+        public string Detail => mode switch
+        {
+            SidebarMode.Column =>
+                "A column beside the chat; the list button in the toolbar shows and hides it", // :63
+            SidebarMode.Floating =>
+                "With the column collapsed, the thread list floats as a panel over the chat and stays where you leave it", // :64
+            SidebarMode.PanelOnly =>
+                "No column and no toolbar button; the floating panel is the sidebar", // :65
+            _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, null),
+        };
     }
 }
 
@@ -98,13 +132,25 @@ public static class ActivityThreadStyleExtensions
     extension(ActivityThreadStyle style)
     {
         // :78
-        public string Id => throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppSettings.swift:78");
+        public string Id => SwiftEnum<ActivityThreadStyle>.RawValue(style);
 
-        // :80-85
-        public string Title => throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppSettings.swift:80");
+        // :80-85. PR-SETTINGS-258, PR-SETTINGS-259.
+        public string Title => style switch
+        {
+            ActivityThreadStyle.Icon => "Icon",               // :82
+            ActivityThreadStyle.ProjectName => "Project name", // :83
+            _ => throw new ArgumentOutOfRangeException(nameof(style), style, null),
+        };
 
-        // :87-92
-        public string Detail => throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppSettings.swift:87");
+        // :87-92. PR-SETTINGS-258, PR-SETTINGS-259.
+        public string Detail => style switch
+        {
+            ActivityThreadStyle.Icon =>
+                "Each project's emoji or symbol before the thread's name, one line per thread", // :89
+            ActivityThreadStyle.ProjectName =>
+                "The project's name, with a folder mark, on a line under the thread's title", // :90
+            _ => throw new ArgumentOutOfRangeException(nameof(style), style, null),
+        };
     }
 }
 
