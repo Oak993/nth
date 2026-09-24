@@ -4961,7 +4961,7 @@
       "cancellation": "stop() sets stopped, which makes isRunning false even though no process exists.",
       "windows_path": "One process per turn means the Windows process-creation cost and any anti-malware scan cost is paid on every message, not once per thread. Each process must still be placed in a Job Object so a tool it spawned cannot outlive it (PA-0007).",
       "verification_method": "interaction test asserting no process exists between turns",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4986,7 +4986,7 @@
       "cancellation": "not cancellable",
       "windows_path": "See PR-PROVCLI-206 for the transcript lookup. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%\\System32\\cmd.exe or %SystemRoot%\\SysWOW64\\cmd.exe, is rejected and the provider reports not installed.",
       "verification_method": "interaction test with a missing transcript",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null
     },
@@ -5009,7 +5009,7 @@
       "cancellation": "not cancellable",
       "windows_path": "HOME is normally unset on Windows, so LoginEnvironment.homeDirectory is the real source and must resolve to the user profile. The path segment \".commandcode/projects\" uses a forward slash; it must be joined as path components, not concatenated. The scan cost grows with the number of projects and runs on every session start.",
       "verification_method": "unit test against a fixture tree with and without the transcript",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5035,7 +5035,7 @@
       "cancellation": "stop() cancels the watcher and removes the directory.",
       "windows_path": "Application Support maps to %LOCALAPPDATA%; AppInfo.name is \"Marrow Code\" under OD-0008 C7, so the directory is %LOCALAPPDATA%\\Marrow Code\\CommandCode and the approvals live in %LOCALAPPDATA%\\Marrow Code\\CommandCode\\approvals\\<UUID>. PiCLI's helper tree goes under the same root (PR-PROVCLI-268; engineering_decisions.md Q60), so the two helper trees do not diverge.",
       "verification_method": "restart test asserting the mod file and a fresh approvals directory appear, and that the directory is gone after a stop",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "upstream_defects.md entry 8 (PiCLI hard-codes the support-directory literal while CommandCodeAPI interpolates AppInfo.name)",
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5064,7 +5064,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None.",
       "verification_method": "unit test sending twice",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5086,7 +5086,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None.",
       "verification_method": "unit test asserting the model is kept but the effort is cleared",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5110,7 +5110,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None beyond argv quoting.",
       "verification_method": "contract fixture over an ordinary turn and a final report",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5133,7 +5133,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None.",
       "verification_method": "unit test over a model with efforts, a model without, and no model",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5155,7 +5155,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None.",
       "verification_method": "contract fixture over both modes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5181,7 +5181,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The mod path is a Windows path handed to a CLI that will import it as a module; forward and backward slashes and drive letters must be acceptable to that import. This must be probed against the real CLI.",
       "verification_method": "contract fixture over all four runtime modes crossed with plan and build, with and without an MCP config",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5206,7 +5206,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Setting a key to nil must REMOVE it from the constructed environment block, not set it to an empty string, because the mod tests `if (!dir) return` and an empty string is falsy in JavaScript - so an empty value happens to behave the same here, but the removal is the source behavior and is what must be reproduced. Windows environment keys are case-insensitive; a differently-cased inherited DROPPY_CODE_APPROVALS must also be cleared.",
       "verification_method": "contract fixture reading the child's environment in Full access and in every other mode",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5228,7 +5228,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None.",
       "verification_method": "contract fixture over a first and a later turn",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5252,7 +5252,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The localized description comes from the platform and will read differently on Windows; only the literal prefix is fixed. On Windows a resolution that found the command interpreter rather than the CLI would SUCCEED here and hang later, which is why identity validation belongs at resolution (PR-PROVCLI-203). Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%\\System32\\cmd.exe or %SystemRoot%\\SysWOW64\\cmd.exe, is rejected and the provider reports not installed.",
       "verification_method": "unit test with an unlaunchable executable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null
     },
@@ -5275,7 +5275,7 @@
       "cancellation": "An interrupt terminates the process, which ends the stream and reaches didClose.",
       "windows_path": "The stdin write must be binary UTF-8 with no code-page translation and no BOM, and the handle must actually close so the CLI sees end of input.",
       "verification_method": "contract fixture asserting the exact bytes written and that stdin is closed",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5299,7 +5299,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The paths are Windows paths embedded in prompt text the model reads and passes to read_file; backslashes will appear literally in the prompt, which is what the CLI needs.",
       "verification_method": "unit test with an existing file, a missing file and none",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5324,7 +5324,7 @@
       "cancellation": "This IS the cancellation path.",
       "windows_path": "Windows has no SIGTERM with delivery semantics; TerminateProcess is the practical equivalent and behaves like SIGKILL. That is acceptable for parity BECAUSE the source already relies only on the CLI's on-disk persistence of completed turns and nothing is flushed on the signal. The observable difference to accept is the EXIT CODE: the source keys on 130, and Windows reports whatever TerminateProcess was given, so the code that keys on 130 must be relaxed (port_impacts.md entry 24).",
       "verification_method": "interaction test asserting an interrupted turn is reported as interrupted on Windows despite a different exit code",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5346,7 +5346,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None.",
       "verification_method": "unit test asserting the exact message",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5368,7 +5368,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None.",
       "verification_method": "unit test asserting no output",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5392,7 +5392,7 @@
       "cancellation": "This IS the stop path.",
       "windows_path": "Deleting a directory on Windows fails while any handle into it is open, including one the CLI still holds, so this delete can fail more often than on macOS and must not be treated as an error (PA-0015).",
       "verification_method": "interaction test asserting the directory is gone after a clean stop, and that a failure to delete does not throw",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5416,7 +5416,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None beyond the line framing.",
       "verification_method": "unit test over both frame types",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5440,7 +5440,7 @@
       "cancellation": "The interrupted event is how the CLI reports its own interruption.",
       "windows_path": "None.",
       "verification_method": "unit test feeding one event of every handled and every ignored name",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5466,7 +5466,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None. The UUID's own casing matters, since the prefix is taken verbatim.",
       "verification_method": "unit test asserting the id shapes and the eight-character prefix",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5490,7 +5490,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None.",
       "verification_method": "unit test with a delta arriving before any message_start",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5514,7 +5514,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None.",
       "verification_method": "unit test over streamed, whole and blank messages",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5541,7 +5541,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None.",
       "verification_method": "unit test over a known model, an unknown one and a short-name match",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null
     },
@@ -5565,7 +5565,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The 1 MB ceiling and the UTF-8 requirement are product behavior. On Windows a file the CLI has open may still be readable, but a locked file reads as nil and the diff then shows the whole file as added; that is the same outcome the source has for an unreadable file.",
       "verification_method": "unit test over a text file, a binary file, a 2 MB file and a missing file",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5590,7 +5590,7 @@
       "cancellation": "A declined call clears its pending approval.",
       "windows_path": "The after-read has the same locked-file caveat as the before-read.",
       "verification_method": "unit test over each of the four frames, including a write whose content did not change",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5614,7 +5614,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None.",
       "verification_method": "unit test over each subject key and none",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5638,7 +5638,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The number formatting is locale-dependent (it uses the platform's grouping separator), so the rendered notice differs by locale. That is source behavior and is reproduced rather than forced to a fixed separator.",
       "verification_method": "unit test over a zero and a non-zero saving",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5662,7 +5662,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None.",
       "verification_method": "unit test over all four level cases",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5686,7 +5686,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None.",
       "verification_method": "unit test in plan and build mode with blank and real text",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5712,7 +5712,7 @@
       "cancellation": "A stop suppresses the turn outcome entirely.",
       "windows_path": "Deleting files the CLI may still hold open can fail on Windows; the failures are ignored, but a stale request file that survives could be picked up by the next turn's scan. The port should verify that the reply files are keyed by tool call id so a survivor cannot answer a different call (PA-0015).",
       "verification_method": "interaction test asserting the directory is empty after a turn and that a locked file does not throw",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5736,7 +5736,7 @@
       "cancellation": "This IS the cancellation outcome.",
       "windows_path": "Exit code 130 is the POSIX convention for a SIGINT-terminated process and does not arise on Windows. TerminateProcess reports whatever code it was given, so the 130 test must be RELAXED for Windows while the interruptRequested test carries the behavior. The port must choose and record the Windows termination exit code deliberately (port_impacts.md entry 24).",
       "verification_method": "interaction test asserting an interrupted turn on Windows reports .interrupted through the flag alone",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5762,7 +5762,7 @@
       "cancellation": "Handled earlier (PR-PROVCLI-236).",
       "windows_path": "None.",
       "verification_method": "interaction test over each subtype and a final-report turn hitting the cap",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5787,7 +5787,7 @@
       "cancellation": "Handled earlier.",
       "windows_path": "These are the CLI's own exit codes and are platform-neutral, but a Windows process terminated by the app reports a DIFFERENT code that must not collide with 3 to 10; the termination code must be chosen so it falls through to the default branch or is caught by the interrupt flag first.",
       "verification_method": "interaction test driving a stand-in to exit with each code, asserting the exact message",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5809,7 +5809,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The lowercasing must be invariant.",
       "verification_method": "unit test over all three substrings and a near miss",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5831,7 +5831,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The lowercasing must be invariant. On Windows the sentence still names `cmd login` in Terminal; whether that instruction is accurate for the Windows CLI is part of UNK-0006 and must not be reworded without evidence. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%\\System32\\cmd.exe or %SystemRoot%\\SysWOW64\\cmd.exe, is rejected and the provider reports not installed.",
       "verification_method": "unit test over both families and a plain error",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null
     },
@@ -5852,7 +5852,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None.",
       "verification_method": "unit test over all four shapes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5874,7 +5874,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None.",
       "verification_method": "unit test over a string, a mixed array and a null",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5898,7 +5898,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None.",
       "verification_method": "unit test over all three text keys and all five status strings",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5921,7 +5921,7 @@
       "cancellation": "not cancellable",
       "windows_path": "relativePath has the same prefix-stripping caveat as PR-PROVCLI-062. Note that \"powershell\" is a first-class tool name here, so a Windows CLI that prefers it produces the same row shape as bash.",
       "verification_method": "unit test - the case list and order, the non-optional return, and the shared path helper",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5945,7 +5945,7 @@
       "cancellation": "stop() cancels the watcher.",
       "windows_path": "There is no equivalent of a write-masked file-descriptor event source; the Windows implementation must use directory change notification for the same directory and deliver on the UI thread, and it must still tolerate missing events, because the source already falls back to an explicit scan at tool_queued. The mapping is a named platform boundary.",
       "verification_method": "interaction test writing a request file and asserting the prompt appears without a tool_queued frame",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5969,7 +5969,7 @@
       "cancellation": "A finished turn clears the directory.",
       "windows_path": "The sort must be ordinal on the file name, not culture-sensitive. Deleting a file the mod may still have open can fail on Windows; a failed delete leaves the request in place, and the pending-approval check is what stops it being asked twice (PA-0015).",
       "verification_method": "interaction test with two request files asserting the order, plus one unparseable file",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -6003,7 +6003,7 @@
       "cancellation": "not cancellable",
       "windows_path": "ShellCommandKind.mayWriteFiles classifies the command TEXT THE MODEL PRODUCED, so its reader lists are a product constant, not a platform constant, and are ported verbatim except for the corrections ruled by OD-0008 A8, in the exact forms of ED-060 (find, fd, sort, git config, git tag and git remote; PA-0011). UNK-0005 is marked RESOLVED by OD-0008 C5 (\"PowerShell 7 when installed, otherwise Windows PowerShell\"), but C5 rules only which shell the app's own terminal tabs and project scripts use; the commands classified here are executed by the Command Code CLI, not by the app's terminal or script runner, so C5 does not decide which shell runs them. No ruling adds Windows tool names to the reader lists, so none are added: a part whose tool is in no reader list counts as writing (Shell.swift:212-213, default: return readers.contains(tool)) and is asked in .auto, which is the safe answer.",
       "verification_method": "unit test over all four runtime modes crossed with an edit, a read-only shell command, a writing shell command and each allow-list name; plus, in .auto, shell_command with each ED-060 writer form (find -fprint, -fprint0, -fprintf, -fls; fd --exec and --exec-batch; sort -o, --output and --output=; git config set forms; git tag create and delete; git remote add, remove, rm, rename, set-url, set-head, set-branches, prune and update), each asserting an .approval is emitted and no reply is written, and each ED-060 reader form (git config --get / --list, git tag -l, git remote -v / show / get-url, bare git tag and git remote) asserting it is auto-approved",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "blocked_by": null,
@@ -6031,7 +6031,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None.",
       "verification_method": "unit test over each row kind and a request with no matching tool row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null
     },
@@ -6056,7 +6056,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The temp-then-replace sequence must be an atomic replace on Windows, because the mod polls the target file and must never read a partial write. A replace can fail while the mod has the file open; the direct-write fallback is what covers that, and it must also be atomic. Before the first reply <id>.reply.json does not exist; the replace then throws (O-35, ED-123), the direct atomic write lands the reply, and <id>.reply.json.tmp remains until clearApprovalFiles removes it.",
       "verification_method": "contract fixture asserting both payloads byte for byte, plus a test where the replace fails",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -9427,7 +9427,7 @@
       "cancellation": "not cancellable",
       "windows_path": "\"powershell\" is a first-class name here and must stay mapped on Windows. The background marker is a detail suffix, not a separate row or badge.",
       "verification_method": "unit test - background true with and without a description, background false, background absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -9447,7 +9447,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The fallback literal differs from shell_command's; the missing detail is deliberate.",
       "verification_method": "unit test - one case with a full input and one with an empty input",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -9467,7 +9467,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Two id keys in this order; the title is a constant.",
       "verification_method": "unit test - one case with a full input and one with an empty input",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -9487,7 +9487,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A constant row; do not humanize the tool name into \"Shell tasks\" by accident and then drift when the name changes.",
       "verification_method": "unit test - one case with a full input and one with an empty input",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -9507,7 +9507,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The title wording and the three-key order, including the integer-to-string step, are all part of the contract.",
       "verification_method": "unit test - one case with a full input and one with an empty input",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -9527,7 +9527,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The en dash and the offset + limit arithmetic are both literal. An offset with no limit shows no range at all.",
       "verification_method": "unit test - offset 10 limit 20 gives \"lines 10–30\"; offset alone gives no detail",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -9547,7 +9547,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The kind and the name disagree deliberately; a listing reads as a search row.",
       "verification_method": "unit test - one case with a full input and one with an empty input",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -9568,7 +9568,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The snapshot parameter is what distinguishes this from Claude Write (PR-PROVCLI-358) and Copilot create (PR-PROVCLI-376), which both hard-code an empty old side.",
       "verification_method": "unit test - one case with a full input and one with an empty input",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -9588,7 +9588,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Six key spellings in two fixed orders. Collapsing them to one spelling silently produces empty-to-empty diffs for the other two shapes.",
       "verification_method": "unit test - one case per key spelling on each side, plus a mixed pair",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -9608,7 +9608,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical in shape to Claude Glob (PR-PROVCLI-362) under a lower-case name.",
       "verification_method": "unit test - one case with a full input and one with an empty input",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -9628,7 +9628,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The glob is deliberately not path-converted; only the path is.",
       "verification_method": "unit test - one case with a full input and one with an empty input",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -9649,7 +9649,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Two separate cases in source; they are stated together here because every field of both is identical to the already-specified Claude and Copilot rows.",
       "verification_method": "unit test - one case with a full input and one with an empty input",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -9669,7 +9669,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The hyphen in \"Sub-agent\" and the 96-character limit are both exact; the limit differs from the 60 used for head titles elsewhere.",
       "verification_method": "unit test - one case with a full input and one with an empty input",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -9689,7 +9689,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A constant title with one id key.",
       "verification_method": "unit test - one case with a full input and one with an empty input",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -9709,7 +9709,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same rendered prefix as the other two CLIs, different tool name and different argument key.",
       "verification_method": "unit test - one case with a full input and one with an empty input",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -9730,7 +9730,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The two humanize helpers differ between providers: Copilot replaces hyphens too. Keep them separate.",
       "verification_method": "unit test - one case with a full input and one with an empty input",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -9750,7 +9750,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Two fallback keys and a U+00B7 separator, mirroring the Skill row.",
       "verification_method": "unit test - one case with a full input and one with an empty input",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -9770,7 +9770,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Two providers, one rule, written out twice in source; a shared helper in the port must keep both call sites identical.",
       "verification_method": "unit test - mcp__srv__a__b and a null input",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -9790,7 +9790,7 @@
       "cancellation": "not cancellable",
       "windows_path": "All four conditions, including the literal \"{}\" test and the inclusive 300-character bound, are the contract. Truncating instead of dropping is a defect.",
       "verification_method": "unit test - empty, \"{}\", 300 characters, 301 characters and a null input",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -11254,7 +11254,8 @@
         "decision": "OD-0012 F1",
         "upstream": "CommandCodeSession.swift:753 \"The user declined this in Droppy Code. Do not retry it; take another approach or explain what you would need.\"; CommandCodeAPI.swift:422 \"The user declined this in Droppy Code.\"; CommandCodeAPI.swift:430 \"Droppy Code did not answer.\"",
         "port": "\"The user declined this in Marrow. Do not retry it; take another approach or explain what you would need.\"; \"The user declined this in Marrow.\"; \"Marrow did not answer.\"; the Pi, Antigravity and other fallbacks are unchanged."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVCLI-034",
