@@ -11999,7 +11999,8 @@
         "DroppyCode/Services/Providers/DeepSeekAPI.swift:79-92",
         "DroppyCode/Services/Providers/ProviderRegistry.swift:127 deepseekSeed"
       ],
-      "notes": "The seed shown before any network call is exactly ['deepseek-v4-pro', 'deepseek-flash'] mapped through the same table, so the seeded and the live list can never disagree. The em dash here is the record's own separator, not part of either string."
+      "notes": "The seed shown before any network call is exactly ['deepseek-v4-pro', 'deepseek-flash'] mapped through the same table, so the seeded and the live list can never disagree. The em dash here is the record's own separator, not part of either string.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVAPI",

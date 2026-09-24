@@ -4096,43 +4096,15 @@
     "Services.Providers.ProviderCredits"
    ],
    "records_total": 12,
-   "records_todo": [
-    "PR-PROVAPI-015",
-    "PR-PROVAPI-016",
-    "PR-PROVAPI-017",
-    "PR-PROVAPI-018",
-    "PR-PROVAPI-019",
-    "PR-PROVAPI-020",
-    "PR-PROVAPI-021",
-    "PR-PROVAPI-022",
-    "PR-PROVAPI-023",
-    "PR-PROVAPI-024",
-    "PR-PROVAPI-025",
-    "UI-PROVAPI-026"
-   ],
-   "parts": [
-    [
-     "PR-PROVAPI-015",
-     "PR-PROVAPI-016",
-     "PR-PROVAPI-017",
-     "PR-PROVAPI-018",
-     "PR-PROVAPI-019",
-     "PR-PROVAPI-020",
-     "PR-PROVAPI-021",
-     "PR-PROVAPI-022",
-     "PR-PROVAPI-023",
-     "PR-PROVAPI-024",
-     "PR-PROVAPI-025",
-     "UI-PROVAPI-026"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-087",
     "T-M4-088",
     "T-M4-089"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.Providers.MetaSession",
