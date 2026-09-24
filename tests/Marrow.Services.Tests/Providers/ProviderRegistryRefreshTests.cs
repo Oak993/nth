@@ -454,23 +454,22 @@ public sealed class ProviderRegistryRefreshTests
 
     // ---- Delegated providers and the unreachable API-key arm (PR-PROVREG-123, 124) -------------------------
     //
-    // AntigravitySession.AuthStatus, CopilotSession.AuthStatus and PiCLI.AuthStatus are MARROW_STUB (missing
-    // dependencies owned by other units in this file's dependency cycle, section 6): each currently throws
-    // NotImplementedException naming its own Swift file, so their SIGNED-IN/OUT/UNKNOWN behaviour cannot be
-    // exercised here. What this test proves instead is that Auth's switch dispatches each of these providers
-    // to its OWN delegate and no other (the exception identifies the delegate reached), passing the
-    // executable and environment through unchanged, which is this record's registry-side contract ("the
-    // registry performs no parsing of its own for these four"). Once each delegate unit lands, its own tests
-    // cover the returned Auth values; this test should then be extended to assert on those values too.
-    // CommandCodeAPI.AuthStatus landed with unit Services.Providers.CommandCodeAPI (merged into impl/b2
-    // during this unit's final sync) and no longer throws: its own dispatch and its returned Auth values are
-    // proven by CommandCodeAPITests.cs, so it is dropped from this stub-only theory rather than force a stub
-    // exception that no longer exists.
+    // AntigravitySession.AuthStatus is MARROW_STUB (a missing dependency owned by another unit in this
+    // file's dependency cycle, section 6): it currently throws NotImplementedException naming its own Swift
+    // file, so its SIGNED-IN/OUT/UNKNOWN behaviour cannot be exercised here. What this test proves instead
+    // is that Auth's switch dispatches it to its OWN delegate and no other (the exception identifies the
+    // delegate reached), passing the executable and environment through unchanged, which is this record's
+    // registry-side contract ("the registry performs no parsing of its own for these four"). Once the
+    // delegate unit lands, its own tests cover the returned Auth values; this test should then be extended
+    // to assert on those values too. CommandCodeAPI.AuthStatus, CopilotSession.AuthStatus and PiCLI.AuthStatus
+    // landed with units Services.Providers.CommandCodeAPI, Services.Providers.CopilotSession and
+    // Services.Providers.PiCLI (merged into impl/b2 during this unit's final sync) and no longer throw:
+    // their own dispatch and returned Auth values are proven by CommandCodeAPITests.cs, CopilotSessionTests.cs
+    // and PiCLITests.cs, so each is dropped from this stub-only theory rather than force a stub exception
+    // that no longer exists.
 
     [Theory]
     [InlineData(ProviderKind.Antigravity, "AntigravitySession")]
-    [InlineData(ProviderKind.Copilot, "CopilotSession")]
-    [InlineData(ProviderKind.Pi, "PiCLI")]
     [Trait("Req", "PR-PROVREG-123")] // ProviderRegistry.swift:825-832
     public async Task auth_dispatches_each_delegated_provider_to_its_own_session_or_api_type(ProviderKind provider, string delegateType)
     {
