@@ -2564,7 +2564,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The two paths produce visibly different typography (the run path is one native text object, the block path is a stack of views), and a message swaps from one to the other when its stream ends. That swap is the shipped behaviour and must be reproduced, including the spacing being 12 in both.",
       "verification_method": "interaction test: a reply's layout when streaming and after it finishes; unit: the segment grouping",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2586,7 +2586,7 @@
       "cancellation": "not cancellable",
       "windows_path": "An equality short-circuit keyed on the parser's stability claim. A port that diffs by value everywhere is behaviourally identical but slower on long replies.",
       "verification_method": "unit: two settled views compare equal even with different content, which is the documented contract",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2612,7 +2612,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The removal-identity case is a fix for a visible ghosting artefact; reproduce it rather than giving every block the same transition.",
       "verification_method": "interaction test: a delegation block leaving a reply does not glide over the text below it",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2634,7 +2634,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The three info strings are a protocol between the runtime and the renderer; the exact strings are load-bearing and the comparison is on the lower-cased info string.",
       "verification_method": "unit: the three strings select the card; interaction test: a leaving card holds its room",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2658,7 +2658,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Level 3 and levels 4 to 6 both come out semibold, the first by the helper's default and the second explicitly, so all four levels are semibold. The only differences are size and the padding above. Do not scale these fonts by any chat zoom: B2 has none.",
       "verification_method": "unit: the four text style, weight and padding triples; unit: the font helper takes no zoom argument and returns the plain text style",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2682,7 +2682,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The path swap when a paragraph stops streaming is observable: hover cursors and the head hover card only work on the native path.",
       "verification_method": "unit: the four-way branch table; interaction test: a head name is hoverable only after the reply finishes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2706,7 +2706,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The hidden glyph technique exists to get the baseline right; any Windows equivalent must align the dot to the first line's baseline, not to the top of the text block.",
       "verification_method": "capture comparison: dot alignment on a wrapping item; unit: sizes and opacities",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2729,7 +2729,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Tabular figures are required so a list running past nine keeps its text aligned.",
       "verification_method": "unit: a list written \"1)\" renders \"1.\"; the numbering follows start plus index",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2751,7 +2751,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The checked marker uses the inherited tint rather than the marker colour the bullets use, so it is the accent at full opacity, not 90 percent. Reproduce that difference. The marker is decorative only.",
       "verification_method": "unit: the two colours differ from the bullet marker colour; interaction test: clicking a checkbox does nothing",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2773,7 +2773,7 @@
       "cancellation": "not cancellable",
       "windows_path": "First-baseline alignment, not top alignment. This is the same constraint that forces the native link paragraph to publish baseline metrics (PR-THEME-134).",
       "verification_method": "capture comparison on a wrapping list item",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2796,7 +2796,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The bar is a capsule (fully rounded ends), not a square rule. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal is superseded for this token.",
       "verification_method": "capture comparison; unit: the dimmed flag propagates to nested markers",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2819,7 +2819,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One point is a device-independent point, so on a 150 percent display it is a 1.5 pixel line; do not snap it to a whole pixel by changing the declared height.",
       "verification_method": "capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2846,7 +2846,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The hover flag must live outside the block's own state, or every pointer move re-lays out a large dump. Keep the copy control at opacity 0 rather than removing it, so its space is reserved. The language label is in the port's text face, Inter, and the code in its monospace face, Cascadia Mono (owner ruling OD-0009). ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal is superseded for this token.",
       "verification_method": "capture comparison; interaction test: the copy control appears on hover and the code does not reflow",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2873,7 +2873,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Count line feeds rather than splitting: a large dump split into an array on every hover is the performance bug the source records. Text size (ED-059): .caption 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54) in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal is superseded for this token.",
       "verification_method": "unit: the two button strings and the boundary at exactly 120 lines",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2901,7 +2901,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the asymmetry with the code block: a table can be expanded but not collapsed again. Text size (ED-059): .caption 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54) in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal is superseded for this token.",
       "verification_method": "unit: the button string, the 30 row boundary, ragged-row padding and truncation",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2928,7 +2928,7 @@
       "cancellation": "The reset task holds only the flag binding, so a control that goes away does not keep its text alive; the reset itself is not cancelled.",
       "windows_path": "Clipboard as plain text only; no rich-text flavour is written. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal is superseded for this token.",
       "verification_method": "interaction test: the check mark lasts 1.4 seconds; unit: the clipboard receives the reflowed text",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2952,7 +2952,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Port the eight tests exactly, including the 45 character minimum and the sentence-punctuation requirement. Note the fence test here is only for ``` and not for ~~~, unlike the parser's, so a tilde-fenced block's contents can be reflowed on copy.",
       "verification_method": "contract fixture: a corpus of wrapped prose, code and mixed text with recorded reflow results",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3007,7 +3007,7 @@
       "cancellation": "not cancellable",
       "windows_path": "port_impacts.md entry 152: port the exact limits, they are tuned against each other. The mismatch between 48 parse slots and 4 inline slots is deliberate and recorded.",
       "verification_method": "unit: a finished stream's parse is adopted, not re-parsed; the slot counts",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3037,7 +3037,7 @@
       "cancellation": "Cancellable at every step; a cancelled warm-up leaves partial results cached, which is harmless.",
       "windows_path": "All four limits are exact. Code blocks and table cells are deliberately not warmed; only prose sources are.",
       "verification_method": "unit: the four limits and the source-collection rules",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3059,7 +3059,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Byte probes, not character probes. A port that compares whole texts is slower but strictly safer; because the difference is observable only in a case upstream never hits, reproduce the probe as written.",
       "verification_method": "unit: the 128 byte boundary and both probe positions",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3084,7 +3084,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Do not implement the disabled branch or the pass-through hit testing it feeds: both are proven dead (dead_code.md entries 29 and 30) and carry no requirement. ED-061: those dead branches are neither implemented nor counted as missing; this record covers only the live behaviour.",
       "verification_method": "interaction test: a drag selects within one block and stops at its edge",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3106,7 +3106,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Platform boundary: there is no framework inline markdown parser on Windows. The port supplies one with exactly these semantics, including whitespace preservation, and must produce the same run boundaries, because the autolinker skips runs that are already links or code (PR-THEME-129).",
       "verification_method": "contract fixture: a corpus of inline markup with recorded run boundaries and intents",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3129,7 +3129,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Port the pattern character for character. The trailing group's exclusion of round brackets is why a domain inside parentheses does not swallow the closing bracket.",
       "verification_method": "contract fixture: the recorded match table from the markdown-link-grammar extract",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3153,7 +3153,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exactly these 111 entries, no more and no fewer. Adding swift, html, json, md, py or similar would silently stop file names from linking, which changes rendered output.",
       "verification_method": "unit: the set has 111 entries and equals the recorded list; fixture: MarkdownView.swift does not link, libssl.so does",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3180,7 +3180,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The two trim sets are different and must stay different. Index in grapheme clusters: a JavaScript or C# port indexing UTF-16 will misplace links after any astral character.",
       "verification_method": "contract fixture: the recorded cases from the extract, including an emoji before a domain and a domain inside backticks",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3206,7 +3206,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The ten-character trim set here is different from the autolinker's eight-character one. Bold is unconditional; underline is explicitly zero (PR-THEME-139).",
       "verification_method": "contract fixture: the recorded isBareDisplay table from the extract",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3232,7 +3232,7 @@
       "cancellation": "not cancellable",
       "windows_path": "All ellipses are the single character U+2026, never three full stops. The cap arithmetic is off by one in the source's own terms (48 yields 46) and must be reproduced.",
       "verification_method": "contract fixture: the recorded prettyTitle table from the extract",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3256,7 +3256,7 @@
       "cancellation": "not cancellable",
       "windows_path": "This wins over a fetched video title, so a video link that also matched a forge shape would show the reference. The GitLab branch requires the segment after \"-\" plus two more, which is why the index test is `dash + 2 < segments.count`.",
       "verification_method": "unit: the four shapes and the leading-zero case",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3366,7 +3366,7 @@
       "cancellation": "Not cancellable; the shared task runs to completion even if every asker went away.",
       "windows_path": "One network request per public host while its icon stays cached or its failure is recorded, sent from the renderer to the linked host itself; a successful host is requested again after the 300-entry cache is emptied, a failed one never. The public-host test is a privacy control and must be ported rule for rule, including the carrier-grade NAT range and the IPv6 rejection. The source comment at MarkdownView.swift:918-919 still speaks of \"a service on the web\"; the code sends to the host itself.",
       "verification_method": "contract fixture against a mock HTTPS host: one GET to /favicon.ico with a 5 second timeout, no second request after a 404, a timeout or an undecodable body, and a second request for a successful host once 300 other icons have emptied the cache; unit: the isPublic table, including 100.64.0.1 and a host with a colon",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3394,7 +3394,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Platform boundary: the flood fill and the un-premultiply are plain pixel work and port directly. The 28-pixel bitmap at a 14-point declared size is how the two-times asset is expressed; on Windows that means a 28 pixel bitmap drawn into a 14 by 14 device-independent box.",
       "verification_method": "unit: a white-plated icon comes out with transparent corners; capture comparison on a dark theme",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3421,7 +3421,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce as a wholesale flush, not an LRU eviction: the 301st favicon really does drop all 300 (port_impacts.md entry 152).",
       "verification_method": "unit: the 301st store empties the map; a failed host is not retried",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "49",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3546,7 +3546,7 @@
       "cancellation": "Moving away before the 250 millisecond delay cancels the card.",
       "windows_path": "Cursor changes are driven from the hover handler, not from per-control cursor regions. The hover card itself is specified by the Hydra area; this requirement covers what triggers and clears it.",
       "verification_method": "interaction test: the hand appears only over links; the card appears after the delay and clears on scroll-away",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3663,7 +3663,7 @@
       "cancellation": "The task is cancelled when the paragraph goes away or its key changes.",
       "windows_path": "Key the work on the derived asset key, not on the paragraph text, or every streamed token restarts the fetches.",
       "verification_method": "unit: the key's exact format; interaction test: streaming a paragraph with one link issues one icon fetch",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3745,7 +3745,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Without these guides a list marker sits on the paragraph's top edge and the text starts a line below it. The half-point rounding of the size is what keeps the metrics cache small.",
       "verification_method": "capture comparison: a list item whose text is a link paragraph aligns its dot with the first line",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4394,7 +4394,7 @@
       "cancellation": "not cancellable",
       "windows_path": "This path and the native path differ in kind, not only in glyph size: this one produces a real hyperlink attribute and the native one a custom non-link attribute (PR-THEME-143). Both must be reproduced as written. If the Windows text stack recolours links the way a native macOS text view does, the explicit foreground colour must be applied after the link so the persona colour still wins.",
       "verification_method": "unit test asserting the three attributes on the name run, plus a capture comparison of the glyph size and baseline offset against the native path's",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4417,7 +4417,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The inert form must look identical to the live one. A Windows implementation that styles targeted and untargeted mentions differently, or that omits the glyph when there is no target, diverges visibly.",
       "verification_method": "capture comparison of a targeted and an untargeted mention in both paths, plus an interaction test that the untargeted one is inert",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5258,7 +5258,8 @@
         "DroppyCode/UI/Common/ChatFont.swift:6-10"
       ],
       "notes": "The two paths compute heading sizes differently (named text styles against multipliers), so the same heading can differ by a point between a streaming and a finished reply.",
-      "b2_change": "Streaming path: fonts scaled by the chat zoom (B1 MarkdownView.swift:377-384 with B1 ChatZoom.swift:45-70) -> plain text styles with no zoom (B2 MarkdownView.swift:376-383, ChatFont.swift:6-10); B1 DroppyCode/UI/Common/ChatZoom.swift (the `chatZoom` environment value and `Font.chat(_:weight:design:zoom:)`, which scaled `chatBaseSize(style) * zoom` at any zoom other than 1, :59-70) is deleted at B2 and nothing at B2 reads `chatZoom`. Prose run path: `(pointSize * zoom * 2).rounded() / 2` (B1 ProseRunView.swift:18) -> `(pointSize * 2).rounded() / 2` (B2 :17); the previous ProseRunView citation 393-417 lay beyond the file and is replaced by B2 :172-196. Quote colour: `.secondary` (B1 MarkdownView.swift:365) and `NSColor.secondaryLabelColor` (B1 ProseRunView.swift:162) -> Chrome.secondaryText (B2 MarkdownView.swift:364) and `NSColor.labelColor.withAlphaComponent(0.7)` (B2 ProseRunView.swift:161)."
+      "b2_change": "Streaming path: fonts scaled by the chat zoom (B1 MarkdownView.swift:377-384 with B1 ChatZoom.swift:45-70) -> plain text styles with no zoom (B2 MarkdownView.swift:376-383, ChatFont.swift:6-10); B1 DroppyCode/UI/Common/ChatZoom.swift (the `chatZoom` environment value and `Font.chat(_:weight:design:zoom:)`, which scaled `chatBaseSize(style) * zoom` at any zoom other than 1, :59-70) is deleted at B2 and nothing at B2 reads `chatZoom`. Prose run path: `(pointSize * zoom * 2).rounded() / 2` (B1 ProseRunView.swift:18) -> `(pointSize * 2).rounded() / 2` (B2 :17); the previous ProseRunView citation 393-417 lay beyond the file and is replaced by B2 :172-196. Quote colour: `.secondary` (B1 MarkdownView.swift:365) and `NSColor.secondaryLabelColor` (B1 ProseRunView.swift:162) -> Chrome.secondaryText (B2 MarkdownView.swift:364) and `NSColor.labelColor.withAlphaComponent(0.7)` (B2 ProseRunView.swift:161).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-THEME-029",
@@ -5278,7 +5279,8 @@
       "source_evidence": [
         "DroppyCode/UI/Markdown/MarkdownView.swift:517-538"
       ],
-      "notes": "In a finished prose run the bullet is instead the character \"•\" at the top level and \"◦\" deeper, in the text colour, not an accent dot. That difference is upstream behaviour."
+      "notes": "In a finished prose run the bullet is instead the character \"•\" at the top level and \"◦\" deeper, in the text colour, not an accent dot. That difference is upstream behaviour.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-THEME-030",
@@ -5298,7 +5300,8 @@
       "source_evidence": [
         "DroppyCode/UI/Markdown/MarkdownView.swift:512-516"
       ],
-      "notes": "Always a full stop, even when the source used a closing bracket."
+      "notes": "Always a full stop, even when the source used a closing bracket.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-THEME-031",
@@ -5320,7 +5323,8 @@
       "source_evidence": [
         "DroppyCode/UI/Markdown/MarkdownView.swift:508-511"
       ],
-      "notes": "The checked marker uses the tint at full opacity while bullets use the accent at 0.9, so the two are not the same colour. In a finished prose run these render as the characters \"☑\" and \"☐\" in the text colour instead."
+      "notes": "The checked marker uses the tint at full opacity while bullets use the accent at 0.9, so the two are not the same colour. In a finished prose run these render as the characters \"☑\" and \"☐\" in the text colour instead.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-THEME-032",
@@ -5341,7 +5345,8 @@
         "DroppyCode/UI/Markdown/MarkdownView.swift:354-365"
       ],
       "notes": "In a finished prose run there is no bar at all; the quote is a 14 point extra indent with dimmed text.",
-      "b2_change": "Content colour `.foregroundStyle(.secondary)` (B1 MarkdownView.swift:365) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :364); re-cited B1 :355-366 -> B2 :354-365. Bar and geometry unchanged."
+      "b2_change": "Content colour `.foregroundStyle(.secondary)` (B1 MarkdownView.swift:365) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :364); re-cited B1 :355-366 -> B2 :354-365. Bar and geometry unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-THEME-033",
@@ -5361,7 +5366,8 @@
       "source_evidence": [
         "DroppyCode/UI/Markdown/MarkdownView.swift:368-372"
       ],
-      "notes": "Dropped entirely from a finished prose run and from copied plain text."
+      "notes": "Dropped entirely from a finished prose run and from copied plain text.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-THEME-034",
@@ -5387,7 +5393,8 @@
         "DroppyCode/UI/Markdown/MarkdownView.swift:1287-1321"
       ],
       "notes": "Code never wraps; it scrolls. The hover flag lives outside the block's own state so a pointer move does not re-lay out the text.",
-      "b2_change": "Fonts `.chat(.caption, zoom: zoom)` and `.chat(.callout, design: .monospaced, zoom: zoom)` (B1 MarkdownView.swift:1290, :1301) -> `.chat(.caption)` and `.chat(.callout, design: .monospaced)` (B2 :1290, :1301); label colour `.secondary` (B1 :1291) -> Chrome.secondaryText (B2 :1291). Re-cited at the same lines 1287-1321; geometry and panel colours unchanged."
+      "b2_change": "Fonts `.chat(.caption, zoom: zoom)` and `.chat(.callout, design: .monospaced, zoom: zoom)` (B1 MarkdownView.swift:1290, :1301) -> `.chat(.caption)` and `.chat(.callout, design: .monospaced)` (B2 :1290, :1301); label colour `.secondary` (B1 :1291) -> Chrome.secondaryText (B2 :1291). Re-cited at the same lines 1287-1321; geometry and panel colours unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-THEME-035",
@@ -5408,7 +5415,8 @@
         "DroppyCode/UI/Markdown/MarkdownView.swift:1289-1291"
       ],
       "notes": "The fallback is the lower-case word \"code\". The info string is shown as written, not lower-cased, even though the delegation test lower-cases it.",
-      "b2_change": "Font `.chat(.caption, zoom: zoom)` (B1 MarkdownView.swift:1290) -> `.chat(.caption)` (B2 :1290); colour `.foregroundStyle(.secondary)` (B1 :1291) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :1291). The \"code\" fallback is unchanged."
+      "b2_change": "Font `.chat(.caption, zoom: zoom)` (B1 MarkdownView.swift:1290) -> `.chat(.caption)` (B2 :1290); colour `.foregroundStyle(.secondary)` (B1 :1291) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :1291). The \"code\" fallback is unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-THEME-036",
@@ -5433,7 +5441,8 @@
         "DroppyCode/UI/Markdown/MarkdownView.swift:1471-1498"
       ],
       "notes": "The control keeps its space while invisible, so the header does not reflow on hover. What is copied is the reflowed text, not the raw text.",
-      "b2_change": "Colour `.foregroundStyle(.secondary)` (B1 MarkdownView.swift:1496) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :1495); re-cited B1 :1472-1499 -> B2 :1471-1498. Glyphs, 22x22, 1.4 s and the \"Copy\" tooltip unchanged."
+      "b2_change": "Colour `.foregroundStyle(.secondary)` (B1 MarkdownView.swift:1496) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :1495); re-cited B1 :1472-1499 -> B2 :1471-1498. Glyphs, 22x22, 1.4 s and the \"Copy\" tooltip unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-THEME-037",
@@ -5455,7 +5464,8 @@
         "DroppyCode/UI/Markdown/MarkdownView.swift:1308-1317"
       ],
       "notes": "N is the full line count, which is one plus the number of line feeds. A block of exactly 120 lines shows no button.",
-      "b2_change": "Font `.chat(.caption, zoom: zoom)` and colour `.secondary` (B1 MarkdownView.swift:1313-1314) -> `.chat(.caption)` and Chrome.secondaryText (B2 :1313-1314). Strings and the 120 threshold unchanged."
+      "b2_change": "Font `.chat(.caption, zoom: zoom)` and colour `.secondary` (B1 MarkdownView.swift:1313-1314) -> `.chat(.caption)` and Chrome.secondaryText (B2 :1313-1314). Strings and the 120 threshold unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-THEME-038",
@@ -5478,7 +5488,8 @@
         "DroppyCode/UI/Markdown/MarkdownView.swift:1357-1396"
       ],
       "notes": "Column alignment from the delimiter row is parsed and discarded; every cell is leading-aligned. A row with fewer cells than the header is padded with empty cells; extra cells in a row are dropped.",
-      "b2_change": "Re-cited only: B1 MarkdownView.swift:1358-1397 -> B2 :1357-1396, after B1's `@Environment(\\.chatZoom)` in TableBlock (:1342) was removed. The panel is unchanged."
+      "b2_change": "Re-cited only: B1 MarkdownView.swift:1358-1397 -> B2 :1357-1396, after B1's `@Environment(\\.chatZoom)` in TableBlock (:1342) was removed. The panel is unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-THEME-039",
@@ -5500,7 +5511,8 @@
         "DroppyCode/UI/Markdown/MarkdownView.swift:1384-1393"
       ],
       "notes": "Unlike the code block there is no collapse counterpart. N is the total row count.",
-      "b2_change": "Font `.chat(.caption, zoom: zoom)` and colour `.secondary` (B1 MarkdownView.swift:1390-1391) -> `.chat(.caption)` and Chrome.secondaryText (B2 :1389-1390); re-cited B1 :1385-1394 -> B2 :1384-1393. The string and the 30 threshold unchanged."
+      "b2_change": "Font `.chat(.caption, zoom: zoom)` and colour `.secondary` (B1 MarkdownView.swift:1390-1391) -> `.chat(.caption)` and Chrome.secondaryText (B2 :1389-1390); re-cited B1 :1385-1394 -> B2 :1384-1393. The string and the 30 threshold unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-THEME-040",

@@ -2064,7 +2064,7 @@
       "cancellation": "not cancellable",
       "windows_path": "No PATH lookup and no version probe for these three providers; the key is the install state.",
       "verification_method": "integration",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

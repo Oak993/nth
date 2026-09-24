@@ -10821,7 +10821,8 @@
         "DroppyCode/Services/Providers/ProviderRegistry.swift:146",
         "DroppyCode/Services/Providers/CopilotSession.swift:406"
       ],
-      "notes": "Its detail line is the verbatim \"Copilot picks the model for each request\". A catalog equal to exactly this one row is treated by the registry as 'not yet loaded', so the row doubles as a sentinel and its fields must not drift."
+      "notes": "Its detail line is the verbatim \"Copilot picks the model for each request\". A catalog equal to exactly this one row is treated by the registry as 'not yet loaded', so the row doubles as a sentinel and its fields must not drift.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVCLI-018",

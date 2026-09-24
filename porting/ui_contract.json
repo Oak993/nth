@@ -12520,7 +12520,8 @@
         "DroppyCode/Services/Providers/ProviderRegistry.swift:146",
         "DroppyCode/Services/Providers/CopilotSession.swift:406"
       ],
-      "notes": "Its detail line is the verbatim \"Copilot picks the model for each request\". A catalog equal to exactly this one row is treated by the registry as 'not yet loaded', so the row doubles as a sentinel and its fields must not drift."
+      "notes": "Its detail line is the verbatim \"Copilot picks the model for each request\". A catalog equal to exactly this one row is treated by the registry as 'not yet loaded', so the row doubles as a sentinel and its fields must not drift.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVCLI",
@@ -20706,7 +20707,8 @@
         "DroppyCode/UI/Common/ChatFont.swift:6-10"
       ],
       "notes": "The two paths compute heading sizes differently (named text styles against multipliers), so the same heading can differ by a point between a streaming and a finished reply.",
-      "b2_change": "Streaming path: fonts scaled by the chat zoom (B1 MarkdownView.swift:377-384 with B1 ChatZoom.swift:45-70) -> plain text styles with no zoom (B2 MarkdownView.swift:376-383, ChatFont.swift:6-10); B1 DroppyCode/UI/Common/ChatZoom.swift (the `chatZoom` environment value and `Font.chat(_:weight:design:zoom:)`, which scaled `chatBaseSize(style) * zoom` at any zoom other than 1, :59-70) is deleted at B2 and nothing at B2 reads `chatZoom`. Prose run path: `(pointSize * zoom * 2).rounded() / 2` (B1 ProseRunView.swift:18) -> `(pointSize * 2).rounded() / 2` (B2 :17); the previous ProseRunView citation 393-417 lay beyond the file and is replaced by B2 :172-196. Quote colour: `.secondary` (B1 MarkdownView.swift:365) and `NSColor.secondaryLabelColor` (B1 ProseRunView.swift:162) -> Chrome.secondaryText (B2 MarkdownView.swift:364) and `NSColor.labelColor.withAlphaComponent(0.7)` (B2 ProseRunView.swift:161)."
+      "b2_change": "Streaming path: fonts scaled by the chat zoom (B1 MarkdownView.swift:377-384 with B1 ChatZoom.swift:45-70) -> plain text styles with no zoom (B2 MarkdownView.swift:376-383, ChatFont.swift:6-10); B1 DroppyCode/UI/Common/ChatZoom.swift (the `chatZoom` environment value and `Font.chat(_:weight:design:zoom:)`, which scaled `chatBaseSize(style) * zoom` at any zoom other than 1, :59-70) is deleted at B2 and nothing at B2 reads `chatZoom`. Prose run path: `(pointSize * zoom * 2).rounded() / 2` (B1 ProseRunView.swift:18) -> `(pointSize * 2).rounded() / 2` (B2 :17); the previous ProseRunView citation 393-417 lay beyond the file and is replaced by B2 :172-196. Quote colour: `.secondary` (B1 MarkdownView.swift:365) and `NSColor.secondaryLabelColor` (B1 ProseRunView.swift:162) -> Chrome.secondaryText (B2 MarkdownView.swift:364) and `NSColor.labelColor.withAlphaComponent(0.7)` (B2 ProseRunView.swift:161).",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "THEME",
@@ -20727,7 +20729,8 @@
       "source_evidence": [
         "DroppyCode/UI/Markdown/MarkdownView.swift:517-538"
       ],
-      "notes": "In a finished prose run the bullet is instead the character \"•\" at the top level and \"◦\" deeper, in the text colour, not an accent dot. That difference is upstream behaviour."
+      "notes": "In a finished prose run the bullet is instead the character \"•\" at the top level and \"◦\" deeper, in the text colour, not an accent dot. That difference is upstream behaviour.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "THEME",
@@ -20748,7 +20751,8 @@
       "source_evidence": [
         "DroppyCode/UI/Markdown/MarkdownView.swift:512-516"
       ],
-      "notes": "Always a full stop, even when the source used a closing bracket."
+      "notes": "Always a full stop, even when the source used a closing bracket.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "THEME",
@@ -20771,7 +20775,8 @@
       "source_evidence": [
         "DroppyCode/UI/Markdown/MarkdownView.swift:508-511"
       ],
-      "notes": "The checked marker uses the tint at full opacity while bullets use the accent at 0.9, so the two are not the same colour. In a finished prose run these render as the characters \"☑\" and \"☐\" in the text colour instead."
+      "notes": "The checked marker uses the tint at full opacity while bullets use the accent at 0.9, so the two are not the same colour. In a finished prose run these render as the characters \"☑\" and \"☐\" in the text colour instead.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "THEME",
@@ -20793,7 +20798,8 @@
         "DroppyCode/UI/Markdown/MarkdownView.swift:354-365"
       ],
       "notes": "In a finished prose run there is no bar at all; the quote is a 14 point extra indent with dimmed text.",
-      "b2_change": "Content colour `.foregroundStyle(.secondary)` (B1 MarkdownView.swift:365) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :364); re-cited B1 :355-366 -> B2 :354-365. Bar and geometry unchanged."
+      "b2_change": "Content colour `.foregroundStyle(.secondary)` (B1 MarkdownView.swift:365) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :364); re-cited B1 :355-366 -> B2 :354-365. Bar and geometry unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "THEME",
@@ -20814,7 +20820,8 @@
       "source_evidence": [
         "DroppyCode/UI/Markdown/MarkdownView.swift:368-372"
       ],
-      "notes": "Dropped entirely from a finished prose run and from copied plain text."
+      "notes": "Dropped entirely from a finished prose run and from copied plain text.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "THEME",
@@ -20841,7 +20848,8 @@
         "DroppyCode/UI/Markdown/MarkdownView.swift:1287-1321"
       ],
       "notes": "Code never wraps; it scrolls. The hover flag lives outside the block's own state so a pointer move does not re-lay out the text.",
-      "b2_change": "Fonts `.chat(.caption, zoom: zoom)` and `.chat(.callout, design: .monospaced, zoom: zoom)` (B1 MarkdownView.swift:1290, :1301) -> `.chat(.caption)` and `.chat(.callout, design: .monospaced)` (B2 :1290, :1301); label colour `.secondary` (B1 :1291) -> Chrome.secondaryText (B2 :1291). Re-cited at the same lines 1287-1321; geometry and panel colours unchanged."
+      "b2_change": "Fonts `.chat(.caption, zoom: zoom)` and `.chat(.callout, design: .monospaced, zoom: zoom)` (B1 MarkdownView.swift:1290, :1301) -> `.chat(.caption)` and `.chat(.callout, design: .monospaced)` (B2 :1290, :1301); label colour `.secondary` (B1 :1291) -> Chrome.secondaryText (B2 :1291). Re-cited at the same lines 1287-1321; geometry and panel colours unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "THEME",
@@ -20863,7 +20871,8 @@
         "DroppyCode/UI/Markdown/MarkdownView.swift:1289-1291"
       ],
       "notes": "The fallback is the lower-case word \"code\". The info string is shown as written, not lower-cased, even though the delegation test lower-cases it.",
-      "b2_change": "Font `.chat(.caption, zoom: zoom)` (B1 MarkdownView.swift:1290) -> `.chat(.caption)` (B2 :1290); colour `.foregroundStyle(.secondary)` (B1 :1291) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :1291). The \"code\" fallback is unchanged."
+      "b2_change": "Font `.chat(.caption, zoom: zoom)` (B1 MarkdownView.swift:1290) -> `.chat(.caption)` (B2 :1290); colour `.foregroundStyle(.secondary)` (B1 :1291) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :1291). The \"code\" fallback is unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "THEME",
@@ -20889,7 +20898,8 @@
         "DroppyCode/UI/Markdown/MarkdownView.swift:1471-1498"
       ],
       "notes": "The control keeps its space while invisible, so the header does not reflow on hover. What is copied is the reflowed text, not the raw text.",
-      "b2_change": "Colour `.foregroundStyle(.secondary)` (B1 MarkdownView.swift:1496) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :1495); re-cited B1 :1472-1499 -> B2 :1471-1498. Glyphs, 22x22, 1.4 s and the \"Copy\" tooltip unchanged."
+      "b2_change": "Colour `.foregroundStyle(.secondary)` (B1 MarkdownView.swift:1496) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :1495); re-cited B1 :1472-1499 -> B2 :1471-1498. Glyphs, 22x22, 1.4 s and the \"Copy\" tooltip unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "THEME",
@@ -20912,7 +20922,8 @@
         "DroppyCode/UI/Markdown/MarkdownView.swift:1308-1317"
       ],
       "notes": "N is the full line count, which is one plus the number of line feeds. A block of exactly 120 lines shows no button.",
-      "b2_change": "Font `.chat(.caption, zoom: zoom)` and colour `.secondary` (B1 MarkdownView.swift:1313-1314) -> `.chat(.caption)` and Chrome.secondaryText (B2 :1313-1314). Strings and the 120 threshold unchanged."
+      "b2_change": "Font `.chat(.caption, zoom: zoom)` and colour `.secondary` (B1 MarkdownView.swift:1313-1314) -> `.chat(.caption)` and Chrome.secondaryText (B2 :1313-1314). Strings and the 120 threshold unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "THEME",
@@ -20936,7 +20947,8 @@
         "DroppyCode/UI/Markdown/MarkdownView.swift:1357-1396"
       ],
       "notes": "Column alignment from the delimiter row is parsed and discarded; every cell is leading-aligned. A row with fewer cells than the header is padded with empty cells; extra cells in a row are dropped.",
-      "b2_change": "Re-cited only: B1 MarkdownView.swift:1358-1397 -> B2 :1357-1396, after B1's `@Environment(\\.chatZoom)` in TableBlock (:1342) was removed. The panel is unchanged."
+      "b2_change": "Re-cited only: B1 MarkdownView.swift:1358-1397 -> B2 :1357-1396, after B1's `@Environment(\\.chatZoom)` in TableBlock (:1342) was removed. The panel is unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "THEME",
@@ -20959,7 +20971,8 @@
         "DroppyCode/UI/Markdown/MarkdownView.swift:1384-1393"
       ],
       "notes": "Unlike the code block there is no collapse counterpart. N is the total row count.",
-      "b2_change": "Font `.chat(.caption, zoom: zoom)` and colour `.secondary` (B1 MarkdownView.swift:1390-1391) -> `.chat(.caption)` and Chrome.secondaryText (B2 :1389-1390); re-cited B1 :1385-1394 -> B2 :1384-1393. The string and the 30 threshold unchanged."
+      "b2_change": "Font `.chat(.caption, zoom: zoom)` and colour `.secondary` (B1 MarkdownView.swift:1390-1391) -> `.chat(.caption)` and Chrome.secondaryText (B2 :1389-1390); re-cited B1 :1385-1394 -> B2 :1384-1393. The string and the 30 threshold unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "THEME",
