@@ -5,11 +5,10 @@ using Marrow.Core.Support;
 using Marrow.Services.MCP;
 using Marrow.Services.Store;
 
-// Source: DroppyCode/Services/Providers/CopilotSession.swift (B2 1fbf81e), :1-1072. Parts 1 and 2 of 4: the
+// Source: DroppyCode/Services/Providers/CopilotSession.swift (B2 1fbf81e), :1-1072. The whole file: the
 // lifecycle, the session parameters, modes and selection, send, slash commands, interrupt, compact and rewind,
-// approvals and answers, stop, the catalog and account reads, the session.event routing, close and the tool
-// mapping (:27-715, :873-1072). The request, permission and error-message members (:717-872) are still MARROW_STUB
-// and are ported by part 3.
+// approvals and answers, stop, the catalog and account reads, the session.event routing, errors, server requests,
+// permission prompts, close and the tool mapping (:27-1072).
 
 namespace Marrow.Services.Providers;
 
@@ -914,19 +913,221 @@ public sealed partial class CopilotSession : ProviderSession
         interruptRequested = false; // :714
     }
 
-    // :718-732
-    public static string ErrorMessage(JSONValue data) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/CopilotSession.swift:718");
+    /// <summary>The CLI's message, with the way out when the account itself is the problem.</summary>
+    // :717-732
+    public static string ErrorMessage(JSONValue data)
+    {
+        var message = data["message"]?.JSONValueString ?? "Copilot reported an error."; // :719
+        var marker = message.IndexOf("GenericFailure, ", StringComparison.Ordinal); // :720. An ASCII literal: ordinal finds what Foundation finds.
+        if (marker >= 0)
+        {
+            // The model-list failure wraps the HTTP reply as JSON after this marker. :721-722
+            var json = JSONValue.Parse(message[(marker + "GenericFailure, ".Length)..]);
+            if (json?["status"]?.JSONValueInt is { } status && json["body"]?.JSONValueString is { } body) // :723-725
+            {
+                message = "HTTP " + status.ToString(System.Globalization.CultureInfo.InvariantCulture) + ": " + body.Trimmed();
+            }
+        }
+        if (data["statusCode"]?.JSONValueInt == 403 || Is(data["remediation"]?.JSONValueString, "sign_in") // :727-730
+            || SwiftString.LocalizedCaseInsensitiveContains(message, "not authorized to use this Copilot feature"))
+        {
+            message += " Check that your GitHub account has Copilot access, or sign in again with `copilot login`.";
+        }
+        return message; // :731
+    }
 
     // MARK: - Requests
 
-    // :736-774
-    private void HandleRequest(RPCID id, string method, JSONValue parameters) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/CopilotSession.swift:736");
+    // :735-774
+    private void HandleRequest(RPCID id, string method, JSONValue parameters)
+    {
+        switch (method) // :736
+        {
+            case "userInput.request": // :737-752
+            {
+                var choices = new ValueList<string>((parameters["choices"]?.JSONValueArray ?? []).Select(choice => choice.JSONValueString).OfType<string>());
+                var key = "question-" + id.Key;
+                pendingRequests[key] = new PendingRequest.Question(id, choices);
+                OnEvent?.Invoke(new ProviderEvent.Question(new QuestionRequest(key, new ValueList<QuestionRequest.Question>([
+                    new QuestionRequest.Question(
+                        "answer",
+                        "",
+                        parameters["question"]?.JSONValueString ?? "",
+                        new ValueList<QuestionRequest.Choice>(choices.Select(choice => new QuestionRequest.Choice(choice, null))),
+                        AllowsMultiple: false,
+                        AllowsOther: parameters["allowFreeform"]?.JSONValueBool ?? true,
+                        IsSecret: false),
+                ]))));
+                break;
+            }
+            case "exitPlanMode.request": // :753-767
+            {
+                var key = "plan-" + id.Key;
+                pendingRequests[key] = new PendingRequest.PlanExit(id);
+                var plan = (parameters["planContent"]?.JSONValueString is { Length: > 0 } content ? content : null) ?? parameters["summary"]?.JSONValueString ?? "";
+                OnEvent?.Invoke(new ProviderEvent.PlanCompleted(key, plan));
+                OnEvent?.Invoke(new ProviderEvent.Approval(new ApprovalRequest(
+                    key,
+                    ApprovalRequest.Kind.Plan,
+                    "Implement this plan",
+                    new ValueList<ApprovalRequest.Option>([
+                        new ApprovalRequest.Option("allow", "Implement plan", ApprovalRequest.Option.Role.Approve),
+                        new ApprovalRequest.Option("deny", "Keep planning", ApprovalRequest.Option.Role.Decline),
+                    ]),
+                    ToolItemID: key)));
+                break;
+            }
+            case "autoModeSwitch.request": // :768-770
+                // A rate limit offered a switch to the Auto model tier: keep the model the user chose.
+                connection?.Respond(id, JSONValue.FromDictionaryLiteral(("response", "no")));
+                break;
+            default: // :771-772
+                // DEVIATION OD-0012 F1: upstream says "Droppy Code does not support <method>."
+                connection?.Respond(id, errorCode: -32601, message: "Marrow does not support " + method + ".");
+                break;
+        }
+    }
 
     // :776-804
-    private void HandlePermission(JSONValue data) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/CopilotSession.swift:776");
+    private void HandlePermission(JSONValue data)
+    {
+        if (data["requestId"]?.JSONValueString is not { } requestID || data["permissionRequest"] is not { } request) return; // :777
+        if (data["resolvedByHook"]?.JSONValueBool == true) return; // :778
+        var toolCallID = request["toolCallId"]?.JSONValueString; // :779
+        if (AutomaticDecision(request, data["promptRequest"]) is { } decision) // :780-783
+        {
+            RespondPermission(requestID, decision);
+            return;
+        }
+        pendingRequests[requestID] = new PendingRequest.Permission(request, toolCallID); // :784
+        // A write prompt carries the CLI's own patch, which beats the row's reconstruction. :785-790
+        if (Is(request["kind"]?.JSONValueString, "write") && toolCallID is { } callID && request["diff"]?.JSONValueString is { Length: > 0 } diff)
+        {
+            var path = ToolTitles.RelativePath(request["resolvedPath"]?.JSONValueString ?? request["fileName"]?.JSONValueString ?? "", WorkingDirectory);
+            var stats = ToolTitles.DiffStats(diff);
+            OnEvent?.Invoke(new ProviderEvent.ToolUpdated(callID, new ToolUpdate { Edits = new ValueList<FileEdit>([new FileEdit(path, diff, stats.Additions, stats.Deletions)]) }));
+        }
+        var options = new List<ApprovalRequest.Option> { new("allow", "Approve", ApprovalRequest.Option.Role.Approve) }; // :791
+        if (SessionApproval(request) is not null) // :792-794
+        {
+            options.Add(new ApprovalRequest.Option("always", "Approve for session", ApprovalRequest.Option.Role.ApproveAlways));
+        }
+        options.Add(new ApprovalRequest.Option("deny", "Decline", ApprovalRequest.Option.Role.Decline)); // :795
+        var approval = DescribePermission(request) with // :796-799
+        {
+            Id = requestID,
+            Options = new ValueList<ApprovalRequest.Option>(options),
+            ToolItemID = toolCallID,
+        };
+        if (approval.Reason is null && data["promptRequest"]?["assistedApproval"]?["reason"]?.JSONValueString is { Length: > 0 } judged) // :800-802
+        {
+            approval = approval with { Reason = judged };
+        }
+        OnEvent?.Invoke(new ProviderEvent.Approval(approval)); // :803
+    }
+
+    /// <summary>What the thread's mode approves without asking. Full access approves it all (the CLI normally does
+    /// that itself in `allow-all`), accept-edits waves file reads and writes through, and Auto adds whatever the
+    /// CLI's judge vouched for.</summary>
+    // :806-824
+    private JSONValue? AutomaticDecision(JSONValue request, JSONValue? prompt)
+    {
+        var kind = request["kind"]?.JSONValueString ?? ""; // :810
+        var approve = JSONValue.FromDictionaryLiteral(("kind", "approve-once")); // :811
+        var fileAccess = SwiftString.Equal(kind, "write") || SwiftString.Equal(kind, "read");
+        switch (runtimeMode) // :812
+        {
+            case RuntimeMode.FullAccess: // :813-814
+                return approve;
+            case RuntimeMode.AutoAcceptEdits: // :815-816
+                return fileAccess ? approve : null;
+            case RuntimeMode.Auto: // :817-820
+            {
+                if (fileAccess) return approve;
+                var recommendation = prompt?["assistedApproval"]?["recommendation"]?.JSONValueString ?? request["assistedApproval"]?["recommendation"]?.JSONValueString;
+                return Is(recommendation, "approve") ? approve : null;
+            }
+            case RuntimeMode.Supervised: // :821-822
+                return null;
+            default:
+                throw new System.Diagnostics.UnreachableException();
+        }
+    }
+
+    // :826-871
+    private ApprovalRequest DescribePermission(JSONValue request)
+    {
+        var intention = request["intention"]?.JSONValueString is { Length: > 0 } stated ? stated : null; // :827
+        switch (request["kind"]?.JSONValueString) // :828
+        {
+            case "shell": // :829-838
+            {
+                var command = ToolTitles.UnwrapShell(request["fullCommandText"]?.JSONValueString ?? "Command");
+                var details = new List<string>();
+                if (request["resolvedWorkingDirectory"]?.JSONValueString is { } directory && !SwiftString.Equal(directory, WorkingDirectory))
+                {
+                    details.Add(ToolTitles.RelativePath(directory, WorkingDirectory));
+                }
+                if (request["requestSandboxBypass"]?.JSONValueBool == true)
+                {
+                    details.Add(request["requestSandboxBypassReason"]?.JSONValueString ?? "Runs outside the sandbox.");
+                }
+                return new ApprovalRequest("", ApprovalRequest.Kind.Command, command, ValueList<ApprovalRequest.Option>.Empty,
+                    Detail: details.Count == 0 ? null : string.Join(" " + Dot + " ", details), Reason: intention);
+            }
+            case "write": // :839-841
+            {
+                var path = request["resolvedPath"]?.JSONValueString ?? request["fileName"]?.JSONValueString ?? "file";
+                return new ApprovalRequest("", ApprovalRequest.Kind.FileChange, ToolTitles.RelativePath(path, WorkingDirectory), ValueList<ApprovalRequest.Option>.Empty, Reason: intention);
+            }
+            case "read": // :842-844
+            {
+                var path = request["resolvedPath"]?.JSONValueString ?? request["path"]?.JSONValueString ?? "file";
+                return new ApprovalRequest("", ApprovalRequest.Kind.Permissions, "Read " + ToolTitles.RelativePath(path, WorkingDirectory), ValueList<ApprovalRequest.Option>.Empty, Reason: intention);
+            }
+            case "url": // :845-848
+            {
+                var url = request["url"]?.JSONValueString ?? "a URL";
+                var detail = request["redirectedFrom"]?.JSONValueString is { } origin ? "Redirected from " + origin : null;
+                return new ApprovalRequest("", ApprovalRequest.Kind.Permissions, "Fetch " + url, ValueList<ApprovalRequest.Option>.Empty, Detail: detail, Reason: intention);
+            }
+            case "mcp": // :849-853
+            {
+                var server = request["serverName"]?.JSONValueString ?? "MCP";
+                var tool = request["toolTitle"]?.JSONValueString ?? request["toolName"]?.JSONValueString ?? "tool";
+                var arguments = request["args"]?.CompactString;
+                return new ApprovalRequest("", ApprovalRequest.Kind.Tool, server + " " + Dot + " " + tool, ValueList<ApprovalRequest.Option>.Empty,
+                    Detail: arguments is { } shown && SwiftString.Equal(shown, "null") ? null : arguments);
+            }
+            case "memory": // :854-856
+            {
+                var fact = request["fact"]?.JSONValueString ?? "something about this project";
+                return new ApprovalRequest("", ApprovalRequest.Kind.Tool, "Remember: " + fact, ValueList<ApprovalRequest.Option>.Empty, Reason: request["reason"]?.JSONValueString);
+            }
+            case "custom-tool": // :857-859
+            {
+                var tool = request["toolName"]?.JSONValueString ?? "Tool";
+                return new ApprovalRequest("", ApprovalRequest.Kind.Tool, tool, ValueList<ApprovalRequest.Option>.Empty, Detail: request["toolDescription"]?.JSONValueString);
+            }
+            case "hook": // :860-862
+            {
+                var tool = request["toolName"]?.JSONValueString ?? "Tool";
+                return new ApprovalRequest("", ApprovalRequest.Kind.Tool, request["hookMessage"]?.JSONValueString ?? tool, ValueList<ApprovalRequest.Option>.Empty,
+                    Detail: request["hookMessage"] is null ? null : tool);
+            }
+            case "extension-management": // :863-866
+            {
+                var operation = request["operation"]?.JSONValueString ?? "manage";
+                var extensionName = request["extensionName"]?.JSONValueString ?? "an extension";
+                return new ApprovalRequest("", ApprovalRequest.Kind.Tool, Capitalized(operation) + " " + extensionName, ValueList<ApprovalRequest.Option>.Empty);
+            }
+            default: // :867-869
+            {
+                var kind = request["kind"]?.JSONValueString ?? "action";
+                return new ApprovalRequest("", ApprovalRequest.Kind.Tool, Humanize(kind), ValueList<ApprovalRequest.Option>.Empty, Reason: intention);
+            }
+        }
+    }
 
     /// <summary>The approve-for-session decision for a request, or nil when the CLI cannot remember this kind.</summary>
     // :873-902. Swift: sessionApproval(for:).
@@ -1213,6 +1414,27 @@ public sealed partial class CopilotSession : ProviderSession
     {
         var words = name.Replace("-", " ", StringComparison.Ordinal).Replace("_", " ", StringComparison.Ordinal);
         return SwiftString.Uppercased(SwiftString.Prefix(words, 1)) + SwiftString.DropFirst(words);
+    }
+
+    // Foundation `String.capitalized` (:866 `operation.capitalized`): the first character of each word upper-cased
+    // and every other character lower-cased, a word being delimited by whitespace (NSString capitalizedString).
+    // UNVERIFIED O-07: Foundation's own word breaking and case tables are not reproduced beyond this.
+    private static string Capitalized(string text)
+    {
+        var result = new System.Text.StringBuilder();
+        var atWordStart = true;
+        foreach (var character in SwiftString.Characters(text))
+        {
+            if (SwiftCharacter.IsWhitespace(character))
+            {
+                result.Append(character);
+                atWordStart = true;
+                continue;
+            }
+            result.Append(atWordStart ? SwiftString.Uppercased(character) : SwiftString.Lowercased(character));
+            atWordStart = false;
+        }
+        return result.ToString();
     }
 
     // `split(whereSeparator: \.isNewline)` (:1038, :1052): Character by Character, "\r\n" one separator, empty
