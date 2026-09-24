@@ -107,6 +107,9 @@ public sealed partial class ProviderRegistry : MainActorModel
     private readonly Dictionary<ProviderKind, DateTimeOffset> creditsFetchedAt = new();
     // :39. @ObservationIgnored. When each (provider, directory) command list was last delivered.
     private readonly Dictionary<string, DateTimeOffset> commandsFetchedAt = new(StringComparer.Ordinal);
+    // :38. @ObservationIgnored. An in-flight command load per (provider, directory) key; a second caller
+    // for the same key awaits the first task's completion rather than spawning a second CLI (PR-PROVREG-217).
+    private readonly Dictionary<string, TaskHandle> commandLoads = new(StringComparer.Ordinal);
 
     // U+00B7 MIDDLE DOT, used by ClaudeSeed's Fable detail (:74) (R-STR-9).
     private const string MiddleDot = "\U000000B7";
@@ -1243,11 +1246,61 @@ public sealed partial class ProviderRegistry : MainActorModel
         commandErrors = commandErrors.Mutating(d => d.Remove(key)); // :750
     }
 
-    // :753-759. Swift: recordCommand(_:for:).
-    public void RecordCommand(string name, ProviderKind provider) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ProviderRegistry.swift:753");
+    // :753-759. Swift: recordCommand(_:for:). PR-PROVREG-216: move-to-front with no duplicate left behind,
+    // capped at exactly 100 entries per provider, and the WHOLE dictionary is written on every call (not
+    // just the changed provider's slice), matching `(CaptureRun.defaults ?? .standard).set(recentCommands,
+    // forKey:)`; CaptureRun is not ported (ED-001), so the destination is always UserDefaults.Standard.
+    public void RecordCommand(string name, ProviderKind provider)
+    {
+        var key = SwiftEnum<ProviderKind>.RawValue(provider); // :754
+        var recent = recentCommands.TryGetValue(key, out var existing) ? existing.ToList() : new List<string>();
+        recent.RemoveAll(entry => SwiftString.Equal(entry, name)); // :755
+        recent.Insert(0, name); // :756
+        if (recent.Count > 100) recent = recent.GetRange(0, 100); // :757
+        recentCommands = recentCommands.Mutating(d => d[key] = new ValueList<string>(recent)); // :757
+        var encoded = new Dictionary<string, object>(SwiftStringComparer.Instance);
+        foreach (var (providerKey, names) in recentCommands) encoded[providerKey] = names.Cast<object>().ToArray();
+        UserDefaults.Standard.Current.Set("recentSlashCommands", encoded); // :758
+    }
 
-    // :762-784
-    public Task LoadCommands(ProviderKind provider, string directory, bool force = false) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ProviderRegistry.swift:762");
+    // :762-784. Swift: loadCommands(_:directory:force:). PR-PROVREG-217/218: only Codex and Claude ever
+    // list commands; a second caller for the same (provider, directory) key awaits the first in-flight
+    // task instead of spawning a second CLI; the freshness window is exactly 600 seconds and force bypasses
+    // it; an unresolved executable returns silently; a failed load stores error.localizedDescription under
+    // the same key without touching a previously cached list, and wholesale-clears commandErrors at 32
+    // entries or more before storing the new one (PR-PROVREG-215, distinct from UpdateCommands' single-
+    // oldest-entry eviction of the command cache itself).
+    public async Task LoadCommands(ProviderKind provider, string directory, bool force = false)
+    {
+        if (provider != ProviderKind.Codex && provider != ProviderKind.Claude) return; // :763
+        var key = CommandKey(provider, directory); // :764
+        if (commandLoads.TryGetValue(key, out var inFlight)) // :765
+        {
+            await inFlight.Completion;
+            return;
+        }
+        if (!force && commandsFetchedAt.TryGetValue(key, out var fetched)
+            && SwiftDate.Now - fetched < TimeSpan.FromSeconds(600)) return; // :766, :44 commandFreshness = 600
+        if (Executable(provider) is not { } executable) return; // :767
+        var environment = Environment(provider); // :768
+        var task = MainActor.Spawn(async () => // :769
+        {
+            try // :770
+            {
+                var directoryUrl = FileUrl(directory); // :771
+                var list = provider == ProviderKind.Codex // :772-774
+                    ? await CodexSession.ListCommands(executable, directoryUrl, environment)
+                    : (await ClaudeSession.Handshake(executable, directoryUrl, environment)).Commands;
+                UpdateCommands(list, provider, directory); // :775
+            }
+            catch (Exception error) when (SwiftTry.IsThrownError(error)) // :776
+            {
+                if (commandErrors.Count >= 32) commandErrors = new ValueMap<string, string>([], SwiftStringComparer.Instance); // :777
+                commandErrors = commandErrors.Mutating(d => d[key] = SwiftErrors.LocalizedDescription(error)); // :778
+            }
+        });
+        commandLoads[key] = task; // :781
+        await task.Completion; // :782
+        commandLoads.Remove(key); // :783
+    }
 }
