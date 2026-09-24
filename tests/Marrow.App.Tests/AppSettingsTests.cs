@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using Avalonia;
 using Marrow.App.Tests.Fixtures;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
@@ -7,6 +8,7 @@ using Marrow.Core.Support;
 using Marrow.Services.Port;
 using Marrow.Services.Providers;
 using Marrow.UI.Chrome;
+using Marrow.UI.Theme;
 
 namespace Marrow.App.Tests;
 
@@ -1010,6 +1012,342 @@ public sealed class AppSettingsTests
             Assert.Empty(scope.Defaults.Writes);
         });
     }
+
+    // ---- PR-SETTINGS-037 to PR-SETTINGS-061 (part 2 of 5) ------------------------------------------------------------
+
+    // A Double setting read as `defaults.object(forKey: k) as? Double ?? default` and written by its didSet as
+    // `defaults.set(x, forKey: k)`, applied verbatim with no clamp.
+    private static void AssertDoubleSetting(string key, double fallback, double sample, Func<AppSettings, double> get, Action<AppSettings, double> set)
+    {
+        WithSettings((scope, settings) =>
+        {
+            Assert.Equal(fallback, get(settings));
+            Assert.Empty(scope.Defaults.Writes);
+            Assert.Null(scope.Defaults.Object(key));
+            set(settings, sample);
+            Assert.Equal(sample, scope.Defaults.Object(key));
+            Assert.Equal([("set", key)], scope.Defaults.Writes);
+            scope.Relaunch();
+            Assert.Equal(sample, get(new AppSettings()));
+        });
+        using (var scope = AppSettingsScope.Create())
+        {
+            scope.Defaults.Seed(key, sample);
+            scope.OnMain(() => Assert.Equal(sample, get(new AppSettings())));
+        }
+        using (var scope = AppSettingsScope.Create())
+        {
+            scope.Defaults.Seed(key, "not-a-number");
+            scope.OnMain(() =>
+            {
+                var settings = new AppSettings();
+                Assert.Equal(fallback, get(settings));
+                Assert.Equal("not-a-number", scope.Defaults.Object(key));
+            });
+        }
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-037")] // App/AppSettings.swift:126, :226-228, :713
+    public void SettleSound_is_stored_under_settleSound_and_defaults_to_true() =>
+        AssertBoolSetting("settleSound", true, s => s.SettleSound, (s, v) => s.SettleSound = v);
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-038")] // App/AppSettings.swift:127, :230-232, :714
+    public void ShowReasoning_is_stored_under_showReasoning_and_defaults_to_false() =>
+        AssertBoolSetting("showReasoning", false, s => s.ShowReasoning, (s, v) => s.ShowReasoning = v);
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-039")] // App/AppSettings.swift:129, :241-243, :716
+    public void AntiSlopEnabled_is_stored_under_antiSlopEnabled_and_defaults_to_true() =>
+        AssertBoolSetting("antiSlopEnabled", true, s => s.AntiSlopEnabled, (s, v) => s.AntiSlopEnabled = v);
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-040")] // App/AppSettings.swift:130, :247-249, :717
+    public void ShowsWorkingCard_is_stored_under_showsWorkingCard_and_defaults_to_true() =>
+        AssertBoolSetting("showsWorkingCard", true, s => s.ShowsWorkingCard, (s, v) => s.ShowsWorkingCard = v);
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-042")] // App/AppSettings.swift:157, :260-268, :756-758
+    public void PanelSize_persists_as_a_two_element_array_and_nil_removes_the_key() => WithSettings((scope, settings) =>
+    {
+        Assert.Null(settings.PanelSize);
+        Assert.Null(scope.Defaults.Object("floatingPanelSize"));
+
+        settings.PanelSize = new Size(640, 480);
+        Assert.Equal(new List<object> { 640.0, 480.0 }, scope.Defaults.Object("floatingPanelSize"));
+        scope.Relaunch();
+        Assert.Equal(new Size(640, 480), new AppSettings().PanelSize);
+
+        var relaunched = new AppSettings();
+        relaunched.PanelSize = null;
+        Assert.Equal([("remove", "floatingPanelSize")], scope.Defaults.Writes[^1..]);
+        Assert.Null(scope.Defaults.Object("floatingPanelSize"));
+        scope.Relaunch();
+        Assert.Null(new AppSettings().PanelSize);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-042")] // App/AppSettings.swift:756-758 (`stored.count == 2` else nil)
+    public void An_array_of_the_wrong_length_leaves_PanelSize_nil()
+    {
+        using var scope = AppSettingsScope.Create();
+        scope.Defaults.Seed("floatingPanelSize", new List<object> { 640.0 });
+        scope.OnMain(() => Assert.Null(new AppSettings().PanelSize));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-043")] // App/AppSettings.swift:132, :271-273, :719
+    public void SidebarActivityView_is_stored_under_sidebarActivityView_and_defaults_to_false() =>
+        AssertBoolSetting("sidebarActivityView", false, s => s.SidebarActivityView, (s, v) => s.SidebarActivityView = v);
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-044")] // App/AppSettings.swift:133, :277-279, :720
+    public void ActivityThreadStyle_is_stored_under_activityThreadStyle_and_defaults_to_icon() =>
+        AssertRawValueSetting("activityThreadStyle", ActivityThreadStyle.Icon, s => s.ActivityThreadStyle, (s, v) => s.ActivityThreadStyle = v,
+        [(ActivityThreadStyle.ProjectName, "projectName"), (ActivityThreadStyle.Icon, "icon")]);
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-045")] // App/AppSettings.swift:134, :282-284, :721
+    public void SettledCollapsed_is_stored_under_settledSectionCollapsed_and_defaults_to_true() =>
+        AssertBoolSetting("settledSectionCollapsed", true, s => s.SettledCollapsed, (s, v) => s.SettledCollapsed = v);
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-046")] // App/AppSettings.swift:135, :286-291, :723-728
+    public void Theme_is_stored_under_appTheme_defaults_to_system_and_writing_it_updates_ThemeManager() => WithSettings((scope, settings) =>
+    {
+        Assert.Equal(AppTheme.System, settings.Theme);
+        Assert.Empty(scope.Defaults.Writes);
+
+        settings.Theme = AppTheme.Dracula;
+        Assert.Equal("dracula", scope.Defaults.Object("appTheme"));
+        Assert.Equal(AppTheme.Dracula, ThemeManager.Current);
+        scope.Relaunch();
+        var relaunched = new AppSettings();
+        Assert.Equal(AppTheme.Dracula, relaunched.Theme);
+        Assert.Equal(AppTheme.Dracula, ThemeManager.Current);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-046")] // App/AppSettings.swift:723-726 (legacy "appearance" fallback, never migrated)
+    public void An_absent_appTheme_falls_back_to_the_legacy_appearance_key_which_stays_unwritten()
+    {
+        using var scope = AppSettingsScope.Create();
+        scope.Defaults.Seed("appearance", "dark");
+        scope.OnMain(() =>
+        {
+            var settings = new AppSettings();
+            Assert.Equal(AppTheme.Dark, settings.Theme);
+            Assert.Null(scope.Defaults.Object("appTheme"));
+            Assert.Equal("dark", scope.Defaults.Object("appearance"));
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-047")] // App/AppSettings.swift:136, :293-299, :722
+    public void BackdropOpacity_is_stored_under_backdropOpacity_defaults_to_one_half_and_is_never_clamped() =>
+        AssertDoubleSetting("backdropOpacity", AppSettings.DefaultBackdropOpacity, 1.25, s => s.BackdropOpacity, (s, v) => s.BackdropOpacity = v);
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-048")] // App/AppSettings.swift:143, :301-303, :729
+    public void TextGeneration_is_stored_under_textGeneration_and_defaults_to_automatic() =>
+        AssertRawValueSetting("textGeneration", TextGenerationChoice.Automatic, s => s.TextGeneration, (s, v) => s.TextGeneration = v,
+        [(TextGenerationChoice.Claude, "claude"), (TextGenerationChoice.Codex, "codex"), (TextGenerationChoice.Off, "off"),
+            (TextGenerationChoice.Automatic, "automatic")]);
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-049")] // App/AppSettings.swift:144, :305-307, :730
+    public void CommitInstructions_persists_free_text_verbatim_with_no_trimming_and_defaults_to_empty() => WithSettings((scope, settings) =>
+    {
+        Assert.Equal("", settings.CommitInstructions);
+        Assert.Empty(scope.Defaults.Writes);
+        Assert.Null(scope.Defaults.Object("commitInstructions"));
+        const string text = "  keep this text exactly\nincluding the final line  ";
+        settings.CommitInstructions = text;
+        Assert.Equal(text, scope.Defaults.Object("commitInstructions"));
+        scope.Relaunch();
+        Assert.Equal(text, new AppSettings().CommitInstructions);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-050")] // App/AppSettings.swift:145, :309-311, :731
+    public void TerminalHeight_is_stored_under_terminalHeight_defaults_to_260_and_is_never_clamped() =>
+        AssertDoubleSetting("terminalHeight", 260, 999, s => s.TerminalHeight, (s, v) => s.TerminalHeight = v);
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-051")] // App/AppSettings.swift:148, :313-316, :732
+    public void RecentDownloadsPicker_is_stored_under_recentDownloadsPicker_and_defaults_to_true() =>
+        AssertBoolSetting("recentDownloadsPicker", true, s => s.RecentDownloadsPicker, (s, v) => s.RecentDownloadsPicker = v);
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-052")] // App/AppSettings.swift:149, :320-328, :733-737
+    public void LastProjectID_persists_as_its_uppercase_uuidString_and_nil_removes_the_key() => WithSettings((scope, settings) =>
+    {
+        Assert.Null(settings.LastProjectID);
+        var id = Guid.Parse("7b3d0dd5-4de2-4f34-9f45-a2bf3657d671");
+
+        settings.LastProjectID = id;
+        Assert.Equal("7B3D0DD5-4DE2-4F34-9F45-A2BF3657D671", scope.Defaults.Object("lastProjectID"));
+        scope.Relaunch();
+        Assert.Equal(id, new AppSettings().LastProjectID);
+
+        var relaunched = new AppSettings();
+        relaunched.LastProjectID = null;
+        Assert.Null(scope.Defaults.Object("lastProjectID"));
+        scope.Relaunch();
+        Assert.Null(new AppSettings().LastProjectID);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-052")] // App/AppSettings.swift:733-737 (an invalid uuidString yields nil, key untouched)
+    public void An_invalid_stored_lastProjectID_string_yields_nil_without_clearing_the_key()
+    {
+        using var scope = AppSettingsScope.Create();
+        scope.Defaults.Seed("lastProjectID", "not-a-uuid");
+        scope.OnMain(() =>
+        {
+            Assert.Null(new AppSettings().LastProjectID);
+            Assert.Equal("not-a-uuid", scope.Defaults.Object("lastProjectID"));
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-053")] // App/AppSettings.swift:150, :333-335, :738
+    public void ProjectsEnabled_is_stored_under_projectsEnabled_and_defaults_to_true() =>
+        AssertBoolSetting("projectsEnabled", true, s => s.ProjectsEnabled, (s, v) => s.ProjectsEnabled = v);
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-054")] // App/AppSettings.swift:151, :337-361, :739
+    public void ProjectActivationOverrides_follow_the_global_switch_until_explicitly_overridden() => WithSettings((scope, settings) =>
+    {
+        var id = Guid.Parse("7b3d0dd5-4de2-4f34-9f45-a2bf3657d671");
+        Assert.Empty(settings.ProjectActivationOverrides);
+        Assert.False(settings.HasProjectActivationOverride(id));
+        Assert.True(settings.IsProjectActive(id)); // follows projectsEnabled (default true)
+
+        settings.ProjectsEnabled = false;
+        Assert.False(settings.IsProjectActive(id)); // still follows the switch
+
+        settings.SetProjectActive(true, id);
+        Assert.True(settings.HasProjectActivationOverride(id));
+        Assert.True(settings.IsProjectActive(id)); // its own explicit choice
+        var stored = Assert.IsType<byte[]>(scope.Defaults.Object("projectActivationOverrides"));
+        using (var document = JsonDocument.Parse(stored))
+            Assert.True(document.RootElement.GetProperty("7B3D0DD5-4DE2-4F34-9F45-A2BF3657D671").GetBoolean());
+
+        scope.Relaunch();
+        var relaunched = new AppSettings();
+        Assert.True(relaunched.IsProjectActive(id));
+
+        relaunched.ClearProjectActivationOverride(id);
+        Assert.False(relaunched.HasProjectActivationOverride(id));
+        Assert.False(relaunched.IsProjectActive(id)); // follows the switch again
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-055")] // App/AppSettings.swift:138, :496-498, :745
+    public void BinaryPaths_persists_under_the_exact_key_providerBinaryPaths() => WithSettings((scope, settings) =>
+    {
+        settings.SetBinaryPath("C:\\Tools\\codex.exe", ProviderKind.Codex);
+        Assert.Equal(new Dictionary<string, object> { ["codex"] = "C:\\Tools\\codex.exe" }, StoredMap(scope, "providerBinaryPaths"));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-056")] // App/AppSettings.swift:139, :500-502, :746
+    public void DisabledProviders_persists_under_the_exact_key_disabledProviders() => WithSettings((scope, settings) =>
+    {
+        settings.SetEnabled(false, ProviderKind.Grok);
+        Assert.Equal(["grok"], StoredStrings(scope, "disabledProviders"));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-057")] // App/AppSettings.swift:140, :504-506, :747
+    public void LastModels_persists_under_the_exact_key_lastModels() => WithSettings((scope, settings) =>
+    {
+        settings.Remember("model-from-picker", null, ProviderKind.Codex);
+        Assert.Equal(new Dictionary<string, object> { ["codex"] = "model-from-picker" }, StoredMap(scope, "lastModels"));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-058")] // App/AppSettings.swift:141, :508-510, :748
+    public void LastEfforts_persists_under_the_exact_key_lastEfforts() => WithSettings((scope, settings) =>
+    {
+        settings.Remember(null, "high", ProviderKind.Codex);
+        Assert.Equal(new Dictionary<string, object> { ["codex"] = "high" }, StoredMap(scope, "lastEfforts"));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-059")] // App/AppSettings.swift:142, :515-517, :749
+    public void LastHydraPairID_persists_as_its_uuidString_and_nil_removes_the_key() => WithSettings((scope, settings) =>
+    {
+        Assert.Null(settings.LastHydraPairID);
+        var id = Guid.Parse("7b3d0dd5-4de2-4f34-9f45-a2bf3657d671");
+
+        settings.LastHydraPairID = id;
+        Assert.Equal("7B3D0DD5-4DE2-4F34-9F45-A2BF3657D671", scope.Defaults.Object("lastHydraPairID"));
+        scope.Relaunch();
+        Assert.Equal(id, new AppSettings().LastHydraPairID);
+
+        var relaunched = new AppSettings();
+        relaunched.LastHydraPairID = null;
+        Assert.Null(scope.Defaults.Object("lastHydraPairID"));
+        scope.Relaunch();
+        Assert.Null(new AppSettings().LastHydraPairID);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-060")] // App/AppSettings.swift:96-101, :146, :519-521, :750
+    public void ModelList_persists_as_JSON_capped_at_15_and_ModelPin_encodes_only_provider_and_modelID() => WithSettings((scope, settings) =>
+    {
+        Assert.Empty(settings.ModelList);
+        Assert.Null(scope.Defaults.Object("modelList"));
+
+        var pin = new ModelPin(ProviderKind.Codex, "model-a");
+        settings.AddToModelList(pin);
+        Assert.Equal([pin], settings.ModelList);
+        var data = Assert.IsType<byte[]>(scope.Defaults.Object("modelList"));
+        using (var document = JsonDocument.Parse(data))
+        {
+            var entry = Assert.Single(document.RootElement.EnumerateArray().ToList());
+            Assert.Equal(["modelID", "provider"], entry.EnumerateObject().Select(p => p.Name).Order(StringComparer.Ordinal));
+        }
+        scope.Relaunch();
+        Assert.Equal([pin], new AppSettings().ModelList);
+
+        var full = new AppSettings();
+        for (var i = 0; i < AppSettings.ModelListLimit; i++) full.AddToModelList(new ModelPin(ProviderKind.Codex, $"model-{i}"));
+        Assert.Equal(AppSettings.ModelListLimit, full.ModelList.Count);
+        full.AddToModelList(new ModelPin(ProviderKind.Codex, "one-too-many"));
+        Assert.Equal(AppSettings.ModelListLimit, full.ModelList.Count); // the cap refuses the extra entry
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-060")] // App/AppSettings.swift:750 (decode failure yields an empty list)
+    public void ModelList_decode_failure_yields_an_empty_list()
+    {
+        using var scope = AppSettingsScope.Create();
+        scope.Defaults.Seed("modelList", "not-json-data"u8.ToArray());
+        scope.OnMain(() => Assert.Empty(new AppSettings().ModelList));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-061")] // App/AppSettings.swift:104-107, :147, :523-525, :751
+    public void ModelPreferences_persists_by_ModelPin_id_and_a_default_preference_is_removed_not_stored() => WithSettings((scope, settings) =>
+    {
+        Assert.Equal(new ModelPreference(), settings.Preference(ProviderKind.Codex, "model-a"));
+        Assert.Null(scope.Defaults.Object("modelPreferences"));
+
+        settings.SetPreference(new ModelPreference { Effort = "high", FastMode = true }, ProviderKind.Codex, "model-a");
+        Assert.NotNull(scope.Defaults.Object("modelPreferences"));
+        scope.Relaunch();
+        var relaunched = new AppSettings();
+        Assert.Equal(new ModelPreference { Effort = "high", FastMode = true }, relaunched.Preference(ProviderKind.Codex, "model-a"));
+
+        relaunched.SetPreference(new ModelPreference(), ProviderKind.Codex, "model-a"); // equal to default: removed
+        Assert.False(relaunched.ModelPreferences.ContainsKey("codex/model-a"));
+        scope.Relaunch();
+        Assert.Equal(new ModelPreference(), new AppSettings().Preference(ProviderKind.Codex, "model-a"));
+    });
 
     // ---- ED-149: ModelPin as a value RowDrag can hold -----------------------------------------------------------------
 
