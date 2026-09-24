@@ -5320,48 +5320,14 @@
    ],
    "intra_deps": [],
    "records_total": 15,
-   "records_todo": [
-    "PR-PROVAPI-073",
-    "PR-PROVAPI-074",
-    "PR-PROVAPI-075",
-    "PR-PROVAPI-076",
-    "PR-PROVAPI-077",
-    "PR-PROVAPI-078",
-    "PR-PROVAPI-079",
-    "PR-PROVAPI-080",
-    "PR-PROVAPI-081",
-    "PR-PROVAPI-082",
-    "PR-PROVAPI-083",
-    "PR-PROVAPI-084",
-    "PR-PROVAPI-085",
-    "PR-PROVAPI-086",
-    "PR-PROVAPI-087"
-   ],
-   "parts": [
-    [
-     "PR-PROVAPI-073",
-     "PR-PROVAPI-074",
-     "PR-PROVAPI-075",
-     "PR-PROVAPI-076",
-     "PR-PROVAPI-077",
-     "PR-PROVAPI-078",
-     "PR-PROVAPI-079",
-     "PR-PROVAPI-080",
-     "PR-PROVAPI-081",
-     "PR-PROVAPI-082",
-     "PR-PROVAPI-083",
-     "PR-PROVAPI-084",
-     "PR-PROVAPI-085",
-     "PR-PROVAPI-086",
-     "PR-PROVAPI-087"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-146",
     "T-M4-147"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "App.AppModel",
