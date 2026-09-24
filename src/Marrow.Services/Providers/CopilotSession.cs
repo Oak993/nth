@@ -3,11 +3,13 @@ using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
 using Marrow.Services.MCP;
+using Marrow.Services.Store;
 
-// Source: DroppyCode/Services/Providers/CopilotSession.swift (B2 1fbf81e), :1-1072. Part 1 of 4: the lifecycle,
-// the session parameters, modes and selection, send, slash commands, interrupt, compact and rewind (:27-397,
-// :474-500, :695-715, :904-929). The notification, request, approval, catalog and mapping members (:270-324,
-// :399-472, :502-693, :717-903, :931-1072) are still MARROW_STUB and are ported by parts 2 to 4.
+// Source: DroppyCode/Services/Providers/CopilotSession.swift (B2 1fbf81e), :1-1072. Parts 1 and 2 of 4: the
+// lifecycle, the session parameters, modes and selection, send, slash commands, interrupt, compact and rewind,
+// approvals and answers, stop, the catalog and account reads, the session.event routing, close and the tool
+// mapping (:27-715, :873-1072). The request, permission and error-message members (:717-872) are still MARROW_STUB
+// and are ported by part 3.
 
 namespace Marrow.Services.Providers;
 
@@ -44,9 +46,7 @@ public sealed partial class CopilotSession : ProviderSession
     private bool turnActive; // :50
     private string? turnError; // :51
     private bool interruptRequested; // :52
-#pragma warning disable CS0169 // read and written by Stop and HandleClose: part 2 and part 3
     private bool isStopping; // :53
-#pragma warning restore CS0169
     /// <summary>Tool names by call id, so a permission or a result knows what it belongs to.</summary>
     private readonly Dictionary<string, string> toolNames = new(SwiftStringComparer.Instance); // :54-55
     /// <summary>Tools the user declined, so their failed result reads as declined.</summary>
@@ -96,7 +96,7 @@ public sealed partial class CopilotSession : ProviderSession
         var weak = new WeakReference<CopilotSession>(this);
         var connection = await Connect( // :93-101
             executable,
-            configuration.WorkingDirectory,
+            configuration.WorkingDirectory.Path,
             configuration.Environment,
             connection =>
             {
@@ -312,16 +312,85 @@ public sealed partial class CopilotSession : ProviderSession
     }
 
     // :270-303
-    public void ResolveApproval(string requestID, string optionID) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/CopilotSession.swift:270");
+    public void ResolveApproval(string requestID, string optionID)
+    {
+        if (!pendingRequests.Remove(requestID, out var pending)) return; // :271
+        switch (pending) // :272
+        {
+            case PendingRequest.Permission(var request, var toolCallID): // :273
+            {
+                JSONValue decision; // :274
+                switch (optionID) // :275
+                {
+                    case "allow": // :276-277
+                        decision = JSONValue.FromDictionaryLiteral(("kind", "approve-once"), ("approvedInteractively", true));
+                        break;
+                    case "always": // :278-279
+                        decision = SessionApproval(request) ?? JSONValue.FromDictionaryLiteral(("kind", "approve-once"), ("approvedInteractively", true));
+                        break;
+                    default: // :280-286
+                        decision = JSONValue.FromDictionaryLiteral(("kind", "reject"), ("feedback", "The user declined this action."));
+                        if (toolCallID is { } callID)
+                        {
+                            declinedTools.Add(callID);
+                            OnEvent?.Invoke(new ProviderEvent.ToolUpdated(callID, new ToolUpdate { Status = global::Marrow.Core.Models.ToolCall.Status.Declined }));
+                        }
+                        break;
+                }
+                RespondPermission(requestID, decision); // :287
+                break;
+            }
+            case PendingRequest.Question(var id, _): // :288-289
+                connection?.Respond(id, JSONValue.FromDictionaryLiteral(("answer", ""), ("wasFreeform", true)));
+                break;
+            case PendingRequest.PlanExit(var id): // :290
+                if (SwiftString.Equal(optionID, "allow")) // :291
+                {
+                    // The CLI leaves plan mode itself and says so in `session.mode_changed`. :292
+                    connection?.Respond(id, JSONValue.FromDictionaryLiteral(("approved", true), ("selectedAction", "interactive"))); // :293
+                    OnEvent?.Invoke(new ProviderEvent.ModeChanged(InteractionMode.Build)); // :294
+                }
+                else
+                {
+                    connection?.Respond(id, JSONValue.FromDictionaryLiteral( // :296-299
+                        ("approved", false),
+                        ("feedback", "The user wants to keep planning. Wait for their feedback before changing anything.")));
+                }
+                break;
+            default:
+                throw new System.Diagnostics.UnreachableException();
+        }
+        OnEvent?.Invoke(new ProviderEvent.RequestResolved(requestID)); // :302
+    }
 
     // :305-310
-    public void AnswerQuestion(string requestID, ValueMap<string, ValueList<string>> answers) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/CopilotSession.swift:305");
+    public void AnswerQuestion(string requestID, ValueMap<string, ValueList<string>> answers)
+    {
+        // :306. The pending entry is removed whatever its case.
+        if (!pendingRequests.Remove(requestID, out var pending) || pending is not PendingRequest.Question(var id, var choices)) return;
+        // :307. `answers.values.first`: dictionary order is unspecified (R-COLL-2); Copilot asks one question at a time.
+        var answer = answers.Count > 0 ? string.Join(", ", answers.Values.First()) : "";
+        connection?.Respond(id, JSONValue.FromDictionaryLiteral(("answer", answer), ("wasFreeform", !choices.Contains(answer, SwiftStringComparer.Instance)))); // :308
+        OnEvent?.Invoke(new ProviderEvent.RequestResolved(requestID)); // :309
+    }
 
     // :312-324
-    public void Stop() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/CopilotSession.swift:312");
+    public void Stop()
+    {
+        isStopping = true; // :313
+        if (connection is not { } conn || conn.IsClosed) return; // :314
+        // A shutdown lets the CLI flush the session's event log; the close after it is the backstop. :315
+        MainActor.Spawn(async () => // :316-319
+        {
+            await SwiftTry.IgnoreAsync(async () => await conn.Request("runtime.shutdown"));
+            conn.Close();
+        });
+        MainActor.Spawn(async () => // :320-323
+        {
+            await SwiftTask.TrySleep(TimeSpan.FromSeconds(3));
+            conn.Close();
+        });
+    }
 
     // MARK: - Modes and selection
 
@@ -411,22 +480,123 @@ public sealed partial class CopilotSession : ProviderSession
 
     // MARK: - Catalog and account
 
-    // :402-425
-    public static Task<ValueList<ModelOption>> ListModels(SwiftURL executable, IReadOnlyDictionary<string, string> environment) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/CopilotSession.swift:402");
+    /// <summary>`models.list`: every model the account may use, with its efforts and premium-request multiplier.</summary>
+    // :401-425
+    public static async Task<ValueList<ModelOption>> ListModels(SwiftURL executable, IReadOnlyDictionary<string, string> environment)
+    {
+        var connection = await Connect(executable, TemporaryDirectory, environment, _ => { }); // :403
+        try
+        {
+            var result = await connection.Request("models.list", EmptyObject); // :405
+            var models = new List<ModelOption> { ProviderRegistry.CopilotAuto }; // :406
+            foreach (var model in result["models"]?.JSONValueArray ?? []) // :407
+            {
+                if (model["id"]?.JSONValueString is not { } id || Is(model["policy"]?["state"]?.JSONValueString, "disabled")) continue; // :408
+                var details = new List<string>(); // :409
+                if (model["billing"]?["multiplier"]?.JSONValueDouble is { } multiplier) // :410-412
+                {
+                    details.Add(multiplier == SwiftNumber.Rounded(multiplier)
+                        ? SwiftNumber.TruncatingToInt(multiplier).ToString(System.Globalization.CultureInfo.InvariantCulture) + Times + " premium requests"
+                        : SwiftNumber.Description(multiplier) + Times + " premium requests");
+                }
+                if (Is(model["policy"]?["state"]?.JSONValueString, "unconfigured")) // :413-415
+                {
+                    details.Add("Enable it in your GitHub Copilot settings first");
+                }
+                models.Add(new ModelOption( // :416-422
+                    id,
+                    model["name"]?.JSONValueString ?? id,
+                    detail: details.Count == 0 ? null : string.Join(" " + Dot + " ", details),
+                    efforts: new ValueList<string>((model["supportedReasoningEfforts"]?.JSONValueArray ?? []).Select(effort => effort.JSONValueString).OfType<string>()),
+                    defaultEffort: model["defaultReasoningEffort"]?.JSONValueString));
+            }
+            return new ValueList<ModelOption>(models); // :424
+        }
+        finally
+        {
+            connection.Close(); // :404
+        }
+    }
 
-    // :428-441
-    public static Task<ProviderStatus.Auth> AuthStatus(SwiftURL executable, IReadOnlyDictionary<string, string> environment) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/CopilotSession.swift:428");
+    /// <summary>`account.getCurrentAuth`: the GitHub login behind the CLI, from `copilot login` or `gh auth`.</summary>
+    // :427-441
+    public static async Task<ProviderStatus.Auth> AuthStatus(SwiftURL executable, IReadOnlyDictionary<string, string> environment)
+    {
+        if (await SwiftTry.OptionalAsync<JSONRPCConnection>(async () => await Connect(executable, TemporaryDirectory, environment, _ => { })) is not { } connection) // :429-431
+        {
+            return new ProviderStatus.Auth.Unknown();
+        }
+        try
+        {
+            if (await SwiftTry.OptionalAsync<JSONValue>(async () => await connection.Request("account.getCurrentAuth", EmptyObject)) is not { } result) return new ProviderStatus.Auth.Unknown(); // :433
+            if (result["authInfo"] is not { } auth || auth.IsNull) return new ProviderStatus.Auth.SignedOut(); // :434
+            var account = auth["login"]?.JSONValueString; // :435
+            // Signed in to GitHub without a Copilot plan: the turn would fail with HTTP 403. :436-439
+            if (Is(auth["copilotUser"]?["access_type_sku"]?.JSONValueString, "no_access"))
+            {
+                account = (account ?? "GitHub") + " " + Dot + " no Copilot access";
+            }
+            return new ProviderStatus.Auth.SignedIn(account); // :440
+        }
+        finally
+        {
+            connection.Close(); // :432
+        }
+    }
 
-    // :444-468
-    public static Task<PlanLimits?> ReadPlanLimits(SwiftURL executable, IReadOnlyDictionary<string, string> environment) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/CopilotSession.swift:444");
+    /// <summary>`account.getQuota`: the monthly premium-request, chat and completion allowances.</summary>
+    // :443-468
+    public static async Task<PlanLimits?> ReadPlanLimits(SwiftURL executable, IReadOnlyDictionary<string, string> environment)
+    {
+        var connection = await Connect(executable, TemporaryDirectory, environment, _ => { }); // :445
+        try
+        {
+            var quota = await connection.Request("account.getQuota", EmptyObject); // :447
+            (string Key, string Title)[] titles = [("premium_interactions", "Premium requests"), ("chat", "Chat messages"), ("completions", "Code completions")]; // :448
+            var windows = new List<PlanLimits.Window>(); // :449
+            foreach (var (key, title) in titles) // :450
+            {
+                if (quota["quotaSnapshots"]?[key] is not { } snapshot || snapshot.IsNull // :451-453
+                    || snapshot["isUnlimitedEntitlement"]?.JSONValueBool == true
+                    || snapshot["entitlementRequests"]?.JSONValueDouble is not { } entitlement || !(entitlement > 0))
+                {
+                    continue;
+                }
+                var remaining = snapshot["remainingPercentage"]?.JSONValueDouble; // :454
+                var used = snapshot["usedRequests"]?.JSONValueDouble ?? 0; // :455
+                // UPSTREAM DEFECT 3, reproduced: the used branch has no lower bound, so a negative usedRequests gives a
+                // negative percent. :456
+                var percent = remaining is { } left ? Max(0, Min(100, 100 - left)) : Min(100, used / entitlement * 100);
+                windows.Add(new PlanLimits.Window // :457-462
+                {
+                    Id = key,
+                    Title = title,
+                    Percent = percent,
+                    ResetsAt = snapshot["resetDate"]?.JSONValueString is { } reset ? ParseDate(reset) : null,
+                });
+            }
+            if (windows.Count == 0) return null; // :464
+            var auth = await SwiftTry.OptionalAsync<JSONValue>(async () => await connection.Request("account.getCurrentAuth", EmptyObject)); // :465
+            var plan = auth?["authInfo"]?["copilotUser"]?["copilot_plan"]?.JSONValueString; // :466
+            return new PlanLimits // :467
+            {
+                PlanName = PlanLimitsReader.PlanName(plan) is { } name ? "Copilot " + name : null,
+                Windows = new ValueList<PlanLimits.Window>(windows),
+            };
+        }
+        finally
+        {
+            connection.Close(); // :446
+        }
+    }
+
+    // :470-472
+    private static DateTimeOffset? ParseDate(string text) => ISO8601.Date(text) ?? ISO8601.DateOnly(text);
 
     // :474-500
     private static async Task<JSONRPCConnection> Connect(
         SwiftURL executable,
-        SwiftURL directory,
+        string directory,
         IReadOnlyDictionary<string, string> environment,
         Action<JSONRPCConnection> configure)
     {
@@ -437,7 +607,7 @@ public sealed partial class CopilotSession : ProviderSession
         var process = new StdioProcess( // :484-490
             executable.Path,
             arguments,
-            directory.Path,
+            directory,
             environment,
             StdioFramer.Framing.ContentLength);
         var connection = new JSONRPCConnection(process, sendsVersion: true); // :491
@@ -456,8 +626,264 @@ public sealed partial class CopilotSession : ProviderSession
     // MARK: - Notifications
 
     // :504-640
-    private void HandleNotification(string method, JSONValue parameters) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/CopilotSession.swift:504");
+    private void HandleNotification(string method, JSONValue parameters)
+    {
+        if (!SwiftString.Equal(method, "session.event") || parameters["event"] is not { } @event || @event["type"]?.JSONValueString is not { } type) return; // :505
+        if (parameters["sessionId"]?.JSONValueString is { } eventSession && sessionID is { } sid && !SwiftString.Equal(eventSession, sid)) return; // :506
+        // Sub-agents stream under their own agent id. With Hydra on they are heads and their transcripts go to the
+        // head's own timeline; otherwise their parent `task` row stands for them. Their permission prompts still need
+        // answering and their spend still counts, so those pass either way. :507-510
+        var agentID = @event["agentId"]?.JSONValueString; // :511
+        if (agentID is not null && configuration.Hydra is null && !SwiftString.Equal(type, "assistant.usage") // :512
+            && (SwiftString.HasPrefix(type, "assistant.") || SwiftString.HasPrefix(type, "tool.")))
+        {
+            return;
+        }
+        Action<ProviderEvent> sink = agentID is { } head // :513-517
+            ? providerEvent => OnEvent?.Invoke(new ProviderEvent.AgentEvent(head, providerEvent))
+            : LeadSink;
+        var data = @event["data"] ?? new JSONValue.Null(); // :518
+        switch (type) // :519
+        {
+            case "assistant.turn_start": // :520-526
+                if (agentID is not null)
+                {
+                    sink(new ProviderEvent.TurnStarted(data["turnId"]?.JSONValueString));
+                }
+                else if (!turnActive)
+                {
+                    turnActive = true;
+                    OnEvent?.Invoke(new ProviderEvent.TurnStarted(data["turnId"]?.JSONValueString));
+                }
+                break;
+            case "assistant.message_delta": // :527-531
+                if (data["messageId"]?.JSONValueString is { } messageID && data["deltaContent"]?.JSONValueString is { } messageDelta)
+                {
+                    streamedMessages.Add(messageID);
+                    sink(new ProviderEvent.MessageDelta(messageID, messageDelta));
+                }
+                break;
+            case "assistant.message": // :532-533
+                HandleMessage(data, sink);
+                break;
+            case "assistant.reasoning_delta": // :534-537
+                if (data["reasoningId"]?.JSONValueString is { } deltaID && data["deltaContent"]?.JSONValueString is { } reasoningDelta)
+                {
+                    sink(new ProviderEvent.ReasoningDelta(deltaID, reasoningDelta));
+                }
+                break;
+            case "assistant.reasoning": // :538-543
+                if (data["reasoningId"]?.JSONValueString is { } reasoningID)
+                {
+                    var text = data["content"]?.JSONValueString ?? "";
+                    shownReasoning.Add(ReasoningKey(text));
+                    sink(new ProviderEvent.ReasoningCompleted(reasoningID, text));
+                }
+                break;
+            case "assistant.usage": // :544-560
+            {
+                var spend = checked((data["inputTokens"]?.JSONValueInt ?? 0) + (data["outputTokens"]?.JSONValueInt ?? 0));
+                if (spend > 0)
+                {
+                    TokenLedger.Shared.Current.Record(spend);
+                    // One report per message, so it is already the amount that message consumed. A head's report
+                    // carries its id: it is the account's spend, and the head's alone, not the lead's. :548-550
+                    OnEvent?.Invoke(new ProviderEvent.TokenSpend(new TokenSpend(
+                        ProviderKind.Copilot,
+                        spend,
+                        inputTokens: data["inputTokens"]?.JSONValueInt,
+                        outputTokens: data["outputTokens"]?.JSONValueInt,
+                        cachedInputTokens: data["cacheReadTokens"]?.JSONValueInt,
+                        model: data["model"]?.JSONValueString ?? model,
+                        agentID: agentID)));
+                }
+                break;
+            }
+            case "session.usage_info": // :561-564
+                if (data["currentTokens"]?.JSONValueInt is { } used)
+                {
+                    OnEvent?.Invoke(new ProviderEvent.Usage(new ContextUsage { UsedTokens = used, WindowTokens = data["tokenLimit"]?.JSONValueInt }));
+                }
+                break;
+            case "tool.execution_start": // :565-568
+                if (data["toolCallId"]?.JSONValueString is { } startID && data["toolName"]?.JSONValueString is { } toolName)
+                {
+                    ToolRequested(startID, toolName, data["arguments"] ?? new JSONValue.Null(), data["mcpServerName"]?.JSONValueString, data["mcpToolName"]?.JSONValueString, sink);
+                }
+                break;
+            case "tool.execution_partial_result": // :569-572
+                if (data["toolCallId"]?.JSONValueString is { } outputID && data["partialOutput"]?.JSONValueString is { } output)
+                {
+                    sink(new ProviderEvent.ToolOutput(outputID, output));
+                }
+                break;
+            case "tool.execution_progress": // :573-576
+                if (data["toolCallId"]?.JSONValueString is { } progressID && data["progressMessage"]?.JSONValueString is { } message)
+                {
+                    sink(new ProviderEvent.ToolUpdated(progressID, new ToolUpdate { Detail = message }));
+                }
+                break;
+            case "tool.execution_complete": // :577-578
+                HandleToolResult(data, sink);
+                break;
+            case "subagent.started": // :579-591
+            {
+                if (agentID is not { } startedID || configuration.Hydra is null) break;
+                (string Description, string? Prompt)? brief = data["toolCallId"]?.JSONValueString is { } callID && taskBriefs.Remove(callID, out var found) ? found : null;
+                OnEvent?.Invoke(new ProviderEvent.AgentStarted(new AgentSpawn
+                {
+                    Id = startedID,
+                    TaskID = null,
+                    ToolUseID = data["toolCallId"]?.JSONValueString,
+                    Description = brief?.Description ?? data["agentDisplayName"]?.JSONValueString ?? data["agentName"]?.JSONValueString ?? "Subagent",
+                    Prompt = brief?.Prompt,
+                    Model = data["model"]?.JSONValueString,
+                    Profile = HydraPrompts.ProfileName(data["agentName"]?.JSONValueString),
+                }));
+                break;
+            }
+            case "subagent.completed": // :592-594
+                if (agentID is not { } completedID || configuration.Hydra is null) break;
+                OnEvent?.Invoke(new ProviderEvent.AgentFinished(completedID, data["cancelled"]?.JSONValueBool == true ? TurnStatus.Interrupted : TurnStatus.Completed, null));
+                break;
+            case "subagent.failed": // :595-597
+                if (agentID is not { } failedID || configuration.Hydra is null) break;
+                OnEvent?.Invoke(new ProviderEvent.AgentFinished(failedID, TurnStatus.Failed, data["error"]?.JSONValueString));
+                break;
+            case "permission.requested": // :598-599
+                HandlePermission(data);
+                break;
+            case "permission.completed": // :600-603
+                if (data["requestId"]?.JSONValueString is { } requestID && pendingRequests.Remove(requestID))
+                {
+                    OnEvent?.Invoke(new ProviderEvent.RequestResolved(requestID));
+                }
+                break;
+            case "session.mode_changed": // :604-613
+                switch (data["newMode"]?.JSONValueString)
+                {
+                    case "plan":
+                        interactionMode = InteractionMode.Plan;
+                        OnEvent?.Invoke(new ProviderEvent.ModeChanged(InteractionMode.Plan));
+                        break;
+                    case "interactive":
+                    case "autopilot":
+                        interactionMode = InteractionMode.Build;
+                        OnEvent?.Invoke(new ProviderEvent.ModeChanged(InteractionMode.Build));
+                        break;
+                    default:
+                        break;
+                }
+                break;
+            case "session.title_changed": // :614-615
+                if (data["title"]?.JSONValueString is { } title && title.Length != 0) OnEvent?.Invoke(new ProviderEvent.Title(title));
+                break;
+            case "session.error": // :616-622
+            {
+                var errorMessage = ErrorMessage(data);
+                if (turnActive)
+                {
+                    turnError = errorMessage;
+                }
+                else
+                {
+                    OnEvent?.Invoke(new ProviderEvent.Notice(new Notice { NoticeLevel = Notice.Level.Error, Message = errorMessage }));
+                }
+                break;
+            }
+            case "session.warning": // :623-624
+                if (data["message"]?.JSONValueString is { } warning) OnEvent?.Invoke(new ProviderEvent.Notice(new Notice { NoticeLevel = Notice.Level.Warning, Message = warning }));
+                break;
+            case "session.compaction_complete": // :625-630
+                if (data["success"]?.JSONValueBool == true)
+                {
+                    OnEvent?.Invoke(new ProviderEvent.Notice(new Notice { NoticeLevel = Notice.Level.Info, Message = "Context compacted." }));
+                }
+                else if (data["error"]?.JSONValueString is { } compactionError)
+                {
+                    OnEvent?.Invoke(new ProviderEvent.Notice(new Notice { NoticeLevel = Notice.Level.Warning, Message = compactionError }));
+                }
+                break;
+            case "session.idle": // :631-632
+                FinishTurn(aborted: data["aborted"]?.JSONValueBool == true);
+                break;
+            case "session.shutdown": // :633-636
+                if (data["errorReason"]?.JSONValueString is { } reason && Is(data["shutdownType"]?.JSONValueString, "error"))
+                {
+                    OnEvent?.Invoke(new ProviderEvent.Notice(new Notice { NoticeLevel = Notice.Level.Error, Message = reason }));
+                }
+                break;
+            default: // :637-638
+                break;
+        }
+    }
+
+    // :642-658
+    private void HandleMessage(JSONValue data, Action<ProviderEvent> sink)
+    {
+        if (data["messageId"]?.JSONValueString is not { } id) return; // :643
+        // Models that think without reasoning events carry the text on the message instead. :644-648
+        if (data["reasoningText"]?.JSONValueString is { } reasoning && SwiftString.Characters(reasoning).Any(character => !SwiftCharacter.IsWhitespace(character))
+            && shownReasoning.Add(ReasoningKey(reasoning)))
+        {
+            sink(new ProviderEvent.ReasoningCompleted(id + "-reasoning", reasoning));
+        }
+        var content = data["content"]?.JSONValueString ?? ""; // :649
+        if (content.Length != 0 || streamedMessages.Contains(id)) // :650-652
+        {
+            sink(new ProviderEvent.MessageCompleted(id, content));
+        }
+        // The calls this message asks for, so a permission prompt has its row to point at. :653-657
+        foreach (var request in data["toolRequests"]?.JSONValueArray ?? [])
+        {
+            if (request["toolCallId"]?.JSONValueString is not { } callID || request["name"]?.JSONValueString is not { } name) continue;
+            ToolRequested(callID, name, request["arguments"] ?? new JSONValue.Null(), request["mcpServerName"]?.JSONValueString, request["mcpToolName"]?.JSONValueString, sink);
+        }
+    }
+
+    // :660-678
+    private void ToolRequested(string id, string name, JSONValue arguments, string? server, string? mcpTool, Action<ProviderEvent> sink)
+    {
+        if (toolNames.ContainsKey(id)) return; // :661
+        toolNames[id] = name; // :662
+        if (SwiftString.Equal(name, "update_todo")) // :663-666
+        {
+            sink(new ProviderEvent.Todos(Todos(arguments["todos"]?.JSONValueString ?? "")));
+            return;
+        }
+        if (SwiftString.Equal(name, "task")) // :667-672
+        {
+            taskBriefs[id] = (
+                arguments["description"]?.JSONValueString ?? arguments["name"]?.JSONValueString ?? "Subagent",
+                arguments["prompt"]?.JSONValueString ?? arguments["task"]?.JSONValueString);
+        }
+        if (ToolCall(name, arguments, server, mcpTool) is not { } call) return; // :673
+        sink(new ProviderEvent.ToolStarted(id, call)); // :674
+        if (call.Edits.Count != 0) // :675-677
+        {
+            sink(new ProviderEvent.ToolUpdated(id, new ToolUpdate { Edits = call.Edits }));
+        }
+    }
+
+    // :680-693
+    private void HandleToolResult(JSONValue data, Action<ProviderEvent> sink)
+    {
+        if (data["toolCallId"]?.JSONValueString is not { } id) return; // :681
+        var name = toolNames.TryGetValue(id, out var recorded) ? recorded : ""; // :682
+        if (HiddenTools.Contains(name)) return; // :683
+        var succeeded = data["success"]?.JSONValueBool ?? true; // :684
+        string? output = null; // :685
+        if (data["error"]?["message"]?.JSONValueString is { } error && !succeeded) // :686-690
+        {
+            output = error;
+        }
+        else if (data["result"] is { } result)
+        {
+            output = result["detailedContent"]?.JSONValueString ?? result["content"]?.JSONValueString;
+        }
+        var status = succeeded ? global::Marrow.Core.Models.ToolCall.Status.Completed : (declinedTools.Contains(id) ? global::Marrow.Core.Models.ToolCall.Status.Declined : global::Marrow.Core.Models.ToolCall.Status.Failed); // :691
+        sink(new ProviderEvent.ToolUpdated(id, new ToolUpdate { Output = output, Status = status })); // :692
+    }
 
     // :695-715
     private void FinishTurn(bool aborted)
@@ -498,9 +924,51 @@ public sealed partial class CopilotSession : ProviderSession
     private void HandleRequest(RPCID id, string method, JSONValue parameters) =>
         throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/CopilotSession.swift:736");
 
-    // :874-902. Swift: sessionApproval(for:).
-    public static JSONValue? SessionApproval(JSONValue request) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/CopilotSession.swift:874");
+    // :776-804
+    private void HandlePermission(JSONValue data) =>
+        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/CopilotSession.swift:776");
+
+    /// <summary>The approve-for-session decision for a request, or nil when the CLI cannot remember this kind.</summary>
+    // :873-902. Swift: sessionApproval(for:).
+    public static JSONValue? SessionApproval(JSONValue request)
+    {
+        JSONValue approval; // :875
+        switch (request["kind"]?.JSONValueString) // :876
+        {
+            case "shell": // :877-881
+            {
+                if (request["canOfferSessionApproval"]?.JSONValueBool != true) return null;
+                var identifiers = (request["commands"]?.JSONValueArray ?? []).Select(command => command["identifier"]?.JSONValueString).OfType<string>().ToList();
+                if (identifiers.Count == 0) return null;
+                approval = JSONValue.FromDictionaryLiteral(("kind", "commands"), ("commandIdentifiers", new JSONValue.Array(new ValueList<JSONValue>(identifiers.Select(identifier => (JSONValue)identifier)))));
+                break;
+            }
+            case "write": // :882-884
+                if (request["canOfferSessionApproval"]?.JSONValueBool != true) return null;
+                approval = JSONValue.FromDictionaryLiteral(("kind", "write"));
+                break;
+            case "read": // :885-886
+                approval = JSONValue.FromDictionaryLiteral(("kind", "read"));
+                break;
+            case "url": // :887-889
+                if (request["url"]?.JSONValueString is not { } url || SwiftURL.Create(url)?.Host is not { } host || host.Length == 0) return null;
+                return JSONValue.FromDictionaryLiteral(("kind", "approve-for-session"), ("domain", host));
+            case "mcp": // :890-892
+                if (request["serverName"]?.JSONValueString is not { } server) return null;
+                approval = JSONValue.FromDictionaryLiteral(("kind", "mcp"), ("serverName", server), ("toolName", JSONValue.Optional(request["toolName"]?.JSONValueString)));
+                break;
+            case "custom-tool": // :893-895
+                if (request["toolName"]?.JSONValueString is not { } tool) return null;
+                approval = JSONValue.FromDictionaryLiteral(("kind", "custom-tool"), ("toolName", tool));
+                break;
+            case "memory": // :896-897
+                approval = JSONValue.FromDictionaryLiteral(("kind", "memory"));
+                break;
+            default: // :898-899
+                return null;
+        }
+        return JSONValue.FromDictionaryLiteral(("kind", "approve-for-session"), ("approval", approval)); // :901
+    }
 
     // :904-913
     private void RespondPermission(string requestID, JSONValue decision)
@@ -541,18 +1009,250 @@ public sealed partial class CopilotSession : ProviderSession
     }
 
     // :931-938
-    private void HandleClose(string tail) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/CopilotSession.swift:931");
+    private void HandleClose(string tail)
+    {
+        var resolved = pendingRequests.Keys.ToList(); // :932
+        pendingRequests.Clear(); // :933
+        foreach (var key in resolved) OnEvent?.Invoke(new ProviderEvent.RequestResolved(key)); // :934
+        turnActive = false; // :935
+        if (isStopping) return; // :936
+        OnEvent?.Invoke(new ProviderEvent.Exited(TextCleanup.LastLines(tail))); // :937
+    }
 
     // MARK: - Mapping
 
-    // :1035-1045
-    public static ValueList<string> PatchPaths(string patch) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/CopilotSession.swift:1035");
+    /// <summary>Tools that never get a row: questions, plans and to-dos have their own surfaces.</summary>
+    private static readonly HashSet<string> HiddenTools = new(
+        ["ask_user", "exit_plan_mode", "update_todo", "task_complete", "report_intent"], SwiftStringComparer.Instance); // :942-943
+
+    // :945-1027. Swift: toolCall(name:arguments:server:mcpTool:).
+    private global::Marrow.Core.Models.ToolCall? ToolCall(string name, JSONValue arguments, string? server, string? mcpTool)
+    {
+        if (server is not null) // :946-949
+        {
+            var tool = mcpTool ?? name;
+            return new global::Marrow.Core.Models.ToolCall { ToolCallKind = global::Marrow.Core.Models.ToolCall.Kind.Mcp, Title = server + " " + Dot + " " + tool, Detail = arguments.IsNull ? null : arguments.CompactString };
+        }
+        string? PathOf(string key) => arguments[key]?.JSONValueString is { } value ? ToolTitles.RelativePath(value, WorkingDirectory) : null; // :950-952
+        if (HiddenTools.Contains(name)) return null; // :954-955
+        switch (name) // :953
+        {
+            case "bash":
+            case "powershell": // :956-957
+                return Call(global::Marrow.Core.Models.ToolCall.Kind.Command, arguments["command"]?.JSONValueString ?? "Shell command", arguments["description"]?.JSONValueString);
+            case "read_bash":
+            case "write_bash":
+            case "stop_bash":
+            case "list_bash": // :958-959
+                return Call(global::Marrow.Core.Models.ToolCall.Kind.Command, Humanize(name), arguments["shellId"]?.JSONValueString);
+            case "view": // :960-961
+                return Call(global::Marrow.Core.Models.ToolCall.Kind.Read, PathOf("path") ?? "Read file", LineRange(arguments["view_range"]));
+            case "create": // :962-967
+                return Create();
+            case "edit": // :968-973
+                return Replace();
+            case "str_replace_editor": // :974-996
+                switch (arguments["command"]?.JSONValueString)
+                {
+                    case "view": // :976-977
+                        return Call(global::Marrow.Core.Models.ToolCall.Kind.Read, PathOf("path") ?? "Read file", LineRange(arguments["view_range"]));
+                    case "create": // :978-983
+                        return Create();
+                    case "insert": // :984-989
+                    {
+                        var call = Call(global::Marrow.Core.Models.ToolCall.Kind.Edit, PathOf("path") ?? "Edit file");
+                        if (PathOf("path") is { } file) call = call with { Edits = new ValueList<FileEdit>([new FileEdit(file, "", arguments["new_str"]?.JSONValueString ?? "")]) };
+                        return call;
+                    }
+                    default: // :990-995
+                        return Replace();
+                }
+            case "apply_patch": // :997-1002
+            {
+                var patch = arguments.JSONValueString ?? arguments["input"]?.JSONValueString ?? arguments["patch"]?.JSONValueString ?? "";
+                var paths = PatchPaths(patch).Select(path => ToolTitles.RelativePath(path, WorkingDirectory)).ToList();
+                var call = Call(global::Marrow.Core.Models.ToolCall.Kind.Edit, paths.Count == 1 ? paths[0] : "Edit " + paths.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) + " files");
+                return call with { Edits = new ValueList<FileEdit>(paths.Select(path => new FileEdit(path))) };
+            }
+            case "grep": // :1003-1005
+            {
+                var paths = RelativePaths();
+                return Call(global::Marrow.Core.Models.ToolCall.Kind.Search, arguments["pattern"]?.JSONValueString ?? "Search", paths.Count == 0 ? null : string.Join(", ", paths));
+            }
+            case "glob": // :1006-1008
+            {
+                var paths = RelativePaths();
+                return Call(global::Marrow.Core.Models.ToolCall.Kind.Search, arguments["pattern"]?.JSONValueString ?? "Find files", paths.Count == 0 ? null : string.Join(", ", paths));
+            }
+            case "web_fetch": // :1009-1010
+                return Call(global::Marrow.Core.Models.ToolCall.Kind.Web, arguments["url"]?.JSONValueString ?? "Fetch page");
+            case "web_search": // :1011-1012
+                return Call(global::Marrow.Core.Models.ToolCall.Kind.Web, arguments["query"]?.JSONValueString ?? "Search the web");
+            case "task": // :1013-1015
+            {
+                var detail = string.Join(" " + Dot + " ", new[] { arguments["name"]?.JSONValueString, arguments["agent_type"]?.JSONValueString }.OfType<string>());
+                return Call(global::Marrow.Core.Models.ToolCall.Kind.Agent, arguments["description"]?.JSONValueString ?? "Subagent", detail.Length == 0 ? null : detail);
+            }
+            case "read_agent":
+            case "write_agent":
+            case "list_agents": // :1016-1017
+                return Call(global::Marrow.Core.Models.ToolCall.Kind.Agent, Humanize(name), arguments["agent_id"]?.JSONValueString ?? arguments["message"]?.JSONValueString);
+            case "skill": // :1018-1019
+                return Call(global::Marrow.Core.Models.ToolCall.Kind.Other, "Skill " + Dot + " " + (arguments["skill"]?.JSONValueString ?? ""));
+            case "sql": // :1020-1021
+                return Call(global::Marrow.Core.Models.ToolCall.Kind.Other, arguments["description"]?.JSONValueString ?? "SQL query", arguments["query"]?.JSONValueString);
+            case "create_pull_request": // :1022-1023
+                return Call(global::Marrow.Core.Models.ToolCall.Kind.Other, arguments["title"]?.JSONValueString ?? "Create pull request");
+            default: // :1024-1025
+                return Call(global::Marrow.Core.Models.ToolCall.Kind.Other, Humanize(name), arguments.IsNull ? null : TextCleanup.SingleLine(arguments.CompactString));
+        }
+
+        // :962-967 and :978-983: the create row, its single edit adding the whole file.
+        global::Marrow.Core.Models.ToolCall Create()
+        {
+            var call = Call(global::Marrow.Core.Models.ToolCall.Kind.Edit, PathOf("path") ?? "Create file");
+            if (PathOf("path") is { } file) call = call with { Edits = new ValueList<FileEdit>([new FileEdit(file, "", arguments["file_text"]?.JSONValueString ?? "")]) };
+            return call;
+        }
+
+        // :968-973 and :990-995: the replace row, old_str to new_str.
+        global::Marrow.Core.Models.ToolCall Replace()
+        {
+            var call = Call(global::Marrow.Core.Models.ToolCall.Kind.Edit, PathOf("path") ?? "Edit file");
+            if (PathOf("path") is { } file) call = call with { Edits = new ValueList<FileEdit>([new FileEdit(file, arguments["old_str"]?.JSONValueString ?? "", arguments["new_str"]?.JSONValueString ?? "")]) };
+            return call;
+        }
+
+        // :1004 and :1007
+        List<string> RelativePaths() =>
+            (arguments["paths"]?.JSONValueArray ?? []).Select(path => path.JSONValueString).OfType<string>().Select(path => ToolTitles.RelativePath(path, WorkingDirectory)).ToList();
+    }
+
+    // `ToolCall(kind:title:detail:)` (Timeline.swift:181-192): every other member at its default.
+    private static global::Marrow.Core.Models.ToolCall Call(global::Marrow.Core.Models.ToolCall.Kind kind, string title, string? detail = null) =>
+        new() { ToolCallKind = kind, Title = title, Detail = detail };
+
+    // :1029-1032
+    private static string? LineRange(JSONValue? value)
+    {
+        if (value?.JSONValueArray?.Select(element => element.JSONValueInt).Where(element => element is not null).Select(element => element!.Value).ToList() is not { Count: 2 } range) return null;
+        var first = range[0].ToString(System.Globalization.CultureInfo.InvariantCulture);
+        return range[1] < 0 ? "from line " + first : "lines " + first + EnDash + range[1].ToString(System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>The files an `apply_patch` envelope touches: its `*** Update|Add|Delete File:` headers.</summary>
+    // :1034-1045
+    public static ValueList<string> PatchPaths(string patch)
+    {
+        var paths = new List<string>(); // :1036
+        var seen = new HashSet<string>(SwiftStringComparer.Instance); // :1037
+        foreach (var line in SplitOnNewlines(patch)) // :1038
+        {
+            foreach (var prefix in (string[])["*** Update File: ", "*** Add File: ", "*** Delete File: "]) // :1039
+            {
+                if (!SwiftString.HasPrefix(line, prefix)) continue;
+                var path = FoundationText.Trim(line[prefix.Length..]); // :1040. The prefixes are ASCII: one Character per unit.
+                if (path.Length != 0 && seen.Add(path)) paths.Add(path); // :1041
+            }
+        }
+        return new ValueList<string>(paths); // :1044
+    }
+
+    /// <summary>`update_todo` hands over a markdown checklist: `- [x]` done, `- [ ]` pending, anything else in the
+    /// brackets in progress.</summary>
+    // :1049. The part before the bracket content; the rest of `^(?:[-*+]|\d+[.)])\s*\[(.?)\]\s*(.+)$` is matched
+    // Character by Character in TodoLine, because `.` in a Swift Regex is one Character (R-RE-2).
+    [GeneratedRegex(@"\A(?:[-*+]|\d+[.)])\s*\[", RegexOptions.CultureInvariant)]
+    private static partial Regex TodoLinePrefixPattern();
 
     // :1051-1062. Swift: todos(from:).
-    public static ValueList<TodoStep> Todos(string markdown) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/CopilotSession.swift:1051");
+    public static ValueList<TodoStep> Todos(string markdown)
+    {
+        var steps = new List<TodoStep>();
+        foreach (var line in SplitOnNewlines(markdown)) // :1052
+        {
+            var trimmed = FoundationText.Trim(line); // :1053
+            if (TodoLine(trimmed) is not var (mark, text)) continue; // :1054
+            var status = SwiftString.Lowercased(mark) switch // :1055-1059
+            {
+                "x" => TodoStep.Status.Done,
+                " " or "" => TodoStep.Status.Pending,
+                _ => TodoStep.Status.Active,
+            };
+            steps.Add(new TodoStep { Text = text, TodoStepStatus = status }); // :1060
+        }
+        return new ValueList<TodoStep>(steps);
+    }
+
+    // :1049 `firstMatch(of: todoLinePattern)`: the bracket content (`(.?)`, greedy, so one Character is tried before
+    // none) and the text (`\s*(.+)$`: at least one Character, leading whitespace dropped greedily but never the last
+    // Character). The lines carry no newline, so `.` and `$` see the whole rest of the line.
+    private static (string Mark, string Text)? TodoLine(string line)
+    {
+        var prefix = TodoLinePrefixPattern().Match(line);
+        if (!prefix.Success || !SwiftString.IsCharacterBoundary(line, prefix.Length)) return null;
+        var rest = SwiftString.Characters(line[prefix.Length..]).ToList();
+        if (rest.Count >= 2 && rest[1] == "]" && Text(rest.Skip(2).ToList()) is { } withMark) return (rest[0], withMark);
+        if (rest.Count >= 1 && rest[0] == "]" && Text(rest.Skip(1).ToList()) is { } withoutMark) return ("", withoutMark);
+        return null;
+
+        static string? Text(List<string> characters)
+        {
+            if (characters.Count == 0) return null;
+            var start = 0;
+            while (start < characters.Count - 1 && SwiftCharacter.IsWhitespace(characters[start])) start++;
+            return string.Concat(characters.Skip(start));
+        }
+    }
+
+    // :1064-1066. DEVIATION ED-025: the trimmed text itself is the key, not its hashValue.
+    private static string ReasoningKey(string text) => text.Trimmed();
+
+    // :1068-1071
+    private static string Humanize(string name)
+    {
+        var words = name.Replace("-", " ", StringComparison.Ordinal).Replace("_", " ", StringComparison.Ordinal);
+        return SwiftString.Uppercased(SwiftString.Prefix(words, 1)) + SwiftString.DropFirst(words);
+    }
+
+    // `split(whereSeparator: \.isNewline)` (:1038, :1052): Character by Character, "\r\n" one separator, empty
+    // pieces dropped (the Git.cs port of the same call).
+    private static List<string> SplitOnNewlines(string text)
+    {
+        var pieces = new List<string>();
+        var current = new System.Text.StringBuilder();
+        foreach (var character in SwiftString.Characters(text))
+        {
+            if (character == "\r\n" || (character.Length == 1 && FoundationText.IsNewline(character[0])))
+            {
+                if (current.Length != 0) pieces.Add(current.ToString());
+                current.Clear();
+                continue;
+            }
+            current.Append(character);
+        }
+        if (current.Length != 0) pieces.Add(current.ToString());
+        return pieces;
+    }
+
+    // FileManager.default.temporaryDirectory (:403, :429, :445): the Windows user temporary directory, the same
+    // mapping PlanLimits.cs and TextGeneration.cs give it.
+    private static string TemporaryDirectory =>
+        Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR") ?? System.IO.Path.GetTempPath();
+
+    // `[:]` as request params (:405, :433, :447, :465).
+    private static JSONValue EmptyObject => new JSONValue.Object(new ValueMap<string, JSONValue>([], SwiftStringComparer.Instance));
+
+    // Swift `==` between an optional string and a literal (R-STR-2).
+    private static bool Is(string? value, string literal) => value is not null && SwiftString.Equal(value, literal);
+
+    // Swift `max(x, y)` and `min(x, y)` on Double (R-NUM-4).
+    private static double Max(double x, double y) => y >= x ? y : x;
+    private static double Min(double x, double y) => y < x ? y : x;
+
+    private const string Dot = "\U000000B7"; // U+00B7 MIDDLE DOT
+    private const string Times = "\U000000D7"; // U+00D7 MULTIPLICATION SIGN
+    private const string EnDash = "\U00002013"; // U+2013 EN DASH
 
     private static JSONValue ObjectOf(Dictionary<string, JSONValue> members) =>
         new JSONValue.Object(new ValueMap<string, JSONValue>(members, SwiftStringComparer.Instance));

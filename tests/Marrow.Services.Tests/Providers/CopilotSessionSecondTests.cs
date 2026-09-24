@@ -55,6 +55,7 @@ public sealed class CopilotSessionSecondTests
     public void Allow_always_and_deny_send_three_different_decisions()
     {
         using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // Connect reads the MCP overrides (CopilotSession.swift:481-483)
         var script = new CopilotScript("approvals");
         var (session, events, id) = Started(runtime, Config(script));
         var shell = Json("{\"kind\":\"shell\",\"canOfferSessionApproval\":true,\"commands\":[{\"identifier\":\"git status\"}]}");
@@ -152,6 +153,7 @@ public sealed class CopilotSessionSecondTests
     public void A_dismissed_question_gets_an_empty_free_form_answer_and_a_plan_gets_approved_or_keep_planning()
     {
         using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // Connect reads the MCP overrides (CopilotSession.swift:481-483)
         var script = new CopilotScript("question-plan-replies");
         var (session, _, _) = Started(runtime, Config(script));
         AddPending(session, "question-11", Pending("Question", new RPCID.Int(11), new ValueList<string>(["a"])));
@@ -193,6 +195,7 @@ public sealed class CopilotSessionSecondTests
     public void An_answer_joins_the_first_values_with_a_comma_and_is_free_form_unless_it_is_an_offered_choice()
     {
         using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // Connect reads the MCP overrides (CopilotSession.swift:481-483)
         var script = new CopilotScript("answers");
         var (session, events, _) = Started(runtime, Config(script));
         var choices = new ValueList<string>(["Red", "Blue", "Red, Blue"]);
@@ -235,6 +238,7 @@ public sealed class CopilotSessionSecondTests
     public void Stop_asks_the_runtime_to_shut_down_then_closes_the_connection_without_an_exit_event()
     {
         using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // Connect reads the MCP overrides (CopilotSession.swift:481-483)
         var script = new CopilotScript("stop");
         var (session, events, _) = Started(runtime, Config(script));
         runtime.OnMain(session.Stop);
@@ -250,6 +254,7 @@ public sealed class CopilotSessionSecondTests
     public void An_unanswered_shutdown_is_closed_by_the_three_second_backstop()
     {
         using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // Connect reads the MCP overrides (CopilotSession.swift:481-483)
         var script = new CopilotScript("stop-backstop");
         script.Silent("runtime.shutdown");
         var (session, _, _) = Started(runtime, Config(script));
@@ -279,6 +284,7 @@ public sealed class CopilotSessionSecondTests
     public void ListModels_seeds_Auto_skips_disabled_and_idless_entries_and_describes_the_rest()
     {
         using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // Connect reads the MCP overrides (CopilotSession.swift:481-483)
         var script = new CopilotScript("models");
         script.Reply("models.list", Catalog);
         var models = runtime.Loop.Run(() => CopilotSession.ListModels(FileUrl(script.ExecutablePath), new ValueMap<string, string>([script.EnvironmentEntry])), Bound);
@@ -318,6 +324,7 @@ public sealed class CopilotSessionSecondTests
     public void A_catalog_of_only_disabled_models_still_yields_the_Auto_row_and_no_detail_means_nil()
     {
         using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // Connect reads the MCP overrides (CopilotSession.swift:481-483)
         var script = new CopilotScript("models-disabled");
         script.Reply("models.list", "{\"models\":[{\"id\":\"a\",\"policy\":{\"state\":\"disabled\"}},{\"id\":\"b\",\"policy\":{\"state\":\"enabled\"}}]}");
         var models = runtime.Loop.Run(() => CopilotSession.ListModels(FileUrl(script.ExecutablePath), new ValueMap<string, string>([script.EnvironmentEntry])), Bound);
@@ -336,6 +343,7 @@ public sealed class CopilotSessionSecondTests
     public void A_failed_models_list_propagates()
     {
         using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // Connect reads the MCP overrides (CopilotSession.swift:481-483)
         var script = new CopilotScript("models-error");
         script.Error("models.list", -32603, "Not authorized");
         var error = Assert.Throws<RPCError>(() => runtime.Loop.Run(() => CopilotSession.ListModels(FileUrl(script.ExecutablePath), new ValueMap<string, string>([script.EnvironmentEntry])), Bound));
@@ -383,6 +391,7 @@ public sealed class CopilotSessionSecondTests
     public void AuthStatus_is_unknown_never_signed_out_when_the_CLI_cannot_be_reached()
     {
         using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // Connect reads the MCP overrides (CopilotSession.swift:481-483)
         var missing = FileUrl(Path.Combine(Path.GetTempPath(), "no-such-folder-" + Guid.NewGuid().ToString("N"), "copilot.exe"));
         Assert.Equal(new ProviderStatus.Auth.Unknown(),
             runtime.Loop.Run(() => CopilotSession.AuthStatus(missing, new ValueMap<string, string>([])), Bound));
@@ -405,6 +414,7 @@ public sealed class CopilotSessionSecondTests
     public void ReadPlanLimits_walks_the_three_snapshots_in_a_fixed_order_and_names_the_plan()
     {
         using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // Connect reads the MCP overrides (CopilotSession.swift:481-483)
         var script = new CopilotScript("quota");
         script.Reply("account.getQuota", "{\"quotaSnapshots\":{" +
             "\"completions\":{\"entitlementRequests\":2000,\"usedRequests\":500}," +
@@ -435,6 +445,7 @@ public sealed class CopilotSessionSecondTests
     public void A_snapshot_is_skipped_when_absent_null_explicitly_unlimited_or_without_a_positive_entitlement()
     {
         using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // Connect reads the MCP overrides (CopilotSession.swift:481-483)
         var script = new CopilotScript("quota-skips");
         // premium: explicit true unlimited; chat: a string "true" does not skip; completions: zero entitlement.
         script.Reply("account.getQuota", "{\"quotaSnapshots\":{" +
@@ -464,6 +475,7 @@ public sealed class CopilotSessionSecondTests
     public void The_remaining_branch_clamps_both_ends_and_the_used_branch_clamps_only_the_top()
     {
         using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // Connect reads the MCP overrides (CopilotSession.swift:481-483)
         var script = new CopilotScript("quota-percent");
         script.Reply("account.getQuota", "{\"quotaSnapshots\":{" +
             "\"premium_interactions\":{\"entitlementRequests\":300,\"remainingPercentage\":120}," +
@@ -493,6 +505,7 @@ public sealed class CopilotSessionSecondTests
     public void With_no_window_ReadPlanLimits_returns_nil_without_asking_for_the_plan()
     {
         using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // Connect reads the MCP overrides (CopilotSession.swift:481-483)
         var script = new CopilotScript("quota-empty");
         script.Reply("account.getQuota", "{\"quotaSnapshots\":{}}");
         Assert.Null(Limits(runtime, script));
@@ -504,6 +517,7 @@ public sealed class CopilotSessionSecondTests
     public void A_failed_quota_request_propagates()
     {
         using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // Connect reads the MCP overrides (CopilotSession.swift:481-483)
         var script = new CopilotScript("quota-error");
         script.Error("account.getQuota", -32603, "quota unavailable");
         var error = Assert.Throws<RPCError>(() => Limits(runtime, script));
@@ -515,6 +529,7 @@ public sealed class CopilotSessionSecondTests
     public void A_failed_or_planless_auth_read_leaves_the_plan_name_nil_and_the_windows_intact()
     {
         using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // Connect reads the MCP overrides (CopilotSession.swift:481-483)
         var script = new CopilotScript("quota-auth-error");
         script.Reply("account.getQuota", "{\"quotaSnapshots\":{\"chat\":{\"entitlementRequests\":10,\"usedRequests\":1}}}");
         script.Error("account.getCurrentAuth", -32603, "offline");

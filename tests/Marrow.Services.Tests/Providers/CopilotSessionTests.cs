@@ -122,6 +122,7 @@ public sealed class CopilotSessionTests
     public void A_session_process_is_launched_with_the_five_base_tokens_then_the_MCP_session_overrides()
     {
         using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // Connect reads the MCP overrides (CopilotSession.swift:481-483)
         var script = new CopilotScript("argv");
         Started(runtime, Config(script));
         var expected = new List<string> { "--headless", "--stdio", "--no-auto-update", "--log-level", "error" };
@@ -134,6 +135,7 @@ public sealed class CopilotSessionTests
     public void Every_frame_is_Content_Length_framed_and_carries_jsonrpc_2_0()
     {
         using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // Connect reads the MCP overrides (CopilotSession.swift:481-483)
         var script = new CopilotScript("framing");
         Started(runtime, Config(script));
         runtime.Loop.RunUntil(() => script.Methods().Contains("session.commands.list"), Bound);
@@ -150,6 +152,7 @@ public sealed class CopilotSessionTests
     public void The_handshake_is_one_ping_with_the_message_marrow()
     {
         using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // Connect reads the MCP overrides (CopilotSession.swift:481-483)
         var script = new CopilotScript("ping");
         Started(runtime, Config(script));
         var ping = script.Messages()[0];
@@ -166,6 +169,7 @@ public sealed class CopilotSessionTests
         foreach (var version in new[] { "99", "0", "\"3\"" })
         {
             using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // Connect reads the MCP overrides (CopilotSession.swift:481-483)
             var script = new CopilotScript("version");
             script.Reply("ping", "{\"protocolVersion\":" + version + "}");
             var (session, _, _) = Started(runtime, Config(script));
@@ -180,6 +184,7 @@ public sealed class CopilotSessionTests
         foreach (var reply in new[] { "{}", "{\"protocolVersion\":\"three\"}", "{\"protocolVersion\":true}", "{\"protocolVersion\":null}" })
         {
             using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // Connect reads the MCP overrides (CopilotSession.swift:481-483)
             var script = new CopilotScript("no-version");
             script.Reply("ping", reply);
             var (session, _) = Make(Config(script));
@@ -198,6 +203,7 @@ public sealed class CopilotSessionTests
     public void Without_a_resume_id_start_creates_a_session_under_a_fresh_lowercased_UUID_and_returns_it()
     {
         using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // Connect reads the MCP overrides (CopilotSession.swift:481-483)
         var script = new CopilotScript("create");
         var (session, _, id) = Started(runtime, Config(script));
         Assert.Matches(new Regex("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"), id);
@@ -212,6 +218,7 @@ public sealed class CopilotSessionTests
     public void With_a_resume_id_start_resumes_that_id_with_the_same_parameters()
     {
         using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // Connect reads the MCP overrides (CopilotSession.swift:481-483)
         var fresh = new CopilotScript("create-shape");
         Started(runtime, Config(fresh));
         var script = new CopilotScript("resume");
@@ -228,6 +235,7 @@ public sealed class CopilotSessionTests
     public void A_resume_the_CLI_refuses_throws_out_of_start()
     {
         using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // Connect reads the MCP overrides (CopilotSession.swift:481-483)
         var script = new CopilotScript("resume-refused");
         script.Error("session.resume", -32000, "Session not found");
         var (session, _) = Make(Config(script, resumeID: "gone"));
@@ -265,6 +273,7 @@ public sealed class CopilotSessionTests
     public void The_create_request_sends_the_parameters_plus_sessionId()
     {
         using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // Connect reads the MCP overrides (CopilotSession.swift:481-483)
         var script = new CopilotScript("create-params");
         var configuration = Config(script);
         var (_, _, id) = Started(runtime, configuration);
@@ -314,6 +323,7 @@ public sealed class CopilotSessionTests
     public void Switching_a_live_session_into_Auto_changes_only_the_permission_mode_over_the_wire()
     {
         using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // Connect reads the MCP overrides (CopilotSession.swift:481-483)
         var script = new CopilotScript("into-auto");
         script.Reply("session.permissions.setMode", "{\"mode\":\"assisted\"}");
         var (session, _, _) = Started(runtime, Config(script));
@@ -415,6 +425,7 @@ public sealed class CopilotSessionTests
     public void Start_applies_the_thread_modes_after_create_and_then_loads_the_commands()
     {
         using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // Connect reads the MCP overrides (CopilotSession.swift:481-483)
         var script = new CopilotScript("modes-after-create");
         script.Reply("session.permissions.setMode", "{\"mode\":\"allow-all\"}");
         Started(runtime, Config(script, runtimeMode: RuntimeMode.FullAccess, interactionMode: InteractionMode.Plan));
@@ -427,6 +438,7 @@ public sealed class CopilotSessionTests
     public void Start_applies_the_thread_modes_after_a_resume_too()
     {
         using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // Connect reads the MCP overrides (CopilotSession.swift:481-483)
         var script = new CopilotScript("modes-after-resume");
         script.Reply("session.permissions.setMode", "{\"mode\":\"allow-all\"}");
         var (_, _, id) = Started(runtime, Config(script, resumeID: "r-1", runtimeMode: RuntimeMode.FullAccess, interactionMode: InteractionMode.Plan));
@@ -440,6 +452,7 @@ public sealed class CopilotSessionTests
     public void The_permission_mode_is_set_with_source_rpc_only_when_it_differs_and_the_reply_decides_what_holds()
     {
         using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // Connect reads the MCP overrides (CopilotSession.swift:481-483)
         var script = new CopilotScript("set-mode");
         // Refused: the reply says "manual" still holds.
         script.Reply("session.permissions.setMode", "{\"mode\":\"manual\"}", occurrence: 1);
@@ -471,6 +484,7 @@ public sealed class CopilotSessionTests
     public void A_failed_or_empty_setMode_reply_keeps_the_previous_permission_mode()
     {
         using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // Connect reads the MCP overrides (CopilotSession.swift:481-483)
         var failing = new CopilotScript("set-mode-error");
         failing.Error("session.permissions.setMode", -32602, "no");
         var (session, _, _) = Started(runtime, Config(failing));
@@ -499,6 +513,7 @@ public sealed class CopilotSessionTests
     public void The_interaction_mode_is_set_to_plan_or_interactive_and_advances_even_when_the_call_fails()
     {
         using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // Connect reads the MCP overrides (CopilotSession.swift:481-483)
         var script = new CopilotScript("mode-set");
         script.Error("session.mode.set", -32602, "no");
         var (session, _, id) = Started(runtime, Config(script));
@@ -527,6 +542,7 @@ public sealed class CopilotSessionTests
     public void A_model_switch_carries_the_effort_and_makes_the_separate_effort_call_unnecessary()
     {
         using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // Connect reads the MCP overrides (CopilotSession.swift:481-483)
         var script = new CopilotScript("switch-model");
         var (session, _, id) = Started(runtime, Config(script, model: "gpt-5", effort: "low"));
         runtime.Loop.Run(() => session.Send(Turn("hi", model: "claude-sonnet-4.5", effort: "high")), Bound);
@@ -550,6 +566,7 @@ public sealed class CopilotSessionTests
     public void An_effort_change_alone_is_its_own_call_and_an_empty_model_or_effort_is_never_sent()
     {
         using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // Connect reads the MCP overrides (CopilotSession.swift:481-483)
         var script = new CopilotScript("set-effort");
         var (session, _, id) = Started(runtime, Config(script, model: "gpt-5", effort: "low"));
         runtime.Loop.Run(() => session.Send(Turn("hi", model: "gpt-5", effort: "high")), Bound);
@@ -575,6 +592,7 @@ public sealed class CopilotSessionTests
     public void A_failed_switch_leaves_the_stored_values_so_the_next_turn_tries_again()
     {
         using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // Connect reads the MCP overrides (CopilotSession.swift:481-483)
         var script = new CopilotScript("switch-fails");
         script.Error("session.model.switchTo", -32602, "unknown model");
         script.Error("session.model.setReasoningEffort", -32602, "unknown effort");
@@ -626,6 +644,7 @@ public sealed class CopilotSessionTests
     public void A_loaded_slash_command_is_invoked_and_any_other_text_is_sent_whole_as_a_prompt()
     {
         using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // Connect reads the MCP overrides (CopilotSession.swift:481-483)
         var script = new CopilotScript("route-command");
         script.Reply("session.commands.list", "{\"commands\":[{\"name\":\"review\",\"description\":\"Review changes\"}]}");
         script.Reply("session.commands.invoke", "{\"kind\":\"completed\"}");
@@ -651,6 +670,7 @@ public sealed class CopilotSessionTests
     public void Modes_and_selection_go_out_before_the_prompt_and_a_failed_send_clears_the_turn_and_throws()
     {
         using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // Connect reads the MCP overrides (CopilotSession.swift:481-483)
         var script = new CopilotScript("send-fails");
         script.Error("session.send", -32603, "boom");
         var (session, events, _) = Started(runtime, Config(script));
@@ -691,6 +711,7 @@ public sealed class CopilotSessionTests
     public void A_prompt_carries_only_image_attachments_as_file_references()
     {
         using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // Connect reads the MCP overrides (CopilotSession.swift:481-483)
         var script = new CopilotScript("attachments");
         var (session, _, id) = Started(runtime, Config(script));
         var images = new ValueList<Attachment>([
@@ -814,6 +835,7 @@ public sealed class CopilotSessionTests
     public void The_command_list_skips_the_ten_own_commands_and_recognizes_names_and_aliases()
     {
         using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // Connect reads the MCP overrides (CopilotSession.swift:481-483)
         var script = new CopilotScript("commands");
         var own = new[] { "allow-all", "yolo", "permissions", "model", "models", "plan", "session", "sessions", "cwd", "cd" };
         var entries = own.Select(n => $"{{\"name\":\"{n}\",\"aliases\":[\"{n}-alias\"]}}").ToList();
@@ -838,6 +860,7 @@ public sealed class CopilotSessionTests
     public void A_failed_or_empty_command_list_publishes_nothing_and_slash_text_goes_out_as_a_prompt()
     {
         using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // Connect reads the MCP overrides (CopilotSession.swift:481-483)
         var failing = new CopilotScript("commands-error");
         failing.Error("session.commands.list", -32601, "no");
         var (session, events, _) = Started(runtime, Config(failing));
@@ -865,6 +888,7 @@ public sealed class CopilotSessionTests
     public void Interrupt_does_nothing_without_an_active_turn_or_a_connection()
     {
         using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // Connect reads the MCP overrides (CopilotSession.swift:481-483)
         var (session, events) = Make(Config(null));
         SetField(session, "turnActive", true);
         AddPending(session, "p1", Pending("Permission", JSONValue.FromDictionaryLiteral(("kind", "shell")), null));
@@ -885,6 +909,7 @@ public sealed class CopilotSessionTests
     public void Interrupt_marks_the_request_and_aborts_the_session_as_user_initiated_ignoring_a_failure()
     {
         using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // Connect reads the MCP overrides (CopilotSession.swift:481-483)
         var script = new CopilotScript("interrupt");
         script.Error("session.abort", -32603, "already idle");
         var (session, _, id) = Started(runtime, Config(script));
@@ -903,6 +928,7 @@ public sealed class CopilotSessionTests
     public void Interrupt_cancels_each_pending_kind_with_its_own_reply_before_the_abort()
     {
         using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // Connect reads the MCP overrides (CopilotSession.swift:481-483)
         var script = new CopilotScript("cancel-pending");
         var (session, events, id) = Started(runtime, Config(script));
         runtime.Loop.Run(() => session.Send(Turn("work")), Bound);
@@ -955,6 +981,7 @@ public sealed class CopilotSessionTests
     public void Compact_requests_a_manual_history_compaction_and_its_error_propagates()
     {
         using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // Connect reads the MCP overrides (CopilotSession.swift:481-483)
         var script = new CopilotScript("compact");
         script.Error("session.history.compact", -32603, "Nothing to compact");
         var (session, events, id) = Started(runtime, Config(script));
@@ -976,6 +1003,7 @@ public sealed class CopilotSessionTests
     public void Rollback_returns_silently_without_a_session_or_a_positive_turn_count()
     {
         using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // Connect reads the MCP overrides (CopilotSession.swift:481-483)
         var (session, _) = Make(Config(null));
         runtime.Loop.Run(() => session.Rollback(1), Bound);
         var script = new CopilotScript("rollback-zero");
@@ -990,6 +1018,7 @@ public sealed class CopilotSessionTests
     public void Rollback_rewinds_the_conversation_to_the_point_of_the_nth_last_user_message()
     {
         using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // Connect reads the MCP overrides (CopilotSession.swift:481-483)
         var script = new CopilotScript("rollback");
         script.Reply("session.history.listRewindPoints", ThreePoints);
         script.Reply("session.history.rewind", "{\"outcome\":\"success\"}");
@@ -1015,6 +1044,7 @@ public sealed class CopilotSessionTests
         foreach (var points in new[] { ThreePoints, "{\"points\":[{\"eventId\":\"e1\"},{\"id\":\"e2\"}]}", "{}", "{\"points\":[{\"eventId\":7}]}" })
         {
             using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // Connect reads the MCP overrides (CopilotSession.swift:481-483)
             var script = new CopilotScript("rollback-missing");
             script.Reply("session.history.listRewindPoints", points);
             var (session, _, _) = Started(runtime, Config(script));
@@ -1037,6 +1067,7 @@ public sealed class CopilotSessionTests
         })
         {
             using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // Connect reads the MCP overrides (CopilotSession.swift:481-483)
             var script = new CopilotScript("rewind-fails");
             script.Reply("session.history.listRewindPoints", ThreePoints);
             script.Reply("session.history.rewind", reply);
