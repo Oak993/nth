@@ -113,10 +113,16 @@ public sealed class PlanLimitsTests
     [Trait("Req", "PR-PROVREG-171")] // PlanLimits.swift:79 - pi dispatches directly, no try?
     public async Task Read_executable_dispatches_pi_to_PiPlanLimits_Read_without_try()
     {
+        // Services.Providers.PiPlanLimits has landed (PiPlanLimits.swift:11-41): PI_CODING_AGENT_DIR points at
+        // an empty throwaway directory (R-TEST-9; never the real %USERPROFILE%\.pi\agent or its auth.json), so
+        // there is no auth.json to read and the direct, un-wrapped dispatch returns null rather than throwing,
+        // proving this arm reached the real implementation rather than a sibling stub (same proof style as the
+        // commandcode arm above, once CommandCodeAPI.PlanLimits landed).
         var executable = FileUrl(Path.Combine(Path.GetTempPath(), "unreachable-" + Guid.NewGuid().ToString("N") + ".exe"));
-        var error = await Assert.ThrowsAsync<NotImplementedException>(
-            () => PlanLimitsReader.Read(ProviderKind.Pi, executable, ValueMap<string, string>.Empty));
-        Assert.Contains("PiPlanLimits.swift:11", error.Message, StringComparison.Ordinal);
+        var configDir = TempDataDir("dispatch-pi-config");
+        var environment = new Dictionary<string, string> { ["PI_CODING_AGENT_DIR"] = configDir };
+        var result = await PlanLimitsReader.Read(ProviderKind.Pi, executable, environment);
+        Assert.Null(result);
     }
 
     [Fact]
