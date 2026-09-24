@@ -75,8 +75,8 @@ public sealed class ProviderRegistryCatalogTests
 
     [Fact]
     [Trait("Req", "PR-PROVREG-131")] // ProviderRegistry.swift:315-318
-    [Trait("Req", "PR-PROVREG-132")] // ProviderRegistry.swift:319-333 (phase order: refreshAll runs before phase 2 can throw)
-    public async Task refresh_everything_is_single_flight_and_clears_the_flag_even_when_a_later_phase_throws()
+    [Trait("Req", "PR-PROVREG-132")] // ProviderRegistry.swift:319-333
+    public async Task refresh_everything_is_single_flight_and_clears_the_flag_when_every_phase_completes()
     {
         using var runtime = new TestRuntime();
         using var storage = BindStorage();
@@ -109,11 +109,14 @@ public sealed class ProviderRegistryCatalogTests
         // RefreshAll children need the loop driven the same way ProviderRegistryRefreshTests drives them.
         await Task.Run(() => runtime.Loop.RunUntil(() => first.IsCompleted, TimeSpan.FromSeconds(30)));
 
-        // Phase 2 (:321-326) calls RefreshPlanLimits(force: true) for every provider not known to be
-        // signed out; with a fresh registry every provider's auth is Unknown, so the first iteration
-        // reaches the still-stubbed RefreshPlanLimits and the whole task faults with its exception.
-        await Assert.ThrowsAsync<NotImplementedException>(() => first);
-        // The defer (:318) still clears the flag on the throwing path.
+        // Phase 2 (:321-326) calls RefreshPlanLimits(force: true) for every provider not known to be signed
+        // out; with an unresolvable path for every CLI provider and no API key for any API-key provider,
+        // every one of those detached reads finishes at its own "executable not found"/"empty key" branch
+        // (PR-PROVREG-166, PR-PROVREG-169) without throwing. Phase 3 finds nothing "installed" to load a
+        // catalog for, so the whole call completes normally.
+        await first;
+        Assert.True(first.IsCompletedSuccessfully);
+        // The defer (:318) clears the flag once every phase has completed.
         Assert.False(registry.IsRefreshing);
     }
 

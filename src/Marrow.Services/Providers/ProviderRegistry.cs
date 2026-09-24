@@ -101,8 +101,12 @@ public sealed partial class ProviderRegistry : MainActorModel
     private TaskHandle<ValueList<ModelOption>?>? openCodeCatalogTask;
     // :61. @ObservationIgnored.
     private readonly Dictionary<ProviderKind, DateTimeOffset> limitsFetchedAt = new();
+    // :63. @ObservationIgnored. A forced read that arrives while a read is out is remembered, not dropped.
+    private readonly HashSet<ProviderKind> forcedLimitReads = [];
     // :68. @ObservationIgnored.
     private readonly Dictionary<ProviderKind, DateTimeOffset> creditsFetchedAt = new();
+    // :39. @ObservationIgnored. When each (provider, directory) command list was last delivered.
+    private readonly Dictionary<string, DateTimeOffset> commandsFetchedAt = new(StringComparer.Ordinal);
 
     // U+00B7 MIDDLE DOT, used by ClaudeSeed's Fable detail (:74) (R-STR-9).
     private const string MiddleDot = "\U000000B7";
@@ -998,25 +1002,158 @@ public sealed partial class ProviderRegistry : MainActorModel
         return new ValueList<ModelOption>(merged); // :100
     }
 
+    // :604-605. Reads the provider's plan limits, at most once a minute after a successful read unless
+    // forced. The read runs on its own detached MainActor task (R-TASK-1), so closing the popover that
+    // asked for it cannot cancel it (PR-PROVREG-168).
     // :606-641
-    public void RefreshPlanLimits(ProviderKind provider, bool force = false) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ProviderRegistry.swift:606");
+    public void RefreshPlanLimits(ProviderKind provider, bool force = false)
+    {
+        if (!PlanLimitsReader.ExposesLimits(provider)) return; // :607, PR-PROVREG-163
+        if (loadingLimits.Contains(provider)) // :608
+        {
+            if (force) forcedLimitReads.Add(provider); // PR-PROVREG-164
+            return;
+        }
+        if (!force && limitsFetchedAt.TryGetValue(provider, out var fetched) && SwiftDate.Now - fetched < TimeSpan.FromSeconds(60)) return; // :609, PR-PROVREG-165
+        if (provider.IsAPIKeyBased) // :610
+        {
+            var apiKey = settings.ApiKey(provider); // :611
+            if (apiKey.Length == 0) // :612
+            {
+                planLimits = planLimits.Mutating(d => d.Remove(provider)); // :613, PR-PROVREG-166 (limitsFetchedAt left untouched)
+                return; // :614
+            }
+            loadingLimits = loadingLimits.Mutating(s => s.Add(provider)); // :616
+            var watchdog = MainActor.Spawn(async () => // :617, PR-PROVREG-167
+            {
+                await SwiftTask.TrySleep(TimeSpan.FromSeconds(25));
+                loadingLimits = loadingLimits.Mutating(s => s.Remove(provider));
+                DrainedForcedRead(provider);
+            });
+            MainActor.Spawn(async () => // :618, PR-PROVREG-168 (its own task, not cancellable by the requester)
+            {
+                try
+                {
+                    var limits = await PlanLimitsReader.Read(provider, apiKey); // :620
+                    if (limits is null) return; // :621, PR-PROVREG-170 (previous limits/timestamp left untouched)
+                    planLimits = planLimits.Mutating(d => d[provider] = limits); // :622
+                    limitsFetchedAt[provider] = SwiftDate.Now; // :623
+                }
+                finally
+                {
+                    watchdog.Cancel(); // :619 defer
+                    loadingLimits = loadingLimits.Mutating(s => s.Remove(provider));
+                    DrainedForcedRead(provider);
+                }
+            });
+            return; // :625
+        }
+        if (!PlanLimitsReader.ExposesLimits(provider) || loadingLimits.Contains(provider)) return; // :627 (same guards, transcribed verbatim)
+        loadingLimits = loadingLimits.Mutating(s => s.Add(provider)); // :628
+        var cliWatchdog = MainActor.Spawn(async () => // :629, PR-PROVREG-167
+        {
+            await SwiftTask.TrySleep(TimeSpan.FromSeconds(25));
+            loadingLimits = loadingLimits.Mutating(s => s.Remove(provider));
+            DrainedForcedRead(provider);
+        });
+        MainActor.Spawn(async () => // :630, PR-PROVREG-168
+        {
+            try
+            {
+                // A popover opened right after launch waits for the login shell like everything else
+                // (PR-PROVREG-169); before that read the CLI can only be found on the fallback PATH.
+                await LoginEnvironment.Load(); // :634
+                if (Executable(provider) is not { } executable) return; // :635
+                var limits = await PlanLimitsReader.Read(provider, executable, Environment(provider)); // :636
+                if (limits is null) return; // :637, PR-PROVREG-170
+                planLimits = planLimits.Mutating(d => d[provider] = limits); // :638
+                limitsFetchedAt[provider] = SwiftDate.Now; // :639
+            }
+            finally
+            {
+                cliWatchdog.Cancel(); // :631 defer
+                loadingLimits = loadingLimits.Mutating(s => s.Remove(provider));
+                DrainedForcedRead(provider);
+            }
+        });
+    }
 
-    // :650-676
-    public Task<PlanLimits.ResetOutcome> ConsumeResetCredit(ProviderKind provider, string? creditID) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ProviderRegistry.swift:650");
+    // :643-647. Runs a forced read that had to wait because a read was already out for this provider.
+    private void DrainedForcedRead(ProviderKind provider)
+    {
+        if (!forcedLimitReads.Remove(provider)) return; // :645
+        RefreshPlanLimits(provider, force: true); // :646
+    }
 
-    // :681-700
+    // :649-676. Spends one of a provider's banked resets and re-reads its limits so the bars show the
+    // cleared window. Codex through its app-server, Z.ai through its reset-card endpoint.
+    public async Task<PlanLimits.ResetOutcome> ConsumeResetCredit(ProviderKind provider, string? creditID)
+    {
+        redeemingReset = creditID ?? SwiftEnum<ProviderKind>.RawValue(provider); // :651, PR-PROVREG-196
+        try
+        {
+            switch (provider) // :653
+            {
+                case ProviderKind.Codex: // :654, PR-PROVREG-193
+                {
+                    await LoginEnvironment.Load(); // :655
+                    if (Executable(ProviderKind.Codex) is not { } executable) throw new ResetCreditError(new ResetCreditError.Case.CodexUnavailable()); // :656
+                    var environment = Environment(ProviderKind.Codex); // :657
+                    var outcome = await CodexSession.ConsumeResetCredit(executable, environment, creditID); // :658 (not wrapped: throws propagate)
+                    if (await SwiftTry.OptionalAsync(() => CodexSession.ReadPlanLimits(executable, environment)) is { } limits) // :659 (try?, non-fatal)
+                    {
+                        planLimits = planLimits.Mutating(d => d[ProviderKind.Codex] = limits); // :660
+                        limitsFetchedAt[ProviderKind.Codex] = SwiftDate.Now; // :661
+                    }
+                    return outcome; // :662
+                }
+                case ProviderKind.Zai: // :664, PR-PROVREG-194
+                {
+                    var apiKey = settings.ApiKey(ProviderKind.Zai); // :665
+                    if (apiKey.Length == 0 || creditID is null) throw new ResetCreditError(new ResetCreditError.Case.UnknownOutcome()); // :666
+                    var outcome = await ZaiAPI.ConsumeResetCredit(apiKey, creditID); // :667 (throws propagate)
+                    if (await ZaiAPI.PlanLimits(apiKey) is { } limits) // :668 (non-throwing)
+                    {
+                        planLimits = planLimits.Mutating(d => d[ProviderKind.Zai] = limits); // :669
+                        limitsFetchedAt[ProviderKind.Zai] = SwiftDate.Now; // :670
+                    }
+                    return outcome; // :671
+                }
+                default: // :673, PR-PROVREG-195
+                    throw new ResetCreditError(new ResetCreditError.Case.UnknownOutcome()); // :674
+            }
+        }
+        finally
+        {
+            redeemingReset = null; // :652 defer, PR-PROVREG-196
+        }
+    }
+
+    // :678-700. PR-PROVREG-198 to 202: MARROW_STUB. CreditsReader (ProviderCredits.cs, unit
+    // Services.Providers.ProviderCredits, a sibling in this file's dependency cycle) has ExposesCredits,
+    // Read and TopUpURL all left as MARROW_STUB (unconditional throws) at the time of this unit's work;
+    // RefreshCredits' very first line calls ExposesCredits, so every call for every provider would hit that
+    // stub with no way to observe production behaviour. Left unwritten per section 6 (missing dependency),
+    // matching this file's own DeepseekSeed/ZaiSeed/CommandcodeSeed precedent (:140-179) of not implementing
+    // a member whose sole callee is another unit's stub. Reported: STOP Services.Providers.ProviderRegistry #1.
     public void RefreshCredits(ProviderKind provider, bool force = false) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ProviderRegistry.swift:681");
+        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ProviderRegistry.swift:681 " +
+            "(blocked on CreditsReader, unit Services.Providers.ProviderCredits: see STOP report)");
 
-    // :704-707
+    // :702-707. PR-PROVREG-205: MARROW_STUB for the same reason as RefreshCredits above (CreditsReader.
+    // ExposesCredits is an unconditional throw).
     public void InvalidateCredits(ProviderKind provider) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ProviderRegistry.swift:704");
+        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ProviderRegistry.swift:704 " +
+            "(blocked on CreditsReader, unit Services.Providers.ProviderCredits: see STOP report)");
 
-    // :712-715
-    public void InvalidatePlanLimits(ProviderKind provider) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ProviderRegistry.swift:712");
+    // :709-715. PR-PROVREG-206: only Z.ai satisfies both guards (API-key based AND exposes limits), so only
+    // its gate reopens at turn end; Codex, Claude, Antigravity, Copilot, Command Code and Pi expose limits
+    // but are not API-key based and stay gated for the full sixty seconds.
+    public void InvalidatePlanLimits(ProviderKind provider)
+    {
+        if (!provider.IsAPIKeyBased || !PlanLimitsReader.ExposesLimits(provider)) return; // :713
+        limitsFetchedAt.Remove(provider); // :714
+    }
 
     // :717-734. Swift: updateCatalog(_:for:). PR-PROVREG-138/139/154/155/156: the Claude and ACP merges,
     // then the empty/unchanged guard, then the whole-blob write. CaptureRun.isEnabled is always false in
@@ -1066,13 +1203,45 @@ public sealed partial class ProviderRegistry : MainActorModel
         return stream.ToArray();
     }
 
-    // :736-738
+    // :736-738. DEVIATION ED-033: the directory is normalized (resolved to an absolute path, folded to a
+    // single separator form and invariant lowercase, with no trailing separator) before it enters the key,
+    // using the same path-identity normalization SwiftPath.SamePath already uses (Q50/Q64), so two spellings
+    // of the same Windows directory are one cache entry instead of two, and two CLI launches instead of one.
     public static string CommandKey(ProviderKind provider, string directory) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ProviderRegistry.swift:736");
+        SwiftEnum<ProviderKind>.RawValue(provider) + "\n" + NormalizedCommandDirectory(directory); // :737-738
 
-    // :740-751. Swift: updateCommands(_:for:directory:).
-    public void UpdateCommands(ValueList<SlashCommand> list, ProviderKind provider, string directory) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ProviderRegistry.swift:740");
+    private static string NormalizedCommandDirectory(string directory)
+    {
+        var normalized = SwiftPath.Normalize(SwiftPath.StandardizingPath(directory));
+        if (normalized.Length > 3 && normalized[^1] == '/') normalized = normalized[..^1];
+        return normalized.ToLowerInvariant();
+    }
+
+    // :740-751. Swift: updateCommands(_:for:directory:). PR-PROVREG-214: exactly one eviction, of the
+    // entry with the oldest fetch timestamp, only when the key is new and the cache already holds 32 or
+    // more entries; updating an existing key never evicts.
+    public void UpdateCommands(ValueList<SlashCommand> list, ProviderKind provider, string directory)
+    {
+        var key = CommandKey(provider, directory); // :741
+        if (!commands.ContainsKey(key) && commands.Count >= 32) // :742
+        {
+            string? oldest = null;
+            var oldestTime = DateTimeOffset.MaxValue;
+            foreach (var (candidate, time) in commandsFetchedAt) // :743 min(by:)
+            {
+                if (time < oldestTime) { oldestTime = time; oldest = candidate; }
+            }
+            if (oldest is { } oldestKey) // :743
+            {
+                commands = commands.Mutating(d => d.Remove(oldestKey)); // :744
+                commandsFetchedAt.Remove(oldestKey); // :745
+                commandErrors = commandErrors.Mutating(d => d.Remove(oldestKey)); // :746
+            }
+        }
+        commands = commands.Mutating(d => d[key] = list); // :748
+        commandsFetchedAt[key] = SwiftDate.Now; // :749
+        commandErrors = commandErrors.Mutating(d => d.Remove(key)); // :750
+    }
 
     // :753-759. Swift: recordCommand(_:for:).
     public void RecordCommand(string name, ProviderKind provider) =>
