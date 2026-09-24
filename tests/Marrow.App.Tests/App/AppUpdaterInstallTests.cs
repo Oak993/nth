@@ -118,6 +118,10 @@ public sealed class AppUpdaterInstallTests
         using var development = AppInfo.Running.Override(
             AppInfo.FromAssembly(typeof(AppUpdaterInstallTests).Assembly, isDevelopment: false));
         using var progress = UpdateInstallProgress.Running.Override(UpdateInstallProgressFixtures.NewProgress());
+        // PR-UPDATE-057/UI-UPDATE-034 (part 2): the catch branch now shows a modal alert; this class is not
+        // headless-collected (no live Avalonia Application), so the alert seam must be a recording fake here,
+        // never the real WindowsAlertPresenter. AppUpdaterFailureAlertTests exercises the alert itself.
+        using var alertSeam = AlertPresentation.Presenter.Override(new RecordingAlertPresenter());
         await using var server = new LoopbackHttpServer();
         var fake = new FakeUpdateInstallBoundary { StageThrows = new UpdateInstallError("boom") };
         var updater = new AppUpdater(fake);
@@ -344,6 +348,8 @@ public sealed class AppUpdaterInstallTests
         using var development = AppInfo.Running.Override(
             AppInfo.FromAssembly(typeof(AppUpdaterInstallTests).Assembly, isDevelopment: false));
         using var progress = UpdateInstallProgress.Running.Override(UpdateInstallProgressFixtures.NewProgress());
+        // PR-UPDATE-057/UI-UPDATE-034 (part 2): see After_a_failure_a_fresh_install_is_accepted_again's comment.
+        using var alertSeam = AlertPresentation.Presenter.Override(new RecordingAlertPresenter());
         await using var server = new LoopbackHttpServer();
         var fake = new FakeUpdateInstallBoundary
         {
@@ -385,6 +391,8 @@ public sealed class AppUpdaterInstallTests
         using var development = AppInfo.Running.Override(
             AppInfo.FromAssembly(typeof(AppUpdaterInstallTests).Assembly, isDevelopment: false));
         using var progress = UpdateInstallProgress.Running.Override(UpdateInstallProgressFixtures.NewProgress());
+        // PR-UPDATE-057/UI-UPDATE-034 (part 2): see After_a_failure_a_fresh_install_is_accepted_again's comment.
+        using var alertSeam = AlertPresentation.Presenter.Override(new RecordingAlertPresenter());
         await using var server = new LoopbackHttpServer();
         var fake = new FakeUpdateInstallBoundary { VersionToReturn = "1.4.0" };
         var updater = new AppUpdater(fake);
