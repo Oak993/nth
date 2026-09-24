@@ -18,9 +18,10 @@ using Marrow.Services.MCP;
 // Executable(for:)/FallbackExecutables/Environment(for:); the private helpers OpenCodeModels, MergedACPCatalog,
 // IsStaleClaudeSeed (kept internal, not private, so this part's tests can call them directly, matching the
 // convention already used elsewhere in this file's dependency, ClaudeSession.cs); and RefreshAPIProvider,
-// likewise kept internal. DeepseekSeed, ZaiSeed and CommandcodeSeed stay MARROW_STUB: their Swift callees
-// (DeepSeekAPI.option(for:), ZaiAPI.option(for:), CommandCodeAPI.seed) are stubs owned by other units in this
-// file's dependency cycle (section 6: missing dependency, reported, not invented here).
+// likewise kept internal. DeepseekSeed still stays MARROW_STUB: its Swift callee (DeepSeekAPI.option(for:))
+// is a stub owned by another unit in this file's dependency cycle (section 6: missing dependency, reported,
+// not invented here). ZaiSeed and CommandcodeSeed (part 3, PR-PROVREG-142/145) were un-stubbed once
+// ZaiAPI.Option and CommandCodeAPI.Seed landed as real implementations in this file's dependency cycle.
 
 namespace Marrow.Services.Providers;
 
@@ -158,11 +159,11 @@ public sealed partial class ProviderRegistry : MainActorModel
         .Select(MetaAPI.Option)
         .OfType<ModelOption>());
 
-    // :130. ZaiAPI.option(for:) (ZaiAPI.swift:49) is a MARROW_STUB owned by unit Services.Providers.ZaiAPI:
-    // missing dependency (section 6), stays unwritten here.
-    public static ValueList<ModelOption> ZaiSeed =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ProviderRegistry.swift:130 " +
-            "(blocked on ZaiAPI.Option, unit Services.Providers.ZaiAPI)");
+    // :130. Built with ZaiAPI.option(for:) (ZaiAPI.cs, PR-PROVREG-142): no longer MARROW_STUB, ZaiAPI.Option
+    // is implemented.
+    public static ValueList<ModelOption> ZaiSeed => new(new[] { "glm-5.3", "glm-5.3-flash" }
+        .Select(ZaiAPI.Option)
+        .OfType<ModelOption>());
 
     // :134-142
     public static readonly ValueList<ModelOption> AntigravitySeed = new(new[]
@@ -180,11 +181,9 @@ public sealed partial class ProviderRegistry : MainActorModel
     public static readonly ModelOption CopilotAuto =
         new("auto", "Auto", detail: "Copilot picks the model for each request", isDefault: true);
 
-    // :150. CommandCodeAPI.seed (CommandCodeAPI.swift:349) is a MARROW_STUB owned by unit
-    // Services.Providers.CommandCodeAPI: missing dependency (section 6), stays unwritten here.
-    public static ValueList<ModelOption> CommandcodeSeed =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ProviderRegistry.swift:150 " +
-            "(blocked on CommandCodeAPI.Seed, unit Services.Providers.CommandCodeAPI)");
+    // :150. CommandCodeAPI.seed (CommandCodeAPI.cs, PR-PROVREG-145): no longer MARROW_STUB, CommandCodeAPI.Seed
+    // is implemented.
+    public static ValueList<ModelOption> CommandcodeSeed => CommandCodeAPI.Seed;
 
     // :153
     public static readonly ValueList<ModelOption> PiSeed = new(new[]
