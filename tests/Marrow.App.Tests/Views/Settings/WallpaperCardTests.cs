@@ -9,7 +9,9 @@ using Marrow.App.Tests.Fixtures;
 using Marrow.App.Theme;
 using Marrow.App.Views.Settings;
 using Marrow.Testing;
+using Marrow.UI.Chrome;
 using Marrow.UI.Port;
+using System.Linq;
 
 namespace Marrow.App.Tests.Views.Settings;
 
@@ -21,6 +23,7 @@ public sealed class WallpaperCardTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SETTINGS-140")] // WallpaperCard.swift:13-23
+    [Trait("Req", "UI-THEME-021")] // WallpaperCard.swift:13-22 the softness row is absent entirely, not disabled
     public void With_no_wallpaper_the_card_has_no_softness_row() => headless.OnUiThread(() =>
     {
         using var scope = new WallpaperCardScope();
@@ -240,6 +243,8 @@ public sealed class WallpaperCardTests(HeadlessSession headless)
     [Fact]
     [Trait("Req", "PR-SETTINGS-144")] // WallpaperCard.swift:104-124
     [Trait("Req", "UI-THEME-017")] // WallpaperCard.swift:104-123
+    [Trait("Req", "UI-THEME-018")] // WallpaperCard.swift:112-117 Remove absent with no wallpaper
+    [Trait("Req", "UI-THEME-019")] // WallpaperCard.swift:118-121 title is "Choose…" with no wallpaper
     public void The_wallpaper_row_detail_is_the_no_wallpaper_sentence_by_default() => headless.OnUiThread(() =>
     {
         using var scope = new WallpaperCardScope();
@@ -247,12 +252,16 @@ public sealed class WallpaperCardTests(HeadlessSession headless)
             "A picture of your own behind the glass, mixed with the desktop by the transparency slider"));
         Assert.Single(CardQuery.ButtonsLabelled(scope.Card, "Choose…"));
         Assert.Empty(CardQuery.ButtonsLabelled(scope.Card, "Remove"));
+        // U+2026, never three full stops.
+        Assert.Empty(CardQuery.ButtonsLabelled(scope.Card, "Choose..."));
     });
 
     [Fact]
     [Trait("Req", "PR-SETTINGS-144")] // WallpaperCard.swift:107-109
     [Trait("Req", "PR-THEME-074")] // WallpaperCard.swift:104-123
     [Trait("Req", "UI-SETTINGS-027")] // WallpaperCard.swift:104-124
+    [Trait("Req", "UI-THEME-018")] // WallpaperCard.swift:112-117 Remove present with a wallpaper installed
+    [Trait("Req", "UI-THEME-019")] // WallpaperCard.swift:118-121 title is "Change…" with a wallpaper installed
     public void With_a_wallpaper_the_detail_and_buttons_switch_to_the_installed_state() => headless.OnUiThread(() =>
     {
         using var scope = new WallpaperCardScope();
@@ -264,7 +273,89 @@ public sealed class WallpaperCardTests(HeadlessSession headless)
         Assert.Single(CardQuery.ButtonsLabelled(scope.Card, "Change…"));
         Assert.Single(CardQuery.ButtonsLabelled(scope.Card, "Remove"));
         Assert.Empty(CardQuery.ButtonsLabelled(scope.Card, "Choose…"));
+        // U+2026, never three full stops.
+        Assert.Empty(CardQuery.ButtonsLabelled(scope.Card, "Change..."));
     });
+
+    [Fact]
+    [Trait("Req", "UI-THEME-018")] // WallpaperCard.swift:112-117 click deletes the wallpaper immediately, with no confirmation
+    public void Clicking_Remove_deletes_immediately_with_no_confirmation_dialog() => headless.OnUiThread(() =>
+    {
+        using var scope = new WallpaperCardScope();
+        var folder = PictureFiles.Folder();
+        scope.InstallAndSettle(PictureFiles.Png(folder, "a.png"));
+
+        var before = CardQuery.All<Avalonia.Controls.Window>(scope.Card).Count();
+        var remove = CardQuery.ButtonsLabelled(scope.Card, "Remove").Single();
+        CardQuery.Invoke(remove);
+        scope.Pump();
+
+        Assert.False(scope.Store.HasWallpaper); // deleted at once, no intervening dialog
+        Assert.Equal(before, CardQuery.All<Avalonia.Controls.Window>(scope.Card).Count());
+    });
+
+    [Fact]
+    [Trait("Req", "UI-THEME-018")] // WallpaperCard.swift:116 .disabled(store.isInstalling)
+    [Trait("Req", "UI-THEME-019")] // WallpaperCard.swift:121 .disabled(store.isInstalling)
+    public void Both_row_buttons_are_disabled_while_an_install_is_running() => headless.OnUiThread(() =>
+    {
+        using var scope = new WallpaperCardScope();
+        var folder = PictureFiles.Folder();
+        scope.InstallAndSettle(PictureFiles.Png(folder, "a.png"));
+
+        var change = CardQuery.ButtonsLabelled(scope.Card, "Change…").Single();
+        var remove = CardQuery.ButtonsLabelled(scope.Card, "Remove").Single();
+        Assert.True(change.IsEnabled);
+        Assert.True(remove.IsEnabled);
+
+        var large = PictureFiles.Png(folder, "b.png", side: 512); // installing stays on screen one turn
+        scope.Store.Install(from: large);
+        scope.Pump();
+
+        Assert.False(change.IsEnabled);
+        Assert.False(remove.IsEnabled);
+
+        scope.WaitFor(() => !scope.Store.IsInstalling);
+        Assert.True(change.IsEnabled);
+        Assert.True(remove.IsEnabled);
+    });
+
+    [Fact]
+    [Trait("Req", "UI-THEME-019")] // WallpaperCard.swift:118-121 click opens the picture chooser
+    public void Clicking_the_Choose_button_opens_the_chooser_and_installs_the_result() => headless.OnUiThread(() =>
+    {
+        using var scope = new WallpaperCardScope();
+        var folder = PictureFiles.Folder();
+        var path = PictureFiles.Png(folder, "a.png");
+        scope.Dialog.NextResult = path;
+
+        var choose = CardQuery.ButtonsLabelled(scope.Card, "Choose…").Single();
+        CardQuery.Invoke(choose);
+        scope.WaitFor(() => scope.Dialog.CallCount > 0);
+        scope.WaitFor(() => !scope.Store.IsInstalling);
+
+        Assert.Equal(1, scope.Dialog.CallCount);
+        Assert.True(scope.Store.HasWallpaper);
+    });
+
+    // UI-THEME-020: the dialog's title and OK-button caption, byte-for-byte, as WallpaperCard.swift:174-175 sets
+    // them on NSOpenPanel and WindowsWallpaperFileDialog carries them to IFileDialog::SetTitle/SetOkButtonLabel.
+    // No test opens the real system dialog (R-TEST-10); the strings are asserted directly off the seam's own
+    // constants instead, which is all that can be verified automatically under this rule.
+
+    [Fact]
+    [Trait("Req", "UI-THEME-020")] // WallpaperCard.swift:174 panel.message = "Choose a picture for the window"
+    public void The_chooser_seam_carries_the_exact_message_as_its_title()
+    {
+        Assert.Equal("Choose a picture for the window", Marrow.App.Port.WindowsWallpaperFileDialog.Title);
+    }
+
+    [Fact]
+    [Trait("Req", "UI-THEME-020")] // WallpaperCard.swift:175 panel.prompt = "Use as Wallpaper"
+    public void The_chooser_seam_carries_the_exact_confirm_button_caption()
+    {
+        Assert.Equal("Use as Wallpaper", Marrow.App.Port.WindowsWallpaperFileDialog.OkButtonLabel);
+    }
 
     [Fact]
     [Trait("Req", "PR-SETTINGS-144")] // WallpaperCard.swift:104-107, failure_cases
@@ -305,6 +396,8 @@ public sealed class WallpaperCardTests(HeadlessSession headless)
     [Trait("Req", "PR-SETTINGS-145")] // WallpaperCard.swift:126-166
     [Trait("Req", "PR-THEME-075")] // WallpaperCard.swift:126-144
     [Trait("Req", "UI-SETTINGS-028")] // WallpaperCard.swift:126-166
+    [Trait("Req", "UI-THEME-021")] // WallpaperCard.swift:126-127 title "Softness", fixed detail sentence
+    [Trait("Req", "UI-THEME-022")] // WallpaperCard.swift:133-139 small control size, width 140, range 0...1
     public void The_softness_slider_is_140_points_wide_with_sharp_and_blurred_tooltips() => headless.OnUiThread(() =>
     {
         using var scope = new WallpaperCardScope();
@@ -317,7 +410,33 @@ public sealed class WallpaperCardTests(HeadlessSession headless)
         Assert.Equal(1, slider.Maximum);
         Assert.Single(CardQuery.WithTip(scope.Card, "Sharp"));
         Assert.Single(CardQuery.WithTip(scope.Card, "Blurred"));
+        Assert.Single(CardQuery.TextBlocks(scope.Card, "Softness"));
         Assert.Single(CardQuery.TextBlocks(scope.Card, "Blurs the picture so text stays easy to read"));
+    });
+
+    [Fact]
+    [Trait("Req", "UI-THEME-023")] // WallpaperCard.swift:129-132 the sharp-end glyph: font, colour, tooltip
+    [Trait("Req", "UI-THEME-024")] // WallpaperCard.swift:140-143 the blurred-end glyph: font, colour, tooltip
+    public void The_two_drop_glyphs_are_subheadline_size_in_Chrome_secondaryText() => headless.OnUiThread(() =>
+    {
+        using var scope = new WallpaperCardScope();
+        var folder = PictureFiles.Folder();
+        scope.InstallAndSettle(PictureFiles.Png(folder, "a.png"));
+
+        var sharp = CardQuery.All<SwiftImage>(scope.Card).Single(i => i.SymbolName == "drop"); // :129
+        var blurred = CardQuery.All<SwiftImage>(scope.Card).Single(i => i.SymbolName == "drop.fill"); // :140
+
+        var expectedFont = SwiftFont.System(SwiftFont.TextStyle.Subheadline); // :130, :141; ED-059: 11pt
+        Assert.Equal(expectedFont, SwiftImage.GetFont(sharp));
+        Assert.Equal(expectedFont, SwiftImage.GetFont(blurred));
+        Assert.Equal(11, expectedFont.PointSize);
+
+        var expectedColor = Chrome.SecondaryText.Resolve(sharp.ActualThemeVariant); // Chrome.swift:79
+        Assert.Equal(expectedColor, Assert.IsType<SolidColorBrush>(sharp.Foreground).Color);
+        Assert.Equal(expectedColor, Assert.IsType<SolidColorBrush>(blurred.Foreground).Color);
+
+        Assert.Equal("Sharp", ToolTip.GetTip(sharp)); // :132
+        Assert.Equal("Blurred", ToolTip.GetTip(blurred)); // :143
     });
 
     [Fact]
@@ -362,6 +481,7 @@ public sealed class WallpaperCardTests(HeadlessSession headless)
     [Fact]
     [Trait("Req", "PR-SETTINGS-145")] // WallpaperCard.swift:11, :145-161
     [Trait("Req", "PR-THEME-076")] // WallpaperCard.swift:145-161
+    [Trait("Req", "UI-THEME-025")] // WallpaperCard.swift:11, :145-162 threshold, click action, tooltip
     public void The_reset_appears_only_once_softness_passes_0_005_and_sets_it_to_0() => headless.OnUiThread(() =>
     {
         using var scope = new WallpaperCardScope();
@@ -384,6 +504,44 @@ public sealed class WallpaperCardTests(HeadlessSession headless)
         Assert.Equal(0, scope.Store.Softness);
         scope.Settle();
         Assert.Empty(CardQuery.WithTip(scope.Card, "Back to sharp"));
+    });
+
+    [Fact]
+    [Trait("Req", "UI-THEME-025")] // WallpaperCard.swift:150-155 22x22 rectangular hit shape, offset(x: -28)
+    public void The_reset_button_is_22_by_22_offset_28_points_to_the_left() => headless.OnUiThread(() =>
+    {
+        using var scope = new WallpaperCardScope();
+        var folder = PictureFiles.Folder();
+        scope.InstallAndSettle(PictureFiles.Png(folder, "a.png"));
+        scope.Store.Softness = 0.5;
+        scope.Pump();
+
+        var reset = Assert.IsAssignableFrom<Button>(Assert.Single(CardQuery.WithTip(scope.Card, "Back to sharp")));
+        var frame = Assert.IsType<Border>(reset.Content);
+        Assert.Equal(22, frame.Width); // :153
+        Assert.Equal(22, frame.Height); // :153
+        Assert.Equal(-28, frame.Margin.Left); // :158 .offset(x: -28)
+    });
+
+    [Fact]
+    [Trait("Req", "UI-THEME-025")] // WallpaperCard.swift:150-152 subheadline weight medium, Chrome.secondaryText
+    public void The_reset_glyph_is_subheadline_medium_weight_in_Chrome_secondaryText() => headless.OnUiThread(() =>
+    {
+        using var scope = new WallpaperCardScope();
+        var folder = PictureFiles.Folder();
+        scope.InstallAndSettle(PictureFiles.Png(folder, "a.png"));
+        scope.Store.Softness = 0.5;
+        scope.Pump();
+
+        var reset = Assert.IsAssignableFrom<Button>(Assert.Single(CardQuery.WithTip(scope.Card, "Back to sharp")));
+        var icon = Assert.IsType<SwiftImage>(Assert.IsType<Border>(reset.Content).Child);
+        Assert.Equal("arrow.counterclockwise", icon.SymbolName); // :150
+
+        var expectedFont = SwiftFont.System(SwiftFont.TextStyle.Subheadline, weight: SwiftFont.Weight.Medium); // :151
+        Assert.Equal(expectedFont, SwiftImage.GetFont(icon));
+
+        var expectedColor = Chrome.SecondaryText.Resolve(icon.ActualThemeVariant); // :152, Chrome.swift:79
+        Assert.Equal(expectedColor, Assert.IsType<SolidColorBrush>(icon.Foreground).Color);
     });
 
     [Fact]

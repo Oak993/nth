@@ -26,6 +26,11 @@ public interface IWallpaperFileDialog
 /// </summary>
 public sealed class WindowsWallpaperFileDialog : IWallpaperFileDialog
 {
+    // UI-THEME-020: the two byte-for-byte strings the dialog carries, named so a test can assert them without
+    // opening the real system dialog (R-TEST-10).
+    internal const string Title = "Choose a picture for the window"; // :174
+    internal const string OkButtonLabel = "Use as Wallpaper"; // :175
+
     public Task<string?> Choose(Avalonia.Controls.Window? owner) => Task.Run(() => ShowDialog(owner));
 
     private static string? ShowDialog(Avalonia.Controls.Window? owner)
@@ -33,8 +38,8 @@ public sealed class WindowsWallpaperFileDialog : IWallpaperFileDialog
         var dialog = (IFileOpenDialog)new FileOpenDialogCoClass();
         try
         {
-            dialog.SetTitle("Choose a picture for the window"); // :174
-            dialog.SetOkButtonLabel("Use as Wallpaper"); // :175
+            dialog.SetTitle(Title); // :174
+            dialog.SetOkButtonLabel(OkButtonLabel); // :175
             dialog.GetOptions(out var options);
             dialog.SetOptions(options | FOS.FORCEFILESYSTEM | FOS.FILEMUSTEXIST | FOS.NOCHANGEDIR); // :172-173 files, single selection (default, no ALLOWMULTISELECT)
             var spec = new COMDLG_FILTERSPEC
