@@ -1011,7 +1011,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Persist the same key name and the same camelCase token values, so a settings file written by either build reads on the other.",
       "verification_method": "restart test: pick a theme, restart, the same theme is active; unit: the persisted key name and value",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1038,7 +1038,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep both key names and the same two-step fallback, so a profile written by an older build still opens on its chosen appearance. The legacy key must not be deleted on read: upstream leaves it.",
       "verification_method": "restart test with only \"appearance\" set to \"dark\"; unit: the three fallback branches",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1646,7 +1646,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The mock is the only place the app draws a picture of itself; keep the three dots on the leading edge as upstream draws them even though Windows caption buttons sit on the trailing edge. That is deliberate parity with the app's own leading-edge caption buttons (see the WIN area). Glass material: owner-approved deviation OD-0005, not parity; see this record's deviation field.",
       "verification_method": "capture comparison against reference_captures for structure and the dot count",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1675,7 +1675,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The sentence is verbatim, comma included. The 4 percent fill is the primary label colour, so it inverts correctly between light and dark rather than being a fixed grey. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal is superseded for this token.",
       "verification_method": "capture comparison; unit: the exact string",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1702,7 +1702,7 @@
       "cancellation": "Dragging away before the drop cancels nothing; no install has started.",
       "windows_path": "Accept file drops. Note the refusal path is silent: a drop of only non-pictures shows nothing at all, unlike choosing one through the panel.",
       "verification_method": "interaction test: drop a .txt, nothing happens and no message appears",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1725,7 +1725,7 @@
       "cancellation": "The install cannot be cancelled from the UI.",
       "windows_path": "Indeterminate spinner; there is no percentage and no cancel affordance upstream, so none may be added.",
       "verification_method": "interaction test with a large picture: the buttons disable and re-enable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1751,7 +1751,7 @@
       "cancellation": "Cancelling the chooser leaves everything unchanged.",
       "windows_path": "The whole well is one flat button. Do not add a hover or pressed appearance; the source sets the plain style and no press state.",
       "verification_method": "interaction test: a click in a blank corner of the well opens the chooser",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1777,7 +1777,7 @@
       "cancellation": "Cancelling the dialog is the cancellation path and is a no-op.",
       "windows_path": "Platform boundary: a Windows common file dialog, modal to the owning window, with the file-type filter set to the image formats the port decodes. The two strings map to the dialog's title/label and its OK button text; Windows may not honour a custom OK caption on every shell version - if it cannot, that is an implementation limitation to record, not a licence to change the string.",
       "verification_method": "interaction test: the dialog is modal to the window and multi-select is off; unit: the two exact strings",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1802,7 +1802,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce all three detail strings and the U+2026 ellipsis in the button titles. Note Remove is unconfirmed by design here and the confirm-before-deleting setting does not apply to it; that setting governs threads, not the wallpaper. Glass material: owner-approved deviation OD-0005, not parity; see this record's deviation field. OD-0014: the window stays clear by default, as upstream, so until the user sets a wallpaper the desktop shows through as Acrylic plus the app-drawn scrim (OD-0005).",
       "verification_method": "unit: the three detail strings and the two button titles; interaction test: Remove appears only with a wallpaper",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1834,7 +1834,7 @@
       "cancellation": "not cancellable; every intermediate value is persisted",
       "windows_path": "Row presence, not row disabling. The editing-began and editing-ended callbacks are load-bearing: without them the drag blurs the full-size picture per frame. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal is superseded for this token.",
       "verification_method": "interaction test: the row appears when a picture is installed and disappears on Remove",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1863,7 +1863,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same zero-layout overlay as the transparency reset, but note the different threshold test (a one-sided `> 0.005`, not a distance from a default) and the different tooltip. Text size (ED-059): .subheadline 11 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:53) in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal is superseded for this token.",
       "verification_method": "unit: the threshold and the tooltip; interaction test: the slider does not shift when the reset appears",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1886,7 +1886,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One accessible group with that exact name.",
       "verification_method": "interaction test with the accessibility tree",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2046,7 +2046,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key, same default, same wording. The precise condition that sets `chimed` at AppModel.swift:1206 belongs to the RUNTIME area; this requirement covers the setting, its default and its wording.",
       "verification_method": "restart test: the toggle survives; unit: the key and the default",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2100,7 +2100,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key, default and wording.",
       "verification_method": "restart test; unit: the key and default",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4901,7 +4901,8 @@
         "DroppyCode/App/Views/Settings/WallpaperCard.swift:25-102"
       ],
       "notes": "Plain button style and no press state: the well must not look like a button.",
-      "b2_change": "The Appearance section moved from the General page (B1 SettingsView.swift:301 GeneralSettingsPage, section at :406) to a new Settings page \"Appearance\", third in the sidebar after General and Hydra (B2 SettingsView.swift:5-8 `case general`, `case hydra`, `case appearance`; :22 `case .appearance: \"Appearance\"`; :278 `case .appearance: AppearanceSettingsPage()`; :417-457 AppearanceSettingsPage). WallpaperCard() is placed at B2 SettingsView.swift:454. Inside the cited WallpaperCard.swift:25-102 only the empty-state fonts changed (see UI-THEME-015); the well's geometry, states and interactions are unchanged."
+      "b2_change": "The Appearance section moved from the General page (B1 SettingsView.swift:301 GeneralSettingsPage, section at :406) to a new Settings page \"Appearance\", third in the sidebar after General and Hydra (B2 SettingsView.swift:5-8 `case general`, `case hydra`, `case appearance`; :22 `case .appearance: \"Appearance\"`; :278 `case .appearance: AppearanceSettingsPage()`; :417-457 AppearanceSettingsPage). WallpaperCard() is placed at B2 SettingsView.swift:454. Inside the cited WallpaperCard.swift:25-102 only the empty-state fonts changed (see UI-THEME-015); the well's geometry, states and interactions are unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-THEME-014",
@@ -4926,7 +4927,8 @@
         "decision": "OD-0005",
         "upstream": "The window mock is `mockShape.fill(.clear).glassEffect(in: mockShape)` with `let mockShape = RoundedRectangle(cornerRadius: 8, style: .continuous)` (DroppyCode/App/Views/Settings/WallpaperCard.swift:39-42), macOS Liquid Glass over the preview picture",
         "port": "The mock sits over the preview picture, which the app draws itself, so the shader half of OD-0005 applies: a shader reproduces the source-defined material (the 8 point continuous rounded rectangle and its glass effect) under the 20 percent black overlay. The Acrylic half does not apply, because the mock never shows the desktop"
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-THEME-015",
@@ -4947,7 +4949,8 @@
         "DroppyCode/App/Views/Settings/WallpaperCard.swift:60-75"
       ],
       "notes": "Comma included, no full stop.",
-      "b2_change": "Re-cited at the same lines. Fonts `.system(size: 22)` and `.system(size: 12)` (B1 WallpaperCard.swift:67, :70) -> `.system(.title)` and `.system(.callout)` (B2 :67, :70); Chrome.secondaryText `Color(nsColor: .secondaryLabelColor)` (B1 Chrome.swift:77) -> `primaryText.opacity(0.7)` (B2 Chrome.swift:79). The sentence is unchanged."
+      "b2_change": "Re-cited at the same lines. Fonts `.system(size: 22)` and `.system(size: 12)` (B1 WallpaperCard.swift:67, :70) -> `.system(.title)` and `.system(.callout)` (B2 :67, :70); Chrome.secondaryText `Color(nsColor: .secondaryLabelColor)` (B1 Chrome.swift:77) -> `primaryText.opacity(0.7)` (B2 Chrome.swift:79). The sentence is unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-THEME-016",
@@ -4967,7 +4970,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Settings/WallpaperCard.swift:76-79"
       ],
-      "notes": "Indeterminate. No percentage is shown and no cancel affordance exists."
+      "notes": "Indeterminate. No percentage is shown and no cancel affordance exists.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-THEME-017",
@@ -4989,7 +4993,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Settings/WallpaperCard.swift:104-123"
       ],
-      "notes": "The error sentence replaces the detail in place; there is no separate error style, colour or icon."
+      "notes": "The error sentence replaces the detail in place; there is no separate error style, colour or icon.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-THEME-018",
@@ -5015,7 +5020,8 @@
         "decision": "OD-0005",
         "upstream": "`.buttonStyle(.glass)` (DroppyCode/App/Views/Settings/WallpaperCard.swift:114), macOS Liquid Glass",
         "port": "Where the window behind the control shows the desktop, an Acrylic-class Windows system material, without lensing, refraction or chromatic fringing; where the app draws its own backdrop (the wallpaper or the solid base), a shader reproduces the source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing"
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-THEME-019",
@@ -5041,7 +5047,8 @@
         "decision": "OD-0005",
         "upstream": "`.buttonStyle(.glass)` (DroppyCode/App/Views/Settings/WallpaperCard.swift:119), macOS Liquid Glass",
         "port": "Where the window behind the control shows the desktop, an Acrylic-class Windows system material, without lensing, refraction or chromatic fringing; where the app draws its own backdrop (the wallpaper or the solid base), a shader reproduces the source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing"
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-THEME-020",
@@ -5065,7 +5072,8 @@
         "DroppyCode/App/Views/Settings/WallpaperCard.swift:168-189",
         "DroppyCode/UI/Theme/Wallpaper.swift:28"
       ],
-      "notes": "The call is asynchronous so the Settings sheet is never blocked. On Windows the confirm-button caption may not be customisable on every shell version; the string stays as specified and any limitation is recorded rather than worked around by rewording."
+      "notes": "The call is asynchronous so the Settings sheet is never blocked. On Windows the confirm-button caption may not be customisable on every shell version; the string stays as specified and any limitation is recorded rather than worked around by rewording.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-THEME-021",
@@ -5086,7 +5094,8 @@
         "DroppyCode/App/Views/Settings/WallpaperCard.swift:13-22",
         "DroppyCode/App/Views/Settings/WallpaperCard.swift:126-127"
       ],
-      "notes": "Detail is the fixed string \"Blurs the picture so text stays easy to read\"."
+      "notes": "Detail is the fixed string \"Blurs the picture so text stays easy to read\".",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-THEME-022",
@@ -5108,7 +5117,8 @@
         "DroppyCode/App/Views/Settings/WallpaperCard.swift:133-139",
         "DroppyCode/UI/Theme/Wallpaper.swift:61-71"
       ],
-      "notes": "Unlike the transparency slider this one has editing callbacks, and they are load-bearing for performance."
+      "notes": "Unlike the transparency slider this one has editing callbacks, and they are load-bearing for performance.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-THEME-023",
@@ -5129,7 +5139,8 @@
         "DroppyCode/App/Views/Settings/WallpaperCard.swift:129-132"
       ],
       "notes": null,
-      "b2_change": "Re-cited at the same lines. Font `.system(size: 11)` (B1 WallpaperCard.swift:130) -> `.system(.subheadline)` (B2 :130); Chrome.secondaryText `Color(nsColor: .secondaryLabelColor)` (B1 Chrome.swift:77) -> `primaryText.opacity(0.7)` (B2 Chrome.swift:79)."
+      "b2_change": "Re-cited at the same lines. Font `.system(size: 11)` (B1 WallpaperCard.swift:130) -> `.system(.subheadline)` (B2 :130); Chrome.secondaryText `Color(nsColor: .secondaryLabelColor)` (B1 Chrome.swift:77) -> `primaryText.opacity(0.7)` (B2 Chrome.swift:79).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-THEME-024",
@@ -5150,7 +5161,8 @@
         "DroppyCode/App/Views/Settings/WallpaperCard.swift:140-143"
       ],
       "notes": null,
-      "b2_change": "Re-cited at the same lines. Font `.system(size: 11)` (B1 WallpaperCard.swift:141) -> `.system(.subheadline)` (B2 :141); Chrome.secondaryText `Color(nsColor: .secondaryLabelColor)` (B1 Chrome.swift:77) -> `primaryText.opacity(0.7)` (B2 Chrome.swift:79)."
+      "b2_change": "Re-cited at the same lines. Font `.system(size: 11)` (B1 WallpaperCard.swift:141) -> `.system(.subheadline)` (B2 :141); Chrome.secondaryText `Color(nsColor: .secondaryLabelColor)` (B1 Chrome.swift:77) -> `primaryText.opacity(0.7)` (B2 Chrome.swift:79).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-THEME-025",
@@ -5174,7 +5186,8 @@
         "DroppyCode/App/Views/Settings/WallpaperCard.swift:145-162"
       ],
       "notes": "The threshold is a one-sided test against zero, not a distance from a default, and the assignment is not wrapped in an animation, unlike the transparency reset.",
-      "b2_change": "Re-cited at the same lines. Font `.system(size: 11, weight: .medium)` (B1 WallpaperCard.swift:151) -> `.system(.subheadline, weight: .medium)` (B2 :151); Chrome.secondaryText `Color(nsColor: .secondaryLabelColor)` (B1 Chrome.swift:77) -> `primaryText.opacity(0.7)` (B2 Chrome.swift:79). Threshold, action, tooltip and animation unchanged."
+      "b2_change": "Re-cited at the same lines. Font `.system(size: 11, weight: .medium)` (B1 WallpaperCard.swift:151) -> `.system(.subheadline, weight: .medium)` (B2 :151); Chrome.secondaryText `Color(nsColor: .secondaryLabelColor)` (B1 Chrome.swift:77) -> `primaryText.opacity(0.7)` (B2 Chrome.swift:79). Threshold, action, tooltip and animation unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-THEME-026",

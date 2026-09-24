@@ -112,9 +112,9 @@ public sealed class PromptEdit : MainActorModel
         this.attachments = attachments;
     }
 
-    // :154-156
+    // :154-156. UI-CHAT-017: an edit is empty when it has no attachments and no non-whitespace character.
     public bool IsEmpty =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:154");
+        FoundationText.Trim(Text, includeNewlines: true).Length == 0 && Attachments.Count == 0;
 }
 
 // :159-163
