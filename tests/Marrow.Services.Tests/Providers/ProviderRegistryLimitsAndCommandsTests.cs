@@ -85,6 +85,7 @@ public sealed class ProviderRegistryLimitsAndCommandsTests
 
     [Fact]
     [Trait("Req", "PR-PROVREG-163")] // ProviderRegistry.swift:606-607
+    [Trait("Req", "PR-USAGE-080")] // ProviderRegistry.swift:607 - a no-limits provider returns immediately
     public void refresh_plan_limits_returns_immediately_for_every_provider_that_exposes_no_limits()
     {
         using var runtime = new TestRuntime();
@@ -107,6 +108,7 @@ public sealed class ProviderRegistryLimitsAndCommandsTests
 
     [Fact]
     [Trait("Req", "PR-PROVREG-166")] // ProviderRegistry.swift:610-615
+    [Trait("Req", "PR-USAGE-080")] // ProviderRegistry.swift:611-614 - an empty API key clears limits, no read
     public void an_api_key_provider_with_no_key_clears_cached_limits_and_starts_no_read()
     {
         using var runtime = new TestRuntime();
@@ -125,6 +127,7 @@ public sealed class ProviderRegistryLimitsAndCommandsTests
 
     [Fact]
     [Trait("Req", "PR-PROVREG-169")] // ProviderRegistry.swift:632-636
+    [Trait("Req", "PR-USAGE-080")] // ProviderRegistry.swift:628-641 - loadingLimits set synchronously, cleared by the defer
     [Trait("Decision", "ED-031")]
     public void a_cli_limits_read_silently_does_nothing_when_the_executable_cannot_be_resolved()
     {
@@ -147,6 +150,7 @@ public sealed class ProviderRegistryLimitsAndCommandsTests
     [Fact]
     [Trait("Req", "PR-PROVREG-193")] // ProviderRegistry.swift:653-656
     [Trait("Req", "PR-PROVREG-196")] // ProviderRegistry.swift:650-652
+    [Trait("Req", "PR-USAGE-083")] // ProviderRegistry.swift:654-656 - Codex routing and its own not-found message
     public async Task consume_reset_credit_for_codex_throws_codex_unavailable_when_the_executable_does_not_resolve_and_clears_redeeming_reset()
     {
         using var runtime = new TestRuntime();
@@ -165,6 +169,7 @@ public sealed class ProviderRegistryLimitsAndCommandsTests
 
     [Fact]
     [Trait("Req", "PR-PROVREG-194")] // ProviderRegistry.swift:664-666
+    [Trait("Req", "PR-USAGE-083")] // ProviderRegistry.swift:664-666 - Z.ai's guard reuses the Codex-worded message
     public async Task consume_reset_credit_for_zai_throws_unknown_outcome_without_a_key_or_without_a_credit_id()
     {
         using var runtime = new TestRuntime();
@@ -183,6 +188,7 @@ public sealed class ProviderRegistryLimitsAndCommandsTests
 
     [Fact]
     [Trait("Req", "PR-PROVREG-195")] // ProviderRegistry.swift:673-675
+    [Trait("Req", "PR-USAGE-083")] // ProviderRegistry.swift:673-675 - every other provider throws the same error
     public async Task consume_reset_credit_for_any_other_provider_throws_unknown_outcome()
     {
         using var runtime = new TestRuntime();
@@ -198,6 +204,7 @@ public sealed class ProviderRegistryLimitsAndCommandsTests
 
     [Fact]
     [Trait("Req", "PR-PROVREG-196")] // ProviderRegistry.swift:58-60, :650-652
+    [Trait("Req", "PR-USAGE-083")] // ProviderRegistry.swift:651-652 - redeemingReset set/cleared around the spend
     public async Task redeeming_reset_carries_the_credit_id_or_the_provider_rawvalue_and_is_always_cleared()
     {
         using var runtime = new TestRuntime();
@@ -363,6 +370,7 @@ public sealed class ProviderRegistryLimitsAndCommandsTests
     [Fact]
     [Trait("Req", "PR-PROVREG-199")] // ProviderRegistry.swift:687-690
     [Trait("Req", "PR-PROVREG-200")] // ProviderRegistry.swift:687-691 - the key check runs before the gate
+    [Trait("Req", "PR-USAGE-081")] // ProviderRegistry.swift:687-691 - empty key clears the balance, leaves the stale timestamp
     public async Task an_empty_credits_key_clears_the_balance_but_leaves_the_fetch_timestamp_so_a_repasted_key_is_still_gated()
     {
         using var runtime = new TestRuntime();
@@ -434,6 +442,7 @@ public sealed class ProviderRegistryLimitsAndCommandsTests
     [Fact]
     [Trait("Req", "PR-PROVREG-201")] // ProviderRegistry.swift:692-699 - no watchdog, no defer
     [Trait("Req", "PR-PROVREG-202")] // ProviderRegistry.swift:681-682 - the guard returns with no force queue
+    [Trait("Req", "PR-USAGE-081")] // ProviderRegistry.swift:681-699 - no watchdog, no queue, a stuck read leaves loadingCredits set
     public async Task a_credits_read_that_never_returns_leaves_loading_set_forever_and_a_forced_call_meanwhile_is_dropped()
     {
         using var runtime = new TestRuntime();

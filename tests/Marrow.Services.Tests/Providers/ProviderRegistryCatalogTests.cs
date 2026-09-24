@@ -442,6 +442,7 @@ public sealed class ProviderRegistryCatalogTests
 
     [Fact]
     [Trait("Req", "PR-PROVREG-144")] // ProviderRegistry.swift:144-146
+    [Trait("Req", "UI-PROVCLI-017")] // ProviderRegistry.swift:146 - the Auto row's exact text, detail and default flag
     public void the_copilot_seed_is_a_single_auto_row_that_doubles_as_the_still_seeded_equality_sentinel()
     {
         var auto = ProviderRegistry.CopilotAuto;
