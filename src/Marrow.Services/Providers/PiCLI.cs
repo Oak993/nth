@@ -99,7 +99,7 @@ public static class PiCLI
         }
         catch (Exception error) when (SwiftTry.IsThrownError(error))
         {
-            throw new ProviderError(new ProviderError.Case.Failed("Pi could not start: " + SwiftErrors.LocalizedDescription(error)));
+            throw new ProviderError(new ProviderError.Case.Failed("Pi could not start: " + StartFailureDescription(error)));
         }
         process.Send(JSONValue.FromDictionaryLiteral(("type", "get_state"), ("id", "state"))); // :63
         process.Send(JSONValue.FromDictionaryLiteral(("type", "get_available_models"), ("id", "models"))); // :64
@@ -131,6 +131,20 @@ public static class PiCLI
         process.Terminate(); // :83
         return Catalog(stateResponse, modelsResponse);
     }
+
+    // Per-site decision (R-ERR-2, O-14): on macOS, `error.localizedDescription` for a failed
+    // `Process.run()` is Foundation's text for the POSIX/Cocoa launch error, which
+    // SwiftErrors.LocalizedDescription reproduces only for a recognized SwiftError. On Windows the
+    // process unit's launcher signals a failed start with a plain BCL Win32Exception (ADR-0002,
+    // R-PROC-1), which is neither an ILocalizedError nor an ISwiftErrorIdentity, so
+    // SwiftErrors.LocalizedDescription throws NotSupportedException for it by design. Since
+    // PR-PROVCLI-310 requires this site to reach ProviderError.Failed with a message built from the
+    // failure's own description rather than let that NotSupportedException replace it, this site
+    // falls back to the exception's own Message (Win32Exception's native Windows error text, the
+    // closest Windows equivalent of the launch failure's description) when SwiftErrors has no
+    // mapping.
+    private static string StartFailureDescription(Exception error) =>
+        error is ILocalizedError or ISwiftErrorIdentity ? SwiftErrors.LocalizedDescription(error) : error.Message;
 
     /// <summary>PORT-ONLY test seam: the catalog :85-111 builds from the two replies, unchanged, factored out of
     /// <see cref="ListModels"/> so it can be proven without a process.</summary>
