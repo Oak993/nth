@@ -7,11 +7,11 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "IMPLEMENTED": 1662,
+      "IMPLEMENTED": 1678,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
-      "SPECIFIED": 2227,
+      "SPECIFIED": 2212,
       "RETIRED": 6,
-      "DISCOVERED": 18
+      "DISCOVERED": 17
     },
     "by_area": {
       "CHAT": 193,
@@ -46828,7 +46828,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep the byte-compare-before-write and the atomic write, because the CLI may be reading the file concurrently (port_impacts.md entry 22). The support tree moves to the Windows data directory (%LOCALAPPDATA%\\Marrow Code\\CommandCode, PR-PROVCLI-207). The file name is handed to the CLI with --mod, so OD-0012 F1 renames it, as it renames the temp folder droppy-code-catalog to marrow-catalog.",
       "verification_method": "restart test asserting the file is not rewritten when unchanged",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "deviation": {
@@ -46856,7 +46856,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None; this list lives inside the shipped TypeScript and is copied verbatim.",
       "verification_method": "a byte-for-byte comparison of the shipped mod text against the source",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null
     },
@@ -46880,7 +46880,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The bridge path is handed to a dynamic import inside the CLI; a Windows path may need a file URL for that import to succeed. This must be probed against the real CLI, not assumed.",
       "verification_method": "interaction test with a stand-in bridge, and a probe of the import form the CLI accepts on Windows",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null
     },
@@ -46905,7 +46905,7 @@
       "cancellation": "See PR-PROVCLI-254.",
       "windows_path": "The rename onto an existing name must be an atomic replace on Windows. The sanitized id becomes a FILE NAME, and the allowed character set already excludes every Windows-illegal character, so no additional sanitization is needed or permitted.",
       "verification_method": "contract fixture driving the real mod text under a stand-in runtime, asserting the file names and payloads",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -46937,7 +46937,7 @@
       "cancellation": "The abort signal is the CLI's own cancellation reaching the mod.",
       "windows_path": "process.ppid === 1 is the POSIX orphan test and is MEANINGLESS on Windows, where an orphaned process keeps its original parent id or reports a reused one. That check therefore never fires on Windows and the six-hour deadline becomes the only backstop. This is an observable behavioural difference that must be recorded rather than silently replaced, because changing the shipped mod text changes the gate for every run.",
       "verification_method": "a probe recording what process.ppid reports on Windows after the app exits, then a decision recorded as an engineering decision with that evidence",
-      "status": "DISCOVERED",
+      "status": "IMPLEMENTED",
       "open_question": "The wording is settled (OD-0012 F1); the orphan test is not. engineering_decisions.md Q57 (line 91) decides to replace only the predicate process.ppid === 1 with (() => { try { process.kill(process.ppid, 0); return false } catch (e) { return e.code === 'ESRCH' } })(), but its premise has no evidence on disk: missing is the probe this record's verification_method names, recording on Windows what process.ppid reports inside the Command Code CLI after the app exits and what process.kill(process.ppid, 0) throws then. Until that probe result is recorded, whether the port ships the literal ppid test or Q57's replacement is not specified.",
       "upstream_defect": null,
       "blocked_by": null,
@@ -46971,7 +46971,7 @@
       "cancellation": "not cancellable",
       "windows_path": "PLATFORM BOUNDARY. HOME is normally unset on Windows, so the home fallback carries this, and the path segment uses a forward slash and must be joined as components. The credential read itself is reproduced as upstream: BLK-0007 is RESOLVED by OD-0008 (decision batch A7, \"Keep as upstream (it is how the plan-limit feature works)\"), ruling: \"REPRODUCE UPSTREAM: plan limits read each CLI's own credential file and query that provider's usage endpoint exactly as the source does. Parity, owner-approved.\" The file is only read, never written. Treated identically to PR-PROVREG-177, PR-PROVREG-121 and PR-PROVCLI-313.",
       "verification_method": "unit test with the environment key set, with only the file, and with neither",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "blocked_by": null,
@@ -46997,7 +46997,7 @@
       "cancellation": "The 25 second timeout.",
       "windows_path": "ANSI stripping is load-bearing on Windows. The argv is [\"status\", \"--no-auto-update\"] on the SAME executable that PR-PROVCLI-203 must validate; running it against the Windows command interpreter would open a console rather than answer. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%\\System32\\cmd.exe or %SystemRoot%\\SysWOW64\\cmd.exe, is rejected and the provider reports not installed.",
       "verification_method": "unit test over each of the four output shapes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null
     },
@@ -47023,7 +47023,7 @@
       "cancellation": "The 15 second request timeout.",
       "windows_path": "Network only; the same TLS trust and proxy configuration as the rest of the app applies.",
       "verification_method": "unit test against recorded responses, including a zero cap and a zero resetAt",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -47049,7 +47049,7 @@
       "cancellation": "The 15 second request timeout.",
       "windows_path": "Network only.",
       "verification_method": "unit test against a recorded response with and without belowThreshold",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -47072,7 +47072,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The lowercasing and uppercasing must be invariant. The U+00D7 characters must survive to the UI.",
       "verification_method": "unit test over all eight table ids, an individual-max-20x style id and a bare unknown",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -47098,7 +47098,7 @@
       "cancellation": "The 30 second timeout.",
       "windows_path": "ANSI stripping is load-bearing. The two-or-more-space column split is applied to text the CLI printed; a Windows console that pads differently would change which rows parse, so the real output must be captured on Windows before this is called verified. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%\\System32\\cmd.exe or %SystemRoot%\\SysWOW64\\cmd.exe, is rejected and the provider reports not installed.",
       "verification_method": "unit test against a captured --list-models output, plus a Windows capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null
     },
@@ -47120,7 +47120,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The lowercasing must be invariant.",
       "verification_method": "unit test over an exact match, a short-name match and a non-match",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -47143,7 +47143,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The case changes must be invariant.",
       "verification_method": "unit test over claude-sonnet-5, moonshotai/kimi-k2.7-code, gpt-5.6-terra, claude-fable-5-1 and a :free id",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -47166,7 +47166,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The lowercased lookup must be invariant. This is a product table copied from the CLI and is transcribed verbatim; a dropped entry silently changes whether a run is even accepted.",
       "verification_method": "unit test asserting every listed id maps to its exact array and an unknown id maps to the empty array",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -47190,7 +47190,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The lookup must be invariant-lowercased.",
       "verification_method": "unit test over a direct hit, a short-name fallback and an unknown id",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null
     },
@@ -47213,7 +47213,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The seed doubles as an equality sentinel, so ANY drift in a name, a detail string, the \"1M\" casing or an effort array silently changes when the live catalog is fetched (port_impacts.md entry 11).",
       "verification_method": "unit test comparing all nine rows field by field against the source text",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null
     },
