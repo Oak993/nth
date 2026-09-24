@@ -1086,7 +1086,6 @@ public sealed class AntigravitySessionTests
         script.Set("exit-at-start", "2");
         var (session, _) = Make(Config(script));
         var error = Assert.Throws<ProviderError>(() => runtime.Loop.Run(() => session.Start(), Bound));
-        Assert.Equal(new ProviderError.Case.Failed(TextCleanup.LastLines("please login\nfatal: bad flag\n")!), error.ErrorCase);
         Assert.Equal(new ProviderError.Case.Failed("please login\nfatal: bad flag"), error.ErrorCase);
 
         var quiet = new AntigravityScript("quiet");
