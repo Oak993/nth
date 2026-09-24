@@ -1193,17 +1193,428 @@ public sealed class CodexSession : ProviderSession
         return joined.Length > 0 ? joined : "Subagent";
     }
 
-    // :703-725. Later part of this unit; not reached by any notification this part's own tests send.
-    private void ItemStarted(JSONValue item, Target target, Action<ProviderEvent> sink) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/CodexSession.swift:703");
+    // :703-725. PR-PROVCLI-117.
+    private void ItemStarted(JSONValue item, Target target, Action<ProviderEvent> sink)
+    {
+        if (item["id"]?.JSONValueString is not { } id) return; // :704
+        var type = item["type"]?.JSONValueString;
+        if (type is not null && SwiftString.Equal(type, "agentMessage")) // :706-707
+        {
+            sink(new ProviderEvent.MessageDelta(id, item["text"]?.JSONValueString ?? ""));
+            return;
+        }
+        if (type is not null && SwiftString.Equal(type, "reasoning")) // :708-709
+        {
+            sink(new ProviderEvent.ReasoningDelta(id, ""));
+            return;
+        }
+        if (type is not null && SwiftString.Equal(type, "plan")) // :710-711
+        {
+            sink(new ProviderEvent.PlanDelta(id, item["text"]?.JSONValueString ?? ""));
+            return;
+        }
+        if (type is not null && SwiftString.Equal(type, "userMessage")) // :712-717
+        {
+            if (target is Target.Head(var head) && UserText(item) is { } text)
+            {
+                OnEvent?.Invoke(new ProviderEvent.AgentStarted(new AgentSpawn
+                {
+                    Id = head,
+                    Description = TextCleanup.SingleLine(text, 80),
+                    Prompt = text,
+                }));
+            }
+            return;
+        }
+        if (type is not null && (SwiftString.Equal(type, "hookPrompt") || SwiftString.Equal(type, "functionCallOutput") || SwiftString.Equal(type, "contextCompaction"))) // :718-719
+        {
+            return;
+        }
+        if (ToolCallFrom(item) is { } call) sink(new ProviderEvent.ToolStarted(id, call)); // :721-722
+        if (type is not null && SwiftString.Equal(type, "collabAgentToolCall")) DescribeHeads(item); // :723-724
+    }
 
-    // :727-749. Later part of this unit; not reached by any notification this part's own tests send.
-    private void ItemCompleted(JSONValue item, Target target, Action<ProviderEvent> sink) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/CodexSession.swift:727");
+    // :727-749. PR-PROVCLI-118.
+    private void ItemCompleted(JSONValue item, Target target, Action<ProviderEvent> sink)
+    {
+        if (item["id"]?.JSONValueString is not { } id) return; // :728
+        var type = item["type"]?.JSONValueString;
+        if (type is not null && SwiftString.Equal(type, "agentMessage")) // :730-731
+        {
+            sink(new ProviderEvent.MessageCompleted(id, item["text"]?.JSONValueString ?? ""));
+            return;
+        }
+        if (type is not null && SwiftString.Equal(type, "reasoning")) // :732-735
+        {
+            var summary = string.Join("\n\n", (item["summary"]?.JSONValueArray ?? []).Select(v => v.JSONValueString).Where(v => v is not null));
+            var content = string.Join("\n\n", (item["content"]?.JSONValueArray ?? []).Select(v => v.JSONValueString).Where(v => v is not null));
+            sink(new ProviderEvent.ReasoningCompleted(id, summary.Length > 0 ? summary : content));
+            return;
+        }
+        if (type is not null && SwiftString.Equal(type, "plan")) // :736-737
+        {
+            sink(new ProviderEvent.PlanCompleted(id, item["text"]?.JSONValueString ?? ""));
+            return;
+        }
+        if (type is not null && (SwiftString.Equal(type, "userMessage") || SwiftString.Equal(type, "hookPrompt") ||
+                                  SwiftString.Equal(type, "functionCallOutput") || SwiftString.Equal(type, "contextCompaction"))) // :738-739
+        {
+            return;
+        }
+        if (ToolCallFrom(item) is { } call) // :741-744
+        {
+            sink(new ProviderEvent.ToolStarted(id, call));
+            sink(new ProviderEvent.ToolUpdated(id, ToolUpdateFrom(item)));
+        }
+        DescribeHeads(item); // :746
+    }
 
-    // :909-988. Later part.
-    private void HandleRequest(RPCID id, string method, JSONValue parameters) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/CodexSession.swift:909");
+    // :751-774. PR-PROVCLI-119. :775-797. PR-PROVCLI-120.
+    private void DescribeHeads(JSONValue item)
+    {
+        var type = item["type"]?.JSONValueString;
+        if (type is not null && SwiftString.Equal(type, "collabAgentToolCall")) // :755
+        {
+            if (item["tool"]?.JSONValueString is not { } tool || !SwiftString.Equal(tool, "spawnAgent")) return; // :756
+            var itemModel = item["model"]?.JSONValueString; // :759
+            var itemEffort = item["reasoningEffort"]?.JSONValueString;
+            string? routed = null; // :758-761
+            if (configuration.Hydra is { } hydra)
+            {
+                var matches = HydraPrompts.NativeRoutableProfiles(hydra)
+                    .Where(profile =>
+                        (profile.Model is null && itemModel is null || profile.Model is { } pm && itemModel is { } im && SwiftString.Equal(pm, im)) &&
+                        (profile.Effort is null && itemEffort is null || profile.Effort is { } pe && itemEffort is { } ie && SwiftString.Equal(pe, ie)))
+                    .ToList();
+                routed = matches.Count == 1 ? matches[0].Name : null;
+            }
+            var prompt = item["prompt"]?.JSONValueString?.Trimmed() ?? ""; // :763
+            foreach (var receiverValue in item["receiverThreadIds"]?.JSONValueArray ?? []) // :764
+            {
+                if (receiverValue.JSONValueString is not { } receiver) continue;
+                if (!headThreads.Contains(receiver)) headThreads.Add(receiver); // :765
+                OnEvent?.Invoke(new ProviderEvent.AgentStarted(new AgentSpawn // :766-773
+                {
+                    Id = receiver,
+                    ToolUseID = item["id"]?.JSONValueString,
+                    Description = prompt.Length == 0 ? "Head" : TextCleanup.SingleLine(prompt, 80),
+                    Prompt = prompt.Length == 0 ? null : prompt,
+                    Model = itemModel,
+                    Profile = routed,
+                }));
+            }
+            return;
+        }
+        if (type is not null && SwiftString.Equal(type, "subAgentActivity")) // :775
+        {
+            if (item["agentThreadId"]?.JSONValueString is not { } agentThread) return; // :776
+            if (!headThreads.Contains(agentThread)) // :783
+            {
+                headThreads.Add(agentThread); // :787
+                var lastComponent = item["agentPath"]?.JSONValueString is { } path
+                    ? path.Split('/').LastOrDefault()
+                    : null;
+                var nickname = lastComponent is { Length: > 0 } ? lastComponent : "Head"; // :790
+                Log.Error($"head {agentThread} adopted from a subAgentActivity note ({nickname}); no thread/started or spawn receiver id preceded it"); // :785
+                OnEvent?.Invoke(new ProviderEvent.AgentStarted(new AgentSpawn // :788-792
+                {
+                    Id = agentThread,
+                    Description = nickname.Replace('_', ' '),
+                }));
+            }
+            var kind = item["kind"]?.JSONValueString;
+            if (kind is not null && SwiftString.Equal(kind, "completed")) // :794
+            {
+                headTurns.Remove(agentThread);
+                OnEvent?.Invoke(new ProviderEvent.AgentFinished(agentThread, TurnStatus.Completed, null));
+            }
+            else if (kind is not null && SwiftString.Equal(kind, "interrupted")) // :796
+            {
+                headTurns.Remove(agentThread);
+                OnEvent?.Invoke(new ProviderEvent.AgentFinished(agentThread, TurnStatus.Interrupted, null));
+            }
+        }
+    }
+
+    // :803-810. PR-PROVCLI-133.
+    private static string? UserText(JSONValue item)
+    {
+        var parts = (item["content"]?.JSONValueArray ?? []).Select(part =>
+        {
+            if (part["text"]?.JSONValueString is { } text) return text;
+            return part["type"]?.JSONValueString is { } t && SwiftString.Equal(t, "text") ? part["value"]?.JSONValueString : null;
+        }).Where(text => text is not null);
+        var joined = string.Join("\n", parts).Trimmed(); // :808
+        return joined.Length == 0 ? null : joined; // :809
+    }
+
+    // :812-864. PR-PROVCLI-121.
+    private ToolCall? ToolCallFrom(JSONValue item)
+    {
+        var type = item["type"]?.JSONValueString;
+        if (type is null) return null;
+        if (SwiftString.Equal(type, "commandExecution")) // :813-822
+        {
+            var command = ToolTitles.UnwrapShell(item["command"]?.JSONValueString ?? "");
+            var actions = item["commandActions"]?.JSONValueArray ?? [];
+            var kinds = new HashSet<string>(actions.Select(a => a["type"]?.JSONValueString).Where(v => v is not null)!, SwiftStringComparer.Instance);
+            if (kinds.SetEquals(new HashSet<string>(["read"], SwiftStringComparer.Instance)) &&
+                actions.Count > 0 && actions[0]["path"]?.JSONValueString is { } path)
+            {
+                return new ToolCall { ToolCallKind = ToolCall.Kind.Read, Title = ToolTitles.RelativePath(path, WorkingDirectory), Detail = command };
+            }
+            if (kinds.Count > 0 && kinds.IsSubsetOf(new HashSet<string>(["search", "listFiles"], SwiftStringComparer.Instance)))
+            {
+                return new ToolCall { ToolCallKind = ToolCall.Kind.Search, Title = command };
+            }
+            return new ToolCall { ToolCallKind = ToolCall.Kind.Command, Title = command };
+        }
+        if (SwiftString.Equal(type, "fileChange")) // :823-826
+        {
+            var paths = (item["changes"]?.JSONValueArray ?? []).Select(c => c["path"]?.JSONValueString).Where(p => p is not null).ToList();
+            var title = paths.Count == 1 ? ToolTitles.RelativePath(paths[0]!, WorkingDirectory) : $"Edit {paths.Count} files";
+            return new ToolCall { ToolCallKind = ToolCall.Kind.Edit, Title = title };
+        }
+        if (SwiftString.Equal(type, "mcpToolCall")) // :827-833
+        {
+            var server = item["server"]?.JSONValueString ?? "MCP";
+            var tool = item["tool"]?.JSONValueString ?? "tool";
+            var arguments = item["arguments"]?.CompactString;
+            return new ToolCall { ToolCallKind = ToolCall.Kind.Mcp, Title = server + " " + Dot + " " + tool, Detail = arguments == "null" ? null : arguments };
+        }
+        if (SwiftString.Equal(type, "dynamicToolCall")) return new ToolCall { ToolCallKind = ToolCall.Kind.Other, Title = item["tool"]?.JSONValueString ?? "Tool" }; // :834
+        if (SwiftString.Equal(type, "webSearch")) return new ToolCall { ToolCallKind = ToolCall.Kind.Web, Title = item["query"]?.JSONValueString ?? "Web search" }; // :835
+        if (SwiftString.Equal(type, "collabAgentToolCall")) // :836-851
+        {
+            var tool = item["tool"]?.JSONValueString;
+            var verb = tool switch
+            {
+                { } t when SwiftString.Equal(t, "spawnAgent") => "Send out a head",
+                { } t when SwiftString.Equal(t, "sendInput") || SwiftString.Equal(t, "sendMessage") || SwiftString.Equal(t, "followupTask") => "Brief a head",
+                { } t when SwiftString.Equal(t, "wait") => "Wait for heads",
+                { } t when SwiftString.Equal(t, "closeAgent") || SwiftString.Equal(t, "interruptAgent") => "Recall a head",
+                { } t when SwiftString.Equal(t, "resumeAgent") => "Resume a head",
+                { } t when SwiftString.Equal(t, "listAgents") => "List heads",
+                _ => "Agent",
+            };
+            var brief = item["prompt"]?.JSONValueString is { } prompt ? TextCleanup.SingleLine(prompt, 90) : null;
+            return brief is null
+                ? new ToolCall { ToolCallKind = ToolCall.Kind.Agent, Title = verb }
+                : new ToolCall { ToolCallKind = ToolCall.Kind.Agent, Title = brief, Detail = verb };
+        }
+        if (SwiftString.Equal(type, "subAgentActivity")) return null; // :852-854
+        if (SwiftString.Equal(type, "imageView")) return new ToolCall { ToolCallKind = ToolCall.Kind.Read, Title = ToolTitles.RelativePath(item["path"]?.JSONValueString ?? "Image", WorkingDirectory) }; // :855-857
+        if (SwiftString.Equal(type, "imageGeneration")) return new ToolCall { ToolCallKind = ToolCall.Kind.Other, Title = item["revisedPrompt"]?.JSONValueString ?? "Generate image" }; // :858-859
+        if (SwiftString.Equal(type, "enteredReviewMode") || SwiftString.Equal(type, "exitedReviewMode")) // :860-862
+        {
+            return new ToolCall { ToolCallKind = ToolCall.Kind.Other, Title = "Review", Detail = item["review"]?.JSONValueString };
+        }
+        return null; // :863
+    }
+
+    // :866-897. PR-PROVCLI-122.
+    private ToolUpdate ToolUpdateFrom(JSONValue item)
+    {
+        var type = item["type"]?.JSONValueString;
+        var rawStatus = item["status"]?.JSONValueString;
+        if (type is not null && SwiftString.Equal(type, "commandExecution")) // :867-871
+        {
+            var exitCode = item["exitCode"]?.JSONValueInt;
+            return new ToolUpdate
+            {
+                Output = item["aggregatedOutput"]?.JSONValueString,
+                ExitCode = exitCode,
+                Status = ToolStatus(rawStatus, exitCode),
+            };
+        }
+        if (type is not null && SwiftString.Equal(type, "fileChange")) // :872-880
+        {
+            var edits = new List<FileEdit>();
+            foreach (var change in item["changes"]?.JSONValueArray ?? [])
+            {
+                var diff = change["diff"]?.JSONValueString;
+                var stats = ToolTitles.DiffStats(diff ?? "");
+                edits.Add(new FileEdit(ToolTitles.RelativePath(change["path"]?.JSONValueString ?? "", WorkingDirectory), diff, stats.Additions, stats.Deletions));
+            }
+            return new ToolUpdate { Edits = new ValueList<FileEdit>(edits), Status = ToolStatus(rawStatus, null) };
+        }
+        if (type is not null && SwiftString.Equal(type, "mcpToolCall")) // :881-888
+        {
+            string? output;
+            if (item["error"]?["message"]?.JSONValueString is { } message) output = message;
+            else output = string.Join("\n", (item["result"]?["content"]?.JSONValueArray ?? []).Select(v => v["text"]?.JSONValueString).Where(t => t is not null));
+            return new ToolUpdate { Output = output, Status = ToolStatus(rawStatus, null) };
+        }
+        if (type is not null && (SwiftString.Equal(type, "webSearch") || SwiftString.Equal(type, "imageView") ||
+                                  SwiftString.Equal(type, "enteredReviewMode") || SwiftString.Equal(type, "exitedReviewMode"))) // :889-892
+        {
+            return new ToolUpdate { Status = ToolCall.Status.Completed };
+        }
+        return new ToolUpdate { Status = ToolStatus(rawStatus, null) }; // :893-896
+    }
+
+    // :899-908. PR-PROVCLI-123.
+    private static ToolCall.Status ToolStatus(string? raw, long? exitCode)
+    {
+        if (raw is not null && SwiftString.Equal(raw, "inProgress")) return ToolCall.Status.Running; // :901
+        if (raw is not null && (SwiftString.Equal(raw, "failed") || SwiftString.Equal(raw, "interrupted"))) return ToolCall.Status.Failed; // :902-903
+        if (raw is not null && SwiftString.Equal(raw, "declined")) return ToolCall.Status.Declined; // :904
+        return exitCode is { } code && code != 0 ? ToolCall.Status.Failed : ToolCall.Status.Completed; // :906-907
+    }
+
+    // :922-989. PR-PROVCLI-124, 125, 126, 127, 128, 129.
+    private void HandleRequest(RPCID id, string method, JSONValue parameters)
+    {
+        if (SwiftString.Equal(method, "item/commandExecution/requestApproval")) // :924
+        {
+            var (options, payloads) = DecisionOptions(parameters["availableDecisions"]?.JSONValueArray, command: true); // :925
+            pendingRequests[id.Key] = new PendingRequest.Decision(id, payloads); // :926
+            var command = parameters["command"]?.JSONValueString is { } rawCommand ? ToolTitles.UnwrapShell(rawCommand) : "Command"; // :927
+            var cwd = parameters["cwd"]?.JSONValueString is { } cwdRaw ? ToolTitles.RelativePath(cwdRaw, WorkingDirectory) : null; // :930
+            OnEvent?.Invoke(new ProviderEvent.Approval(new ApprovalRequest(
+                Id: id.Key,
+                RequestKind: ApprovalRequest.Kind.Command,
+                Title: command,
+                Options: options,
+                Detail: cwd,
+                Reason: parameters["reason"]?.JSONValueString,
+                ToolItemID: parameters["itemId"]?.JSONValueString))); // :928-936
+            return;
+        }
+        if (SwiftString.Equal(method, "item/fileChange/requestApproval")) // :937
+        {
+            var (options, payloads) = DecisionOptions(null, command: false); // :938
+            pendingRequests[id.Key] = new PendingRequest.Decision(id, payloads); // :939
+            OnEvent?.Invoke(new ProviderEvent.Approval(new ApprovalRequest(
+                Id: id.Key,
+                RequestKind: ApprovalRequest.Kind.FileChange,
+                Title: "Apply file changes",
+                Options: options,
+                Detail: parameters["grantRoot"]?.JSONValueString,
+                Reason: parameters["reason"]?.JSONValueString,
+                ToolItemID: parameters["itemId"]?.JSONValueString))); // :940-948
+            return;
+        }
+        if (SwiftString.Equal(method, "item/permissions/requestApproval")) // :949
+        {
+            var requested = parameters["permissions"] ?? new JSONValue.Object(ValueMap<string, JSONValue>.Empty); // :950
+            pendingRequests[id.Key] = new PendingRequest.Permissions(id, requested); // :951
+            OnEvent?.Invoke(new ProviderEvent.Approval(new ApprovalRequest(
+                Id: id.Key,
+                RequestKind: ApprovalRequest.Kind.Permissions,
+                Title: DescribePermissions(requested),
+                Options: new ValueList<ApprovalRequest.Option>(
+                [
+                    new ApprovalRequest.Option("turn", "Allow once", ApprovalRequest.Option.Role.Approve),
+                    new ApprovalRequest.Option("session", "Allow for session", ApprovalRequest.Option.Role.ApproveAlways),
+                    new ApprovalRequest.Option("decline", "Decline", ApprovalRequest.Option.Role.Decline),
+                ]),
+                Detail: null,
+                Reason: parameters["reason"]?.JSONValueString,
+                ToolItemID: parameters["itemId"]?.JSONValueString))); // :952-964
+            return;
+        }
+        if (SwiftString.Equal(method, "item/tool/requestUserInput")) // :965
+        {
+            var questions = new List<QuestionRequest.Question>();
+            foreach (var question in parameters["questions"]?.JSONValueArray ?? []) // :967
+            {
+                if (question["id"]?.JSONValueString is not { } questionID) continue; // :968
+                var choices = new List<QuestionRequest.Choice>();
+                foreach (var option in question["options"]?.JSONValueArray ?? [])
+                {
+                    if (option["label"]?.JSONValueString is { } label) choices.Add(new QuestionRequest.Choice(label, option["description"]?.JSONValueString));
+                }
+                questions.Add(new QuestionRequest.Question(
+                    questionID,
+                    question["header"]?.JSONValueString ?? "",
+                    question["question"]?.JSONValueString ?? "",
+                    new ValueList<QuestionRequest.Choice>(choices),
+                    false,
+                    question["isOther"]?.JSONValueBool ?? false,
+                    question["isSecret"]?.JSONValueBool ?? false)); // :969-978
+            }
+            pendingRequests[id.Key] = new PendingRequest.Question(id); // :979
+            OnEvent?.Invoke(new ProviderEvent.Question(new QuestionRequest(id.Key, new ValueList<QuestionRequest.Question>(questions)))); // :980
+            return;
+        }
+        if (SwiftString.Equal(method, "mcpServer/elicitation/request")) // :982
+        {
+            connection?.Respond(id, new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>
+            {
+                ["action"] = "decline", // :983
+            })));
+            var server = parameters["serverName"]?.JSONValueString ?? "An MCP server"; // :984
+            OnEvent?.Invoke(new ProviderEvent.Notice(new Notice
+            {
+                NoticeLevel = Notice.Level.Warning,
+                Message = server + " asked for input, which Marrow cannot show yet.", // :985. DEVIATION OD-0012 F1: upstream "Droppy Code".
+            }));
+            return;
+        }
+        connection?.Respond(id, -32601, $"Marrow does not support {method}."); // :986-988. DEVIATION OD-0012 F1: upstream "Droppy Code".
+    }
+
+    // :991-1016. PR-PROVCLI-130.
+    private static (ValueList<ApprovalRequest.Option> Options, ValueMap<string, JSONValue> Payloads) DecisionOptions(
+        IReadOnlyList<JSONValue>? available, bool command)
+    {
+        var decisions = available ?? new JSONValue[]
+        {
+            new JSONValue.String("accept"), new JSONValue.String("acceptForSession"),
+            new JSONValue.String("decline"), new JSONValue.String("cancel"),
+        }; // :992
+        var options = new List<ApprovalRequest.Option>();
+        var payloads = new Dictionary<string, JSONValue>(StringComparer.Ordinal);
+        foreach (var decision in decisions)
+        {
+            if (decision.JSONValueString is { } name) // :994
+            {
+                ApprovalRequest.Option? option = null;
+                if (SwiftString.Equal(name, "accept")) option = new ApprovalRequest.Option(name, "Approve", ApprovalRequest.Option.Role.Approve); // :1001
+                else if (SwiftString.Equal(name, "acceptForSession")) option = new ApprovalRequest.Option(name, "Approve for session", ApprovalRequest.Option.Role.ApproveAlways); // :1002
+                else if (SwiftString.Equal(name, "decline")) option = new ApprovalRequest.Option(name, "Decline", ApprovalRequest.Option.Role.Decline); // :1003
+                else if (SwiftString.Equal(name, "cancel")) option = new ApprovalRequest.Option(name, "Stop turn", ApprovalRequest.Option.Role.Cancel); // :1004
+                if (option is not null) // :1005-1008
+                {
+                    options.Add(option);
+                    payloads[name] = decision;
+                }
+            }
+            else if (command && decision["acceptWithExecpolicyAmendment"] is not null) // :1009-1012
+            {
+                options.Add(new ApprovalRequest.Option("amend", "Always allow", ApprovalRequest.Option.Role.ApproveAlways));
+                payloads["amend"] = decision;
+            }
+        }
+
+        static int Order(ApprovalRequest.Option.Role role) => role switch // :1015
+        {
+            ApprovalRequest.Option.Role.Approve => 0,
+            ApprovalRequest.Option.Role.ApproveAlways => 1,
+            ApprovalRequest.Option.Role.Decline => 2,
+            ApprovalRequest.Option.Role.Cancel => 3,
+            _ => 0,
+        };
+        var sorted = options.OrderBy(o => Order(o.OptionRole)).ToList(); // :1015 stable sort
+        return (new ValueList<ApprovalRequest.Option>(sorted), new ValueMap<string, JSONValue>(payloads));
+    }
+
+    // :1018-1030. Used by PR-PROVCLI-126.
+    private static string DescribePermissions(JSONValue permissions)
+    {
+        var parts = new List<string>();
+        if (permissions["fileSystem"]?["write"]?.JSONValueArray is { Count: > 0 } write) // :1020-1022
+        {
+            parts.Add("Write to " + string.Join(", ", write.Select(v => v.JSONValueString).Where(v => v is not null)));
+        }
+        if (permissions["fileSystem"]?["read"]?.JSONValueArray is { Count: > 0 } read) // :1023-1025
+        {
+            parts.Add("Read " + string.Join(", ", read.Select(v => v.JSONValueString).Where(v => v is not null)));
+        }
+        if (permissions["network"]?["enabled"]?.JSONValueBool == true) parts.Add("Network access"); // :1026
+        return parts.Count == 0 ? "Additional permissions" : string.Join(" " + Dot + " ", parts); // :1027-1029
+    }
 
     // :1032-1038. Ported in part 1: see the file header note (the connection Start() wires this to can close
     // on any of part 1's own paths).
