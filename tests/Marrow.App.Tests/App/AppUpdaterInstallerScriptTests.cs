@@ -103,7 +103,9 @@ public sealed class AppUpdaterInstallerScriptTests
         var output = ReadAllOutput(installer);
         installer.WaitUntilExit();
 
-        Assert.Equal(0, installer.TerminationStatus);
+        Assert.True(
+            installer.TerminationStatus == 0,
+            $"Installer exited with {installer.TerminationStatus}; captured output: {output}");
         Assert.Equal("", output);
         Assert.True(File.Exists(Path.Combine(dest, "new.txt")), "the staged files must be in place");
         Assert.False(File.Exists(Path.Combine(dest, "old.txt")), "the old files must be gone");
