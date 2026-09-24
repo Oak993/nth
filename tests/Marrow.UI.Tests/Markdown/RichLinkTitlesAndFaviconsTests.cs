@@ -1,4 +1,6 @@
 using System;
+using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using Marrow.Core.Port;
 using Marrow.UI.Markdown;
@@ -12,6 +14,87 @@ namespace Marrow.UI.Tests.Markdown;
 public sealed class RichLinkTitlesAndFaviconsTests
 {
     private static SwiftURL Url(string text) => SwiftURL.Create(text) ?? throw new InvalidOperationException(text);
+
+    private static AttributedText AutolinkedBareDomains(AttributedText parsed)
+    {
+        var method = typeof(RichLink).GetMethod("AutolinkedBareDomains", BindingFlags.NonPublic | BindingFlags.Static)!;
+        return (AttributedText)method.Invoke(null, [parsed])!;
+    }
+
+    // ---- PR-THEME-130: autolinkedBareDomains skips already-linked/code runs, trims 8 trailing punctuation
+    // characters (a different set from isBareDisplay's 10), and never goes backwards ----
+
+    [Fact]
+    [Trait("Req", "PR-THEME-130")] // MarkdownView.swift:778-780: a run already a link is appended unchanged
+    public void Autolinker_leaves_a_run_that_already_carries_a_link_untouched()
+    {
+        var url = Url("https://example.org/x");
+        var parsed = new AttributedText([new AttributedRun("getdroppy.app", Link: url)]);
+
+        var result = AutolinkedBareDomains(parsed);
+
+        var run = Assert.Single(result.Runs);
+        Assert.Same(url, run.Link);
+        Assert.Equal("getdroppy.app", run.Text);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-THEME-130")] // MarkdownView.swift:778-780: a code run is appended unchanged, so a domain in backticks never links
+    public void Autolinker_leaves_a_code_run_untouched()
+    {
+        var parsed = new AttributedText([new AttributedRun("getdroppy.app", IsCode: true)]);
+
+        var result = AutolinkedBareDomains(parsed);
+
+        var run = Assert.Single(result.Runs);
+        Assert.Null(run.Link);
+        Assert.True(run.IsCode);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-THEME-130")] // MarkdownView.swift:790, :803-804: the 8-character trim set ".,;:!?'\""
+    public void Autolinker_trims_a_trailing_apostrophe_from_the_eight_character_set()
+    {
+        var parsed = new AttributedText([new AttributedRun("See getdroppy.app'")]);
+
+        var result = AutolinkedBareDomains(parsed);
+
+        var link = Assert.Single(result.Runs, r => r.Link is not null);
+        Assert.Equal("getdroppy.app", link.Text);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-THEME-130")] // MarkdownView.swift:790: gotcha 2 -- the autolinker's 8-char trim set differs
+    // from isBareDisplay's 10-char set: a trailing ')' is not in the autolinker's set (it is in isBareDisplay's),
+    // and the domain pattern itself never captures ')' into the match to begin with.
+    public void Autolinker_trim_set_does_not_include_the_closing_parenthesis()
+    {
+        var parsed = new AttributedText([new AttributedRun("(see getdroppy.app)")]);
+
+        var result = AutolinkedBareDomains(parsed);
+
+        var link = Assert.Single(result.Runs, r => r.Link is not null);
+        Assert.Equal("getdroppy.app", link.Text);
+        Assert.Equal(")", result.Runs[^1].Text);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-THEME-130")] // MarkdownView.swift:801 guard start >= cursor: overlapping matches never go backwards
+    public void Autolinker_never_revisits_text_before_the_running_cursor()
+    {
+        // Two adjacent bare domains separated by one space; the cursor after the first match must not let a
+        // second, earlier-starting match re-emit already-consumed text.
+        var parsed = new AttributedText([new AttributedRun("getdroppy.app example.com")]);
+
+        var result = AutolinkedBareDomains(parsed);
+
+        var links = result.Runs.Where(r => r.Link is not null).ToList();
+        Assert.Equal(2, links.Count);
+        Assert.Equal("getdroppy.app", links[0].Text);
+        Assert.Equal("example.com", links[1].Text);
+        // Concatenating every run's text reproduces the source exactly (no dropped or duplicated text).
+        Assert.Equal("getdroppy.app example.com", string.Concat(result.Runs.Select(r => r.Text)));
+    }
 
     // ---- PR-THEME-133: forgeReference ----
 
