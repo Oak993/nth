@@ -2,6 +2,7 @@ using System.Threading;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
+using Marrow.Services.Models;
 using Marrow.Services.Providers;
 using Marrow.Services.Tests.Fixtures;
 using Marrow.Testing;
@@ -79,9 +80,11 @@ public sealed class PiSessionTests
     private static async Task<(PiSession Session, List<ProviderEvent> Events, PiScript Script, string ID)> Started(
         TestRuntime runtime, PiScript script, string? resumeID = null, string? model = null, string? effort = null,
         RuntimeMode runtimeMode = RuntimeMode.Supervised, InteractionMode interactionMode = InteractionMode.Build,
-        string stateData = "{\"model\":{\"contextWindow\":128000}}", string commandsData = "{\"commands\":[]}")
+        string stateData = "{\"model\":{\"contextWindow\":128000}}", string commandsData = "{\"commands\":[]}",
+        Action? prepareStorage = null)
     {
         using var storage = new StorageScratchFolder(); // MCPPaths.ClaudeConfigURL reads Storage.Root (R-TEST-9)
+        prepareStorage?.Invoke();
         script.Reply(0, "{\"type\":\"response\",\"id\":\"droppy-1\",\"data\":" + stateData + "}");
         script.Reply(1, "{\"type\":\"response\",\"id\":\"droppy-2\",\"data\":" + commandsData + "}");
         var (session, events) = Make(Config(script, resumeID: resumeID, model: model, effort: effort, runtimeMode: runtimeMode, interactionMode: interactionMode));
@@ -248,6 +251,23 @@ public sealed class PiSessionTests
         // The bridge key is present because MCPBridge.InstallBridge() always succeeds against a real disk.
         Assert.NotNull(startedScript.Environment("DROPPY_CODE_MCP_BRIDGE"));
         Assert.StartsWith("file://", startedScript.Environment("DROPPY_CODE_MCP_BRIDGE"), StringComparison.Ordinal);
+        Assert.Null(startedScript.Environment("DROPPY_CODE_MCP_CONFIG"));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-273")] // PiSession.swift:109-110
+    public async Task Start_sets_the_claude_mcp_config_key_only_when_its_file_exists()
+    {
+        using var runtime = new TestRuntime();
+        var script = new PiScript("env-mcp-config-present");
+        string? configPath = null;
+        var (_, _, startedScript, _) = await Started(runtime, script, prepareStorage: () =>
+        {
+            configPath = MCPPaths.ClaudeConfigURL;
+            File.WriteAllText(configPath, "{}");
+        });
+
+        Assert.Equal(configPath, startedScript.Environment("DROPPY_CODE_MCP_CONFIG"));
     }
 
     // ---- PR-PROVCLI-274 ----
