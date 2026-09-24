@@ -3955,55 +3955,15 @@
     "Services.Providers.ProviderRegistry"
    ],
    "records_total": 18,
-   "records_todo": [
-    "PR-PROVCLI-250",
-    "PR-PROVCLI-251",
-    "PR-PROVCLI-252",
-    "PR-PROVCLI-253",
-    "PR-PROVCLI-254",
-    "PR-PROVCLI-255",
-    "PR-PROVCLI-256",
-    "PR-PROVCLI-257",
-    "PR-PROVCLI-258",
-    "PR-PROVCLI-259",
-    "PR-PROVCLI-260",
-    "PR-PROVCLI-261",
-    "PR-PROVCLI-262",
-    "PR-PROVCLI-263",
-    "PR-PROVCLI-264",
-    "PR-PROVCLI-265",
-    "UI-PROVCLI-019",
-    "UI-PROVCLI-024"
-   ],
-   "parts": [
-    [
-     "PR-PROVCLI-250",
-     "PR-PROVCLI-251",
-     "PR-PROVCLI-252",
-     "PR-PROVCLI-253",
-     "PR-PROVCLI-254",
-     "PR-PROVCLI-255",
-     "PR-PROVCLI-256",
-     "PR-PROVCLI-257",
-     "PR-PROVCLI-258",
-     "PR-PROVCLI-259",
-     "PR-PROVCLI-260",
-     "PR-PROVCLI-261",
-     "PR-PROVCLI-262",
-     "PR-PROVCLI-263",
-     "PR-PROVCLI-264",
-     "PR-PROVCLI-265",
-     "UI-PROVCLI-019",
-     "UI-PROVCLI-024"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-064",
     "T-M4-065",
     "T-M4-066"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.Providers.CopilotSession",
