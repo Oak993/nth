@@ -3503,7 +3503,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three-part card with the same conditional third row. OD-0014 keeps upstream's clear window by default: until the user sets a wallpaper the glass sits over the desktop, drawn as Acrylic plus the app-drawn scrim (OD-0005, probe P3), and the richer drawn material appears once a wallpaper is set.",
       "verification_method": "capture comparison with and without a wallpaper",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3531,7 +3531,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two states, the same mock-window stand-in and the same 150pt height. The glass effect on the mock window has no exact Windows equivalent; use the same backdrop-filter treatment the rest of the port uses for glass and record it as a substitution.",
       "verification_method": "capture comparison of both states and of the installing state",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3559,7 +3559,7 @@
       "cancellation": "Dragging away clears the highlight; there is no partial install.",
       "windows_path": "Same accept test over the dropped paths, checking the extension first and then the detected type. Electron's drop event gives paths directly, so the security-scoped resource dance has no analogue and is dropped.",
       "verification_method": "interaction test dropping an image, a text file, and a mixed set",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3586,7 +3586,7 @@
       "cancellation": "Cancelling the panel is the only cancellation and leaves everything unchanged.",
       "windows_path": "A modal-to-the-settings-window open dialog filtered to image extensions, with the same title text. Windows file dialogs do not take an arbitrary confirm-button title in every API; if the chosen API cannot set \"Use as Wallpaper\", record that as a platform limitation rather than silently renaming the button.",
       "verification_method": "interaction test with a stubbed dialog asserting the filter, the single-selection flag and both strings",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3615,7 +3615,7 @@
       "cancellation": "A newer install or render supersedes the one in flight.",
       "windows_path": "Same precedence and the same four strings verbatim. Keep the error in the row's detail rather than in a dialog. OD-0014 keeps upstream's clear window by default: until the user sets a wallpaper the glass sits over the desktop, drawn as Acrylic plus the app-drawn scrim (OD-0005, probe P3), and the richer drawn material appears once a wallpaper is set.",
       "verification_method": "interaction test forcing both failures and asserting the exact sentences and that the existing wallpaper survives",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3644,7 +3644,7 @@
       "cancellation": "A newer render supersedes the one in flight.",
       "windows_path": "Same geometry and the same live-render strategy with a half-size working copy; a GPU blur on a downsampled bitmap. Note the reset's threshold here is `> 0.005`, not the symmetric `abs(...) >= 0.005` the transparency slider uses, and the reset is unanimated; reproduce both asymmetries.",
       "verification_method": "unit test on the threshold at 0.005 and 0.0051; interaction test asserting one live render at a time and one full render on release",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3719,7 +3719,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two topics with the same strings and the same glyphs; the right-click hint at the end refers to a chat affordance outside this area but the sentence stays verbatim.",
       "verification_method": "interaction test comparing every string; capture comparison of both popovers",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -7731,7 +7731,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:48, :52 chatBaseSize - .title 22, .callout 12 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "SF Symbol \"photo.on.rectangle.angled\". A new picture appears with .spring(duration: 0.45, bounce: 0.2); a picture is never swapped with an animated bitmap crossfade, which flashes.",
-      "b2_change": "Moved, behaviour unchanged: the Appearance section that holds this row left the General page and is now the only section of the new Appearance page (AppearanceSettingsPage, DroppyCode/App/Views/Settings/SettingsView.swift:417-457 at 1fbf81e6; sidebar page \"Appearance\", third after General and Hydra). DroppyCode/App/Views/Settings/WallpaperCard.swift:64-73 at 1fbf81e6: `.font(.system(size: 22))` -> `.font(.system(.title))` and `.font(.system(size: 12))` -> `.font(.system(.callout))`; the line range 25-102 is unchanged."
+      "b2_change": "Moved, behaviour unchanged: the Appearance section that holds this row left the General page and is now the only section of the new Appearance page (AppearanceSettingsPage, DroppyCode/App/Views/Settings/SettingsView.swift:417-457 at 1fbf81e6; sidebar page \"Appearance\", third after General and Hydra). DroppyCode/App/Views/Settings/WallpaperCard.swift:64-73 at 1fbf81e6: `.font(.system(size: 22))` -> `.font(.system(.title))` and `.font(.system(size: 12))` -> `.font(.system(.callout))`; the line range 25-102 is unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-027",
@@ -7755,7 +7756,8 @@
         "DroppyCode/App/Views/Settings/WallpaperCard.swift:104-124"
       ],
       "notes": "Both labels use one horizontal ellipsis character, not three periods. \"Remove\" has no confirmation step and does not consult confirmBeforeDeleting, which is about threads.",
-      "b2_change": "Moved, behaviour unchanged: the Appearance section that holds this row left the General page and is now the only section of the new Appearance page (AppearanceSettingsPage, DroppyCode/App/Views/Settings/SettingsView.swift:417-457 at 1fbf81e6; sidebar page \"Appearance\", third after General and Hydra)."
+      "b2_change": "Moved, behaviour unchanged: the Appearance section that holds this row left the General page and is now the only section of the new Appearance page (AppearanceSettingsPage, DroppyCode/App/Views/Settings/SettingsView.swift:417-457 at 1fbf81e6; sidebar page \"Appearance\", third after General and Hydra).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-028",
@@ -7784,7 +7786,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:53 chatBaseSize - .subheadline 11 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "Two deliberate asymmetries with the other two reset-bearing sliders on this page: the threshold is a one-sided `> 0.005` rather than an absolute difference, and the reset is not wrapped in withAnimation. Accessibility label is \"Wallpaper softness\".",
-      "b2_change": "Moved, behaviour unchanged: the Appearance section that holds this row left the General page and is now the only section of the new Appearance page (AppearanceSettingsPage, DroppyCode/App/Views/Settings/SettingsView.swift:417-457 at 1fbf81e6; sidebar page \"Appearance\", third after General and Hydra). DroppyCode/App/Views/Settings/WallpaperCard.swift:126-166 at 1fbf81e6: the glyph fonts `.system(size: 11)` and `.system(size: 11, weight: .medium)` became `.system(.subheadline)` and `.system(.subheadline, weight: .medium)`; line numbers unchanged."
+      "b2_change": "Moved, behaviour unchanged: the Appearance section that holds this row left the General page and is now the only section of the new Appearance page (AppearanceSettingsPage, DroppyCode/App/Views/Settings/SettingsView.swift:417-457 at 1fbf81e6; sidebar page \"Appearance\", third after General and Hydra). DroppyCode/App/Views/Settings/WallpaperCard.swift:126-166 at 1fbf81e6: the glyph fonts `.system(size: 11)` and `.system(size: 11, weight: .medium)` became `.system(.subheadline)` and `.system(.subheadline, weight: .medium)`; line numbers unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-029",

@@ -1366,7 +1366,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Intl.NumberFormat with the fixed locale \"en-US\"; never the system locale. Verify the currency style output matches macOS for at least USD and CNY.",
       "verification_method": "unit test over (0.43, \"USD\"), (12.5, \"CNY\"), (3, \"\"), (3, \"pts\"), (3, \"US1\")",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1389,7 +1389,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pure function; keep the label casing exactly (\"Topped up\" has a lowercase u).",
       "verification_method": "unit test over all eight presence combinations plus a zero component",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

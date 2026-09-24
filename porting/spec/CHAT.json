@@ -1831,7 +1831,7 @@
       "cancellation": "The preview task is keyed on the edit id and cancelled when the edit changes; a cancelled task writes nothing.",
       "windows_path": "Reproduce the four states and their exact strings. The preview comes from the git layer, so an unavailable reason on Windows is whatever that layer reports. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "interaction test with a stubbed preview per state",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1854,7 +1854,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The minus sign is U+2212; a hyphen-minus is wrong. Use tabular figures for the stat. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1875,7 +1875,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Middle truncation on the path, not tail, so the file name stays readable. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "capture comparison with six files including one kept and one binary",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1902,7 +1902,7 @@
       "cancellation": "Cancel clears runtime.messageEdit and closes the editor without touching the thread.",
       "windows_path": "Keep the restore flag derivation: restore is true only when the toggle is on and the preview's file list is non-empty. The glass and glass-prominent button styles are a named deviation under owner decision OD-0005, which resolves UNK-0004: Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content; visual parity stays UNVERIFIED without macOS (OD-0001). Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "interaction test over the disabled cases and the error path",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4780,7 +4780,8 @@
         "DroppyCode/App/Views/Chat/MessageEditor.swift:39-154"
       ],
       "notes": "The explanatory line is exactly Sending replaces this message and everything after it. The editor's state lives on the thread runtime, so it survives the row scrolling away.",
-      "b2_change": "B1 MessageEditor.swift:50, :86, :89, :92, :98 `.foregroundStyle(.secondary)` -> B2 same lines `.foregroundStyle(Chrome.secondaryText)`. Strings are unchanged. The previous citation :301-416 pointed past the end of the 176-line file; the code is at :39-154."
+      "b2_change": "B1 MessageEditor.swift:50, :86, :89, :92, :98 `.foregroundStyle(.secondary)` -> B2 same lines `.foregroundStyle(Chrome.secondaryText)`. Strings are unchanged. The previous citation :301-416 pointed past the end of the 176-line file; the code is at :39-154.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-016",
@@ -4803,7 +4804,8 @@
         "DroppyCode/App/Views/Chat/MessageEditor.swift:100-114"
       ],
       "notes": "The trailing count reads exactly 1 file or N files. The stat's minus sign is U+2212.",
-      "b2_change": "B1 MessageEditor.swift:107 `.foregroundStyle(.secondary)` -> B2 :107 `.foregroundStyle(Chrome.secondaryText)`. The previous citations :289 and :362-375 pointed past the end of the file; the code is at :27 and :100-114."
+      "b2_change": "B1 MessageEditor.swift:107 `.foregroundStyle(.secondary)` -> B2 :107 `.foregroundStyle(Chrome.secondaryText)`. The previous citations :289 and :362-375 pointed past the end of the file; the code is at :27 and :100-114.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-017",
@@ -4825,7 +4827,8 @@
         "DroppyCode/App/Views/Chat/MessageEditor.swift:72-76"
       ],
       "notes": "An edit is empty when it has no attachments and no non-whitespace character.",
-      "b2_change": "Citations corrected, behaviour unchanged: the previous :321-324 and :334-338 pointed past the end of the 176-line MessageEditor.swift; the Send button is at :59-61 and canSend at :72-76, the same lines at B1 and B2."
+      "b2_change": "Citations corrected, behaviour unchanged: the previous :321-324 and :334-338 pointed past the end of the 176-line MessageEditor.swift; the Send button is at :59-61 and canSend at :72-76, the same lines at B1 and B2.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-018",
@@ -4846,7 +4849,8 @@
         "DroppyCode/App/Views/Chat/MessageEditor.swift:57-58"
       ],
       "notes": "Carries the cancel role, so Escape maps to it.",
-      "b2_change": "Citation corrected, behaviour unchanged: the previous :319-320 pointed past the end of the 176-line MessageEditor.swift; the Cancel button is at :57-58, the same lines at B1 and B2."
+      "b2_change": "Citation corrected, behaviour unchanged: the previous :319-320 pointed past the end of the 176-line MessageEditor.swift; the Cancel button is at :57-58, the same lines at B1 and B2.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-019",
@@ -5928,7 +5932,8 @@
         "DroppyCode/App/Views/Chat/MessageEditor.swift:125-146"
       ],
       "notes": "A kept row also swaps its doc glyph for hand.raised and stays at 0.45 opacity whatever the toggle says.",
-      "b2_change": "The colour of Kept went `.foregroundStyle(.secondary)` (B1 MessageEditor.swift:136) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :136). The previous citation :396-408 pointed past the end of the 176-line file at both baselines; the code is at :125-146. The string is unchanged."
+      "b2_change": "The colour of Kept went `.foregroundStyle(.secondary)` (B1 MessageEditor.swift:136) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :136). The previous citation :396-408 pointed past the end of the 176-line file at both baselines; the code is at :125-146. The string is unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-066",
@@ -5950,7 +5955,8 @@
         "DroppyCode/App/Views/Chat/MessageEditor.swift:81-86"
       ],
       "notes": "The ellipsis is U+2026. Sending before the check is in would silently keep the files, which is why Send is disabled.",
-      "b2_change": "The colour of the checking line went `.foregroundStyle(.secondary)` (B1 MessageEditor.swift:86) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :86). The previous citation :344-348 pointed past the end of the 176-line file at both baselines; the code is at :81-86. The string is unchanged."
+      "b2_change": "The colour of the checking line went `.foregroundStyle(.secondary)` (B1 MessageEditor.swift:86) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :86). The previous citation :344-348 pointed past the end of the 176-line file at both baselines; the code is at :81-86. The string is unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-067",
@@ -5971,7 +5977,8 @@
         "DroppyCode/App/Views/Chat/MessageEditor.swift:90-92"
       ],
       "notes": "No trailing full stop.",
-      "b2_change": "The colour of the no-files line went `.foregroundStyle(.secondary)` (B1 MessageEditor.swift:92) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :92). The previous citation :352-354 pointed past the end of the 176-line file at both baselines; the code is at :90-92. The string is unchanged."
+      "b2_change": "The colour of the no-files line went `.foregroundStyle(.secondary)` (B1 MessageEditor.swift:92) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :92). The previous citation :352-354 pointed past the end of the 176-line file at both baselines; the code is at :90-92. The string is unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-068",
@@ -5992,7 +5999,8 @@
         "DroppyCode/App/Views/Chat/MessageEditor.swift:93-99"
       ],
       "notes": "The singular form has no number in it; the plural form carries the count. Neither ends in a full stop.",
-      "b2_change": "The colour of the nothing-restorable line went `.foregroundStyle(.secondary)` (B1 MessageEditor.swift:98) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :98). The previous citation :355-361 pointed past the end of the 176-line file at both baselines; the code is at :93-99. The string is unchanged."
+      "b2_change": "The colour of the nothing-restorable line went `.foregroundStyle(.secondary)` (B1 MessageEditor.swift:98) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :98). The previous citation :355-361 pointed past the end of the 176-line file at both baselines; the code is at :93-99. The string is unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-069",
