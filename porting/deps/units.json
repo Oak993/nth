@@ -4373,37 +4373,13 @@
     "Services.Providers.DeepSeekAPI"
    ],
    "records_total": 10,
-   "records_todo": [
-    "PR-PROVREG-197",
-    "PR-PROVREG-203",
-    "PR-PROVREG-204",
-    "PR-PROVREG-207",
-    "PR-PROVREG-208",
-    "PR-PROVREG-209",
-    "PR-PROVREG-210",
-    "PR-PROVREG-211",
-    "PR-USAGE-055",
-    "PR-USAGE-056"
-   ],
-   "parts": [
-    [
-     "PR-PROVREG-197",
-     "PR-PROVREG-203",
-     "PR-PROVREG-204",
-     "PR-PROVREG-207",
-     "PR-PROVREG-208",
-     "PR-PROVREG-209",
-     "PR-PROVREG-210",
-     "PR-PROVREG-211",
-     "PR-USAGE-055",
-     "PR-USAGE-056"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-125"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.Providers.ProviderRegistry",
@@ -4953,33 +4929,13 @@
    ],
    "intra_deps": [],
    "records_total": 8,
-   "records_todo": [
-    "PR-PROVAPI-026",
-    "PR-PROVAPI-027",
-    "PR-PROVAPI-028",
-    "PR-PROVAPI-029",
-    "PR-PROVAPI-030",
-    "PR-PROVAPI-031",
-    "PR-PROVAPI-032",
-    "PR-PROVAPI-033"
-   ],
-   "parts": [
-    [
-     "PR-PROVAPI-026",
-     "PR-PROVAPI-027",
-     "PR-PROVAPI-028",
-     "PR-PROVAPI-029",
-     "PR-PROVAPI-030",
-     "PR-PROVAPI-031",
-     "PR-PROVAPI-032",
-     "PR-PROVAPI-033"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-091"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.Providers.PiSession",
@@ -7406,53 +7362,15 @@
     "App.Window.WindowManager"
    ],
    "records_total": 17,
-   "records_todo": [
-    "PR-HYDRA-217",
-    "PR-HYDRA-218",
-    "PR-SETTINGS-148",
-    "UI-HYDRA-052",
-    "UI-HYDRA-053",
-    "UI-HYDRA-054",
-    "UI-HYDRA-055",
-    "UI-HYDRA-056",
-    "UI-HYDRA-057",
-    "UI-HYDRA-058",
-    "UI-HYDRA-059",
-    "UI-HYDRA-060",
-    "UI-HYDRA-061",
-    "UI-HYDRA-062",
-    "UI-HYDRA-063",
-    "UI-HYDRA-064",
-    "UI-HYDRA-065"
-   ],
-   "parts": [
-    [
-     "PR-HYDRA-217",
-     "PR-HYDRA-218",
-     "PR-SETTINGS-148",
-     "UI-HYDRA-052",
-     "UI-HYDRA-053",
-     "UI-HYDRA-054",
-     "UI-HYDRA-055",
-     "UI-HYDRA-056",
-     "UI-HYDRA-057",
-     "UI-HYDRA-058",
-     "UI-HYDRA-059",
-     "UI-HYDRA-060",
-     "UI-HYDRA-061",
-     "UI-HYDRA-062",
-     "UI-HYDRA-063",
-     "UI-HYDRA-064",
-     "UI-HYDRA-065"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M7-018",
     "T-M7-019",
     "T-M7-020"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "App.Views.Chat.HydraMergePopover",
@@ -7708,74 +7626,8 @@
     "App.Window.WindowManager"
    ],
    "records_total": 30,
-   "records_todo": [
-    "PR-HYDRA-168",
-    "PR-HYDRA-169",
-    "PR-HYDRA-170",
-    "PR-HYDRA-171",
-    "PR-HYDRA-172",
-    "PR-HYDRA-173",
-    "PR-HYDRA-174",
-    "PR-HYDRA-175",
-    "PR-HYDRA-176",
-    "PR-HYDRA-177",
-    "PR-HYDRA-178",
-    "PR-HYDRA-179",
-    "PR-HYDRA-180",
-    "PR-HYDRA-181",
-    "PR-HYDRA-229",
-    "UI-HYDRA-013",
-    "UI-HYDRA-014",
-    "UI-HYDRA-015",
-    "UI-HYDRA-016",
-    "UI-HYDRA-017",
-    "UI-HYDRA-018",
-    "UI-HYDRA-019",
-    "UI-HYDRA-020",
-    "UI-HYDRA-021",
-    "UI-HYDRA-022",
-    "UI-HYDRA-023",
-    "UI-HYDRA-024",
-    "UI-HYDRA-025",
-    "UI-HYDRA-026",
-    "UI-HYDRA-073"
-   ],
-   "parts": [
-    [
-     "PR-HYDRA-168",
-     "PR-HYDRA-169",
-     "PR-HYDRA-170",
-     "PR-HYDRA-171",
-     "PR-HYDRA-172",
-     "PR-HYDRA-173",
-     "PR-HYDRA-174",
-     "PR-HYDRA-175",
-     "PR-HYDRA-176",
-     "PR-HYDRA-177",
-     "PR-HYDRA-178",
-     "PR-HYDRA-179",
-     "PR-HYDRA-180",
-     "PR-HYDRA-181",
-     "PR-HYDRA-229",
-     "UI-HYDRA-013",
-     "UI-HYDRA-014",
-     "UI-HYDRA-015",
-     "UI-HYDRA-016",
-     "UI-HYDRA-017",
-     "UI-HYDRA-018",
-     "UI-HYDRA-019",
-     "UI-HYDRA-020",
-     "UI-HYDRA-021"
-    ],
-    [
-     "UI-HYDRA-022",
-     "UI-HYDRA-023",
-     "UI-HYDRA-024",
-     "UI-HYDRA-025",
-     "UI-HYDRA-026",
-     "UI-HYDRA-073"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M7-025",
     "T-M7-026",
@@ -7783,7 +7635,7 @@
     "T-M7-028"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "App.Views.Chat.HydraProgressBar",
@@ -8159,57 +8011,15 @@
     "App.Views.Composer.PromptEditor"
    ],
    "records_total": 19,
-   "records_todo": [
-    "PR-CHAT-083",
-    "PR-CHAT-084",
-    "PR-CHAT-085",
-    "PR-CHAT-086",
-    "PR-GIT-124",
-    "PR-GIT-125",
-    "UI-CHAT-015",
-    "UI-CHAT-016",
-    "UI-CHAT-017",
-    "UI-CHAT-018",
-    "UI-CHAT-065",
-    "UI-CHAT-066",
-    "UI-CHAT-067",
-    "UI-CHAT-068",
-    "UI-GIT-052",
-    "UI-GIT-053",
-    "UI-GIT-054",
-    "UI-GIT-055",
-    "UI-GIT-056"
-   ],
-   "parts": [
-    [
-     "PR-CHAT-083",
-     "PR-CHAT-084",
-     "PR-CHAT-085",
-     "PR-CHAT-086",
-     "PR-GIT-124",
-     "PR-GIT-125",
-     "UI-CHAT-015",
-     "UI-CHAT-016",
-     "UI-CHAT-017",
-     "UI-CHAT-018",
-     "UI-CHAT-065",
-     "UI-CHAT-066",
-     "UI-CHAT-067",
-     "UI-CHAT-068",
-     "UI-GIT-052",
-     "UI-GIT-053",
-     "UI-GIT-054",
-     "UI-GIT-055",
-     "UI-GIT-056"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M7-036",
     "T-M7-037",
     "T-M7-038"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "App.Views.Chat.NewThreadPrompt",
@@ -13040,78 +12850,8 @@
     "UI.Theme.Wallpaper"
    ],
    "records_total": 32,
-   "records_todo": [
-    "PR-SETTINGS-140",
-    "PR-SETTINGS-141",
-    "PR-SETTINGS-142",
-    "PR-SETTINGS-143",
-    "PR-SETTINGS-144",
-    "PR-SETTINGS-145",
-    "PR-THEME-068",
-    "PR-THEME-069",
-    "PR-THEME-070",
-    "PR-THEME-071",
-    "PR-THEME-072",
-    "PR-THEME-073",
-    "PR-THEME-074",
-    "PR-THEME-075",
-    "PR-THEME-076",
-    "PR-THEME-077",
-    "UI-SETTINGS-026",
-    "UI-SETTINGS-027",
-    "UI-SETTINGS-028",
-    "UI-THEME-013",
-    "UI-THEME-014",
-    "UI-THEME-015",
-    "UI-THEME-016",
-    "UI-THEME-017",
-    "UI-THEME-018",
-    "UI-THEME-019",
-    "UI-THEME-020",
-    "UI-THEME-021",
-    "UI-THEME-022",
-    "UI-THEME-023",
-    "UI-THEME-024",
-    "UI-THEME-025"
-   ],
-   "parts": [
-    [
-     "PR-SETTINGS-140",
-     "PR-SETTINGS-141",
-     "PR-SETTINGS-142",
-     "PR-SETTINGS-143",
-     "PR-SETTINGS-144",
-     "PR-SETTINGS-145",
-     "PR-THEME-068",
-     "PR-THEME-069",
-     "PR-THEME-070",
-     "PR-THEME-071",
-     "PR-THEME-072",
-     "PR-THEME-073",
-     "PR-THEME-074",
-     "PR-THEME-075",
-     "PR-THEME-076",
-     "PR-THEME-077",
-     "UI-SETTINGS-026",
-     "UI-SETTINGS-027",
-     "UI-SETTINGS-028",
-     "UI-THEME-013",
-     "UI-THEME-014",
-     "UI-THEME-015",
-     "UI-THEME-016",
-     "UI-THEME-017"
-    ],
-    [
-     "UI-THEME-018",
-     "UI-THEME-019",
-     "UI-THEME-020",
-     "UI-THEME-021",
-     "UI-THEME-022",
-     "UI-THEME-023",
-     "UI-THEME-024",
-     "UI-THEME-025"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M7-186",
     "T-M7-187",
@@ -13119,7 +12859,7 @@
     "T-M7-189"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "App.Views.Sidebar.FloatingSidebarPanel",
