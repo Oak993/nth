@@ -12517,7 +12517,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/CommandCodeAPI.swift:347-359"
       ],
-      "notes": "The separators are U+00B7 with a space on each side, the ampersands are literal, and \"1M\" is that exact casing. This seed doubles as an equality sentinel for the registry, so any drift silently changes when the live catalog is fetched."
+      "notes": "The separators are U+00B7 with a space on each side, the ampersands are literal, and \"1M\" is that exact casing. This seed doubles as an equality sentinel for the registry, so any drift silently changes when the live catalog is fetched.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVCLI",
@@ -12638,7 +12639,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/CommandCodeAPI.swift:87-100"
       ],
-      "notes": "These windows cap DOLLARS rather than requests, which is why the cap is in the title. On-demand credits are never throttled, which is why the rate-limit message points at them."
+      "notes": "These windows cap DOLLARS rather than requests, which is why the cap is in the title. On-demand credits are never throttled, which is why the rate-limit message points at them.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVCLI",
