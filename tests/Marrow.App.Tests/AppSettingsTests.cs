@@ -183,6 +183,7 @@ public sealed class AppSettingsTests
 
     [Fact]
     [Trait("Req", "PR-SETTINGS-033")] // App/AppSettings.swift:122, :206-208, :709
+    [Trait("Req", "PR-THEME-083")] // App/AppSettings.swift:122, :205-208, :709 (chimeWhenFinished, default true)
     public void ChimeWhenFinished_is_stored_under_chimeWhenFinished_and_defaults_to_true() =>
         AssertBoolSetting("chimeWhenFinished", true, s => s.ChimeWhenFinished, (s, v) => s.ChimeWhenFinished = v);
 
@@ -1104,6 +1105,7 @@ public sealed class AppSettingsTests
 
     [Fact]
     [Trait("Req", "PR-SETTINGS-037")] // App/AppSettings.swift:126, :226-228, :713
+    [Trait("Req", "PR-THEME-085")] // App/AppSettings.swift:126, :225-228, :713 (settleSound, default true)
     public void SettleSound_is_stored_under_settleSound_and_defaults_to_true() =>
         AssertBoolSetting("settleSound", true, s => s.SettleSound, (s, v) => s.SettleSound = v);
 
@@ -1111,6 +1113,11 @@ public sealed class AppSettingsTests
     [Trait("Req", "PR-SETTINGS-038")] // App/AppSettings.swift:127, :230-232, :714
     public void ShowReasoning_is_stored_under_showReasoning_and_defaults_to_false() =>
         AssertBoolSetting("showReasoning", false, s => s.ShowReasoning, (s, v) => s.ShowReasoning = v);
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-266")] // App/AppSettings.swift:128, :234-239, :715 (chronologicalTimeline, default false, no UI control)
+    public void ChronologicalTimeline_is_stored_under_chronologicalTimeline_and_defaults_to_false() =>
+        AssertBoolSetting("chronologicalTimeline", false, s => s.ChronologicalTimeline, (s, v) => s.ChronologicalTimeline = v);
 
     [Fact]
     [Trait("Req", "PR-SETTINGS-039")] // App/AppSettings.swift:129, :241-243, :716
@@ -1121,6 +1128,53 @@ public sealed class AppSettingsTests
     [Trait("Req", "PR-SETTINGS-040")] // App/AppSettings.swift:130, :247-249, :717
     public void ShowsWorkingCard_is_stored_under_showsWorkingCard_and_defaults_to_true() =>
         AssertBoolSetting("showsWorkingCard", true, s => s.ShowsWorkingCard, (s, v) => s.ShowsWorkingCard = v);
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-265")] // App/AppSettings.swift:131, :251-255, :718; UI/Common/AppZoom.swift:6,8-10 (appZoom, default 100, normalized to the eight levels on read)
+    public void AppZoom_is_stored_under_appZoom_defaults_to_100_and_is_normalized_to_a_known_level_on_read() => WithSettings((scope, settings) =>
+    {
+        Assert.Equal(100L, settings.AppZoom);
+        Assert.Empty(scope.Defaults.Writes);
+        Assert.Null(scope.Defaults.Object("appZoom"));
+
+        settings.AppZoom = 150;
+        Assert.Equal(150L, scope.Defaults.Object("appZoom"));
+        Assert.Equal([("set", "appZoom")], scope.Defaults.Writes);
+        scope.Relaunch();
+        Assert.Equal(150L, new AppSettings().AppZoom);
+    });
+
+    [Theory]
+    [InlineData(75L, 75L)]
+    [InlineData(90L, 90L)]
+    [InlineData(100L, 100L)]
+    [InlineData(110L, 110L)]
+    [InlineData(125L, 125L)]
+    [InlineData(150L, 150L)]
+    [InlineData(175L, 175L)]
+    [InlineData(200L, 200L)]
+    [InlineData(130L, 100L)] // not one of the eight levels: reads as 100, not clamped to the nearest
+    [InlineData(0L, 100L)]
+    [Trait("Req", "PR-SETTINGS-265")] // UI/Common/AppZoom.swift:8-10 normalized(_:) - only the eight levels survive a read
+    public void A_stored_appZoom_outside_the_eight_levels_reads_as_100_and_is_left_unwritten(long stored, long expected)
+    {
+        using var scope = AppSettingsScope.Create();
+        scope.Defaults.Seed("appZoom", stored);
+        scope.OnMain(() =>
+        {
+            Assert.Equal(expected, new AppSettings().AppZoom);
+            Assert.Equal(stored, scope.Defaults.Object("appZoom")); // left as-is until the next write
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-265")] // App/AppSettings.swift:718 (`as? Int` fails the wrong type, 100 is used)
+    public void An_appZoom_of_the_wrong_type_reads_as_100()
+    {
+        using var scope = AppSettingsScope.Create();
+        scope.Defaults.Seed("appZoom", "150");
+        scope.OnMain(() => Assert.Equal(100L, new AppSettings().AppZoom));
+    }
 
     [Fact]
     [Trait("Req", "PR-SETTINGS-042")] // App/AppSettings.swift:157, :260-268, :756-758
@@ -1164,11 +1218,13 @@ public sealed class AppSettingsTests
 
     [Fact]
     [Trait("Req", "PR-SETTINGS-045")] // App/AppSettings.swift:134, :282-284, :721
+    [Trait("Req", "PR-SIDEBAR-124")] // App/AppSettings.swift:134, :282-284, :721 (key differs from the property name: settledSectionCollapsed)
     public void SettledCollapsed_is_stored_under_settledSectionCollapsed_and_defaults_to_true() =>
         AssertBoolSetting("settledSectionCollapsed", true, s => s.SettledCollapsed, (s, v) => s.SettledCollapsed = v);
 
     [Fact]
     [Trait("Req", "PR-SETTINGS-046")] // App/AppSettings.swift:135, :286-291, :723-728
+    [Trait("Req", "PR-THEME-044")] // App/AppSettings.swift:135, :286-291 (persist then mirror into ThemeManager, in that order)
     public void Theme_is_stored_under_appTheme_defaults_to_system_and_writing_it_updates_ThemeManager() => WithSettings((scope, settings) =>
     {
         Assert.Equal(AppTheme.System, settings.Theme);
@@ -1185,6 +1241,7 @@ public sealed class AppSettingsTests
 
     [Fact]
     [Trait("Req", "PR-SETTINGS-046")] // App/AppSettings.swift:723-726 (legacy "appearance" fallback, never migrated)
+    [Trait("Req", "PR-THEME-045")] // App/AppSettings.swift:137, :723-728 (appTheme, then legacy appearance, then System; legacy key never written)
     public void An_absent_appTheme_falls_back_to_the_legacy_appearance_key_which_stays_unwritten()
     {
         using var scope = AppSettingsScope.Create();
@@ -1196,6 +1253,26 @@ public sealed class AppSettingsTests
             Assert.Null(scope.Defaults.Object("appTheme"));
             Assert.Equal("dark", scope.Defaults.Object("appearance"));
         });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-THEME-045")] // App/AppSettings.swift:724-726 (an unknown appTheme id falls through to appearance too)
+    public void An_unrecognized_appTheme_id_falls_through_to_the_legacy_appearance_key()
+    {
+        using var scope = AppSettingsScope.Create();
+        scope.Defaults.Seed("appTheme", "notARealTheme");
+        scope.Defaults.Seed("appearance", "light");
+        scope.OnMain(() => Assert.Equal(AppTheme.Light, new AppSettings().Theme));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-THEME-045")] // App/AppSettings.swift:724-728 (both keys missing or unknown: System)
+    public void Both_theme_keys_missing_or_unknown_resolves_to_System()
+    {
+        using var scope = AppSettingsScope.Create();
+        scope.Defaults.Seed("appTheme", "notARealTheme");
+        scope.Defaults.Seed("appearance", "alsoNotReal");
+        scope.OnMain(() => Assert.Equal(AppTheme.System, new AppSettings().Theme));
     }
 
     [Fact]
@@ -1274,6 +1351,7 @@ public sealed class AppSettingsTests
     [Fact]
     [Trait("Req", "PR-SETTINGS-054")] // App/AppSettings.swift:151, :337-361, :739
     [Trait("Req", "PR-SETTINGS-095")] // App/AppSettings.swift:344-361 (three-state override model)
+    [Trait("Req", "PR-SIDEBAR-132")] // App/AppSettings.swift:151, :338-361, :739 (Activate/Deactivate set, Follow global clears, keyed by uuidString)
     public void ProjectActivationOverrides_follow_the_global_switch_until_explicitly_overridden() => WithSettings((scope, settings) =>
     {
         var id = Guid.Parse("7b3d0dd5-4de2-4f34-9f45-a2bf3657d671");
@@ -1422,6 +1500,7 @@ public sealed class AppSettingsTests
 
     [Fact]
     [Trait("Req", "PR-SETTINGS-077")] // App/AppSettings.swift:170, :631-633, :770
+    [Trait("Req", "PR-USAGE-075")] // App/AppSettings.swift:170, :631-633, :770 (showsUsagePanel, default false)
     public void ShowsUsagePanel_is_stored_under_showsUsagePanel_and_defaults_to_false() =>
         AssertBoolSetting("showsUsagePanel", false, s => s.ShowsUsagePanel, (s, v) => s.ShowsUsagePanel = v);
 
@@ -1522,6 +1601,7 @@ public sealed class AppSettingsTests
 
     [Fact]
     [Trait("Req", "PR-SETTINGS-082")] // App/AppSettings.swift:175, :683-685, :783
+    [Trait("Req", "PR-USAGE-075")] // App/AppSettings.swift:175, :683-685, :783 (usagePanelDock, default bottomLeading)
     public void UsagePanelDock_is_stored_under_usagePanelDock_and_defaults_to_bottomLeading() =>
         AssertRawValueSetting("usagePanelDock", PanelDockCorner.BottomLeading, s => s.UsagePanelDock, (s, v) => s.UsagePanelDock = v,
         [
@@ -1531,6 +1611,7 @@ public sealed class AppSettingsTests
 
     [Fact]
     [Trait("Req", "PR-SETTINGS-083")] // App/AppSettings.swift:176, :688-696, :784
+    [Trait("Req", "PR-USAGE-075")] // App/AppSettings.swift:176, :688-696, :784 (usagePanelHeight, no default, nil removes the key)
     public void UsagePanelHeight_persists_as_a_Double_and_nil_removes_the_key() => WithSettings((scope, settings) =>
     {
         Assert.Null(settings.UsagePanelHeight);
