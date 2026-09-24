@@ -463,6 +463,7 @@ public sealed class ProviderRegistryTests
 
     [Fact]
     [Trait("Req", "PR-PROVAPI-088")] // ProviderRegistry.swift:382-386
+    [Trait("Req", "PR-PROVREG-125")] // ProviderRegistry.swift:381-386
     public async Task an_api_key_provider_with_no_key_is_signed_out_and_not_configured_with_no_network_call()
     {
         using var runtime = new TestRuntime();
