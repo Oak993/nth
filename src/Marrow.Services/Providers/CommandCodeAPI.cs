@@ -12,7 +12,8 @@ using Marrow.Core.Support;
 // PORT-ONLY seams, for tests only (R-TEST-9, R-TEST-10): FetchBaseURL (an Ambient<T> over the static baseURL :13 that
 // fetch :168-175 resolves its route against; production always reads BaseURL), SupportDirectoryUnder and
 // InstallMod(localApplicationData) (the OS app-data folder given explicitly, as MCPBridgeSource.InstallBridge does,
-// so no test touches the real %LOCALAPPDATA%\Marrow Code). No production behaviour differs.
+// so no test touches the real %LOCALAPPDATA%\Marrow Code), and MoneyFormatter (an Ambient<T> over the :93 call into
+// ProviderCredits.money; production always calls the real ProviderCredits.Money). No production behaviour differs.
 
 namespace Marrow.Services.Providers;
 
@@ -24,6 +25,11 @@ public static partial class CommandCodeAPI
 
     /// <summary>PORT-ONLY test seam: the base fetch resolves its route against; always <see cref="BaseURL"/> in production.</summary>
     internal static Ambient<Uri> FetchBaseURL { get; } = new(BaseURL);
+
+    /// <summary>PORT-ONLY test seam (:93): production always calls <see cref="ProviderCredits.Money"/> (Services.Providers.ProviderCredits,
+    /// a sibling unit in this dependency cycle, MARROW_STUB at this commit). Windows() tests override it so PR-PROVCLI-257's own
+    /// window-building logic (title concatenation, percent clamp, resetAt) can be verified without depending on that unit landing.</summary>
+    internal static Ambient<Func<double, string, string>> MoneyFormatter { get; } = new(ProviderCredits.Money);
 
     // MARK: - Login (:16)
 
@@ -172,7 +178,7 @@ public static partial class CommandCodeAPI
             windows.Add(new PlanLimits.Window // :91-96
             {
                 Id = key, // :92
-                Title = title + " \U000000B7 " + ProviderCredits.Money(cap, currency: "USD"), // :93 U+00B7 MIDDLE DOT
+                Title = title + " \U000000B7 " + MoneyFormatter.Current(cap, "USD"), // :93 U+00B7 MIDDLE DOT
                 Percent = percent < 100 ? percent : 100, // :94
                 ResetsAt = resetAt, // :95
             });
@@ -544,12 +550,79 @@ public static partial class CommandCodeAPI
 
     // MARK: - The approval mod (:361)
 
-    // :363-437. A static let string (R-STR-9). Not ported: the Windows form of the orphan predicate at :428 is not
-    // specified (PR-PROVCLI-254 open_question: the literal `process.ppid === 1` or ED-021's signal-0 probe), so the
-    // text stays unwritten until that is decided (STOP #1 of this unit). When written, it carries the OD-0012 F1
-    // wordings of :422 and :430 ('The user declined this in Marrow.', 'Marrow did not answer.').
+    // :363-437. A static let string (R-STR-9), the Swift raw string literal as it evaluates (four-space indentation
+    // of the closing delimiter stripped, no final newline). PR-PROVCLI-254's open_question on the orphan predicate at
+    // :428 is settled by ED-021 (engineering_decisions.md:91 Q57): replace the POSIX-only `process.ppid === 1` with
+    // the Windows-correct signal-0 liveness probe of the same parent, keeping the 6-hour cap, the unlink and the
+    // `block: true` verbatim. Carries the OD-0012 F1 wordings of :422 and :430 ('The user declined this in Marrow.',
+    // 'Marrow did not answer.').
     public static string ApprovalMod =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/CommandCodeAPI.swift:372");
+        """
+        import fs from 'node:fs'
+        import path from 'node:path'
+
+        // Tools that only look: they never wait on the user.
+        const READ_ONLY = new Set([
+          'read_file', 'read_directory', 'glob', 'grep', 'shell_output', 'shell_tasks',
+          'todo_write', 'task_create', 'task_update', 'task_list', 'task_get', 'sleep',
+          'web_search', 'web_fetch', 'agent', 'agent_output', 'activate_skill', 'taste',
+          'get_diagnostics', 'ask_user_question', 'plan_review', 'enter_plan_mode', 'exit_plan_mode',
+          'cron_list', 'run_command',
+        ])
+
+        const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+
+        export default function (cmd: any) {
+          const bridgePath = process.env.DROPPY_CODE_MCP_BRIDGE
+          if (bridgePath) {
+            import(bridgePath).then(async (bridge: any) => {
+              for (const tool of await bridge.loadMCPTools()) {
+                cmd.addTool({
+                  schema: { name: 'mcp__' + tool.server + '__' + tool.name, description: tool.description, input_schema: tool.inputSchema },
+                  run: async ({input}: any) => {
+                    const text = await tool.call(input || {})
+                    return { ok: true, content: [{ type: 'text', text }] }
+                  },
+                })
+              }
+            }).catch((error: any) => console.error('droppy mcp', error))
+          }
+          const dir = process.env.DROPPY_CODE_APPROVALS
+          if (!dir) return
+          cmd.hooks({
+            beforeToolCall: async ({toolCallId, toolName, input}: any, ctx: any) => {
+              if (READ_ONLY.has(toolName)) return
+              const id = String(toolCallId || `${Date.now()}-${Math.random().toString(36).slice(2)}`).replace(/[^A-Za-z0-9_.-]/g, '_')
+              const request = path.join(dir, `${id}.request.json`)
+              const reply = path.join(dir, `${id}.reply.json`)
+              try { fs.unlinkSync(reply) } catch {}
+              fs.writeFileSync(`${request}.tmp`, JSON.stringify({toolCallId: id, toolName, input}))
+              fs.renameSync(`${request}.tmp`, request)
+              const started = Date.now()
+              for (;;) {
+                let raw: string | undefined
+                try { raw = fs.readFileSync(reply, 'utf8') } catch {}
+                if (raw !== undefined) {
+                  try { fs.unlinkSync(reply) } catch {}
+                  let answer: any = {}
+                  try { answer = JSON.parse(raw) } catch {}
+                  if (answer.decision === 'allow') return
+                  return {block: true, additionalContext: answer.reason || 'The user declined this in Marrow.'}
+                }
+                if (ctx && ctx.signal && ctx.signal.aborted) {
+                  try { fs.unlinkSync(request) } catch {}
+                  return {block: true, additionalContext: 'The turn was stopped.'}
+                }
+                if ((() => { try { process.kill(process.ppid, 0); return false } catch (e) { return e.code === 'ESRCH' } })() || Date.now() - started > 6 * 60 * 60 * 1000) {
+                  try { fs.unlinkSync(request) } catch {}
+                  return {block: true, additionalContext: 'Marrow did not answer.'}
+                }
+                await sleep(40)
+              }
+            },
+          })
+        }
+        """;
 
     // :439-444. DEVIATION OD-0008 C7: Application Support is %LOCALAPPDATA% and AppInfo.name is the port's data
     // identity "Marrow Code", so the directory is %LOCALAPPDATA%\Marrow Code\CommandCode (PR-PROVCLI-207, ED-023). There
