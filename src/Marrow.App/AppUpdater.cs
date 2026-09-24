@@ -354,7 +354,11 @@ public sealed class AppUpdater
             exit 1
         }
 
-        Start-Process -FilePath $Dest -ErrorAction SilentlyContinue
+        try {
+            Start-Process -FilePath $Dest
+        } catch {
+            # :440's `open` result is unchecked; a relaunch failure does not undo a completed swap.
+        }
         Remove-Tree $Staging
         exit 0
         """;
