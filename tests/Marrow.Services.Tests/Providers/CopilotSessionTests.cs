@@ -330,7 +330,11 @@ public sealed class CopilotSessionTests
         runtime.Loop.Run(() => session.Send(Turn("hi", runtimeMode: RuntimeMode.Auto)), Bound);
         var setMode = Assert.Single(script.Requests("session.permissions.setMode"));
         Assert.Equal("assisted", Params(setMode)["mode"]!.JSONValueString);
-        Assert.All(script.Messages(), m => Assert.Null(m["params"]?["isExperimentalMode"]));
+        // isExperimentalMode is fixed at session.create (:130) from the configuration and is not part of applyModes
+        // (:328-341, PR-PROVCLI-141): it legitimately carries the pre-switch value (false) on session.create itself,
+        // and must not reappear on any later wire message such as setMode.
+        Assert.All(script.Messages().Where(m => m["method"]?.JSONValueString != "session.create"),
+            m => Assert.Null(m["params"]?["isExperimentalMode"]));
         Assert.Single(script.Requests("session.create"));
     }
 
@@ -757,6 +761,7 @@ public sealed class CopilotSessionTests
     public void A_text_reply_strips_ANSI_fences_the_text_follows_the_reported_mode_and_finishes_the_turn()
     {
         using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // Connect reads the MCP overrides (CopilotSession.swift:481-483)
         var (session, events, _) = CommandSession(runtime, "command-text",
             "{\"kind\":\"text\",\"mode\":\"plan\",\"text\":\"\\u001b[1mUsage\\u001b[0m: 42\"}");
         runtime.Loop.Run(() => session.Send(Turn("/review")), Bound);
@@ -776,6 +781,7 @@ public sealed class CopilotSessionTests
     public void A_completed_markdown_reply_shows_the_message_raw_and_any_other_mode_is_build()
     {
         using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // Connect reads the MCP overrides (CopilotSession.swift:481-483)
         var (session, events, _) = CommandSession(runtime, "command-markdown",
             "{\"kind\":\"completed\",\"mode\":\"autopilot\",\"markdown\":true,\"message\":\"**Done**\"}");
         runtime.Loop.Run(() => session.Send(Turn("/review", interactionMode: InteractionMode.Build)), Bound);
@@ -789,6 +795,7 @@ public sealed class CopilotSessionTests
     public void A_blank_text_reply_shows_no_message_but_still_finishes_the_turn()
     {
         using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // Connect reads the MCP overrides (CopilotSession.swift:481-483)
         var (session, events, _) = CommandSession(runtime, "command-blank", "{\"kind\":\"text\",\"text\":\" \\n \"}");
         runtime.Loop.Run(() => session.Send(Turn("/review")), Bound);
         Assert.Equal(2, events.Count);
@@ -801,6 +808,7 @@ public sealed class CopilotSessionTests
     public void An_agent_prompt_reply_sends_its_prompt_or_else_the_command_input_with_no_images()
     {
         using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // Connect reads the MCP overrides (CopilotSession.swift:481-483)
         var (session, _, script) = CommandSession(runtime, "command-prompt", "{\"kind\":\"agent-prompt\",\"prompt\":\"Review the staged diff\"}");
         var images = new ValueList<Attachment>([new Attachment { Name = "a.png", Path = @"C:\a.png", MimeType = "image/png" }]);
         runtime.Loop.Run(() => session.Send(Turn("/review now", images: images)), Bound);
@@ -819,6 +827,7 @@ public sealed class CopilotSessionTests
     public void Any_other_reply_kind_warns_that_only_Copilot_can_show_the_dialog_and_finishes_the_turn()
     {
         using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // Connect reads the MCP overrides (CopilotSession.swift:481-483)
         var (session, events, _) = CommandSession(runtime, "command-dialog", "{\"kind\":\"select\"}");
         runtime.Loop.Run(() => session.Send(Turn("/review")), Bound);
         var notice = Assert.IsType<ProviderEvent.Notice>(events[1]).Value;

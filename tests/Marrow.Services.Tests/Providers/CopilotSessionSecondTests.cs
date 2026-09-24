@@ -367,6 +367,7 @@ public sealed class CopilotSessionSecondTests
     public void AuthStatus_reads_the_login_and_flags_an_account_without_Copilot_access()
     {
         using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // Connect reads the MCP overrides (CopilotSession.swift:481-483)
         Assert.Equal(new ProviderStatus.Auth.SignedIn("octocat"), Auth(runtime, "auth-login", "{\"authInfo\":{\"login\":\"octocat\",\"copilotUser\":{\"access_type_sku\":\"free_limited_copilot\"}}}"));
         // U+00B7 MIDDLE DOT between the login and the note.
         Assert.Equal(new ProviderStatus.Auth.SignedIn("octocat \U000000B7 no Copilot access"),
@@ -381,6 +382,7 @@ public sealed class CopilotSessionSecondTests
     public void AuthStatus_is_signed_out_without_authInfo_and_unknown_when_the_request_fails()
     {
         using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // Connect reads the MCP overrides (CopilotSession.swift:481-483)
         Assert.Equal(new ProviderStatus.Auth.SignedOut(), Auth(runtime, "auth-null", "{\"authInfo\":null}"));
         Assert.Equal(new ProviderStatus.Auth.SignedOut(), Auth(runtime, "auth-missing", "{}"));
         Assert.Equal(new ProviderStatus.Auth.Unknown(), Auth(runtime, "auth-error", null, error: true));
