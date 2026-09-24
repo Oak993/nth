@@ -1064,7 +1064,11 @@ public sealed partial class CopilotSession : ProviderSession
             {
                 var command = ToolTitles.UnwrapShell(request["fullCommandText"]?.JSONValueString ?? "Command");
                 var details = new List<string>();
-                if (request["resolvedWorkingDirectory"]?.JSONValueString is { } directory && !SwiftString.Equal(directory, WorkingDirectory))
+                // windows_path (PR-PROVCLI-191): a plain string compare (Swift's `directory != workingDirectory`)
+                // would tolerate neither the case nor the separator differences between the resolved directory the
+                // CLI reports and our own WorkingDirectory, so the detail would always appear; SamePath (ED-137/141)
+                // normalizes both before comparing.
+                if (request["resolvedWorkingDirectory"]?.JSONValueString is { } directory && !SwiftPath.SamePath(directory, WorkingDirectory))
                 {
                     details.Add(ToolTitles.RelativePath(directory, WorkingDirectory));
                 }
