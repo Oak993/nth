@@ -416,14 +416,14 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
     public bool SettleSound
     {
         get => Read(settleSound);
-        set => Set(ref settleSound, value, _ => throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppSettings.swift:227"));
+        set => Set(ref settleSound, value, _ => defaults.Set(Key.SettleSound, value));
     }
 
     // :230-232
     public bool ShowReasoning
     {
         get => Read(showReasoning);
-        set => Set(ref showReasoning, value, _ => throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppSettings.swift:231"));
+        set => Set(ref showReasoning, value, _ => defaults.Set(Key.ShowReasoning, value));
     }
 
     // :237-239
@@ -437,14 +437,14 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
     public bool AntiSlopEnabled
     {
         get => Read(antiSlopEnabled);
-        set => Set(ref antiSlopEnabled, value, _ => throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppSettings.swift:242"));
+        set => Set(ref antiSlopEnabled, value, _ => defaults.Set(Key.AntiSlopEnabled, value));
     }
 
     // :247-249
     public bool ShowsWorkingCard
     {
         get => Read(showsWorkingCard);
-        set => Set(ref showsWorkingCard, value, _ => throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppSettings.swift:248"));
+        set => Set(ref showsWorkingCard, value, _ => defaults.Set(Key.ShowsWorkingCard, value));
     }
 
     // :253-255. The property shadows the static class Marrow.UI.Common.AppZoom inside this class: the body
@@ -459,108 +459,123 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
     public Size? PanelSize
     {
         get => Read(panelSize);
-        set => Set(ref panelSize, value, _ => throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppSettings.swift:261"));
+        set => Set(ref panelSize, value, _ =>
+        {
+            if (value is { } size) defaults.Set(Key.PanelSize, new object[] { size.Width, size.Height });
+            else defaults.RemoveObject(Key.PanelSize);
+        });
     }
 
     // :271-273
     public bool SidebarActivityView
     {
         get => Read(sidebarActivityView);
-        set => Set(ref sidebarActivityView, value, _ => throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppSettings.swift:272"));
+        set => Set(ref sidebarActivityView, value, _ => defaults.Set(Key.SidebarActivityView, value));
     }
 
     // :277-279
     public ActivityThreadStyle ActivityThreadStyle
     {
         get => Read(activityThreadStyle);
-        set => Set(ref activityThreadStyle, value, _ => throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppSettings.swift:278"));
+        set => Set(ref activityThreadStyle, value,
+            _ => defaults.Set(Key.ActivityThreadStyle, SwiftEnum<ActivityThreadStyle>.RawValue(value)));
     }
 
     // :282-284
     public bool SettledCollapsed
     {
         get => Read(settledCollapsed);
-        set => Set(ref settledCollapsed, value, _ => throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppSettings.swift:283"));
+        set => Set(ref settledCollapsed, value, _ => defaults.Set(Key.SettledCollapsed, value));
     }
 
     // :286-291
     public AppTheme Theme
     {
         get => Read(theme);
-        set => Set(ref theme, value, _ => throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppSettings.swift:287"));
+        set => Set(ref theme, value, _ =>
+        {
+            defaults.Set(Key.AppTheme, SwiftEnum<AppTheme>.RawValue(value));
+            ThemeManager.Current = value;
+        });
     }
 
     // :296-298
     public double BackdropOpacity
     {
         get => Read(backdropOpacity);
-        set => Set(ref backdropOpacity, value, _ => throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppSettings.swift:297"));
+        set => Set(ref backdropOpacity, value, _ => defaults.Set(Key.BackdropOpacity, value));
     }
 
     // :301-303
     public TextGenerationChoice TextGeneration
     {
         get => Read(textGeneration);
-        set => Set(ref textGeneration, value, _ => throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppSettings.swift:302"));
+        set => Set(ref textGeneration, value,
+            _ => defaults.Set(Key.TextGeneration, SwiftEnum<TextGenerationChoice>.RawValue(value)));
     }
 
     // :305-307
     public string CommitInstructions
     {
         get => Read(commitInstructions);
-        set => Set(ref commitInstructions, value, _ => throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppSettings.swift:306"));
+        set => Set(ref commitInstructions, value, _ => defaults.Set(Key.CommitInstructions, value));
     }
 
     // :309-311
     public double TerminalHeight
     {
         get => Read(terminalHeight);
-        set => Set(ref terminalHeight, value, _ => throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppSettings.swift:310"));
+        set => Set(ref terminalHeight, value, _ => defaults.Set(Key.TerminalHeight, value));
     }
 
     // :314-316
     public bool RecentDownloadsPicker
     {
         get => Read(recentDownloadsPicker);
-        set => Set(ref recentDownloadsPicker, value, _ => throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppSettings.swift:315"));
+        set => Set(ref recentDownloadsPicker, value, _ => defaults.Set(Key.RecentDownloadsPicker, value));
     }
 
     // :320-328
     public Guid? LastProjectID
     {
         get => Read(lastProjectID);
-        set => Set(ref lastProjectID, value, _ => throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppSettings.swift:321"));
+        set => Set(ref lastProjectID, value, _ =>
+        {
+            if (value is { } id) defaults.Set(Key.LastProjectID, SwiftUUID.UuidString(id));
+            else defaults.RemoveObject(Key.LastProjectID);
+        });
     }
 
     // :333-335
     public bool ProjectsEnabled
     {
         get => Read(projectsEnabled);
-        set => Set(ref projectsEnabled, value, _ => throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppSettings.swift:334"));
+        set => Set(ref projectsEnabled, value, _ => defaults.Set(Key.ProjectsEnabled, value));
     }
 
     // :339-341. Keys are project UUID strings.
     public ValueMap<string, bool> ProjectActivationOverrides
     {
         get => Read(projectActivationOverrides);
-        private set => Set(ref projectActivationOverrides, value, _ => throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppSettings.swift:340"));
+        private set => Set(ref projectActivationOverrides, value,
+            _ => StoreObject(value, Key.ProjectActivationOverrides, (writer, active) => writer.WriteBooleanValue(active)));
     }
 
     // :344-346
     public bool IsProjectActive(Guid id) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppSettings.swift:344");
+        projectActivationOverrides.TryGetValue(SwiftUUID.UuidString(id), out var active) ? active : ProjectsEnabled;
 
     // :349-351. Swift: setProjectActive(_:for:).
     public void SetProjectActive(bool active, Guid id) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppSettings.swift:349");
+        ProjectActivationOverrides = projectActivationOverrides.Mutating(map => map[SwiftUUID.UuidString(id)] = active);
 
     // :354-356. Swift: clearProjectActivationOverride(for:).
     public void ClearProjectActivationOverride(Guid id) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppSettings.swift:354");
+        ProjectActivationOverrides = projectActivationOverrides.Mutating(map => map.Remove(SwiftUUID.UuidString(id)));
 
     // :359-361. Swift: hasProjectActivationOverride(for:).
     public bool HasProjectActivationOverride(Guid id) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppSettings.swift:359");
+        projectActivationOverrides.ContainsKey(SwiftUUID.UuidString(id));
 
     // :367-373. Named deviation OD-0008 A6, B3; OD-0012 E5 (PR-PROVAPI-008, PR-PROVREG-239): the protected store
     // is written; a key it refuses is reported (APIKeyRefusal) and never kept in plain text anywhere.
