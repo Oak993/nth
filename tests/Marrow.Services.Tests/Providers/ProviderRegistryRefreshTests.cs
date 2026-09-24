@@ -454,29 +454,21 @@ public sealed class ProviderRegistryRefreshTests
 
     // ---- Delegated providers and the unreachable API-key arm (PR-PROVREG-123, 124) -------------------------
     //
-    // AntigravitySession.AuthStatus is MARROW_STUB (a missing dependency owned by another unit in this
-    // file's dependency cycle, section 6): it currently throws NotImplementedException naming its own Swift
-    // file, so its SIGNED-IN/OUT/UNKNOWN behaviour cannot be exercised here. What this test proves instead
-    // is that Auth's switch dispatches it to its OWN delegate and no other (the exception identifies the
-    // delegate reached), passing the executable and environment through unchanged, which is this record's
-    // registry-side contract ("the registry performs no parsing of its own for these four"). Once the
-    // delegate unit lands, its own tests cover the returned Auth values; this test should then be extended
-    // to assert on those values too. CommandCodeAPI.AuthStatus, CopilotSession.AuthStatus and PiCLI.AuthStatus
-    // landed with units Services.Providers.CommandCodeAPI, Services.Providers.CopilotSession and
-    // Services.Providers.PiCLI (merged into impl/b2 during this unit's final sync) and no longer throw:
-    // their own dispatch and returned Auth values are proven by CommandCodeAPITests.cs, CopilotSessionTests.cs
-    // and PiCLITests.cs, so each is dropped from this stub-only theory rather than force a stub exception
-    // that no longer exists.
+    // Antigravity's auth parsing belongs to AntigravitySession (PR-PROVCLI-339); this registry-side
+    // check proves its arm invokes `agy models` through the supplied executable and returns the delegate's
+    // Auth directly, as PR-PROVREG-123 requires. The detailed sign-in mapping is covered by
+    // AntigravitySessionTests. Copilot, Command Code and Pi auth values are covered by their owning tests.
 
-    [Theory]
-    [InlineData(ProviderKind.Antigravity, "AntigravitySession")]
+    [Fact]
     [Trait("Req", "PR-PROVREG-123")] // ProviderRegistry.swift:825-832
-    public async Task auth_dispatches_each_delegated_provider_to_its_own_session_or_api_type(ProviderKind provider, string delegateType)
+    public async Task antigravity_auth_dispatches_to_its_session_and_returns_its_status()
     {
-        var executable = FileUrl(Path.Combine(TempDir(), "delegate.exe"));
-        var error = await Assert.ThrowsAsync<NotImplementedException>(() =>
-            ProviderRegistry.Auth(provider, executable, new Dictionary<string, string>()));
-        Assert.Contains(delegateType, error.Message, StringComparison.Ordinal);
+        var script = ProviderProbeStandIns.CopyFor("antigravity-auth")
+            .SetStdout("gemini-3-flash\tGemini\n")
+            .SetExitCode(0);
+        var result = await ProviderRegistry.Auth(ProviderKind.Antigravity, FileUrl(script.ExecutablePath), new Dictionary<string, string>());
+        Assert.Equal(new ProviderStatus.Auth.SignedIn(null), result);
+        Assert.Equal([["models"]], script.RecordedCalls());
     }
 
     [Theory]
