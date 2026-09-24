@@ -86,6 +86,10 @@ public sealed class PlanLimitsTests
         // NotImplementedException, which SwiftTry.IsThrownError treats as a thrown Swift error (not a trap), so
         // the try?-wrapped dispatch swallows it to null exactly as PlanLimits.swift:74/76/77 do for a real
         // thrown error. This proves the wrapping; it cannot prove the exact callee until that unit lands.
+        // Copilot's own unit has since landed: ReadPlanLimits now really connects (CopilotSession.swift:481-483
+        // reads the MCP overrides), so Storage.Locations must be bound before this reaches it, same as every
+        // other Copilot test that starts the stand-in.
+        using var storage = provider == ProviderKind.Copilot ? new StorageScratchFolder() : null;
         var executable = FileUrl(Path.Combine(Path.GetTempPath(), "unreachable-" + Guid.NewGuid().ToString("N") + ".exe"));
         var result = await PlanLimitsReader.Read(provider, executable, ValueMap<string, string>.Empty);
         Assert.Null(result);

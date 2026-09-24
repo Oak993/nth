@@ -436,7 +436,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same URLs from the main process, no proxy or rewriting.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -462,7 +462,7 @@
       "cancellation": "not cancellable; the 15 second timeout bounds it",
       "windows_path": "Same request from the main process using the app's HTTP client.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -489,7 +489,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same parsing and the same tuple sort comparator.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -510,7 +510,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same literals in the model table.",
       "verification_method": "unit plus capture comparison against the model picker",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -530,7 +530,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same literals.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -553,7 +553,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same exclusion list, matched by exact string equality.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -573,7 +573,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same passthrough so future ids are not hidden.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -595,7 +595,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three-id membership test.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -616,7 +616,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same constant.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -640,7 +640,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same request and the same nil-on-any-doubt rule.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -663,7 +663,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same field names and string-to-number parsing, including the first-entry-only rule.",
       "verification_method": "unit with the sample body documented in source",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2064,7 +2064,7 @@
       "cancellation": "not cancellable",
       "windows_path": "No PATH lookup and no version probe for these three providers; the key is the install state.",
       "verification_method": "integration",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5127,7 +5127,8 @@
         "DroppyCode/Services/Providers/DeepSeekAPI.swift:79-92",
         "DroppyCode/Services/Providers/ProviderRegistry.swift:127 deepseekSeed"
       ],
-      "notes": "The seed shown before any network call is exactly ['deepseek-v4-pro', 'deepseek-flash'] mapped through the same table, so the seeded and the live list can never disagree. The em dash here is the record's own separator, not part of either string."
+      "notes": "The seed shown before any network call is exactly ['deepseek-v4-pro', 'deepseek-flash'] mapped through the same table, so the seeded and the live list can never disagree. The em dash here is the record's own separator, not part of either string.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVAPI-027",

@@ -3,6 +3,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Media;
+using Marrow.Core.Port;
 using System.Collections.ObjectModel;
 using System.Runtime.CompilerServices;
 using AvaloniaRun = Avalonia.Controls.Documents.Run;
@@ -24,7 +25,14 @@ public sealed class StyledText
         bool? HasMonospacedDigits = null,
         double? BaselineOffset = null,
         IImage? Image = null,
-        bool IsTemplateImage = false);
+        bool IsTemplateImage = false,
+        // UI/Markdown/MarkdownView.swift:497 `name.link = target.url` (AttributedString.link). ED-158(7):
+        // "Links stay with the MarkdownView unit" -- added here by that unit. Carries the URL only; there is
+        // no B2 caller that reads it back from a rendered Text run, so AppendTo below applies only the colour
+        // survival ED-158(7) names (the explicit foreground colour set after the link, so it is not
+        // recoloured the way a native text view would recolour an unstyled link) and leaves opening the link
+        // to the environment the way the rest of the app already opens a URL (ThreadTimeline precedent).
+        SwiftURL? Link = null);
 
     private static readonly ConditionalWeakTable<TextBlock, Dictionary<SwiftColor, IBrush>> BrushCache = new();
     private readonly ReadOnlyCollection<Run> runs;
@@ -71,6 +79,9 @@ public sealed class StyledText
 
     // UI/Markdown/MarkdownView.swift:386,493; ED-092(3) includes numeric baseline offsets on runs.
     public StyledText BaselineOffset(double offset) => Map(run => run.BaselineOffset is null ? run with { BaselineOffset = offset } : run);
+
+    // UI/Markdown/MarkdownView.swift:497 `name.link = target.url`. ED-158(7); see the Run.Link field above.
+    public StyledText Link(SwiftURL url) => Map(run => run.Link is null ? run with { Link = url } : run);
 
     // ED-158: replace the host's content while preserving one inline for every stored run.
     public void Render(TextBlock host)
