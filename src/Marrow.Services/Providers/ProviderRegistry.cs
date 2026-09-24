@@ -1135,22 +1135,49 @@ public sealed partial class ProviderRegistry : MainActorModel
         }
     }
 
-    // :678-700. PR-PROVREG-198 to 202: MARROW_STUB. CreditsReader (ProviderCredits.cs, unit
-    // Services.Providers.ProviderCredits, a sibling in this file's dependency cycle) has ExposesCredits,
-    // Read and TopUpURL all left as MARROW_STUB (unconditional throws) at the time of this unit's work;
-    // RefreshCredits' very first line calls ExposesCredits, so every call for every provider would hit that
-    // stub with no way to observe production behaviour. Left unwritten per section 6 (missing dependency),
-    // matching this file's own DeepseekSeed/ZaiSeed/CommandcodeSeed precedent (:140-179) of not implementing
-    // a member whose sole callee is another unit's stub. Reported: STOP Services.Providers.ProviderRegistry #1.
-    public void RefreshCredits(ProviderKind provider, bool force = false) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ProviderRegistry.swift:681 " +
-            "(blocked on CreditsReader, unit Services.Providers.ProviderCredits: see STOP report)");
+    // :678-700. Swift: refreshCredits(_:force:). CreditsReader (ProviderCredits.cs, unit
+    // Services.Providers.ProviderCredits) landed as a real implementation (no longer MARROW_STUB) in this
+    // file's dependency cycle, un-blocking this member. PR-PROVREG-198: Command Code's key comes from its
+    // own environment helper (the CLI's own login, unless Settings holds one, coupled into the environment
+    // by Environment(for:)); every other credits-exposing provider reads Settings directly. PR-PROVREG-199:
+    // an empty key clears the cached balance but deliberately leaves creditsFetchedAt untouched (upstream
+    // defect 5), unlike RefreshPlanLimits' equivalent branch (:613-614), which clears neither. PR-PROVREG-200:
+    // the sixty second gate is evaluated AFTER the key check, so a cleared key always wins over the gate.
+    // PR-PROVREG-201: the read has no watchdog and no defer (upstream defect 4), so a read that never
+    // completes leaves loadingCredits set for the rest of the run and the spinner never stops. PR-PROVREG-202:
+    // a forced call arriving while a read is in flight is silently dropped, with no queue (upstream defect 4),
+    // unlike RefreshPlanLimits' forcedLimitReads (PR-PROVREG-164).
+    public void RefreshCredits(ProviderKind provider, bool force = false)
+    {
+        if (!CreditsReader.ExposesCredits(provider) || loadingCredits.Contains(provider)) return; // :682
+        // :683-686. Command Code's key is the CLI's own login unless Settings holds one.
+        var apiKey = provider == ProviderKind.Commandcode
+            ? CommandCodeAPI.ApiKey(Environment(provider)) ?? ""
+            : settings.ApiKey(provider);
+        if (apiKey.Length == 0) // :687
+        {
+            credits = credits.Mutating(d => d.Remove(provider)); // :688 (creditsFetchedAt left untouched, PR-PROVREG-199)
+            return; // :689
+        }
+        if (!force && creditsFetchedAt.TryGetValue(provider, out var fetched) && SwiftDate.Now - fetched < TimeSpan.FromSeconds(60)) return; // :691
+        loadingCredits = loadingCredits.Mutating(s => s.Add(provider)); // :692
+        MainActor.Spawn(async () => // :693. No watchdog, no defer (PR-PROVREG-201): unlike RefreshPlanLimits.
+        {
+            var balance = await CreditsReader.Read(provider, apiKey); // :694
+            loadingCredits = loadingCredits.Mutating(s => s.Remove(provider)); // :695. Plain statement, not a defer.
+            if (balance is null) return; // :696
+            credits = credits.Mutating(d => d[provider] = balance); // :697
+            creditsFetchedAt[provider] = SwiftDate.Now; // :698
+        });
+    }
 
-    // :702-707. PR-PROVREG-205: MARROW_STUB for the same reason as RefreshCredits above (CreditsReader.
-    // ExposesCredits is an unconditional throw).
-    public void InvalidateCredits(ProviderKind provider) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ProviderRegistry.swift:704 " +
-            "(blocked on CreditsReader, unit Services.Providers.ProviderCredits: see STOP report)");
+    // :702-707. Swift: invalidateCredits(_:). PR-PROVREG-205: a turn just spent tokens, so the cached balance
+    // is older than the spend; only a provider that exposes credits has its gate reopened.
+    public void InvalidateCredits(ProviderKind provider)
+    {
+        if (!CreditsReader.ExposesCredits(provider)) return; // :705
+        creditsFetchedAt.Remove(provider); // :706
+    }
 
     // :709-715. PR-PROVREG-206: only Z.ai satisfies both guards (API-key based AND exposes limits), so only
     // its gate reopens at turn end; Codex, Claude, Antigravity, Copilot, Command Code and Pi expose limits
