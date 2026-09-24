@@ -939,56 +939,76 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
     public bool ShowsUsagePanel
     {
         get => Read(showsUsagePanel);
-        set => Set(ref showsUsagePanel, value, _ => throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppSettings.swift:632"));
+        set => Set(ref showsUsagePanel, value, _ => defaults.Set(Key.ShowsUsagePanel, value));
     }
 
     // :637-639
     public bool SidebarFloats
     {
         get => Read(sidebarFloats);
-        set => Set(ref sidebarFloats, value, _ => throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppSettings.swift:638"));
+        set => Set(ref sidebarFloats, value, _ => defaults.Set(Key.SidebarFloats, value));
     }
 
     // :643-645
     public bool SidebarOnlyFloats
     {
         get => Read(sidebarOnlyFloats);
-        set => Set(ref sidebarOnlyFloats, value, _ => throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppSettings.swift:644"));
+        set => Set(ref sidebarOnlyFloats, value, _ => defaults.Set(Key.SidebarOnlyFloats, value));
     }
 
     // :648-657. A computed get/set over the two switches above.
     public SidebarMode SidebarMode
     {
-        get => throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppSettings.swift:649");
-        set => throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppSettings.swift:653");
+        get
+        {
+            if (!SidebarFloats) return Marrow.App.SidebarMode.Column;
+            return SidebarOnlyFloats ? Marrow.App.SidebarMode.PanelOnly : Marrow.App.SidebarMode.Floating;
+        }
+        set
+        {
+            SidebarFloats = value != Marrow.App.SidebarMode.Column;
+            SidebarOnlyFloats = value == Marrow.App.SidebarMode.PanelOnly;
+        }
     }
 
     // :660-668
     public Point? SidebarPanelOrigin
     {
         get => Read(sidebarPanelOrigin);
-        set => Set(ref sidebarPanelOrigin, value, _ => throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppSettings.swift:661"));
+        set => Set(ref sidebarPanelOrigin, value, _ =>
+        {
+            if (value is { } origin) defaults.Set(Key.SidebarPanelOrigin, new object[] { origin.X, origin.Y });
+            else defaults.RemoveObject(Key.SidebarPanelOrigin);
+        });
     }
 
     // :671-679
     public Size? SidebarPanelSize
     {
         get => Read(sidebarPanelSize);
-        set => Set(ref sidebarPanelSize, value, _ => throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppSettings.swift:672"));
+        set => Set(ref sidebarPanelSize, value, _ =>
+        {
+            if (value is { } size) defaults.Set(Key.SidebarPanelSize, new object[] { size.Width, size.Height });
+            else defaults.RemoveObject(Key.SidebarPanelSize);
+        });
     }
 
     // :683-685
     public PanelDockCorner UsagePanelDock
     {
         get => Read(usagePanelDock);
-        set => Set(ref usagePanelDock, value, _ => throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppSettings.swift:684"));
+        set => Set(ref usagePanelDock, value, _ => defaults.Set(Key.UsagePanelDock, SwiftEnum<PanelDockCorner>.RawValue(value)));
     }
 
     // :688-696
     public double? UsagePanelHeight
     {
         get => Read(usagePanelHeight);
-        set => Set(ref usagePanelHeight, value, _ => throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppSettings.swift:689"));
+        set => Set(ref usagePanelHeight, value, _ =>
+        {
+            if (value is { } height) defaults.Set(Key.UsagePanelHeight, height);
+            else defaults.RemoveObject(Key.UsagePanelHeight);
+        });
     }
 
     // :699-701
