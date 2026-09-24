@@ -13,19 +13,24 @@ namespace Marrow.Services.Tests.Providers;
 //
 // Tests for unit Services.Providers.ProviderRegistry part 3 of 5: RefreshEverything (PR-PROVREG-131,
 // 132), the constructor's whole-blob cache and date reads and the Claude reseed (PR-PROVREG-133, 135,
-// 136, 137), mergedClaudeCatalog (PR-PROVREG-138), models/model (PR-PROVREG-147, 148) and loadCatalog
-// with its single-flight, attempt gate, seeded/stale test, OpenCode memo and nine-arm dispatch
-// (PR-PROVREG-149 to 153). A third class in the file this unit's tests mirror (R-TEST-3): parts 1 and 2
-// live in ProviderRegistryTests.cs and ProviderRegistryRefreshTests.cs.
+// 136, 137), mergedClaudeCatalog (PR-PROVREG-138), the Meta/Zai/Antigravity/Copilot/CommandCode/Pi seeds
+// (PR-PROVREG-141 to 146), models/model (PR-PROVREG-147, 148) and loadCatalog with its single-flight,
+// attempt gate, seeded/stale test, OpenCode memo and nine-arm dispatch (PR-PROVREG-149 to 153). A third
+// class in the file this unit's tests mirror (R-TEST-3): parts 1 and 2 live in ProviderRegistryTests.cs
+// and ProviderRegistryRefreshTests.cs.
 //
 // PR-PROVREG-130 (the refreshAPIProvider else arm for a fourth API-key provider) has no test: the record
 // itself says "None reachable" (source_evidence :362 - only the three shipped API-key providers ever
 // reach refresh's API-key branch), so there is no way to drive it without inventing a fourth provider,
-// which R-PROTO-1/section 1.3 forbids. RefreshPlanLimits and RefreshCredits (called by RefreshEverything's
-// phase 2 and by RefreshAPIProvider's follow-up reads) are MARROW_STUB, owned by a later part of this same
-// unit (PR-PROVREG-163 to 170, PR-USAGE-080/081, part 4/5): every scenario below that would reach phase 2
-// is written to expect that stub's NotImplementedException, proving RefreshEverything's own ordering and
-// single-flight guard up to that point without depending on the later part's implementation.
+// which R-PROTO-1/section 1.3 forbids. PR-PROVREG-140 (the DeepSeek seed) has no test either: it is built
+// from DeepSeekAPI.Option, still MARROW_STUB (DeepSeekAPI.swift:79) at the time of this part's work
+// (section 6: missing dependency, owned by unit Services.Providers.DeepSeekAPI); ProviderRegistry.DeepseekSeed
+// itself throws that stub's NotImplementedException. RefreshPlanLimits and RefreshCredits (called by
+// RefreshEverything's phase 2 and by RefreshAPIProvider's follow-up reads) are MARROW_STUB, owned by a
+// later part of this same unit (PR-PROVREG-163 to 170, PR-USAGE-080/081, part 4/5): every scenario below
+// that would reach phase 2 is written to expect that stub's NotImplementedException, proving
+// RefreshEverything's own ordering and single-flight guard up to that point without depending on the
+// later part's implementation.
 public sealed class ProviderRegistryCatalogTests
 {
     private static string TempDir()
@@ -303,6 +308,191 @@ public sealed class ProviderRegistryCatalogTests
         Assert.Empty(merged[4].Efforts); // unchanged: the live row's empty array did not replace it
 
         Assert.Equal("new-model", merged[5].Id); // appended last, in live order
+    }
+
+    // ---- API-provider seeds (PR-PROVREG-140 to 146) --------------------------------------------------------
+    //
+    // PR-PROVREG-140 (the DeepSeek seed, two rows built from DeepSeekAPI.Option) has no test: DeepSeekAPI.Option
+    // (DeepSeekAPI.cs, DeepSeekAPI.swift:79) is still MARROW_STUB at the time of this part's work (section 6:
+    // missing dependency, owned by unit Services.Providers.DeepSeekAPI), so ProviderRegistry.DeepseekSeed itself
+    // throws that stub's NotImplementedException and cannot be exercised without inventing DeepSeekAPI.Option's
+    // behaviour here, which section 1.3 forbids.
+
+    [Fact]
+    [Trait("Req", "PR-PROVREG-141")] // ProviderRegistry.swift:128-129, MetaAPI.swift:55-56, :58-74
+    public void the_meta_seed_is_five_muse_spark_rows_and_only_the_first_carries_the_max_effort_level()
+    {
+        var seed = ProviderRegistry.MetaSeed;
+        Assert.Equal(5, seed.Count);
+
+        Assert.Equal("muse-spark-1.3", seed[0].Id);
+        Assert.Equal("Spark 1.3", seed[0].Name);
+        Assert.Equal("Latest Muse Spark \U000000B7 best agentic coding \U000000B7 1M context", seed[0].Detail);
+        Assert.Equal(["minimal", "low", "medium", "high", "xhigh", "max"], seed[0].Efforts.ToArray());
+        Assert.Equal("high", seed[0].DefaultEffort);
+        Assert.True(seed[0].IsDefault);
+
+        Assert.Equal("muse-spark-1.3-contributor", seed[1].Id);
+        Assert.Equal("Spark 1.3 Contributor", seed[1].Name);
+        Assert.Equal("Cheaper 1.3 \U000000B7 Meta may train on your chats \U000000B7 no max effort", seed[1].Detail);
+        Assert.Equal(["minimal", "low", "medium", "high", "xhigh"], seed[1].Efforts.ToArray());
+        Assert.Equal("high", seed[1].DefaultEffort);
+        Assert.False(seed[1].IsDefault);
+
+        Assert.Equal("muse-spark-1.2", seed[2].Id);
+        Assert.Equal("Spark 1.2", seed[2].Name);
+        Assert.Equal("Previous checkpoint \U000000B7 Standard tier \U000000B7 1M context", seed[2].Detail);
+        Assert.Equal(["minimal", "low", "medium", "high", "xhigh"], seed[2].Efforts.ToArray());
+        Assert.Equal("high", seed[2].DefaultEffort);
+        Assert.False(seed[2].IsDefault);
+
+        Assert.Equal("muse-spark-1.2-contributor", seed[3].Id);
+        Assert.Equal("Spark 1.2 Contributor", seed[3].Name);
+        Assert.Equal("Cheaper 1.2 \U000000B7 Meta may train on your chats", seed[3].Detail);
+        Assert.Equal(["minimal", "low", "medium", "high", "xhigh"], seed[3].Efforts.ToArray());
+        Assert.Equal("high", seed[3].DefaultEffort);
+        Assert.False(seed[3].IsDefault);
+
+        Assert.Equal("muse-spark-1.1", seed[4].Id);
+        Assert.Equal("Spark 1.1", seed[4].Name);
+        Assert.Equal("Original checkpoint \U000000B7 Standard tier \U000000B7 1M context", seed[4].Detail);
+        Assert.Equal(["minimal", "low", "medium", "high", "xhigh"], seed[4].Efforts.ToArray());
+        Assert.Equal("high", seed[4].DefaultEffort);
+        Assert.False(seed[4].IsDefault);
+
+        // Only the 1.3 row (the one probed live to accept "max") carries the max level; every other row's
+        // scale tops out at xhigh.
+        Assert.Contains("max", seed[0].Efforts.ToArray());
+        for (var i = 1; i < seed.Count; i++) Assert.DoesNotContain("max", seed[i].Efforts.ToArray());
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVREG-142")] // ProviderRegistry.swift:130, ZaiAPI.swift:14, :51-54
+    public void the_zai_seed_is_the_two_glm_rows_with_low_high_max_efforts_and_default_effort_max()
+    {
+        var seed = ProviderRegistry.ZaiSeed;
+        Assert.Equal(2, seed.Count);
+
+        Assert.Equal("glm-5.3", seed[0].Id);
+        Assert.Equal("GLM-5.3", seed[0].Name);
+        Assert.Equal("Best reasoning and coding \U000000B7 1M context", seed[0].Detail);
+        Assert.Equal(["low", "high", "max"], seed[0].Efforts.ToArray());
+        Assert.Equal("max", seed[0].DefaultEffort);
+        Assert.True(seed[0].IsDefault);
+
+        Assert.Equal("glm-5.3-flash", seed[1].Id);
+        Assert.Equal("GLM-5.3 Flash", seed[1].Name);
+        Assert.Equal("Fast, reads images \U000000B7 1M context", seed[1].Detail);
+        Assert.Equal(["low", "high", "max"], seed[1].Efforts.ToArray());
+        Assert.Equal("max", seed[1].DefaultEffort);
+        Assert.False(seed[1].IsDefault);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVREG-143")] // ProviderRegistry.swift:132-142
+    public void the_antigravity_seed_is_seven_rows_with_gemini_3_1_pro_missing_medium_and_both_claude_rows_bare()
+    {
+        var seed = ProviderRegistry.AntigravitySeed;
+        Assert.Equal(7, seed.Count);
+
+        Assert.Equal("gemini-3.8-flash", seed[0].Id);
+        Assert.Equal("Gemini 3.8 Flash", seed[0].Name);
+        Assert.Equal(["low", "medium", "high"], seed[0].Efforts.ToArray());
+        Assert.Equal("high", seed[0].DefaultEffort);
+        Assert.True(seed[0].IsDefault);
+        Assert.Null(seed[0].Detail);
+
+        Assert.Equal("gemini-3.7-flash", seed[1].Id);
+        Assert.Equal("Gemini 3.7 Flash", seed[1].Name);
+        Assert.Equal(["low", "medium", "high"], seed[1].Efforts.ToArray());
+        Assert.Equal("high", seed[1].DefaultEffort);
+        Assert.False(seed[1].IsDefault);
+
+        Assert.Equal("gemini-3.6-flash", seed[2].Id);
+        Assert.Equal("Gemini 3.6 Flash", seed[2].Name);
+        Assert.Equal(["low", "medium", "high"], seed[2].Efforts.ToArray());
+        Assert.Equal("high", seed[2].DefaultEffort);
+        Assert.False(seed[2].IsDefault);
+
+        Assert.Equal("gemini-3.1-pro", seed[3].Id);
+        Assert.Equal("Gemini 3.1 Pro", seed[3].Name);
+        Assert.Equal(["low", "high"], seed[3].Efforts.ToArray()); // no medium level
+        Assert.Equal("high", seed[3].DefaultEffort);
+        Assert.False(seed[3].IsDefault);
+
+        Assert.Equal("claude-sonnet-4-6", seed[4].Id);
+        Assert.Equal("Claude Sonnet 4.6 (Thinking)", seed[4].Name);
+        Assert.Empty(seed[4].Efforts); // no scale at all
+        Assert.Null(seed[4].DefaultEffort);
+        Assert.Null(seed[4].Detail);
+
+        Assert.Equal("claude-opus-4-6-thinking", seed[5].Id);
+        Assert.Equal("Claude Opus 4.6 (Thinking)", seed[5].Name);
+        Assert.Empty(seed[5].Efforts); // no scale at all
+
+        Assert.Equal("gpt-oss-120b", seed[6].Id);
+        Assert.Equal("GPT-OSS 120B", seed[6].Name);
+        Assert.Equal(["medium"], seed[6].Efforts.ToArray());
+        Assert.Equal("medium", seed[6].DefaultEffort);
+        Assert.False(seed[6].IsDefault);
+
+        // None of the seven rows carries a detail string.
+        foreach (var row in seed) Assert.Null(row.Detail);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVREG-144")] // ProviderRegistry.swift:144-146
+    public void the_copilot_seed_is_a_single_auto_row_that_doubles_as_the_still_seeded_equality_sentinel()
+    {
+        var auto = ProviderRegistry.CopilotAuto;
+        Assert.Equal("auto", auto.Id);
+        Assert.Equal("Auto", auto.Name);
+        Assert.Equal("Copilot picks the model for each request", auto.Detail);
+        Assert.True(auto.IsDefault);
+        Assert.Empty(auto.Efforts);
+        Assert.Null(auto.FastTier);
+
+        // The seeded catalog is exactly this one row, by structural equality (:193, :473).
+        var seeded = new ValueList<ModelOption>([auto]);
+        Assert.Equal(new ValueList<ModelOption>([ProviderRegistry.CopilotAuto]), seeded);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVREG-145")] // ProviderRegistry.swift:148-150, CommandCodeAPI.swift:349-359
+    public void the_commandcode_seed_is_the_nine_row_commandcodeapi_seed_led_by_claude_sonnet_5()
+    {
+        var seed = ProviderRegistry.CommandcodeSeed;
+        Assert.Equal(9, seed.Count);
+        Assert.Equal(
+        [
+            "claude-sonnet-5", "claude-fable-5-1", "claude-opus-5", "gpt-6-astra", "gpt-5.6-sol",
+            "google/gemini-3.8-flash", "deepseek/deepseek-v4-flash", "moonshotai/kimi-k3", "zai-org/glm-5.3",
+        ],
+        seed.Select(o => o.Id).ToArray());
+        Assert.Equal("Claude Sonnet 5", seed[0].Name);
+        Assert.True(seed[0].IsDefault);
+        for (var i = 1; i < seed.Count; i++) Assert.False(seed[i].IsDefault);
+        // Every detail is a vendor word, a middle dot, and a phrase.
+        Assert.Equal("Anthropic \U000000B7 best combo of speed & intelligence", seed[0].Detail);
+        Assert.Equal("Open Source \U000000B7 frontier coding with emergent cyber capabilities", seed[8].Detail);
+        // The seed doubles as loadCatalog's still-seeded equality sentinel (:194, :474).
+        Assert.Equal(ProviderRegistry.CommandcodeSeed, seed);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVREG-146")] // ProviderRegistry.swift:152-153
+    public void the_pi_seed_is_a_single_default_row_with_a_seven_level_scale_starting_at_off_and_medium_default()
+    {
+        var seed = ProviderRegistry.PiSeed;
+        Assert.Single(seed);
+        Assert.Equal("default", seed[0].Id);
+        Assert.Equal("Default", seed[0].Name);
+        Assert.Equal("The model pi itself is set to", seed[0].Detail);
+        Assert.Equal(["off", "minimal", "low", "medium", "high", "xhigh", "max"], seed[0].Efforts.ToArray());
+        Assert.Equal("medium", seed[0].DefaultEffort); // note: medium, not high like every other provider
+        Assert.True(seed[0].IsDefault);
+        // The seed doubles as loadCatalog's still-seeded equality sentinel (:195, :475).
+        Assert.Equal(ProviderRegistry.PiSeed, seed);
     }
 
     // ---- models(for:) / model(_:for:) (PR-PROVREG-147, 148) ---------------------------------------------------
