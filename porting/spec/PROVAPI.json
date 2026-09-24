@@ -683,7 +683,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same configuration record.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -705,7 +705,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same JSON keys and values.",
       "verification_method": "contract fixture on the request body",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -727,7 +727,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same mapping table.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -749,7 +749,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same substring tests in the same order and the same message.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -771,7 +771,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same test and message.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -793,7 +793,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same test and message, with the ASCII apostrophe as written in source.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -815,7 +815,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same test and message.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -837,7 +837,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same passthrough; never invent a friendlier wording.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
