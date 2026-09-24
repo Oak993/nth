@@ -363,6 +363,7 @@ public sealed class AppSettingsTests
     [Fact]
     [Trait("Req", "PR-HYDRA-029")] // App/AppSettings.swift:785; Core/Models/Hydra.swift:82-94
     [Trait("Req", "PR-SETTINGS-084")] // App/AppSettings.swift:177, :785 (the only lenient decode: one corrupt element is dropped, not the whole array)
+    [Trait("Req", "PR-SETTINGS-087")] // App/AppSettings.swift:864-867 (decode failure -> nil -> empty default)
     public void A_stored_pair_that_fails_to_decode_is_dropped_and_the_others_survive_in_order()
     {
         using var scope = AppSettingsScope.Create();
@@ -403,6 +404,7 @@ public sealed class AppSettingsTests
     [Fact]
     [Trait("Req", "PR-HYDRA-029")] // App/AppSettings.swift:699-701, :790-792, :785
     [Trait("Req", "PR-SETTINGS-084")] // App/AppSettings.swift:177, :699-701, :785 (hydraPairs writes at once and reads back)
+    [Trait("Req", "PR-SETTINGS-099")] // App/AppSettings.swift:790-792 (add appends)
     public void An_added_pair_is_written_under_hydraPairs_and_read_back_after_a_relaunch() => WithSettings((scope, settings) =>
     {
         var pair = new HydraPair(ProviderKind.Claude) with { OrchestratorModel = "opus", MaxHeads = 5 };
@@ -419,6 +421,7 @@ public sealed class AppSettingsTests
 
     [Fact]
     [Trait("Req", "PR-HYDRA-151")] // App/AppSettings.swift:814-819
+    [Trait("Req", "PR-SETTINGS-100")] // App/AppSettings.swift:812-819 (exact, then any-model, then first)
     public void The_pair_for_a_chat_is_the_exact_lead_model_then_an_any_model_pair_then_the_providers_first() => WithSettings((_, settings) =>
     {
         var claudeSonnet = new HydraPair(ProviderKind.Claude) with { OrchestratorModel = "sonnet" };
@@ -437,6 +440,7 @@ public sealed class AppSettingsTests
 
     [Fact]
     [Trait("Req", "PR-HYDRA-151")] // App/AppSettings.swift:815-818
+    [Trait("Req", "PR-SETTINGS-100")] // App/AppSettings.swift:812-819 (provider with no pairs -> nil)
     public void With_no_any_model_pair_the_providers_first_pair_is_chosen_and_a_provider_without_pairs_has_none() => WithSettings((_, settings) =>
     {
         var codexOnly = new HydraPair(ProviderKind.Codex) with { OrchestratorModel = "gpt-5" };
@@ -526,6 +530,7 @@ public sealed class AppSettingsTests
     [Fact]
     [Trait("Req", "PR-PROVAPI-008")] // App/AppSettings.swift:367-373, :152, :485-494
     [Trait("Req", "PR-PROVREG-239")] // App/AppSettings.swift:367-373
+    [Trait("Req", "PR-SETTINGS-088")] // App/AppSettings.swift:363-373, :415-423, :485-494 (protected store only, no plaintext fallback)
     public void A_DeepSeek_key_the_store_accepts_is_kept_there_and_its_legacy_plaintext_entry_is_removed() =>
         AssertAcceptedKeyIsStoredAndItsLegacyEntryRemoved(ProviderKind.Deepseek, (s, v) => s.DeepseekAPIKeyInput = v);
 
@@ -533,12 +538,14 @@ public sealed class AppSettingsTests
     [Trait("Req", "PR-PROVAPI-008")] // App/AppSettings.swift:367-373, :485-494
     [Trait("Req", "PR-PROVAPI-011")] // App/AppSettings.swift:371, :487-494
     [Trait("Req", "PR-PROVREG-239")] // App/AppSettings.swift:367-373
+    [Trait("Req", "PR-SETTINGS-088")] // App/AppSettings.swift:363-373, :485-494 (refusal shown, nothing stored)
     public void A_DeepSeek_key_the_store_refuses_is_reported_under_the_field_and_stored_nowhere() =>
         AssertRefusedKeyIsReportedAndStoredNowhere(ProviderKind.Deepseek, (s, v) => s.DeepseekAPIKeyInput = v);
 
     [Fact]
     [Trait("Req", "PR-PROVAPI-009")] // App/AppSettings.swift:378-384, :153, :485-494
     [Trait("Req", "PR-PROVREG-239")] // App/AppSettings.swift:378-384
+    [Trait("Req", "PR-SETTINGS-088")] // App/AppSettings.swift:375-408, :415-423, :485-494
     public void A_Meta_key_the_store_accepts_is_kept_there_and_its_legacy_plaintext_entry_is_removed() =>
         AssertAcceptedKeyIsStoredAndItsLegacyEntryRemoved(ProviderKind.Meta, (s, v) => s.MetaAPIKeyInput = v);
 
@@ -546,12 +553,14 @@ public sealed class AppSettingsTests
     [Trait("Req", "PR-PROVAPI-009")] // App/AppSettings.swift:378-384, :485-494
     [Trait("Req", "PR-PROVAPI-011")] // App/AppSettings.swift:382, :487-494
     [Trait("Req", "PR-PROVREG-239")] // App/AppSettings.swift:378-384
+    [Trait("Req", "PR-SETTINGS-088")] // App/AppSettings.swift:375-408, :485-494
     public void A_Meta_key_the_store_refuses_is_reported_under_the_field_and_stored_nowhere() =>
         AssertRefusedKeyIsReportedAndStoredNowhere(ProviderKind.Meta, (s, v) => s.MetaAPIKeyInput = v);
 
     [Fact]
     [Trait("Req", "PR-PROVAPI-010")] // App/AppSettings.swift:391-397, :154, :485-494
     [Trait("Req", "PR-PROVREG-239")] // App/AppSettings.swift:391-397
+    [Trait("Req", "PR-SETTINGS-088")] // App/AppSettings.swift:375-408, :415-423, :485-494
     public void A_Zai_key_the_store_accepts_is_kept_there_and_its_legacy_plaintext_entry_is_removed() =>
         AssertAcceptedKeyIsStoredAndItsLegacyEntryRemoved(ProviderKind.Zai, (s, v) => s.ZaiAPIKeyInput = v);
 
@@ -559,17 +568,20 @@ public sealed class AppSettingsTests
     [Trait("Req", "PR-PROVAPI-010")] // App/AppSettings.swift:391-397, :485-494
     [Trait("Req", "PR-PROVAPI-011")] // App/AppSettings.swift:395, :487-494
     [Trait("Req", "PR-PROVREG-239")] // App/AppSettings.swift:391-397
+    [Trait("Req", "PR-SETTINGS-088")] // App/AppSettings.swift:375-408, :485-494
     public void A_Zai_key_the_store_refuses_is_reported_under_the_field_and_stored_nowhere() =>
         AssertRefusedKeyIsReportedAndStoredNowhere(ProviderKind.Zai, (s, v) => s.ZaiAPIKeyInput = v);
 
     [Fact]
     [Trait("Req", "PR-PROVREG-239")] // App/AppSettings.swift:402-408, :155, :485-494
+    [Trait("Req", "PR-SETTINGS-088")] // App/AppSettings.swift:375-408, :415-423, :485-494
     public void A_Command_Code_key_the_store_accepts_is_kept_there_and_its_legacy_plaintext_entry_is_removed() =>
         AssertAcceptedKeyIsStoredAndItsLegacyEntryRemoved(ProviderKind.Commandcode, (s, v) => s.CommandcodeAPIKeyInput = v);
 
     [Fact]
     [Trait("Req", "PR-PROVREG-239")] // App/AppSettings.swift:402-408, :485-494
     [Trait("Req", "PR-PROVAPI-011")] // App/AppSettings.swift:406, :487-494
+    [Trait("Req", "PR-SETTINGS-088")] // App/AppSettings.swift:375-408, :485-494
     public void A_Command_Code_key_the_store_refuses_is_reported_under_the_field_and_stored_nowhere() =>
         AssertRefusedKeyIsReportedAndStoredNowhere(ProviderKind.Commandcode, (s, v) => s.CommandcodeAPIKeyInput = v);
 
@@ -582,6 +594,7 @@ public sealed class AppSettingsTests
     [Trait("Req", "PR-PROVAPI-009")] // App/AppSettings.swift:934-943, :378-384
     [Trait("Req", "PR-PROVAPI-010")] // App/AppSettings.swift:934-943, :391-397
     [Trait("Req", "PR-PROVREG-239")] // App/AppSettings.swift:934-943, :402-408
+    [Trait("Req", "PR-SETTINGS-091")] // App/AppSettings.swift:934-943 (four-provider switch)
     public void SetAPIKeyInput_edits_the_same_field_as_the_Settings_page(ProviderKind provider)
     {
         AssertAcceptedKeyIsStoredAndItsLegacyEntryRemoved(provider, (s, v) => s.SetAPIKeyInput(v, provider));
@@ -725,6 +738,7 @@ public sealed class AppSettingsTests
     [Fact]
     [Trait("Req", "PR-PROVAPI-012")] // App/AppSettings.swift:441-449, :459-466
     [Trait("Req", "PR-PROVAPI-013")] // App/AppSettings.swift:468-476
+    [Trait("Req", "PR-SETTINGS-089")] // App/AppSettings.swift:441-483 (one lazy cached read, re-entry guard)
     public void The_background_load_reads_each_account_once_off_the_main_thread_and_fills_the_fields_without_writing_back()
     {
         using var scope = AppSettingsScope.Create();
@@ -757,6 +771,7 @@ public sealed class AppSettingsTests
     [Fact]
     [Trait("Req", "PR-PROVAPI-012")] // App/AppSettings.swift:454-457, :923-925
     [Trait("Req", "PR-PROVREG-089")] // App/AppSettings.swift:904-905 (read at most once per run, on the first call)
+    [Trait("Req", "PR-SETTINGS-089")] // App/AppSettings.swift:454-457 (synchronous ask wins the race)
     public void The_first_ask_reads_the_credentials_itself_exactly_once()
     {
         using var scope = AppSettingsScope.Create();
@@ -830,6 +845,7 @@ public sealed class AppSettingsTests
     [Trait("Req", "PR-PROVAPI-014")] // App/AppSettings.swift:913-915; Core/Models/Provider.swift:133-141
     [Trait("Req", "PR-PROVREG-089")] // App/AppSettings.swift:913-915
     [Trait("Decision", "ED-028")]
+    [Trait("Req", "PR-SETTINGS-090")] // App/AppSettings.swift:900-916 (environment fallback)
     public void With_nothing_stored_the_key_is_the_providers_environment_variable_trimmed(ProviderKind provider, string variable) =>
         WithSettings((_, settings) =>
         {
@@ -845,6 +861,7 @@ public sealed class AppSettingsTests
     [InlineData(ProviderKind.Commandcode)]
     [Trait("Req", "PR-PROVAPI-014")] // App/AppSettings.swift:906-913
     [Trait("Req", "PR-PROVREG-089")] // App/AppSettings.swift:906-913
+    [Trait("Req", "PR-SETTINGS-090")] // App/AppSettings.swift:900-916 (stored value wins)
     public void A_stored_key_wins_over_the_environment_and_is_sent_trimmed(ProviderKind provider) => WithSettings((_, settings) =>
     {
         settings.SetAPIKeyInput(" \n sk-typed-key \t", provider);
@@ -854,6 +871,7 @@ public sealed class AppSettingsTests
 
     [Fact]
     [Trait("Req", "PR-PROVREG-089")] // App/AppSettings.swift:911, :914
+    [Trait("Req", "PR-SETTINGS-090")] // App/AppSettings.swift:900-916 (acceptsAPIKey false -> "")
     public void Providers_that_take_no_key_get_the_empty_string() => WithSettings((_, settings) =>
     {
         foreach (var provider in AllProviders.Where(p => !p.AcceptsAPIKey))
@@ -869,6 +887,7 @@ public sealed class AppSettingsTests
     [InlineData(ProviderKind.Zai)]
     [InlineData(ProviderKind.Commandcode)]
     [Trait("Req", "PR-PROVREG-090")] // App/AppSettings.swift:904-910, :923-931
+    [Trait("Req", "PR-SETTINGS-091")] // App/AppSettings.swift:922-932 (apiKeyInput(for:))
     public void The_field_value_is_untrimmed_while_the_key_sent_is_trimmed(ProviderKind provider) => WithSettings((_, settings) =>
     {
         settings.SetAPIKeyInput("  sk-spaced ", provider);
@@ -878,6 +897,7 @@ public sealed class AppSettingsTests
 
     [Fact]
     [Trait("Req", "PR-PROVREG-090")] // App/AppSettings.swift:925-931, :936-942
+    [Trait("Req", "PR-SETTINGS-091")] // App/AppSettings.swift:922-943 (silent default branch)
     public void Providers_without_a_key_field_read_an_empty_field_and_ignore_edits() => WithSettings((scope, settings) =>
     {
         foreach (var provider in AllProviders.Where(p => !p.AcceptsAPIKey))
@@ -893,6 +913,7 @@ public sealed class AppSettingsTests
 
     [Fact]
     [Trait("Req", "PR-PROVREG-084")] // App/AppSettings.swift:746, :878-880
+    [Trait("Req", "PR-SETTINGS-093")] // App/AppSettings.swift:878-885 (absent is enabled)
     public void Every_provider_is_enabled_on_a_fresh_store() => WithSettings((scope, settings) =>
     {
         foreach (var provider in AllProviders) Assert.True(settings.IsEnabled(provider));
@@ -933,6 +954,7 @@ public sealed class AppSettingsTests
 
     [Fact]
     [Trait("Req", "PR-PROVREG-085")] // App/AppSettings.swift:882-885, :500-502
+    [Trait("Req", "PR-SETTINGS-093")] // App/AppSettings.swift:882-885 (remove-then-append, no duplicates)
     public void Disabling_moves_the_provider_to_the_end_and_enabling_removes_every_copy_one_write_each()
     {
         using var scope = AppSettingsScope.Create();
@@ -970,6 +992,7 @@ public sealed class AppSettingsTests
 
     [Fact]
     [Trait("Req", "PR-PROVREG-086")] // App/AppSettings.swift:138, :496-498, :869-876
+    [Trait("Req", "PR-SETTINGS-092")] // App/AppSettings.swift:873-876 (trimmed)
     public void A_binary_path_is_stored_trimmed_under_the_providers_raw_value_one_write_per_change() => WithSettings((scope, settings) =>
     {
         Assert.Equal("", settings.BinaryPath(ProviderKind.OpencodeGo));
@@ -987,6 +1010,7 @@ public sealed class AppSettingsTests
 
     [Fact]
     [Trait("Req", "PR-PROVREG-086")] // App/AppSettings.swift:873-876
+    [Trait("Req", "PR-SETTINGS-092")] // App/AppSettings.swift:873-876 (empty removes rather than stores)
     public void Clearing_a_binary_path_removes_its_entry_instead_of_storing_an_empty_string() => WithSettings((scope, settings) =>
     {
         settings.SetBinaryPath("C:\\Tools\\codex.exe", ProviderKind.Codex);
@@ -1015,6 +1039,7 @@ public sealed class AppSettingsTests
 
     [Fact]
     [Trait("Req", "PR-PROVREG-087")] // App/AppSettings.swift:140-141, :504-510, :887-898
+    [Trait("Req", "PR-SETTINGS-094")] // App/AppSettings.swift:887-898 (one call, two dictionaries)
     public void Remember_stores_the_last_model_and_effort_by_raw_value_and_a_relaunch_reads_them_back() => WithSettings((scope, settings) =>
     {
         Assert.Null(settings.LastModel(ProviderKind.Codex));
@@ -1248,6 +1273,7 @@ public sealed class AppSettingsTests
 
     [Fact]
     [Trait("Req", "PR-SETTINGS-054")] // App/AppSettings.swift:151, :337-361, :739
+    [Trait("Req", "PR-SETTINGS-095")] // App/AppSettings.swift:344-361 (three-state override model)
     public void ProjectActivationOverrides_follow_the_global_switch_until_explicitly_overridden() => WithSettings((scope, settings) =>
     {
         var id = Guid.Parse("7b3d0dd5-4de2-4f34-9f45-a2bf3657d671");
@@ -1327,6 +1353,7 @@ public sealed class AppSettingsTests
 
     [Fact]
     [Trait("Req", "PR-SETTINGS-060")] // App/AppSettings.swift:96-101, :146, :519-521, :750
+    [Trait("Req", "PR-SETTINGS-096")] // App/AppSettings.swift:823-834 (cap 15, silent no-op past the cap)
     public void ModelList_persists_as_JSON_capped_at_15_and_ModelPin_encodes_only_provider_and_modelID() => WithSettings((scope, settings) =>
     {
         Assert.Empty(settings.ModelList);
@@ -1353,6 +1380,7 @@ public sealed class AppSettingsTests
 
     [Fact]
     [Trait("Req", "PR-SETTINGS-060")] // App/AppSettings.swift:750 (decode failure yields an empty list)
+    [Trait("Req", "PR-SETTINGS-087")] // App/AppSettings.swift:750, :864-867 (decode failure -> nil -> empty default)
     public void ModelList_decode_failure_yields_an_empty_list()
     {
         using var scope = AppSettingsScope.Create();
@@ -1362,6 +1390,7 @@ public sealed class AppSettingsTests
 
     [Fact]
     [Trait("Req", "PR-SETTINGS-061")] // App/AppSettings.swift:104-107, :147, :523-525, :751
+    [Trait("Req", "PR-SETTINGS-098")] // App/AppSettings.swift:850-858 (equal to default is removed, not stored)
     public void ModelPreferences_persists_by_ModelPin_id_and_a_default_preference_is_removed_not_stored() => WithSettings((scope, settings) =>
     {
         Assert.Equal(new ModelPreference(), settings.Preference(ProviderKind.Codex, "model-a"));
@@ -1408,6 +1437,7 @@ public sealed class AppSettingsTests
 
     [Fact]
     [Trait("Rule", "R-COND-1")] // App/AppSettings.swift:648-657, computed from sidebarFloats and sidebarOnlyFloats
+    [Trait("Req", "PR-SETTINGS-101")] // App/AppSettings.swift:647-657 (one three-way choice over two booleans)
     public void SidebarMode_is_the_computed_pair_of_the_two_sidebar_switches() => WithSettings((_, settings) =>
     {
         Assert.Equal(Marrow.App.SidebarMode.Column, settings.SidebarMode);
@@ -1550,4 +1580,185 @@ public sealed class AppSettingsTests
         Assert.Equal("opencodeGo", entry.GetProperty("provider").GetString());
         Assert.Equal("kimi-k2", entry.GetProperty("modelID").GetString());
     });
+
+    // ---- PR-SETTINGS-086 to PR-SETTINGS-100, PR-SETTINGS-106, PR-SETTINGS-253 to PR-SETTINGS-259 (part 4 of 5) ----
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-086")] // App/AppSettings.swift:184, :704, :864-867 (WebsiteCaptures NOT-PORTED, ED-001;
+                                       // porting/dead_code.md entry 44: capture-mode short circuits are user-unreachable)
+    public void Settings_resolve_a_single_store_so_a_write_from_one_construction_is_seen_by_another() => WithSettings((scope, settings) =>
+    {
+        settings.NotifyWhenFinished = false;
+        Assert.Equal(false, scope.Defaults.Object("notifyWhenFinished"));
+        var again = new AppSettings();
+        Assert.False(again.NotifyWhenFinished); // the same one store, not a second, capture-only suite
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-087")] // App/AppSettings.swift:864-867 (decode failure -> nil -> empty default)
+    public void ModelPreferences_decode_failure_yields_an_empty_map()
+    {
+        using var scope = AppSettingsScope.Create();
+        scope.Defaults.Seed("modelPreferences", "not-json-data"u8.ToArray());
+        scope.OnMain(() => Assert.Empty(new AppSettings().ModelPreferences));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-087")] // App/AppSettings.swift:864-867 (decode failure -> nil -> empty default)
+    public void ProjectActivationOverrides_decode_failure_yields_an_empty_map()
+    {
+        using var scope = AppSettingsScope.Create();
+        scope.Defaults.Seed("projectActivationOverrides", "not-json-data"u8.ToArray());
+        scope.OnMain(() => Assert.Empty(new AppSettings().ProjectActivationOverrides));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-097")] // App/AppSettings.swift:836-848 (moveModel, with the from < dest correction)
+    public void MoveModel_places_the_pin_before_or_after_the_target_with_the_index_correction() => WithSettings((_, settings) =>
+    {
+        var a = new ModelPin(ProviderKind.Codex, "a");
+        var b = new ModelPin(ProviderKind.Codex, "b");
+        var c = new ModelPin(ProviderKind.Codex, "c");
+        settings.AddToModelList(a);
+        settings.AddToModelList(b);
+        settings.AddToModelList(c);
+        Assert.Equal([a, b, c], settings.ModelList);
+
+        // Move a (index 0) to after c (index 2): dest = 2 + 1 = 3, from(0) < dest(3) so dest -= 1 => 2.
+        Assert.True(settings.MoveModel(a, c, placeAfter: true));
+        Assert.Equal([b, c, a], settings.ModelList);
+
+        // Move a (now index 2) to before b (index 0): dest = 0, from(2) not < dest(0), no correction.
+        Assert.True(settings.MoveModel(a, b, placeAfter: false));
+        Assert.Equal([a, b, c], settings.ModelList);
+
+        // Same pin as target: false, no change.
+        Assert.False(settings.MoveModel(a, a, placeAfter: false));
+        Assert.Equal([a, b, c], settings.ModelList);
+
+        // A pin not in the list: false, no change.
+        var missing = new ModelPin(ProviderKind.Codex, "missing");
+        Assert.False(settings.MoveModel(missing, a, placeAfter: false));
+        Assert.False(settings.MoveModel(a, missing, placeAfter: false));
+
+        // Computed destination equal to source: no-op, false. Moving b (index 1) to before c (index 2) lands
+        // back at index 1.
+        Assert.False(settings.MoveModel(b, c, placeAfter: false));
+        Assert.Equal([a, b, c], settings.ModelList);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-099")] // App/AppSettings.swift:794-805 (update by id, clamp, equality guard; remove)
+    public void UpdateHydraPair_clamps_the_cap_and_drops_a_no_op_write_and_remove_drops_by_id() => WithSettings((scope, settings) =>
+    {
+        var pair = new Marrow.Core.Models.HydraPair(ProviderKind.Codex);
+        settings.AddHydraPair(pair);
+        var writesAfterAdd = scope.Defaults.Writes.Count(w => w.Key == "hydraPairs");
+
+        // Unknown id: silent no-op, no persist.
+        settings.UpdateHydraPair(Guid.NewGuid(), p => p with { Name = "nope" });
+        Assert.Equal(writesAfterAdd, scope.Defaults.Writes.Count(w => w.Key == "hydraPairs"));
+
+        // A real change with an out-of-range cap: clamped into 1...8 and persisted.
+        settings.UpdateHydraPair(pair.Id, p => p with { MaxHeads = 99 });
+        Assert.Equal(8, settings.HydraPair(pair.Id)!.MaxHeads);
+        Assert.Equal(writesAfterAdd + 1, scope.Defaults.Writes.Count(w => w.Key == "hydraPairs"));
+
+        // A no-op mutation (returns the same values, post-clamp): dropped, no persist.
+        settings.UpdateHydraPair(pair.Id, p => p with { MaxHeads = 99 }); // clamps to 8 again, same as stored
+        Assert.Equal(writesAfterAdd + 1, scope.Defaults.Writes.Count(w => w.Key == "hydraPairs"));
+
+        // nil stays nil under the clamp.
+        settings.UpdateHydraPair(pair.Id, p => p with { MaxHeads = null });
+        Assert.Null(settings.HydraPair(pair.Id)!.MaxHeads);
+
+        settings.RemoveHydraPair(pair.Id);
+        Assert.Null(settings.HydraPair(pair.Id));
+    });
+
+    [Theory]
+    [InlineData(TextGenerationChoice.Automatic, "Automatic")]
+    [InlineData(TextGenerationChoice.Claude, "Claude")]
+    [InlineData(TextGenerationChoice.Codex, "Codex")]
+    [InlineData(TextGenerationChoice.Off, "Off")]
+    [Trait("Req", "PR-SETTINGS-106")] // App/AppSettings.swift:11-18
+    public void TextGenerationChoice_titles_are_exact(TextGenerationChoice choice, string title) =>
+        Assert.Equal(title, choice.Title);
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-106")] // App/AppSettings.swift:9, :3-7 (raw values are the persisted ids, in declaration order)
+    public void TextGenerationChoice_ids_are_the_raw_values_in_declaration_order()
+    {
+        Assert.Equal(
+            [TextGenerationChoice.Automatic, TextGenerationChoice.Claude, TextGenerationChoice.Codex, TextGenerationChoice.Off],
+            Enum.GetValues<TextGenerationChoice>());
+        Assert.Equal("automatic", TextGenerationChoice.Automatic.Id);
+        Assert.Equal("claude", TextGenerationChoice.Claude.Id);
+        Assert.Equal("codex", TextGenerationChoice.Codex.Id);
+        Assert.Equal("off", TextGenerationChoice.Off.Id);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-253")] // App/AppSettings.swift:32, :39
+    public void ThreadFinishAction_settle_title_and_detail_are_exact()
+    {
+        Assert.Equal("Settle", ThreadFinishAction.Settle.Title);
+        Assert.Equal("A settled thread drops to the bottom of the sidebar, small and grey, until you reopen it",
+            ThreadFinishAction.Settle.Detail);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-254")] // App/AppSettings.swift:33, :40
+    public void ThreadFinishAction_archive_title_and_detail_are_exact()
+    {
+        Assert.Equal("Archive", ThreadFinishAction.Archive.Title);
+        Assert.Equal("An archived thread leaves the sidebar for the Archive page", ThreadFinishAction.Archive.Detail);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-255")] // App/AppSettings.swift:55, :63
+    public void SidebarMode_column_title_and_detail_are_exact()
+    {
+        Assert.Equal("Column", Marrow.App.SidebarMode.Column.Title);
+        Assert.Equal("A column beside the chat; the list button in the toolbar shows and hides it",
+            Marrow.App.SidebarMode.Column.Detail);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-256")] // App/AppSettings.swift:56, :64
+    public void SidebarMode_floating_title_and_detail_are_exact()
+    {
+        Assert.Equal("Floating", Marrow.App.SidebarMode.Floating.Title);
+        Assert.Equal("With the column collapsed, the thread list floats as a panel over the chat and stays where you leave it",
+            Marrow.App.SidebarMode.Floating.Detail);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-257")] // App/AppSettings.swift:57, :65
+    public void SidebarMode_panelOnly_title_and_detail_are_exact()
+    {
+        Assert.Equal("Panel only", Marrow.App.SidebarMode.PanelOnly.Title);
+        Assert.Equal("No column and no toolbar button; the floating panel is the sidebar",
+            Marrow.App.SidebarMode.PanelOnly.Detail);
+        Assert.Equal("panelOnly", Marrow.App.SidebarMode.PanelOnly.Id); // the id, never persisted (PR-SETTINGS-257)
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-258")] // App/AppSettings.swift:82, :89
+    public void ActivityThreadStyle_icon_title_and_detail_are_exact()
+    {
+        Assert.Equal("Icon", ActivityThreadStyle.Icon.Title);
+        Assert.Equal("Each project's emoji or symbol before the thread's name, one line per thread",
+            ActivityThreadStyle.Icon.Detail);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-259")] // App/AppSettings.swift:83, :90
+    public void ActivityThreadStyle_projectName_title_and_detail_are_exact()
+    {
+        Assert.Equal("Project name", ActivityThreadStyle.ProjectName.Title);
+        Assert.Equal("The project's name, with a folder mark, on a line under the thread's title",
+            ActivityThreadStyle.ProjectName.Detail);
+        Assert.Equal("projectName", ActivityThreadStyle.ProjectName.Id); // the persisted raw value (PR-SETTINGS-259)
+    }
 }
