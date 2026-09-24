@@ -17,6 +17,13 @@ namespace Marrow.Services.Tests.Providers;
 // a compiled offline stand-in (R-TEST-8, R-TEST-10; never a real AI CLI), driven through
 // tests/Marrow.Services.Tests/Fixtures/PiStandIns.cs. Stream-dispatch tests call PiSession's internal Handle
 // methods directly with constructed JSONValue lines, which needs no live process.
+//
+// Part 2 of 2 (PR-PROVCLI-292 to 300, UI-PROVCLI-010 to 012), below: handleToolEnd and its unified-diff helper,
+// finishTurn's plan publication, the eight extension_ui_request methods, the droppy-gate select payload and its
+// session-grant auto-allow, the three-option approval row, didClose's turn/exit reporting, and isRunning's three
+// flags. Most of these dispatch through the internal Handle(...) with no live process; didClose is reached
+// through the internal DidClose(...) seam and a turn is put in flight through the internal TestBeginTurn(...)
+// seam (a no-Swift-twin subset of send()'s state at :179-186, since send() itself requires a live process).
 public sealed class PiSessionTests
 {
     // See ClaudeSessionTests for why a "file" URL is wrong on this platform for SwiftURL.Path: build from a
@@ -915,6 +922,688 @@ public sealed class PiSessionTests
 
         session.HandleToolStart(Json("{\"toolCallId\":\"c4\",\"toolName\":\"custom_empty\",\"args\":{}}"));
         Assert.Null(events.OfType<ProviderEvent.ToolStarted>().Last().Call.Detail); // {} compacts to no detail
+    }
+
+    // =================== Part 2 of 2 (PR-PROVCLI-292 to 300, UI-PROVCLI-010 to 012) ===================
+
+    private static (PiSession Session, List<ProviderEvent> Events) MakeInDir(string dir) => Make(new SessionConfiguration
+    {
+        Provider = ProviderKind.Pi,
+        WorkingDirectory = FileUrl(dir),
+        Environment = ValueMap<string, string>.Empty,
+        RuntimeMode = RuntimeMode.Supervised,
+        InteractionMode = InteractionMode.Build,
+    });
+
+    private static (PiSession Session, List<ProviderEvent> Events) Make2() => MakeInDir(Path.GetTempPath());
+
+    // ---- PR-PROVCLI-292 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-292")] // PiSession.swift:451-455
+    public void HandleToolEnd_completed_uses_result_content_text()
+    {
+        var (session, events) = Make2();
+        session.HandleToolStart(Json("{\"toolCallId\":\"t1\",\"toolName\":\"bash\",\"args\":{\"command\":\"ls\"}}"));
+        session.HandleToolEnd(Json("{\"toolCallId\":\"t1\",\"result\":{\"content\":\"hello out\"}}"));
+        var updated = Assert.Single(events.OfType<ProviderEvent.ToolUpdated>());
+        Assert.Equal("t1", updated.Id);
+        Assert.Equal("hello out", updated.Update.Output);
+        Assert.Equal(ToolCall.Status.Completed, updated.Update.Status);
+        Assert.Null(updated.Update.Edits); // no error, and no recorded edit/write tool
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-292")] // PiSession.swift:456-459
+    public void HandleToolEnd_an_error_starting_with_the_decline_prefix_reads_declined()
+    {
+        var (session, events) = Make2();
+        session.HandleToolStart(Json("{\"toolCallId\":\"t2\",\"toolName\":\"edit\",\"args\":{\"path\":\"/a/f.txt\"}}"));
+        session.HandleToolEnd(Json("{\"toolCallId\":\"t2\",\"isError\":true,\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"The user declined this edit.\"}]}}"));
+        var updated = Assert.Single(events.OfType<ProviderEvent.ToolUpdated>());
+        Assert.Equal(ToolCall.Status.Declined, updated.Update.Status);
+        Assert.Equal("The user declined this edit.", updated.Update.Output);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-292")] // PiSession.swift:458-459
+    public void HandleToolEnd_an_error_without_the_prefix_reads_failed()
+    {
+        var (session, events) = Make2();
+        session.HandleToolStart(Json("{\"toolCallId\":\"t3\",\"toolName\":\"bash\",\"args\":{}}"));
+        session.HandleToolEnd(Json("{\"toolCallId\":\"t3\",\"result\":{\"content\":\"boom happened\",\"isError\":true}}"));
+        var updated = Assert.Single(events.OfType<ProviderEvent.ToolUpdated>());
+        Assert.Equal(ToolCall.Status.Failed, updated.Update.Status);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-292")] // PiSession.swift:455
+    public void HandleToolEnd_isError_reads_only_the_boolean_true()
+    {
+        var (session, events) = Make2();
+        session.HandleToolStart(Json("{\"toolCallId\":\"t4\",\"toolName\":\"bash\",\"args\":{}}"));
+        // A string "true" is not the boolean true, so the call still completes.
+        session.HandleToolEnd(Json("{\"toolCallId\":\"t4\",\"isError\":\"true\",\"result\":{\"content\":\"fine\"}}"));
+        var updated = Assert.Single(events.OfType<ProviderEvent.ToolUpdated>());
+        Assert.Equal(ToolCall.Status.Completed, updated.Update.Status);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-292")] // PiSession.swift:460
+    public void HandleToolEnd_exitCode_comes_from_result_details()
+    {
+        var (session, events) = Make2();
+        session.HandleToolStart(Json("{\"toolCallId\":\"t5\",\"toolName\":\"bash\",\"args\":{}}"));
+        session.HandleToolEnd(Json("{\"toolCallId\":\"t5\",\"result\":{\"content\":\"x\",\"details\":{\"exitCode\":2}}}"));
+        var updated = Assert.Single(events.OfType<ProviderEvent.ToolUpdated>());
+        Assert.Equal(2L, updated.Update.ExitCode);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-292")] // PiSession.swift:465
+    public void HandleToolEnd_empty_output_yields_a_null_output()
+    {
+        var (session, events) = Make2();
+        session.HandleToolStart(Json("{\"toolCallId\":\"t6\",\"toolName\":\"bash\",\"args\":{}}"));
+        session.HandleToolEnd(Json("{\"toolCallId\":\"t6\",\"result\":{\"content\":\"\"}}"));
+        var updated = Assert.Single(events.OfType<ProviderEvent.ToolUpdated>());
+        Assert.Null(updated.Update.Output);
+    }
+
+    // ---- PR-PROVCLI-293 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-293")] // PiSession.swift:472-476,486-493
+    public void EditDiff_edit_builds_a_whole_file_diff_and_never_relativizes_the_path()
+    {
+        var (session, events) = Make2();
+        session.HandleToolStart(Json("{\"toolCallId\":\"e1\",\"toolName\":\"edit\",\"args\":{\"path\":\"/abs/dir/File.txt\",\"oldText\":\"a\\nb\",\"newText\":\"c\"}}"));
+        session.HandleToolEnd(Json("{\"toolCallId\":\"e1\",\"result\":{\"content\":\"\"}}"));
+        var edit = Assert.Single(Assert.Single(events.OfType<ProviderEvent.ToolUpdated>()).Update.Edits!);
+        // UPSTREAM DEFECT, reproduced (PR-PROVCLI-293): path.hasPrefix("/") ? path : path is a no-op, so the
+        // absolute path is never made relative.
+        Assert.Equal("/abs/dir/File.txt", edit.Path);
+        Assert.Equal("--- a//abs/dir/File.txt\n+++ b//abs/dir/File.txt\n-a\n-b\n+c", edit.Diff);
+        Assert.Equal(1, edit.Additions);
+        Assert.Equal(2, edit.Deletions);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-293")] // PiSession.swift:412-413,477-480,496-500
+    public void EditDiff_write_uses_the_pre_call_snapshot_and_removes_it_as_consumed()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "marrow-pisession-editdiff-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        try
+        {
+            var file = SwiftPath.AppendingPathComponent(dir, "out.txt");
+            File.WriteAllText(file, "old line\n");
+            var (session, events) = MakeInDir(dir);
+            var argsJson = "{\"toolCallId\":\"w1\",\"toolName\":\"write\",\"args\":{\"path\":\"" + file.Replace("\\", "\\\\", StringComparison.Ordinal) + "\",\"content\":\"new line\"}}";
+            session.HandleToolStart(Json(argsJson));
+            session.HandleToolEnd(Json("{\"toolCallId\":\"w1\",\"result\":{\"content\":\"\"}}"));
+            var first = Assert.Single(events.OfType<ProviderEvent.ToolUpdated>()).Update.Edits!;
+            Assert.Equal("--- a/" + file + "\n+++ b/" + file + "\n-old line\n+new line", Assert.Single(first).Diff);
+
+            // The snapshot is removed as it is consumed: a second call for the same id sees an empty old side.
+            session.HandleToolEnd(Json("{\"toolCallId\":\"w1\",\"result\":{\"content\":\"\"}}"));
+            var second = events.OfType<ProviderEvent.ToolUpdated>().Last().Update.Edits!;
+            Assert.Equal("--- a/" + file + "\n+++ b/" + file + "\n+new line", Assert.Single(second).Diff);
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-293")] // PiSession.swift:479
+    public void EditDiff_write_without_a_snapshot_treats_the_old_side_as_empty()
+    {
+        var (session, events) = Make2();
+        session.HandleToolStart(Json("{\"toolCallId\":\"w2\",\"toolName\":\"write\",\"args\":{\"path\":\"/a/missing.txt\",\"content\":\"new line\"}}"));
+        session.HandleToolEnd(Json("{\"toolCallId\":\"w2\",\"result\":{\"content\":\"\"}}"));
+        var edit = Assert.Single(Assert.Single(events.OfType<ProviderEvent.ToolUpdated>()).Update.Edits!);
+        Assert.Equal("--- a//a/missing.txt\n+++ b//a/missing.txt\n+new line", edit.Diff);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-293")] // PiSession.swift:478
+    public void EditDiff_write_missing_content_yields_no_edits()
+    {
+        var (session, events) = Make2();
+        session.HandleToolStart(Json("{\"toolCallId\":\"w3\",\"toolName\":\"write\",\"args\":{\"path\":\"/a/f.txt\"}}"));
+        session.HandleToolEnd(Json("{\"toolCallId\":\"w3\",\"result\":{\"content\":\"\"}}"));
+        Assert.Null(Assert.Single(events.OfType<ProviderEvent.ToolUpdated>()).Update.Edits);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-293")] // PiSession.swift:473
+    public void EditDiff_edit_missing_path_yields_no_edits()
+    {
+        var (session, events) = Make2();
+        session.HandleToolStart(Json("{\"toolCallId\":\"e2\",\"toolName\":\"edit\",\"args\":{\"oldText\":\"a\",\"newText\":\"b\"}}"));
+        session.HandleToolEnd(Json("{\"toolCallId\":\"e2\",\"result\":{\"content\":\"\"}}"));
+        Assert.Null(Assert.Single(events.OfType<ProviderEvent.ToolUpdated>()).Update.Edits);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-293")] // PiSession.swift:481-483
+    public void EditDiff_an_unhandled_tool_name_yields_no_edits()
+    {
+        var (session, events) = Make2();
+        session.HandleToolStart(Json("{\"toolCallId\":\"g1\",\"toolName\":\"grep\",\"args\":{\"pattern\":\"x\"}}"));
+        session.HandleToolEnd(Json("{\"toolCallId\":\"g1\",\"result\":{\"content\":\"\"}}"));
+        Assert.Null(Assert.Single(events.OfType<ProviderEvent.ToolUpdated>()).Update.Edits);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-293")] // PiSession.swift:489-490
+    public void EditDiff_drops_every_empty_line_on_both_sides()
+    {
+        var (session, events) = Make2();
+        session.HandleToolStart(Json("{\"toolCallId\":\"e3\",\"toolName\":\"edit\",\"args\":{\"path\":\"/a/f.txt\",\"oldText\":\"a\\n\\nb\",\"newText\":\"\\nc\"}}"));
+        session.HandleToolEnd(Json("{\"toolCallId\":\"e3\",\"result\":{\"content\":\"\"}}"));
+        var edit = Assert.Single(Assert.Single(events.OfType<ProviderEvent.ToolUpdated>()).Update.Edits!);
+        Assert.Equal("--- a//a/f.txt\n+++ b//a/f.txt\n-a\n-b\n+c", edit.Diff);
+    }
+
+    // ---- PR-PROVCLI-294 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-294")] // PiSession.swift:513-522
+    public void FinishTurn_plan_mode_with_no_error_publishes_the_plan_then_completes()
+    {
+        var (session, events) = Make2();
+        session.TestBeginTurn(InteractionMode.Plan);
+        session.Handle(Json("{\"type\":\"message_start\",\"message\":{\"role\":\"assistant\"}}"));
+        session.Handle(Json("{\"type\":\"message_end\",\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"My plan\"}]}}"));
+        session.Handle(Json("{\"type\":\"agent_end\"}"));
+        var plan = Assert.Single(events.OfType<ProviderEvent.PlanCompleted>());
+        Assert.Matches("^[0-9A-F]{8}-plan-1$", plan.Id);
+        Assert.Equal("My plan", plan.Markdown);
+        var turn = Assert.Single(events.OfType<ProviderEvent.TurnCompleted>());
+        Assert.Equal(TurnStatus.Completed, turn.Status);
+        Assert.Null(turn.Error);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-294")] // PiSession.swift:518-519,525-526
+    public void FinishTurn_an_errored_plan_mode_turn_publishes_no_plan()
+    {
+        var (session, events) = Make2();
+        session.TestBeginTurn(InteractionMode.Plan);
+        session.Handle(Json("{\"type\":\"message_start\",\"message\":{\"role\":\"assistant\"}}"));
+        session.Handle(Json("{\"type\":\"message_end\",\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"My plan\"}]}}"));
+        session.Handle(Json("{\"type\":\"response\",\"id\":\"droppy-9\",\"command\":\"prompt\",\"success\":false,\"error\":\"boom\"}"));
+        Assert.Empty(events.OfType<ProviderEvent.PlanCompleted>());
+        var turn = Assert.Single(events.OfType<ProviderEvent.TurnCompleted>());
+        Assert.Equal(TurnStatus.Failed, turn.Status);
+        Assert.Equal("boom", turn.Error);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-294")] // PiSession.swift:519,523-524
+    public async Task FinishTurn_interrupted_reports_interrupted_and_publishes_no_plan()
+    {
+        var (session, events) = Make2();
+        session.TestBeginTurn(InteractionMode.Plan);
+        session.Handle(Json("{\"type\":\"message_start\",\"message\":{\"role\":\"assistant\"}}"));
+        session.Handle(Json("{\"type\":\"message_end\",\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"My plan\"}]}}"));
+        await session.Interrupt(); // no process: the write is dropped, the flag is still set
+        session.Handle(Json("{\"type\":\"agent_end\"}"));
+        Assert.Empty(events.OfType<ProviderEvent.PlanCompleted>());
+        var turn = Assert.Single(events.OfType<ProviderEvent.TurnCompleted>());
+        Assert.Equal(TurnStatus.Interrupted, turn.Status);
+        Assert.Null(turn.Error);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-294")] // PiSession.swift:514
+    public void FinishTurn_with_no_active_turn_emits_nothing()
+    {
+        var (session, events) = Make2();
+        session.Handle(Json("{\"type\":\"agent_end\"}"));
+        Assert.Empty(events);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-294")] // PiSession.swift:519
+    public void FinishTurn_outside_plan_mode_publishes_no_plan()
+    {
+        var (session, events) = Make2();
+        session.TestBeginTurn(InteractionMode.Build);
+        session.Handle(Json("{\"type\":\"message_start\",\"message\":{\"role\":\"assistant\"}}"));
+        session.Handle(Json("{\"type\":\"message_end\",\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"Hello\"}]}}"));
+        session.Handle(Json("{\"type\":\"agent_end\"}"));
+        Assert.Empty(events.OfType<ProviderEvent.PlanCompleted>());
+        Assert.Equal(TurnStatus.Completed, Assert.Single(events.OfType<ProviderEvent.TurnCompleted>()).Status);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-294")] // PiSession.swift:520
+    public void FinishTurn_a_blank_last_reply_publishes_no_plan()
+    {
+        var (session, events) = Make2();
+        session.TestBeginTurn(InteractionMode.Plan);
+        session.Handle(Json("{\"type\":\"message_start\",\"message\":{\"role\":\"assistant\"}}"));
+        session.Handle(Json("{\"type\":\"message_end\",\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"   \"}]}}"));
+        session.Handle(Json("{\"type\":\"agent_end\"}"));
+        Assert.Empty(events.OfType<ProviderEvent.PlanCompleted>());
+        Assert.Equal(TurnStatus.Completed, Assert.Single(events.OfType<ProviderEvent.TurnCompleted>()).Status);
+    }
+
+    // ---- PR-PROVCLI-295 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-295")] // PiSession.swift:542-556
+    public void HandleExtensionUI_confirm_emits_a_yes_no_question_with_a_pi_header()
+    {
+        var (session, events) = Make2();
+        session.Handle(Json("{\"type\":\"extension_ui_request\",\"id\":\"r1\",\"method\":\"confirm\",\"params\":{\"title\":\"T\",\"message\":\"M\"}}"));
+        var q = Assert.Single(Assert.Single(events.OfType<ProviderEvent.Question>()).Value.Questions);
+        Assert.Equal("r1", q.Id);
+        Assert.Equal("Pi", q.Header);
+        Assert.Equal("T\nM", q.Prompt);
+        Assert.Equal(2, q.Choices.Count);
+        Assert.Equal("Yes", q.Choices[0].Label);
+        Assert.Equal("No", q.Choices[1].Label);
+        Assert.False(q.AllowsMultiple);
+        Assert.False(q.AllowsOther);
+        Assert.False(q.IsSecret);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-295")] // PiSession.swift:544
+    public void HandleExtensionUI_confirm_prompt_joins_title_and_message_dropping_empties()
+    {
+        var (session, events) = Make2();
+        session.Handle(Json("{\"type\":\"extension_ui_request\",\"id\":\"r2\",\"method\":\"confirm\",\"params\":{\"title\":\"\",\"message\":\"M\"}}"));
+        Assert.Equal("M", Assert.Single(events.OfType<ProviderEvent.Question>()).Value.Questions[0].Prompt);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-295")] // PiSession.swift:543,549
+    [Trait("Req", "UI-PROVCLI-012")] // PiSession.swift:549
+    public void HandleExtensionUI_confirm_defaults_the_header_and_title_to_pi()
+    {
+        var (session, events) = Make2();
+        session.Handle(Json("{\"type\":\"extension_ui_request\",\"id\":\"r3\",\"method\":\"confirm\",\"params\":{}}"));
+        var q = Assert.Single(events.OfType<ProviderEvent.Question>()).Value.Questions[0];
+        Assert.Equal("Pi", q.Header);
+        Assert.Equal("Pi", q.Prompt);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-295")] // PiSession.swift:557-569
+    [Trait("Req", "UI-PROVCLI-012")] // PiSession.swift:562-563
+    public void HandleExtensionUI_input_and_editor_allow_other_text_with_a_pi_header()
+    {
+        var (session, events) = Make2();
+        foreach (var (method, id) in new[] { ("input", "i1"), ("editor", "i2") })
+        {
+            session.Handle(Json("{\"type\":\"extension_ui_request\",\"id\":\"" + id + "\",\"method\":\"" + method + "\",\"params\":{\"title\":\"Pick\"}}"));
+            var q = Assert.Single(events.OfType<ProviderEvent.Question>(), e => e.Value.Id == id).Value.Questions[0];
+            Assert.Equal(id, q.Id);
+            Assert.Equal("Pi", q.Header);
+            Assert.Equal("Pick", q.Prompt);
+            Assert.Empty(q.Choices);
+            Assert.False(q.AllowsMultiple);
+            Assert.True(q.AllowsOther);
+            Assert.False(q.IsSecret);
+        }
+
+        // A title-less input shows "Pi" twice: header and prompt (UI-PROVCLI-012).
+        session.Handle(Json("{\"type\":\"extension_ui_request\",\"id\":\"i3\",\"method\":\"input\",\"params\":{}}"));
+        Assert.Equal("Pi", events.OfType<ProviderEvent.Question>().Last().Value.Questions[0].Prompt);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-295")] // PiSession.swift:570-576
+    public void HandleExtensionUI_notify_maps_the_three_levels_and_defaults_the_message()
+    {
+        var (session, events) = Make2();
+        session.Handle(Json("{\"type\":\"extension_ui_request\",\"id\":\"n1\",\"method\":\"notify\",\"params\":{\"notifyType\":\"warning\",\"message\":\"watch out\"}}"));
+        session.Handle(Json("{\"type\":\"extension_ui_request\",\"id\":\"n2\",\"method\":\"notify\",\"params\":{\"notifyType\":\"error\",\"message\":\"it broke\"}}"));
+        session.Handle(Json("{\"type\":\"extension_ui_request\",\"id\":\"n3\",\"method\":\"notify\",\"params\":{\"notifyType\":\"other\",\"message\":\"hi\"}}"));
+        session.Handle(Json("{\"type\":\"extension_ui_request\",\"id\":\"n4\",\"method\":\"notify\",\"params\":{}}"));
+        var notices = events.OfType<ProviderEvent.Notice>().ToList();
+        Assert.Equal(4, notices.Count);
+        Assert.Equal(Notice.Level.Warning, notices[0].Value.NoticeLevel);
+        Assert.Equal("watch out", notices[0].Value.Message);
+        Assert.Equal(Notice.Level.Error, notices[1].Value.NoticeLevel);
+        Assert.Equal(Notice.Level.Info, notices[2].Value.NoticeLevel);
+        Assert.Equal("Pi sent a notification.", notices[3].Value.Message);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-295")] // PiSession.swift:577-581
+    public void HandleExtensionUI_ignores_the_four_named_ui_methods_and_any_other_method()
+    {
+        var (session, events) = Make2();
+        foreach (var method in new[] { "setStatus", "setWidget", "setTitle", "set_editor_text", "somethingElse" })
+            session.Handle(Json("{\"type\":\"extension_ui_request\",\"id\":\"x\",\"method\":\"" + method + "\",\"params\":{}}"));
+        Assert.Empty(events);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-295")] // PiSession.swift:536-537
+    public void HandleExtensionUI_with_no_id_or_no_method_is_ignored()
+    {
+        var (session, events) = Make2();
+        session.Handle(Json("{\"type\":\"extension_ui_request\",\"method\":\"notify\",\"message\":\"x\"}")); // no id/requestId
+        session.Handle(Json("{\"type\":\"extension_ui_request\",\"id\":\"y\"}")); // no method
+        session.Handle(Json("{\"type\":\"extension_ui_request\",\"requestId\":\"z\",\"params\":{}}")); // no method
+        Assert.Empty(events);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-295")] // PiSession.swift:536-538
+    public void HandleExtensionUI_reads_the_id_from_requestId_and_falls_back_to_the_message_for_params()
+    {
+        var (session, events) = Make2();
+        session.Handle(Json("{\"type\":\"extension_ui_request\",\"requestId\":\"rq1\",\"method\":\"notify\",\"message\":\"direct\"}"));
+        Assert.Equal("direct", Assert.Single(events.OfType<ProviderEvent.Notice>()).Value.Message);
+        session.Handle(Json("{\"type\":\"extension_ui_request\",\"requestId\":\"rq2\",\"method\":\"confirm\",\"title\":\"in\",\"message\":\"msg\"}"));
+        var question = events.OfType<ProviderEvent.Question>().Last();
+        Assert.Equal("rq2", question.Value.Id);
+        Assert.Equal("in\nmsg", question.Value.Questions[0].Prompt);
+    }
+
+    /// <summary>Builds a well-formed extension_ui_request/select message via JSONValue (never hand-escaped
+    /// text), so a Windows path's backslashes need no manual JSON escaping.</summary>
+    private static JSONValue SelectRequest(string id, string title, IReadOnlyList<string>? options = null) =>
+        JSONValue.FromDictionaryLiteral(("type", "extension_ui_request"), ("id", id), ("method", "select"),
+            ("params", JSONValue.FromDictionaryLiteral(("title", title),
+                ("options", options is null ? JSONValue.FromArrayLiteral() : new JSONValue.Array(new ValueList<JSONValue>(options.Select(o => (JSONValue)new JSONValue.String(o))))))));
+
+    /// <summary>The "droppy-gate " title an approved tool call carries, built from JSONValue so its embedded
+    /// JSON is always well-formed (PiSession.swift:602-609).</summary>
+    private static string GateTitle(string kind, string toolName, string toolCallId, JSONValue? input = null) =>
+        "droppy-gate " + JSONValue.FromDictionaryLiteral(("kind", kind), ("toolName", toolName),
+            ("toolCallId", toolCallId), ("input", input ?? JSONValue.FromDictionaryLiteral())).CompactString;
+
+    // ---- PR-PROVCLI-296 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-296")] // PiSession.swift:584-601
+    public void HandleSelect_a_non_gate_title_becomes_a_plain_question_from_the_string_options()
+    {
+        var (session, events) = Make2();
+        session.Handle(SelectRequest("s1", "Pick one", ["a", "b"]));
+        var q = Assert.Single(Assert.Single(events.OfType<ProviderEvent.Question>()).Value.Questions);
+        Assert.Equal("s1", q.Id);
+        Assert.Equal("Pi", q.Header);
+        Assert.Equal("Pick one", q.Prompt);
+        Assert.Equal(2, q.Choices.Count);
+        Assert.Equal("a", q.Choices[0].Label);
+        Assert.Equal("b", q.Choices[1].Label);
+        Assert.False(q.AllowsOther);
+        Assert.False(q.IsSecret);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-296")] // PiSession.swift:586
+    public void HandleSelect_a_non_string_option_is_dropped_by_compactMap()
+    {
+        var (session, events) = Make2();
+        session.Handle(JSONValue.FromDictionaryLiteral(("type", "extension_ui_request"), ("id", "s1b"), ("method", "select"),
+            ("params", JSONValue.FromDictionaryLiteral(("title", "Pick"), ("options", JSONValue.FromArrayLiteral("a", 1, "b"))))));
+        var q = events.OfType<ProviderEvent.Question>().Single().Value.Questions[0];
+        Assert.Equal(2, q.Choices.Count);
+        Assert.Equal("a", q.Choices[0].Label);
+        Assert.Equal("b", q.Choices[1].Label);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-296")] // PiSession.swift:587
+    public void HandleSelect_a_malformed_gate_payload_degrades_to_a_plain_question()
+    {
+        var (session, events) = Make2();
+        session.Handle(SelectRequest("s2", "droppy-gate not-json", ["a"]));
+        var q = Assert.Single(events.OfType<ProviderEvent.Question>()).Value.Questions[0];
+        Assert.Equal("droppy-gate not-json", q.Prompt);
+        Assert.Equal("a", q.Choices[0].Label);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-296")] // PiSession.swift:587
+    public void HandleSelect_the_gate_prefix_requires_its_trailing_space()
+    {
+        var (session, events) = Make2();
+        // "droppy-gate" without the trailing space before the JSON is not the prefix: degrades.
+        session.Handle(SelectRequest("s3", "droppy-gate" + JSONValue.FromDictionaryLiteral(("kind", "tool")).CompactString));
+        Assert.Single(events.OfType<ProviderEvent.Question>());
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-296")] // PiSession.swift:587,602-609
+    public void HandleSelect_a_well_formed_gate_payload_reads_its_fields_as_written()
+    {
+        var (session, events) = Make2();
+        session.Handle(SelectRequest("s4", GateTitle("command", "bash", "c1", JSONValue.FromDictionaryLiteral(("command", "ls")))));
+        var approval = Assert.Single(events.OfType<ProviderEvent.Approval>()).Value;
+        Assert.Equal("s4", approval.Id);
+        Assert.Equal(ApprovalRequest.Kind.Command, approval.RequestKind);
+        Assert.Equal("c1", approval.ToolItemID);
+        Assert.Equal("ls", approval.Detail); // the RAW input.command (:614-615), not through ToolTitles
+    }
+
+    // ---- PR-PROVCLI-297 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-297")] // PiSession.swift:602-606
+    public void HandleSelect_a_granted_kind_auto_allows_with_no_prompt_and_no_event()
+    {
+        var (session, events) = Make2();
+        session.Handle(SelectRequest("g1", GateTitle("command", "bash", "c1", JSONValue.FromDictionaryLiteral(("command", "ls")))));
+        Assert.Single(events.OfType<ProviderEvent.Approval>());
+        session.ResolveApproval("g1", "always"); // stores the "command" grant (:232)
+        Assert.IsType<ProviderEvent.RequestResolved>(events[^1]);
+        var before = events.Count;
+        session.Handle(SelectRequest("g2", GateTitle("command", "bash", "c2", JSONValue.FromDictionaryLiteral(("command", "rm -rf x")))));
+        Assert.Equal(before, events.Count); // auto-allowed: no new event
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-297")] // PiSession.swift:603,290-296
+    public void HandleSelect_a_grant_matches_only_the_exact_kind_string()
+    {
+        var (session, events) = Make2();
+        session.Handle(SelectRequest("g3", GateTitle("command", "bash", "c1", JSONValue.FromDictionaryLiteral(("command", "ls")))));
+        session.ResolveApproval("g3", "always");
+        var before = events.Count;
+        // A "tool" kind is not the granted "command" string: it still prompts.
+        session.Handle(SelectRequest("g4", GateTitle("tool", "webfetch", "c2", JSONValue.FromDictionaryLiteral(("url", "https://x")))));
+        Assert.True(events.Count > before);
+        Assert.IsType<ProviderEvent.Approval>(events[^1]);
+    }
+
+    // ---- PR-PROVCLI-298 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-298")] // PiSession.swift:628-633
+    public void HandleSelect_the_approval_options_are_always_exactly_three_in_order()
+    {
+        var (session, events) = Make2();
+        session.Handle(SelectRequest("a1", GateTitle("tool", "webfetch", "call-9")));
+        var approval = Assert.Single(events.OfType<ProviderEvent.Approval>()).Value;
+        Assert.Equal("call-9", approval.ToolItemID);
+        Assert.Equal(3, approval.Options.Count);
+        Assert.Equal(("allow", "Approve", ApprovalRequest.Option.Role.Approve), (approval.Options[0].Id, approval.Options[0].Title, approval.Options[0].OptionRole));
+        Assert.Equal(("always", "Approve for session", ApprovalRequest.Option.Role.ApproveAlways), (approval.Options[1].Id, approval.Options[1].Title, approval.Options[1].OptionRole));
+        Assert.Equal(("deny", "Decline", ApprovalRequest.Option.Role.Decline), (approval.Options[2].Id, approval.Options[2].Title, approval.Options[2].OptionRole));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-298")] // PiSession.swift:613-615
+    public void HandleSelect_a_command_kind_row_has_a_raw_command_detail()
+    {
+        var (session, events) = Make2();
+        session.Handle(SelectRequest("a2", GateTitle("command", "bash", "c", JSONValue.FromDictionaryLiteral(("command", "rm -rf /tmp/x")))));
+        var approval = Assert.Single(events.OfType<ProviderEvent.Approval>()).Value;
+        Assert.Equal(ApprovalRequest.Kind.Command, approval.RequestKind);
+        Assert.Equal("rm -rf /tmp/x", approval.Detail);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-298")] // PiSession.swift:616-618
+    public void HandleSelect_a_fileChange_kind_row_has_a_relative_title_and_a_raw_path_detail()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "marrow-pisession-filechange-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        try
+        {
+            var (session, events) = MakeInDir(dir);
+            var absolute = SwiftPath.AppendingPathComponent(SwiftPath.AppendingPathComponent(dir, "sub"), "file.txt");
+            session.Handle(SelectRequest("a3", GateTitle("fileChange", "edit", "c", JSONValue.FromDictionaryLiteral(("path", absolute)))));
+            var approval = Assert.Single(events.OfType<ProviderEvent.Approval>()).Value;
+            Assert.Equal(ApprovalRequest.Kind.FileChange, approval.RequestKind);
+            // SwiftPath.TailUnder keeps the original path's own separators (:301-309): native backslashes.
+            Assert.Equal("sub\\file.txt", approval.Title);
+            Assert.Equal(absolute, approval.Detail);
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-298")] // PiSession.swift:619-621
+    public void HandleSelect_a_tool_kind_row_has_a_pretty_printed_input_detail()
+    {
+        var (session, events) = Make2();
+        session.Handle(SelectRequest("a4", GateTitle("mcp", "mcp__srv__do", "c", JSONValue.FromDictionaryLiteral(("z", 1L)))));
+        var approval = Assert.Single(events.OfType<ProviderEvent.Approval>()).Value;
+        // "mcp" is not "command" or "fileChange", so it falls into the .tool row (:619-621).
+        Assert.Equal(ApprovalRequest.Kind.Tool, approval.RequestKind);
+        Assert.Equal("mcp__srv__do", approval.Title);
+        Assert.Equal("{\n  \"z\" : 1\n}", approval.Detail); // JSONValue.PrettyString's own shape (JSONValueTests.cs)
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-298")] // PiSession.swift:621
+    public void HandleSelect_a_tool_kind_row_has_no_detail_for_null_or_empty_input()
+    {
+        var (session, events) = Make2();
+        session.Handle(SelectRequest("a5", "droppy-gate " + JSONValue.FromDictionaryLiteral(("kind", "tool"), ("toolName", "webfetch"), ("toolCallId", "c1")).CompactString));
+        session.Handle(SelectRequest("a6", GateTitle("tool", "webfetch", "c2")));
+        var approvals = events.OfType<ProviderEvent.Approval>().ToList();
+        Assert.Equal(2, approvals.Count);
+        Assert.Null(approvals[0].Value.Detail); // no "input" field at all
+        Assert.Null(approvals[1].Value.Detail); // "input" compacts to "{}"
+    }
+
+    // ---- PR-PROVCLI-299 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-299")] // PiSession.swift:638-644,650-651
+    [Trait("Decision", "PA-0008")]
+    public void DidClose_an_active_turn_reports_failed_with_a_null_error_when_the_stderr_tail_is_empty()
+    {
+        var (session, events) = Make2();
+        session.TestBeginTurn(InteractionMode.Build);
+        session.DidClose(1); // no live process: the stderr tail is empty
+        var turn = Assert.IsType<ProviderEvent.TurnCompleted>(events[0]);
+        Assert.Equal(TurnStatus.Failed, turn.Status);
+        Assert.Null(turn.Error);
+        var exited = Assert.IsType<ProviderEvent.Exited>(events[1]);
+        Assert.Equal("Pi exited with status 1", exited.Error);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-299")] // PiSession.swift:641-643
+    public async Task DidClose_an_interrupted_active_turn_reports_interrupted()
+    {
+        var (session, events) = Make2();
+        session.TestBeginTurn(InteractionMode.Build);
+        await session.Interrupt(); // no process: only sets the flag
+        session.DidClose(0);
+        var turn = Assert.IsType<ProviderEvent.TurnCompleted>(events[0]);
+        Assert.Equal(TurnStatus.Interrupted, turn.Status);
+        var exited = Assert.IsType<ProviderEvent.Exited>(events[1]);
+        Assert.Null(exited.Error);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-299")] // PiSession.swift:645
+    public void DidClose_after_stop_still_reports_the_turn_but_suppresses_the_exit()
+    {
+        var (session, events) = Make2();
+        session.TestBeginTurn(InteractionMode.Build);
+        session.Stop();
+        session.DidClose(1);
+        Assert.Single(events.OfType<ProviderEvent.TurnCompleted>()); // the turn branch runs before the stopped guard
+        Assert.Empty(events.OfType<ProviderEvent.Exited>());
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-299")] // PiSession.swift:647-648
+    public void DidClose_a_zero_status_with_no_active_turn_exits_cleanly()
+    {
+        var (session, events) = Make2();
+        session.DidClose(0);
+        var exited = Assert.Single(events.OfType<ProviderEvent.Exited>());
+        Assert.Null(exited.Error);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-299")] // PiSession.swift:649-651
+    public void DidClose_a_nonzero_status_formats_the_signed_status_in_the_exit_message()
+    {
+        var (session, events) = Make2();
+        session.DidClose(-1);
+        var exited = Assert.Single(events.OfType<ProviderEvent.Exited>());
+        Assert.Equal("Pi exited with status -1", exited.Error);
+    }
+
+    // ---- PR-PROVCLI-300 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-300")] // PiSession.swift:74
+    public void IsRunning_is_false_before_start_even_conceptually()
+    {
+        var (session, _) = Make2();
+        Assert.False(session.IsRunning); // started is false
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-300")] // PiSession.swift:74
+    public void IsRunning_is_false_after_stop()
+    {
+        var (session, _) = Make2();
+        session.Stop();
+        Assert.False(session.IsRunning); // stopped is true, regardless of the other two flags
+    }
+
+    // ---- UI-PROVCLI-010, UI-PROVCLI-011 ----
+    // The header ("Pi") and the choice labels ("Yes"/"No") are proven above by
+    // HandleExtensionUI_confirm_emits_a_yes_no_question_with_a_pi_header (UI-PROVCLI-010 first choice,
+    // UI-PROVCLI-011 second choice). The click -> confirmed mapping is on the wire and needs a live process
+    // (R-TEST-8): proven through the compiled Pi stand-in, driving both branches of the ordinal comparison.
+
+    [Fact]
+    [Trait("Req", "UI-PROVCLI-010")] // PiSession.swift:248,551
+    [Trait("Req", "UI-PROVCLI-011")] // PiSession.swift:248,551
+    public async Task AnswerQuestion_confirm_maps_exactly_Yes_to_true_and_anything_else_to_false()
+    {
+        using var runtime = new TestRuntime();
+        var script = new PiScript("confirm-yes-no");
+        var (session, events, startedScript, _) = await Started(runtime, script);
+
+        session.Handle(Json("{\"type\":\"extension_ui_request\",\"id\":\"q1\",\"method\":\"confirm\",\"params\":{\"title\":\"Proceed?\"}}"));
+        var q1 = events.OfType<ProviderEvent.Question>().Last().Value;
+        Assert.Equal("Pi", q1.Questions[0].Header); // UI-PROVCLI-012
+        session.AnswerQuestion(q1.Id, new ValueMap<string, ValueList<string>>(
+            new Dictionary<string, ValueList<string>> { ["a"] = new ValueList<string>(["Yes"]) }));
+        Assert.True(Json(WaitForStdinLine(startedScript, 2))["confirmed"]!.JSONValueBool); // UI-PROVCLI-010
+
+        session.Handle(Json("{\"type\":\"extension_ui_request\",\"id\":\"q2\",\"method\":\"confirm\",\"params\":{\"title\":\"Proceed?\"}}"));
+        var q2 = events.OfType<ProviderEvent.Question>().Last().Value;
+        session.AnswerQuestion(q2.Id, new ValueMap<string, ValueList<string>>(
+            new Dictionary<string, ValueList<string>> { ["a"] = new ValueList<string>(["No"]) }));
+        Assert.False(Json(WaitForStdinLine(startedScript, 3))["confirmed"]!.JSONValueBool); // UI-PROVCLI-011
     }
 }
 
