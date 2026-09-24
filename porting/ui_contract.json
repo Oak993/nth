@@ -12221,7 +12221,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/CodexSession.swift:992,:1001,:1013-1014"
       ],
-      "notes": "This is the only approval option in the area with the .cancel role, and the only one that ends the whole turn rather than one call. The sort order [.approve, .approveAlways, .decline, .cancel] is what puts it last."
+      "notes": "This is the only approval option in the area with the .cancel role, and the only one that ends the whole turn rather than one call. The sort order [.approve, .approveAlways, .decline, .cancel] is what puts it last.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVCLI",
@@ -12243,7 +12244,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/CodexSession.swift:1008-1010"
       ],
-      "notes": "Two .approveAlways options can appear together - \"Approve for session\" and \"Always allow\" - and the sort is by role only, so their relative order is whatever the server listed. A stable sort is required to reproduce that."
+      "notes": "Two .approveAlways options can appear together - \"Approve for session\" and \"Always allow\" - and the sort is by role only, so their relative order is whatever the server listed. A stable sort is required to reproduce that.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVCLI",
@@ -12264,7 +12266,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/CodexSession.swift:959"
       ],
-      "notes": "Note the wording differs from every other approve button in the area, which read \"Approve\". This card is the only place \"Allow once\" appears."
+      "notes": "Note the wording differs from every other approve button in the area, which read \"Approve\". This card is the only place \"Allow once\" appears.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVCLI",
@@ -12285,7 +12288,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/CodexSession.swift:960"
       ],
-      "notes": "\"Allow for session\" (Codex permissions) and \"Approve for session\" (everywhere else) are two DIFFERENT strings and must not be unified."
+      "notes": "\"Allow for session\" (Codex permissions) and \"Approve for session\" (everywhere else) are two DIFFERENT strings and must not be unified.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVCLI",
@@ -12371,7 +12375,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/CodexSession.swift:942"
       ],
-      "notes": "The detail line beneath it is params.grantRoot shown VERBATIM, not made relative, so a Windows path appears in full."
+      "notes": "The detail line beneath it is params.grantRoot shown VERBATIM, not made relative, so a Windows path appears in full.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVCLI",
@@ -12416,7 +12421,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/CodexSession.swift:1018-1030"
       ],
-      "notes": "The path lists are the server's own strings and are NOT made relative to the working directory."
+      "notes": "The path lists are the server's own strings and are NOT made relative to the working directory.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVCLI",
@@ -12689,7 +12695,8 @@
         "DroppyCode/Services/Providers/CodexSession.swift:414-436",
         "DroppyCode/Services/Providers/PiPlanLimits.swift:94-99,:40"
       ],
-      "notes": "Codex is the only provider in this area that surfaces a PROBLEM string in the usage panel; Copilot and Antigravity return nil and show nothing, and Command Code returns nil too."
+      "notes": "Codex is the only provider in this area that surfaces a PROBLEM string in the usage panel; Copilot and Antigravity return nil and show nothing, and Command Code returns nil too.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVCLI",
