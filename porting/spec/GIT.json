@@ -3347,7 +3347,7 @@
       "cancellation": "The editor is disabled as a whole while sending.",
       "windows_path": "Direct port of all four conditions.",
       "verification_method": "interaction test asserting Send is disabled during the check",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3372,7 +3372,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port.",
       "verification_method": "unit over the four preview states",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5280,7 +5280,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:52 - `case .callout: 12` (ED-059: upstream's table of the size each text style is laid out at)"
       ],
       "notes": "The notice reads exactly \"Sending replaces this message and everything after it.\" The error line is a label with the symbol \"exclamationmark.triangle\" carrying the thrown error's description. ED-059: .callout at 12 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:52), set in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal does not apply.",
-      "b2_change": "colors: notice line `.foregroundStyle(.secondary)` (B1 DroppyCode/App/Views/Chat/MessageEditor.swift:50) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :50)."
+      "b2_change": "colors: notice line `.foregroundStyle(.secondary)` (B1 DroppyCode/App/Views/Chat/MessageEditor.swift:50) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :50).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-GIT-053",
@@ -5305,7 +5306,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:54 - `case .footnote, .caption, .caption2: 10` (ED-059: upstream's table of the size each text style is laid out at)"
       ],
       "notes": "The all-kept wording is singular \"The file it changed has changed again since, so it stays as it is\" at one file and \"The <n> files it changed have changed again since, so they stay as they are\" otherwise. None of these five strings carries a trailing period. ED-059: .callout at 12 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:52); .caption at 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54), set in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal does not apply.",
-      "b2_change": "`.foregroundStyle(.secondary)` (B1 DroppyCode/App/Views/Chat/MessageEditor.swift:86, :89, :92, :98) -> `.foregroundStyle(Chrome.secondaryText)` (B2 same lines); Chrome.secondaryText is `primaryText.opacity(0.7)` at B2 (DroppyCode/UI/Chrome/Chrome.swift:79)."
+      "b2_change": "`.foregroundStyle(.secondary)` (B1 DroppyCode/App/Views/Chat/MessageEditor.swift:86, :89, :92, :98) -> `.foregroundStyle(Chrome.secondaryText)` (B2 same lines); Chrome.secondaryText is `primaryText.opacity(0.7)` at B2 (DroppyCode/UI/Chrome/Chrome.swift:79).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-GIT-054",
@@ -5328,7 +5330,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:52 - `case .callout: 12` (ED-059: upstream's table of the size each text style is laid out at)"
       ],
       "notes": "The count reads \"1 file\" at one and \"<n> files\" otherwise, and counts only the restorable files. The statistics also sum only the restorable files, so a preview whose files are all kept shows zeroes. ED-059: .callout at 12 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:52), set in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal does not apply.",
-      "b2_change": "count `.foregroundStyle(.secondary)` (B1 DroppyCode/App/Views/Chat/MessageEditor.swift:107) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :107); Chrome.secondaryText is `primaryText.opacity(0.7)` at B2 (DroppyCode/UI/Chrome/Chrome.swift:79)."
+      "b2_change": "count `.foregroundStyle(.secondary)` (B1 DroppyCode/App/Views/Chat/MessageEditor.swift:107) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :107); Chrome.secondaryText is `primaryText.opacity(0.7)` at B2 (DroppyCode/UI/Chrome/Chrome.swift:79).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-GIT-055",
@@ -5353,7 +5356,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:54 - `case .footnote, .caption, .caption2: 10` (ED-059: upstream's table of the size each text style is laid out at)"
       ],
       "notes": "Paths are truncated in the middle and rendered verbatim. A kept row's tooltip is the path, then a newline, then \"Changed again since this thread last touched it, so it is left alone.\"; any other row's tooltip is just the path. The row stays visible when dimmed, as a reminder of what is not going back. ED-059: .caption at 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54), set in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal does not apply.",
-      "b2_change": "`.foregroundStyle(.secondary)` (B1 DroppyCode/App/Views/Chat/MessageEditor.swift:130, :136, :138) -> `.foregroundStyle(Chrome.secondaryText)` (B2 same lines); Chrome.secondaryText is `primaryText.opacity(0.7)` at B2 (DroppyCode/UI/Chrome/Chrome.swift:79)."
+      "b2_change": "`.foregroundStyle(.secondary)` (B1 DroppyCode/App/Views/Chat/MessageEditor.swift:130, :136, :138) -> `.foregroundStyle(Chrome.secondaryText)` (B2 same lines); Chrome.secondaryText is `primaryText.opacity(0.7)` at B2 (DroppyCode/UI/Chrome/Chrome.swift:79).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-GIT-056",
@@ -5380,7 +5384,8 @@
         "decision": "OD-0005",
         "upstream": "Cancel `.buttonStyle(.glass)` (DroppyCode/App/Views/Chat/MessageEditor.swift:58) and Send `.buttonStyle(.glassProminent)` (:60), macOS Liquid Glass",
         "port": "Acrylic-class Windows system material where the window shows the desktop, without lensing, refraction or chromatic fringing; over the app's own content a shader reproduces the source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing"
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-GIT-057",

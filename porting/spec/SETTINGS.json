@@ -681,7 +681,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -707,7 +707,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -732,7 +732,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -757,7 +757,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -782,7 +782,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -807,7 +807,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -837,7 +837,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -862,7 +862,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -887,7 +887,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -912,7 +912,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -937,7 +937,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -962,7 +962,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1017,7 +1017,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1042,7 +1042,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1067,7 +1067,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1092,7 +1092,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": 61,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1119,7 +1119,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1144,7 +1144,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults. OD-0014 keeps upstream's clear window by default: until the user sets a wallpaper the glass sits over the desktop, drawn as Acrylic plus the app-drawn scrim (OD-0005, probe P3), and the richer drawn material appears once a wallpaper is set.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1169,7 +1169,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1194,7 +1194,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1219,7 +1219,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": 70,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1245,7 +1245,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1270,7 +1270,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1295,7 +1295,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1320,7 +1320,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1345,7 +1345,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null
     },
@@ -1369,7 +1369,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1394,7 +1394,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1419,7 +1419,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1444,7 +1444,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1469,7 +1469,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1494,7 +1494,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1519,7 +1519,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1544,7 +1544,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1569,7 +1569,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1594,7 +1594,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1619,7 +1619,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1644,7 +1644,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1669,7 +1669,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1694,7 +1694,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1719,7 +1719,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1744,7 +1744,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1769,7 +1769,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1794,7 +1794,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1819,7 +1819,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1844,7 +1844,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1869,7 +1869,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1894,7 +1894,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1919,7 +1919,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1944,7 +1944,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1969,7 +1969,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1994,7 +1994,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2019,7 +2019,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2044,7 +2044,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2069,7 +2069,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name and same default in the port's settings store. The store is a single JSON document under the app's per-user data directory rather than a plist domain, so the array-shaped and JSON-Data-shaped values collapse to ordinary JSON; keep the key names and defaults identical so a migration can be written key for key. port_impacts.md:440 entry 216 requires mapping each key one for one with the same names and defaults.",
       "verification_method": "restart test: set the value, restart, assert it is read back; unit test asserting the exact key string and the default when absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2095,7 +2095,7 @@
       "cancellation": "There is no cancel: a change is committed the moment it is made, and closing the window does not revert anything.",
       "windows_path": "Persist on change, but coalesce the disk write behind a short timer so a slider drag does not fsync per frame. The in-memory value must still update synchronously so the UI is identical; only the flush is coalesced. Record the coalescing as a deliberate platform decision.",
       "verification_method": "restart test: change a value, kill the process without a clean quit, restart and assert the value survived",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2119,7 +2119,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One settings store instance resolved once. The capture branch is a screenshot-harness short circuit that is user-unreachable and is not ported; the port keeps a single store path.",
       "verification_method": "unit test that the settings store resolves once and that no test profile writes the real user profile",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2144,7 +2144,7 @@
       "cancellation": "not cancellable",
       "windows_path": "These are already JSON in the port's store, so the encode step disappears; keep the silent fall back to the empty default and the non-destructive behaviour on a bad value.",
       "verification_method": "unit test with a corrupt blob for each of the four keys, asserting the empty default and that the blob is not erased on read",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2178,7 +2178,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The port's secret store over Windows Credential Manager (OD-0008 B3) with no fallback writer of any kind (OD-0008 A6); the clearing half (remove the legacy settings value after a successful store) is kept. The four account names and the one container named by the app display name are carried over verbatim. The same rule is specified from the provider side by PR-PROVREG-239.",
       "verification_method": "unit test with a refusing secret store asserting that no settings, file or registry write contains the key and that the verbatim \"Credential Manager did not accept this key, so it was not saved.\" is shown under the key field; unit test asserting the legacy settings value is removed after a successful write and after clearing",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "blocked_by": null,
@@ -2216,7 +2216,7 @@
       "cancellation": "The background load is a detached task with no cancellation path; a synchronous ask that lands first simply makes it a no-op.",
       "windows_path": "One lazy, cached, asynchronous read of the four secrets from Windows Credential Manager (OD-0008 B3), with the same re-entry guard so hydrating the fields does not re-write the store. Windows has no securityd launch stall, but the single cached read is kept so the observable behaviour and the number of store reads match. A plaintext settings value is only ever deleted, never used as a place to write (OD-0008 A6, PR-SETTINGS-088).",
       "verification_method": "unit test: hydrate the four fields from a stubbed Credential Manager and assert zero writes back; assert exactly four reads per launch",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "deviation": {
@@ -2247,7 +2247,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same precedence. The 'login environment' on Windows is the user and machine environment as the app inherited it, not a login-shell capture; record that substitution. The four variable names are unchanged. The stored key is read from Windows Credential Manager (OD-0008 B3).",
       "verification_method": "unit test over the four providers with and without a stored key and with and without the environment variable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2277,7 +2277,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same four-provider switch with the same silent default branch.",
       "verification_method": "unit test asserting a write for a fifth provider changes nothing",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2303,7 +2303,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same trim-and-remove semantics. Windows paths may contain spaces but not leading or trailing ones in any valid form, so the trim is safe; do not also strip quotes, because the source does not.",
       "verification_method": "unit test on setBinaryPath with \"\", \"   \", \" /usr/bin/x \" and a normal path",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2326,7 +2326,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same remove-then-append. Keep the array, not a set, so the stored order matches.",
       "verification_method": "unit test: disable twice, assert one entry; enable, assert zero",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2349,7 +2349,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two maps and the same nil-removes semantics.",
       "verification_method": "unit test asserting nil removes the entry rather than storing a null",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2375,7 +2375,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three-state model: absent, explicitly true, explicitly false. Do not collapse absent and false.",
       "verification_method": "unit test over the three states with projectsEnabled both true and false",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2403,7 +2403,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same cap constant and the same guard order (already-present first, then full).",
       "verification_method": "unit test at 14, 15 and 16 adds",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2429,7 +2429,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same index arithmetic, including the from < dest correction. Windows has no haptic engine, so the haptic call becomes a no-op shim (port_impacts.md:434 entry 213).",
       "verification_method": "unit test over every from/to pair in a five-item list, both placeAfter values",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2455,7 +2455,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same composite key string with a forward slash, and the same delete-on-default rule so the stored document does not fill with empty objects.",
       "verification_method": "unit test: set effort, clear effort, assert the key is gone",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2484,7 +2484,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three operations with the same clamp and the same equality guard, so the number of store writes matches.",
       "verification_method": "unit test: update with an identity mutation asserts zero writes; update with maxHeads 99 asserts 8 stored",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2506,7 +2506,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three-step precedence over the same ordered list.",
       "verification_method": "unit test over the three precedence cases",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2532,7 +2532,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep the two persisted booleans rather than collapsing them into one enum key, so the store stays migration-compatible, and keep the getter's precedence.",
       "verification_method": "unit test over all four boolean combinations, asserting the resolved mode",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2649,7 +2649,7 @@
       "cancellation": "not cancellable from settings",
       "windows_path": "Same three key names in the port's own store slice, kept out of any profile-redirected settings file. The release payload shape follows whatever release feed the Windows build uses; the three key names and the recompute-never-store rule for availability are what carry over.",
       "verification_method": "restart test: stub a newer release, restart, assert the About page shows it before any network call",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2674,7 +2674,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One string table holding these four titles verbatim, keyed by the raw values, which stay the persisted form.",
       "verification_method": "unit test comparing all four titles and all four raw values byte for byte",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3503,7 +3503,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three-part card with the same conditional third row. OD-0014 keeps upstream's clear window by default: until the user sets a wallpaper the glass sits over the desktop, drawn as Acrylic plus the app-drawn scrim (OD-0005, probe P3), and the richer drawn material appears once a wallpaper is set.",
       "verification_method": "capture comparison with and without a wallpaper",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3531,7 +3531,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two states, the same mock-window stand-in and the same 150pt height. The glass effect on the mock window has no exact Windows equivalent; use the same backdrop-filter treatment the rest of the port uses for glass and record it as a substitution.",
       "verification_method": "capture comparison of both states and of the installing state",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3559,7 +3559,7 @@
       "cancellation": "Dragging away clears the highlight; there is no partial install.",
       "windows_path": "Same accept test over the dropped paths, checking the extension first and then the detected type. Electron's drop event gives paths directly, so the security-scoped resource dance has no analogue and is dropped.",
       "verification_method": "interaction test dropping an image, a text file, and a mixed set",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3586,7 +3586,7 @@
       "cancellation": "Cancelling the panel is the only cancellation and leaves everything unchanged.",
       "windows_path": "A modal-to-the-settings-window open dialog filtered to image extensions, with the same title text. Windows file dialogs do not take an arbitrary confirm-button title in every API; if the chosen API cannot set \"Use as Wallpaper\", record that as a platform limitation rather than silently renaming the button.",
       "verification_method": "interaction test with a stubbed dialog asserting the filter, the single-selection flag and both strings",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3615,7 +3615,7 @@
       "cancellation": "A newer install or render supersedes the one in flight.",
       "windows_path": "Same precedence and the same four strings verbatim. Keep the error in the row's detail rather than in a dialog. OD-0014 keeps upstream's clear window by default: until the user sets a wallpaper the glass sits over the desktop, drawn as Acrylic plus the app-drawn scrim (OD-0005, probe P3), and the richer drawn material appears once a wallpaper is set.",
       "verification_method": "interaction test forcing both failures and asserting the exact sentences and that the existing wallpaper survives",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3644,7 +3644,7 @@
       "cancellation": "A newer render supersedes the one in flight.",
       "windows_path": "Same geometry and the same live-render strategy with a half-size working copy; a GPU blur on a downsampled bitmap. Note the reset's threshold here is `> 0.005`, not the symmetric `abs(...) >= 0.005` the transparency slider uses, and the reset is unanimated; reproduce both asymmetries.",
       "verification_method": "unit test on the threshold at 0.005 and 0.0051; interaction test asserting one live render at a time and one full render on release",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3719,7 +3719,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two topics with the same strings and the same glyphs; the right-click hint at the end refers to a chat affordance outside this area but the sentence stays verbatim.",
       "verification_method": "interaction test comparing every string; capture comparison of both popovers",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -6595,7 +6595,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two strings verbatim; \"grey\" is not Americanised.",
       "verification_method": "unit test comparing the title and the detail byte for byte, including the absent trailing full stop",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -6617,7 +6617,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two strings verbatim, including the capital A in \"Archive page\".",
       "verification_method": "unit test comparing the title and the detail byte for byte",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -6643,7 +6643,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two strings verbatim. Do not persist this enum by its raw value: store the two booleans and derive the mode, or a port silently changes the wire format the defaults already hold.",
       "verification_method": "unit test comparing the title and the detail byte for byte, plus a unit test over the two stored booleans asserting this case round-trips through the computed sidebarMode",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -6669,7 +6669,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two strings verbatim. Do not persist this enum by its raw value: store the two booleans and derive the mode, or a port silently changes the wire format the defaults already hold.",
       "verification_method": "unit test comparing the title and the detail byte for byte, plus a unit test over the two stored booleans asserting this case round-trips through the computed sidebarMode",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -6695,7 +6695,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two strings verbatim. Do not persist this enum by its raw value: store the two booleans and derive the mode, or a port silently changes the wire format the defaults already hold.",
       "verification_method": "unit test comparing the title and the detail byte for byte, plus a unit test over the two stored booleans asserting this case round-trips through the computed sidebarMode",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -6717,7 +6717,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two strings verbatim, with the same apostrophe character.",
       "verification_method": "unit test comparing the title and the detail byte for byte, asserting the apostrophe code point",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -6739,7 +6739,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two strings verbatim; the persisted raw value stays the camel-case \"projectName\".",
       "verification_method": "unit test comparing the title, the detail and the raw value byte for byte",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -6880,7 +6880,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name, same default and the same normalize-on-read rule in the port's settings store; do not read or migrate \"chatZoom\". The app-wide scaling it drives is specified with the window area.",
       "verification_method": "unit test: absent reads 100, 125 reads 125, 130 reads 100, a string reads 100; restart test: set 150, restart, assert it is read back",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -6906,7 +6906,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Store and load the key with the same name and default. Add no control for it and do not wire it to the timeline (PR-CHAT-125).",
       "verification_method": "unit test asserting the exact key string and the default when absent; restart test for a stored true; inspection test that no settings control binds it",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -7731,7 +7731,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:48, :52 chatBaseSize - .title 22, .callout 12 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "SF Symbol \"photo.on.rectangle.angled\". A new picture appears with .spring(duration: 0.45, bounce: 0.2); a picture is never swapped with an animated bitmap crossfade, which flashes.",
-      "b2_change": "Moved, behaviour unchanged: the Appearance section that holds this row left the General page and is now the only section of the new Appearance page (AppearanceSettingsPage, DroppyCode/App/Views/Settings/SettingsView.swift:417-457 at 1fbf81e6; sidebar page \"Appearance\", third after General and Hydra). DroppyCode/App/Views/Settings/WallpaperCard.swift:64-73 at 1fbf81e6: `.font(.system(size: 22))` -> `.font(.system(.title))` and `.font(.system(size: 12))` -> `.font(.system(.callout))`; the line range 25-102 is unchanged."
+      "b2_change": "Moved, behaviour unchanged: the Appearance section that holds this row left the General page and is now the only section of the new Appearance page (AppearanceSettingsPage, DroppyCode/App/Views/Settings/SettingsView.swift:417-457 at 1fbf81e6; sidebar page \"Appearance\", third after General and Hydra). DroppyCode/App/Views/Settings/WallpaperCard.swift:64-73 at 1fbf81e6: `.font(.system(size: 22))` -> `.font(.system(.title))` and `.font(.system(size: 12))` -> `.font(.system(.callout))`; the line range 25-102 is unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-027",
@@ -7755,7 +7756,8 @@
         "DroppyCode/App/Views/Settings/WallpaperCard.swift:104-124"
       ],
       "notes": "Both labels use one horizontal ellipsis character, not three periods. \"Remove\" has no confirmation step and does not consult confirmBeforeDeleting, which is about threads.",
-      "b2_change": "Moved, behaviour unchanged: the Appearance section that holds this row left the General page and is now the only section of the new Appearance page (AppearanceSettingsPage, DroppyCode/App/Views/Settings/SettingsView.swift:417-457 at 1fbf81e6; sidebar page \"Appearance\", third after General and Hydra)."
+      "b2_change": "Moved, behaviour unchanged: the Appearance section that holds this row left the General page and is now the only section of the new Appearance page (AppearanceSettingsPage, DroppyCode/App/Views/Settings/SettingsView.swift:417-457 at 1fbf81e6; sidebar page \"Appearance\", third after General and Hydra).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-028",
@@ -7784,7 +7786,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:53 chatBaseSize - .subheadline 11 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "Two deliberate asymmetries with the other two reset-bearing sliders on this page: the threshold is a one-sided `> 0.005` rather than an absolute difference, and the reset is not wrapped in withAnimation. Accessibility label is \"Wallpaper softness\".",
-      "b2_change": "Moved, behaviour unchanged: the Appearance section that holds this row left the General page and is now the only section of the new Appearance page (AppearanceSettingsPage, DroppyCode/App/Views/Settings/SettingsView.swift:417-457 at 1fbf81e6; sidebar page \"Appearance\", third after General and Hydra). DroppyCode/App/Views/Settings/WallpaperCard.swift:126-166 at 1fbf81e6: the glyph fonts `.system(size: 11)` and `.system(size: 11, weight: .medium)` became `.system(.subheadline)` and `.system(.subheadline, weight: .medium)`; line numbers unchanged."
+      "b2_change": "Moved, behaviour unchanged: the Appearance section that holds this row left the General page and is now the only section of the new Appearance page (AppearanceSettingsPage, DroppyCode/App/Views/Settings/SettingsView.swift:417-457 at 1fbf81e6; sidebar page \"Appearance\", third after General and Hydra). DroppyCode/App/Views/Settings/WallpaperCard.swift:126-166 at 1fbf81e6: the glyph fonts `.system(size: 11)` and `.system(size: 11, weight: .medium)` became `.system(.subheadline)` and `.system(.subheadline, weight: .medium)`; line numbers unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-029",

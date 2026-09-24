@@ -255,10 +255,19 @@ public sealed class CommandCodeAPITests
 
     // ---- PR-PROVCLI-257, UI-PROVCLI-024: planLimits ------------------------------------------------------------
 
+    // Test double for the PORT-ONLY MoneyFormatter seam (CommandCodeAPI.swift:93). Services.Providers.ProviderCredits
+    // is a sibling unit in this dependency cycle and ProviderCredits.Money is MARROW_STUB at this commit; this mirrors
+    // ProviderCredits.swift:38-45's en_US currency formatting only for the round two-decimal USD amounts these tests
+    // use, so PR-PROVCLI-257's own window-building logic (title concatenation, percent clamp, resetAt) can be proven
+    // now. It is not a claim about ProviderCredits.Money's general behaviour (non-USD codes, non-round amounts).
+    private static string TestMoney(double value, string currency) =>
+        currency == "USD" ? value.ToString("$0.00", System.Globalization.CultureInfo.GetCultureInfo("en-US")) : throw new NotSupportedException();
+
     private static async Task<PlanLimits?> PlanLimitsAgainst(LoopbackHttpServer server, Dictionary<string, string> environment,
         (int Status, string Body) credits, (int Status, string Body) subscription)
     {
         using var route = CommandCodeAPI.FetchBaseURL.Override(server.Url("/"));
+        using var money = CommandCodeAPI.MoneyFormatter.Override(TestMoney);
         var pending = CommandCodeAPI.PlanLimits(environment);
         var first = await server.NextExchange();
         var second = await server.NextExchange();
