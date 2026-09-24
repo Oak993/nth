@@ -69,13 +69,16 @@ public sealed class ProviderCreditsTests
     [Trait("Req", "PR-PROVREG-203")] // ProviderCredits.swift:62 - "case .deepseek: await DeepSeekAPI.balance(apiKey:)"
     public async Task Read_dispatches_deepseek_to_DeepSeekAPI_Balance()
     {
-        // DeepSeekAPI.Balance is a MARROW_STUB left to its own unit (dependency cycle, see the work packet). The
-        // dispatch is observable now only as: it is DeepSeekAPI.Balance that gets called, not CommandCodeAPI.Credits
-        // or a no-op. Once DeepSeekAPI.Balance is implemented this test's exception assertion is replaced by a real
-        // value assertion (untestable beyond dispatch routing until then).
+        // DeepSeekAPI.Balance is now implemented (Services.Providers.DeepSeekAPI unit). It has no base-URL
+        // override seam (DeepSeekAPI.swift's balanceURL is a fixed literal, unlike CommandCodeAPI's configurable
+        // host), so this cannot be exercised against a loopback server without reaching the real network
+        // (forbidden, R-TEST-10). An empty key is dispatch-routing evidence that is still a real value assertion
+        // rather than a stub artifact: DeepSeekAPI.Balance short-circuits to null before any request is built
+        // (DeepSeekAPI.swift:44-45 `guard !key.isEmpty else { return nil }`), so this proves Read reaches
+        // DeepSeekAPI.Balance (not CommandCodeAPI.Credits, whose empty-key path is asserted separately, or a
+        // no-op default) and exercises the real implementation, with no network call.
         using var runtime = new TestRuntime();
-        var ex = await Assert.ThrowsAsync<NotImplementedException>(() => CreditsReader.Read(ProviderKind.Deepseek, "key"));
-        Assert.Contains("DeepSeekAPI.swift", ex.Message, StringComparison.Ordinal);
+        Assert.Null(await CreditsReader.Read(ProviderKind.Deepseek, ""));
     }
 
     [Fact]
