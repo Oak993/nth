@@ -114,19 +114,24 @@ public sealed class HydraPanel : Decorator
             })
         };
 
-        var content = new Grid();
-        content.Children.Add(scrim);
-        content.Children.Add(shape);
-        content.Children.Add(Strip(selected, runtime, heads, isPoppedOut, popOut, dismiss, onDrag, onDragEnd));
+        // :92-98, :110-121 Keep the shadow-bearing scrim outside the clipped panel. The panel clips
+        // its surface and strip to the continuous rounded shape; the scrim's shadow remains visible.
+        var panelContents = new Grid();
+        panelContents.Children.Add(shape);
+        panelContents.Children.Add(Strip(selected, runtime, heads, isPoppedOut, popOut, dismiss, onDrag, onDragEnd));
 
-        // :110-112 Glass supplies the edge: no hairline at any time, and the panel is clipped to its shape.
-        Child = new Border
+        var panel = new Border
         {
             CornerRadius = new CornerRadius(CornerRadius),
             ClipToBounds = true,
-            Child = content
+            Child = panelContents
         };
-        ClipToBounds = true;
+
+        var floatingPanel = new Grid();
+        floatingPanel.Children.Add(scrim);
+        floatingPanel.Children.Add(panel);
+        Child = floatingPanel;
+        ClipToBounds = false;
         Width = size.Width;
         Height = size.Height;
     }
