@@ -1336,7 +1336,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same URLs, including the query string on the reset list URL.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1360,7 +1360,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same request.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1384,7 +1384,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same parsing and comparator.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1405,7 +1405,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same literals; the default effort here is 'max', unlike DeepSeek and Meta.",
       "verification_method": "unit plus capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1425,7 +1425,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same literals.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1448,7 +1448,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two tests; the prefix test is case-sensitive while the FlashX test is not.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1470,7 +1470,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two case-sensitive substring tests.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1492,7 +1492,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two constants, kept distinct from the 1048576 used by the other two providers.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1516,7 +1516,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two-step sequence and the same nil rules.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1538,7 +1538,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same prefix with one trailing space before the level.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1561,7 +1561,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same arithmetic, including the millisecond divisor and the clamp.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1583,7 +1583,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same four multipliers and the same two fallback titles.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1604,7 +1604,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same title and detail literals.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1626,7 +1626,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Format with a fixed en-US number format, not the system locale.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1651,7 +1651,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key names, order, titles and id format.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1678,7 +1678,7 @@
       "cancellation": "not cancellable once the POST is sent; the two second sleep swallows cancellation and .reset is still returned",
       "windows_path": "Same request shape and the same two second settle delay.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1700,7 +1700,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Parse with a fixed pattern and an explicit Asia/Shanghai zone; never the system zone or a locale-sensitive parser.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1720,7 +1720,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same configuration record.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1742,7 +1742,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same keys, including the conditional tool_stream.",
       "verification_method": "contract fixture on the request body for both round shapes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1762,7 +1762,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same mapping table, kept distinct from the DeepSeek and Meta tables.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1786,7 +1786,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Preserve this branch's position at the top of the chain.",
       "verification_method": "unit with a message containing both 'context length' and 'limit'",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1808,7 +1808,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same tests and message.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1833,7 +1833,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same extraction, including the exact trim character set.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1855,7 +1855,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the string verbatim. The Marrow repository's own no-em-dash rule governs Marrow-authored text; this is a reproduced upstream user-facing string and needs a recorded lint exception rather than a rewording.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1877,7 +1877,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same test and message.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1899,7 +1899,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same test and message.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1923,7 +1923,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three tests and message, including the bare digit match.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1945,7 +1945,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same test and message.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1967,7 +1967,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same test and message.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1992,7 +1992,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same tests, same message, and the same downstream contract that this exact phrase is the auto-continue signal.",
       "verification_method": "unit plus interaction test covering auto-continue",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2014,7 +2014,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same tests and message.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2036,7 +2036,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same passthrough; never guess at an unknown Z.ai refusal.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5179,7 +5179,8 @@
         "DroppyCode/Services/Providers/ZaiAPI.swift:49-63",
         "DroppyCode/Services/Providers/ProviderRegistry.swift:130 zaiSeed"
       ],
-      "notes": "These are the only two providers' rows whose preselected effort is 'max' rather than 'high'."
+      "notes": "These are the only two providers' rows whose preselected effort is 'max' rather than 'high'.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVAPI-029",
