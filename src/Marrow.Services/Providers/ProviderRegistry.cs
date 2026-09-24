@@ -91,6 +91,14 @@ public sealed partial class ProviderRegistry : MainActorModel
     private readonly string catalogDatesKey = "providerModelCatalogDates";
     // :51. @ObservationIgnored.
     private readonly Dictionary<ProviderKind, DateTimeOffset> catalogFetchedAt = new();
+
+    // :157. Views that ask on appear must never re-spawn a CLI while scrolling: a provider that has
+    // already delivered (or been probed unforced) this launch is not probed again without force.
+    private readonly HashSet<ProviderKind> attemptedCatalogs = [];
+
+    // :160. The single shared OpenCode probe (PR-PROVREG-150): Zen and Go come from one CLI session, so
+    // a concurrent ask for either reuses the same in-flight task instead of spawning a second CLI.
+    private TaskHandle<ValueList<ModelOption>?>? openCodeCatalogTask;
     // :61. @ObservationIgnored.
     private readonly Dictionary<ProviderKind, DateTimeOffset> limitsFetchedAt = new();
     // :68. @ObservationIgnored.
@@ -416,9 +424,37 @@ public sealed partial class ProviderRegistry : MainActorModel
     public Task<string?> SignIn(ProviderKind provider) =>
         throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ProviderRegistry.swift:289");
 
-    // :315-333
-    public Task RefreshEverything() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ProviderRegistry.swift:315");
+    // :315-333. PR-PROVREG-131, PR-PROVREG-132. Single-flight (:316-318), then three phases in order:
+    // refreshAll, then a forced limits read for every provider not known to be signed out (:321-326,
+    // NOT credits: the comment at :320 notes credits were already re-read in refreshAPIProvider), then a
+    // task group forcing loadCatalog for every installed provider (:328-331), unbounded in concurrency
+    // unlike the capped refreshAll.
+    public async Task RefreshEverything()
+    {
+        if (isRefreshing) return; // :316
+        isRefreshing = true; // :317
+        try
+        {
+            await RefreshAll(); // :319
+            foreach (var provider in SwiftEnum<ProviderKind>.AllCases) // :321-323
+            {
+                if (Status(provider).ProviderStatusAuth is not ProviderStatus.Auth.SignedOut)
+                    RefreshPlanLimits(provider, force: true); // :322
+            }
+            await TaskGroup.Run(async group => // :328-331
+            {
+                foreach (var provider in SwiftEnum<ProviderKind>.AllCases)
+                {
+                    if (Status(provider).IsInstalled)
+                        group.AddTask(() => MainActor.Invoke(() => LoadCatalog(provider, force: true)));
+                }
+            });
+        }
+        finally
+        {
+            isRefreshing = false; // :318 (defer)
+        }
+    }
 
     // :335-338. How many providers are checked at the same time.
     private const int ProbeWidth = 4;
@@ -744,21 +780,223 @@ public sealed partial class ProviderRegistry : MainActorModel
                 : option));
     }
 
-    // :429-431. Swift: models(for:).
+    // :429-431. Swift: models(for:). PR-PROVREG-147: the empty array, never null, for a provider with no
+    // catalog.
     public ValueList<ModelOption> Models(ProviderKind provider) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ProviderRegistry.swift:429");
+        catalogs.TryGetValue(provider, out var list) ? list : ValueList<ModelOption>.Empty;
 
-    // :433-440. Swift: model(_:for:).
-    public ModelOption? Model(string? id, ProviderKind provider) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ProviderRegistry.swift:433");
+    // :433-440. Swift: model(_:for:). PR-PROVREG-148: exact match first (so a bracketed seed id like the
+    // Claude Fable row still resolves to itself), then the part before the first bracket; only for
+    // provider .opencode with an "opencode-go/" id does a miss fall back to the OpenCode Go catalog,
+    // one-way only.
+    public ModelOption? Model(string? id, ProviderKind provider)
+    {
+        if (id is null) return null; // :434
+        if (Match(id, Models(provider)) is { } match) return match; // :435
+        if (provider != ProviderKind.Opencode || !SwiftString.HasPrefix(id, "opencode-go/")) return null; // :436-437
+        return Match(id, Models(ProviderKind.OpencodeGo)); // :438-439
+    }
+
+    // :442-449. Private in Swift; kept private since only Model(_:for:) calls it.
+    private static ModelOption? Match(string id, IReadOnlyList<ModelOption> list)
+    {
+        foreach (var option in list) // :443-444
+            if (option.Id == id) return option;
+        var bracket = id.IndexOf('[', StringComparison.Ordinal); // :446
+        if (bracket < 0) return null;
+        var baseId = id[..bracket]; // :447
+        foreach (var option in list) // :448
+            if (option.Id == baseId) return option;
+        return null; // :449
+    }
 
     // :451-457. Swift: defaultModel(for:).
     public ModelOption? DefaultModel(ProviderKind provider) =>
         throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ProviderRegistry.swift:451");
 
-    // :459-517
-    public Task LoadCatalog(ProviderKind provider, bool force = false) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ProviderRegistry.swift:459");
+    // :459-517. PR-PROVREG-149 to PR-PROVREG-153: single-flight per provider, the once-per-launch attempt
+    // gate, the seeded/stale test, the nine-arm dispatch table, and the OpenCode sibling delivery.
+    public async Task LoadCatalog(ProviderKind provider, bool force = false)
+    {
+        if (loadingCatalogs.Contains(provider)) return; // :460
+        if (!force && attemptedCatalogs.Contains(provider)) return; // :461
+        if (provider.IsAPIKeyBased) // :462-464
+        {
+            await LoadAPICatalog(provider, force);
+            return;
+        }
+        var current = Models(provider);
+        var seeded = provider == ProviderKind.Claude || provider == ProviderKind.Codex // :472
+            || (provider == ProviderKind.Copilot && current.Equals(new ValueList<ModelOption>([CopilotAuto]))) // :473
+            || (provider == ProviderKind.Commandcode && current.Equals(CommandcodeSeed)) // :474
+            || (provider == ProviderKind.Pi && current.Equals(PiSeed)) // :475
+            || ((provider == ProviderKind.Opencode || provider == ProviderKind.OpencodeGo) && LacksEffortWalk(current)); // :476
+        var stale = catalogFetchedAt.TryGetValue(provider, out var fetched)
+            ? SwiftDate.Now - fetched > TimeSpan.FromSeconds(21600) // :477, 6 * 3600
+            : current.Count != 0; // :477 - undated non-empty list counts as stale
+        if (!force && !seeded && !stale && current.Count != 0) return; // :478
+        loadingCatalogs = loadingCatalogs.Mutating(s => s.Add(provider)); // :479
+        try
+        {
+            await LoginEnvironment.Load(); // :481
+            if (Executable(provider) is not { } executable) return; // :482
+            var environment = Environment(provider); // :483
+            ValueList<ModelOption>? raw = provider switch // :484-494
+            {
+                ProviderKind.Claude => await LoadClaudeCatalog(executable, environment), // :485
+                ProviderKind.Codex => await SwiftTry.OptionalAsync(async () => (ValueList<ModelOption>?)await CodexSession.ListModels(executable, environment)), // :486
+                ProviderKind.Antigravity => await SwiftTry.OptionalAsync(async () => (ValueList<ModelOption>?)await AntigravitySession.ListModels(executable, environment)), // :487
+                ProviderKind.Copilot => await SwiftTry.OptionalAsync(async () => (ValueList<ModelOption>?)await CopilotSession.ListModels(executable, environment)), // :488
+                ProviderKind.Commandcode => await SwiftTry.OptionalAsync(async () => (ValueList<ModelOption>?)await CommandCodeAPI.ListModels(executable, environment)), // :489
+                ProviderKind.Pi => await SwiftTry.OptionalAsync(async () => (ValueList<ModelOption>?)await PiCLI.ListModels(executable, environment)), // :490
+                ProviderKind.Cursor or ProviderKind.Grok or ProviderKind.Devin =>
+                    await SwiftTry.OptionalAsync(async () => (ValueList<ModelOption>?)await ACPSession.ProbeModels(provider, executable, environment)), // :491
+                ProviderKind.Opencode or ProviderKind.OpencodeGo => await OpenCodeCatalog(force, executable, environment), // :492
+                ProviderKind.Deepseek or ProviderKind.Meta or ProviderKind.Zai => null, // :493
+                _ => throw new UnreachableException(),
+            };
+            var list = raw is null ? null : OpenCodeModels(raw, provider); // :495
+            if (list is { Count: > 0 })
+            {
+                UpdateCatalog(list, provider); // :496-498
+                catalogFetchedAt[provider] = SwiftDate.Now; // :499
+                StoreCatalogDates(); // :500
+                // :501-503: only a delivered catalog closes the attempt; a probe that came back with
+                // nothing is tried again on the next ask.
+                attemptedCatalogs.Add(provider);
+                if (raw is not null && (provider == ProviderKind.Opencode || provider == ProviderKind.OpencodeGo)) // :504-515
+                {
+                    foreach (var kind in new[] { ProviderKind.Opencode, ProviderKind.OpencodeGo })
+                    {
+                        if (kind == provider) continue;
+                        var sibling = OpenCodeModels(raw, kind);
+                        if (sibling.Count == 0) continue;
+                        UpdateCatalog(sibling, kind);
+                        catalogFetchedAt[kind] = SwiftDate.Now;
+                        attemptedCatalogs.Add(kind);
+                    }
+                    StoreCatalogDates();
+                }
+            }
+        }
+        finally
+        {
+            loadingCatalogs = loadingCatalogs.Mutating(s => s.Remove(provider)); // :480 (defer)
+        }
+    }
+
+    // :519-523. Private in Swift; kept private since only LoadCatalog calls it (used directly by its own
+    // tests through LoadCatalog's observable seeded/stale behavior, PR-PROVREG-151).
+    private static bool LacksEffortWalk(IReadOnlyList<ModelOption> list) =>
+        list.Count(option => option.Efforts.Count != 0) <= 1;
+
+    // :527-539. Shared by Zen and Go: one CLI session probes as .opencode; a concurrent or later unforced
+    // ask reuses the same in-flight task. force clears any stored task first; a nil result (the probe
+    // threw, swallowed by ProbeModels' try? equivalent below) clears the memo so the next ask probes again.
+    internal Task<ValueList<ModelOption>?> OpenCodeCatalog(bool force, SwiftURL executable, ValueMap<string, string> environment)
+    {
+        if (force) openCodeCatalogTask = null; // :528
+        var task = openCodeCatalogTask ?? MainActor.Spawn(async () => // :529-534
+            await SwiftTry.OptionalAsync(async () => (ValueList<ModelOption>?)await ACPSession.ProbeModels(ProviderKind.Opencode, executable, environment)));
+        openCodeCatalogTask = task;
+        return Finish(task);
+
+        async Task<ValueList<ModelOption>?> Finish(TaskHandle<ValueList<ModelOption>?> handle)
+        {
+            var list = await handle.Value; // :535
+            if (list is null) openCodeCatalogTask = null; // :536-537
+            return list; // :538
+        }
+    }
+
+    // :561-566. Private in Swift. The handshake runs somewhere: the models are the same from any folder.
+    internal static async Task<ValueList<ModelOption>?> LoadClaudeCatalog(SwiftURL executable, ValueMap<string, string> environment) =>
+        await SwiftTry.OptionalAsync(async () =>
+        {
+            var (models, _) = await ClaudeSession.Handshake(executable, FileUrl(System.IO.Path.GetTempPath()), environment);
+            return (ValueList<ModelOption>?)models;
+        });
+
+    // :567-591. Private in Swift. The seed keeps API providers usable offline; a live fetch only refines it.
+    private async Task LoadAPICatalog(ProviderKind provider, bool force)
+    {
+        ValueList<ModelOption>? seed = provider switch // :569-573
+        {
+            ProviderKind.Deepseek => DeepseekSeed,
+            ProviderKind.Meta => MetaSeed,
+            ProviderKind.Zai => ZaiSeed,
+            _ => null,
+        };
+        if (seed is null) return; // :574
+        if (Models(provider).Count == 0) UpdateCatalog(seed, provider); // :576
+        loadingCatalogs = loadingCatalogs.Mutating(s => s.Add(provider)); // :577
+        try
+        {
+            var apiKey = settings.ApiKey(provider); // :579
+            if (apiKey.Length == 0) return; // :580
+            attemptedCatalogs.Add(provider); // :581
+            ValueList<ModelOption>? list = provider switch // :582-586
+            {
+                ProviderKind.Deepseek => await SwiftTry.OptionalAsync(async () => (ValueList<ModelOption>?)await DeepSeekAPI.ListModels(apiKey)),
+                ProviderKind.Meta => await SwiftTry.OptionalAsync(async () => (ValueList<ModelOption>?)await MetaAPI.ListModels(apiKey)),
+                ProviderKind.Zai => await SwiftTry.OptionalAsync(async () => (ValueList<ModelOption>?)await ZaiAPI.ListModels(apiKey)),
+                _ => null,
+            };
+            if (list is { Count: > 0 }) // :588
+            {
+                UpdateCatalog(list, provider); // :589
+                catalogFetchedAt[provider] = SwiftDate.Now; // :590
+                StoreCatalogDates(); // :591
+            }
+        }
+        finally
+        {
+            loadingCatalogs = loadingCatalogs.Mutating(s => s.Remove(provider)); // :578 (defer)
+        }
+    }
+
+    // :597-602. Private in Swift; kept private, only LoadCatalog/LoadAPICatalog call it. Persists when
+    // each provider last delivered a list, seconds since 1970, key "providerModelCatalogDates".
+    private void StoreCatalogDates()
+    {
+        var raw = new Dictionary<string, double>();
+        foreach (var (provider, date) in catalogFetchedAt) raw[SwiftEnum<ProviderKind>.RawValue(provider)] = SwiftDate.Seconds1970(date); // :599-600
+        using var stream = new MemoryStream();
+        using (var writer = new Utf8JsonWriter(stream))
+        {
+            writer.WriteStartObject();
+            foreach (var (key, value) in raw) writer.WriteNumber(key, value);
+            writer.WriteEndObject();
+        }
+        UserDefaults.Standard.Current.Set(catalogDatesKey, stream.ToArray()); // :601
+    }
+
+    // :83-101 mergedClaudeCatalog. Private in Swift; kept private, only UpdateCatalog calls it.
+    // PR-PROVREG-138: the seed with a live Claude list laid over it; a live row for a seed id lends its
+    // effort levels, description and fast tier where non-empty/non-nil; a row the seed lacks is appended;
+    // no seed row is ever dropped and a live row's name never replaces the seed's name.
+    internal static ValueList<ModelOption> MergedClaudeCatalog(IReadOnlyList<ModelOption> live)
+    {
+        var merged = new List<ModelOption>(ClaudeSeed); // :87
+        foreach (var option in live) // :88
+        {
+            var index = merged.FindIndex(kept => kept.Id == option.Id); // :89
+            if (index >= 0)
+            {
+                var kept = merged[index];
+                if (option.Efforts.Count != 0) kept = kept with { Efforts = option.Efforts }; // :91
+                if (option.Detail is { Length: > 0 } detail) kept = kept with { Detail = detail }; // :92
+                if (option.FastTier is not null) kept = kept with { FastTier = option.FastTier }; // :93
+                if (option.DefaultEffort is not null) kept = kept with { DefaultEffort = option.DefaultEffort }; // :94
+                merged[index] = kept; // :95
+            }
+            else
+            {
+                merged.Add(option); // :97
+            }
+        }
+        return new ValueList<ModelOption>(merged); // :100
+    }
 
     // :606-641
     public void RefreshPlanLimits(ProviderKind provider, bool force = false) =>
@@ -780,9 +1018,53 @@ public sealed partial class ProviderRegistry : MainActorModel
     public void InvalidatePlanLimits(ProviderKind provider) =>
         throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ProviderRegistry.swift:712");
 
-    // :717-734. Swift: updateCatalog(_:for:).
-    public void UpdateCatalog(ValueList<ModelOption> list, ProviderKind provider) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ProviderRegistry.swift:717");
+    // :717-734. Swift: updateCatalog(_:for:). PR-PROVREG-138/139/154/155/156: the Claude and ACP merges,
+    // then the empty/unchanged guard, then the whole-blob write. CaptureRun.isEnabled is always false in
+    // a shipped build (dead_code.md entry 44), so that guard always passes and is not ported as a branch.
+    public void UpdateCatalog(ValueList<ModelOption> list, ProviderKind provider)
+    {
+        var merged = provider switch // :722-725
+        {
+            ProviderKind.Claude => MergedClaudeCatalog(list),
+            _ when provider.UsesACP => MergedACPCatalog(list, Models(provider)),
+            _ => list,
+        };
+        if (merged.Count == 0 || merged.Equals(Models(provider))) return; // :727
+        catalogs = catalogs.Mutating(d => d[provider] = merged); // :728
+        UserDefaults.Standard.Current.Set(cacheKey, EncodeCatalogs(catalogs)); // :729-733
+    }
+
+    // JSONEncoder().encode([String: [ModelOption]]) (:730-733). Writes id, name, detail, efforts,
+    // defaultEffort, isDefault and fastTier for every row, mirroring what Decode reads back.
+    private static byte[] EncodeCatalogs(IReadOnlyDictionary<ProviderKind, ValueList<ModelOption>> catalogs)
+    {
+        using var stream = new MemoryStream();
+        using (var writer = new Utf8JsonWriter(stream))
+        {
+            writer.WriteStartObject();
+            foreach (var (provider, list) in catalogs)
+            {
+                writer.WriteStartArray(SwiftEnum<ProviderKind>.RawValue(provider));
+                foreach (var option in list)
+                {
+                    writer.WriteStartObject();
+                    writer.WriteString("id", option.Id);
+                    writer.WriteString("name", option.Name);
+                    if (option.Detail is { } detail) writer.WriteString("detail", detail);
+                    writer.WriteStartArray("efforts");
+                    foreach (var effort in option.Efforts) writer.WriteStringValue(effort);
+                    writer.WriteEndArray();
+                    if (option.DefaultEffort is { } defaultEffort) writer.WriteString("defaultEffort", defaultEffort);
+                    if (option.IsDefault) writer.WriteBoolean("isDefault", true);
+                    if (option.FastTier is { } fastTier) writer.WriteString("fastTier", fastTier);
+                    writer.WriteEndObject();
+                }
+                writer.WriteEndArray();
+            }
+            writer.WriteEndObject();
+        }
+        return stream.ToArray();
+    }
 
     // :736-738
     public static string CommandKey(ProviderKind provider, string directory) =>
