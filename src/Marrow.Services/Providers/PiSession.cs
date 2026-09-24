@@ -731,7 +731,22 @@ public sealed class PiSession : ProviderSession
         OnEvent?.Invoke(new ProviderEvent.Approval(approval)); // :635
     }
 
-    private void DidClose(int status) // :638-653
+    /// <summary>Test seam for this part's own tests: the turn-active state <c>Send()</c> sets at :179-186,
+    /// without a live process (Send() itself requires IsRunning). No Swift twin.</summary>
+    internal void TestBeginTurn(InteractionMode mode, RuntimeMode runtimeModeValue = RuntimeMode.Supervised)
+    {
+        interactionMode = mode;
+        runtimeMode = runtimeModeValue;
+        turnActive = true;
+        interruptRequested = false;
+        turnError = null;
+        turnCounter++;
+        lastReplyText = "";
+    }
+
+    // Swift `private`; kept internal so this part's own tests can drive it without tearing down a live process
+    // (per the file's established seam pattern, e.g. Handle, HandleToolEnd).
+    internal void DidClose(int status) // :638-653
     {
         var tail = TextCleanup.LastLines(process?.ErrorTail ?? "");
         process = null;
