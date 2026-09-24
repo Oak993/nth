@@ -4166,45 +4166,15 @@
     "Services.Providers.ProviderRegistry"
    ],
    "records_total": 13,
-   "records_todo": [
-    "PR-PROVCLI-301",
-    "PR-PROVCLI-302",
-    "PR-PROVCLI-303",
-    "PR-PROVCLI-304",
-    "PR-PROVCLI-305",
-    "PR-PROVCLI-306",
-    "PR-PROVCLI-307",
-    "PR-PROVCLI-308",
-    "PR-PROVCLI-309",
-    "PR-PROVCLI-310",
-    "PR-PROVCLI-311",
-    "PR-PROVCLI-312",
-    "UI-PROVCLI-020"
-   ],
-   "parts": [
-    [
-     "PR-PROVCLI-301",
-     "PR-PROVCLI-302",
-     "PR-PROVCLI-303",
-     "PR-PROVCLI-304",
-     "PR-PROVCLI-305",
-     "PR-PROVCLI-306",
-     "PR-PROVCLI-307",
-     "PR-PROVCLI-308",
-     "PR-PROVCLI-309",
-     "PR-PROVCLI-310",
-     "PR-PROVCLI-311",
-     "PR-PROVCLI-312",
-     "UI-PROVCLI-020"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-111",
     "T-M4-112",
     "T-M4-113"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.Providers.PiPlanLimits",
