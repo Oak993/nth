@@ -7,9 +7,9 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "IMPLEMENTED": 1633,
+      "IMPLEMENTED": 1662,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
-      "SPECIFIED": 2256,
+      "SPECIFIED": 2227,
       "RETIRED": 6,
       "DISCOVERED": 18
     },
@@ -62005,7 +62005,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The double optional is essential; a port using a plain nullable date cannot distinguish 'no note' from 'note without a time'.",
       "verification_method": "unit - four-way table",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -62029,7 +62029,7 @@
       "cancellation": "The previous wait is cancelled here; the new one is cancellable only through this same path, since the user-facing cancel affordance does not ship (dead_code.md items 21 and 22).",
       "windows_path": "port_impacts.md entry 102: reproduce process-lifetime waits with no persistence, no cancel on delete and no relaunch recovery, and with the notice text surviving on disk.",
       "verification_method": "unit - the note is consumed on every path; the chime is suppressed only when a wait starts",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -62052,7 +62052,7 @@
       "cancellation": "A cancelled or superseded wait returns before the notice.",
       "windows_path": "Two distinct literals; they are not the same sentence.",
       "verification_method": "unit - exact string comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -62077,7 +62077,7 @@
       "cancellation": "The await is cancellable.",
       "windows_path": "95 is exact. Reading the key must go through the secret store; never read a provider credential file directly.",
       "verification_method": "unit with a stubbed PlanLimitsReader",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -62102,7 +62102,7 @@
       "cancellation": "The sleep is cancellable; on waking the token is re-checked.",
       "windows_path": "60 seconds and the five-second floor are exact. The formatter is shared with the provider sessions through UsageLimitSignal.format so the times read the same everywhere.",
       "verification_method": "unit with an injected clock and exact string comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -62128,7 +62128,7 @@
       "cancellation": "The token check is the cancellation test.",
       "windows_path": "The message is verbatim and identical for every provider. The find-by-text lookup is fragile but is the shipped behavior.",
       "verification_method": "integration test with an injected clock",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -62154,7 +62154,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the narrower visibility test; do not substitute AppModel's.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -63613,7 +63613,7 @@
       "cancellation": "not cancellable",
       "windows_path": "All six gates are in one guard and are order-independent apart from the two optional bindings; reproduce each as a separate testable condition.",
       "verification_method": "unit - a negative case for this gate alone, with the other five satisfied",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -63635,7 +63635,7 @@
       "cancellation": "not cancellable",
       "windows_path": "All six gates are in one guard and are order-independent apart from the two optional bindings; reproduce each as a separate testable condition.",
       "verification_method": "unit - a negative case for this gate alone, with the other five satisfied",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -63657,7 +63657,7 @@
       "cancellation": "not cancellable",
       "windows_path": "All six gates are in one guard and are order-independent apart from the two optional bindings; reproduce each as a separate testable condition.",
       "verification_method": "unit - a negative case for this gate alone, with the other five satisfied",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -63679,7 +63679,7 @@
       "cancellation": "not cancellable",
       "windows_path": "All six gates are in one guard and are order-independent apart from the two optional bindings; reproduce each as a separate testable condition.",
       "verification_method": "unit - a negative case for this gate alone, with the other five satisfied",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -63701,7 +63701,7 @@
       "cancellation": "not cancellable",
       "windows_path": "All six gates are in one guard and are order-independent apart from the two optional bindings; reproduce each as a separate testable condition.",
       "verification_method": "unit - a negative case for this gate alone, with the other five satisfied",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -63723,7 +63723,7 @@
       "cancellation": "not cancellable",
       "windows_path": "All six gates are in one guard and are order-independent apart from the two optional bindings; reproduce each as a separate testable condition.",
       "verification_method": "unit - a negative case for this gate alone, with the other five satisfied",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -66784,7 +66784,7 @@
       "cancellation": "A newer render cancels the one in flight; a cancelled render leaves the current picture alone.",
       "windows_path": "Same two keys and the same file-name-only storage under the app's data directory. Reproduce the guarded clamp shape, not just its effect, so the re-entrancy is impossible in the port too.",
       "verification_method": "restart test with a wallpaper set; unit test on the softness clamp with values -1, 0.5 and 2 asserting exactly one write each",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -84658,7 +84658,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One process-wide store in the main process; the renderer observes it. The library folder holds one wallpaper file at a time, under an app data path the WIN area fixes.",
       "verification_method": "unit: hasWallpaper is true with a file and no image; interaction test: the backdrop follows the store",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -84683,7 +84683,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Platform boundary: there is no uniform-type-identifier system. Decide by extension against the image decoders the port ships, then by sniffing the file's magic bytes, so an extensionless image is still accepted as it is upstream.",
       "verification_method": "unit: an extensionless PNG is accepted, a .txt is refused with the exact message",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -84711,7 +84711,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two key names and the same file-name-only value, so the stored name resolves against the port's own wallpaper folder rather than a stale absolute path.",
       "verification_method": "restart test: the stored name plus the folder reproduce the picture; unit: the exact key names",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -84738,7 +84738,7 @@
       "cancellation": "The start render is cancellable by a later render (PR-THEME-061).",
       "windows_path": "Same behaviour. Note the clamp at read time is separate from the clamp in the setter and both are required. OD-0014: with no wallpaper (none stored, or the stored file gone) the window keeps upstream's clear default: the desktop shows through as Acrylic plus the app-drawn scrim (OD-0005).",
       "verification_method": "restart test with a deleted wallpaper file: the app starts with no wallpaper and no error",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -84765,7 +84765,7 @@
       "cancellation": "not cancellable",
       "windows_path": "If the port's state system re-enters setters, reproduce the guard exactly. If it does not, the observable behaviour is the same and the guard is harmless; it must not be replaced by an unconditional clamp in a re-entrant setter.",
       "verification_method": "unit: assigning 1.5 leaves softness at 1 with exactly one persist and one re-render",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -84791,7 +84791,7 @@
       "cancellation": "Releasing the slider cancels the live path; a new drag cancels a full render already under way through render()'s own cancellation (PR-THEME-061).",
       "windows_path": "Same two-phase model: the drag must not blur the full-size image per frame.",
       "verification_method": "interaction test: during a drag the rendered bitmap is the preview size, after release it is the full size",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -84816,7 +84816,7 @@
       "cancellation": "see PR-THEME-061",
       "windows_path": "Same branch.",
       "verification_method": "unit: the branch table over (hasFile, isAdjusting)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -84847,7 +84847,7 @@
       "cancellation": "The install task itself is not cancellable once started; only the render it cancelled is.",
       "windows_path": "Platform boundary: there is no security-scoped URL to take and release. The file is read directly. Keep the generated name pattern \"wallpaper-<uuid>.<ext>\" so the folder never accumulates collisions, and keep the delete-previous-on-success order (never delete first).",
       "verification_method": "interaction test: drop a picture, the old file is gone and exactly one file remains; unit: the name pattern and the jpg fallback",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -84875,7 +84875,7 @@
       "cancellation": "A new render cancels the previous one; remove() also cancels it.",
       "windows_path": "Reproduce the identity check as well as the cancellation check: cancellation alone is not enough, because a removal followed by a new install would otherwise let a stale bitmap land.",
       "verification_method": "unit: a render whose file changed mid-flight publishes nothing; interaction test: no flash when softness settles",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -84904,7 +84904,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Both sentences verbatim, including the full stops. There is no error code, no retry and no dialog; the message lives in the settings card.",
       "verification_method": "unit: each failure path produces its exact sentence and leaves the previous wallpaper installed",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -84931,7 +84931,7 @@
       "cancellation": "not cancellable, and not confirmed: Remove takes effect on the click",
       "windows_path": "Same order. Note that softness survives a removal, so the next picture installs at the same softness. OD-0014: after removal the window is back at upstream's clear default, so the desktop shows through as Acrylic plus the app-drawn scrim (OD-0005).",
       "verification_method": "interaction test: Remove clears the backdrop and the file; restart test: nothing comes back",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -84958,7 +84958,7 @@
       "cancellation": "Ending the drag ends the loop at the next iteration.",
       "windows_path": "Coalesce, do not queue. The radius scale must be derived from the actual widths, not assumed to be 0.5: the two thumbnail limits are 3200 and 1600 but the real ratio depends on the source picture's aspect and size.",
       "verification_method": "unit: a burst of ten softness values produces fewer than ten renders and the last one rendered is the last value asked for",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -84983,7 +84983,7 @@
       "cancellation": "not cancellable once started",
       "windows_path": "Platform boundary: use a Windows imaging decoder with the same four behaviours - always re-scale from the full image, apply the EXIF orientation, cap the long side, decode eagerly. An embedded-thumbnail shortcut would produce a visibly softer wallpaper.",
       "verification_method": "unit: a rotated JPEG comes out upright; a 6000 pixel picture comes out at 3200 on its long side",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -85014,7 +85014,7 @@
       "cancellation": "not cancellable once started",
       "windows_path": "Platform boundary: \"CIGaussianBlur\" is a Core Image filter identifier with no Windows counterpart, so the Windows build substitutes its own Gaussian blur (Direct2D's Gaussian blur effect or equivalent). The filter's IDENTITY is recorded here so the substitution is a named one rather than a guess, and so the radius semantics can be matched: Core Image's radius parameter is the Gaussian's standard-deviation-derived radius, and a Windows blur whose parameter means something else must be converted rather than passed through. The 28 multiplier, the 0.01 short-circuit, and the clamp-then-crop edge handling are all observable and must match; a blur without edge clamping puts a soft translucent band around the whole window.",
       "verification_method": "unit: radius formula and the short-circuit; capture comparison: the picture's corner pixels stay opaque at softness 1",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -85039,7 +85039,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same pipeline as the render, reused.",
       "verification_method": "unit: an install with softness 1 shows a blurred picture without waiting for a second render",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

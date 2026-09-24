@@ -1,139 +1,437 @@
 using System;
+using System.IO;
+using System.Runtime.InteropServices;
+using Avalonia;
 using Avalonia.Media;
+using Avalonia.Media.Imaging;
+using Avalonia.Platform;
 using Marrow.Core.Port;
+using Marrow.Services.Store;
+using Marrow.UI.Port;
 
 // Source: DroppyCode/UI/Theme/Wallpaper.swift (B2 1fbf81e), :1-270. Moved up from UI to App (IMPLEMENTING 2.1,
-// HANDOFF section 9: "WallpaperStore moves to App"): the store writes the library's wallpaper folder
-// (Storage.wallpaperDirectory, :89, :128, :130, a Marrow.Services type Marrow.UI may not reference), and every reader
-// is an App view (RootView.swift:64, WallpaperCard.swift:8, :96, :171). The file keeps its Swift name and path under
-// its new layer, as Models/MCP.cs does in Marrow.Services.
-// Skeleton (c100 group 5): both types the file declares, the defaults keys, the observed state and the members the
-// other files use. Every member with behaviour is left to the implementing unit (MARROW_STUB).
-// Forms: NSImage is IImage, CGImage the decoded pixel buffer DecodedBitmap (WicImageDecoder.cs); a file URL is its
-// path string (R-PATH-1, SwiftPath); `defaults` is UserDefaults.Standard, since WebsiteCaptures.defaults is always nil
-// outside a capture launch (dead_code.md 28, NOT PORTED); an observed property with a didSet stores and runs the
-// didSet, which is the stub (R-OBS-2).
-// Not declared yet: the @ObservationIgnored private state (fileURL :74, renderTask :76, liveTask :77, liveRequested
-// :79, baseImage :81, previewBase :83), which the implementing unit adds with the bodies, and `ciContext` (:26), a Core
-// Image context with no port counterpart; the blur's machinery is the implementing unit's.
-// NEEDS DECISION (group 5 report): `acceptedTypes: [UTType] = [.image]` (:28), read by WallpaperCard.swift:171 for the
-// open panel, has no port type (UTType); not declared yet.
+// HANDOFF section 9: WallpaperStore moves to App because it reads the Services storage location.
+// WallpaperCard.swift and RootView.swift are App readers.
 
 namespace Marrow.App.Theme;
 
 /// <summary>:9-11 <c>private struct DecodedPicture: @unchecked Sendable</c>: a decoded picture crossing back to the
 /// main actor.</summary>
 /// <param name="Image">:10 <c>let image: NSImage</c>.</param>
+// Wallpaper.swift:9-11
 internal sealed record DecodedPicture(IImage Image);
 
 /// <summary>:15-270 <c>@MainActor @Observable final class WallpaperStore</c> (R-OBS-6): the window's picked picture.</summary>
+// Wallpaper.swift:15-270
 public sealed class WallpaperStore : MainActorModel
 {
-    // :17 static let shared = WallpaperStore()
-    public static WallpaperStore Shared =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Theme/Wallpaper.swift:17");
+    // Wallpaper.swift:17
+    private static readonly Lazy<WallpaperStore> shared = new(() => new WallpaperStore());
+
+    // Wallpaper.swift:17
+    public static WallpaperStore Shared => shared.Value;
 
     /// <summary>:19-22 <c>private enum Key</c>: the store's two defaults keys (PR-SETTINGS-103).</summary>
+    // Wallpaper.swift:19-22
     private static class Key
     {
-        public const string Softness = "wallpaperSoftness"; // :20
-        public const string File = "wallpaperFile"; // :21
+        // Wallpaper.swift:20
+        public const string Softness = "wallpaperSoftness";
+
+        // Wallpaper.swift:21
+        public const string File = "wallpaperFile";
     }
 
-    private IImage? image; // :32
-    private bool isInstalling; // :34
-    private string? lastError; // :36
-    private double softness; // :41
-    private bool isAdjustingSoftness; // :61
+    // Wallpaper.swift:32
+    private IImage? image;
 
-    // :32 private(set) var image: NSImage?
+    // Wallpaper.swift:34
+    private bool isInstalling;
+
+    // Wallpaper.swift:36
+    private string? lastError;
+
+    // Wallpaper.swift:41
+    private double softness;
+
+    // Wallpaper.swift:61
+    private bool isAdjustingSoftness;
+
+    // Wallpaper.swift:74
+    private string? fileURL;
+
+    // Wallpaper.swift:76
+    private TaskHandle? renderTask;
+
+    // Wallpaper.swift:77
+    private TaskHandle? liveTask;
+
+    // Wallpaper.swift:79
+    private double? liveRequested;
+
+    // Wallpaper.swift:81
+    private DecodedBitmap? baseImage;
+
+    // Wallpaper.swift:83
+    private DecodedBitmap? previewBase;
+
+    // Wallpaper.swift:32
     public IImage? Image
     {
         get => Read(image);
         private set => Set(ref image, value);
     }
 
-    // :34 private(set) var isInstalling = false
+    // Wallpaper.swift:34
     public bool IsInstalling
     {
         get => Read(isInstalling);
         private set => Set(ref isInstalling, value);
     }
 
-    // :36 private(set) var lastError: String?
+    // Wallpaper.swift:36
     public string? LastError
     {
         get => Read(lastError);
         private set => Set(ref lastError, value);
     }
 
-    // :41-55 var softness: Double { didSet }
+    // Wallpaper.swift:41-55
     public double Softness
     {
         get => Read(softness);
-        set => Set(ref softness, value, _ => throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Theme/Wallpaper.swift:42"));
+        set => Set(ref softness, value, _ =>
+        {
+            var clamped = Softness >= 0 ? (Softness < 1 ? Softness : 1) : 0;
+            if (clamped != Softness)
+            {
+                Softness = clamped;
+                return;
+            }
+
+            UserDefaults.Standard.Current.Set(Key.Softness, Softness);
+            ScheduleRerender();
+        });
     }
 
-    // :57 var hasWallpaper: Bool { image != nil || fileURL != nil }
-    public bool HasWallpaper =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Theme/Wallpaper.swift:57");
+    // Wallpaper.swift:57
+    public bool HasWallpaper => Computed(() => Image is not null || fileURL is not null);
 
-    // :61-71 var isAdjustingSoftness = false { didSet }
+    // Wallpaper.swift:61-71
     public bool IsAdjustingSoftness
     {
         get => Read(isAdjustingSoftness);
-        set => Set(ref isAdjustingSoftness, value, _ => throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Theme/Wallpaper.swift:62"));
+        set => Set(ref isAdjustingSoftness, value, oldValue =>
+        {
+            if (IsAdjustingSoftness == oldValue || fileURL is null) return;
+            if (IsAdjustingSoftness)
+            {
+                RenderLive();
+            }
+            else
+            {
+                liveRequested = null;
+                Render();
+            }
+        });
     }
 
-    // :85-95 private init()
-    private WallpaperStore() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Theme/Wallpaper.swift:85");
+    // Wallpaper.swift:85-95
+    private WallpaperStore()
+    {
+        var stored = Plist.AsDouble(UserDefaults.Standard.Current.Object(Key.Softness)) ?? 0;
+        softness = stored >= 0 ? (stored < 1 ? stored : 1) : 0;
 
-    // :98-109 nonisolated static func accepts(_ url: URL) -> Bool
-    public static bool Accepts(string url) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Theme/Wallpaper.swift:98");
+        var name = UserDefaults.Standard.Current.String(Key.File);
+        if (name is null || name.Length == 0) return;
 
-    // :113-144 func install(from source: URL)
-    public void Install(string from) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Theme/Wallpaper.swift:113");
+        var url = SwiftPath.AppendingPathComponent(Storage.WallpaperDirectory, name);
+        if (!File.Exists(url) && !Directory.Exists(url)) return;
 
-    // :147-156 func remove()
-    public void Remove() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Theme/Wallpaper.swift:147");
+        fileURL = url;
+        Render();
+    }
 
-    // :160-178 private func render()
-    private void Render() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Theme/Wallpaper.swift:160");
+    // Wallpaper.swift:98-109
+    public static bool Accepts(string url)
+    {
+        var extension = SwiftPath.FileURLPathExtension(url);
+        if (extension.Length != 0 && IsSupportedImageExtension(extension)) return true;
+        return HasImageSignature(url);
+    }
 
-    // :180-187 private func scheduleRerender()
-    private void ScheduleRerender() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Theme/Wallpaper.swift:180");
+    // Wallpaper.swift:113-144
+    public void Install(string from)
+    {
+        if (!Accepts(from))
+        {
+            LastError = "That is not a picture.";
+            return;
+        }
 
-    // :192-210 private func renderLive()
-    private void RenderLive() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Theme/Wallpaper.swift:192");
+        IsInstalling = true;
+        LastError = null;
+        renderTask?.Cancel();
+        var capturedSoftness = Softness;
+        _ = TaskHandle.Detached(async () =>
+        {
+            var extension = SwiftPath.FileURLPathExtension(from);
+            extension = extension.Length == 0 ? "jpg" : SwiftString.Lowercased(extension);
+            var destination = SwiftPath.AppendingPathComponent(
+                Storage.WallpaperDirectory,
+                $"wallpaper-{SwiftUUID.UuidString(Guid.NewGuid())}.{extension}");
+            try
+            {
+                Directory.CreateDirectory(Storage.WallpaperDirectory);
+                File.Copy(from, destination);
+            }
+            catch (Exception e) when (SwiftTry.IsThrownError(e))
+            {
+                SwiftTry.Ignore(() => FileOps.RemoveItem(destination));
+                await MainActor.Run(FailInstall);
+                return;
+            }
 
-    // :213-217 private func takeLiveRequest() -> Double?
-    private double? TakeLiveRequest() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Theme/Wallpaper.swift:213");
+            var decoded = Decode(destination, capturedSoftness);
+            if (decoded is null)
+            {
+                SwiftTry.Ignore(() => FileOps.RemoveItem(destination));
+                await MainActor.Run(FailInstall);
+                return;
+            }
 
-    // :219-227 private func finishInstall(file: URL, picture: DecodedPicture)
-    private void FinishInstall(string file, DecodedPicture picture) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Theme/Wallpaper.swift:219");
+            await MainActor.Run(() => FinishInstall(destination, new DecodedPicture(decoded)));
+        });
+    }
 
-    // :229-232 private func failInstall()
-    private void FailInstall() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Theme/Wallpaper.swift:229");
+    // Wallpaper.swift:147-156
+    public void Remove()
+    {
+        renderTask?.Cancel();
+        if (fileURL is { } oldFile) SwiftTry.Ignore(() => FileOps.RemoveItem(oldFile));
+        fileURL = null;
+        UserDefaults.Standard.Current.RemoveObject(Key.File);
+        Transaction.WithAnimation(Animation.EaseOut(0.25), () => Image = null);
+        LastError = null;
+    }
 
-    // :236-245 nonisolated static func thumbnail(_ url: URL, maxPixel: Int) -> CGImage?
+    // Wallpaper.swift:160-178
+    private void Render()
+    {
+        if (fileURL is not { } currentFile) return;
+        var capturedSoftness = Softness;
+        renderTask?.Cancel();
+        renderTask = TaskHandle.Detached(async () =>
+        {
+            var baseAndPreview = await Task.Run(() =>
+                (Thumbnail(currentFile, 3200), Thumbnail(currentFile, 1600)));
+            if (baseAndPreview.Item1 is not { } baseBitmap) return;
+
+            var rendered = await Task.Run(() =>
+                capturedSoftness > 0 ? Blurred(baseBitmap, capturedSoftness) : baseBitmap);
+            if (rendered is null) return;
+
+            await MainActor.Run(() =>
+            {
+                if (SwiftTask.IsCancelled || fileURL != currentFile) return;
+                baseImage = baseBitmap;
+                previewBase = baseAndPreview.Item2;
+                Image = ToImage(rendered);
+            });
+        });
+    }
+
+    // Wallpaper.swift:180-187
+    private void ScheduleRerender()
+    {
+        if (fileURL is null) return;
+        if (IsAdjustingSoftness) RenderLive();
+        else Render();
+    }
+
+    // Wallpaper.swift:192-210
+    private void RenderLive()
+    {
+        if (previewBase is not { } smallBase || baseImage is not { } fullBase)
+        {
+            Render();
+            return;
+        }
+
+        liveRequested = Softness;
+        if (liveTask is not null) return;
+
+        var scale = (double)smallBase.Width / fullBase.Width;
+        liveTask = TaskHandle.Detached(async () =>
+        {
+            while (await MainActor.Run(TakeLiveRequest) is { } value)
+            {
+                var rendered = await Task.Run(() => Blurred(smallBase, value, scale));
+                if (rendered is null) break;
+                await MainActor.Run(() =>
+                {
+                    if (!IsAdjustingSoftness) return;
+                    Image = ToImage(rendered);
+                });
+            }
+
+            await MainActor.Run(() => liveTask = null);
+        });
+    }
+
+    // Wallpaper.swift:213-217
+    private double? TakeLiveRequest()
+    {
+        if (!IsAdjustingSoftness || liveRequested is not { } value) return null;
+        liveRequested = null;
+        return value;
+    }
+
+    // Wallpaper.swift:219-227
+    private void FinishInstall(string file, DecodedPicture picture)
+    {
+        if (fileURL is { } previous) SwiftTry.Ignore(() => FileOps.RemoveItem(previous));
+        fileURL = file;
+        UserDefaults.Standard.Current.Set(Key.File, SwiftPath.LastPathComponent(file));
+        Transaction.WithAnimation(Animation.Spring(duration: 0.45, bounce: 0.2), () => Image = picture.Image);
+        IsInstalling = false;
+    }
+
+    // Wallpaper.swift:229-232
+    private void FailInstall()
+    {
+        IsInstalling = false;
+        LastError = "Could not use that picture.";
+    }
+
+    // Wallpaper.swift:234-245
     public static DecodedBitmap? Thumbnail(string url, long maxPixel) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Theme/Wallpaper.swift:236");
+        WicImageDecoder.Decode(url, maxPixel, fillingSquare: false);
 
-    // :249-260 nonisolated static func blurred(_ base: CGImage, softness: Double, radiusScale: CGFloat = 1) -> CGImage?
-    public static DecodedBitmap? Blurred(DecodedBitmap @base, double softness, double radiusScale = 1) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Theme/Wallpaper.swift:249");
+    // Wallpaper.swift:247-260
+    public static DecodedBitmap? Blurred(DecodedBitmap @base, double softness, double radiusScale = 1)
+    {
+        var radius = softness * 28 * radiusScale;
+        if (!(radius > 0.01)) return @base;
 
-    // :264-269 nonisolated static func decode(_ url: URL, softness: Double) -> NSImage?
-    public static IImage? Decode(string url, double softness) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Theme/Wallpaper.swift:264");
+        var sigma = radius;
+        var extent = checked((int)Math.Ceiling(sigma * 3));
+        var kernel = new double[checked(extent * 2 + 1)];
+        var total = 0.0;
+        for (var offset = -extent; offset <= extent; offset++)
+        {
+            var weight = Math.Exp(-(offset * (double)offset) / (2 * sigma * sigma));
+            kernel[offset + extent] = weight;
+            total += weight;
+        }
+        for (var index = 0; index < kernel.Length; index++) kernel[index] /= total;
+
+        var width = @base.Width;
+        var height = @base.Height;
+        var pixels = @base.Pixels;
+        var horizontal = new byte[pixels.Length];
+        var output = new byte[pixels.Length];
+
+        for (var y = 0; y < height; y++)
+        {
+            for (var x = 0; x < width; x++)
+            {
+                var pixelOffset = checked((y * width + x) * 4);
+                for (var channel = 0; channel < 4; channel++)
+                {
+                    var value = 0.0;
+                    for (var offset = -extent; offset <= extent; offset++)
+                    {
+                        var sampleX = Math.Clamp(x + offset, 0, width - 1);
+                        value += pixels[checked((y * width + sampleX) * 4 + channel)] * kernel[offset + extent];
+                    }
+                    horizontal[pixelOffset + channel] = (byte)Math.Clamp((int)Math.Round(value), 0, 255);
+                }
+            }
+        }
+
+        for (var y = 0; y < height; y++)
+        {
+            for (var x = 0; x < width; x++)
+            {
+                var pixelOffset = checked((y * width + x) * 4);
+                for (var channel = 0; channel < 4; channel++)
+                {
+                    var value = 0.0;
+                    for (var offset = -extent; offset <= extent; offset++)
+                    {
+                        var sampleY = Math.Clamp(y + offset, 0, height - 1);
+                        value += horizontal[checked((sampleY * width + x) * 4 + channel)] * kernel[offset + extent];
+                    }
+                    output[pixelOffset + channel] = (byte)Math.Clamp((int)Math.Round(value), 0, 255);
+                }
+            }
+        }
+
+        return new DecodedBitmap(width, height, checked(width * 4), output);
+    }
+
+    // Wallpaper.swift:262-269
+    public static IImage? Decode(string url, double softness)
+    {
+        var bitmap = Thumbnail(url, 3200);
+        if (bitmap is null) return null;
+        var rendered = softness > 0 ? Blurred(bitmap, softness) : bitmap;
+        return rendered is null ? null : ToImage(rendered);
+    }
+
+    // Wallpaper.swift:98-108
+    private static bool IsSupportedImageExtension(string extension) =>
+        SwiftString.Lowercased(extension) is
+            "bmp" or "dib" or "gif" or "hdp" or "ico" or "jfif" or "jpe" or "jpeg" or "jpg" or
+            "jxr" or "png" or "tif" or "tiff" or "wdp";
+
+    // Wallpaper.swift:104-106
+    private static bool HasImageSignature(string url)
+    {
+        try
+        {
+            using var stream = new FileStream(url, FileMode.Open, FileAccess.Read, FileShare.Read);
+            Span<byte> header = stackalloc byte[12];
+            var count = stream.Read(header);
+            if (count >= 8 &&
+                header[0] == 0x89 && header[1] == 0x50 && header[2] == 0x4E && header[3] == 0x47 &&
+                header[4] == 0x0D && header[5] == 0x0A && header[6] == 0x1A && header[7] == 0x0A)
+                return true;
+            if (count >= 3 && header[0] == 0xFF && header[1] == 0xD8 && header[2] == 0xFF)
+                return true;
+            if (count >= 6 &&
+                header[0] == (byte)'G' && header[1] == (byte)'I' && header[2] == (byte)'F' &&
+                header[3] == (byte)'8' && header[5] == (byte)'a')
+                return true;
+            if (count >= 2 && header[0] == (byte)'B' && header[1] == (byte)'M')
+                return true;
+            if (count >= 4 &&
+                ((header[0] == (byte)'I' && header[1] == (byte)'I' && header[2] == 0x2A && header[3] == 0) ||
+                 (header[0] == (byte)'M' && header[1] == (byte)'M' && header[2] == 0 && header[3] == 0x2A)))
+                return true;
+            if (count >= 12 &&
+                header[0] == (byte)'R' && header[1] == (byte)'I' && header[2] == (byte)'F' && header[3] == (byte)'F' &&
+                header[8] == (byte)'W' && header[9] == (byte)'E' && header[10] == (byte)'B' && header[11] == (byte)'P')
+                return true;
+            return count >= 4 && header[0] == 0 && header[1] == 0 && header[2] == 1 && header[3] == 0;
+        }
+        catch (Exception e) when (SwiftTry.IsThrownError(e))
+        {
+            return false;
+        }
+    }
+
+    // Wallpaper.swift:249-260
+    private static IImage ToImage(DecodedBitmap bitmap)
+    {
+        var result = new WriteableBitmap(
+            new PixelSize(bitmap.Width, bitmap.Height),
+            new Vector(96, 96),
+            PixelFormat.Bgra8888,
+            AlphaFormat.Premul);
+        using var locked = result.Lock();
+        Marshal.Copy(bitmap.Pixels, 0, locked.Address, bitmap.Pixels.Length);
+        return result;
+    }
 }

@@ -4065,7 +4065,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The double optional is essential; a port using a plain nullable date cannot distinguish 'no note' from 'note without a time'.",
       "verification_method": "unit - four-way table",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4088,7 +4088,7 @@
       "cancellation": "The previous wait is cancelled here; the new one is cancellable only through this same path, since the user-facing cancel affordance does not ship (dead_code.md items 21 and 22).",
       "windows_path": "port_impacts.md entry 102: reproduce process-lifetime waits with no persistence, no cancel on delete and no relaunch recovery, and with the notice text surviving on disk.",
       "verification_method": "unit - the note is consumed on every path; the chime is suppressed only when a wait starts",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4110,7 +4110,7 @@
       "cancellation": "A cancelled or superseded wait returns before the notice.",
       "windows_path": "Two distinct literals; they are not the same sentence.",
       "verification_method": "unit - exact string comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4134,7 +4134,7 @@
       "cancellation": "The await is cancellable.",
       "windows_path": "95 is exact. Reading the key must go through the secret store; never read a provider credential file directly.",
       "verification_method": "unit with a stubbed PlanLimitsReader",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4158,7 +4158,7 @@
       "cancellation": "The sleep is cancellable; on waking the token is re-checked.",
       "windows_path": "60 seconds and the five-second floor are exact. The formatter is shared with the provider sessions through UsageLimitSignal.format so the times read the same everywhere.",
       "verification_method": "unit with an injected clock and exact string comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4183,7 +4183,7 @@
       "cancellation": "The token check is the cancellation test.",
       "windows_path": "The message is verbatim and identical for every provider. The find-by-text lookup is fragile but is the shipped behavior.",
       "verification_method": "integration test with an injected clock",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4208,7 +4208,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the narrower visibility test; do not substitute AppModel's.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5608,7 +5608,7 @@
       "cancellation": "not cancellable",
       "windows_path": "All six gates are in one guard and are order-independent apart from the two optional bindings; reproduce each as a separate testable condition.",
       "verification_method": "unit - a negative case for this gate alone, with the other five satisfied",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5629,7 +5629,7 @@
       "cancellation": "not cancellable",
       "windows_path": "All six gates are in one guard and are order-independent apart from the two optional bindings; reproduce each as a separate testable condition.",
       "verification_method": "unit - a negative case for this gate alone, with the other five satisfied",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5650,7 +5650,7 @@
       "cancellation": "not cancellable",
       "windows_path": "All six gates are in one guard and are order-independent apart from the two optional bindings; reproduce each as a separate testable condition.",
       "verification_method": "unit - a negative case for this gate alone, with the other five satisfied",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5671,7 +5671,7 @@
       "cancellation": "not cancellable",
       "windows_path": "All six gates are in one guard and are order-independent apart from the two optional bindings; reproduce each as a separate testable condition.",
       "verification_method": "unit - a negative case for this gate alone, with the other five satisfied",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5692,7 +5692,7 @@
       "cancellation": "not cancellable",
       "windows_path": "All six gates are in one guard and are order-independent apart from the two optional bindings; reproduce each as a separate testable condition.",
       "verification_method": "unit - a negative case for this gate alone, with the other five satisfied",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5713,7 +5713,7 @@
       "cancellation": "not cancellable",
       "windows_path": "All six gates are in one guard and are order-independent apart from the two optional bindings; reproduce each as a separate testable condition.",
       "verification_method": "unit - a negative case for this gate alone, with the other five satisfied",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -6427,7 +6427,8 @@
       "source_evidence": [
         "DroppyCode/App/Runtime/AutoContinue.swift:95, :104, :150-155"
       ],
-      "notes": "These two bodies are distinct from the two timeline notice texts the same code writes (\"Usage limit reached. Continuing automatically at <time>.\" and \"Usage limit reached, and the provider did not say when it resets. Send a message to continue.\"); all four are separate literals and none may be reused for another."
+      "notes": "These two bodies are distinct from the two timeline notice texts the same code writes (\"Usage limit reached. Continuing automatically at <time>.\" and \"Usage limit reached, and the provider did not say when it resets. Send a message to continue.\"); all four are separate literals and none may be reused for another.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-RUNTIME-017",
@@ -6783,7 +6784,8 @@
         "DroppyCode/App/Runtime/AutoContinue.swift:94 - notice(threadID, .warning, \"Usage limit reached, and the provider did not say when it resets. Send a message to continue.\")"
       ],
       "notes": "Split out of UI-RUNTIME-002. Its paired system notification is a DIFFERENT string, \"Usage limit reached. Send a message to continue.\" (AutoContinue.swift:95).",
-      "b2_change": "Typography restated from the notice row: B1 TimelineRows.swift:2413 `.font(.chat(.callout, zoom: zoom))`; B2 :2397 `.font(.chat(.callout))`, and Font.chat takes no zoom (UI/Common/ChatFont.swift:6-10). Text, geometry and colours unchanged. Owner rulings applied in this refresh: the face follows OD-0009 (Inter)."
+      "b2_change": "Typography restated from the notice row: B1 TimelineRows.swift:2413 `.font(.chat(.callout, zoom: zoom))`; B2 :2397 `.font(.chat(.callout))`, and Font.chat takes no zoom (UI/Common/ChatFont.swift:6-10). Text, geometry and colours unchanged. Owner rulings applied in this refresh: the face follows OD-0009 (Inter).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-RUNTIME-034",
