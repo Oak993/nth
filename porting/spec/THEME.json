@@ -1011,7 +1011,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Persist the same key name and the same camelCase token values, so a settings file written by either build reads on the other.",
       "verification_method": "restart test: pick a theme, restart, the same theme is active; unit: the persisted key name and value",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1038,7 +1038,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep both key names and the same two-step fallback, so a profile written by an older build still opens on its chosen appearance. The legacy key must not be deleted on read: upstream leaves it.",
       "verification_method": "restart test with only \"appearance\" set to \"dark\"; unit: the three fallback branches",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2046,7 +2046,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key, same default, same wording. The precise condition that sets `chimed` at AppModel.swift:1206 belongs to the RUNTIME area; this requirement covers the setting, its default and its wording.",
       "verification_method": "restart test: the toggle survives; unit: the key and the default",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2100,7 +2100,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key, default and wording.",
       "verification_method": "restart test; unit: the key and default",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

@@ -22208,7 +22208,8 @@
         "decision": "OD-0012 F1",
         "upstream": "DroppyCode/App/UpdateChecker.swift:250 'content.title = \"Droppy Code \\(update.version) is available\"'",
         "port": "OD-0012 F1 (porting/decision_batch_20260922b.md:22-36): every remaining \"Droppy Code\" / \"droppy-code\" the app shows or sends out becomes \"Marrow\" / \"marrow\", except droppy-code.json and DROPPY_CODE_PROJECT_ROOT. The notification title reads \"Marrow <version> is available\"."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "UPDATE",
