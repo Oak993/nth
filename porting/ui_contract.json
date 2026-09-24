@@ -12517,7 +12517,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/CommandCodeAPI.swift:347-359"
       ],
-      "notes": "The separators are U+00B7 with a space on each side, the ampersands are literal, and \"1M\" is that exact casing. This seed doubles as an equality sentinel for the registry, so any drift silently changes when the live catalog is fetched."
+      "notes": "The separators are U+00B7 with a space on each side, the ampersands are literal, and \"1M\" is that exact casing. This seed doubles as an equality sentinel for the registry, so any drift silently changes when the live catalog is fetched.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVCLI",
@@ -12638,7 +12639,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/CommandCodeAPI.swift:87-100"
       ],
-      "notes": "These windows cap DOLLARS rather than requests, which is why the cap is in the title. On-demand credits are never throttled, which is why the rate-limit message points at them."
+      "notes": "These windows cap DOLLARS rather than requests, which is why the cap is in the title. On-demand credits are never throttled, which is why the rate-limit message points at them.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVCLI",
@@ -14447,7 +14449,8 @@
       "source_evidence": [
         "DroppyCode/App/Runtime/AutoContinue.swift:95, :104, :150-155"
       ],
-      "notes": "These two bodies are distinct from the two timeline notice texts the same code writes (\"Usage limit reached. Continuing automatically at <time>.\" and \"Usage limit reached, and the provider did not say when it resets. Send a message to continue.\"); all four are separate literals and none may be reused for another."
+      "notes": "These two bodies are distinct from the two timeline notice texts the same code writes (\"Usage limit reached. Continuing automatically at <time>.\" and \"Usage limit reached, and the provider did not say when it resets. Send a message to continue.\"); all four are separate literals and none may be reused for another.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "RUNTIME",
@@ -14820,7 +14823,8 @@
         "DroppyCode/App/Runtime/AutoContinue.swift:94 - notice(threadID, .warning, \"Usage limit reached, and the provider did not say when it resets. Send a message to continue.\")"
       ],
       "notes": "Split out of UI-RUNTIME-002. Its paired system notification is a DIFFERENT string, \"Usage limit reached. Send a message to continue.\" (AutoContinue.swift:95).",
-      "b2_change": "Typography restated from the notice row: B1 TimelineRows.swift:2413 `.font(.chat(.callout, zoom: zoom))`; B2 :2397 `.font(.chat(.callout))`, and Font.chat takes no zoom (UI/Common/ChatFont.swift:6-10). Text, geometry and colours unchanged. Owner rulings applied in this refresh: the face follows OD-0009 (Inter)."
+      "b2_change": "Typography restated from the notice row: B1 TimelineRows.swift:2413 `.font(.chat(.callout, zoom: zoom))`; B2 :2397 `.font(.chat(.callout))`, and Font.chat takes no zoom (UI/Common/ChatFont.swift:6-10). Text, geometry and colours unchanged. Owner rulings applied in this refresh: the face follows OD-0009 (Inter).",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "RUNTIME",
