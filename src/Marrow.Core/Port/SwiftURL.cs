@@ -59,6 +59,18 @@ public sealed class SwiftURL : IEquatable<SwiftURL>
     /// <summary><c>url.absoluteString</c>: with no base it is the relative string. URL_Swift.swift:339-341, :286-289.</summary>
     public string AbsoluteString => RelativeString;
 
+    // PORT-ONLY: url.appending(path:) (URL_Swift.swift), narrowed to the shape this tree's call sites need (a base
+    // with no query or fragment, one relative path component appended after its trailing slash). The component is
+    // percent-encoded exactly as RFC3986Parser already encodes a Path segment elsewhere in this file.
+    public SwiftURL Appending(string path)
+    {
+        var encoded = RFC3986Parser.PercentEncode(path, URLComponent.Path) ?? path;
+        var basePath = AbsoluteString;
+        var separator = basePath.EndsWith("/", StringComparison.Ordinal) ? "" : "/";
+        return Create(basePath + separator + encoded) ??
+            throw new SwiftTrapException("SwiftURL.Appending produced an invalid URL: " + basePath + separator + encoded);
+    }
+
     /// <summary><c>url.scheme</c>, as written. URL_Swift.swift:385-388.</summary>
     public string? Scheme => _parseInfo.Scheme; // :386 baseURL is nil
 
