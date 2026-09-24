@@ -10,9 +10,10 @@ namespace Marrow.App.Tests;
 // the 125 ms creep sleep of :210 and the 600 ms failure window of :145.
 // Not asserted, because nothing on Windows can observe it: the Haptics.perform calls of :93, :143 and :199-201
 // (port_impacts.md X6 and G16: one no-op shim at the same call sites; Windows has no desktop haptic channel).
-// Not covered here, reported as STOP items: AppUpdater :237-443, UpdateInstallError :445-452 and Downloader
-// :459-528 (PR-UPDATE-041 to PR-UPDATE-055), which need the Windows install mechanism, the alert and the
-// quit seams that no decision has fixed yet.
+// AppUpdater's install orchestration :237-443, UpdateInstallError :445-452 and the Downloader :459-528
+// (PR-UPDATE-041 to PR-UPDATE-055) are covered in AppUpdaterInstallTests and WindowsUpdateInstallBoundaryTests,
+// over the ED-188 boundary (IUpdateInstallBoundary / FakeUpdateInstallBoundary). PR-UPDATE-057/058 (the alert
+// and the install.sh/install.ps1 script content) are part 2's own records, not this part's.
 public sealed class AppUpdaterTests
 {
     private const double PreparingCeiling = 0.05; // :10
