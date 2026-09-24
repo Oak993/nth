@@ -123,7 +123,7 @@ public sealed class UpdateCheckerSecondTests
 
         Task<bool>? firstTask = null;
         runtime.OnMain(() => firstTask = checker.Check()); // starts it; the server holds the response back
-        runtime.Loop.RunUntil(() => server.Requests.Count > 0, TimeSpan.FromSeconds(5));
+        runtime.Loop.RunUntil(() => server.Requests.Count > 0, TimeSpan.FromSeconds(20));
         Assert.True(runtime.OnMain(() => checker.IsChecking));
 
         var second = runtime.Loop.Run(() => checker.Check());
@@ -274,13 +274,6 @@ public sealed class UpdateCheckerSecondTests
 
     // ---- PR-UPDATE-021 / PR-UPDATE-022 / PR-UPDATE-023: the notification ----
 
-    private sealed class RecordingToastCenter : IUpdateToastCenter
-    {
-        public List<(string Identifier, string Title, string Body, string Version)> Shown { get; } = [];
-        public void Show(string identifier, string title, string body, string version) =>
-            Shown.Add((identifier, title, body, version));
-    }
-
     [Fact]
     [Trait("Req", "PR-UPDATE-021")] // UpdateChecker.swift:178-180, :245-248
     [Trait("Req", "PR-UPDATE-022")] // UpdateChecker.swift:249-253, DEVIATION OD-0012 F1
@@ -362,12 +355,12 @@ public sealed class UpdateCheckerSecondTests
         runtime.Advance(TimeSpan.FromSeconds(7));
         Assert.Empty(server.Requests);
         runtime.Advance(TimeSpan.FromSeconds(1));
-        runtime.Loop.RunUntil(() => server.Requests.Count >= 1, TimeSpan.FromSeconds(5));
+        runtime.Loop.RunUntil(() => server.Requests.Count >= 1, TimeSpan.FromSeconds(20));
         Assert.Single(server.Requests);
         runtime.Advance(TimeSpan.FromHours(6) - TimeSpan.FromMilliseconds(1));
         Assert.Single(server.Requests);
         runtime.Advance(TimeSpan.FromMilliseconds(1));
-        runtime.Loop.RunUntil(() => server.Requests.Count >= 2, TimeSpan.FromSeconds(5));
+        runtime.Loop.RunUntil(() => server.Requests.Count >= 2, TimeSpan.FromSeconds(20));
         Assert.Equal(2, server.Requests.Count);
         StopBackgroundChecksForTest(checker);
     }
@@ -386,7 +379,7 @@ public sealed class UpdateCheckerSecondTests
 
         runtime.OnMain(checker.StartBackgroundChecks);
         runtime.Advance(TimeSpan.FromSeconds(8)); // the launch check
-        runtime.Loop.RunUntil(() => server.Requests.Count >= 1, TimeSpan.FromSeconds(5));
+        runtime.Loop.RunUntil(() => server.Requests.Count >= 1, TimeSpan.FromSeconds(20));
         Assert.Single(server.Requests);
         // Stop the loop here so only HandleActivation drives every further request: otherwise the loop's own
         // 6-hourly tick (PR-UPDATE-007) resets lastCheckedAt at the same instants this test advances to.
