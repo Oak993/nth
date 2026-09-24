@@ -346,21 +346,26 @@ public sealed partial class ProviderRegistry : MainActorModel
     // raw string ResolveExecutable resolves through LoginEnvironment.Which, which reproduces both the
     // source's `which(name)` calls (a bare name, no separator) and its `isExecutableFile` tests (a
     // constructed path, containing a separator) with one PATHEXT-aware rule (ED-031).
-    private static IReadOnlyList<string> FallbackExecutables(ProviderKind provider)
+    private static IReadOnlyList<string> FallbackExecutables(ProviderKind provider) =>
+        FallbackExecutables(provider, LoginEnvironment.Current, LoginEnvironment.HomeDirectory);
+
+    // Internal overload taking environment and home explicitly (mirrors LoginEnvironment.Which's own
+    // internal overload): a test seam for PR-PROVREG-095 to 098 that needs no process-global environment
+    // mutation, kept internal for direct testing (InternalsVisibleTo Marrow.Services.Tests).
+    internal static IReadOnlyList<string> FallbackExecutables(
+        ProviderKind provider, IReadOnlyDictionary<string, string> environment, string home)
     {
         switch (provider)
         {
             case ProviderKind.Copilot: // :232-237
             {
-                var environment = LoginEnvironment.Current;
                 var dataDirectory = NonEmpty(environment, "GH_DATA_DIR")
                     ?? (NonEmpty(environment, "XDG_DATA_HOME") is { } xdg ? SwiftPath.AppendingPathComponent(xdg, "gh") : null)
-                    ?? SwiftPath.AppendingPathComponent(LoginEnvironment.HomeDirectory, ".local/share/gh");
+                    ?? SwiftPath.AppendingPathComponent(home, ".local/share/gh");
                 return [SwiftPath.AppendingPathComponent(dataDirectory, "copilot/copilot")];
             }
             case ProviderKind.Commandcode: // :238-251
             {
-                var home = LoginEnvironment.HomeDirectory;
                 var candidates = new List<string> { "command-code", "commandcode", "cmd" }; // :243-245
                 foreach (var directory in new[] { $"{home}/.local/bin", "/opt/homebrew/bin", "/usr/local/bin", $"{home}/.npm-global/bin", $"{home}/.volta/bin" }) // :246
                 {
@@ -369,11 +374,10 @@ public sealed partial class ProviderRegistry : MainActorModel
                 return candidates;
             }
             case ProviderKind.Pi: // :252-254
-                var piHome = LoginEnvironment.HomeDirectory;
                 return
                 [
-                    $"{piHome}/.npm-global/bin/pi", "/opt/homebrew/bin/pi", "/usr/local/bin/pi",
-                    $"{piHome}/.local/bin/pi", $"{piHome}/.volta/bin/pi", $"{piHome}/.bun/bin/pi",
+                    $"{home}/.npm-global/bin/pi", "/opt/homebrew/bin/pi", "/usr/local/bin/pi",
+                    $"{home}/.local/bin/pi", $"{home}/.volta/bin/pi", $"{home}/.bun/bin/pi",
                 ];
             default:
                 return []; // :255-257

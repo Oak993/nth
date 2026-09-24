@@ -262,6 +262,73 @@ public sealed class ProviderRegistryTests
         Assert.NotNull(registry.Executable(ProviderKind.Claude));
     }
 
+    // ---- fallbackExecutables(for:) (PR-PROVREG-095 to 098) -------------------------------------------------
+
+    [Fact]
+    [Trait("Req", "PR-PROVREG-095")] // ProviderRegistry.swift:228-237
+    public void copilot_fallback_prefers_gh_data_dir_then_xdg_data_home_then_home_local_share_gh()
+    {
+        // GH_DATA_DIR wins when non-empty.
+        var withGhDataDir = ProviderRegistry.FallbackExecutables(
+            ProviderKind.Copilot,
+            new Dictionary<string, string> { ["GH_DATA_DIR"] = "/gh-data", ["XDG_DATA_HOME"] = "/xdg-data" },
+            "/home/u");
+        Assert.Equal(["/gh-data/copilot/copilot"], withGhDataDir);
+
+        // An empty GH_DATA_DIR is treated as absent, so XDG_DATA_HOME (plus "gh") is used next.
+        var withXdgOnly = ProviderRegistry.FallbackExecutables(
+            ProviderKind.Copilot,
+            new Dictionary<string, string> { ["GH_DATA_DIR"] = "", ["XDG_DATA_HOME"] = "/xdg-data" },
+            "/home/u");
+        Assert.Equal(["/xdg-data/gh/copilot/copilot"], withXdgOnly);
+
+        // Neither set: home plus ".local/share/gh".
+        var withNeither = ProviderRegistry.FallbackExecutables(
+            ProviderKind.Copilot, new Dictionary<string, string>(), "/home/u");
+        Assert.Equal(["/home/u/.local/share/gh/copilot/copilot"], withNeither);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVREG-096")] // ProviderRegistry.swift:238-251
+    public void commandcode_fallback_is_three_path_names_then_ten_directory_name_combinations_in_order()
+    {
+        var candidates = ProviderRegistry.FallbackExecutables(
+            ProviderKind.Commandcode, new Dictionary<string, string>(), "/home/u");
+        Assert.Equal(
+        [
+            "command-code", "commandcode", "cmd",
+            "/home/u/.local/bin/command-code", "/home/u/.local/bin/cmd",
+            "/opt/homebrew/bin/command-code", "/opt/homebrew/bin/cmd",
+            "/usr/local/bin/command-code", "/usr/local/bin/cmd",
+            "/home/u/.npm-global/bin/command-code", "/home/u/.npm-global/bin/cmd",
+            "/home/u/.volta/bin/command-code", "/home/u/.volta/bin/cmd",
+        ], candidates);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVREG-097")] // ProviderRegistry.swift:252-254
+    public void pi_fallback_is_six_fixed_absolute_paths_in_order()
+    {
+        var candidates = ProviderRegistry.FallbackExecutables(
+            ProviderKind.Pi, new Dictionary<string, string>(), "/home/u");
+        Assert.Equal(
+        [
+            "/home/u/.npm-global/bin/pi", "/opt/homebrew/bin/pi", "/usr/local/bin/pi",
+            "/home/u/.local/bin/pi", "/home/u/.volta/bin/pi", "/home/u/.bun/bin/pi",
+        ], candidates);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVREG-098")] // ProviderRegistry.swift:255-257
+    public void every_other_provider_has_an_empty_fallback_list()
+    {
+        foreach (var provider in SwiftEnum<ProviderKind>.AllCases)
+        {
+            if (provider is ProviderKind.Copilot or ProviderKind.Commandcode or ProviderKind.Pi) continue;
+            Assert.Empty(ProviderRegistry.FallbackExecutables(provider, new Dictionary<string, string>(), "/home/u"));
+        }
+    }
+
     // ---- environment(for:) PATH prepend (PR-PROVREG-099) --------------------------------------------------
 
     [Fact]
