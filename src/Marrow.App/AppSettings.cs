@@ -476,7 +476,7 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
     public bool ChronologicalTimeline
     {
         get => Read(chronologicalTimeline);
-        set => Set(ref chronologicalTimeline, value, _ => throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppSettings.swift:238"));
+        set => Set(ref chronologicalTimeline, value, _ => defaults.Set(Key.ChronologicalTimeline, value));
     }
 
     // :241-243
@@ -498,7 +498,7 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
     public long AppZoom
     {
         get => Read(appZoom);
-        set => Set(ref appZoom, value, _ => throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppSettings.swift:254"));
+        set => Set(ref appZoom, value, _ => defaults.Set(Key.AppZoom, value));
     }
 
     // :260-268
