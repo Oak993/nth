@@ -94,10 +94,14 @@ public sealed class PlanLimitsTests
     [Trait("Req", "PR-PROVREG-171")] // PlanLimits.swift:78 - commandcode dispatches directly, no try?
     public async Task Read_executable_dispatches_commandcode_to_CommandCodeAPI_PlanLimits_without_try()
     {
+        // Services.Providers.CommandCodeAPI has landed: CommandCodeAPI.PlanLimits(environment) is no longer a
+        // MARROW_STUB (CommandCodeAPI.swift:73-101). With no key in the environment, apiKey(environment) is nil
+        // (CommandCodeAPI.swift:79 `guard let key = apiKey(environment: environment) else { return nil }`), so the
+        // direct, un-wrapped dispatch returns null rather than throwing; `executable` is unused by this arm, exactly
+        // as PlanLimits.swift:78 ignores it.
         var executable = FileUrl(Path.Combine(Path.GetTempPath(), "unreachable-" + Guid.NewGuid().ToString("N") + ".exe"));
-        var error = await Assert.ThrowsAsync<NotImplementedException>(
-            () => PlanLimitsReader.Read(ProviderKind.Commandcode, executable, ValueMap<string, string>.Empty));
-        Assert.Contains("CommandCodeAPI.swift:78", error.Message, StringComparison.Ordinal);
+        var result = await PlanLimitsReader.Read(ProviderKind.Commandcode, executable, ValueMap<string, string>.Empty);
+        Assert.Null(result);
     }
 
     [Fact]
