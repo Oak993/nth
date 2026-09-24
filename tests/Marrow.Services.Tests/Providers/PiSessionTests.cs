@@ -64,6 +64,16 @@ public sealed class PiSessionTests
         return (session, events);
     }
 
+    private static string CreateTestFolder(string label)
+    {
+        var root = TestDataDirectory.Read();
+        if (string.IsNullOrEmpty(root))
+            throw new InvalidOperationException("Set MARROW_PORT_DATA_DIR to a throwaway folder before running the tests (R-TEST-9).");
+        var directory = Path.Combine(root, "PiSessionTests", label + "-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        return directory;
+    }
+
     /// <summary>Replies to the get_state and get_commands requests Start() always sends first, and starts the
     /// session (real StdioProcess, real handshake, through the offline stand-in).</summary>
     private static async Task<(PiSession Session, List<ProviderEvent> Events, PiScript Script, string ID)> Started(
@@ -248,7 +258,7 @@ public sealed class PiSessionTests
     {
         using var runtime = new TestRuntime();
         using var storage = new StorageScratchFolder(); // MCPPaths.ClaudeConfigURL reads Storage.Root (R-TEST-9)
-        var missingExecutable = Path.Combine(Path.GetTempPath(), "marrow-tests-nonexistent-" + Guid.NewGuid().ToString("N") + ".exe");
+        var missingExecutable = Path.Combine(CreateTestFolder("launch-failure"), "missing-pi.exe");
         var config = new SessionConfiguration
         {
             Provider = ProviderKind.Pi,
@@ -875,15 +885,16 @@ public sealed class PiSessionTests
     [Trait("Req", "PR-PROVCLI-291")] // PiSession.swift:412-413,496-500
     public void HandleToolStart_snapshots_a_write_targets_file_before_the_call()
     {
+        var folder = CreateTestFolder("snapshot");
         var (session, events) = Make(new SessionConfiguration
         {
             Provider = ProviderKind.Pi,
-            WorkingDirectory = FileUrl(Path.GetTempPath()),
+            WorkingDirectory = FileUrl(folder),
             Environment = ValueMap<string, string>.Empty,
             RuntimeMode = RuntimeMode.Supervised,
             InteractionMode = InteractionMode.Build,
         });
-        var target = Path.Combine(Path.GetTempPath(), "marrow-pisession-snapshot-" + Guid.NewGuid().ToString("N") + ".txt");
+        var target = Path.Combine(folder, "snapshot-" + Guid.NewGuid().ToString("N") + ".txt");
         File.WriteAllText(target, "before");
         try
         {
@@ -1035,8 +1046,7 @@ public sealed class PiSessionTests
     [Trait("Req", "PR-PROVCLI-293")] // PiSession.swift:412-413,477-480,496-500
     public void EditDiff_write_uses_the_pre_call_snapshot_and_removes_it_as_consumed()
     {
-        var dir = Path.Combine(Path.GetTempPath(), "marrow-pisession-editdiff-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(dir);
+        var dir = CreateTestFolder("editdiff");
         try
         {
             var file = SwiftPath.AppendingPathComponent(dir, "out.txt");
@@ -1453,8 +1463,7 @@ public sealed class PiSessionTests
     [Trait("Req", "PR-PROVCLI-298")] // PiSession.swift:616-618
     public void HandleSelect_a_fileChange_kind_row_has_a_relative_title_and_a_raw_path_detail()
     {
-        var dir = Path.Combine(Path.GetTempPath(), "marrow-pisession-filechange-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(dir);
+        var dir = CreateTestFolder("filechange");
         try
         {
             var (session, events) = MakeInDir(dir);
