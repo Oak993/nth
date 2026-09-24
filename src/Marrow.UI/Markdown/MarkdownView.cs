@@ -68,13 +68,60 @@ public sealed class MarkdownView : Decorator
     private const int StreamingSlots = 48; // :115
 
     /// <param name="text">:10 <c>let text: String</c>.</param>
+    public string Text { get; }
+
     /// <param name="isStreaming">:16 <c>var isStreaming = false</c>.</param>
-    // :63-103 body. The prose-run/streaming split (PR-THEME-105) and the two block ForEach arms wait on
-    // MarkdownBlockView's own body (part 2's InlineText/VeiledText dependency), so the view's constructor is
-    // left to that unit; the pure functions below (Segments, Transition, IsDelegationInfo, the caches) are this
-    // part's PR-THEME-105/106/123/124/125 records and are implemented so part 2's constructor can call them.
-    public MarkdownView(string text, bool isStreaming = false) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:63");
+    public bool IsStreaming { get; }
+
+    // :21-23 nonisolated static func ==.
+    public static bool Equatable(MarkdownView lhs, MarkdownView rhs) => lhs.Text == rhs.Text && lhs.IsStreaming == rhs.IsStreaming;
+
+    // :63-103 body. The prose-run branch (PR-THEME-105) builds ProseRunView for each prose run (part 2's sibling
+    // ProseRunView unit; MARROW_STUB there is expected and left alone). The block branch is fully implemented,
+    // via MarkdownBlockView.
+    public MarkdownView(string text, bool isStreaming = false)
+    {
+        Text = text;
+        IsStreaming = isStreaming;
+        var parse = isStreaming ? StreamingParse(text) : (Blocks: Blocks(text), Stable: 0); // :67
+        var blocks = parse.Blocks;
+        var stable = parse.Stable;
+        var last = blocks.Count - 1;
+        var proseRuns = GetMarkdownProseRuns(this); // :71 @Environment(\.markdownProseRuns)
+        Control root;
+        if (!isStreaming && proseRuns) // :71-83
+        {
+            var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 12 }; // :72
+            foreach (var segment in Segments(blocks)) // :73-80
+            {
+                Control child = segment switch
+                {
+                    MarkdownSegment.Prose prose => new ProseRunView(prose.Value), // :75-76
+                    MarkdownSegment.Block block => new MarkdownBlockView(block.Value).Transition(Transition(block.Value)), // :77-79
+                    _ => throw new UnreachableException(),
+                };
+                stack.Children.Add(child);
+            }
+            stack.HorizontalAlignment = HorizontalAlignment.Stretch; // :82 frame(maxWidth: .infinity, alignment: .leading)
+            root = stack;
+        }
+        else // :84-98
+        {
+            var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 12 }; // :86
+            for (var index = 0; index < blocks.Count; index++) // :87
+            {
+                var block = blocks[index];
+                var view = new MarkdownBlockView(block, settled: index < stable); // :88
+                SetMarkdownStreaming(view, isStreaming && index == last); // :89-91
+                view.Transition(Transition(block)); // :92
+                stack.Children.Add(view);
+            }
+            stack.HorizontalAlignment = HorizontalAlignment.Stretch; // :97 frame(maxWidth: .infinity, alignment: .leading)
+            root = stack;
+        }
+        StreamVeil.SetMarkdownVeiled(root, isStreaming); // :80, :96 .environment(\.markdownVeiled, isStreaming)
+        Child = root;
+    }
 
     // :25-45 static func segments(_ blocks: [MarkdownBlock]) -> [MarkdownSegment]. PR-THEME-105: headings,
     // paragraphs, lists and quotes accumulate into a prose run; code, tables and rules close the run and stand
@@ -593,14 +640,37 @@ public sealed class MarkdownBlockView : Decorator
         _ => ChatFont.Chat(SwiftFont.TextStyle.Subheadline, SwiftFont.Weight.Semibold), // :381
     };
 
-    // :386 private static func mentionGlyphOffset(size: CGFloat) -> CGFloat
-    private static double MentionGlyphOffset(double size) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:386");
+    // :386 private static func mentionGlyphOffset(size: CGFloat) -> CGFloat. PR-THEME-177: the comment at :385
+    // says "lifts"; the value is negative, so it lowers the glyph -- the port keeps the value, not the comment.
+    private static double MentionGlyphOffset(double size) => -(size * 0.2);
+
+    // :406 @MainActor private static var glyphCache: [String: Image] = [:]. PR-THEME-177.
+    private static readonly Dictionary<string, IImage> glyphCache = new(StringComparer.Ordinal);
 
     // :390-404 @MainActor static func mentionGlyph(_ persona: HydraPersona, size: CGFloat) -> Image; a template image
-    // for a Text run (ED-158).
-    public static IImage MentionGlyph(HydraPersona persona, double size) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:390");
+    // for a Text run (ED-158). PR-THEME-177.
+    public static IImage MentionGlyph(HydraPersona persona, double size)
+    {
+        var key = persona.Asset + "@" + SwiftNumber.Description(size); // :392
+        if (glyphCache.TryGetValue(key, out var cached)) return cached; // :393
+        // Drawn on demand rather than into fixed pixels, so it stays crisp on any display. (:394-395)
+        // ENGINEERING DECISION: NSImage(size:flipped:drawingHandler:) draws the named asset into a fresh
+        // canvas of the requested size; the closest Avalonia equivalent is rasterizing the asset's own
+        // SwiftImage control into a RenderTargetBitmap of that size (precedent: FaviconCache.Cleaned, below,
+        // and GeniePlatform.cs), which implements IImageBrushSource for StyledText's template-image path
+        // (ED-158 (1)).
+        var source = SwiftImage.Named(persona.Asset); // :395
+        source.Width = size;
+        source.Height = size;
+        source.Measure(new Size(size, size));
+        source.Arrange(new Rect(0, 0, size, size));
+        var pixelSize = new PixelSize(Math.Max(1, (int)Math.Ceiling(size)), Math.Max(1, (int)Math.Ceiling(size)));
+        var bitmap = new RenderTargetBitmap(pixelSize, new Vector(96, 96)); // :396-399
+        bitmap.Render(source); // :397 source?.draw(in: rect, ...)
+        IImage image = bitmap; // :400-401 out.isTemplate = true; Image(nsImage: out).renderingMode(.template)
+        glyphCache[key] = image; // :402
+        return image; // :403
+    }
 
     // :411-414 private func mentionsTarget(in text: String) -> Bool (reads the environment's targets). Needed by
     // PR-THEME-110's paragraph-path dispatch (this part); mentionText's own rendering is part 2 (PR-THEME-177/178).
@@ -661,9 +731,29 @@ public sealed class MarkdownBlockView : Decorator
         throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:447");
     }
 
-    // :489-504 private func mentionText(_ persona: HydraPersona) -> Text
-    private StyledText MentionText(HydraPersona persona) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:489");
+    // :489-504 private func mentionText(_ persona: HydraPersona) -> Text. PR-THEME-177/178.
+    private StyledText MentionText(HydraPersona persona)
+    {
+        const double size = 16; // :490
+        var color = HydraGlyph.PersonaColor(persona); // :218-224 (Hydra.swift)
+        var glyph = new StyledText(MentionGlyph(persona, size), isTemplate: true) // :491
+            .ForegroundColor(color) // :492
+            .BaselineOffset(MentionGlyphOffset(size)); // :493
+        var targets = MarkdownView.GetHydraMentionTargets(this); // :495
+        if (targets.TryGetValue(persona.Name, out var target)) // :495-500
+        {
+            // A link in a Text keeps the colour the attribute sets and opens through the environment. (:494)
+            var name = new StyledText(persona.Name) // :496 AttributedString(persona.name)
+                .Link(target.Url) // :497 name.link = target.url
+                .ForegroundColor(color) // :498 name.foregroundColor = persona.color
+                .FontWeight(SwiftFont.Weight.Bold); // :499 name.inlinePresentationIntent = .stronglyEmphasized
+            return glyph + new StyledText(" ") + name; // :500 "\(glyph) \(Text(name))"
+        }
+        var plainName = new StyledText(persona.Name) // :502 Text(verbatim: persona.name)
+            .FontWeight(SwiftFont.Weight.Bold) // :502 .fontWeight(.bold)
+            .ForegroundColor(color); // :502 .foregroundColor(persona.color)
+        return glyph + new StyledText(" ") + plainName; // :503
+    }
 
     // :506-534 @ViewBuilder private func marker(ordered: Bool, number: Int, checked: Bool?) -> some View.
     // PR-THEME-111/112/113: a checkbox marker (:508-511), an ordered number (:512-516), or an unordered dot/ring
@@ -1451,20 +1541,180 @@ public static class FaviconCache
 /// has links and as veiled Text otherwise.</summary>
 public sealed class InlineText : Decorator
 {
+    /// <summary>The App hook for <c>@Environment(\.openURL)</c> (:1110): set once by the App layer at start-up,
+    /// the same pattern as MarkdownBlockView.HydraDelegationBlock (layering, see the file header). There is no
+    /// port-wide openURL environment yet; this unit adds the one call site MarkdownView.swift needs (:1148).</summary>
+    public static Action<SwiftURL>? OpenUrl { get; set; }
+
     /// <param name="source">:1102 <c>let source: String</c>.</param>
     /// <param name="hasLinks">:1104 <c>let hasLinks: Bool?</c>.</param>
     /// <param name="hugsContent">:1106 <c>var hugsContent = false</c>.</param>
-    // :1121-1125 init(_:hasLinks:hugsContent:); :1127-1208 body
-    public InlineText(string source, bool? hasLinks = null, bool hugsContent = false) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:1127");
+    public string Source { get; }
+    public bool? HasLinks { get; }
+    public bool HugsContent { get; }
 
-    // :1214-1221 @MainActor private static func metrics(pointSize: CGFloat) -> (ascender: CGFloat, lineHeight: CGFloat)
-    private static (double Ascender, double LineHeight) Metrics(double pointSize) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:1214");
+    // :1121-1125 init(_:hasLinks:hugsContent:); :1127-1208 body. PR-THEME-144, PR-THEME-148, PR-THEME-151.
+    // The hasLinkText branch (:1134-1191) builds LinkParagraphView, whose whole constructor is part of the
+    // sibling LinkParagraphView unit and stays MARROW_STUB (see the file header's dependency-cycle note); this
+    // wiring is otherwise complete and does not stand in for it. The link-free branch (:1193-1198) similarly
+    // depends on the sibling StreamVeil unit's VeiledText(AttributedString) constructor.
+    public InlineText(string source, bool? hasLinks = null, bool hugsContent = false)
+    {
+        Source = source;
+        HasLinks = hasLinks;
+        HugsContent = hugsContent;
 
-    // :1226-1237 static func fetchLinkAssets(source: String, streaming: Bool, revision: Binding<Int>) async
-    public static Task FetchLinkAssets(string source, bool streaming, Binding<int> revision) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:1226");
+        var pointSize = MarkdownView.GetMarkdownPointSize(this); // :1108
+        var dimmed = MarkdownView.GetMarkdownDimmed(this); // :1109
+        var streaming = MarkdownView.GetMarkdownStreaming(this); // :1110
+        var personas = MarkdownView.GetHydraMentionPersonas(this); // :1111
+        var targets = MarkdownView.GetHydraMentionTargets(this); // :1112
+
+        var scaled = SwiftNumber.Rounded(pointSize * 2) / 2; // :1130
+        var hosts = RichLink.LinkHosts(source, streaming); // :1132: hosts key the favicon work (PR-THEME-148)
+        var hasLinkText = hasLinks ?? hosts.Count > 0; // :1133
+        Control child;
+        if (hasLinkText) // :1134-1191
+        {
+            var metrics = Metrics(scaled); // :1141 the baseline numbers (PR-THEME-151), measured once per size
+            _ = metrics; // consumed by the alignment-guide wiring once LinkParagraphView exists (:1156-1157)
+            LinkTextView? hostTextView = null;
+            var linkView = new LinkParagraphView( // :1148
+                source,
+                pointSize: scaled,
+                dimmed: dimmed,
+                streaming: streaming,
+                revision: 0, // :1113 @State private var faviconRevision = 0
+                mentions: personas,
+                targets: targets,
+                onOpenHead: url => OpenUrl?.Invoke(url), // :1148 { url in openURL(url) }
+                onHost: view => hostTextView = view); // :1148 { [weak linkBox] view in linkBox?.value = view }
+            linkView.HorizontalAlignment = hugsContent ? HorizontalAlignment.Left : HorizontalAlignment.Stretch; // :1149
+            // :1159-1188 the continuous hover: pushes/pops the pointing hand over a link, shows/hides the head
+            // hover card over a mention, only on change (PR-THEME-144). Avalonia has no onContinuousHover
+            // primitive; PointerMoved/PointerExited stand in for it (ENGINEERING DECISION), matching the
+            // sibling ProseRunView.swift's identical handler (:27-59).
+            var showsHand = false;
+            Guid? hoveredHeadID = null;
+            linkView.PointerMoved += (_, e) =>
+            {
+                if (hostTextView is not { } view) return; // :1163 guard let view = ... as? LinkTextView
+                var point = e.GetPosition(linkView);
+                var overLink = view.HasLink(point); // :1164
+                if (overLink != showsHand) // :1165
+                {
+                    showsHand = overLink;
+                    linkView.Cursor = overLink // :1166 NSCursor.pointingHand.push() / .pop()
+                        ? new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand)
+                        : Avalonia.Input.Cursor.Default;
+                }
+                var mention = view.HeadMentionRect(point); // :1168
+                if (mention is { } m && targets.TryGetValue(m.Name, out var target) && target.Url == m.Url // :1168-1169
+                    && personas.FirstOrDefault(p => p.Name == m.Name) is { } persona) // :1170
+                {
+                    if (hoveredHeadID != target.ThreadID) // :1171
+                    {
+                        hoveredHeadID = target.ThreadID;
+                        HydraHeadHoverPopover.Instance.Show(persona, target, m.Rect, linkView); // :1172-1173
+                    }
+                }
+                else if (hoveredHeadID is not null) // :1175-1178
+                {
+                    hoveredHeadID = null;
+                    HydraHeadHoverPopover.Instance.Hide();
+                }
+            };
+            linkView.PointerExited += (_, _) => // :1179-1183 case .ended
+            {
+                if (showsHand) { linkView.Cursor = Avalonia.Input.Cursor.Default; showsHand = false; }
+                hoveredHeadID = null;
+                HydraHeadHoverPopover.Instance.Hide();
+            };
+            linkView.DetachedFromVisualTree += (_, _) => // :1184-1187 .onDisappear
+            {
+                if (showsHand) { linkView.Cursor = Avalonia.Input.Cursor.Default; showsHand = false; }
+                hoveredHeadID = null;
+                HydraHeadHoverPopover.Instance.Hide();
+            };
+            // :1189-1191 .task(id: hostKey): stable hosts and video ids key the work (PR-THEME-148), so a
+            // streamed token with no new link leaves it alone.
+            var hostKey = RichLink.LinkAssetKey(source, streaming);
+            if (hostKey.Length > 0)
+            {
+                var revision = 0;
+                var viewTask = new ViewTask<string>(hostKey, async _ =>
+                    await FetchLinkAssets(source, streaming, new Binding<int>(() => revision, v => revision = v)));
+                linkView.AttachedToVisualTree += (_, _) => viewTask.Appear();
+                linkView.DetachedFromVisualTree += (_, _) => viewTask.Disappear();
+            }
+            child = linkView;
+        }
+        else // :1193-1198
+        {
+            var veiled = new VeiledText(RichLink.PrettyAttributed(source, streaming)); // :1203
+            var selected = new MarkdownBlockSelection().Body(veiled); // :1204 .modifier(MarkdownBlockSelection())
+            selected.HorizontalAlignment = hugsContent ? HorizontalAlignment.Left : HorizontalAlignment.Stretch; // :1206
+            child = selected;
+        }
+        Child = child;
+    }
+
+    // :1214-1221 @MainActor private static func metrics(pointSize: CGFloat) -> (ascender: CGFloat, lineHeight: CGFloat).
+    // PR-THEME-151: the base font's baseline numbers, measured once per point size and kept.
+    private static readonly Dictionary<double, (double Ascender, double LineHeight)> metricsBySize = new(); // :1212
+
+    private static (double Ascender, double LineHeight) Metrics(double pointSize)
+    {
+        if (metricsBySize.TryGetValue(pointSize, out var known)) return known; // :1216
+        var font = SwiftFont.System(pointSize).Resolve(); // :1217 NSFont.systemFont(ofSize:)
+        var typeface = new Avalonia.Media.Typeface(font.FontFamily, font.FontStyle, font.FontWeight);
+        // NSFont's ascender/descender/leading have no direct Avalonia accessor; IGlyphTypeface's design-unit
+        // metrics, scaled to the point size, are the closest equivalent (ENGINEERING DECISION, visual parity
+        // UNVERIFIED under OD-0001 like SwiftImage.cs's own cap-height measurement above).
+        double ascender, lineHeight;
+        if (Avalonia.Media.FontManager.Current.TryGetGlyphTypeface(typeface, out var glyph))
+        {
+            var scale = pointSize / glyph.Metrics.DesignEmHeight;
+            var rawAscender = -glyph.Metrics.Ascent * scale; // Ascent is stored negative (above the baseline)
+            var descender = -glyph.Metrics.Descent * scale; // Descent is stored positive (below the baseline)
+            var leading = glyph.Metrics.LineGap * scale;
+            ascender = Math.Ceiling(rawAscender); // :1218 ceil(font.ascender)
+            lineHeight = Math.Ceiling(rawAscender - descender + leading); // :1218 ceil(ascender - descender + leading)
+        }
+        else
+        {
+            ascender = Math.Ceiling(pointSize);
+            lineHeight = Math.Ceiling(pointSize * 1.2);
+        }
+        var measured = (ascender, lineHeight);
+        metricsBySize[pointSize] = measured; // :1219
+        return measured;
+    }
+
+    // :1226-1237 static func fetchLinkAssets(source: String, streaming: Bool, revision: Binding<Int>) async. PR-THEME-148.
+    public static async Task FetchLinkAssets(string source, bool streaming, Binding<int> revision)
+    {
+        var hosts = await MainActor.Run(() => RichLink.LinkHosts(source, streaming)); // :1227
+        var changed = false;
+        foreach (var host in hosts) // :1228-1230
+        {
+            if (FaviconCache.Cached(host) is not null) continue;
+            if (await FaviconCache.Image(host) is not null) changed = true;
+        }
+        var videos = await MainActor.Run(() => RichLink.VideoIDs(source, streaming)); // :1232
+        foreach (var id in videos) // :1233-1235
+        {
+            if (await LinkTitles.TitleForVideo(id) is not null) changed = true;
+        }
+        if (changed) // :1236-1237
+        {
+            await MainActor.Run(() =>
+            {
+                RichLink.Invalidate(source);
+                revision.Value += 1;
+            });
+        }
+    }
 
     // :1240-1242 static func attributed(_ source: String, streaming: Bool = false) -> AttributedString.
     public static AttributedText Attributed(string source, bool streaming = false) =>
@@ -1490,8 +1740,12 @@ internal sealed class CodeBlockCopyButton : Decorator
     /// <param name="text">:1258 <c>let text: String</c>.</param>
     /// <param name="hover">:1259 <c>let hover: BlockHover</c>.</param>
     // :1261-1264 body
-    public CodeBlockCopyButton(string text, BlockHover hover) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:1261");
+    public CodeBlockCopyButton(string text, BlockHover hover)
+    {
+        var button = new CopyButton(text); // :1262
+        Child = button;
+        this.Track(() => hover.IsHovering, isHovering => Opacity = isHovering ? 1 : 0); // :1263 .opacity(hover.isHovering ? 1 : 0)
+    }
 }
 
 /// <summary>:1267-1336 <c>struct CodeBlock: View</c>.</summary>
@@ -1499,12 +1753,72 @@ public sealed class CodeBlock : Decorator
 {
     private const int CollapsedLineLimit = 120; // :1276
 
+    /// <summary>:1271 <c>@State private var showsAll = false</c>.</summary>
+    private sealed class ViewState : MainActorModel
+    {
+        private bool showsAll;
+
+        public bool ShowsAll { get => Read(showsAll); set => Set(ref showsAll, value); }
+    }
+
     /// <param name="language">:1268 <c>let language: String?</c>.</param>
     /// <param name="code">:1269 <c>let code: String</c>.</param>
-    // :1278-1321 body: waits on VeiledText (part 2's StreamVeil.cs) for the code text itself; the line-counting
-    // and collapse math (PR-THEME-118) is Head, below, which part 2's body calls.
-    public CodeBlock(string? language, string code) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:1278");
+    // :1278-1321 body. UI-THEME-034 to 037. The code text itself renders through VeiledText(verbatim:), the
+    // sibling StreamVeil unit's own MARROW_STUB (see the file header's dependency-cycle note); this wiring is
+    // otherwise complete and does not stand in for it.
+    public CodeBlock(string? language, string code)
+    {
+        var hover = new BlockHover(); // :1270 @State private var hover = BlockHover()
+        var state = new ViewState();
+
+        var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 0 }; // :1281
+        stack.Track(() => state.ShowsAll, _ => Rebuild(stack, language, code, hover, state));
+        Rebuild(stack, language, code, hover, state);
+
+        var background = new Border { Child = stack }.RoundedRectangle(12, RoundedCornerStyle.Continuous); // :1317
+        background.Background = SwiftColor.Quaternary.Opacity(0.45).Brush(background); // :1317
+        background.PointerEntered += (_, _) => hover.IsHovering = true; // :1318 .onHover
+        background.PointerExited += (_, _) => hover.IsHovering = false; // :1318
+        Child = background;
+    }
+
+    private static void Rebuild(StackPanel stack, string? language, string code, BlockHover hover, ViewState state)
+    {
+        stack.Children.Clear();
+        var newlines = Encoding.UTF8.GetBytes(code).Count(b => b == 0x0A); // :1281 code.utf8.count { $0 == 0x0A }
+        var lineCount = 1 + newlines; // :1281
+        var truncated = !state.ShowsAll && lineCount > CollapsedLineLimit; // :1282
+        var visible = truncated ? Head(code, CollapsedLineLimit) : code; // :1283
+
+        var header = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto") }; // :1286 HStack { ... Spacer() ... }
+        var langText = new TextBlock { Text = language ?? "code" }; // :1287 Text(language ?? "code")
+        ChatFont.Chat(SwiftFont.TextStyle.Caption).Apply(langText); // :1288
+        langText.Foreground = Chrome.Chrome.SecondaryText.Brush(langText); // :1289
+        Grid.SetColumn(langText, 0);
+        var copyButton = new CodeBlockCopyButton(code, hover); // :1292
+        Grid.SetColumn(copyButton, 2);
+        header.Children.Add(langText);
+        header.Children.Add(copyButton);
+        header.Margin = new Thickness(12, 6, 6, 0); // :1293-1295 leading 12, trailing 6, top 6
+        stack.Children.Add(header);
+
+        var veiled = new VeiledText(visible).Font(ChatFont.Chat(SwiftFont.TextStyle.Callout, design: SwiftFont.Design.Monospaced)); // :1299-1300
+        var selected = new MarkdownBlockSelection().Body(veiled); // :1301
+        selected.Margin = new Thickness(12, 4, 12, 12); // :1302-1304 horizontal 12, bottom 12, top 4
+        var scroll = new ScrollViewer
+        {
+            Content = selected,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Disabled,
+        }; // :1298 ScrollView(.horizontal, showsIndicators: false)
+        stack.Children.Add(scroll);
+
+        if (lineCount > CollapsedLineLimit) // :1310-1316
+        {
+            var title = state.ShowsAll ? "Show less" : "Show all " + lineCount + " lines"; // :1311
+            stack.Children.Add(TableBlock.LinkStyleButton(title, () => state.ShowsAll = !state.ShowsAll)); // :1311-1313
+        }
+    }
 
     // :1324-1335 private static func head(of code: String, lines: Int) -> String. PR-THEME-118: counts UTF-8
     // line feeds without splitting the text into an array, and returns everything up to (not including) the
