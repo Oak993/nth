@@ -139,6 +139,19 @@ public sealed class SwiftColor
     public static SwiftColor Quaternary { get; } = LabelColor.Opacity(0.15);
 
     /// <summary>
+    /// <c>ShapeStyle.tertiary</c> as a foreground style (UI.Markdown.MarkdownView.swift:509: an unchecked list
+    /// item's marker, <c>AnyShapeStyle(.tertiary)</c>). ED-013 commits the port to "define exactly four tokens,
+    /// one per level, as opacity multipliers over the resolved foreground colour" for
+    /// primary/secondary/tertiary/quaternary and to ship them UNVERIFIED under OD-0001, but only Primary (this
+    /// file's LabelColor), Secondary (0.7, ED-062) and Quaternary (0.15, above) had been wired in before this
+    /// unit needed the third step. ENGINEERING DECISION completing ED-013's four-token table: interpolated
+    /// midway between Secondary and Quaternary, the same reasoning Quaternary's own comment used to extend the
+    /// hierarchy one step further inward. UNVERIFIED under OD-0001; flag for an ED number and an oracle
+    /// measurement in the verification wave, same as Quaternary.
+    /// </summary>
+    public static SwiftColor Tertiary { get; } = LabelColor.Opacity(0.45);
+
+    /// <summary>
     /// <c>NSColor.controlAccentColor</c> (Chrome.swift:80, :87): the Windows personalization accent (ED-051), read
     /// from the platform's <see cref="PlatformColorValues.AccentColor1"/>.
     /// </summary>

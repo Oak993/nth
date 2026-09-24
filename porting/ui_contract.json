@@ -12495,7 +12495,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/CopilotSession.swift:826-871"
       ],
-      "notes": "Every one of these fallbacks is a user-visible literal. The shell card's detail additionally shows the working directory when it DIFFERS from the thread's, and the sandbox-bypass reason or the literal \"Runs outside the sandbox.\" when a bypass was requested."
+      "notes": "Every one of these fallbacks is a user-visible literal. The shell card's detail additionally shows the working directory when it DIFFERS from the thread's, and the sandbox-bypass reason or the literal \"Runs outside the sandbox.\" when a bypass was requested.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVCLI",
@@ -12543,7 +12544,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/CopilotSession.swift:409-419"
       ],
-      "notes": "An unconfigured model is KEPT and only annotated; only a policy state of exactly \"disabled\" removes a row. Showing a disabled model would offer the user a model the CLI refuses."
+      "notes": "An unconfigured model is KEPT and only annotated; only a policy state of exactly \"disabled\" removes a row. Showing a disabled model would offer the user a model the CLI refuses.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVCLI",
@@ -12665,7 +12667,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/CopilotSession.swift:448,:451-464"
       ],
-      "notes": "The row ids are the snapshot KEYS (premium_interactions, chat, completions), not the titles. The percent can be NEGATIVE when the fallback branch is used with a negative usedRequests, which reaches the bar as-is."
+      "notes": "The row ids are the snapshot KEYS (premium_interactions, chat, completions), not the titles. The percent can be NEGATIVE when the fallback branch is used with a negative usedRequests, which reaches the bar as-is.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVCLI",
@@ -12767,7 +12770,8 @@
         "DroppyCode/Services/Providers/PiCLI.swift:29-44",
         "DroppyCode/Services/Providers/AntigravitySession.swift:525-540"
       ],
-      "notes": "The distinction between 'signed out' and 'unknown' is load-bearing: a Windows spawn failure must read as UNKNOWN, never as signed out, or the user is told to sign in when the real problem is that the CLI was not found."
+      "notes": "The distinction between 'signed out' and 'unknown' is load-bearing: a Windows spawn failure must read as UNKNOWN, never as signed out, or the user is told to sign in when the real problem is that the CLI was not found.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVCLI",
@@ -12929,7 +12933,8 @@
         "DroppyCode/Services/Providers/CommandCodeSession.swift:568-570",
         "DroppyCode/Services/Providers/AntigravitySession.swift:718-723"
       ],
-      "notes": "Three different formats using the same U+2013 EN DASH. The dash is not a hyphen and not an em dash; substituting either changes three user-visible strings."
+      "notes": "Three different formats using the same U+2013 EN DASH. The dash is not a hyphen and not an em dash; substituting either changes three user-visible strings.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVCLI",
@@ -12964,7 +12969,8 @@
         "decision": "OD-0012 F1",
         "upstream": "CommandCodeSession.swift:753 \"The user declined this in Droppy Code. Do not retry it; take another approach or explain what you would need.\"; CommandCodeAPI.swift:422 \"The user declined this in Droppy Code.\"; CommandCodeAPI.swift:430 \"Droppy Code did not answer.\"",
         "port": "\"The user declined this in Marrow. Do not retry it; take another approach or explain what you would need.\"; \"The user declined this in Marrow.\"; \"Marrow did not answer.\"; the Pi, Antigravity and other fallbacks are unchanged."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVCLI",
@@ -22240,7 +22246,8 @@
       "source_evidence": [
         "DroppyCode/App/AppUpdater.swift:274-280"
       ],
-      "notes": "The title is Title Case with no trailing punctuation. This is the ONLY place an install error reaches the user; the installer script's three log lines never do. There is no retry affordance."
+      "notes": "The title is Title Case with no trailing punctuation. This is the ONLY place an install error reaches the user; the installer script's three log lines never do. There is no retry affordance.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "UPDATE",
