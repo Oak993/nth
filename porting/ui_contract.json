@@ -12969,7 +12969,8 @@
         "decision": "OD-0012 F1",
         "upstream": "CommandCodeSession.swift:753 \"The user declined this in Droppy Code. Do not retry it; take another approach or explain what you would need.\"; CommandCodeAPI.swift:422 \"The user declined this in Droppy Code.\"; CommandCodeAPI.swift:430 \"Droppy Code did not answer.\"",
         "port": "\"The user declined this in Marrow. Do not retry it; take another approach or explain what you would need.\"; \"The user declined this in Marrow.\"; \"Marrow did not answer.\"; the Pi, Antigravity and other fallbacks are unchanged."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVCLI",
