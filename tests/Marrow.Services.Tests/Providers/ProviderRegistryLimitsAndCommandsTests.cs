@@ -60,10 +60,9 @@ public sealed class ProviderRegistryLimitsAndCommandsTests
 
     private static FakeProviderSettings Settings() => new();
 
-    // The constructor seeds Deepseek/Zai/Commandcode from DeepSeekAPI.Option/ZaiAPI.Option/CommandCodeAPI.Seed
-    // (ProviderRegistry.cs :140-179) only when the persisted catalog for that provider is empty; those three
-    // statics are MARROW_STUB (missing dependencies owned by other units), so every registry in this part's
-    // tests is built over a pre-seeded cache blob, the same technique ProviderRegistryCatalogTests.cs uses.
+    // The constructor seeds Deepseek/Zai/Commandcode from their provider tables only when the persisted
+    // catalog for that provider is empty. Tests in this part pre-seed rows for deterministic setup, the same
+    // technique ProviderRegistryCatalogTests.cs uses.
     private static void SeedUnblockingCache(TestRuntime runtime)
     {
         var payload = new Dictionary<string, object[]>
