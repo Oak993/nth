@@ -3,6 +3,7 @@ using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
 using Marrow.Services.MCP;
+using Marrow.Services.Store;
 
 // Source: DroppyCode/Services/Providers/CodexSession.swift (B2 1fbf81e), :1-1052.
 //
@@ -44,15 +45,34 @@ public sealed class CodexSession : ProviderSession
     // :28-33
     private sealed record PolicySettings(JSONValue ApprovalPolicy, JSONValue Sandbox, JSONValue SandboxPolicy, JSONValue Reviewer);
 
+    // :17-20. R-ENUM-2: associated-value enum -> abstract record with nested sealed records.
+    private abstract record Target
+    {
+        private Target() { }
+        public sealed record Lead : Target;             // :18
+        public sealed record Head(string Id) : Target;  // :19
+    }
+
+    private static readonly Logger Log = new(Logger.Subsystem, "codex"); // :13
+
     private readonly SessionConfiguration configuration; // :35
     private JSONRPCConnection? connection;                // :36
     private string? threadID;                             // :37
     private string? turnID;                               // :38
     private string? activeModel;                           // :39
     private readonly Dictionary<string, PendingRequest> pendingRequests = new(StringComparer.Ordinal); // :40
-#pragma warning disable CS0649 // written by Stop() (a later part); read here by HandleClose (:1037)
     private bool isStopping; // :41
-#pragma warning restore CS0649
+    private TokenSpendTracker spendTracker = new();                          // :43
+    private readonly HashSet<string> headThreads = new(StringComparer.Ordinal);       // :46
+    private readonly Dictionary<string, string> headTurns = new(StringComparer.Ordinal); // :47
+    private readonly Dictionary<string, TokenSpendTracker> headSpend = new(StringComparer.Ordinal); // :48
+    private readonly Dictionary<string, string> headModels = new(StringComparer.Ordinal); // :51
+    private Action<ProviderEvent>? leadSinkField; // :53 backs the lazily created LeadSink below
+    private Action<ProviderEvent> LeadSink => leadSinkField ??= e => OnEvent?.Invoke(e); // :53
+
+    // :36-45. U+00B7 MIDDLE DOT, used to join a limit's title with its snapshot name (:420) and a head's
+    // nickname with its role (:690, :699).
+    private const string Dot = "\U000000B7"; // U+00B7 MIDDLE DOT
 
     // :55-57
     public CodexSession(SessionConfiguration configuration) => this.configuration = configuration;
@@ -388,9 +408,67 @@ public sealed class CodexSession : ProviderSession
         return lastID is null ? previousID is null : previousID is not null && SwiftString.Equal(lastID, previousID);
     }
 
-    // :268-301. PR-PROVCLI-089, part 2 of this unit.
-    private Task<string?> ForkHistory(string targetID, string? previousID, JSONRPCConnection connection, string originalID) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/CodexSession.swift:268");
+    // :268-301. PR-PROVCLI-089.
+    private async Task<string?> ForkHistory(string targetID, string? previousID, JSONRPCConnection connection, string originalID)
+    {
+        if (previousID is not { } previous) // :269
+        {
+            _ = await connection.Request("thread/archive", new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>
+            {
+                ["threadId"] = originalID, // :270
+            })));
+            threadID = null; // :271
+            turnID = null;    // :272
+            return null;      // :273
+        }
+
+        var parameters = ThreadParameters; // :275
+        parameters["threadId"] = originalID; // :276
+        parameters["lastTurnId"] = previous;  // :277
+        parameters["excludeTurns"] = true;    // :278
+        var result = await connection.Request("thread/fork", new JSONValue.Object(new ValueMap<string, JSONValue>(parameters))); // :279
+        if (result["thread"]?["id"]?.JSONValueString is not { } id || SwiftString.Equal(id, originalID)) // :280
+        {
+            throw new ProviderError(new ProviderError.Case.Failed("Codex did not create a conversation at the revert point.")); // :281
+        }
+
+        try // :283-296
+        {
+            var page = await connection.Request("thread/turns/list", new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>
+            {
+                ["threadId"] = id, // :285
+                ["limit"] = 1,
+                ["sortDirection"] = "desc",
+                ["itemsView"] = "notLoaded",
+            })));
+            var turns = page["data"]?.JSONValueArray; // :287
+            var firstID = turns is { Count: > 0 } ? turns[0]["id"]?.JSONValueString : null; // :288
+            if (firstID is null || !SwiftString.Equal(firstID, previous) || SwiftString.Equal(firstID, targetID)) // :288-289
+            {
+                throw new ProviderError(new ProviderError.Case.Failed("Codex did not confirm the reverted conversation history.")); // :290
+            }
+            _ = await connection.Request("thread/archive", new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>
+            {
+                ["threadId"] = originalID, // :292
+            })));
+        }
+        catch (Exception error) when (SwiftTry.IsThrownError(error)) // :293
+        {
+            await SwiftTry.IgnoreAsync(async () => // :294 try?
+            {
+                _ = await connection.Request("thread/archive", new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>
+                {
+                    ["threadId"] = id,
+                })));
+            });
+            throw; // :295
+        }
+
+        threadID = id;         // :297
+        turnID = null;          // :298
+        activeModel = result["model"]?.JSONValueString ?? activeModel; // :299
+        return id;               // :300
+    }
 
     // :224-266
     private Dictionary<string, JSONValue> ThreadParameters
@@ -458,37 +536,348 @@ public sealed class CodexSession : ProviderSession
         }
     }
 
-    // :303-318
-    public void ResolveApproval(string requestID, string optionID) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/CodexSession.swift:303");
+    // :303-318. PR-PROVCLI-090, 091, 092.
+    public void ResolveApproval(string requestID, string optionID)
+    {
+        if (!pendingRequests.Remove(requestID, out var pending)) return; // :304
+        switch (pending)
+        {
+            case PendingRequest.Decision(var id, var payloads):
+                connection?.Respond(id, new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>
+                {
+                    ["decision"] = payloads.TryGetValue(optionID, out var payload) ? payload : "cancel", // :307
+                })));
+                break;
+            case PendingRequest.Permissions(var id, var requested):
+                if (optionID == "turn" || optionID == "session") // :309
+                {
+                    connection?.Respond(id, new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>
+                    {
+                        ["permissions"] = requested, // :310
+                        ["scope"] = optionID,
+                    })));
+                }
+                else
+                {
+                    connection?.Respond(id, new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>
+                    {
+                        ["permissions"] = new JSONValue.Object(ValueMap<string, JSONValue>.Empty), // :312
+                        ["scope"] = "turn",
+                    })));
+                }
+                break;
+            case PendingRequest.Question(var id):
+                connection?.Respond(id, new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>
+                {
+                    ["answers"] = new JSONValue.Object(ValueMap<string, JSONValue>.Empty), // :315
+                })));
+                break;
+            default:
+                throw new UnreachableException();
+        }
+        OnEvent?.Invoke(new ProviderEvent.RequestResolved(requestID)); // :317
+    }
 
-    // :320-328
-    public void AnswerQuestion(string requestID, ValueMap<string, ValueList<string>> answers) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/CodexSession.swift:320");
+    // :320-328. PR-PROVCLI-093.
+    public void AnswerQuestion(string requestID, ValueMap<string, ValueList<string>> answers)
+    {
+        if (!pendingRequests.Remove(requestID, out var pending) || pending is not PendingRequest.Question(var id)) return; // :321
+        var payload = new Dictionary<string, JSONValue>(StringComparer.Ordinal);
+        foreach (var (questionID, values) in answers) // :323
+        {
+            payload[questionID] = new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>
+            {
+                ["answers"] = new JSONValue.Array(new ValueList<JSONValue>(values.Select(v => (JSONValue)new JSONValue.String(v)).ToList())), // :324
+            }));
+        }
+        connection?.Respond(id, new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>
+        {
+            ["answers"] = new JSONValue.Object(new ValueMap<string, JSONValue>(payload)), // :326
+        })));
+        OnEvent?.Invoke(new ProviderEvent.RequestResolved(requestID)); // :327
+    }
 
-    // :330-333
-    public void Stop() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/CodexSession.swift:330");
+    // :330-333. PR-PROVCLI-094.
+    public void Stop()
+    {
+        isStopping = true;    // :331
+        connection?.Close();   // :332
+    }
 
-    // :335-341
-    public Task<bool> StopAgent(string id) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/CodexSession.swift:335");
+    // :335-341. PR-PROVCLI-095.
+    public async Task<bool> StopAgent(string id)
+    {
+        if (connection is not { } connected || !headThreads.Contains(id) || !headTurns.TryGetValue(id, out var turn)) return false; // :336
+        try // :337 (try? await connection.request(...)) != nil
+        {
+            _ = await connected.Request("turn/interrupt", new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>
+            {
+                ["threadId"] = id, // :338
+                ["turnId"] = turn, // :339
+            })));
+            return true; // :340
+        }
+        catch (Exception error) when (SwiftTry.IsThrownError(error))
+        {
+            return false; // :340
+        }
+    }
 
-    // :345-353
-    public static Task<ValueList<SlashCommand>> ListCommands(SwiftURL executable, SwiftURL directory, IReadOnlyDictionary<string, string> environment) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/CodexSession.swift:345");
+    // :345-353. PR-PROVCLI-096.
+    public static async Task<ValueList<SlashCommand>> ListCommands(SwiftURL executable, SwiftURL directory, IReadOnlyDictionary<string, string> environment)
+    {
+        var connection = await Connect(executable, directory, environment, _ => { }); // :346
+        var watchdog = MainActor.Spawn(async () => // :347-349
+        {
+            await SwiftTask.TrySleep(TimeSpan.FromSeconds(20));
+            if (!SwiftTask.IsCancelled) connection.Close();
+        });
+        try
+        {
+            var result = await connection.Request("skills/list", new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>
+            {
+                ["cwds"] = new JSONValue.Array(new ValueList<JSONValue>([new JSONValue.String(directory.Path)])), // :352
+                ["forceReload"] = true,
+            })));
+            return SlashCommand.CodexSkills(result); // :352
+        }
+        finally
+        {
+            watchdog.Cancel();  // :351 defer
+            connection.Close(); // :351 defer
+        }
+    }
 
-    // :355-385
-    public static Task<ValueList<ModelOption>> ListModels(SwiftURL executable, IReadOnlyDictionary<string, string> environment) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/CodexSession.swift:355");
+    // :355-385. PR-PROVCLI-097.
+    public static async Task<ValueList<ModelOption>> ListModels(SwiftURL executable, IReadOnlyDictionary<string, string> environment)
+    {
+        var connection = await Connect(executable, DirectoryFileUrl(TemporaryDirectory), environment, _ => { }); // :356-361
+        try
+        {
+            var models = new List<ModelOption>(); // :363
+            JSONValue cursor = new JSONValue.Null(); // :364
+            for (var i = 0; i < 10; i++) // :365
+            {
+                var parameters = new Dictionary<string, JSONValue>(StringComparer.Ordinal);
+                if (!cursor.IsNull) parameters["cursor"] = cursor; // :367
+                var result = await connection.Request("model/list", new JSONValue.Object(new ValueMap<string, JSONValue>(parameters))); // :368
+                foreach (var model in result["data"]?.JSONValueArray ?? [])
+                {
+                    if (model["hidden"]?.JSONValueBool == true) continue; // :369
+                    if (model["id"]?.JSONValueString is not { } id) continue; // :370
+                    var efforts = (model["supportedReasoningEfforts"]?.JSONValueArray ?? [])
+                        .Select(e => e["reasoningEffort"]?.JSONValueString)
+                        .Where(e => e is not null).Select(e => e!).ToList(); // :375
+                    models.Add(new ModelOption(
+                        id,
+                        model["displayName"]?.JSONValueString ?? id, // :373
+                        detail: model["description"]?.JSONValueString, // :374
+                        efforts: new ValueList<string>(efforts),
+                        defaultEffort: model["defaultReasoningEffort"]?.JSONValueString, // :376
+                        isDefault: model["isDefault"]?.JSONValueBool ?? false, // :377
+                        fastTier: FastTier(model["serviceTiers"]?.JSONValueArray ?? []))); // :378
+                }
+                cursor = result["nextCursor"] ?? new JSONValue.Null(); // :381
+                if (cursor.IsNull) break; // :382
+            }
+            return new ValueList<ModelOption>(models); // :384
+        }
+        finally
+        {
+            connection.Close(); // :362
+        }
+    }
 
-    // :388-437
-    public static Task<PlanLimits?> ReadPlanLimits(SwiftURL executable, IReadOnlyDictionary<string, string> environment) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/CodexSession.swift:388");
+    // :493-500. PR-PROVCLI-098.
+    private static string? FastTier(IReadOnlyList<JSONValue> tiers)
+    {
+        foreach (var tier in tiers) // :495 lazy compactMap.first
+        {
+            if (tier["id"]?.JSONValueString is not { } id) continue; // :496
+            var label = SwiftString.Lowercased($"{id} {tier["name"]?.JSONValueString ?? ""}"); // :497
+            if (label.Contains("fast", StringComparison.Ordinal) || label.Contains("priority", StringComparison.Ordinal)) return id; // :498
+        }
+        return null; // :499
+    }
 
-    // :476-491
-    public static Task<PlanLimits.ResetOutcome> ConsumeResetCredit(SwiftURL executable, IReadOnlyDictionary<string, string> environment, string? creditID) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/CodexSession.swift:476");
+    // :388-437. PR-PROVCLI-099, 101, 102, 103.
+    public static async Task<PlanLimits?> ReadPlanLimits(SwiftURL executable, IReadOnlyDictionary<string, string> environment)
+    {
+        var connection = await Connect(executable, DirectoryFileUrl(TemporaryDirectory), environment, _ => { }); // :389-394
+        try
+        {
+            JSONValue result; // :396
+            try
+            {
+                result = await connection.Request("account/rateLimits/read"); // :398
+            }
+            catch (Exception error) when (SwiftTry.IsThrownError(error)) // :399
+            {
+                return new PlanLimits { PlanName = null, Windows = ValueList<PlanLimits.Window>.Empty, Problem = PlainProblem(error) }; // :400-404
+            }
+
+            var snapshots = new List<JSONValue>(); // :406
+            if (result["rateLimitsByLimitId"]?.JSONValueObject is { Count: > 0 } byID) // :407
+            {
+                foreach (var key in byID.Keys.OrderBy(k => k, SwiftStringComparer.Instance)) // :408 (R-COLL-1)
+                {
+                    if (byID.TryGetValue(key, out var snapshot)) snapshots.Add(snapshot);
+                }
+            }
+            else if (result["rateLimits"] is { IsNull: false } single) // :409-410
+            {
+                snapshots.Add(single);
+            }
+
+            string? plan = null; // :412
+            var windows = new List<PlanLimits.Window>(); // :413
+            foreach (var snapshot in snapshots) // :414
+            {
+                plan ??= snapshot["planType"]?.JSONValueString; // :415
+                var name = snapshots.Count > 1 ? snapshot["limitName"]?.JSONValueString : null; // :416
+                foreach (var key in new[] { "primary", "secondary" }) // :417
+                {
+                    if (snapshot[key] is not { } window || window["usedPercent"]?.JSONValueDouble is not { } percent) continue; // :418
+                    var title = PlanLimitsReader.WindowTitle(window["windowDurationMins"]?.JSONValueInt); // :419
+                    if (name is { } limitName) title += " " + Dot + " " + limitName; // :420
+                    windows.Add(new PlanLimits.Window
+                    {
+                        Id = $"{snapshot["limitId"]?.JSONValueString ?? "codex"}-{key}", // :422
+                        Title = title,                                                    // :423
+                        Percent = percent,                                                // :424
+                        ResetsAt = window["resetsAt"]?.JSONValueDouble is { } resets ? SwiftDate.From1970Seconds(resets) : null, // :425
+                    });
+                }
+            }
+
+            if (windows.Count == 0) // :429
+            {
+                return new PlanLimits
+                {
+                    PlanName = PlanLimitsReader.CodexPlanName(plan),                          // :431
+                    Windows = ValueList<PlanLimits.Window>.Empty,                              // :432
+                    Problem = "Codex reported no usage windows for this account.",             // :433
+                };
+            }
+            return new PlanLimits
+            {
+                PlanName = PlanLimitsReader.CodexPlanName(plan),                                                          // :436
+                Windows = new ValueList<PlanLimits.Window>(windows),
+                PlanLimitsResetCredits = ParseResetCredits(result["rateLimitResetCredits"] ?? result["rate_limit_reset_credits"]), // :436
+            };
+        }
+        finally
+        {
+            connection.Close(); // :395
+        }
+    }
+
+    // :439-445. PR-PROVCLI-100.
+    private static string PlainProblem(Exception error)
+    {
+        var text = TextCleanup.SingleLine(DescribeError(error), limit: 300); // :440
+        if (text.Contains("token_expired", StringComparison.Ordinal) || text.Contains("401", StringComparison.Ordinal)) // :441
+        {
+            return "Codex's stored login has expired. Run `codex login` in a terminal, then check again."; // :442
+        }
+        return text.Length == 0 ? "Codex could not be asked for its usage." : text; // :443-444
+    }
+
+    // ENGINEERING DECISION: `String(describing: error)` for JSONRPC.swift's RPCError (a plain LocalizedError
+    // struct with no CustomStringConvertible, JSONRPC.swift:31-36) is Swift's default struct-mirror dump. Every
+    // throw reachable at the ReadPlanLimits call site (JSONRPC.swift:72, :131, :139) is an RPCError; a scripted
+    // or real "error" reply never carries a "data" field, so data is always nil in practice.
+    private static string DescribeError(Exception error) => error is RPCError rpc
+        ? $"RPCError(code: {rpc.Code}, message: \"{rpc.Message}\", data: {(rpc.Data is null ? "nil" : rpc.Data.CompactString)})"
+        : error.ToString();
+
+    // :447-462. PR-PROVCLI-104.
+    private static PlanLimits.ResetCredits? ParseResetCredits(JSONValue? raw)
+    {
+        if (raw is null) return null; // :449
+        var count = raw["availableCount"]?.JSONValueInt ?? raw["available_count"]?.JSONValueInt; // :449
+        if (count is not { } value) return null;
+        var credits = new List<PlanLimits.ResetCredit>();
+        foreach (var credit in raw["credits"]?.JSONValueArray ?? []) // :450
+        {
+            if (credit["id"]?.JSONValueString is not { Length: > 0 } id) continue; // :451
+            var status = credit["status"]?.JSONValueString; // :452
+            if (status is not null && status != "available" && status != "unknown") continue; // :453
+            credits.Add(new PlanLimits.ResetCredit
+            {
+                Id = id,                                                                       // :455
+                Title = credit["title"]?.JSONValueString,                                       // :456
+                Detail = credit["description"]?.JSONValueString,                                // :457
+                ExpiresAt = ResetDate(credit["expiresAt"] ?? credit["expires_at"]),              // :458
+            });
+        }
+        return new PlanLimits.ResetCredits { AvailableCount = Math.Max(0L, value), Credits = new ValueList<PlanLimits.ResetCredit>(credits) }; // :461
+    }
+
+    // :464-473. PR-PROVCLI-105.
+    private static DateTimeOffset? ResetDate(JSONValue? value)
+    {
+        if (value is null) return null; // :466
+        var number = value.JSONValueDouble ?? (value.JSONValueString is { } text1 ? SwiftNumber.ParseDouble(text1) : null); // :467
+        if (number is { } n)
+        {
+            if (!(n > 0)) return null; // :468
+            return SwiftDate.From1970Seconds(n > 10_000_000_000 ? n / 1_000 : n); // :469
+        }
+        if (value.JSONValueString is not { } text) return null; // :471
+        return ISO8601.Date(text); // :472
+    }
+
+    // :476-491. PR-PROVCLI-106.
+    public static async Task<PlanLimits.ResetOutcome> ConsumeResetCredit(SwiftURL executable, IReadOnlyDictionary<string, string> environment, string? creditID)
+    {
+        var connection = await Connect(executable, DirectoryFileUrl(TemporaryDirectory), environment, _ => { }); // :477-482
+        try
+        {
+            var parameters = new Dictionary<string, JSONValue>(StringComparer.Ordinal)
+            {
+                ["idempotencyKey"] = SwiftString.Lowercased(SwiftUUID.UuidString(Guid.NewGuid())), // :484
+            };
+            if (creditID is { } id) parameters["creditId"] = id; // :485
+            var result = await connection.Request("account/rateLimitResetCredit/consume", new JSONValue.Object(new ValueMap<string, JSONValue>(parameters))); // :486
+            if (result["outcome"]?.JSONValueString is not { } outcomeText || SwiftEnum<PlanLimits.ResetOutcome>.FromRawValue(outcomeText) is not { } outcome) // :487
+            {
+                throw new ResetCreditError(new ResetCreditError.Case.UnknownOutcome()); // :488
+            }
+            return outcome; // :490
+        }
+        finally
+        {
+            connection.Close(); // :483
+        }
+    }
+
+    // ENGINEERING DECISION: SwiftURL.Path's file:// branch (FileSystemPath, SwiftURL.cs:154-155) reproduces
+    // macOS's POSIX url.path unconditionally, which corrupts a Windows drive-letter path (observed: "C:\Users\x"
+    // -> "/C:/Users/x", which CreateProcessW's lpCurrentDirectory then rejects). The same shared, unfixed gap
+    // sits behind ACPSession.cs's DirectoryFileUrl and Library.cs's Url, both of which build a "file://" URL the
+    // same way; Marrow.Core/Port/SwiftURL.cs is not this unit's file to change. A non-"file" scheme sidesteps
+    // the corrupting branch (SwiftURL.Path's non-file branch, SwiftURL.cs:126-128, just percent-decodes the
+    // path component with no POSIX-root handling) - the same technique this file's own tests already use via
+    // CodexSessionTests.FileUrl for every fixture path in this unit. Connect() below calls directory.Path to
+    // build StdioProcess's working directory, so this needs a real, round-tripping Windows path.
+    private static SwiftURL DirectoryFileUrl(string path)
+    {
+        var normalized = path.Replace('\\', '/');
+        var builder = new System.Text.StringBuilder();
+        foreach (var b in System.Text.Encoding.UTF8.GetBytes(normalized))
+        {
+            var c = (char)b;
+            if (b < 0x80 && (char.IsAsciiLetterOrDigit(c) || "-._~/:".IndexOf(c, StringComparison.Ordinal) >= 0)) builder.Append(c);
+            else builder.Append('%').Append(b.ToString("X2", System.Globalization.CultureInfo.InvariantCulture));
+        }
+        return SwiftURL.Create("marrow-directory-path:" + builder) ?? throw SwiftTraps.Fatal("Invalid temporary directory path.");
+    }
+
+    // FileManager.default.temporaryDirectory (:358, :391, :479): the Windows user temporary directory, the same
+    // mapping PlanLimits.cs's TemporaryDirectory gives it (R-TEST-9: MARROW_PORT_DATA_DIR first).
+    private static string TemporaryDirectory =>
+        Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR") ?? System.IO.Path.GetTempPath();
 
     // :502-528
     private static async Task<JSONRPCConnection> Connect(
@@ -542,9 +931,275 @@ public sealed class CodexSession : ProviderSession
         }
     }
 
-    // :532-546. Later part.
-    private void HandleNotification(string method, JSONValue parameters) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/CodexSession.swift:532");
+    // :532-659. PR-PROVCLI-107, 108, 109, 110, 111, 112. itemStarted (:703-725) and itemCompleted (:727-749)
+    // belong to a later part of this unit and stay stubbed below; nothing this part's own tests send an
+    // "item/started" or "item/completed" notification, so the switch reaches those cases only in a later part.
+    private void HandleNotification(string method, JSONValue parameters)
+    {
+        if (method == "thread/started") // :533-536
+        {
+            HeadStarted(parameters["thread"] ?? new JSONValue.Null());
+            return;
+        }
+
+        Target target = new Target.Lead(); // :538
+        if (parameters["threadId"]?.JSONValueString is { } eventThread && threadID is { } currentThreadID && !SwiftString.Equal(eventThread, currentThreadID)) // :539
+        {
+            if (!headThreads.Contains(eventThread)) return; // :540
+            target = new Target.Head(eventThread); // :541
+        }
+
+        void Sink(ProviderEvent e) // :543-546
+        {
+            switch (target)
+            {
+                case Target.Lead: LeadSink(e); break;
+                case Target.Head(var headID): OnEvent?.Invoke(new ProviderEvent.AgentEvent(headID, e)); break;
+            }
+        }
+
+        switch (method)
+        {
+            case "turn/started": // :548-556
+            {
+                var id = parameters["turn"]?["id"]?.JSONValueString;
+                switch (target)
+                {
+                    case Target.Lead:
+                        turnID = id; // :552
+                        break;
+                    case Target.Head(var head):
+                        if (id is null) headTurns.Remove(head); else headTurns[head] = id; // :554
+                        break;
+                }
+                Sink(new ProviderEvent.TurnStarted(id)); // :556
+                break;
+            }
+            case "item/started": // :557-558
+                if (parameters["item"] is { } startedItem) ItemStarted(startedItem, target, Sink);
+                break;
+            case "item/completed": // :559-560
+                if (parameters["item"] is { } completedItem) ItemCompleted(completedItem, target, Sink);
+                break;
+            case "item/agentMessage/delta": // :561-564
+                if (parameters["itemId"]?.JSONValueString is { } msgID && parameters["delta"]?.JSONValueString is { } msgDelta)
+                {
+                    Sink(new ProviderEvent.MessageDelta(msgID, msgDelta));
+                }
+                break;
+            case "item/reasoning/summaryTextDelta":
+            case "item/reasoning/textDelta": // :565-568
+                if (parameters["itemId"]?.JSONValueString is { } reasoningID && parameters["delta"]?.JSONValueString is { } reasoningDelta)
+                {
+                    Sink(new ProviderEvent.ReasoningDelta(reasoningID, reasoningDelta));
+                }
+                break;
+            case "item/reasoning/summaryPartAdded": // :569-572
+                if (parameters["itemId"]?.JSONValueString is { } partID && parameters["summaryIndex"]?.JSONValueInt is { } index && index > 0)
+                {
+                    Sink(new ProviderEvent.ReasoningDelta(partID, "\n\n"));
+                }
+                break;
+            case "item/commandExecution/outputDelta": // :573-576
+                if (parameters["itemId"]?.JSONValueString is { } outID && parameters["delta"]?.JSONValueString is { } outDelta)
+                {
+                    Sink(new ProviderEvent.ToolOutput(outID, outDelta));
+                }
+                break;
+            case "item/plan/delta": // :577-580
+                if (parameters["itemId"]?.JSONValueString is { } planID && parameters["delta"]?.JSONValueString is { } planDelta)
+                {
+                    Sink(new ProviderEvent.PlanDelta(planID, planDelta));
+                }
+                break;
+            case "turn/plan/updated": // :581-591. PR-PROVCLI-109.
+            {
+                var steps = new List<TodoStep>();
+                foreach (var step in parameters["plan"]?.JSONValueArray ?? [])
+                {
+                    if (step["step"]?.JSONValueString is not { } text) continue; // :583
+                    var status = step["status"]?.JSONValueString switch // :585-588
+                    {
+                        "completed" => TodoStep.Status.Done,
+                        "inProgress" => TodoStep.Status.Active,
+                        _ => TodoStep.Status.Pending,
+                    };
+                    steps.Add(new TodoStep { Text = text, TodoStepStatus = status }); // :589
+                }
+                Sink(new ProviderEvent.Todos(new ValueList<TodoStep>(steps))); // :591
+                break;
+            }
+            case "turn/diff/updated": // :592-593
+                if (parameters["diff"]?.JSONValueString is { } diff) Sink(new ProviderEvent.Diff(diff));
+                break;
+            case "thread/tokenUsage/updated": // :594-626. PR-PROVCLI-110, 111.
+                HandleTokenUsageUpdated(parameters, target);
+                break;
+            case "error": // :627-631. PR-PROVCLI-112.
+                if (target is Target.Lead && parameters["willRetry"]?.JSONValueBool == true)
+                {
+                    var message = ErrorMessage(parameters["error"]); // :629
+                    OnEvent?.Invoke(new ProviderEvent.Notice(new Notice
+                    {
+                        NoticeLevel = Notice.Level.Warning,
+                        Message = message + " Retrying.", // :630
+                    }));
+                }
+                break;
+            case "turn/completed": // :632-650
+                HandleTurnCompleted(parameters, target);
+                break;
+            case "serverRequest/resolved": // :651-654
+                if (parameters["requestId"] is { } raw && RPCID.Create(raw) is { } resolvedID && pendingRequests.Remove(resolvedID.Key))
+                {
+                    OnEvent?.Invoke(new ProviderEvent.RequestResolved(resolvedID.Key));
+                }
+                break;
+            case "thread/compacted": // :655-656
+                Sink(new ProviderEvent.Notice(new Notice { NoticeLevel = Notice.Level.Info, Message = "Context compacted." }));
+                break;
+            default: // :657-658
+                break;
+        }
+    }
+
+    // :594-625. PR-PROVCLI-110, 111.
+    private void HandleTokenUsageUpdated(JSONValue parameters, Target target)
+    {
+        if (parameters["tokenUsage"] is not { } usage || usage["last"] is not { } last) return; // :595
+        var used = last["totalTokens"]?.JSONValueInt ?? 0; // :596
+        switch (target)
+        {
+            case Target.Lead:
+                OnEvent?.Invoke(new ProviderEvent.Usage(new ContextUsage { UsedTokens = used, WindowTokens = usage["modelContextWindow"]?.JSONValueInt })); // :599
+                if (usage["total"]?["totalTokens"]?.JSONValueInt is { } total && total > 0) // :607
+                {
+                    var (next, spend) = spendTracker.Spend(total, Math.Max(0, total - used)); // :608
+                    spendTracker = next;
+                    RecordCodexSpend(spend, threadID, activeModel); // :609
+                }
+                else
+                {
+                    RecordCodexSpend(used, threadID, activeModel); // :611
+                }
+                break;
+            case Target.Head(var head):
+                var headTotal = usage["total"]?["totalTokens"]?.JSONValueInt ?? 0; // :615
+                var headModel = headModels.GetValueOrDefault(head); // :616
+                if (headTotal > 0)
+                {
+                    var tracker = headSpend.TryGetValue(head, out var existing) ? existing : new TokenSpendTracker(); // :618
+                    var (next, spend) = tracker.Spend(headTotal, Math.Max(0, headTotal - used)); // :619
+                    headSpend[head] = next; // :620
+                    RecordCodexSpend(spend, head, headModel, head); // :621
+                }
+                else
+                {
+                    RecordCodexSpend(used, head, headModel, head); // :623
+                }
+                OnEvent?.Invoke(new ProviderEvent.AgentProgress(head, null, null, headTotal > 0 ? headTotal : used, null)); // :625
+                break;
+        }
+    }
+
+    // :668-674
+    private void RecordCodexSpend(long spend, string? rolloutID, string? model, string? agentID = null)
+    {
+        if (spend <= 0) return; // :669
+        if (rolloutID is { Length: > 0 }) // :670
+        {
+            TokenLedger.Shared.Current.RecordCodexSpend(spend, rolloutID); // :671
+        }
+        OnEvent?.Invoke(new ProviderEvent.TokenSpend(new TokenSpend(ProviderKind.Codex, spend, model: model, agentID: agentID))); // :673
+    }
+
+    // :632-650
+    private void HandleTurnCompleted(JSONValue parameters, Target target)
+    {
+        var turn = parameters["turn"]; // :633
+        var status = turn?["status"]?.JSONValueString switch // :634-638
+        {
+            "interrupted" => TurnStatus.Interrupted,
+            "failed" => TurnStatus.Failed,
+            _ => TurnStatus.Completed,
+        };
+        var error = turn?["error"] is { IsNull: false } errorValue ? ErrorMessage(errorValue) : null; // :639
+        switch (target)
+        {
+            case Target.Lead:
+                turnID = null; // :642
+                if (status == TurnStatus.Failed && error is { } errorText && UsageLimitSignal.Matches(errorText)) // :643
+                {
+                    OnEvent?.Invoke(new ProviderEvent.UsageLimit(UsageLimitSignal.ResetTime(errorText))); // :644
+                }
+                OnEvent?.Invoke(new ProviderEvent.TurnCompleted(status, error)); // :646
+                break;
+            case Target.Head(var head):
+                headTurns.Remove(head); // :648
+                OnEvent?.Invoke(new ProviderEvent.AgentFinished(head, status, error)); // :649
+                break;
+        }
+    }
+
+    // :676-701. Needed by handleNotification's thread/started routing (PR-PROVCLI-107).
+    private void HeadStarted(JSONValue thread)
+    {
+        if (thread["id"]?.JSONValueString is not { } id || threadID is not { } currentThreadID || headThreads.Contains(id)) return; // :678
+        var parent = thread["parentThreadId"]?.JSONValueString;
+        if (parent is null || !SwiftString.Equal(parent, currentThreadID)) // :679
+        {
+            var nickname = thread["agentNickname"]?.JSONValueString; // :684
+            var role = thread["agentRole"]?.JSONValueString;
+            if (nickname is null && role is null) return; // :685
+            Log.Error($"thread/started {id} names parent {parent ?? "none"}, not this lead {currentThreadID}; taken as a head by its agent nickname"); // :686
+            headThreads.Add(id); // :687
+            if (thread["model"]?.JSONValueString is { } headModel1) headModels[id] = headModel1; // :688
+            var preview1 = thread["preview"]?.JSONValueString?.Trimmed() ?? ""; // :689
+            var description1 = DescribeHead(preview1, nickname, role); // :690
+            OnEvent?.Invoke(new ProviderEvent.AgentStarted(new AgentSpawn
+            {
+                Id = id,
+                Description = description1,
+                Prompt = preview1.Length > 0 ? preview1 : null,
+                Model = thread["model"]?.JSONValueString,
+            })); // :691
+            return;
+        }
+
+        headThreads.Add(id); // :694
+        if (thread["model"]?.JSONValueString is { } headModel2) headModels[id] = headModel2; // :695
+        var nickname2 = thread["agentNickname"]?.JSONValueString; // :696
+        var role2 = thread["agentRole"]?.JSONValueString; // :697
+        var preview2 = thread["preview"]?.JSONValueString?.Trimmed() ?? ""; // :698
+        var description2 = DescribeHead(preview2, nickname2, role2); // :699
+        OnEvent?.Invoke(new ProviderEvent.AgentStarted(new AgentSpawn
+        {
+            Id = id,
+            Description = description2,
+            Prompt = preview2.Length > 0 ? preview2 : null,
+            Model = thread["model"]?.JSONValueString,
+        })); // :700
+    }
+
+    // Shared by both HeadStarted branches (:690, :699): `!preview.isEmpty ? TextCleanup.singleLine(preview, limit:
+    // 80) : ([nickname, role].compactMap { $0 }.joined(separator: " · ").nilIfEmpty ?? "Subagent")`.
+    private static string DescribeHead(string preview, string? nickname, string? role)
+    {
+        if (preview.Length > 0) return TextCleanup.SingleLine(preview, 80);
+        var parts = new List<string>();
+        if (nickname is not null) parts.Add(nickname);
+        if (role is not null) parts.Add(role);
+        var joined = string.Join(" " + Dot + " ", parts);
+        return joined.Length > 0 ? joined : "Subagent";
+    }
+
+    // :703-725. Later part of this unit; not reached by any notification this part's own tests send.
+    private void ItemStarted(JSONValue item, Target target, Action<ProviderEvent> sink) =>
+        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/CodexSession.swift:703");
+
+    // :727-749. Later part of this unit; not reached by any notification this part's own tests send.
+    private void ItemCompleted(JSONValue item, Target target, Action<ProviderEvent> sink) =>
+        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/CodexSession.swift:727");
 
     // :909-988. Later part.
     private void HandleRequest(RPCID id, string method, JSONValue parameters) =>
@@ -568,8 +1223,17 @@ public sealed class CodexSession : ProviderSession
     }
 
     // :910-918
-    public static string ErrorMessage(JSONValue? error) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/CodexSession.swift:910");
+    public static string ErrorMessage(JSONValue? error)
+    {
+        if (error is null) return "Codex reported an error."; // :911
+        var raw = error["message"]?.JSONValueString ?? error.DisplayText; // :912
+        if (JSONValue.Parse(raw) is { } nested &&
+            (nested["error"]?["message"]?.JSONValueString ?? nested["message"]?.JSONValueString) is { } message) // :913-914
+        {
+            return message; // :915
+        }
+        return raw; // :917
+    }
 
     // :1040-1051
     private static PolicySettings PolicySettingsFor(RuntimeMode mode) => mode switch
