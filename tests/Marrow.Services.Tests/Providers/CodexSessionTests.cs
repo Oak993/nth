@@ -6,6 +6,7 @@ using Marrow.Core.Support;
 using Marrow.Services.MCP;
 using Marrow.Services.Models;
 using Marrow.Services.Providers;
+using Marrow.Services.Store;
 using Marrow.Services.Tests.Fixtures;
 using Marrow.Testing;
 
@@ -81,6 +82,22 @@ public sealed class CodexSessionTests
 
     private static void Run(TestRuntime runtime, Task task) => Pump(runtime, task);
 
+    /// <summary>Pumps a static connect-and-request task (its own Connect watchdog needs a bound MainActor) to
+    /// completion and returns its result.</summary>
+    private static T RunAsync<T>(TestRuntime runtime, Task<T> task)
+    {
+        Pump(runtime, task);
+        return task.GetAwaiter().GetResult();
+    }
+
+    /// <summary>As <see cref="RunAsync{T}"/>, but for a task that is expected to throw: pumps it and returns it
+    /// for <c>Assert.ThrowsAsync</c> to await.</summary>
+    private static Task<T> PumpFaulted<T>(TestRuntime runtime, Task<T> task)
+    {
+        Pump(runtime, task);
+        return task;
+    }
+
     private static T Resolved<T>(Task<T> task)
     {
         Assert.True(task.IsCompletedSuccessfully, "the task did not resolve");
@@ -89,6 +106,48 @@ public sealed class CodexSessionTests
 
     private static T Private<T>(CodexSession session, string member) =>
         (T)typeof(CodexSession).GetProperty(member, BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(session)!;
+
+    // ---- part 2 helpers (PR-PROVCLI-089 to 112) ----
+
+    private static object InvokePrivate(CodexSession session, string method, params object?[] args) =>
+        typeof(CodexSession).GetMethod(method, BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(session, args)!;
+
+    private static T PrivateField<T>(CodexSession session, string name) =>
+        (T)typeof(CodexSession).GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(session)!;
+
+    private static Type PendingRequestCase(string nested) =>
+        typeof(CodexSession).GetNestedType("PendingRequest", BindingFlags.NonPublic)!
+            .GetNestedType(nested, BindingFlags.Public | BindingFlags.NonPublic)!;
+
+    private static void SeedDecision(CodexSession session, string requestID, RPCID id, IReadOnlyDictionary<string, JSONValue> payloads)
+    {
+        var pending = Activator.CreateInstance(PendingRequestCase("Decision"), id, new ValueMap<string, JSONValue>(payloads))!;
+        AddPending(session, requestID, pending);
+    }
+
+    private static void SeedPermissions(CodexSession session, string requestID, RPCID id, JSONValue requested)
+    {
+        var pending = Activator.CreateInstance(PendingRequestCase("Permissions"), id, requested)!;
+        AddPending(session, requestID, pending);
+    }
+
+    private static void SeedQuestion(CodexSession session, string requestID, RPCID id)
+    {
+        var pending = Activator.CreateInstance(PendingRequestCase("Question"), id)!;
+        AddPending(session, requestID, pending);
+    }
+
+    private static void AddPending(CodexSession session, string requestID, object pending)
+    {
+        var dict = typeof(CodexSession).GetField("pendingRequests", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(session)!;
+        dict.GetType().GetMethod("Add", BindingFlags.Public | BindingFlags.Instance)!.Invoke(dict, [requestID, pending]);
+    }
+
+    private static bool HasPending(CodexSession session, string requestID)
+    {
+        var dict = (System.Collections.IDictionary)typeof(CodexSession).GetField("pendingRequests", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(session)!;
+        return dict.Contains(requestID);
+    }
 
     // ---- PR-PROVCLI-065 ----
 
@@ -835,5 +894,929 @@ public sealed class CodexSessionTests
         var before = script.MessageCount(0);
         Run(runtime, session.Interrupt());
         Assert.Equal(before, script.MessageCount(0));
+    }
+
+    // ==== Part 2 of 4 (PR-PROVCLI-089 to 112) ====
+
+    private static IReadOnlyDictionary<string, string> Env(CodexScript script) =>
+        new Dictionary<string, string> { [script.EnvironmentEntry.Key] = script.EnvironmentEntry.Value };
+
+    // ---- PR-PROVCLI-089 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-089")] // CodexSession.swift:211-213, 268-301
+    public async Task Rollback_forks_history_on_the_paginated_rollback_error_archives_the_original_thread_and_updates_state()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("fork-success");
+        var session = StartedSession(runtime, script); // thread/start -> "t1", model "gpt-5.1-codex"
+        script.SetResponse("thread/turns/list", "{\"data\":[{\"id\":\"target\"},{\"id\":\"before\"}]}", occurrence: 0);
+        script.SetError("thread/rollback", "codex: paginated threads do not support thread/rollback here");
+        script.SetResponse("thread/fork", "{\"thread\":{\"id\":\"forked-1\"},\"model\":\"gpt-6-codex\"}");
+        script.SetResponse("thread/turns/list", "{\"data\":[{\"id\":\"before\"}]}", occurrence: 1);
+        script.SetResponse("thread/archive", "{}");
+
+        var task = session.Rollback("target");
+        Run(runtime, task);
+        Assert.Equal("forked-1", Resolved(task));
+        Assert.Equal("forked-1", PrivateField<string?>(session, "threadID"));
+        Assert.Null(PrivateField<string?>(session, "turnID"));
+        Assert.Equal("gpt-6-codex", PrivateField<string?>(session, "activeModel"));
+
+        var fork = JSONValue.Parse(System.Text.Encoding.UTF8.GetBytes(script.CapturedLine(0, 5)))!;
+        Assert.Equal("thread/fork", fork["method"]!.JSONValueString);
+        Assert.Equal("t1", fork["params"]!["threadId"]!.JSONValueString);
+        Assert.Equal("before", fork["params"]!["lastTurnId"]!.JSONValueString);
+        Assert.True(fork["params"]!["excludeTurns"]!.JSONValueBool);
+
+        var archive = JSONValue.Parse(System.Text.Encoding.UTF8.GetBytes(script.CapturedLine(0, 7)))!;
+        Assert.Equal("thread/archive", archive["method"]!.JSONValueString);
+        Assert.Equal("t1", archive["params"]!["threadId"]!.JSONValueString); // the ORIGINAL thread, not the fork
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-089")] // CodexSession.swift:269-273
+    public void ForkHistory_with_no_previousID_archives_the_original_thread_and_clears_state()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("fork-no-previous");
+        var session = StartedSession(runtime, script);
+        script.SetResponse("thread/turns/list", "{\"data\":[{\"id\":\"target\"}]}"); // found immediately, no cursor: previousID stays null
+        script.SetError("thread/rollback", "paginated threads do not support thread/rollback");
+        script.SetResponse("thread/archive", "{}");
+
+        var task = session.Rollback("target");
+        Run(runtime, task);
+        Assert.Null(Resolved(task));
+        Assert.Null(PrivateField<string?>(session, "threadID"));
+        Assert.Null(PrivateField<string?>(session, "turnID"));
+
+        var archive = JSONValue.Parse(System.Text.Encoding.UTF8.GetBytes(script.CapturedLine(0, 5)))!;
+        Assert.Equal("thread/archive", archive["method"]!.JSONValueString);
+        Assert.Equal("t1", archive["params"]!["threadId"]!.JSONValueString);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-089")] // CodexSession.swift:280-282
+    public async Task ForkHistory_throws_the_exact_message_when_the_forked_thread_id_matches_the_original()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("fork-same-id");
+        var session = StartedSession(runtime, script);
+        script.SetResponse("thread/turns/list", "{\"data\":[{\"id\":\"target\"},{\"id\":\"before\"}]}");
+        script.SetError("thread/rollback", "paginated threads do not support thread/rollback");
+        script.SetResponse("thread/fork", "{\"thread\":{\"id\":\"t1\"}}"); // same as the original
+
+        var task = session.Rollback("target");
+        Run(runtime, task);
+        var error = await Assert.ThrowsAsync<ProviderError>(() => task);
+        Assert.Equal("Codex did not create a conversation at the revert point.", error.ErrorDescription);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-089")] // CodexSession.swift:286-296
+    public async Task ForkHistory_archives_the_new_thread_and_rethrows_when_the_verification_page_does_not_confirm_it()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("fork-unconfirmed");
+        var session = StartedSession(runtime, script);
+        script.SetResponse("thread/turns/list", "{\"data\":[{\"id\":\"target\"},{\"id\":\"before\"}]}", occurrence: 0);
+        script.SetError("thread/rollback", "paginated threads do not support thread/rollback");
+        script.SetResponse("thread/fork", "{\"thread\":{\"id\":\"forked-2\"}}");
+        script.SetResponse("thread/turns/list", "{\"data\":[{\"id\":\"wrong\"}]}", occurrence: 1); // does not match "before"
+        script.SetResponse("thread/archive", "{}");
+
+        var task = session.Rollback("target");
+        Run(runtime, task);
+        var error = await Assert.ThrowsAsync<ProviderError>(() => task);
+        Assert.Equal("Codex did not confirm the reverted conversation history.", error.ErrorDescription);
+
+        var archive = JSONValue.Parse(System.Text.Encoding.UTF8.GetBytes(script.CapturedLine(0, 7)))!;
+        Assert.Equal("thread/archive", archive["method"]!.JSONValueString);
+        Assert.Equal("forked-2", archive["params"]!["threadId"]!.JSONValueString); // the NEW thread, not the original
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-089")] // CodexSession.swift:207-213
+    public async Task Rollback_does_not_fork_on_a_different_rollback_error()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("fork-not-triggered");
+        var session = StartedSession(runtime, script);
+        script.SetResponse("thread/turns/list", "{\"data\":[{\"id\":\"target\"},{\"id\":\"before\"}]}");
+        script.SetError("thread/rollback", "unrelated failure");
+
+        var task = session.Rollback("target");
+        Run(runtime, task);
+        var error = await Assert.ThrowsAsync<RPCError>(() => task);
+        Assert.Equal("unrelated failure", error.Message);
+        Assert.Equal(5, script.MessageCount(0)); // initialize, initialized, thread/start, thread/turns/list, thread/rollback: no fork call
+    }
+
+    // ---- PR-PROVCLI-090, 091, 092 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-090")] // CodexSession.swift:306-307, 317
+    public void ResolveApproval_decision_echoes_the_servers_own_payload_for_the_chosen_option()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("resolve-decision");
+        var session = StartedSession(runtime, script);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+        SeedDecision(session, "req1", new RPCID.Int(7), new Dictionary<string, JSONValue>
+        {
+            ["accept"] = new JSONValue.String("accept-payload"),
+        });
+
+        session.ResolveApproval("req1", "accept");
+
+        var response = JSONValue.Parse(System.Text.Encoding.UTF8.GetBytes(script.CapturedLine(0, 3)))!;
+        Assert.Equal(7L, response["id"]!.JSONValueInt);
+        Assert.Equal("accept-payload", response["result"]!["decision"]!.JSONValueString);
+        var resolved = Assert.Single(events.OfType<ProviderEvent.RequestResolved>());
+        Assert.Equal("req1", resolved.Id);
+        Assert.False(HasPending(session, "req1"));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-090")] // CodexSession.swift:307
+    public void ResolveApproval_decision_falls_back_to_cancel_for_an_unknown_option_id()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("resolve-decision-unknown");
+        var session = StartedSession(runtime, script);
+        SeedDecision(session, "req1", new RPCID.Int(9), new Dictionary<string, JSONValue> { ["accept"] = new JSONValue.String("x") });
+
+        session.ResolveApproval("req1", "not-a-real-option");
+
+        var response = JSONValue.Parse(System.Text.Encoding.UTF8.GetBytes(script.CapturedLine(0, 3)))!;
+        Assert.Equal("cancel", response["result"]!["decision"]!.JSONValueString);
+    }
+
+    [Theory]
+    [InlineData("turn")]
+    [InlineData("session")]
+    [Trait("Req", "PR-PROVCLI-091")] // CodexSession.swift:309-310
+    public void ResolveApproval_permissions_echoes_the_requested_set_for_turn_or_session_scope(string optionID)
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("resolve-permissions-" + optionID);
+        var session = StartedSession(runtime, script);
+        var requested = new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>
+        {
+            ["fileSystem"] = new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue> { ["write"] = new JSONValue.Array(new ValueList<JSONValue>([new JSONValue.String("/a")])) })),
+        }));
+        SeedPermissions(session, "req1", new RPCID.Int(1), requested);
+
+        session.ResolveApproval("req1", optionID);
+
+        var response = JSONValue.Parse(System.Text.Encoding.UTF8.GetBytes(script.CapturedLine(0, 3)))!;
+        Assert.Equal(optionID, response["result"]!["scope"]!.JSONValueString);
+        Assert.Equal("/a", response["result"]!["permissions"]!["fileSystem"]!["write"]![0]!.JSONValueString);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-091")] // CodexSession.swift:312
+    public void ResolveApproval_permissions_declines_to_an_empty_object_with_turn_scope()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("resolve-permissions-decline");
+        var session = StartedSession(runtime, script);
+        var requested = new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue> { ["network"] = true }));
+        SeedPermissions(session, "req1", new RPCID.Int(2), requested);
+
+        session.ResolveApproval("req1", "decline");
+
+        var response = JSONValue.Parse(System.Text.Encoding.UTF8.GetBytes(script.CapturedLine(0, 3)))!;
+        Assert.Equal("turn", response["result"]!["scope"]!.JSONValueString);
+        Assert.Empty((System.Collections.IDictionary)response["result"]!["permissions"]!.JSONValueObject!);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-092")] // CodexSession.swift:314-316
+    public void ResolveApproval_question_answers_with_an_empty_answers_object()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("resolve-question");
+        var session = StartedSession(runtime, script);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+        SeedQuestion(session, "req1", new RPCID.Int(3));
+
+        session.ResolveApproval("req1", "whatever");
+
+        var response = JSONValue.Parse(System.Text.Encoding.UTF8.GetBytes(script.CapturedLine(0, 3)))!;
+        Assert.Empty((System.Collections.IDictionary)response["result"]!["answers"]!.JSONValueObject!);
+        Assert.Single(events.OfType<ProviderEvent.RequestResolved>());
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-090")] // CodexSession.swift:304
+    public void ResolveApproval_with_an_unknown_request_key_does_not_respond()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("resolve-unknown-key");
+        var session = StartedSession(runtime, script);
+        var before = script.MessageCount(0);
+        session.ResolveApproval("not-pending", "accept");
+        Assert.Equal(before, script.MessageCount(0));
+    }
+
+    // ---- PR-PROVCLI-093 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-093")] // CodexSession.swift:322-328
+    public void AnswerQuestion_nests_each_questions_answers_array_under_its_own_answers_object()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("answer-question");
+        var session = StartedSession(runtime, script);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+        SeedQuestion(session, "req1", new RPCID.Int(11));
+
+        session.AnswerQuestion("req1", new ValueMap<string, ValueList<string>>(new Dictionary<string, ValueList<string>>
+        {
+            ["q1"] = new ValueList<string>(["red", "blue"]),
+        }));
+
+        var response = JSONValue.Parse(System.Text.Encoding.UTF8.GetBytes(script.CapturedLine(0, 3)))!;
+        Assert.Equal(11L, response["id"]!.JSONValueInt);
+        var q1 = response["result"]!["answers"]!["q1"]!;
+        Assert.Equal("red", q1["answers"]![0]!.JSONValueString);
+        Assert.Equal("blue", q1["answers"]![1]!.JSONValueString);
+        Assert.Single(events.OfType<ProviderEvent.RequestResolved>());
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-093")] // CodexSession.swift:321
+    public void AnswerQuestion_silently_drops_a_non_question_pending_entry()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("answer-non-question");
+        var session = StartedSession(runtime, script);
+        SeedDecision(session, "req1", new RPCID.Int(1), new Dictionary<string, JSONValue>());
+        var before = script.MessageCount(0);
+
+        session.AnswerQuestion("req1", ValueMap<string, ValueList<string>>.Empty);
+
+        Assert.Equal(before, script.MessageCount(0)); // no response sent
+        Assert.False(HasPending(session, "req1")); // but it was removed
+    }
+
+    // ---- PR-PROVCLI-094 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-094")] // CodexSession.swift:330-333, 1036
+    public void Stop_marks_stopping_before_closing_and_suppresses_the_exited_event()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("stop");
+        var session = StartedSession(runtime, script);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+        var before = script.MessageCount(0);
+
+        session.Stop();
+        runtime.Loop.RunUntil(() => !session.IsRunning, TimeSpan.FromSeconds(5));
+
+        Assert.False(session.IsRunning);
+        Assert.Equal(before, script.MessageCount(0)); // no shutdown request sent, unlike Copilot
+        Assert.Empty(events.OfType<ProviderEvent.Exited>());
+    }
+
+    // ---- PR-PROVCLI-095 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-095")] // CodexSession.swift:336-340
+    public void StopAgent_interrupts_that_heads_own_thread_and_turn()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("stop-agent");
+        var session = StartedSession(runtime, script);
+        PrivateField<HashSet<string>>(session, "headThreads").Add("head-1");
+        PrivateField<Dictionary<string, string>>(session, "headTurns")["head-1"] = "turn-1";
+        script.SetResponse("turn/interrupt", "{}");
+
+        var task = session.StopAgent("head-1");
+        Run(runtime, task);
+        Assert.True(Resolved(task));
+
+        var request = JSONValue.Parse(System.Text.Encoding.UTF8.GetBytes(script.CapturedLine(0, 3)))!;
+        Assert.Equal("turn/interrupt", request["method"]!.JSONValueString);
+        Assert.Equal("head-1", request["params"]!["threadId"]!.JSONValueString);
+        Assert.Equal("turn-1", request["params"]!["turnId"]!.JSONValueString);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-095")] // CodexSession.swift:336
+    public void StopAgent_returns_false_for_an_unknown_head_or_a_head_with_no_running_turn()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("stop-agent-unknown");
+        var session = StartedSession(runtime, script);
+        Assert.False(Resolved(session.StopAgent("nope")));
+
+        PrivateField<HashSet<string>>(session, "headThreads").Add("head-2"); // known head, but no recorded turn
+        Assert.False(Resolved(session.StopAgent("head-2")));
+    }
+
+    // ---- PR-PROVCLI-096 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-096")] // CodexSession.swift:346-352
+    public void ListCommands_asks_skills_list_with_forceReload_and_maps_the_result()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = new CodexScript("list-commands");
+        script.SetResponse("initialize", "{}");
+        script.SetResponse("skills/list", "{\"data\":[{\"skills\":[{\"name\":\"plan\",\"path\":\"/skills/plan\",\"description\":\"Plan the work\"}]}]}");
+
+        var commands = RunAsync(runtime, CodexSession.ListCommands(FileUrl(script.ExecutablePath), FileUrl(Path.GetDirectoryName(script.ExecutablePath)!), Env(script)));
+
+        var command = Assert.Single(commands);
+        Assert.Equal("plan", command.Name);
+        Assert.Equal("Plan the work", command.Detail);
+        Assert.Equal("/skills/plan", command.SkillPath);
+
+        var request = JSONValue.Parse(System.Text.Encoding.UTF8.GetBytes(script.CapturedLine(0, 2)))!;
+        Assert.Equal("skills/list", request["method"]!.JSONValueString);
+        Assert.True(request["params"]!["forceReload"]!.JSONValueBool);
+        Assert.Single(request["params"]!["cwds"]!.JSONValueArray!);
+    }
+
+    // ---- PR-PROVCLI-097, 098 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-097")] // CodexSession.swift:363-383
+    public void ListModels_maps_fields_skips_hidden_entries_and_stops_when_nextCursor_is_null()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = new CodexScript("list-models");
+        script.SetResponse("initialize", "{}");
+        script.SetResponse("model/list",
+            "{\"data\":[" +
+            "{\"id\":\"m1\",\"displayName\":\"Model One\",\"description\":\"d1\",\"supportedReasoningEfforts\":[{\"reasoningEffort\":\"low\"},{\"reasoningEffort\":\"high\"}],\"defaultReasoningEffort\":\"low\",\"isDefault\":true,\"serviceTiers\":[{\"id\":\"tier-fast\",\"name\":\"Fast Lane\"}]}," +
+            "{\"id\":\"m2\",\"hidden\":true}" +
+            "],\"nextCursor\":null}");
+
+        var models = RunAsync(runtime, CodexSession.ListModels(FileUrl(script.ExecutablePath), Env(script)));
+
+        var model = Assert.Single(models);
+        Assert.Equal("m1", model.Id);
+        Assert.Equal("Model One", model.Name);
+        Assert.Equal("d1", model.Detail);
+        Assert.Equal(["low", "high"], model.Efforts);
+        Assert.Equal("low", model.DefaultEffort);
+        Assert.True(model.IsDefault);
+        Assert.Equal("tier-fast", model.FastTier);
+        Assert.Equal(3, script.MessageCount(0)); // initialize, initialized, one model/list: no second page
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-097")] // CodexSession.swift:365-383
+    public void ListModels_stops_after_ten_pages_even_when_nextCursor_keeps_paging()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = new CodexScript("list-models-paging");
+        script.SetResponse("initialize", "{}");
+        for (var i = 0; i < 10; i++)
+        {
+            script.SetResponse("model/list", "{\"data\":[],\"nextCursor\":\"c" + (i + 1) + "\"}", occurrence: i);
+        }
+
+        _ = RunAsync(runtime, CodexSession.ListModels(FileUrl(script.ExecutablePath), Env(script)));
+        Assert.Equal(12, script.MessageCount(0)); // initialize, initialized, exactly 10 model/list calls
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-098")] // CodexSession.swift:493-500
+    public void ListModels_fastTier_matches_case_insensitively_on_fast_or_priority_taking_the_first_match()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = new CodexScript("fast-tier");
+        script.SetResponse("initialize", "{}");
+        script.SetResponse("model/list",
+            "{\"data\":[{\"id\":\"m1\",\"serviceTiers\":[{\"id\":\"std\",\"name\":\"Standard\"},{\"id\":\"PRIORITY-tier\",\"name\":\"\"},{\"id\":\"z-fast\",\"name\":\"\"}]}," +
+            "{\"id\":\"m2\",\"serviceTiers\":[{\"id\":\"none\",\"name\":\"plain\"}]}]," +
+            "\"nextCursor\":null}");
+
+        var models = RunAsync(runtime, CodexSession.ListModels(FileUrl(script.ExecutablePath), Env(script)));
+        Assert.Equal("PRIORITY-tier", models[0].FastTier); // first match, case-insensitive on "priority"
+        Assert.Null(models[1].FastTier); // no tier id or name contains fast/priority
+    }
+
+    // ---- PR-PROVCLI-099, 100 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-099")] // CodexSession.swift:396-405
+    [Trait("Req", "PR-PROVCLI-100")] // CodexSession.swift:439-445
+    public void ReadPlanLimits_turns_a_thrown_read_into_a_problem_string_instead_of_throwing()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = new CodexScript("plan-limits-error");
+        script.SetResponse("initialize", "{}");
+        script.SetError("account/rateLimits/read", "boom");
+
+        var limits = RunAsync(runtime, CodexSession.ReadPlanLimits(FileUrl(script.ExecutablePath), Env(script)));
+        Assert.NotNull(limits);
+        Assert.Null(limits!.PlanName);
+        Assert.Empty(limits.Windows);
+        // JSONRPC.swift:31-36's RPCError is a plain LocalizedError struct with no CustomStringConvertible, so
+        // String(describing:) is Swift's default struct-mirror dump; the stand-in's scripted error always
+        // carries code -32000 and no "data" field (CodexStandIn.cs:114).
+        Assert.Equal("RPCError(code: -32000, message: \"boom\", data: nil)", limits.Problem);
+    }
+
+    [Theory]
+    [InlineData("invalid_grant: token_expired")]
+    [InlineData("HTTP 401 Unauthorized")]
+    [Trait("Req", "PR-PROVCLI-100")] // CodexSession.swift:441-442
+    public void ReadPlanLimits_rewrites_a_token_expired_or_401_failure_to_the_login_message(string failure)
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = new CodexScript("plan-limits-expired");
+        script.SetResponse("initialize", "{}");
+        script.SetError("account/rateLimits/read", failure);
+
+        var limits = RunAsync(runtime, CodexSession.ReadPlanLimits(FileUrl(script.ExecutablePath), Env(script)));
+        Assert.Equal(
+            "Codex's stored login has expired. Run `codex login` in a terminal, then check again.",
+            limits!.Problem);
+    }
+
+    // ---- PR-PROVCLI-101, 102, 103 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-101")] // CodexSession.swift:406-411
+    [Trait("Req", "PR-PROVCLI-102")] // CodexSession.swift:412-428
+    public void ReadPlanLimits_collects_snapshots_by_sorted_limit_id_and_builds_two_windows_each()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = new CodexScript("plan-limits-windows");
+        script.SetResponse("initialize", "{}");
+        script.SetResponse("account/rateLimits/read",
+            "{\"rateLimitsByLimitId\":{" +
+            "\"b-limit\":{\"planType\":\"pro\",\"limitId\":\"b-limit\",\"limitName\":\"Weekly\",\"primary\":{\"usedPercent\":40.0,\"windowDurationMins\":10080,\"resetsAt\":1700000000}}," +
+            "\"a-limit\":{\"planType\":\"pro\",\"limitId\":\"a-limit\",\"limitName\":\"5h\",\"primary\":{\"usedPercent\":10.0,\"windowDurationMins\":300},\"secondary\":{\"usedPercent\":5.0}}" +
+            "}}");
+
+        var limits = RunAsync(runtime, CodexSession.ReadPlanLimits(FileUrl(script.ExecutablePath), Env(script)));
+        Assert.NotNull(limits);
+        Assert.Equal(3, limits!.Windows.Count); // a-limit primary+secondary, b-limit primary
+        // "a-limit" sorts before "b-limit": its windows come first.
+        Assert.Equal("a-limit-primary", limits.Windows[0].Id);
+        Assert.Equal(PlanLimitsReader.WindowTitle(300) + " · 5h", limits.Windows[0].Title); // U+00B7 MIDDLE DOT
+        Assert.Equal(10.0, limits.Windows[0].Percent);
+        Assert.Equal("a-limit-secondary", limits.Windows[1].Id);
+        Assert.Equal(PlanLimitsReader.WindowTitle(null) + " · 5h", limits.Windows[1].Title);
+        Assert.Equal("b-limit-primary", limits.Windows[2].Id);
+        Assert.Equal(PlanLimitsReader.WindowTitle(10080) + " · Weekly", limits.Windows[2].Title);
+        Assert.Equal(SwiftDate.From1970Seconds(1700000000), limits.Windows[2].ResetsAt);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-101")] // CodexSession.swift:409-410
+    [Trait("Req", "PR-PROVCLI-102")] // CodexSession.swift:416 (single snapshot: no limitName suffix)
+    public void ReadPlanLimits_falls_back_to_the_single_rateLimits_snapshot_with_no_name_suffix()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = new CodexScript("plan-limits-single");
+        script.SetResponse("initialize", "{}");
+        script.SetResponse("account/rateLimits/read",
+            "{\"rateLimits\":{\"planType\":\"pro\",\"limitName\":\"ignored\",\"primary\":{\"usedPercent\":50.0}}}");
+
+        var limits = RunAsync(runtime, CodexSession.ReadPlanLimits(FileUrl(script.ExecutablePath), Env(script)));
+        var window = Assert.Single(limits!.Windows);
+        Assert.Equal(PlanLimitsReader.WindowTitle(null), window.Title); // no " · ignored" suffix: only one snapshot
+        Assert.Equal("codex-primary", window.Id); // no limitId in this snapshot: falls back to "codex"
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-103")] // CodexSession.swift:429-434
+    public void ReadPlanLimits_with_no_windows_returns_a_problem_string_not_null()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = new CodexScript("plan-limits-empty");
+        script.SetResponse("initialize", "{}");
+        script.SetResponse("account/rateLimits/read", "{\"rateLimits\":{\"planType\":\"pro\"}}"); // no primary/secondary usedPercent
+
+        var limits = RunAsync(runtime, CodexSession.ReadPlanLimits(FileUrl(script.ExecutablePath), Env(script)));
+        Assert.NotNull(limits);
+        Assert.Empty(limits!.Windows);
+        Assert.Equal("Codex reported no usage windows for this account.", limits.Problem);
+        Assert.Equal(PlanLimitsReader.CodexPlanName("pro"), limits.PlanName);
+    }
+
+    // ---- PR-PROVCLI-104, 105 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-104")] // CodexSession.swift:447-462
+    [Trait("Req", "PR-PROVCLI-105")] // CodexSession.swift:464-473
+    public void ReadPlanLimits_parses_reset_credits_clamping_negative_counts_and_dropping_bad_entries()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = new CodexScript("plan-limits-credits");
+        script.SetResponse("initialize", "{}");
+        script.SetResponse("account/rateLimits/read",
+            "{\"rateLimits\":{\"primary\":{\"usedPercent\":1.0}}," +
+            "\"rateLimitResetCredits\":{\"availableCount\":-2,\"credits\":[" +
+            "{\"id\":\"\",\"title\":\"empty-id-dropped\"}," +
+            "{\"id\":\"c1\",\"status\":\"redeemed\"}," + // status neither available nor unknown nor absent: dropped
+            "{\"id\":\"c2\",\"status\":\"available\",\"title\":\"Free reset\",\"description\":\"one time\",\"expiresAt\":1700003600}," +
+            "{\"id\":\"c3\",\"status\":\"unknown\",\"expiresAt\":1700003600000}," + // epoch ms (> 1e10)
+            "{\"id\":\"c4\",\"expiresAt\":\"2023-11-15T00:00:00Z\"}" + // missing status: kept; ISO 8601
+            "]}}");
+
+        var limits = RunAsync(runtime, CodexSession.ReadPlanLimits(FileUrl(script.ExecutablePath), Env(script)));
+        var credits = limits!.PlanLimitsResetCredits!;
+        Assert.Equal(0L, credits.AvailableCount); // -2 clamped to 0
+        Assert.Equal(["c2", "c3", "c4"], credits.Credits.Select(c => c.Id));
+        var c2 = credits.Credits[0];
+        Assert.Equal("Free reset", c2.Title);
+        Assert.Equal("one time", c2.Detail);
+        Assert.Equal(SwiftDate.From1970Seconds(1700003600), c2.ExpiresAt);
+        Assert.Equal(SwiftDate.From1970Seconds(1700003600), credits.Credits[1].ExpiresAt); // ms divided by 1000
+        Assert.Equal(ISO8601.Date("2023-11-15T00:00:00Z"), credits.Credits[2].ExpiresAt);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-104")] // CodexSession.swift:449
+    public void ReadPlanLimits_with_no_available_count_leaves_reset_credits_null()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = new CodexScript("plan-limits-no-count");
+        script.SetResponse("initialize", "{}");
+        script.SetResponse("account/rateLimits/read", "{\"rateLimits\":{\"primary\":{\"usedPercent\":1.0}},\"rateLimitResetCredits\":{\"credits\":[]}}");
+
+        var limits = RunAsync(runtime, CodexSession.ReadPlanLimits(FileUrl(script.ExecutablePath), Env(script)));
+        Assert.Null(limits!.PlanLimitsResetCredits);
+    }
+
+    // ---- PR-PROVCLI-106 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-106")] // CodexSession.swift:483-490
+    public void ConsumeResetCredit_sends_a_fresh_lowercased_idempotency_key_and_the_credit_id_when_given()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = new CodexScript("consume-credit");
+        script.SetResponse("initialize", "{}");
+        script.SetResponse("account/rateLimitResetCredit/consume", "{\"outcome\":\"reset\"}");
+
+        var outcome = RunAsync(runtime, CodexSession.ConsumeResetCredit(FileUrl(script.ExecutablePath), Env(script), "credit-1"));
+        Assert.Equal(PlanLimits.ResetOutcome.Reset, outcome);
+
+        var request = JSONValue.Parse(System.Text.Encoding.UTF8.GetBytes(script.CapturedLine(0, 2)))!;
+        Assert.Equal("account/rateLimitResetCredit/consume", request["method"]!.JSONValueString);
+        Assert.Equal("credit-1", request["params"]!["creditId"]!.JSONValueString);
+        var key = request["params"]!["idempotencyKey"]!.JSONValueString!;
+        Assert.Equal(key, key.ToLowerInvariant());
+        Assert.True(Guid.TryParse(key, out _));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-106")] // CodexSession.swift:485
+    public void ConsumeResetCredit_omits_creditId_when_none_is_given_so_the_server_picks_one()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = new CodexScript("consume-credit-none");
+        script.SetResponse("initialize", "{}");
+        script.SetResponse("account/rateLimitResetCredit/consume", "{\"outcome\":\"noCredit\"}");
+
+        var outcome = RunAsync(runtime, CodexSession.ConsumeResetCredit(FileUrl(script.ExecutablePath), Env(script), null));
+        Assert.Equal(PlanLimits.ResetOutcome.NoCredit, outcome);
+
+        var request = JSONValue.Parse(System.Text.Encoding.UTF8.GetBytes(script.CapturedLine(0, 2)))!;
+        Assert.Null(request["params"]!["creditId"]);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-106")] // CodexSession.swift:487-488
+    public async Task ConsumeResetCredit_throws_unknownOutcome_for_an_unrecognized_outcome_string()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = new CodexScript("consume-credit-unknown");
+        script.SetResponse("initialize", "{}");
+        script.SetResponse("account/rateLimitResetCredit/consume", "{\"outcome\":\"somethingElse\"}");
+
+        var faulted = PumpFaulted(runtime, CodexSession.ConsumeResetCredit(FileUrl(script.ExecutablePath), Env(script), null));
+        var error = await Assert.ThrowsAsync<ResetCreditError>(() => faulted);
+        Assert.Equal("Codex returned an unknown reset result.", error.ErrorDescription);
+    }
+
+    // ---- PR-PROVCLI-107, 108 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-107")] // CodexSession.swift:538-541
+    public void HandleNotification_routes_a_known_heads_notifications_wrapped_in_agentEvent()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("route-head");
+        var session = StartedSession(runtime, script); // threadID = "t1"
+        PrivateField<HashSet<string>>(session, "headThreads").Add("head-1");
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+
+        InvokePrivate(session, "HandleNotification", "item/agentMessage/delta",
+            JSONValue.FromDictionaryLiteral(("threadId", "head-1"), ("itemId", "m1"), ("delta", "hi")));
+
+        var wrapped = Assert.Single(events.OfType<ProviderEvent.AgentEvent>());
+        Assert.Equal("head-1", wrapped.AgentID);
+        var inner = Assert.IsType<ProviderEvent.MessageDelta>(wrapped.Value);
+        Assert.Equal("m1", inner.Id);
+        Assert.Equal("hi", inner.Text);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-107")] // CodexSession.swift:539-540
+    public void HandleNotification_drops_a_notification_for_an_unrelated_unregistered_thread()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("route-unrelated");
+        var session = StartedSession(runtime, script);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+
+        InvokePrivate(session, "HandleNotification", "item/agentMessage/delta",
+            JSONValue.FromDictionaryLiteral(("threadId", "not-a-head"), ("itemId", "m1"), ("delta", "hi")));
+
+        Assert.Empty(events);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-107")] // CodexSession.swift:538
+    public void HandleNotification_with_no_threadId_or_a_matching_threadId_routes_to_the_lead()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("route-lead");
+        var session = StartedSession(runtime, script);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+
+        InvokePrivate(session, "HandleNotification", "item/agentMessage/delta",
+            JSONValue.FromDictionaryLiteral(("itemId", "m1"), ("delta", "hi"))); // no threadId
+        InvokePrivate(session, "HandleNotification", "item/agentMessage/delta",
+            JSONValue.FromDictionaryLiteral(("threadId", "t1"), ("itemId", "m2"), ("delta", "there"))); // matches the lead
+
+        Assert.Equal(2, events.OfType<ProviderEvent.MessageDelta>().Count());
+        Assert.Empty(events.OfType<ProviderEvent.AgentEvent>());
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-108")] // CodexSession.swift:557-568, 573-580, 592-593, 655-658
+    public void HandleNotification_emits_the_directly_mapped_delta_and_diff_and_notice_events()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("switch-directly-mapped");
+        var session = StartedSession(runtime, script);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+
+        InvokePrivate(session, "HandleNotification", "item/reasoning/textDelta", JSONValue.FromDictionaryLiteral(("itemId", "r1"), ("delta", "think")));
+        InvokePrivate(session, "HandleNotification", "item/reasoning/summaryTextDelta", JSONValue.FromDictionaryLiteral(("itemId", "r1"), ("delta", "more")));
+        InvokePrivate(session, "HandleNotification", "item/commandExecution/outputDelta", JSONValue.FromDictionaryLiteral(("itemId", "c1"), ("delta", "out")));
+        InvokePrivate(session, "HandleNotification", "item/plan/delta", JSONValue.FromDictionaryLiteral(("itemId", "p1"), ("delta", "step")));
+        InvokePrivate(session, "HandleNotification", "turn/diff/updated", JSONValue.FromDictionaryLiteral(("diff", "+x")));
+        InvokePrivate(session, "HandleNotification", "thread/compacted", JSONValue.FromDictionaryLiteral(("x", true)));
+        InvokePrivate(session, "HandleNotification", "unknownMethod", JSONValue.FromDictionaryLiteral(("x", true)));
+
+        Assert.Equal(2, events.OfType<ProviderEvent.ReasoningDelta>().Count());
+        Assert.Single(events.OfType<ProviderEvent.ToolOutput>());
+        Assert.Single(events.OfType<ProviderEvent.PlanDelta>());
+        var diff = Assert.Single(events.OfType<ProviderEvent.Diff>());
+        Assert.Equal("+x", diff.Value);
+        var notice = Assert.Single(events.OfType<ProviderEvent.Notice>());
+        Assert.Equal(Notice.Level.Info, notice.Value.NoticeLevel);
+        Assert.Equal("Context compacted.", notice.Value.Message);
+        Assert.Equal(6, events.Count); // the unknown method produced nothing
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-108")] // CodexSession.swift:569-572
+    public void HandleNotification_summaryPartAdded_emits_two_newlines_only_when_the_index_is_positive()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("summary-part-added");
+        var session = StartedSession(runtime, script);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+
+        InvokePrivate(session, "HandleNotification", "item/reasoning/summaryPartAdded", JSONValue.FromDictionaryLiteral(("itemId", "r1"), ("summaryIndex", 0L)));
+        Assert.Empty(events);
+        InvokePrivate(session, "HandleNotification", "item/reasoning/summaryPartAdded", JSONValue.FromDictionaryLiteral(("itemId", "r1"), ("summaryIndex", 1L)));
+        var delta = Assert.Single(events.OfType<ProviderEvent.ReasoningDelta>());
+        Assert.Equal("\n\n", delta.Text);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-107")] // CodexSession.swift:548-556
+    public void HandleNotification_turn_started_records_the_turn_id_on_the_lead_or_the_head()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("turn-started");
+        var session = StartedSession(runtime, script);
+        PrivateField<HashSet<string>>(session, "headThreads").Add("head-1");
+
+        InvokePrivate(session, "HandleNotification", "turn/started", JSONValue.FromDictionaryLiteral(("turn", JSONValue.FromDictionaryLiteral(("id", "turn-lead")))));
+        Assert.Equal("turn-lead", PrivateField<string?>(session, "turnID"));
+
+        InvokePrivate(session, "HandleNotification", "turn/started",
+            JSONValue.FromDictionaryLiteral(("threadId", "head-1"), ("turn", JSONValue.FromDictionaryLiteral(("id", "turn-head")))));
+        Assert.Equal("turn-head", PrivateField<Dictionary<string, string>>(session, "headTurns")["head-1"]);
+    }
+
+    // ---- PR-PROVCLI-109 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-109")] // CodexSession.swift:582-591
+    public void HandleNotification_turn_plan_updated_maps_the_three_status_strings_and_skips_a_stepless_entry()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("plan-updated");
+        var session = StartedSession(runtime, script);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+
+        InvokePrivate(session, "HandleNotification", "turn/plan/updated", JSONValue.FromDictionaryLiteral(("plan", new JSONValue.Array(new ValueList<JSONValue>([
+            JSONValue.FromDictionaryLiteral(("step", "a"), ("status", "completed")),
+            JSONValue.FromDictionaryLiteral(("step", "b"), ("status", "inProgress")),
+            JSONValue.FromDictionaryLiteral(("step", "c"), ("status", "queued")), // unrecognized -> pending
+            JSONValue.FromDictionaryLiteral(("status", "completed")), // no "step": skipped
+        ])))));
+
+        var todos = Assert.Single(events.OfType<ProviderEvent.Todos>());
+        Assert.Equal(3, todos.Value.Count);
+        Assert.Equal(TodoStep.Status.Done, todos.Value[0].TodoStepStatus);
+        Assert.Equal(TodoStep.Status.Active, todos.Value[1].TodoStepStatus);
+        Assert.Equal(TodoStep.Status.Pending, todos.Value[2].TodoStepStatus);
+    }
+
+    // ---- PR-PROVCLI-110, 111 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-110")] // CodexSession.swift:598-612
+    public void HandleNotification_tokenUsage_on_the_lead_emits_usage_and_records_the_delta_from_the_growing_total()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("token-usage-lead");
+        var session = StartedSession(runtime, script); // threadID "t1"
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+
+        runtime.OnMain(() => InvokePrivate(session, "HandleNotification", "thread/tokenUsage/updated", JSONValue.FromDictionaryLiteral(
+            ("tokenUsage", JSONValue.FromDictionaryLiteral(
+                ("last", JSONValue.FromDictionaryLiteral(("totalTokens", 100L))),
+                ("modelContextWindow", 8000L),
+                ("total", JSONValue.FromDictionaryLiteral(("totalTokens", 500L))))))));
+
+        var usage = Assert.Single(events.OfType<ProviderEvent.Usage>());
+        Assert.Equal(100, usage.Value.UsedTokens);
+        Assert.Equal(8000, usage.Value.WindowTokens);
+        // First update: seeded to max(0, total - used) = 400, so spend = 500 - 400 = 100.
+        var spend = Assert.Single(events.OfType<ProviderEvent.TokenSpend>());
+        Assert.Equal(ProviderKind.Codex, spend.Value.Provider);
+        Assert.Equal(100, spend.Value.TotalTokens);
+        Assert.Null(spend.Value.AgentID);
+
+        // A second update with the total grown by 40 spends exactly the delta, not the whole total.
+        runtime.OnMain(() => InvokePrivate(session, "HandleNotification", "thread/tokenUsage/updated", JSONValue.FromDictionaryLiteral(
+            ("tokenUsage", JSONValue.FromDictionaryLiteral(
+                ("last", JSONValue.FromDictionaryLiteral(("totalTokens", 40L))),
+                ("total", JSONValue.FromDictionaryLiteral(("totalTokens", 540L))))))));
+        Assert.Equal(40, events.OfType<ProviderEvent.TokenSpend>().Last().Value.TotalTokens);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-110")] // CodexSession.swift:610-611
+    public void HandleNotification_tokenUsage_without_a_positive_total_spends_the_per_update_used_value()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("token-usage-no-total");
+        var session = StartedSession(runtime, script);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+
+        runtime.OnMain(() => InvokePrivate(session, "HandleNotification", "thread/tokenUsage/updated", JSONValue.FromDictionaryLiteral(
+            ("tokenUsage", JSONValue.FromDictionaryLiteral(("last", JSONValue.FromDictionaryLiteral(("totalTokens", 25L))))))));
+
+        var spend = Assert.Single(events.OfType<ProviderEvent.TokenSpend>());
+        Assert.Equal(25, spend.Value.TotalTokens);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-111")] // CodexSession.swift:613-625
+    public void HandleNotification_tokenUsage_on_a_head_tracks_its_own_spend_and_reports_agentProgress()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("token-usage-head");
+        var session = StartedSession(runtime, script);
+        PrivateField<HashSet<string>>(session, "headThreads").Add("head-1");
+        PrivateField<Dictionary<string, string>>(session, "headModels")["head-1"] = "gpt-head";
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+
+        runtime.OnMain(() => InvokePrivate(session, "HandleNotification", "thread/tokenUsage/updated", JSONValue.FromDictionaryLiteral(
+            ("threadId", "head-1"),
+            ("tokenUsage", JSONValue.FromDictionaryLiteral(
+                ("last", JSONValue.FromDictionaryLiteral(("totalTokens", 30L))),
+                ("total", JSONValue.FromDictionaryLiteral(("totalTokens", 30L))))))));
+
+        var spend = Assert.Single(events.OfType<ProviderEvent.TokenSpend>());
+        Assert.Equal(30, spend.Value.TotalTokens);
+        Assert.Equal("gpt-head", spend.Value.Model);
+        Assert.Equal("head-1", spend.Value.AgentID);
+        var progress = Assert.Single(events.OfType<ProviderEvent.AgentProgress>());
+        Assert.Equal("head-1", progress.AgentID);
+        Assert.Equal(30, progress.Tokens);
+        Assert.Empty(events.OfType<ProviderEvent.Usage>()); // no context meter for a head
+    }
+
+    // ---- PR-PROVCLI-112 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-112")] // CodexSession.swift:627-631
+    public void HandleNotification_error_notifies_only_for_the_lead_with_willRetry_true_appending_Retrying()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("error-notification");
+        var session = StartedSession(runtime, script);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+
+        InvokePrivate(session, "HandleNotification", "error", JSONValue.FromDictionaryLiteral(
+            ("willRetry", true), ("error", JSONValue.FromDictionaryLiteral(("message", "rate limited")))));
+        var notice = Assert.Single(events.OfType<ProviderEvent.Notice>());
+        Assert.Equal(Notice.Level.Warning, notice.Value.NoticeLevel);
+        Assert.Equal("rate limited Retrying.", notice.Value.Message);
+
+        events.Clear();
+        InvokePrivate(session, "HandleNotification", "error", JSONValue.FromDictionaryLiteral(
+            ("willRetry", false), ("error", JSONValue.FromDictionaryLiteral(("message", "fatal")))));
+        Assert.Empty(events); // willRetry false: silent here
+
+        events.Clear();
+        PrivateField<HashSet<string>>(session, "headThreads").Add("head-1");
+        InvokePrivate(session, "HandleNotification", "error", JSONValue.FromDictionaryLiteral(
+            ("threadId", "head-1"), ("willRetry", true), ("error", JSONValue.FromDictionaryLiteral(("message", "head error")))));
+        Assert.Empty(events); // a head's error notification produces nothing here
+    }
+
+    // ---- ErrorMessage (used by PR-PROVCLI-112 and turn/completed) ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-112")] // CodexSession.swift:910-918
+    public void ErrorMessage_unwraps_a_nested_json_encoded_message_and_falls_back_to_the_raw_text()
+    {
+        Assert.Equal("Codex reported an error.", CodexSession.ErrorMessage(null));
+        Assert.Equal("plain text", CodexSession.ErrorMessage(new JSONValue.Object(new ValueMap<string, JSONValue>(
+            new Dictionary<string, JSONValue> { ["message"] = "plain text" }))));
+        var nested = new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>
+        {
+            ["message"] = "{\"error\":{\"message\":\"inner\"}}",
+        }));
+        Assert.Equal("inner", CodexSession.ErrorMessage(nested));
     }
 }
