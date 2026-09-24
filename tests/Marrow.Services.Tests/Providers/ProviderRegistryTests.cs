@@ -379,6 +379,7 @@ public sealed class ProviderRegistryTests
 
     [Fact]
     [Trait("Req", "PR-PROVACP-048")] // ProviderRegistry.swift:170-176
+    [Trait("Req", "PR-PROVREG-134")] // ProviderRegistry.swift:170-176 (part 3: every cached list re-split and re-ordered on every launch)
     public void at_registry_load_every_cached_catalog_passes_through_opencodemodels_and_has_its_efforts_ordered()
     {
         using var runtime = new TestRuntime();
@@ -417,6 +418,7 @@ public sealed class ProviderRegistryTests
 
     [Fact]
     [Trait("Req", "PR-PROVACP-139")] // ProviderRegistry.swift:108-119
+    [Trait("Req", "PR-PROVREG-139")] // ProviderRegistry.swift:103-119 (part 3: same merge, same evidence)
     public void merged_acp_catalog_keeps_the_cached_scale_for_a_live_row_with_no_efforts_matching_by_exact_id()
     {
         var cached = new ValueList<ModelOption>(
