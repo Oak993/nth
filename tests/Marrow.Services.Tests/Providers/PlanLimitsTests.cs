@@ -129,10 +129,13 @@ public sealed class PlanLimitsTests
     [Theory]
     [Trait("Req", "PR-PROVREG-171")] // PlanLimits.swift:87 - zai dispatches directly, no try?
     [InlineData(ProviderKind.Zai)]
-    public async Task Read_apiKey_dispatches_zai_to_ZaiAPI_PlanLimits(ProviderKind provider)
+    public async Task Read_apiKey_dispatches_zai_to_ZaiAPI_PlanLimits_not_a_stub(ProviderKind provider)
     {
-        var error = await Assert.ThrowsAsync<NotImplementedException>(() => PlanLimitsReader.Read(provider, "key"));
-        Assert.Contains("ZaiAPI.swift:74", error.Message, StringComparison.Ordinal);
+        // ZaiAPI.PlanLimits is fully implemented in Services.Providers.ZaiAPI.cs (Services.Providers.ZaiAPI
+        // unit): an empty key returns null immediately with no request (ZaiAPI.swift:75-76), proving this arm
+        // reached it rather than a sibling stub.
+        var result = await PlanLimitsReader.Read(provider, "");
+        Assert.Null(result);
     }
 
     [Theory]

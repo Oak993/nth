@@ -12011,7 +12011,8 @@
         "DroppyCode/Services/Providers/ZaiAPI.swift:49-63",
         "DroppyCode/Services/Providers/ProviderRegistry.swift:130 zaiSeed"
       ],
-      "notes": "These are the only two providers' rows whose preselected effort is 'max' rather than 'high'."
+      "notes": "These are the only two providers' rows whose preselected effort is 'max' rather than 'high'.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVAPI",
@@ -14446,7 +14447,8 @@
       "source_evidence": [
         "DroppyCode/App/Runtime/AutoContinue.swift:95, :104, :150-155"
       ],
-      "notes": "These two bodies are distinct from the two timeline notice texts the same code writes (\"Usage limit reached. Continuing automatically at <time>.\" and \"Usage limit reached, and the provider did not say when it resets. Send a message to continue.\"); all four are separate literals and none may be reused for another."
+      "notes": "These two bodies are distinct from the two timeline notice texts the same code writes (\"Usage limit reached. Continuing automatically at <time>.\" and \"Usage limit reached, and the provider did not say when it resets. Send a message to continue.\"); all four are separate literals and none may be reused for another.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "RUNTIME",
@@ -14819,7 +14821,8 @@
         "DroppyCode/App/Runtime/AutoContinue.swift:94 - notice(threadID, .warning, \"Usage limit reached, and the provider did not say when it resets. Send a message to continue.\")"
       ],
       "notes": "Split out of UI-RUNTIME-002. Its paired system notification is a DIFFERENT string, \"Usage limit reached. Send a message to continue.\" (AutoContinue.swift:95).",
-      "b2_change": "Typography restated from the notice row: B1 TimelineRows.swift:2413 `.font(.chat(.callout, zoom: zoom))`; B2 :2397 `.font(.chat(.callout))`, and Font.chat takes no zoom (UI/Common/ChatFont.swift:6-10). Text, geometry and colours unchanged. Owner rulings applied in this refresh: the face follows OD-0009 (Inter)."
+      "b2_change": "Typography restated from the notice row: B1 TimelineRows.swift:2413 `.font(.chat(.callout, zoom: zoom))`; B2 :2397 `.font(.chat(.callout))`, and Font.chat takes no zoom (UI/Common/ChatFont.swift:6-10). Text, geometry and colours unchanged. Owner rulings applied in this refresh: the face follows OD-0009 (Inter).",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "RUNTIME",

@@ -2591,7 +2591,7 @@
       "cancellation": "A newer render cancels the one in flight; a cancelled render leaves the current picture alone.",
       "windows_path": "Same two keys and the same file-name-only storage under the app's data directory. Reproduce the guarded clamp shape, not just its effect, so the re-entrancy is impossible in the port too.",
       "verification_method": "restart test with a wallpaper set; unit test on the softness clamp with values -1, 0.5 and 2 asserting exactly one write each",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

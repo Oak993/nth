@@ -4946,55 +4946,15 @@
     "Services.Providers.PlanLimits"
    ],
    "records_total": 18,
-   "records_todo": [
-    "PR-PROVAPI-056",
-    "PR-PROVAPI-057",
-    "PR-PROVAPI-058",
-    "PR-PROVAPI-059",
-    "PR-PROVAPI-060",
-    "PR-PROVAPI-061",
-    "PR-PROVAPI-062",
-    "PR-PROVAPI-063",
-    "PR-PROVAPI-064",
-    "PR-PROVAPI-065",
-    "PR-PROVAPI-066",
-    "PR-PROVAPI-067",
-    "PR-PROVAPI-068",
-    "PR-PROVAPI-069",
-    "PR-PROVAPI-070",
-    "PR-PROVAPI-071",
-    "PR-PROVAPI-072",
-    "UI-PROVAPI-028"
-   ],
-   "parts": [
-    [
-     "PR-PROVAPI-056",
-     "PR-PROVAPI-057",
-     "PR-PROVAPI-058",
-     "PR-PROVAPI-059",
-     "PR-PROVAPI-060",
-     "PR-PROVAPI-061",
-     "PR-PROVAPI-062",
-     "PR-PROVAPI-063",
-     "PR-PROVAPI-064",
-     "PR-PROVAPI-065",
-     "PR-PROVAPI-066",
-     "PR-PROVAPI-067",
-     "PR-PROVAPI-068",
-     "PR-PROVAPI-069",
-     "PR-PROVAPI-070",
-     "PR-PROVAPI-071",
-     "PR-PROVAPI-072",
-     "UI-PROVAPI-028"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-142",
     "T-M4-143",
     "T-M4-144"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.Providers.CommandCodeSession",
@@ -5360,48 +5320,14 @@
    ],
    "intra_deps": [],
    "records_total": 15,
-   "records_todo": [
-    "PR-PROVAPI-073",
-    "PR-PROVAPI-074",
-    "PR-PROVAPI-075",
-    "PR-PROVAPI-076",
-    "PR-PROVAPI-077",
-    "PR-PROVAPI-078",
-    "PR-PROVAPI-079",
-    "PR-PROVAPI-080",
-    "PR-PROVAPI-081",
-    "PR-PROVAPI-082",
-    "PR-PROVAPI-083",
-    "PR-PROVAPI-084",
-    "PR-PROVAPI-085",
-    "PR-PROVAPI-086",
-    "PR-PROVAPI-087"
-   ],
-   "parts": [
-    [
-     "PR-PROVAPI-073",
-     "PR-PROVAPI-074",
-     "PR-PROVAPI-075",
-     "PR-PROVAPI-076",
-     "PR-PROVAPI-077",
-     "PR-PROVAPI-078",
-     "PR-PROVAPI-079",
-     "PR-PROVAPI-080",
-     "PR-PROVAPI-081",
-     "PR-PROVAPI-082",
-     "PR-PROVAPI-083",
-     "PR-PROVAPI-084",
-     "PR-PROVAPI-085",
-     "PR-PROVAPI-086",
-     "PR-PROVAPI-087"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-146",
     "T-M4-147"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "App.AppModel",
@@ -6216,49 +6142,15 @@
     "App.Runtime.LimitHandoff"
    ],
    "records_total": 15,
-   "records_todo": [
-    "PR-RUNTIME-180",
-    "PR-RUNTIME-181",
-    "PR-RUNTIME-182",
-    "PR-RUNTIME-183",
-    "PR-RUNTIME-184",
-    "PR-RUNTIME-185",
-    "PR-RUNTIME-186",
-    "PR-RUNTIME-245",
-    "PR-RUNTIME-246",
-    "PR-RUNTIME-247",
-    "PR-RUNTIME-248",
-    "PR-RUNTIME-249",
-    "PR-RUNTIME-250",
-    "UI-RUNTIME-016",
-    "UI-RUNTIME-033"
-   ],
-   "parts": [
-    [
-     "PR-RUNTIME-180",
-     "PR-RUNTIME-181",
-     "PR-RUNTIME-182",
-     "PR-RUNTIME-183",
-     "PR-RUNTIME-184",
-     "PR-RUNTIME-185",
-     "PR-RUNTIME-186",
-     "PR-RUNTIME-245",
-     "PR-RUNTIME-246",
-     "PR-RUNTIME-247",
-     "PR-RUNTIME-248",
-     "PR-RUNTIME-249",
-     "PR-RUNTIME-250",
-     "UI-RUNTIME-016",
-     "UI-RUNTIME-033"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M6-054",
     "T-M6-055",
     "T-M6-056"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "App.Runtime.LimitHandoff",
@@ -16027,50 +15919,14 @@
    ],
    "intra_deps": [],
    "records_total": 16,
-   "records_todo": [
-    "PR-SETTINGS-103",
-    "PR-THEME-053",
-    "PR-THEME-054",
-    "PR-THEME-055",
-    "PR-THEME-056",
-    "PR-THEME-057",
-    "PR-THEME-058",
-    "PR-THEME-059",
-    "PR-THEME-060",
-    "PR-THEME-061",
-    "PR-THEME-062",
-    "PR-THEME-063",
-    "PR-THEME-064",
-    "PR-THEME-065",
-    "PR-THEME-066",
-    "PR-THEME-067"
-   ],
-   "parts": [
-    [
-     "PR-SETTINGS-103",
-     "PR-THEME-053",
-     "PR-THEME-054",
-     "PR-THEME-055",
-     "PR-THEME-056",
-     "PR-THEME-057",
-     "PR-THEME-058",
-     "PR-THEME-059",
-     "PR-THEME-060",
-     "PR-THEME-061",
-     "PR-THEME-062",
-     "PR-THEME-063",
-     "PR-THEME-064",
-     "PR-THEME-065",
-     "PR-THEME-066",
-     "PR-THEME-067"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M5-074",
     "T-M5-075"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "App.AppCommands",
