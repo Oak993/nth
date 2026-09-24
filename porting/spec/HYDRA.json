@@ -677,7 +677,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fourteen keys with the same names in the Windows settings store. Decode the pair list element by element discarding failures; a strict whole-list decoder would wipe every pair when a newer build wrote an unknown provider.",
       "verification_method": "unit over each default, a restart test, and a corruption test that injects one bad pair",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3638,7 +3638,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pure lookup; the order of the stored list decides ties.",
       "verification_method": "unit over all three steps",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
