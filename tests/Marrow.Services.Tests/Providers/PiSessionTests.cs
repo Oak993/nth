@@ -55,7 +55,10 @@ public sealed class PiSessionTests
 
     private static (PiSession Session, List<ProviderEvent> Events) Make(SessionConfiguration configuration)
     {
-        var session = new PiSession(configuration);
+        var localApplicationData = configuration.Executable is { } executable
+            ? Path.Combine(Path.GetDirectoryName(executable.Path)!, "local-app-data")
+            : null;
+        var session = new PiSession(configuration, localApplicationData);
         var events = new List<ProviderEvent>();
         session.OnEvent = events.Add;
         return (session, events);

@@ -17,6 +17,7 @@ public sealed class PiSession : ProviderSession
     public Action<ProviderEvent>? OnEvent { get; set; } // :21
 
     private readonly SessionConfiguration configuration; // :23
+    private readonly string? localApplicationData; // PORT-ONLY test seam for isolated per-session support files.
     private StdioProcess? process; // :24
     private TaskHandle? readTask; // :25
     /// <summary>The pi session file path, taken from <c>configuration.resumeID</c>.</summary>
@@ -58,9 +59,15 @@ public sealed class PiSession : ProviderSession
     private readonly Dictionary<string, CheckedContinuation<JSONValue>> pendingResponses = new(SwiftStringComparer.Instance); // :62
     private int requestCounter; // :63
 
-    public PiSession(SessionConfiguration configuration) // :65-72
+    public PiSession(SessionConfiguration configuration) : this(configuration, localApplicationData: null) // :65-72
+    {
+    }
+
+    /// <summary>PORT-ONLY test seam: keeps the extension, gate and bridge under a throwaway app-data root.</summary>
+    internal PiSession(SessionConfiguration configuration, string? localApplicationData)
     {
         this.configuration = configuration;
+        this.localApplicationData = localApplicationData;
         runtimeMode = configuration.RuntimeMode;
         interactionMode = configuration.InteractionMode;
         model = configuration.Model;
@@ -85,8 +92,13 @@ public sealed class PiSession : ProviderSession
             throw new ProviderError(new ProviderError.Case.Failed("Pi no longer has this conversation; starting a new one."));
 
         // :85-90
-        var extensionURL = PiCLI.InstallExtension();
-        var gateDirectory = PiCLI.SupportDirectory.Appending("gates");
+        var supportDirectory = localApplicationData is { } appData
+            ? PiCLI.SupportDirectoryUnder(appData)
+            : PiCLI.SupportDirectory;
+        var extensionURL = localApplicationData is { } localAppData
+            ? PiCLI.InstallExtension(localAppData)
+            : PiCLI.InstallExtension();
+        var gateDirectory = supportDirectory.Appending("gates");
         Directory.CreateDirectory(WindowsPath(gateDirectory));
         var gateFileURL = gateDirectory.Appending(SwiftUUID.UuidString(Guid.NewGuid()) + ".json");
         gateURL = WindowsPath(gateFileURL);
@@ -120,7 +132,9 @@ public sealed class PiSession : ProviderSession
         var environment = new Dictionary<string, string>(configuration.Environment, StringComparer.OrdinalIgnoreCase);
         environment["DROPPY_CODE_PI_GATE"] = gateURL;
         environment["PI_SKIP_VERSION_CHECK"] = "1";
-        if (SwiftTry.Optional(() => MCPBridge.InstallBridge()) is { } bridge)
+        if (SwiftTry.Optional(() => localApplicationData is { } bridgeAppData
+                ? MCPBridge.InstallBridge(bridgeAppData)
+                : MCPBridge.InstallBridge()) is { } bridge)
             // DEVIATION ED-022: on Windows, Node's dynamic import() of a bare "C:\..." path throws
             // ERR_UNSUPPORTED_ESM_URL_SCHEME, so the port passes pathToFileURL(bridgePath).href; the Swift
             // source's `bridge.path` becomes the file:// URL string InstallBridge already returns.
