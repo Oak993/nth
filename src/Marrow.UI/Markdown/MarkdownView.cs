@@ -9,6 +9,8 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Media.Imaging;
+using Avalonia.Platform;
 using Avalonia.Controls.Shapes;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
@@ -550,6 +552,49 @@ public static partial class RichLink
     // PR-THEME-123.
     private static RecentCache<string, AttributedText> prettyCache = new(1200);
 
+    // :567-568 @MainActor private static var streamingPretty: [(source: String, value: AttributedString)] = [];
+    // private static let streamingSlots = 4. PR-THEME-148: a small ring of in-flight (not-yet-settled) builds,
+    // searched most-recent-first (:576 last(where:)), so a still-streaming paragraph's latest build is found
+    // without going through the stable prettyCache.
+    private static readonly List<(string Source, AttributedText Value)> streamingPretty = [];
+
+    // :571-587 static func prettyAttributed(_ source: String, streaming: Bool = false) -> AttributedString.
+    // PR-THEME-148 (via linkHosts/videoIDs/linkAssetKey, below) and InlineText's body: the streaming path keeps a
+    // small ring of the last StreamingSlots builds and never touches the stable cache; the settled path promotes a
+    // matching streaming entry into the stable cache instead of rebuilding.
+    public static AttributedText PrettyAttributed(string source, bool streaming = false)
+    {
+        if (streaming)
+        {
+            for (var i = streamingPretty.Count - 1; i >= 0; i--) // :572 last(where:)
+            {
+                if (SwiftStringComparer.Instance.Equals(streamingPretty[i].Source, source)) return streamingPretty[i].Value;
+            }
+            var built = Build(source); // :573
+            if (streamingPretty.Count == StreamingSlots) streamingPretty.RemoveAt(0); // :574 removeFirst()
+            streamingPretty.Add((source, built)); // :575
+            return built;
+        }
+        if (prettyCache.TryGetValue(source, out var hit)) return hit; // :578
+        AttributedText value;
+        var slot = -1;
+        for (var i = streamingPretty.Count - 1; i >= 0; i--) // :580 lastIndex(where:)
+        {
+            if (SwiftStringComparer.Instance.Equals(streamingPretty[i].Source, source)) { slot = i; break; }
+        }
+        if (slot >= 0)
+        {
+            value = streamingPretty[slot].Value; // :581 remove(at:).value
+            streamingPretty.RemoveAt(slot);
+        }
+        else
+        {
+            value = Build(source); // :583
+        }
+        prettyCache.Insert(value, source); // :585
+        return value;
+    }
+
     // :591-594 @MainActor static func warm(_ source: String, with pretty: AttributedString). PR-THEME-124: only
     // the units this part does not cover (part 2's InlineText/prettyAttributed) call this, but it is declared
     // here since it lives beside prettyCache and MarkdownView.Warm (PR-THEME-124, above) calls it directly.
@@ -763,25 +808,84 @@ public static partial class RichLink
         return AutolinkedBareDomains(parsed);
     }
 
-    // :623-634 @MainActor static func linkHosts(for source: String, streaming: Bool = false) -> [String]
-    public static ValueList<string> LinkHosts(string @for, bool streaming = false) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:623");
+    // :623-634 @MainActor static func linkHosts(for source: String, streaming: Bool = false) -> [String].
+    // PR-THEME-148: first-seen order, lower-cased, each host once.
+    public static ValueList<string> LinkHosts(string @for, bool streaming = false)
+    {
+        var pretty = PrettyAttributed(@for, streaming); // :625
+        var hosts = new List<string>();
+        var seen = new HashSet<string>(SwiftStringComparer.Instance);
+        foreach (var run in pretty.Runs)
+        {
+            if (run.Link?.Host is { Length: > 0 } host)
+            {
+                host = SwiftString.Lowercased(host); // :630
+                if (seen.Add(host)) hosts.Add(host); // :630-631
+            }
+        }
+        return new ValueList<string>(hosts);
+    }
 
-    // :637-647 @MainActor static func videoIDs(for source: String, streaming: Bool = false) -> [String]
-    public static ValueList<string> VideoIDs(string @for, bool streaming = false) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:637");
+    // :637-647 @MainActor static func videoIDs(for source: String, streaming: Bool = false) -> [String].
+    // PR-THEME-148: first-seen order, each id once.
+    public static ValueList<string> VideoIDs(string @for, bool streaming = false)
+    {
+        var pretty = PrettyAttributed(@for, streaming); // :639
+        var ids = new List<string>();
+        var seen = new HashSet<string>(SwiftStringComparer.Instance);
+        foreach (var run in pretty.Runs)
+        {
+            if (run.Link is not { } link) continue;
+            if (LinkTitles.VideoID(link) is not { } id) continue; // :644
+            if (seen.Add(id)) ids.Add(id); // :644-645
+        }
+        return new ValueList<string>(ids);
+    }
 
-    // :651-657 @MainActor static func linkAssetKey(for source: String, streaming: Bool = false) -> String
-    public static string LinkAssetKey(string @for, bool streaming = false) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:651");
+    // :651-657 @MainActor static func linkAssetKey(for source: String, streaming: Bool = false) -> String.
+    // PR-THEME-148: hosts and video ids joined, a vertical bar between; empty when there is neither.
+    public static string LinkAssetKey(string @for, bool streaming = false)
+    {
+        var hosts = LinkHosts(@for, streaming); // :653
+        var videos = VideoIDs(@for, streaming); // :654
+        if (hosts.Count == 0 && videos.Count == 0) return ""; // :655
+        return string.Join(",", hosts) + "|" + string.Join(",", videos); // :656
+    }
 
-    // :660-664 @MainActor static func invalidate(_ source: String)
-    public static void Invalidate(string source) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:660");
+    // :660-664 @MainActor static func invalidate(_ source: String). PR-THEME-148.
+    public static void Invalidate(string source)
+    {
+        prettyCache.RemoveValue(source, out _); // :662
+        streamingPretty.RemoveAll(entry => SwiftStringComparer.Instance.Equals(entry.Source, source)); // :663
+    }
 
-    // :670-689 static func prettyTitle(for url: URL) -> String
-    public static string PrettyTitle(SwiftURL @for) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:670");
+    // :670-689 static func prettyTitle(for url: URL) -> String. PR-THEME-132: a strict cascade -- forge reference,
+    // then a cached video title, then host plus last path segment.
+    public static string PrettyTitle(SwiftURL @for)
+    {
+        var url = @for;
+        if (ForgeReference(url) is { } reference) return reference; // :671
+        if (LinkTitles.Cached(url) is { } title) return Capped(title, 48); // :672
+        var host = url.Host;
+        if (string.IsNullOrEmpty(host)) return CompactFallback(url.AbsoluteString); // :673-674
+        host = SwiftString.Lowercased(host);
+        if (SwiftString.HasPrefix(host, "www.")) host = host[4..]; // :676
+        // :677-680 (url.path.removingPercentEncoding ?? url.path): SwiftURL.Path (F.URL) already returns the
+        // percent-decoded path, matching Swift's own url.path, so a further decode here would be redundant.
+        var segments = url.Path.Split('/').Where(s => s.Length > 0).ToList(); // :677-681
+        if (segments.Count == 0) return host; // :682
+        var last = segments[^1];
+        if (NamelessSegments.Contains(SwiftString.Lowercased(last))) return host; // :683
+        var tail = SwiftString.Count(last) > 24
+            ? SwiftString.Prefix(last, 21) + "…"
+            : last; // :684
+        var built = segments.Count == 1 ? host + "/" + tail : host + "/…/" + tail; // :685
+        if (SwiftString.Count(built) > 40) // :686
+        {
+            return SwiftString.Prefix(built, 19) + "…" + SwiftString.Suffix(built, 18); // :687
+        }
+        return built; // :688
+    }
 
     // :692-694 private static let namelessSegments: Set<String>
     private static ValueSet<string> NamelessSegments { get; } = new(
@@ -789,25 +893,68 @@ public static partial class RichLink
         "watch", "view", "index", "index.html", "index.php", "home", "default", "page",
     ], SwiftStringComparer.Instance); // R-VAL-2: matched against URL text
 
-    // :697-700 private static func capped(_ title: String, at limit: Int) -> String
-    private static string Capped(string title, int at) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:697");
+    // :697-700 private static func capped(_ title: String, at limit: Int) -> String. PR-THEME-132.
+    private static string Capped(string title, int at)
+    {
+        if (SwiftString.Count(title) <= at) return title; // :698
+        return SwiftString.Prefix(title, at - 3) + "…"; // :699
+    }
 
-    // :705-723 static func forgeReference(for url: URL) -> String?
-    public static string? ForgeReference(SwiftURL @for) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:705");
+    // :705-723 static func forgeReference(for url: URL) -> String?. PR-THEME-133: a GitLab "-" segment followed by
+    // merge_requests/issues and a number, else a GitHub-style pull/issues segment followed by a number.
+    public static string? ForgeReference(SwiftURL @for)
+    {
+        var segments = @for.Path.Split('/').Where(s => s.Length > 0).ToList(); // :706
+        var dash = segments.IndexOf("-"); // :709
+        if (dash >= 0 && dash + 2 < segments.Count && SwiftNumber.ParseInt(segments[dash + 2]) is { } gitlabId) // :709-710
+        {
+            switch (segments[dash + 1]) // :711
+            {
+                case "merge_requests": return "!" + gitlabId; // :712
+                case "issues": return "#" + gitlabId; // :713
+            }
+        }
+        if (segments.Count >= 2 && SwiftNumber.ParseInt(segments[^1]) is { } id) // :719
+        {
+            var kind = segments[^2]; // :720
+            if (kind == "pull" || kind == "issues") return "#" + id; // :721
+        }
+        return null; // :723
+    }
 
-    // :727-730 static func compactFallback(_ absolute: String) -> String
-    public static string CompactFallback(string absolute) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:727");
+    // :727-730 static func compactFallback(_ absolute: String) -> String. PR-THEME-132.
+    public static string CompactFallback(string absolute)
+    {
+        if (SwiftString.Count(absolute) <= 40) return absolute; // :728
+        return SwiftString.Prefix(absolute, 19) + "…" + SwiftString.Suffix(absolute, 18); // :729
+    }
 
     // :732-735 @MainActor static func containsLinks(in source: String, streaming: Bool = false) -> Bool
     public static bool ContainsLinks(string @in, bool streaming = false) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:732");
+        PrettyAttributed(@in, streaming).Runs.Any(run => run.Link is not null); // :733-734
 
-    // :737-748 static func isBareDisplay(_ display: String, url: URL) -> Bool
-    public static bool IsBareDisplay(string display, SwiftURL url) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:737");
+    // :737-748 static func isBareDisplay(_ display: String, url: URL) -> Bool. PR-THEME-131: bare when the display
+    // text, after trimming whitespace, one pair of angle brackets and ten trailing punctuation characters, equals
+    // the URL itself, or starts with an http(s) scheme with no whitespace.
+    public static bool IsBareDisplay(string display, SwiftURL url)
+    {
+        var d = FoundationText.Trim(display, includeNewlines: true); // :738 display.trimmed == whitespacesAndNewlines
+        if (SwiftString.HasPrefix(d, "<") && SwiftString.HasSuffix(d, ">") && SwiftString.Count(d) >= 2) // :739
+        {
+            d = d[1..^1]; // :740 dropFirst().dropLast()
+        }
+        while (d.Length > 0 && ".,;:!?)]}>".IndexOf(d[^1], StringComparison.Ordinal) >= 0) // :742
+        {
+            d = d[..^1]; // :743 removeLast()
+        }
+        if (d == url.AbsoluteString) return true; // :744
+        if ((SwiftString.HasPrefix(d, "http://") || SwiftString.HasPrefix(d, "https://")) // :745
+            && !d.Contains(' ', StringComparison.Ordinal) && !d.Contains('\n', StringComparison.Ordinal))
+        {
+            return true; // :746
+        }
+        return false; // :747
+    }
 
     // :759-768 private static let bareDomainTLDs: Set<String>
     private static ValueSet<string> BareDomainTLDs { get; } = new(
@@ -869,21 +1016,215 @@ public sealed record MarkdownBlockSelection
 /// <summary>:901-1099 <c>@MainActor enum FaviconCache</c>.</summary>
 public static class FaviconCache
 {
+    // :903 private static var memory: [String: NSImage] = [:]. PR-THEME-139: flushed wholesale at 300 entries.
+    private static readonly Dictionary<string, IImage> memory = new(SwiftStringComparer.Instance);
+
+    // :911-912: hosts already known to have no icon, and one shared in-flight task per host. PR-THEME-137.
+    private static readonly HashSet<string> failed = new(SwiftStringComparer.Instance);
+    private static readonly Dictionary<string, Task<IImage?>> inFlight = new(SwiftStringComparer.Instance);
+
     // :905-907 static func cached(host: String) -> NSImage?
     public static IImage? Cached(string host) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:905");
+        memory.TryGetValue(SwiftString.Lowercased(host), out var hit) ? hit : null; // :906
 
-    // :914-939 static func image(for host: String) async -> NSImage?
-    public static Task<IImage?> Image(string @for) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:914");
+    // :914-939 static func image(for host: String) async -> NSImage?. PR-THEME-137/139.
+    public static async Task<IImage?> Image(string @for)
+    {
+        var key = SwiftString.Lowercased(@for); // :915
+        if (memory.TryGetValue(key, out var hit)) return hit; // :916
+        if (failed.Contains(key)) return null; // :917
+        if (!IsPublic(key)) // :919
+        {
+            failed.Add(key); // :920
+            return null;
+        }
+        if (inFlight.TryGetValue(key, out var running)) return await running; // :923-924
+        var task = FetchAndPrepare(key); // :925-929
+        inFlight[key] = task;
+        var image = await task; // :930
+        inFlight.Remove(key); // :931
+        if (image is not null) // :932
+        {
+            if (memory.Count >= 300) memory.Clear(); // :933 removeAll(keepingCapacity:)
+            memory[key] = image; // :934
+        }
+        else
+        {
+            failed.Add(key); // :936
+        }
+        return image; // :938
+    }
 
-    // :945-953 private static func iconData(for host: String) async -> Data?
-    private static Task<byte[]?> IconData(string @for) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:945");
+    private static async Task<IImage?> FetchAndPrepare(string key)
+    {
+        var data = await IconData(key); // :926
+        if (data is null) return null;
+        var clean = Cleaned(data); // :926
+        return clean is null ? null : ResizedIcon(clean); // :927
+    }
 
-    // :955-975 private static func cleaned(_ data: Data) -> NSImage?
-    private static IImage? Cleaned(byte[] data) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:955");
+    // :945-953 private static func iconData(for host: String) async -> Data?. ED-168: the host's own
+    // /favicon.ico, over URLSession.Shared, 5 second timeout, accepted only on 2xx with a decodable image body.
+    private static async Task<byte[]?> IconData(string @for)
+    {
+        if (!Uri.TryCreate("https://" + @for + "/favicon.ico", UriKind.Absolute, out var uri)) return null; // :946
+        var request = new URLRequest(uri, timeoutInterval: 5); // :947-948
+        byte[] data;
+        URLResponse response;
+        try
+        {
+            (data, response) = await URLSession.Shared.Data(request); // :949
+        }
+        catch
+        {
+            return null; // :949 try?
+        }
+        if (response is not HTTPURLResponse http || http.StatusCode is < 200 or > 299) return null; // :950
+        if (!TryDecode(data, out _)) return null; // :951 NSImage(data:) != nil
+        return data; // :952
+    }
+
+    // :955-975 private static func cleaned(_ data: Data) -> NSImage?. PR-THEME-138: downscale to at most 64 on
+    // the long side, then flood-fill away a white background plate.
+    private static IImage? Cleaned(byte[] data)
+    {
+        if (!TryDecode(data, out var image) || image.PixelSize.Width <= 0 || image.PixelSize.Height <= 0) return null; // :956
+        double sourceWidth = image.PixelSize.Width, sourceHeight = image.PixelSize.Height;
+        var long_ = Math.Max(sourceWidth, sourceHeight); // :957
+        var scale = long_ > 64 ? 64 / long_ : 1; // :958
+        var width = Math.Max(1, (int)Math.Round(sourceWidth * scale, MidpointRounding.AwayFromZero)); // :959
+        var height = Math.Max(1, (int)Math.Round(sourceHeight * scale, MidpointRounding.AwayFromZero)); // :960
+        var rep = new WriteableBitmap(new PixelSize(width, height), new Vector(96, 96),
+            PixelFormat.Bgra8888, AlphaFormat.Unpremul); // :962-964 samplesPerPixel 4, hasAlpha true
+        DrawScaled(image, rep, width, height); // :965-971 high-interpolation draw into the bitmap
+        RemoveWhitePlate(rep); // :973
+        return rep;
+    }
+
+    /// <summary>Draws <paramref name="source"/> into <paramref name="target"/> at <paramref name="width"/> by
+    /// <paramref name="height"/>, replacing whatever the target held (:965-971 <c>image.draw(in:from:...)</c>).</summary>
+    private static void DrawScaled(Bitmap source, WriteableBitmap target, int width, int height)
+    {
+        using var rtb = new RenderTargetBitmap(new PixelSize(width, height), new Vector(96, 96));
+        using (var ctx = rtb.CreateDrawingContext())
+        {
+            ctx.DrawImage(source, new Rect(0, 0, source.PixelSize.Width, source.PixelSize.Height),
+                new Rect(0, 0, width, height));
+        }
+        using var targetLock = target.Lock();
+        rtb.CopyPixels(new PixelRect(0, 0, width, height), targetLock.Address, targetLock.RowBytes * height, targetLock.RowBytes);
+    }
+
+    private static bool TryDecode(byte[] data, out Bitmap image)
+    {
+        try
+        {
+            using var stream = new MemoryStream(data);
+            image = new Bitmap(stream);
+            return true;
+        }
+        catch
+        {
+            image = null!;
+            return false;
+        }
+    }
+
+    // :977-1048 private static func removeWhitePlate(in rep: NSBitmapImageRep). PR-THEME-138: flood-fills a
+    // white background plate connected to any border to full transparency, and un-premultiplies the one-pixel
+    // fringe next to it against white.
+    private static void RemoveWhitePlate(WriteableBitmap rep)
+    {
+        var width = rep.PixelSize.Width;
+        var height = rep.PixelSize.Height;
+        if (width <= 0 || height <= 0) return; // :980
+        using var buffer = rep.Lock();
+        var stride = buffer.RowBytes;
+        var pixels = new byte[stride * height];
+        System.Runtime.InteropServices.Marshal.Copy(buffer.Address, pixels, 0, pixels.Length);
+        (int R, int G, int B, int A) At(int x, int y)
+        {
+            var i = y * stride + x * 4; // Bgra8888
+            return (pixels[i + 2], pixels[i + 1], pixels[i], pixels[i + 3]); // :981-984 (r, g, b, a) 0-255
+        }
+        void Set(int x, int y, byte r, byte g, byte b, byte a)
+        {
+            var i = y * stride + x * 4;
+            pixels[i] = b; pixels[i + 1] = g; pixels[i + 2] = r; pixels[i + 3] = a;
+        }
+        bool IsWhite((int R, int G, int B, int A) p) // :986-990
+        {
+            if (p.A <= 200) return false;
+            var lo = Math.Min(p.R, Math.Min(p.G, p.B));
+            var hi = Math.Max(p.R, Math.Max(p.G, p.B));
+            return lo >= 236 && hi - lo <= 20;
+        }
+        var plate = new bool[width * height]; // :992
+        var stack = new Stack<int>(); // :993
+        for (var x = 0; x < width; x++) // :994-1000
+        {
+            foreach (var y in new[] { 0, height - 1 })
+            {
+                var idx = y * width + x;
+                if (!plate[idx] && IsWhite(At(x, y))) { plate[idx] = true; stack.Push(idx); }
+            }
+        }
+        for (var y = 0; y < height; y++) // :1002-1008
+        {
+            foreach (var x in new[] { 0, width - 1 })
+            {
+                var idx = y * width + x;
+                if (!plate[idx] && IsWhite(At(x, y))) { plate[idx] = true; stack.Push(idx); }
+            }
+        }
+        while (stack.Count > 0) // :1010-1019
+        {
+            var idx = stack.Pop();
+            var x = idx % width;
+            var y = idx / width;
+            foreach (var (nx, ny) in new[] { (x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1) })
+            {
+                if (nx < 0 || nx >= width || ny < 0 || ny >= height) continue;
+                var nidx = ny * width + nx;
+                if (plate[nidx]) continue;
+                if (!IsWhite(At(nx, ny))) continue;
+                plate[nidx] = true;
+                stack.Push(nidx);
+            }
+        }
+        for (var y = 0; y < height; y++) // :1021-1047
+        {
+            for (var x = 0; x < width; x++)
+            {
+                var (r, g, b, _) = At(x, y);
+                var lo = Math.Min(r, Math.Min(g, b));
+                if (plate[y * width + x]) // :1030-1032
+                {
+                    Set(x, y, (byte)r, (byte)g, (byte)b, 0);
+                    continue;
+                }
+                var hasPlateNeighbour = // :1034-1037
+                    (x + 1 < width && plate[y * width + x + 1]) ||
+                    (x - 1 >= 0 && plate[y * width + x - 1]) ||
+                    (y + 1 < height && plate[(y + 1) * width + x]) ||
+                    (y - 1 >= 0 && plate[(y - 1) * width + x]);
+                if (!hasPlateNeighbour || lo < 160) continue; // :1038
+                var alpha = 1 - lo / 255.0; // :1039
+                if (alpha <= 0.02) // :1040-1042
+                {
+                    Set(x, y, (byte)r, (byte)g, (byte)b, 0);
+                    continue;
+                }
+                double Unpremult(double v) => Math.Min(1, Math.Max(0, (v / 255 - (1 - alpha)) / alpha)); // :1044-1046
+                Set(x, y,
+                    (byte)Math.Round(Unpremult(r) * 255, MidpointRounding.AwayFromZero),
+                    (byte)Math.Round(Unpremult(g) * 255, MidpointRounding.AwayFromZero),
+                    (byte)Math.Round(Unpremult(b) * 255, MidpointRounding.AwayFromZero),
+                    (byte)Math.Round(alpha * 255, MidpointRounding.AwayFromZero)); // :1047
+            }
+        }
+        System.Runtime.InteropServices.Marshal.Copy(pixels, 0, buffer.Address, pixels.Length);
+    }
 
     // :1051-1054 private static let privateSuffixes
     private static ValueList<string> PrivateSuffixes { get; } = new(
@@ -892,13 +1233,46 @@ public static class FaviconCache
         ".lan", ".home", ".home.arpa", ".test", ".invalid", ".corp",
     ]);
 
-    // :1059-1082 static func isPublic(host: String) -> Bool
-    public static bool IsPublic(string host) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:1059");
+    // :1059-1082 static func isPublic(host: String) -> Bool. PR-THEME-137: rejects empty/localhost, an IPv6
+    // literal, a private suffix, a host with no dot, and the four private/CGNAT IPv4 ranges.
+    public static bool IsPublic(string host)
+    {
+        if (host.Length == 0 || host == "localhost") return false; // :1060
+        if (host.Contains(':', StringComparison.Ordinal)) return false; // :1063
+        foreach (var suffix in PrivateSuffixes) // :1064
+        {
+            if (SwiftString.HasSuffix(host, suffix)) return false;
+        }
+        if (!host.Contains('.', StringComparison.Ordinal)) return false; // :1067
+        var labels = host.Split('.'); // :1068 omittingEmptySubsequences: false
+        var octets = new List<int>();
+        foreach (var label in labels) // :1070-1073
+        {
+            if (SwiftNumber.ParseInt(label) is not { } value || value < 0 || value > 255) break;
+            octets.Add((int)value);
+        }
+        if (octets.Count != 4 || octets.Count != labels.Length) return true; // :1074
+        return (octets[0], octets[1]) switch // :1075-1080
+        {
+            (0, _) or (10, _) or (127, _) => false,
+            (169, 254) or (192, 168) => false,
+            (172, >= 16 and <= 31) => false,
+            (100, >= 64 and <= 127) => false, // Carrier-grade NAT.
+            _ => true,
+        };
+    }
 
-    // :1084-1098 private static func resizedIcon(_ image: NSImage) -> NSImage
-    private static IImage ResizedIcon(IImage image) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:1084");
+    // :1084-1098 private static func resizedIcon(_ image: NSImage) -> NSImage. PR-THEME-138: rendered at 28 by
+    // 28 pixels, declared at 14 by 14 points -- a two-times bitmap. Avalonia has no separate "declared size"; the
+    // 28-pixel bitmap with DPI 192 (2x of 96) reports itself as 14 by 14 device-independent units, matching.
+    private static IImage ResizedIcon(IImage image)
+    {
+        if (image is not Bitmap source) return image; // :1085 guard let rep = NSBitmapImageRep(...) else { return image }
+        var rep = new WriteableBitmap(new PixelSize(28, 28), new Vector(192, 192),
+            PixelFormat.Bgra8888, AlphaFormat.Unpremul); // :1086-1088
+        DrawScaled(source, rep, 28, 28); // :1089-1095
+        return rep; // :1096-1098 (declared size 14x14 == 28px / (192/96))
+    }
 }
 
 /// <summary>:1101-1243 <c>struct InlineText: View</c>: one paragraph of inline markdown, as a link text view when it
