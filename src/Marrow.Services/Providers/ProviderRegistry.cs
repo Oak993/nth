@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
@@ -64,8 +65,9 @@ public sealed record ProviderStatus
     }
 }
 
-// :30-879. @MainActor @Observable -> MainActorModel (R-ISO-1, R-OBS-6).
-public sealed class ProviderRegistry : MainActorModel
+// :30-879. @MainActor @Observable -> MainActorModel (R-ISO-1, R-OBS-6). Partial: [GeneratedRegex] members
+// (R-RE-1) require the declaring class to be partial.
+public sealed partial class ProviderRegistry : MainActorModel
 {
     private ValueMap<ProviderKind, ProviderStatus> statuses = ValueMap<ProviderKind, ProviderStatus>.Empty;
     private ValueMap<ProviderKind, ValueList<ModelOption>> catalogs = ValueMap<ProviderKind, ValueList<ModelOption>>.Empty;
@@ -418,13 +420,221 @@ public sealed class ProviderRegistry : MainActorModel
     public Task RefreshEverything() =>
         throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ProviderRegistry.swift:315");
 
-    // :340-356
-    public Task RefreshAll() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ProviderRegistry.swift:340");
+    // :335-338. How many providers are checked at the same time.
+    private const int ProbeWidth = 4;
+
+    // :340-356. R-TASK-5: withTaskGroup(of: Void.self) -> TaskGroup.Run; addTask -> AddTask; for await _ in
+    // group -> while (await group.Next()).
+    public async Task RefreshAll()
+    {
+        var providers = SwiftEnum<ProviderKind>.AllCases; // :341
+        var next = 0;
+        await TaskGroup.Run(async group =>
+        {
+            while (next < providers.Count && next < ProbeWidth) // :344
+            {
+                var provider = providers[next];
+                // R-TASK-5, R-ISO-4: the child body hops onto the main actor for Refresh's own state
+                // mutations (Swift: `self.refresh(provider)`, a MainActor-isolated call, hops implicitly).
+                group.AddTask(() => MainActor.Invoke(() => Refresh(provider))); // :346
+                next++; // :347
+            }
+            while (await group.Next()) // :349
+            {
+                if (next >= providers.Count) continue; // :350
+                var provider = providers[next]; // :351
+                next++; // :352
+                group.AddTask(() => MainActor.Invoke(() => Refresh(provider))); // :353
+            }
+        });
+    }
 
     // :358-378
-    public Task Refresh(ProviderKind provider) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ProviderRegistry.swift:358");
+    public async Task Refresh(ProviderKind provider)
+    {
+        var status = statuses.TryGetValue(provider, out var existing) ? existing : new ProviderStatus(); // :359
+        status = status with { IsChecking = true }; // :360
+        statuses = statuses.Mutating(d => d[provider] = status); // :361
+        if (provider.IsAPIKeyBased) // :362
+        {
+            await RefreshAPIProvider(provider); // :363
+            return; // :364
+        }
+        await LoginEnvironment.Load(); // :366
+        var executable = Executable(provider); // :367
+        if (executable is null)
+        {
+            statuses = statuses.Mutating(d => d[provider] = new ProviderStatus()); // :368
+            return; // :369
+        }
+        var environment = Environment(provider); // :371
+        // :372-374. Both probes spawn the CLI: run one after the other, not together.
+        var version = await Version(executable.Path, environment); // :375
+        var auth = await Auth(provider, executable, environment); // :376
+        statuses = statuses.Mutating(d => d[provider] = new ProviderStatus // :377
+        {
+            Executable = executable,
+            Version = version,
+            ProviderStatusAuth = auth,
+        });
+    }
+
+    // :788-796. Swift: version(_:_:).
+    internal static async Task<string?> Version(string executable, IReadOnlyDictionary<string, string> environment)
+    {
+        var result = await SwiftTry.OptionalAsync<ShellResult>(async () =>
+            await Shell.Run(executable, ["--version"], environment: environment, timeout: 20)); // :789-790
+        if (result is not { Succeeded: true }) return null;
+        var text = TextCleanup.StripANSI(result.Output + result.ErrorOutput); // :791
+        var match = VersionPattern().Match(text); // :792-794
+        return match.Success ? match.Value : null; // :795
+    }
+
+    // :792. \d+\.\d+(?:\.\d+)?(?:[-.][0-9A-Za-z]+)?
+    [GeneratedRegex(@"\d+\.\d+(?:\.\d+)?(?:[-.][0-9A-Za-z]+)?", RegexOptions.CultureInvariant)]
+    private static partial Regex VersionPattern();
+
+    // :798-867. Swift: auth(_:_:_:). Kept internal, matching the convention this file's dependency
+    // (ClaudeSession.cs) already uses, so this part's tests can call it directly without going through
+    // Refresh's executable resolution.
+    internal static async Task<ProviderStatus.Auth> Auth(ProviderKind provider, SwiftURL executable, IReadOnlyDictionary<string, string> environment)
+    {
+        switch (provider)
+        {
+            case ProviderKind.Codex: // :799-805
+            {
+                var result = await SwiftTry.OptionalAsync<ShellResult>(async () =>
+                    await Shell.Run(executable.Path, ["login", "status"], environment: environment, timeout: 20));
+                if (result is null) return new ProviderStatus.Auth.Unknown();
+                var text = result.Output + result.ErrorOutput;
+                return result.Succeeded && SwiftString.LocalizedCaseInsensitiveContains(text, "logged in")
+                    ? new ProviderStatus.Auth.SignedIn(null)
+                    : new ProviderStatus.Auth.SignedOut();
+            }
+            case ProviderKind.Claude: // :806-809
+            {
+                var result = await SwiftTry.OptionalAsync<ShellResult>(async () =>
+                    await Shell.Run(executable.Path, ["auth", "status"], environment: environment, timeout: 20));
+                var json = result is null ? null : JSONValue.Parse(result.Stdout);
+                if (json is null) return new ProviderStatus.Auth.Unknown();
+                return json["loggedIn"]?.JSONValueBool == true
+                    ? new ProviderStatus.Auth.SignedIn(json["email"]?.JSONValueString)
+                    : new ProviderStatus.Auth.SignedOut();
+            }
+            case ProviderKind.Cursor: // :810-816
+            {
+                var result = await SwiftTry.OptionalAsync<ShellResult>(async () =>
+                    await Shell.Run(executable.Path, ["status"], environment: environment, timeout: 20));
+                if (result is null) return new ProviderStatus.Auth.Unknown();
+                var text = TextCleanup.StripANSI(result.Output + result.ErrorOutput);
+                var match = CursorAccountPattern().Match(text);
+                if (match.Success) return new ProviderStatus.Auth.SignedIn(match.Groups[1].Value);
+                return SwiftString.LocalizedCaseInsensitiveContains(text, "not logged in")
+                    ? new ProviderStatus.Auth.SignedOut()
+                    : new ProviderStatus.Auth.Unknown();
+            }
+            case ProviderKind.Devin: // :817-824
+            {
+                var result = await SwiftTry.OptionalAsync<ShellResult>(async () =>
+                    await Shell.Run(executable.Path, ["auth", "status"], environment: environment, timeout: 20));
+                if (result is null) return new ProviderStatus.Auth.Unknown();
+                var text = TextCleanup.StripANSI(result.Output + result.ErrorOutput);
+                if (SwiftString.LocalizedCaseInsensitiveContains(text, "not logged in")) return new ProviderStatus.Auth.SignedOut();
+                if (!SwiftString.LocalizedCaseInsensitiveContains(text, "logged in")) return new ProviderStatus.Auth.Unknown();
+                return new ProviderStatus.Auth.SignedIn(DevinAccount(text));
+            }
+            case ProviderKind.Antigravity: // :825
+                return await AntigravitySession.AuthStatus(executable, environment);
+            case ProviderKind.Copilot: // :827
+                return await CopilotSession.AuthStatus(executable, environment);
+            case ProviderKind.Commandcode: // :829
+                return await CommandCodeAPI.AuthStatus(executable, environment);
+            case ProviderKind.Pi: // :831
+                return await PiCLI.AuthStatus(executable, environment);
+            case ProviderKind.Opencode: // :833-851
+            case ProviderKind.OpencodeGo:
+            {
+                var result = await SwiftTry.OptionalAsync<ShellResult>(async () =>
+                    await Shell.Run(executable.Path, ["auth", "list"], environment: environment, timeout: 20));
+                if (result is null) return new ProviderStatus.Auth.Unknown();
+                var text = TextCleanup.StripANSI(result.Output + result.ErrorOutput); // :834
+                var lines = text.Split("\n"); // :835. O-13: components(separatedBy: "\n").
+                var credentialLines = lines.TakeWhile(line => !line.Contains("Environment", StringComparison.Ordinal)); // :835
+                var credentials = new List<string>();
+                foreach (var rawLine in credentialLines) // :836-844
+                {
+                    var trimmed = FoundationText.Trim(rawLine); // :837
+                    if (!SwiftString.HasPrefix(trimmed, "\U000025CF")) continue; // U+25CF BLACK CIRCLE, :838
+                    var name = FoundationText.Trim(SwiftString.DropFirst(trimmed)); // :839
+                    foreach (var suffix in new[] { " api", " oauth" }) // :840
+                    {
+                        if (SwiftString.HasSuffix(SwiftString.Lowercased(name), suffix)) name = SwiftString.DropLast(name, suffix.Length); // :841
+                    }
+                    if (name.Length != 0) credentials.Add(name); // :843
+                }
+                // :846-848. Go carries its own credential in the one auth file; Zen is whatever else is there.
+                var chosen = provider == ProviderKind.OpencodeGo
+                    ? credentials.FirstOrDefault(credential => SwiftString.LocalizedCaseInsensitiveContains(credential, "opencode go"))
+                    : credentials.FirstOrDefault();
+                if (chosen is not null) return new ProviderStatus.Auth.SignedIn(chosen); // :849-850
+                return result.Succeeded ? new ProviderStatus.Auth.SignedOut() : new ProviderStatus.Auth.Unknown(); // :851
+            }
+            case ProviderKind.Grok: // :852-863
+            {
+                var path = testGrokAuthPath ?? SwiftPath.AppendingPathComponent(LoginEnvironment.HomeDirectory, ".grok/auth.json");
+                var data = SwiftTry.Optional(() => File.ReadAllBytes(path));
+                using var document = data is null ? null : SwiftTry.Optional(() => JsonDocument.Parse(data));
+                if (document is null || document.RootElement.ValueKind != JsonValueKind.Object) return new ProviderStatus.Auth.Unknown(); // :854
+                var properties = document.RootElement.EnumerateObject().ToList();
+                if (properties.Count == 0) return new ProviderStatus.Auth.SignedOut(); // :855
+                var entries = properties.Select(property => property.Value).Where(value => value.ValueKind == JsonValueKind.Object).ToList(); // :856
+                if (Field(entries, "email") is { } email) return new ProviderStatus.Auth.SignedIn(email); // :857-859
+                if (Field(entries, "first_name") is { } firstName) return new ProviderStatus.Auth.SignedIn(firstName); // :860-862
+                return new ProviderStatus.Auth.SignedIn(null); // :863
+            }
+            case ProviderKind.Deepseek: // :864-865
+            case ProviderKind.Meta:
+            case ProviderKind.Zai:
+                return new ProviderStatus.Auth.Unknown();
+            default:
+                throw new UnreachableException();
+        }
+    }
+
+    // :815. Logged in as (\S+)
+    [GeneratedRegex(@"Logged in as (\S+)", RegexOptions.CultureInvariant)]
+    private static partial Regex CursorAccountPattern();
+
+    // :857-862. The first non-empty string field across the entries, or null.
+    private static string? Field(IReadOnlyList<JsonElement> entries, string key)
+    {
+        foreach (var entry in entries)
+        {
+            if (entry.TryGetProperty(key, out var value) && value.ValueKind == JsonValueKind.String && value.GetString() is { Length: > 0 } text) return text;
+        }
+        return null;
+    }
+
+    // PORT-ONLY testing support (matching MCPSessionOverrides.cs's convention): overrides the Grok auth.json
+    // path so PR-PROVREG-121/122's tests never read %USERPROFILE%\.grok\auth.json.
+    private static string? testGrokAuthPath;
+
+    internal static void SetGrokAuthPathForTesting(string path) => testGrokAuthPath = path;
+
+    internal static void ResetGrokAuthPathForTesting() => testGrokAuthPath = null;
+
+    // :869-878. Swift: devinAccount(from:).
+    private static string? DevinAccount(string text)
+    {
+        foreach (var line in SwiftString.ComponentsSeparatedByNewlines(text)) // :870
+        {
+            var trimmed = line.Trimmed(); // :871
+            if (!SwiftString.HasPrefix(SwiftString.Lowercased(trimmed), "name:")) continue; // :872
+            var name = FoundationText.Trim(SwiftString.DropFirst(trimmed, "name:".Length)); // :873
+            return name.Length == 0 ? null : name; // :874
+        }
+        return null; // :876
+    }
 
     // :380-425. Private in Swift; kept internal so this part's tests (PR-PROVAPI-088) can call it directly,
     // the same convention ClaudeSession.cs already uses for its own private-in-Swift members. Called by
