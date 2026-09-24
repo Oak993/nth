@@ -102,7 +102,7 @@ public sealed class WallpaperStore : MainActorModel
         get => Read(softness);
         set => Set(ref softness, value, _ =>
         {
-            var clamped = Math.Min(1, Math.Max(0, Softness));
+            var clamped = Softness >= 0 ? (Softness < 1 ? Softness : 1) : 0;
             if (clamped != Softness)
             {
                 Softness = clamped;
@@ -140,7 +140,7 @@ public sealed class WallpaperStore : MainActorModel
     private WallpaperStore()
     {
         var stored = Plist.AsDouble(UserDefaults.Standard.Current.Object(Key.Softness)) ?? 0;
-        softness = Math.Min(1, Math.Max(0, stored));
+        softness = stored >= 0 ? (stored < 1 ? stored : 1) : 0;
 
         var name = UserDefaults.Standard.Current.String(Key.File);
         if (name is null || name.Length == 0) return;
@@ -312,7 +312,7 @@ public sealed class WallpaperStore : MainActorModel
     public static DecodedBitmap? Blurred(DecodedBitmap @base, double softness, double radiusScale = 1)
     {
         var radius = softness * 28 * radiusScale;
-        if (radius <= 0.01) return @base;
+        if (!(radius > 0.01)) return @base;
 
         var sigma = radius;
         var extent = checked((int)Math.Ceiling(sigma * 3));
