@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json;
 using Avalonia;
 using Marrow.App.Tests.Fixtures;
+using Marrow.App.Views.Chat;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
@@ -244,6 +245,18 @@ public sealed class AppSettingsTests
 
     [Fact]
     [Trait("Req", "PR-HYDRA-029")] // App/AppSettings.swift:752-785
+    [Trait("Req", "PR-SETTINGS-062")] // App/AppSettings.swift:156, :529-531, :752 (hydraEnabled defaults to true)
+    [Trait("Req", "PR-SETTINGS-063")] // App/AppSettings.swift:158, :536-538, :753 (hydraDefaultEnabled defaults to true)
+    [Trait("Req", "PR-SETTINGS-066")] // App/AppSettings.swift:159, :551-553, :759 (hydraQueueHeads defaults to true)
+    [Trait("Req", "PR-SETTINGS-067")] // App/AppSettings.swift:160, :558-560, :760 (hydraAlwaysHeads defaults to false)
+    [Trait("Req", "PR-SETTINGS-068")] // App/AppSettings.swift:161, :565-567, :761 (hydraIsolateHeads defaults to true)
+    [Trait("Req", "PR-SETTINGS-070")] // App/AppSettings.swift:162, :583-585, :763 (hydraAutoMerge defaults to false)
+    [Trait("Req", "PR-SETTINGS-071")] // App/AppSettings.swift:163, :589-591, :764 (hydraReviewHeads defaults to false)
+    [Trait("Req", "PR-SETTINGS-072")] // App/AppSettings.swift:164, :595-597, :765 (hydraAutoClearFinished defaults to false)
+    [Trait("Req", "PR-SETTINGS-073")] // App/AppSettings.swift:165, :602-604, :766 (hydraAutoHidesIdleHeads defaults to false)
+    [Trait("Req", "PR-SETTINGS-074")] // App/AppSettings.swift:166, :609-611, :767 (hydraShowsHeadDetails defaults to false)
+    [Trait("Req", "PR-SETTINGS-075")] // App/AppSettings.swift:167, :615-617, :768 (hydraAutoPopsHeads defaults to false)
+    [Trait("Req", "PR-SETTINGS-076")] // App/AppSettings.swift:168, :623-625, :769 (hydraTempersHeadEffort defaults to true)
     public void Hydra_settings_start_with_Hydra_on_and_the_upstream_defaults() => WithSettings((scope, settings) =>
     {
         Assert.True(settings.HydraEnabled);
@@ -265,6 +278,19 @@ public sealed class AppSettingsTests
 
     [Fact]
     [Trait("Req", "PR-HYDRA-029")] // App/AppSettings.swift:156-177, :529-625
+    [Trait("Req", "PR-SETTINGS-062")] // App/AppSettings.swift:156, :529-531 (hydraEnabled writes at once and reads back)
+    [Trait("Req", "PR-SETTINGS-063")] // App/AppSettings.swift:158, :536-538 (hydraDefaultEnabled writes at once and reads back)
+    [Trait("Req", "PR-SETTINGS-066")] // App/AppSettings.swift:159, :551-553 (hydraQueueHeads writes at once and reads back)
+    [Trait("Req", "PR-SETTINGS-067")] // App/AppSettings.swift:160, :558-560 (hydraAlwaysHeads writes at once and reads back)
+    [Trait("Req", "PR-SETTINGS-068")] // App/AppSettings.swift:161, :565-567 (hydraIsolateHeads writes at once and reads back)
+    [Trait("Req", "PR-SETTINGS-070")] // App/AppSettings.swift:162, :583-585 (hydraAutoMerge writes at once and reads back)
+    [Trait("Req", "PR-SETTINGS-071")] // App/AppSettings.swift:163, :589-591 (hydraReviewHeads writes at once and reads back)
+    [Trait("Req", "PR-SETTINGS-072")] // App/AppSettings.swift:164, :595-597 (hydraAutoClearFinished writes at once and reads back)
+    [Trait("Req", "PR-SETTINGS-073")] // App/AppSettings.swift:165, :602-604 (hydraAutoHidesIdleHeads writes at once and reads back)
+    [Trait("Req", "PR-SETTINGS-074")] // App/AppSettings.swift:166, :609-611 (hydraShowsHeadDetails writes at once and reads back)
+    [Trait("Req", "PR-SETTINGS-075")] // App/AppSettings.swift:167, :615-617 (hydraAutoPopsHeads writes at once and reads back)
+    [Trait("Req", "PR-SETTINGS-076")] // App/AppSettings.swift:168, :623-625 (hydraTempersHeadEffort writes at once and reads back)
+    [Trait("Req", "PR-SETTINGS-085")] // App/AppSettings.swift:110-112, :184 (every write persists at once, in the property's own didSet, no save step)
     public void Each_Hydra_switch_is_written_under_its_exact_key_at_once_and_read_back_after_a_relaunch() => WithSettings((scope, settings) =>
     {
         foreach (var (key, fallback, get, set) in HydraSwitches)
@@ -300,6 +326,7 @@ public sealed class AppSettingsTests
     [InlineData(0L, 1L)]
     [InlineData(-4L, 1L)]
     [Trait("Req", "PR-HYDRA-029")] // App/AppSettings.swift:762; Core/Models/Hydra.swift:109-111
+    [Trait("Req", "PR-SETTINGS-069")] // App/AppSettings.swift:169, :571-579, :762 (clamped into 1...8 on read)
     public void A_stored_hydraMaxHeads_is_clamped_into_one_to_eight_when_read(long stored, long expected)
     {
         using var scope = AppSettingsScope.Create();
@@ -318,6 +345,7 @@ public sealed class AppSettingsTests
 
     [Fact]
     [Trait("Req", "PR-HYDRA-029")] // App/AppSettings.swift:571-579
+    [Trait("Req", "PR-SETTINGS-069")] // App/AppSettings.swift:169, :571-579 (no cap is genuinely absent from the store, nil removes the key)
     public void Setting_hydraMaxHeads_writes_the_number_and_setting_nil_removes_the_key() => WithSettings((scope, settings) =>
     {
         settings.HydraMaxHeads = 4;
@@ -334,6 +362,7 @@ public sealed class AppSettingsTests
 
     [Fact]
     [Trait("Req", "PR-HYDRA-029")] // App/AppSettings.swift:785; Core/Models/Hydra.swift:82-94
+    [Trait("Req", "PR-SETTINGS-084")] // App/AppSettings.swift:177, :785 (the only lenient decode: one corrupt element is dropped, not the whole array)
     public void A_stored_pair_that_fails_to_decode_is_dropped_and_the_others_survive_in_order()
     {
         using var scope = AppSettingsScope.Create();
@@ -373,6 +402,7 @@ public sealed class AppSettingsTests
 
     [Fact]
     [Trait("Req", "PR-HYDRA-029")] // App/AppSettings.swift:699-701, :790-792, :785
+    [Trait("Req", "PR-SETTINGS-084")] // App/AppSettings.swift:177, :699-701, :785 (hydraPairs writes at once and reads back)
     public void An_added_pair_is_written_under_hydraPairs_and_read_back_after_a_relaunch() => WithSettings((scope, settings) =>
     {
         var pair = new HydraPair(ProviderKind.Claude) with { OrchestratorModel = "opus", MaxHeads = 5 };
@@ -1348,6 +1378,156 @@ public sealed class AppSettingsTests
         scope.Relaunch();
         Assert.Equal(new ModelPreference(), new AppSettings().Preference(ProviderKind.Codex, "model-a"));
     });
+
+    // ---- PR-SETTINGS-064 to PR-SETTINGS-085 (part 3 of 5) ---------------------------------------------------------
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-064")] // App/AppSettings.swift:178, :540-542, :754
+    public void HasSeenTour_is_stored_under_hasSeenTour_and_defaults_to_false() =>
+        AssertBoolSetting("hasSeenTour", false, s => s.HasSeenTour, (s, v) => s.HasSeenTour = v);
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-065")] // App/AppSettings.swift:179, :545-547, :755
+    public void HasSeenHydraIntro_is_stored_under_hasSeenHydraIntro_and_defaults_to_false() =>
+        AssertBoolSetting("hasSeenHydraIntro", false, s => s.HasSeenHydraIntro, (s, v) => s.HasSeenHydraIntro = v);
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-077")] // App/AppSettings.swift:170, :631-633, :770
+    public void ShowsUsagePanel_is_stored_under_showsUsagePanel_and_defaults_to_false() =>
+        AssertBoolSetting("showsUsagePanel", false, s => s.ShowsUsagePanel, (s, v) => s.ShowsUsagePanel = v);
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-078")] // App/AppSettings.swift:171, :637-639, :771
+    public void SidebarFloats_is_stored_under_sidebarFloats_and_defaults_to_false() =>
+        AssertBoolSetting("sidebarFloats", false, s => s.SidebarFloats, (s, v) => s.SidebarFloats = v);
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-079")] // App/AppSettings.swift:172, :643-645, :772
+    public void SidebarOnlyFloats_is_stored_under_sidebarOnlyFloats_and_defaults_to_false() =>
+        AssertBoolSetting("sidebarOnlyFloats", false, s => s.SidebarOnlyFloats, (s, v) => s.SidebarOnlyFloats = v);
+
+    [Fact]
+    [Trait("Rule", "R-COND-1")] // App/AppSettings.swift:648-657, computed from sidebarFloats and sidebarOnlyFloats
+    public void SidebarMode_is_the_computed_pair_of_the_two_sidebar_switches() => WithSettings((_, settings) =>
+    {
+        Assert.Equal(Marrow.App.SidebarMode.Column, settings.SidebarMode);
+
+        settings.SidebarMode = Marrow.App.SidebarMode.Floating;
+        Assert.True(settings.SidebarFloats);
+        Assert.False(settings.SidebarOnlyFloats);
+        Assert.Equal(Marrow.App.SidebarMode.Floating, settings.SidebarMode);
+
+        settings.SidebarMode = Marrow.App.SidebarMode.PanelOnly;
+        Assert.True(settings.SidebarFloats);
+        Assert.True(settings.SidebarOnlyFloats);
+        Assert.Equal(Marrow.App.SidebarMode.PanelOnly, settings.SidebarMode);
+
+        // sidebarFloats false and sidebarOnlyFloats true is reachable in the store but reads back as .column.
+        settings.SidebarOnlyFloats = true;
+        settings.SidebarFloats = false;
+        Assert.Equal(Marrow.App.SidebarMode.Column, settings.SidebarMode);
+
+        settings.SidebarMode = Marrow.App.SidebarMode.Column;
+        Assert.False(settings.SidebarFloats);
+        Assert.False(settings.SidebarOnlyFloats);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-080")] // App/AppSettings.swift:173, :660-668, :773-777
+    public void SidebarPanelOrigin_persists_as_a_two_element_array_and_nil_removes_the_key() => WithSettings((scope, settings) =>
+    {
+        Assert.Null(settings.SidebarPanelOrigin);
+        Assert.Null(scope.Defaults.Object("sidebarPanelOrigin"));
+
+        settings.SidebarPanelOrigin = new Point(12.5, -3.25);
+        Assert.Equal(new List<object> { 12.5, -3.25 }, scope.Defaults.Object("sidebarPanelOrigin"));
+        scope.Relaunch();
+        Assert.Equal(new Point(12.5, -3.25), new AppSettings().SidebarPanelOrigin);
+
+        var relaunched = new AppSettings();
+        relaunched.SidebarPanelOrigin = null;
+        Assert.Equal([("remove", "sidebarPanelOrigin")], scope.Defaults.Writes[^1..]);
+        Assert.Null(scope.Defaults.Object("sidebarPanelOrigin"));
+        scope.Relaunch();
+        Assert.Null(new AppSettings().SidebarPanelOrigin);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-080")] // App/AppSettings.swift:773-777 (`stored.count == 2` else nil)
+    public void An_array_of_the_wrong_length_leaves_SidebarPanelOrigin_nil()
+    {
+        using var scope = AppSettingsScope.Create();
+        scope.Defaults.Seed("sidebarPanelOrigin", new List<object> { 12.5 });
+        scope.OnMain(() => Assert.Null(new AppSettings().SidebarPanelOrigin));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-081")] // App/AppSettings.swift:174, :671-679, :778-782
+    public void SidebarPanelSize_persists_as_a_two_element_array_and_nil_removes_the_key() => WithSettings((scope, settings) =>
+    {
+        Assert.Null(settings.SidebarPanelSize);
+        Assert.Null(scope.Defaults.Object("sidebarPanelSize"));
+
+        settings.SidebarPanelSize = new Size(320, 480);
+        Assert.Equal(new List<object> { 320.0, 480.0 }, scope.Defaults.Object("sidebarPanelSize"));
+        scope.Relaunch();
+        Assert.Equal(new Size(320, 480), new AppSettings().SidebarPanelSize);
+
+        var relaunched = new AppSettings();
+        relaunched.SidebarPanelSize = null;
+        Assert.Equal([("remove", "sidebarPanelSize")], scope.Defaults.Writes[^1..]);
+        Assert.Null(scope.Defaults.Object("sidebarPanelSize"));
+        scope.Relaunch();
+        Assert.Null(new AppSettings().SidebarPanelSize);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-081")] // App/AppSettings.swift:778-782 (`stored.count == 2` else nil)
+    public void An_array_of_the_wrong_length_leaves_SidebarPanelSize_nil()
+    {
+        using var scope = AppSettingsScope.Create();
+        scope.Defaults.Seed("sidebarPanelSize", new List<object> { 320.0 });
+        scope.OnMain(() => Assert.Null(new AppSettings().SidebarPanelSize));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-082")] // App/AppSettings.swift:175, :683-685, :783
+    public void UsagePanelDock_is_stored_under_usagePanelDock_and_defaults_to_bottomLeading() =>
+        AssertRawValueSetting("usagePanelDock", PanelDockCorner.BottomLeading, s => s.UsagePanelDock, (s, v) => s.UsagePanelDock = v,
+        [
+            (PanelDockCorner.TopLeading, "topLeading"), (PanelDockCorner.TopTrailing, "topTrailing"),
+            (PanelDockCorner.BottomTrailing, "bottomTrailing"), (PanelDockCorner.BottomLeading, "bottomLeading"),
+        ]);
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-083")] // App/AppSettings.swift:176, :688-696, :784
+    public void UsagePanelHeight_persists_as_a_Double_and_nil_removes_the_key() => WithSettings((scope, settings) =>
+    {
+        Assert.Null(settings.UsagePanelHeight);
+        Assert.Null(scope.Defaults.Object("usagePanelHeight"));
+
+        settings.UsagePanelHeight = 212.5;
+        Assert.Equal(212.5, scope.Defaults.Object("usagePanelHeight"));
+        Assert.Equal([("set", "usagePanelHeight")], scope.Defaults.Writes[^1..]);
+        scope.Relaunch();
+        Assert.Equal(212.5, new AppSettings().UsagePanelHeight);
+
+        var relaunched = new AppSettings();
+        relaunched.UsagePanelHeight = null;
+        Assert.Equal([("remove", "usagePanelHeight")], scope.Defaults.Writes[^1..]);
+        Assert.Null(scope.Defaults.Object("usagePanelHeight"));
+        scope.Relaunch();
+        Assert.Null(new AppSettings().UsagePanelHeight);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-083")] // App/AppSettings.swift:784 (`as? Double` fails the wrong type, nil, not clamped)
+    public void A_usagePanelHeight_of_the_wrong_type_reads_as_nil_and_is_never_clamped()
+    {
+        using var scope = AppSettingsScope.Create();
+        scope.Defaults.Seed("usagePanelHeight", "212.5");
+        scope.OnMain(() => Assert.Null(new AppSettings().UsagePanelHeight));
+    }
 
     // ---- ED-149: ModelPin as a value RowDrag can hold -----------------------------------------------------------------
 
