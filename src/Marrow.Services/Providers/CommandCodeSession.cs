@@ -554,8 +554,10 @@ public sealed class CommandCodeSession : ProviderSession
             case "compaction_done": // :404-407
             {
                 var saved = @event["tokensSaved"]?.JSONValueInt ?? 0;
+                // Int.formatted() (R-FMT-2): the ICU integer style in the current locale, not a fixed
+                // .NET format string, so the grouping separator follows the platform locale as :406 does.
                 var message = saved > 0
-                    ? $"Compacted context, freeing {saved.ToString("N0", System.Globalization.CultureInfo.CurrentCulture)} tokens."
+                    ? $"Compacted context, freeing {SwiftFormatters.Formatted(saved)} tokens."
                     : "Compacted context.";
                 OnEvent?.Invoke(new ProviderEvent.Notice(new Notice { NoticeLevel = Notice.Level.Info, Message = message }));
                 break;
