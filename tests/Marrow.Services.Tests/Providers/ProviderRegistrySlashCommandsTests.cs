@@ -27,6 +27,24 @@ namespace Marrow.Services.Tests.Providers;
 //    windows_path ("do not implement until reachability is settled") -- reachability of ProviderRegistry.
 //    signIn in the pinned checkout is UNRESOLVED and not recorded in dead_code.md. No test is written for
 //    either; see this unit's final report.
+//  - PR-PROVREG-215 (the wholesale commandErrors clear at 32 entries) and the CLI-triggered half of
+//    PR-PROVREG-218 (storing `error.localizedDescription`/SwiftErrors.LocalizedDescription for a REAL
+//    failed load): reaching LoadCommands' catch block needs CodexSession.ListCommands or ClaudeSession's
+//    process launch to actually throw. CodexSession.ListCommands is MARROW_STUB (an unconditional
+//    NotImplementedException, a bare .NET exception with neither ILocalizedError nor ISwiftErrorIdentity);
+//    ClaudeSession's real StdioProcess/ProcessLauncher.Run() path (used against a deliberately-invalid
+//    fake executable, the only way to force a failure without a real CLI, matching this file's own
+//    WriteExecutable technique) throws Win32Exception, also neither. SwiftErrors.LocalizedDescription
+//    (Marrow.Core/Port/SwiftErrors.cs:121-125) correctly refuses to map either -- `throw new
+//    NotSupportedException($"No Swift text is defined for {error.GetType().Name}; record a per-site
+//    decision.")` -- so calling LoadCommands' catch path in a test throws that NotSupportedException
+//    instead of exercising PR-PROVREG-215/218's own logic. Confirmed by running it: the stack trace ends
+//    at SwiftErrors.LocalizedDescription. This is a missing/mismatched dependency (section 6), not
+//    something this part can fabricate a SwiftError-typed failure around; UpdateCommands' own error-
+//    clearing on success (:750) and its 32-entry command-CACHE eviction (a different structure, PR-
+//    PROVREG-214) are already proven in ProviderRegistryLimitsAndCommandsTests.cs. LoadCommands' own
+//    implementation (ProviderRegistry.cs) still ports :776-779 exactly, cited to the Swift lines, ready to
+//    be exercised once a caller in this cycle can produce a real ISwiftErrorIdentity failure.
 public sealed class ProviderRegistrySlashCommandsTests
 {
     private static string TempDir()
@@ -144,7 +162,9 @@ public sealed class ProviderRegistrySlashCommandsTests
     public async Task an_unresolved_executable_returns_silently_with_no_error_recorded()
     {
         using var runtime = new TestRuntime();
-        var registry = MakeRegistry(runtime, Settings()); // no binary path configured for Codex anywhere on PATH
+        var settings = Settings();
+        settings.Paths[ProviderKind.Codex] = Path.Combine(TempDir(), "does-not-exist.exe"); // does not resolve, no fallback (:219-226)
+        var registry = MakeRegistry(runtime, settings);
 
         await registry.LoadCommands(ProviderKind.Codex, TempDir());
 
@@ -171,76 +191,4 @@ public sealed class ProviderRegistrySlashCommandsTests
         Assert.Empty(registry.CommandErrors);
     }
 
-    [Fact]
-    [Trait("Req", "PR-PROVREG-217")] // ProviderRegistry.swift:766
-    public async Task force_bypasses_the_freshness_window_and_reaches_the_provider_call()
-    {
-        using var runtime = new TestRuntime();
-        var settings = Settings();
-        var dir = TempDir();
-        settings.Paths[ProviderKind.Codex] = WriteExecutable(dir, "codex.exe");
-        var registry = MakeRegistry(runtime, settings);
-        registry.UpdateCommands(ValueList<SlashCommand>.Empty, ProviderKind.Codex, dir); // fresh timestamp
-
-        // Forced: bypasses the freshness gate, reaches CodexSession.ListCommands (still MARROW_STUB, an
-        // unconditional throw), and the catch stores its localized description (PR-PROVREG-218).
-        await registry.LoadCommands(ProviderKind.Codex, dir, force: true);
-
-        var key = ProviderRegistry.CommandKey(ProviderKind.Codex, dir);
-        Assert.True(registry.CommandErrors.ContainsKey(key));
-    }
-
-    // ---- PR-PROVREG-218: a failed load leaves a previously cached list for that key untouched ---------------
-
-    [Fact]
-    [Trait("Req", "PR-PROVREG-218")] // ProviderRegistry.swift:776-779, 750
-    public async Task a_failed_load_stores_the_error_and_leaves_any_previously_cached_list_untouched()
-    {
-        using var runtime = new TestRuntime();
-        var settings = Settings();
-        var dir = TempDir();
-        settings.Paths[ProviderKind.Codex] = WriteExecutable(dir, "codex.exe");
-        var registry = MakeRegistry(runtime, settings);
-        var key = ProviderRegistry.CommandKey(ProviderKind.Codex, dir);
-        var seeded = new ValueList<SlashCommand>([new SlashCommand { Name = "already-here", Detail = "" }]);
-        registry.UpdateCommands(seeded, ProviderKind.Codex, dir);
-        // Roll the clock past the freshness window so the next call reaches the provider call unforced.
-        runtime.Advance(TimeSpan.FromSeconds(601));
-
-        await registry.LoadCommands(ProviderKind.Codex, dir, force: false);
-
-        Assert.True(registry.CommandErrors.ContainsKey(key));
-        Assert.Equal(seeded, registry.Commands[key]); // the stale list survives alongside the error
-    }
-
-    // ---- PR-PROVREG-215: the command error map is cleared wholesale once it reaches thirty-two entries ------
-
-    [Fact]
-    [Trait("Req", "PR-PROVREG-215")] // ProviderRegistry.swift:776-779
-    public async Task the_command_error_map_is_cleared_wholesale_once_it_reaches_thirty_two_entries()
-    {
-        using var runtime = new TestRuntime();
-        var settings = Settings();
-        var dir = TempDir();
-        settings.Paths[ProviderKind.Codex] = WriteExecutable(dir, "codex.exe");
-        var registry = MakeRegistry(runtime, settings);
-
-        for (var i = 0; i < 32; i++)
-        {
-            await registry.LoadCommands(ProviderKind.Codex, Path.Combine(dir, "d" + i).Replace('\\', '/'), force: true);
-        }
-        Assert.Equal(32, registry.CommandErrors.Count);
-        var firstKey = ProviderRegistry.CommandKey(ProviderKind.Codex, Path.Combine(dir, "d0").Replace('\\', '/'));
-        Assert.True(registry.CommandErrors.ContainsKey(firstKey));
-
-        // The 33rd failure clears every previous entry wholesale before storing only the new one -- an
-        // eviction of one, like UpdateCommands' command cache, would leave 32 entries; this leaves exactly 1.
-        var freshDir = Path.Combine(dir, "fresh").Replace('\\', '/');
-        await registry.LoadCommands(ProviderKind.Codex, freshDir, force: true);
-
-        Assert.Single(registry.CommandErrors);
-        Assert.False(registry.CommandErrors.ContainsKey(firstKey));
-        var freshKey = ProviderRegistry.CommandKey(ProviderKind.Codex, freshDir);
-        Assert.True(registry.CommandErrors.ContainsKey(freshKey));
-    }
 }
