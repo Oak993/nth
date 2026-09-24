@@ -6142,49 +6142,15 @@
     "App.Runtime.LimitHandoff"
    ],
    "records_total": 15,
-   "records_todo": [
-    "PR-RUNTIME-180",
-    "PR-RUNTIME-181",
-    "PR-RUNTIME-182",
-    "PR-RUNTIME-183",
-    "PR-RUNTIME-184",
-    "PR-RUNTIME-185",
-    "PR-RUNTIME-186",
-    "PR-RUNTIME-245",
-    "PR-RUNTIME-246",
-    "PR-RUNTIME-247",
-    "PR-RUNTIME-248",
-    "PR-RUNTIME-249",
-    "PR-RUNTIME-250",
-    "UI-RUNTIME-016",
-    "UI-RUNTIME-033"
-   ],
-   "parts": [
-    [
-     "PR-RUNTIME-180",
-     "PR-RUNTIME-181",
-     "PR-RUNTIME-182",
-     "PR-RUNTIME-183",
-     "PR-RUNTIME-184",
-     "PR-RUNTIME-185",
-     "PR-RUNTIME-186",
-     "PR-RUNTIME-245",
-     "PR-RUNTIME-246",
-     "PR-RUNTIME-247",
-     "PR-RUNTIME-248",
-     "PR-RUNTIME-249",
-     "PR-RUNTIME-250",
-     "UI-RUNTIME-016",
-     "UI-RUNTIME-033"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M6-054",
     "T-M6-055",
     "T-M6-056"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "App.Runtime.LimitHandoff",
@@ -15953,50 +15919,14 @@
    ],
    "intra_deps": [],
    "records_total": 16,
-   "records_todo": [
-    "PR-SETTINGS-103",
-    "PR-THEME-053",
-    "PR-THEME-054",
-    "PR-THEME-055",
-    "PR-THEME-056",
-    "PR-THEME-057",
-    "PR-THEME-058",
-    "PR-THEME-059",
-    "PR-THEME-060",
-    "PR-THEME-061",
-    "PR-THEME-062",
-    "PR-THEME-063",
-    "PR-THEME-064",
-    "PR-THEME-065",
-    "PR-THEME-066",
-    "PR-THEME-067"
-   ],
-   "parts": [
-    [
-     "PR-SETTINGS-103",
-     "PR-THEME-053",
-     "PR-THEME-054",
-     "PR-THEME-055",
-     "PR-THEME-056",
-     "PR-THEME-057",
-     "PR-THEME-058",
-     "PR-THEME-059",
-     "PR-THEME-060",
-     "PR-THEME-061",
-     "PR-THEME-062",
-     "PR-THEME-063",
-     "PR-THEME-064",
-     "PR-THEME-065",
-     "PR-THEME-066",
-     "PR-THEME-067"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M5-074",
     "T-M5-075"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "App.AppCommands",
