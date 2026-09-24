@@ -758,6 +758,9 @@ public sealed class PiSession : ProviderSession
         lastReplyText = "";
     }
 
+    /// <summary>Sets the lifecycle flag for the PR-PROVCLI-300 predicate test, without a process launch.</summary>
+    internal void TestSetStartedForTesting(bool value) => started = value;
+
     // Swift `private`; kept internal so this part's own tests can drive it without tearing down a live process
     // (per the file's established seam pattern, e.g. Handle, HandleToolEnd).
     internal void DidClose(int status) // :638-653

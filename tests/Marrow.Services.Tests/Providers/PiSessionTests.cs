@@ -274,6 +274,25 @@ public sealed class PiSessionTests
         Assert.StartsWith("Pi could not start: ", failed.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-274")] // PiSession.swift:5-6,112-133; packet requires a CRLF stand-in
+    public async Task Start_reads_crlf_delimited_handshake_response_lines()
+    {
+        using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // MCPPaths.ClaudeConfigURL reads Storage.Root (R-TEST-9)
+        var script = new PiScript("handshake-crlf");
+        script.Reply(0, "{\"type\":\"response\",\"id\":\"droppy-1\",\"data\":{\"sessionFile\":\"session-1.json\"}}\r");
+        script.Reply(1, "{\"type\":\"response\",\"id\":\"droppy-2\",\"data\":{\"commands\":[{\"name\":\"compact\"}]}}\r");
+        var (session, events) = Make(Config(script));
+
+        var id = runtime.Loop.Run(() => session.Start(), TimeSpan.FromSeconds(30));
+
+        Assert.Equal("session-1.json", id);
+        Assert.Equal(2, script.StdinLines().Count); // both CRLF responses completed the normal two-request handshake
+        Assert.Single(events.OfType<ProviderEvent.SessionReady>());
+        Assert.Equal("compact", Assert.Single(events.OfType<ProviderEvent.Commands>()).Value[0].Name);
+    }
+
     // ---- PR-PROVCLI-275 ----
 
     [Fact]
@@ -1579,6 +1598,15 @@ public sealed class PiSessionTests
     {
         var (session, _) = Make2();
         Assert.False(session.IsRunning); // started is false
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-300")] // PiSession.swift:74 - no process means false, even when started and not stopped
+    public void IsRunning_is_false_when_started_but_no_process_is_attached()
+    {
+        var (session, _) = Make2();
+        session.TestSetStartedForTesting(true);
+        Assert.False(session.IsRunning);
     }
 
     [Fact]
