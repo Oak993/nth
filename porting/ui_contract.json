@@ -12591,7 +12591,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/PiCLI.swift:99-111,:11,:108-110"
       ],
-      "notes": "A model id with NO slash cannot be passed to the CLI at all, so a catalog row whose provider or id is missing is skipped rather than shown."
+      "notes": "A model id with NO slash cannot be passed to the CLI at all, so a catalog row whose provider or id is missing is skipped rather than shown.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVCLI",

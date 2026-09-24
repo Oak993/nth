@@ -7347,7 +7347,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep the byte-compare-before-write and the atomic write, because the CLI may be reading the file concurrently (port_impacts.md entry 22).",
       "verification_method": "restart test asserting the file is not rewritten when unchanged",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -7371,7 +7371,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The bridge path is handed to a dynamic import; whether a Windows path works directly or needs a file URL must be probed against the real CLI.",
       "verification_method": "interaction test with a stand-in bridge, and a Windows import-form probe",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -7396,7 +7396,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The gate path comes from the environment and is read with a plain filesystem read.",
       "verification_method": "contract fixture driving the real extension text with each gate shape",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -7419,7 +7419,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The camelCase mode strings are the on-disk contract described in PR-PROVCLI-277.",
       "verification_method": "contract fixture driving the real extension text through every rung of the ladder",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -7443,7 +7443,7 @@
       "cancellation": "not cancellable",
       "windows_path": "These are Unix tool names, but the classifier runs on the COMMAND TEXT THE MODEL PRODUCED inside the CLI, so the list is a product constant and is copied verbatim. UNK-0005 is marked RESOLVED by OD-0008 C5 (\"PowerShell 7 when installed, otherwise Windows PowerShell\"), but C5 rules only which shell the app's own terminal tabs and project scripts use; this classifier runs inside the Pi extension on commands Pi itself executes, so C5 does not change it. If a Windows-hosted Pi produces Windows command text, this classifier simply asks more often, which is safe.",
       "verification_method": "contract fixture driving the real extension text over a pipeline, a git subcommand, an unknown binary and an empty segment",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -7465,7 +7465,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The measure is JavaScript string length, which counts UTF-16 code units, so a slice can split a surrogate pair; that is the shipped behavior and is reproduced.",
       "verification_method": "contract fixture with a 25000-character string input",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -7489,7 +7489,7 @@
       "cancellation": "A cancelled question blocks the call.",
       "windows_path": "The decline reason's prefix is what the app's handleToolEnd matches to show the row as declined (PR-PROVCLI-292); the two must change together.",
       "verification_method": "contract fixture asserting the title, the options and all three reason suffixes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -7512,7 +7512,7 @@
       "cancellation": "not cancellable",
       "windows_path": "HOME is normally unset on Windows, so LoginEnvironment.homeDirectory carries this and must resolve to the user profile. The segment uses a forward slash and must be joined as path components.",
       "verification_method": "unit test with and without the environment variable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -7537,7 +7537,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The sort must be ordinal so the displayed order is stable. Environment variable names are case-insensitive on Windows, so a differently-cased key would also be found, which is a small behavioural widening the port should note.",
       "verification_method": "unit test over a populated auth file, an empty one, each environment key and none",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "blocked_by": null
@@ -7562,7 +7562,7 @@
       "cancellation": "A 30 second timer terminates the process (PR-PROVCLI-311).",
       "windows_path": "The home directory must be a real, existing directory the process can start in.",
       "verification_method": "contract fixture asserting the argv and both request lines",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -7586,7 +7586,7 @@
       "cancellation": "The 30 second timer.",
       "windows_path": "terminate() is TerminateProcess; the probe persists nothing so that is acceptable.",
       "verification_method": "interaction test with a stand-in that answers only one request",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -7608,7 +7608,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The sort compares strings; it must be ordinal so the catalog order is stable across locales.",
       "verification_method": "unit test over a reasoning model, a non-reasoning model, both current-id shapes and an empty list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -10889,7 +10889,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/PiCLI.swift:99-111,:11,:108-110"
       ],
-      "notes": "A model id with NO slash cannot be passed to the CLI at all, so a catalog row whose provider or id is missing is skipped rather than shown."
+      "notes": "A model id with NO slash cannot be passed to the CLI at all, so a catalog row whose provider or id is missing is skipped rather than shown.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVCLI-021",
