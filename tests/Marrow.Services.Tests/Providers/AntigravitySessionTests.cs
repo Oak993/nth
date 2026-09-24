@@ -1136,8 +1136,12 @@ public sealed class AntigravitySessionTests
             "gemini-3.1-pro-low\tRenamed (Low)\n");
         script.Set("model.stdout", "{\"command\":{\"data\":{\"id\":\"gemini-3-flash\"}}}");
         var models = runtime.Loop.Run(() => AntigravitySession.ListModels(FileUrl(script.ExecutablePath), new ValueMap<string, string>([script.EnvironmentEntry])), Bound);
+        // The header line "MODEL\tNAME" (ANSI-bolded) satisfies isSlug (:519-523: all letters) once ANSI is
+        // stripped, so it is not distinguished from a real catalog row and becomes its own leading entry -
+        // SOURCE FACT from the literal Swift filter, not a bug to special-case away.
         Assert.Equal(
             [
+                new ModelOption("MODEL", "NAME", efforts: ValueList<string>.Empty, defaultEffort: null, isDefault: false),
                 new ModelOption("gemini-3.1-pro", "Gemini 3.1 Pro", efforts: new ValueList<string>(["low", "high"]), defaultEffort: "high", isDefault: false),
                 new ModelOption("gemini-3-flash", "Gemini 3 Flash", efforts: ValueList<string>.Empty, defaultEffort: null, isDefault: true),
                 new ModelOption("claude-sonnet-4.5", "claude-sonnet-4.5", efforts: ValueList<string>.Empty, defaultEffort: null, isDefault: false),

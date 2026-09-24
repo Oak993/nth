@@ -115,7 +115,7 @@ public sealed class AntigravitySessionThirdTests
     public void The_argument_vector_carries_no_MCP_token_after_the_fixed_eight()
     {
         using var runtime = new TestRuntime();
-        var script = new AntigravityScript("no-mcp");
+        var script = new AntigravityScript("argv-check");
         script.SetInit("{\"event\":\"init\",\"conversation_id\":\"conv-1\"}");
         var configuration = new SessionConfiguration
         {
