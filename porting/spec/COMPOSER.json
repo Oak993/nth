@@ -4060,7 +4060,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same literals; the title is the .title2 text style, 17 point at the macOS default.",
       "verification_method": "capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4084,7 +4084,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Measure with the same effective width (460 points) and the same 4 points of container inset; the face is Inter (OD-0009), so the measurement must be recomputed, not copied, and where Inter's wrap points differ from the macOS face's, that is the named OD-0009 deviation.",
       "verification_method": "capture comparison opening the editor on a five-line prompt",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4104,7 +4104,7 @@
       "cancellation": "Escape cancels.",
       "windows_path": "Same table.",
       "verification_method": "interaction test of all six keys",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4128,7 +4128,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same behavior; note this popover's pick does NOT dismiss, unlike the composer's (ComposerView.swift:643). Glass: OD-0005 applies (Acrylic where the window shows the desktop, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing); an owner-approved deviation, not parity. OD-0014: the window stays clear by default, as upstream, so over the desktop the Acrylic branch with the app-drawn scrim applies until the user sets a wallpaper.",
       "verification_method": "interaction test attaching two files in a row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4173,7 +4173,7 @@
       "cancellation": "A later sync with nil closes it and invalidates any deferred show.",
       "windows_path": "A non-activating popup that resizes in place, with a generation counter guarding deferred shows.",
       "verification_method": "interaction test typing five lines into an open editor",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4193,7 +4193,7 @@
       "cancellation": "not cancellable",
       "windows_path": "An app-scoped message filter rather than NSEvent local monitors, which never see other applications' events (port_impacts X7).",
       "verification_method": "interaction test of both dismissals plus the pencil toggle",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -6165,7 +6165,8 @@
         "DroppyCode/App/Views/Composer/FollowUpEditor.swift:6-25"
       ],
       "notes": "The edit lives on the thread, so leaving the thread closes the popover only and coming back reopens it on the edit as it was left.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/PromptEditor.swift:61 `.font(.system(size: 17, weight: .semibold))` -> B2 :61 `.font(.system(.title2, weight: .semibold))`, 17 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17` (file deleted at B2; the port uses these sizes per ED-059)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/PromptEditor.swift:61 `.font(.system(size: 17, weight: .semibold))` -> B2 :61 `.font(.system(.title2, weight: .semibold))`, 17 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17` (file deleted at B2; the port uses these sizes per ED-059).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-058",
@@ -6189,7 +6190,8 @@
         "DroppyCode/App/Views/Composer/PromptEditor.swift:37-73 `_textHeight = State(initialValue: Self.measuredHeight(of: text.wrappedValue))` (40); measuredHeight at `let width = editorWidth - 2 * 20 - 2 * 10` with `[.font: NSFont.systemFont(ofSize: 14)]` and `ceil(max(18, bounds.height) + 2 * 2)` (45-54); `placeholder: \"Message\"` (65); `.frame(height: min(240, max(22, textHeight)))`, `.padding(10)`, `.background(Chrome.overlay(0.05), in: .rect(cornerRadius: 12, style: .continuous))` (71-73)",
         "DroppyCode/App/Views/Composer/PromptEditor.swift:103-115"
       ],
-      "notes": "The pre-measurement exists so the popover does not open one line tall and grow over its own appearance."
+      "notes": "The pre-measurement exists so the popover does not open one line tall and grow over its own appearance.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-059",
@@ -6209,7 +6211,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Composer/PromptEditor.swift:79-93"
       ],
-      "notes": "Unlike the composer's attach popover, this one does not dismiss on a pick."
+      "notes": "Unlike the composer's attach popover, this one does not dismiss on a pick.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-060",

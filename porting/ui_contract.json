@@ -3407,7 +3407,8 @@
         "DroppyCode/App/Views/Composer/FollowUpEditor.swift:6-25"
       ],
       "notes": "The edit lives on the thread, so leaving the thread closes the popover only and coming back reopens it on the edit as it was left.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/PromptEditor.swift:61 `.font(.system(size: 17, weight: .semibold))` -> B2 :61 `.font(.system(.title2, weight: .semibold))`, 17 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17` (file deleted at B2; the port uses these sizes per ED-059)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/PromptEditor.swift:61 `.font(.system(size: 17, weight: .semibold))` -> B2 :61 `.font(.system(.title2, weight: .semibold))`, 17 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17` (file deleted at B2; the port uses these sizes per ED-059).",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "COMPOSER",
@@ -3432,7 +3433,8 @@
         "DroppyCode/App/Views/Composer/PromptEditor.swift:37-73 `_textHeight = State(initialValue: Self.measuredHeight(of: text.wrappedValue))` (40); measuredHeight at `let width = editorWidth - 2 * 20 - 2 * 10` with `[.font: NSFont.systemFont(ofSize: 14)]` and `ceil(max(18, bounds.height) + 2 * 2)` (45-54); `placeholder: \"Message\"` (65); `.frame(height: min(240, max(22, textHeight)))`, `.padding(10)`, `.background(Chrome.overlay(0.05), in: .rect(cornerRadius: 12, style: .continuous))` (71-73)",
         "DroppyCode/App/Views/Composer/PromptEditor.swift:103-115"
       ],
-      "notes": "The pre-measurement exists so the popover does not open one line tall and grow over its own appearance."
+      "notes": "The pre-measurement exists so the popover does not open one line tall and grow over its own appearance.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "COMPOSER",
@@ -3453,7 +3455,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Composer/PromptEditor.swift:79-93"
       ],
-      "notes": "Unlike the composer's attach popover, this one does not dismiss on a pick."
+      "notes": "Unlike the composer's attach popover, this one does not dismiss on a pick.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "COMPOSER",

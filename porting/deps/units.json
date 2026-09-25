@@ -8571,38 +8571,14 @@
     "App.Views.Composer.EditorAttachments"
    ],
    "records_total": 10,
-   "records_todo": [
-    "PR-COMPOSER-176",
-    "PR-COMPOSER-177",
-    "PR-COMPOSER-178",
-    "PR-COMPOSER-179",
-    "PR-COMPOSER-181",
-    "PR-COMPOSER-182",
-    "PR-THEME-042",
-    "UI-COMPOSER-057",
-    "UI-COMPOSER-058",
-    "UI-COMPOSER-059"
-   ],
-   "parts": [
-    [
-     "PR-COMPOSER-176",
-     "PR-COMPOSER-177",
-     "PR-COMPOSER-178",
-     "PR-COMPOSER-179",
-     "PR-COMPOSER-181",
-     "PR-COMPOSER-182",
-     "PR-THEME-042",
-     "UI-COMPOSER-057",
-     "UI-COMPOSER-058",
-     "UI-COMPOSER-059"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M7-105",
     "T-M7-106"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "App.Views.Composer.QuestionTab",

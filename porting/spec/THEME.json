@@ -962,7 +962,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same raw-optional read as PR-THEME-041.",
       "verification_method": "unit: the editor tint equals spec.accent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

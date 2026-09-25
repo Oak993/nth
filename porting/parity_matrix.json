@@ -7,9 +7,9 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "IMPLEMENTED": 2759,
+      "IMPLEMENTED": 2766,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
-      "SPECIFIED": 1138,
+      "SPECIFIED": 1131,
       "RETIRED": 6,
       "DISCOVERED": 10
     },
@@ -8890,7 +8890,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same literals; the title is the .title2 text style, 17 point at the macOS default.",
       "verification_method": "capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -8915,7 +8915,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Measure with the same effective width (460 points) and the same 4 points of container inset; the face is Inter (OD-0009), so the measurement must be recomputed, not copied, and where Inter's wrap points differ from the macOS face's, that is the named OD-0009 deviation.",
       "verification_method": "capture comparison opening the editor on a five-line prompt",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -8936,7 +8936,7 @@
       "cancellation": "Escape cancels.",
       "windows_path": "Same table.",
       "verification_method": "interaction test of all six keys",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -8961,7 +8961,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same behavior; note this popover's pick does NOT dismiss, unlike the composer's (ComposerView.swift:643). Glass: OD-0005 applies (Acrylic where the window shows the desktop, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing); an owner-approved deviation, not parity. OD-0014: the window stays clear by default, as upstream, so over the desktop the Acrylic branch with the app-drawn scrim applies until the user sets a wallpaper.",
       "verification_method": "interaction test attaching two files in a row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -9008,7 +9008,7 @@
       "cancellation": "A later sync with nil closes it and invalidates any deferred show.",
       "windows_path": "A non-activating popup that resizes in place, with a generation counter guarding deferred shows.",
       "verification_method": "interaction test typing five lines into an open editor",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -9029,7 +9029,7 @@
       "cancellation": "not cancellable",
       "windows_path": "An app-scoped message filter rather than NSEvent local monitors, which never see other applications' events (port_impacts X7).",
       "verification_method": "interaction test of both dismissals plus the pencil toggle",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -84354,7 +84354,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same raw-optional read as PR-THEME-041.",
       "verification_method": "unit: the editor tint equals spec.accent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
