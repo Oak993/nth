@@ -12110,40 +12110,14 @@
     "App.AppModel"
    ],
    "records_total": 11,
-   "records_todo": [
-    "PR-UPDATE-088",
-    "PR-UPDATE-089",
-    "PR-UPDATE-093",
-    "UI-UPDATE-046",
-    "UI-UPDATE-047",
-    "UI-UPDATE-048",
-    "UI-UPDATE-049",
-    "UI-UPDATE-050",
-    "UI-UPDATE-051",
-    "UI-UPDATE-052",
-    "UI-UPDATE-053"
-   ],
-   "parts": [
-    [
-     "PR-UPDATE-088",
-     "PR-UPDATE-089",
-     "PR-UPDATE-093",
-     "UI-UPDATE-046",
-     "UI-UPDATE-047",
-     "UI-UPDATE-048",
-     "UI-UPDATE-049",
-     "UI-UPDATE-050",
-     "UI-UPDATE-051",
-     "UI-UPDATE-052",
-     "UI-UPDATE-053"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M7-222",
     "T-M7-223"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "App.Views.Usage.UsageFloatingPanel",

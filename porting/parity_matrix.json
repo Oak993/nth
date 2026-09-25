@@ -7,9 +7,9 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "IMPLEMENTED": 2701,
+      "IMPLEMENTED": 2704,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
-      "SPECIFIED": 1196,
+      "SPECIFIED": 1193,
       "RETIRED": 6,
       "DISCOVERED": 10
     },
@@ -90441,7 +90441,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Eight pages, same order, same titles and strings, except: page 1's title reads \"Welcome to Marrow\" (OD-0012 F1); page 1's description is exactly \"One native Windows window for every coding agent you use. Claude, Codex, Gemini, Copilot and more, each in its own thread, on the same glass.\" and page 8's is \"<spelled theme count> themes, from Catppuccin to Kanagawa, in real glass. Built in C#, so it scrolls smoothly and starts in a blink.\" (OD-0012 H; UI-UPDATE-046, UI-UPDATE-053, PR-UPDATE-089). README.md:37 says six pages and is stale (upstream_defects.md:209 entry 98); it is not the spec.",
       "verification_method": "capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "98",
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -90470,7 +90470,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Derive the number from the theme catalogue, spell it in English, capitalise only the first letter. Do NOT hard-code \"Twenty-six\"; the comment exists because hard-coding is exactly what drifted before. OD-0008 B15 and OD-0012 H: the Liquid Glass, Swift and 120 frames a second claims are untrue on Windows; the port's text is \"<count> themes, from Catppuccin to Kanagawa, in real glass. Built in C#, so it scrolls smoothly and starts in a blink.\". The glass itself is ruled by OD-0005.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -90582,7 +90582,7 @@
       "cancellation": "There is no 'skip without marking seen' path.",
       "windows_path": "Same. The flag must be written by the callbacks, never by the window controller itself (port_impacts.md:404 G5).",
       "verification_method": "restart test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

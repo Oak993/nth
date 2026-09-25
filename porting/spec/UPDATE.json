@@ -2222,7 +2222,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Eight pages, same order, same titles and strings, except: page 1's title reads \"Welcome to Marrow\" (OD-0012 F1); page 1's description is exactly \"One native Windows window for every coding agent you use. Claude, Codex, Gemini, Copilot and more, each in its own thread, on the same glass.\" and page 8's is \"<spelled theme count> themes, from Catppuccin to Kanagawa, in real glass. Built in C#, so it scrolls smoothly and starts in a blink.\" (OD-0012 H; UI-UPDATE-046, UI-UPDATE-053, PR-UPDATE-089). README.md:37 says six pages and is stale (upstream_defects.md:209 entry 98); it is not the spec.",
       "verification_method": "capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "98",
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2250,7 +2250,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Derive the number from the theme catalogue, spell it in English, capitalise only the first letter. Do NOT hard-code \"Twenty-six\"; the comment exists because hard-coding is exactly what drifted before. OD-0008 B15 and OD-0012 H: the Liquid Glass, Swift and 120 frames a second claims are untrue on Windows; the port's text is \"<count> themes, from Catppuccin to Kanagawa, in real glass. Built in C#, so it scrolls smoothly and starts in a blink.\". The glass itself is ruled by OD-0005.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2358,7 +2358,7 @@
       "cancellation": "There is no 'skip without marking seen' path.",
       "windows_path": "Same. The flag must be written by the callbacks, never by the window controller itself (port_impacts.md:404 G5).",
       "verification_method": "restart test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4020,7 +4020,8 @@
         "upstream": "DroppyCode/App/Views/Tour/TourPages.swift:5 'title: \"Welcome to Droppy Code\", description: \"One native macOS window for every coding agent you use. Claude, Codex, Gemini, Copilot and more, each in its own thread, on the same Liquid Glass.\"'",
         "port": "Title \"Welcome to Marrow\" (OD-0012 F1); description \"One native Windows window for every coding agent you use. Claude, Codex, Gemini, Copilot and more, each in its own thread, on the same glass.\" (OD-0012 H, porting/decision_batch_20260922b.md:51-60, the truthful rewrite OD-0008 B15 asked for)."
       },
-      "b2_change": "The behaviour and the call site are unchanged; only the colour behind Chrome.secondaryText changed. Chrome.secondaryText changed from 'Color(nsColor: .secondaryLabelColor)' (B1 DroppyCode/UI/Chrome/Chrome.swift:77) to 'primaryText.opacity(0.7)' (B2 Chrome.swift:79, commented at :77-78 as clearing the 4.5:1 contrast floor that secondaryLabelColor's 50% alpha misses). By ED-062 the port's secondaryText is primaryText at 0.7, as B2 states; ED-051's 1.6.0 literal (secondaryLabelColor) is superseded for this token."
+      "b2_change": "The behaviour and the call site are unchanged; only the colour behind Chrome.secondaryText changed. Chrome.secondaryText changed from 'Color(nsColor: .secondaryLabelColor)' (B1 DroppyCode/UI/Chrome/Chrome.swift:77) to 'primaryText.opacity(0.7)' (B2 Chrome.swift:79, commented at :77-78 as clearing the 4.5:1 contrast floor that secondaryLabelColor's 50% alpha misses). By ED-062 the port's secondaryText is primaryText at 0.7, as B2 states; ED-051's 1.6.0 literal (secondaryLabelColor) is superseded for this token.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-UPDATE-047",
@@ -4040,7 +4041,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Tour/TourPages.swift:6"
       ],
-      "notes": "Platform-neutral copy; carries over unchanged."
+      "notes": "Platform-neutral copy; carries over unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-UPDATE-048",
@@ -4058,7 +4060,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Tour/TourPages.swift:7"
       ],
-      "notes": "Platform-neutral; carries over unchanged."
+      "notes": "Platform-neutral; carries over unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-UPDATE-049",
@@ -4076,7 +4079,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Tour/TourPages.swift:8"
       ],
-      "notes": "The title contains a comma that must not be dropped: \"Effort, on a slider\". British spelling \"colour\" is the source's; keep it."
+      "notes": "The title contains a comma that must not be dropped: \"Effort, on a slider\". British spelling \"colour\" is the source's; keep it.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-UPDATE-050",
@@ -4094,7 +4098,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Tour/TourPages.swift:9"
       ],
-      "notes": "This is the longest description of the eight and is a strong candidate for the page that fixes the card's measured height."
+      "notes": "This is the longest description of the eight and is a strong candidate for the page that fixes the card's measured height.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-UPDATE-051",
@@ -4112,7 +4117,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Tour/TourPages.swift:10"
       ],
-      "notes": "The apostrophe in \"Hydra's\" is the ASCII apostrophe as written in the source."
+      "notes": "The apostrophe in \"Hydra's\" is the ASCII apostrophe as written in the source.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-UPDATE-052",
@@ -4130,7 +4136,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Tour/TourPages.swift:11"
       ],
-      "notes": "Platform-neutral; carries over unchanged."
+      "notes": "Platform-neutral; carries over unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-UPDATE-053",
@@ -4158,7 +4165,8 @@
         "decision": "OD-0008 B15; OD-0012 H",
         "upstream": "DroppyCode/App/Views/Tour/TourPages.swift:12 '\"\\(themeCount) themes, from Catppuccin to Kanagawa, in real Liquid Glass. Built in Swift, so it scrolls at 120 frames a second and starts in a blink.\"'",
         "port": "\"<themeCount> themes, from Catppuccin to Kanagawa, in real glass. Built in C#, so it scrolls smoothly and starts in a blink.\" (OD-0012 H, porting/decision_batch_20260922b.md:51-60, the truthful rewrite OD-0008 B15 asked for); the count word stays computed."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-UPDATE-054",
