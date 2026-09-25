@@ -1,63 +1,529 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using Avalonia;
+using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Layout;
+using Avalonia.Media;
+using Marrow.App.Port;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
+using Marrow.Services.Providers;
+using Marrow.UI.Chrome;
+using Marrow.UI.Common;
 using Marrow.UI.Port;
 
-namespace Marrow.App.Views.Settings;
-
 // Source: DroppyCode/App/Views/Settings/ModelsSettingsPage.swift (B2 1fbf81e), :1-452.
-// Skeleton (c100 group 4): every type the file declares, with its inputs; every view body and helper is left to the
-// implementing unit (MARROW_STUB).
-// Forms (ED-095): a SwiftUI View is a Decorator whose constructor builds `body`; a ViewModifier is a sealed record with
-// `Control Body(Control content)`; `@Environment(AppModel.self)` is read from the environment, not passed in; a Swift
-// parameter without a default that follows one with a default moves before it (ProviderModelsSection's isExpanded).
-// Animation is Marrow.UI.Port.Animation. Swift `private` top-level types are `internal`.
+// R-VIEW-2: Swift's `@State private var query` is read by body and (via a chrome search field elsewhere) written
+// from outside the page; ported as a mutable field with a public SetQuery(string) the search field's host calls,
+// since this port's Decorator-based views are constructed once rather than re-evaluated per keystroke like SwiftUI
+// (so providerExpansion, held as a plain instance field, survives a query change exactly as the Swift @State does).
+
+namespace Marrow.App.Views.Settings;
 
 /// <summary>:4-160 <c>struct ModelsSettingsPage: View</c>: the models the composer's picker offers.</summary>
 public sealed class ModelsSettingsPage : Decorator
 {
+    private string query;
+    private readonly Dictionary<ProviderKind, bool> providerExpansion = new(); // :12-14 absent means expanded
+    private readonly StackPanel root = new() { Orientation = Orientation.Vertical, Spacing = Chrome.SectionSpacing, HorizontalAlignment = HorizontalAlignment.Stretch }; // :30
+    private ValueMap<ModelPin, double> rowHeights = ValueMap<ModelPin, double>.Empty; // :10
+    private RowDrag<ModelPin> drag = new(); // :9
+
     // :6 var query = ""; :19-100 body
-    public ModelsSettingsPage(string query = "") =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:19");
+    public ModelsSettingsPage(string query = "")
+    {
+        this.query = query;
+        Child = root;
+        this.Track(() => AppEnvironment.GetAppModel(this), _ => Rebuild());
+    }
+
+    /// <summary>The chrome search field's text, trimmed of whitespace and newlines by the caller or here.</summary>
+    public void SetQuery(string value)
+    {
+        query = value;
+        Rebuild();
+    }
 
     // :17 private static let slide = Animation.spring(response: 0.28, dampingFraction: 0.82)
-    private static Animation Slide =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:17");
+    private static Animation Slide => Animation.Spring(response: 0.28, dampingFraction: 0.82);
+
+    // :19-100 body
+    private void Rebuild()
+    {
+        root.Children.Clear();
+        // SetQuery may run before the page is attached; Track's own deferred call guards the first Rebuild, but a
+        // search edit that races attachment must not throw.
+        AppModel model;
+        try { model = AppEnvironment.GetAppModel(this); }
+        catch (InvalidOperationException) { return; }
+
+        var registry = model.Providers;
+        var settings = model.Settings;
+        var trimmed = FoundationText.Trim(query, includeNewlines: true); // :23
+
+        var pins = settings.ModelList; // :7
+        var visiblePins = VisiblePins(pins, registry, trimmed); // :105-110
+
+        if (trimmed.Length == 0 || visiblePins.Count > 0) // :33
+        {
+            root.Children.Add(new ChromeSection("Your models", () => YourModels(model, pins, visiblePins, registry, settings, trimmed))); // :30-65
+        }
+
+        var providers = registry.AvailableProviders.Where(provider => // :25-27
+            trimmed.Length == 0 || registry.Models(provider).Any(option => Matches(option, option.Id, provider, trimmed))).ToList();
+
+        foreach (var provider in providers) // :75-84
+        {
+            root.Children.Add(new ProviderModelsSection(
+                model,
+                provider,
+                new Binding<bool>(
+                    () => providerExpansion.TryGetValue(provider, out var expanded) ? expanded : true,
+                    value => providerExpansion[provider] = value),
+                trimmed));
+        }
+
+        if (trimmed.Length > 0 && visiblePins.Count == 0 && providers.Count == 0) // :86-91
+        {
+            var noMatch = new TextBlock
+            {
+                Text = "No models match “" + trimmed + "”.", // U+201C LEFT / U+201D RIGHT DOUBLE QUOTATION MARK
+                Foreground = Chrome.SecondaryText.Brush(root),
+                Margin = new Thickness(4, 0, 4, 0),
+            };
+            SwiftFont.System(13).Apply(noMatch);
+            root.Children.Add(noMatch);
+        }
+    }
+
+    // :105-110 visiblePins
+    private static ValueList<ModelPin> VisiblePins(ValueList<ModelPin> pins, ProviderRegistry registry, string trimmed) =>
+        new(pins.Where(pin => Matches(registry.Model(pin.ModelID, pin.Provider), pin.ModelID, pin.Provider, trimmed)));
+
+    // :30-65 the "Your models" section content
+    private Control YourModels(AppModel model, ValueList<ModelPin> pins, ValueList<ModelPin> visiblePins, ProviderRegistry registry, AppSettings settings, string trimmed)
+    {
+        var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 0, HorizontalAlignment = HorizontalAlignment.Stretch };
+
+        if (pins.Count == 0) // :34-40
+        {
+            stack.Children.Add(new ChromeRow(
+                "No models chosen yet",
+                () => new Border(),
+                "Until you add some below, the picker shows every model from your providers."));
+        }
+        else
+        {
+            // :42-46 a plain stack, not lazy, so a dragged row draws on top and does not fly to the origin.
+            var rows = new StackPanel { Orientation = Orientation.Vertical, Spacing = 0, HorizontalAlignment = HorizontalAlignment.Stretch };
+            foreach (var pin in visiblePins) // :47-62
+            {
+                var isDragged = drag.Id == pin; // :49
+                var divider = new ChromeRowDivider { Opacity = (visiblePins.Count > 0 && pin == visiblePins[0]) || isDragged ? 0 : 1 }; // :51, ruling :50
+                rows.Children.Add(divider);
+
+                var row = new PinnedModelRow(
+                    model,
+                    pin,
+                    isDragged,
+                    translation => DragChanged(pin, translation, registry, settings, visiblePins),
+                    () => DragEnded(settings));
+                row.RenderTransform = new TranslateTransform(0, isDragged ? drag.VisualOffset : 0);
+                row.ZIndex = isDragged ? 1 : 0;
+                row.SizeChanged += (_, args) =>
+                {
+                    if (args.NewSize.Height <= 0) return;
+                    rowHeights = rowHeights.Mutating(map => map[pin] = args.NewSize.Height); // :143-152 PinnedRowHeightReporter
+                    if (rowHeights.Count > pins.Count) // :93-99
+                        rowHeights = new ValueMap<ModelPin, double>(rowHeights.Where(entry => pins.Contains(entry.Key)));
+                };
+                rows.Children.Add(row);
+            }
+            stack.Children.Add(rows);
+
+            if (trimmed.Length == 0) // :66-71
+            {
+                var count = new TextBlock
+                {
+                    Text = pins.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                        " of " + AppSettings.ModelListLimit.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                        ". Click a model to set its reasoning effort and fast mode for every new chat.",
+                    Foreground = Chrome.SecondaryText.Brush(stack),
+                    Margin = new Thickness(4, 0, 4, 0),
+                };
+                SwiftFont.System(11).Apply(count);
+                stack.Children.Add(count);
+            }
+        }
+        return stack;
+    }
+
+    // :112-135 dragChanged(_:translation:)
+    private void DragChanged(ModelPin pin, double translation, ProviderRegistry registry, AppSettings settings, ValueList<ModelPin> visiblePinsAtStart)
+    {
+        if (drag.Id != pin) drag = new RowDrag<ModelPin> { Id = pin };
+        drag = drag with { Translation = translation };
+
+        var trimmed = FoundationText.Trim(query, includeNewlines: true);
+        var order = VisiblePins(settings.ModelList, registry, trimmed); // re-read fresh on every move
+        var (nextDrag, moved) = drag.Settle(order, rowHeights, fallbackHeight: 54,
+            (neighbour, placeAfter) => settings.MoveModel(pin, neighbour, placeAfter),
+            pastCentre: 0);
+        drag = nextDrag;
+        if (moved) Rebuild();
+    }
+
+    // :137-141 dragEnded()
+    private void DragEnded(AppSettings settings)
+    {
+        if (drag.Id is null) return;
+        Transaction.WithAnimation(Animation.Spring(response: 0.32, dampingFraction: 0.8), () => drag = new RowDrag<ModelPin>());
+        Rebuild();
+    }
 
     // :155-159 static func matches(_:id:provider:query:) -> Bool
-    public static bool Matches(ModelOption? option, string id, ProviderKind provider, string query) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:155");
+    public static bool Matches(ModelOption? option, string id, ProviderKind provider, string query)
+    {
+        if (query.Length == 0) return true;
+        var fields = new string?[]
+        {
+            option?.ShortName,
+            option?.Name,
+            option?.Detail,
+            id,
+            provider.DisplayName,
+        };
+        foreach (var field in fields)
+            if (field is { } value && SwiftString.LocalizedCaseInsensitiveContains(value, query))
+                return true;
+        return false;
+    }
 
-    /// <summary>:143-152 <c>private struct PinnedRowHeightReporter: ViewModifier</c>.</summary>
+    /// <summary>:143-152 <c>private struct PinnedRowHeightReporter: ViewModifier</c>: real height reporting is
+    /// wired directly at the row's SizeChanged in YourModels, matching FollowUpQueueTab's RowHeightReporter, which
+    /// is also a pass-through Body.</summary>
     private sealed record PinnedRowHeightReporter(ModelPin Pin, Binding<ValueMap<ModelPin, double>> Heights)
     {
         // :147-151 func body(content:)
-        public Control Body(Control content) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:147");
+        public Control Body(Control content) => content;
     }
 }
 
 /// <summary>:162-289 <c>private struct PinnedModelRow: View</c>: one chosen model, with its reorder grip.</summary>
 internal sealed class PinnedModelRow : Decorator
 {
+    private Point? dragOrigin;
+    private TopLevel? dragRoot;
+
     // :164-168 let pin, isDragged, onDragChanged, onDragEnded; :175-279 body
-    public PinnedModelRow(ModelPin pin, bool isDragged, Action<double> onDragChanged, Action onDragEnded) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:175");
+    // AppModel is passed directly rather than re-read via AppEnvironment.GetAppModel(this): this row is
+    // constructed and parented in the same call as ModelsSettingsPage.Rebuild(), which already has it in scope,
+    // and reading the environment here would need the same not-yet-attached deferral HydraCookbookRow required.
+    public PinnedModelRow(AppModel model, ModelPin pin, bool isDragged, Action<double> onDragChanged, Action onDragEnded)
+    {
+        var registry = model.Providers;
+        var settings = model.Settings;
+        var option = registry.Model(pin.ModelID, pin.Provider);
+        var preference = settings.Preference(pin.Provider, pin.ModelID);
+
+        var row = new Grid
+        {
+            ColumnDefinitions = { new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto) },
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+        };
+
+        // :180-206 the reorder grip
+        var grip = SwiftImage.SystemName("line.3.horizontal")
+            .Font(SwiftFont.System(SwiftFont.TextStyle.Footnote, weight: SwiftFont.Weight.Medium));
+        grip.ForegroundStyle(Chrome.SecondaryText);
+        grip.Opacity = 0.7;
+        var gripHost = new Border { Width = 24, Height = 24, Child = grip, Cursor = new Cursor(StandardCursorType.Hand) };
+        ToolTip.SetTip(gripHost, "Drag to reorder");
+        AutomationProperties.SetName(gripHost, "Drag to reorder");
+        gripHost.PointerEntered += (_, _) => grip.Opacity = 1;
+        gripHost.PointerExited += (_, _) => grip.Opacity = 0.7;
+        gripHost.PointerPressed += (_, e) =>
+        {
+            if (!e.GetCurrentPoint(gripHost).Properties.IsLeftButtonPressed) return;
+            dragRoot = TopLevel.GetTopLevel(gripHost);
+            dragOrigin = e.GetPosition(dragRoot);
+            e.Pointer.Capture(gripHost);
+        };
+        gripHost.PointerMoved += (_, e) =>
+        {
+            if (dragOrigin is not { } origin || dragRoot is null) return;
+            var current = e.GetPosition(dragRoot);
+            onDragChanged(current.Y - origin.Y);
+        };
+        gripHost.PointerReleased += (_, _) =>
+        {
+            if (dragOrigin is null) return;
+            dragOrigin = null;
+            dragRoot = null;
+            onDragEnded();
+        };
+        Grid.SetColumn(gripHost, 0);
+        row.Children.Add(gripHost);
+
+        // :207-259 the block: provider icon, title, summary; click opens the effort popover.
+        var icon = new ProviderIcon { Provider = pin.Provider, Size = 16 };
+        var iconHost = new Border { Width = 22, Child = icon, HorizontalAlignment = HorizontalAlignment.Center };
+        Grid.SetColumn(iconHost, 1);
+        row.Children.Add(iconHost);
+
+        var texts = new StackPanel { Spacing = 2, Margin = new Thickness(8, 0, 8, 0) };
+        var title = new TextBlock { Text = option?.ShortName ?? pin.ModelID, Foreground = Chrome.PrimaryText.Brush(texts) }; // :215
+        SwiftFont.System(13).Apply(title);
+        texts.Children.Add(title);
+        var summary = new TextBlock { Text = Summary(pin, option, preference), Foreground = Chrome.SecondaryText.Brush(texts) };
+        SwiftFont.System(11).Apply(summary);
+        texts.Children.Add(summary);
+
+        var block = new Button
+        {
+            Content = texts,
+            Background = Brushes.Transparent,
+            BorderThickness = new Thickness(0),
+            Padding = new Thickness(0),
+            HorizontalContentAlignment = HorizontalAlignment.Left,
+        };
+        // BLOCKED: PR-SETTINGS-189's effort/fast-mode popover needs App.Views.Composer.EffortSlider's
+        // EffortSliderCard, which is still MARROW_STUB at nearly every member (39 sites) and not this unit's own
+        // file. Left unwired rather than guessed; revisit once that unit is ported.
+        Grid.SetColumn(block, 2);
+        row.Children.Add(block);
+
+        var hint = SwiftImage.SystemName("slider.horizontal.3").Font(SwiftFont.System(12));
+        hint.ForegroundStyle(Chrome.SecondaryText);
+        hint.Opacity = 0;
+        hint.Margin = new Thickness(0, 0, 8, 0);
+        block.PointerEntered += (_, _) => hint.Opacity = 1;
+        block.PointerExited += (_, _) => hint.Opacity = 0;
+        Grid.SetColumn(hint, 3);
+        row.Children.Add(hint);
+
+        var remove = new RowControl("minus.circle", "Remove from the picker", true, // :261-263
+            () => Transaction.WithAnimation(Chrome.PanelSlide, () => settings.RemoveFromModelList(pin)));
+        Grid.SetColumn(remove, 4);
+        row.Children.Add(remove);
+
+        var surface = new Border
+        {
+            Child = row,
+            Padding = new Thickness(10, 9, Chrome.RowControlTrailingPadding, 9), // :175 padding leading 10
+        };
+        if (isDragged) // :268-278
+        {
+            surface.Background = Chrome.Overlay(0.12).Brush(surface);
+            surface.CornerRadius = new CornerRadius(10);
+            surface.BoxShadow = new BoxShadows(new BoxShadow { Color = Color.FromArgb((byte)(0.28 * 255), 0, 0, 0), Blur = 10, OffsetY = 4 });
+            surface.RenderTransform = new ScaleTransform(1.02, 1.02);
+        }
+
+        Child = surface;
+    }
+
+    // :281-288 summary(option:preference:)
+    private static string Summary(ModelPin pin, ModelOption? option, ModelPreference preference)
+    {
+        var parts = new List<string> { pin.Provider.DisplayName };
+        if (option is { Efforts.Count: > 0 } present)
+            parts.Add(ModelOption.EffortTitle(preference.Effort ?? present.DefaultEffort ?? "") + " effort");
+        if (preference.FastMode && option?.SupportsFast == true)
+            parts.Add("Fast");
+        return string.Join(" · ", parts); // U+00B7 MIDDLE DOT
+    }
 }
 
 /// <summary>:291-311 <c>private struct RowControl: View</c>.</summary>
 internal sealed class RowControl : Decorator
 {
     // :292-295 let symbol, help, isEnabled, action; :297-310 body
-    public RowControl(string symbol, string help, bool isEnabled, Action action) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:297");
+    public RowControl(string symbol, string help, bool isEnabled, Action action)
+    {
+        var icon = SwiftImage.SystemName(symbol).Font(SwiftFont.System(12, SwiftFont.Weight.Medium));
+        icon.ForegroundStyle(Chrome.SecondaryText);
+        var button = new Button
+        {
+            Content = icon,
+            Width = 24,
+            Height = 24,
+            Background = Brushes.Transparent,
+            BorderThickness = new Thickness(0),
+            Padding = new Thickness(0),
+            IsEnabled = isEnabled,
+            Opacity = isEnabled ? 1 : 0.35,
+        };
+        button.Click += (_, _) => action();
+        ToolTip.SetTip(button, help);
+        AutomationProperties.SetName(button, help);
+        Child = button;
+    }
 }
 
 /// <summary>:313-451 <c>private struct ProviderModelsSection: View</c>: one provider's catalogue.</summary>
 internal sealed class ProviderModelsSection : Decorator
 {
     // :315-320 let provider, var query = "", @Binding var isExpanded; :322-450 body
-    public ProviderModelsSection(ProviderKind provider, Binding<bool> isExpanded, string query = "") =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:322");
+    // AppModel is passed directly for the same reason as PinnedModelRow's (see its comment).
+    public ProviderModelsSection(AppModel model, ProviderKind provider, Binding<bool> isExpanded, string query = "")
+    {
+        var registry = model.Providers;
+        var settings = model.Settings;
+
+        var stack = new StackPanel { Spacing = Chrome.SectionHeaderSpacing, HorizontalAlignment = HorizontalAlignment.Stretch }; // :317
+
+        // :340-364 the collapsible header
+        var headerContent = new Grid
+        {
+            ColumnDefinitions = { new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) },
+            Height = 22,
+        };
+        var headerIcon = new ProviderIcon { Provider = provider, Size = 16 };
+        Grid.SetColumn(headerIcon, 0);
+        headerContent.Children.Add(headerIcon);
+        var headerName = new TextBlock { Text = provider.DisplayName, Foreground = Chrome.SecondaryText.Brush(headerContent), Margin = new Thickness(8, 0, 0, 0) };
+        SwiftFont.System(13, SwiftFont.Weight.Semibold).Apply(headerName);
+        Grid.SetColumn(headerName, 1);
+        headerContent.Children.Add(headerName);
+        var chevron = SwiftImage.SystemName("chevron.right").Font(SwiftFont.System(SwiftFont.TextStyle.Footnote, weight: SwiftFont.Weight.Semibold));
+        chevron.ForegroundStyle(Chrome.SecondaryText);
+        Grid.SetColumn(chevron, 3);
+        headerContent.Children.Add(chevron);
+
+        var header = new Button
+        {
+            Content = headerContent,
+            Background = Brushes.Transparent,
+            BorderThickness = new Thickness(0),
+            Padding = new Thickness(0),
+            HorizontalContentAlignment = HorizontalAlignment.Stretch,
+        };
+        void UpdateHeader()
+        {
+            var expanded = isExpanded.Value;
+            chevron.RenderTransform = new RotateTransform(expanded ? 90 : 0);
+            var help = expanded ? "Hide the model list" : "Show the model list"; // :356
+            ToolTip.SetTip(header, help);
+            AutomationProperties.SetName(header, provider.DisplayName);
+            AutomationProperties.SetHelpText(header, "Shows or hides the model list");
+        }
+        header.Click += (_, _) => Transaction.WithAnimation(Chrome.PanelSlide, () => isExpanded.Value = !isExpanded.Value);
+        stack.Children.Add(header);
+
+        // :365-447 the eager card
+        var cardContent = new StackPanel { Spacing = 0, HorizontalAlignment = HorizontalAlignment.Stretch };
+        var card = new Border
+        {
+            Child = cardContent,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            Background = Chrome.Overlay(0.03).Brush(cardContent),
+            CornerRadius = new CornerRadius(Chrome.CardCornerRadius),
+            ClipToBounds = true,
+        };
+        stack.Children.Add(card);
+        Child = stack;
+
+        void RebuildCard()
+        {
+            UpdateHeader();
+            cardContent.Children.Clear();
+            var expanded = isExpanded.Value;
+            var catalogue = registry.Models(provider); // :327
+            var isFull = settings.ModelList.Count >= AppSettings.ModelListLimit; // :328
+            var isFiltering = query.Length > 0; // :330
+
+            if (catalogue.Count == 0) // :368-382
+            {
+                var loading = registry.LoadingCatalogs.Contains(provider);
+                var content = new ChromeRow(loading ? "Loading models…" : "No models loaded", () => // U+2026 HORIZONTAL ELLIPSIS
+                {
+                    var loadButton = new Button { Content = "Load models", IsEnabled = !loading }; // MARROW_DEFERRED ED-180: .buttonStyle(.glass)
+                    loadButton.Click += async (_, _) => await registry.LoadCatalog(provider, force: true);
+                    return loadButton;
+                });
+                var reveal = new ChromeRevealLayout(expanded || isFiltering ? 1 : 0) { ClipToBounds = true };
+                reveal.Children.Add(content);
+                cardContent.Children.Add(reveal);
+            }
+            else
+            {
+                var visibleIDs = new HashSet<string>(catalogue
+                    .Where(option => isFiltering
+                        ? ModelsSettingsPage.Matches(option, option.Id, provider, query)
+                        : expanded || settings.IsInModelList(new ModelPin(provider, option.Id)))
+                    .Select(option => option.Id)); // :331-336
+                var firstVisibleID = catalogue.FirstOrDefault(option => visibleIDs.Contains(option.Id))?.Id; // :337
+
+                foreach (var option in catalogue) // :384-425
+                {
+                    var isVisible = visibleIDs.Contains(option.Id);
+                    var dividerReveal = new ChromeRevealLayout(isVisible && option.Id != firstVisibleID ? 1 : 0) { ClipToBounds = true };
+                    dividerReveal.Children.Add(new ChromeRowDivider());
+                    cardContent.Children.Add(dividerReveal);
+
+                    var pin = new ModelPin(provider, option.Id);
+                    var isAdded = settings.IsInModelList(pin);
+
+                    var controls = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
+                    if (option.SupportsFast)
+                    {
+                        var bolt = SwiftImage.SystemName("bolt").Font(SwiftFont.System(11));
+                        bolt.ForegroundStyle(Chrome.SecondaryText);
+                        ToolTip.SetTip(bolt, "Supports fast mode");
+                        controls.Children.Add(bolt);
+                    }
+                    var toggle = new Button { Background = Brushes.Transparent, BorderThickness = new Thickness(0), Padding = new Thickness(0) };
+                    void UpdateToggle()
+                    {
+                        var added = settings.IsInModelList(pin);
+                        var glyph = SwiftImage.SystemName(added ? "checkmark.circle.fill" : "plus.circle").Font(SwiftFont.System(17));
+                        glyph.ForegroundStyle(added ? Chrome.Accent : Chrome.SecondaryText);
+                        toggle.Content = glyph;
+                        var full = settings.ModelList.Count >= AppSettings.ModelListLimit;
+                        toggle.IsEnabled = added || !full;
+                        toggle.Opacity = !added && full ? 0.35 : 1;
+                        var help = added ? "Remove from the picker" : full ? "The picker holds up to " + AppSettings.ModelListLimit.ToString(System.Globalization.CultureInfo.InvariantCulture) + " models" : "Add to the picker";
+                        ToolTip.SetTip(toggle, help);
+                        AutomationProperties.SetName(toggle, added ? "Remove " + option.ShortName + " from the picker" : "Add " + option.ShortName + " to the picker");
+                    }
+                    UpdateToggle();
+                    toggle.Click += (_, _) =>
+                    {
+                        void Flip()
+                        {
+                            if (settings.IsInModelList(pin)) settings.RemoveFromModelList(pin);
+                            else settings.AddToModelList(pin);
+                        }
+                        if (isFiltering) Flip();
+                        else Transaction.WithAnimation(Chrome.PanelSlide, Flip);
+                        UpdateToggle();
+                    };
+                    controls.Children.Add(toggle);
+
+                    var rowContent = new ChromeRow(option.ShortName, () => controls, option.Detail);
+                    rowContent.IsEnabled = isVisible;
+                    rowContent.IsHitTestVisible = isVisible;
+                    var rowReveal = new ChromeRevealLayout(isVisible ? 1 : 0) { ClipToBounds = true };
+                    rowReveal.Children.Add(rowContent);
+                    cardContent.Children.Add(rowReveal);
+                }
+            }
+
+            var cardVisible = expanded || isFiltering || (catalogue.Count > 0
+                ? catalogue.Any(option => isFiltering
+                    ? ModelsSettingsPage.Matches(option, option.Id, provider, query)
+                    : expanded || settings.IsInModelList(new ModelPin(provider, option.Id)))
+                : false); // :338-339
+            card.IsHitTestVisible = cardVisible;
+            AutomationProperties.SetAccessibilityView(card, cardVisible ? AccessibilityView.Content : AccessibilityView.Raw);
+        }
+
+        RebuildCard();
+        this.Track(() => (isExpanded.Value, settings.ModelList, registry.Statuses), _ => RebuildCard());
+        this.Task(() => provider, async _ => await registry.LoadCatalog(provider)); // :449, not forced
+    }
 }

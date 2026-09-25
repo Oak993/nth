@@ -16064,7 +16064,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:162-288"
       ],
-      "notes": "The leading padding is 10, not the ChromeRow standard 16, because the grip occupies the difference. A model the catalog does not know still appears, titled by its raw id."
+      "notes": "The leading padding is 10, not the ChromeRow standard 16, because the grip occupies the difference. A model the catalog does not know still appears, titled by its raw id.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "SETTINGS",
@@ -16090,7 +16091,8 @@
         "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:429-432"
       ],
       "notes": "Accessibility label names the model but does not reflect the disabled state, so a full picker still reads \"Add <model> to the picker\". Reproduce that.",
-      "b2_change": "dd2b86ef DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:334-365 always toggled inside Chrome.panelSlide; 1fbf81e6 :403-412 toggles without animation while filtering, and :429-432 hides the control with its row."
+      "b2_change": "dd2b86ef DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:334-365 always toggled inside Chrome.panelSlide; 1fbf81e6 :403-412 toggles without animation while filtering, and :429-432 hides the control with its row.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "SETTINGS",
@@ -16114,7 +16116,8 @@
         "DroppyCode/Core/Models/Provider.swift:255 supportsFast - fastTier != nil"
       ],
       "notes": "SF Symbol \"bolt\". It is a label, not a control: fast mode is set in the effort card, not here.",
-      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:341-346 -> 1fbf81e6 :397-402; new hidden state with its row."
+      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:341-346 -> 1fbf81e6 :397-402; new hidden state with its row.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "SETTINGS",
@@ -16135,7 +16138,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:66-71"
       ],
-      "notes": "The 15 is the model list limit substituted into the string, not a literal."
+      "notes": "The 15 is the model list limit substituted into the string, not a literal.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "SETTINGS",
@@ -16156,7 +16160,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:86-91"
       ],
-      "notes": "Typographic double quotation marks U+201C and U+201D around the query, not straight quotes, and a trailing full stop. Note this line is 13pt while the count line above is 11pt."
+      "notes": "Typographic double quotation marks U+201C and U+201D around the query, not straight quotes, and a trailing full stop. Note this line is 13pt while the count line above is 11pt.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "SETTINGS",
@@ -16843,7 +16848,8 @@
         "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:368-382"
       ],
       "notes": "Its row's title is \"Loading models…\" or \"No models loaded\". It no longer appears when the catalogue is populated but the search filters every model out.",
-      "b2_change": "dd2b86ef DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:325-332 showed it for an empty filtered list; 1fbf81e6 :368-382 only for an empty unfiltered catalogue, inside a ChromeRevealLayout."
+      "b2_change": "dd2b86ef DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:325-332 showed it for an empty filtered list; 1fbf81e6 :368-382 only for an empty unfiltered catalogue, inside a ChromeRevealLayout.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "SETTINGS",
@@ -17191,7 +17197,8 @@
         "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:341-364",
         "DroppyCode/UI/Chrome/Chrome.swift:275-280"
       ],
-      "notes": "Accessibility label is the display name, hint \"Shows or hides the model list\", with the header trait. The same pattern on the Providers page says \"provider settings\" instead of \"model list\" (UI-PROVREG-045)."
+      "notes": "Accessibility label is the display name, hint \"Shows or hides the model list\", with the header trait. The same pattern on the Providers page says \"provider settings\" instead of \"model list\" (UI-PROVREG-045).",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "SIDEBAR",

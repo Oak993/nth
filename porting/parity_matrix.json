@@ -7,9 +7,9 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "IMPLEMENTED": 2850,
+      "IMPLEMENTED": 2866,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
-      "SPECIFIED": 1047,
+      "SPECIFIED": 1031,
       "RETIRED": 6,
       "DISCOVERED": 10
     },
@@ -68728,7 +68728,7 @@
       "cancellation": "Leaving the page cancels the per-section catalog tasks.",
       "windows_path": "Same three-part structure and the same curly quotation marks in the no-match line.",
       "verification_method": "interaction test with queries that match a pinned model only, a catalog model only, and nothing",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -68750,7 +68750,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Do not add CSS transitions to the filtered lists on this page, even though the rest of the settings window animates.",
       "verification_method": "interaction test asserting no transition is applied to the filtered rows",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -68772,7 +68772,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same five fields and the same locale-aware case-insensitive containment.",
       "verification_method": "unit test over each of the five fields, including a pinned model with no catalog entry",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -68793,7 +68793,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same row and the same fall back to showing every model in the composer picker.",
       "verification_method": "interaction test with an empty model list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -68816,7 +68816,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same sentence and the same limit constant, substituted rather than hard-coded.",
       "verification_method": "interaction test at 0, 3 and 15 chosen models, with and without a query",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -68839,7 +68839,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Render every chosen row rather than virtualising this list (it holds at most 15), and raise the dragged row's stacking context. The divider is hidden by opacity, not removed, so the layout does not shift.",
       "verification_method": "interaction test asserting the dragged row paints above its neighbours and the list does not reflow",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -68867,7 +68867,7 @@
       "cancellation": "not cancellable and not undoable",
       "windows_path": "Same composition and the same summary rule, including that an unknown model still shows its id rather than disappearing.",
       "verification_method": "unit test on the summary for every combination; interaction test for the remove path",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -68896,7 +68896,7 @@
       "cancellation": "Releasing ends the drag; there is no cancel that restores the original order.",
       "windows_path": "Same swap-on-crossing behaviour with measured row heights and the same 54-point fallback. Windows has no haptic engine, so the haptic becomes a no-op shim called from the same place. Cursors map to grab and grabbing; balance every push with a pop the same way, because a stranded cursor is the failure mode the source guards against three times.",
       "verification_method": "interaction test dragging through several neighbours, including with a filter applied; unit test on the cursor push and pop balance",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -68918,7 +68918,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same values. The fill must be opaque enough that the sliding neighbours do not read through it; 12% of the label colour over the card's own 3% fill is what the source relies on.",
       "verification_method": "capture comparison mid-drag",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -68939,7 +68939,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same prune-on-shrink so a stale height cannot drive a later drag's arithmetic.",
       "verification_method": "unit test: pin three, unpin one, assert the table holds two entries",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -68993,7 +68993,7 @@
       "cancellation": "Leaving the page cancels the load task.",
       "windows_path": "Same header composition plus the chevron; keep it distinct from ChromeSection because it takes no accessory or trailing slot. The card must stay eager so revealed rows keep their state while the reveal animates.",
       "verification_method": "capture comparison of an expanded and a collapsed provider section",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -69020,7 +69020,7 @@
       "cancellation": "not cancellable from this control",
       "windows_path": "Same two titles and the same forced reload. The loading form uses one horizontal ellipsis character.",
       "verification_method": "interaction test in the loading and empty states, expanded and collapsed, and asserting the row is absent for a populated catalogue filtered to nothing",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -69049,7 +69049,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three tooltips, the same 0.35 disabled opacity (this page's standard) and the same accessibility labels including the one that does not reflect the disabled state.",
       "verification_method": "interaction test at 14 and 15 chosen models asserting all three tooltips and the disabled opacity; a toggle with a search active asserting no animation; a removal in a collapsed section asserting the row hides",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -71349,7 +71349,7 @@
       "cancellation": "not cancellable",
       "windows_path": "An in-memory per-provider map owned by the Models page, defaulting to expanded, surviving search changes and discarded with the page.",
       "verification_method": "interaction test: collapse a section, type a query and clear it, assert it is still collapsed; switch to another page and back, assert it is expanded; restart test asserting nothing is persisted",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -71376,7 +71376,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A button with button semantics for keyboard and assistive technology and no pressed styling; the Windows animation-effects setting stands in for Reduce Motion.",
       "verification_method": "interaction test asserting both tooltips, the accessibility label, value, hint and header role, and the chevron rotation after a click",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -71403,7 +71403,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep every catalogue row mounted and drive a per-row height reveal (0 or 1) rather than filtering the list, so the rows slide in place; suppress animation for search changes only.",
       "verification_method": "interaction test over expanded, collapsed with two chosen models, collapsed with none, and searching while collapsed, asserting which rows are visible, where dividers appear, that the empty collapsed card has zero height, and that search changes are not animated",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
