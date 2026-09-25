@@ -5449,7 +5449,8 @@
         "DroppyCode/App/Views/Chat/HydraButton.swift:322-331",
         "porting/extracts/chrome-design-tokens.md:166-201"
       ],
-      "notes": "The badge is part of the glass's own CONTENT, laid over the button as an overlay on the label, because the chrome row's container composites every glass in it over everything else; a badge added after the glass came out underneath. Glass: OD-0005 applies (where the window shows the desktop, a Windows system material of the Acrylic class, with no lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing, drawn by the SKSL shader over app content per OD-0008's restatement in owner_decisions_pending.md:51); an owner-approved deviation, not parity. OD-0014: the window stays clear by default, as upstream, so until the user sets a wallpaper the desktop shows through as Acrylic plus the app-drawn scrim (OD-0005)."
+      "notes": "The badge is part of the glass's own CONTENT, laid over the button as an overlay on the label, because the chrome row's container composites every glass in it over everything else; a badge added after the glass came out underneath. Glass: OD-0005 applies (where the window shows the desktop, a Windows system material of the Acrylic class, with no lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing, drawn by the SKSL shader over app content per OD-0008's restatement in owner_decisions_pending.md:51); an owner-approved deviation, not parity. OD-0014: the window stays clear by default, as upstream, so until the user sets a wallpaper the desktop shows through as Acrylic plus the app-drawn scrim (OD-0005).",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "HYDRA",
@@ -5478,7 +5479,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:44-57 Font.chatBaseSize, the table ED-059 takes text-style point sizes from (the file is deleted at B2): :54 caption2 10"
       ],
       "notes": "The badge is accessibility-hidden; the button's own label carries the count. The sending pulse and the count share one capsule at one size so the change is a tint crossfade, never a jump.",
-      "b2_change": "B1 HydraButton.swift:630 .font(.system(size: 9, weight: .bold).monospacedDigit()) -> B2 :630 .font(.system(.caption2, weight: .bold).monospacedDigit()): the count grows from 9 to 10 points (caption2 is 10 in dd2b86ef ChatZoom.swift:54). Colours, the spinner, the 14-point minimum frame and the paddings are unchanged."
+      "b2_change": "B1 HydraButton.swift:630 .font(.system(size: 9, weight: .bold).monospacedDigit()) -> B2 :630 .font(.system(.caption2, weight: .bold).monospacedDigit()): the count grows from 9 to 10 points (caption2 is 10 in dd2b86ef ChatZoom.swift:54). Colours, the spinner, the 14-point minimum frame and the paddings are unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "HYDRA",
@@ -5502,7 +5504,8 @@
         "DroppyCode/App/Views/Chat/HydraButton.swift:340-386",
         "DroppyCode/App/Views/Chat/HydraButton.swift:421-612"
       ],
-      "notes": "The moving form is drawn by Core Animation layers, not by the view framework, so a working team costs the main thread nothing; as framework animations they recomposited the whole glass chrome row every frame. Every animation runs from one fixed origin on the shared clock so reinstalling it changes nothing on screen."
+      "notes": "The moving form is drawn by Core Animation layers, not by the view framework, so a working team costs the main thread nothing; as framework animations they recomposited the whole glass chrome row every frame. Every animation runs from one fixed origin on the shared clock so reinstalling it changes nothing on screen.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "HYDRA",
@@ -5521,7 +5524,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/HydraButton.swift:211"
       ],
-      "notes": null
+      "notes": null,
+      "status": "IMPLEMENTED"
     },
     {
       "area": "HYDRA",
@@ -5543,7 +5547,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/HydraButton.swift:212-216"
       ],
-      "notes": "This is a double write. Turning Hydra on for the chat can also change the chat's model and effort by adopting the best-fit pair, with nothing in the menu saying so and no undo."
+      "notes": "This is a double write. Turning Hydra on for the chat can also change the chat's model and effort by adopting the best-fit pair, with nothing in the menu saying so and no undo.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "HYDRA",
@@ -5563,7 +5568,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/HydraButton.swift:218"
       ],
-      "notes": "Two distinct header strings; the off form is \"Hydra is off for this chat\"."
+      "notes": "Two distinct header strings; the off form is \"Hydra is off for this chat\".",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "HYDRA",
@@ -5584,7 +5590,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/HydraButton.swift:219-222"
       ],
-      "notes": "Choosing it while already on still re-pins the best-fit pair and may change the chat's model and effort."
+      "notes": "Choosing it while already on still re-pins the best-fit pair and may change the chat's model and effort.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "HYDRA",
@@ -5605,7 +5612,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/HydraButton.swift:223-226"
       ],
-      "notes": "Switching one chat off changes the default every NEW chat starts with."
+      "notes": "Switching one chat off changes the default every NEW chat starts with.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "HYDRA",
@@ -5625,7 +5633,8 @@
         "DroppyCode/App/Views/Chat/HydraButton.swift:305",
         "DroppyCode/App/Views/Chat/HydraButton.swift:317"
       ],
-      "notes": null
+      "notes": null,
+      "status": "IMPLEMENTED"
     },
     {
       "area": "HYDRA",
@@ -5644,7 +5653,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/HydraButton.swift:306-311"
       ],
-      "notes": "The apostrophe is a straight ASCII apostrophe as written in source."
+      "notes": "The apostrophe is a straight ASCII apostrophe as written in source.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "HYDRA",
@@ -5661,7 +5671,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/HydraButton.swift:312-313"
       ],
-      "notes": null
+      "notes": null,
+      "status": "IMPLEMENTED"
     },
     {
       "area": "HYDRA",
@@ -5678,7 +5689,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/HydraButton.swift:314-315"
       ],
-      "notes": "\"Right-click\" is correct on Windows as written; no rewording is needed."
+      "notes": "\"Right-click\" is correct on Windows as written; no rewording is needed.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "HYDRA",

@@ -3793,7 +3793,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Three-way click routing on one control.",
       "verification_method": "interaction test over all three states",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3814,7 +3814,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Walk only the last turn's rows.",
       "verification_method": "unit over a timeline with a running agent row, a streaming block and an older turn's block",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3838,7 +3838,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Measure the overlap in UTF-8 bytes, matching the source, not in UTF-16 units.",
       "verification_method": "unit feeding a fence split across two flushes and a reply that shrinks",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3861,7 +3861,7 @@
       "cancellation": "The 0.9 s task is cancelled and restarted whenever isSending changes.",
       "windows_path": "900 ms. Use one element for both states so the morph has a stable anchor. ED-059: each text style is set at the point size in upstream's B1 table (caption2 10; B1:DroppyCode/UI/Common/ChatZoom.swift:44-57), in Inter (OD-0009), and scales only with the app's own zoom (UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001.",
       "verification_method": "interaction test with a fake clock plus a capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3883,7 +3883,7 @@
       "cancellation": "not cancellable",
       "windows_path": "On Windows the secondary click is the right mouse button; there is no Control-click convention, so the Control branch is a macOS-only affordance whose Windows equivalent is the right button alone. The monitor exists because the button in front claims every hit; in a DOM port a contextmenu handler on the button itself achieves the same and must call preventDefault.",
       "verification_method": "interaction test with a right click and a Control-click",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3906,7 +3906,7 @@
       "cancellation": "Dismissing the popover without choosing changes nothing.",
       "windows_path": "Render the two per-chat items as checkable items driven by isOn and !isOn, and keep the Settings-off branch's double write.",
       "verification_method": "interaction test over both shapes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3928,7 +3928,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Use U+00B7 as the separator. The label and the value are distinct accessibility properties.",
       "verification_method": "unit over every branch of both functions",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3948,7 +3948,7 @@
       "cancellation": "Dismissing changes nothing.",
       "windows_path": "290 px column. The words 'Right-click' are correct on Windows too.",
       "verification_method": "capture comparison plus a contract fixture on the strings",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3971,7 +3971,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Honour the OS Reduce Motion setting. A ring that turned all day would keep the compositor busy for every chat with Hydra on, which is why it stands still when idle.",
       "verification_method": "capture comparison in both states plus a unit test on the Reduce Motion gate",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3996,7 +3996,7 @@
       "cancellation": "The animations are torn down with the view when the last head finishes.",
       "windows_path": "4000 ms turn, 1400 ms breath, and the turn runs clockwise on screen. CSS animations or the Web Animations API give the same shared timeline; drive them from one absolute origin, not from element creation, so two marks stay in step.",
       "verification_method": "capture comparison at fixed phases plus a unit test asserting each of the nine constants and the negative turn angle",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4020,7 +4020,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep both guards. The recolor test compares the whole colour array plus the accent by value, not by identity.",
       "verification_method": "unit asserting no install on a second configure with equal values, and one install after the turn animation is removed",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4044,7 +4044,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The analogue is the element being attached to the document: recolor and restart from the shared origin on attach, do nothing on detach.",
       "verification_method": "unit asserting a recolor and an install on attach and neither on detach",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4070,7 +4070,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The analogue is the window regaining focus or the page becoming visible; reinstall from the shared origin so nothing jumps.",
       "verification_method": "unit posting the activation notification with and without a window",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4095,7 +4095,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The analogue is a visibility or occlusion signal for this view's own window. Reproduce all three gates, including the identity test, not just 'this window became visible'.",
       "verification_method": "unit posting the notification for a different window, for this window while hidden, and for this window while visible",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4121,7 +4121,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Recolor on the theme signal and on the light/dark signal; only the theme signal re-reads the accent value.",
       "verification_method": "unit posting each notification and asserting which of the two values changed",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5658,7 +5658,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pure lookup over the provider registry.",
       "verification_method": "unit over the four branches",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5678,7 +5678,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exact template with U+00B7.",
       "verification_method": "unit over all four model branches with and without an effort",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5699,7 +5699,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exact templates; note the shared-effort case capitalises the first letter of the lowercased title.",
       "verification_method": "unit over all five effort cases and both provider cases",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5720,7 +5720,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exact templates; the separator is a space, a plus sign and a space.",
       "verification_method": "unit over each branch plus a named pair",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5747,7 +5747,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Remove the mark's right-click handler when its element is detached or disposed, on the UI thread. A framework that only disposes controls on the UI thread needs no separate check.",
       "verification_method": "interaction test: open and close a chat with Hydra on, then right-click where the mark was; no switch popover opens and the registered handler count is back to its earlier value",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5986,7 +5986,8 @@
         "DroppyCode/App/Views/Chat/HydraButton.swift:322-331",
         "porting/extracts/chrome-design-tokens.md:166-201"
       ],
-      "notes": "The badge is part of the glass's own CONTENT, laid over the button as an overlay on the label, because the chrome row's container composites every glass in it over everything else; a badge added after the glass came out underneath. Glass: OD-0005 applies (where the window shows the desktop, a Windows system material of the Acrylic class, with no lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing, drawn by the SKSL shader over app content per OD-0008's restatement in owner_decisions_pending.md:51); an owner-approved deviation, not parity. OD-0014: the window stays clear by default, as upstream, so until the user sets a wallpaper the desktop shows through as Acrylic plus the app-drawn scrim (OD-0005)."
+      "notes": "The badge is part of the glass's own CONTENT, laid over the button as an overlay on the label, because the chrome row's container composites every glass in it over everything else; a badge added after the glass came out underneath. Glass: OD-0005 applies (where the window shows the desktop, a Windows system material of the Acrylic class, with no lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing, drawn by the SKSL shader over app content per OD-0008's restatement in owner_decisions_pending.md:51); an owner-approved deviation, not parity. OD-0014: the window stays clear by default, as upstream, so until the user sets a wallpaper the desktop shows through as Acrylic plus the app-drawn scrim (OD-0005).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRA-002",
@@ -6014,7 +6015,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:44-57 Font.chatBaseSize, the table ED-059 takes text-style point sizes from (the file is deleted at B2): :54 caption2 10"
       ],
       "notes": "The badge is accessibility-hidden; the button's own label carries the count. The sending pulse and the count share one capsule at one size so the change is a tint crossfade, never a jump.",
-      "b2_change": "B1 HydraButton.swift:630 .font(.system(size: 9, weight: .bold).monospacedDigit()) -> B2 :630 .font(.system(.caption2, weight: .bold).monospacedDigit()): the count grows from 9 to 10 points (caption2 is 10 in dd2b86ef ChatZoom.swift:54). Colours, the spinner, the 14-point minimum frame and the paddings are unchanged."
+      "b2_change": "B1 HydraButton.swift:630 .font(.system(size: 9, weight: .bold).monospacedDigit()) -> B2 :630 .font(.system(.caption2, weight: .bold).monospacedDigit()): the count grows from 9 to 10 points (caption2 is 10 in dd2b86ef ChatZoom.swift:54). Colours, the spinner, the 14-point minimum frame and the paddings are unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRA-003",
@@ -6037,7 +6039,8 @@
         "DroppyCode/App/Views/Chat/HydraButton.swift:340-386",
         "DroppyCode/App/Views/Chat/HydraButton.swift:421-612"
       ],
-      "notes": "The moving form is drawn by Core Animation layers, not by the view framework, so a working team costs the main thread nothing; as framework animations they recomposited the whole glass chrome row every frame. Every animation runs from one fixed origin on the shared clock so reinstalling it changes nothing on screen."
+      "notes": "The moving form is drawn by Core Animation layers, not by the view framework, so a working team costs the main thread nothing; as framework animations they recomposited the whole glass chrome row every frame. Every animation runs from one fixed origin on the shared clock so reinstalling it changes nothing on screen.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRA-004",
@@ -6055,7 +6058,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/HydraButton.swift:211"
       ],
-      "notes": null
+      "notes": null,
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRA-005",
@@ -6076,7 +6080,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/HydraButton.swift:212-216"
       ],
-      "notes": "This is a double write. Turning Hydra on for the chat can also change the chat's model and effort by adopting the best-fit pair, with nothing in the menu saying so and no undo."
+      "notes": "This is a double write. Turning Hydra on for the chat can also change the chat's model and effort by adopting the best-fit pair, with nothing in the menu saying so and no undo.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRA-006",
@@ -6095,7 +6100,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/HydraButton.swift:218"
       ],
-      "notes": "Two distinct header strings; the off form is \"Hydra is off for this chat\"."
+      "notes": "Two distinct header strings; the off form is \"Hydra is off for this chat\".",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRA-007",
@@ -6115,7 +6121,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/HydraButton.swift:219-222"
       ],
-      "notes": "Choosing it while already on still re-pins the best-fit pair and may change the chat's model and effort."
+      "notes": "Choosing it while already on still re-pins the best-fit pair and may change the chat's model and effort.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRA-008",
@@ -6135,7 +6142,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/HydraButton.swift:223-226"
       ],
-      "notes": "Switching one chat off changes the default every NEW chat starts with."
+      "notes": "Switching one chat off changes the default every NEW chat starts with.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRA-009",
@@ -6154,7 +6162,8 @@
         "DroppyCode/App/Views/Chat/HydraButton.swift:305",
         "DroppyCode/App/Views/Chat/HydraButton.swift:317"
       ],
-      "notes": null
+      "notes": null,
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRA-010",
@@ -6172,7 +6181,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/HydraButton.swift:306-311"
       ],
-      "notes": "The apostrophe is a straight ASCII apostrophe as written in source."
+      "notes": "The apostrophe is a straight ASCII apostrophe as written in source.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRA-011",
@@ -6188,7 +6198,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/HydraButton.swift:312-313"
       ],
-      "notes": null
+      "notes": null,
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRA-012",
@@ -6204,7 +6215,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/HydraButton.swift:314-315"
       ],
-      "notes": "\"Right-click\" is correct on Windows as written; no rewording is needed."
+      "notes": "\"Right-click\" is correct on Windows as written; no rewording is needed.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRA-013",

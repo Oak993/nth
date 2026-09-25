@@ -7,9 +7,9 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "IMPLEMENTED": 2967,
+      "IMPLEMENTED": 2987,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
-      "SPECIFIED": 934,
+      "SPECIFIED": 914,
       "RETIRED": 6,
       "DISCOVERED": 6
     },
@@ -17985,7 +17985,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Three-way click routing on one control.",
       "verification_method": "interaction test over all three states",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -18007,7 +18007,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Walk only the last turn's rows.",
       "verification_method": "unit over a timeline with a running agent row, a streaming block and an older turn's block",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -18032,7 +18032,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Measure the overlap in UTF-8 bytes, matching the source, not in UTF-16 units.",
       "verification_method": "unit feeding a fence split across two flushes and a reply that shrinks",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -18056,7 +18056,7 @@
       "cancellation": "The 0.9 s task is cancelled and restarted whenever isSending changes.",
       "windows_path": "900 ms. Use one element for both states so the morph has a stable anchor. ED-059: each text style is set at the point size in upstream's B1 table (caption2 10; B1:DroppyCode/UI/Common/ChatZoom.swift:44-57), in Inter (OD-0009), and scales only with the app's own zoom (UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001.",
       "verification_method": "interaction test with a fake clock plus a capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -18079,7 +18079,7 @@
       "cancellation": "not cancellable",
       "windows_path": "On Windows the secondary click is the right mouse button; there is no Control-click convention, so the Control branch is a macOS-only affordance whose Windows equivalent is the right button alone. The monitor exists because the button in front claims every hit; in a DOM port a contextmenu handler on the button itself achieves the same and must call preventDefault.",
       "verification_method": "interaction test with a right click and a Control-click",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -18103,7 +18103,7 @@
       "cancellation": "Dismissing the popover without choosing changes nothing.",
       "windows_path": "Render the two per-chat items as checkable items driven by isOn and !isOn, and keep the Settings-off branch's double write.",
       "verification_method": "interaction test over both shapes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -18126,7 +18126,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Use U+00B7 as the separator. The label and the value are distinct accessibility properties.",
       "verification_method": "unit over every branch of both functions",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -18147,7 +18147,7 @@
       "cancellation": "Dismissing changes nothing.",
       "windows_path": "290 px column. The words 'Right-click' are correct on Windows too.",
       "verification_method": "capture comparison plus a contract fixture on the strings",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -18171,7 +18171,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Honour the OS Reduce Motion setting. A ring that turned all day would keep the compositor busy for every chat with Hydra on, which is why it stands still when idle.",
       "verification_method": "capture comparison in both states plus a unit test on the Reduce Motion gate",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -18197,7 +18197,7 @@
       "cancellation": "The animations are torn down with the view when the last head finishes.",
       "windows_path": "4000 ms turn, 1400 ms breath, and the turn runs clockwise on screen. CSS animations or the Web Animations API give the same shared timeline; drive them from one absolute origin, not from element creation, so two marks stay in step.",
       "verification_method": "capture comparison at fixed phases plus a unit test asserting each of the nine constants and the negative turn angle",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -18222,7 +18222,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep both guards. The recolor test compares the whole colour array plus the accent by value, not by identity.",
       "verification_method": "unit asserting no install on a second configure with equal values, and one install after the turn animation is removed",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -18247,7 +18247,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The analogue is the element being attached to the document: recolor and restart from the shared origin on attach, do nothing on detach.",
       "verification_method": "unit asserting a recolor and an install on attach and neither on detach",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -18274,7 +18274,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The analogue is the window regaining focus or the page becoming visible; reinstall from the shared origin so nothing jumps.",
       "verification_method": "unit posting the activation notification with and without a window",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -18300,7 +18300,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The analogue is a visibility or occlusion signal for this view's own window. Reproduce all three gates, including the identity test, not just 'this window became visible'.",
       "verification_method": "unit posting the notification for a different window, for this window while hidden, and for this window while visible",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -18327,7 +18327,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Recolor on the theme signal and on the light/dark signal; only the theme signal re-reads the accent value.",
       "verification_method": "unit posting each notification and asserting which of the two values changed",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -19930,7 +19930,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pure lookup over the provider registry.",
       "verification_method": "unit over the four branches",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -19951,7 +19951,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exact template with U+00B7.",
       "verification_method": "unit over all four model branches with and without an effort",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -19973,7 +19973,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exact templates; note the shared-effort case capitalises the first letter of the lowercased title.",
       "verification_method": "unit over all five effort cases and both provider cases",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -19995,7 +19995,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exact templates; the separator is a space, a plus sign and a space.",
       "verification_method": "unit over each branch plus a named pair",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -20023,7 +20023,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Remove the mark's right-click handler when its element is detached or disposed, on the UI thread. A framework that only disposes controls on the UI thread needs no separate check.",
       "verification_method": "interaction test: open and close a chat with Hydra on, then right-click where the mark was; no switch popover opens and the registered handler count is back to its earlier value",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
