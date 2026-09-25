@@ -1149,9 +1149,15 @@ public sealed partial class AppModel : MainActorModel
         UpdateDockBadge();
         if (sessionsToRelease.Remove(id)) ExistingRuntime(id)?.StopSession();
         if (AutoContinue.TurnFinished(id, status, continues)) return;
-        // The Hydra completion coordinator lives in AppModel+Hydra.swift, which is outside this unit's source set.
-        // Hydra heads report to their parent and never emit their own finish sound or notification.
-        if (isHead || continues) return;
+        // AppModel.swift:1195-1201. A head reports to its lead, which is the chat that chimes and notifies when
+        // the whole job is done. A head with another turn coming (its report, after its budget ran out) reports
+        // at the end of that one.
+        if (isHead)
+        {
+            if (!continues && thread is { } head) HydraHeadTurnFinished(head, status);
+            return;
+        }
+        if (continues) return;
         var chimed = Settings.ChimeWhenFinished && status != TurnStatus.Interrupted;
         if (chimed) FinishChime.Play();
         if (isVisible || !Settings.NotifyWhenFinished || thread is null) return;

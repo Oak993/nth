@@ -390,7 +390,7 @@ public sealed partial class AppModel
     {
         if (Thread(id) is not { Hydra: { } info } head ||
             head.ParentThreadID is not { } parentID || Thread(parentID) is not { } parent ||
-            Project(head.ProjectID) is not { } project)
+            HydraCheckout(head, parent) is not { } checkout)
             return;
 
         var provider = head.Provider;
@@ -403,7 +403,6 @@ public sealed partial class AppModel
             }
         }
 
-        var checkout = head.WorktreePath ?? project.Path;
         if (string.IsNullOrWhiteSpace(checkout)) return;
 
         var workplace = (HydraPrompts.Workplace)new HydraPrompts.Workplace.Shared(checkout);
@@ -1014,6 +1013,11 @@ public sealed partial class AppModel
 
     // :310-313
     private string? HydraCheckout(ChatThread lead) => lead.WorktreePath ?? Project(lead.ProjectID)?.Path;
+
+    // :344-347. The checkout a head's copy is made from and its work lands in: the lead's own for a head in the
+    // lead's project (which may be the lead's own worktree, not the bare project path), else the head's project folder.
+    private string? HydraCheckout(ChatThread head, ChatThread lead) =>
+        head.ProjectID == lead.ProjectID ? HydraCheckout(lead) : Project(head.ProjectID)?.Path;
 
     // :28-107
     private static class HydraTreeCache
