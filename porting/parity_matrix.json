@@ -7,9 +7,9 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "IMPLEMENTED": 2848,
+      "IMPLEMENTED": 2850,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
-      "SPECIFIED": 1049,
+      "SPECIFIED": 1047,
       "RETIRED": 6,
       "DISCOVERED": 10
     },
@@ -68670,7 +68670,7 @@
       "cancellation": "Closing the panel cancels the catalog loads.",
       "windows_path": "Same ten recipes verbatim, including their titles, taglines, provider preference orders, model name fragments, efforts and caps, and the same resolution rules.",
       "verification_method": "unit test on resolve and missingProvider over several registry states; interaction test for the empty-state sentence",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -68701,7 +68701,7 @@
       "cancellation": "not cancellable; the added pair is removed from the Pairs card.",
       "windows_path": "Same one-click add, the same equivalence test and the same two trailing states.",
       "verification_method": "interaction test: add a recipe, assert the row becomes \"Added\" and the Pairs card gained one row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,

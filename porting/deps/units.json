@@ -9582,24 +9582,14 @@
     "App.Views.Chat.HydraButton"
    ],
    "records_total": 3,
-   "records_todo": [
-    "PR-SETTINGS-177",
-    "PR-SETTINGS-178",
-    "UI-SETTINGS-037"
-   ],
-   "parts": [
-    [
-     "PR-SETTINGS-177",
-     "PR-SETTINGS-178",
-     "UI-SETTINGS-037"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M7-134",
     "T-M7-135"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "App.Views.Settings.HydraSettingsPage",

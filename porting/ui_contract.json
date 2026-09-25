@@ -16036,7 +16036,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:51-53 chatBaseSize - .body 13, .callout 12, .subheadline 11 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "The third line is omitted entirely when it would be empty, rather than drawn as a blank line. A same-provider pair with no efforts therefore has two lines, not three.",
-      "b2_change": "Re-cited: the cited ranges keep their line numbers at 1fbf81e6; the literal font sizes became text styles of the same default size (.footnote 10pt, .subheadline 11pt, .callout 12pt, .body 13pt, .title3 15pt, .title2 17pt, .title 22pt)."
+      "b2_change": "Re-cited: the cited ranges keep their line numbers at 1fbf81e6; the literal font sizes became text styles of the same default size (.footnote 10pt, .subheadline 11pt, .callout 12pt, .body 13pt, .title3 15pt, .title2 17pt, .title 22pt).",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "SETTINGS",

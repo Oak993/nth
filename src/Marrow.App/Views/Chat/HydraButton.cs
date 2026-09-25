@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Avalonia.Controls;
 using Marrow.App.Runtime;
 using Marrow.Core.Models;
@@ -137,8 +138,12 @@ internal sealed class HydraSendWorkingBadge : Decorator
 public static class HydraPairSummary
 {
     // :652-657 @MainActor static func workerModel(_:registry:) -> String?
-    public static string? WorkerModel(HydraPair pair, ProviderRegistry registry) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/HydraButton.swift:652");
+    public static string? WorkerModel(HydraPair pair, ProviderRegistry registry)
+    {
+        if (pair.WorkerModel is { } model) return registry.Model(model, pair.HeadsProvider)?.ShortName ?? model;
+        if (!pair.SendsHeadsElsewhere) return null;
+        return registry.DefaultModel(pair.HeadsProvider)?.ShortName;
+    }
 
     // :661-673 @MainActor static func workers(_:registry:) -> String
     public static string Workers(HydraPair pair, ProviderRegistry registry) =>
@@ -149,14 +154,33 @@ public static class HydraPairSummary
         throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/HydraButton.swift:676");
 
     // :683-693 static func efforts(_:) -> String?
-    public static string? Efforts(HydraPair pair) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/HydraButton.swift:683");
+    public static string? Efforts(HydraPair pair)
+    {
+        var lead = pair.OrchestratorEffort is { } leadEffort ? SwiftString.Lowercased(ModelOption.EffortTitle(leadEffort)) : null;
+        var heads = pair.WorkerEffort is { } headsEffort ? SwiftString.Lowercased(ModelOption.EffortTitle(headsEffort)) : null;
+        if (lead is not null && heads is not null && lead == heads) return Capitalized(lead) + " effort";
+        if (lead is not null && heads is not null) return "Lead " + lead + ", heads " + heads + " effort";
+        if (lead is not null) return "Lead " + lead + " effort";
+        if (heads is not null) return "Heads " + heads + " effort";
+        return null;
+    }
+
+    // Swift `.capitalized`: the first letter of every word upper-cased, the rest untouched (R-STR-4).
+    private static string Capitalized(string text) =>
+        string.Join(" ", text.Split(' ').Select(word =>
+            word.Length == 0 ? word : SwiftString.Uppercased(SwiftString.Prefix(word, 1)) + SwiftString.DropFirst(word, 1)));
 
     // :697-704 @MainActor static func modelsTitle(_:registry:) -> String
-    public static string ModelsTitle(HydraPair pair, ProviderRegistry registry) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/HydraButton.swift:697");
+    public static string ModelsTitle(HydraPair pair, ProviderRegistry registry)
+    {
+        var lead = pair.OrchestratorModel is { } orchestratorModel
+            ? registry.Model(orchestratorModel, pair.Provider)?.ShortName ?? orchestratorModel
+            : "Any " + pair.Provider.DisplayName + " model";
+        var worker = WorkerModel(pair, registry) ?? (pair.SendsHeadsElsewhere ? pair.HeadsProvider.DisplayName : null);
+        return worker is null ? lead + " + itself" : lead + " + " + worker;
+    }
 
     // :707-710 @MainActor static func title(_:registry:) -> String
     public static string Title(HydraPair pair, ProviderRegistry registry) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/HydraButton.swift:707");
+        pair.CustomName ?? ModelsTitle(pair, registry);
 }
