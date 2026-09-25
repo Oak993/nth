@@ -4756,7 +4756,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Both clears must be reproduced. Omitting the outgoing one leaves a thread that reopens its panel when you come back, which is a different product; omitting the incoming one pops a panel on every thread switch. The capture guard is dead code in every normal launch (porting/dead_code.md entry 34: the `!WebsiteCaptures.isEnabled` conjuncts at DroppyCode/App/Views/Diff/DiffInspector.swift:557 and :563) and the capture subsystem is not ported (ED-001), so under ED-061 the port omits the guard and both clears are unconditional.",
       "verification_method": "interaction test moving between two threads, both with the panel open, asserting isDiffVisible on each runtime after the move and after moving back",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4781,7 +4781,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A counter compared against a remembered baseline, adopted on every runtime change. Comparing against zero, or against the previous thread's value, makes every thread switch pop the changes panel.",
       "verification_method": "interaction test: two threads with different counters, moving between them with no bump (nothing opens), then bumping on the served thread (opens once), then moving away and back (nothing opens)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

@@ -7,9 +7,9 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "IMPLEMENTED": 2998,
+      "IMPLEMENTED": 3008,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
-      "SPECIFIED": 903,
+      "SPECIFIED": 893,
       "RETIRED": 6,
       "DISCOVERED": 6
     },
@@ -9617,7 +9617,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Both clears must be reproduced. Omitting the outgoing one leaves a thread that reopens its panel when you come back, which is a different product; omitting the incoming one pops a panel on every thread switch. The capture guard is dead code in every normal launch (porting/dead_code.md entry 34: the `!WebsiteCaptures.isEnabled` conjuncts at DroppyCode/App/Views/Diff/DiffInspector.swift:557 and :563) and the capture subsystem is not ported (ED-001), so under ED-061 the port omits the guard and both clears are unconditional.",
       "verification_method": "interaction test moving between two threads, both with the panel open, asserting isDiffVisible on each runtime after the move and after moving back",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -9643,7 +9643,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A counter compared against a remembered baseline, adopted on every runtime change. Comparing against zero, or against the previous thread's value, makes every thread switch pop the changes panel.",
       "verification_method": "interaction test: two threads with different counters, moving between them with no bump (nothing opens), then bumping on the served thread (opens once), then moving away and back (nothing opens)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -13430,7 +13430,7 @@
       "cancellation": "The task is cancelled when the popover closes or the key changes.",
       "windows_path": "Direct port including the 180 millisecond literal.",
       "verification_method": "interaction test measuring first-frame latency with and without a cached diff",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -13456,7 +13456,7 @@
       "cancellation": "Cancellation is checked before and after the detached parse.",
       "windows_path": "Direct port.",
       "verification_method": "interaction test tapping a tool row during a running turn",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -13482,7 +13482,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port including the six-file threshold and the 0.25 second duration.",
       "verification_method": "interaction test at six and seven files, and with a focused file",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -13509,7 +13509,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port of both literals, 200 and 40.",
       "verification_method": "interaction test on a 500-line file asserting the button text and the row count",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -13536,7 +13536,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port of the chunk size 40 and the radius 8, and of the header-dropping rule.",
       "verification_method": "capture comparison against a recorded diff with consecutive single-line hunks",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -13564,7 +13564,7 @@
       "cancellation": "not applicable",
       "windows_path": "Platform boundary: there is no NSPopover. The Windows equivalent is a light-dismiss flyout anchored to the same views, sized 640 by 540 device-independent pixels, whose outside click must still deliver to the control beneath. Escape closes and is swallowed.",
       "verification_method": "interaction test on each dismissal route, including an outside click landing on another turn's review button",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": "UNK-0011"
@@ -13592,7 +13592,7 @@
       "cancellation": "not applicable",
       "windows_path": "Reproduce the counter mismatch rather than the intended behaviour, including that the first show already mismatches.",
       "verification_method": "interaction test dismissing the popover by its own light-dismiss and asserting the flag is still set",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "67",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -13619,7 +13619,7 @@
       "cancellation": "not applicable",
       "windows_path": "Platform boundary: the same anchor precedence and edge semantics over a Windows flyout placement.",
       "verification_method": "interaction test from each of the three openers",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

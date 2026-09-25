@@ -4056,7 +4056,8 @@
         "DroppyCode/App/Views/Diff/DiffInspector.swift:515-539",
         "DroppyCode/App/Views/Diff/DiffInspector.swift:660-672"
       ],
-      "notes": "Semitransient with a pass-through monitor: an outside click both dismisses and activates its target, which is what lets a reader move straight from one turn's review to another's."
+      "notes": "Semitransient with a pass-through monitor: an outside click both dismisses and activates its target, which is what lets a reader move straight from one turn's review to another's.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "GIT",
@@ -4081,7 +4082,8 @@
         "decision": "OD-0005",
         "upstream": "`GlassEffectContainer(spacing: 2) {` (DroppyCode/App/Views/Diff/DiffInspector.swift:25) holds a ChromeTextMenu and a ChromeCapsule, drawn with `.chromeGlassCapsule()` (DroppyCode/UI/Chrome/Chrome.swift:504, :317), which renders `content.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3)).interactive(), in: shape)` (DroppyCode/UI/Chrome/Chrome.swift:180), macOS Liquid Glass",
         "port": "Acrylic-class Windows system material where the window shows the desktop, without lensing, refraction or chromatic fringing; over the app's own content a shader reproduces the source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing"
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "GIT",
@@ -4108,7 +4110,8 @@
         "decision": "OD-0005",
         "upstream": "ChromeTextMenu (DroppyCode/App/Views/Diff/DiffInspector.swift:27) is drawn with `.chromeGlassCapsule()` (DroppyCode/UI/Chrome/Chrome.swift:504), which renders `content.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3)).interactive(), in: shape)` (DroppyCode/UI/Chrome/Chrome.swift:180), macOS Liquid Glass",
         "port": "Acrylic-class Windows system material where the window shows the desktop, without lensing, refraction or chromatic fringing; over the app's own content a shader reproduces the source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing"
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "GIT",
@@ -4129,7 +4132,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Diff/DiffInspector.swift:34-37"
       ],
-      "notes": "Clearing the focus first is what stops the popover reopening on some earlier tool row's file."
+      "notes": "Clearing the focus first is what stops the popover reopening on some earlier tool row's file.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "GIT",
@@ -4151,7 +4155,8 @@
         "DroppyCode/App/Views/Diff/DiffInspector.swift:38-43",
         "DroppyCode/App/Runtime/ThreadRuntime.swift:2004-2011"
       ],
-      "notes": "The label is the literal \"Turn \" followed by the stored index plus one. Only turns with an end checkpoint, a provider diff, non-empty touched paths or tool edits appear."
+      "notes": "The label is the literal \"Turn \" followed by the stored index plus one. Only turns with an end checkpoint, a provider diff, non-empty touched paths or tool edits appear.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "GIT",
@@ -4172,7 +4177,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:53 - `case .subheadline: 11` (ED-059: upstream's table of the size each text style is laid out at)"
       ],
       "notes": "Exactly \"1 file\" at one file, otherwise the count followed by \" files\". ED-059: .subheadline at 11 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:53), set in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal does not apply.",
-      "b2_change": "typography `.font(.system(size: 11))` (B1 DroppyCode/App/Views/Diff/DiffInspector.swift:48) -> `.font(.system(.subheadline))` (B2 :48); B1 DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` is upstream's own table of the size macOS lays that style out at; ChatZoom.swift no longer exists at B2, so the default size is unchanged."
+      "b2_change": "typography `.font(.system(size: 11))` (B1 DroppyCode/App/Views/Diff/DiffInspector.swift:48) -> `.font(.system(.subheadline))` (B2 :48); B1 DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` is upstream's own table of the size macOS lays that style out at; ChatZoom.swift no longer exists at B2, so the default size is unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "GIT",
@@ -4218,7 +4224,8 @@
         "decision": "OD-0005",
         "upstream": "`ChromeCapsule {` (DroppyCode/App/Views/Diff/DiffInspector.swift:55) is drawn with `.chromeGlassCapsule()` (DroppyCode/UI/Chrome/Chrome.swift:317), which renders `content.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3)).interactive(), in: shape)` (DroppyCode/UI/Chrome/Chrome.swift:180), macOS Liquid Glass",
         "port": "Acrylic-class Windows system material where the window shows the desktop, without lensing, refraction or chromatic fringing; over the app's own content a shader reproduces the source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing"
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "GIT",
@@ -4237,7 +4244,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Diff/DiffInspector.swift:57"
       ],
-      "notes": "There is no confirmation and no limit, so expanding a hundred-file diff builds every card's first 200 lines."
+      "notes": "There is no confirmation and no limit, so expanding a hundred-file diff builds every card's first 200 lines.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "GIT",
@@ -4256,7 +4264,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Diff/DiffInspector.swift:58"
       ],
-      "notes": "Note the two symbols are the reverse of what their names suggest at a glance; reproduce them as given."
+      "notes": "Note the two symbols are the reverse of what their names suggest at a glance; reproduce them as given.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "GIT",
@@ -4280,7 +4289,8 @@
         "decision": "OD-0005",
         "upstream": "`ChromeCapsule {` (DroppyCode/App/Views/Diff/DiffInspector.swift:55) is drawn with `.chromeGlassCapsule()` (DroppyCode/UI/Chrome/Chrome.swift:317), which renders `content.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3)).interactive(), in: shape)` (DroppyCode/UI/Chrome/Chrome.swift:180), macOS Liquid Glass",
         "port": "Acrylic-class Windows system material where the window shows the desktop, without lensing, refraction or chromatic fringing; over the app's own content a shader reproduces the source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing"
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "GIT",
@@ -4304,7 +4314,8 @@
         "decision": "OD-0016",
         "upstream": "DroppyCode/App/Views/Diff/DiffInspector.swift:76 `ProgressView(\"Reading the diff…\")`",
         "port": "The 64 px loading mark replaces the spinner above the same label \"Reading the diff…\", after 400 ms (ED-097)."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "GIT",
@@ -4323,7 +4334,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Diff/DiffInspector.swift:77-83"
       ],
-      "notes": "Title \"No changes yet\", system image \"doc.text.magnifyingglass\", description exactly \"Files the agent changes appear here after each turn.\" with a trailing period."
+      "notes": "Title \"No changes yet\", system image \"doc.text.magnifyingglass\", description exactly \"Files the agent changes appear here after each turn.\" with a trailing period.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "GIT",
@@ -4345,7 +4357,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Diff/DiffInspector.swift:87-107"
       ],
-      "notes": "Each card is identified by the file path, so two entries for one path would collide; TurnDiff merges them before this point."
+      "notes": "Each card is identified by the file path, so two entries for one path would collide; TurnDiff merges them before this point.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "GIT",
@@ -4368,7 +4381,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Diff/DiffInspector.swift:192-231 - `VStack(alignment: .leading, spacing: 0) {` header button, then `if !isCollapsed {` the caption or `DiffLinesView(file: file)` `}`; `.background(.quaternary.opacity(0.3), in: .rect(cornerRadius: 12, style: .continuous))`; `.clipShape(.rect(cornerRadius: 12, style: .continuous))`"
       ],
-      "notes": "The card compares itself cheaply on path, counts, hunk count, change kind, binary flag and collapse state, so a sibling's collapse never re-renders it."
+      "notes": "The card compares itself cheaply on path, counts, hunk count, change kind, binary flag and collapse state, so a sibling's collapse never re-renders it.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "GIT",
@@ -4394,7 +4408,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:52 - `case .callout: 12` (ED-059: upstream's table of the size each text style is laid out at)"
       ],
       "notes": "The symbols are \"plus.circle.fill\" added, \"minus.circle.fill\" deleted, \"arrow.right.circle.fill\" renamed and \"pencil.circle.fill\" modified. Head truncation, not tail: a long directory is cut at the front. ED-059: .caption2 at 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54); .callout at 12 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:52), set in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal does not apply.",
-      "b2_change": "chevron `.foregroundStyle(.tertiary)` (B1 DroppyCode/App/Views/Diff/DiffInspector.swift:198) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :198); directory `Text(file.directory).foregroundStyle(.secondary)` (B1 :202) -> `Text(file.directory).foregroundStyle(Chrome.secondaryText)` (B2 :202); Chrome.secondaryText is `primaryText.opacity(0.7)` at B2 (DroppyCode/UI/Chrome/Chrome.swift:79)."
+      "b2_change": "chevron `.foregroundStyle(.tertiary)` (B1 DroppyCode/App/Views/Diff/DiffInspector.swift:198) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :198); directory `Text(file.directory).foregroundStyle(.secondary)` (B1 :202) -> `Text(file.directory).foregroundStyle(Chrome.secondaryText)` (B2 :202); Chrome.secondaryText is `primaryText.opacity(0.7)` at B2 (DroppyCode/UI/Chrome/Chrome.swift:79).",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "GIT",
@@ -4415,7 +4430,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:54 - `case .footnote, .caption, .caption2: 10` (ED-059: upstream's table of the size each text style is laid out at)"
       ],
       "notes": "Two characters, capital B, no period. ED-059: .caption at 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54), set in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal does not apply.",
-      "b2_change": "`.foregroundStyle(.secondary)` (B1 DroppyCode/App/Views/Diff/DiffInspector.swift:219) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :219), shared by both captions."
+      "b2_change": "`.foregroundStyle(.secondary)` (B1 DroppyCode/App/Views/Diff/DiffInspector.swift:219) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :219), shared by both captions.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "GIT",
@@ -4436,7 +4452,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:54 - `case .footnote, .caption, .caption2: 10` (ED-059: upstream's table of the size each text style is laid out at)"
       ],
       "notes": "This is what a file synthesised from an edit's reported counts alone shows, so the row still carries numbers while saying it cannot show the lines. ED-059: .caption at 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54), set in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal does not apply.",
-      "b2_change": "`.foregroundStyle(.secondary)` (B1 DroppyCode/App/Views/Diff/DiffInspector.swift:219) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :219), shared by both captions."
+      "b2_change": "`.foregroundStyle(.secondary)` (B1 DroppyCode/App/Views/Diff/DiffInspector.swift:219) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :219), shared by both captions.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "GIT",
@@ -4458,7 +4475,8 @@
         "DroppyCode/App/Views/Diff/DiffInspector.swift:390-411",
         "DroppyCode/App/Views/Diff/DiffInspector.swift:222-226"
       ],
-      "notes": "The exact size is 11.5, not 11 or 12. The collapsed view is built eagerly so the outer lazy list gets each card's exact height and no row goes missing while scrolling."
+      "notes": "The exact size is 11.5, not 11 or 12. The collapsed view is built eagerly so the outer lazy list gets each card's exact height and no row goes missing while scrolling.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "GIT",
@@ -4480,7 +4498,8 @@
         "DroppyCode/App/Views/Diff/DiffInspector.swift:320-326"
       ],
       "notes": "The text is the raw @@ header line from the patch, shown verbatim. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal does not apply.",
-      "b2_change": "`.foregroundStyle(.secondary)` (B1 DroppyCode/App/Views/Diff/DiffInspector.swift:350) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :350); Chrome.secondaryText is `primaryText.opacity(0.7)` at B2 (DroppyCode/UI/Chrome/Chrome.swift:79)."
+      "b2_change": "`.foregroundStyle(.secondary)` (B1 DroppyCode/App/Views/Diff/DiffInspector.swift:350) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :350); Chrome.secondaryText is `primaryText.opacity(0.7)` at B2 (DroppyCode/UI/Chrome/Chrome.swift:79).",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "GIT",
@@ -4505,7 +4524,8 @@
         "DroppyCode/App/Views/Diff/DiffInspector.swift:436-513 DiffLineRow - `Text(line.oldNumber.map(String.init) ?? \"\").frame(width: Self.numberColumnWidth, alignment: .trailing).foregroundStyle(Chrome.secondaryText)` and the same for `line.newNumber` (:450-455); `Text(line.text.isEmpty ? \" \" : line.text).foregroundStyle(line.kind == .note ? .secondary : .primary)` (:460-461); `numberColumnWidth: CGFloat = 30`, `markerColumnWidth: CGFloat = 14` (:472-473); markers `\"+\"` and `\"−\"`, colours `.green`, `.red`, `.secondary`, backgrounds `.green.opacity(0.12)`, `.red.opacity(0.12)`, `.clear` (:490-512)"
       ],
       "notes": "The addition marker is \"+\" and the deletion marker is U+2212 MINUS SIGN, not a hyphen. Empty line text is rendered as a single space so the row keeps its height. Fixed-width columns rather than one concatenated text, so numbers share a right edge and wrapped code stays out of the gutters. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal does not apply.",
-      "b2_change": "line numbers `.foregroundStyle(Color.secondary.opacity(0.6))` (B1 DroppyCode/App/Views/Diff/DiffInspector.swift:452, :455) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :452, :455); Chrome.secondaryText is `primaryText.opacity(0.7)` at B2 (DroppyCode/UI/Chrome/Chrome.swift:79). Marker colours and the note line's `.secondary` (:461) are unchanged."
+      "b2_change": "line numbers `.foregroundStyle(Color.secondary.opacity(0.6))` (B1 DroppyCode/App/Views/Diff/DiffInspector.swift:452, :455) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :452, :455); Chrome.secondaryText is `primaryText.opacity(0.7)` at B2 (DroppyCode/UI/Chrome/Chrome.swift:79). Marker colours and the note line's `.secondary` (:461) are unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "GIT",
@@ -4529,7 +4549,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:54 - `case .footnote, .caption, .caption2: 10` (ED-059: upstream's table of the size each text style is laid out at)"
       ],
       "notes": "The label is the literal \"Show all \", the total line count, then \" lines\", with no singular form: a 201-line file reads \"Show all 201 lines\". ED-059: .caption at 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54), set in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal does not apply.",
-      "b2_change": "label `.foregroundStyle(.secondary)` (B1 DroppyCode/App/Views/Diff/DiffInspector.swift:378) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :378); Chrome.secondaryText is `primaryText.opacity(0.7)` at B2 (DroppyCode/UI/Chrome/Chrome.swift:79). The 0.5 quaternary capsule and the 200-line threshold are unchanged (:274 gained only `nonisolated`)."
+      "b2_change": "label `.foregroundStyle(.secondary)` (B1 DroppyCode/App/Views/Diff/DiffInspector.swift:378) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :378); Chrome.secondaryText is `primaryText.opacity(0.7)` at B2 (DroppyCode/UI/Chrome/Chrome.swift:79). The 0.5 quaternary capsule and the 200-line threshold are unchanged (:274 gained only `nonisolated`).",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "GIT",
