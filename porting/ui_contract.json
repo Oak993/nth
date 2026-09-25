@@ -6331,7 +6331,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:44-57 Font.chatBaseSize, the table ED-059 takes text-style point sizes from (the file is deleted at B2): :53 subheadline 11"
       ],
       "notes": "Faces past a handful overrun the header; the totals line beside them names the full number.",
-      "b2_change": "Citation re-anchored: B1 HydraReportsPopover.swift:284-300 -> B2 HydraReportsPopover.swift:277-293. Typography was \"The pill text is .system(size: 11, weight: .semibold).\"; fixed .system(size: N) fonts are now text styles of the same macOS point size (text-style point sizes per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (B1; the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom): title2 17, title3 15, body 13, callout 12, subheadline 11, footnote 10, caption2 10), so the rendered point sizes are unchanged."
+      "b2_change": "Citation re-anchored: B1 HydraReportsPopover.swift:284-300 -> B2 HydraReportsPopover.swift:277-293. Typography was \"The pill text is .system(size: 11, weight: .semibold).\"; fixed .system(size: N) fonts are now text styles of the same macOS point size (text-style point sizes per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (B1; the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom): title2 17, title3 15, body 13, callout 12, subheadline 11, footnote 10, caption2 10), so the rendered point sizes are unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "HYDRA",
@@ -6356,7 +6357,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:44-57 Font.chatBaseSize, the table ED-059 takes text-style point sizes from (the file is deleted at B2): :53 subheadline 11"
       ],
       "notes": "Reads exactly \"3 heads · 7 files · +120 −45\", with MIDDLE DOT U+00B7 separators and MINUS SIGN U+2212 before the deletions. Singular forms are \"head\" and \"file\". Files from a \"Did not land\" landing are counted too.",
-      "b2_change": "Citation re-anchored: B1 HydraReportsPopover.swift:306-309 -> B2 HydraReportsPopover.swift:299-302. Typography was \".system(size: 11) with monospaced digits.\"; fixed .system(size: N) fonts are now text styles of the same macOS point size (text-style point sizes per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (B1; the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom): title2 17, title3 15, body 13, callout 12, subheadline 11, footnote 10, caption2 10), so the rendered point sizes are unchanged."
+      "b2_change": "Citation re-anchored: B1 HydraReportsPopover.swift:306-309 -> B2 HydraReportsPopover.swift:299-302. Typography was \".system(size: 11) with monospaced digits.\"; fixed .system(size: N) fonts are now text styles of the same macOS point size (text-style point sizes per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (B1; the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom): title2 17, title3 15, body 13, callout 12, subheadline 11, footnote 10, caption2 10), so the rendered point sizes are unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "HYDRA",
@@ -6380,7 +6382,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:44-57 Font.chatBaseSize, the table ED-059 takes text-style point sizes from (the file is deleted at B2): :53 subheadline 11"
       ],
       "notes": "The sentence begins just after the last period before the match and runs to the END of the intro, not to the next period.",
-      "b2_change": "Citation re-anchored: B1 HydraReportsPopover.swift:310-315 -> B2 HydraReportsPopover.swift:303-308. Typography was \".system(size: 11).\"; fixed .system(size: N) fonts are now text styles of the same macOS point size (text-style point sizes per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (B1; the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom): title2 17, title3 15, body 13, callout 12, subheadline 11, footnote 10, caption2 10), so the rendered point sizes are unchanged. The stillAtWorkSentence citation moved from B1 :442-452 to B2 :435-445 and trims with .trimmed (Text.swift:132, the same trim)."
+      "b2_change": "Citation re-anchored: B1 HydraReportsPopover.swift:310-315 -> B2 HydraReportsPopover.swift:303-308. Typography was \".system(size: 11).\"; fixed .system(size: N) fonts are now text styles of the same macOS point size (text-style point sizes per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (B1; the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom): title2 17, title3 15, body 13, callout 12, subheadline 11, footnote 10, caption2 10), so the rendered point sizes are unchanged. The stillAtWorkSentence citation moved from B1 :442-452 to B2 :435-445 and trims with .trimmed (Text.swift:132, the same trim).",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "HYDRA",
@@ -6408,7 +6411,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:44-57 Font.chatBaseSize, the table ED-059 takes text-style point sizes from (the file is deleted at B2): :51 body 13 | :52 callout 12 | :53 subheadline 11"
       ],
       "notes": "With one head the card below carries only the files and the report; the header already carries the name and the task.",
-      "b2_change": "Citation re-anchored: B1 HydraReportsPopover.swift:325-396 -> B2 HydraReportsPopover.swift:318-389. Typography was \"Name .system(size: 13, weight: .semibold); outcome caption and files line .system(size: 11) with monospaced digits; task .system(size: 12) on at most three lines.\"; fixed .system(size: N) fonts are now text styles of the same macOS point size (text-style point sizes per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (B1; the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom): title2 17, title3 15, body 13, callout 12, subheadline 11, footnote 10, caption2 10), so the rendered point sizes are unchanged."
+      "b2_change": "Citation re-anchored: B1 HydraReportsPopover.swift:325-396 -> B2 HydraReportsPopover.swift:318-389. Typography was \"Name .system(size: 13, weight: .semibold); outcome caption and files line .system(size: 11) with monospaced digits; task .system(size: 12) on at most three lines.\"; fixed .system(size: N) fonts are now text styles of the same macOS point size (text-style point sizes per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (B1; the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom): title2 17, title3 15, body 13, callout 12, subheadline 11, footnote 10, caption2 10), so the rendered point sizes are unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "HYDRA",
@@ -6434,7 +6438,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:44-57 Font.chatBaseSize, the table ED-059 takes text-style point sizes from (the file is deleted at B2): :51 body 13 | :53 subheadline 11 | :54 footnote 10"
       ],
       "notes": "The toggle is deliberately not animated: the popover takes its height from the content, and an animated toggle feeds it a new height every frame which the window system animates again on top.",
-      "b2_change": "Citation re-anchored: B1 HydraReportsPopover.swift:472-557 -> B2 HydraReportsPopover.swift:465-550. Typography was \"Name .system(size: 13, weight: .semibold); outcome word and effort .system(size: 11), the effort with monospaced digits on one line; the chevron .system(size: 10, weight: .semibold).\"; fixed .system(size: N) fonts are now text styles of the same macOS point size (text-style point sizes per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (B1; the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom): title2 17, title3 15, body 13, callout 12, subheadline 11, footnote 10, caption2 10), so the rendered point sizes are unchanged."
+      "b2_change": "Citation re-anchored: B1 HydraReportsPopover.swift:472-557 -> B2 HydraReportsPopover.swift:465-550. Typography was \"Name .system(size: 13, weight: .semibold); outcome word and effort .system(size: 11), the effort with monospaced digits on one line; the chevron .system(size: 10, weight: .semibold).\"; fixed .system(size: N) fonts are now text styles of the same macOS point size (text-style point sizes per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (B1; the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom): title2 17, title3 15, body 13, callout 12, subheadline 11, footnote 10, caption2 10), so the rendered point sizes are unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "HYDRA",
@@ -6457,7 +6462,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:44-57 Font.chatBaseSize, the table ED-059 takes text-style point sizes from (the file is deleted at B2): :52 callout 12"
       ],
       "notes": "Exactly one leading \"{name}: \" is removed, because the name already sits on the row above.",
-      "b2_change": "Citation re-anchored: B1 HydraReportsPopover.swift:501-511 -> B2 HydraReportsPopover.swift:494-504. Typography was \".system(size: 12) on at most two lines.\"; fixed .system(size: N) fonts are now text styles of the same macOS point size (text-style point sizes per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (B1; the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom): title2 17, title3 15, body 13, callout 12, subheadline 11, footnote 10, caption2 10), so the rendered point sizes are unchanged."
+      "b2_change": "Citation re-anchored: B1 HydraReportsPopover.swift:501-511 -> B2 HydraReportsPopover.swift:494-504. Typography was \".system(size: 12) on at most two lines.\"; fixed .system(size: N) fonts are now text styles of the same macOS point size (text-style point sizes per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (B1; the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom): title2 17, title3 15, body 13, callout 12, subheadline 11, footnote 10, caption2 10), so the rendered point sizes are unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "HYDRA",
@@ -6480,7 +6486,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:44-57 Font.chatBaseSize, the table ED-059 takes text-style point sizes from (the file is deleted at B2): :53 subheadline 11"
       ],
       "notes": "Parsed back from the exact sentence landingLine emits.",
-      "b2_change": "Citation re-anchored: B1 HydraReportsPopover.swift:573-576 -> B2 HydraReportsPopover.swift:566-569. Typography was \".system(size: 11).\"; fixed .system(size: N) fonts are now text styles of the same macOS point size (text-style point sizes per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (B1; the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom): title2 17, title3 15, body 13, callout 12, subheadline 11, footnote 10, caption2 10), so the rendered point sizes are unchanged."
+      "b2_change": "Citation re-anchored: B1 HydraReportsPopover.swift:573-576 -> B2 HydraReportsPopover.swift:566-569. Typography was \".system(size: 11).\"; fixed .system(size: N) fonts are now text styles of the same macOS point size (text-style point sizes per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (B1; the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom): title2 17, title3 15, body 13, callout 12, subheadline 11, footnote 10, caption2 10), so the rendered point sizes are unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "HYDRA",
@@ -6504,7 +6511,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:44-57 Font.chatBaseSize, the table ED-059 takes text-style point sizes from (the file is deleted at B2): :53 subheadline 11"
       ],
       "notes": null,
-      "b2_change": "Citation re-anchored: B1 HydraReportsPopover.swift:565-572 -> B2 HydraReportsPopover.swift:558-565. Typography was \".system(size: 11), sized to its content vertically.\"; fixed .system(size: N) fonts are now text styles of the same macOS point size (text-style point sizes per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (B1; the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom): title2 17, title3 15, body 13, callout 12, subheadline 11, footnote 10, caption2 10), so the rendered point sizes are unchanged."
+      "b2_change": "Citation re-anchored: B1 HydraReportsPopover.swift:565-572 -> B2 HydraReportsPopover.swift:558-565. Typography was \".system(size: 11), sized to its content vertically.\"; fixed .system(size: N) fonts are now text styles of the same macOS point size (text-style point sizes per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (B1; the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom): title2 17, title3 15, body 13, callout 12, subheadline 11, footnote 10, caption2 10), so the rendered point sizes are unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "HYDRA",
@@ -6528,7 +6536,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:44-57 Font.chatBaseSize, the table ED-059 takes text-style point sizes from (the file is deleted at B2): :53 subheadline 11"
       ],
       "notes": "The copy path truncates in the MIDDLE, unlike the file rows which truncate at the HEAD.",
-      "b2_change": "Citation re-anchored: B1 HydraReportsPopover.swift:577-589 -> B2 HydraReportsPopover.swift:570-582. Typography was \"The line .system(size: 11); the path .system(size: 11, design: .monospaced) on one line truncated in the MIDDLE.\"; fixed .system(size: N) fonts are now text styles of the same macOS point size (text-style point sizes per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (B1; the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom): title2 17, title3 15, body 13, callout 12, subheadline 11, footnote 10, caption2 10), so the rendered point sizes are unchanged."
+      "b2_change": "Citation re-anchored: B1 HydraReportsPopover.swift:577-589 -> B2 HydraReportsPopover.swift:570-582. Typography was \"The line .system(size: 11); the path .system(size: 11, design: .monospaced) on one line truncated in the MIDDLE.\"; fixed .system(size: N) fonts are now text styles of the same macOS point size (text-style point sizes per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (B1; the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom): title2 17, title3 15, body 13, callout 12, subheadline 11, footnote 10, caption2 10), so the rendered point sizes are unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "HYDRA",
@@ -6552,7 +6561,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:44-57 Font.chatBaseSize, the table ED-059 takes text-style point sizes from (the file is deleted at B2): :53 subheadline 11"
       ],
       "notes": "The path truncates at the HEAD so the file name stays visible. The deletion count is prefixed with MINUS SIGN U+2212, matching what the lead wrote.",
-      "b2_change": "Citation re-anchored: B1 HydraReportsPopover.swift:598-633 -> B2 HydraReportsPopover.swift:591-626. Typography was \".system(size: 11, design: .monospaced) throughout, with monospaced digits on the counts.\"; fixed .system(size: N) fonts are now text styles of the same macOS point size (text-style point sizes per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (B1; the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom): title2 17, title3 15, body 13, callout 12, subheadline 11, footnote 10, caption2 10), so the rendered point sizes are unchanged."
+      "b2_change": "Citation re-anchored: B1 HydraReportsPopover.swift:598-633 -> B2 HydraReportsPopover.swift:591-626. Typography was \".system(size: 11, design: .monospaced) throughout, with monospaced digits on the counts.\"; fixed .system(size: N) fonts are now text styles of the same macOS point size (text-style point sizes per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (B1; the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom): title2 17, title3 15, body 13, callout 12, subheadline 11, footnote 10, caption2 10), so the rendered point sizes are unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "HYDRA",
@@ -6577,7 +6587,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:44-57 Font.chatBaseSize, the table ED-059 takes text-style point sizes from (the file is deleted at B2): :52 callout 12 | :53 subheadline 11"
       ],
       "notes": "Laid out eagerly, never lazily: a lazy stack reports an estimated height until its rows exist and the popover would resize a second time once they do. With several heads the unopened reports are parsed off the main thread in the background.",
-      "b2_change": "Citation re-anchored: B1 HydraReportsPopover.swift:636-661 -> B2 HydraReportsPopover.swift:629-654. Typography was \".system(size: 12) with markdownPointSize 12.\"; fixed .system(size: N) fonts are now text styles of the same macOS point size (text-style point sizes per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (B1; the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom): title2 17, title3 15, body 13, callout 12, subheadline 11, footnote 10, caption2 10), so the rendered point sizes are unchanged. The \"No report.\" state was .system(size: 11) at B1 :640 and is .system(.subheadline) at B2 :633, the same 11 points."
+      "b2_change": "Citation re-anchored: B1 HydraReportsPopover.swift:636-661 -> B2 HydraReportsPopover.swift:629-654. Typography was \".system(size: 12) with markdownPointSize 12.\"; fixed .system(size: N) fonts are now text styles of the same macOS point size (text-style point sizes per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (B1; the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom): title2 17, title3 15, body 13, callout 12, subheadline 11, footnote 10, caption2 10), so the rendered point sizes are unchanged. The \"No report.\" state was .system(size: 11) at B1 :640 and is .system(.subheadline) at B2 :633, the same 11 points.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "HYDRA",
