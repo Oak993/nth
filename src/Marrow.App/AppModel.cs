@@ -1,10 +1,17 @@
+using Avalonia.Platform.Storage;
 using Marrow.App.Runtime;
 using Marrow.App.Views.Terminal;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
+using Marrow.Core.Support;
+using Marrow.Services.Git;
 using Marrow.Services.MCP;
 using Marrow.Services.Providers;
+using Marrow.Services.Port;
+using Marrow.Services.Store;
 using Marrow.UI.Chrome;
+using Marrow.UI.Port;
+using Marrow.UI.Sound;
 
 // Source: DroppyCode/App/AppModel.swift (B2 1fbf81e), :1-1356. Skeleton (c100 group 1): AppAlert (:5-9), the
 // FinishRequest and ArchiveRequest shapes (:917-932), ThreadIndex's stored shape (:50-61) and the observed stored
@@ -17,42 +24,60 @@ using Marrow.UI.Chrome;
 
 namespace Marrow.App;
 
-// :5-9 (R-VAL-1)
+// AppModel.swift:5-9 (R-VAL-1)
 public sealed record AppAlert
 {
-    public Guid Id { get; } = Guid.NewGuid(); // :6
-    public required string Title { get; init; }   // :7
-    public required string Message { get; init; } // :8
+    public Guid Id { get; } = Guid.NewGuid(); // AppModel.swift:6
+    public required string Title { get; init; }   // AppModel.swift:7
+    public required string Message { get; init; } // AppModel.swift:8
 }
 
-// :11-1328. @MainActor @Observable -> MainActorModel (R-OBS-6).
+// AppModel.swift:11-1328. @MainActor @Observable -> MainActorModel (R-OBS-6).
 public sealed partial class AppModel : MainActorModel
 {
-    // :50-61
+    // AppModel.swift:50-61
     private sealed record ThreadIndex
     {
-        public ValueMap<Guid, long> Positions { get; init; } = ValueMap<Guid, long>.Empty;              // :51
-        public ValueMap<Guid, ValueList<long>> Projects { get; init; } = ValueMap<Guid, ValueList<long>>.Empty; // :52
+        public ValueMap<Guid, long> Positions { get; init; } = ValueMap<Guid, long>.Empty;              // AppModel.swift:51
+        public ValueMap<Guid, ValueList<long>> Projects { get; init; } = ValueMap<Guid, ValueList<long>>.Empty; // AppModel.swift:52
 
-        // :54-60
-        public ThreadIndex(IReadOnlyList<ChatThread> threads) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:54");
+        // AppModel.swift:54-60
+        public ThreadIndex(IReadOnlyList<ChatThread> threads) // AppModel.swift:54-60
+        {
+            var positions = new Dictionary<Guid, long>();
+            var projects = new Dictionary<Guid, List<long>>();
+            for (var index = 0; index < threads.Count; index++)
+            {
+                var thread = threads[index];
+                positions[thread.Id] = index;
+                if (!projects.TryGetValue(thread.ProjectID, out var indices)) projects[thread.ProjectID] = indices = [];
+                indices.Add(index);
+            }
+            Positions = new ValueMap<Guid, long>(positions);
+            Projects = new ValueMap<Guid, ValueList<long>>(projects.Select(pair =>
+                new KeyValuePair<Guid, ValueList<long>>(pair.Key, new ValueList<long>(pair.Value))));
+        }
     }
 
-    // :917-921 (R-VAL-1). The Swift `let id = UUID()` is part of the synthesized ==.
-    public sealed record FinishRequest(Guid ThreadID, bool Reopens) // :919-920
+    // AppModel.swift:917-921 (R-VAL-1). The Swift `let id = UUID()` is part of the synthesized ==.
+    public sealed record FinishRequest(Guid ThreadID, bool Reopens) // AppModel.swift:919-920
     {
-        public Guid Id { get; } = Guid.NewGuid(); // :918
+        public Guid Id { get; } = Guid.NewGuid(); // AppModel.swift:918
     }
 
-    // :927-930
-    public sealed record ArchiveRequest(Guid ThreadID) // :929
+    // AppModel.swift:927-930
+    public sealed record ArchiveRequest(Guid ThreadID) // AppModel.swift:929
     {
-        public Guid Id { get; } = Guid.NewGuid(); // :928
+        public Guid Id { get; } = Guid.NewGuid(); // AppModel.swift:928
     }
 
     private ValueList<Project> projects = ValueList<Project>.Empty;
     private ValueList<ChatThread> threads = ValueList<ChatThread>.Empty;
+    private ThreadIndex threadIndex = new(ValueList<ChatThread>.Empty); // AppModel.swift:46
+    private Dictionary<Guid, ObservedValue<Project?>> projectCells = []; // AppModel.swift:62
+    private Dictionary<Guid, ObservedValue<ChatThread?>> threadCells = []; // AppModel.swift:63
+    private Dictionary<Guid, ObservedValue<ValueList<Guid>>> childCells = []; // AppModel.swift:67
+    private Dictionary<Guid, ObservedValue<bool>> selectionCells = []; // AppModel.swift:71
     private Guid? selectedThreadID;
     private Guid? sidebarRevealThreadID;
     private bool isCommandPalettePresented = false;
@@ -60,355 +85,1270 @@ public sealed partial class AppModel : MainActorModel
     private FinishRequest? finishRequest;
     private ArchiveRequest? archiveRequest;
 
-    public AppSettings Settings { get; }          // :15
-    public ProviderRegistry Providers { get; }    // :16
-    public MCPStore Mcp { get; }                  // :18 Swift: mcp
-    public TerminalStore Terminals { get; }       // :19
-    public SidebarLayout Sidebar { get; }         // :20
+    private Dictionary<Guid, ThreadRuntime> runtimes = []; // AppModel.swift:108
+    private Dictionary<Guid, TaskHandle> idleSessionStops = []; // AppModel.swift:109
+    private TaskHandle? saveTask; // AppModel.swift:110
+    private TaskHandle? hydraMergeSweepTask; // AppModel.swift:111-116
+    private bool persistenceEnabled = true; // AppModel.swift:117
+    private HashSet<Guid> sessionsToRelease = []; // AppModel.swift:999
+    private bool libraryLoadFailed; // DEVIATION OD-0008: protect library.json after a failed load.
+    private long dockUnreadCount; // AppModel.swift:1261-1264; Windows has no text badge surface.
 
-    // :22. @ObservationIgnored private(set) var autoContinue: AutoContinue! (R-OBS-5).
+    public AppSettings Settings { get; }          // AppModel.swift:15
+    public ProviderRegistry Providers { get; }    // AppModel.swift:16
+    public MCPStore Mcp { get; }                  // AppModel.swift:18 Swift: mcp
+    public TerminalStore Terminals { get; }       // AppModel.swift:19
+    public SidebarLayout Sidebar { get; }         // AppModel.swift:20
+
+    // AppModel.swift:22. @ObservationIgnored private(set) var autoContinue: AutoContinue! (R-OBS-5).
     public AutoContinue AutoContinue { get; private set; } = null!;
 
-    // :25. @ObservationIgnored (R-OBS-5).
+    // AppModel.swift:25. @ObservationIgnored (R-OBS-5).
     public ValueMap<Guid, long> HydraHeadRetries { get; set; } = ValueMap<Guid, long>.Empty;
 
-    // :30-32
+    // AppModel.swift:30-32
     public ValueList<Project> Projects
     {
         get => Read(projects);
-        private set => Set(ref projects, value, _ => throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:31"));
+        private set => Set(ref projects, value, _ => Write(Sync(ref projectCells, value, project => project.Id))); // AppModel.swift:30-32
     }
 
-    // :33-45
+    // AppModel.swift:33-45
     public ValueList<ChatThread> Threads
     {
         get => Read(threads);
-        private set => Set(ref threads, value, _ => throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:34"));
+        private set => Set(ref threads, value, _ =>
+        {
+            Write(Sync(ref threadCells, value, thread => thread.Id));
+            SyncChildCells(value);
+            threadIndex = new ThreadIndex(value);
+        }); // AppModel.swift:33-45
     }
 
-    // :72-98
+    // AppModel.swift:72-98
     public Guid? SelectedThreadID
     {
         get => Read(selectedThreadID);
-        set => Set(ref selectedThreadID, value, _ => throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:73"));
+        set => Set(ref selectedThreadID, value, oldValue =>
+        {
+            if (oldValue != value)
+            {
+                if (oldValue is { } oldID) SelectionCell(oldID).Value = false;
+                if (value is { } newID) SelectionCell(newID).Value = true;
+                SwitchLatency.NoteSwitch(value is { } selectedID ? Thread(selectedID)?.Title ?? "none" : "none");
+            }
+            if (value is { } selected)
+            {
+                var ids = new List<Guid> { selected };
+                ids.AddRange(Children(selected).Select(child => child.Id));
+                var weakSelf = new WeakReference<AppModel>(this);
+                MainActor.Spawn(() =>
+                {
+                    if (weakSelf.TryGetTarget(out var model)) model.MarkRead(ids);
+                    return Task.CompletedTask;
+                });
+                MainActor.Spawn(() =>
+                {
+                    if (weakSelf.TryGetTarget(out var model)) model.WarmNeighbors(selected);
+                    return Task.CompletedTask;
+                }); // AppModel.swift:90-91
+            }
+            if (oldValue != value)
+            {
+                ScheduleIdleSessionStop(oldValue);
+            }
+            if (value is { } id && Thread(id) is { } thread)
+            {
+                RememberLastProject(thread.ProjectID);
+            }
+        }); // AppModel.swift:72-98
     }
 
-    // :103
+    // AppModel.swift:103
     public Guid? SidebarRevealThreadID { get => Read(sidebarRevealThreadID); set => Set(ref sidebarRevealThreadID, value); }
 
-    // :105
+    // AppModel.swift:105
     public bool IsCommandPalettePresented { get => Read(isCommandPalettePresented); set => Set(ref isCommandPalettePresented, value); }
 
-    // :106
+    // AppModel.swift:106
     public AppAlert? Alert { get => Read(alert); set => Set(ref alert, value); }
 
-    // :120-146
-    public AppModel() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:120");
+    // AppModel.swift:120-146
+    public AppModel()
+    {
+        Settings = new AppSettings(); // AppModel.swift:121
+        Providers = new ProviderRegistry(Settings); // AppModel.swift:122
+        Mcp = new MCPStore(); // AppModel.swift:123
+        Terminals = new TerminalStore(); // AppModel.swift:124
+        Sidebar = new SidebarLayout(); // AppModel.swift:125
 
-    // :229-231. Swift: isSelected(_:).
-    public bool IsSelected(Guid id) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:229");
+        var load = Storage.LoadLibrary(); // AppModel.swift:126
+        libraryLoadFailed = load is LibraryLoadResult.Failed;
+        if (libraryLoadFailed)
+            alert = new AppAlert
+            {
+                Title = "Could not read library.json",
+                Message = "Marrow could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.",
+            }; // DEVIATION OD-0012: show the E4 library-load message.
+        var library = load is LibraryLoadResult.Loaded loaded ? loaded.Library : new Library(); // AppModel.swift:126-128
+        projects = library.Projects;
+        threads = library.Threads;
+        for (var index = 0; index < threads.Count; index++) // AppModel.swift:129-131
+            if (threads[index].LastStatus == TurnStatus.Running)
+                threads = threads.SetItem(index, threads[index] with { LastStatus = TurnStatus.Interrupted });
+        for (var index = 0; index < threads.Count; index++) // AppModel.swift:132-136
+        {
+            if (threads[index].Hydra?.HydraHeadInfoStatus != HydraHeadInfo.Status.Running) continue;
+            var hydra = threads[index].Hydra! with { HydraHeadInfoStatus = HydraHeadInfo.Status.Stopped, FinishedAt = SwiftDate.Now };
+            threads = threads.SetItem(index, threads[index] with { Hydra = hydra });
+        }
+        Write(Sync(ref projectCells, projects, project => project.Id)); // AppModel.swift:137-139
+        Write(Sync(ref threadCells, threads, thread => thread.Id)); // AppModel.swift:137-140
+        SyncChildCells(threads);
+        threadIndex = new ThreadIndex(threads); // AppModel.swift:141
+        AutoContinue = new AutoContinue(this); // AppModel.swift:142
+        if (Settings.LastProjectID is { } lastID && Project(lastID) is null) Settings.LastProjectID = null; // AppModel.swift:143-145
+    }
 
-    // :235-237. Swift: children(of:).
-    public ValueList<ChatThread> Children(Guid parentID) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:235");
+    private static List<(ObservedValue<TValue?> Cell, TValue? Value)> Sync<TValue>(
+        ref Dictionary<Guid, ObservedValue<TValue?>> cells,
+        IReadOnlyList<TValue> values,
+        Func<TValue, Guid> id)
+        where TValue : class, IEquatable<TValue>
+    {
+        var writes = new List<(ObservedValue<TValue?> Cell, TValue? Value)>();
+        var seen = new HashSet<Guid>(values.Count);
+        foreach (var value in values)
+        {
+            var key = id(value);
+            seen.Add(key);
+            if (cells.TryGetValue(key, out var cell))
+            {
+                if (!EqualityComparer<TValue?>.Default.Equals(cell.Value, value)) writes.Add((cell, value));
+            }
+            else
+            {
+                cells[key] = new ObservedValue<TValue?>(value);
+            }
+        }
+        foreach (var key in cells.Keys.ToArray())
+        {
+            if (seen.Contains(key)) continue;
+            writes.Add((cells[key], null));
+            cells.Remove(key);
+        }
+        return writes;
+    } // AppModel.swift:157-178
 
-    // :239-278
-    public Task Bootstrap() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:239");
+    private static void Write<TValue>(IReadOnlyList<(ObservedValue<TValue?> Cell, TValue? Value)> writes)
+    {
+        foreach (var (cell, value) in writes) cell.Value = value;
+    } // AppModel.swift:180-187
+
+    private void SyncChildCells(IReadOnlyList<ChatThread> values)
+    {
+        var children = new Dictionary<Guid, List<Guid>>();
+        foreach (var thread in values)
+        {
+            if (thread.ParentThreadID is not { } parentID) continue;
+            if (!children.TryGetValue(parentID, out var ids)) children[parentID] = ids = [];
+            ids.Add(thread.Id);
+        }
+        foreach (var (parentID, ids) in children)
+        {
+            var value = new ValueList<Guid>(ids);
+            if (childCells.TryGetValue(parentID, out var cell))
+            {
+                if (!cell.Value.Equals(value)) cell.Value = value;
+            }
+            else
+            {
+                childCells[parentID] = new ObservedValue<ValueList<Guid>>(value);
+            }
+        }
+        foreach (var parentID in childCells.Keys.ToArray())
+        {
+            if (children.ContainsKey(parentID)) continue;
+            childCells[parentID].Value = ValueList<Guid>.Empty;
+            childCells.Remove(parentID);
+        }
+    } // AppModel.swift:189-210
+
+    private ValueList<Guid> ChildIDs(Guid parentID)
+    {
+        if (!childCells.TryGetValue(parentID, out var cell)) childCells[parentID] = cell = new ObservedValue<ValueList<Guid>>(ValueList<Guid>.Empty);
+        return cell.Value;
+    } // AppModel.swift:212-219
+
+    private ObservedValue<bool> SelectionCell(Guid id)
+    {
+        if (!selectionCells.TryGetValue(id, out var cell)) selectionCells[id] = cell = new ObservedValue<bool>(selectedThreadID == id);
+        return cell;
+    } // AppModel.swift:221-226
+
+    // AppModel.swift:229-231. Swift: isSelected(_:).
+    public bool IsSelected(Guid id) => SelectionCell(id).Value; // AppModel.swift:229-231
+
+    // AppModel.swift:235-237. Swift: children(of:).
+    public ValueList<ChatThread> Children(Guid parentID) => new(ChildIDs(parentID).Select(Thread).OfType<ChatThread>()); // AppModel.swift:235-237
+
+    // AppModel.swift:239-278
+    public async Task Bootstrap()
+    {
+        var recent = threads
+            .Where(thread => !thread.IsArchived && !thread.IsInPanel)
+            .OrderByDescending(thread => thread.UpdatedAt)
+            .Take(12)
+            .Select(thread => thread.Id)
+            .ToList(); // AppModel.swift:240-243
+        WarmDocuments(recent);
+        await Settings.LoadKeychainInBackground(); // AppModel.swift:244
+        await LoginEnvironment.Load(); // AppModel.swift:245
+        SweepHydraCopies(); // AppModel.swift:247
+        await ResumeHydraMerges(); // AppModel.swift:248-249
+        hydraMergeSweepTask?.Cancel(); // AppModel.swift:254
+        var weakSelf = new WeakReference<AppModel>(this);
+        hydraMergeSweepTask = MainActor.Spawn(async () =>
+        {
+            while (true)
+            {
+                await SwiftTask.TrySleep(TimeSpan.FromSeconds(300)); // AppModel.swift:256-257
+                if (SwiftTask.IsCancelled || !weakSelf.TryGetTarget(out var model)) return; // AppModel.swift:258
+                await model.ResumeHydraMerges(); // AppModel.swift:259
+            }
+        }); // AppModel.swift:255-261
+        await Providers.RefreshAll(); // AppModel.swift:262
+        await TaskGroup.Run(async group =>
+        {
+            foreach (var provider in new[] { ProviderKind.Claude, ProviderKind.Codex, ProviderKind.Deepseek, ProviderKind.Meta })
+            {
+                if (!Providers.Status(provider).IsInstalled) continue;
+                group.AddTask(() => MainActor.Invoke(() => Providers.LoadCatalog(provider)));
+            }
+        }); // AppModel.swift:263-270
+        if (Providers.Status(ProviderKind.Zai).IsInstalled) await Providers.LoadCatalog(ProviderKind.Zai); // AppModel.swift:271-273
+        await Storage.SweepOrphanedAttachments(); // AppModel.swift:274-278; DEVIATION ED-001: capture guard dropped.
+    }
 
     // MARK: - Lookup
 
-    // :283-285. Swift: project(_:).
-    public Project? Project(Guid id) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:283");
+    // AppModel.swift:283-285. Swift: project(_:).
+    public Project? Project(Guid id) => projectCells.TryGetValue(id, out var cell) ? cell.Value : null; // AppModel.swift:283-285
 
-    // :288-290. Swift: thread(_:).
-    public ChatThread? Thread(Guid id) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:288");
+    // AppModel.swift:288-290. Swift: thread(_:).
+    public ChatThread? Thread(Guid id) => threadCells.TryGetValue(id, out var cell) ? cell.Value : null; // AppModel.swift:288-290
 
-    // :292-294
-    public ChatThread? SelectedThread =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:292");
+    // AppModel.swift:292-294
+    public ChatThread? SelectedThread => Computed(() => selectedThreadID is { } id ? Thread(id) : null); // AppModel.swift:292-294
 
-    // :296-304
-    public Project? CurrentProject =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:296");
+    // AppModel.swift:296-304
+    public Project? CurrentProject => Computed(() =>
+    {
+        if (SelectedThread is { } selected && Project(selected.ProjectID) is { } current) return current; // AppModel.swift:297
+        if (Settings.LastProjectID is { } lastID && Project(lastID) is { } last) return last; // AppModel.swift:298
+        ChatThread? recent = null;
+        foreach (var candidate in threads)
+        {
+            if (candidate.IsArchived || candidate.IsInPanel) continue;
+            if (recent is null || candidate.UpdatedAt > recent.UpdatedAt) recent = candidate;
+        }
+        if (recent is not null && Project(recent.ProjectID) is { } recentProject) return recentProject; // AppModel.swift:299-302
+        return projects.FirstOrDefault(); // AppModel.swift:303
+    });
 
-    // :314-332. Swift: threads(in:). Renamed: C# cannot hold the property Threads (:33) and a method Threads.
-    public ValueList<ChatThread> ThreadsIn(Project project) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:314");
+    private void RememberLastProject(Guid id)
+    {
+        if (Project(id) is null) return; // AppModel.swift:306-307
+        if (Settings.LastProjectID != id) Settings.LastProjectID = id; // AppModel.swift:308-309
+    }
 
-    // :337-353. Swift: moveThread(_:to:placeAfter:), @discardableResult.
-    public bool MoveThread(Guid id, Guid targetID, bool placeAfter) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:338");
+    // AppModel.swift:314-332. Swift: threads(in:). Renamed: C# cannot hold the property Threads (:33) and a method Threads.
+    public ValueList<ChatThread> ThreadsIn(Project project)
+    {
+        var indices = threadIndex.Projects.TryGetValue(project.Id, out var projectIndices)
+            ? projectIndices
+            : ValueList<long>.Empty;
+        var shown = indices.Select(index => threads[checked((int)index)])
+            .Where(thread => !thread.IsArchived && !thread.IsInPanel)
+            .ToList();
+        var shownIDs = shown.Select(thread => thread.Id).ToHashSet();
+        var comparer = Comparer<ChatThread>.Create((lhs, rhs) =>
+        {
+            if (lhs.IsSettled != rhs.IsSettled) return lhs.IsSettled.CompareTo(rhs.IsSettled); // AppModel.swift:321
+            if (lhs.IsSettled) return (rhs.SettledAt ?? rhs.UpdatedAt).CompareTo(lhs.SettledAt ?? lhs.UpdatedAt); // AppModel.swift:322
+            if (lhs.IsPinned != rhs.IsPinned) return rhs.IsPinned.CompareTo(lhs.IsPinned); // AppModel.swift:323
+            if (lhs.SortOrder != rhs.SortOrder)
+            {
+                if (lhs.SortOrder is null) return -1; // AppModel.swift:324-328
+                if (rhs.SortOrder is null) return 1;
+                return lhs.SortOrder.Value.CompareTo(rhs.SortOrder.Value);
+            }
+            return rhs.CreatedAt.CompareTo(lhs.CreatedAt); // AppModel.swift:329
+        });
+        return new ValueList<ChatThread>(shown
+            .Where(thread => thread.ParentThreadID is not { } parentID || !shownIDs.Contains(parentID))
+            .OrderBy(thread => thread, comparer)); // AppModel.swift:314-332
+    }
 
-    // :357-371. Swift: moveInActivity(_:to:placeAfter:among:), @discardableResult.
-    public bool MoveInActivity(Guid id, Guid targetID, bool placeAfter, IReadOnlyList<Guid> peers) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:358");
+    // AppModel.swift:337-353. Swift: moveThread(_:to:placeAfter:), @discardableResult.
+    public bool MoveThread(Guid id, Guid targetID, bool placeAfter)
+    {
+        if (id == targetID || Thread(id) is not { } moving || Thread(targetID) is not { } target
+            || moving.ProjectID != target.ProjectID || Project(moving.ProjectID) is not { } project
+            || moving.IsSettled || target.IsSettled) return false; // AppModel.swift:339-341
+        var before = ThreadsIn(project).Where(thread => !thread.IsSettled).Select(thread => thread.Id).ToList(); // AppModel.swift:342
+        var order = before.Where(threadID => threadID != id).ToList(); // AppModel.swift:343-344
+        var index = order.IndexOf(targetID);
+        if (index < 0) return false; // AppModel.swift:345
+        order.Insert(placeAfter ? index + 1 : index, id); // AppModel.swift:346
+        if (order.SequenceEqual(before)) return false; // AppModel.swift:347
+        UpdateThreads(order, (position, thread) => thread with
+        {
+            IsPinned = thread.Id == id ? target.IsPinned : thread.IsPinned,
+            SortOrder = position,
+        }); // AppModel.swift:348-351
+        return true;
+    }
 
-    // :373-375
-    public ValueList<ChatThread> ArchivedThreads =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:373");
+    // AppModel.swift:357-371. Swift: moveInActivity(_:to:placeAfter:among:), @discardableResult.
+    public bool MoveInActivity(Guid id, Guid targetID, bool placeAfter, IReadOnlyList<Guid> peers)
+    {
+        if (id == targetID || !peers.Contains(id) || !peers.Contains(targetID)) return false; // AppModel.swift:359
+        var order = peers.Where(threadID => threadID != id).ToList(); // AppModel.swift:360-361
+        var index = order.IndexOf(targetID);
+        if (index < 0) return false; // AppModel.swift:362
+        order.Insert(placeAfter ? index + 1 : index, id); // AppModel.swift:363
+        if (order.SequenceEqual(peers)) return false; // AppModel.swift:364
+        var localZone = TimeZoneInfo.Local;
+        UpdateThreads(order, (position, thread) =>
+        {
+            var date = thread.UpdatedAt;
+            var local = TimeZoneInfo.ConvertTime(date, localZone);
+            var start = new DateTimeOffset(local.Year, local.Month, local.Day, 0, 0, 0, local.Offset);
+            return thread with { ActivityOrder = position, ActivityOrderDay = start };
+        }); // AppModel.swift:365-369
+        return true;
+    }
 
-    // :378-380. nonisolated static.
+    // AppModel.swift:373-375
+    public ValueList<ChatThread> ArchivedThreads => new(threads.Where(thread => thread.IsArchived).OrderByDescending(thread => thread.UpdatedAt)); // AppModel.swift:373-375
+
+    // AppModel.swift:378-380. nonisolated static.
     public static bool SettledFirst(ChatThread lhs, ChatThread rhs) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:378");
+        (lhs.SettledAt ?? lhs.UpdatedAt) > (rhs.SettledAt ?? rhs.UpdatedAt); // AppModel.swift:378-380
 
-    // :384-390
+    // AppModel.swift:384-390
     public ValueList<ChatThread> SidebarThreads =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:384");
+        new(projects.Where(project => project.IsExpanded).SelectMany(project => ThreadsIn(project)
+            .SelectMany(thread => thread.FoldsHelpers || thread.IsSettled
+                ? new[] { thread }
+                : new[] { thread }.Concat(Helpers(thread.Id))))); // AppModel.swift:384-390
 
-    // :396-400. Swift: helpers(of:).
+    // AppModel.swift:396-400. Swift: helpers(of:).
     public ValueList<ChatThread> Helpers(Guid parentID) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:396");
+        new(Children(parentID).Where(thread => !thread.IsArchived && !thread.IsHydraHead).OrderBy(thread => thread.CreatedAt)); // AppModel.swift:392-400
 
-    // :405-413. Swift: panelHeads(of:).
+    // AppModel.swift:405-413. Swift: panelHeads(of:).
     public ValueList<ChatThread> PanelHeads(Guid parentID) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:405");
+        new(Children(parentID).Where(thread => thread.IsInPanel && !thread.IsArchived && thread.IsHydraHead)
+            .OrderBy(thread => thread.Hydra?.Index ?? long.MaxValue).ThenBy(thread => thread.CreatedAt)); // AppModel.swift:405-413
 
-    // :417-419. Swift: panelSubagent(of:).
+    // AppModel.swift:417-419. Swift: panelSubagent(of:).
     public ChatThread? PanelSubagent(Guid parentID) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:417");
+        Children(parentID).FirstOrDefault(thread => thread.IsInPanel && !thread.IsArchived && !thread.IsHydraHead); // AppModel.swift:417-419
 
-    // :421-423
+    // AppModel.swift:421-423
     public void ToggleHelpersFold(Guid parentID) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:421");
+        UpdateThread(parentID, thread => thread with { ExpandsHelpers = !thread.ExpandsHelpers }); // AppModel.swift:421-423
 
-    // :425-430. Swift: runtime(for:).
+    // AppModel.swift:425-430. Swift: runtime(for:).
     public ThreadRuntime Runtime(Guid id) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:425");
+        runtimes.TryGetValue(id, out var runtime) ? runtime : runtimes[id] = new ThreadRuntime(id, this); // AppModel.swift:425-430
 
-    // :432-434. Swift: existingRuntime(for:).
+    // AppModel.swift:432-434. Swift: existingRuntime(for:).
     public ThreadRuntime? ExistingRuntime(Guid id) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:432");
+        runtimes.TryGetValue(id, out var runtime) ? runtime : null; // AppModel.swift:432-434
 
-    // :437
+    // AppModel.swift:437
     public ValueList<ThreadRuntime> LiveRuntimes =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:437");
+        new(runtimes.Values); // AppModel.swift:437
 
-    // :441-445
+    // AppModel.swift:441-445
     public void WarmDocuments(IReadOnlyList<Guid> ids) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:441");
+        DocumentPrefetch.Shared.Warm(ids.Where(id => !runtimes.ContainsKey(id)).ToList()); // AppModel.swift:441-445
 
-    // :455-463. Swift: neighbors(of:).
+    // AppModel.swift:455-463. Swift: neighbors(of:).
     public ValueList<Guid> Neighbors(Guid? id) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:455");
+        new(NeighborIDs(id)); // AppModel.swift:455-463
 
-    // :492-506. @discardableResult.
-    public bool ReleaseIdleRuntime(Guid id) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:493");
+    private void WarmNeighbors(Guid? id) => WarmDocuments(Neighbors(id)); // AppModel.swift:449-451
 
-    // :508-511
-    public string? WorkingDirectory =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:508");
+    private void ScheduleIdleSessionStop(Guid? leavingID)
+    {
+        if (SelectedThreadID is { } selectedID && idleSessionStops.Remove(selectedID, out var selectedStop)) selectedStop.Cancel(); // AppModel.swift:471-472
+        if (leavingID is not { } id || !runtimes.ContainsKey(id)) return; // AppModel.swift:473-476
+        if (idleSessionStops.Remove(id, out var previousStop)) previousStop.Cancel(); // AppModel.swift:477
+        var weakSelf = new WeakReference<AppModel>(this);
+        idleSessionStops[id] = MainActor.Spawn(async () =>
+        {
+            while (true)
+            {
+                await SwiftTask.TrySleep(TimeSpan.FromSeconds(600)); // AppModel.swift:478
+                if (SwiftTask.IsCancelled || !weakSelf.TryGetTarget(out var model)
+                    || model.SelectedThreadID == id || !model.runtimes.TryGetValue(id, out var runtime)) return; // AppModel.swift:479-480
+                if (runtime.IsRunning) continue; // AppModel.swift:481
+                runtime.StopSession(); // AppModel.swift:482
+                model.idleSessionStops.Remove(id); // AppModel.swift:483
+                model.ReleaseIdleRuntime(id); // AppModel.swift:484
+                return; // AppModel.swift:485
+            }
+        });
+    } // AppModel.swift:470-488
+
+    private IReadOnlyList<Guid> NeighborIDs(Guid? id)
+    {
+        if (id is not { } wanted || Thread(wanted) is not { } thread || Project(thread.ProjectID) is not { } project) return [];
+        var order = ThreadsIn(project);
+        var index = -1;
+        for (var current = 0; current < order.Count; current++)
+            if (order[current].Id == wanted) { index = current; break; }
+        if (index < 0) return [];
+        var neighbors = new List<Guid>();
+        if (index > 0) neighbors.Add(order[index - 1].Id);
+        if (index + 1 < order.Count) neighbors.Add(order[index + 1].Id);
+        return neighbors;
+    } // AppModel.swift:455-463
+
+    // AppModel.swift:492-506. @discardableResult.
+    public bool ReleaseIdleRuntime(Guid id)
+    {
+        if (!runtimes.TryGetValue(id, out var runtime) || SelectedThreadID == id || Thread(id) is not { } thread
+            || thread.ParentThreadID is { } parentID && parentID == SelectedThreadID
+            || !runtime.HoldsOnlyPersistedState || sessionsToRelease.Contains(id)
+            || AutoContinue.ResumesAt.ContainsKey(id) || Terminals.Sessions(id).Count > 0
+            || RunningDroppyHeads(id) != 0) return false; // AppModel.swift:493-499, ported as runningDroppyHeads(of:) == 0 // HD-001
+        runtime.SaveNow(); // AppModel.swift:502
+        runtime.CancelPersistence(); // AppModel.swift:503
+        runtimes.Remove(id); // AppModel.swift:504
+        return true; // AppModel.swift:505
+    }
+
+    // AppModel.swift:508-511
+    public string? WorkingDirectory => SelectedThread is { } thread && Project(thread.ProjectID) is { } project
+        ? thread.WorktreePath ?? project.Path
+        : null; // AppModel.swift:508-511
 
     // MARK: - Projects
 
-    // :515-524. Swift: addProject(at:), @discardableResult.
-    public Project AddProject(SwiftURL url) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:516");
+    // AppModel.swift:515-524. Swift: addProject(at:), @discardableResult.
+    public Project AddProject(SwiftURL url) => AddProjectPath(SwiftPath.StandardizedFileURLPath(url.Path, null), url); // AppModel.swift:516-524
 
-    // :526-529
-    public void ChooseProjectFolder() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:526");
+    private Project AddProjectPath(string path, SwiftURL? projectURL = null)
+    {
+        var standardized = SwiftPath.StandardizedFileURLPath(path, null); // AppModel.swift:517
+        if (projects.FirstOrDefault(project => SwiftPath.SamePath(project.Path, standardized)) is { } existing) return existing; // AppModel.swift:518-519
+        var added = new Project(SwiftPath.LastPathComponent(standardized), standardized);
+        added = added with { Scripts = ProjectFile.Scripts(projectURL ?? added.Url) }; // AppModel.swift:520-523
+        Projects = Projects.Appending(added); // AppModel.swift:524
+        ScheduleSave();
+        return added;
+    }
 
-    // :535-547. @discardableResult.
-    public Project? AddProjectsFromPanel() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:536");
+    // AppModel.swift:526-529
+    public void ChooseProjectFolder()
+    {
+        if (Avalonia.Application.Current?.ApplicationLifetime is not Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
+            || desktop.MainWindow is not { } window) return; // AppModel.swift:526-529
+        MainActor.Spawn(async () =>
+        {
+            var folders = await window.StorageProvider.OpenFolderPickerAsync(new Avalonia.Platform.Storage.FolderPickerOpenOptions
+            {
+                AllowMultiple = false,
+            });
+            if (folders.FirstOrDefault()?.TryGetLocalPath() is { } path) AddProjectPath(path);
+        });
+    }
 
-    // :549-556
+    // AppModel.swift:535-547. @discardableResult.
+    public Project? AddProjectsFromPanel() // AppModel.swift:535-547
+    {
+        // Avalonia's picker is asynchronous; the Windows entry point adds the chosen folder from its completion.
+        ChooseProjectFolder();
+        return null;
+    }
+
+    // AppModel.swift:549-556
     public void UpdateProject(Guid id, Func<Project, Project> change) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:549");
+        UpdateProjectValue(id, change); // AppModel.swift:549-556
 
-    // :558-567
-    public void RemoveProject(Project project) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:558");
+    private void UpdateProjectValue(Guid id, Func<Project, Project> change)
+    {
+        var index = projects.ToList().FindIndex(project => project.Id == id); // AppModel.swift:549-552
+        if (index < 0) return;
+        var changed = change(projects[index]);
+        if (changed == projects[index]) return; // AppModel.swift:553
+        Projects = projects.SetItem(index, changed); // AppModel.swift:554
+        ScheduleSave();
+    }
+
+    // AppModel.swift:734-746
+    private void UpdateThreads(IReadOnlyList<Guid> ids, Func<long, ChatThread, ChatThread> change)
+    {
+        var updated = threads.ToList();
+        var changed = false;
+        for (var position = 0; position < ids.Count; position++)
+        {
+            if (!threadIndex.Positions.TryGetValue(ids[position], out var storedIndex)) continue;
+            var index = checked((int)storedIndex);
+            var previous = updated[index];
+            updated[index] = change(position, previous);
+            changed |= previous != updated[index];
+        }
+        if (!changed) return;
+        Threads = new ValueList<ChatThread>(updated);
+        ScheduleSave();
+    }
+
+    // AppModel.swift:558-567
+    public void RemoveProject(Project project)
+    {
+        var projectThreads = threads.Where(thread => thread.ProjectID == project.Id).ToList();
+        foreach (var thread in projectThreads) DiscardThreadState(thread); // AppModel.swift:559-561
+        var removedThreadIDs = projectThreads.Select(thread => thread.Id).ToHashSet();
+        if (SelectedThreadID is { } selectedID && removedThreadIDs.Contains(selectedID)) SelectedThreadID = null;
+        Threads = new ValueList<ChatThread>(threads.Where(thread => thread.ProjectID != project.Id)); // AppModel.swift:562
+        Projects = new ValueList<Project>(projects.Where(candidate => candidate.Id != project.Id)); // AppModel.swift:563
+        if (Settings.LastProjectID == project.Id) Settings.LastProjectID = null; // AppModel.swift:564
+        if (SelectedThread is null) SelectedThreadID = null; // AppModel.swift:565
+        ScheduleSave(); // AppModel.swift:566
+    }
 
     // MARK: - Threads
 
-    // :574-602
+    // AppModel.swift:574-602
     public void OpenThreadOnLaunch() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:574");
+        OpenThreadOnLaunchCore();
 
-    // :604-620. Swift: newThread(in:workspace:), @discardableResult.
+    private void OpenThreadOnLaunchCore()
+    {
+        if (CurrentProject is not { } project) return; // AppModel.swift:575
+        var unused = threads
+            .Where(thread => thread.ProjectID == project.Id && !thread.IsArchived && !thread.IsSettled && !thread.IsHelper
+                && thread.LastStatus is null && !thread.HasCustomTitle && thread.Title == ChatThread.Untitled)
+            .OrderByDescending(thread => thread.CreatedAt)
+            .FirstOrDefault(); // AppModel.swift:576-581
+        if (unused is not null)
+        {
+            var fresh = MakeThread(project, null); // AppModel.swift:582-585
+            UpdateThread(unused.Id, thread =>
+            {
+                if (thread.Provider != fresh.Provider)
+                    thread = thread with { ProviderSessionID = null, ProviderResumeAt = null }; // AppModel.swift:587-590
+                return thread with
+                {
+                    Provider = fresh.Provider,
+                    Model = fresh.Model,
+                    Effort = fresh.Effort,
+                    FastMode = fresh.FastMode,
+                    HydraPairID = fresh.HydraPairID,
+                    HydraEnabled = fresh.HydraEnabled,
+                }; // AppModel.swift:591-597
+            });
+            SelectedThreadID = unused.Id; // AppModel.swift:598
+        }
+        else
+        {
+            NewThread(project); // AppModel.swift:599-601
+        }
+    }
+
+    // AppModel.swift:604-620. Swift: newThread(in:workspace:), @discardableResult.
     public ChatThread? NewThread(Project? project = null, WorkspaceMode? workspace = null) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:605");
+        CreateNewThread(project, workspace); // AppModel.swift:605-620
 
-    // :623-646. @discardableResult.
-    public Task<ChatThread?> ForwardThread(Guid sourceID) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:624");
+    private ChatThread? CreateNewThread(Project? project, WorkspaceMode? workspace)
+    {
+        var destination = project ?? CurrentProject;
+        if (destination is null)
+        {
+            ChooseProjectFolder(); // AppModel.swift:606-609
+            return null;
+        }
+        var thread = MakeThread(destination, SelectedThread); // AppModel.swift:610
+        Threads = Threads.Appending(thread); // AppModel.swift:611
+        UpdateProject(destination.Id, existing => existing with { IsExpanded = true }); // AppModel.swift:612
+        RememberLastProject(destination.Id); // AppModel.swift:613
+        SelectedThreadID = thread.Id; // AppModel.swift:614
+        ScheduleSave(); // AppModel.swift:615
+        if ((workspace ?? Settings.DefaultWorkspaceMode) == WorkspaceMode.Worktree)
+            MainActor.Spawn(async () => await CreateWorktree(thread.Id)); // AppModel.swift:616-617
+        return thread;
+    }
 
-    // :705-712
+    private ChatThread MakeThread(Project project, ChatThread? current)
+    {
+        var projectPair = global::Marrow.Core.Models.HydraPair.ProjectPair(project.HydraPairID, Settings.HydraEnabled, Settings.HydraPairs); // AppModel.swift:653
+        var lastPair = current is null && Settings.HydraEnabled ? Settings.HydraPair(Settings.LastHydraPairID) : null; // AppModel.swift:658-660
+        var provider = projectPair?.Provider ?? current?.Provider ?? lastPair?.Provider ?? Settings.DefaultProvider; // AppModel.swift:663-664
+        var carriesModel = projectPair?.OrchestratorModel is null && current?.Provider == provider; // AppModel.swift:667
+        var model = carriesModel ? current?.Model : Providers.DefaultModel(provider)?.Id; // AppModel.swift:668
+        var preference = Settings.Preference(provider, model); // AppModel.swift:669
+        var effort = carriesModel ? current?.Effort : preference.Effort ?? Settings.LastEffort(provider); // AppModel.swift:670
+        var fastMode = carriesModel ? current?.FastMode ?? false : preference.FastMode; // AppModel.swift:671
+        var thread = new ChatThread(project.Id, provider, model, effort, Settings.DefaultRuntimeMode, fastMode); // AppModel.swift:672
+        return thread with
+        {
+            HydraPairID = projectPair?.Id ?? lastPair?.Id,
+            HydraEnabled = projectPair is not null || thread.HydraEnabled,
+        }; // AppModel.swift:672-702
+    }
+
+    // AppModel.swift:623-646. @discardableResult.
+    public async Task<ChatThread?> ForwardThread(Guid sourceID) // AppModel.swift:624-646
+    {
+        if (Thread(sourceID) is not { } source || Project(source.ProjectID) is null) return null;
+        var sourceRuntime = Runtime(sourceID);
+        await sourceRuntime.EnsureLoaded();
+        if (Thread(sourceID) is not { } resolved || Project(resolved.ProjectID) is not { } project) return null;
+        var continuation = ThreadContinuation.Capture(sourceID, resolved.Title, sourceRuntime.SnapshotForPersistence());
+        var forwarded = MakeThread(project, resolved) with
+        {
+            Title = "Continued: " + resolved.Title,
+            HasCustomTitle = true,
+        };
+        Threads = Threads.Appending(forwarded);
+        UpdateProject(project.Id, value => value with { IsExpanded = true });
+        RememberLastProject(project.Id);
+        var newRuntime = Runtime(forwarded.Id);
+        if (!await newRuntime.InstallContinuation(continuation) || Thread(forwarded.Id) is null) return null;
+        SelectedThreadID = forwarded.Id;
+        ScheduleSave();
+        return forwarded;
+    }
+
+    // AppModel.swift:705-712
     public void UpdateThread(Guid id, Func<ChatThread, ChatThread> change) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:705");
+        UpdateThreadValue(id, change); // AppModel.swift:705-712
 
-    // :720-732. Swift: moveThread(_:toProject:).
+    private void UpdateThreadValue(Guid id, Func<ChatThread, ChatThread> change)
+    {
+        if (!threadIndex.Positions.TryGetValue(id, out var position)) return; // AppModel.swift:705-708
+        var index = checked((int)position);
+        Threads = threads.SetItem(index, change(threads[index])); // AppModel.swift:709-711
+        ScheduleSave(); // AppModel.swift:712
+    }
+
+    // AppModel.swift:720-732. Swift: moveThread(_:toProject:).
+    // GD-004: The project-picker contract documents projectID as the move's only changed field.
     public void MoveThread(Guid id, Project toProject) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:720");
+        UpdateThread(id, thread => thread with { ProjectID = toProject.Id });
 
-    // :748-755. Swift: rename(_:to:).
-    public void Rename(Guid id, string title) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:748");
+    // AppModel.swift:748-755. Swift: rename(_:to:).
+    public void Rename(Guid id, string title) // AppModel.swift:748-755
+    {
+        var trimmed = title.Trimmed();
+        if (trimmed.Length == 0) return;
+        UpdateThread(id, thread => thread with { Title = trimmed, HasCustomTitle = true });
+    }
 
-    // :757-772
-    public void Archive(Guid id) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:757");
+    // AppModel.swift:757-772
+    public void Archive(Guid id) // AppModel.swift:757-772
+    {
+        foreach (var helper in Helpers(id)) Archive(helper.Id);
+        if (SelectedThreadID == id) SelectNeighbor(id);
+        ExistingRuntime(id)?.StopSession();
+        UpdateThread(id, thread => thread with
+        {
+            IsArchived = true,
+            IsPinned = false,
+            IsSettled = false,
+            SettledAt = null,
+        });
+        UpdateDockBadge();
+    }
 
-    // :774-781
-    public void Unarchive(Guid id) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:774");
+    // AppModel.swift:774-781
+    public void Unarchive(Guid id) // AppModel.swift:774-781
+    {
+        UpdateThread(id, thread => thread with { IsArchived = false });
+        foreach (var helper in threads.Where(thread => thread.ParentThreadID == id && thread.IsArchived).ToList())
+            UpdateThread(helper.Id, thread => thread with { IsArchived = false });
+        UpdateDockBadge();
+    }
 
-    // :787-807
-    public void Settle(Guid id, bool sounds = true) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:787");
+    // AppModel.swift:787-807
+    public void Settle(Guid id, bool sounds = true) // AppModel.swift:787-807
+    {
+        if (Thread(id) is not { IsSettled: false, IsHelper: false }) return;
+        var now = SwiftDate.Now;
+        UpdateThread(id, thread => thread with
+        {
+            IsSettled = true,
+            SettledAt = now,
+            IsPinned = false,
+            HasUnread = false,
+        });
+        foreach (var helper in Helpers(id))
+            UpdateThread(helper.Id, thread => thread with { IsSettled = true, SettledAt = now });
+        UpdateDockBadge();
+        if (sounds && Settings.SettleSound) SettleChime.Play();
+        SaveLibrary();
+    }
 
-    // :810-826
-    public void Reopen(Guid id) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:810");
+    // AppModel.swift:810-826
+    public void Reopen(Guid id) // AppModel.swift:810-826
+    {
+        if (Thread(id) is not { IsSettled: true }) return;
+        var now = SwiftDate.Now;
+        UpdateThread(id, thread => thread with
+        {
+            IsSettled = false,
+            SettledAt = null,
+            UpdatedAt = now,
+            ActivityOrder = null,
+            ActivityOrderDay = null,
+        });
+        UpdateThreads(Children(id).Where(thread => thread.IsSettled).Select(thread => thread.Id).ToList(), (_, thread) => thread with
+        {
+            IsSettled = false,
+            SettledAt = null,
+        });
+        SaveLibrary();
+    }
 
-    // :829-831
-    public void SettleAnimated(Guid id, bool sounds = true) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:829");
+    // AppModel.swift:829-831
+    public void SettleAnimated(Guid id, bool sounds = true) // AppModel.swift:829-831
+        => Transaction.WithAnimation(Chrome.SettleFlight, () => Settle(id, sounds));
 
-    // :834-836
-    public void ReopenAnimated(Guid id) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:834");
+    // AppModel.swift:834-836
+    public void ReopenAnimated(Guid id) // AppModel.swift:834-836
+        => Transaction.WithAnimation(Chrome.SettleFlight, () => Reopen(id));
 
-    // :839-842
-    public void ReopenIfSettled(Guid id) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:839");
+    // AppModel.swift:839-842
+    public void ReopenIfSettled(Guid id) // AppModel.swift:839-842
+    {
+        if (Thread(id)?.IsSettled == true) Reopen(id);
+    }
 
-    // :846-849
-    public string FinishActionTitle =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:846");
+    // AppModel.swift:846-849
+    // GD-005: A settle action archives helper threads, matching the existing finish action path.
+    public string FinishActionTitle // AppModel.swift:846-849
+        => Settings.ThreadFinishAction switch
+        {
+            ThreadFinishAction.Archive => "Archive thread",
+            ThreadFinishAction.Settle when SelectedThread is { IsHelper: true } => "Archive thread",
+            ThreadFinishAction.Settle when SelectedThread is { IsSettled: true } => "Reopen thread",
+            ThreadFinishAction.Settle => "Settle thread",
+            _ => throw new ArgumentOutOfRangeException(nameof(Settings.ThreadFinishAction)),
+        };
 
-    // :851-854
-    public string FinishActionSymbol =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:851");
+    // AppModel.swift:851-854
+    public string FinishActionSymbol => Settings.ThreadFinishAction switch
+    {
+        ThreadFinishAction.Archive => "archivebox",
+        ThreadFinishAction.Settle when SelectedThread is { IsHelper: true } => "archivebox",
+        ThreadFinishAction.Settle when SelectedThread is { IsSettled: true } => "arrow.uturn.backward",
+        ThreadFinishAction.Settle => "checkmark.circle",
+        _ => throw new ArgumentOutOfRangeException(nameof(Settings.ThreadFinishAction)),
+    };
 
-    // :856-873
-    public void FinishSelectedThread() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:856");
+    // AppModel.swift:856-873
+    public void FinishSelectedThread() // AppModel.swift:856-873
+    {
+        if (SelectedThread is not { } thread) return;
+        switch (Settings.ThreadFinishAction)
+        {
+            case ThreadFinishAction.Archive:
+                Archive(thread.Id);
+                break;
+            case ThreadFinishAction.Settle when thread.IsHelper:
+                Archive(thread.Id);
+                break;
+            case ThreadFinishAction.Settle:
+                SettleAnimated(thread.Id);
+                break;
+        }
+    }
 
-    // :878-889
-    public void SettleSelectedThread() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:878");
+    // AppModel.swift:878-889
+    public void SettleSelectedThread() // AppModel.swift:878-889
+    {
+        if (SelectedThread is not { } thread) return;
+        AppModelFinishRequest = new FinishRequest(thread.Id, thread.IsSettled);
+    }
 
-    // :893-912
-    public void AskToArchiveSelectedThread() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:893");
+    // AppModel.swift:893-912
+    public void AskToArchiveSelectedThread() // AppModel.swift:893-912
+    {
+        if (SelectedThread is not { } thread) return;
+        AppModelArchiveRequest = new ArchiveRequest(thread.Id);
+    }
 
-    // :923. Swift: finishRequest (R-NAME-3).
+    // AppModel.swift:923. Swift: finishRequest (R-NAME-3).
     public FinishRequest? AppModelFinishRequest { get => Read(finishRequest); set => Set(ref finishRequest, value); }
 
-    // :932. Swift: archiveRequest (R-NAME-3).
+    // AppModel.swift:932. Swift: archiveRequest (R-NAME-3).
     public ArchiveRequest? AppModelArchiveRequest { get => Read(archiveRequest); set => Set(ref archiveRequest, value); }
 
-    // :934-957
+    // AppModel.swift:934-957
     public void Delete(Guid id, bool removeWorktree = false) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:934");
+        DeleteThread(id, removeWorktree); // AppModel.swift:934-957
 
-    // :961-993
+    private void DeleteThread(Guid id, bool removeWorktree)
+    {
+        if (Thread(id) is not { } thread) return; // AppModel.swift:935
+        foreach (var helper in Children(id)) Delete(helper.Id); // AppModel.swift:936-937
+        if (SelectedThreadID == id) SelectNeighbor(id); // AppModel.swift:938
+        DiscardThreadState(thread); // AppModel.swift:944
+        Threads = new ValueList<ChatThread>(threads.Where(candidate => candidate.Id != id)); // AppModel.swift:945
+        if (Project(thread.ProjectID) is { } project)
+        {
+            var git = new Git(project.Path); // AppModel.swift:946-947
+            var worktree = removeWorktree || thread.Hydra?.HasOwnCopy == true ? thread.WorktreePath : null; // AppModel.swift:948-949
+            MainActor.Spawn(async () =>
+            {
+                await git.DeleteCheckpoints(id); // AppModel.swift:950-951
+                if (worktree is not null) await SwiftTry.IgnoreAsync(() => git.RemoveWorktree(worktree)); // AppModel.swift:952
+            }); // AppModel.swift:950-953
+        }
+        UpdateDockBadge(); // AppModel.swift:955
+        SaveLibrary(); // AppModel.swift:956
+    }
+
+    // AppModel.swift:961-993
     public void DeleteArchivedThreads() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:961");
+        DeleteAllArchivedThreads();
+
+    private void DeleteAllArchivedThreads()
+    {
+        var archived = threads.Where(thread => thread.IsArchived).ToList(); // AppModel.swift:962
+        if (archived.Count == 0) return; // AppModel.swift:963
+        var archivedIDs = archived.Select(thread => thread.Id).ToHashSet(); // AppModel.swift:964-965
+        var removed = archived.Concat(threads.Where(helper => helper.ParentThreadID is { } parent
+            && archivedIDs.Contains(parent) && !archivedIDs.Contains(helper.Id))).ToList(); // AppModel.swift:966-969
+        if (SelectedThreadID is { } selectedID && removed.Any(thread => thread.Id == selectedID)) SelectedThreadID = null; // AppModel.swift:970-972
+        var cleanup = new List<(string Directory, Guid ThreadID, string? Copy)>(); // AppModel.swift:973-974
+        foreach (var thread in removed)
+        {
+            DiscardThreadState(thread, deletingDocument: false); // AppModel.swift:975-976
+            if (Project(thread.ProjectID) is { } project)
+                cleanup.Add((project.Path, thread.Id, thread.Hydra?.HasOwnCopy == true ? thread.WorktreePath : null)); // AppModel.swift:977-979
+        }
+        Storage.DeleteDocuments(removed.Select(thread => thread.Id).ToList()); // AppModel.swift:981
+        MainActor.Spawn(async () =>
+        {
+            foreach (var item in cleanup)
+            {
+                var git = new Git(item.Directory); // AppModel.swift:982-984
+                await git.DeleteCheckpoints(item.ThreadID); // AppModel.swift:985
+                if (item.Copy is not null) await SwiftTry.IgnoreAsync(() => git.RemoveWorktree(item.Copy)); // AppModel.swift:986
+            }
+        }); // AppModel.swift:982-988
+        var removedIDs = removed.Select(thread => thread.Id).ToHashSet(); // AppModel.swift:989
+        Threads = new ValueList<ChatThread>(threads.Where(thread => !removedIDs.Contains(thread.Id))); // AppModel.swift:990
+        UpdateDockBadge(); // AppModel.swift:991
+        ScheduleSave(); // AppModel.swift:992
+    }
+
+    private void DiscardThreadState(ChatThread thread, bool deletingDocument = true)
+    {
+        if (idleSessionStops.Remove(thread.Id, out var stop)) stop.Cancel(); // AppModel.swift:1070-1071
+        if (runtimes.Remove(thread.Id, out var runtime))
+        {
+            runtime.CancelPersistence(); // AppModel.swift:1072
+            runtime.StopSession(); // AppModel.swift:1073
+        }
+        Terminals.CloseAll(thread.Id); // AppModel.swift:1074-1075
+        if (deletingDocument) Storage.DeleteDocument(thread.Id); // AppModel.swift:1076-1077
+    }
+
+    private void SelectNeighbor(Guid id)
+    {
+        var order = SidebarThreads;
+        var index = order.ToList().FindIndex(thread => thread.Id == id);
+        var neighbor = index >= 0 && index + 1 < order.Count ? order[index + 1]
+            : index > 0 ? order[index - 1] : null;
+        SelectedThreadID = neighbor?.Id; // AppModel.swift:1079-1086
+    }
 
     // MARK: - Subagents
 
-    // :1003-1005. Swift: subagent(of:).
+    // AppModel.swift:1003-1005. Swift: subagent(of:).
     public ChatThread? Subagent(Guid parentID) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:1003");
+        PanelSubagent(parentID); // AppModel.swift:1003-1005
 
-    // :1009-1012
-    public void InsertThread(ChatThread thread) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:1009");
+    // AppModel.swift:1009-1012
+    public void InsertThread(ChatThread thread)
+    {
+        Threads = Threads.Appending(thread); // AppModel.swift:1010
+        ScheduleSave(); // AppModel.swift:1011
+    }
 
-    // :1020-1051. Swift: spawnSubagent(from:title:prompt:), @discardableResult.
-    public ChatThread? SpawnSubagent(Guid parentID, string title, string prompt) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:1021");
+    // AppModel.swift:1020-1051. Swift: spawnSubagent(from:title:prompt:), @discardableResult.
+    public ChatThread? SpawnSubagent(Guid parentID, string title, string prompt)
+    {
+        if (Thread(parentID) is not { } parent) return null; // AppModel.swift:1022
+        if (Subagent(parentID) is { } existing) // AppModel.swift:1023
+        {
+            var existingRuntime = Runtime(existing.Id); // AppModel.swift:1024
+            if (existingRuntime.IsRunning) // AppModel.swift:1025
+            {
+                existingRuntime.EnqueueFollowUp(prompt, []); // AppModel.swift:1026
+            }
+            else
+            {
+                existingRuntime.Draft = new ComposerDraft { Text = prompt }; // AppModel.swift:1028-1029
+                existingRuntime.Send(); // AppModel.swift:1030
+            }
+            return existing; // AppModel.swift:1032
+        }
 
-    // :1055-1068
-    public void CloseSubagent(Guid id) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:1055");
+        var thread = new ChatThread( // AppModel.swift:1033-1040
+            parent.ProjectID,
+            parent.Provider,
+            parent.Model,
+            parent.Effort,
+            parent.RuntimeMode,
+            parent.FastMode)
+        {
+            ParentThreadID = parentID, // AppModel.swift:1041
+            IsInPanel = true, // AppModel.swift:1042
+            Title = title, // AppModel.swift:1043
+            HasCustomTitle = true, // AppModel.swift:1044
+        };
+        Threads = Threads.Appending(thread); // AppModel.swift:1045
+        ScheduleSave(); // AppModel.swift:1046
+        var runtime = Runtime(thread.Id); // AppModel.swift:1047
+        runtime.Draft = new ComposerDraft { Text = prompt }; // AppModel.swift:1048-1049
+        runtime.Send(); // AppModel.swift:1050
+        return thread; // AppModel.swift:1051
+    }
 
-    // :1089-1092
-    public ProjectScript? TopScript =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:1089");
+    // AppModel.swift:1055-1068
+    public void CloseSubagent(Guid id)
+    {
+        if (Thread(id) is null) return; // AppModel.swift:1056
+        if (ExistingRuntime(id) is { } runtime) // AppModel.swift:1057
+        {
+            if (runtime.IsRunning) // AppModel.swift:1060
+            {
+                sessionsToRelease.Add(id); // AppModel.swift:1061
+                runtime.Interrupt(); // AppModel.swift:1062
+            }
+            else
+            {
+                runtime.StopSession(); // AppModel.swift:1064
+            }
+        }
+        UpdateThread(id, thread => thread with { IsInPanel = false }); // AppModel.swift:1067
+    }
 
-    // :1094-1098. Swift: runScript(_:threadID:).
-    public void RunScript(ProjectScript script, Guid threadID) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:1094");
+    // AppModel.swift:1089-1092
+    public ProjectScript? TopScript // AppModel.swift:1089-1092
+    {
+        get
+        {
+            if (SelectedThread is not { } thread || Project(thread.ProjectID) is not { } project) return null;
+            return project.Scripts.FirstOrDefault();
+        }
+    }
 
-    // :1100-1108. Swift: selectThread(offset:).
-    public void SelectThread(long offset) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:1100");
+    // AppModel.swift:1094-1098. Swift: runScript(_:threadID:).
+    public void RunScript(ProjectScript script, Guid threadID) // AppModel.swift:1094-1098
+    {
+        if (Thread(threadID) is not { } thread || Project(thread.ProjectID) is not { } project) return;
+        Terminals.Run(script, threadID, thread.WorktreePath ?? project.Path);
+        Runtime(threadID).IsTerminalVisible = true;
+    }
 
-    // :1110-1114. Swift: selectThread(number:). Renamed: C# cannot overload SelectThread on the label alone.
-    public void SelectThreadNumber(long number) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:1110");
+    // AppModel.swift:1100-1108. Swift: selectThread(offset:).
+    public void SelectThread(long offset) // AppModel.swift:1100-1108
+    {
+        var order = SidebarThreads;
+        if (order.Count == 0) return;
+        var currentIndex = SelectedThreadID is { } current
+            ? order.ToList().FindIndex(thread => thread.Id == current)
+            : -1;
+        if (currentIndex < 0)
+        {
+            SelectedThreadID = order[0].Id;
+            return;
+        }
+        var nextIndex = (int)(((currentIndex + offset) % order.Count + order.Count) % order.Count);
+        SelectedThreadID = order[nextIndex].Id;
+    }
 
-    // :1116-1141. Swift: createWorktree(for:).
+    // AppModel.swift:1110-1114. Swift: selectThread(number:). Renamed: C# cannot overload SelectThread on the label alone.
+    public void SelectThreadNumber(long number) // AppModel.swift:1110-1114
+    {
+        var order = SidebarThreads;
+        if (number < 1 || number > order.Count) return;
+        SelectedThreadID = order[checked((int)(number - 1))].Id;
+    }
+
+    // AppModel.swift:1116-1141. Swift: createWorktree(for:).
     public Task CreateWorktree(Guid threadID) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:1116");
+        CreateThreadWorktree(threadID); // AppModel.swift:1116-1141
+
+    private async Task CreateThreadWorktree(Guid threadID)
+    {
+        if (Thread(threadID) is not { WorktreePath: null } thread || Project(thread.ProjectID) is not { } project) return; // AppModel.swift:1117
+        var git = new Git(project.Path); // AppModel.swift:1118
+        if (!await git.IsRepository() || !await git.HasCommits())
+        {
+            Alert = new AppAlert { Title = "Worktree unavailable", Message = "New worktrees need a git repository with at least one commit." }; // AppModel.swift:1119-1122
+            return;
+        }
+        var suffix = SwiftString.Prefix(SwiftString.Lowercased(SwiftUUID.UuidString(threadID)), 8); // AppModel.swift:1123
+        var folder = SwiftString.Lowercased(project.Name.Replace(" ", "-", StringComparison.Ordinal)); // AppModel.swift:1124
+        var path = SwiftPath.AppendingPathComponent(Storage.WorktreesDirectory, folder + "-" + suffix); // AppModel.swift:1125
+        var branch = "marrow/" + suffix; // DEVIATION OD-0012: F1 renames the worktree branch prefix.
+        var baseBranch = (await git.Status())?.Branch; // AppModel.swift:1127
+        try
+        {
+            await git.AddWorktree(path, branch, baseBranch); // AppModel.swift:1128-1129
+            UpdateThread(threadID, current => current with { WorktreePath = path, Branch = branch }); // AppModel.swift:1130-1133
+            foreach (var script in project.Scripts.Where(script => script.RunOnWorktreeCreate)) // AppModel.swift:1134
+            {
+                Terminals.Run(script, threadID, path); // AppModel.swift:1135
+                Runtime(threadID).IsTerminalVisible = true; // AppModel.swift:1136
+            }
+        }
+        catch (Exception error)
+        {
+            Alert = new AppAlert { Title = "Could not create a worktree", Message = error.Message }; // AppModel.swift:1138-1140
+        }
+    }
 
     // MARK: - Attention
 
-    // :1158-1169
-    public void ThreadNeedsAttention(Guid id) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:1158");
+    // AppModel.swift:1158-1169
+    public void ThreadNeedsAttention(Guid id) // AppModel.swift:1158-1169
+    {
+        if (Thread(id) is not { } thread) return;
+        if (IsApplicationActive() && IsOnScreen(thread))
+        {
+            MarkRead(id);
+            return;
+        }
+        Notify(id, thread.Title, "Waiting for your decision.");
+    }
 
-    // :1173-1216. Swift: turnFinished(_:status:continues:).
-    public void TurnFinished(Guid id, TurnStatus status, bool continues) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:1173");
+    // AppModel.swift:1173-1216. Swift: turnFinished(_:status:continues:).
+    public void TurnFinished(Guid id, TurnStatus status, bool continues) // AppModel.swift:1173-1216
+    {
+        var thread = Thread(id);
+        var isVisible = IsApplicationActive() && thread is not null && IsOnScreen(thread);
+        var isHead = thread?.IsHydraHead == true;
+        UpdateThread(id, current => current with
+        {
+            LastStatus = status,
+            UpdatedAt = SwiftDate.Now,
+            HasUnread = isHead ? current.HasUnread : !isVisible,
+        });
+        UpdateDockBadge();
+        if (sessionsToRelease.Remove(id)) ExistingRuntime(id)?.StopSession();
+        if (AutoContinue.TurnFinished(id, status, continues)) return;
+        // The Hydra completion coordinator lives in AppModel+Hydra.swift, which is outside this unit's source set.
+        // Hydra heads report to their parent and never emit their own finish sound or notification.
+        if (isHead || continues) return;
+        var chimed = Settings.ChimeWhenFinished && status != TurnStatus.Interrupted;
+        if (chimed) FinishChime.Play();
+        if (isVisible || !Settings.NotifyWhenFinished || thread is null) return;
+        var body = status switch
+        {
+            TurnStatus.Completed => "Finished.",
+            TurnStatus.Interrupted => "Stopped.",
+            TurnStatus.Failed => "Stopped with an error.",
+            TurnStatus.Running => string.Empty,
+            _ => string.Empty,
+        };
+        Notify(id, thread.Title, body, sound: !chimed);
+    }
 
-    // :1218-1222. Swift: markRead(_: UUID).
-    public void MarkRead(Guid id) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:1218");
+    private bool IsOnScreen(ChatThread thread) =>
+        thread.Id == SelectedThreadID
+        || thread.ParentThreadID == SelectedThreadID && thread.IsInPanel && !thread.IsArchived && !thread.IsSettled;
 
-    // :1226-1238. Swift: markRead(_: [UUID]).
-    public void MarkRead(IReadOnlyList<Guid> ids) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:1226");
+    private static bool IsApplicationActive() =>
+        Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
+        && desktop.MainWindow?.IsActive == true;
 
-    // :1240-1246
-    public void RequestNotificationPermission() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:1240");
+    // AppModel.swift:1218-1222. Swift: markRead(_: UUID).
+    public void MarkRead(Guid id) // AppModel.swift:1218-1222
+    {
+        if (Thread(id)?.HasUnread != true) return;
+        UpdateThread(id, thread => thread with { HasUnread = false });
+        UpdateDockBadge();
+    }
 
-    // :1248-1259. Swift: notify(threadID:title:body:sound:) with `sound: UNNotificationSound? = .default`. No port
+    // AppModel.swift:1226-1238. Swift: markRead(_: [UUID]).
+    public void MarkRead(IReadOnlyList<Guid> ids) // AppModel.swift:1226-1238
+    {
+        var wanted = ids.ToHashSet();
+        var updated = threads.ToList();
+        var changed = false;
+        for (var index = 0; index < updated.Count; index++)
+        {
+            if (!wanted.Contains(updated[index].Id) || !updated[index].HasUnread) continue;
+            updated[index] = updated[index] with { HasUnread = false };
+            changed = true;
+        }
+        if (!changed) return;
+        Threads = new ValueList<ChatThread>(updated);
+        ScheduleSave();
+        UpdateDockBadge();
+    }
+
+    // AppModel.swift:1240-1246
+    public void RequestNotificationPermission() // AppModel.swift:1240-1246
+    {
+        // Windows notification permission is owned by the shell integration unit; Avalonia exposes no permission prompt.
+    }
+
+    // AppModel.swift:1248-1259. Swift: notify(threadID:title:body:sound:) with `sound: UNNotificationSound? = .default`. No port
     // type stands for UNNotificationSound; the only values the source passes are .default and nil (:1215), so the
     // skeleton carries them as true and false. UNRESOLVED: the Windows notification unit decides the final form.
-    public void Notify(Guid threadID, string title, string body, bool sound = true) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:1248");
+    public void Notify(Guid threadID, string title, string body, bool sound = true) // AppModel.swift:1248-1259
+    {
+        if (IsApplicationActive() && Thread(threadID) is { } thread && IsOnScreen(thread)) return;
+        RequestNotificationPermission();
+        // No Windows notification-center adapter is present in this source set. Preserve the request boundary
+        // without throwing from a completed turn; the OS notification delivery remains a documented deviation.
+    }
 
-    // :1261-1264
-    public void UpdateDockBadge() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:1261");
+    // AppModel.swift:1261-1264
+    public void UpdateDockBadge() // AppModel.swift:1261-1264
+    {
+        // The source count is retained for consumers; Windows taskbar overlays cannot display its decimal text.
+        dockUnreadCount = threads.LongCount(thread => thread.HasUnread && !thread.IsArchived && !thread.IsInPanel);
+    }
 
     // MARK: - Text generation
 
-    // :1268-1285. Swift: textEngine(preferring:).
-    public TextGeneration.Engine? TextEngine(ProviderKind? provider) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:1268");
+    // AppModel.swift:1268-1285. Swift: textEngine(preferring:).
+    public TextGeneration.Engine? TextEngine(ProviderKind? provider) // AppModel.swift:1268-1285
+    {
+        TextGeneration.Engine? Claude()
+        {
+            if (Providers.Status(ProviderKind.Claude).ProviderStatusAuth is ProviderStatus.Auth.SignedOut
+                || Providers.Executable(ProviderKind.Claude) is not { } executable) return null;
+            return new TextGeneration.Engine.Claude(executable.Path, Providers.Environment(ProviderKind.Claude));
+        }
+
+        TextGeneration.Engine? Codex()
+        {
+            if (Providers.Status(ProviderKind.Codex).ProviderStatusAuth is ProviderStatus.Auth.SignedOut
+                || Providers.Executable(ProviderKind.Codex) is not { } executable
+                || Providers.DefaultModel(ProviderKind.Codex)?.Id is not { } model) return null;
+            return new TextGeneration.Engine.Codex(executable.Path, Providers.Environment(ProviderKind.Codex), model);
+        }
+
+        return Settings.TextGeneration switch
+        {
+            TextGenerationChoice.Off => null,
+            TextGenerationChoice.Claude => Claude(),
+            TextGenerationChoice.Codex => Codex(),
+            TextGenerationChoice.Automatic => provider == ProviderKind.Codex ? Codex() ?? Claude() : Claude() ?? Codex(),
+            _ => null,
+        };
+    }
 
     // MARK: - Persistence
 
-    // :1289-1297
+    // AppModel.swift:1289-1297
     public void ScheduleSave() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:1289");
+        ScheduleLibrarySave();
 
-    // :1309-1327
+    private void ScheduleLibrarySave()
+    {
+        if (!persistenceEnabled) return; // AppModel.swift:1290
+        saveTask?.Cancel(); // AppModel.swift:1291
+        var weakSelf = new WeakReference<AppModel>(this);
+        saveTask = MainActor.Spawn(async () =>
+        {
+            await SwiftTask.TrySleep(TimeSpan.FromMilliseconds(400)); // AppModel.swift:1292-1293
+            if (SwiftTask.IsCancelled || !weakSelf.TryGetTarget(out var model)) return; // AppModel.swift:1294
+            model.SaveLibrary(); // AppModel.swift:1295
+        });
+    }
+
+    private void SaveLibrary()
+    {
+        if (!persistenceEnabled || libraryLoadFailed) return; // AppModel.swift:1299-1300, DEVIATION OD-0008 A10
+        var library = new Library { Projects = projects, Threads = threads }; // AppModel.swift:1301-1303
+        DiskWriter.Shared.EncodeAndWrite(library, Storage.LibraryURL); // AppModel.swift:1304-1305
+    }
+
+    // AppModel.swift:1309-1327
     public void SaveBeforeQuit() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:1309");
+        SaveSynchronouslyBeforeQuit(); // AppModel.swift:1309-1327
+
+    private void SaveSynchronouslyBeforeQuit()
+    {
+        if (!persistenceEnabled) return; // AppModel.swift:1310
+        persistenceEnabled = false; // AppModel.swift:1311
+        saveTask?.Cancel(); // AppModel.swift:1312
+        saveTask = null; // AppModel.swift:1313
+        if (!libraryLoadFailed)
+        {
+            var library = new Library { Projects = projects, Threads = threads }; // AppModel.swift:1314-1316
+            DiskWriter.Shared.WriteSynchronously(library, Storage.LibraryURL); // AppModel.swift:1317
+        }
+        foreach (var runtime in runtimes.Values)
+        {
+            runtime.CancelPersistence(); // AppModel.swift:1318-1319
+            runtime.StopSession(); // AppModel.swift:1320
+            if (runtime.UnsavedSnapshot() is not { } snapshot) continue; // AppModel.swift:1321-1322
+            DiskWriter.Shared.WriteSynchronously(snapshot, Storage.ThreadURL(runtime.ThreadID)); // AppModel.swift:1323
+        }
+        DiskWriter.Shared.WaitForQueuedWrites(); // AppModel.swift:1325
+        Terminals.TerminateAll(); // AppModel.swift:1326
+    }
 }
 
-// :1331-1356. A caseless enum of static functions -> static class.
+// AppModel.swift:1331-1356. A caseless enum of static functions -> static class.
 public static class ProjectFile
 {
-    // :1332-1344. Swift: scripts(at:).
-    public static ValueList<ProjectScript> Scripts(SwiftURL url) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:1332");
+    // AppModel.swift:1332-1344. Swift: scripts(at:).
+    public static ValueList<ProjectScript> Scripts(SwiftURL url) // AppModel.swift:1332-1344
+    {
+        try
+        {
+            if (!string.Equals(url.Scheme, "file", StringComparison.OrdinalIgnoreCase)) return ValueList<ProjectScript>.Empty;
+            var path = url.Path;
+            if (OperatingSystem.IsWindows() && path.Length >= 4 && path[0] == '/' && char.IsAsciiLetter(path[1]) && path[2] == ':')
+                path = path[1..];
+            var data = File.ReadAllBytes(SwiftPath.AppendingPathComponent(path, "droppy-code.json"));
+            if (JSONValue.Parse(data) is not { } json || json["scripts"]?.JSONValueArray is not { } entries)
+                return ValueList<ProjectScript>.Empty;
+            return new ValueList<ProjectScript>(entries.Select(entry =>
+            {
+                var name = entry["name"]?.JSONValueString;
+                var command = entry["command"]?.JSONValueString;
+                if (name is null || command is null) return null;
+                return new ProjectScript(
+                    name,
+                    command,
+                    Symbol(entry["icon"]?.JSONValueString),
+                    entry["runOnWorktreeCreate"]?.JSONValueBool ?? false);
+            }).OfType<ProjectScript>());
+        }
+        catch (Exception)
+        {
+            return ValueList<ProjectScript>.Empty;
+        }
+    }
 
-    // :1346-1355. Swift: symbol(for:).
-    public static string Symbol(string? icon) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/AppModel.swift:1346");
+    // AppModel.swift:1346-1355. Swift: symbol(for:).
+    public static string Symbol(string? icon) // AppModel.swift:1346-1355
+        => icon switch
+        {
+            "test" => "checkmark.seal",
+            "lint" => "wand.and.stars",
+            "configure" => "gearshape",
+            "build" => "hammer",
+            "debug" => "ant",
+            _ => "play",
+        };
 }
