@@ -804,3 +804,13 @@ stand-in's control replies; in the full parallel Services run those waits starve
 until the hang detector killed the test host (IMPL_B2_RED reported at b844b35 by the WallpaperCard merge agent; reproduced:
 svc-prov 1014/1014 passed, then the host crash in that test; svc-rest 1072/1072). Passes alone in about 20 s. Same remedy
 as ED-167 (FileWatcherTests). Fix branch fix/b2-planlimits (64723c5).
+
+ED-191 [TEST][TRACE] Four App.Runtime.ThreadRuntime computed properties have no separately numbered PR-RUNTIME record:
+hasWorkingHelpers (ThreadRuntime.swift:672-680), hasWorkingNativeHeads (:685-688), pendingPlanApproval (:738-740) and the
+hydraToolHeads lookup (:270-272). Each is used from other, recorded behaviors (for example the Sidebar badge records
+PR-SIDEBAR-068/073 read hasWorkingHelpers; pendingPlanApproval was already the subject of GD-006's plan-approval-selection
+call) but was never itself assigned an atomic PR id in RUNTIME.json, so their own regression tests in
+ThreadRuntimeSurfaceTests.cs had no Req/Rule/Decision trait to cite (R-TEST-1, caught by TraceabilityTests). DECISION:
+this is a specification-completeness gap, not a behavioral question; ED-191 is the traceability anchor for these four
+getters' own tests until (if ever) they are split into their own PR ids. Ported verbatim from the cited Swift lines, no
+invented behavior. ENGINEERING DECISION; not a deviation.

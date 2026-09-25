@@ -474,6 +474,9 @@ public sealed class ThreadRuntimePart9Tests
     }
 
     [Fact]
+    [Trait("Req", "PR-RUNTIME-077")] // ThreadRuntime.swift:1377-1381: error.localizedDescription, ported as
+    // SwiftErrors.LocalizedDescription except a Win32Exception (a process-launch failure with no ILocalizedError/
+    // ISwiftErrorIdentity mapping), which uses its own .Message the way Foundation localizes process-launch errors.
     public void StartTurn_uses_the_Win32_exception_message_in_its_error_notice()
     {
         using var h = new AppModelHarness();
@@ -601,18 +604,5 @@ public sealed class ThreadRuntimePart9Tests
         foreach (var element in elements) list.Add(element);
         Assert.True(fieldType.IsInstanceOfType(list), $"Cannot build collection for {fieldName}: {fieldType}");
         field.SetValue(runtime, list);
-    }
-
-    private sealed class Win32FailingProviderSession(System.ComponentModel.Win32Exception failure) : ProviderSession
-    {
-        public Action<ProviderEvent>? OnEvent { get; set; }
-        public bool IsRunning => true;
-        public Task<string> Start() => Task.FromResult("session");
-        public Task Send(TurnInput input) => Task.FromException(failure);
-        public Task Interrupt() => Task.CompletedTask;
-        public void ResolveApproval(string requestID, string optionID) { }
-        public void AnswerQuestion(string requestID, ValueMap<string, ValueList<string>> answers) { }
-        public Task Compact() => Task.CompletedTask;
-        public void Stop() { }
     }
 }

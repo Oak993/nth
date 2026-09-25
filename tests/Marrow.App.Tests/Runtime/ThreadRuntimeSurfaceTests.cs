@@ -106,6 +106,7 @@ public sealed class ThreadRuntimeSurfaceTests
     }
 
     [Fact]
+    [Trait("Decision", "ED-191")] // ThreadRuntime.swift:672-680
     public void Has_working_helpers_tracks_only_an_existing_child_runtime_that_is_running()
     {
         using var h = new AppModelHarness();
@@ -127,6 +128,7 @@ public sealed class ThreadRuntimeSurfaceTests
     }
 
     [Fact]
+    [Trait("Decision", "ED-191")] // ThreadRuntime.swift:685-688
     public void Has_working_native_heads_ignores_non_native_and_finished_heads()
     {
         using var h = new AppModelHarness();
@@ -158,6 +160,7 @@ public sealed class ThreadRuntimeSurfaceTests
     }
 
     [Fact]
+    [Trait("Decision", "ED-191")] // ThreadRuntime.swift:738-740
     public void Pending_plan_approval_returns_the_first_plan_request_and_skips_other_approval_kinds()
     {
         using var h = new AppModelHarness();
@@ -186,6 +189,7 @@ public sealed class ThreadRuntimeSurfaceTests
     }
 
     [Fact]
+    [Trait("Decision", "ED-191")] // ThreadRuntime.swift:270-272
     public void Hydra_tool_head_lookup_is_empty_until_rehearsed_and_then_tracks_the_tool_id()
     {
         using var h = new AppModelHarness();
