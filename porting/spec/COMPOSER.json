@@ -585,7 +585,7 @@
       "cancellation": "The polling task is not separately cancellable; it exits on its own guards.",
       "windows_path": "Same guards, same 200 x 50 ms watchdog. The localized error description comes from the Windows error surface.",
       "verification_method": "integration test with a scripted agent that ignores the stop for five seconds",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -730,7 +730,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same string construction, byte for byte.",
       "verification_method": "unit test of outgoingText over quotes, command and text combinations",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -755,7 +755,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exact string match after trimming.",
       "verification_method": "integration test asserting no turn starts",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -780,7 +780,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same seven providers, read from the one supportsCompact predicate that also decides the /compact suggestion (PR-COMPOSER-041), so the suggestion and the local handling cover the same providers.",
       "verification_method": "unit test across all fourteen ProviderKind cases, asserting local handling exactly for the seven supportsCompact providers",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3905,7 +3905,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same four-branch decision in the same order.",
       "verification_method": "integration test per branch with the offline agent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3928,7 +3928,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Byte-for-byte string composition, including the header sentence and the trailing full stop after the attachment list.",
       "verification_method": "unit test of bundleText over a three-member bundle with mixed attachments",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3949,7 +3949,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same, including the tidyBundles pass.",
       "verification_method": "interaction test deleting a bundled prompt with its editor open",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3970,7 +3970,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same index arithmetic, including the `if from < dest { dest -= 1 }` correction.",
       "verification_method": "unit test of moveFollowUp over a bundled list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4038,7 +4038,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same guard; note the stored text is the untrimmed text, while the emptiness test is on the trimmed one.",
       "verification_method": "unit test of updateFollowUp with whitespace-only text",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

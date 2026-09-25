@@ -2078,7 +2078,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same event handling and the same two guards.",
       "verification_method": "unit test on both invalidation guards plus an interaction test that a turn makes the next popover open re-read",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

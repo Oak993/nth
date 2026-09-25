@@ -49,7 +49,7 @@
       "cancellation": "not cancellable from here; the task runs to completion",
       "windows_path": "Same nine-condition gate at the turn-finished hook.",
       "verification_method": "interaction test driving a turn to each finish status",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -74,7 +74,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Startup sequence keeps the same ordering; the environment load resolves the user's PATH for git/gh/glab on Windows.",
       "verification_method": "interaction test on startup ordering",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -98,7 +98,7 @@
       "cancellation": "Task cancellation ends the loop at the next check; the sleep is `try?` so cancellation during the sleep falls through to the guard and returns.",
       "windows_path": "A 300-second timer/interval owned by the app model, cancelled on teardown and replaced on re-bootstrap.",
       "verification_method": "unit test with a virtual clock",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1957,7 +1957,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same immediate save; the merge must not lose the mark to a crash.",
       "verification_method": "restart test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1982,7 +1982,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same cap of 20 and the same lenient decode.",
       "verification_method": "unit test appending 25 records, plus a restart test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2033,7 +2033,7 @@
       "cancellation": "n/a",
       "windows_path": "Both readers use the one count of PR-HYDRA-107. The unread ThreadRuntime property feeds nothing.",
       "verification_method": "unit test: a lead turn and a head landing sharing a path count once; a head landing counts in the merge-state line and blocks recordHydraSettlement",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,

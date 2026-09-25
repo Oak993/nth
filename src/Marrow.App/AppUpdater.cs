@@ -355,7 +355,12 @@ public sealed class AppUpdater
         }
 
         try {
-            Start-Process -FilePath $Dest
+            # macOS `open "$DEST"` (:440) launches the app bundle at $Dest directly: Launch Services resolves a
+            # .app bundle (a directory) to its Info.plist executable. Windows has no bundle concept: $Dest is
+            # only the install folder, so the executable inside it must be found and launched explicitly, or
+            # Start-Process falls back to the shell's default "open" action for a plain folder (Explorer) (ED-192).
+            $exe = Get-ChildItem -LiteralPath $Dest -Filter '*.exe' -File | Select-Object -First 1
+            if ($exe) { Start-Process -FilePath $exe.FullName }
         } catch {
             # :440's `open` result is unchecked; a relaunch failure does not undo a completed swap.
         }

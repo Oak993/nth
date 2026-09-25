@@ -7,9 +7,9 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "IMPLEMENTED": 2377,
+      "IMPLEMENTED": 2701,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
-      "SPECIFIED": 1520,
+      "SPECIFIED": 1196,
       "RETIRED": 6,
       "DISCOVERED": 10
     },
@@ -5265,7 +5265,7 @@
       "cancellation": "The polling task is not separately cancellable; it exits on its own guards.",
       "windows_path": "Same guards, same 200 x 50 ms watchdog. The localized error description comes from the Windows error surface.",
       "verification_method": "integration test with a scripted agent that ignores the stop for five seconds",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5416,7 +5416,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same string construction, byte for byte.",
       "verification_method": "unit test of outgoingText over quotes, command and text combinations",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5442,7 +5442,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exact string match after trimming.",
       "verification_method": "integration test asserting no turn starts",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5468,7 +5468,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same seven providers, read from the one supportsCompact predicate that also decides the /compact suggestion (PR-COMPOSER-041), so the suggestion and the local handling cover the same providers.",
       "verification_method": "unit test across all fourteen ProviderKind cases, asserting local handling exactly for the seven supportsCompact providers",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -8728,7 +8728,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same four-branch decision in the same order.",
       "verification_method": "integration test per branch with the offline agent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -8752,7 +8752,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Byte-for-byte string composition, including the header sentence and the trailing full stop after the attachment list.",
       "verification_method": "unit test of bundleText over a three-member bundle with mixed attachments",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -8774,7 +8774,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same, including the tidyBundles pass.",
       "verification_method": "interaction test deleting a bundled prompt with its editor open",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -8796,7 +8796,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same index arithmetic, including the `if from < dest { dest -= 1 }` correction.",
       "verification_method": "unit test of moveFollowUp over a bundled list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -8867,7 +8867,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same guard; note the stored text is the untrimmed text, while the emptiness test is on the trimmed one.",
       "verification_method": "unit test of updateFollowUp with whitespace-only text",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -11241,7 +11241,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Model the phase as a closed two-case enumeration whose raw values are exactly these literals.",
       "verification_method": "unit asserting only two phases exist",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -11327,7 +11327,7 @@
       "cancellation": "Stopping the turn while it is starting is checked after the awaits (currentTurnID == turn.id); the checkpoint ref is still written.",
       "windows_path": "Run the capture concurrently with session start and await both before sending. Keep the ordering; it is a correctness property, not an optimisation.",
       "verification_method": "interaction test: send a message and assert the start ref exists before the first provider byte",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -11352,7 +11352,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port including the conditional and the silence.",
       "verification_method": "interaction test asserting no -end ref exists when the -start capture failed",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -11403,7 +11403,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port. Worktree removal on Windows must contend with open file handles; the try? swallow is reproduced.",
       "verification_method": "interaction test on both menu choices",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -11428,7 +11428,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port; keep the loop serial rather than parallelising it.",
       "verification_method": "interaction test with one user worktree and one Hydra copy",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -12842,7 +12842,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Platform boundary: the worktrees root moves from the home directory dot-folder to the chosen Windows state directory. Keep the slug rule space-only, because the Hydra orphan sweeper matches on the same rule and any added sanitising would have to be added there too or worktrees leak.",
       "verification_method": "interaction test asserting the folder name, the branch name and the two alert bodies",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -12900,7 +12900,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port of the selection rule at every site.",
       "verification_method": "interaction test with a worktree thread asserting the checkpoint ref lands in the worktree's own administrative directory",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -12927,7 +12927,7 @@
       "cancellation": "The task is shared, so a hover that moves away does not cancel it.",
       "windows_path": "Direct port including the ten second window, which is what lets edits made outside the app be picked up soon after.",
       "verification_method": "unit asserting one git run across a hover and an immediate click",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -12952,7 +12952,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port; sort with an ordinal comparison.",
       "verification_method": "unit over a three-turn thread asserting the union and the chosen end checkpoint",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -12977,7 +12977,7 @@
       "cancellation": "not applicable",
       "windows_path": "Direct port of all three messages verbatim.",
       "verification_method": "unit over each guard asserting the exact string",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -13002,7 +13002,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port; keep the verification ahead of the provider rewind.",
       "verification_method": "interaction test deleting the checkpoint ref then reverting, asserting the conversation is intact",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -13028,7 +13028,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port of all four messages and the branch conditions.",
       "verification_method": "unit per provider branch asserting the exact strings",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -13056,7 +13056,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port including the message prefix and the colon and space.",
       "verification_method": "interaction test making the restore fail and asserting the notice text",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -13083,7 +13083,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port including the ordering, since the notice must be appended after the trim to survive it.",
       "verification_method": "restart test asserting the trimmed thread reloads with the expected turns and status; unit test that a head-reported path pending before a revert is absent from the next finished turn's touchedPaths",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -13109,7 +13109,7 @@
       "cancellation": "The editor is disabled while sending.",
       "windows_path": "Direct port of the three-way outcome.",
       "verification_method": "interaction test with a restore failure asserting the edit stays in the composer",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -13646,7 +13646,7 @@
       "cancellation": "not applicable",
       "windows_path": "Direct port.",
       "verification_method": "interaction test opening from a tool row, then from the tab, asserting the list starts at the top",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -13729,7 +13729,7 @@
       "cancellation": "not applicable",
       "windows_path": "Direct port including the one-based display index over a zero-based stored index.",
       "verification_method": "interaction test with a mix of qualifying and non-qualifying turns",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -13756,7 +13756,7 @@
       "cancellation": "The shared task is not cancelled by a caller going away.",
       "windows_path": "Direct port including both cache bounds.",
       "verification_method": "unit asserting a second request for a finished turn spawns nothing",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -13782,7 +13782,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port of the span search order.",
       "verification_method": "unit over a selection whose middle turn has no checkpoints",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -13809,7 +13809,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The containment test is TouchedPaths.relative, so the Windows absolute-path rule applies here too.",
       "verification_method": "unit with an edit in the temporary directory and one in a second project",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -13839,7 +13839,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port; the field name touchedPaths is fixed by existing thread documents.",
       "verification_method": "restart test reading a thread document written with and without the field; unit test that head paths pending before a revert are not in the next finished turn's touchedPaths",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -20293,7 +20293,7 @@
       "cancellation": "not cancellable from here; the task runs to completion",
       "windows_path": "Same nine-condition gate at the turn-finished hook.",
       "verification_method": "interaction test driving a turn to each finish status",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -20319,7 +20319,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Startup sequence keeps the same ordering; the environment load resolves the user's PATH for git/gh/glab on Windows.",
       "verification_method": "interaction test on startup ordering",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -20344,7 +20344,7 @@
       "cancellation": "Task cancellation ends the loop at the next check; the sleep is `try?` so cancellation during the sleep falls through to the guard and returns.",
       "windows_path": "A 300-second timer/interval owned by the app model, cancelled on teardown and replaced on re-bootstrap.",
       "verification_method": "unit test with a virtual clock",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -22280,7 +22280,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same immediate save; the merge must not lose the mark to a crash.",
       "verification_method": "restart test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -22306,7 +22306,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same cap of 20 and the same lenient decode.",
       "verification_method": "unit test appending 25 records, plus a restart test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -22359,7 +22359,7 @@
       "cancellation": "n/a",
       "windows_path": "Both readers use the one count of PR-HYDRA-107. The unread ThreadRuntime property feeds nothing.",
       "verification_method": "unit test: a lead turn and a head landing sharing a path count once; a head landing counts in the merge-state line and blocks recordHydraSettlement",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -23927,7 +23927,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The call site stays as a single no-op-capable hook so the selection path matches; no user-visible behavior in a shipped build.",
       "verification_method": "unit test: a selection change calls the hook exactly once with the expected label, and the hook is inert in release",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -24109,7 +24109,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port; the clear-then-assign ordering is load-bearing and must be preserved.",
       "verification_method": "unit test: a reused thread whose provider changed loses its session id; one whose provider is unchanged keeps it",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -24134,7 +24134,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port.",
       "verification_method": "restart test: three consecutive launches with no user action leave exactly one untouched thread",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -24160,7 +24160,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port, same key name and same string-UUID representation.",
       "verification_method": "unit test over each fallback rung",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -24184,7 +24184,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port; the key must be removed, not written as an empty string.",
       "verification_method": "restart test with a deleted project",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -24212,7 +24212,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port of the construction order, the file name and the missing-file fallback. The unreadable-file path follows OD-0008 A10: show the error, do not overwrite; the error text is exactly \"Marrow could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\", shown in the main window at launch (OD-0012 E4). The store root is %LOCALAPPDATA%\\Marrow Code (OD-0008 C7, see PR-LAUNCH-070).",
       "verification_method": "integration test with a missing file (empty library, no message) and with a truncated file (the error is surfaced with the exact OD-0012 E4 text, and after a mutation that schedules a save the file on disk is byte-identical to the truncated original)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "blocked_by": null,
@@ -24240,7 +24240,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port.",
       "verification_method": "restart test: kill the process mid-turn, relaunch, assert the chat reads interrupted",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -24263,7 +24263,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port, including the finishedAt equals launch-time approximation.",
       "verification_method": "restart test with a running head in the stored library",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -24346,7 +24346,7 @@
       "cancellation": "not cancellable from here",
       "windows_path": "Direct port; the literal 12 and both exclusions are reproduced.",
       "verification_method": "unit test on the selected id list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -24374,7 +24374,7 @@
       "cancellation": "not cancellable",
       "windows_path": "PLATFORM BOUNDARY: secrets are stored in Windows Credential Manager in place of the Keychain (OD-0008 B3), read off the UI thread after the first frame, at most once per process.",
       "verification_method": "unit test asserting one read per process and no UI-thread block",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -24404,7 +24404,7 @@
       "cancellation": "not cancellable",
       "windows_path": "PLATFORM BOUNDARY (platform_adaptations PA-0009): Windows cannot use login-shell argv[0] semantics. The replacement is an explicit environment resolution step that still completes before the first git call.",
       "verification_method": "unit test on the bootstrap sequencer",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -24432,7 +24432,7 @@
       "cancellation": "The watchdog loop is never cancelled; it ends with the process.",
       "windows_path": "Direct port of the launch-time start and the 30 s cadence; the watchdog's own behavior is specified by the Hydra area.",
       "verification_method": "unit test asserting exactly one watchdog loop after repeated bootstraps",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -24465,7 +24465,7 @@
       "cancellation": "not cancellable from the launch path",
       "windows_path": "Direct port of the launch trigger and the 3-day cutoff; the merge itself belongs to the Hydra area.",
       "verification_method": "integration test at launch with hydraAutoMerge on and leads updated within 3 days: (a) a completed unmerged turn with touched paths, (b) every turn merged but one head whose landing landed and has no mergedAt, (c) a landed head but a pending Hydra report, (d) a head landing with a patchPath; assert (a) and (b) merge in UUID-string order and (c) and (d) do not; with hydraAutoMerge off assert nothing runs",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -24490,7 +24490,7 @@
       "cancellation": "Cancelled only by a subsequent bootstrap. Nothing in the quit path cancels it; it ends with the process.",
       "windows_path": "Direct port; the literal 300 seconds and the cancel-then-restart discipline are reproduced.",
       "verification_method": "unit test with an injected clock: one sweep per 300 s, and a second bootstrap leaves exactly one task",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -24521,7 +24521,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port: the exact four-provider group, zai outside it, the capture guard, the 24-hour cutoff and the last-in-order placement.",
       "verification_method": "integration test on the sweep with referenced, unreferenced-and-old, and unreferenced-but-young attachment files",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -24740,7 +24740,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port including the 400 ms debounce and the one-way latch. port_impacts.md entry 100 requires the persistenceEnabled latch to be ported together with the teardown ordering, because the ordering only has meaning through it.",
       "verification_method": "unit test: a thread mutation after saveBeforeQuit writes nothing",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -24768,7 +24768,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port: atomic replace, synchronous on the writer queue, drop-the-queued-value-first, and the same silent-except-for-a-log failure behavior. Under OD-0012 F1 the log line's format is exactly \"Marrow could not save %@: %@\", carrying the file's last path component and the localized error.",
       "verification_method": "integration test asserting library.json is complete and valid immediately after the process exits",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -24801,7 +24801,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port including the cancelPersistence-then-stopSession-then-snapshot order; port_impacts.md entry 100 requires both teardown orders to be ported.",
       "verification_method": "restart test: quit with an unsaved in-flight thread and assert its document is complete after relaunch",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null
     },
@@ -24827,7 +24827,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port of both steps and their order. Terminal child termination is part of the Gate E no-orphan-process check.",
       "verification_method": "Gate E check: no terminal child process survives the app; integration test asserting queued writes land",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -24937,7 +24937,7 @@
       "cancellation": "Cancelled by the next scheduleSave and by saveBeforeQuit.",
       "windows_path": "Direct port: the literal 400 ms, the cancel-and-restart debounce and the per-URL coalescing.",
       "verification_method": "unit test with an injected clock: ten mutations in 100 ms produce one write",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -24962,7 +24962,7 @@
       "cancellation": "Cancelled by reselecting the thread, or by a later selection change that re-enters this function for the same id.",
       "windows_path": "Direct port; the literal 600 seconds and the running-turn continue are reproduced.",
       "verification_method": "unit test with an injected clock over the idle, running-turn and reselected cases",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -24987,7 +24987,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port; port_impacts.md entry 100 requires the idle release to be gated behind all eight conditions.",
       "verification_method": "unit test asserting each condition independently blocks release, and that the save is queued before the drop",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -25092,7 +25092,7 @@
       "cancellation": "not applicable",
       "windows_path": "PLATFORM BOUNDARY: the Windows taskbar overlay icon or badge is the nearest equivalent and has different capabilities - it is an icon, not arbitrary text. The count-and-clear-at-zero rule and the three predicates are reproduced; the visual form is a recorded platform difference.",
       "verification_method": "interaction test: two unread background chats show 2, reading both clears the badge",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -25119,7 +25119,7 @@
       "cancellation": "not cancellable",
       "windows_path": "PLATFORM BOUNDARY: Windows toast notifications for a desktop app do not use a runtime permission prompt in the same way. The port keeps the lazy, once-per-process registration point and records the difference rather than inventing a prompt.",
       "verification_method": "unit test asserting one request per process and none at launch",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -25172,7 +25172,7 @@
       "cancellation": "not applicable",
       "windows_path": "Direct port; the empty state's appearance belongs to the shell and chrome area.",
       "verification_method": "interaction test on a fresh data directory",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -25370,7 +25370,7 @@
       "cancellation": "not applicable",
       "windows_path": "Direct port of the recovery behavior. Job Objects with kill-on-close (platform_adaptations PA-0007) would additionally clean up children on a force kill, which is stricter than upstream; that is an improvement to record explicitly rather than assume.",
       "verification_method": "restart test: kill the process and assert the relaunch state",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -25394,7 +25394,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port including the deferred, post-paint mark-read.",
       "verification_method": "restart test: a thread with unread work that is reopened at launch is read afterwards",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -25419,7 +25419,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port including the equality guard before the settings write.",
       "verification_method": "unit test asserting no settings write when the project is unchanged",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -25504,7 +25504,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The prefix is a user-visible literal and is kept exactly, including the trailing space. Setting the custom-title flag is not cosmetic: without it the forwarded thread is renamed by the auto-titler on its first reply and the prefix is lost.",
       "verification_method": "unit test forwarding a thread with a known title and asserting the exact resulting title and the custom-title flag",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null
     },
@@ -25533,7 +25533,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The double guard around the await is the load-bearing part: a single check before the load races a delete. The ordering (append, expand, remember, then install) is reproduced as written; the consequence that a failed install leaves an appended unselected thread behind is upstream behaviour and is recorded rather than repaired.",
       "verification_method": "integration test forwarding a thread, forwarding one deleted during its load, and forwarding one whose continuation install fails, asserting the library and selection after each",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -58236,7 +58236,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Value equality over all nine fields. Getting one conditional wrong either restarts sessions that should be reused or reuses one launched with the wrong flags.",
       "verification_method": "unit - equality over all nine fields, and that a change in any one field fails the reuse test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -58257,7 +58257,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Single predicate used at all three sites; do not inline three copies.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -58280,7 +58280,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three-part test, evaluated before any I/O.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -58305,7 +58305,7 @@
       "cancellation": "The await is cancellable with the enclosing task.",
       "windows_path": "Keep the ordering: the load must complete before the signature is captured.",
       "verification_method": "interaction test - assert load order",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -58328,7 +58328,7 @@
       "cancellation": "Cancellable with the enclosing task; the release below has not happened yet, so a cancellation here leaves the old session intact.",
       "windows_path": "Platform boundary: there is no login shell on Windows. The equivalent is resolving the user and machine PATH from the registry plus the provider's own install locations. The ordering requirement survives: resolve the environment before tearing down the live session.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -58352,7 +58352,7 @@
       "cancellation": "Neither call is cancellable.",
       "windows_path": "Same order. Heads live inside the session's process, so they cannot outlive it.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -58375,7 +58375,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Read the key through the secret store; an unreadable store must fail here rather than fall back to an empty key, which would produce this same message and hide the real cause.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -58398,7 +58398,7 @@
       "cancellation": "not cancellable",
       "windows_path": "workingDirectory is a file URL built from a plain path string; on Windows it must accept a drive-letter path and a UNC path. environment(for:) supplies the child process environment even though no process is spawned for API providers.",
       "verification_method": "contract fixture - assert the 16 configuration fields for both resumeID values",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -58423,7 +58423,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep the flag CLI-only. Do not unify the two branches; port_impacts.md entry 93 requires both be reproduced separately.",
       "verification_method": "unit - drive a stand-in API session that emits .exited during start and assert the release-and-fail path runs",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "27 (dead_code.md item 27 documents the latency); extract section 4.26",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -58447,7 +58447,7 @@
       "cancellation": "This path is itself the cancellation handler: a cancelled ensureSession lands here.",
       "windows_path": "A try/finally with the identity test. The identity comparison must be reference identity, not value equality.",
       "verification_method": "unit - throw from a stand-in start() in both identity states",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -58474,7 +58474,7 @@
       "cancellation": "The guard immediately above throws CancellationError when the candidate is no longer the live session or the task was cancelled, and the defer then tears the candidate down.",
       "windows_path": "Keep two distinct id-recording paths; port_impacts.md entry 87 states explicitly: do not unify.",
       "verification_method": "restart test - start an API session, fail before send, relaunch and assert the id is present",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "extract section 0 (adjudicated SOURCE FACT; not numbered in upstream_defects.md)",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -58497,7 +58497,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Platform boundary: executable resolution must consider .cmd, .bat and .ps1 shims and the Windows PATHEXT rules, which is registry-side work, not this file's.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -58520,7 +58520,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same twelve fields. Keep the omissions: they are the difference between a CLI head and an API head.",
       "verification_method": "contract fixture - assert the field set for both resumeID values",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -58542,7 +58542,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exhaustive dispatch over the provider enum with no silent fallback. port_impacts.md entry 94 requires the API factory be an exhaustive three-way dispatch with an assert or throw rather than the pinned source's unreachable default arm (dead_code.md item 25).",
       "verification_method": "unit - one assertion per provider kind, all fourteen",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -58567,7 +58567,7 @@
       "cancellation": "The defer runs on cancellation too, so the flag never sticks.",
       "windows_path": "A try/finally-scoped flag. It must cover both start() calls of the retry arm.",
       "verification_method": "interaction test - emit .exited during start and assert no notice is appended and the turn is not failed",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -58588,7 +58588,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pure predicate over the thread record and the error.",
       "verification_method": "unit - four-way table over (sessionID present) x (lostConversation) x (resumeAt present)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -58612,7 +58612,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Case-insensitive contains using the same two literals. port_impacts.md entry 93 requires these be ported as case-insensitive substring tests on the CLI message text.",
       "verification_method": "unit - mixed-case fixtures for both literals plus a non-matching one",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -58637,7 +58637,7 @@
       "cancellation": "The where clause excludes a cancelled task, so a cancelled start is not retried.",
       "windows_path": "Same order: release, clear, notice, remake, start. Never emit the notice outside a running turn.",
       "verification_method": "interaction test - stand-in session throwing the lost-conversation message, with and without a running turn",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -58661,7 +58661,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Two branches exactly as written. Both call sites (start and .sessionReady) must go through this one function.",
       "verification_method": "unit - both branches; restart test for the held-back case",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -58684,7 +58684,7 @@
       "cancellation": "This is the cancellation behavior of ensureSession's happy path.",
       "windows_path": "Reference identity plus a cancellation check. A value-equality test would let a replaced session claim the slot.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -58709,7 +58709,7 @@
       "cancellation": "A cancelled send throws and skips this.",
       "windows_path": "Same placement: after the send, after the delivery-flag commits, before recordCommand.",
       "verification_method": "restart test - send successfully, relaunch, assert resume; then fail a send and assert no id was stored",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -58730,7 +58730,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. The discard is the point of the hold-back.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -58752,7 +58752,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A monotonically increasing integer captured per handler. This is the only thing that silences a closing session; clearing the handler alone is not enough (PR-RUNTIME-044).",
       "verification_method": "unit - emit from a released session and assert no timeline change",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -58776,7 +58776,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep the ordering and the deferred handler clear. Clearing the handler synchronously inside an event dispatch can mutate the collection being iterated.",
       "verification_method": "unit - call with no session and assert both delivery flags reset",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -58801,7 +58801,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same order: release, heads, idle check, save, take the id, clear it, finish.",
       "verification_method": "integration test - stop a running turn's session and assert one .turnEnd row with status interrupted and a written document",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -58827,7 +58827,7 @@
       "cancellation": "The warm-up task is never cancelled by this file; its inner re-check of phase and session is what abandons it.",
       "windows_path": "Same guards. The half-second saving is larger on Windows, where process creation is more expensive.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -58852,7 +58852,7 @@
       "cancellation": "not cancellable",
       "windows_path": "port_impacts.md entry 99: reproduce the sticky per-runtime latch, do not add a reset on failure.",
       "verification_method": "unit - throw once from ensureSession, then assert a second warmSession call does nothing",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "41",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -58876,7 +58876,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two-pass shape; the joining is a performance requirement on long histories, not only a formatting one.",
       "verification_method": "unit - fixture timeline with interleaved tools and status lines",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -58897,7 +58897,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Count in Unicode grapheme clusters if the platform offers them, otherwise in code points, and record the choice: counting UTF-16 units would trim differently on a history with emoji.",
       "verification_method": "unit - boundary fixtures at 40 messages, at exactly 60000 characters and at the 200-character floor",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -58921,7 +58921,7 @@
       "cancellation": "not cancellable",
       "windows_path": "port_impacts.md entry 98: port all four exits and reproduce the loss.",
       "verification_method": "unit - call startTurn with hydraBrief true while running and assert the queued prompt carries no marker",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "39",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -58943,7 +58943,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the silent drop; port_impacts.md entry 98 covers this exit.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "40",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -58966,7 +58966,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "39",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -58989,7 +58989,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The index feeds the checkpoint ref name (PR-RUNTIME-062), so index reuse after a revert deliberately reuses a ref name.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -59011,7 +59011,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Three-state phase, not a boolean.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -59034,7 +59034,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two fields plus the reopen call.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -59058,7 +59058,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same condition. The reset does not clear a waiting drop notice.",
       "verification_method": "unit - a user turn resets rounds and refusals; a report turn and a refusal turn keep them; a waiting drop notice survives a user turn",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -59082,7 +59082,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -59108,7 +59108,7 @@
       "cancellation": "The task is cancelled by finishTurn and by the next startTurn.",
       "windows_path": "A cancellable timer. The three literals 2100, 90 and 180 are exact.",
       "verification_method": "unit with an injected clock",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -59132,7 +59132,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep the placement before the session start.",
       "verification_method": "interaction test - assert the title is set before ensureSession is entered",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -59157,7 +59157,7 @@
       "cancellation": "The background task is never cancelled by this file.",
       "windows_path": "48 is exact. The hasCustomTitle re-check inside the async write is load-bearing against a rename during generation.",
       "verification_method": "unit plus interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null
     },
@@ -59181,7 +59181,7 @@
       "cancellation": "The catalog await is cancellable with the caller's task.",
       "windows_path": "Same. The coalescing assignment on effort must not be turned into an unconditional one.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -59208,7 +59208,7 @@
       "cancellation": "Detached, so it is not cancelled by the turn being interrupted.",
       "windows_path": "The ref namespace string is append-only history in the Marrow port's CHECKPOINT_NAMESPACES; here it must be written exactly as the pinned source spells it. Git for Windows accepts this ref shape unchanged.",
       "verification_method": "integration test against a real repository, asserting the exact ref name",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -59230,7 +59230,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three assignments and the same omission of hydraTouched.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -59256,7 +59256,7 @@
       "cancellation": "Cancelling the enclosing task cancels the awaits; the detached checkpoint task keeps running.",
       "windows_path": "Keep the concurrency: sequencing the checkpoint before the session start adds seconds to every first message on a large repository.",
       "verification_method": "interaction test asserting both tasks overlap",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -59281,7 +59281,7 @@
       "cancellation": "Cancellable with the enclosing task.",
       "windows_path": "Same ordering.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -59302,7 +59302,7 @@
       "cancellation": "This is the cancellation path for a turn stopped during its start.",
       "windows_path": "Compare the turn id, not a boolean flag.",
       "verification_method": "interaction test - interrupt during start and assert nothing is sent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -59325,7 +59325,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The directory is part of the key, so a worktree and its project have separate command lists.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -59346,7 +59346,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The path is the attachment's stored path verbatim, so on Windows it will carry backslashes and a drive letter into the prompt. Do not normalize it here.",
       "verification_method": "unit - exact prompt comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -59368,7 +59368,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The four builders live in the Hydra prompt corpus, outside this area; the selection logic is this requirement.",
       "verification_method": "unit - eight-way table over (runsNatively) x (keepsHydraPolicy) x (hydraHeads nil)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -59391,7 +59391,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep the layering order.",
       "verification_method": "unit - exact prompt comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -59413,7 +59413,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Read the flag from the signature first. A port that reads the live setting here would deliver a policy the session was not launched with.",
       "verification_method": "unit - exact prompt comparison across the three conditions",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -59435,7 +59435,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Layer order, outermost first: dropped-block notice, continuation, anti-slop, delegation request, the Hydra prefix, the user's text, the attached-files list.",
       "verification_method": "unit - exact prompt comparison with all five layers present",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -59461,7 +59461,7 @@
       "cancellation": "A cancelled send throws and takes the catch path.",
       "windows_path": "Same field set. The images filter is the only place a provider capability gates the payload.",
       "verification_method": "contract fixture - assert all ten TurnInput fields for an image-capable and an image-incapable provider",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -59482,7 +59482,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The \"default\" literal is a wire value, not a placeholder; do not map it to nil.",
       "verification_method": "unit - four-way table",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -59505,7 +59505,7 @@
       "cancellation": "A cancelled send skips both commits.",
       "windows_path": "Capture each epoch at the injection site, not at the send site.",
       "verification_method": "unit - release the session during a stand-in send and assert the prefix is re-injected next turn",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -59529,7 +59529,7 @@
       "cancellation": "not cancellable",
       "windows_path": "All three call sites must write the same store.",
       "verification_method": "integration test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -59552,7 +59552,7 @@
       "cancellation": "A CancellationError thrown by ensureSession takes this same path and produces a notice with that error's description.",
       "windows_path": "Do not wrap or reformat the error text; PR-RUNTIME-012 relies on it passing through.",
       "verification_method": "integration test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -59577,7 +59577,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exhaustive dispatch with a compile-time completeness check, with .tokenSpend given the first arm's behaviour only. Adding a default arm would hide a missing case.",
       "verification_method": "unit - assert every one of the 31 cases is reachable and none falls through, and that a .tokenSpend runs only the first arm's behaviour",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -59601,7 +59601,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. Inside .agentEvent this case is dropped (PR-RUNTIME-105).",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -59626,7 +59626,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep the unconditional phase write; it is load-bearing for adapters that stream before send returns.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -59650,7 +59650,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same emptiness guard. Note the asymmetry with .planDelta (PR-RUNTIME-087), which has no such guard.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -59674,7 +59674,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The flush-before-complete order is mandatory; reordering loses text.",
       "verification_method": "unit - empty payload, whitespace-only result, wrong row kind, missing row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -59699,7 +59699,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. install() also drops stored empty reasoning rows written by older builds (PR-RUNTIME-161).",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -59723,7 +59723,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Do not add the delegation scan here.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -59746,7 +59746,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep the missing scheduleSave: it is the difference between this arm and .toolUpdated and it is what keeps a tool-heavy turn from scheduling a save per tool.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -59773,7 +59773,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Do not create a row for unknown tool output and do not flatten em dashes in it.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -59797,7 +59797,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the asymmetry exactly; it is observable as an empty plan card.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -59821,7 +59821,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Two promoters of .drafting to .proposed exist; keep both.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -59845,7 +59845,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep the cache and the early return without a save; the backward scan is bounded by the turn boundary and must not walk the whole thread.",
       "verification_method": "unit - repeated updates in one turn, then a new turn",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -59868,7 +59868,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Platform boundary: NSApp.requestUserAttention has no exact Windows equivalent; the closest is FlashWindowEx plus a taskbar overlay. Record the substitution.",
       "verification_method": "unit for the list behavior; interaction test for the attention call",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -59891,7 +59891,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same as PR-RUNTIME-090.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -59912,7 +59912,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -59936,7 +59936,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep the missing scheduleSave; usage arrives often and per-event saves would rewrite the whole thread file each time.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -59961,7 +59961,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Use currentTurnID here, not turnIDForNewRows; the drop window is deliberate and observable.",
       "verification_method": "unit - emit during the closing window and assert the diff is not recorded",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -59987,7 +59987,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the field loss. Do not forward limit; dead_code.md item 24 proves the field is always nil on every persisted and rendered notice, and dead_code.md item 21 proves the view that would have read it never ships.",
       "verification_method": "unit - push a notice carrying a limit through rehearse and assert the stored item has none",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "37",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -60010,7 +60010,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -60033,7 +60033,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -60056,7 +60056,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the discard; a port that adopted current: would change the thread model behind the user's back.",
       "verification_method": "unit - emit a current value and assert ChatThread.model is unchanged",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -60079,7 +60079,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same directory fallback as everywhere else in this file.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -60102,7 +60102,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The text-engine condition is the important one: a provider title is only used when the app cannot name the chat itself.",
       "verification_method": "unit - four-way table",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null
     },
@@ -60125,7 +60125,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same drop window as .diff.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -60148,7 +60148,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Capture the turn id before the async hop; reading currentTurnID inside the task would race the next turn.",
       "verification_method": "integration test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -60173,7 +60173,7 @@
       "cancellation": "not cancellable",
       "windows_path": "releaseSession(stop: false) is deliberate: on Windows a second termination attempt on an exited process is a no-op, but the flag also keeps the runtime from waiting on a handle that is already closed.",
       "verification_method": "integration test - exit with and without an error string, with and without a running turn",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -60198,7 +60198,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep the \"Subagent\" literal and the middle dot separator. The pendingNativeSpend flush is dead in the pinned build (PR-RUNTIME-252); do not buffer spend for it.",
       "verification_method": "interaction test - spawn, then re-announce with a description",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -60225,7 +60225,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The command watch key is literally the agent id, a hyphen and the tool id; keep the exact concatenation because settleHydraCommand rebuilds it.",
       "verification_method": "interaction test - one case per named arm plus one dropped and one defaulted",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -60251,7 +60251,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the assignment semantics and the runtime-creating lookup; both differ from neighbouring code.",
       "verification_method": "unit - empty summary, nil summary, decreasing token count",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -60274,7 +60274,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Do not add a removal here; the repeated-finish path is relied on by hydraToolFinished and settleForegroundHeads.",
       "verification_method": "unit - finish twice and assert the second is a no-op at the record level",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -60298,7 +60298,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep the six guard conditions and the three-way status map exactly.",
       "verification_method": "unit - one case per tool status",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -60321,7 +60321,7 @@
       "cancellation": "finishTurn itself is an async function; the callers never cancel it.",
       "windows_path": "Same order. The fallback path is what makes a doubled finish safe.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -60342,7 +60342,7 @@
       "cancellation": "The defer releases the claim if the task is cancelled.",
       "windows_path": "The claim must be set before the first asynchronous boundary. A port that awaited first would finalize twice.",
       "verification_method": "integration test - emit .turnCompleted and .exited for one turn and assert exactly one .turnEnd row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -60365,7 +60365,7 @@
       "cancellation": "The settle tasks are raced against a three-second sleep below for a non-completed turn (PR-RUNTIME-114).",
       "windows_path": "Iterate over a snapshot of the keys; mutating during iteration is undefined.",
       "verification_method": "integration test against a real repository",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -60388,7 +60388,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same placement, after the settles and before the closing window opens.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -60410,7 +60410,7 @@
       "cancellation": "The defer clears it on every exit.",
       "windows_path": "turnIDForNewRows must be the single source for every row-creation site; the two exceptions must stay exceptions.",
       "verification_method": "unit - append a notice during the wait and assert its turnID",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -60433,7 +60433,7 @@
       "cancellation": "group.cancelAll() cancels the sleep, not the detached settle work.",
       "windows_path": "Three seconds is exact. Git on Windows is slower over large checkouts, so the timeout will be hit more often; do not lengthen it.",
       "verification_method": "integration test with an injected slow settle",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -60458,7 +60458,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exact order matters: clearing currentTurnID before the flush is what puts late rows under the closing turn.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -60481,7 +60481,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One pass, not two: the edits collection and the row closing share it deliberately.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -60504,7 +60504,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One write of turns, not four: every write to turns re-evaluates the whole timeline body.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -60527,7 +60527,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the never-creates rule; creating it would change how every subsequent session is resumed.",
       "verification_method": "unit - with and without an existing anchor",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -60552,7 +60552,7 @@
       "cancellation": "The awaits are cancellable with the caller's task, which no caller cancels.",
       "windows_path": "Same ref shape as PR-RUNTIME-062 with \"end\" in place of \"start\".",
       "verification_method": "integration test against a real repository",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -60575,7 +60575,7 @@
       "cancellation": "not cancellable",
       "windows_path": "TouchedPaths.relative decides what is inside the checkout; on Windows it must handle drive letters, backslashes and case-insensitivity. Keep the sort so the stored order is stable across platforms.",
       "verification_method": "integration test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -60599,7 +60599,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. The cache limits (64 for turns, 4 for revisions) come from RecentCache and must be the generational cache, not an LRU (port_impacts.md entry 117).",
       "verification_method": "integration test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -60623,7 +60623,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same order: idle, save, heads.",
       "verification_method": "integration test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -60646,7 +60646,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -60669,7 +60669,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Branch order is the specification; reordering changes which message goes out next.",
       "verification_method": "integration test - one case per branch, asserting only which branch was taken and in what order",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -60692,7 +60692,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Both tests are short-circuited by continues already being true.",
       "verification_method": "integration test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -60717,7 +60717,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The note text is verbatim except for the bracketed product name, which OD-0012 F1 turns into \"[Marrow]\": \"[Marrow] Your budget is spent and your tools are gone. Reply now with your report: what you changed, how far it got, and what is left.\" It is a prompt the model reads.",
       "verification_method": "integration test with an injected clock",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -60746,7 +60746,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Platform boundary: the chime is an app-bundled sound and the banner is a Windows toast. port_impacts.md entry 116 requires all four suppression gates ship, folding gate 3 into gate 2 if the OS pipeline is used unconditionally, and recording the departure.",
       "verification_method": "unit for the four strings; interaction test for the gates",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -60769,7 +60769,7 @@
       "cancellation": "not cancellable from here.",
       "windows_path": "All nine, in this order. This is the most consequential side effect the runtime can trigger; a port that loosened any conjunct could push half-finished work.",
       "verification_method": "unit - nine negative cases plus one positive",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -60790,7 +60790,7 @@
       "cancellation": "This is the cancellation entry point.",
       "windows_path": "Capture the id before any async hop.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -60813,7 +60813,7 @@
       "cancellation": "This is one of the three cancellation behaviors.",
       "windows_path": "port_impacts.md entry 96: port three distinct behaviours, idle no-op, starting drop-and-finish, running interrupt plus the watchdog.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -60838,7 +60838,7 @@
       "cancellation": "This is the running-turn cancellation behavior.",
       "windows_path": "Platform boundary: session.interrupt() is a protocol call; how it reaches the child process (a signal on macOS, a console control event or a protocol message on Windows) is the adapter's problem, not this file's.",
       "verification_method": "interaction test - with and without a session",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -60861,7 +60861,7 @@
       "cancellation": "The watchdog itself is cancellable and checks Task.isCancelled after waking.",
       "windows_path": "Eight seconds is exact. On Windows the stop must actually terminate the process tree, not only the launched shim.",
       "verification_method": "unit with an injected clock",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -60886,7 +60886,7 @@
       "cancellation": "This is itself the cancellation affordance.",
       "windows_path": "200 iterations of 50 milliseconds is exact and is not the same as one 10-second sleep: it exits as soon as the runtime is idle.",
       "verification_method": "integration test - both the guarded path and the full take-back",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -60909,7 +60909,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three-way branch and the same order.",
       "verification_method": "interaction test - one case per branch",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -60932,7 +60932,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The recursion on a local command is a tail call over a shrinking queue and terminates.",
       "verification_method": "integration test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -60955,7 +60955,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Four branches in this order.",
       "verification_method": "interaction test - one case per branch",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -60978,7 +60978,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the trimmed-test, untrimmed-send split and the missing token increment.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -61003,7 +61003,7 @@
       "cancellation": "not cancellable",
       "windows_path": "port_impacts.md entry 97: port the middle write gated on all four conditions, in that order; any approve-role option accepts and every other role dismisses.",
       "verification_method": "unit - one case per option role",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -61026,7 +61026,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A secret answer (Question.isSecret) travels through this call; it must not be logged at any point on the path.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -61049,7 +61049,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Four arms, not three with a shared guard.",
       "verification_method": "unit - four kinds times empty and non-empty text",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -61073,7 +61073,7 @@
       "cancellation": "not cancellable",
       "windows_path": "port_impacts.md entry 118: one idempotent em-dash helper called at all seven sites, keeping the byte prescan and keeping the en dash.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -61098,7 +61098,7 @@
       "cancellation": "The task is cancelled by flushDeltas itself and by cancelPersistence.",
       "windows_path": "Use a monotonic clock, not wall time; a system clock change must not stall a stream.",
       "verification_method": "unit with an injected clock",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -61120,7 +61120,7 @@
       "cancellation": "not cancellable",
       "windows_path": "All four numbers are exact. The scrolling signal is a shared activity flag, outside this file.",
       "verification_method": "unit - boundary table at 4095, 4096, 32767, 32768, with and without scrolling",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -61144,7 +61144,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A process-wide singleton keyed by runtime identity. 70, 2 seconds and the floor of 45 are exact.",
       "verification_method": "unit with an injected clock and several stand-in runtimes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -61168,7 +61168,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Swift dictionary iteration order is unspecified here, so multiple rows flushing in one pass have no defined relative order. Iterate deterministically in the port; behavior is unchanged because each id writes its own row.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -61192,7 +61192,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The uniqueness trick is Swift-specific. Any port must still achieve amortized O(delta) appending: a naive copy per flush makes long replies quadratic.",
       "verification_method": "unit - four matching pairs and at least four mismatched ones",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -61215,7 +61215,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Six is exact. A port that closed every row would be O(n) per append on a long thread.",
       "verification_method": "unit - a streaming row seven back stays streaming",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -61236,7 +61236,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep both structures in step; the index is what every id lookup uses.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -61259,7 +61259,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The conditional pattern match is what keeps this idempotent; do not write unconditionally.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -61304,7 +61304,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Edits count once per row; the same rule appears in applyToolUpdate and both must agree.",
       "verification_method": "unit - create, then merge with each field empty and non-empty",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -61330,7 +61330,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The literal \"Tool\" is user-visible. Keep setOutput as a replacement, not an append.",
       "verification_method": "unit - unknown id, each field alone, and the reopen case",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -61353,7 +61353,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Five exemptions exactly; adding .mcp or .agent would make a head's file writes invisible to the next command's diff.",
       "verification_method": "unit - one case per kind plus nil",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -61376,7 +61376,7 @@
       "cancellation": "not cancellable",
       "windows_path": "port_impacts.md entry 89: this is an output-size gate on a produced hunk, and Text.swift's 200000 is an input-size gate on a summed input. The two comments each wrongly call the other 'the same cap'. Port two distinct gates and ignore the comments.",
       "verification_method": "unit - one edit just under and one just over",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "42",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -61401,7 +61401,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Three literals exactly, including the full stops.",
       "verification_method": "unit - busy, no session, success, failure",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -61424,7 +61424,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The empty array versus nil distinction on hydraHeads is load-bearing for rendering; do not collapse them.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -61447,7 +61447,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Batching turn writes is a performance requirement, not a style choice.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -61471,7 +61471,7 @@
       "cancellation": "The task is cancelled by saveNow and by cancelPersistence.",
       "windows_path": "800 milliseconds and 5 seconds are exact. The two policies are different by design; do not unify them.",
       "verification_method": "unit with an injected clock",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -61495,7 +61495,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Platform boundary: the write must be atomic (write to a temporary file in the same directory, then replace) because a torn thread file loses the whole conversation. Storage.threadURL's Windows location is a separate decision (port_impacts.md entry 113).",
       "verification_method": "restart test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -61520,7 +61520,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exactly these fields; the file format is the compatibility surface for an existing installation.",
       "verification_method": "contract fixture - round-trip encode and decode",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -61546,7 +61546,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Every step is required for a thread written by an older build to open correctly. The em-dash cleaner applies to assistant, reasoning and plan content only.",
       "verification_method": "restart test with fixture documents covering each normalization, a Droppy-run head document holding tokenSpends, and an install during a turn in flight",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -61574,7 +61574,7 @@
       "cancellation": "The load task is never cancelled.",
       "windows_path": "The decode must not run on the UI thread; on Windows the file can be on a slow or network volume.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -61597,7 +61597,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -61619,7 +61619,7 @@
       "cancellation": "not cancellable",
       "windows_path": "port_impacts.md entry 100: gate idle release behind all of these conditions, and port the teardown ordering together with the persistenceEnabled latch, since the ordering only has meaning through it.",
       "verification_method": "unit - one negative case per condition",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -61642,7 +61642,7 @@
       "cancellation": "This is the teardown path.",
       "windows_path": "One-way latch, as in the source.",
       "verification_method": "unit - call it, then assert saveNow writes nothing",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -61665,7 +61665,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Three literals exactly. isReverting is set immediately after and cleared by a defer, so a concurrent revert hits the first message.",
       "verification_method": "unit - one case per message",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -61690,7 +61690,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Two literals exactly. The direct providerSessionID write here is a third bypass of the hold-back, alongside the API branch and recordSessionID's else arm.",
       "verification_method": "integration test with a scripted Codex stand-in",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -61715,7 +61715,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Count-based, not id-based; do not unify with Codex.",
       "verification_method": "integration test with a scripted Copilot stand-in",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -61740,7 +61740,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Note that releaseSession runs before the guard, so the throwing path still leaves the session gone. Reproduce that ordering.",
       "verification_method": "integration test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -61763,7 +61763,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. The API-key providers take this arm.",
       "verification_method": "integration test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -61789,7 +61789,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The argument vector is exact. Restoring files is the most destructive thing this area does: it must restore only the preview's restorable paths and nothing else.",
       "verification_method": "integration test against a real repository",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -61813,7 +61813,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Rebuild the index rather than removing keys one by one; the ordering of the notice after the removal is observable.",
       "verification_method": "integration test, including a native-head path pending in hydraTouched before the revert that the next turn does not count",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -61839,7 +61839,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The save-swap-restore of the draft is observable: a port that cleared the draft would lose typing.",
       "verification_method": "integration test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -61864,7 +61864,7 @@
       "cancellation": "The task is cancellable by the caller.",
       "windows_path": "Platform boundary: the scratch index and the working-tree watch behind the lost-checkpoint case map to ReadDirectoryChangesW (port_impacts.md entry 227).",
       "verification_method": "integration test against a real repository",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "81 (the lost-checkpoint route into this message)",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -61891,7 +61891,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Ten seconds and the revision scoping are exact.",
       "verification_method": "unit with an injected clock",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -61917,7 +61917,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same four conditions and the immediate write.",
       "verification_method": "integration test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -62177,7 +62177,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exact whole-string match.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -62201,7 +62201,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exactly these seven provider kinds, through the one supportsCompact predicate.",
       "verification_method": "unit - one case per provider, all fourteen",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -62227,7 +62227,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The message is verbatim; it is what the model reads.",
       "verification_method": "integration test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -62250,7 +62250,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep the missing idle guard.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -62274,7 +62274,7 @@
       "cancellation": "not cancellable",
       "windows_path": "ShellCommandKind.mayWriteFiles decides writability from the command title; port_impacts.md entry 88 fixes its table at 52 readers, 25 and 15, with anything not in readers making the whole command a writer and a chain with one writing part writing. OD-0008 A8, applied as ED-060, corrects the table narrowly and the watch uses the corrected table: find is a writer with -delete, -exec, -execdir, -ok, -okdir, -fprint, -fprint0, -fprintf or -fls; fd with -x / --exec or -X / --exec-batch (searchActions stays one set shared by find and fd, Shell.swift:198-199, so each addition applies to both); sort with -o in any spelling, including --output and --output=; git config unless every argument is a read form (--get, --get-all, --get-regexp, --get-urlmatch, --list / -l, --show-origin, --show-scope, --name-only, --null / -z, --file / -f with only read forms, --global/--system/--local/--worktree with only read forms); git tag unless it only lists (no arguments, -l / --list, -n, --contains, --points-at, --merged, --no-merged, --sort, --format); git remote for add, remove / rm, rename, set-url, set-head, set-branches, prune and update, while bare git remote, -v and show / get-url stay readers. Everything else in the table is reproduced verbatim.",
       "verification_method": "integration test against a real repository",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "deviation": {
@@ -62305,7 +62305,7 @@
       "cancellation": "The settle task is raced against three seconds by a non-completed finishTurn (PR-RUNTIME-114).",
       "windows_path": "Platform boundary: capturing a tree is several git processes over the whole checkout and is markedly slower on Windows; the serialization in PR-RUNTIME-194 matters more there, not less.",
       "verification_method": "integration test against a real repository",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -62331,7 +62331,7 @@
       "cancellation": "Raced against three seconds like the lead's settles.",
       "windows_path": "Same.",
       "verification_method": "integration test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -62356,7 +62356,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Serialization per runtime, not globally; several threads may still snapshot the same checkout at once, as in the source.",
       "verification_method": "interaction test asserting no two captures overlap for one runtime",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -62378,7 +62378,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The kind test is what prevents double counting; keep it.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -62401,7 +62401,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Note the two-way status map here differs from hydraToolFinished's three-way one (PR-RUNTIME-108); keep both.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -62425,7 +62425,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The scheduled-flag pattern appears twice (here and for Hydra reports); both must clear the flag before re-checking.",
       "verification_method": "integration test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -62448,7 +62448,7 @@
       "cancellation": "not cancellable",
       "windows_path": "This is how every native head's timeline is built; it is shipped behavior, not a test hook.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -62472,7 +62472,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Insert at the front, and do not route it through the append path.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -62495,7 +62495,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the missing saveRevision bump: with the scheduled save short-circuiting on an unchanged revision (PR-RUNTIME-159), this write can be lost.",
       "verification_method": "restart test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -62521,7 +62521,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -62548,7 +62548,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Swift iterates a copy of the dictionary pairs here, so the body may clear entries safely. A Windows implementation must snapshot the entries before clearing them or it will mutate under its own iterator.",
       "verification_method": "unit - a batch with a waiting tail does not settle; the same batch settles once the tail goes out",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -62571,7 +62571,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Do not add a batch filter here. The batch rule lives in settleBatches (PR-RUNTIME-202); duplicating it here would make a directly sent head wait out an unrelated twenty-minute delegation.",
       "verification_method": "unit - a pending report from a queued head is flushable while a batch is still out",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -62593,7 +62593,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The ordering is the requirement, not an implementation detail.",
       "verification_method": "unit - a run that bails on a busy lead leaves both the flag clear and the reports queued",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -62616,7 +62616,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same four gates, same order.",
       "verification_method": "unit - one negative case per gate",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -62640,7 +62640,7 @@
       "cancellation": "not cancellable",
       "windows_path": "hydraHeads being non-nil here is load-bearing twice over: it renders the report row and it preserves the round counters.",
       "verification_method": "integration - assert the reports are removed by index and the started turn carries exactly those indexes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -62662,7 +62662,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A three-member union, not a boolean.",
       "verification_method": "unit - exhaustiveness over three cases, plus one finishTurn case per case",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -62689,7 +62689,7 @@
       "cancellation": "not cancellable",
       "windows_path": "settleBatches must be called here. Without it, a batch whose remaining tasks were cancelled with the turn would hold its finished heads' reports forever.",
       "verification_method": "integration - stop a turn mid-block after one head went out and assert the row, the note and the settled batch",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -62713,7 +62713,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Both substitutions are string switches, not pluralization library calls; \"one head\" is spelled out and every other count is a bare integer.",
       "verification_method": "unit - all four combinations of count and status",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -62735,7 +62735,7 @@
       "cancellation": "not cancellable",
       "windows_path": "This is a separate statement from the first branch and must not be folded into its else.",
       "verification_method": "unit - a zero-sent stream for this turn is cleared together with its parser; one for another turn is not",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -62761,7 +62761,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The absent last-assistant-row fallback is deliberate and differs from spawnDelegatedHeads (PR-RUNTIME-214).",
       "verification_method": "unit - a turn with a block; a turn without one",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -62784,7 +62784,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None.",
       "verification_method": "unit - both status variants",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -62806,7 +62806,7 @@
       "cancellation": "not cancellable",
       "windows_path": "This is the single membership test both dropDelegationBlock and spawnDelegatedHeads use to pick their row.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -62831,7 +62831,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The two-step lookup with the fallback is the specification; using only the block-holding lookup would break the streamed branch, which needs an entry id even when the row text no longer shows a block.",
       "verification_method": "unit - block in a middle row, block in the last row, no block at all",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -62855,7 +62855,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The ?? fallback order matters: a live stream always wins over the freshly resolved row.",
       "verification_method": "unit - a stream present, a stream absent, and a stream pinned to a different row than the resolved one",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -62882,7 +62882,7 @@
       "cancellation": "not cancellable",
       "windows_path": "markingDelegationBlockSent must stay idempotent; the branch relies on it.",
       "verification_method": "unit - a readable re-read and an unreadable one",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -62910,7 +62910,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The clamp max(0, 32 - sent) and the strict less-than on the round cap are both literal.",
       "verification_method": "unit - a block of 40 tasks with 10 streamed; the same block at the round cap",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -62936,7 +62936,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The two lines are separated by a single newline inside one note string, not by two rows. The word \"tasks\" is plural unconditionally.",
       "verification_method": "unit - assert the exact two-line string for a 10-of-40 block",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -62959,7 +62959,7 @@
       "cancellation": "not cancellable",
       "windows_path": "settleBatches BEFORE the emptiness test is the specification; reversing them would park a lead that has nothing to wait for.",
       "verification_method": "integration - a block whose heads all finished during the turn returns .none",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -62985,7 +62985,7 @@
       "cancellation": "not cancellable",
       "windows_path": "unreadableBlockMessage is called with reason nil here; do not invent a reason string.",
       "verification_method": "integration - a malformed block produces the refusal turn and the rewritten row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -63008,7 +63008,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Returning .none here rather than .turnStarted is what keeps an empty block from costing the user a turn.",
       "verification_method": "unit - an empty block with and without surrounding reply text",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -63034,7 +63034,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The comparison is strictly less-than against 3, so the third round is allowed and the fourth is refused.",
       "verification_method": "integration - four delegation rounds in one request",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -63060,7 +63060,7 @@
       "cancellation": "not cancellable",
       "windows_path": "An empty pending set on a freshly opened batch is deliberate. A Windows implementation that pre-fills pending with the queued tasks would make settleBatches wait on heads that never spawned.",
       "verification_method": "unit - a 40-task block queues exactly 32 against one new batch id and increments the round once",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -63086,7 +63086,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Strictly greater-than 32, so a block of exactly 32 writes nothing.",
       "verification_method": "unit - 32 tasks writes nothing, 33 writes \"The last 1 did not\"",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -63111,7 +63111,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Passing the already-resolved launch avoids a second lookup and, more importantly, pins the cap to the value read at the top of the turn.",
       "verification_method": "integration - a two-task block with a cap of one leaves one waiting and returns .headsOut",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -63135,7 +63135,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The single-entry pin is what keeps a multi-row reply from opening a second batch mid-stream. While streaming, the parser is fed each flush's delta, not the whole row.",
       "verification_method": "unit - one negative case per gate, a second entry while a stream is live, one parser reused across two delta flushes of a row, and a fresh parser for a non-delta call",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -63164,7 +63164,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Counting the round on the first streamed read, not at the end of the turn, is the specification. spawnDelegatedHeads must not count it again for a streamed block (PR-RUNTIME-217).",
       "verification_method": "integration - a block streamed in three flushes opens one batch and spends one round; on a request's third round, tasks that close after the opening read still go out while the reply streams",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -63192,7 +63192,7 @@
       "cancellation": "Not cancellable from outside; the guards make a stale run a no-op.",
       "windows_path": "port_impacts: the two-step fade exists because a one-step removal glided the card over the closing text and read as a ghost. Reproduce both steps or the animation is wrong, not just different.",
       "verification_method": "interaction test with a clock - assert hydra-leaving appears at 3.2 seconds and the block is still present",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -63220,7 +63220,7 @@
       "cancellation": "Not cancellable from outside.",
       "windows_path": "The two animations differ deliberately: easeOut 0.4 for the card, panelSlide for the closing text.",
       "verification_method": "interaction test with a clock - assert the block is gone at 3.65 seconds and the fallback text",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -63248,7 +63248,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The counter is reset per user message, not per turn (PR-RUNTIME-056), which is what \"per request\" means here. That reset does not clear a waiting drop notice.",
       "verification_method": "unit - the fourth refusal of one request drops the block with the note, and the next send's prompt starts with \"[Hydra] \" + the refusal message + \"\\n\\n---\\n\\n\"",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -63275,7 +63275,7 @@
       "cancellation": "not cancellable",
       "windows_path": "hydraHeads: [] rather than nil is load-bearing; passing nil would reset the counters and loop the refusal forever.",
       "verification_method": "integration - two malformed blocks in one request produce two refusal turns and a third produces the dropped note",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -63302,7 +63302,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Suppression is per pair id, not per thread and not per app run.",
       "verification_method": "unit - two spawn rounds on one pair write the note once; changing pair writes it again",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -63328,7 +63328,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The ?? true on the room test is the no-pair case and must be preserved. The silent drop on a failed spawn is upstream behaviour; reproduce it rather than adding a note, and see the new-defect note filed against this line.",
       "verification_method": "integration - a cap of two with four waiting tasks sends two and leaves two, in block order",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "NEW, not in upstream_defects.md: ThreadRuntime.swift:2995 removes the task from hydraWaiting BEFORE the spawn, and :3003 `guard let head = app.spawnDroppyHead(...) else { continue }` then drops it with no note, no retry and no record. Its batch settles without it (PR-RUNTIME-202), so the lead reports as though the block finished. upstream_defects.md entry 32 covers a different line of the same loop (:2994, the uncapped sweep when hydraLaunch is nil) and does not cover this. REPRODUCE, DO NOT FIX.",
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -63353,7 +63353,7 @@
       "cancellation": "not cancellable",
       "windows_path": "elapsed is wall time from info.startedAt, which each later turn resets, to this call, so a head whose finish was delayed by a busy lead shows the longer time. Do not substitute a provider-reported duration.",
       "verification_method": "unit - a head with no summary reports an empty text and a positive elapsed; a head on its second turn reports elapsed from that turn's start",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -63380,7 +63380,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The removal happens twice on the batch path - once from the pending list and once from the batch reports - and both are keyed on headIndex, not on headID.",
       "verification_method": "unit - the same head finishing twice leaves exactly one report",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -63403,7 +63403,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Five ordered calls; reordering any pair changes which message the user sees next.",
       "verification_method": "integration - one case per step, asserting call order",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -63431,7 +63431,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The two captured values, context and leadIsWorking, are snapshots. Re-reading them inside the closure would describe the lead as it is when the head starts rather than when the user sent the message.",
       "verification_method": "unit - one negative case per gate; assert the title cap and that no batchID is passed",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -63457,7 +63457,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Break rather than continue on a failed dispatch. Continuing would reorder the user's queue.",
       "verification_method": "unit - a full pair leaves the queue intact and in order",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -63479,7 +63479,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The four-provider OR list is literal and ordered as written; adding or dropping a provider changes when sessions restart.",
       "verification_method": "unit - one case per provider, and Copilot moving between Auto and a non-Auto mode",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -63500,7 +63500,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Two providers, no more.",
       "verification_method": "unit - one case per provider",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -63521,7 +63521,7 @@
       "cancellation": "not cancellable",
       "windows_path": "An optional boolean, not a boolean defaulting to false.",
       "verification_method": "unit - Claude with fast off gives false, not nil",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -63543,7 +63543,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One provider only.",
       "verification_method": "unit - a model change restarts Antigravity and does not restart Claude",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -63564,7 +63564,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One provider only.",
       "verification_method": "unit - one case per provider",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -63591,7 +63591,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The await must stay before the signature is built.",
       "verification_method": "integration - a cross-provider pair loads the head provider catalogue once and does not restart the session afterwards",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -63750,7 +63750,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Append without merging. This arm, not the routing arm of PR-RUNTIME-252, is the behaviour to reproduce.",
       "verification_method": "unit - two spends in one turn give two entries in order; a spend with no current turn is dropped; saveRevision bumps and no save is scheduled",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -63776,7 +63776,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the observable result: spend is handled only as PR-RUNTIME-251 says. Do not route spend to head runtimes, buffer it by agent, merge it or add it to hydraTokens from the event. This rests on reading the source under Swift switch semantics; the Swift build was not compiled here (UNVERIFIED).",
       "verification_method": "unit - a .tokenSpend carrying an agentID on a lead with a native head appends one unmerged entry to the lead's current turn and leaves the head runtime and hydraTokens unchanged",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "Duplicate .tokenSpend arm in handle(_:) (ThreadRuntime.swift:2172 and :2228): the later arm, recordTokenSpend and pendingNativeSpend are dead. From reading the source only; nothing was compiled.",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -63800,7 +63800,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Sum totalTokens only; the optional input, output and cached counts are not added.",
       "verification_method": "unit - install a Droppy-run head document with two turns holding spends of 100 and 250 tokens and assert hydraTokens is 350; the same document on a lead leaves hydraTokens unchanged",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -63823,7 +63823,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Run after the saved-revision check, as the last step of install.",
       "verification_method": "unit - install while idle clears hydraStream, delegationParser and hydraCurrentTurnTouchedPaths; install during a rehearsed turn whose tool rows carry edits leaves those paths in hydraCurrentTurnTouchedPaths",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -63855,7 +63855,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Paths are relative to the thread's worktree path, or the project path when it has none.",
       "verification_method": "unit - edits from a tool start, a tool update and a settled command of the current turn appear relative to the root; an edit outside the root, and an edit with no current turn, do not",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -63880,7 +63880,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Do not clear the set in finishTurn.",
       "verification_method": "unit - after finishTurn the set equals the live paths united with the turn's touchedPaths; the next startTurn empties it; rehearseTurn(touchedPaths:) sets it",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -63905,7 +63905,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Evaluate the turn count after the new turn is appended.",
       "verification_method": "unit - a head's second turn sets startedAt and executionStartedAt to now and clears queuedAt; its first turn leaves them; both clear the finish and landing times",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -63935,7 +63935,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Stamp the time when the task is queued, not when it is spawned.",
       "verification_method": "unit - a task held behind the pair cap for a known interval spawns a head whose queuedAt equals the queue time, not the spawn time",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -63966,7 +63966,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Take the notice last, immediately before the send.",
       "verification_method": "unit - after a dropped block the next send's prompt starts with \"[Hydra] <message>\\n\\n---\\n\\n\" and the send after that does not",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -63991,7 +63991,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The message text is a prompt the model reads; reproduce it byte for byte.",
       "verification_method": "unit - stop a turn whose reply holds an unsent block; the next send's prompt starts with \"[Hydra] No heads went out.\\nYour reply's delegation block was dropped: the turn was stopped before the heads could go out, and none of that work was delegated. Do it yourself, or send the block again.\\n\\n---\\n\\n\"",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -64016,7 +64016,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The parser type is specified by PR-HYDRA-095; this requirement is its lifecycle in the runtime.",
       "verification_method": "unit - deltas of one row across three flushes feed one parser; a non-delta call, or a delta for another row while no stream is pinned, starts a fresh one; a call for another row while a stream is pinned to the first leaves the parser in place; startTurn, idle install and dropDelegationBlock clear it",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -64038,7 +64038,7 @@
       "cancellation": "not cancellable",
       "windows_path": "All ten conditions, with no default for a missing last turn other than false.",
       "verification_method": "unit - a ten-row table with one condition false per row, plus the all-true case",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -72125,7 +72125,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The comparator must be implemented as a total order with the same tie-breaks; the `(nil, .some)` asymmetry is deliberate and is not a stable-sort accident.",
       "verification_method": "unit test over a permuted fixture asserting the exact resulting order.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -72884,7 +72884,7 @@
       "cancellation": "not cancellable once committed.",
       "windows_path": "Direct translation; the Bool return feeds RowDrag's break (port_impacts entry 154).",
       "verification_method": "contract fixture asserting the rewritten sortOrder array and the inherited pin, plus a restart test.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -72909,7 +72909,7 @@
       "cancellation": "not cancellable once committed.",
       "windows_path": "Direct translation; start-of-day uses the user's local calendar.",
       "verification_method": "contract fixture asserting per-thread activityOrderDay from each thread's own updatedAt, plus a restart test.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -73412,7 +73412,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The dock badge becomes the Windows taskbar overlay icon. Platform boundary: taskbar badging.",
       "verification_method": "contract fixture asserting every field, plus a restart test.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -73464,7 +73464,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct translation; note `children(of:)` is a wider set than `helpers(of:)` and the difference is deliberate.",
       "verification_method": "contract fixture asserting every field including the cleared activity place, plus a restart test.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -73553,7 +73553,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Session stop and worktree release are the Windows process and Git layers. Dock badge becomes the taskbar overlay.",
       "verification_method": "contract fixture asserting every field on the thread and its helpers.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -73692,7 +73692,7 @@
       "cancellation": "not cancellable once started; the Git work is fire-and-forget.",
       "windows_path": "Git worktree removal on Windows must cope with locked files and long paths; failures are still swallowed to preserve parity. Platform boundary: file system and Git.",
       "verification_method": "contract fixture asserting the recursion, the head interruption and the two worktree conditions.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -73743,7 +73743,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct translation with the same Unicode trim set.",
       "verification_method": "unit test on the trim and the empty rejection.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "b2_change": "Citation only: B1 AppModel.swift:749 `let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)` -> B2 :749 `let trimmed = title.trimmed`, defined at B2 Text.swift:132 as the same trim. Behaviour unchanged."
@@ -74266,7 +74266,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The persisted field name must be `expandsHelpers` with the inverted meaning, or every existing library would come back unfolded.",
       "verification_method": "restart test plus a decode fixture with the key absent.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -74773,7 +74773,7 @@
       "cancellation": "Dismissing the confirmation cancels. Once confirmed, or with confirmBeforeDeleting off, not cancellable.",
       "windows_path": "Owner ruling OD-0008 A9 (BLK-0009 RESOLVED, FIX): both Remove project paths (ellipsis popover and context menu) honour `confirmBeforeDeleting` the way the three thread-deletion paths do. Owner ruling OD-0012 E2 gives the wording, in the style of the thread delete question (SidebarView.swift:968-984): a popover menu 280 pt wide on the project row with the section header `Remove this project?`, the note `“<name>” and its threads will be removed. Files in your project stay as they are.` (`<name>` is project.name; the quotes are U+201C and U+201D), a divider, and one destructive item `Remove project` drawn in Chrome.danger with the `trash` symbol, as the thread question's item has (Lucide `trash` by OD-0010). Dismissing it removes nothing.",
       "verification_method": "interaction test: with confirmBeforeDeleting on, choosing Remove project from each path shows the question `Remove this project?`, the note `“<name>” and its threads will be removed. Files in your project stay as they are.` filled with the project's name (U+201C/U+201D) and the red `Remove project` action, removes nothing until that action is chosen, and dismissing keeps the project; with it off the project is removed at once; contract fixture asserting threads removed, selection cleared, lastProjectID cleared and no Git work scheduled.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "blocked_by": null,
@@ -76109,7 +76109,7 @@
       "cancellation": "The scheduled task is cancelled by the next mutation and by saveBeforeQuit; a cancelled task writes nothing.",
       "windows_path": "Same 400 ms debounce and the same per-file coalescing. The literal must stay 400 ms. After a failed load of library.json (PR-STORE-013, OD-0008 A10) no save writes library.json in that run. Windows: PA-0015 applies - file replace, delete and rename can fail transiently with a sharing violation, so the operation retries with backoff, clears the read-only attribute before a delete, uses an atomic replace primitive and surfaces a real error after a bounded number of attempts rather than dropping the write.",
       "verification_method": "interaction test counting writes under a burst of mutations",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -76145,7 +76145,7 @@
       "cancellation": "not cancellable; it is the terminate path",
       "windows_path": "Same ordering, driven from the Windows application quit handler, with the same blocking drain before processes are terminated. The drain must be a real barrier, not a fire-and-forget flush. After a failed load of library.json (PR-STORE-013, OD-0008 A10) the library.json write is skipped and the rest of the sequence runs unchanged. Windows: PA-0015 applies - file replace, delete and rename can fail transiently with a sharing violation, so the operation retries with backoff, clears the read-only attribute before a delete, uses an atomic replace primitive and surfaces a real error after a bounded number of attempts rather than dropping the write.",
       "verification_method": "restart test: mutate, quit, relaunch and assert the mutation is present",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -76447,7 +76447,7 @@
       "cancellation": "The periodic timer is cancelled by saveNow itself and by cancelPersistence; an in-flight encode is not cancellable.",
       "windows_path": "Same three guards in the same order. The isLoadingHistory guard is the one that prevents data loss and must not be reordered. Windows: PA-0015 applies - file replace, delete and rename can fail transiently with a sharing violation, so the operation retries with backoff, clears the read-only attribute before a delete, uses an atomic replace primitive and surfaces a real error after a bounded number of attempts rather than dropping the write.",
       "verification_method": "interaction test: open a thread, save during the load window, assert the file is untouched",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -76474,7 +76474,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same ordering: save, cancel persistence, release. The correctness of the whole prefetch path depends on the save being queued before the object is dropped.",
       "verification_method": "interaction test: release an idle thread, reopen it, assert its last message is present",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -76595,7 +76595,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep the flag and both call sites; collapsing them re-introduces one queue drain per thread.",
       "verification_method": "interaction test comparing writer-queue drains for a one-thread and a fifty-thread clear",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -77006,7 +77006,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same filter at the call site rather than inside the prefetch.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -77032,7 +77032,7 @@
       "cancellation": "The load task handle is held in historyLoad; a runtime dropped before the load lands cancels it.",
       "windows_path": "Same: paint first, decode on a background worker, install on the UI thread. The loading state must gate saving exactly as the source does.",
       "verification_method": "interaction test measuring the click-to-paint path with a large thread",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -77522,7 +77522,7 @@
       "cancellation": "Not cancellable once started; it is a detached task that the launch sequence awaits.",
       "windows_path": "Same single launch-time sweep in the same position in the warm-up order. Do not turn it into a periodic background task: the source runs it once.",
       "verification_method": "interaction test asserting one sweep per launch and none afterwards",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -77835,7 +77835,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same file name at the project root, same six-branch icon table with the SF Symbol names kept as the stored values, and the same silent empty result. The names are the port’s icon-table keys, not literal Windows assets. The file name stays droppy-code.json: it is one of the two exceptions OD-0012 F1 keeps (with DROPPY_CODE_PROJECT_ROOT), as B13 ruled.",
       "verification_method": "unit over a fixture droppy-code.json covering all six icon branches",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -78207,7 +78207,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same repair at the same point, before any cell is built.",
       "verification_method": "restart test: kill the app mid-turn and assert the thread shows interrupted",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -78230,7 +78230,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same repair, same use of the launch time.",
       "verification_method": "restart test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -79932,7 +79932,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The constructor builds the cells explicitly after loading, because a C# constructor assigns backing fields and runs no didSet (R-OBS-1, R-OBS-2). The dictionary is settled before the cells are written (R-OBS-5). An unchanged item's cell is not written, which matters because ObservedValue notifies on every assignment (R-OBS-3, SetAlways).",
       "verification_method": "unit test on AppModel with a library fixture. Right after construction, project(id) and thread(id) return every loaded item. A tracker on thread(A) (which reads through A's cell, AppModel.swift:288-290) fires once when A is renamed through the model, and still fires on a second rename, which shows the cell was not replaced. It does not fire when thread B is renamed or when the list is reassigned with A unchanged. When A is removed, the tracker fires and thread(A) is nil.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -80432,7 +80432,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same single boolean feeding the same consumers.",
       "verification_method": "interaction test with a floating panel open",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -80677,7 +80677,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Focus the terminal element in a microtask or animation frame after the layout commit, not during render. Keep the flag-clear-before-focus order so a failed focus retries and a successful one never repeats.",
       "verification_method": "interaction test: type immediately after opening the drawer and assert the characters reach the shell",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -81357,7 +81357,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same ordering.",
       "verification_method": "integration test deleting a thread with a running shell",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -81402,7 +81402,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same guard on the same list.",
       "verification_method": "unit test on the guard with an exited-but-open session",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -81474,7 +81474,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same file name at the project root and the same tolerant parse: OD-0008 B13 keeps reading droppy-code.json, so existing Droppy projects work. This matches upstream and is not a deviation.",
       "verification_method": "contract fixture with a droppy-code.json holding valid, partial and malformed entries",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -81497,7 +81497,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same five keys. Under OD-0010 each resolved SF Symbol draws as the Lucide icon of the published table (porting/icons/sf-symbols-to-lucide.json): checkmark.seal as badge-check, wand.and.stars as wand-sparkles, gearshape as settings, hammer as hammer, ant as bug, and the play fallback as play.",
       "verification_method": "unit test over the five keys plus an unknown and nil",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -81595,7 +81595,7 @@
       "cancellation": "The user can interrupt the command from inside the terminal; there is no app-level cancel.",
       "windows_path": "Same, with the interpreter of OD-0008 C5 (PowerShell 7 if installed, otherwise Windows PowerShell) and the script vector of PR-TERM-123.",
       "verification_method": "interaction test asserting the tab title, directory and drawer visibility",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -81627,7 +81627,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same ordering and the same directory choice.",
       "verification_method": "integration test creating a worktree in a project with one flagged and one unflagged script",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -81654,7 +81654,7 @@
       "cancellation": "not cancellable",
       "windows_path": "No menu item. The chord handler keeps the item's guard (model.topScript and model.selectedThreadID) and calls runScript.",
       "verification_method": "interaction test pressing the chord with and without scripts, plus an assertion that no menu bar exists",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -82620,7 +82620,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two consumers with the same predicate, including the OD-0008 A8 corrections (PR-TERM-098, PR-TERM-118, PR-TERM-119), so the corrected commands are both snapshotted and asked for in .auto. The three Command Code tool names are protocol constants and are unchanged. The corrected forms are exactly those ED-060 lists.",
       "verification_method": "integration test over a reading and a writing command in both consumers",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null
     },
@@ -93274,7 +93274,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same event handling and the same two guards.",
       "verification_method": "unit test on both invalidation guards plus an interaction test that a turn makes the next popover open re-read",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

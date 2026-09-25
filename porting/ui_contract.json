@@ -8176,7 +8176,8 @@
         "DroppyCode/App/AppModel.swift:1236-1238",
         "DroppyCode/App/AppDelegate.swift:30-33"
       ],
-      "notes": "The nil-at-zero rule matters: writing \"0\" would leave a permanent badge. The three predicates - hasUnread, not archived, not in a panel - must all be applied. On Windows the nearest surface is a taskbar overlay icon, which cannot render arbitrary text, so the visual result differs and must be recorded rather than faked."
+      "notes": "The nil-at-zero rule matters: writing \"0\" would leave a permanent badge. The three predicates - hasUnread, not archived, not in a panel - must all be applied. On Windows the nearest surface is a taskbar overlay icon, which cannot render arbitrary text, so the visual result differs and must be recorded rather than faked.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "LAUNCH",
@@ -14347,7 +14348,8 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:10-14"
       ],
       "notes": "The row is created only when the first delta carries text, so a provider that opens a text block with an empty delta leaves no blank reply row. The row id is the provider's own id, which is how later completions and delegation scans address it.",
-      "b2_change": "completeMessage moved from B1 ThreadRuntime.swift:3096-3114 to B2 :3206-3224; its only change is that the delegation scan now passes text: message.text (:3221). The row this record states is unchanged; re-cited."
+      "b2_change": "completeMessage moved from B1 ThreadRuntime.swift:3096-3114 to B2 :3206-3224; its only change is that the delegation scan now passes text: message.text (:3221). The row this record states is unchanged; re-cited.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "RUNTIME",
@@ -14370,7 +14372,8 @@
         "DroppyCode/App/Runtime/ThreadRuntime.swift:3226-3242 completeReasoning",
         "DroppyCode/App/Runtime/ThreadRuntime.swift:565-571 - install drops stored empty reasoning"
       ],
-      "notes": "Claude Code redacts its reasoning and streams only empty deltas; the empty-text guard is what keeps a blank thinking card off the screen, and install() removes ones older builds stored."
+      "notes": "Claude Code redacts its reasoning and streams only empty deltas; the empty-text guard is what keeps a blank thinking card off the screen, and install() removes ones older builds stored.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "RUNTIME",
@@ -14394,7 +14397,8 @@
         "DroppyCode/App/Runtime/ThreadRuntime.swift:3244-3255",
         "DroppyCode/App/Runtime/ThreadRuntime.swift:3042-3044"
       ],
-      "notes": "Unlike the message and reasoning rows, this one is created even when the first delta is empty, so an empty plan card can appear. Four different code paths can set its state; they must all be ported."
+      "notes": "Unlike the message and reasoning rows, this one is created even when the first delta is empty, so an empty plan card can appear. Four different code paths can set its state; they must all be ported.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "RUNTIME",
@@ -14417,7 +14421,8 @@
         "DroppyCode/App/Runtime/ThreadRuntime.swift:2318-2327",
         "DroppyCode/App/Runtime/ThreadRuntime.swift:575-578"
       ],
-      "notes": "\"Tool\" is a user-visible literal. It appears whenever a provider sends a tool update before any tool-started event and supplies no title."
+      "notes": "\"Tool\" is a user-visible literal. It appears whenever a provider sends a tool update before any tool-started event and supplies no title.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "RUNTIME",
@@ -14438,7 +14443,8 @@
       "source_evidence": [
         "DroppyCode/App/Runtime/ThreadRuntime.swift:3523-3547 upsertTodos"
       ],
-      "notes": "The row is found by a cached id valid only while it belongs to the current turn, then by a backward scan bounded at the previous turn's first row; a port that scanned the whole timeline would be O(n) on every todo update."
+      "notes": "The row is found by a cached id valid only while it belongs to the current turn, then by a backward scan bounded at the previous turn's first row; a port that scanned the whole timeline would be O(n) on every todo update.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "RUNTIME",
@@ -14466,7 +14472,8 @@
         "DroppyCode/App/Runtime/ThreadRuntime.swift:1915-1919 - revert keeps rows with a nil turnID"
       ],
       "notes": "An empty hydraHeads array, not nil, is what marks a user row as a Hydra note. Passing an explicit id lets the note take over the identity the timeline is already drawing for the merging pill, so the pill morphs rather than being replaced.",
-      "b2_change": "dropDelegationBlock moved from B1 ThreadRuntime.swift:2678-2701 to B2 :2759-2784. Its note texts are unchanged; it now also ends the parser with the stream and, on the second branch, queues a drop notice for the lead (PR-RUNTIME-260), neither of which is visible in the row. Re-cited."
+      "b2_change": "dropDelegationBlock moved from B1 ThreadRuntime.swift:2678-2701 to B2 :2759-2784. Its note texts are unchanged; it now also ends the parser with the stream and, on the second branch, queues a drop notice for the lead (PR-RUNTIME-260), neither of which is visible in the row. Re-cited.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "RUNTIME",
@@ -14488,7 +14495,8 @@
         "DroppyCode/App/AppModel.swift:1173-1216 turnFinished",
         "DroppyCode/App/Runtime/ThreadRuntime.swift:2448"
       ],
-      "notes": "Four gates decide whether anything is heard or seen; port_impacts.md entry 116 requires all four ship, folding gate 3 into gate 2 if the OS toast pipeline is used unconditionally, and recording the departure. There is no user-visible control here, only output."
+      "notes": "Four gates decide whether anything is heard or seen; port_impacts.md entry 116 requires all four ship, folding gate 3 into gate 2 if the OS toast pipeline is used unconditionally, and recording the departure. There is no user-visible control here, only output.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "RUNTIME",
@@ -14533,7 +14541,8 @@
         "DroppyCode/App/Runtime/ThreadRuntime.swift:102-135 DraftCommand and ComposerDraft.outgoingText",
         "DroppyCode/App/Runtime/ThreadRuntime.swift:748, :966, :1132, :2476 - the four call sites"
       ],
-      "notes": "It looks like a provider slash command but never leaves the app. A port that forwarded it would put the thread in plan mode AND send a stray command to the provider."
+      "notes": "It looks like a provider slash command but never leaves the app. A port that forwarded it would put the thread in plan mode AND send a stray command to the provider.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "RUNTIME",
@@ -14557,7 +14566,8 @@
         "DroppyCode/App/Runtime/ThreadRuntime.swift:1738-1757 compact"
       ],
       "notes": "The seven-provider set is exact. On any other provider the user sees no notice at all, because the text goes to the provider instead.",
-      "b2_change": "B1 ThreadRuntime.swift:1146 listed six providers (Codex, Copilot, DeepSeek, Meta, Z.ai, Pi). B2 :1164 uses supportsCompact (Provider.swift:149-154), which adds Claude, so Claude now also shows \"Compacting context.\" and \"Nothing to compact yet.\" compact() itself is unchanged (B2 :1738-1757)."
+      "b2_change": "B1 ThreadRuntime.swift:1146 listed six providers (Codex, Copilot, DeepSeek, Meta, Z.ai, Pi). B2 :1164 uses supportsCompact (Provider.swift:149-154), which adds Claude, so Claude now also shows \"Compacting context.\" and \"Nothing to compact yet.\" compact() itself is unchanged (B2 :1738-1757).",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "RUNTIME",
@@ -14580,7 +14590,8 @@
         "DroppyCode/App/Runtime/ThreadRuntime.swift:2760-2771 dropDelegationBlock, streamed branch"
       ],
       "notes": "Specified by PR-RUNTIME-209. Split out of UI-RUNTIME-014, which named this string only in prose. The semicolon before \"the rest\" is part of the string.",
-      "b2_change": "The streamed branch moved from B1 ThreadRuntime.swift:2678-2691 to B2 :2760-2771; the note string at B2 :2770 is unchanged. Re-cited."
+      "b2_change": "The streamed branch moved from B1 ThreadRuntime.swift:2678-2691 to B2 :2760-2771; the note string at B2 :2770 is unchanged. Re-cited.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "RUNTIME",
@@ -14602,7 +14613,8 @@
         "DroppyCode/App/Runtime/ThreadRuntime.swift:2781 - appendHydraNote(\"Hydra sent no heads: the turn \\(status == .interrupted ? \"was stopped\" : \"failed\") before they could go out. Ask again to send them.\")",
         "DroppyCode/App/Runtime/ThreadRuntime.swift:2774-2784 dropDelegationBlock, second branch"
       ],
-      "notes": "Specified by PR-RUNTIME-212. Written only when a block-holding reply row was found; a turn with no block gets no row at all."
+      "notes": "Specified by PR-RUNTIME-212. Written only when a block-holding reply row was found; a turn with no block gets no row at all.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "RUNTIME",
@@ -14623,7 +14635,8 @@
       "source_evidence": [
         "DroppyCode/App/Runtime/ThreadRuntime.swift:2828-2833 - the appendHydraNote multi-line string in the streamed branch of spawnDelegatedHeads"
       ],
-      "notes": "Specified by PR-RUNTIME-218. The same wording is written from a second site with different count sources (UI-RUNTIME-022); both are kept because a port can get one right and the other wrong."
+      "notes": "Specified by PR-RUNTIME-218. The same wording is written from a second site with different count sources (UI-RUNTIME-022); both are kept because a port can get one right and the other wrong.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "RUNTIME",
@@ -14645,7 +14658,8 @@
         "DroppyCode/App/Runtime/ThreadRuntime.swift:2879-2885 - if delegations.count > Self.maxDelegatedTasks { let dropped = delegations.count - Self.maxDelegatedTasks; appendHydraNote(...) }",
         "DroppyCode/App/Runtime/ThreadRuntime.swift:2743-2745 maxDelegatedTasks = 32"
       ],
-      "notes": "Specified by PR-RUNTIME-224. Written only for a block of 33 or more tasks."
+      "notes": "Specified by PR-RUNTIME-224. Written only for a block of 33 or more tasks.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "RUNTIME",
@@ -14667,7 +14681,8 @@
         "DroppyCode/App/Runtime/ThreadRuntime.swift:2856 - appendHydraNote(\"No heads went out: the lead did this itself.\")",
         "DroppyCode/App/Runtime/ThreadRuntime.swift:2851-2857 the empty-block path"
       ],
-      "notes": "Specified by PR-RUNTIME-221. No turn is spent on this outcome, so this row is the whole of what the user sees."
+      "notes": "Specified by PR-RUNTIME-221. No turn is spent on this outcome, so this row is the whole of what the user sees.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "RUNTIME",
@@ -14690,7 +14705,8 @@
         "DroppyCode/App/Runtime/ThreadRuntime.swift:2846 the unreadable dropped sentence",
         "DroppyCode/App/Runtime/ThreadRuntime.swift:2866 the round-cap dropped sentence"
       ],
-      "notes": "Specified by PR-RUNTIME-230. The \"3\" in the second variant is HydraPrompts.maxDelegationRounds interpolated, not a literal in the sentence."
+      "notes": "Specified by PR-RUNTIME-230. The \"3\" in the second variant is HydraPrompts.maxDelegationRounds interpolated, not a literal in the sentence.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "RUNTIME",
@@ -14711,7 +14727,8 @@
       "source_evidence": [
         "DroppyCode/App/Runtime/ThreadRuntime.swift:2990-2992 - if let pair = app.hydraPair(for: thread), let note = app.hydraHeadsFallbackNote(of: pair), hydraFallbackNoted != pair.id { hydraFallbackNoted = pair.id; appendHydraNote(\"Hydra: \\(note)\") }"
       ],
-      "notes": "Specified by PR-RUNTIME-232. Written at most once per pair id per runtime, so it can come back after a relaunch."
+      "notes": "Specified by PR-RUNTIME-232. Written at most once per pair id per runtime, so it can come back after a relaunch.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "RUNTIME",
@@ -14733,7 +14750,8 @@
         "DroppyCode/App/Runtime/ThreadRuntime.swift:2765 - if streamedMessage.text.isEmpty { streamedMessage.text = \"Asked for heads.\" }",
         "DroppyCode/App/Runtime/ThreadRuntime.swift:2777 - if message.text.isEmpty { message.text = \"Asked for heads.\" }"
       ],
-      "notes": "Specified by PR-RUNTIME-208 and PR-RUNTIME-211. Past tense: the heads were asked for but the turn did not finish. Written from two sites with the same string."
+      "notes": "Specified by PR-RUNTIME-208 and PR-RUNTIME-211. Past tense: the heads were asked for but the turn did not finish. Written from two sites with the same string.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "RUNTIME",
@@ -14754,7 +14772,8 @@
       "source_evidence": [
         "DroppyCode/App/Runtime/ThreadRuntime.swift:2842 - if message.text.isEmpty { message.text = \"Asking for heads.\" }"
       ],
-      "notes": "Specified by PR-RUNTIME-220. Present participle, one letter group away from UI-RUNTIME-026 and a different outcome: the lead is about to be told its block could not be read."
+      "notes": "Specified by PR-RUNTIME-220. Present participle, one letter group away from UI-RUNTIME-026 and a different outcome: the lead is about to be told its block could not be read.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "RUNTIME",
@@ -14775,7 +14794,8 @@
       "source_evidence": [
         "DroppyCode/App/Runtime/ThreadRuntime.swift:2852 - message.text = stripped.isEmpty ? \"Done, with no heads.\" : stripped"
       ],
-      "notes": "Specified by PR-RUNTIME-221. Note the comma."
+      "notes": "Specified by PR-RUNTIME-221. Note the comma.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "RUNTIME",
@@ -14796,7 +14816,8 @@
       "source_evidence": [
         "DroppyCode/App/Runtime/ThreadRuntime.swift:2862 - message.text = stripped.isEmpty ? \"Asking for more heads.\" : stripped"
       ],
-      "notes": "Specified by PR-RUNTIME-222. The third of five fallbacks and the only one with \"more\"."
+      "notes": "Specified by PR-RUNTIME-222. The third of five fallbacks and the only one with \"more\".",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "RUNTIME",
@@ -14817,7 +14838,8 @@
       "source_evidence": [
         "DroppyCode/App/Runtime/ThreadRuntime.swift:2910 - if faded.text.isEmpty { faded.text = \"Sent out heads.\" }"
       ],
-      "notes": "Specified by PR-RUNTIME-229. Written 3.65 seconds after the heads went out, inside withAnimation(Chrome.panelSlide)."
+      "notes": "Specified by PR-RUNTIME-229. Written 3.65 seconds after the heads went out, inside withAnimation(Chrome.panelSlide).",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "RUNTIME",
@@ -14839,7 +14861,8 @@
         "DroppyCode/App/Runtime/ThreadRuntime.swift:1593 - appendNotice(.warning, \"\\(thread.provider.displayName) no longer has this conversation. It starts a new one here, without the messages above.\")"
       ],
       "notes": "Split out of UI-RUNTIME-002 so the string is independently traceable. Icon is SF Symbol \"exclamationmark.triangle\"; icons follow OD-0010 (SF Symbols map to Lucide through the published symbol-by-symbol table, one for one).",
-      "b2_change": "Typography restated from the notice row: B1 TimelineRows.swift:2413 `.font(.chat(.callout, zoom: zoom))`; B2 :2397 `.font(.chat(.callout))`, and Font.chat takes no zoom (UI/Common/ChatFont.swift:6-10). Text, geometry and colours unchanged. Owner rulings applied in this refresh: the icon follows OD-0010 (Lucide) in place of the open UNK-0007, and the face follows OD-0009 (Inter)."
+      "b2_change": "Typography restated from the notice row: B1 TimelineRows.swift:2413 `.font(.chat(.callout, zoom: zoom))`; B2 :2397 `.font(.chat(.callout))`, and Font.chat takes no zoom (UI/Common/ChatFont.swift:6-10). Text, geometry and colours unchanged. Owner rulings applied in this refresh: the icon follows OD-0010 (Lucide) in place of the open UNK-0007, and the face follows OD-0009 (Inter).",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "RUNTIME",
@@ -14861,7 +14884,8 @@
         "DroppyCode/App/Runtime/ThreadRuntime.swift:1754 - appendNotice(.warning, error.localizedDescription)"
       ],
       "notes": "Split out of UI-RUNTIME-002. The only warning in this area whose text comes wholly from outside; on Windows the equivalent is the error message of the failed compact request.",
-      "b2_change": "Typography restated from the notice row: B1 TimelineRows.swift:2413 `.font(.chat(.callout, zoom: zoom))`; B2 :2397 `.font(.chat(.callout))`, and Font.chat takes no zoom (UI/Common/ChatFont.swift:6-10). Text, geometry and colours unchanged. Owner rulings applied in this refresh: the face follows OD-0009 (Inter)."
+      "b2_change": "Typography restated from the notice row: B1 TimelineRows.swift:2413 `.font(.chat(.callout, zoom: zoom))`; B2 :2397 `.font(.chat(.callout))`, and Font.chat takes no zoom (UI/Common/ChatFont.swift:6-10). Text, geometry and colours unchanged. Owner rulings applied in this refresh: the face follows OD-0009 (Inter).",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "RUNTIME",
@@ -14906,7 +14930,8 @@
         "DroppyCode/App/Runtime/ThreadRuntime.swift:1379 - appendNotice(.error, error.localizedDescription)"
       ],
       "notes": "Split out of UI-RUNTIME-003. Appended only when currentTurnID still matches the turn that threw, then the turn is finished as .failed.",
-      "b2_change": "Typography restated from the notice row: B1 TimelineRows.swift:2413 `.font(.chat(.callout, zoom: zoom))`; B2 :2397 `.font(.chat(.callout))`, and Font.chat takes no zoom (UI/Common/ChatFont.swift:6-10). Text, geometry and colours unchanged. Owner rulings applied in this refresh: the face follows OD-0009 (Inter)."
+      "b2_change": "Typography restated from the notice row: B1 TimelineRows.swift:2413 `.font(.chat(.callout, zoom: zoom))`; B2 :2397 `.font(.chat(.callout))`, and Font.chat takes no zoom (UI/Common/ChatFont.swift:6-10). Text, geometry and colours unchanged. Owner rulings applied in this refresh: the face follows OD-0009 (Inter).",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "RUNTIME",
@@ -14928,7 +14953,8 @@
         "DroppyCode/App/Runtime/ThreadRuntime.swift:2206-2208 - case .turnCompleted(let status, let error): flushDeltas(); if let error { appendNotice(.error, error) }"
       ],
       "notes": "Split out of UI-RUNTIME-003. A nil error appends nothing, so a failed turn can end with no notice row at all.",
-      "b2_change": "Typography restated from the notice row: B1 TimelineRows.swift:2413 `.font(.chat(.callout, zoom: zoom))`; B2 :2397 `.font(.chat(.callout))`, and Font.chat takes no zoom (UI/Common/ChatFont.swift:6-10). Text, geometry and colours unchanged. Owner rulings applied in this refresh: the face follows OD-0009 (Inter)."
+      "b2_change": "Typography restated from the notice row: B1 TimelineRows.swift:2413 `.font(.chat(.callout, zoom: zoom))`; B2 :2397 `.font(.chat(.callout))`, and Font.chat takes no zoom (UI/Common/ChatFont.swift:6-10). Text, geometry and colours unchanged. Owner rulings applied in this refresh: the face follows OD-0009 (Inter).",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "RUNTIME",
@@ -14950,7 +14976,8 @@
         "DroppyCode/App/Runtime/ThreadRuntime.swift:2221-2224 - stopNativeHeads(); if currentTurnID != nil { let name = thread?.provider.displayName ?? \"The agent\"; appendNotice(.error, error ?? \"\\(name) stopped unexpectedly.\") }"
       ],
       "notes": "Split out of UI-RUNTIME-003. Appended only while a turn is in flight; an exit with no current turn is silent.",
-      "b2_change": "Typography restated from the notice row: B1 TimelineRows.swift:2413 `.font(.chat(.callout, zoom: zoom))`; B2 :2397 `.font(.chat(.callout))`, and Font.chat takes no zoom (UI/Common/ChatFont.swift:6-10). Text, geometry and colours unchanged. Owner rulings applied in this refresh: the face follows OD-0009 (Inter)."
+      "b2_change": "Typography restated from the notice row: B1 TimelineRows.swift:2413 `.font(.chat(.callout, zoom: zoom))`; B2 :2397 `.font(.chat(.callout))`, and Font.chat takes no zoom (UI/Common/ChatFont.swift:6-10). Text, geometry and colours unchanged. Owner rulings applied in this refresh: the face follows OD-0009 (Inter).",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "RUNTIME",
@@ -14972,7 +14999,8 @@
         "DroppyCode/App/Runtime/ThreadRuntime.swift:716 - appendNotice(.error, \"The stopped message was kept: \\(error.localizedDescription)\")"
       ],
       "notes": "Split out of UI-RUNTIME-003. Written when the revert that should have removed a stopped message itself failed; the colon and single space are part of the string.",
-      "b2_change": "Typography restated from the notice row: B1 TimelineRows.swift:2413 `.font(.chat(.callout, zoom: zoom))`; B2 :2397 `.font(.chat(.callout))`, and Font.chat takes no zoom (UI/Common/ChatFont.swift:6-10). Text, geometry and colours unchanged. Owner rulings applied in this refresh: the face follows OD-0009 (Inter)."
+      "b2_change": "Typography restated from the notice row: B1 TimelineRows.swift:2413 `.font(.chat(.callout, zoom: zoom))`; B2 :2397 `.font(.chat(.callout))`, and Font.chat takes no zoom (UI/Common/ChatFont.swift:6-10). Text, geometry and colours unchanged. Owner rulings applied in this refresh: the face follows OD-0009 (Inter).",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "RUNTIME",
@@ -14995,7 +15023,8 @@
         "DroppyCode/App/Runtime/ThreadRuntime.swift:1931 - if let fileError { appendNotice(.error, fileError) }"
       ],
       "notes": "Split out of UI-RUNTIME-003. The string is built at :1875 and appended at :1891, and the same value decides revert's return at :1895.",
-      "b2_change": "Typography restated from the notice row: B1 TimelineRows.swift:2413 `.font(.chat(.callout, zoom: zoom))`; B2 :2397 `.font(.chat(.callout))`, and Font.chat takes no zoom (UI/Common/ChatFont.swift:6-10). Text, geometry and colours unchanged. Owner rulings applied in this refresh: the face follows OD-0009 (Inter)."
+      "b2_change": "Typography restated from the notice row: B1 TimelineRows.swift:2413 `.font(.chat(.callout, zoom: zoom))`; B2 :2397 `.font(.chat(.callout))`, and Font.chat takes no zoom (UI/Common/ChatFont.swift:6-10). Text, geometry and colours unchanged. Owner rulings applied in this refresh: the face follows OD-0009 (Inter).",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "SETTINGS",

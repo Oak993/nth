@@ -476,7 +476,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same single boolean feeding the same consumers.",
       "verification_method": "interaction test with a floating panel open",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -711,7 +711,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Focus the terminal element in a microtask or animation frame after the layout commit, not during render. Keep the flag-clear-before-focus order so a failed focus retries and a successful one never repeats.",
       "verification_method": "interaction test: type immediately after opening the drawer and assert the characters reach the shell",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1365,7 +1365,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same ordering.",
       "verification_method": "integration test deleting a thread with a running shell",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1408,7 +1408,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same guard on the same list.",
       "verification_method": "unit test on the guard with an exited-but-open session",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1477,7 +1477,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same file name at the project root and the same tolerant parse: OD-0008 B13 keeps reading droppy-code.json, so existing Droppy projects work. This matches upstream and is not a deviation.",
       "verification_method": "contract fixture with a droppy-code.json holding valid, partial and malformed entries",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1499,7 +1499,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same five keys. Under OD-0010 each resolved SF Symbol draws as the Lucide icon of the published table (porting/icons/sf-symbols-to-lucide.json): checkmark.seal as badge-check, wand.and.stars as wand-sparkles, gearshape as settings, hammer as hammer, ant as bug, and the play fallback as play.",
       "verification_method": "unit test over the five keys plus an unknown and nil",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1593,7 +1593,7 @@
       "cancellation": "The user can interrupt the command from inside the terminal; there is no app-level cancel.",
       "windows_path": "Same, with the interpreter of OD-0008 C5 (PowerShell 7 if installed, otherwise Windows PowerShell) and the script vector of PR-TERM-123.",
       "verification_method": "interaction test asserting the tab title, directory and drawer visibility",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1624,7 +1624,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same ordering and the same directory choice.",
       "verification_method": "integration test creating a worktree in a project with one flagged and one unflagged script",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1650,7 +1650,7 @@
       "cancellation": "not cancellable",
       "windows_path": "No menu item. The chord handler keeps the item's guard (model.topScript and model.selectedThreadID) and calls runScript.",
       "verification_method": "interaction test pressing the chord with and without scripts, plus an assertion that no menu bar exists",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2579,7 +2579,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two consumers with the same predicate, including the OD-0008 A8 corrections (PR-TERM-098, PR-TERM-118, PR-TERM-119), so the corrected commands are both snapshotted and asked for in .auto. The three Command Code tool names are protocol constants and are unchanged. The corrected forms are exactly those ED-060 lists.",
       "verification_method": "integration test over a reading and a writing command in both consumers",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null
     },

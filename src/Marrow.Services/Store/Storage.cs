@@ -421,7 +421,13 @@ public sealed class DiskWriter
         }
         catch (Exception error)
         {
-            FailureLog.Error($"Marrow could not save {SwiftPath.LastPathComponent(url)}: {SwiftErrors.LocalizedDescription(error)}"); // :386
+            var description = error switch
+            {
+                UnauthorizedAccessException => error.Message, // GD-001
+                IOException => error.Message, // GD-002: keep the OS description for this log-only filesystem failure.
+                _ => SwiftErrors.LocalizedDescription(error),
+            };
+            FailureLog.Error($"Marrow could not save {SwiftPath.LastPathComponent(url)}: {description}"); // :386
         }
     }
 }
@@ -462,6 +468,10 @@ public static partial class Storage
         Library? library;
         try
         {
+            using var document = JsonDocument.Parse(data, SwiftJson.DocumentOptions);
+            if (document.RootElement.ValueKind != JsonValueKind.Object)
+                return new LibraryLoadResult.Failed(new InvalidDataException("library.json could not be decoded."));
+
             library = Coding.Decode<Library>(data);
         }
         catch (Exception e) when (SwiftTry.IsThrownError(e))

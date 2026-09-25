@@ -140,19 +140,20 @@ public sealed class MarkdownBlockViewBodyTests(HeadlessSession headless)
     [Fact]
     [Trait("Req", "PR-THEME-110")] // DroppyCode/UI/Markdown/MarkdownView.swift:306-320, :313-320: with the
     // environment at its defaults (no links, no targets, no personas) the routing falls through all three
-    // earlier conditions to the final else (:320) and constructs InlineText(hasLinks: false) -- the only
-    // externally observable difference from that branch until part 2's InlineText lands is which MARROW_STUB
-    // site the construction throws from; this proves it is InlineText's (:1127), not VeiledText's.
+    // earlier conditions to the final else (:320) and constructs InlineText(hasLinks: false).
     public void A_plain_paragraph_with_no_links_targets_or_personas_reaches_the_default_InlineText_branch()
     {
-        // Part 2 implemented InlineText's constructor (MarkdownView.swift:1121-1208): a link-free paragraph now
-        // reaches its VeiledText(RichLink.prettyAttributed(...)) call (:1203), one level further than before.
-        // That still throws, from the sibling StreamVeil unit's own VeiledText(segments:) MARROW_STUB
-        // (StreamVeil.swift:253), which the new VeiledText(AttributedString) overload (StreamVeil.swift:247-251,
-        // added by this unit per ED-092(3)) delegates to.
+        // Part 2 implemented InlineText's constructor (MarkdownView.swift:1121-1208): a link-free paragraph
+        // (hasLinks: false, so :1133's hasLinkText is false regardless of hosts) reaches the link-free branch
+        // (:1193-1198), which calls VeiledText(RichLink.prettyAttributed(...)) -- the AttributedText overload
+        // (StreamVeil.swift:247-251) delegating to VeiledText(segments:) (StreamVeil.swift:253). Both landed
+        // with the sibling StreamVeil unit, so construction now completes and reaches InlineText, not the
+        // hasLinkText branch's LinkParagraphView (a separate, still-MARROW_STUB sibling unit). // HD-002
         var block = new MarkdownBlock.Paragraph("nothing special here");
-        var ex = Assert.Throws<NotImplementedException>(() => new MarkdownBlockView(block));
-        Assert.Contains("StreamVeil.swift:253", ex.Message, StringComparison.Ordinal);
+        var view = new MarkdownBlockView(block);
+        var inline = Assert.IsType<InlineText>(view.Child);
+        Assert.Equal("nothing special here", inline.Source);
+        Assert.False(inline.HasLinks);
     }
 
     // ---- PR-THEME-111/112/113: marker (:506-538) ----

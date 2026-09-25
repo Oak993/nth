@@ -1,5 +1,8 @@
+using System.Diagnostics;
 using System.Globalization;
+using System.Linq;
 using System.Text;
+using System.Threading;
 using Marrow.App;
 using Marrow.Core.Port;
 using Marrow.Testing;
@@ -111,6 +114,60 @@ public sealed class AppUpdaterInstallerScriptTests
         Assert.False(File.Exists(Path.Combine(dest, "old.txt")), "the old files must be gone");
         Assert.False(Directory.Exists(backup), "the backup is removed once the move-in succeeds");
         Assert.False(Directory.Exists(staging), "the staging tree is always cleaned up");
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-192")] // AppUpdater.swift:440's `open "$DEST"` launches the macOS app bundle at $Dest
+    // directly (Launch Services resolves a .app directory to its Info.plist executable); Windows has no bundle
+    // concept, so the relaunch step must find and launch the executable inside $Dest, never $Dest itself (which
+    // falls back to the shell's default folder-open action, Explorer).
+    public void After_a_successful_swap_the_relaunch_step_launches_the_new_executable_not_the_destination_folder()
+    {
+        var root = TempRoot();
+        var dest = Path.Combine(root, "Marrow Code");
+        Directory.CreateDirectory(dest);
+        var staging = Path.Combine(root, "staging");
+        var neu = Path.Combine(staging, "Marrow Code");
+        Directory.CreateDirectory(neu);
+        // A copy of a real, always-present Windows console utility that blocks reading from its own console
+        // (no piped input, none redirected) instead of exiting immediately, so the launched process is still
+        // there to find; a name distinct from any other process on the machine avoids matching an unrelated one.
+        var exeName = $"RelaunchProbe-{Guid.NewGuid():N}.exe";
+        var stagedExePath = Path.Combine(neu, exeName);
+        File.Copy(Path.Combine(Environment.SystemDirectory, "sort.exe"), stagedExePath);
+        var script = WriteScript(root);
+        var pid = SpawnAndAwaitExit();
+
+        var installer = RunInstaller(script, pid, neu, dest, pollIntervalSeconds: 0.05);
+        var output = ReadAllOutput(installer);
+        installer.WaitUntilExit();
+        Assert.True(
+            installer.TerminationStatus == 0,
+            $"Installer exited with {installer.TerminationStatus}; captured output: {output}");
+
+        var launchedExePath = Path.Combine(dest, exeName);
+        Assert.True(File.Exists(launchedExePath), "the executable must have moved in with the rest of the update");
+
+        Process? launched = null;
+        try
+        {
+            var deadline = DateTime.UtcNow.AddSeconds(10);
+            while (DateTime.UtcNow < deadline && launched is null)
+            {
+                launched = Process.GetProcesses().FirstOrDefault(candidate =>
+                {
+                    try { return string.Equals(candidate.MainModule?.FileName, launchedExePath, StringComparison.OrdinalIgnoreCase); }
+                    catch { return false; } // a process this test does not own, or one that already exited
+                });
+                if (launched is null) Thread.Sleep(20);
+            }
+            Assert.True(launched is not null, "the moved-in executable must have been launched, not the destination folder");
+        }
+        finally
+        {
+            try { launched?.Kill(); } catch (InvalidOperationException) { } // already exited
+            launched?.Dispose();
+        }
     }
 
     [Fact]

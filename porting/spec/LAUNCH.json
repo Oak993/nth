@@ -607,7 +607,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The call site stays as a single no-op-capable hook so the selection path matches; no user-visible behavior in a shipped build.",
       "verification_method": "unit test: a selection change calls the hook exactly once with the expected label, and the hook is inert in release",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -782,7 +782,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port; the clear-then-assign ordering is load-bearing and must be preserved.",
       "verification_method": "unit test: a reused thread whose provider changed loses its session id; one whose provider is unchanged keeps it",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -806,7 +806,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port.",
       "verification_method": "restart test: three consecutive launches with no user action leave exactly one untouched thread",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -831,7 +831,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port, same key name and same string-UUID representation.",
       "verification_method": "unit test over each fallback rung",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -854,7 +854,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port; the key must be removed, not written as an empty string.",
       "verification_method": "restart test with a deleted project",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -881,7 +881,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port of the construction order, the file name and the missing-file fallback. The unreadable-file path follows OD-0008 A10: show the error, do not overwrite; the error text is exactly \"Marrow could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\", shown in the main window at launch (OD-0012 E4). The store root is %LOCALAPPDATA%\\Marrow Code (OD-0008 C7, see PR-LAUNCH-070).",
       "verification_method": "integration test with a missing file (empty library, no message) and with a truncated file (the error is surfaced with the exact OD-0012 E4 text, and after a mutation that schedules a save the file on disk is byte-identical to the truncated original)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "blocked_by": null,
@@ -908,7 +908,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port.",
       "verification_method": "restart test: kill the process mid-turn, relaunch, assert the chat reads interrupted",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -930,7 +930,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port, including the finishedAt equals launch-time approximation.",
       "verification_method": "restart test with a running head in the stored library",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1010,7 +1010,7 @@
       "cancellation": "not cancellable from here",
       "windows_path": "Direct port; the literal 12 and both exclusions are reproduced.",
       "verification_method": "unit test on the selected id list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1037,7 +1037,7 @@
       "cancellation": "not cancellable",
       "windows_path": "PLATFORM BOUNDARY: secrets are stored in Windows Credential Manager in place of the Keychain (OD-0008 B3), read off the UI thread after the first frame, at most once per process.",
       "verification_method": "unit test asserting one read per process and no UI-thread block",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1066,7 +1066,7 @@
       "cancellation": "not cancellable",
       "windows_path": "PLATFORM BOUNDARY (platform_adaptations PA-0009): Windows cannot use login-shell argv[0] semantics. The replacement is an explicit environment resolution step that still completes before the first git call.",
       "verification_method": "unit test on the bootstrap sequencer",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1093,7 +1093,7 @@
       "cancellation": "The watchdog loop is never cancelled; it ends with the process.",
       "windows_path": "Direct port of the launch-time start and the 30 s cadence; the watchdog's own behavior is specified by the Hydra area.",
       "verification_method": "unit test asserting exactly one watchdog loop after repeated bootstraps",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1125,7 +1125,7 @@
       "cancellation": "not cancellable from the launch path",
       "windows_path": "Direct port of the launch trigger and the 3-day cutoff; the merge itself belongs to the Hydra area.",
       "verification_method": "integration test at launch with hydraAutoMerge on and leads updated within 3 days: (a) a completed unmerged turn with touched paths, (b) every turn merged but one head whose landing landed and has no mergedAt, (c) a landed head but a pending Hydra report, (d) a head landing with a patchPath; assert (a) and (b) merge in UUID-string order and (c) and (d) do not; with hydraAutoMerge off assert nothing runs",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1149,7 +1149,7 @@
       "cancellation": "Cancelled only by a subsequent bootstrap. Nothing in the quit path cancels it; it ends with the process.",
       "windows_path": "Direct port; the literal 300 seconds and the cancel-then-restart discipline are reproduced.",
       "verification_method": "unit test with an injected clock: one sweep per 300 s, and a second bootstrap leaves exactly one task",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1179,7 +1179,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port: the exact four-provider group, zai outside it, the capture guard, the 24-hour cutoff and the last-in-order placement.",
       "verification_method": "integration test on the sweep with referenced, unreferenced-and-old, and unreferenced-but-young attachment files",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1390,7 +1390,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port including the 400 ms debounce and the one-way latch. port_impacts.md entry 100 requires the persistenceEnabled latch to be ported together with the teardown ordering, because the ordering only has meaning through it.",
       "verification_method": "unit test: a thread mutation after saveBeforeQuit writes nothing",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1417,7 +1417,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port: atomic replace, synchronous on the writer queue, drop-the-queued-value-first, and the same silent-except-for-a-log failure behavior. Under OD-0012 F1 the log line's format is exactly \"Marrow could not save %@: %@\", carrying the file's last path component and the localized error.",
       "verification_method": "integration test asserting library.json is complete and valid immediately after the process exits",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1449,7 +1449,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port including the cancelPersistence-then-stopSession-then-snapshot order; port_impacts.md entry 100 requires both teardown orders to be ported.",
       "verification_method": "restart test: quit with an unsaved in-flight thread and assert its document is complete after relaunch",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null
     },
@@ -1474,7 +1474,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port of both steps and their order. Terminal child termination is part of the Gate E no-orphan-process check.",
       "verification_method": "Gate E check: no terminal child process survives the app; integration test asserting queued writes land",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1580,7 +1580,7 @@
       "cancellation": "Cancelled by the next scheduleSave and by saveBeforeQuit.",
       "windows_path": "Direct port: the literal 400 ms, the cancel-and-restart debounce and the per-URL coalescing.",
       "verification_method": "unit test with an injected clock: ten mutations in 100 ms produce one write",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1604,7 +1604,7 @@
       "cancellation": "Cancelled by reselecting the thread, or by a later selection change that re-enters this function for the same id.",
       "windows_path": "Direct port; the literal 600 seconds and the running-turn continue are reproduced.",
       "verification_method": "unit test with an injected clock over the idle, running-turn and reselected cases",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1628,7 +1628,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port; port_impacts.md entry 100 requires the idle release to be gated behind all eight conditions.",
       "verification_method": "unit test asserting each condition independently blocks release, and that the save is queued before the drop",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1729,7 +1729,7 @@
       "cancellation": "not applicable",
       "windows_path": "PLATFORM BOUNDARY: the Windows taskbar overlay icon or badge is the nearest equivalent and has different capabilities - it is an icon, not arbitrary text. The count-and-clear-at-zero rule and the three predicates are reproduced; the visual form is a recorded platform difference.",
       "verification_method": "interaction test: two unread background chats show 2, reading both clears the badge",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1755,7 +1755,7 @@
       "cancellation": "not cancellable",
       "windows_path": "PLATFORM BOUNDARY: Windows toast notifications for a desktop app do not use a runtime permission prompt in the same way. The port keeps the lazy, once-per-process registration point and records the difference rather than inventing a prompt.",
       "verification_method": "unit test asserting one request per process and none at launch",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1806,7 +1806,7 @@
       "cancellation": "not applicable",
       "windows_path": "Direct port; the empty state's appearance belongs to the shell and chrome area.",
       "verification_method": "interaction test on a fresh data directory",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1997,7 +1997,7 @@
       "cancellation": "not applicable",
       "windows_path": "Direct port of the recovery behavior. Job Objects with kill-on-close (platform_adaptations PA-0007) would additionally clean up children on a force kill, which is stricter than upstream; that is an improvement to record explicitly rather than assume.",
       "verification_method": "restart test: kill the process and assert the relaunch state",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2020,7 +2020,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port including the deferred, post-paint mark-read.",
       "verification_method": "restart test: a thread with unread work that is reopened at launch is read afterwards",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2044,7 +2044,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port including the equality guard before the settings write.",
       "verification_method": "unit test asserting no settings write when the project is unchanged",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2126,7 +2126,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The prefix is a user-visible literal and is kept exactly, including the trailing space. Setting the custom-title flag is not cosmetic: without it the forwarded thread is renamed by the auto-titler on its first reply and the prefix is lost.",
       "verification_method": "unit test forwarding a thread with a known title and asserting the exact resulting title and the custom-title flag",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null
     },
@@ -2154,7 +2154,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The double guard around the await is the load-bearing part: a single check before the load races a delete. The ordering (append, expand, remember, then install) is reproduced as written; the consequence that a failed install leaves an appended unselected thread behind is upstream behaviour and is recorded rather than repaired.",
       "verification_method": "integration test forwarding a thread, forwarding one deleted during its load, and forwarding one whose continuation install fails, asserting the library and selection after each",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2282,7 +2282,8 @@
         "DroppyCode/App/AppModel.swift:1236-1238",
         "DroppyCode/App/AppDelegate.swift:30-33"
       ],
-      "notes": "The nil-at-zero rule matters: writing \"0\" would leave a permanent badge. The three predicates - hasUnread, not archived, not in a panel - must all be applied. On Windows the nearest surface is a taskbar overlay icon, which cannot render arbitrary text, so the visual result differs and must be recorded rather than faked."
+      "notes": "The nil-at-zero rule matters: writing \"0\" would leave a permanent badge. The three predicates - hasUnread, not archived, not in a panel - must all be applied. On Windows the nearest surface is a taskbar overlay icon, which cannot render arbitrary text, so the visual result differs and must be recorded rather than faked.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-LAUNCH-005",

@@ -159,35 +159,78 @@ public sealed class StorageSecondTests
 
     [Fact]
     [Trait("Req", "PR-STORE-038")] // Services/Store/Storage.swift:386: a write failure is reported, never surfaced to the app
-    public void Write_OnAFailure_NeverSurfacesAnAppVisibleErrorFromTheCallSite()
+    public void Write_OnUnauthorizedAccess_LogsTheOSDescriptionAndReturnsSoTheWriterCanContinue()
     {
-        // Services/Store/Storage.swift:386 reads error.localizedDescription, ported as
-        // SwiftErrors.LocalizedDescription (R-ERR-2). Storage.cs's private Write(:381-388) passes it whatever
-        // FileOps.WriteAtomic throws, and FileOps (Core/Port/FileOps.cs) throws the raw .NET IOException /
-        // UnauthorizedAccessException it caught, unwrapped: neither implements ILocalizedError or
-        // ISwiftErrorIdentity, so SwiftErrors.LocalizedDescription's documented behaviour for "any other .NET
-        // exception" (SwiftErrors.cs:118-120) applies: it throws NotSupportedException instead of inventing
-        // text, exactly the "each such site needs a recorded decision" case R-ERR-2 names for MCPStore.swift:352,
-        // UsageViews.swift:301 and ACPSession.swift:616 - Storage.swift:386 is the same kind of site and has no
-        // recorded decision. WriteSynchronously is used (not EncodeAndWrite) because SerialQueue.Sync (Actor.cs)
-        // catches on the queue and rethrows on the calling thread, so this failure surfaces to the test rather
-        // than crashing an unobserved pool thread the way the async EncodeAndWrite path would.
+        // A directory at the destination lets File.Move exercise Windows' access-denied path without depending
+        // on machine ACLs. FileOps retries that transient failure and then throws the final OS exception.
         using var scratch = new StorageScratchFolder();
-        var url = Path.Combine(scratch.Root, "no-such-directory", "x.json"); // WriteAtomic never creates the parent
-        var document = new ThreadDocument(Guid.NewGuid());
+        var failedURL = Path.Combine(scratch.Root, "denied.json");
+        Directory.CreateDirectory(failedURL);
+        var probeURL = Path.Combine(scratch.Root, "probe.tmp");
+        File.WriteAllBytes(probeURL, [1]);
+        var osError = Assert.Throws<UnauthorizedAccessException>(() => File.Move(probeURL, failedURL, overwrite: true));
+        var failedDocument = new ThreadDocument(Guid.NewGuid());
 
-        var exception = Record.Exception(() => DiskWriter.Shared.WriteSynchronously(document, url));
+        var logged = new List<(string Message, string Channel)>();
+        using (Logger.Sink.Override((message, channel) => logged.Add((message, channel))))
+        {
+            DiskWriter.Shared.WriteSynchronously(failedDocument, failedURL); // failure must not escape the call site
 
-        // STOP-class finding (IMPLEMENTING.md section 6, "an NSError text"): the exact logged wording for a real
-        // Windows file-write failure is unresolved (no oracle item or owner decision names Storage.swift:386),
-        // so the byte-for-byte "Marrow could not save %@: %@" text PR-STORE-038 calls for cannot be asserted
-        // here. What is asserted, and is itself worth recording: the current DiskWriter.Write (Storage.cs:381-388,
-        // written in part 1) throws NotSupportedException out of its own catch block for this ordinary failure,
-        // which is not "reported only to the system log" as the record requires, and would end the process if it
-        // happened on the async EncodeAndWrite path's queue thread (uncaught, per Actor.cs's SerialQueue.Async /
-        // Executors.cs's Drain, which has no try/catch around a dequeued item). Filed for an owner decision; not
-        // fixed here since the wording of the replacement log text cannot be invented (R-ERR-2, section 6).
-        Assert.IsType<NotSupportedException>(exception);
+            var continuedID = Guid.NewGuid();
+            var continuedURL = Storage.ThreadURL(continuedID);
+            DiskWriter.Shared.WriteSynchronously(new ThreadDocument(continuedID), continuedURL);
+            Assert.Equal(continuedID, Coding.Decode<ThreadDocument>(File.ReadAllBytes(continuedURL))!.ThreadID);
+        }
+
+        var line = Assert.Single(logged);
+        Assert.Equal("iordv.marrow/storage", line.Channel);
+        Assert.Equal($"Marrow could not save denied.json: {osError.Message}", line.Message);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-STORE-038")] // Services/Store/Storage.swift:386: a final IOException is logged without escaping
+    public void Write_OnFinalIOException_LogsTheOSDescriptionAndReturnsSoTheWriterCanContinue()
+    {
+        using var scratch = new StorageScratchFolder();
+        var failedID = Guid.NewGuid();
+        var failedURL = Path.Combine(scratch.Root, new string('x', 251) + ".json");
+        var failedDocument = new ThreadDocument(failedID) with
+        {
+            FollowUps = new ValueList<FollowUpPrompt>([new FollowUpPrompt { Text = "replacement" }]),
+        };
+        var expected = Coding.Encode(failedDocument);
+
+        // The parent directory exists; a 256-character Windows filename makes the final move report an IOException.
+        var osError = Record.Exception(() => FileOps.WriteAtomic(failedURL, expected));
+        var finalError = Assert.IsAssignableFrom<IOException>(osError);
+
+        var logged = new List<(string Message, string Channel)>();
+        using (Logger.Sink.Override((message, channel) => logged.Add((message, channel))))
+        {
+            var exception = Record.Exception(() => DiskWriter.Shared.WriteSynchronously(failedDocument, failedURL));
+            Assert.Null(exception);
+
+            var continuedID = Guid.NewGuid();
+            var continuedURL = Storage.ThreadURL(continuedID);
+            DiskWriter.Shared.WriteSynchronously(new ThreadDocument(continuedID), continuedURL);
+            Assert.Equal(continuedID, Coding.Decode<ThreadDocument>(File.ReadAllBytes(continuedURL))!.ThreadID);
+        }
+
+        var line = Assert.Single(logged);
+        Assert.Equal("iordv.marrow/storage", line.Channel);
+        var prefix = $"Marrow could not save {Path.GetFileName(failedURL)}: ";
+        Assert.StartsWith(prefix, line.Message, StringComparison.Ordinal);
+        // FileOps picks a fresh staging filename per attempt; the rest of the OS message must match exactly.
+        Assert.Equal(NormalizeTemporaryName(finalError.Message), NormalizeTemporaryName(line.Message[prefix.Length..]));
+
+        static string NormalizeTemporaryName(string message)
+        {
+            const string pattern = @"\.[0-9a-f]{16}\.tmp";
+            var options = System.Text.RegularExpressions.RegexOptions.IgnoreCase;
+            var matches = System.Text.RegularExpressions.Regex.Matches(message, pattern, options);
+            Assert.Single(matches);
+            return System.Text.RegularExpressions.Regex.Replace(message, pattern, ".<staging-file>.tmp", options);
+        }
     }
 
     [Fact]

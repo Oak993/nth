@@ -163,6 +163,18 @@ public sealed class StorageTests
     }
 
     [Fact]
+    [Trait("Req", "PR-STORE-013")] // OD-0008 A10: a non-object top-level JSON value is not a Library
+    public void LoadLibrary_IsFailedWhenLibraryJsonHasANonObjectRoot()
+    {
+        using var scratch = new StorageScratchFolder();
+        File.WriteAllText(Storage.LibraryURL, "[]");
+
+        var result = Storage.LoadLibrary();
+
+        Assert.IsType<LibraryLoadResult.Failed>(result);
+    }
+
+    [Fact]
     [Trait("Req", "PR-STORE-013")] // OD-0008 A10 deviation: a directory in place of the file is a read failure, not "missing"
     public void LoadLibrary_IsFailedWhenLibraryJsonCannotBeRead()
     {
