@@ -814,3 +814,19 @@ ThreadRuntimeSurfaceTests.cs had no Req/Rule/Decision trait to cite (R-TEST-1, c
 this is a specification-completeness gap, not a behavioral question; ED-191 is the traceability anchor for these four
 getters' own tests until (if ever) they are split into their own PR ids. Ported verbatim from the cited Swift lines, no
 invented behavior. ENGINEERING DECISION; not a deviation.
+
+ED-192 [UPDATE] The Windows installer script's relaunch step (App.AppUpdater, AppUpdater.swift:440) was launching
+$Dest (the install folder itself) via `Start-Process -FilePath $Dest`, a literal port of macOS's `open "$DEST"`.
+On macOS $DEST is a .app bundle, a directory Launch Services resolves to its Info.plist executable; open on it
+launches the app. Windows has no bundle concept, and `Start-Process` on a plain directory falls back to the
+shell's default "open" verb for a folder, which is Explorer, so a real successful update would open a File
+Explorer window on the install folder instead of relaunching the app. FOUND: while merging App.AppModel and
+App.Runtime.ThreadRuntime (helper Claude, 2026-09-25), AppUpdaterInstallerScriptTests' real out-of-process
+install-swap test kept popping a genuine Explorer window during full-suite runs, which traced to this exact
+line; not previously caught because the existing test never places a real executable at $Dest and never asserts
+what the relaunch step actually launches. DECISION: the script finds the executable inside $Dest after the swap
+(`Get-ChildItem -LiteralPath $Dest -Filter '*.exe' -File | Select-Object -First 1`) and launches that specific
+file; $Dest itself is never passed to Start-Process. A new regression test places a copy of a real Windows
+console utility (system32\sort.exe, renamed) at the staged path and confirms, by process discovery, that this
+exact file is what gets launched. ENGINEERING DECISION; a platform-adaptation correction, not a deviation from
+observable Swift behavior (the fixed behavior matches what `open` does on macOS: launch the app, not reveal it).
