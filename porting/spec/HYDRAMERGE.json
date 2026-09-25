@@ -122,7 +122,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same filter over the thread store.",
       "verification_method": "unit test over a synthetic thread list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -150,7 +150,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two loops in the same UUID order; the readiness predicate is one function with all ten conditions.",
       "verification_method": "unit test over three synthetic leads with shuffled UUIDs asserting that every runtime is loaded before the first merge and merges run in uuidString order, plus one test per readiness condition that blocks the lead",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -174,7 +174,7 @@
       "cancellation": "not cancellable",
       "windows_path": "No non-empty guard on the completed unmerged turns; the last-turn test lives in the readiness predicate.",
       "verification_method": "unit test: a lead whose every turn is marked hydraMerged but whose head has a landed, unmerged landing is resumed; a lead whose last turn is interrupted is not",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -199,7 +199,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two-branch predicate. This gate is safety-critical and must not be relaxed.",
       "verification_method": "unit test with a lead whose turns touched nothing and a dirty checkout, plus a lead whose only head landing has a patchPath",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -222,7 +222,7 @@
       "cancellation": "n/a",
       "windows_path": "Derived property over live runtimes.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -247,7 +247,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same eight-way guard, evaluated and followed by setting the merge flag without yielding to any other merge in between; existingRuntime must not create a runtime.",
       "verification_method": "unit test including the double-call re-entrancy case and two leads finishing together, asserting that only one merge runs and the other is merged by the next sweep",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -273,7 +273,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Five observable runtime fields on the Windows thread runtime, driving the pill and the sidebar.",
       "verification_method": "interaction test observing the pill at start",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -297,7 +297,7 @@
       "cancellation": "The defer runs on any unwind.",
       "windows_path": "try/finally equivalent around the whole merge.",
       "verification_method": "unit test over each early-return path",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -319,7 +319,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Await the in-flight landing promise before snapshotting the working tree.",
       "verification_method": "interaction test with a landing in flight",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -342,7 +342,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Windows path handling for the worktree directory; the same precedence.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -363,7 +363,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "unit test: an own checkout with no sendable paths but a held file records a hold, and one with neither falls to the no-groups branch",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -386,7 +386,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Longest-prefix match on Windows paths; case-insensitivity of the Windows filesystem is a platform boundary the relative() helper must decide.",
       "verification_method": "unit test with nested project roots",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -411,7 +411,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same, one pass per owning project.",
       "verification_method": "integration test with two sidebar projects",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -433,7 +433,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two-part filter.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -455,7 +455,7 @@
       "cancellation": "not cancellable",
       "windows_path": "PLATFORM BOUNDARY. The macOS roots /tmp, /private/tmp, /var/folders, /private/var/folders and ~/Library have no Windows counterpart. Windows must use the worktrees directory, the process temp directory (%TEMP%), and the equivalent of a dot-folder directly under the user profile. The /private double-spelling rule is a macOS artifact with no Windows analogue. Record the chosen Windows root set explicitly; do not invent extra roots.",
       "verification_method": "unit test over the Windows root set, plus a recorded deviation note",
-      "status": "DISCOVERED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -476,7 +476,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Verbatim string; the paths are whatever form the outside list holds (absolute, possibly Windows-style).",
       "verification_method": "unit test for 1, 6 and 7 paths",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -500,7 +500,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same, with one timestamp shared by every head in the batch, and the settlement only after a .held last record.",
       "verification_method": "restart test: after this path a second merge finds no work; plus a test whose last record is .held asserting the .settled record and the exact note",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -523,7 +523,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same record shape and exact strings; taskbar badge in place of the Dock badge.",
       "verification_method": "contract fixture on the note's exact text",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -549,7 +549,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One helper is enough.",
       "verification_method": "contract fixture with two projects",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -574,7 +574,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same sequential loop and same abort-before-marking rule.",
       "verification_method": "integration test with a failing second project",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -596,7 +596,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "restart test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -618,7 +618,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same exact strings.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -672,7 +672,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two probes.",
       "verification_method": "integration test against a non-repo folder",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -694,7 +694,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same strings; note the record detail joins title and body with \": \" while the note keeps them apart.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -717,7 +717,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The six git-dir markers are filenames inside .git; portable as-is.",
       "verification_method": "integration test with a rebase in progress",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -742,7 +742,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same strings and the same record/note divergence.",
       "verification_method": "contract fixture plus an integration test with a conflicted file",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -767,7 +767,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same byte scan. Windows line endings do not change the rule: the marker sequence is LF-prefixed, so a CRLF file whose marker line ends \\r\\n still matches, because the \\n before \"<<<<<<< \" is the previous line's LF. Keep the exact 4,000,000 limit.",
       "verification_method": "unit test with CRLF and LF fixtures, a first-line marker, a 4,000,001-byte file and a missing file",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -795,7 +795,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Scratch index file in a Windows temp path; GIT_INDEX_FILE works the same. NUL-separated pathspec stdin is portable.",
       "verification_method": "contract fixture on the argv, plus integration tests for the alreadyOnMain case and for a sibling claim that appears before the post-snapshot check",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -820,7 +820,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Parse on a worker thread; the diff argv is the Git layer's.",
       "verification_method": "unit test of the empty-patch fallback",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -843,7 +843,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same limit of 72 and the same single-line cleanup.",
       "verification_method": "unit test on the subject derivation",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -867,7 +867,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three-letter change codes and the same fall-through rule.",
       "verification_method": "unit test with a stub engine returning nil, \"\" and text",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -888,7 +888,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Verbatim strings and the exact limit of 100.",
       "verification_method": "unit test for the untitled case and the no-heads case",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -914,7 +914,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same resolution order.",
       "verification_method": "integration test on a feature branch, on main and in a detached HEAD",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -936,7 +936,7 @@
       "cancellation": "not cancellable",
       "windows_path": "isLetter/isNumber must stay Unicode-aware (a CJK title slugs to its own characters, not to dashes).",
       "verification_method": "unit test with an untitled chat, a punctuation-only title, a 60-character title and a non-ASCII title",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -962,7 +962,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same argv and the same deliberate absence of identity overrides.",
       "verification_method": "contract fixture on the argv and environment",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -984,7 +984,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same strings; the check is a second rev-parse, not a lock.",
       "verification_method": "integration test committing in the checkout mid-merge",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1009,7 +1009,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same argv, including the empty-string old value.",
       "verification_method": "contract fixture on the argv plus an integration test racing the ref",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1034,7 +1034,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same argv and NUL stdin.",
       "verification_method": "integration test on a feature branch checking `git status` afterwards",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1060,7 +1060,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same argv and timeout; credential helpers are the platform's.",
       "verification_method": "contract fixture on the argv",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1081,7 +1081,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same order.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1105,7 +1105,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Verbatim except the opening line, which is \"Opened by Marrow once its Hydra team finished.\" by owner ruling OD-0008 B10. Keep the U+2212 minus and the U+2026 ellipsis.",
       "verification_method": "contract fixture comparing the body byte for byte, with the ruled opening line",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1136,7 +1136,7 @@
       "cancellation": "not cancellable",
       "windows_path": "glab/gh/tea resolved on the Windows PATH, including .exe and .cmd shims. `which` becomes the Windows PATH/PATHEXT lookup.",
       "verification_method": "contract fixture on the routing decision",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1160,7 +1160,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same argv, same order. Argument quoting for a body containing newlines and quotes is a Windows process-spawn boundary: pass the vector without a shell.",
       "verification_method": "contract fixture on the exact argv",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1183,7 +1183,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same stripping. Do not log the argument vector without redaction.",
       "verification_method": "unit test with https://user:pass@host/group/project",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1210,7 +1210,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same command, same 30-second timeout, same throw-means-continue rule.",
       "verification_method": "contract fixture with a stubbed glab",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1234,7 +1234,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same single retry, same order.",
       "verification_method": "contract fixture with a stubbed glab returning 401 then success",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1263,7 +1263,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Ship the string byte for byte. The backticked `glab auth login --hostname <host>` is the same command on Windows and is not to be rewritten for PowerShell, and GITLAB_TOKEN is the same environment variable name; only the user's way of exporting it differs, which the string does not mention.",
       "verification_method": "contract fixture asserting the rendered localizedDescription character for character for both throw sites",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1290,7 +1290,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the bare rendering. Do not add a prefix to make the two cases consistent.",
       "verification_method": "contract fixture with a stubbed glab failing for a non-auth reason, asserting the rendered text equals the stub's combined output exactly",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1310,7 +1310,7 @@
       "cancellation": "n/a",
       "windows_path": "Same substrings and the same join order.",
       "verification_method": "unit test over each matching and non-matching form",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1335,7 +1335,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same, with \"--recover\" appended last.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1357,7 +1357,7 @@
       "cancellation": "n/a",
       "windows_path": "Same regex and the same https-only restriction. On Windows, CRLF output means \\S+ still stops at the \\r, which would be included by \\S; treat \\r as whitespace only if the shell layer already normalizes it, and record the choice.",
       "verification_method": "unit test with LF and CRLF glab output",
-      "status": "DISCOVERED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1380,7 +1380,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same strings and the same backtick asymmetry.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1405,7 +1405,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same strings and the same three link shapes.",
       "verification_method": "unit test over each link shape and a contract fixture on the note",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1433,7 +1433,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same argv (including --squash --remove-source-branch on GitLab), timeouts and retry arithmetic including the wasted final sleep.",
       "verification_method": "contract fixture on the argv and a unit test on the retry timing",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "76",
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1457,7 +1457,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same strings and the same label rule per forge.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1480,7 +1480,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Byte-exact, including U+2212. Do NOT substitute an ASCII hyphen: the popover's regex accepts only U+2212 here.",
       "verification_method": "contract fixture comparing bytes, plus a round-trip test through HydraMergeNote.parse",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1503,7 +1503,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Byte-exact, including the em dash U+2014 and the literal word \"Heads\".",
       "verification_method": "contract fixture plus a round trip through HydraMergeNote.parse",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1528,7 +1528,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same silence.",
       "verification_method": "contract fixture asserting the note has no such line",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1554,7 +1554,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same exact strings.",
       "verification_method": "contract fixture on both strings",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1580,7 +1580,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same guards and the same four-step order. The positional-zip truncation must be reproduced, not repaired.",
       "verification_method": "integration test covering each decline branch and the happy path",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "80",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1605,7 +1605,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same guards; never a non-fast-forward pull.",
       "verification_method": "integration test with a lead in a worktree",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1627,7 +1627,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same, including the missing trailing stop on the success title.",
       "verification_method": "contract fixture and a restart test reading the record back",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1652,7 +1652,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the asymmetry exactly.",
       "verification_method": "contract fixture with two projects asserting the record lacks the prefix",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "36",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1673,7 +1673,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1697,7 +1697,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same predicate.",
       "verification_method": "unit test over a head with mergedAt set, a head with a patchPath landing, a head with an error landing, and a head with a clean landing, where the last merged lead turn started after every head finished",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1721,7 +1721,7 @@
       "cancellation": "not cancellable",
       "windows_path": "PLATFORM BOUNDARY. The absoluteness test is Unix-shaped: a leading \"/\" or \"~\". On Windows an absolute path is \"C:\\\\...\", \"\\\\\\\\server\\\\share\" or a leading \"\\\\\". The Windows port must extend this test or every absolute Windows path would be joined onto headRoot. The \"://\" test for URLs must stay, and note it would also match a Windows path containing \"://\", which cannot occur.",
       "verification_method": "unit test over Unix-style, drive-letter, UNC and relative paths",
-      "status": "DISCOVERED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1743,7 +1743,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two-list behavior.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1767,7 +1767,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same live/cold split and the same off-main decode.",
       "verification_method": "integration test with a cold native head",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1788,7 +1788,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same roster and the same limit of 120.",
       "verification_method": "unit test over an index past the roster length",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1811,7 +1811,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Extend the absoluteness test for Windows paths exactly as in PR-HYDRAMERGE-069, and keep the two tests consistent.",
       "verification_method": "unit",
-      "status": "DISCOVERED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1833,7 +1833,7 @@
       "cancellation": "not cancellable",
       "windows_path": "TouchedPaths.relative and isBuildOutput are the platform boundary for path comparison; Windows case-insensitivity and separator normalization belong there, not here.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1858,7 +1858,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two maps, same owner titles, and the same asymmetry between heads (record-based, works cold) and chats (runtime-based, live only).",
       "verification_method": "integration test with several chats in one project: a running head, a finished head whose lead is archived, and a live chat with an interrupted turn, asserting the reserved and blocking maps and their owner titles",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1883,7 +1883,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three reads and the same silent skip.",
       "verification_method": "integration test with a shell-written file",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1909,7 +1909,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same order. File existence on Windows is case-insensitive while git's tracked list is case-sensitive; record which one decides.",
       "verification_method": "unit test over each filter plus an integration test with a deleted tracked file",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "80",
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1933,7 +1933,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same ordering rules: paths sorted, head files in collection order.",
       "verification_method": "unit test over a turn and a head that each touch one claimed and one free file, asserting both stay unbooked and held names the holder",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2085,7 +2085,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same id-consuming rule; the empty hydraHeads list is what makes it a merge note rather than a head note.",
       "verification_method": "interaction test watching the pill morph",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2107,7 +2107,7 @@
       "cancellation": "not cancellable",
       "windows_path": "PLATFORM BOUNDARY. NSApp.isActive becomes the Windows foreground-window check for the app; the Dock badge becomes the taskbar overlay badge and the jump-list/taskbar count; the notification becomes a Windows toast. The title/body swap (thread title as the notification title, note title as the body) must be preserved.",
       "verification_method": "interaction test with the window backgrounded and foregrounded",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2700,7 +2700,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Evaluate the same readiness predicate after awaiting the landing and before gathering any path.",
       "verification_method": "interaction test: make the lead not ready (queue a send) while a head landing is in flight; assert no record, no note, no commit, and that the merging pill disappears",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2725,7 +2725,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same join into absolute paths and the same return before pruning; build the key with the platform path join.",
       "verification_method": "integration test with two sidebar projects where only the second holds a file a live sibling chat claims: assert no commit in either checkout, no marking, and one hold note",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2753,7 +2753,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same condition, record and exact strings.",
       "verification_method": "integration test: a job whose files were committed by hand ends with one .settled record and the exact note; with a nonzero unmerged count nothing is recorded",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2779,7 +2779,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same de-duplication on the last record and the same exact strings.",
       "verification_method": "unit test calling it twice with the same map (one record, one note), then with a changed map (a second record and note), then with a map of the same size and holders that differs only beyond the sixth sorted path (no record, no note)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2799,7 +2799,7 @@
       "cancellation": "n/a",
       "windows_path": "Same sort as Swift's String sorted(), the same six-path cap and the exact wording.",
       "verification_method": "unit test with one file and one holder, and with eight files and two holders",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2823,7 +2823,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two checks in the same place: after the tree capture, before the HEAD comparison.",
       "verification_method": "integration test: give a sibling chat a live, uncompleted turn touching one of the team's files before the check runs; assert a hold note and no commit, ref or push",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2847,7 +2847,7 @@
       "cancellation": "n/a",
       "windows_path": "Same exceptions, evaluated per reservation with the same predicates.",
       "verification_method": "unit test over two finished, idle, eligible leads sharing a file: the lower-uuidString lead sees no blocking claim, the higher one is blocked; repeat with the competing head stopped, which blocks both",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2867,7 +2867,7 @@
       "cancellation": "n/a",
       "windows_path": "Same conjunction in the same order.",
       "verification_method": "unit test toggling each condition in turn",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2888,7 +2888,7 @@
       "cancellation": "n/a",
       "windows_path": "Same test over the team.",
       "verification_method": "unit test over a head with a patchPath landing, one with an error landing, one with a clean landing and one with no files",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2909,7 +2909,7 @@
       "cancellation": "n/a",
       "windows_path": "Compare the same textual form Foundation's uuidString gives (36 characters, hyphenated, uppercase hex), with the same string comparison; another case or format would change the order.",
       "verification_method": "unit test over pairs of ids that differ only in a digit versus a letter position",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2930,7 +2930,7 @@
       "cancellation": "n/a",
       "windows_path": "Same order of tests and one shared 259200-second window for the sweep and this predicate.",
       "verification_method": "unit test over a running lead, an idle lead updated just outside the window, an idle lead inside the window with only landed head work, and a cold lead with lastStatus .completed",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3728,7 +3728,8 @@
       "source_evidence": [
         "DroppyCode/App/AppModel+HydraMerge.swift:868-874"
       ],
-      "notes": "The title and body are swapped relative to what a reader expects: the CHAT title is the notification title and the NOTE title is the body."
+      "notes": "The title and body are swapped relative to what a reader expects: the CHAT title is the notification title and the NOTE title is the body.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRAMERGE-033",
@@ -3748,7 +3749,8 @@
       "source_evidence": [
         "DroppyCode/App/AppModel+HydraMerge.swift:870-871"
       ],
-      "notes": "On Windows this is the taskbar overlay badge; the count comes from the same unread bookkeeping."
+      "notes": "On Windows this is the taskbar overlay badge; the count comes from the same unread bookkeeping.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRAMERGE-034",
@@ -3778,7 +3780,8 @@
         "upstream": "The description begins \"Opened by Droppy Code once its Hydra team finished.\" (DroppyCode/App/AppModel+HydraMerge.swift:775).",
         "port": "The description begins \"Opened by Marrow once its Hydra team finished.\""
       },
-      "b2_change": "Citation re-anchored, behaviour unchanged at B2: B1 AppModel+HydraMerge.swift:626-650 -> B2 :775-798."
+      "b2_change": "Citation re-anchored, behaviour unchanged at B2: B1 AppModel+HydraMerge.swift:626-650 -> B2 :775-798.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRAMERGE-035",
@@ -3804,7 +3807,8 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:802-808",
         "DroppyCode/App/Views/Chat/TimelineRows.swift:1099-1120"
       ],
-      "notes": "The report text is the hold detail followed by the two fixed sentences; the paths are absolute and keep their backticks in the note text."
+      "notes": "The report text is the hold detail followed by the two fixed sentences; the paths are absolute and keep their backticks in the note text.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRAMERGE-036",
@@ -3828,7 +3832,8 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:802-808",
         "DroppyCode/App/Views/Chat/TimelineRows.swift:1099-1120"
       ],
-      "notes": "Its record has outcome .settled; the lead's next merge-state line reads from it (PR-HYDRAMERGE-083)."
+      "notes": "Its record has outcome .settled; the lead's next merge-state line reads from it (PR-HYDRAMERGE-083).",
+      "status": "IMPLEMENTED"
     }
   ]
 }

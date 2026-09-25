@@ -2033,7 +2033,8 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:802-807",
         "DroppyCode/App/Views/Chat/TimelineRows.swift:248-254"
       ],
-      "notes": "The stored title ends with a full stop (\"Hydra is waiting for another chat's files.\"); the pill shows the first line without that one trailing full stop (withoutTrailingStop). The settle note is UI-CHAT-084. The held body starts with the heldDetail sentence, with the holding chats' names and up to six paths in backticks (PR-CHAT-189). The apostrophe is U+0027."
+      "notes": "The stored title ends with a full stop (\"Hydra is waiting for another chat's files.\"); the pill shows the first line without that one trailing full stop (withoutTrailingStop). The settle note is UI-CHAT-084. The held body starts with the heldDetail sentence, with the holding chats' names and up to six paths in backticks (PR-CHAT-189). The apostrophe is U+0027.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "CHAT",
@@ -2058,7 +2059,8 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:802-807",
         "DroppyCode/App/Views/Chat/TimelineRows.swift:248-254"
       ],
-      "notes": "The stored title ends with a full stop (\"Hydra has no files left to merge.\"); the pill shows the first line without that one trailing full stop (withoutTrailingStop). When it is posted: PR-CHAT-189. Split from UI-CHAT-083, which held both notes."
+      "notes": "The stored title ends with a full stop (\"Hydra has no files left to merge.\"); the pill shows the first line without that one trailing full stop (withoutTrailingStop). When it is posted: PR-CHAT-189. Split from UI-CHAT-083, which held both notes.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "COMPOSER",
@@ -7958,7 +7960,8 @@
       "source_evidence": [
         "DroppyCode/App/AppModel+HydraMerge.swift:868-874"
       ],
-      "notes": "The title and body are swapped relative to what a reader expects: the CHAT title is the notification title and the NOTE title is the body."
+      "notes": "The title and body are swapped relative to what a reader expects: the CHAT title is the notification title and the NOTE title is the body.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "HYDRAMERGE",
@@ -7979,7 +7982,8 @@
       "source_evidence": [
         "DroppyCode/App/AppModel+HydraMerge.swift:870-871"
       ],
-      "notes": "On Windows this is the taskbar overlay badge; the count comes from the same unread bookkeeping."
+      "notes": "On Windows this is the taskbar overlay badge; the count comes from the same unread bookkeeping.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "HYDRAMERGE",
@@ -8010,7 +8014,8 @@
         "upstream": "The description begins \"Opened by Droppy Code once its Hydra team finished.\" (DroppyCode/App/AppModel+HydraMerge.swift:775).",
         "port": "The description begins \"Opened by Marrow once its Hydra team finished.\""
       },
-      "b2_change": "Citation re-anchored, behaviour unchanged at B2: B1 AppModel+HydraMerge.swift:626-650 -> B2 :775-798."
+      "b2_change": "Citation re-anchored, behaviour unchanged at B2: B1 AppModel+HydraMerge.swift:626-650 -> B2 :775-798.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "HYDRAMERGE",
@@ -8037,7 +8042,8 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:802-808",
         "DroppyCode/App/Views/Chat/TimelineRows.swift:1099-1120"
       ],
-      "notes": "The report text is the hold detail followed by the two fixed sentences; the paths are absolute and keep their backticks in the note text."
+      "notes": "The report text is the hold detail followed by the two fixed sentences; the paths are absolute and keep their backticks in the note text.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "HYDRAMERGE",
@@ -8062,7 +8068,8 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:802-808",
         "DroppyCode/App/Views/Chat/TimelineRows.swift:1099-1120"
       ],
-      "notes": "Its record has outcome .settled; the lead's next merge-state line reads from it (PR-HYDRAMERGE-083)."
+      "notes": "Its record has outcome .settled; the lead's next merge-state line reads from it (PR-HYDRAMERGE-083).",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "LAUNCH",
