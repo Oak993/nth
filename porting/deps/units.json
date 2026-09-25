@@ -8530,56 +8530,8 @@
     "App.Views.Chat.ChatBadge"
    ],
    "records_total": 22,
-   "records_todo": [
-    "PR-COMPOSER-188",
-    "PR-COMPOSER-189",
-    "PR-COMPOSER-190",
-    "PR-COMPOSER-191",
-    "PR-COMPOSER-192",
-    "PR-COMPOSER-193",
-    "PR-COMPOSER-194",
-    "PR-COMPOSER-195",
-    "PR-COMPOSER-196",
-    "PR-COMPOSER-197",
-    "PR-COMPOSER-198",
-    "UI-COMPOSER-066",
-    "UI-COMPOSER-067",
-    "UI-COMPOSER-068",
-    "UI-COMPOSER-069",
-    "UI-COMPOSER-070",
-    "UI-COMPOSER-071",
-    "UI-COMPOSER-072",
-    "UI-COMPOSER-073",
-    "UI-COMPOSER-074",
-    "UI-COMPOSER-075",
-    "UI-COMPOSER-076"
-   ],
-   "parts": [
-    [
-     "PR-COMPOSER-188",
-     "PR-COMPOSER-189",
-     "PR-COMPOSER-190",
-     "PR-COMPOSER-191",
-     "PR-COMPOSER-192",
-     "PR-COMPOSER-193",
-     "PR-COMPOSER-194",
-     "PR-COMPOSER-195",
-     "PR-COMPOSER-196",
-     "PR-COMPOSER-197",
-     "PR-COMPOSER-198",
-     "UI-COMPOSER-066",
-     "UI-COMPOSER-067",
-     "UI-COMPOSER-068",
-     "UI-COMPOSER-069",
-     "UI-COMPOSER-070",
-     "UI-COMPOSER-071",
-     "UI-COMPOSER-072",
-     "UI-COMPOSER-073",
-     "UI-COMPOSER-074",
-     "UI-COMPOSER-075",
-     "UI-COMPOSER-076"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M7-107",
     "T-M7-108",
@@ -8587,7 +8539,7 @@
     "T-M7-110"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "App.Views.Composer.RequestCards",

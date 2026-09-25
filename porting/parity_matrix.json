@@ -7,9 +7,9 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "IMPLEMENTED": 2987,
+      "IMPLEMENTED": 2998,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
-      "SPECIFIED": 914,
+      "SPECIFIED": 903,
       "RETIRED": 6,
       "DISCOVERED": 6
     },
@@ -9161,7 +9161,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Verbatim strings; icons follow OD-0010 (SF Symbols map to Lucide through the published symbol-by-symbol table).",
       "verification_method": "capture comparison with one and three questions",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -9186,7 +9186,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same measure-once approach; a scroll view offered no height collapses, so the height must be given outright.",
       "verification_method": "capture comparison with a short and a very long question",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -9208,7 +9208,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Case- and locale-insensitive containment, matching the macOS localizedCaseInsensitiveContains semantics.",
       "verification_method": "unit test over labels with varied casing",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -9230,7 +9230,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Verbatim suffix including the space and the parentheses, compared case-insensitively.",
       "verification_method": "unit test of bareLabel over four label shapes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -9254,7 +9254,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same four symbols and the same keying by index; icons follow OD-0010 (SF Symbols map to Lucide through the published symbol-by-symbol table).",
       "verification_method": "interaction test with two identically labelled choices",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -9276,7 +9276,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Verbatim placeholders; the secret field must disable clipboard reveal and password-manager offers. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "verification_method": "capture comparison of the three field cases",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -9299,7 +9299,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same delay and the same two exclusions.",
       "verification_method": "interaction test across three questions",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -9321,7 +9321,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Verbatim counter format and tooltip. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "verification_method": "capture comparison at page 2 of 4",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -9349,7 +9349,7 @@
       "cancellation": "Skip is the cancellation path and lets the agent carry on.",
       "windows_path": "Verbatim strings; the default action maps to the dialog's default button.",
       "verification_method": "interaction test across a two-question request",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -9373,7 +9373,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same composition and ordering.",
       "verification_method": "unit test of collect and unansweredCount",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -9396,7 +9396,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same ordering: close, then answer.",
       "verification_method": "capture comparison of the badge's departure",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
