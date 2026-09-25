@@ -7,9 +7,9 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "IMPLEMENTED": 2755,
+      "IMPLEMENTED": 2759,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
-      "SPECIFIED": 1142,
+      "SPECIFIED": 1138,
       "RETIRED": 6,
       "DISCOVERED": 10
     },
@@ -31767,7 +31767,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep the guard; a failing re-check must not reopen the browser.",
       "verification_method": "interaction test pressing Check again twice and asserting one browser tab",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -31793,7 +31793,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same top-anchored resize. Note macOS y coordinates grow upward; on Windows the equivalent is keeping the top edge and extending the bottom.",
       "verification_method": "interaction test driving a failed re-check and asserting the top edge does not move",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -31818,7 +31818,7 @@
       "cancellation": "the probe is cancellable by other actions",
       "windows_path": "Verbatim strings, including the trailing space inside \"Still off on the server's side. \" before the note.",
       "verification_method": "interaction test driving a failing re-check and a failing probe",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -31845,7 +31845,7 @@
       "cancellation": "the 1.2-second task is not cancelled if the user closes the panel first",
       "windows_path": "Same delay, the same spring and the same middle-dot string. The count is read from the connected state, so a zero-tool server reads \"Connected · 0 tools\".",
       "verification_method": "interaction test asserting the panel closes 1.2 seconds after connecting",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,

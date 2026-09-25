@@ -4,6 +4,8 @@ using Avalonia;
 using Avalonia.Controls;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
+using Marrow.UI.Chrome;
+using Marrow.UI.Port;
 
 namespace Marrow.App.Views.Settings;
 
@@ -165,6 +167,20 @@ internal sealed class FlowLayout : Panel
 public sealed class MCPIcon : Decorator
 {
     // :1125-1126 let entry, var size: CGFloat = 20; :1128-1135 body
-    public MCPIcon(MCPCatalogEntry entry, double size = 20) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Settings/MCPSettingsPage.swift:1128");
+    public MCPIcon(MCPCatalogEntry entry, double size = 20)
+    {
+        // :1138-1140 A custom server has no asset of its own (asset == ""): a symbol stands in for it.
+        var image = entry.Asset.Length == 0 ? SwiftImage.SystemName("server.rack") : SwiftImage.Named(entry.Asset);
+        var color = entry.Asset.Length == 0 || entry.IsMonochrome
+            ? Chrome.PrimaryText
+            : SwiftColor.Rgb(entry.ColorValue); // :92 entry.color, Core/Models/MCP.swift:255-263 Color(rgb:)
+        image
+            .Resizable()
+            .RenderingMode(ImageRenderingMode.Template)
+            .AspectRatio(ContentMode.Fit)
+            .ForegroundStyle(color);
+        image.Width = size;
+        image.Height = size;
+        Child = image;
+    }
 }

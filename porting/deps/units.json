@@ -10393,49 +10393,15 @@
     "App.Views.Settings.MCPSettingsPage"
    ],
    "records_total": 15,
-   "records_todo": [
-    "PR-MCP-220",
-    "PR-MCP-221",
-    "PR-MCP-222",
-    "PR-MCP-223",
-    "UI-MCP-078",
-    "UI-MCP-079",
-    "UI-MCP-080",
-    "UI-MCP-081",
-    "UI-MCP-082",
-    "UI-MCP-083",
-    "UI-MCP-084",
-    "UI-MCP-085",
-    "UI-MCP-086",
-    "UI-MCP-087",
-    "UI-MCP-088"
-   ],
-   "parts": [
-    [
-     "PR-MCP-220",
-     "PR-MCP-221",
-     "PR-MCP-222",
-     "PR-MCP-223",
-     "UI-MCP-078",
-     "UI-MCP-079",
-     "UI-MCP-080",
-     "UI-MCP-081",
-     "UI-MCP-082",
-     "UI-MCP-083",
-     "UI-MCP-084",
-     "UI-MCP-085",
-     "UI-MCP-086",
-     "UI-MCP-087",
-     "UI-MCP-088"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M7-154",
     "T-M7-155",
     "T-M7-156"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "App.Views.Settings.ModelsSettingsPage",
