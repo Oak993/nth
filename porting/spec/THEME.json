@@ -3445,7 +3445,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Platform boundary: a rich text control that supports per-run attributes, hit testing by point, temporary colour overlays for the veil (PR-THEME-150) and a zero content inset. Automatic link detection must be off, or Windows will linkify text the grammar deliberately left alone.",
       "verification_method": "interaction test: hover a link and prose; unit: underline style is zero",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3468,7 +3468,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The icon must be an inline run inside the text, not a separate view, so it wraps and selects with the link. The one space is part of the text and is included in a selection.",
       "verification_method": "capture comparison: icon baseline against the text; unit: the space is present only with an icon",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3491,7 +3491,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Bold-over-italic is a real behaviour, not a bug to fix: there is no bold-italic face in this path.",
       "verification_method": "unit: a run marked both emphasized and strongly emphasized is bold and upright",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3517,7 +3517,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The custom attribute name \"droppycode.hydraHead\" is a string constant that both the builder and the hit tester use; keep it exactly. Do NOT model this run as a hyperlink in the Windows text control: the whole point of the custom key is that the platform's own link styling (accent recolouring, hand cursor) must not apply. The SwiftUI Text path takes the opposite decision for its own reasons and is specified separately in PR-THEME-177.",
       "verification_method": "unit: longest-first word-bounded matching and the attribute key on both the attachment and the name run; interaction test that the pointer stays an arrow over a mention",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3574,7 +3574,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Opening an external URL hands it to the Windows shell. Note the head-mention click is intercepted before the text view sees it, which is why it does not disturb the selection.",
       "verification_method": "interaction test: a mention click does not move the caret",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3603,7 +3603,7 @@
       "cancellation": "Escape and an outside click both close it.",
       "windows_path": "Platform boundary: a light-dismiss flyout anchored to a text range's bounds. Escape must be handled by a monitor rather than by focus, because the rows take no focus.",
       "verification_method": "interaction test: right-clicking a link does not change the selection; Escape closes the popover",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3772,7 +3772,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The live-resize deferral is a fix for a visible height oscillation; reproduce it on the Windows resize loop.",
       "verification_method": "interaction test: dragging the window edge does not make paragraphs jitter between two heights",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4473,7 +4473,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The native path writes `NSColor.labelColor.withAlphaComponent(0.7)` while the SwiftUI paths write `Color.primary.opacity(0.7)` or Chrome.secondaryText (`primaryText.opacity(0.7)`); the two constructions are reproduced as written. Their resolved macOS values were not measured (OD-0001), so the rendered match between them is UNVERIFIED. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal is superseded for this token.",
       "verification_method": "unit: a dimmed paragraph's attributed string carries the label colour at alpha 0.7 on prose and on the spaces after a favicon and a head glyph, no foreground colour on link runs, and the persona colour on head names",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5537,7 +5537,8 @@
         "DroppyCode/UI/Markdown/LinkParagraphView.swift:481-496",
         "DroppyCode/UI/Markdown/StreamVeil.swift:409-430"
       ],
-      "notes": "Links are never underlined and always bold. The favicon is drawn only from the cache; the first render of a new host has no icon."
+      "notes": "Links are never underlined and always bold. The favicon is drawn only from the cache; the first render of a new host has no icon.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-THEME-041",
@@ -5559,7 +5560,8 @@
         "DroppyCode/UI/Markdown/LinkParagraphView.swift:135-145",
         "DroppyCode/UI/Markdown/MarkdownView.swift:955-1098"
       ],
-      "notes": "Stored as a 28 pixel bitmap declared at 14 points, so it is a two-times asset. Hosts that are private or local never get one and are never requested."
+      "notes": "Stored as a 28 pixel bitmap declared at 14 points, so it is a two-times asset. Hosts that are private or local never get one and are never requested.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-THEME-042",
@@ -5671,7 +5673,8 @@
         "DroppyCode/UI/Markdown/MarkdownView.swift:489-493"
       ],
       "notes": "Carries the custom attribute \"droppycode.hydraHead\" rather than a link attribute, precisely so it does not get the accent colour or the pointing hand. Head mention runs never veil while streaming.",
-      "b2_change": "Text-path glyph `let size = 16 * zoom` (B1 MarkdownView.swift:491) -> `let size: CGFloat = 16` (B2 :490). The native path and colours are unchanged."
+      "b2_change": "Text-path glyph `let size = 16 * zoom` (B1 MarkdownView.swift:491) -> `let size: CGFloat = 16` (B2 :490). The native path and colours are unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-THEME-047",

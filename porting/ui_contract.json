@@ -21058,7 +21058,8 @@
         "DroppyCode/UI/Markdown/LinkParagraphView.swift:481-496",
         "DroppyCode/UI/Markdown/StreamVeil.swift:409-430"
       ],
-      "notes": "Links are never underlined and always bold. The favicon is drawn only from the cache; the first render of a new host has no icon."
+      "notes": "Links are never underlined and always bold. The favicon is drawn only from the cache; the first render of a new host has no icon.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "THEME",
@@ -21081,7 +21082,8 @@
         "DroppyCode/UI/Markdown/LinkParagraphView.swift:135-145",
         "DroppyCode/UI/Markdown/MarkdownView.swift:955-1098"
       ],
-      "notes": "Stored as a 28 pixel bitmap declared at 14 points, so it is a two-times asset. Hosts that are private or local never get one and are never requested."
+      "notes": "Stored as a 28 pixel bitmap declared at 14 points, so it is a two-times asset. Hosts that are private or local never get one and are never requested.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "THEME",
@@ -21198,7 +21200,8 @@
         "DroppyCode/UI/Markdown/MarkdownView.swift:489-493"
       ],
       "notes": "Carries the custom attribute \"droppycode.hydraHead\" rather than a link attribute, precisely so it does not get the accent colour or the pointing hand. Head mention runs never veil while streaming.",
-      "b2_change": "Text-path glyph `let size = 16 * zoom` (B1 MarkdownView.swift:491) -> `let size: CGFloat = 16` (B2 :490). The native path and colours are unchanged."
+      "b2_change": "Text-path glyph `let size = 16 * zoom` (B1 MarkdownView.swift:491) -> `let size: CGFloat = 16` (B2 :490). The native path and colours are unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "THEME",

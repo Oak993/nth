@@ -7,9 +7,9 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "IMPLEMENTED": 2791,
+      "IMPLEMENTED": 2799,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
-      "SPECIFIED": 1106,
+      "SPECIFIED": 1098,
       "RETIRED": 6,
       "DISCOVERED": 10
     },
@@ -86935,7 +86935,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Platform boundary: a rich text control that supports per-run attributes, hit testing by point, temporary colour overlays for the veil (PR-THEME-150) and a zero content inset. Automatic link detection must be off, or Windows will linkify text the grammar deliberately left alone.",
       "verification_method": "interaction test: hover a link and prose; unit: underline style is zero",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -86959,7 +86959,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The icon must be an inline run inside the text, not a separate view, so it wraps and selects with the link. The one space is part of the text and is included in a selection.",
       "verification_method": "capture comparison: icon baseline against the text; unit: the space is present only with an icon",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -86983,7 +86983,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Bold-over-italic is a real behaviour, not a bug to fix: there is no bold-italic face in this path.",
       "verification_method": "unit: a run marked both emphasized and strongly emphasized is bold and upright",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -87010,7 +87010,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The custom attribute name \"droppycode.hydraHead\" is a string constant that both the builder and the hit tester use; keep it exactly. Do NOT model this run as a hyperlink in the Windows text control: the whole point of the custom key is that the platform's own link styling (accent recolouring, hand cursor) must not apply. The SwiftUI Text path takes the opposite decision for its own reasons and is specified separately in PR-THEME-177.",
       "verification_method": "unit: longest-first word-bounded matching and the attribute key on both the attachment and the name run; interaction test that the pointer stays an arrow over a mention",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -87069,7 +87069,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Opening an external URL hands it to the Windows shell. Note the head-mention click is intercepted before the text view sees it, which is why it does not disturb the selection.",
       "verification_method": "interaction test: a mention click does not move the caret",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -87099,7 +87099,7 @@
       "cancellation": "Escape and an outside click both close it.",
       "windows_path": "Platform boundary: a light-dismiss flyout anchored to a text range's bounds. Escape must be handled by a monitor rather than by focus, because the rows take no focus.",
       "verification_method": "interaction test: right-clicking a link does not change the selection; Escape closes the popover",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -87274,7 +87274,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The live-resize deferral is a fix for a visible height oscillation; reproduce it on the Windows resize loop.",
       "verification_method": "interaction test: dragging the window edge does not make paragraphs jitter between two heights",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -88003,7 +88003,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The native path writes `NSColor.labelColor.withAlphaComponent(0.7)` while the SwiftUI paths write `Color.primary.opacity(0.7)` or Chrome.secondaryText (`primaryText.opacity(0.7)`); the two constructions are reproduced as written. Their resolved macOS values were not measured (OD-0001), so the rendered match between them is UNVERIFIED. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal is superseded for this token.",
       "verification_method": "unit: a dimmed paragraph's attributed string carries the label colour at alpha 0.7 on prose and on the spaces after a favicon and a head glyph, no foreground colour on link runs, and the persona colour on head names",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,

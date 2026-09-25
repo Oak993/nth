@@ -12747,40 +12747,14 @@
     "UI.Markdown.StreamVeil"
    ],
    "records_total": 11,
-   "records_todo": [
-    "PR-THEME-140",
-    "PR-THEME-141",
-    "PR-THEME-142",
-    "PR-THEME-143",
-    "PR-THEME-145",
-    "PR-THEME-146",
-    "PR-THEME-152",
-    "PR-THEME-180",
-    "UI-THEME-040",
-    "UI-THEME-041",
-    "UI-THEME-046"
-   ],
-   "parts": [
-    [
-     "PR-THEME-140",
-     "PR-THEME-141",
-     "PR-THEME-142",
-     "PR-THEME-143",
-     "PR-THEME-145",
-     "PR-THEME-146",
-     "PR-THEME-152",
-     "PR-THEME-180",
-     "UI-THEME-040",
-     "UI-THEME-041",
-     "UI-THEME-046"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M5-047",
     "T-M5-048"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "UI.Markdown.LinkPopover",
