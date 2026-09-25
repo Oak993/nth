@@ -13316,7 +13316,8 @@
         "DroppyCode/Services/Providers/PlanLimits.swift:104-107"
       ],
       "notes": "The plan name for Claude can carry a rate limit tier in parentheses, for example \"Max (20x)\". For Codex it comes from codexPlanName, so a raw type such as prolite renders as \"Pro 5x\".",
-      "b2_change": "UsageViews.swift:18 `.font(.system(size: 13))` (B1) -> `.font(.system(.body))` (B2). Same line numbers at both baselines; nothing else in the element changed."
+      "b2_change": "UsageViews.swift:18 `.font(.system(size: 13))` (B1) -> `.font(.system(.body))` (B2). Same line numbers at both baselines; nothing else in the element changed.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVREG",
@@ -13340,7 +13341,8 @@
         "DroppyCode/App/Views/Usage/UsageViews.swift:21-23",
         "DroppyCode/Services/Providers/ProviderRegistry.swift:617, :629"
       ],
-      "notes": "Unlike the credits spinner, this one cannot hang, because the limits path has a watchdog. The asymmetry is deliberate upstream behavior."
+      "notes": "Unlike the credits spinner, this one cannot hang, because the limits path has a watchdog. The asymmetry is deliberate upstream behavior.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVREG",
@@ -13365,7 +13367,8 @@
         "DroppyCode/Services/Providers/PlanLimits.swift:300-305, :315, :323"
       ],
       "notes": "The separator in the compound titles is U+00B7 with a space either side. A title may additionally carry a provider prefix and a U+00B7 when the reader passed a titlePrefix, which is how Pi labels the limits of the providers it is signed into. The Copilot window titles listed here are produced by the Copilot reader and belong to that area, but they render through this same row.",
-      "b2_change": "UsageViews.swift:148 `.font(.system(size: 13))` (B1) -> `.font(.system(.body))` (B2). Same line numbers at both baselines; nothing else in the element changed."
+      "b2_change": "UsageViews.swift:148 `.font(.system(size: 13))` (B1) -> `.font(.system(.body))` (B2). Same line numbers at both baselines; nothing else in the element changed.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVREG",
@@ -13389,7 +13392,8 @@
         "DroppyCode/App/Views/Usage/UsageViews.swift:179-191"
       ],
       "notes": "The prefix is the literal \"Resets \" with a trailing space. Under 24 hours the text is \"in \", the whole hours, \" hr \", the remaining whole minutes, \" min\"; with zero hours it collapses to \"in \", at least 1, \" min\", so it never reads \"in 0 min\". Under six days it is the abbreviated weekday with hour and minute. Beyond that it is the abbreviated month and day with no time at all. A past date clamps to zero seconds and reads \"in 1 min\".",
-      "b2_change": "UsageViews.swift:154 `.font(.system(size: 12))` (B1) -> `.font(.system(.callout))` (B2). Same line numbers at both baselines; nothing else in the element changed."
+      "b2_change": "UsageViews.swift:154 `.font(.system(size: 12))` (B1) -> `.font(.system(.callout))` (B2). Same line numbers at both baselines; nothing else in the element changed.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVREG",
@@ -13411,7 +13415,8 @@
         "DroppyCode/App/Views/Usage/UsageViews.swift:158-161 `Text(verbatim: \"\\(Int(window.percent.rounded()))%\")` `.font(.system(.callout))` `.foregroundStyle(Chrome.secondaryText)` `.monospacedDigit()`"
       ],
       "notes": "The value is the Double percent rounded to the nearest integer and then truncated to Int, with a percent sign and no space. So 99.6 renders as 100% while the bar is not yet full.",
-      "b2_change": "UsageViews.swift:159 `.font(.system(size: 12))` (B1) -> `.font(.system(.callout))` (B2). Same line numbers at both baselines; nothing else in the element changed."
+      "b2_change": "UsageViews.swift:159 `.font(.system(size: 12))` (B1) -> `.font(.system(.callout))` (B2). Same line numbers at both baselines; nothing else in the element changed.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVREG",
@@ -13435,7 +13440,8 @@
         "DroppyCode/Services/Providers/ZaiAPI.swift:133, :142"
       ],
       "notes": "Do not invent detail strings for any other provider. The two Z.ai formats are a formatted count, the literal \" of \", a formatted count, then \" credits\" or \" calls\".",
-      "b2_change": "UsageViews.swift:165 `.font(.system(size: 11))` (B1) -> `.font(.system(.subheadline))` (B2). Same line numbers at both baselines; nothing else in the element changed."
+      "b2_change": "UsageViews.swift:165 `.font(.system(size: 11))` (B1) -> `.font(.system(.subheadline))` (B2). Same line numbers at both baselines; nothing else in the element changed.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVREG",
@@ -13462,7 +13468,8 @@
         "DroppyCode/App/Views/Usage/UsageViews.swift:373-395",
         "E:/Droppy/port/porting/extracts/chrome-design-tokens.md:260-279"
       ],
-      "notes": "The view takes a FRACTION, and the caller divides the percent by 100, so the two scales must not be confused. The thresholds are compared against the PERCENT, not the fraction. Accessibility: the element is labelled with the window title and its value is the clamped percentage followed by the literal \"% used\", because a bare percentage said nothing about which window it belonged to."
+      "notes": "The view takes a FRACTION, and the caller divides the percent by 100, so the two scales must not be confused. The thresholds are compared against the PERCENT, not the fraction. Accessibility: the element is labelled with the window title and its value is the clamped percentage followed by the literal \"% used\", because a bare percentage said nothing about which window it belonged to.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVREG",
@@ -13485,7 +13492,8 @@
         "DroppyCode/App/Views/Usage/UsageViews.swift:71-76 `} else if !isLoading {` `Text(verbatim: \"\\(provider.displayName) did not report plan limits.\")` `.font(.system(.callout))` `.foregroundStyle(Chrome.secondaryText)` `.padding(.top, 8)`"
       ],
       "notes": "The text is the provider display name, a space, then \"did not report plan limits.\" with a trailing full stop. This is the empty state for the limits block; the whole block is hidden entirely when the provider is signed out or not installed, so this message means the provider was reachable and said nothing useful.",
-      "b2_change": "UsageViews.swift:73 `.font(.system(size: 12))` (B1) -> `.font(.system(.callout))` (B2). Same line numbers at both baselines; nothing else in the element changed."
+      "b2_change": "UsageViews.swift:73 `.font(.system(size: 12))` (B1) -> `.font(.system(.callout))` (B2). Same line numbers at both baselines; nothing else in the element changed.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVREG",
@@ -13507,7 +13515,8 @@
         "DroppyCode/App/Views/Usage/UsageViews.swift:44-57 `if let problem = limits.problem {` `if provider.isAPIKeyBased {` `HStack(alignment: .center, spacing: 6) {` `Image(systemName: \"exclamationmark.triangle.fill\")` `.font(.system(.footnote, weight: .semibold))` `.foregroundStyle(Chrome.warning)` `Text(verbatim: problem)` `.font(.system(.subheadline))` `.lineLimit(2)` `.fixedSize(horizontal: false, vertical: true)` `Spacer(minLength: 8)` `.padding(.top, 14)`"
       ],
       "notes": "The icon is exclamationmark.triangle.fill. The message text comes from the reader in the provider's own words and is rendered verbatim, so the port must not wrap or prefix it. The note sits at the FOOT of the block, after the windows and any banked resets.",
-      "b2_change": "UsageViews.swift:48 `.font(.system(size: 10, weight: .semibold))` (B1) -> `.font(.system(.footnote, weight: .semibold))` (B2); UsageViews.swift:51 `.font(.system(size: 11))` (B1) -> `.font(.system(.subheadline))` (B2). Same line numbers at both baselines; nothing else in the element changed."
+      "b2_change": "UsageViews.swift:48 `.font(.system(size: 10, weight: .semibold))` (B1) -> `.font(.system(.footnote, weight: .semibold))` (B2); UsageViews.swift:51 `.font(.system(size: 11))` (B1) -> `.font(.system(.subheadline))` (B2). Same line numbers at both baselines; nothing else in the element changed.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVREG",
@@ -13530,7 +13539,8 @@
         "DroppyCode/App/Views/Usage/UsageViews.swift:58-69 `} else {` `HStack(spacing: 8) {` `Text(verbatim: \"Click here to login again\")` `.font(.system(.callout))` `.foregroundStyle(Chrome.secondaryText)` `Spacer(minLength: 8)` `Button(\"Login\") { Workspace.openTerminal(running: provider.loginCommand) }` `.buttonStyle(.glass)` `.controlSize(.small)` `.padding(.top, 14)`"
       ],
       "notes": "The label has no trailing full stop, unlike the Sign in row's detail which does. The two variants are structurally different: the API-key one shows the provider's message and no action, the CLI one shows a fixed sentence and an action but discards the provider's message.",
-      "b2_change": "UsageViews.swift:61 `.font(.system(size: 12))` (B1) -> `.font(.system(.callout))` (B2). Same line numbers at both baselines; nothing else in the element changed."
+      "b2_change": "UsageViews.swift:61 `.font(.system(size: 12))` (B1) -> `.font(.system(.callout))` (B2). Same line numbers at both baselines; nothing else in the element changed.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVREG",
@@ -13552,7 +13562,8 @@
         "DroppyCode/App/Views/Usage/UsageViews.swift:64-66",
         "DroppyCode/UI/Common/Components.swift:119-134"
       ],
-      "notes": "The label is exactly \"Login\", one word, no space. It is the same word as the Sign in row's button but they are separate controls in separate places."
+      "notes": "The label is exactly \"Login\", one word, no space. It is the same word as the Sign in row's button but they are separate controls in separate places.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVREG",
@@ -13574,7 +13585,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Usage/UsageViews.swift:30-39"
       ],
-      "notes": "The source comment records why both conditions are needed: a plan with no resets to bank used to end on a line to nothing. This divider has no leading inset, unlike ChromeRowDivider."
+      "notes": "The source comment records why both conditions are needed: a plan with no resets to bank used to end on a line to nothing. This divider has no leading inset, unlike ChromeRowDivider.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVREG",
@@ -13596,7 +13608,8 @@
         "DroppyCode/App/Views/Usage/UsageViews.swift:228-238 `HStack(spacing: 6) {` `Text(verbatim: \"Banked resets\")` `.font(.system(.body))` `.foregroundStyle(Chrome.primaryText)` `Text(verbatim: \"· \\(countText)\")` `.font(.system(.callout))` `.foregroundStyle(Chrome.secondaryText)` `.contentTransition(.numericText())`"
       ],
       "notes": "The title is exactly \"Banked resets\" with a lowercase r. The accessibility combination is deliberate so the pair reads as, for example, \"Banked resets, 2 available\".",
-      "b2_change": "UsageViews.swift:230 `.font(.system(size: 13))` (B1) -> `.font(.system(.body))` (B2); UsageViews.swift:233 `.font(.system(size: 12))` (B1) -> `.font(.system(.callout))` (B2). Same line numbers at both baselines; nothing else in the element changed."
+      "b2_change": "UsageViews.swift:230 `.font(.system(size: 13))` (B1) -> `.font(.system(.body))` (B2); UsageViews.swift:233 `.font(.system(size: 12))` (B1) -> `.font(.system(.callout))` (B2). Same line numbers at both baselines; nothing else in the element changed.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVREG",
@@ -13621,7 +13634,8 @@
         "DroppyCode/App/Views/Usage/UsageViews.swift:285-291"
       ],
       "notes": "The rendered text is U+00B7 MIDDLE DOT, a space, then the count text; the dot and space are part of this label, not a separator inserted by the stack. The zero case is a sentence fragment, not \"0 available\".",
-      "b2_change": "UsageViews.swift:233 `.font(.system(size: 12))` (B1) -> `.font(.system(.callout))` (B2). Same line numbers at both baselines; nothing else in the element changed."
+      "b2_change": "UsageViews.swift:233 `.font(.system(size: 12))` (B1) -> `.font(.system(.callout))` (B2). Same line numbers at both baselines; nothing else in the element changed.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVREG",
@@ -13647,7 +13661,8 @@
         "DroppyCode/Services/Providers/PlanLimits.swift:36-44"
       ],
       "notes": "The icon is checkmark.circle.fill for the reset outcome and info.circle for the other three. The settle delay is exactly 4 seconds and is cancelled if the view disappears or another spend starts. The transition is .blurReplace.",
-      "b2_change": "UsageViews.swift:265 `.font(.system(size: 11, weight: .semibold))` (B1) -> `.font(.system(.subheadline, weight: .semibold))` (B2); UsageViews.swift:269 `.font(.system(size: 11))` (B1) -> `.font(.system(.subheadline))` (B2). Same line numbers at both baselines; nothing else in the element changed."
+      "b2_change": "UsageViews.swift:265 `.font(.system(size: 11, weight: .semibold))` (B1) -> `.font(.system(.subheadline, weight: .semibold))` (B2); UsageViews.swift:269 `.font(.system(size: 11))` (B1) -> `.font(.system(.subheadline))` (B2). Same line numbers at both baselines; nothing else in the element changed.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVREG",
@@ -13671,7 +13686,8 @@
         "DroppyCode/Services/Providers/PlanLimits.swift:54-59"
       ],
       "notes": "The text is the localized error description verbatim, which for the known cases is \"Codex CLI not found.\" or \"Codex returned an unknown reset result.\" or the provider's own rejection message. A Z.ai failure can therefore surface a message that names Codex.",
-      "b2_change": "UsageViews.swift:276 `.font(.system(size: 11))` (B1) -> `.font(.system(.subheadline))` (B2). Same line numbers at both baselines; nothing else in the element changed."
+      "b2_change": "UsageViews.swift:276 `.font(.system(size: 11))` (B1) -> `.font(.system(.subheadline))` (B2). Same line numbers at both baselines; nothing else in the element changed.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVREG",
@@ -13695,7 +13711,8 @@
         "DroppyCode/App/Views/Usage/UsageViews.swift:313-337 BankedResetRow - `HStack(alignment: .center, spacing: 12) {` `VStack(alignment: .leading, spacing: 2) {` `Text(verbatim: row.credit?.title ?? (several ? \"Reset \\(index + 1)\" : \"Reset\"))` `.font(.system(.body))` `.lineLimit(1)` `Text(verbatim: row.credit?.detail ?? expiryText)` `.font(.system(.subheadline))` `.lineLimit(1)`"
       ],
       "notes": "Placeholder rows are synthesised for the difference between availableCount and the listed credits, with ids of the form unlisted- followed by a zero-based index, and are appended after the listed ones. The index shown in the title is the position in the combined list plus one, so a listed credit with no title in second place reads \"Reset 2\".",
-      "b2_change": "UsageViews.swift:326 `.font(.system(size: 13))` (B1) -> `.font(.system(.body))` (B2); UsageViews.swift:330 `.font(.system(size: 11))` (B1) -> `.font(.system(.subheadline))` (B2). Same line numbers at both baselines; nothing else in the element changed."
+      "b2_change": "UsageViews.swift:326 `.font(.system(size: 13))` (B1) -> `.font(.system(.body))` (B2); UsageViews.swift:330 `.font(.system(size: 11))` (B1) -> `.font(.system(.subheadline))` (B2). Same line numbers at both baselines; nothing else in the element changed.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVREG",
@@ -13721,7 +13738,8 @@
         "DroppyCode/App/Views/Usage/UsageViews.swift:339-343"
       ],
       "notes": "The expiry text reuses LimitRow.resetText, so the four relative formats are identical to the Resets text but with the prefix \"Expires \" instead of \"Resets \". The provider's own detail takes precedence over all of this.",
-      "b2_change": "UsageViews.swift:330 `.font(.system(size: 11))` (B1) -> `.font(.system(.subheadline))` (B2). Same line numbers at both baselines; nothing else in the element changed."
+      "b2_change": "UsageViews.swift:330 `.font(.system(size: 11))` (B1) -> `.font(.system(.subheadline))` (B2). Same line numbers at both baselines; nothing else in the element changed.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVREG",
@@ -13747,7 +13765,8 @@
         "DroppyCode/App/Views/Usage/UsageViews.swift:361-365",
         "DroppyCode/App/Views/Usage/UsageViews.swift:368-370"
       ],
-      "notes": "The label is exactly \"Use reset\" with a lowercase r. Clicking it is NOT destructive: it only reveals the confirm pair. Note the disabled rule is block-wide, so while one reset is being spent every other row's button is disabled."
+      "notes": "The label is exactly \"Use reset\" with a lowercase r. Clicking it is NOT destructive: it only reveals the confirm pair. Note the disabled rule is block-wide, so while one reset is being spent every other row's button is disabled.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVREG",
@@ -13768,7 +13787,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Usage/UsageViews.swift:347-352"
       ],
-      "notes": "Because the phase is held for the whole block, cancelling one row cancels the only confirmation that can exist at a time."
+      "notes": "Because the phase is held for the whole block, cancelling one row cancels the only confirmation that can exist at a time.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVREG",
@@ -13792,7 +13812,8 @@
         "DroppyCode/App/Views/Usage/UsageViews.swift:293-307",
         "DroppyCode/Services/Providers/ProviderRegistry.swift:649-676"
       ],
-      "notes": "The label is exactly \"Reset now\" with a lowercase n. This is the confirmation step, so the destructive action is two clicks, not one. The spend cannot be cancelled once sent; the settle task that clears the outcome line can be, by the view disappearing."
+      "notes": "The label is exactly \"Reset now\" with a lowercase n. This is the confirmation step, so the destructive action is two clicks, not one. The spend cannot be cancelled once sent; the settle task that clears the outcome line can be, by the view disappearing.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVREG",
@@ -13815,7 +13836,8 @@
         "DroppyCode/App/Views/Usage/UsageViews.swift:353-360 `HStack(spacing: 6) {` `ProgressView().controlSize(.mini)` `Text(verbatim: \"Resetting…\")` `.font(.system(.callout))` `.foregroundStyle(Chrome.secondaryText)` `.transition(.blurReplace)`"
       ],
       "notes": "The ellipsis is U+2026, not three full stops.",
-      "b2_change": "UsageViews.swift:357 `.font(.system(size: 12))` (B1) -> `.font(.system(.callout))` (B2). Same line numbers at both baselines; nothing else in the element changed."
+      "b2_change": "UsageViews.swift:357 `.font(.system(size: 12))` (B1) -> `.font(.system(.callout))` (B2). Same line numbers at both baselines; nothing else in the element changed.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVREG",
@@ -13838,7 +13860,8 @@
         "DroppyCode/App/Views/Usage/UsageViews.swift:90-126 CreditsView - `HStack(alignment: .center, spacing: 16) {` `VStack(alignment: .leading, spacing: 2) {` `Text(verbatim: \"Remaining credits\")` `.font(.system(.body))` `.foregroundStyle(Chrome.primaryText)` ... `Spacer(minLength: 12)` `HStack(spacing: 10) {`"
       ],
       "notes": "The title is exactly \"Remaining credits\" with a lowercase c. Note the animation here is easeOut 0.15, not Chrome.panelSlide as the limits block uses.",
-      "b2_change": "UsageViews.swift:97 `.font(.system(size: 13))` (B1) -> `.font(.system(.body))` (B2). Same line numbers at both baselines; nothing else in the element changed."
+      "b2_change": "UsageViews.swift:97 `.font(.system(size: 13))` (B1) -> `.font(.system(.body))` (B2). Same line numbers at both baselines; nothing else in the element changed.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVREG",
@@ -13865,7 +13888,8 @@
         "DroppyCode/Services/Providers/ProviderCredits.swift:23-30"
       ],
       "notes": "Both sentences end in a full stop. The breakdown parts are joined with a space, U+00B7 and a space, and are always in the order Monthly, Topped up, Granted regardless of which are present.",
-      "b2_change": "UsageViews.swift:101 `.font(.system(size: 11))` (B1) -> `.font(.system(.subheadline))` (B2). Same line numbers at both baselines; nothing else in the element changed."
+      "b2_change": "UsageViews.swift:101 `.font(.system(size: 11))` (B1) -> `.font(.system(.subheadline))` (B2). Same line numbers at both baselines; nothing else in the element changed.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVREG",
@@ -13889,7 +13913,8 @@
         "DroppyCode/Services/Providers/ProviderCredits.swift:20-21, :32-45"
       ],
       "notes": "The amount is formatted in the en_US locale with the provider's own currency code, so it reads \"$12.34\" on a machine set to any region. A currency that is not a three-letter alphabetic code falls back to a bare two-decimal number with the raw currency appended after a space.",
-      "b2_change": "UsageViews.swift:113 `.font(.system(size: 13, weight: .semibold))` (B1) -> `.font(.system(.body, weight: .semibold))` (B2). Same line numbers at both baselines; nothing else in the element changed."
+      "b2_change": "UsageViews.swift:113 `.font(.system(size: 13, weight: .semibold))` (B1) -> `.font(.system(.body, weight: .semibold))` (B2). Same line numbers at both baselines; nothing else in the element changed.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVREG",
@@ -13913,7 +13938,8 @@
         "DroppyCode/App/Views/Usage/UsageViews.swift:118-122",
         "DroppyCode/Services/Providers/ProviderCredits.swift:68-75"
       ],
-      "notes": "The label is exactly \"Top up\", two words, lowercase u. It is shown regardless of whether the balance is depleted."
+      "notes": "The label is exactly \"Top up\", two words, lowercase u. It is shown regardless of whether the balance is depleted.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVREG",
@@ -23061,7 +23087,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2) - the size ED-059 adopts for .body"
       ],
       "notes": "Claude's plan name is composed upstream as, for example, Max (20x); Codex has its own name table. The view prints whatever it is given.",
-      "b2_change": "B1 DroppyCode/App/Views/Usage/UsageViews.swift:18 `.font(.system(size: 13))` -> B2 DroppyCode/App/Views/Usage/UsageViews.swift:18 `.font(.system(.body))`. At the macOS default .body is 13 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). Strings unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Usage/UsageViews.swift:18 `.font(.system(size: 13))` -> B2 DroppyCode/App/Views/Usage/UsageViews.swift:18 `.font(.system(.body))`. At the macOS default .body is 13 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). Strings unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "USAGE",
@@ -23081,7 +23108,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Usage/UsageViews.swift:21-23"
       ],
-      "notes": "Previously read rows stay visible underneath; the block never blanks while refreshing."
+      "notes": "Previously read rows stay visible underneath; the block never blanks while refreshing.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "USAGE",
@@ -23104,7 +23132,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2) - the size ED-059 adopts for .body"
       ],
       "notes": "Titles are produced by the provider readers, not by this view. The per-model weekly bucket is the group and the model display name joined by a spaced middle dot.",
-      "b2_change": "B1 DroppyCode/App/Views/Usage/UsageViews.swift:148 `.font(.system(size: 13))` -> B2 DroppyCode/App/Views/Usage/UsageViews.swift:148 `.font(.system(.body))`. At the macOS default .body is 13 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). Colour and lineLimit unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Usage/UsageViews.swift:148 `.font(.system(size: 13))` -> B2 DroppyCode/App/Views/Usage/UsageViews.swift:148 `.font(.system(.body))`. At the macOS default .body is 13 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). Colour and lineLimit unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "USAGE",
@@ -23127,7 +23156,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2) - the size ED-059 adopts for .callout"
       ],
       "notes": "The word Resets plus one space is added by the row; the rest comes from resetText. A past date reads Resets in 1 min, never in 0 min.",
-      "b2_change": "B1 DroppyCode/App/Views/Usage/UsageViews.swift:154 `.font(.system(size: 12))` -> B2 DroppyCode/App/Views/Usage/UsageViews.swift:154 `.font(.system(.callout))`. At the macOS default .callout is 12 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). Strings unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Usage/UsageViews.swift:154 `.font(.system(size: 12))` -> B2 DroppyCode/App/Views/Usage/UsageViews.swift:154 `.font(.system(.callout))`. At the macOS default .callout is 12 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). Strings unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "USAGE",
@@ -23149,7 +23179,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2) - the size ED-059 adopts for .callout"
       ],
       "notes": "Rounded, not truncated, and no space before the percent sign.",
-      "b2_change": "B1 DroppyCode/App/Views/Usage/UsageViews.swift:159 `.font(.system(size: 12))` -> B2 DroppyCode/App/Views/Usage/UsageViews.swift:159 `.font(.system(.callout))`. At the macOS default .callout is 12 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). monospacedDigit unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Usage/UsageViews.swift:159 `.font(.system(size: 12))` -> B2 DroppyCode/App/Views/Usage/UsageViews.swift:159 `.font(.system(.callout))`. At the macOS default .callout is 12 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). monospacedDigit unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "USAGE",
@@ -23172,7 +23203,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2) - the size ED-059 adopts for .subheadline"
       ],
       "notes": "Only the Z.ai reader supplies this in the pinned source. Do not invent detail strings for other providers.",
-      "b2_change": "B1 DroppyCode/App/Views/Usage/UsageViews.swift:165 `.font(.system(size: 11))` -> B2 DroppyCode/App/Views/Usage/UsageViews.swift:165 `.font(.system(.subheadline))`. At the macOS default .subheadline is 11 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). Presence rule and lineLimit unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Usage/UsageViews.swift:165 `.font(.system(size: 11))` -> B2 DroppyCode/App/Views/Usage/UsageViews.swift:165 `.font(.system(.subheadline))`. At the macOS default .subheadline is 11 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). Presence rule and lineLimit unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "USAGE",
@@ -23194,7 +23226,8 @@
         "DroppyCode/App/Views/Usage/UsageViews.swift:169-177",
         "porting/reference_captures/usage/v1/limits.webp"
       ],
-      "notes": "The bar takes the fraction as percent/100 while the thresholds are tested on the 0 to 100 percent. Its accessibility label is the window title."
+      "notes": "The bar takes the fraction as percent/100 while the thresholds are tested on the 0 to 100 percent. Its accessibility label is the window title.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "USAGE",
@@ -23217,7 +23250,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10` (file deleted at B2) - the size ED-059 adopts for .footnote"
       ],
       "notes": "The glyph is exclamationmark.triangle.fill and must be redrawn. Of the API-key providers only Z.ai exposes limits, so only Z.ai can reach this.",
-      "b2_change": "B1 DroppyCode/App/Views/Usage/UsageViews.swift:48 `.font(.system(size: 10, weight: .semibold))`; B1 DroppyCode/App/Views/Usage/UsageViews.swift:51 `.font(.system(size: 11))` -> B2 DroppyCode/App/Views/Usage/UsageViews.swift:48 `.font(.system(.footnote, weight: .semibold))`; B2 DroppyCode/App/Views/Usage/UsageViews.swift:51 `.font(.system(.subheadline))`. At the macOS default .footnote is 10 and .subheadline is 11 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`; DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). Colours, lineLimit and padding unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Usage/UsageViews.swift:48 `.font(.system(size: 10, weight: .semibold))`; B1 DroppyCode/App/Views/Usage/UsageViews.swift:51 `.font(.system(size: 11))` -> B2 DroppyCode/App/Views/Usage/UsageViews.swift:48 `.font(.system(.footnote, weight: .semibold))`; B2 DroppyCode/App/Views/Usage/UsageViews.swift:51 `.font(.system(.subheadline))`. At the macOS default .footnote is 10 and .subheadline is 11 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`; DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). Colours, lineLimit and padding unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "USAGE",
@@ -23238,7 +23272,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2) - the size ED-059 adopts for .callout"
       ],
       "notes": "Despite the wording, the label is not clickable; only the adjacent button acts. The provider's own problem text is not shown on this branch.",
-      "b2_change": "B1 DroppyCode/App/Views/Usage/UsageViews.swift:61 `.font(.system(size: 12))` -> B2 DroppyCode/App/Views/Usage/UsageViews.swift:61 `.font(.system(.callout))`. At the macOS default .callout is 12 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). String unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Usage/UsageViews.swift:61 `.font(.system(size: 12))` -> B2 DroppyCode/App/Views/Usage/UsageViews.swift:61 `.font(.system(.callout))`. At the macOS default .callout is 12 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). String unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "USAGE",
@@ -23266,7 +23301,8 @@
         "decision": "OD-0005",
         "upstream": "`.buttonStyle(.glass)` (DroppyCode/App/Views/Usage/UsageViews.swift:65), the macOS Liquid Glass button style",
         "port": "Where the window shows the desktop, a Windows system material of the Acrylic class, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material is reproduced: shape, corner radius, tint colour and opacity, .interactive() and container spacing"
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "USAGE",
@@ -23288,7 +23324,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2) - the size ED-059 adopts for .callout"
       ],
       "notes": "The top padding here is 8, not the 14 used by the problem rows. The sentence ends with a full stop.",
-      "b2_change": "B1 DroppyCode/App/Views/Usage/UsageViews.swift:73 `.font(.system(size: 12))` -> B2 DroppyCode/App/Views/Usage/UsageViews.swift:73 `.font(.system(.callout))`. At the macOS default .callout is 12 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). String and padding unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Usage/UsageViews.swift:73 `.font(.system(size: 12))` -> B2 DroppyCode/App/Views/Usage/UsageViews.swift:73 `.font(.system(.callout))`. At the macOS default .callout is 12 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). String and padding unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "USAGE",
@@ -23309,7 +23346,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2) - the size ED-059 adopts for .body"
       ],
       "notes": "Combined with the count into one accessibility element, read as for example Banked resets, 2 available.",
-      "b2_change": "B1 DroppyCode/App/Views/Usage/UsageViews.swift:230 `.font(.system(size: 13))` -> B2 DroppyCode/App/Views/Usage/UsageViews.swift:230 `.font(.system(.body))`. At the macOS default .body is 13 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). String unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Usage/UsageViews.swift:230 `.font(.system(size: 13))` -> B2 DroppyCode/App/Views/Usage/UsageViews.swift:230 `.font(.system(.body))`. At the macOS default .body is 13 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). String unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "USAGE",
@@ -23333,7 +23371,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2) - the size ED-059 adopts for .callout"
       ],
       "notes": "The leading U+00B7 and its trailing space belong to this label, not to the header.",
-      "b2_change": "B1 DroppyCode/App/Views/Usage/UsageViews.swift:233 `.font(.system(size: 12))` -> B2 DroppyCode/App/Views/Usage/UsageViews.swift:233 `.font(.system(.callout))`. At the macOS default .callout is 12 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). Strings and transition unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Usage/UsageViews.swift:233 `.font(.system(size: 12))` -> B2 DroppyCode/App/Views/Usage/UsageViews.swift:233 `.font(.system(.callout))`. At the macOS default .callout is 12 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). Strings and transition unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "USAGE",
@@ -23358,7 +23397,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2) - the size ED-059 adopts for .subheadline"
       ],
       "notes": "Glyphs are checkmark.circle.fill and info.circle. All four sentences end with a full stop.",
-      "b2_change": "B1 DroppyCode/App/Views/Usage/UsageViews.swift:265 `.font(.system(size: 11, weight: .semibold))`; B1 DroppyCode/App/Views/Usage/UsageViews.swift:269 `.font(.system(size: 11))` -> B2 DroppyCode/App/Views/Usage/UsageViews.swift:265 `.font(.system(.subheadline, weight: .semibold))`; B2 DroppyCode/App/Views/Usage/UsageViews.swift:269 `.font(.system(.subheadline))`. At the macOS default .subheadline is 11 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). Messages, symbols, colours and bounce unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Usage/UsageViews.swift:265 `.font(.system(size: 11, weight: .semibold))`; B1 DroppyCode/App/Views/Usage/UsageViews.swift:269 `.font(.system(size: 11))` -> B2 DroppyCode/App/Views/Usage/UsageViews.swift:265 `.font(.system(.subheadline, weight: .semibold))`; B2 DroppyCode/App/Views/Usage/UsageViews.swift:269 `.font(.system(.subheadline))`. At the macOS default .subheadline is 11 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). Messages, symbols, colours and bounce unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "USAGE",
@@ -23381,7 +23421,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2) - the size ED-059 adopts for .subheadline"
       ],
       "notes": "The message is the error's own description, printed with nothing added. A provider rejection passes its own text through unchanged.",
-      "b2_change": "B1 DroppyCode/App/Views/Usage/UsageViews.swift:276 `.font(.system(size: 11))` -> B2 DroppyCode/App/Views/Usage/UsageViews.swift:276 `.font(.system(.subheadline))`. At the macOS default .subheadline is 11 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). Colour and message unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Usage/UsageViews.swift:276 `.font(.system(size: 11))` -> B2 DroppyCode/App/Views/Usage/UsageViews.swift:276 `.font(.system(.subheadline))`. At the macOS default .subheadline is 11 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). Colour and message unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "USAGE",
@@ -23403,7 +23444,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2) - the size ED-059 adopts for .body"
       ],
       "notes": "The index counts all rows, listed and placeholder together, and is one-based.",
-      "b2_change": "B1 DroppyCode/App/Views/Usage/UsageViews.swift:326 `.font(.system(size: 13))` -> B2 DroppyCode/App/Views/Usage/UsageViews.swift:326 `.font(.system(.body))`. At the macOS default .body is 13 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). Fallback ladder unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Usage/UsageViews.swift:326 `.font(.system(size: 13))` -> B2 DroppyCode/App/Views/Usage/UsageViews.swift:326 `.font(.system(.body))`. At the macOS default .body is 13 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). Fallback ladder unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "USAGE",
@@ -23425,7 +23467,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2) - the size ED-059 adopts for .subheadline"
       ],
       "notes": "A placeholder row always reads No expiry reported, because its credit is nil. Expired wins at exactly the current instant.",
-      "b2_change": "B1 DroppyCode/App/Views/Usage/UsageViews.swift:330 `.font(.system(size: 11))` -> B2 DroppyCode/App/Views/Usage/UsageViews.swift:330 `.font(.system(.subheadline))`. At the macOS default .subheadline is 11 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). Expiry strings unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Usage/UsageViews.swift:330 `.font(.system(size: 11))` -> B2 DroppyCode/App/Views/Usage/UsageViews.swift:330 `.font(.system(.subheadline))`. At the macOS default .subheadline is 11 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). Expiry strings unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "USAGE",
@@ -23453,7 +23496,8 @@
         "decision": "OD-0005",
         "upstream": "`.buttonStyle(.glass)` (DroppyCode/App/Views/Usage/UsageViews.swift:362), the macOS Liquid Glass button style",
         "port": "Where the window shows the desktop, a Windows system material of the Acrylic class, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material is reproduced: shape, corner radius, tint colour and opacity, .interactive() and container spacing"
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "USAGE",
@@ -23479,7 +23523,8 @@
         "decision": "OD-0005",
         "upstream": "`.buttonStyle(.glass)` (DroppyCode/App/Views/Usage/UsageViews.swift:349), the macOS Liquid Glass button style",
         "port": "Where the window shows the desktop, a Windows system material of the Acrylic class, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material is reproduced: shape, corner radius, tint colour and opacity, .interactive() and container spacing"
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "USAGE",
@@ -23505,7 +23550,8 @@
         "decision": "OD-0005",
         "upstream": "`.buttonStyle(.glassProminent)` with `.tint(Chrome.accent)` (DroppyCode/App/Views/Usage/UsageViews.swift:350), the macOS prominent Liquid Glass button style",
         "port": "Where the window shows the desktop, a Windows system material of the Acrylic class, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material is reproduced: shape, corner radius, tint colour and opacity, .interactive() and container spacing"
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "USAGE",
@@ -23527,7 +23573,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2) - the size ED-059 adopts for .callout"
       ],
       "notes": "The ellipsis is the single character U+2026, not three periods.",
-      "b2_change": "B1 DroppyCode/App/Views/Usage/UsageViews.swift:357 `.font(.system(size: 12))` -> B2 DroppyCode/App/Views/Usage/UsageViews.swift:357 `.font(.system(.callout))`. At the macOS default .callout is 12 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). String and spinner unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Usage/UsageViews.swift:357 `.font(.system(size: 12))` -> B2 DroppyCode/App/Views/Usage/UsageViews.swift:357 `.font(.system(.callout))`. At the macOS default .callout is 12 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). String and spinner unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "USAGE",
@@ -23548,7 +23595,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2) - the size ED-059 adopts for .body"
       ],
       "notes": "Shown for DeepSeek and Command Code only.",
-      "b2_change": "B1 DroppyCode/App/Views/Usage/UsageViews.swift:97 `.font(.system(size: 13))` -> B2 DroppyCode/App/Views/Usage/UsageViews.swift:97 `.font(.system(.body))`. At the macOS default .body is 13 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). String unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Usage/UsageViews.swift:97 `.font(.system(size: 13))` -> B2 DroppyCode/App/Views/Usage/UsageViews.swift:97 `.font(.system(.body))`. At the macOS default .body is 13 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). String unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "USAGE",
@@ -23573,7 +23621,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2) - the size ED-059 adopts for .subheadline"
       ],
       "notes": "Breakdown parts appear in the fixed order Monthly, Topped up, Granted, only when strictly positive, joined by a spaced middle dot.",
-      "b2_change": "B1 DroppyCode/App/Views/Usage/UsageViews.swift:101 `.font(.system(size: 11))` -> B2 DroppyCode/App/Views/Usage/UsageViews.swift:101 `.font(.system(.subheadline))`. At the macOS default .subheadline is 11 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). Note states unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Usage/UsageViews.swift:101 `.font(.system(size: 11))` -> B2 DroppyCode/App/Views/Usage/UsageViews.swift:101 `.font(.system(.subheadline))`. At the macOS default .subheadline is 11 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). Note states unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "USAGE",
@@ -23597,7 +23646,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2) - the size ED-059 adopts for .body"
       ],
       "notes": "Currency formatting is pinned to en_US regardless of the user's locale, so it reads $0.43 rather than US$ 0,43.",
-      "b2_change": "B1 DroppyCode/App/Views/Usage/UsageViews.swift:113 `.font(.system(size: 13, weight: .semibold))` -> B2 DroppyCode/App/Views/Usage/UsageViews.swift:113 `.font(.system(.body, weight: .semibold))`. At the macOS default .body is 13 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). monospacedDigit, lineLimit and colours unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Usage/UsageViews.swift:113 `.font(.system(size: 13, weight: .semibold))` -> B2 DroppyCode/App/Views/Usage/UsageViews.swift:113 `.font(.system(.body, weight: .semibold))`. At the macOS default .body is 13 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). monospacedDigit, lineLimit and colours unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "USAGE",
@@ -23618,7 +23668,8 @@
         "DroppyCode/App/Views/Usage/UsageViews.swift:107-110",
         "porting/upstream_defects.md:21 entry 4"
       ],
-      "notes": "The hang is an upstream defect and is reproduced; do not add the plan-limits watchdog here."
+      "notes": "The hang is an upstream defect and is reproduced; do not add the plan-limits watchdog here.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "USAGE",
@@ -23646,7 +23697,8 @@
         "decision": "OD-0005",
         "upstream": "`.buttonStyle(.glass)` (DroppyCode/App/Views/Usage/UsageViews.swift:120), the macOS Liquid Glass button style",
         "port": "Where the window shows the desktop, a Windows system material of the Acrylic class, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material is reproduced: shape, corner radius, tint colour and opacity, .interactive() and container spacing"
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "USAGE",

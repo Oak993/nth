@@ -5178,7 +5178,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Transcribe both sentences verbatim including the trailing full stops.",
       "verification_method": "capture comparison plus unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -6432,7 +6432,8 @@
         "DroppyCode/Services/Providers/PlanLimits.swift:104-107"
       ],
       "notes": "The plan name for Claude can carry a rate limit tier in parentheses, for example \"Max (20x)\". For Codex it comes from codexPlanName, so a raw type such as prolite renders as \"Pro 5x\".",
-      "b2_change": "UsageViews.swift:18 `.font(.system(size: 13))` (B1) -> `.font(.system(.body))` (B2). Same line numbers at both baselines; nothing else in the element changed."
+      "b2_change": "UsageViews.swift:18 `.font(.system(size: 13))` (B1) -> `.font(.system(.body))` (B2). Same line numbers at both baselines; nothing else in the element changed.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVREG-012",
@@ -6455,7 +6456,8 @@
         "DroppyCode/App/Views/Usage/UsageViews.swift:21-23",
         "DroppyCode/Services/Providers/ProviderRegistry.swift:617, :629"
       ],
-      "notes": "Unlike the credits spinner, this one cannot hang, because the limits path has a watchdog. The asymmetry is deliberate upstream behavior."
+      "notes": "Unlike the credits spinner, this one cannot hang, because the limits path has a watchdog. The asymmetry is deliberate upstream behavior.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVREG-013",
@@ -6479,7 +6481,8 @@
         "DroppyCode/Services/Providers/PlanLimits.swift:300-305, :315, :323"
       ],
       "notes": "The separator in the compound titles is U+00B7 with a space either side. A title may additionally carry a provider prefix and a U+00B7 when the reader passed a titlePrefix, which is how Pi labels the limits of the providers it is signed into. The Copilot window titles listed here are produced by the Copilot reader and belong to that area, but they render through this same row.",
-      "b2_change": "UsageViews.swift:148 `.font(.system(size: 13))` (B1) -> `.font(.system(.body))` (B2). Same line numbers at both baselines; nothing else in the element changed."
+      "b2_change": "UsageViews.swift:148 `.font(.system(size: 13))` (B1) -> `.font(.system(.body))` (B2). Same line numbers at both baselines; nothing else in the element changed.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVREG-014",
@@ -6502,7 +6505,8 @@
         "DroppyCode/App/Views/Usage/UsageViews.swift:179-191"
       ],
       "notes": "The prefix is the literal \"Resets \" with a trailing space. Under 24 hours the text is \"in \", the whole hours, \" hr \", the remaining whole minutes, \" min\"; with zero hours it collapses to \"in \", at least 1, \" min\", so it never reads \"in 0 min\". Under six days it is the abbreviated weekday with hour and minute. Beyond that it is the abbreviated month and day with no time at all. A past date clamps to zero seconds and reads \"in 1 min\".",
-      "b2_change": "UsageViews.swift:154 `.font(.system(size: 12))` (B1) -> `.font(.system(.callout))` (B2). Same line numbers at both baselines; nothing else in the element changed."
+      "b2_change": "UsageViews.swift:154 `.font(.system(size: 12))` (B1) -> `.font(.system(.callout))` (B2). Same line numbers at both baselines; nothing else in the element changed.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVREG-015",
@@ -6523,7 +6527,8 @@
         "DroppyCode/App/Views/Usage/UsageViews.swift:158-161 `Text(verbatim: \"\\(Int(window.percent.rounded()))%\")` `.font(.system(.callout))` `.foregroundStyle(Chrome.secondaryText)` `.monospacedDigit()`"
       ],
       "notes": "The value is the Double percent rounded to the nearest integer and then truncated to Int, with a percent sign and no space. So 99.6 renders as 100% while the bar is not yet full.",
-      "b2_change": "UsageViews.swift:159 `.font(.system(size: 12))` (B1) -> `.font(.system(.callout))` (B2). Same line numbers at both baselines; nothing else in the element changed."
+      "b2_change": "UsageViews.swift:159 `.font(.system(size: 12))` (B1) -> `.font(.system(.callout))` (B2). Same line numbers at both baselines; nothing else in the element changed.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVREG-016",
@@ -6546,7 +6551,8 @@
         "DroppyCode/Services/Providers/ZaiAPI.swift:133, :142"
       ],
       "notes": "Do not invent detail strings for any other provider. The two Z.ai formats are a formatted count, the literal \" of \", a formatted count, then \" credits\" or \" calls\".",
-      "b2_change": "UsageViews.swift:165 `.font(.system(size: 11))` (B1) -> `.font(.system(.subheadline))` (B2). Same line numbers at both baselines; nothing else in the element changed."
+      "b2_change": "UsageViews.swift:165 `.font(.system(size: 11))` (B1) -> `.font(.system(.subheadline))` (B2). Same line numbers at both baselines; nothing else in the element changed.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVREG-017",
@@ -6572,7 +6578,8 @@
         "DroppyCode/App/Views/Usage/UsageViews.swift:373-395",
         "E:/Droppy/port/porting/extracts/chrome-design-tokens.md:260-279"
       ],
-      "notes": "The view takes a FRACTION, and the caller divides the percent by 100, so the two scales must not be confused. The thresholds are compared against the PERCENT, not the fraction. Accessibility: the element is labelled with the window title and its value is the clamped percentage followed by the literal \"% used\", because a bare percentage said nothing about which window it belonged to."
+      "notes": "The view takes a FRACTION, and the caller divides the percent by 100, so the two scales must not be confused. The thresholds are compared against the PERCENT, not the fraction. Accessibility: the element is labelled with the window title and its value is the clamped percentage followed by the literal \"% used\", because a bare percentage said nothing about which window it belonged to.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVREG-018",
@@ -6594,7 +6601,8 @@
         "DroppyCode/App/Views/Usage/UsageViews.swift:71-76 `} else if !isLoading {` `Text(verbatim: \"\\(provider.displayName) did not report plan limits.\")` `.font(.system(.callout))` `.foregroundStyle(Chrome.secondaryText)` `.padding(.top, 8)`"
       ],
       "notes": "The text is the provider display name, a space, then \"did not report plan limits.\" with a trailing full stop. This is the empty state for the limits block; the whole block is hidden entirely when the provider is signed out or not installed, so this message means the provider was reachable and said nothing useful.",
-      "b2_change": "UsageViews.swift:73 `.font(.system(size: 12))` (B1) -> `.font(.system(.callout))` (B2). Same line numbers at both baselines; nothing else in the element changed."
+      "b2_change": "UsageViews.swift:73 `.font(.system(size: 12))` (B1) -> `.font(.system(.callout))` (B2). Same line numbers at both baselines; nothing else in the element changed.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVREG-019",
@@ -6615,7 +6623,8 @@
         "DroppyCode/App/Views/Usage/UsageViews.swift:44-57 `if let problem = limits.problem {` `if provider.isAPIKeyBased {` `HStack(alignment: .center, spacing: 6) {` `Image(systemName: \"exclamationmark.triangle.fill\")` `.font(.system(.footnote, weight: .semibold))` `.foregroundStyle(Chrome.warning)` `Text(verbatim: problem)` `.font(.system(.subheadline))` `.lineLimit(2)` `.fixedSize(horizontal: false, vertical: true)` `Spacer(minLength: 8)` `.padding(.top, 14)`"
       ],
       "notes": "The icon is exclamationmark.triangle.fill. The message text comes from the reader in the provider's own words and is rendered verbatim, so the port must not wrap or prefix it. The note sits at the FOOT of the block, after the windows and any banked resets.",
-      "b2_change": "UsageViews.swift:48 `.font(.system(size: 10, weight: .semibold))` (B1) -> `.font(.system(.footnote, weight: .semibold))` (B2); UsageViews.swift:51 `.font(.system(size: 11))` (B1) -> `.font(.system(.subheadline))` (B2). Same line numbers at both baselines; nothing else in the element changed."
+      "b2_change": "UsageViews.swift:48 `.font(.system(size: 10, weight: .semibold))` (B1) -> `.font(.system(.footnote, weight: .semibold))` (B2); UsageViews.swift:51 `.font(.system(size: 11))` (B1) -> `.font(.system(.subheadline))` (B2). Same line numbers at both baselines; nothing else in the element changed.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVREG-020",
@@ -6637,7 +6646,8 @@
         "DroppyCode/App/Views/Usage/UsageViews.swift:58-69 `} else {` `HStack(spacing: 8) {` `Text(verbatim: \"Click here to login again\")` `.font(.system(.callout))` `.foregroundStyle(Chrome.secondaryText)` `Spacer(minLength: 8)` `Button(\"Login\") { Workspace.openTerminal(running: provider.loginCommand) }` `.buttonStyle(.glass)` `.controlSize(.small)` `.padding(.top, 14)`"
       ],
       "notes": "The label has no trailing full stop, unlike the Sign in row's detail which does. The two variants are structurally different: the API-key one shows the provider's message and no action, the CLI one shows a fixed sentence and an action but discards the provider's message.",
-      "b2_change": "UsageViews.swift:61 `.font(.system(size: 12))` (B1) -> `.font(.system(.callout))` (B2). Same line numbers at both baselines; nothing else in the element changed."
+      "b2_change": "UsageViews.swift:61 `.font(.system(size: 12))` (B1) -> `.font(.system(.callout))` (B2). Same line numbers at both baselines; nothing else in the element changed.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVREG-021",
@@ -6658,7 +6668,8 @@
         "DroppyCode/App/Views/Usage/UsageViews.swift:64-66",
         "DroppyCode/UI/Common/Components.swift:119-134"
       ],
-      "notes": "The label is exactly \"Login\", one word, no space. It is the same word as the Sign in row's button but they are separate controls in separate places."
+      "notes": "The label is exactly \"Login\", one word, no space. It is the same word as the Sign in row's button but they are separate controls in separate places.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVREG-022",
@@ -6679,7 +6690,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Usage/UsageViews.swift:30-39"
       ],
-      "notes": "The source comment records why both conditions are needed: a plan with no resets to bank used to end on a line to nothing. This divider has no leading inset, unlike ChromeRowDivider."
+      "notes": "The source comment records why both conditions are needed: a plan with no resets to bank used to end on a line to nothing. This divider has no leading inset, unlike ChromeRowDivider.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVREG-023",
@@ -6700,7 +6712,8 @@
         "DroppyCode/App/Views/Usage/UsageViews.swift:228-238 `HStack(spacing: 6) {` `Text(verbatim: \"Banked resets\")` `.font(.system(.body))` `.foregroundStyle(Chrome.primaryText)` `Text(verbatim: \"· \\(countText)\")` `.font(.system(.callout))` `.foregroundStyle(Chrome.secondaryText)` `.contentTransition(.numericText())`"
       ],
       "notes": "The title is exactly \"Banked resets\" with a lowercase r. The accessibility combination is deliberate so the pair reads as, for example, \"Banked resets, 2 available\".",
-      "b2_change": "UsageViews.swift:230 `.font(.system(size: 13))` (B1) -> `.font(.system(.body))` (B2); UsageViews.swift:233 `.font(.system(size: 12))` (B1) -> `.font(.system(.callout))` (B2). Same line numbers at both baselines; nothing else in the element changed."
+      "b2_change": "UsageViews.swift:230 `.font(.system(size: 13))` (B1) -> `.font(.system(.body))` (B2); UsageViews.swift:233 `.font(.system(size: 12))` (B1) -> `.font(.system(.callout))` (B2). Same line numbers at both baselines; nothing else in the element changed.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVREG-024",
@@ -6724,7 +6737,8 @@
         "DroppyCode/App/Views/Usage/UsageViews.swift:285-291"
       ],
       "notes": "The rendered text is U+00B7 MIDDLE DOT, a space, then the count text; the dot and space are part of this label, not a separator inserted by the stack. The zero case is a sentence fragment, not \"0 available\".",
-      "b2_change": "UsageViews.swift:233 `.font(.system(size: 12))` (B1) -> `.font(.system(.callout))` (B2). Same line numbers at both baselines; nothing else in the element changed."
+      "b2_change": "UsageViews.swift:233 `.font(.system(size: 12))` (B1) -> `.font(.system(.callout))` (B2). Same line numbers at both baselines; nothing else in the element changed.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVREG-025",
@@ -6749,7 +6763,8 @@
         "DroppyCode/Services/Providers/PlanLimits.swift:36-44"
       ],
       "notes": "The icon is checkmark.circle.fill for the reset outcome and info.circle for the other three. The settle delay is exactly 4 seconds and is cancelled if the view disappears or another spend starts. The transition is .blurReplace.",
-      "b2_change": "UsageViews.swift:265 `.font(.system(size: 11, weight: .semibold))` (B1) -> `.font(.system(.subheadline, weight: .semibold))` (B2); UsageViews.swift:269 `.font(.system(size: 11))` (B1) -> `.font(.system(.subheadline))` (B2). Same line numbers at both baselines; nothing else in the element changed."
+      "b2_change": "UsageViews.swift:265 `.font(.system(size: 11, weight: .semibold))` (B1) -> `.font(.system(.subheadline, weight: .semibold))` (B2); UsageViews.swift:269 `.font(.system(size: 11))` (B1) -> `.font(.system(.subheadline))` (B2). Same line numbers at both baselines; nothing else in the element changed.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVREG-026",
@@ -6772,7 +6787,8 @@
         "DroppyCode/Services/Providers/PlanLimits.swift:54-59"
       ],
       "notes": "The text is the localized error description verbatim, which for the known cases is \"Codex CLI not found.\" or \"Codex returned an unknown reset result.\" or the provider's own rejection message. A Z.ai failure can therefore surface a message that names Codex.",
-      "b2_change": "UsageViews.swift:276 `.font(.system(size: 11))` (B1) -> `.font(.system(.subheadline))` (B2). Same line numbers at both baselines; nothing else in the element changed."
+      "b2_change": "UsageViews.swift:276 `.font(.system(size: 11))` (B1) -> `.font(.system(.subheadline))` (B2). Same line numbers at both baselines; nothing else in the element changed.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVREG-027",
@@ -6795,7 +6811,8 @@
         "DroppyCode/App/Views/Usage/UsageViews.swift:313-337 BankedResetRow - `HStack(alignment: .center, spacing: 12) {` `VStack(alignment: .leading, spacing: 2) {` `Text(verbatim: row.credit?.title ?? (several ? \"Reset \\(index + 1)\" : \"Reset\"))` `.font(.system(.body))` `.lineLimit(1)` `Text(verbatim: row.credit?.detail ?? expiryText)` `.font(.system(.subheadline))` `.lineLimit(1)`"
       ],
       "notes": "Placeholder rows are synthesised for the difference between availableCount and the listed credits, with ids of the form unlisted- followed by a zero-based index, and are appended after the listed ones. The index shown in the title is the position in the combined list plus one, so a listed credit with no title in second place reads \"Reset 2\".",
-      "b2_change": "UsageViews.swift:326 `.font(.system(size: 13))` (B1) -> `.font(.system(.body))` (B2); UsageViews.swift:330 `.font(.system(size: 11))` (B1) -> `.font(.system(.subheadline))` (B2). Same line numbers at both baselines; nothing else in the element changed."
+      "b2_change": "UsageViews.swift:326 `.font(.system(size: 13))` (B1) -> `.font(.system(.body))` (B2); UsageViews.swift:330 `.font(.system(size: 11))` (B1) -> `.font(.system(.subheadline))` (B2). Same line numbers at both baselines; nothing else in the element changed.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVREG-028",
@@ -6820,7 +6837,8 @@
         "DroppyCode/App/Views/Usage/UsageViews.swift:339-343"
       ],
       "notes": "The expiry text reuses LimitRow.resetText, so the four relative formats are identical to the Resets text but with the prefix \"Expires \" instead of \"Resets \". The provider's own detail takes precedence over all of this.",
-      "b2_change": "UsageViews.swift:330 `.font(.system(size: 11))` (B1) -> `.font(.system(.subheadline))` (B2). Same line numbers at both baselines; nothing else in the element changed."
+      "b2_change": "UsageViews.swift:330 `.font(.system(size: 11))` (B1) -> `.font(.system(.subheadline))` (B2). Same line numbers at both baselines; nothing else in the element changed.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVREG-029",
@@ -6845,7 +6863,8 @@
         "DroppyCode/App/Views/Usage/UsageViews.swift:361-365",
         "DroppyCode/App/Views/Usage/UsageViews.swift:368-370"
       ],
-      "notes": "The label is exactly \"Use reset\" with a lowercase r. Clicking it is NOT destructive: it only reveals the confirm pair. Note the disabled rule is block-wide, so while one reset is being spent every other row's button is disabled."
+      "notes": "The label is exactly \"Use reset\" with a lowercase r. Clicking it is NOT destructive: it only reveals the confirm pair. Note the disabled rule is block-wide, so while one reset is being spent every other row's button is disabled.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVREG-030",
@@ -6865,7 +6884,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Usage/UsageViews.swift:347-352"
       ],
-      "notes": "Because the phase is held for the whole block, cancelling one row cancels the only confirmation that can exist at a time."
+      "notes": "Because the phase is held for the whole block, cancelling one row cancels the only confirmation that can exist at a time.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVREG-031",
@@ -6888,7 +6908,8 @@
         "DroppyCode/App/Views/Usage/UsageViews.swift:293-307",
         "DroppyCode/Services/Providers/ProviderRegistry.swift:649-676"
       ],
-      "notes": "The label is exactly \"Reset now\" with a lowercase n. This is the confirmation step, so the destructive action is two clicks, not one. The spend cannot be cancelled once sent; the settle task that clears the outcome line can be, by the view disappearing."
+      "notes": "The label is exactly \"Reset now\" with a lowercase n. This is the confirmation step, so the destructive action is two clicks, not one. The spend cannot be cancelled once sent; the settle task that clears the outcome line can be, by the view disappearing.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVREG-032",
@@ -6910,7 +6931,8 @@
         "DroppyCode/App/Views/Usage/UsageViews.swift:353-360 `HStack(spacing: 6) {` `ProgressView().controlSize(.mini)` `Text(verbatim: \"Resetting…\")` `.font(.system(.callout))` `.foregroundStyle(Chrome.secondaryText)` `.transition(.blurReplace)`"
       ],
       "notes": "The ellipsis is U+2026, not three full stops.",
-      "b2_change": "UsageViews.swift:357 `.font(.system(size: 12))` (B1) -> `.font(.system(.callout))` (B2). Same line numbers at both baselines; nothing else in the element changed."
+      "b2_change": "UsageViews.swift:357 `.font(.system(size: 12))` (B1) -> `.font(.system(.callout))` (B2). Same line numbers at both baselines; nothing else in the element changed.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVREG-033",
@@ -6932,7 +6954,8 @@
         "DroppyCode/App/Views/Usage/UsageViews.swift:90-126 CreditsView - `HStack(alignment: .center, spacing: 16) {` `VStack(alignment: .leading, spacing: 2) {` `Text(verbatim: \"Remaining credits\")` `.font(.system(.body))` `.foregroundStyle(Chrome.primaryText)` ... `Spacer(minLength: 12)` `HStack(spacing: 10) {`"
       ],
       "notes": "The title is exactly \"Remaining credits\" with a lowercase c. Note the animation here is easeOut 0.15, not Chrome.panelSlide as the limits block uses.",
-      "b2_change": "UsageViews.swift:97 `.font(.system(size: 13))` (B1) -> `.font(.system(.body))` (B2). Same line numbers at both baselines; nothing else in the element changed."
+      "b2_change": "UsageViews.swift:97 `.font(.system(size: 13))` (B1) -> `.font(.system(.body))` (B2). Same line numbers at both baselines; nothing else in the element changed.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVREG-034",
@@ -6958,7 +6981,8 @@
         "DroppyCode/Services/Providers/ProviderCredits.swift:23-30"
       ],
       "notes": "Both sentences end in a full stop. The breakdown parts are joined with a space, U+00B7 and a space, and are always in the order Monthly, Topped up, Granted regardless of which are present.",
-      "b2_change": "UsageViews.swift:101 `.font(.system(size: 11))` (B1) -> `.font(.system(.subheadline))` (B2). Same line numbers at both baselines; nothing else in the element changed."
+      "b2_change": "UsageViews.swift:101 `.font(.system(size: 11))` (B1) -> `.font(.system(.subheadline))` (B2). Same line numbers at both baselines; nothing else in the element changed.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVREG-035",
@@ -6981,7 +7005,8 @@
         "DroppyCode/Services/Providers/ProviderCredits.swift:20-21, :32-45"
       ],
       "notes": "The amount is formatted in the en_US locale with the provider's own currency code, so it reads \"$12.34\" on a machine set to any region. A currency that is not a three-letter alphabetic code falls back to a bare two-decimal number with the raw currency appended after a space.",
-      "b2_change": "UsageViews.swift:113 `.font(.system(size: 13, weight: .semibold))` (B1) -> `.font(.system(.body, weight: .semibold))` (B2). Same line numbers at both baselines; nothing else in the element changed."
+      "b2_change": "UsageViews.swift:113 `.font(.system(size: 13, weight: .semibold))` (B1) -> `.font(.system(.body, weight: .semibold))` (B2). Same line numbers at both baselines; nothing else in the element changed.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVREG-036",
@@ -7004,7 +7029,8 @@
         "DroppyCode/App/Views/Usage/UsageViews.swift:118-122",
         "DroppyCode/Services/Providers/ProviderCredits.swift:68-75"
       ],
-      "notes": "The label is exactly \"Top up\", two words, lowercase u. It is shown regardless of whether the balance is depleted."
+      "notes": "The label is exactly \"Top up\", two words, lowercase u. It is shown regardless of whether the balance is depleted.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVREG-037",

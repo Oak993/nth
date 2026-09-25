@@ -1,20 +1,23 @@
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Globalization;
+using Avalonia;
+using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.Layout;
+using Avalonia.Media;
+using Marrow.App;
+using Marrow.App.Port;
 using Marrow.Core.Models;
+using Marrow.Core.Port;
 using Marrow.Services.Providers;
+using Marrow.UI.Chrome;
+using Marrow.UI.Common;
 using Marrow.UI.Port;
 
 // Source: DroppyCode/App/Views/Usage/UsageViews.swift (B2 1fbf81e), :1-396.
-// Skeleton (c100 group 5): every type the file declares, their inputs, the record shapes and the members the other
-// files use. Every view body and every member with behaviour is left to the implementing unit (MARROW_STUB).
-// Forms (ED-095): a SwiftUI View is a Decorator whose constructor builds `body`; an enum with associated values is an
-// abstract record (R-ENUM-2), an unlabelled payload named Value; Date is DateTimeOffset, a Swift Int long (R-NUM-4),
-// Color SwiftColor. Swift `private`/`fileprivate` top-level types are `internal`. `@Environment(AppModel.self)` is
-// read by the bodies, so it is no constructor parameter. LimitRow.resetText's `now: Date = .now` default is the
-// one-argument overload.
-// Not declared yet (private, read only by the bodies the implementing unit writes): BankedResetsView's @State
-// storage (:217-218) and its private views and helpers (rows :220-224, statusLine :260-283, countText :285-291),
-// BankedResetRow's expiryText (:339-343), control (:345-366) and isApplying (:368-370).
 
 namespace Marrow.App.Views.Usage;
 
@@ -23,21 +26,255 @@ public sealed class PlanLimitsView : Decorator
 {
     /// <param name="provider">:9 <c>let provider: ProviderKind</c>.</param>
     // :11-79 body
-    public PlanLimitsView(ProviderKind provider) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Usage/UsageViews.swift:11");
+    public PlanLimitsView(ProviderKind provider)
+    {
+        var hasPreviousLimits = false;
+        PlanLimits? previousLimits = null;
+        this.Track(
+            () =>
+            {
+                var model = AppEnvironment.GetAppModel(this);
+                return (model.Providers.PlanLimits.GetValueOrDefault(provider), model.Providers.LoadingLimits.Contains(provider));
+            },
+            state =>
+            {
+                var limitsChanged = hasPreviousLimits &&
+                    !EqualityComparer<PlanLimits?>.Default.Equals(previousLimits, state.Item1);
+                previousLimits = state.Item1;
+                hasPreviousLimits = true;
+
+                if (limitsChanged)
+                {
+                    Transaction.WithAnimation(Chrome.PanelSlide, () => Update(state.Item1, state.Item2));
+                }
+                else
+                {
+                    Update(state.Item1, state.Item2);
+                }
+            });
+
+        void Update(PlanLimits? limits, bool isLoading)
+        {
+            var content = new StackPanel { Spacing = 0 };
+            var title = limits?.PlanName is { } planName
+                ? "Plan usage limits \U000000B7 " + planName // U+00B7 MIDDLE DOT
+                : "Plan usage limits";
+            var header = new Grid
+            {
+                ColumnDefinitions = new ColumnDefinitions("*,Auto"),
+            };
+            header.Children.Add(Label(title, SwiftFont.Body, Chrome.SecondaryText));
+            if (isLoading)
+            {
+                var spinner = Spinner();
+                spinner.Margin = new Thickness(24, 0, 0, 0);
+                Grid.SetColumn(spinner, 1);
+                header.Children.Add(spinner);
+            }
+            content.Children.Add(header);
+
+            if (limits is { } available)
+            {
+                foreach (var window in available.Windows)
+                {
+                    var row = new LimitRow(window);
+                    row.Margin = new Thickness(0, 14, 0, 0);
+                    content.Children.Add(row);
+                }
+
+                if (available.PlanLimitsResetCredits is { } credits)
+                {
+                    if (available.Windows.Count > 0)
+                    {
+                        content.Children.Add(new Separator
+                        {
+                            Margin = new Thickness(0, 14, 0, 0),
+                        });
+                    }
+
+                    var resets = new BankedResetsView(provider, credits);
+                    resets.Margin = new Thickness(0, 14, 0, 0);
+                    content.Children.Add(resets);
+                }
+
+                if (available.Problem is { } problem)
+                {
+                    if (provider.IsAPIKeyBased)
+                    {
+                        var warning = SwiftImage.SystemName("exclamationmark.triangle.fill")
+                            .Font(SwiftFont.Footnote.FontWeight(SwiftFont.Weight.Semibold));
+                        warning.Foreground = Chrome.Warning.Brush(warning);
+                        var note = Label(problem, SwiftFont.Subheadline, Chrome.SecondaryText);
+                        note.MaxLines = 2;
+                        note.TextWrapping = TextWrapping.Wrap;
+                        note.Margin = new Thickness(6, 0, 0, 0);
+                        var warningRow = new Grid
+                        {
+                            ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto"),
+                            VerticalAlignment = VerticalAlignment.Center,
+                            Margin = new Thickness(0, 14, 0, 0),
+                        };
+                        warningRow.ColumnDefinitions[2].MinWidth = 14;
+                        warningRow.Children.Add(warning);
+                        Grid.SetColumn(note, 1);
+                        warningRow.Children.Add(note);
+                        var spacer = new Border();
+                        Grid.SetColumn(spacer, 2);
+                        warningRow.Children.Add(spacer);
+                        content.Children.Add(warningRow);
+                    }
+                    else
+                    {
+                        var label = Label("Click here to login again", SwiftFont.Callout, Chrome.SecondaryText);
+                        label.Margin = new Thickness(0, 0, 24, 0);
+                        var login = new Button { Content = "Login" };
+                        login.Click += (_, _) => Workspace.OpenTerminal(provider.LoginCommand);
+                        var problemRow = new Grid
+                        {
+                            ColumnDefinitions = new ColumnDefinitions("*,Auto"),
+                            VerticalAlignment = VerticalAlignment.Center,
+                            Margin = new Thickness(0, 14, 0, 0),
+                        };
+                        problemRow.Children.Add(label);
+                        Grid.SetColumn(login, 1);
+                        problemRow.Children.Add(login.ChromeGlassCapsule());
+                        content.Children.Add(problemRow);
+                    }
+                }
+            }
+            else if (!isLoading)
+            {
+                var empty = Label(provider.DisplayName + " did not report plan limits.", SwiftFont.Callout, Chrome.SecondaryText);
+                empty.Margin = new Thickness(0, 8, 0, 0);
+                content.Children.Add(empty);
+            }
+
+            Child = content;
+        }
+    }
+
+    private static ProgressBar Spinner() => new()
+    {
+        IsIndeterminate = true,
+        Width = 16,
+        Height = 16,
+        VerticalAlignment = VerticalAlignment.Center,
+    };
+
+    private static TextBlock Label(string value, SwiftFont font, SwiftColor color)
+    {
+        var label = new TextBlock { Text = value, Foreground = color.Brush(new TextBlock()) };
+        font.Apply(label);
+        label.Foreground = color.Brush(label);
+        return label;
+    }
 }
 
 /// <summary>:86-139 <c>struct CreditsView: View</c>: a pay-as-you-go balance as one settings row.</summary>
 public sealed class CreditsView : Decorator
 {
+    private readonly ProviderKind provider;
+
     /// <param name="provider">:88 <c>let provider: ProviderKind</c>.</param>
     // :90-126 body
-    public CreditsView(ProviderKind provider) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Usage/UsageViews.swift:90");
+    public CreditsView(ProviderKind provider)
+    {
+        this.provider = provider;
+        var hasPreviousCredits = false;
+        ProviderCredits? previousCredits = null;
+        this.Track(
+            () =>
+            {
+                var model = AppEnvironment.GetAppModel(this);
+                return (model.Providers.Credits.GetValueOrDefault(provider), model.Providers.LoadingCredits.Contains(provider));
+            },
+            state =>
+            {
+                var creditsChanged = hasPreviousCredits &&
+                    !EqualityComparer<ProviderCredits?>.Default.Equals(previousCredits, state.Item1);
+                previousCredits = state.Item1;
+                hasPreviousCredits = true;
+
+                if (creditsChanged)
+                {
+                    Transaction.WithAnimation(Animation.EaseOut(duration: 0.15), () => Update(state.Item1, state.Item2));
+                }
+                else
+                {
+                    Update(state.Item1, state.Item2);
+                }
+            });
+
+        void Update(ProviderCredits? credits, bool isLoading)
+        {
+            var left = new StackPanel { Spacing = 2 };
+            var title = new TextBlock { Text = "Remaining credits", Foreground = Chrome.PrimaryText.Brush(this) };
+            SwiftFont.Body.Apply(title);
+            left.Children.Add(title);
+
+            if (Note(credits, isLoading) is { } note)
+            {
+                var noteLabel = new TextBlock
+                {
+                    Text = note,
+                    Foreground = Chrome.SecondaryText.Brush(this),
+                    TextWrapping = TextWrapping.Wrap,
+                };
+                SwiftFont.Subheadline.Apply(noteLabel);
+                left.Children.Add(noteLabel);
+            }
+
+            var right = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Spacing = 10,
+                VerticalAlignment = VerticalAlignment.Center,
+            };
+            if (isLoading) right.Children.Add(CreditsSpinner());
+            if (credits is { } balance)
+            {
+                var amount = new TextBlock { Text = balance.AmountText };
+                SwiftFont.Body.FontWeight(SwiftFont.Weight.Semibold).MonospacedDigit().Apply(amount);
+                amount.Foreground = (balance.IsDepleted ? Chrome.Danger : Chrome.PrimaryText).Brush(amount);
+                amount.TextWrapping = TextWrapping.NoWrap;
+                amount.MaxLines = 1;
+                right.Children.Add(amount);
+            }
+
+            if (CreditsReader.TopUpURL(provider) is { } topUpURL)
+            {
+                var topUp = new Button { Content = "Top up" };
+                topUp.Click += (_, _) => Process.Start(new ProcessStartInfo(topUpURL.AbsoluteUri) { UseShellExecute = true });
+                right.Children.Add(topUp.ChromeGlassCapsule());
+            }
+
+            var row = new DockPanel
+            {
+                VerticalAlignment = VerticalAlignment.Center,
+            };
+            right.Margin = new Thickness(44, 0, 0, 0);
+            DockPanel.SetDock(right, Dock.Right);
+            row.Children.Add(right);
+            row.Children.Add(left);
+            Child = row;
+        }
+    }
 
     // :130-138 private func note(for credits: ProviderCredits?, isLoading: Bool) -> String?
-    private string? Note(ProviderCredits? @for, bool isLoading) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Usage/UsageViews.swift:130");
+    private string? Note(ProviderCredits? @for, bool isLoading)
+    {
+        if (@for is null) return isLoading ? null : provider.DisplayName + " did not report a balance.";
+        if (@for.IsDepleted) return provider.DisplayName + " declines turns until the balance is topped up.";
+        return @for.BreakdownText;
+    }
+
+    private static ProgressBar CreditsSpinner() => new()
+    {
+        IsIndeterminate = true,
+        Width = 16,
+        Height = 16,
+        VerticalAlignment = VerticalAlignment.Center,
+    };
 }
 
 /// <summary>:141-192 <c>private struct LimitRow: View</c>.</summary>
@@ -45,20 +282,105 @@ internal sealed class LimitRow : Decorator
 {
     /// <param name="window">:142 <c>let window: PlanLimits.Window</c>.</param>
     // :144-171 body
-    public LimitRow(PlanLimits.Window window) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Usage/UsageViews.swift:144");
+    public LimitRow(PlanLimits.Window window)
+    {
+        var heading = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitions("*,8,Auto,Auto"),
+        };
+
+        var title = new TextBlock
+        {
+            Text = window.Title,
+            Foreground = Chrome.PrimaryText.Brush(this),
+            TextWrapping = TextWrapping.NoWrap,
+            MaxLines = 1,
+            Margin = new Thickness(0, 0, 12, 0),
+        };
+        SwiftFont.Body.Apply(title);
+        heading.Children.Add(title);
+
+        if (window.ResetsAt is { } resetsAt)
+        {
+            var reset = new TextBlock
+            {
+                Text = "Resets " + ResetText(resetsAt),
+                Foreground = Chrome.SecondaryText.Brush(this),
+                TextWrapping = TextWrapping.NoWrap,
+                MaxLines = 1,
+                Margin = new Thickness(0, 0, 12, 0),
+            };
+            SwiftFont.Callout.Apply(reset);
+            Grid.SetColumn(reset, 2);
+            heading.Children.Add(reset);
+        }
+
+        var percentage = new TextBlock
+        {
+            Text = SwiftNumber.TruncatingToInt(SwiftNumber.Rounded(window.Percent)).ToString(CultureInfo.InvariantCulture) + "%",
+            Foreground = Chrome.SecondaryText.Brush(this),
+        };
+        SwiftFont.Callout.MonospacedDigit().Apply(percentage);
+        Grid.SetColumn(percentage, 3);
+        heading.Children.Add(percentage);
+
+        var row = new StackPanel { Spacing = 8 };
+        row.Children.Add(heading);
+        if (window.Detail is { } detail)
+        {
+            var detailLabel = new TextBlock
+            {
+                Text = detail,
+                Foreground = Chrome.SecondaryText.Brush(this),
+                TextWrapping = TextWrapping.NoWrap,
+                MaxLines = 1,
+            };
+            SwiftFont.Subheadline.Apply(detailLabel);
+            row.Children.Add(detailLabel);
+        }
+        row.Children.Add(new UsageBar(window.Percent / 100, Tint(window.Percent), window.Title));
+        Child = row;
+    }
 
     // :173-177 private static func tint(for percent: Double) -> Color
-    private static SwiftColor Tint(double @for) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Usage/UsageViews.swift:173");
+    private static SwiftColor Tint(double @for)
+    {
+        if (@for >= 90) return Chrome.Danger;
+        if (@for >= 75) return Chrome.Warning;
+        return Chrome.Accent;
+    }
 
-    // :180-191 static func resetText(_ date: Date, now: Date = .now) -> String, with the default
+    // :180-191 static func resetText(_ date: Date, now: Date = .now), with the default
     public static string ResetText(DateTimeOffset date) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Usage/UsageViews.swift:180");
+        ResetText(date, SwiftDate.Now);
 
-    // :180-191 static func resetText(_ date: Date, now: Date) -> String
-    public static string ResetText(DateTimeOffset date, DateTimeOffset now) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Usage/UsageViews.swift:180");
+    // :180-191 static func resetText(_ date: Date, now: Date)
+    public static string ResetText(DateTimeOffset date, DateTimeOffset now)
+    {
+        var seconds = SwiftDate.TimeIntervalSince(date, now);
+        if (seconds < 0) seconds = 0;
+
+        if (seconds < 86_400)
+        {
+            var wholeSeconds = SwiftNumber.TruncatingToInt(seconds);
+            var hours = wholeSeconds / 3_600;
+            var minutes = wholeSeconds % 3_600 / 60;
+            return hours > 0
+                ? "in " + hours.ToString(CultureInfo.InvariantCulture) + " hr " + minutes.ToString(CultureInfo.InvariantCulture) + " min"
+                : "in " + Math.Max(1L, minutes).ToString(CultureInfo.InvariantCulture) + " min";
+        }
+
+        if (seconds < 6 * 86_400)
+        {
+            return SwiftFormatters.Formatted(
+                date,
+                DateFormatStyle.DateTime.Weekday().Hour().Minute());
+        }
+
+        return SwiftFormatters.Formatted(
+            date,
+            DateFormatStyle.DateTime.Month().Day());
+    }
 }
 
 /// <summary>:195-198 <c>fileprivate struct BankedResetRowModel: Identifiable</c>: one banked reset.</summary>
@@ -87,15 +409,135 @@ internal sealed class BankedResetsView : Decorator
         public sealed record Failed(string Value) : Phase; // :214
     }
 
+    private readonly ProviderKind provider;
+    private readonly PlanLimits.ResetCredits credits;
+    private Phase phase = new Phase.Idle();
+    private TaskHandle? settle;
+
     /// <param name="provider">:206 <c>let provider: ProviderKind</c>.</param>
     /// <param name="credits">:207 <c>let credits: PlanLimits.ResetCredits</c>.</param>
     // :226-257 body
-    public BankedResetsView(ProviderKind provider, PlanLimits.ResetCredits credits) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Usage/UsageViews.swift:226");
+    public BankedResetsView(ProviderKind provider, PlanLimits.ResetCredits credits)
+    {
+        this.provider = provider;
+        this.credits = credits;
+        Build();
+        DetachedFromVisualTree += (_, _) => settle?.Cancel();
+    }
+
+    private void SetPhase(Phase next)
+    {
+        Transaction.WithAnimation(Chrome.PanelSlide, () =>
+        {
+            phase = next;
+            Build();
+        });
+    }
+
+    private void Build()
+    {
+        var content = new StackPanel { Spacing = 0 };
+        var header = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
+        var title = new TextBlock { Text = "Banked resets", Foreground = Chrome.PrimaryText.Brush(this) };
+        SwiftFont.Body.Apply(title);
+        var count = credits.AvailableCount switch
+        {
+            0 => "None available yet",
+            1 => "1 available",
+            _ => credits.AvailableCount.ToString(CultureInfo.InvariantCulture) + " available",
+        };
+        var countLabel = new TextBlock { Text = "\U000000B7 " + count, Foreground = Chrome.SecondaryText.Brush(this) }; // U+00B7 MIDDLE DOT
+        SwiftFont.Callout.Apply(countLabel);
+        header.Children.Add(title);
+        header.Children.Add(countLabel);
+        AutomationProperties.SetName(header, "Banked resets, " + count);
+        content.Children.Add(header);
+
+        if (phase is Phase.Done done)
+        {
+            var isReset = done.Value == PlanLimits.ResetOutcome.Reset;
+            var color = isReset ? Chrome.Success : Chrome.SecondaryText;
+            var symbol = isReset ? "checkmark.circle.fill" : "info.circle";
+            var glyph = SwiftImage.SystemName(symbol)
+                .Font(SwiftFont.Subheadline.FontWeight(SwiftFont.Weight.Semibold))
+                .ForegroundStyle(color)
+                .SymbolEffect(SymbolEffectKind.Bounce, phase);
+            var message = new TextBlock
+            {
+                Text = done.Value.Message,
+                Foreground = color.Brush(this),
+            };
+            SwiftFont.Subheadline.Apply(message);
+            var status = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Spacing = 5,
+                Margin = new Thickness(0, 4, 0, 0),
+                Children = { glyph, message },
+            };
+            content.Children.Add(status.Transition(SwiftTransition.BlurReplace));
+        }
+        else if (phase is Phase.Failed failed)
+        {
+            var status = new TextBlock
+            {
+                Text = failed.Value,
+                Foreground = Chrome.Danger.Brush(this),
+                Margin = new Thickness(0, 4, 0, 0),
+            };
+            SwiftFont.Subheadline.Apply(status);
+            content.Children.Add(status.Transition(SwiftTransition.BlurReplace));
+        }
+
+        var listed = credits.Credits;
+        var total = Math.Max(0L, credits.AvailableCount - listed.Count);
+        var rowCount = listed.Count + total;
+        for (var index = 0; index < rowCount; index++)
+        {
+            var credit = index < listed.Count ? listed[checked((int)index)] : null;
+            var row = new BankedResetRowModel
+            {
+                Id = credit?.Id ?? "unlisted-" + (index - listed.Count).ToString(CultureInfo.InvariantCulture),
+                Credit = credit,
+            };
+            var rowView = new BankedResetRow(
+                row,
+                index,
+                rowCount > 1,
+                phase,
+                () => SetPhase(new Phase.Confirming(row.Id)),
+                () => SetPhase(new Phase.Idle()),
+                () => Spend(row));
+            rowView.Margin = new Thickness(0, 12, 0, 0);
+            content.Children.Add(rowView.Transition(SwiftTransition.BlurReplace));
+        }
+
+        Child = content;
+    }
 
     // :293-307 private func spend(_ row: BankedResetRowModel)
-    private void Spend(BankedResetRowModel row) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Usage/UsageViews.swift:293");
+    private void Spend(BankedResetRowModel row)
+    {
+        SetPhase(new Phase.Applying(row.Id));
+        settle?.Cancel();
+        var model = AppEnvironment.GetAppModel(this);
+        settle = MainActor.Spawn(async () =>
+        {
+            try
+            {
+                var outcome = await model.Providers.ConsumeResetCredit(provider, row.Credit?.Id);
+                SetPhase(new Phase.Done(outcome));
+            }
+            catch (Exception error)
+            {
+                SetPhase(new Phase.Failed(SwiftErrors.LocalizedDescription(error)));
+            }
+
+            await SwiftTask.TrySleep(TimeSpan.FromSeconds(4));
+            if (SwiftTask.IsCancelled) return;
+            SetPhase(new Phase.Idle());
+        });
+    }
 }
 
 /// <summary>:313-371 <c>private struct BankedResetRow: View</c>: one banked reset and the button that spends it.</summary>
@@ -109,17 +551,139 @@ internal sealed class BankedResetRow : Decorator
     /// <param name="onCancel">:319 <c>let onCancel: () -> Void</c>.</param>
     /// <param name="onUse">:320 <c>let onUse: () -> Void</c>.</param>
     // :322-337 body
-    public BankedResetRow(BankedResetRowModel row, long index, bool several, BankedResetsView.Phase phase, Action onConfirm, Action onCancel, Action onUse) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Usage/UsageViews.swift:322");
+    public BankedResetRow(BankedResetRowModel row, long index, bool several, BankedResetsView.Phase phase, Action onConfirm, Action onCancel, Action onUse)
+    {
+        var label = row.Credit?.Title ?? (several ? "Reset " + (index + 1).ToString(CultureInfo.InvariantCulture) : "Reset");
+        var title = new TextBlock
+        {
+            Text = label,
+            Foreground = Chrome.PrimaryText.Brush(this),
+            TextWrapping = TextWrapping.NoWrap,
+            MaxLines = 1,
+        };
+        SwiftFont.Body.Apply(title);
+
+        var detailText = row.Credit?.Detail ?? (row.Credit?.ExpiresAt is { } expiresAt
+            ? expiresAt <= SwiftDate.Now ? "Expired" : "Expires " + LimitRow.ResetText(expiresAt)
+            : "No expiry reported");
+        var detail = new TextBlock
+        {
+            Text = detailText,
+            Foreground = Chrome.SecondaryText.Brush(this),
+            TextWrapping = TextWrapping.NoWrap,
+            MaxLines = 1,
+        };
+        SwiftFont.Subheadline.Apply(detail);
+        var labels = new StackPanel { Spacing = 2, Children = { title, detail } };
+
+        Control control;
+        if (phase is BankedResetsView.Phase.Confirming confirming && confirming.Value == row.Id)
+        {
+            var buttons = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Spacing = 6,
+            };
+            var cancel = new Button { Content = "Cancel" };
+            cancel.Click += (_, _) => onCancel();
+            var reset = new Button { Content = "Reset now" };
+            reset.Click += (_, _) => onUse();
+            buttons.Children.Add(cancel.ChromeGlassCapsule());
+            buttons.Children.Add(reset.ChromeGlassCapsule());
+            control = buttons.Transition(SwiftTransition.BlurReplace);
+        }
+        else if (phase is BankedResetsView.Phase.Applying applying && applying.Value == row.Id)
+        {
+            var progress = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Spacing = 6,
+                VerticalAlignment = VerticalAlignment.Center,
+            };
+            progress.Children.Add(new ProgressBar
+            {
+                IsIndeterminate = true,
+                Width = 16,
+                Height = 16,
+                VerticalAlignment = VerticalAlignment.Center,
+            });
+            var resetting = new TextBlock
+            {
+                Text = "Resetting\u2026", // U+2026 HORIZONTAL ELLIPSIS
+                Foreground = Chrome.SecondaryText.Brush(this),
+            };
+            SwiftFont.Callout.Apply(resetting);
+            progress.Children.Add(resetting);
+            control = progress.Transition(SwiftTransition.BlurReplace);
+        }
+        else
+        {
+            var use = new Button
+            {
+                Content = "Use reset",
+                IsEnabled = phase is not BankedResetsView.Phase.Applying,
+            };
+            use.Click += (_, _) => onConfirm();
+            control = use.ChromeGlassCapsule().Transition(SwiftTransition.BlurReplace);
+        }
+
+        var rowGrid = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitions("*,Auto"),
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        rowGrid.Children.Add(labels);
+        var controlHost = new Border
+        {
+            Child = control,
+            Margin = new Thickness(36, 0, 0, 0),
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        Grid.SetColumn(controlHost, 1);
+        rowGrid.Children.Add(controlHost);
+        Child = rowGrid;
+    }
 }
 
 /// <summary>:374-396 <c>struct UsageBar: View</c>: a thin capsule filled to a fraction.</summary>
 public sealed class UsageBar : Decorator
 {
+    private readonly double fraction;
+    private readonly SwiftColor tint;
+
     /// <param name="fraction">:375 <c>let fraction: Double</c>.</param>
     /// <param name="tint">:376 <c>let tint: Color</c>.</param>
     /// <param name="label">:379 <c>var label = "Used"</c>.</param>
     // :381-395 body
-    public UsageBar(double fraction, SwiftColor tint, string label = "Used") =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Usage/UsageViews.swift:381");
+    public UsageBar(double fraction, SwiftColor tint, string label = "Used")
+    {
+        this.fraction = fraction;
+        this.tint = tint;
+        var track = new Border
+        {
+            Height = 5,
+            CornerRadius = new CornerRadius(2.5),
+            Background = Chrome.Overlay(0.1).Brush(this),
+        };
+        var fill = new Border
+        {
+            Height = 5,
+            CornerRadius = new CornerRadius(2.5),
+            HorizontalAlignment = HorizontalAlignment.Left,
+            Background = tint.Brush(this),
+        };
+        var bar = new Grid
+        {
+            Height = 5,
+            Children = { track, fill },
+        };
+        bar.SizeChanged += (_, args) =>
+        {
+            var clamped = Math.Min(Math.Max(fraction, 0), 1);
+            fill.Width = fraction > 0 ? Math.Max(5, args.NewSize.Width * clamped) : 0;
+        };
+        AutomationProperties.SetName(this, label);
+        AutomationProperties.SetHelpText(this, SwiftNumber.TruncatingToInt(SwiftNumber.Rounded(Math.Min(Math.Max(fraction, 0), 1) * 100)) + "% used");
+        Child = bar;
+    }
 }
