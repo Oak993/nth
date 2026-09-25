@@ -6130,7 +6130,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:44-57 Font.chatBaseSize, the table ED-059 takes text-style point sizes from (the file is deleted at B2): :51 body 13 | :52 callout 12"
       ],
       "notes": "An alignment guide on the overlay was not honoured and left the card over the staves, which is why it hangs from a zero-height frame instead. A reply's step reads \"Replied: {first line cut to 60}\" or exactly \"Replied\". Glass: OD-0005 applies (where the window shows the desktop, a Windows system material of the Acrylic class, with no lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing, drawn by the SKSL shader over app content per OD-0008's restatement in owner_decisions_pending.md:51); an owner-approved deviation, not parity. OD-0014: the window stays clear by default, as upstream, so until the user sets a wallpaper the desktop shows through as Acrylic plus the app-drawn scrim (OD-0005).",
-      "b2_change": "Citation re-anchored: B1 HydraProgressBar.swift:213-243 -> B2 HydraProgressBar.swift:213-243. Typography was \"The step label .system(size: 13, weight: .semibold) on one line truncated at the tail; a non-MCP symbol at .system(size: 12, weight: .semibold) in a 14-point frame.\"; fixed .system(size: N) fonts are now text styles of the same macOS point size (text-style point sizes per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (B1; the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom): title2 17, title3 15, body 13, callout 12, subheadline 11, footnote 10, caption2 10), so the rendered point sizes are unchanged."
+      "b2_change": "Citation re-anchored: B1 HydraProgressBar.swift:213-243 -> B2 HydraProgressBar.swift:213-243. Typography was \"The step label .system(size: 13, weight: .semibold) on one line truncated at the tail; a non-MCP symbol at .system(size: 12, weight: .semibold) in a 14-point frame.\"; fixed .system(size: N) fonts are now text styles of the same macOS point size (text-style point sizes per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (B1; the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom): title2 17, title3 15, body 13, callout 12, subheadline 11, footnote 10, caption2 10), so the rendered point sizes are unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "HYDRA",
@@ -6178,7 +6179,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:44-57 Font.chatBaseSize, the table ED-059 takes text-style point sizes from (the file is deleted at B2): :51 body 13"
       ],
       "notes": "The task falls back to the head's thread title when empty. The band is half as wide as 0.6 of the text (reach 0.3 each side). The clock runs at 20 fps and rests while the reader scrolls anywhere.",
-      "b2_change": "Citation re-anchored: B1 HydraProgressBar.swift:486-539 -> B2 HydraProgressBar.swift:486-539. Typography was \".system(size: 13, weight: .medium).\"; fixed .system(size: N) fonts are now text styles of the same macOS point size (text-style point sizes per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (B1; the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom): title2 17, title3 15, body 13, callout 12, subheadline 11, footnote 10, caption2 10), so the rendered point sizes are unchanged."
+      "b2_change": "Citation re-anchored: B1 HydraProgressBar.swift:486-539 -> B2 HydraProgressBar.swift:486-539. Typography was \".system(size: 13, weight: .medium).\"; fixed .system(size: N) fonts are now text styles of the same macOS point size (text-style point sizes per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (B1; the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom): title2 17, title3 15, body 13, callout 12, subheadline 11, footnote 10, caption2 10), so the rendered point sizes are unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "HYDRA",
@@ -6202,7 +6204,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:44-57 Font.chatBaseSize, the table ED-059 takes text-style point sizes from (the file is deleted at B2): :53 subheadline 11"
       ],
       "notes": "Only this text follows the clock; the capsule and the strip around it are drawn once. That is a performance contract.",
-      "b2_change": "Citation re-anchored: B1 HydraProgressBar.swift:543-562 -> B2 HydraProgressBar.swift:543-562. Typography was \".system(size: 11) with monospaced digits.\"; fixed .system(size: N) fonts are now text styles of the same macOS point size (text-style point sizes per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (B1; the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom): title2 17, title3 15, body 13, callout 12, subheadline 11, footnote 10, caption2 10), so the rendered point sizes are unchanged."
+      "b2_change": "Citation re-anchored: B1 HydraProgressBar.swift:543-562 -> B2 HydraProgressBar.swift:543-562. Typography was \".system(size: 11) with monospaced digits.\"; fixed .system(size: N) fonts are now text styles of the same macOS point size (text-style point sizes per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (B1; the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom): title2 17, title3 15, body 13, callout 12, subheadline 11, footnote 10, caption2 10), so the rendered point sizes are unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "HYDRA",
@@ -7179,7 +7182,8 @@
         "DroppyCode/App/Views/Chat/SubagentPanel.swift:271-291"
       ],
       "notes": "The panel's compact height is 280 points, which is room for the strip, a two-line task over the bar and the chat box under them. The elapsed time is NOT here; it sits in the strip's capsule.",
-      "b2_change": "Citation only: B1 HydraProgressBar.swift:452-481 -> B2 :452-481; the only change inside the range is the task trim, now .trimmed (:458), the same call (Text.swift:132)."
+      "b2_change": "Citation only: B1 HydraProgressBar.swift:452-481 -> B2 :452-481; the only change inside the range is the task trim, now .trimmed (:458), the same call (Text.swift:132).",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "HYDRAMERGE",
