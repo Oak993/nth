@@ -13710,37 +13710,11 @@
    "intra_deps": [],
    "records_total": 14,
    "records_todo": [
-    "PR-LAUNCH-001",
-    "PR-LAUNCH-002",
-    "PR-LAUNCH-003",
-    "PR-LAUNCH-004",
-    "PR-LAUNCH-014",
-    "PR-LAUNCH-022",
-    "PR-LAUNCH-068",
-    "PR-LAUNCH-072",
-    "PR-LAUNCH-073",
-    "PR-LAUNCH-079",
-    "PR-UPDATE-113",
-    "PR-WIN-001",
-    "PR-WIN-002",
-    "UI-LAUNCH-009"
+    "PR-LAUNCH-072"
    ],
    "parts": [
     [
-     "PR-LAUNCH-001",
-     "PR-LAUNCH-002",
-     "PR-LAUNCH-003",
-     "PR-LAUNCH-004",
-     "PR-LAUNCH-014",
-     "PR-LAUNCH-022",
-     "PR-LAUNCH-068",
-     "PR-LAUNCH-072",
-     "PR-LAUNCH-073",
-     "PR-LAUNCH-079",
-     "PR-UPDATE-113",
-     "PR-WIN-001",
-     "PR-WIN-002",
-     "UI-LAUNCH-009"
+     "PR-LAUNCH-072"
     ]
    ],
    "packets": [

@@ -8339,7 +8339,8 @@
         "decision": "OD-0008 A10; OD-0012 E4",
         "upstream": "DroppyCode/Services/Store/Storage.swift:60-63 - a corrupt library opens empty with no message; upstream has no text for this error because it never shows one",
         "port": "Do not overwrite after a failed load; show the error. FIX: an undecodable library.json is surfaced to the user and never overwritten by the next save. OD-0012 E4: the error is shown in the main window at launch as \"Marrow could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\""
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "MCP",

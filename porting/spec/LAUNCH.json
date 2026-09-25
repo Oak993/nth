@@ -26,7 +26,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A single startup function called before the main window is created and before the settings/library store is first touched, keeping the same relative order for the steps that are ported. Step 1 (an Objective-C exception net) has no Windows analogue and is not ported (port_impacts.md:384 entry 188); step 2 has no Windows analogue (no SIGPIPE) and is replaced by the pipe-write error handling recorded in platform_adaptations PA-0004. Step 3 (WebsiteCaptures.prepare()) is not ported: the capture subsystem is not ported (engineering_decisions.md ED-001, see PR-LAUNCH-008). Step 4 (LegacyMigration.run()) is not ported: BLK-0005 is NOT_APPLICABLE_WITH_EVIDENCE under OD-0008 A5 (see PR-LAUNCH-009 to PR-LAUNCH-013). Step 6 (SwitchLatency.start()) is not ported: it is inert outside the development build (engineering_decisions.md ED-005, see PR-LAUNCH-022). Step 5 (HangWatchdog.start()) is the one step ported as a call in the startup function.",
       "verification_method": "unit test on the startup function asserting that HangWatchdog.start() runs in it and that the function returns before the main window is created; restart test asserting no settings or library read occurs before the startup function returns",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -56,7 +56,7 @@
       "cancellation": "not cancellable; installation is idempotent via dispatch_once, so repeated calls neither stack guards nor lose the original IMPs",
       "windows_path": "PLATFORM BOUNDARY: not ported. port_impacts.md:384 entry 188 - 'DCDisplayCycleGuardedWindow and DCNotificationGuard are macOS-only AppKit exception nets: Do not re-implement.' There is no NSNotificationCenter and no ViewBridge on Windows.",
       "verification_method": "no Windows verification; recorded as a macOS-only construct in COMPATIBILITY notes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -80,7 +80,7 @@
       "cancellation": "not cancellable",
       "windows_path": "PLATFORM BOUNDARY: Windows has no SIGPIPE. The equivalent is that a write to a closed pipe returns ERROR_BROKEN_PIPE / ERROR_NO_DATA, which must be surfaced to the same provider-session error path rather than thrown as an unhandled fault (platform_adaptations PA-0004).",
       "verification_method": "unit test: write to a closed child stdin and assert the provider session reports the write error rather than the process faulting",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -105,7 +105,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A single application-owned window manager builds the real windows and constructs the single model on first access. No menu bar is built (OD-0008 C3): every command the source defines keeps the shortcut and the command-palette entry the source gives it. Most AppCommands entries have a shortcut and no palette entry, since the palette lists only New thread, New thread in worktree, Add project, Toggle terminal, Toggle changes, the finish action and Settings (CommandPalette.swift:153-178), and \"Welcome tour\" has neither upstream (AppCommands.swift:111-113); under OD-0012 G5 the port adds \"Welcome tour\" to the command palette so it stays reachable without the Help menu (it is also reachable from Settings, see UI-LAUNCH-002). Text fields keep the standard Ctrl+C/V/X/Z/A editing keys.",
       "verification_method": "unit test that no window exists until showMain() is called and that no menu bar is created",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -372,7 +372,7 @@
       "cancellation": "not cancellable; there is no stop() and nothing tears the thread down at quit (see PR-LAUNCH-021)",
       "windows_path": "A dedicated background thread or timer with the same 0.5 s cadence posting work to the UI thread. The ping-the-UI-thread-and-time-the-answer technique ports directly.",
       "verification_method": "unit test on the watchdog with an injected clock; idempotence test for a second start()",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -583,7 +583,7 @@
       "cancellation": "not cancellable; there is no stop()",
       "windows_path": "Development-only instrumentation with no user-visible behavior in a shipped build. The port is not required to reproduce it; if it is kept, it must be inert in release exactly as here. The observable shipped behavior of this requirement is that nothing happens.",
       "verification_method": "unit test: release identity installs no observer",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1781,7 +1781,7 @@
       "cancellation": "not applicable",
       "windows_path": "Reproduce. No Windows-only splash, first-run wizard or error dialog may be added to the launch path beyond the failed-library-load error (an unreadable or undecodable library.json) ruled by OD-0008 A10. The legacy migration is not ported (BLK-0005, OD-0008 A5), so it has no failure to surface.",
       "verification_method": "capture comparison and interaction tests: with a failing store-root creation assert no dialog appears; with a corrupted library.json, and with one that exists but cannot be read, assert the A10 error, with the exact OD-0012 E4 text, is the only surface shown",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "deviation": {
@@ -1912,7 +1912,7 @@
       "cancellation": "The quit can be deferred but never refused (PR-LAUNCH-050).",
       "windows_path": "Owner ruling OD-0008 C2: window close button and Alt+F4 only; no Exit or Quit menu item, label or shortcut is invented. Both reach the termination sequence. A Windows session end runs it under ED-004.",
       "verification_method": "interaction test: the close button and Alt+F4 each run the full termination sequence; UI audit: no quit or exit menu item or label exists anywhere in the app",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2069,7 +2069,7 @@
       "cancellation": "not applicable",
       "windows_path": "Reproduce; no telemetry, ping or licence check may be added to the launch path. Under OD-0012 I1, while the update feed value is empty the update check makes no network request at all, so the only launch-time traffic is the provider refresh in bootstrap.",
       "verification_method": "integration test capturing outbound connections during the first 8 seconds",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2427,7 +2427,8 @@
         "decision": "OD-0008 A10; OD-0012 E4",
         "upstream": "DroppyCode/Services/Store/Storage.swift:60-63 - a corrupt library opens empty with no message; upstream has no text for this error because it never shows one",
         "port": "Do not overwrite after a failed load; show the error. FIX: an undecodable library.json is surfaced to the user and never overwritten by the next save. OD-0012 E4: the error is shown in the main window at launch as \"Marrow could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\""
-      }
+      },
+      "status": "IMPLEMENTED"
     }
   ]
 }

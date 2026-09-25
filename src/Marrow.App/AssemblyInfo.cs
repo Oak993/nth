@@ -8,3 +8,8 @@ using System.Reflection;
 #endif
 [assembly: AssemblyMetadata("CFBundleShortVersionString", "1.6.0")]
 [assembly: AssemblyMetadata("CFBundleVersion", "19")]
+
+// PR-UPDATE-113: project.yml:46 INFOPLIST_KEY_NSHumanReadableCopyright, byte for byte (R-STR-9). AssemblyCopyright
+// maps to the executable's version resource LegalCopyright field, File Explorer's Windows analogue of Finder's Get
+// Info (this record's own windows_path). U+00A9 COPYRIGHT SIGN.
+[assembly: AssemblyCopyright("Copyright © 2026 Jordy Spruit (Droppy). Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app. GNU AGPL v3.0 with additional attribution terms.")]

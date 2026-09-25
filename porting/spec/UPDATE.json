@@ -2861,7 +2861,7 @@
       "cancellation": "not cancellable",
       "windows_path": "ENGINEERING DECISION: the Windows analogue of this Info.plist key is the executable's version resource LegalCopyright field, which File Explorer shows in the file's properties. It carries the string byte for byte: it is the AGPLv3 section 7 attribution that OD-0002 keeps intact under the Marrow identity. No window of the port reads or shows it.",
       "verification_method": "Read the built executable's version resource (for example (Get-Item <exe>).VersionInfo.LegalCopyright in PowerShell) and compare it byte for byte with the quoted string",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
