@@ -2,9 +2,13 @@ using Avalonia.Controls;
 using Marrow.App.Views.Chat;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
+using Marrow.Core.Support;
 using Marrow.Services.Git;
 using Marrow.Services.Providers;
+using Marrow.Services.Store;
+using Marrow.UI.Chrome;
 using Marrow.UI.Common;
+using Marrow.UI.Port;
 
 // Source: DroppyCode/App/Runtime/ThreadRuntime.swift (B2 1fbf81e), :1-3758. Skeleton (c100 group 1): every type
 // the file declares (:5-163, the private helpers of ThreadRuntime :354-357, :510-538, :748-755, :791-802,
@@ -38,7 +42,7 @@ public sealed class TimelineEntry : MainActorModel
         TurnEnd,
     }
 
-    private TimelineItem item;
+    private TimelineItem item = null!;
 
     public string Id { get; }                 // :20
     public Kind TimelineEntryKind { get; }    // :22 Swift: kind (R-NAME-3)
@@ -47,9 +51,25 @@ public sealed class TimelineEntry : MainActorModel
     // :24
     public TimelineItem Item { get => Read(item); set => Set(ref item, value); }
 
-    // :26-40
-    public TimelineEntry(TimelineItem item) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:26");
+    // ThreadRuntime.swift:26-40
+    public TimelineEntry(TimelineItem item)
+    {
+        this.item = item;
+        Id = item.Id;
+        TimelineEntryKind = item.TimelineItemContent switch
+        {
+            TimelineItem.Content.User => Kind.User,
+            TimelineItem.Content.Assistant => Kind.Assistant,
+            TimelineItem.Content.Reasoning => Kind.Reasoning,
+            TimelineItem.Content.Tool => Kind.Tool,
+            TimelineItem.Content.Plan => Kind.Plan,
+            TimelineItem.Content.Todos => Kind.Todos,
+            TimelineItem.Content.Notice => Kind.Notice,
+            TimelineItem.Content.TurnEnd => Kind.TurnEnd,
+            _ => throw new ArgumentOutOfRangeException(nameof(item)),
+        };
+        TurnID = item.TurnID;
+    }
 }
 
 // :54-100 (R-VAL-1)
@@ -59,12 +79,87 @@ public sealed record ReplyQuote
     public required string Text { get; init; }      // :56
 
     // :58-63
-    public string Excerpt =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:58");
+    public string Excerpt
+    {
+        get
+        {
+            var firstLine = Text.Split('\n', StringSplitOptions.None)
+                .Select(line => FoundationText.Trim(line, includeNewlines: true))
+                .FirstOrDefault(line => line.Length != 0);
+            if (firstLine is null) return "";
+
+            var words = new List<string>();
+            var currentWord = new List<string>();
+            foreach (var character in SwiftString.Characters(firstLine))
+            {
+                if (SwiftCharacter.IsWhitespace(character))
+                {
+                    if (currentWord.Count == 0) continue;
+                    words.Add(string.Concat(currentWord));
+                    currentWord.Clear();
+                }
+                else
+                {
+                    currentWord.Add(character);
+                }
+            }
+            if (currentWord.Count != 0) words.Add(string.Concat(currentWord));
+
+            var excerpt = string.Join(" ", words);
+            var characters = SwiftString.Characters(excerpt).ToArray();
+            return characters.Length > 72 ? string.Concat(characters.Take(72)) + "…" : excerpt;
+        }
+    }
 
     // :71-99. nonisolated static.
-    public static (ValueList<ReplyQuote> Quotes, string Body) Peel(string text) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:71");
+    public static (ValueList<ReplyQuote> Quotes, string Body) Peel(string text)
+    {
+        var lines = text.Split('\n', StringSplitOptions.None).ToList();
+        string? command = null;
+        if (lines.Count > 2 && lines[0].StartsWith("/", StringComparison.Ordinal)
+            && lines[1].Length == 0 && lines[2].StartsWith(">", StringComparison.Ordinal))
+        {
+            command = lines[0];
+            lines.RemoveRange(0, 2);
+        }
+
+        var quotes = new List<ReplyQuote>();
+        var body = new List<string>();
+        for (var index = 0; index < lines.Count;)
+        {
+            if (!lines[index].StartsWith(">", StringComparison.Ordinal))
+            {
+                body.Add(lines[index]);
+                index++;
+                continue;
+            }
+
+            var quotedLines = new List<string>();
+            while (index < lines.Count && lines[index].StartsWith(">", StringComparison.Ordinal))
+            {
+                var line = lines[index][1..];
+                if (line.StartsWith(" ", StringComparison.Ordinal)) line = line[1..];
+                quotedLines.Add(line);
+                index++;
+            }
+            quotes.Add(new ReplyQuote { Text = string.Join("\n", quotedLines) });
+
+            if (index + 1 < lines.Count && lines[index].Length == 0
+                && lines[index + 1].StartsWith(">", StringComparison.Ordinal))
+                index++;
+        }
+
+        if (quotes.Count == 0) return (ValueList<ReplyQuote>.Empty, text);
+
+        var bodyText = string.Join("\n", body);
+        var leadingNewlines = 0;
+        while (leadingNewlines < bodyText.Length && FoundationText.IsNewline(bodyText[leadingNewlines]))
+            leadingNewlines++;
+        bodyText = bodyText[leadingNewlines..];
+        if (command is not null)
+            bodyText = bodyText.Length == 0 ? command : command + " " + bodyText;
+        return (new ValueList<ReplyQuote>(quotes), bodyText);
+    }
 }
 
 // :104-108 (R-VAL-1)
@@ -85,11 +180,29 @@ public sealed record ComposerDraft
 
     // :116-118
     public bool IsEmpty =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:116");
+        Attachments.Count == 0 && Command is null
+            && !SwiftString.Characters(Text).Any(character => !SwiftCharacter.IsWhitespace(character)); // ThreadRuntime.swift:116-118
 
     // :122-135
     public string OutgoingText =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:122");
+        BuildOutgoingText(); // ThreadRuntime.swift:122-135
+
+    // ThreadRuntime.swift:122-135
+    private string BuildOutgoingText()
+    {
+        var body = Text;
+        if (Quotes.Count > 0)
+        {
+            var blocks = Quotes.Select(quote => string.Join("\n", quote.Text.Split('\n')
+                .Select(line => line.Length == 0 ? ">" : "> " + line)));
+            body = string.Join("\n\n", blocks) + "\n\n" + Text;
+        }
+
+        if (Command is not { } command) return body;
+        var head = "/" + command.Name;
+        if (FoundationText.Trim(body, includeNewlines: true).Length == 0) return head;
+        return Quotes.Count == 0 ? head + " " + body : head + "\n\n" + body;
+    }
 }
 
 // :141-157. @MainActor @Observable -> MainActorModel (R-OBS-6).
@@ -197,26 +310,32 @@ public sealed class ThreadRuntime : MainActorModel
 
         // :3150
         private const long HeadFlushBudget = 70;
+        private static readonly TimeSpan Stale = TimeSpan.FromSeconds(2); // :3151
+        private readonly Dictionary<ThreadRuntime, ContinuousInstant> lastSeen = new(); // :3152
 
         // :3154-3156
-        public void NoteStreaming(ThreadRuntime runtime) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:3154");
+        public void NoteStreaming(ThreadRuntime runtime) => lastSeen[runtime] = SwiftClock.Now;
 
         // :3158-3160
-        public void Forget(ThreadRuntime runtime) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:3158");
+        public void Forget(ThreadRuntime runtime) => lastSeen.Remove(runtime);
 
         // :3163-3167
-        public long StreamingCount =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:3163");
+        public long StreamingCount
+        {
+            get
+            {
+                var now = SwiftClock.Now;
+                foreach (var stale in lastSeen.Where(pair => now - pair.Value >= Stale).Select(pair => pair.Key).ToArray())
+                    lastSeen.Remove(stale);
+                return lastSeen.Count;
+            }
+        }
 
         // :3170-3172
-        public long HeadFlushDelayMilliseconds =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:3170");
+        public long HeadFlushDelayMilliseconds => Math.Max(45, StreamingCount * HeadFlushBudget);
 
         // :3174-3176
-        public TimeSpan HeadFlushWindow =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:3174");
+        public TimeSpan HeadFlushWindow => TimeSpan.FromMilliseconds(HeadFlushDelayMilliseconds);
     }
 
     private ValueList<TimelineEntry> entries = ValueList<TimelineEntry>.Empty;
@@ -229,8 +348,12 @@ public sealed class ThreadRuntime : MainActorModel
     private ValueList<QuestionRequest> questions = ValueList<QuestionRequest>.Empty;
     private DateTimeOffset? turnStartedAt;
     private long diffRevision = 0;
+    private long saveRevision;
     private bool isLoadingHistory = false;
+    private long lastSavedRevision;
     private ValueList<FollowUpPrompt> followUps = ValueList<FollowUpPrompt>.Empty;
+    private PendingSend? pendingSend; // :797
+    private bool followUpFlushScheduled = false; // :1057
     private ValueList<HydraMergeRecord> hydraMerges = ValueList<HydraMergeRecord>.Empty;
     private PromptEdit? followUpEdit;
     private bool followUpsCollapsed = false;
@@ -251,6 +374,21 @@ public sealed class ThreadRuntime : MainActorModel
     private bool isHydraPanelHidden = false;
     private ValueMap<string, Guid> hydraToolHeads = ValueMap<string, Guid>.Empty;
     private long hydraWaitingCount = 0;
+    // :274-287. These collections are ignored by observation and are consumed by the lead's Hydra runtime.
+    private List<HydraReport> hydraPendingReports = [];
+    private bool hydraFlushScheduled = false;
+    private readonly Dictionary<Guid, HydraBatch> hydraBatches = [];
+    private Guid? hydraFallbackNoted = null; // ThreadRuntime.swift:467
+    private List<(HydraDelegation Delegation, Guid BatchID, DateTimeOffset QueuedAt)> hydraWaitingStorage = [];
+    private List<(HydraDelegation Delegation, Guid BatchID, DateTimeOffset QueuedAt)> hydraWaiting
+    {
+        get => hydraWaitingStorage;
+        set
+        {
+            hydraWaitingStorage = value;
+            HydraWaitingCount = value.Count;
+        }
+    }
     private bool isHydraMerging = false;
     private string? hydraMergeStage;
     private HydraMergeStage? hydraMergeStep;
@@ -260,11 +398,59 @@ public sealed class ThreadRuntime : MainActorModel
     private long hydraToolCalls = 0;
     private long hydraTokens = 0;
     private long hydraEditCount = 0;
+    private readonly Dictionary<string, Guid> hydraNativeHeads = new(StringComparer.Ordinal);
     private Guid? diffSelection;
     private long diffOpenRequest = 0;
     private ValueList<FileEdit> diffFocusEdits = ValueList<FileEdit>.Empty;
     private long diffFocusRevision = 0;
     private FileChangeSummary? changeStats;
+    private readonly WeakReference<AppModel> appReference;
+    private readonly Dictionary<string, TimelineEntry> entryIndex = new(StringComparer.Ordinal);
+    private readonly Dictionary<Guid, RevertPreviewEntry> revertPreviews = [];
+    private RecentCache<Guid, Task<ValueList<DiffFile>>> turnDiffs = new(64);
+    private RecentCache<string, Task<ValueList<DiffFile>>> revisionDiffs = new(4);
+    private readonly Dictionary<string, Task<string>> repositoryRoots = new(StringComparer.Ordinal);
+    private Task? loadTask;
+    private bool isLoaded;
+    private Guid? currentTurnID;
+    private Guid? closingTurnID;
+    private long? changeStatsRevision;
+    private readonly HashSet<string> hydraTouched = new(SwiftStringComparer.Instance);
+    private ProviderSession? session;
+    private TaskHandle? warmup;
+    private string? unsentSessionID;
+    private SessionSignature? sessionSignature;
+    private bool antiSlopFallbackSent;
+    private bool continuationSent;
+    private long sessionEpoch;
+    private bool isStartingSession;
+    private string? todosEntryID;
+    private string? currentProviderDiff;
+    private string? currentProviderAnchor;
+    private Guid? finishingTurnID;
+    private TaskHandle? interruptWatchdog;
+    private readonly Dictionary<string, string?> commandTrees = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, string?> hydraCommandTrees = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, TaskHandle> commandSettles = new(StringComparer.Ordinal);
+    private long treeEpoch;
+    private (string Tree, long Epoch)? settledTree;
+    private string? latestTree;
+    private Task<string?>? treeCaptures;
+    private HydraDelegationBudget hydraBudget = new();
+    private (Guid TurnID, string EntryID, Guid BatchID, long Sent)? hydraStream;
+    private HydraDelegationStreamParser? delegationParser;
+    private TaskHandle? headBudget;
+    private bool headBudgetSpent;
+    private bool headReportsNext;
+    private readonly Dictionary<string, PendingDelta> pendingDeltas = new(SwiftStringComparer.Instance);
+    private TaskHandle? flushTask; // :450
+    private ContinuousInstant lastFlushAt = SwiftClock.Now - TimeSpan.FromSeconds(1); // :425
+    private TaskHandle? saveTask; // :457
+    private bool persistenceEnabled = true; // :458
+
+    // ThreadRuntime.swift:414-448, 496-508, 793-797, 1799, 1941, 1960-1962.
+    // App ownership is weak because AppModel owns the runtime cache.
+    private AppModel? App => appReference is not null && appReference.TryGetTarget(out var value) ? value : null;
 
     // :169
     public Guid ThreadID { get; }
@@ -272,11 +458,25 @@ public sealed class ThreadRuntime : MainActorModel
     // :171
     public ValueList<TimelineEntry> Entries { get => Read(entries); private set => Set(ref entries, value); }
 
-    // :172-182
+    // ThreadRuntime.swift:172-182
     public ValueList<TurnRecord> Turns
     {
         get => Read(turns);
-        private set => Set(ref turns, value, _ => throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:175"));
+        private set
+        {
+            var previous = turns;
+            Set(ref turns, value, changed =>
+            {
+                if (currentTurnID is { } id && !turns.Any(turn => turn.Id == id)) currentTurnID = null;
+                if (messageEdit is { } edit && !turns.Any(turn => turn.Id == edit.Id)) MessageEdit = null;
+                if (turns.Count < previous.Count)
+                {
+                    var kept = turns.Select(turn => turn.Id).ToHashSet();
+                    foreach (var removed in previous.Where(turn => !kept.Contains(turn.Id)))
+                        turnDiffs.RemoveValue(removed.Id, out _);
+                }
+            });
+        }
     }
 
     // :183
@@ -300,11 +500,15 @@ public sealed class ThreadRuntime : MainActorModel
     // :192
     public DateTimeOffset? TurnStartedAt { get => Read(turnStartedAt); private set => Set(ref turnStartedAt, value); }
 
-    // :196-201
+    // ThreadRuntime.swift:196-201
     public long DiffRevision
     {
         get => Read(diffRevision);
-        private set => Set(ref diffRevision, value, _ => throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:197"));
+        private set => Set(ref diffRevision, value, _ =>
+        {
+            revisionDiffs = new RecentCache<string, Task<ValueList<DiffFile>>>(4);
+            changeStatsRevision = null;
+        });
     }
 
     // :205
@@ -314,7 +518,11 @@ public sealed class ThreadRuntime : MainActorModel
     public ValueList<FollowUpPrompt> FollowUps
     {
         get => Read(followUps);
-        private set => Set(ref followUps, value, _ => throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:208"));
+        private set => Set(ref followUps, value, _ =>
+        {
+            if (followUpEdit is { } edit && !followUps.Any(prompt => prompt.Id == edit.Id))
+                FollowUpEdit = null;
+        }); // ThreadRuntime.swift:206-211
     }
 
     // :212
@@ -336,7 +544,7 @@ public sealed class ThreadRuntime : MainActorModel
     public ComposerDraft Draft
     {
         get => Read(draft);
-        set => Set(ref draft, value, _ => throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:231"));
+        set => Set(ref draft, value, _ => DraftIsEmpty = draft.IsEmpty); // ThreadRuntime.swift:230-235
     }
 
     // :238
@@ -346,7 +554,10 @@ public sealed class ThreadRuntime : MainActorModel
     public bool IsTerminalVisible
     {
         get => Read(isTerminalVisible);
-        set => Set(ref isTerminalVisible, value, _ => throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:242"));
+        set => Set(ref isTerminalVisible, value, wasVisible =>
+        {
+            if (!wasVisible && isTerminalVisible) TerminalWantsFocus = true; // :241-243
+        });
     }
 
     // :244. @ObservationIgnored (R-OBS-5).
@@ -428,11 +639,15 @@ public sealed class ThreadRuntime : MainActorModel
 
     // :342. TimeInterval, seconds.
     public double HydraIdleSeconds =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:342");
+        HydraLastEventAt is { } lastEventAt
+            ? SwiftDate.ReferenceSeconds(SwiftDate.Now) - SwiftDate.ReferenceSeconds(lastEventAt)
+            : 0d;
 
     // :345-352
     public HydraHeadInfo HydraLiveInfo(HydraHeadInfo stored) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:345");
+        stored.HydraHeadInfoStatus == HydraHeadInfo.Status.Running
+            ? stored with { Tokens = Math.Max(stored.Tokens, HydraTokens) }
+            : stored; // :345-351
 
     // :358
     public Guid? DiffSelection { get => Read(diffSelection); set => Set(ref diffSelection, value); }
@@ -454,290 +669,3673 @@ public sealed class ThreadRuntime : MainActorModel
 
     // :383-390. Swift: showDiff(on:edge:turn:focusEdits:). `turn` has no default and follows `edge`, so it moves
     // before it (ED-095).
-    public void ShowDiff(Control anchor, Guid? turn, PreviewPanelEdge edge = PreviewPanelEdge.MaxY, IReadOnlyList<FileEdit>? focusEdits = null) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:383");
+    public void ShowDiff(Control anchor, Guid? turn, PreviewPanelEdge edge = PreviewPanelEdge.MaxY, IReadOnlyList<FileEdit>? focusEdits = null)
+    {
+        DiffAnchor = new WeakView(anchor); // :384
+        DiffAnchorEdge = edge; // :385
+        if (DiffSelection != turn) DiffSelection = turn; // :386
+        SetDiffFocus(focusEdits ?? Array.Empty<FileEdit>()); // :387
+        if (!IsDiffVisible) IsDiffVisible = true; // :388
+        DiffOpenRequest++; // :389
+    }
 
     // :394-396
-    public void ClearDiffFocus() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:394");
+    public void ClearDiffFocus() => SetDiffFocus(Array.Empty<FileEdit>());
+
+    // :398-403
+    private void SetDiffFocus(IReadOnlyList<FileEdit> edits)
+    {
+        var focus = new ValueList<FileEdit>(edits.Where(edit => edit.Path.Length != 0)); // :399
+        if (DiffFocusEdits.SequenceEqual(focus)) return; // :400
+        DiffFocusEdits = focus; // :401
+        DiffFocusRevision++; // :402
+    }
 
     // :408-412
-    public void ToggleDiff() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:408");
+    public void ToggleDiff()
+    {
+        ClearDiffFocus(); // :409
+        if (!IsDiffVisible) DiffAnchor = null; // :410
+        IsDiffVisible = !IsDiffVisible; // :411
+    }
 
     // :505. @ObservationIgnored private(set) (R-OBS-5). Paths, external text (R-VAL-2).
     public ValueSet<string> HydraCurrentTurnTouchedPaths { get; private set; } = new([], SwiftStringComparer.Instance);
 
-    // :540-555
-    public ThreadRuntime(Guid threadID, AppModel app) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:540");
+    // ThreadRuntime.swift:540-555
+    public ThreadRuntime(Guid threadID, AppModel app)
+    {
+        ThreadID = threadID;
+        appReference = new WeakReference<AppModel>(app);
+        if (DocumentPrefetch.Shared.Take(threadID) is { } prefetched)
+        {
+            Install(prefetched);
+            isLoaded = true;
+        }
+        else
+        {
+            IsLoadingHistory = true;
+            loadTask = LoadDocument();
+        }
+    }
 
-    // :641-643
-    public Task EnsureLoaded() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:641");
+    private void Install(ThreadDocument document)
+    {
+        // :558-565. Stored rows precede anything that arrived while disk was read.
+        Turns = new ValueList<TurnRecord>(document.Turns.Concat(Turns));
+        if (Thread?.Hydra?.HydraHeadInfoKind == HydraHeadInfo.Kind.Droppy)
+            HydraTokens = Turns.SelectMany(turn => turn.TokenSpends ?? ValueList<TokenSpend>.Empty).Sum(spend => spend.TotalTokens); // :559-561
+        Usage = Usage ?? document.Usage; // :562
+        Continuation = Continuation ?? document.Continuation; // :563
+        FollowUps = new ValueList<FollowUpPrompt>(document.FollowUps.Where(prompt => !prompt.IsEmpty).Concat(FollowUps)); // :564
+        HydraMerges = new ValueList<HydraMergeRecord>(document.HydraMerges.Concat(HydraMerges)); // :565
+
+        // :566-580. Old histories can contain blank reasoning and streaming flags from a quit.
+        var loaded = document.Items.Where(item => !item.IsEmptyReasoning)
+            .Select(item => new TimelineEntry(item.CleanedOfEmDashes)).ToArray();
+        foreach (var entry in loaded)
+        {
+            entryIndex[entry.Id] = entry;
+            EndStreaming(entry, recordSave: false);
+            if (entry.Item.TimelineItemContent is TimelineItem.Content.Tool tool && tool.Value.ToolCallStatus == ToolCall.Status.Running)
+                entry.Item = entry.Item with { TimelineItemContent = new TimelineItem.Content.Tool(tool.Value.Finish(ToolCall.Status.Failed)) }; // :575-578
+        }
+        Entries = new ValueList<TimelineEntry>(loaded.Concat(Entries)); // :580
+
+        // :581-587. A sent block was already dispatched before a quit interrupted the hold.
+        foreach (var entry in loaded)
+        {
+            if (entry.Item.TimelineItemContent is not TimelineItem.Content.Assistant assistant
+                || !HydraPrompts.HasSentDelegationBlock(assistant.Value.Text)) continue;
+            var text = HydraPrompts.WithoutDelegationBlock(assistant.Value.Text);
+            if (text.Length == 0) text = "Sent out heads.";
+            entry.Item = entry.Item with { TimelineItemContent = new TimelineItem.Content.Assistant(assistant.Value with { Text = text }) };
+        }
+
+        // :588-613. A process that quit mid-turn gets an end row so the history folds normally.
+        for (var index = 0; index < Turns.Count; index++)
+            if (Turns[index].Status == TurnStatus.Running)
+                Turns = Turns.SetItem(index, Turns[index] with { Status = TurnStatus.Interrupted });
+
+        var marked = Entries.Where(entry => entry.Item.TimelineItemContent is TimelineItem.Content.TurnEnd)
+            .Select(entry => entry.TurnID).Where(id => id.HasValue).Select(id => id!.Value).ToHashSet();
+        foreach (var storedTurn in document.Turns.Reverse())
+        {
+            var index = -1;
+            for (var candidate = 0; candidate < Turns.Count; candidate++)
+                if (Turns[candidate].Id == storedTurn.Id) { index = candidate; break; }
+            if (index < 0 || marked.Contains(storedTurn.Id)) continue;
+            var lastIndex = -1;
+            for (var candidate = Entries.Count - 1; candidate >= 0; candidate--)
+                if (Entries[candidate].TurnID == storedTurn.Id) { lastIndex = candidate; break; }
+            if (lastIndex < 0) continue;
+
+            var turn = Turns[index];
+            var endedAt = turn.CompletedAt ?? Entries[lastIndex].Item.Date;
+            if (turn.CompletedAt is null) Turns = Turns.SetItem(index, turn with { CompletedAt = endedAt });
+            turn = Turns[index];
+            var summary = new TurnSummary
+            {
+                TurnID = turn.Id,
+                Status = turn.Status,
+                Duration = Math.Max(0, (endedAt - turn.StartedAt).TotalSeconds),
+                FilesChanged = turn.TouchedPaths?.Count ?? 0,
+                Additions = 0,
+                Deletions = 0,
+                Changes = null,
+            };
+            var end = new TimelineEntry(new TimelineItem(storedTurn.Id, new TimelineItem.Content.TurnEnd(summary), date: endedAt));
+            Entries = new ValueList<TimelineEntry>(Entries.Take(lastIndex + 1)
+                .Append(end).Concat(Entries.Skip(lastIndex + 1)));
+            entryIndex[end.Id] = end;
+            marked.Add(storedTurn.Id);
+        }
+
+        // :617-630. A clean normalization is already on disk; also recover paths from events
+        // that arrived while history was loading.
+        saveRevision++;
+        var installed = SnapshotForPersistence();
+        if (installed.Items.SequenceEqual(document.Items)
+            && installed.Turns.SequenceEqual(document.Turns)
+            && installed.FollowUps.SequenceEqual(document.FollowUps)
+            && installed.HydraMerges.SequenceEqual(document.HydraMerges))
+            lastSavedRevision = saveRevision;
+
+        if (currentTurnID is null)
+        {
+            EndDelegationStream();
+            HydraCurrentTurnTouchedPaths = new ValueSet<string>(Array.Empty<string>(), SwiftStringComparer.Instance);
+        }
+        else
+        {
+            foreach (var entry in Entries.Where(entry => entry.TurnID == currentTurnID))
+                if (entry.Item.TimelineItemContent is TimelineItem.Content.Tool tool)
+                    RecordCurrentTurnEdits(tool.Value.Edits);
+        }
+    }
+
+    // :628-629, :3407. Tool edits become repository-relative paths for Hydra accounting.
+    private void RecordCurrentTurnEdits(IEnumerable<FileEdit> edits)
+    {
+        if (currentTurnID is null || WorkingRoot is not { } root) return;
+        var touched = HydraCurrentTurnTouchedPaths.ToHashSet(SwiftStringComparer.Instance);
+        foreach (var edit in edits)
+            if (TouchedPaths.Relative(edit.Path, root) is { } path)
+                touched.Add(path);
+        HydraCurrentTurnTouchedPaths = new ValueSet<string>(touched, SwiftStringComparer.Instance);
+    }
+
+    // :3435-3440. Native-head edits are made in the lead's checkout and count for its turn.
+    private void NoteHydraEdits(IEnumerable<FileEdit> edits)
+    {
+        if (WorkingRoot is not { } root) return;
+        var paths = edits.Select(edit => TouchedPaths.Relative(edit.Path, root))
+            .Where(path => path is not null).Select(path => path!).ToArray();
+        if (paths.Length == 0) return;
+        hydraTouched.UnionWith(paths);
+        HydraCurrentTurnTouchedPaths = HydraCurrentTurnTouchedPaths.Mutating(current => current.UnionWith(paths));
+    }
+
+    // ThreadRuntime.swift:3554-3558
+    private void UpdateTurn(Guid id, Func<TurnRecord, TurnRecord> change)
+    {
+        var index = -1;
+        for (var candidate = 0; candidate < turns.Count; candidate++)
+            if (turns[candidate].Id == id)
+            {
+                index = candidate;
+                break;
+            }
+        if (index < 0) return;
+        Turns = turns.SetItem(index, change(turns[index]));
+        saveRevision++;
+    }
+
+    // :633-643
+    private void FinishLoad(ThreadDocument document)
+    {
+        if (!IsLoadingHistory) return;
+        Install(document);
+        isLoaded = true;
+        IsLoadingHistory = false;
+        loadTask = null;
+    }
+
+    public Task EnsureLoaded() => isLoaded ? Task.CompletedTask : loadTask ??= LoadDocument();
+
+    private async Task LoadDocument()
+    {
+        var document = await TaskHandle.Detached(() => Task.FromResult(
+            Storage.DecodeDocument(ThreadID) ?? new ThreadDocument(ThreadID))).Value;
+        await MainActor.Run(() => FinishLoad(document));
+    }
 
     // :646-655. Swift: installContinuation(_:).
-    public Task<bool> InstallContinuation(ThreadContinuation value) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:646");
+    public async Task<bool> InstallContinuation(ThreadContinuation value)
+    {
+        await EnsureLoaded(); // :647
+        if (Thread is not { } thread || Turns.Count != 0 || Entries.Count != 0 || thread.ProviderSessionID is not null)
+            return false; // :648
+        ReleaseSession(stop: true); // :650
+        Continuation = value; // :651
+        saveRevision++; // :652
+        SaveNow(); // :653
+        return true; // :654
+    }
 
     // :657
-    public bool IsRunning =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:657");
+    public bool IsRunning => Phase != RuntimePhase.Idle;
 
     // :659
-    public ChatThread? Thread =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:659");
+    public ChatThread? Thread => App?.Thread(ThreadID);
 
     // :665-667
     public bool HasWorkingHeads =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:665");
+        (App?.RunningHydraHeads(ThreadID) ?? 0) > 0;
 
     // :672-680
-    public bool HasWorkingHelpers =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:672");
+    public bool HasWorkingHelpers
+    {
+        get
+        {
+            var app = App;
+            return app is not null && app.Helpers(ThreadID)
+                .Any(helper => app.ExistingRuntime(helper.Id)?.IsRunning == true);
+        }
+    }
 
     // :685-688
     public bool HasWorkingNativeHeads =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:685");
+        App?.HydraHeads(ThreadID).Any(head => head.Hydra is
+            { HydraHeadInfoKind: HydraHeadInfo.Kind.Native, HydraHeadInfoStatus: HydraHeadInfo.Status.Running }) == true;
 
     // :698-722
-    public void TakeBackRunningTurn() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:698");
+    public void TakeBackRunningTurn()
+    {
+        if (Draft.IsEmpty && !HasWorkingHeads && currentTurnID is { } turnID
+            && turns.FirstOrDefault(turn => turn.Id == turnID) is { } turn
+            && turn.UserItemID is { } userItemID
+            && entryIndex.TryGetValue(userItemID, out var entry)
+            && entry.Item.TimelineItemContent is TimelineItem.Content.User user
+            && !user.Value.IsFromHydra)
+        {
+            var message = user.Value;
+            Interrupt(); // :705
+            _ = MainActor.Spawn(async () =>
+            {
+                for (var attempt = 0; attempt < 200 && Phase != RuntimePhase.Idle; attempt++) // :707
+                    await Task.Delay(TimeSpan.FromMilliseconds(50)); // :708
+
+                if (Phase != RuntimePhase.Idle || !Draft.IsEmpty || !turns.Any(candidate => candidate.Id == turnID)) return; // :709-710
+                try
+                {
+                    _ = await Revert(turnID, restoreFiles: false); // :714
+                }
+                catch (Exception error)
+                {
+                    AppendNotice(Notice.Level.Error, "The stopped message was kept: " + SwiftErrors.LocalizedDescription(error)); // :716
+                    return;
+                }
+
+                Draft = Draft with { Text = message.Text, Attachments = message.Attachments }; // :721-722
+            });
+            return;
+        }
+
+        Interrupt(); // :701
+    }
 
     // :724-729
-    public ValueList<string> SentPrompts =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:724");
+    public ValueList<string> SentPrompts => new(Entries.Select(entry => entry.Item.TimelineItemContent)
+        .OfType<TimelineItem.Content.User>()
+        .Where(user => !user.Value.IsFromHydra && !user.Value.IsHydraBrief)
+        .Select(user => user.Value.Text));
 
     // :731-736
-    public bool HasSentPrompts =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:731");
+    public bool HasSentPrompts => SentPrompts.Count != 0;
 
     // :738-740
     public ApprovalRequest? PendingPlanApproval =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:738");
+        Approvals.FirstOrDefault(request => request.RequestKind == ApprovalRequest.Kind.Plan);
 
     // MARK: - Sending
 
     // :744-756
-    public void Send() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:744");
+    public void Send()
+    {
+        if (IsReverting || Draft.IsEmpty || Phase != RuntimePhase.Idle) return;
+        var text = FoundationText.Trim(Draft.OutgoingText, includeNewlines: true);
+        var attachments = Draft.Attachments;
+        if (HandleLocalCommand(text))
+        {
+            Draft = new ComposerDraft();
+            return;
+        }
+
+        Draft = new ComposerDraft();
+        _ = MainActor.Spawn(() => StartTurn(text, attachments));
+    }
 
     // :758-765. Swift: sendHydraBrief(_:attachments:).
     public void SendHydraBrief(string text, IReadOnlyList<Attachment> attachments) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:758");
+        _ = MainActor.Spawn(() => StartTurn(text, attachments, hydraBrief: true));
+
+    // ThreadRuntime.swift:1158-1167
+    private bool HandleLocalCommand(string text)
+    {
+        text = FoundationText.Trim(text, includeNewlines: true);
+        if (text == "/plan" && Thread is { } thread)
+        {
+            App?.Providers.RecordCommand("plan", thread.Provider);
+            App?.UpdateThread(ThreadID, current => current with
+            {
+                InteractionMode = current.InteractionMode == InteractionMode.Plan
+                    ? InteractionMode.Build
+                    : InteractionMode.Plan,
+            });
+            return true;
+        }
+
+        if (text == "/compact" && Thread is { Provider.SupportsCompact: true } compactThread)
+        {
+            App?.Providers.RecordCommand("compact", compactThread.Provider);
+            Compact();
+            return true;
+        }
+
+        return false;
+    }
 
     // MARK: - Follow-up queue
 
     // :772-774
-    public bool CanQueue =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:772");
+    public bool CanQueue => phase != RuntimePhase.Idle && !isReverting && !draft.IsEmpty; // ThreadRuntime.swift:772-774
 
     // :781-789
-    public void QueueDraftAsFollowUp() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:781");
+    public void QueueDraftAsFollowUp() // ThreadRuntime.swift:781-789
+    {
+        if (!CanQueue) return;
+        var text = FoundationText.Trim(draft.OutgoingText, includeNewlines: true);
+        var attachments = draft.Attachments;
+        Draft = new ComposerDraft();
+        EnqueueFollowUpCore(text, attachments);
+    }
 
     // :809-830
-    public void InterruptAndSend() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:809");
+    public void InterruptAndSend() // ThreadRuntime.swift:809-830
+    {
+        if (IsReverting || Draft.IsEmpty || Phase == RuntimePhase.Idle) return;
+
+        // Blocked: dispatchSentHead requires AppModel's Hydra launch/dispatch surface,
+        // which is not present in the owned AppModel API for this port slice.
+        if (DispatchSentHead(Draft.OutgoingText, Draft.Attachments))
+        {
+            Draft = new ComposerDraft();
+            return;
+        }
+
+        if (HasWorkingHeads)
+        {
+            EnqueueFollowUp(Draft.OutgoingText, Draft.Attachments);
+            Draft = new ComposerDraft();
+            return;
+        }
+
+        pendingSend = new PendingSend
+        {
+            Text = Draft.OutgoingText,
+            Attachments = draft.Attachments,
+        };
+        Draft = new ComposerDraft();
+        Interrupt();
+    }
 
     // :835-848. Swift: bundleFollowUp(_:onto:).
     public void BundleFollowUp(Guid id, Guid target) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:835");
+        BundleFollowUpCore(id, target); // ThreadRuntime.swift:835-848
+
+    // ThreadRuntime.swift:835-848
+    private void BundleFollowUpCore(Guid id, Guid target)
+    {
+        if (id == target) return;
+        var sourceIndex = -1;
+        var targetIndex = -1;
+        for (var index = 0; index < followUps.Count; index++)
+        {
+            if (followUps[index].Id == id) sourceIndex = index;
+            if (followUps[index].Id == target) targetIndex = index;
+        }
+        if (sourceIndex < 0 || targetIndex < 0) return;
+
+        var bundle = followUps[targetIndex].BundleID ?? Guid.NewGuid();
+        var items = followUps.ToList();
+        if (items[targetIndex].BundleID is null)
+            items[targetIndex] = items[targetIndex] with { BundleID = bundle };
+        var dragged = items[sourceIndex] with { BundleID = bundle };
+        items.RemoveAt(sourceIndex);
+        var lastBundleIndex = items.FindLastIndex(prompt => prompt.BundleID == bundle);
+        var insertAt = (lastBundleIndex >= 0 ? lastBundleIndex : items.Count - 1) + 1;
+        items.Insert(insertAt, dragged);
+        FollowUps = new ValueList<FollowUpPrompt>(items);
+        TidyBundles();
+        saveRevision++;
+        ScheduleSave();
+    }
 
     // :852-858
     public void UnbundleFollowUp(Guid id) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:852");
+        UnbundleFollowUpCore(id); // ThreadRuntime.swift:852-858
+
+    // ThreadRuntime.swift:852-858
+    private void UnbundleFollowUpCore(Guid id)
+    {
+        var index = IndexOfFollowUp(id);
+        if (index < 0 || followUps[index].BundleID is null) return;
+        FollowUps = followUps.SetItem(index, followUps[index] with { BundleID = null });
+        TidyBundles();
+        saveRevision++;
+        ScheduleSave();
+    }
+
+    // ThreadRuntime.swift:862-873
+    private void UnbundleIfSeparated(Guid id)
+    {
+        var index = IndexOfFollowUp(id);
+        if (index < 0 || followUps[index].BundleID is not { } bundle) return;
+        var prevShares = index > 0 && followUps[index - 1].BundleID == bundle;
+        var nextShares = index + 1 < followUps.Count && followUps[index + 1].BundleID == bundle;
+        if (prevShares || nextShares) return;
+
+        var items = followUps.ToList();
+        items[index] = items[index] with { BundleID = null };
+        var remaining = items.Where(prompt => prompt.BundleID == bundle).ToArray();
+        if (remaining.Length == 1)
+        {
+            var loneIndex = items.FindIndex(prompt => prompt.Id == remaining[0].Id);
+            items[loneIndex] = items[loneIndex] with { BundleID = null };
+        }
+        FollowUps = new ValueList<FollowUpPrompt>(items);
+    }
+
+    // ThreadRuntime.swift:876-886
+    private void TidyBundles()
+    {
+        var counts = new Dictionary<Guid, int>();
+        foreach (var prompt in followUps)
+            if (prompt.BundleID is { } bundle)
+                counts[bundle] = counts.GetValueOrDefault(bundle) + 1;
+
+        var items = followUps.ToList();
+        for (var index = 0; index < items.Count; index++)
+            if (items[index].BundleID is { } bundle && counts[bundle] == 1)
+                items[index] = items[index] with { BundleID = null };
+        FollowUps = new ValueList<FollowUpPrompt>(items);
+    }
+
+    // ThreadRuntime.swift:889-900
+    private FollowUpPrompt MergedBundle(int index)
+    {
+        var first = followUps[index];
+        if (first.BundleID is not { } bundle) return first;
+        var end = index;
+        while (end + 1 < followUps.Count && followUps[end + 1].BundleID == bundle) end++;
+        var members = followUps.Skip(index).Take(end - index + 1).ToArray();
+        return first with
+        {
+            Text = BundleText(members),
+            Attachments = new ValueList<Attachment>(members.SelectMany(member => member.Attachments)),
+            BundleID = null,
+        };
+    }
+
+    // ThreadRuntime.swift:934-945
+    private FollowUpPrompt TakeBundle(int index)
+    {
+        var merged = MergedBundle(index);
+        if (followUps[index].BundleID is { } bundle)
+        {
+            var end = index;
+            while (end + 1 < followUps.Count && followUps[end + 1].BundleID == bundle) end++;
+            FollowUps = followUps.Mutating(items => items.RemoveRange(index, end - index + 1));
+        }
+        else
+        {
+            FollowUps = followUps.Mutating(items => items.RemoveAt(index));
+        }
+        return merged;
+    }
+
+    // ThreadRuntime.swift:853, 1087, 1101
+    private int IndexOfFollowUp(Guid id)
+    {
+        for (var index = 0; index < followUps.Count; index++)
+            if (followUps[index].Id == id) return index;
+        return -1;
+    }
 
     // :907-930. Swift: bundleText(_:).
     public static string BundleText(IReadOnlyList<FollowUpPrompt> members) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:907");
+        BundleTextCore(members); // ThreadRuntime.swift:907-930
+
+    // ThreadRuntime.swift:907-930
+    private static string BundleTextCore(IReadOnlyList<FollowUpPrompt> members)
+    {
+        var texts = members.Select(member => FoundationText.Trim(member.Text, includeNewlines: true)).ToArray();
+        if (members.Count <= 1 || !members.Any(member => member.Attachments.Count > 0))
+            return string.Join("\n\n", texts.Where(text => text.Length > 0));
+
+        var imageNumber = 0;
+        var sections = new List<string>();
+        for (var offset = 0; offset < members.Count; offset++)
+        {
+            var number = offset + 1;
+            var lines = new List<string> { $"Message {number}:" };
+            if (texts[offset].Length > 0) lines.Add(texts[offset]);
+            var named = new List<string>();
+            foreach (var attachment in members[offset].Attachments)
+            {
+                if (!attachment.IsImage)
+                    named.Add("file " + attachment.Path);
+                else
+                {
+                    imageNumber++;
+                    named.Add($"image {imageNumber} ({attachment.Name})");
+                }
+            }
+            if (named.Count > 0)
+                lines.Add($"Attached to message {number}: {string.Join(", ", named)}.");
+            sections.Add(string.Join("\n", lines));
+        }
+        var header = $"{members.Count} messages sent together. The pictures and files a message came with are named under it, the pictures numbered in the order they are attached.";
+        return string.Join("\n\n", new[] { header }.Concat(sections));
+    }
 
     // :954-990
-    public void SendFollowUpNow(Guid id) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:954");
+    public void SendFollowUpNow(Guid id) // ThreadRuntime.swift:954-990
+    {
+        if (isReverting) return;
+        var index = IndexOfFollowUp(id);
+        if (index < 0) return;
+
+        var start = index;
+        if (followUps[index].BundleID is { } bundle)
+            while (start > 0 && followUps[start - 1].BundleID == bundle) start--;
+
+        var prompt = TakeBundle(start);
+        saveRevision++;
+        ScheduleSave();
+        if (prompt.IsEmpty) return;
+
+        if (phase == RuntimePhase.Idle)
+        {
+            if (HandleLocalCommand(FoundationText.Trim(prompt.Text, includeNewlines: true))) return;
+            MainActor.Spawn(async () =>
+            {
+                await EnsureLoaded();
+                await StartTurn(prompt.Text, prompt.Attachments);
+            });
+        }
+        else if (pendingSend is null)
+        {
+            // Native heads share the lead session, so sending now must not stop them.
+            if (HasWorkingNativeHeads)
+            {
+                if (!DispatchQueuedHead(prompt))
+                {
+                    FollowUps = followUps.Mutating(items => items.Insert(0, prompt));
+                    saveRevision++;
+                    ScheduleSave();
+                }
+                return;
+            }
+
+            pendingSend = new PendingSend { Text = prompt.Text, Attachments = prompt.Attachments };
+            Interrupt();
+        }
+        else
+        {
+            // A Return key already owns the next turn; this prompt follows it.
+            FollowUps = followUps.Mutating(items => items.Insert(0, prompt));
+            saveRevision++;
+            ScheduleSave();
+        }
+    }
+
+    // ThreadRuntime.swift:1013-1016.
+    private bool DispatchQueuedHead(FollowUpPrompt prompt)
+    {
+        if (appReference is null || !appReference.TryGetTarget(out var app)
+            || (!app.Settings.HydraQueueHeads && !app.Settings.HydraAlwaysHeads)) return false;
+        return DispatchHead(prompt, HydraHeadInfo.Origin.Queued);
+    }
+
+    // ThreadRuntime.swift:1021-1026.
+    private bool DispatchSentHead(string text, IReadOnlyList<Attachment> attachments)
+    {
+        if (appReference is null || !appReference.TryGetTarget(out var app) || !app.Settings.HydraAlwaysHeads)
+            return false;
+        var prompt = new FollowUpPrompt
+        {
+            Text = FoundationText.Trim(text, includeNewlines: true),
+            Attachments = new ValueList<Attachment>(attachments),
+        };
+        if (prompt.IsEmpty || prompt.Text is "/plan" or "/compact") return false;
+        return DispatchHead(prompt, HydraHeadInfo.Origin.Sent);
+    }
+
+    // ThreadRuntime.swift:1028-1040.
+    private bool DispatchHead(FollowUpPrompt prompt, HydraHeadInfo.Origin origin)
+    {
+        if (appReference is null || !appReference.TryGetTarget(out var app)) return false;
+        if (app.Thread(ThreadID) is not { } thread || thread.IsArchived) return false;
+
+        // BLOCKED: this AppModel slice does not expose hydraLaunch(for:),
+        // runningDroppyHeads(of:), hydraChatContext(for:), or spawnDroppyHead(...).
+        // Do not infer a launch or create a head without those authoritative APIs.
+        _ = prompt;
+        _ = origin;
+        return false;
+    }
+
+    // ThreadRuntime.swift:1042-1053.
+    private void DispatchQueuedFollowUps()
+    {
+        if (phase == RuntimePhase.Idle) return;
+        while (followUps.Count > 0)
+        {
+            var merged = MergedBundle(0);
+            if (!DispatchQueuedHead(merged)) break;
+            _ = TakeBundle(0);
+            saveRevision += 1;
+            ScheduleSave();
+        }
+    }
 
     // :992-1009. Swift: enqueueFollowUp(text:attachments:).
     public void EnqueueFollowUp(string text, IReadOnlyList<Attachment> attachments) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:992");
+        EnqueueFollowUpCore(text, attachments); // ThreadRuntime.swift:992-1009
+
+    // ThreadRuntime.swift:992-1009
+    private void EnqueueFollowUpCore(string text, IReadOnlyList<Attachment> attachments)
+    {
+        var prompt = new FollowUpPrompt
+        {
+            Text = FoundationText.Trim(text, includeNewlines: true),
+            Attachments = new ValueList<Attachment>(attachments),
+        };
+        if (prompt.IsEmpty) return;
+        if (phase != RuntimePhase.Idle && DispatchQueuedHead(prompt)) return;
+        FollowUps = followUps.Appending(prompt);
+        saveRevision++;
+        ScheduleSave();
+    }
 
     // :1074-1079
     public void RemoveFollowUp(Guid id) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:1074");
+        RemoveFollowUpCore(id); // ThreadRuntime.swift:1074-1079
+
+    // ThreadRuntime.swift:1074-1079
+    private void RemoveFollowUpCore(Guid id)
+    {
+        FollowUps = new ValueList<FollowUpPrompt>(followUps.Where(prompt => prompt.Id != id));
+        TidyBundles();
+        saveRevision++;
+        ScheduleSave();
+    }
 
     // :1084-1098. Swift: moveFollowUp(_:to:placeAfter:), @discardableResult.
     public bool MoveFollowUp(Guid id, Guid target, bool placeAfter) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:1085");
+        MoveFollowUpCore(id, target, placeAfter); // ThreadRuntime.swift:1085-1098
+
+    // ThreadRuntime.swift:1085-1098
+    private bool MoveFollowUpCore(Guid id, Guid target, bool placeAfter)
+    {
+        var from = IndexOfFollowUp(id);
+        var to = IndexOfFollowUp(target);
+        if (id == target || from < 0 || to < 0) return false;
+        var dest = to + (placeAfter ? 1 : 0);
+        if (from < dest) dest--;
+        if (from == dest) return false;
+
+        var items = followUps.ToList();
+        var prompt = items[from];
+        items.RemoveAt(from);
+        items.Insert(dest, prompt);
+        FollowUps = new ValueList<FollowUpPrompt>(items);
+        UnbundleIfSeparated(id);
+        saveRevision++;
+        ScheduleSave();
+        return true;
+    }
 
     // :1100-1112. Swift: updateFollowUp(_:text:attachments:).
     public void UpdateFollowUp(Guid id, string text, IReadOnlyList<Attachment> attachments) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:1100");
+        UpdateFollowUpCore(id, text, attachments); // ThreadRuntime.swift:1100-1112
+
+    // ThreadRuntime.swift:1100-1112
+    private void UpdateFollowUpCore(Guid id, string text, IReadOnlyList<Attachment> attachments)
+    {
+        var index = IndexOfFollowUp(id);
+        if (index < 0) return;
+        var trimmed = FoundationText.Trim(text, includeNewlines: true);
+        if (trimmed.Length == 0 && attachments.Count == 0)
+        {
+            FollowUps = followUps.Mutating(items => items.RemoveAt(index));
+            TidyBundles();
+        }
+        else
+        {
+            FollowUps = followUps.SetItem(index, followUps[index] with
+            {
+                Text = text,
+                Attachments = new ValueList<Attachment>(attachments),
+            });
+        }
+        saveRevision++;
+        ScheduleSave();
+    }
+
+    // ThreadRuntime.swift:1114-1139.
+    private bool DrainFollowUps(TurnStatus status)
+    {
+        if (status != TurnStatus.Completed || Phase != RuntimePhase.Idle || FollowUps.Count == 0) return false;
+
+        var next = TakeBundle(0);
+        saveRevision++;
+        while (next.IsEmpty && FollowUps.Count != 0)
+        {
+            next = TakeBundle(0);
+            saveRevision++;
+        }
+
+        if (next.IsEmpty)
+        {
+            ScheduleSave();
+            return false;
+        }
+
+        ScheduleSave();
+        if (HandleLocalCommand(FoundationText.Trim(next.Text, includeNewlines: true)))
+            return DrainFollowUps(status);
+
+        AutoStartedTurnToken++;
+        _ = MainActor.Spawn(async () =>
+        {
+            await EnsureLoaded();
+            await StartTurn(next.Text, next.Attachments);
+        });
+        return true;
+    }
+
+    // ThreadRuntime.swift:2464-2479.
+    private bool DrainPendingSend()
+    {
+        if (Phase != RuntimePhase.Idle || pendingSend is not { } pending) return false;
+        pendingSend = null;
+        var text = FoundationText.Trim(pending.Text, includeNewlines: true);
+        if (text.Length == 0 && pending.Attachments.Count == 0)
+        {
+            ScheduleSave();
+            return false;
+        }
+        if (HandleLocalCommand(text)) return false;
+
+        _ = MainActor.Spawn(async () =>
+        {
+            await EnsureLoaded();
+            await StartTurn(pending.Text, pending.Attachments);
+        });
+        return true;
+    }
 
     // :1141-1148
-    public void ImplementPlan(string entryID) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:1141");
+    public void ImplementPlan(string entryID)
+    {
+        if (Phase != RuntimePhase.Idle || !entryIndex.TryGetValue(entryID, out var entry)
+            || entry.Item.TimelineItemContent is not TimelineItem.Content.Plan plan) return; // :1142
+        entry.Item = entry.Item with
+        {
+            TimelineItemContent = new TimelineItem.Content.Plan(plan.Value with { ProposedPlanState = ProposedPlan.State.Accepted }),
+        }; // :1143-1144
+        saveRevision++;
+        App?.UpdateThread(ThreadID, current => current with { InteractionMode = InteractionMode.Build }); // :1145-1146
+        _ = MainActor.Spawn(async () =>
+        {
+            await EnsureLoaded(); // :1147
+            await StartTurn("Implement the plan.", Array.Empty<Attachment>());
+        });
+    }
 
     // :1150-1156
-    public void DismissPlan(string entryID) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:1150");
+    public void DismissPlan(string entryID)
+    {
+        if (!entryIndex.TryGetValue(entryID, out var entry)
+            || entry.Item.TimelineItemContent is not TimelineItem.Content.Plan plan) return; // :1151
+        entry.Item = entry.Item with
+        {
+            TimelineItemContent = new TimelineItem.Content.Plan(plan.Value with { ProposedPlanState = ProposedPlan.State.Dismissed }),
+        }; // :1152-1153
+        saveRevision++;
+        ScheduleSave(); // :1154-1155
+    }
 
-    // :1416-1428
-    public void WarmSession() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:1416");
+    // ThreadRuntime.swift:1176-1382. Checkpoint capture and session startup overlap, but both must
+    // finish before the provider receives any part of the prompt.
+    private void EndDelegationStream()
+    {
+        hydraStream = null;
+        delegationParser = null;
+    }
+
+    private async Task StartTurn(string text, IReadOnlyList<Attachment> attachments, IReadOnlyList<long>? hydraHeads = null, bool hydraBrief = false)
+    {
+        await EnsureLoaded();
+        if (Phase != RuntimePhase.Idle || IsReverting)
+        {
+            EnqueueFollowUp(text, attachments);
+            return;
+        }
+
+        if (App is not { } app || app.Thread(ThreadID) is not { } initialThread
+            || app.Project(initialThread.ProjectID) is not { } project) return;
+
+        if (initialThread.IsArchived)
+        {
+            EnqueueFollowUp(text, attachments);
+            return;
+        }
+
+        var turnIndex = Turns.Select(turn => turn.Index).DefaultIfEmpty(-1).Max() + 1;
+        var turn = new TurnRecord { Index = turnIndex };
+        var userItem = new TimelineItem(turn.Id, new TimelineItem.Content.User(new UserMessage
+        {
+            Text = text,
+            Attachments = new ValueList<Attachment>(attachments),
+            HydraHeads = hydraHeads is null ? null : new ValueList<long>(hydraHeads),
+            HydraBrief = hydraBrief ? true : null,
+        }));
+        turn = turn with { UserItemID = userItem.Id };
+        Turns = Turns.Appending(turn);
+        saveRevision++;
+        currentTurnID = turn.Id;
+        currentProviderDiff = null;
+        currentProviderAnchor = null;
+        Append(userItem);
+        Phase = RuntimePhase.Starting;
+        TurnStartedAt = SwiftDate.Now;
+        app.UpdateThread(ThreadID, thread => thread with { UpdatedAt = SwiftDate.Now, LastStatus = TurnStatus.Running });
+        app.ReopenIfSettled(ThreadID);
+
+        EndDelegationStream();
+        HydraCurrentTurnTouchedPaths = new ValueSet<string>([], SwiftStringComparer.Instance);
+        hydraBudget = hydraBudget.BeginTurn(userAuthored: hydraHeads is null);
+
+        if (initialThread.Hydra is { HydraHeadInfoKind: HydraHeadInfo.Kind.Droppy, IsFinished: true })
+        {
+            app.UpdateThread(ThreadID, current => current.Hydra is { } info
+                ? current with { Hydra = info with { HydraHeadInfoStatus = HydraHeadInfo.Status.Running, FinishedAt = null } }
+                : current);
+        }
+
+        if (initialThread.Hydra?.HydraHeadInfoKind == HydraHeadInfo.Kind.Droppy)
+        {
+            var now = SwiftDate.Now;
+            var isLaterTurn = Turns.Count > 1;
+            app.UpdateThread(ThreadID, current => current.Hydra is { } info
+                ? current with
+                {
+                    Hydra = info with
+                    {
+                        StartedAt = isLaterTurn ? now : info.StartedAt,
+                        QueuedAt = isLaterTurn ? null : info.QueuedAt,
+                        ExecutionStartedAt = isLaterTurn ? now : info.ExecutionStartedAt,
+                        ExecutionFinishedAt = null,
+                        LandingStartedAt = null,
+                        LandingFinishedAt = null,
+                    },
+                }
+                : current); // :1217-1228
+        }
+
+        var isFinalReport = headReportsNext;
+        headReportsNext = false;
+        if (initialThread.Hydra?.HydraHeadInfoKind == HydraHeadInfo.Kind.Droppy)
+        {
+            var allowance = isFinalReport
+                ? HydraBudget.ReportSeconds
+                : HydraBudget.MaxSeconds + (initialThread.Provider.IsAPIKeyBased ? 90 : 0);
+            headBudget?.Cancel();
+            headBudget = MainActor.Spawn(async () =>
+            {
+                await SwiftTask.TrySleep(TimeSpan.FromSeconds(allowance));
+                if (SwiftTask.IsCancelled || currentTurnID != turn.Id || Phase == RuntimePhase.Idle) return;
+                headBudgetSpent = !isFinalReport;
+                Interrupt();
+            });
+        }
+
+        ScheduleSave();
+        GenerateTitle(text, attachments);
+        await EnsureModel(initialThread);
+
+        var directory = initialThread.WorktreePath ?? project.Path;
+        var git = new Git(directory);
+        var checkpointRef = Git.CheckpointRef(ThreadID, turnIndex, "start");
+        settledTree = null;
+        latestTree = null;
+        treeEpoch++;
+        var checkpoint = TaskHandle.Detached(async () =>
+        {
+            if (!await git.IsRepository()) return false;
+            try
+            {
+                await git.CaptureCheckpoint(checkpointRef);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        });
+
+        try
+        {
+            if (warmup is { } pendingWarmup) await pendingWarmup.Completion;
+            var start = MainActor.SpawnThrowing(async () => await EnsureSession(directory));
+            if (await checkpoint.Value) UpdateTurn(turn.Id, current => current with { BaseCheckpoint = checkpointRef });
+            _ = await start.Value;
+
+            if (SlashCommand.NameIn(text) is not null) await app.Providers.LoadCommands(initialThread.Provider, directory);
+
+            if (currentTurnID != turn.Id || session is not { } liveSession || app.Thread(ThreadID) is not { } thread) return;
+
+            var commandName = SlashCommand.NameIn(text);
+            SlashCommand? command = null;
+            if (commandName is not null
+                && app.Providers.Commands.TryGetValue(ProviderRegistry.CommandKey(thread.Provider, directory), out var commands))
+            {
+                command = commands.FirstOrDefault(candidate => candidate.Name == commandName);
+            }
+
+            var prompt = text;
+            var files = attachments.Where(attachment => !attachment.IsImage).ToArray();
+            if (files.Length != 0)
+                prompt += "\n\nAttached files:\n" + string.Join("\n", files.Select(file => "- " + file.Path));
+
+            var injectedAntiSlopPolicy = false;
+            var antiSlopEpoch = sessionEpoch;
+            // API-key providers keep this policy in their system prompt; the native-Hydra capability
+            // filter is left to the AppModel Hydra surface, which is not present on this unit's base.
+            if (!thread.Provider.IsAPIKeyBased && commandName is null && !antiSlopFallbackSent)
+            {
+                var instructions = AntiSlopPolicy.Instructions(sessionSignature?.AntiSlopEnabled ?? app.Settings.AntiSlopEnabled);
+                if (instructions.Length != 0)
+                {
+                    prompt = instructions + "\n\n" + prompt;
+                    injectedAntiSlopPolicy = true;
+                }
+            }
+
+            var injectedContinuation = false;
+            var continuationEpoch = sessionEpoch;
+            if (Continuation is { } forwarded && !continuationSent && commandName is null)
+            {
+                prompt = forwarded.Prompt + "\n\n" + prompt;
+                injectedContinuation = true;
+            }
+
+            var (nextHydraBudget, dropNotice) = hydraBudget.TakeDropNotice();
+            hydraBudget = nextHydraBudget;
+            if (dropNotice is not null) prompt = dropNotice + prompt;
+
+            Phase = RuntimePhase.Running;
+            await liveSession.Send(new TurnInput
+            {
+                Text = prompt,
+                Images = thread.Provider.SupportsImages
+                    ? new ValueList<Attachment>(attachments.Where(attachment => attachment.IsImage))
+                    : ValueList<Attachment>.Empty,
+                Model = thread.Model,
+                Effort = thread.Effort,
+                ServiceTier = ServiceTier(thread),
+                FastMode = thread.FastMode,
+                RuntimeMode = thread.RuntimeMode,
+                InteractionMode = thread.InteractionMode,
+                IsFinalReport = isFinalReport,
+                Command = command,
+            });
+
+            if (injectedAntiSlopPolicy && sessionEpoch == antiSlopEpoch) antiSlopFallbackSent = true;
+            if (injectedContinuation && sessionEpoch == continuationEpoch) continuationSent = true;
+            if (unsentSessionID is { } pendingSessionID)
+            {
+                unsentSessionID = null;
+                app.UpdateThread(ThreadID, current => current with { ProviderSessionID = pendingSessionID });
+            }
+            if (command is not null) app.Providers.RecordCommand(command.Name, thread.Provider);
+        }
+        catch (Exception error)
+        {
+            if (currentTurnID != turn.Id) return;
+            // Foundation localizes process-launch errors; Win32Exception.Message is the Windows equivalent.
+            var description = error is System.ComponentModel.Win32Exception nativeError
+                ? nativeError.Message
+                : SwiftErrors.LocalizedDescription(error);
+            AppendNotice(Notice.Level.Error, description);
+            await FinishTurn(TurnStatus.Failed, turn.Id);
+        }
+    }
+
+    // ThreadRuntime.swift:1392-1397.
+    private string? ServiceTier(ChatThread thread)
+    {
+        if (thread.Provider != ProviderKind.Codex
+            || App?.Providers.Model(thread.Model, thread.Provider)?.FastTier is not { } tier) return null;
+        return thread.FastMode ? tier : "default";
+    }
+
+    // ThreadRuntime.swift:1401-1410.
+    private async Task EnsureModel(ChatThread thread)
+    {
+        if (thread.Model is not null || App is not { } app) return;
+        await app.Providers.LoadCatalog(thread.Provider);
+        if (app.Providers.DefaultModel(thread.Provider) is { } model)
+        {
+            app.UpdateThread(ThreadID, current => current with
+            {
+                Model = model.Id,
+                Effort = current.Effort ?? model.DefaultEffort,
+            });
+        }
+    }
+
+    // ThreadRuntime.swift:1412-1428.
+    public void WarmSession()
+    {
+        if (Phase != RuntimePhase.Idle || session is not null || warmup is not null || IsReverting
+            || App is not { } app || app.Thread(ThreadID) is not { } thread || thread.IsArchived
+            || thread.Provider.IsAPIKeyBased || app.Project(thread.ProjectID) is not { } project) return;
+
+        var directory = thread.WorktreePath ?? project.Path;
+        var weakSelf = new WeakReference<ThreadRuntime>(this);
+        warmup = MainActor.Spawn(async () =>
+        {
+            if (!weakSelf.TryGetTarget(out var runtime)) return;
+            await runtime.EnsureModel(thread);
+            if (runtime.Phase != RuntimePhase.Idle || runtime.session is not null)
+            {
+                runtime.warmup = null;
+                return;
+            }
+
+            // A failed start intentionally keeps the finished task as the per-runtime warm-up latch.
+            try
+            {
+                _ = await runtime.EnsureSession(directory);
+                runtime.warmup = null;
+            }
+            catch
+            {
+                // A send makes its own start attempt; subsequent warmSession calls stay disabled.
+            }
+        });
+    }
+
+    // ThreadRuntime.swift:1640-1686. Swift characters are counted as grapheme clusters.
+    private ValueList<TranscriptMessage> ApiTranscript()
+    {
+        var fragments = new List<(bool Assistant, string Text)>();
+        foreach (var entry in Entries)
+        {
+            if (entry.Item.TurnID == currentTurnID) continue;
+            switch (entry.Item.TimelineItemContent)
+            {
+                case TimelineItem.Content.User user when user.Value.Text.Length != 0:
+                    fragments.Add((false, user.Value.Text));
+                    break;
+                case TimelineItem.Content.Assistant assistant when assistant.Value.Text.Length != 0:
+                    fragments.Add((true, assistant.Value.Text));
+                    break;
+            }
+        }
+
+        var transcript = new List<TranscriptMessage>(fragments.Count);
+        var index = 0;
+        while (index < fragments.Count)
+        {
+            if (!fragments[index].Assistant)
+            {
+                transcript.Add(new TranscriptMessage
+                {
+                    TranscriptMessageRole = TranscriptMessage.Role.User,
+                    Text = fragments[index].Text,
+                });
+                index++;
+                continue;
+            }
+
+            var runStart = index;
+            while (index < fragments.Count && fragments[index].Assistant) index++;
+            transcript.Add(new TranscriptMessage
+            {
+                TranscriptMessageRole = TranscriptMessage.Role.Assistant,
+                Text = string.Join("\n\n", fragments.Skip(runStart).Take(index - runStart).Select(fragment => fragment.Text)),
+            });
+        }
+
+        var kept = transcript.Skip(Math.Max(0, transcript.Count - 40)).ToList();
+        var budget = 60_000;
+        for (var keptIndex = kept.Count - 1; keptIndex >= 0; keptIndex--)
+        {
+            var characters = SwiftString.Characters(kept[keptIndex].Text).ToArray();
+            if (characters.Length <= budget)
+            {
+                budget -= characters.Length;
+            }
+            else if (budget > 200)
+            {
+                kept[keptIndex] = kept[keptIndex] with { Text = "…" + string.Concat(characters.TakeLast(budget)) };
+                budget = 0;
+            }
+            else
+            {
+                kept.RemoveRange(0, keptIndex + 1);
+                break;
+            }
+        }
+
+        return new ValueList<TranscriptMessage>(kept);
+    }
+
+    // ThreadRuntime.swift:1388-1390; PR-HYDRA-060. Native Hydra providers plus API-key providers.
+    private static bool KeepsHydraPolicyInSystemPrompt(ProviderKind provider) =>
+        provider is ProviderKind.Claude or ProviderKind.Codex or ProviderKind.Copilot
+        || provider.IsAPIKeyBased;
+
+    private static SessionSignature MakeSessionSignature(
+        ChatThread thread, string directory, bool antiSlopEnabled, HydraLaunch? hydra)
+    {
+        var copilotLaunchMode = thread.Provider == ProviderKind.Copilot && thread.RuntimeMode == RuntimeMode.Auto
+            ? RuntimeMode.Auto
+            : (RuntimeMode?)null;
+
+        return new SessionSignature
+        {
+            Provider = thread.Provider,
+            Directory = directory,
+            LaunchRuntimeMode = thread.Provider is ProviderKind.Cursor or ProviderKind.Grok or ProviderKind.Devin or ProviderKind.Antigravity
+                ? thread.RuntimeMode
+                : copilotLaunchMode,
+            LaunchEffort = thread.Provider is ProviderKind.Claude or ProviderKind.Antigravity ? thread.Effort : null,
+            LaunchFast = thread.Provider == ProviderKind.Claude ? thread.FastMode : null,
+            LaunchModel = thread.Provider == ProviderKind.Antigravity ? thread.Model : null,
+            LaunchInteraction = thread.Provider == ProviderKind.Antigravity ? thread.InteractionMode : null,
+            Hydra = hydra,
+            AntiSlopEnabled = antiSlopEnabled,
+        };
+    }
+
+    // :1430-1604. Build the session signature after resolving any routed worker catalogue.
+    private async Task<ProviderSession> EnsureSession(string directory, bool allowNewSession = true)
+    {
+        if (App is not { } app || app.Thread(ThreadID) is not { } thread)
+            throw new ProviderError(new ProviderError.Case.NotRunning());
+
+        // :1430-1450. The worker model appears in the lead brief, so load its catalogue first.
+        if (app.HydraIsOn(thread) && app.HydraPair(thread) is { } pair)
+        {
+            var headsProvider = app.HydraHeadsProvider(pair);
+            if (headsProvider != thread.Provider)
+                await SwiftTry.IgnoreAsync(() => app.Providers.LoadCatalog(headsProvider));
+        }
+
+        var hydra = KeepsHydraPolicyInSystemPrompt(thread.Provider) ? app.HydraLaunch(thread) : null;
+        var signature = MakeSessionSignature(thread, directory, app.Settings.AntiSlopEnabled, hydra);
+        if (session is { IsRunning: true } && sessionSignature == signature) return session;
+
+        // Resolve the login environment before tearing down the current session.
+        await LoginEnvironment.Load();
+        ReleaseSession(stop: true);
+        StopNativeHeads();
+
+        if (thread.Provider.IsAPIKeyBased)
+        {
+            var apiKey = app.Settings.ApiKey(thread.Provider);
+            if (apiKey.Length == 0)
+                throw new ProviderError(new ProviderError.Case.NotInstalled(thread.Provider));
+
+            ProviderSession MakeApiSession(string? resumeID)
+            {
+                var configuration = new SessionConfiguration
+                {
+                    Provider = thread.Provider,
+                    Executable = null,
+                    WorkingDirectory = SessionDirectoryUrl(directory),
+                    Environment = app.Providers.Environment(thread.Provider),
+                    ResumeID = resumeID,
+                    ResumeAt = resumeID is null ? null : thread.ProviderResumeAt,
+                    Model = thread.Model,
+                    Effort = thread.Effort,
+                    FastMode = thread.FastMode,
+                    RuntimeMode = thread.RuntimeMode,
+                    InteractionMode = thread.InteractionMode,
+                    ApiKey = apiKey,
+                    Hydra = hydra,
+                    Transcript = ApiTranscript(),
+                    IsHydraHead = thread.Hydra?.HydraHeadInfoKind == HydraHeadInfo.Kind.Droppy,
+                    AntiSlopEnabled = signature.AntiSlopEnabled,
+                };
+
+                ProviderSession created = thread.Provider switch
+                {
+                    ProviderKind.Deepseek => throw new NotImplementedException("BLOCKED: DeepSeekSession is not present in the owned provider tree."),
+                    ProviderKind.Meta => new MetaSession(configuration),
+                    ProviderKind.Zai => new ZaiSession(configuration),
+                    _ => throw new InvalidOperationException($"{thread.Provider} is not an API-key provider."),
+                };
+                Observe(created);
+                return created;
+            }
+
+            ProviderSession candidate = MakeApiSession(thread.ProviderSessionID);
+            session = candidate;
+            sessionSignature = signature;
+            var started = false;
+            try
+            {
+                string sessionID;
+                try
+                {
+                    sessionID = await candidate.Start();
+                }
+                catch (Exception) when (thread.ProviderSessionID is not null
+                    && thread.ProviderResumeAt is null
+                    && allowNewSession
+                    && ReferenceEquals(session, candidate)
+                    && !SwiftTask.IsCancelled)
+                {
+                    ReleaseSession(stop: true);
+                    candidate = MakeApiSession(resumeID: null);
+                    session = candidate;
+                    sessionSignature = signature;
+                    sessionID = await candidate.Start();
+                }
+
+                if (!ReferenceEquals(session, candidate) || SwiftTask.IsCancelled)
+                    throw new CancellationError();
+                started = true;
+                app.UpdateThread(ThreadID, current => current with { ProviderSessionID = sessionID });
+                return candidate;
+            }
+            finally
+            {
+                if (!started)
+                {
+                    candidate.OnEvent = null;
+                    if (ReferenceEquals(session, candidate)) ReleaseSession(stop: true);
+                    else candidate.Stop();
+                }
+            }
+        }
+
+        if (app.Providers.Executable(thread.Provider) is not { } executable)
+            throw new ProviderError(new ProviderError.Case.NotInstalled(thread.Provider));
+
+        ProviderSession MakeSession(string? resumeID)
+        {
+            var configuration = new SessionConfiguration
+            {
+                Provider = thread.Provider,
+                Executable = executable,
+                WorkingDirectory = SessionDirectoryUrl(directory),
+                Environment = app.Providers.Environment(thread.Provider),
+                ResumeID = resumeID,
+                ResumeAt = resumeID is null ? null : thread.ProviderResumeAt,
+                Model = thread.Model,
+                Effort = thread.Effort,
+                FastMode = thread.FastMode,
+                RuntimeMode = thread.RuntimeMode,
+                InteractionMode = thread.InteractionMode,
+                Hydra = hydra,
+                AntiSlopEnabled = signature.AntiSlopEnabled,
+            };
+
+            ProviderSession created = thread.Provider switch
+            {
+                ProviderKind.Codex => new CodexSession(configuration),
+                ProviderKind.Claude => new ClaudeSession(configuration),
+                ProviderKind.Antigravity => new AntigravitySession(configuration),
+                ProviderKind.Copilot => new CopilotSession(configuration),
+                ProviderKind.Commandcode => throw new NotImplementedException("BLOCKED: CommandCodeSession is not present in the owned provider tree."),
+                ProviderKind.Pi => throw new NotImplementedException("BLOCKED: PiSession is not present in the owned provider tree."),
+                ProviderKind.Cursor or ProviderKind.Opencode or ProviderKind.OpencodeGo or ProviderKind.Grok or ProviderKind.Devin => new ACPSession(configuration),
+                ProviderKind.Deepseek => throw new NotImplementedException("BLOCKED: DeepSeekSession is not present in the owned provider tree."),
+                ProviderKind.Meta => new MetaSession(configuration),
+                ProviderKind.Zai => new ZaiSession(configuration),
+                _ => throw new InvalidOperationException($"Unsupported provider session: {thread.Provider}."),
+            };
+            Observe(created);
+            return created;
+        }
+
+        var cliCandidate = MakeSession(thread.ProviderSessionID);
+        session = cliCandidate;
+        sessionSignature = signature;
+        var cliStarted = false;
+        isStartingSession = true;
+        try
+        {
+            string sessionID;
+            try
+            {
+                sessionID = await cliCandidate.Start();
+            }
+            catch (Exception error) when (allowNewSession
+                && ReferenceEquals(session, cliCandidate)
+                && !SwiftTask.IsCancelled
+                && StartsOver(error, thread))
+            {
+                ReleaseSession(stop: true);
+                if (LostConversation(error))
+                {
+                    app.UpdateThread(ThreadID, current => current with { ProviderResumeAt = null });
+                    if (currentTurnID is not null)
+                        AppendNotice(Notice.Level.Warning,
+                            $"{thread.Provider.DisplayName} no longer has this conversation. It starts a new one here, without the messages above.");
+                }
+                cliCandidate = MakeSession(resumeID: null);
+                session = cliCandidate;
+                sessionSignature = signature;
+                sessionID = await cliCandidate.Start();
+            }
+
+            if (!ReferenceEquals(session, cliCandidate) || SwiftTask.IsCancelled)
+                throw new CancellationError();
+            cliStarted = true;
+            RecordSessionID(sessionID);
+            return cliCandidate;
+        }
+        finally
+        {
+            isStartingSession = false;
+            if (!cliStarted)
+            {
+                cliCandidate.OnEvent = null;
+                if (ReferenceEquals(session, cliCandidate)) ReleaseSession(stop: true);
+                else cliCandidate.Stop();
+            }
+        }
+    }
+
+    // ThreadRuntime.swift:1474, 1537; reuse the file-URL construction already established by
+    // ACPSession.DirectoryFileUrl for Windows drive and UNC paths.
+    private static SwiftURL SessionDirectoryUrl(string path)
+    {
+        var normalized = path.Replace('\\', '/');
+        var builder = new System.Text.StringBuilder();
+        if (normalized.Length == 0 || normalized[0] != '/') builder.Append('/');
+        foreach (var b in System.Text.Encoding.UTF8.GetBytes(normalized))
+        {
+            var c = (char)b;
+            if (b < 0x80 && (char.IsAsciiLetterOrDigit(c) || "-._~/:".IndexOf(c, StringComparison.Ordinal) >= 0)) builder.Append(c);
+            else builder.Append('%').Append(b.ToString("X2", System.Globalization.CultureInfo.InvariantCulture));
+        }
+        return SwiftURL.Create("file://" + builder) ?? throw SwiftTraps.Fatal("Invalid session directory path.");
+    }
 
     // :1691-1719
-    public void Interrupt() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:1691");
+    public void Interrupt()
+    {
+        if (Phase == RuntimePhase.Idle) return;
+
+        var turnID = currentTurnID;
+        interruptWatchdog?.Cancel();
+        interruptWatchdog = null;
+
+        if (Phase == RuntimePhase.Starting)
+        {
+            currentTurnID = null;
+            _ = MainActor.Spawn(() => FinishTurn(TurnStatus.Interrupted, turnID));
+            return;
+        }
+
+        if (turnID is not { } id) return;
+
+        _ = MainActor.Spawn(async () =>
+        {
+            if (currentTurnID != id) return;
+            if (session is { } provider)
+            {
+                await provider.Interrupt();
+            }
+            else
+            {
+                await FinishTurn(TurnStatus.Interrupted, id);
+            }
+        });
+
+        interruptWatchdog = MainActor.Spawn(async () =>
+        {
+            await SwiftTask.TrySleep(TimeSpan.FromSeconds(8));
+            if (SwiftTask.IsCancelled || currentTurnID != id) return;
+
+            interruptWatchdog = null;
+            ReleaseSession(stop: true);
+            await FinishTurn(TurnStatus.Interrupted);
+        });
+    }
+
+    private async Task FinishTurn(TurnStatus status, Guid? requestedTurnID = null)
+    {
+        interruptWatchdog?.Cancel();
+        interruptWatchdog = null;
+        headBudget?.Cancel();
+        headBudget = null;
+
+        if ((requestedTurnID ?? currentTurnID) is not { } turnID
+            || Turns.FirstOrDefault(turn => turn.Id == turnID) is not { } turn)
+        {
+            Phase = RuntimePhase.Idle;
+            TurnStartedAt = null;
+            DrainPendingSend();
+            return;
+        }
+
+        if (finishingTurnID == turnID) return;
+        finishingTurnID = turnID;
+        try
+        {
+            foreach (var id in commandTrees.Keys.ToArray()) SettleCommand(id);
+            foreach (var key in hydraCommandTrees.Keys.ToArray()) SettleHydraCommand(key);
+
+            if (currentTurnID is { } activeTurnID && activeTurnID != turnID) return;
+
+            closingTurnID = turnID;
+            try
+            {
+                var settles = commandSettles.Values.ToArray();
+                commandSettles.Clear();
+                var settleTask = Task.WhenAll(settles.Select(task => task.Completion));
+                if (status == TurnStatus.Completed)
+                {
+                    await settleTask;
+                }
+                else
+                {
+                    var timeout = MainActor.Spawn(async () =>
+                        await SwiftTask.TrySleep(TimeSpan.FromSeconds(3)));
+                    await Task.WhenAny(settleTask, timeout.Completion);
+                    timeout.Cancel();
+                }
+
+                if (currentTurnID is { } lateTurnID && lateTurnID != turnID) return;
+
+                currentTurnID = null;
+                FlushDeltas();
+                Approvals = ValueList<ApprovalRequest>.Empty;
+                Questions = ValueList<QuestionRequest>.Empty;
+
+                var reportedEdits = new List<FileEdit>();
+                foreach (var entry in Entries.Where(entry => entry.Item.TurnID == turnID))
+                {
+                    EndStreaming(entry);
+                    if (entry.Item.TimelineItemContent is not TimelineItem.Content.Tool tool) continue;
+
+                    var call = tool.Value;
+                    if (call.ToolCallStatus == ToolCall.Status.Running)
+                    {
+                        call = call.Finish(status == TurnStatus.Completed
+                            ? ToolCall.Status.Completed
+                            : ToolCall.Status.Failed);
+                        entry.Item = entry.Item with
+                        {
+                            TimelineItemContent = new TimelineItem.Content.Tool(call),
+                        };
+                        saveRevision += 1;
+                    }
+                    reportedEdits.AddRange(call.Edits);
+                }
+
+                var providerDiff = currentProviderDiff;
+                var providerAnchor = currentProviderAnchor;
+                currentProviderDiff = null;
+                currentProviderAnchor = null;
+                UpdateTurn(turnID, current => current with
+                {
+                    Status = status,
+                    CompletedAt = SwiftDate.Now,
+                    ProviderDiff = providerDiff ?? current.ProviderDiff,
+                    ProviderAnchor = providerAnchor ?? current.ProviderAnchor,
+                });
+
+                if (providerAnchor is not null && Thread?.ProviderResumeAt is not null)
+                    App?.UpdateThread(ThreadID, current => current with { ProviderResumeAt = providerAnchor });
+
+                turn = Turns.First(candidate => candidate.Id == turnID);
+                string? endCheckpoint = null;
+                if (App is { } app && app.Thread(ThreadID) is { } thread
+                    && app.Project(thread.ProjectID) is { } project)
+                {
+                    var root = thread.WorktreePath ?? project.Path;
+                    var git = new Git(root);
+                    if (turn.BaseCheckpoint is not null)
+                    {
+                        var checkpointRef = Git.CheckpointRef(ThreadID, turn.Index, "end");
+                        try
+                        {
+                            await git.CaptureCheckpoint(checkpointRef);
+                            endCheckpoint = checkpointRef;
+                        }
+                        catch
+                        {
+                            // A missing end snapshot does not invalidate the rest of the turn summary.
+                        }
+                    }
+
+                    var touched = new HashSet<string>(SwiftStringComparer.Instance);
+                    foreach (var edit in reportedEdits)
+                    {
+                        if (TouchedPaths.Relative(edit.Path, root) is { } relative) touched.Add(relative);
+                    }
+                    touched.UnionWith(hydraTouched);
+                    hydraTouched.Clear();
+                    var touchedPaths = touched.OrderBy(path => path, SwiftStringComparer.Instance).ToArray();
+
+                    UpdateTurn(turnID, current => current with
+                    {
+                        EndCheckpoint = endCheckpoint ?? current.EndCheckpoint,
+                        TouchedPaths = new ValueList<string>(touchedPaths),
+                    });
+                    HydraCurrentTurnTouchedPaths = HydraCurrentTurnTouchedPaths.Mutating(paths =>
+                        paths.UnionWith(touched));
+                }
+
+                DiffRevision += 1;
+                var changes = FileChangeSummaryDiff.Create(await ParsedDiff(turnID));
+                var summary = new TurnSummary
+                {
+                    TurnID = turnID,
+                    Status = status,
+                    Duration = (SwiftDate.Now - turn.StartedAt).TotalSeconds,
+                    FilesChanged = changes.Files.Count,
+                    Additions = changes.Additions,
+                    Deletions = changes.Deletions,
+                    Changes = changes,
+                };
+                Append(new TimelineItem(turnID, new TimelineItem.Content.TurnEnd(summary)));
+
+                Phase = RuntimePhase.Idle;
+                TurnStartedAt = null;
+                SaveNow();
+                SettleForegroundHeads(status);
+
+                if (Thread?.IsArchived == true)
+                {
+                    headBudgetSpent = false;
+                    App?.TurnFinished(ThreadID, status, continues: false);
+                    return;
+                }
+
+                var continues = false;
+                if (pendingSend is not null)
+                {
+                    continues = DrainPendingSend();
+                }
+                else if (status == TurnStatus.Completed
+                    && SpawnDelegatedHeads(turnID) is var delegation
+                    && delegation != DelegationOutcome.None)
+                {
+                    continues = true;
+                    if (delegation == DelegationOutcome.HeadsOut) _ = DrainFollowUps(status);
+                }
+                else if (status == TurnStatus.Completed && FlushHydraReports())
+                {
+                    continues = true;
+                }
+                else
+                {
+                    if (status != TurnStatus.Completed) DropDelegationBlock(turnID, status);
+                    continues = DrainFollowUps(status);
+                }
+
+                if (!continues && status != TurnStatus.Interrupted && FlushHydraReports())
+                    continues = true;
+
+                if (ShouldContinueForRunningDroppyHeads(continues, status))
+                    continues = true;
+
+                if (headBudgetSpent)
+                {
+                    headBudgetSpent = false;
+                    if (status == TurnStatus.Interrupted
+                        && Thread?.Hydra?.HydraHeadInfoKind == HydraHeadInfo.Kind.Droppy)
+                    {
+                        headReportsNext = true;
+                        AutoStartedTurnToken += 1;
+                        _ = MainActor.Spawn(async () =>
+                        {
+                            await EnsureLoaded();
+                            await StartTurn(
+                                "[Marrow] Your budget is spent and your tools are gone. Reply now with your report: what you changed, how far it got, and what is left.",
+                                Array.Empty<Attachment>());
+                        });
+                        continues = true;
+                    }
+                }
+
+                App?.TurnFinished(ThreadID, status, continues);
+
+                // PR-RUNTIME-128: the safety predicate is retained, but dispatch awaits the
+                // AppModel lane's source-backed auto-merge API on this candidate.
+                _ = AutoMergeAppIfReady(continues, status);
+            }
+            finally
+            {
+                closingTurnID = null;
+            }
+        }
+        finally
+        {
+            finishingTurnID = null;
+        }
+    }
+
+    private bool ShouldContinueForRunningDroppyHeads(bool continues, TurnStatus status) =>
+        !continues
+        && status == TurnStatus.Completed
+        && (App?.RunningDroppyHeads(ThreadID) ?? 0) > 0;
+
+    private AppModel? AutoMergeAppIfReady(bool continues, TurnStatus status)
+    {
+        if (continues) return null;
+        if (status != TurnStatus.Completed) return null;
+        if (hydraPendingReports.Count != 0) return null;
+        if (hydraBatches.Count != 0) return null;
+        if (hydraWaiting.Count != 0) return null;
+
+        var app = App;
+        if (app is null) return null;
+        var thread = app.Thread(ThreadID);
+        if (thread is null) return null;
+        if (!app.HydraIsOn(thread)) return null;
+        if (!app.Settings.HydraAutoMerge) return null;
+        if (app.RunningHydraHeads(ThreadID) != 0) return null;
+        return app;
+    }
+
+    private void EndStreaming(TimelineEntry entry, bool recordSave = true)
+    {
+        switch (entry.Item.TimelineItemContent)
+        {
+            case TimelineItem.Content.Assistant assistant when assistant.Value.IsStreaming:
+                entry.Item = entry.Item with
+                {
+                    TimelineItemContent = new TimelineItem.Content.Assistant(assistant.Value with { IsStreaming = false }),
+                };
+                if (recordSave) saveRevision += 1;
+                break;
+            case TimelineItem.Content.Reasoning reasoning when reasoning.Value.IsStreaming:
+                entry.Item = entry.Item with
+                {
+                    TimelineItemContent = new TimelineItem.Content.Reasoning(reasoning.Value with { IsStreaming = false }),
+                };
+                if (recordSave) saveRevision += 1;
+                break;
+            case TimelineItem.Content.Plan plan when plan.Value.ProposedPlanState == ProposedPlan.State.Drafting:
+                if (recordSave) CompletePlan(entry.Id, plan.Value.Markdown);
+                else entry.Item = entry.Item with
+                {
+                    TimelineItemContent = new TimelineItem.Content.Plan(plan.Value with { ProposedPlanState = ProposedPlan.State.Proposed }),
+                };
+                break;
+        }
+    }
+
+    private void SettleForegroundHeads(TurnStatus status)
+    {
+        foreach (var (agentID, headID) in hydraNativeHeads.ToArray())
+        {
+            if (App?.Runtime(headID)?.Thread?.Hydra is not { IsBackground: false, IsFinished: false }) continue;
+            // HydraAgentFinished is blocked on this slice until its AppModel Hydra operations are ported.
+            HydraAgentFinished(agentID,
+                status == TurnStatus.Completed ? TurnStatus.Completed : TurnStatus.Interrupted,
+                summary: null);
+        }
+    }
 
     // :1721-1731. Swift: resolve(_:option:).
-    public void Resolve(ApprovalRequest request, ApprovalRequest.Option option) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:1721");
+    public void Resolve(ApprovalRequest request, ApprovalRequest.Option option)
+    {
+        Approvals = Approvals.Mutating(items => items.RemoveAll(item => item.Id == request.Id));
+        if (request.RequestKind == ApprovalRequest.Kind.Plan
+            && request.ToolItemID is { } itemID
+            && entryIndex.TryGetValue(itemID, out var entry)
+            && entry.Item.TimelineItemContent is TimelineItem.Content.Plan plan)
+        {
+            var state = option.OptionRole == ApprovalRequest.Option.Role.Approve
+                ? ProposedPlan.State.Accepted
+                : ProposedPlan.State.Dismissed;
+            entry.Item = entry.Item with
+            {
+                TimelineItemContent = new TimelineItem.Content.Plan(plan.Value with { ProposedPlanState = state }),
+            };
+            saveRevision++;
+            ScheduleSave();
+        }
+        session?.ResolveApproval(request.Id, option.Id);
+    }
 
     // :1733-1736. Swift: answer(_:answers:); the map is ProviderSession.AnswerQuestion's.
-    public void Answer(QuestionRequest request, ValueMap<string, ValueList<string>> answers) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:1733");
+    public void Answer(QuestionRequest request, ValueMap<string, ValueList<string>> answers)
+    {
+        Questions = Questions.Mutating(items => items.RemoveAll(item => item.Id == request.Id));
+        session?.AnswerQuestion(request.Id, answers);
+    }
 
     // :1738-1757
-    public void Compact() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:1738");
+    public void Compact()
+    {
+        if (Phase != RuntimePhase.Idle) return;
+        if (session is not { IsRunning: true } activeSession)
+        {
+            AppendNotice(Notice.Level.Info, "Nothing to compact yet.");
+            return;
+        }
+
+        AppendNotice(Notice.Level.Info, "Compacting context.");
+        _ = MainActor.Spawn(async () =>
+        {
+            try
+            {
+                await activeSession.Compact();
+                await MainActor.Run(() =>
+                {
+                    antiSlopFallbackSent = false;
+                    continuationSent = false;
+                });
+            }
+            catch (Exception error)
+            {
+                await MainActor.Run(() => AppendNotice(Notice.Level.Warning, SwiftErrors.LocalizedDescription(error)));
+            }
+        });
+    }
 
     // :1765-1781. Swift: revertPreview(for:) -> Task<RevertPreview, Error> (a throwing TaskHandle, R-TASK-1).
-    public TaskHandle<RevertPreview> RevertPreview(Guid turnID) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:1765");
+    public TaskHandle<RevertPreview> RevertPreview(Guid turnID)
+    {
+        if (revertPreviews.TryGetValue(turnID, out var cached)
+            && cached.Revision == DiffRevision
+            && SwiftClock.Now - cached.StartedAt < TimeSpan.FromSeconds(10))
+            return cached.Task; // :1766-1768
+
+        var revision = DiffRevision; // :1769
+        TaskHandle<RevertPreview> task = null!;
+        task = MainActor.SpawnThrowing(async () =>
+        {
+            try
+            {
+                var preview = await PreviewRevert(turnID);
+                if (revertPreviews.TryGetValue(turnID, out var entry) && entry.Revision == revision)
+                    revertPreviews[turnID] = entry with { Result = task.Value }; // :1772-1775
+                return preview;
+            }
+            catch
+            {
+                if (revertPreviews.TryGetValue(turnID, out var entry) && entry.Revision == revision)
+                    revertPreviews[turnID] = entry with { Result = task.Value }; // :1772-1775
+                throw;
+            }
+        });
+
+        foreach (var stale in revertPreviews.Where(pair => pair.Value.Revision != revision).Select(pair => pair.Key).ToArray())
+            revertPreviews.Remove(stale); // :1778
+        revertPreviews[turnID] = new RevertPreviewEntry // :1779
+        {
+            Revision = revision,
+            StartedAt = SwiftClock.Now,
+            Task = task,
+        };
+        return task;
+    }
 
     // :1785-1789. Swift: cachedRevertPreview(for:) -> Result<RevertPreview, Error>? (see the header).
     public Task<RevertPreview>? CachedRevertPreview(Guid turnID) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:1785");
+        revertPreviews.TryGetValue(turnID, out var entry)
+        && entry.Revision == DiffRevision
+        && SwiftClock.Now - entry.StartedAt < TimeSpan.FromSeconds(10)
+            ? entry.Result
+            : null; // :1786-1788
+
+    // :1804-1813
+    private async Task<RevertPreview> PreviewRevert(Guid turnID)
+    {
+        var app = App;
+        var thread = Thread;
+        var project = thread is null ? null : app?.Project(thread.ProjectID);
+        var index = turns.ToList().FindIndex(turn => turn.Id == turnID);
+        if (app is null || thread is null || project is null || index < 0 || turns[index].BaseCheckpoint is not { } baseCheckpoint)
+            throw new ProviderError(new ProviderError.Case.Failed("No file checkpoint is available for this message. You can still keep the file changes.")); // :1805-1807
+
+        var removed = turns.Skip(index).ToArray(); // :1809
+        var paths = removed.SelectMany(turn => turn.TouchedPaths ?? ValueList<string>.Empty)
+            .Distinct(SwiftStringComparer.Instance)
+            .OrderBy(path => path, SwiftStringComparer.Instance)
+            .ToArray(); // :1810
+        var end = removed.Select(turn => turn.EndCheckpoint).LastOrDefault(checkpoint => checkpoint is not null); // :1811
+        return await new Git(thread.WorktreePath ?? project.Path).PreviewRestore(baseCheckpoint, end, paths); // :1812
+    }
 
     // :1820-1831. Swift: resend(_:text:attachments:restoreFiles:) async throws.
-    public Task Resend(Guid turnID, string text, IReadOnlyList<Attachment> attachments, bool restoreFiles) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:1820");
+    public async Task Resend(Guid turnID, string text, IReadOnlyList<Attachment> attachments, bool restoreFiles)
+    {
+        var restored = await Revert(turnID, restoreFiles); // :1821
+        var edited = new ComposerDraft { Text = text, Attachments = new ValueList<Attachment>(attachments) }; // :1822
+        if (!restored) // :1823-1825
+        {
+            Draft = edited;
+            return;
+        }
+
+        var kept = Draft; // :1827
+        Draft = edited; // :1828
+        Send(); // :1829
+        Draft = kept; // :1830
+    }
 
     // :1836-1936. Swift: revert(to:restoreFiles:) async throws -> Bool, @discardableResult.
-    public Task<bool> Revert(Guid turnID, bool restoreFiles) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:1837");
+    public async Task<bool> Revert(Guid turnID, bool restoreFiles)
+    {
+        if (Phase != RuntimePhase.Idle || IsReverting)
+            throw new ProviderError(new ProviderError.Case.Failed("Wait for the running turn to finish first.")); // :1838
+        var app = App;
+        var thread = app?.Thread(ThreadID);
+        var project = thread is null ? null : app?.Project(thread.ProjectID);
+        var index = turns.ToList().FindIndex(turn => turn.Id == turnID);
+        if (app is null || thread is null || project is null || index < 0)
+            throw new ProviderError(new ProviderError.Case.Failed("This message is no longer in the thread.")); // :1839-1842
+
+        if (app.RunningDroppyHeads(ThreadID) > 0)
+            throw new ProviderError(new ProviderError.Case.Failed("Stop the running agents before reverting this conversation.")); // :1845
+        var removed = turns.Skip(index).ToArray(); // :1846
+        var directory = thread.WorktreePath ?? project.Path; // :1847
+
+        IsReverting = true; // :1849
+        try
+        {
+            if (restoreFiles)
+            {
+                if (removed[0].BaseCheckpoint is not { } checkpoint)
+                    throw new ProviderError(new ProviderError.Case.Failed("This turn has no file checkpoint. Choose to keep the file changes instead.")); // :1852-1854
+                _ = await new Git(directory).Output(["rev-parse", "--verify", checkpoint]); // :1855
+            }
+
+            switch (thread.Provider) // :1857
+            {
+                case ProviderKind.Codex:
+                {
+                    var targetID = removed.Select(turn => turn.ProviderTurnID).FirstOrDefault(value => value is not null); // :1859
+                    if (targetID is not null)
+                    {
+                        if (thread.ProviderSessionID is null)
+                            throw new ProviderError(new ProviderError.Case.Failed("The original Codex conversation is unavailable.")); // :1860-1862
+                        var provider = await EnsureSession(directory, allowNewSession: false);
+                        if (provider is not CodexSession codex)
+                            throw new ProviderError(new ProviderError.Case.Failed("The original Codex conversation is unavailable."));
+                        var sessionID = await codex.Rollback(targetID); // :1864
+                        app.UpdateThread(ThreadID, current => current with { ProviderSessionID = sessionID }); // :1865
+                    }
+                    else if (thread.ProviderSessionID is not null || removed.Any(turn => turn.Status != TurnStatus.Failed))
+                    {
+                        throw new ProviderError(new ProviderError.Case.Failed("The selected message has no Codex turn ID, so its history cannot be safely reverted.")); // :1866-1867
+                    }
+                    StopSession(); // :1869
+                    break;
+                }
+                case ProviderKind.Copilot:
+                {
+                    if (thread.ProviderSessionID is null)
+                        throw new ProviderError(new ProviderError.Case.Failed("The original Copilot conversation is unavailable.")); // :1871-1873
+                    var provider = await EnsureSession(directory, allowNewSession: false);
+                    if (provider is not CopilotSession copilot)
+                        throw new ProviderError(new ProviderError.Case.Failed("The original Copilot conversation is unavailable."));
+                    await copilot.Rollback(removed.Length); // :1875
+                    StopSession(); // :1876
+                    break;
+                }
+                case ProviderKind.Claude:
+                {
+                    ReleaseSession(stop: true); // :1878
+                    if (index == 0)
+                    {
+                        StopSession(); // :1880
+                        app.UpdateThread(ThreadID, current => current with { ProviderSessionID = null, ProviderResumeAt = null }); // :1881-1884
+                    }
+                    else
+                    {
+                        if (thread.ProviderSessionID is null || turns[index - 1].ProviderAnchor is not { } anchor)
+                            throw new ProviderError(new ProviderError.Case.Failed("Claude has no resume point before this message. The conversation was kept.")); // :1886-1887
+                        StopSession(); // :1889
+                        app.UpdateThread(ThreadID, current => current with { ProviderResumeAt = anchor }); // :1890
+                    }
+                    break;
+                }
+                default:
+                    ReleaseSession(stop: true); // :1897
+                    app.UpdateThread(ThreadID, current => current with { ProviderSessionID = null, ProviderResumeAt = null }); // :1898-1901
+                    break;
+            }
+
+            string? fileError = null; // :1904
+            if (restoreFiles && removed[0].BaseCheckpoint is { } baseCheckpoint)
+            {
+                try
+                {
+                    var preview = await PreviewRevert(turnID); // :1908
+                    await new Git(directory).Restore(preview.Restorable.Select(file => file.Path).ToArray(), baseCheckpoint); // :1909
+                }
+                catch (Exception error)
+                {
+                    fileError = "Conversation reverted, but files could not be restored: " + SwiftErrors.LocalizedDescription(error); // :1911
+                }
+            }
+
+            var removedIDs = removed.Select(turn => turn.Id).ToHashSet(); // :1915
+            Entries = new ValueList<TimelineEntry>(Entries.Where(entry => entry.TurnID is not { } owner || !removedIDs.Contains(owner))); // :1916-1919
+            entryIndex.Clear(); // :1920
+            foreach (var entry in Entries) entryIndex.Add(entry.Id, entry);
+            Turns = new ValueList<TurnRecord>(Turns.Take(index)); // :1921
+            hydraTouched.Clear(); // :1924
+            HydraCurrentTurnTouchedPaths = new ValueSet<string>(Array.Empty<string>(), SwiftStringComparer.Instance); // :1925
+            app.UpdateThread(ThreadID, current => current with { LastStatus = Turns.Count == 0 ? null : Turns[^1].Status }); // :1928
+            saveRevision++; // :1929
+            Usage = null; // :1930
+            if (fileError is not null) AppendNotice(Notice.Level.Error, fileError); // :1931
+            DiffSelection = null; // :1932
+            DiffRevision++; // :1933
+            ScheduleSave(); // :1934
+            return fileError is null; // :1935; GD-003 preserves cited Swift behavior despite conflicting packet prose/test.
+        }
+        finally
+        {
+            IsReverting = false;
+        }
+    }
 
     // :1939
     public FileChangeSummary? ChangeStats { get => Read(changeStats); private set => Set(ref changeStats, value); }
 
     // :1945-1953
-    public Task RefreshChangeStats() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:1945");
+    public async Task RefreshChangeStats()
+    {
+        var revision = DiffRevision; // :1946
+        if (changeStatsRevision == revision) return; // :1947
+        var files = await ParsedDiff(selection: null); // :1948
+        if (revision != DiffRevision) return; // :1949
+        var stats = files.Count == 0 ? null : FileChangeSummaryDiff.Create(files); // :1950
+        if (stats != ChangeStats) ChangeStats = stats; // :1951
+        changeStatsRevision = revision; // :1952
+    }
+
+    // :1964-1979. Only concurrent callers share this repository-root lookup.
+    private Task<string> RepositoryRoot(Git git)
+    {
+        var directory = git.Directory;
+        if (repositoryRoots.TryGetValue(directory, out var existing)) return existing;
+
+        repositoryRoots.Clear();
+        TaskHandle<string> lookup = null!;
+        lookup = MainActor.Spawn(async () =>
+        {
+            var repository = directory;
+            try
+            {
+                var prefix = await git.Output(["rev-parse", "--show-prefix"]);
+                foreach (var _ in prefix.Trim().Split('/', StringSplitOptions.RemoveEmptyEntries))
+                    repository = Path.GetDirectoryName(repository) ?? repository;
+            }
+            catch
+            {
+                // Swift's try? leaves the checkout path as the root when this lookup fails.
+            }
+
+            if (repositoryRoots.TryGetValue(directory, out var current) && ReferenceEquals(current, lookup.Value))
+                repositoryRoots.Remove(directory);
+            return repository;
+        });
+        repositoryRoots[directory] = lookup.Value;
+        return lookup.Value;
+    }
+
+    // :1982-1998
+    private Guid? FixedTurn(Guid? selection) =>
+        selection is { } id && turns.Any(turn => turn.Id == id && turn.Status != TurnStatus.Running) ? id : null;
+
+    private Task<ValueList<DiffFile>>? CachedDiff(Guid? selection)
+    {
+        if (FixedTurn(selection) is { } turnID)
+            return turnDiffs.TryGetValue(turnID, out var fixedTask) ? fixedTask : null;
+        var key = selection?.ToString() ?? "all";
+        return revisionDiffs.TryGetValue(key, out var revisionTask) ? revisionTask : null;
+    }
+
+    private void CacheDiff(Task<ValueList<DiffFile>> task, Guid? selection)
+    {
+        if (FixedTurn(selection) is { } turnID) turnDiffs.Insert(task, turnID);
+        else revisionDiffs.Insert(task, selection?.ToString() ?? "all");
+    }
 
     // :2000-2002. Swift: hasCachedDiff(selection:).
-    public bool HasCachedDiff(Guid? selection) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:2000");
+    public bool HasCachedDiff(Guid? selection) => CachedDiff(selection) is not null;
 
     // :2004-2011
-    public ValueList<TurnRecord> TurnsWithChanges() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:2004");
+    public ValueList<TurnRecord> TurnsWithChanges()
+    {
+        var edited = new HashSet<Guid>(); // :2005
+        foreach (var entry in Entries)
+        {
+            if (entry.TurnID is { } id && entry.Item.TimelineItemContent is TimelineItem.Content.Tool tool
+                && tool.Value.Edits.Count != 0)
+                edited.Add(id); // :2006-2009
+        }
+        return new ValueList<TurnRecord>(Turns.Where(turn => turn.EndCheckpoint is not null
+            || turn.ProviderDiff is not null
+            || turn.TouchedPaths is { Count: > 0 }
+            || edited.Contains(turn.Id))); // :2010
+    }
 
     // :2013-2050. Swift: parsedDiff(selection:providerFiles:).
-    public Task<ValueList<DiffFile>> ParsedDiff(Guid? selection, IReadOnlyList<DiffFile>? providerFiles = null) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:2013");
+    public Task<ValueList<DiffFile>> ParsedDiff(Guid? selection, IReadOnlyList<DiffFile>? providerFiles = null)
+    {
+        if (CachedDiff(selection) is { } cached) return cached; // :2014
+        var app = App;
+        var thread = app?.Thread(ThreadID);
+        var project = thread is null ? null : app?.Project(thread.ProjectID);
+        if (app is null || thread is null || project is null) return Task.FromResult(ValueList<DiffFile>.Empty); // :2015
 
-    // :2070-2077. Swift: observe(_:).
-    public void Observe(ProviderSession provider) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:2070");
+        var root = thread.WorktreePath ?? project.Path; // :2016
+        var git = new Git(root);
+        var repository = RepositoryRoot(git); // :2018
+        var selectedTurns = selection is { } selected
+            ? Turns.Where(turn => turn.Id == selected).ToList()
+            : Turns.ToList(); // :2019
+        if (selectedTurns.Count == 0) return Task.FromResult(ValueList<DiffFile>.Empty); // :2020
 
-    // :2098-2115
-    public void StopSession() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:2098");
+        var selectedIDs = selectedTurns.Select(turn => turn.Id).ToHashSet(); // :2021
+        var projectRoots = app.Projects.Select(candidate => candidate.Path).ToArray(); // :2026
+        var edits = Entries.SelectMany(entry =>
+        {
+            if (entry.TurnID is not { } id || !selectedIDs.Contains(id)
+                || entry.Item.TimelineItemContent is not TimelineItem.Content.Tool tool)
+                return Array.Empty<FileEdit>();
+            return tool.Value.Edits.Where(edit => IsProjectFile(edit.Path, root, projectRoots)).ToArray(); // :2027-2029
+        }).ToArray();
+        var touched = selectedTurns.SelectMany(turn => turn.TouchedPaths ?? ValueList<string>.Empty)
+            .Select(path => TouchedPaths.Normalize(path, root))
+            .ToHashSet(SwiftStringComparer.Instance); // :2035
+
+        (string First, string Last)? span = null;
+        var ended = selectedTurns.FindLastIndex(turn => turn.EndCheckpoint is not null); // :2037
+        if (ended >= 0 && selectedTurns.Take(ended + 1).FirstOrDefault(turn => turn.BaseCheckpoint is not null)?.BaseCheckpoint is { } first
+            && selectedTurns[ended].EndCheckpoint is { } last)
+            span = (first, last); // :2037-2040
+
+        var task = TaskHandle.Detached(async () =>
+        {
+            string? snapshot = null;
+            if (span is { } trees)
+            {
+                try { snapshot = await git.Diff(trees.First, trees.Last); } // :2042-2044
+                catch { }
+            }
+            var providerPatch = providerFiles is null
+                ? string.Join("\n", selectedTurns.Where(turn => turn.ProviderDiff is not null).Select(turn => turn.ProviderDiff!))
+                : ""; // :2045
+            return ResolveDiff(await repository, snapshot, providerPatch, providerFiles, edits, touched, root); // :2046
+        }).Value;
+        CacheDiff(task, selection); // :2048
+        return task; // :2049
+    }
+
+    // :2052-2056
+    private static bool IsProjectFile(string path, string root, IReadOnlyList<string> projects) =>
+        TouchedPaths.Relative(path, root) is not null || projects.Any(project => TouchedPaths.Relative(path, project) is not null);
+
+    // :2058-2060
+    private static ValueList<DiffFile> ResolveDiff(string repositoryRoot, string? snapshot, string providerPatch,
+        IReadOnlyList<DiffFile>? providerFiles, IReadOnlyList<FileEdit> edits, IReadOnlyCollection<string> touched, string root) =>
+        TurnDiff.Merge(snapshot is null ? null : DiffParser.Parse(snapshot), providerPatch, edits, touched, root, repositoryRoot, providerFiles);
+
+    // ThreadRuntime.swift:1610-1617.
+    private void RecordSessionID(string sessionID)
+    {
+        if (App is not { } app) return;
+        if (app.Thread(ThreadID)?.ProviderSessionID is null)
+        {
+            unsentSessionID = sessionID;
+        }
+        else
+        {
+            app.UpdateThread(ThreadID, thread => thread with { ProviderSessionID = sessionID });
+        }
+    }
+
+    // ThreadRuntime.swift:1619-1633.
+    private static bool StartsOver(Exception error, ChatThread thread) =>
+        thread.ProviderSessionID is not null
+        && (LostConversation(error) || thread.ProviderResumeAt is null);
+
+    private static bool LostConversation(Exception error)
+    {
+        var text = SwiftErrors.LocalizedDescription(error);
+        return text.Contains("no conversation found", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("no longer has this conversation", StringComparison.OrdinalIgnoreCase);
+    }
+
+    // ThreadRuntime.swift:2070-2077.
+    public void Observe(ProviderSession provider)
+    {
+        sessionEpoch++;
+        var epoch = sessionEpoch;
+        var weakSelf = new WeakReference<ThreadRuntime>(this);
+        provider.OnEvent = @event =>
+        {
+            if (weakSelf.TryGetTarget(out var runtime) && runtime.sessionEpoch == epoch)
+                runtime.Handle(@event);
+        };
+    }
+
+    // ThreadRuntime.swift:2082-2096.
+    private void ReleaseSession(bool stop)
+    {
+        sessionEpoch++;
+        sessionSignature = null;
+        unsentSessionID = null;
+        antiSlopFallbackSent = false;
+        continuationSent = false;
+        if (session is not { } old) return;
+        session = null;
+        if (stop) old.Stop();
+        _ = MainActor.Spawn(() =>
+        {
+            old.OnEvent = null;
+            return Task.CompletedTask;
+        });
+    }
+
+    // ThreadRuntime.swift:2098-2115.
+    public void StopSession()
+    {
+        ReleaseSession(stop: true);
+        StopNativeHeads();
+        if (Phase == RuntimePhase.Idle) return;
+        SaveNow();
+        var turnID = currentTurnID;
+        currentTurnID = null;
+        _ = MainActor.Spawn(() => FinishTurn(TurnStatus.Interrupted, turnID));
+    }
 
     // MARK: - Hydra
 
     // :2485-2490
     public bool IsReadyForHydraMerge =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:2485");
+        Phase == RuntimePhase.Idle && !IsLoadingHistory && !IsReverting && pendingSend is null
+            && Turns.Count != 0 && Turns[^1].Status == TurnStatus.Completed && !HasWorkingHeads
+            && hydraPendingReports.Count == 0 && hydraBatches.Count == 0 && hydraWaiting.Count == 0
+            && !hydraFlushScheduled; // :2485-2490
 
     // :2494-2504
-    public void MarkHydraMerged(IReadOnlyList<Guid> turnIDs) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:2494");
+    public void MarkHydraMerged(IReadOnlyList<Guid> turnIDs)
+    {
+        var ids = turnIDs.ToHashSet(); // ThreadRuntime.swift:2495
+        var changed = false;
+        var updated = turns.ToArray();
+        for (var index = 0; index < updated.Length; index++)
+        {
+            if (!ids.Contains(updated[index].Id) || updated[index].HydraMerged) continue;
+            updated[index] = updated[index] with { HydraMerged = true };
+            changed = true;
+        }
+        if (!changed) return; // ThreadRuntime.swift:2501
+        Turns = new ValueList<TurnRecord>(updated);
+        saveRevision = checked(saveRevision + 1); // ThreadRuntime.swift:2502
+        SaveNow(); // ThreadRuntime.swift:2503
+    }
 
     // :2507-2509
     public ValueList<TurnRecord> HydraUnmergedTurns =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:2507");
+        new(turns.Where(turn => !turn.HydraMerged)); // ThreadRuntime.swift:2507-2509
 
     // :2512-2517
-    public void RecordHydraMerge(HydraMergeRecord record) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:2512");
+    public void RecordHydraMerge(HydraMergeRecord record)
+    {
+        HydraMerges = new ValueList<HydraMergeRecord>(hydraMerges.Append(record).TakeLast(20)); // ThreadRuntime.swift:2513-2514
+        saveRevision = checked(saveRevision + 1); // ThreadRuntime.swift:2515
+        SaveNow(); // ThreadRuntime.swift:2516
+    }
 
     // :2520-2522
     public long HydraUnmergedFileCount =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:2520");
+        HydraUnmergedTurns.Where(turn => turn.Status != TurnStatus.Running)
+            .Where(turn => turn.TouchedPaths is not null)
+            .SelectMany(turn => turn.TouchedPaths!)
+            .ToHashSet(SwiftStringComparer.Instance)
+            .Count; // ThreadRuntime.swift:2520-2522
 
     // :2525-2527. Swift: hydraHead(forTool:).
     public Guid? HydraHead(string toolID) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:2525");
+        HydraToolHeads.TryGetValue(toolID, out var headID) ? headID : null;
 
     // :2530-2532. Swift: rehearseHydraHead(toolID:headID:).
     public void RehearseHydraHead(string toolID, Guid headID) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:2530");
+        HydraToolHeads = HydraToolHeads.Mutating(map => map[toolID] = headID);
 
     // :2651-2654. Swift: stopNativeHead(_:).
-    public Task<bool> StopNativeHead(string nativeID) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:2651");
+    public async Task<bool> StopNativeHead(string nativeID)
+    {
+        if (session is not { } current) return false;
+        return await current.StopAgent(nativeID);
+    }
 
     // :2660-2695. Swift: hydraHeadFinished(_:info:status:summary:landing:copyPath:).
     public void HydraHeadFinished(Guid headID, HydraHeadInfo info, HydraHeadInfo.Status status, string? summary,
-        HydraLanding? landing = null, string? copyPath = null) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:2660");
+        HydraLanding? landing = null, string? copyPath = null)
+    {
+        if (info.HydraHeadInfoKind == HydraHeadInfo.Kind.Native)
+        {
+            if (info.ToolUseID is not { } toolID
+                || !entryIndex.TryGetValue(toolID, out var entry)
+                || entry.Item.TimelineItemContent is not TimelineItem.Content.Tool tool
+                || tool.Value.ToolCallStatus != ToolCall.Status.Running) return;
 
+            var outcome = status == HydraHeadInfo.Status.Completed
+                ? ToolCall.Status.Completed
+                : ToolCall.Status.Failed;
+            ApplyToolUpdate(toolID, new ToolUpdate { Output = summary, Status = outcome });
+            FlushFollowUpsIfIdle();
+            return;
+        }
+
+        if (info.HydraHeadInfoKind != HydraHeadInfo.Kind.Droppy) return;
+        var report = new HydraReport
+        {
+            HeadIndex = info.Index,
+            Task = info.Task,
+            Origin = info.HydraHeadInfoOrigin,
+            Status = status,
+            Text = summary ?? "",
+            Landing = landing,
+            CopyPath = copyPath,
+            Elapsed = SwiftDate.TimeIntervalSince(SwiftDate.Now, info.StartedAt),
+            ToolCalls = info.ToolCalls,
+        };
+        hydraPendingReports.RemoveAll(candidate => candidate.HeadIndex == info.Index);
+        if (info.BatchID is { } batchID && hydraBatches.TryGetValue(batchID, out var batch))
+        {
+            var reports = batch.Reports.Where(candidate => candidate.HeadIndex != info.Index).Append(report);
+            hydraBatches[batchID] = batch with
+            {
+                Pending = batch.Pending.Mutating(set => set.Remove(headID)),
+                Reports = new ValueList<HydraReport>(reports),
+            };
+        }
+        else
+        {
+            hydraPendingReports.Add(report);
+        }
+
+        SpawnWaitingHeads();
+        DispatchQueuedFollowUps();
+        SettleBatches();
+        if (phase == RuntimePhase.Idle && Thread?.LastStatus != TurnStatus.Interrupted)
+            FlushHydraReports();
+        FlushFollowUpsIfIdle();
+    }
+
+    // :1057-1072. The flag keeps multiple idle arrivals from taking the same queued prompt.
+    private void FlushFollowUpsIfIdle()
+    {
+        if (phase != RuntimePhase.Idle || followUpFlushScheduled || followUps.Count == 0
+            || Thread?.LastStatus == TurnStatus.Interrupted) return;
+        followUpFlushScheduled = true;
+        _ = MainActor.Spawn(StartQueuedFollowUpTurn);
+    }
+
+    // :1066-1072.
+    private Task StartQueuedFollowUpTurn()
+    {
+        followUpFlushScheduled = false;
+        if (phase != RuntimePhase.Idle) return Task.CompletedTask;
+        DrainFollowUps(TurnStatus.Completed);
+        return Task.CompletedTask;
+    }
+
+    // :2696-2702. Snapshot before removals so no batch is changed under dictionary enumeration.
+    private void SettleBatches()
+    {
+        foreach (var (batchID, batch) in hydraBatches.ToArray())
+        {
+            if (batch.Pending.Count != 0 || hydraWaiting.Any(waiting => waiting.BatchID == batchID)) continue;
+            hydraBatches.Remove(batchID);
+            hydraPendingReports.AddRange(batch.Reports.OrderBy(report => report.HeadIndex));
+        }
+    }
+
+    // :2717-2723. Batches are filtered before reports reach this queue; every waiting report is flushable.
+    private IReadOnlyList<HydraReport> FlushableHydraReports() =>
+        hydraPendingReports.OrderBy(report => report.HeadIndex).ToArray();
+
+    // :2707-2715.
+    private bool FlushHydraReports()
+    {
+        if (phase != RuntimePhase.Idle || hydraFlushScheduled || FlushableHydraReports().Count == 0) return false;
+        hydraFlushScheduled = true;
+        AutoStartedTurnToken = unchecked(AutoStartedTurnToken + 1);
+        _ = MainActor.Spawn(StartHydraReportTurn);
+        return true;
+    }
+
+    // :2727-2741.
+    private Task StartHydraReportTurn()
+    {
+        hydraFlushScheduled = false;
+        if (phase != RuntimePhase.Idle || isReverting || App is null) return Task.CompletedTask;
+        var reports = FlushableHydraReports();
+        if (reports.Count == 0) return Task.CompletedTask;
+
+        var sent = reports.Select(report => report.HeadIndex).ToHashSet();
+        hydraPendingReports.RemoveAll(report => sent.Contains(report.HeadIndex));
+        var stillWorking = App.WorkingHydraHeadNames(ThreadID, sent);
+        var text = HydraPrompts.ReportMessage(reports, stillWorking, App.Settings.HydraReviewHeads);
+        return StartHydraReportTurnCore(text, reports.Select(report => report.HeadIndex).ToArray());
+    }
+
+    private async Task StartHydraReportTurnCore(string text, IReadOnlyList<long> headIndexes)
+    {
+        await EnsureLoaded();
+        await StartTurn(text, Array.Empty<Attachment>(), headIndexes);
+    }
+    // :2759-2784.
+    private void DropDelegationBlock(Guid turnID, TurnStatus status)
+    {
+        if (hydraStream is { } stream && stream.TurnID == turnID && stream.Sent > 0
+            && entryIndex.TryGetValue(stream.EntryID, out var streamedEntry)
+            && streamedEntry.Item.TimelineItemContent is TimelineItem.Content.Assistant streamedAssistant)
+        {
+            EndDelegationStream();
+            var text = HydraPrompts.WithoutDelegationBlock(streamedAssistant.Value.Text);
+            if (text.Length == 0) text = "Asked for heads.";
+            streamedEntry.Item = streamedEntry.Item with
+            {
+                TimelineItemContent = new TimelineItem.Content.Assistant(streamedAssistant.Value with { Text = text }),
+            };
+            saveRevision += 1;
+            ScheduleSave();
+            SettleBatches();
+            AppendHydraNote($"Hydra sent {(stream.Sent == 1 ? "one head" : $"{stream.Sent} heads")} before the turn {(status == TurnStatus.Interrupted ? "was stopped" : "failed")}; the rest of the block never went out. Ask again to send them.");
+            return;
+        }
+
+        if (hydraStream is { } emptyStream && emptyStream.TurnID == turnID && emptyStream.Sent == 0)
+            EndDelegationStream();
+
+        TimelineEntry? entry = null;
+        for (var index = Entries.Count - 1; index >= 0; index--)
+        {
+            var candidate = Entries[index];
+            if (candidate.TurnID == turnID && candidate.TimelineEntryKind == TimelineEntry.Kind.Assistant
+                && HoldsDelegationBlock(candidate))
+            {
+                entry = candidate;
+                break;
+            }
+        }
+        if (entry is null || entry.Item.TimelineItemContent is not TimelineItem.Content.Assistant assistant) return;
+
+        var stripped = HydraPrompts.WithoutDelegationBlock(assistant.Value.Text);
+        if (stripped.Length == 0) stripped = "Asked for heads.";
+        entry.Item = entry.Item with
+        {
+            TimelineItemContent = new TimelineItem.Content.Assistant(assistant.Value with { Text = stripped }),
+        };
+        saveRevision += 1;
+        ScheduleSave();
+        AppendHydraNote($"Hydra sent no heads: the turn {(status == TurnStatus.Interrupted ? "was stopped" : "failed")} before they could go out. Ask again to send them.");
+        hydraBudget = hydraBudget.NoteDropped(HydraPrompts.InterruptedBlockMessage(status == TurnStatus.Interrupted));
+    }
+
+    // :2786-2789.
+    private static bool HoldsDelegationBlock(TimelineEntry entry) =>
+        entry.Item.TimelineItemContent is TimelineItem.Content.Assistant assistant
+        && HydraPrompts.HasDelegationBlock(assistant.Value.Text);
+
+    private const int MaxDelegatedTasks = 32; // ThreadRuntime.swift:2743-2745
+
+    // ThreadRuntime.swift:2757-2890.
+    private DelegationOutcome SpawnDelegatedHeads(Guid turnID)
+    {
+        if (App is not { } app || app.Thread(ThreadID) is not { } thread
+            || app.HydraLaunch(thread) is not { } launch) return DelegationOutcome.None;
+
+        var assistantRows = Entries.Where(entry => entry.TurnID == turnID
+            && entry.Item.TimelineItemContent is TimelineItem.Content.Assistant).ToArray();
+        var entry = assistantRows.LastOrDefault(HoldsDelegationBlock) ?? assistantRows.LastOrDefault();
+        if (entry?.Item.TimelineItemContent is not TimelineItem.Content.Assistant assistant)
+            return DelegationOutcome.None;
+
+        scanStreamedDelegations(hydraStream?.EntryID ?? entry.Id, turnID, assistant.Value.Text);
+
+        if (hydraStream is { } stream && stream.TurnID == turnID
+            && entryIndex.TryGetValue(stream.EntryID, out var streamedEntry)
+            && streamedEntry.Item.TimelineItemContent is TimelineItem.Content.Assistant streamedAssistant)
+        {
+            EndDelegationStream();
+            var sentText = HydraPrompts.MarkingDelegationBlockSent(streamedAssistant.Value.Text);
+            streamedEntry.Item = streamedEntry.Item with
+            {
+                TimelineItemContent = new TimelineItem.Content.Assistant(streamedAssistant.Value with { Text = sentText }),
+            };
+            saveRevision += 1;
+
+            var all = HydraPrompts.Delegations(streamedAssistant.Value.Text);
+            var total = all is { Count: > 0 } ? all.Count : stream.Sent;
+            var sent = stream.Sent;
+            if (total > sent && hydraBudget.CanDelegate && all is not null)
+            {
+                var skip = (int)Math.Min(sent, all.Count);
+                var take = (int)Math.Max(0, MaxDelegatedTasks - sent);
+                var rest = all.Skip(skip).Take(take).ToArray();
+                if (rest.Length != 0)
+                {
+                    hydraWaiting = hydraWaiting.Concat(rest.Select(delegation =>
+                        (delegation, stream.BatchID, SwiftDate.Now))).ToList();
+                    sent += rest.Length;
+                    hydraStream = (turnID, stream.EntryID, stream.BatchID, sent);
+                    SpawnWaitingHeads(launch);
+                }
+            }
+
+            if (total > sent)
+                AppendHydraNote($"Not every task went out\n{sent} of the {total} tasks in that block went to heads. The last {total - sent} did not: ask for them again once these report back.");
+            HoldSentDelegationBlock(stream.EntryID);
+            SettleBatches();
+            ScheduleSave();
+            return hydraBatches.Count == 0 && hydraWaiting.Count == 0
+                ? DelegationOutcome.None
+                : DelegationOutcome.HeadsOut;
+        }
+
+        if (!HydraPrompts.HasDelegationBlock(assistant.Value.Text)) return DelegationOutcome.None;
+        var delegations = HydraPrompts.Delegations(assistant.Value.Text);
+        var stripped = HydraPrompts.WithoutDelegationBlock(assistant.Value.Text);
+        if (delegations is null)
+        {
+            if (stripped.Length == 0) stripped = "Asking for heads.";
+            entry.Item = entry.Item with
+            {
+                TimelineItemContent = new TimelineItem.Content.Assistant(assistant.Value with { Text = stripped }),
+            };
+            saveRevision += 1;
+            ScheduleSave();
+            return RefuseBlock(HydraPrompts.UnreadableBlockMessage(null),
+                "Its delegation block could not be read, and it had been told so already.");
+        }
+
+        if (delegations.Count == 0)
+        {
+            if (stripped.Length == 0) stripped = "Done, with no heads.";
+            entry.Item = entry.Item with
+            {
+                TimelineItemContent = new TimelineItem.Content.Assistant(assistant.Value with { Text = stripped }),
+            };
+            saveRevision += 1;
+            ScheduleSave();
+            AppendHydraNote("No heads went out: the lead did this itself.");
+            return DelegationOutcome.None;
+        }
+
+        if (!hydraBudget.CanDelegate)
+        {
+            if (stripped.Length == 0) stripped = "Asking for more heads.";
+            entry.Item = entry.Item with
+            {
+                TimelineItemContent = new TimelineItem.Content.Assistant(assistant.Value with { Text = stripped }),
+            };
+            saveRevision += 1;
+            ScheduleSave();
+            return RefuseBlock(HydraPrompts.HeldBackMessage(HydraPrompts.MaxDelegationRounds),
+                $"This request has had all {HydraPrompts.MaxDelegationRounds} of its rounds of heads, and the lead had been told so already.");
+        }
+
+        hydraBudget = hydraBudget.ChargeRound();
+        var markedText = HydraPrompts.MarkingDelegationBlockSent(assistant.Value.Text);
+        entry.Item = entry.Item with
+        {
+            TimelineItemContent = new TimelineItem.Content.Assistant(assistant.Value with { Text = markedText }),
+        };
+        saveRevision += 1;
+        var batchID = Guid.NewGuid();
+        hydraBatches[batchID] = new HydraBatch { Pending = ValueSet<Guid>.Empty };
+        var sentDelegations = delegations.Take(MaxDelegatedTasks).ToArray();
+        hydraWaiting = hydraWaiting.Concat(sentDelegations.Select(delegation =>
+            (delegation, batchID, SwiftDate.Now))).ToList();
+        if (delegations.Count > MaxDelegatedTasks)
+        {
+            var dropped = delegations.Count - MaxDelegatedTasks;
+            AppendHydraNote($"Not every task went out\n{MaxDelegatedTasks} of the {delegations.Count} tasks in that block went to heads. The last {dropped} did not: ask for them again once these report back.");
+        }
+
+        SpawnWaitingHeads(launch);
+        HoldSentDelegationBlock(entry.Id);
+        SettleBatches();
+        ScheduleSave();
+        return hydraBatches.Count == 0 && hydraWaiting.Count == 0
+            ? DelegationOutcome.None
+            : DelegationOutcome.HeadsOut;
+    }
+    // ThreadRuntime.swift:2893-2915.
+    private void HoldSentDelegationBlock(string entryID)
+    {
+        var weakSelf = new WeakReference<ThreadRuntime>(this);
+        _ = MainActor.Spawn(async () =>
+        {
+            await Task.Delay(HydraPrompts.DelegationSentHold);
+            if (!weakSelf.TryGetTarget(out var self)
+                || !self.entryIndex.TryGetValue(entryID, out var entry)
+                || entry.Item.TimelineItemContent is not TimelineItem.Content.Assistant assistant
+                || !HydraPrompts.HasSentDelegationBlock(assistant.Value.Text)) return;
+
+            var leaving = assistant.Value with
+            {
+                Text = HydraPrompts.MarkingDelegationBlockLeaving(assistant.Value.Text),
+            };
+            Transaction.WithAnimation(Animation.EaseOut(duration: 0.4), () =>
+                entry.Item = entry.Item with { TimelineItemContent = new TimelineItem.Content.Assistant(leaving) });
+
+            await Task.Delay(HydraPrompts.DelegationLeaveFade);
+            if (entry.Item.TimelineItemContent is not TimelineItem.Content.Assistant faded
+                || !HydraPrompts.HasSentDelegationBlock(faded.Value.Text)) return;
+
+            var text = HydraPrompts.WithoutDelegationBlock(faded.Value.Text);
+            if (text.Length == 0) text = "Sent out heads.";
+            var completed = faded.Value with { Text = text };
+            Transaction.WithAnimation(Chrome.PanelSlide, () =>
+                entry.Item = entry.Item with { TimelineItemContent = new TimelineItem.Content.Assistant(completed) });
+            if (!weakSelf.TryGetTarget(out self)) return;
+            self.saveRevision += 1;
+            self.ScheduleSave();
+        });
+    }
+
+    // ThreadRuntime.swift:2917-2931.
+    private DelegationOutcome RefuseBlock(string message, string dropped)
+    {
+        var (nextBudget, counted) = hydraBudget.Refuse(message);
+        hydraBudget = nextBudget;
+        if (!counted)
+        {
+            AppendHydraNote($"No heads went out\n{dropped} The block was dropped from the reply.");
+            return DelegationOutcome.None;
+        }
+
+        _ = MainActor.Spawn(async () =>
+        {
+            await EnsureLoaded();
+            await StartTurn(message, Array.Empty<Attachment>(), Array.Empty<long>());
+        });
+        return DelegationOutcome.TurnStarted;
+    }
+
+    // ThreadRuntime.swift:2943-2973.
+    private void scanStreamedDelegations(string entryID, Guid turnID, string text, bool isDelta = false)
+    {
+        if (App is not { } app || app.Thread(ThreadID) is not { } thread
+            || app.HydraLaunch(thread) is not { } launch) return;
+        if (!entryIndex.TryGetValue(entryID, out var entry) || entry.TurnID != turnID) return;
+        if (hydraStream is { } active && (active.EntryID != entryID || active.TurnID != turnID)) return;
+
+        var parser = isDelta && delegationParser is { } current
+            && current.EntryID == entryID && current.TurnID == turnID
+                ? current
+                : new HydraDelegationStreamParser(turnID, entryID);
+        parser.Ingest(text);
+        delegationParser = parser;
+
+        var sent = hydraStream?.Sent ?? 0;
+        var skip = (int)Math.Min(sent, parser.Delegations.Count);
+        var take = (int)Math.Max(0, MaxDelegatedTasks - sent);
+        var fresh = parser.Delegations.Skip(skip).Take(take).ToArray();
+        if (fresh.Length == 0) return;
+        if (hydraStream is null && !hydraBudget.CanDelegate) return;
+
+        Guid batchID;
+        if (hydraStream is { } stream)
+        {
+            batchID = stream.BatchID;
+        }
+        else
+        {
+            batchID = Guid.NewGuid();
+            hydraBatches[batchID] = new HydraBatch { Pending = ValueSet<Guid>.Empty };
+            hydraBudget = hydraBudget.ChargeRound();
+            sent = 0;
+        }
+
+        hydraWaiting = hydraWaiting.Concat(fresh.Select(delegation =>
+            (delegation, batchID, SwiftDate.Now))).ToList();
+        hydraStream = (turnID, entryID, batchID, sent + fresh.Length);
+        SpawnWaitingHeads(launch);
+    }
+
+    // ThreadRuntime.swift:2983-3007.
+    private void SpawnWaitingHeads(HydraLaunch? launch = null)
+    {
+        if (hydraWaiting.Count == 0 || App is not { } app || app.Thread(ThreadID) is not { } thread) return;
+        var resolvedLaunch = launch ?? app.HydraLaunch(thread);
+
+        if (app.HydraPair(thread) is { } pair
+            && app.HydraHeadsFallbackNote(pair) is { } fallback
+            && hydraFallbackNoted != pair.Id)
+        {
+            hydraFallbackNoted = pair.Id;
+            AppendHydraNote("Hydra: " + fallback);
+        }
+
+        while (hydraWaiting.Count != 0
+            && (resolvedLaunch?.HasRoom(app.RunningDroppyHeads(ThreadID)) ?? true))
+        {
+            var next = hydraWaiting[0];
+            hydraWaiting = hydraWaiting.Skip(1).ToList();
+            var delegation = next.Delegation;
+            var head = app.SpawnDroppyHead(
+                ThreadID,
+                delegation.Task,
+                HydraHeadInfo.Origin.Delegated,
+                Array.Empty<Attachment>(),
+                next.BatchID,
+                delegation.Name is { } name ? HydraRoster.Index(name) : null,
+                delegation.Project,
+                delegation.Profile,
+                (persona, workplace) => HydraPrompts.DelegatedHeadPrompt(persona, delegation, workplace));
+            if (head is null) continue;
+
+            app.UpdateThread(head.Id, current => current.Hydra is { } info
+                ? current with { Hydra = info with { QueuedAt = next.QueuedAt } }
+                : current);
+            var batch = hydraBatches.TryGetValue(next.BatchID, out var existing)
+                ? existing
+                : new HydraBatch { Pending = ValueSet<Guid>.Empty };
+            hydraBatches[next.BatchID] = batch with { Pending = batch.Pending.Mutating(ids => ids.Add(head.Id)) };
+        }
+    }
     // MARK: - Timeline mutations
 
     // :3014-3018. Swift: appendHydraNote(_:id:).
-    public void AppendHydraNote(string text, string? id = null) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:3014");
+    public void AppendHydraNote(string text, string? id = null)
+    {
+        Append(new TimelineItem(null, new TimelineItem.Content.User(new UserMessage
+        {
+            Text = text,
+            HydraHeads = ValueList<long>.Empty,
+        }), id));
+        if (appReference is not null && appReference.TryGetTarget(out var app))
+            app.UpdateThread(ThreadID, thread => thread with { UpdatedAt = SwiftDate.Now });
+        ScheduleSave();
+    }
 
-    // :3501-3521. Swift: fileEdits(from:repositoryRoot:), nonisolated static @concurrent.
-    public static Task<ValueList<FileEdit>> FileEdits(string patch, SwiftURL repositoryRoot) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:3502");
+    // :3501-3521. One edit per file section; parse concurrently, preserving the section as the diff.
+    public static Task<ValueList<FileEdit>> FileEdits(string patch, SwiftURL repositoryRoot) => Task.Run(() =>
+    {
+        var sections = new List<string>();
+        var current = new List<string>();
+        foreach (var line in patch.Split('\n', StringSplitOptions.None))
+        {
+            if (line.StartsWith("diff --git ", StringComparison.Ordinal))
+            {
+                if (current.Count > 0) sections.Add(string.Join("\n", current));
+                current = [line];
+            }
+            else if (current.Count > 0)
+            {
+                current.Add(line);
+            }
+        }
+        if (current.Count > 0) sections.Add(string.Join("\n", current));
+
+        var edits = new List<FileEdit>(sections.Count);
+        foreach (var section in sections)
+        {
+            var files = DiffParser.Parse(section);
+            if (files.Count == 0) continue;
+            var file = files[0];
+            var diff = System.Text.Encoding.UTF8.GetByteCount(section) > EditDiffLimit ? null : section;
+            edits.Add(new FileEdit(repositoryRoot.Appending(file.Path).Path, diff,
+                file.Additions, file.Deletions));
+        }
+
+        return new ValueList<FileEdit>(edits);
+    });
+
+    // :3341-3362. A command watch starts only from a tree that was complete before the command.
+    private void WatchCommand(string id, ToolCall call)
+    {
+        if (commandTrees.ContainsKey(id) || !ShellCommandKind.MayWriteFiles(call.Title)
+            || RepositoryGit is null) return;
+        var before = TreeBeforeCommand();
+        if (before is null) return;
+        commandTrees[id] = before;
+        settledTree = null;
+        treeEpoch++;
+    }
+
+    private string? TreeBeforeCommand()
+    {
+        if (settledTree is { } settled && settled.Epoch == treeEpoch) return settled.Tree;
+        if (latestTree is not null) return latestTree;
+        return currentTurnID is { } turnID
+            ? Turns.FirstOrDefault(turn => turn.Id == turnID)?.BaseCheckpoint
+            : null;
+    }
+
+    private Git? RepositoryGit
+    {
+        get
+        {
+            if (Thread is not { } thread || App?.Project(thread.ProjectID) is not { } project) return null;
+            return new Git(thread.WorktreePath ?? project.Path);
+        }
+    }
+
+    // :3471-3475.
+    private string? WorkingRoot => Thread is { } thread && App?.Project(thread.ProjectID) is { } project
+        ? thread.WorktreePath ?? project.Path
+        : null;
+
+    // :3446-3452. Watch only a writer and only from a tree known to predate it.
+    private void WatchHydraCommand(string key, ToolCall call)
+    {
+        if (hydraCommandTrees.ContainsKey(key) || !ShellCommandKind.MayWriteFiles(call.Title)
+            || RepositoryGit is null) return;
+        var before = TreeBeforeCommand();
+        if (before is null) return;
+        hydraCommandTrees[key] = before;
+        settledTree = null;
+        treeEpoch++;
+    }
+
+    // :3454-3468. A native head's shell writes belong to the lead turn, not its separate row.
+    private void SettleHydraCommand(string key)
+    {
+        if (!hydraCommandTrees.Remove(key, out var before) || RepositoryGit is not { } git) return;
+        var epoch = treeEpoch;
+        commandSettles[key] = MainActor.Spawn(async () =>
+        {
+            if (before is null) return;
+            var after = await CaptureTree(git);
+            if (after is null) return;
+            latestTree = after;
+            if (treeEpoch == epoch && commandTrees.Count == 0 && hydraCommandTrees.Count == 0)
+                settledTree = (after, epoch);
+            if (before == after) return;
+
+            IReadOnlyList<string> paths;
+            try { paths = await git.ChangedPaths(before, after); }
+            catch { return; }
+            var writes = paths.Where(path => path.Length != 0 && !TouchedPaths.IsBuildOutput(path)).ToArray();
+            hydraTouched.UnionWith(writes);
+            HydraCurrentTurnTouchedPaths = HydraCurrentTurnTouchedPaths.Mutating(current => current.UnionWith(writes));
+        });
+    }
+
+    // :3383-3413. The final tree is serialized and the row gains only edits no other row claimed.
+    private void SettleCommand(string id)
+    {
+        if (!commandTrees.Remove(id, out var before) || RepositoryGit is not { } git) return;
+        var epoch = treeEpoch;
+        commandSettles[id] = MainActor.Spawn(async () =>
+        {
+            if (before is null) return;
+            var after = await CaptureTree(git);
+            if (after is null) return;
+            latestTree = after;
+            if (treeEpoch == epoch && commandTrees.Count == 0 && hydraCommandTrees.Count == 0)
+                settledTree = (after, epoch);
+            if (before == after) return;
+
+            IReadOnlyList<string> changed;
+            try { changed = await git.ChangedPaths(before, after); }
+            catch { return; }
+            var repositoryRoot = await RepositoryRoot(git);
+            var attributed = AttributedPathsInTurnOf(id, repositoryRoot);
+            var real = changed.Where(path => path.Length != 0
+                    && !TouchedPaths.IsBuildOutput(path)
+                    && !attributed.Contains(TouchedPaths.Normalize(path, repositoryRoot)))
+                .ToArray();
+            if (real.Length == 0) return;
+
+            string patch;
+            try { patch = await git.Diff(before, after, paths: real); }
+            catch { return; }
+            if (patch.Length == 0) return;
+
+            ValueList<FileEdit> edits;
+            try { edits = await FileEdits(patch, SessionDirectoryUrl(repositoryRoot)); }
+            catch { return; }
+            if (edits.Count == 0 || !entryIndex.TryGetValue(id, out var entry)
+                || entry.Item.TimelineItemContent is not TimelineItem.Content.Tool tool) return;
+
+            var call = tool.Value;
+            if (call.Edits.Any(edit => edit.Diff is not null)) return;
+            call = call with { Edits = edits };
+            if (entry.TurnID == currentTurnID) RecordCurrentTurnEdits(edits);
+            entry.Item = entry.Item with { TimelineItemContent = new TimelineItem.Content.Tool(call) };
+            saveRevision++;
+            NoteHydraHeadEvent(edits: edits.Count);
+            ScheduleSave();
+        });
+    }
+
+    private HashSet<string> AttributedPathsInTurnOf(string id, string repositoryRoot)
+    {
+        var result = new HashSet<string>(SwiftStringComparer.Instance);
+        if (!entryIndex.TryGetValue(id, out var source) || source.TurnID is not { } turnID) return result;
+        foreach (var entry in Entries)
+        {
+            if (entry.Id == id || entry.TurnID != turnID
+                || entry.Item.TimelineItemContent is not TimelineItem.Content.Tool tool) continue;
+            foreach (var edit in tool.Value.Edits)
+                result.Add(TouchedPaths.Normalize(edit.Path, repositoryRoot));
+        }
+        return result;
+    }
+
+    private Task<string?> CaptureTree(Git git)
+    {
+        var previous = treeCaptures;
+        var capture = MainActor.Spawn(async () =>
+        {
+            if (previous is not null) await previous;
+            try { return await TaskHandle.Detached(() => git.CaptureTree()).Value; }
+            catch { return null; }
+        });
+        treeCaptures = capture.Value;
+        return capture.Value;
+    }
 
     // MARK: - Persistence
 
+    // ThreadRuntime.swift:3563-3577.
+    private void GenerateTitle(string text, IReadOnlyList<Attachment> attachments)
+    {
+        if (App is not { } app || app.Thread(ThreadID) is not { } thread || thread.HasCustomTitle) return;
+        if (Turns.Count != 1 && thread.Title != ChatThread.Untitled) return;
+
+        var names = attachments.Select(attachment => attachment.Name).ToArray();
+        var input = names.Length == 0 ? text : text + "\nAttached: " + string.Join(", ", names);
+        app.UpdateThread(ThreadID, current => current with { Title = TextCleanup.SingleLine(text, limit: 48) });
+        if (app.TextEngine(thread.Provider) is not { } engine) return;
+
+        _ = MainActor.Spawn(async () =>
+        {
+            if (await TextGeneration.ThreadTitle(input, engine) is not { } title) return;
+            app.UpdateThread(ThreadID, current => current.HasCustomTitle ? current : current with { Title = title });
+        });
+    }
+
     // :3581-3602
-    public void ScheduleSave() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:3581");
+    public void ScheduleSave()
+    {
+        if (!persistenceEnabled) return;
+        if (Phase == RuntimePhase.Idle)
+        {
+            saveTask?.Cancel();
+            var weakSelf = new WeakReference<ThreadRuntime>(this);
+            saveTask = MainActor.Spawn(async () =>
+            {
+                await SwiftTask.TrySleep(TimeSpan.FromMilliseconds(800));
+                if (SwiftTask.IsCancelled || !weakSelf.TryGetTarget(out var runtime)) return;
+                await MainActor.Run(() => runtime.SaveNow());
+            });
+            return;
+        }
+
+        if (saveTask is not null) return;
+        var runningSelf = new WeakReference<ThreadRuntime>(this);
+        saveTask = MainActor.Spawn(async () =>
+        {
+            await SwiftTask.TrySleep(TimeSpan.FromSeconds(5));
+            if (SwiftTask.IsCancelled || !runningSelf.TryGetTarget(out var runtime)) return;
+            await MainActor.Run(() => runtime.SaveNow());
+        });
+    }
 
     // :3604-3620
-    public void SaveNow() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:3604");
+    public void SaveNow()
+    {
+        // :3605-3610. Clear the finished timer before any branch that may skip the write.
+        saveTask?.Cancel();
+        saveTask = null;
+        if (!persistenceEnabled || IsLoadingHistory) return; // :3612
+        if (saveRevision == lastSavedRevision) return; // :3617
+        lastSavedRevision = saveRevision; // :3618
+        DiskWriter.Shared.EncodeAndWrite(SnapshotForPersistence(), Storage.ThreadURL(ThreadID)); // :3619
+    }
 
     // :3624-3627
     public ThreadDocument? UnsavedSnapshot() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:3624");
+        !IsLoadingHistory && saveRevision != lastSavedRevision ? SnapshotForPersistence() : null;
 
     // :3633-3640
     public bool HoldsOnlyPersistedState =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:3633");
+        Phase == RuntimePhase.Idle && session is null && !IsReverting && pendingSend is null && !IsLoadingHistory
+            && Draft.IsEmpty && FollowUpEdit is null && MessageEdit is null
+            && Approvals.Count == 0 && Questions.Count == 0
+            && hydraPendingReports.Count == 0 && hydraBatches.Count == 0 && hydraWaiting.Count == 0 && hydraNativeHeads.Count == 0
+            && !hydraFlushScheduled && HydraLanding is null && !isHydraMerging && headBudget is null
+            && commandTrees.Count == 0 && commandSettles.Count == 0;
 
     // :3642-3648
-    public void CancelPersistence() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:3642");
+    public void CancelPersistence()
+    {
+        persistenceEnabled = false;
+        saveTask?.Cancel();
+        saveTask = null;
+        flushTask?.Cancel();
+        flushTask = null;
+    }
 
     // :3650-3660
-    public ThreadDocument SnapshotForPersistence() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:3650");
+    public ThreadDocument SnapshotForPersistence()
+    {
+        FlushDeltas(scheduleSave: false);
+        return new ThreadDocument(ThreadID)
+        {
+            Items = new ValueList<TimelineItem>(Entries.Select(entry => entry.Item)),
+            Turns = Turns,
+            Usage = Usage,
+            Continuation = Continuation,
+            FollowUps = FollowUps,
+            HydraMerges = HydraMerges,
+        };
+    }
+
+    // :2119-2251. The provider event union is handled with explicit cases and no fallback arm.
+    // Swift's pinned implementation contains two .tokenSpend arms; the first is selected for every such event.
+    private void Handle(ProviderEvent @event)
+    {
+        switch (@event)
+        {
+            case ProviderEvent.SessionReady value:
+                RecordSessionID(value.SessionID);
+                break;
+            case ProviderEvent.TurnStarted value:
+                Phase = RuntimePhase.Running;
+                if (currentTurnID is { } turnID && value.ProviderTurnID is { } providerTurnID)
+                    UpdateTurn(turnID, turn => turn with { ProviderTurnID = providerTurnID });
+                break;
+            case ProviderEvent.MessageDelta value:
+                QueueDelta(value.Id, DeltaKind.Message, value.Text);
+                break;
+            case ProviderEvent.MessageCompleted value:
+                FlushDeltas();
+                CompleteMessage(value.Id, value.Text);
+                break;
+            case ProviderEvent.ReasoningDelta value:
+                QueueDelta(value.Id, DeltaKind.Reasoning, value.Text);
+                break;
+            case ProviderEvent.ReasoningCompleted value:
+                FlushDeltas();
+                CompleteReasoning(value.Id, value.Text);
+                break;
+            case ProviderEvent.ToolStarted value:
+                FlushDeltas();
+                UpsertTool(value.Id, value.Call);
+                if (value.Call.ToolCallKind == ToolCall.Kind.Command) WatchCommand(value.Id, value.Call);
+                break;
+            case ProviderEvent.ToolOutput value:
+                QueueDelta(value.Id, DeltaKind.ToolOutput, value.Text);
+                break;
+            case ProviderEvent.ToolUpdated value:
+                FlushDeltas();
+                ApplyToolUpdate(value.Id, value.Update);
+                if (entryIndex.TryGetValue(value.Id, out var updatedEntry)
+                    && updatedEntry.Item.TimelineItemContent is TimelineItem.Content.Tool)
+                {
+                    var updatedTool = ((TimelineItem.Content.Tool)updatedEntry.Item.TimelineItemContent).Value;
+                    if (updatedTool.ToolCallKind == ToolCall.Kind.Command
+                        && updatedTool.ToolCallStatus != ToolCall.Status.Running)
+                        SettleCommand(value.Id);
+                }
+                if (value.Update.Status is { } status
+                    && status != ToolCall.Status.Running
+                    && HydraToolHeads.TryGetValue(value.Id, out _))
+                {
+                    // Blocked: finishing a native head requires AppModel's Hydra completion surface,
+                    // which is not present in the owned AppModel API for this port slice.
+                }
+                break;
+            case ProviderEvent.PlanDelta value:
+                QueueDelta(value.Id, DeltaKind.Plan, value.Text);
+                break;
+            case ProviderEvent.PlanCompleted value:
+                FlushDeltas();
+                CompletePlan(value.Id, value.Markdown);
+                break;
+            case ProviderEvent.Todos value:
+                UpsertTodos(value.Value);
+                break;
+            case ProviderEvent.Approval value:
+                Approvals = Approvals.Mutating(items =>
+                {
+                    items.RemoveAll(item => item.Id == value.Value.Id);
+                    items.Add(value.Value);
+                });
+                App?.ThreadNeedsAttention(ThreadID);
+                break;
+            case ProviderEvent.Question value:
+                Questions = Questions.Mutating(items =>
+                {
+                    items.RemoveAll(item => item.Id == value.Value.Id);
+                    items.Add(value.Value);
+                });
+                App?.ThreadNeedsAttention(ThreadID);
+                break;
+            case ProviderEvent.RequestResolved value:
+                Approvals = Approvals.Mutating(items => items.RemoveAll(item => item.Id == value.Id));
+                Questions = Questions.Mutating(items => items.RemoveAll(item => item.Id == value.Id));
+                break;
+            case ProviderEvent.TokenSpend value:
+                if (currentTurnID is { } tokenTurnID)
+                {
+                    UpdateTurn(tokenTurnID, turn => turn with
+                    {
+                        TokenSpends = (turn.TokenSpends ?? ValueList<TokenSpend>.Empty).Appending(value.Value),
+                    });
+                }
+                break;
+            case ProviderEvent.Usage value:
+                Usage = value.Value;
+                saveRevision += 1;
+                if (Thread is { } usageThread)
+                {
+                    App?.Providers.InvalidateCredits(usageThread.Provider);
+                    App?.Providers.InvalidatePlanLimits(usageThread.Provider);
+                }
+                break;
+            case ProviderEvent.Diff value:
+                if (currentTurnID is not null) currentProviderDiff = value.Value;
+                break;
+            case ProviderEvent.Notice value:
+                AppendNotice(value.Value.NoticeLevel, value.Value.Message);
+                break;
+            case ProviderEvent.UsageLimit value:
+                App?.AutoContinue.NoteLimit(ThreadID, value.ResetsAt);
+                break;
+            case ProviderEvent.ModeChanged value:
+                App?.UpdateThread(ThreadID, thread => thread with { InteractionMode = value.Value });
+                break;
+            case ProviderEvent.Models value:
+                if (Thread is { } modelsThread) App?.Providers.UpdateCatalog(value.Value, modelsThread.Provider);
+                break;
+            case ProviderEvent.Commands value:
+                if (App is { } app && Thread is { } commandsThread && app.Project(commandsThread.ProjectID) is { } project)
+                    app.Providers.UpdateCommands(value.Value, commandsThread.Provider,
+                        commandsThread.WorktreePath ?? project.Path);
+                break;
+            case ProviderEvent.Title value:
+                if (Turns.Count <= 1 && App is { } titleApp && Thread is { } titleThread
+                    && !titleThread.HasCustomTitle && titleApp.TextEngine(titleThread.Provider) is null)
+                    titleApp.UpdateThread(ThreadID, thread => thread with
+                    {
+                        Title = Marrow.Core.Support.TextCleanup.WithoutEmDashes(value.Value),
+                    });
+                break;
+            case ProviderEvent.AssistantMessageID value:
+                if (currentTurnID is not null) currentProviderAnchor = value.Value;
+                break;
+            case ProviderEvent.TurnCompleted value:
+                FlushDeltas();
+                if (value.Error is { } error) AppendNotice(Notice.Level.Error, error);
+                var completedTurnID = currentTurnID;
+                _ = MainActor.Spawn(async () => await FinishTurn(value.Status, completedTurnID));
+                break;
+            case ProviderEvent.Exited value:
+                FlushDeltas();
+                if (isStartingSession) break;
+                ReleaseSession(stop: false);
+                Approvals = ValueList<ApprovalRequest>.Empty;
+                Questions = ValueList<QuestionRequest>.Empty;
+                StopNativeHeads();
+                if (currentTurnID is not null)
+                {
+                    var name = Thread?.Provider.DisplayName ?? "The agent";
+                    AppendNotice(Notice.Level.Error, value.Error ?? $"{name} stopped unexpectedly.");
+                    var failedTurnID = currentTurnID;
+                    _ = MainActor.Spawn(async () => await FinishTurn(TurnStatus.Failed, failedTurnID));
+                }
+                break;
+            case ProviderEvent.AgentStarted value:
+                HydraAgentStarted(value.Value);
+                break;
+            case ProviderEvent.AgentEvent value:
+                HydraAgentEvent(value.AgentID, value.Value);
+                break;
+            case ProviderEvent.AgentProgress value:
+                if (!hydraNativeHeads.TryGetValue(value.AgentID, out var nativeHeadID)
+                    || App?.Runtime(nativeHeadID) is not { } headRuntime) break;
+                if (value.Summary is { Length: > 0 } summary) headRuntime.HydraActivity = summary;
+                else if (value.LastTool is { } lastTool) headRuntime.HydraActivity = lastTool;
+                if (value.Tokens is { } tokens) headRuntime.HydraTokens = tokens;
+                if (value.ToolCalls is { } toolCalls) headRuntime.HydraToolCalls = toolCalls;
+                headRuntime.HydraLastEventAt = SwiftDate.Now;
+                break;
+            case ProviderEvent.AgentFinished value:
+                HydraAgentFinished(value.AgentID, value.Status, value.Summary);
+                break;
+        }
+    }
+
+    // Blocked until the owned AppModel port exposes the native-Hydra operations. Keep these
+    // event entry points explicit so other ProviderEvent cases remain exhaustively routed.
+    private void HydraAgentStarted(AgentSpawn spawn) { }
+    private void HydraAgentEvent(string agentID, ProviderEvent @event) { }
+    private void HydraAgentFinished(string agentID, TurnStatus status, string? summary) { }
+    private void HydraToolFinished(Guid headID, ToolCall.Status status, string? output) { }
+
+    // The provider event routes call this teardown on release and exit. Its native-Hydra
+    // implementation is blocked until AppModel exposes its native-head completion surface.
+    private void StopNativeHeads()
+    {
+        // Intentionally empty for this slice; see the p5 report for the missing AppModel API.
+    }
+
+    // :2253-2266. Token reports with the same provider/model/agent identity are coalesced.
+    private void RecordTokenSpend(TokenSpend spend)
+    {
+        if (spend.TotalTokens <= 0) return;
+
+        var index = -1;
+        for (var candidate = Turns.Count - 1; candidate >= 0; candidate--)
+        {
+            if (currentTurnID is { } turnID && Turns[candidate].Id == turnID)
+            {
+                index = candidate;
+                break;
+            }
+        }
+        if (index < 0 && Thread?.Hydra?.HydraHeadInfoKind == HydraHeadInfo.Kind.Native && Turns.Count != 0)
+            index = Turns.Count - 1;
+        if (index < 0) return;
+
+        var turn = Turns[index];
+        var amounts = turn.TokenSpends ?? ValueList<TokenSpend>.Empty;
+        var spendIndex = -1;
+        for (var candidate = 0; candidate < amounts.Count; candidate++)
+        {
+            var existing = amounts[candidate];
+            if (existing.Provider == spend.Provider && existing.Model == spend.Model && existing.AgentID == spend.AgentID)
+            {
+                spendIndex = candidate;
+                break;
+            }
+        }
+        amounts = spendIndex >= 0
+            ? amounts.SetItem(spendIndex, amounts[spendIndex].Merge(spend))
+            : amounts.Appending(spend);
+        Turns = Turns.SetItem(index, turn with { TokenSpends = amounts });
+
+        if (Thread?.Hydra?.HydraHeadInfoKind == HydraHeadInfo.Kind.Droppy)
+            HydraTokens += spend.TotalTokens;
+        saveRevision += 1;
+        ScheduleSave();
+    }
+
+    // :3020-3048. Timeline inserts/removals keep the id index in step with visible rows.
+    private Guid? TurnIDForNewRows => currentTurnID ?? closingTurnID;
+
+    private void Append(TimelineItem item)
+    {
+        foreach (var existingEntry in Entries.TakeLast(6)) EndStreaming(existingEntry);
+        var entry = new TimelineEntry(item);
+        Entries = Entries.Appending(entry);
+        entryIndex[item.Id] = entry;
+        saveRevision += 1;
+    }
+
+    private void Remove(string id)
+    {
+        entryIndex.Remove(id);
+        Entries = new ValueList<TimelineEntry>(Entries.Where(entry => entry.Id != id));
+        saveRevision += 1;
+    }
+
+    // :3050-3097. Empty opening message/reasoning deltas do not create blank rows; plan deltas do.
+    private void QueueDelta(string id, DeltaKind kind, string text)
+    {
+        if (!entryIndex.ContainsKey(id))
+        {
+            switch (kind)
+            {
+                case DeltaKind.Message:
+                    if (text.Length == 0) return;
+                    Append(new TimelineItem(TurnIDForNewRows,
+                        new TimelineItem.Content.Assistant(new AssistantMessage { Text = "", IsStreaming = true }), id));
+                    break;
+                case DeltaKind.Reasoning:
+                    if (text.Length == 0) return;
+                    Append(new TimelineItem(TurnIDForNewRows,
+                        new TimelineItem.Content.Reasoning(new ReasoningBlock { Text = "", IsStreaming = true }), id));
+                    break;
+                case DeltaKind.Plan:
+                    Append(new TimelineItem(TurnIDForNewRows,
+                        new TimelineItem.Content.Plan(new ProposedPlan
+                        {
+                            Markdown = "",
+                            ProposedPlanState = ProposedPlan.State.Drafting,
+                        }), id));
+                    break;
+                case DeltaKind.ToolOutput:
+                    return;
+            }
+        }
+
+        if (text.Length == 0) return;
+        var delta = kind == DeltaKind.ToolOutput ? text : Marrow.Core.Support.TextCleanup.WithoutEmDashes(text);
+        if (pendingDeltas.TryGetValue(id, out var pending))
+            pendingDeltas[id] = pending with { Text = pending.Text + delta };
+        else
+            pendingDeltas[id] = new PendingDelta { Kind = kind, Text = delta };
+
+        if (flushTask is not null) return;
+        var isHead = appReference is not null
+            && appReference.TryGetTarget(out var app)
+            && app.Thread(ThreadID)?.Hydra is not null;
+        if (isHead) StreamLoad.Shared.NoteStreaming(this);
+        var flushWindow = isHead ? StreamLoad.Shared.HeadFlushWindow : FlushWindow;
+        if (SwiftClock.Now - lastFlushAt >= flushWindow)
+        {
+            FlushDeltas();
+            return;
+        }
+
+        var weakSelf = new WeakReference<ThreadRuntime>(this);
+        flushTask = MainActor.Spawn(async () =>
+        {
+            var delay = FlushDelay(PendingFlushLength(), ScrollActivity.Shared.Current.IsScrolling);
+            if (isHead) delay = Math.Max(delay, StreamLoad.Shared.HeadFlushDelayMilliseconds);
+            await SwiftTask.TrySleep(TimeSpan.FromMilliseconds(delay));
+            if (!weakSelf.TryGetTarget(out var runtime)) return;
+            await MainActor.Run(() => runtime.FlushDeltas());
+        });
+    }
+
+    // ThreadRuntime.swift:3101-3138.
+    private long PendingFlushLength()
+    {
+        long longest = 0;
+        foreach (var (id, delta) in pendingDeltas)
+        {
+            if (delta.Kind == DeltaKind.ToolOutput) continue;
+            if (!entryIndex.TryGetValue(id, out var entry)) continue;
+            var existingLength = entry.Item.TimelineItemContent switch
+            {
+                TimelineItem.Content.Assistant assistant => SwiftString.Characters(assistant.Value.Text).LongCount(),
+                TimelineItem.Content.Reasoning reasoning => SwiftString.Characters(reasoning.Value.Text).LongCount(),
+                TimelineItem.Content.Plan plan => SwiftString.Characters(plan.Value.Markdown).LongCount(),
+                _ => 0,
+            };
+            var deltaLength = SwiftString.Characters(delta.Text).LongCount();
+            longest = Math.Max(longest, existingLength + deltaLength);
+        }
+        return longest;
+    }
+
+    private static long FlushDelay(long? length, bool scrolling)
+    {
+        var paced = (length ?? 0) switch
+        {
+            < 4_096 => 45,
+            < 32_768 => 90,
+            _ => 150,
+        };
+        return scrolling ? Math.Max(paced, 160) : paced;
+    }
+
+    private static readonly TimeSpan FlushWindow = TimeSpan.FromMilliseconds(45);
+
+    // :3179-3204. Completion events flush queued text before finalizing their rows.
+    private void FlushDeltas(bool scheduleSave = true)
+    {
+        flushTask?.Cancel();
+        flushTask = null;
+        if (pendingDeltas.Count == 0) return;
+        lastFlushAt = SwiftClock.Now;
+        var deltas = pendingDeltas.OrderBy(pair => pair.Key, StringComparer.Ordinal).ToArray();
+        pendingDeltas.Clear();
+        var heard = false;
+        var streamedRows = new List<(string ID, string Delta)>();
+        foreach (var (id, delta) in deltas)
+        {
+            if (!entryIndex.TryGetValue(id, out var entry) || !AppendStreamed(entry, delta.Text, delta.Kind)) continue;
+            saveRevision += 1;
+            if (delta.Kind != DeltaKind.Plan) heard = true;
+            if (delta.Kind == DeltaKind.Message && entry.TimelineEntryKind == TimelineEntry.Kind.Assistant)
+                streamedRows.Add((id, delta.Text));
+        }
+        if (heard) NoteHydraHeadEvent();
+        if (currentTurnID is { } turnID)
+            foreach (var row in streamedRows)
+                scanStreamedDelegations(row.ID, turnID, row.Delta, isDelta: true);
+        if (scheduleSave) ScheduleSave();
+    }
+
+    // ThreadRuntime.swift:3663-3692. Mutate only the four matching content/kind pairs.
+    private static bool AppendStreamed(TimelineEntry entry, string text, DeltaKind kind)
+    {
+        switch (kind, entry.Item.TimelineItemContent)
+        {
+            case (DeltaKind.Message, TimelineItem.Content.Assistant assistant):
+                entry.Item = entry.Item with
+                {
+                    TimelineItemContent = new TimelineItem.Content.Assistant(assistant.Value with { Text = assistant.Value.Text + text }),
+                };
+                return true;
+            case (DeltaKind.Reasoning, TimelineItem.Content.Reasoning reasoning):
+                entry.Item = entry.Item with
+                {
+                    TimelineItemContent = new TimelineItem.Content.Reasoning(reasoning.Value with { Text = reasoning.Value.Text + text }),
+                };
+                return true;
+            case (DeltaKind.ToolOutput, TimelineItem.Content.Tool tool):
+                entry.Item = entry.Item with
+                {
+                    TimelineItemContent = new TimelineItem.Content.Tool(tool.Value.AppendOutput(text)),
+                };
+                return true;
+            case (DeltaKind.Plan, TimelineItem.Content.Plan plan):
+                entry.Item = entry.Item with
+                {
+                    TimelineItemContent = new TimelineItem.Content.Plan(plan.Value with { Markdown = plan.Value.Markdown + text }),
+                };
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    // :3206-3242. Empty completion payloads keep streamed text; whitespace-only rows are removed.
+    private void CompleteMessage(string id, string text)
+    {
+        var cleaned = Marrow.Core.Support.TextCleanup.WithoutEmDashes(text);
+        try
+        {
+            if (!entryIndex.TryGetValue(id, out var entry))
+            {
+                if (cleaned.Length != 0)
+                    Append(new TimelineItem(TurnIDForNewRows,
+                        new TimelineItem.Content.Assistant(new AssistantMessage { Text = cleaned }), id));
+                return;
+            }
+            if (entry.Item.TimelineItemContent is not TimelineItem.Content.Assistant assistant) return;
+            var message = assistant.Value;
+            if (cleaned.Length != 0) message = message with { Text = cleaned };
+            message = message with { IsStreaming = false };
+            if (!SwiftString.Characters(message.Text).Any(character => !SwiftCharacter.IsWhitespace(character)))
+            {
+                Remove(id);
+            }
+            else
+            {
+                entry.Item = entry.Item with { TimelineItemContent = new TimelineItem.Content.Assistant(message) };
+                saveRevision += 1;
+                if (currentTurnID is { } turnID) scanStreamedDelegations(id, turnID, message.Text);
+            }
+        }
+        finally
+        {
+            ScheduleSave();
+        }
+    }
+
+    private void CompleteReasoning(string id, string text)
+    {
+        var cleaned = Marrow.Core.Support.TextCleanup.WithoutEmDashes(text);
+        try
+        {
+            if (!entryIndex.TryGetValue(id, out var entry)
+                || entry.Item.TimelineItemContent is not TimelineItem.Content.Reasoning reasoning)
+            {
+                if (cleaned.Length != 0)
+                    Append(new TimelineItem(TurnIDForNewRows,
+                        new TimelineItem.Content.Reasoning(new ReasoningBlock { Text = cleaned }), id));
+                return;
+            }
+
+            var block = reasoning.Value;
+            if (cleaned.Length != 0) block = block with { Text = cleaned };
+            block = block with { IsStreaming = false };
+            if (!SwiftString.Characters(block.Text).Any(character => !SwiftCharacter.IsWhitespace(character)))
+            {
+                Remove(id);
+            }
+            else
+            {
+                entry.Item = entry.Item with { TimelineItemContent = new TimelineItem.Content.Reasoning(block) };
+                saveRevision += 1;
+            }
+        }
+        finally
+        {
+            ScheduleSave();
+        }
+    }
+
+    // :3244-3255. Empty completion text keeps the streamed markdown, while every found draft is proposed.
+    private void CompletePlan(string id, string markdown)
+    {
+        var cleaned = Marrow.Core.Support.TextCleanup.WithoutEmDashes(markdown);
+        if (entryIndex.TryGetValue(id, out var entry))
+        {
+            if (entry.Item.TimelineItemContent is TimelineItem.Content.Plan plan)
+            {
+                var completed = plan.Value;
+                if (cleaned.Length != 0) completed = completed with { Markdown = cleaned };
+                completed = completed with { ProposedPlanState = ProposedPlan.State.Proposed };
+                entry.Item = entry.Item with { TimelineItemContent = new TimelineItem.Content.Plan(completed) };
+                saveRevision += 1;
+            }
+        }
+        else if (cleaned.Length != 0)
+        {
+            Append(new TimelineItem(TurnIDForNewRows,
+                new TimelineItem.Content.Plan(new ProposedPlan
+                {
+                    Markdown = cleaned,
+                    ProposedPlanState = ProposedPlan.State.Proposed,
+                }), id));
+        }
+
+        ScheduleSave();
+    }
+
+    // ThreadRuntime.swift:3257-3277.
+    private void UpsertTool(string id, ToolCall call)
+    {
+        NoteToolMayWrite(call.ToolCallKind);
+        RecordCurrentTurnEdits(call.Edits); // ThreadRuntime.swift:3259; implemented in its owning later slice.
+        call = call with { Edits = Capped(call.Edits) };
+
+        if (!entryIndex.TryGetValue(id, out var entry)
+            || entry.Item.TimelineItemContent is not TimelineItem.Content.Tool existingContent)
+        {
+            Append(new TimelineItem(TurnIDForNewRows, new TimelineItem.Content.Tool(call), id));
+            NoteHydraHeadEvent(edits: call.Edits.Count, tool: true);
+            return;
+        }
+
+        var existing = existingContent.Value;
+        if (call.Title.Length != 0) existing = existing with { Title = call.Title };
+        existing = existing with
+        {
+            Detail = call.Detail ?? existing.Detail,
+            ToolCallKind = call.ToolCallKind,
+        };
+        var landed = call.Edits.Count != 0 && existing.Edits.Count == 0 ? call.Edits.Count : 0;
+        if (call.Edits.Count != 0) existing = existing with { Edits = call.Edits };
+        if (existing.ToolCallStatus == ToolCall.Status.Running && call.ToolCallStatus != ToolCall.Status.Running)
+            existing = existing.Finish(call.ToolCallStatus);
+        entry.Item = entry.Item with { TimelineItemContent = new TimelineItem.Content.Tool(existing) };
+        saveRevision++;
+        NoteHydraHeadEvent(edits: landed);
+    }
+
+    // ThreadRuntime.swift:3279-3289.
+    private void NoteHydraHeadEvent(long edits = 0, bool tool = false)
+    {
+        if (appReference is null || !appReference.TryGetTarget(out var app)
+            || app.Thread(ThreadID)?.Hydra is not { } info) return;
+        HydraLastEventAt = SwiftDate.Now;
+        HydraEditCount += edits;
+        if (tool && info.HydraHeadInfoKind == HydraHeadInfo.Kind.Droppy) HydraToolCalls++;
+    }
+
+    // ThreadRuntime.swift:3291-3298.
+    private void NoteToolMayWrite(ToolCall.Kind? kind)
+    {
+        if (kind is null or ToolCall.Kind.Read or ToolCall.Kind.Search or ToolCall.Kind.Web or ToolCall.Kind.Command)
+            return;
+        settledTree = null;
+        treeEpoch++;
+    }
+
+    // ThreadRuntime.swift:3300-3324.
+    private void ApplyToolUpdate(string id, ToolUpdate update)
+    {
+        if (update.Edits is { } reportedEdits)
+            RecordCurrentTurnEdits(reportedEdits); // ThreadRuntime.swift:3301; implemented in its owning later slice.
+        NoteToolMayWrite(update.Kind);
+
+        if (!entryIndex.ContainsKey(id))
+        {
+            Append(new TimelineItem(TurnIDForNewRows, new TimelineItem.Content.Tool(new ToolCall
+            {
+                ToolCallKind = update.Kind ?? ToolCall.Kind.Other,
+                Title = update.Title ?? "Tool",
+            }), id));
+        }
+        if (!entryIndex.TryGetValue(id, out var entry)
+            || entry.Item.TimelineItemContent is not TimelineItem.Content.Tool toolContent) return;
+
+        var call = toolContent.Value;
+        if (update.Title is { Length: > 0 } title) call = call with { Title = title };
+        if (update.Detail is { } detail) call = call with { Detail = detail };
+        if (update.Kind is { } kind) call = call with { ToolCallKind = kind };
+        long landed = 0;
+        if (update.Edits is { Count: > 0 } edits)
+        {
+            if (call.Edits.Count == 0) landed = edits.Count;
+            call = call with { Edits = Capped(edits) };
+        }
+        if (update.Output is { } output) call = call.SetOutput(output);
+        if (update.ExitCode is { } exitCode) call = call with { ExitCode = exitCode };
+        if (update.Status is { } status)
+            call = status == ToolCall.Status.Running ? call with { ToolCallStatus = status } : call.Finish(status);
+
+        entry.Item = entry.Item with { TimelineItemContent = new TimelineItem.Content.Tool(call) };
+        saveRevision++;
+        NoteHydraHeadEvent(edits: landed);
+        ScheduleSave();
+    }
+
+    // ThreadRuntime.swift:3484-3498.
+    private const int EditDiffLimit = 200_000;
+    private static ValueList<FileEdit> Capped(IReadOnlyList<FileEdit> edits) => new(edits.Select(edit =>
+        edit.Diff is { } diff && System.Text.Encoding.UTF8.GetByteCount(diff) > EditDiffLimit
+            ? edit with { Diff = null }
+            : edit));
+
+    // ThreadRuntime.swift:3549-3552.
+    private void AppendNotice(Notice.Level level, string message)
+    {
+        Append(new TimelineItem(TurnIDForNewRows,
+            new TimelineItem.Content.Notice(new Notice { NoticeLevel = level, Message = message })));
+        ScheduleSave();
+    }
+
+    // :3523-3547. The cache avoids a scan on repeated updates; the fallback scan stops at the turn boundary.
+    private void UpsertTodos(IReadOnlyList<TodoStep> steps)
+    {
+        if (todosEntryID is { } cachedID
+            && entryIndex.TryGetValue(cachedID, out var cachedEntry)
+            && cachedEntry.Item.TurnID == currentTurnID)
+        {
+            cachedEntry.Item = cachedEntry.Item with
+            {
+                TimelineItemContent = new TimelineItem.Content.Todos(new ValueList<TodoStep>(steps)),
+            };
+            saveRevision += 1;
+            return;
+        }
+
+        TimelineEntry? existing = null;
+        foreach (var entry in Entries.Reverse())
+        {
+            if (entry.Item.TurnID is { } entryTurnID && entryTurnID != currentTurnID) break;
+            if (entry.Item.TimelineItemContent is TimelineItem.Content.Todos)
+            {
+                existing = entry;
+                break;
+            }
+        }
+
+        if (existing is not null)
+        {
+            todosEntryID = existing.Id;
+            existing.Item = existing.Item with
+            {
+                TimelineItemContent = new TimelineItem.Content.Todos(new ValueList<TodoStep>(steps)),
+            };
+            saveRevision += 1;
+        }
+        else if (steps.Count != 0)
+        {
+            var item = new TimelineItem(TurnIDForNewRows,
+                new TimelineItem.Content.Todos(new ValueList<TodoStep>(steps)));
+            Append(item);
+            todosEntryID = item.Id;
+        }
+
+        ScheduleSave();
+    }
 
     // MARK: - Rehearsal (extension ThreadRuntime, :3696-3758)
 
     // :3700-3723. Swift: rehearseTurn(_:touchedPaths:providerDiff:); `touchedPaths: [String] = []` is null here
     // for the empty default.
-    public void RehearseTurn(string? text, IReadOnlyList<string>? touchedPaths = null, string? providerDiff = null) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:3700");
+    public void RehearseTurn(string? text, IReadOnlyList<string>? touchedPaths = null, string? providerDiff = null)
+    {
+        var paths = touchedPaths ?? Array.Empty<string>();
+        var turn = new TurnRecord
+        {
+            Index = checked((turns.Count == 0 ? -1 : turns.Max(existing => existing.Index)) + 1),
+            ProviderDiff = providerDiff,
+            TouchedPaths = paths.Count == 0 ? null : new ValueList<string>(paths),
+        };
+        TimelineItem? userItem = null;
+        if (text is not null)
+        {
+            userItem = new TimelineItem(turn.Id, new TimelineItem.Content.User(new UserMessage { Text = text }));
+            turn = turn with { UserItemID = userItem.Id };
+        }
+        Turns = new ValueList<TurnRecord>(turns.Append(turn));
+        saveRevision += 1;
+        if (userItem is not null) Append(userItem);
+        currentTurnID = turn.Id;
+        HydraCurrentTurnTouchedPaths = new ValueSet<string>(paths, SwiftStringComparer.Instance); // :3716
+        Phase = RuntimePhase.Running;
+        TurnStartedAt = SwiftDate.Now;
+        App?.UpdateThread(ThreadID, current => current with
+        {
+            UpdatedAt = SwiftDate.Now,
+            LastStatus = TurnStatus.Running,
+        });
+    }
 
     // :3727-3737
-    public void RehearseBrief(string text) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:3727");
+    public void RehearseBrief(string text)
+    {
+        if (turns.Count == 0 || turns[turns.Count - 1].UserItemID is not null) return;
+        var turn = turns[turns.Count - 1];
+        var item = new TimelineItem(turn.Id, new TimelineItem.Content.User(new UserMessage { Text = text }));
+        UpdateTurn(turn.Id, current => current with { UserItemID = item.Id });
+        var entry = new TimelineEntry(item);
+        Entries = Entries.Mutating(items => items.Insert(0, entry));
+        entryIndex[item.Id] = entry;
+        saveRevision += 1;
+        ScheduleSave();
+    }
 
     // :3739-3741
-    public void Rehearse(ProviderEvent @event) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:3739");
+    public void Rehearse(ProviderEvent @event) => Handle(@event);
 
     // :3744-3746
-    public void NoteDiffChanged() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:3744");
+    public void NoteDiffChanged() => DiffRevision++;
 
     // :3751-3757. Swift: storeLegacyChanges(_:turnID:).
-    public void StoreLegacyChanges(FileChangeSummary changes, Guid turnID) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/ThreadRuntime.swift:3751");
+    public void StoreLegacyChanges(FileChangeSummary changes, Guid turnID)
+    {
+        for (var index = Entries.Count - 1; index >= 0; index--)
+        {
+            var entry = Entries[index];
+            if (entry.TurnID != turnID || entry.TimelineEntryKind != TimelineEntry.Kind.TurnEnd
+                || entry.Item.TimelineItemContent is not TimelineItem.Content.TurnEnd turnEnd
+                || turnEnd.Value.Changes is not null) continue;
+            entry.Item = entry.Item with
+            {
+                TimelineItemContent = new TimelineItem.Content.TurnEnd(turnEnd.Value with { Changes = changes }),
+            };
+            ScheduleSave();
+            return;
+        }
+    }
 }
