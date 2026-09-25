@@ -1,25 +1,28 @@
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using Avalonia;
+using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Input;
+using Avalonia.Layout;
+using Avalonia.Media;
+using Avalonia.Styling;
+using Marrow.App.Window;
+using Marrow.App.Views.Composer;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
+using Marrow.Core.Support;
 using Marrow.UI.Chrome;
+using Marrow.UI.Common;
 using Marrow.UI.Port;
 
 namespace Marrow.App.Views.Chat;
 
 // Source: DroppyCode/App/Views/Chat/SubagentPanel.swift (B2 1fbf81e), :1-738.
-// Skeleton (c100 group 2): every type the file declares and the members the other cycle files use. The data shapes
-// (enum cases, record fields, constants) are complete; every member with behaviour, and every view body, is a
-// MARROW_STUB left to the implementing unit, as are the views' private members (not declared here).
-// Forms (ED-095): a SwiftUI View is a Decorator whose constructor builds `body`; a ViewModifier is a sealed record with
-// `Control Body(Control content)`; an NSView is a Control; an NSViewRepresentable folds into the Control that hosts its
-// NSView; CGPoint/CGSize/CGVector are Avalonia Point/Size/Vector; NSCursor is Avalonia.Input.Cursor. Swift `private`
-// top-level types are `internal` here: C# has no private top-level type, and `file` cannot appear in another type's
-// member signatures (CS9051).
 
-/// <summary>:4-7 <c>enum FloatingPanelID: Hashable</c>. An enum with an associated value is a record union (R-ENUM-2).</summary>
+/// <summary>:4-7 <c>enum FloatingPanelID: Hashable</c>. An enum with an associated value is a record union.</summary>
 public abstract record FloatingPanelID
 {
     private FloatingPanelID() { }
@@ -38,7 +41,7 @@ public enum PanelDockSide
     Trailing, // :11
 }
 
-/// <summary>:14-45 <c>enum PanelDockCorner: String, Equatable</c> (R-ENUM-1).</summary>
+/// <summary>:14-45 <c>enum PanelDockCorner: String, Equatable</c>.</summary>
 public enum PanelDockCorner
 {
     [RawValue("topLeading")] TopLeading, // :16
@@ -47,29 +50,44 @@ public enum PanelDockCorner
     [RawValue("bottomTrailing")] BottomTrailing, // :16
 }
 
-/// <summary>:18-44 the members declared on <c>PanelDockCorner</c> (R-NAME-4: <c>static class &lt;Enum&gt;Extensions</c>).</summary>
+/// <summary>:18-44 the members declared on <c>PanelDockCorner</c>.</summary>
 public static class PanelDockCornerExtensions
 {
     extension(PanelDockCorner corner)
     {
-        // :18-23 var side: PanelDockSide
-        public PanelDockSide Side =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/SubagentPanel.swift:18");
+        // :18-23
+        public PanelDockSide Side => corner switch
+        {
+            PanelDockCorner.TopLeading or PanelDockCorner.BottomLeading => PanelDockSide.Leading,
+            PanelDockCorner.TopTrailing or PanelDockCorner.BottomTrailing => PanelDockSide.Trailing,
+            _ => throw new UnreachableException(),
+        };
 
-        // :25 var isTop: Bool
-        public bool IsTop =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/SubagentPanel.swift:25");
+        // :25
+        public bool IsTop => corner is PanelDockCorner.TopLeading or PanelDockCorner.TopTrailing;
 
-        // :37-44 var acrossTheColumn: PanelDockCorner
-        public PanelDockCorner AcrossTheColumn =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/SubagentPanel.swift:37");
+        // :37-44
+        public PanelDockCorner AcrossTheColumn => corner switch
+        {
+            PanelDockCorner.TopLeading => PanelDockCorner.TopTrailing,
+            PanelDockCorner.TopTrailing => PanelDockCorner.TopLeading,
+            PanelDockCorner.BottomLeading => PanelDockCorner.BottomTrailing,
+            PanelDockCorner.BottomTrailing => PanelDockCorner.BottomLeading,
+            _ => throw new UnreachableException(),
+        };
     }
 
     extension(PanelDockCorner)
     {
-        // :27-34 static func make(side:isTop:) -> PanelDockCorner
-        public static PanelDockCorner Make(PanelDockSide side, bool isTop) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/SubagentPanel.swift:27");
+        // :27-34
+        public static PanelDockCorner Make(PanelDockSide side, bool isTop) => (side, isTop) switch
+        {
+            (PanelDockSide.Leading, true) => PanelDockCorner.TopLeading,
+            (PanelDockSide.Trailing, true) => PanelDockCorner.TopTrailing,
+            (PanelDockSide.Leading, false) => PanelDockCorner.BottomLeading,
+            (PanelDockSide.Trailing, false) => PanelDockCorner.BottomTrailing,
+            _ => throw new UnreachableException(),
+        };
     }
 }
 
@@ -80,7 +98,7 @@ public sealed record PanelReserve
     public double Trailing { get; init; } = 0; // :51
 }
 
-/// <summary>:54-97 <c>struct PanelDocks</c>: the four docked spots for the pane as it is.</summary>
+/// <summary>:54-97 the four docked spots for the pane as it is.</summary>
 public sealed record PanelDocks
 {
     public Point TopLeading { get; init; } // :56
@@ -88,24 +106,44 @@ public sealed record PanelDocks
     public Point BottomLeading { get; init; } // :58
     public Point BottomTrailing { get; init; } // :59
 
-    // :61-66 init(layout:reserve:)
-    public PanelDocks(SubagentPanelLayout layout, PanelReserve reserve) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/SubagentPanel.swift:61");
+    // :61-66
+    public PanelDocks(SubagentPanelLayout layout, PanelReserve reserve)
+    {
+        TopLeading = layout.DockedOrigin(PanelDockCorner.TopLeading, reserve);
+        TopTrailing = layout.DockedOrigin(PanelDockCorner.TopTrailing, reserve);
+        BottomLeading = layout.DockedOrigin(PanelDockCorner.BottomLeading, reserve);
+        BottomTrailing = layout.DockedOrigin(PanelDockCorner.BottomTrailing, reserve);
+    }
 
-    // :68-75 subscript(corner: PanelDockCorner) -> CGPoint
-    public Point this[PanelDockCorner corner] =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/SubagentPanel.swift:68");
+    // :68-75
+    public Point this[PanelDockCorner corner] => corner switch
+    {
+        PanelDockCorner.TopLeading => TopLeading,
+        PanelDockCorner.TopTrailing => TopTrailing,
+        PanelDockCorner.BottomLeading => BottomLeading,
+        PanelDockCorner.BottomTrailing => BottomTrailing,
+        _ => throw new UnreachableException(),
+    };
 
-    // :80-85 func stacked(_:below:slots:layout:) -> CGPoint
-    public Point Stacked(PanelDockCorner corner, long below, long slots, SubagentPanelLayout layout) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/SubagentPanel.swift:80");
+    // :80-85
+    public Point Stacked(PanelDockCorner corner, long below, long slots, SubagentPanelLayout layout)
+    {
+        var step = slots > 1 ? (BottomLeading.Y - TopLeading.Y) / (double)(slots - 1) : 0;
+        var index = corner.IsTop ? below : slots - 1 - below;
+        var y = TopLeading.Y + Math.Max(0, index) * step;
+        return new Point(this[corner].X, y);
+    }
 
-    // :90-96 static func corner(forSlot:of:side:) -> (corner: PanelDockCorner, below: Int)
-    public static (PanelDockCorner Corner, long Below) Corner(long forSlot, long of, PanelDockSide side) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/SubagentPanel.swift:90");
+    // :90-96
+    public static (PanelDockCorner Corner, long Below) Corner(long forSlot, long of, PanelDockSide side)
+    {
+        if (forSlot <= (of - 1) / 2)
+            return (PanelDockCorner.Make(side, isTop: true), forSlot);
+        return (PanelDockCorner.Make(side, isTop: false), of - 1 - forSlot);
+    }
 }
 
-/// <summary>:99-242 <c>struct SubagentPanelLayout: Equatable</c>: where a floating panel goes and how big it is.</summary>
+/// <summary>:99-242 <c>struct SubagentPanelLayout: Equatable</c>.</summary>
 public sealed record SubagentPanelLayout
 {
     public const double Width = 400; // :105
@@ -126,64 +164,128 @@ public sealed record SubagentPanelLayout
 
     public const double CompactHeight = 280; // :136
 
-    // :138-140 var panelWidth: CGFloat
+    // :138-140
     public double PanelWidth =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/SubagentPanel.swift:138");
+        Math.Min(Math.Max(Preferred?.Width ?? Width, MinWidth), Math.Max(MinWidth, Pane.Width - 2 * SideMargin));
 
-    // :143-145 var sitsBesideComposer: Bool
+    // :143-145
     public bool SitsBesideComposer =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/SubagentPanel.swift:143");
+        Pane.Width - 2 * SideMargin - PanelWidth - Gap >= MinComposerWidth;
 
-    // :149-151 var fitsBothSides: Bool
+    // :149-151
     public bool FitsBothSides =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/SubagentPanel.swift:149");
+        Pane.Width - 2 * SideMargin - 2 * (PanelWidth + Gap) >= MinComposerWidth;
 
-    // :154-156 var composerReserve: CGFloat
-    public double ComposerReserve =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/SubagentPanel.swift:154");
+    // :154-156
+    public double ComposerReserve => SitsBesideComposer ? PanelWidth + Gap : 0;
 
-    // :160-163 var verticalRoom: CGFloat
-    public double VerticalRoom =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/SubagentPanel.swift:160");
+    // :160-163
+    public double VerticalRoom
+    {
+        get
+        {
+            var below = SitsBesideComposer ? BottomMargin : ComposerAreaHeight + Gap;
+            return Pane.Height - Chrome.ContentTopInset - below;
+        }
+    }
 
-    // :165-170 var panelHeight: CGFloat
-    public double PanelHeight =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/SubagentPanel.swift:165");
+    // :165-170
+    public double PanelHeight
+    {
+        get
+        {
+            var ideal = Compact
+                ? CompactHeight
+                : Preferred?.Height ?? Math.Min(520, Math.Max(300, Pane.Height * 0.5));
+            var depth = Math.Max(1, StackDepth);
+            var share = (VerticalRoom - (depth - 1) * Gap) / depth;
+            return Math.Max(MinHeight, Math.Min(ideal, share));
+        }
+    }
 
-    // :172 var panelSize: CGSize
-    public Size PanelSize =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/SubagentPanel.swift:172");
+    // :172
+    public Size PanelSize => new(PanelWidth, PanelHeight);
 
-    // :177-181 func fitted(_:) -> CGSize
-    public Size Fitted(Size size) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/SubagentPanel.swift:177");
+    // :177-181
+    public Size Fitted(Size size)
+    {
+        var trial = this with { Preferred = new Size(size.Width, double.MaxValue) };
+        return new Size(trial.PanelWidth, Math.Max(MinHeight, Math.Min(size.Height, trial.PanelHeight)));
+    }
 
-    // :187-201 func dockedOrigin(_:reserve:) -> CGPoint
-    public Point DockedOrigin(PanelDockCorner corner, PanelReserve reserve) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/SubagentPanel.swift:187");
+    // :187-201
+    public Point DockedOrigin(PanelDockCorner corner, PanelReserve reserve)
+    {
+        var y = corner.IsTop
+            ? Chrome.ContentTopInset
+            : Pane.Height - (SitsBesideComposer ? BottomMargin : ComposerAreaHeight + Gap) - PanelHeight;
 
-    // :206-225 func dockCorner(nearest:keeping:docks:) -> PanelDockCorner
-    public PanelDockCorner DockCorner(Point nearest, PanelDockCorner keeping, PanelDocks docks) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/SubagentPanel.swift:206");
+        if (SitsBesideComposer)
+        {
+            var row = Pane.Width - reserve.Leading - reserve.Trailing;
+            var composerWidth = Math.Min(ComposerMaxWidth, row - 2 * SideMargin);
+            var composerLeft = reserve.Leading + (row - composerWidth) / 2;
+            return corner.Side switch
+            {
+                PanelDockSide.Leading => new Point(composerLeft - Gap - PanelWidth, y),
+                PanelDockSide.Trailing => new Point(composerLeft + composerWidth + Gap, y),
+                _ => throw new UnreachableException(),
+            };
+        }
 
-    // :229-232 func slotIndex(at:slots:docks:) -> Int
-    public long SlotIndex(Point at, long slots, PanelDocks docks) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/SubagentPanel.swift:229");
+        return new Point(
+            corner.Side == PanelDockSide.Leading ? SideMargin : Pane.Width - SideMargin - PanelWidth,
+            y);
+    }
 
-    // :235-241 func clamped(_:) -> CGPoint
-    public Point Clamped(Point origin) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/SubagentPanel.swift:235");
+    // :206-225
+    public PanelDockCorner DockCorner(Point nearest, PanelDockCorner keeping, PanelDocks docks)
+    {
+        var centre = new Point(nearest.X + PanelWidth / 2, nearest.Y + PanelHeight / 2);
+        var middle = new Point(Pane.Width / 2, (docks.TopLeading.Y + docks.BottomLeading.Y + PanelHeight) / 2);
+        var side = (centre.X - middle.X) switch
+        {
+            < -CornerSlack => PanelDockSide.Leading,
+            >= CornerSlack => PanelDockSide.Trailing,
+            _ => keeping.Side,
+        };
+        var isTop = (centre.Y - middle.Y) switch
+        {
+            < -CornerSlack => true,
+            >= CornerSlack => false,
+            _ => keeping.IsTop,
+        };
+        return PanelDockCorner.Make(side, isTop);
+    }
+
+    // :229-232
+    public long SlotIndex(Point at, long slots, PanelDocks docks)
+    {
+        var step = slots > 1 ? (docks.BottomLeading.Y - docks.TopLeading.Y) / (double)(slots - 1) : 0;
+        if (step <= 0) return 0;
+        var rounded = Math.Round((at.Y - docks.TopLeading.Y) / step, MidpointRounding.AwayFromZero);
+        return Math.Min(slots - 1, Math.Max(0, (long)rounded));
+    }
+
+    // :235-241
+    public Point Clamped(Point origin)
+    {
+        const double inset = 8;
+        return new Point(
+            Math.Min(Math.Max(origin.X, inset), Math.Max(inset, Pane.Width - PanelWidth - inset)),
+            Math.Min(Math.Max(origin.Y, inset), Math.Max(inset, Pane.Height - PanelHeight - inset)));
+    }
 }
 
-/// <summary>:244-357 <c>struct SubagentPanel: View</c>: a helper thread's chat as a small floating glass panel.</summary>
+/// <summary>:244-357 <c>struct SubagentPanel: View</c>.</summary>
 public sealed class SubagentPanel : Decorator
 {
     private const double CornerRadius = 22; // :265
 
-    // :266 private static let handleHeight
+    // :266
     private static double HandleHeight => Chrome.ChromeTopPadding + Chrome.CapsuleHeight + 6;
 
-    // :251-258 the view's inputs; :268-356 body
+    // :251-258, :268-356
     public SubagentPanel(
         ChatThread thread,
         Size size,
@@ -191,83 +293,395 @@ public sealed class SubagentPanel : Decorator
         string? projectName,
         Action<Size> onDrag,
         Action onDragEnd,
-        Action close) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/SubagentPanel.swift:268");
+        Action close)
+    {
+        var model = WindowManager.Shared.Model;
+        var runtime = model.Runtime(thread.Id);
+        var shape = new Border
+        {
+            Width = size.Width,
+            Height = size.Height,
+            CornerRadius = new CornerRadius(CornerRadius),
+            ClipToBounds = true,
+        };
+
+        var content = new Grid();
+        content.RowDefinitions.Add(new RowDefinition(1, GridUnitType.Star));
+
+        var scrollChrome = new ChromeScrollModel();
+        var scrollState = new TimelineScrollState();
+        Control transcript = thread.IsHydraHead && !model.Settings.HydraShowsHeadDetails
+            ? new HydraHeadProgress(thread, runtime)
+            : new ThreadTimeline(
+                runtime,
+                scrollChrome,
+                scrollState,
+                projectName,
+                workingDirectory,
+                supportsRewind: false,
+                columnHeight: size.Height,
+                showsMinimap: false);
+        transcript.Margin = new Thickness(16, HandleHeight + 8, 16, 12);
+        Grid.SetRow(transcript, 0);
+        content.Children.Add(transcript);
+
+        var composer = new ComposerArea(
+            runtime,
+            workingDirectory,
+            compactModelChip: true,
+            takesFocusOnAppear: false,
+            showsChanges: false);
+        var composerContainer = new Grid();
+        composerContainer.Children.Add(composer);
+        composerContainer.Children.Add(new JumpToLatestButton(scrollState));
+        Grid.SetRow(composerContainer, 0);
+        composerContainer.VerticalAlignment = VerticalAlignment.Bottom;
+        content.Children.Add(composerContainer);
+
+        var strip = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto,Auto") };
+        var handle = new PanelDragHandle(onDrag, onDragEnd)
+        {
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            Height = HandleHeight,
+        };
+        ToolTip.SetTip(handle, "Drag to move"); // :308
+        AutomationProperties.SetName(handle, "Drag to move"); // :309
+        strip.Children.Add(handle);
+
+        var working = new SubagentWorkingBox(thread.Title, runtime.IsRunning)
+        {
+            Margin = new Thickness(0, Chrome.ChromeTopPadding, 0, 0),
+        };
+        Grid.SetColumn(working, 1);
+        strip.Children.Add(working);
+        working.Track(() => runtime.IsRunning, running => working.Update(thread.Title, running));
+
+        var closeState = new ClosePanelPresentationState();
+        var closeButton = new ChromeCircleButton(
+            "xmark",
+            runtime.IsRunning ? "Close this chat and stop its turn" : "Close this chat",
+            () =>
+            {
+                if (runtime.IsRunning) closeState.IsConfirmingClose = true;
+                else close();
+            })
+        {
+            Margin = new Thickness(0, Chrome.ChromeTopPadding, Chrome.ChromeHorizontalPadding, 0),
+        };
+        closeButton.Track(
+            () => runtime.IsRunning,
+            running => ToolTip.SetTip(closeButton, running ? "Close this chat and stop its turn" : "Close this chat"));
+        Grid.SetColumn(closeButton, 2);
+        strip.Children.Add(closeButton);
+
+        var closePopover = PlainControls.Popover(
+            closeButton,
+            new Binding<bool>(() => closeState.IsConfirmingClose, value => closeState.IsConfirmingClose = value),
+            () =>
+            {
+                var confirmation = new ClosePanelPopover(thread.Title, close);
+                Popovers.SetClosePopover(confirmation, () => closeState.IsConfirmingClose = false);
+                return confirmation;
+            });
+        Grid.SetColumn(closePopover, 2);
+        strip.Children.Add(closePopover);
+
+        strip.VerticalAlignment = VerticalAlignment.Top; // :301-327
+        content.Children.Add(strip);
+
+        shape.Child = content;
+        var scrim = new Border
+        {
+            Width = size.Width,
+            Height = size.Height,
+            CornerRadius = new CornerRadius(CornerRadius),
+            ClipToBounds = true,
+            Child = shape,
+        };
+
+        void UpdateSurface()
+        {
+            var isDark = shape.ActualThemeVariant == ThemeVariant.Dark;
+            shape.Background = Chrome.GlassTint.Opacity(isDark ? 0.22 : 0.16).Brush(shape);
+            scrim.Background = (isDark ? SwiftColor.Black : SwiftColor.White).Opacity(isDark ? 0.3 : 0.34).Brush(scrim);
+        }
+
+        UpdateSurface();
+        shape.ActualThemeVariantChanged += (_, _) => UpdateSurface();
+        Child = scrim;
+    }
+}
+
+/// <summary>:262-263 <c>@State private var isConfirmingClose = false</c>.</summary>
+internal sealed class ClosePanelPresentationState : MainActorModel
+{
+    private bool isConfirmingClose;
+
+    public bool IsConfirmingClose
+    {
+        get => Read(isConfirmingClose);
+        set => Set(ref isConfirmingClose, value);
+    }
 }
 
 /// <summary>:359-413 <c>private struct SubagentWorkingBox: View</c>.</summary>
 internal sealed class SubagentWorkingBox : Decorator
 {
-    // :367-368 the view's inputs; :379-412 body
-    public SubagentWorkingBox(string title, bool isRunning) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/SubagentPanel.swift:379");
+    private readonly MiniSpinner spinner = new();
+    private readonly TextBlock text = new();
+    private string name = "Helper";
+    private bool isRunning;
+    private bool isSending;
+    private int sendingGeneration;
+
+    // :367-368, :379-412
+    public SubagentWorkingBox(string title, bool isRunning)
+    {
+        var row = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 6,
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(Chrome.CapsuleHorizontalPadding, 0),
+            Height = Chrome.CapsuleContentHeight,
+        };
+        row.Children.Add(spinner);
+        text.MaxLines = 1;
+        text.VerticalAlignment = VerticalAlignment.Center;
+        SwiftFont.Callout.Apply(text); // B1:DroppyCode/UI/Common/ChatZoom.swift:52, ED-059
+        text.Foreground = Chrome.SecondaryText.Brush(text); // ED-062
+        row.Children.Add(text);
+
+        var capsule = new Border
+        {
+            Child = row,
+            Height = Chrome.CapsuleHeight,
+            CornerRadius = new CornerRadius(Chrome.CapsuleHeight / 2),
+            HorizontalAlignment = HorizontalAlignment.Left,
+        }.ChromeGlassCapsule();
+        Child = capsule;
+
+        name = Name(title);
+        this.isRunning = isRunning;
+        Refresh();
+    }
+
+    // :374-377
+    private static new string Name(string title)
+    {
+        var shortTitle = TextCleanup.SingleLine(title, 24).Trimmed();
+        return shortTitle.Length == 0 ? "Helper" : shortTitle;
+    }
+
+    // :381-398, :403-410
+    public void Update(string title, bool running)
+    {
+        var wasRunning = isRunning;
+        name = Name(title);
+        isRunning = running;
+        if (running && !wasRunning && !isSending)
+        {
+            isSending = true;
+            var generation = ++sendingGeneration;
+            MainActor.Spawn(async () =>
+            {
+                var completed = await SwiftTask.TrySleep(TimeSpan.FromSeconds(0.9));
+                if (!completed || generation != sendingGeneration) return;
+                isSending = false;
+                Refresh();
+            });
+        }
+
+        Refresh();
+    }
+
+    // :379-402
+    private void Refresh()
+    {
+        var visible = isRunning || isSending;
+        IsVisible = visible;
+        if (!visible) return;
+        text.Text = isSending && !isRunning ? "Sending\u2026" : $"{name} working"; // U+2026 HORIZONTAL ELLIPSIS
+        AutomationProperties.SetName(this, isSending && !isRunning ? "Sending" : $"{name} working");
+    }
 }
 
 /// <summary>:415-432 <c>private struct ClosePanelPopover: View</c>.</summary>
 internal sealed class ClosePanelPopover : Decorator
 {
-    // :419-420 the view's inputs; :422-431 body
-    public ClosePanelPopover(string title, Action onClose) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/SubagentPanel.swift:422");
+    // :419-420, :422-431
+    public ClosePanelPopover(string title, Action onClose)
+    {
+        var menu = new PopoverMenu(() =>
+        {
+            var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 0 };
+            stack.Children.Add(new PopoverSectionHeader("Stop this helper?"));
+            stack.Children.Add(new PopoverNote(
+                $"\U0000201C{title}\U0000201D is still working. Closing the panel stops its turn. What it has done so far stays, and its chat moves to the sidebar under this one."));
+            stack.Children.Add(new PopoverDivider());
+            stack.Children.Add(new PopoverItem("Close and stop", onClose, symbol: "stop.circle", isDestructive: true));
+            stack.Children.Add(new PopoverItem("Keep it working", () => { }, symbol: "arrow.uturn.backward"));
+            return stack;
+        });
+        menu.Width = 300;
+        Child = menu;
+    }
 }
 
-/// <summary>:434-496 <c>@Observable @MainActor final class PanelDragState</c> (R-OBS-6).</summary>
+/// <summary>:434-496 <c>@Observable @MainActor final class PanelDragState</c>.</summary>
 public sealed class PanelDragState : MainActorModel
 {
     private Point? position;
+    private Point? grab;
+    private Vector velocity;
+    private ContinuousInstant lastMove;
 
-    // :441 private(set) var position: CGPoint?
+    // :441
     public Point? Position { get => Read(position); private set => Set(ref position, value); }
 
     private const double FlickCarry = 0.12; // :450
     private const double RestBeforeDrop = 0.08; // :452
 
-    // :456-474 func move(by:from:in:) -> CGPoint
-    public Point Move(Size by, Point from, SubagentPanelLayout @in) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/SubagentPanel.swift:456");
+    // :456-474
+    public Point Move(Size by, Point from, SubagentPanelLayout @in)
+    {
+        var start = grab ?? from;
+        grab = start;
+        var next = @in.Clamped(new Point(start.X + by.Width, start.Y + by.Height));
+        var now = SwiftClock.Now;
+        if (Position is { } oldPosition)
+        {
+            var elapsed = (now - lastMove).TotalSeconds;
+            if (elapsed >= 0.004)
+            {
+                var instant = new Vector((next.X - oldPosition.X) / elapsed, (next.Y - oldPosition.Y) / elapsed);
+                velocity = new Vector(velocity.X * 0.4 + instant.X * 0.6, velocity.Y * 0.4 + instant.Y * 0.6);
+            }
+        }
+        else
+        {
+            velocity = default;
+        }
 
-    // :478-482 func reclamp(in:)
-    public void Reclamp(SubagentPanelLayout @in) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/SubagentPanel.swift:478");
+        lastMove = now;
+        Position = next;
+        return next;
+    }
 
-    // :486-495 func release() -> CGPoint?
-    public Point? Release() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/SubagentPanel.swift:486");
+    // :478-482
+    public void Reclamp(SubagentPanelLayout @in)
+    {
+        if (Position is not { } current) return;
+        var next = @in.Clamped(current);
+        if (next != current) Position = next;
+    }
+
+    // :486-495
+    public Point? Release()
+    {
+        var current = Position;
+        try
+        {
+            if (current is null) return null;
+            if ((SwiftClock.Now - lastMove).TotalSeconds >= RestBeforeDrop) return current;
+            return new Point(current.Value.X + velocity.X * FlickCarry, current.Value.Y + velocity.Y * FlickCarry);
+        }
+        finally
+        {
+            Position = null;
+            grab = null;
+            velocity = default;
+        }
+    }
 }
 
-/// <summary>:498-525 <c>struct PlacedPanel&lt;Content: View&gt;: View</c>. <c>Content</c> is a Control (ED-095), so the
-/// type takes no generic parameter.</summary>
+/// <summary>:498-525 <c>struct PlacedPanel&lt;Content: View&gt;: View</c>.</summary>
 public sealed class PlacedPanel : Decorator
 {
-    // :505-514 the view's inputs; :516-524 body
+    // :505-514, :516-524
     public PlacedPanel(
         PanelDragState drag,
         Point rest,
         Size size,
         Control content,
         PanelResize? resize = null,
-        bool isResizing = false) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/SubagentPanel.swift:516");
+        bool isResizing = false)
+    {
+        content.Width = size.Width;
+        content.Height = size.Height;
+
+        Control placedContent = content;
+        if (resize is not null)
+        {
+            placedContent = new Panel
+            {
+                Children =
+                {
+                    content,
+                    new PanelResizeGrips(resize),
+                },
+            };
+            placedContent.Width = size.Width;
+            placedContent.Height = size.Height;
+        }
+
+        var placement = new Border
+        {
+            Width = size.Width,
+            Height = size.Height,
+            Child = placedContent,
+        };
+
+        void Place(bool settle)
+        {
+            var origin = drag.Position ?? rest;
+            void Apply() => placement.RenderTransform = new TranslateTransform(origin.X, origin.Y);
+            if (settle && !isResizing)
+                Transaction.WithAnimation(Chrome.PanelSlide, Apply);
+            else
+                Apply();
+        }
+
+        Place(settle: false);
+        placement.Track(() => drag.Position, position => Place(settle: position is null));
+        Child = placement;
+    }
 }
 
 /// <summary>:527-547 <c>private struct PanelPlacement: ViewModifier</c>.</summary>
 internal sealed record PanelPlacement(PanelDragState Drag, Point Rest, Size Size, bool IsResizing)
 {
-    // :537-546 func body(content:)
-    public Control Body(Control content) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/SubagentPanel.swift:537");
+    // :537-546
+    public Control Body(Control content)
+    {
+        content.Width = Size.Width;
+        content.Height = Size.Height;
+
+        void Place(bool settle)
+        {
+            var origin = Drag.Position ?? Rest;
+            void Apply() => content.RenderTransform = new TranslateTransform(origin.X, origin.Y);
+            if (settle && !IsResizing)
+                Transaction.WithAnimation(Chrome.PanelSlide, Apply);
+            else
+                Apply();
+        }
+
+        Place(settle: false);
+        content.Track(() => Drag.Position, position => Place(settle: position is null));
+        return content;
+    }
 }
 
-/// <summary>:549-555 <c>struct PanelResizeAxes: OptionSet</c>: a Swift struct is a record (R-VAL-1).</summary>
+/// <summary>:549-555 <c>struct PanelResizeAxes: OptionSet</c>.</summary>
 public sealed record PanelResizeAxes(long RawValue)
 {
     public static PanelResizeAxes Width { get; } = new(1); // :552
     public static PanelResizeAxes Height { get; } = new(2); // :553
-    public static PanelResizeAxes Both { get; } = new(1 | 2); // :554 [.width, .height]
+    public static PanelResizeAxes Both { get; } = new(1 | 2); // :554
 
-    // :550 OptionSet's contains(_:), the SetAlgebra member the call sites read
-    public bool Contains(PanelResizeAxes member) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/SubagentPanel.swift:550");
+    // :550
+    public bool Contains(PanelResizeAxes member) => (RawValue & member.RawValue) == member.RawValue;
 }
 
 /// <summary>:557-567 <c>struct PanelResize</c>.</summary>
@@ -279,33 +693,35 @@ public sealed record PanelResize
     public required Action OnReset { get; init; } // :566
 }
 
-/// <summary>:569-589 <c>@Observable @MainActor final class PanelResizeState</c> (R-OBS-6).</summary>
+/// <summary>:569-589 <c>@Observable @MainActor final class PanelResizeState</c>.</summary>
 public sealed class PanelResizeState : MainActorModel
 {
     private Size? start;
     private Size? liveSize;
     private double? liveUsageHeight;
 
-    // :572 private(set) var start: CGSize?
+    // :572
     public Size? Start { get => Read(start); private set => Set(ref start, value); }
 
-    // :575 var liveSize: CGSize?
+    // :575
     public Size? LiveSize { get => Read(liveSize); set => Set(ref liveSize, value); }
 
-    // :577 var liveUsageHeight: CGFloat?
+    // :577
     public double? LiveUsageHeight { get => Read(liveUsageHeight); set => Set(ref liveUsageHeight, value); }
 
-    // :579 var isActive: Bool
-    public bool IsActive =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/SubagentPanel.swift:579");
+    // :579
+    public bool IsActive => Start is not null;
 
-    // :582-586 func begin(at:) -> CGSize
-    public Size Begin(Size at) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/SubagentPanel.swift:582");
+    // :582-586
+    public Size Begin(Size at)
+    {
+        if (Start is { } current) return current;
+        Start = at;
+        return at;
+    }
 
-    // :588 func end()
-    public void End() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/SubagentPanel.swift:588");
+    // :588
+    public void End() => Start = null;
 }
 
 /// <summary>:591-638 <c>private struct PanelResizeGrips: View</c>.</summary>
@@ -314,34 +730,185 @@ internal sealed class PanelResizeGrips : Decorator
     private const double Edge = 6; // :596
     private const double Corner = 16; // :597
 
-    // :594 the view's input; :599-615 body
-    public PanelResizeGrips(PanelResize resize) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/SubagentPanel.swift:599");
+    // :594, :599-615
+    public PanelResizeGrips(PanelResize resize)
+    {
+        var dock = resize.Corner;
+        var freeHorizontal = dock.Side == PanelDockSide.Leading
+            ? HorizontalAlignment.Right
+            : HorizontalAlignment.Left;
+        var freeVertical = dock.IsTop ? VerticalAlignment.Bottom : VerticalAlignment.Top;
+
+        var panel = new Grid();
+        var widthCursor = new Cursor(StandardCursorType.SizeWestEast);
+        var heightCursor = new Cursor(StandardCursorType.SizeNorthSouth);
+        var cornerCursor = new Cursor(dock switch
+        {
+            PanelDockCorner.TopLeading => StandardCursorType.BottomRightCorner,
+            PanelDockCorner.TopTrailing => StandardCursorType.BottomLeftCorner,
+            PanelDockCorner.BottomLeading => StandardCursorType.TopRightCorner,
+            PanelDockCorner.BottomTrailing => StandardCursorType.TopLeftCorner,
+            _ => throw new UnreachableException(),
+        });
+
+        var widthGrip = MakeGrip(PanelResizeAxes.Width, widthCursor);
+        widthGrip.Width = Edge;
+        widthGrip.HorizontalAlignment = freeHorizontal;
+        widthGrip.VerticalAlignment = VerticalAlignment.Stretch;
+        panel.Children.Add(widthGrip);
+
+        var heightGrip = MakeGrip(PanelResizeAxes.Height, heightCursor);
+        heightGrip.Height = Edge;
+        heightGrip.HorizontalAlignment = HorizontalAlignment.Stretch;
+        heightGrip.VerticalAlignment = freeVertical;
+        panel.Children.Add(heightGrip);
+
+        var cornerGrip = MakeGrip(PanelResizeAxes.Both, cornerCursor);
+        cornerGrip.Width = Corner;
+        cornerGrip.Height = Corner;
+        cornerGrip.HorizontalAlignment = freeHorizontal;
+        cornerGrip.VerticalAlignment = freeVertical;
+        panel.Children.Add(cornerGrip);
+
+        Child = panel;
+
+        Control MakeGrip(PanelResizeAxes axes, Cursor cursor)
+        {
+            var handle = new PanelDragHandle(
+                travel => resize.OnResize(travel, axes),
+                resize.OnResizeEnd,
+                cursor,
+                cursor,
+                resize.OnReset)
+            {
+                Cursor = cursor,
+            };
+            ToolTip.SetTip(handle, "Drag to resize \u00B7 Double-click for the automatic size"); // U+00B7 MIDDLE DOT
+            AutomationProperties.SetName(handle, "Drag to resize");
+            return handle;
+        }
+    }
 }
 
-/// <summary>:640-675 <c>struct PanelDragHandle: NSViewRepresentable</c>: hosts its <see cref="PanelDragHandleView"/>.
-/// The Swift defaults <c>.openHand</c> and <c>.closedHand</c> are not compile-time constants in C#, so a null
-/// <paramref name="cursor"/> or <paramref name="dragCursor"/> stands for them (resolved by the implementing unit).</summary>
+/// <summary>:640-675 <c>struct PanelDragHandle: NSViewRepresentable</c>.</summary>
 public sealed class PanelDragHandle : Decorator
 {
-    // :647-653 the inputs; :655-674 makeNSView, updateNSView, update(_:)
+    // :647-653, :655-674
     public PanelDragHandle(
         Action<Size> onDrag,
         Action onDragEnd,
         Cursor? cursor = null,
         Cursor? dragCursor = null,
-        Action? onDoubleClick = null) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/SubagentPanel.swift:655");
+        Action? onDoubleClick = null)
+    {
+        Child = new PanelDragHandleView
+        {
+            OnDrag = onDrag,
+            OnDragEnd = onDragEnd,
+            OnDoubleClick = onDoubleClick,
+            DragCursor = dragCursor ?? new Cursor(StandardCursorType.SizeAll),
+            Cursor = cursor ?? new Cursor(StandardCursorType.Hand),
+        };
+    }
 }
 
-/// <summary>:677-738 <c>final class PanelDragHandleView: NSView</c>. Swift's <c>cursor</c> (:681, the cursor rect of
-/// :695-698) is the inherited <see cref="InputElement.Cursor"/>.</summary>
+/// <summary>:677-738 <c>final class PanelDragHandleView: NSView</c>.</summary>
 public sealed class PanelDragHandleView : Control
 {
     public Action<Size>? OnDrag { get; set; } // :678
     public Action? OnDragEnd { get; set; } // :679
     public Action? OnDoubleClick { get; set; } // :680
-    public Cursor? DragCursor { get; set; } // :682 = .closedHand
+    public Cursor? DragCursor { get; set; } // :682
 
     private const double Slop = 2; // :685
+    private Point pressOrigin;
+    private bool isDragging;
+    private Cursor? pressCursor;
+
+    public PanelDragHandleView()
+    {
+        Focusable = false;
+        IsHitTestVisible = true;
+        PointerPressed += HandlePressed;
+        PointerMoved += HandleMoved;
+        PointerReleased += HandleReleased;
+        PointerCaptureLost += HandleCaptureLost;
+        DetachedFromVisualTree += (_, _) => CancelDrag();
+    }
+
+    // :690
+    // Avalonia routes the initial press to this control without requiring an activated window.
+
+    // :693
+    // Pointer capture on this control consumes strip drags rather than moving the window.
+
+    // :695-698
+    protected override void OnPointerMoved(PointerEventArgs e)
+    {
+        base.OnPointerMoved(e);
+    }
+
+    // :700-704
+    private void HandlePressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
+        var topLevel = (Control?)TopLevel.GetTopLevel(this) ?? this;
+        pressOrigin = e.GetPosition(topLevel);
+        pressCursor = Cursor;
+        isDragging = false;
+        if (e.ClickCount == 2) OnDoubleClick?.Invoke();
+        e.Pointer.Capture(this);
+        e.Handled = true;
+    }
+
+    // :706-714
+    private void HandleMoved(object? sender, PointerEventArgs e)
+    {
+        if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
+        var travel = Travel(e);
+        if (!isDragging)
+        {
+            if (Math.Abs(travel.Width) < Slop && Math.Abs(travel.Height) < Slop) return;
+            isDragging = true;
+            if (DragCursor is { } dragCursor) Cursor = dragCursor;
+        }
+
+        OnDrag?.Invoke(travel);
+        e.Handled = true;
+    }
+
+    // :716-722
+    private void HandleReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        if (isDragging)
+        {
+            isDragging = false;
+            Cursor = pressCursor ?? new Cursor(StandardCursorType.Hand);
+            OnDrag?.Invoke(Travel(e));
+            OnDragEnd?.Invoke();
+        }
+
+        e.Pointer.Capture(null);
+        pressCursor = null;
+        e.Handled = true;
+    }
+
+    // :724-731
+    private void HandleCaptureLost(object? sender, PointerCaptureLostEventArgs e) => CancelDrag();
+
+    private void CancelDrag()
+    {
+        if (!isDragging) return;
+        isDragging = false;
+        Cursor = pressCursor ?? new Cursor(StandardCursorType.Hand);
+        pressCursor = null;
+    }
+
+    // :733-737
+    private Size Travel(PointerEventArgs e)
+    {
+        var topLevel = (Control?)TopLevel.GetTopLevel(this) ?? this;
+        var point = e.GetPosition(topLevel);
+        return new Size(point.X - pressOrigin.X, pressOrigin.Y - point.Y);
+    }
 }
