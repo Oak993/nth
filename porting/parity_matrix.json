@@ -7,9 +7,9 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "IMPLEMENTED": 3045,
+      "IMPLEMENTED": 3065,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
-      "SPECIFIED": 856,
+      "SPECIFIED": 836,
       "RETIRED": 6,
       "DISCOVERED": 6
     },
@@ -79987,7 +79987,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same: read the stored number and apply it with no clamp. Do not add a load-time clamp.",
       "verification_method": "restart test with an out-of-range stored value",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "70",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -80009,7 +80009,7 @@
       "cancellation": "not cancellable",
       "windows_path": "border-radius 16px 16px 0 0 with a squircle approximation; background white 0.08 and white 0.985 resolved in the same sRGB grey sense the source uses. Platform boundary: the continuous corner curve has no exact CSS equivalent.",
       "verification_method": "capture comparison in both themes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -80036,7 +80036,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same trigger on mount. The working-directory fallback chain is identical; the home directory comes from the Windows user profile.",
       "verification_method": "interaction test: open the drawer on a fresh thread and assert one tab named \"Terminal 1\"",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -80058,7 +80058,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed-height flex row, 38px, padding 0 10px, gap 6px, with a flex spacer whose minimum is 0.",
       "verification_method": "capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -80082,7 +80082,7 @@
       "cancellation": "not cancellable",
       "windows_path": "overflow-x auto with the scrollbar hidden, flex row gap 4px.",
       "verification_method": "interaction test with many tabs",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -80110,7 +80110,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same, spawning a ConPTY session. ED-059: the plus glyph's Chrome.iconFont (.callout, semibold) is 12 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:52), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001.",
       "verification_method": "interaction test asserting tab count, title and selection",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -80136,7 +80136,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same strings and behaviour; the chord label is rendered in Windows notation (OD-0008 B7). ED-059: the chevron glyph's Chrome.iconFont (.callout, semibold) is 12 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:52), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001.",
       "verification_method": "interaction test plus a cleared-chord case",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -80164,7 +80164,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same insets; keying by session id maps to a keyed component per session.",
       "verification_method": "capture comparison and an interaction test switching tabs",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -80190,7 +80190,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same strings, the body text style of the port's type scale (13 pt per ED-059, B1:DroppyCode/UI/Common/ChatZoom.swift:51; visual size parity UNVERIFIED under OD-0001), the secondary text token (label colour at 0.7 opacity at B2; ED-062 supersedes ED-051's secondaryLabelColor literal for this token), same 10px gap. Platform boundary: the .glass button style is macOS Liquid Glass. The button sits on the drawer's opaque fill (TerminalPanel.swift:101-108), which is the app's own content, so under OD-0005 (Acrylic where the window shows the desktop, the source-defined material reproduced over app content) its glass is the source-defined material reproduced by the port's shader, not Acrylic. A named deviation.",
       "verification_method": "interaction test closing every tab, then capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -80242,7 +80242,7 @@
       "cancellation": "not cancellable",
       "windows_path": "An 8px absolutely positioned strip with cursor: ns-resize. Platform boundary: AppKit cursor rects become a CSS cursor.",
       "verification_method": "interaction test plus capture comparison of the cursor",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -80266,7 +80266,7 @@
       "cancellation": "not cancellable",
       "windows_path": "pointerdown with pointer capture; record the pointer y and the current height.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -80291,7 +80291,7 @@
       "cancellation": "There is no cancel gesture; releasing commits (see PR-TERM-015).",
       "windows_path": "pointermove with the sign inverted relative to CSS coordinates, because Windows and the DOM measure y downward while AppKit measures it upward. Platform boundary: coordinate-system sign.",
       "verification_method": "unit test on the clamp plus an interaction test on the direction",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -80318,7 +80318,7 @@
       "cancellation": "not cancellable",
       "windows_path": "pointerup; write the same key with the same name and type.",
       "verification_method": "restart test: drag, quit, relaunch, assert the height",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -80341,7 +80341,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A 2.5px-tall, 1.25px-radius element, width and opacity transitioned over 180ms ease-out.",
       "verification_method": "capture comparison of rest, hover and drag states",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -80362,7 +80362,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A CSS variable for the primary label colour redefined per theme; no explicit repaint step is needed, which removes the reason the source has this method.",
       "verification_method": "capture comparison after a theme switch",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -80384,7 +80384,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Windows always delivers the activating click to the control, so acceptsFirstMouse has no counterpart. The strip must be excluded from any draggable-region declaration so it cannot move the window.",
       "verification_method": "interaction test from an unfocused window",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -80625,7 +80625,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep one terminal instance per session in a store outside the view tree and reparent its DOM node, rather than remounting a component per tab. Platform boundary: a remount would clear the xterm buffer, which the source never does.",
       "verification_method": "interaction test: print output, switch tabs twice, assert the scrollback is intact",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -80650,7 +80650,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same guard: compare against the last applied value before touching the terminal's theme, because re-theming an xterm instance also forces a full repaint.",
       "verification_method": "unit test counting applications across repeated updates",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -80810,7 +80810,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three guards before calling the terminal's fit.",
       "verification_method": "unit test over the guard matrix",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -83043,7 +83043,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The Windows build must embed a terminal in the window. Shelling out to Windows Terminal, conhost or PowerShell in a separate window for these paths is forbidden by contract section 10, regardless of how much simpler it would be.",
       "verification_method": "code review plus an interaction test asserting no external process window appears",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

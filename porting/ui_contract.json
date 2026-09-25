@@ -19343,7 +19343,8 @@
         "decision": "OD-0008 C3, B7",
         "upstream": "DroppyCode/App/AppCommands.swift:42-44 - the View group item \"Toggle terminal\" with the .toggleTerminal chord, DroppyCode/Core/Models/Shortcuts.swift:230 `case .toggleTerminal: KeyChord(keyCode: 38, modifiers: .command)` (⌘J)",
         "port": "No menu bar. Every command the source defines stays on its shortcut and in the command palette; text fields keep standard Ctrl+C/V/X/Z/A. Chords render in Windows notation (Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl)."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "TERM",
@@ -19366,7 +19367,8 @@
         "DroppyCode/App/Views/Terminal/TerminalPanel.swift:20-34",
         "DroppyCode/App/Views/Terminal/TerminalPanel.swift:55-56"
       ],
-      "notes": "The source comment at :81-83 records that the whole tab row used to be the resize target and that this was wrong; the drag lives on its own strip precisely so sideways dragging here scrolls."
+      "notes": "The source comment at :81-83 records that the whole tab row used to be the resize target and that this was wrong; the drag lives on its own strip precisely so sideways dragging here scrolls.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "TERM",
@@ -19393,7 +19395,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:52 - `case .callout: 12` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)",
         "B1:DroppyCode/UI/Common/ChatZoom.swift:54 - `case .footnote, .caption, .caption2: 10` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)"
       ],
-      "notes": "Tab names are not unique and are never renumbered: closing a middle tab and opening a new one can produce two tabs with the same name."
+      "notes": "Tab names are not unique and are never renumbered: closing a middle tab and opening a new one can produce two tabs with the same name.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "TERM",
@@ -19415,7 +19418,8 @@
         "DroppyCode/App/Views/Terminal/TerminalPanel.swift:269-270",
         "B1:DroppyCode/UI/Common/ChatZoom.swift:54 - `case .footnote, .caption, .caption2: 10` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)"
       ],
-      "notes": "SF Symbol name \"terminal\"; in the port it draws as Lucide \"square-terminal\" (OD-0010, porting/icons/sf-symbols-to-lucide.json)."
+      "notes": "SF Symbol name \"terminal\"; in the port it draws as Lucide \"square-terminal\" (OD-0010, porting/icons/sf-symbols-to-lucide.json).",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "TERM",
@@ -19437,7 +19441,8 @@
         "DroppyCode/App/Views/Terminal/TerminalPanel.swift:271",
         "B1:DroppyCode/UI/Common/ChatZoom.swift:52 - `case .callout: 12` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)"
       ],
-      "notes": "The title never follows the shell's OSC title sequence: setTerminalTitle is an empty delegate body (TerminalStore.swift:93)."
+      "notes": "The title never follows the shell's OSC title sequence: setTerminalTitle is an empty delegate body (TerminalStore.swift:93).",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "TERM",
@@ -19462,7 +19467,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:54 - `case .footnote, .caption, .caption2: 10` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)"
       ],
       "notes": "Tooltip is exactly \"Start a new shell in this tab\"; accessibility label is \"Restart \" followed by the session title. SF Symbol \"arrow.clockwise\". A restarted script tab does NOT re-run its script. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal does not apply.",
-      "b2_change": "B1 DroppyCode/App/Views/Terminal/TerminalPanel.swift:280 `.foregroundStyle(.secondary)` -> B2 DroppyCode/App/Views/Terminal/TerminalPanel.swift:280 `.foregroundStyle(Chrome.secondaryText)`; B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (primaryText is Color(nsColor: .labelColor), :76). Typography unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Terminal/TerminalPanel.swift:280 `.foregroundStyle(.secondary)` -> B2 DroppyCode/App/Views/Terminal/TerminalPanel.swift:280 `.foregroundStyle(Chrome.secondaryText)`; B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (primaryText is Color(nsColor: .labelColor), :76). Typography unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "TERM",
@@ -19488,7 +19494,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:54 - `case .footnote, .caption, .caption2: 10` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)"
       ],
       "notes": "Tooltip is exactly \"Close terminal\"; accessibility label is \"Close \" followed by the session title. SF Symbol \"xmark\". There is no confirmation and settings.confirmBeforeDeleting is not consulted. Use opacity 0 with pointer-events none, not display none, or the chip will jump on hover. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal does not apply.",
-      "b2_change": "B1 DroppyCode/App/Views/Terminal/TerminalPanel.swift:289 `.foregroundStyle(.secondary)` -> B2 DroppyCode/App/Views/Terminal/TerminalPanel.swift:289 `.foregroundStyle(Chrome.secondaryText)`; B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (primaryText is Color(nsColor: .labelColor), :76). Typography unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Terminal/TerminalPanel.swift:289 `.foregroundStyle(.secondary)` -> B2 DroppyCode/App/Views/Terminal/TerminalPanel.swift:289 `.foregroundStyle(Chrome.secondaryText)`; B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (primaryText is Color(nsColor: .labelColor), :76). Typography unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "TERM",
@@ -19515,7 +19522,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:52 - `case .callout: 12` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)"
       ],
       "notes": "Tooltip and accessibility label are both exactly \"New terminal\". SF Symbol \"plus\".",
-      "b2_change": "B1 DroppyCode/UI/Chrome/Chrome.swift:28 `static let iconFont: Font = .system(size: 12, weight: .semibold)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:28 `static let iconFont: Font = .system(.callout, weight: .semibold)`, 12 points at the default size per B1 DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (file deleted at B2; the B2 size is macOS's text-style metric, UNVERIFIED per UNK-0003)."
+      "b2_change": "B1 DroppyCode/UI/Chrome/Chrome.swift:28 `static let iconFont: Font = .system(size: 12, weight: .semibold)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:28 `static let iconFont: Font = .system(.callout, weight: .semibold)`, 12 points at the default size per B1 DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (file deleted at B2; the B2 size is macOS's text-style metric, UNVERIFIED per UNK-0003).",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "TERM",
@@ -19544,7 +19552,8 @@
         "decision": "OD-0008 B7",
         "upstream": "DroppyCode/App/Views/Terminal/TerminalPanel.swift:52 .help(\"Hide terminal\\(ShortcutStore.hint(for: .toggleTerminal))\"), \"Hide terminal (⌘J)\" by default; DroppyCode/Core/Models/Shortcuts.swift:32-34 description is KeyNames.modifierSymbols(modifierFlags) + KeyNames.label(for: keyCode), and :43-50 modifierSymbols concatenates \"⌃\", \"⌥\", \"⇧\", \"⌘\" with no separator",
         "port": "Chords render in Windows notation (Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl): \"Hide terminal (Ctrl+J)\"."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "TERM",
@@ -19602,7 +19611,8 @@
         "DroppyCode/App/Views/Terminal/TerminalPanel.swift:84-99",
         "DroppyCode/App/Views/Terminal/TerminalPanel.swift:114-256"
       ],
-      "notes": "AppKit y increases upward, so the source's positive delta means dragging up. On Windows and in the DOM the sign must be inverted. mouseUp applies one final onChange before onEnd, so the release pixel counts."
+      "notes": "AppKit y increases upward, so the source's positive delta means dragging up. On Windows and in the DOM the sign must be inverted. mouseUp applies one final onChange before onEnd, so the release pixel counts.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "TERM",
@@ -19626,7 +19636,8 @@
         "DroppyCode/App/Views/Terminal/TerminalPanel.swift:147-153",
         "DroppyCode/App/Views/Terminal/TerminalPanel.swift:191-210"
       ],
-      "notes": "The same affordance as the sidebar's edge grip (the source names SidebarResizeHandleView); porting/extracts/chrome-design-tokens.md:358 confirms SidebarResizeHandleView.Grip.duration is also 0.18."
+      "notes": "The same affordance as the sidebar's edge grip (the source names SidebarResizeHandleView); porting/extracts/chrome-design-tokens.md:358 confirms SidebarResizeHandleView.Grip.duration is also 0.18.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "TERM",
@@ -19650,7 +19661,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:51 - `case .headline, .body: 13` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)"
       ],
       "notes": "Reached by closing every tab; the drawer deliberately stays open rather than hiding itself. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal does not apply.",
-      "b2_change": "B1 DroppyCode/App/Views/Terminal/TerminalPanel.swift:69 `.font(.system(size: 13))` -> B2 DroppyCode/App/Views/Terminal/TerminalPanel.swift:69 `.font(.system(.body))`, 13 points at the default size per B1 DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (file deleted at B2; the B2 size is macOS's text-style metric, UNVERIFIED per UNK-0003). Colour: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (primaryText is Color(nsColor: .labelColor), :76). String unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Terminal/TerminalPanel.swift:69 `.font(.system(size: 13))` -> B2 DroppyCode/App/Views/Terminal/TerminalPanel.swift:69 `.font(.system(.body))`, 13 points at the default size per B1 DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (file deleted at B2; the B2 size is macOS's text-style metric, UNVERIFIED per UNK-0003). Colour: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (primaryText is Color(nsColor: .labelColor), :76). String unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "TERM",
@@ -19676,7 +19688,8 @@
         "decision": "OD-0005",
         "upstream": "DroppyCode/App/Views/Terminal/TerminalPanel.swift:74 `.buttonStyle(.glass)`, macOS Liquid Glass, over the drawer's opaque fill (:107 `.fill(colorScheme == .dark ? Color(white: 0.08) : Color(white: 0.985))`)",
         "port": "Over the app's own content a shader reproduces the source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing. The Acrylic-class Windows system material, without lensing, refraction or chromatic fringing, is used only where the window shows the desktop, which this surface does not"
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "TERM",

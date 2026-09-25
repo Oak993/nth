@@ -49,7 +49,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same: read the stored number and apply it with no clamp. Do not add a load-time clamp.",
       "verification_method": "restart test with an out-of-range stored value",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "70",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -70,7 +70,7 @@
       "cancellation": "not cancellable",
       "windows_path": "border-radius 16px 16px 0 0 with a squircle approximation; background white 0.08 and white 0.985 resolved in the same sRGB grey sense the source uses. Platform boundary: the continuous corner curve has no exact CSS equivalent.",
       "verification_method": "capture comparison in both themes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -96,7 +96,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same trigger on mount. The working-directory fallback chain is identical; the home directory comes from the Windows user profile.",
       "verification_method": "interaction test: open the drawer on a fresh thread and assert one tab named \"Terminal 1\"",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -117,7 +117,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed-height flex row, 38px, padding 0 10px, gap 6px, with a flex spacer whose minimum is 0.",
       "verification_method": "capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -140,7 +140,7 @@
       "cancellation": "not cancellable",
       "windows_path": "overflow-x auto with the scrollbar hidden, flex row gap 4px.",
       "verification_method": "interaction test with many tabs",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -167,7 +167,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same, spawning a ConPTY session. ED-059: the plus glyph's Chrome.iconFont (.callout, semibold) is 12 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:52), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001.",
       "verification_method": "interaction test asserting tab count, title and selection",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -192,7 +192,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same strings and behaviour; the chord label is rendered in Windows notation (OD-0008 B7). ED-059: the chevron glyph's Chrome.iconFont (.callout, semibold) is 12 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:52), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001.",
       "verification_method": "interaction test plus a cleared-chord case",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -219,7 +219,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same insets; keying by session id maps to a keyed component per session.",
       "verification_method": "capture comparison and an interaction test switching tabs",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -244,7 +244,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same strings, the body text style of the port's type scale (13 pt per ED-059, B1:DroppyCode/UI/Common/ChatZoom.swift:51; visual size parity UNVERIFIED under OD-0001), the secondary text token (label colour at 0.7 opacity at B2; ED-062 supersedes ED-051's secondaryLabelColor literal for this token), same 10px gap. Platform boundary: the .glass button style is macOS Liquid Glass. The button sits on the drawer's opaque fill (TerminalPanel.swift:101-108), which is the app's own content, so under OD-0005 (Acrylic where the window shows the desktop, the source-defined material reproduced over app content) its glass is the source-defined material reproduced by the port's shader, not Acrylic. A named deviation.",
       "verification_method": "interaction test closing every tab, then capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -294,7 +294,7 @@
       "cancellation": "not cancellable",
       "windows_path": "An 8px absolutely positioned strip with cursor: ns-resize. Platform boundary: AppKit cursor rects become a CSS cursor.",
       "verification_method": "interaction test plus capture comparison of the cursor",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -317,7 +317,7 @@
       "cancellation": "not cancellable",
       "windows_path": "pointerdown with pointer capture; record the pointer y and the current height.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -341,7 +341,7 @@
       "cancellation": "There is no cancel gesture; releasing commits (see PR-TERM-015).",
       "windows_path": "pointermove with the sign inverted relative to CSS coordinates, because Windows and the DOM measure y downward while AppKit measures it upward. Platform boundary: coordinate-system sign.",
       "verification_method": "unit test on the clamp plus an interaction test on the direction",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -367,7 +367,7 @@
       "cancellation": "not cancellable",
       "windows_path": "pointerup; write the same key with the same name and type.",
       "verification_method": "restart test: drag, quit, relaunch, assert the height",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -389,7 +389,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A 2.5px-tall, 1.25px-radius element, width and opacity transitioned over 180ms ease-out.",
       "verification_method": "capture comparison of rest, hover and drag states",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -409,7 +409,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A CSS variable for the primary label colour redefined per theme; no explicit repaint step is needed, which removes the reason the source has this method.",
       "verification_method": "capture comparison after a theme switch",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -430,7 +430,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Windows always delivers the activating click to the control, so acceptsFirstMouse has no counterpart. The strip must be excluded from any draggable-region declaration so it cannot move the window.",
       "verification_method": "interaction test from an unfocused window",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -661,7 +661,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep one terminal instance per session in a store outside the view tree and reparent its DOM node, rather than remounting a component per tab. Platform boundary: a remount would clear the xterm buffer, which the source never does.",
       "verification_method": "interaction test: print output, switch tabs twice, assert the scrollback is intact",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -685,7 +685,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same guard: compare against the last applied value before touching the terminal's theme, because re-theming an xterm instance also forces a full repaint.",
       "verification_method": "unit test counting applications across repeated updates",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -839,7 +839,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three guards before calling the terminal's fit.",
       "verification_method": "unit test over the guard matrix",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2985,7 +2985,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The Windows build must embed a terminal in the window. Shelling out to Windows Terminal, conhost or PowerShell in a separate window for these paths is forbidden by contract section 10, regardless of how much simpler it would be.",
       "verification_method": "code review plus an interaction test asserting no external process window appears",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3316,7 +3316,8 @@
         "decision": "OD-0008 C3, B7",
         "upstream": "DroppyCode/App/AppCommands.swift:42-44 - the View group item \"Toggle terminal\" with the .toggleTerminal chord, DroppyCode/Core/Models/Shortcuts.swift:230 `case .toggleTerminal: KeyChord(keyCode: 38, modifiers: .command)` (⌘J)",
         "port": "No menu bar. Every command the source defines stays on its shortcut and in the command palette; text fields keep standard Ctrl+C/V/X/Z/A. Chords render in Windows notation (Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl)."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-TERM-002",
@@ -3338,7 +3339,8 @@
         "DroppyCode/App/Views/Terminal/TerminalPanel.swift:20-34",
         "DroppyCode/App/Views/Terminal/TerminalPanel.swift:55-56"
       ],
-      "notes": "The source comment at :81-83 records that the whole tab row used to be the resize target and that this was wrong; the drag lives on its own strip precisely so sideways dragging here scrolls."
+      "notes": "The source comment at :81-83 records that the whole tab row used to be the resize target and that this was wrong; the drag lives on its own strip precisely so sideways dragging here scrolls.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-TERM-003",
@@ -3364,7 +3366,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:52 - `case .callout: 12` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)",
         "B1:DroppyCode/UI/Common/ChatZoom.swift:54 - `case .footnote, .caption, .caption2: 10` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)"
       ],
-      "notes": "Tab names are not unique and are never renumbered: closing a middle tab and opening a new one can produce two tabs with the same name."
+      "notes": "Tab names are not unique and are never renumbered: closing a middle tab and opening a new one can produce two tabs with the same name.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-TERM-004",
@@ -3385,7 +3388,8 @@
         "DroppyCode/App/Views/Terminal/TerminalPanel.swift:269-270",
         "B1:DroppyCode/UI/Common/ChatZoom.swift:54 - `case .footnote, .caption, .caption2: 10` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)"
       ],
-      "notes": "SF Symbol name \"terminal\"; in the port it draws as Lucide \"square-terminal\" (OD-0010, porting/icons/sf-symbols-to-lucide.json)."
+      "notes": "SF Symbol name \"terminal\"; in the port it draws as Lucide \"square-terminal\" (OD-0010, porting/icons/sf-symbols-to-lucide.json).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-TERM-005",
@@ -3406,7 +3410,8 @@
         "DroppyCode/App/Views/Terminal/TerminalPanel.swift:271",
         "B1:DroppyCode/UI/Common/ChatZoom.swift:52 - `case .callout: 12` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)"
       ],
-      "notes": "The title never follows the shell's OSC title sequence: setTerminalTitle is an empty delegate body (TerminalStore.swift:93)."
+      "notes": "The title never follows the shell's OSC title sequence: setTerminalTitle is an empty delegate body (TerminalStore.swift:93).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-TERM-006",
@@ -3430,7 +3435,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:54 - `case .footnote, .caption, .caption2: 10` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)"
       ],
       "notes": "Tooltip is exactly \"Start a new shell in this tab\"; accessibility label is \"Restart \" followed by the session title. SF Symbol \"arrow.clockwise\". A restarted script tab does NOT re-run its script. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal does not apply.",
-      "b2_change": "B1 DroppyCode/App/Views/Terminal/TerminalPanel.swift:280 `.foregroundStyle(.secondary)` -> B2 DroppyCode/App/Views/Terminal/TerminalPanel.swift:280 `.foregroundStyle(Chrome.secondaryText)`; B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (primaryText is Color(nsColor: .labelColor), :76). Typography unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Terminal/TerminalPanel.swift:280 `.foregroundStyle(.secondary)` -> B2 DroppyCode/App/Views/Terminal/TerminalPanel.swift:280 `.foregroundStyle(Chrome.secondaryText)`; B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (primaryText is Color(nsColor: .labelColor), :76). Typography unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-TERM-007",
@@ -3455,7 +3461,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:54 - `case .footnote, .caption, .caption2: 10` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)"
       ],
       "notes": "Tooltip is exactly \"Close terminal\"; accessibility label is \"Close \" followed by the session title. SF Symbol \"xmark\". There is no confirmation and settings.confirmBeforeDeleting is not consulted. Use opacity 0 with pointer-events none, not display none, or the chip will jump on hover. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal does not apply.",
-      "b2_change": "B1 DroppyCode/App/Views/Terminal/TerminalPanel.swift:289 `.foregroundStyle(.secondary)` -> B2 DroppyCode/App/Views/Terminal/TerminalPanel.swift:289 `.foregroundStyle(Chrome.secondaryText)`; B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (primaryText is Color(nsColor: .labelColor), :76). Typography unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Terminal/TerminalPanel.swift:289 `.foregroundStyle(.secondary)` -> B2 DroppyCode/App/Views/Terminal/TerminalPanel.swift:289 `.foregroundStyle(Chrome.secondaryText)`; B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (primaryText is Color(nsColor: .labelColor), :76). Typography unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-TERM-008",
@@ -3481,7 +3488,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:52 - `case .callout: 12` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)"
       ],
       "notes": "Tooltip and accessibility label are both exactly \"New terminal\". SF Symbol \"plus\".",
-      "b2_change": "B1 DroppyCode/UI/Chrome/Chrome.swift:28 `static let iconFont: Font = .system(size: 12, weight: .semibold)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:28 `static let iconFont: Font = .system(.callout, weight: .semibold)`, 12 points at the default size per B1 DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (file deleted at B2; the B2 size is macOS's text-style metric, UNVERIFIED per UNK-0003)."
+      "b2_change": "B1 DroppyCode/UI/Chrome/Chrome.swift:28 `static let iconFont: Font = .system(size: 12, weight: .semibold)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:28 `static let iconFont: Font = .system(.callout, weight: .semibold)`, 12 points at the default size per B1 DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (file deleted at B2; the B2 size is macOS's text-style metric, UNVERIFIED per UNK-0003).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-TERM-009",
@@ -3509,7 +3517,8 @@
         "decision": "OD-0008 B7",
         "upstream": "DroppyCode/App/Views/Terminal/TerminalPanel.swift:52 .help(\"Hide terminal\\(ShortcutStore.hint(for: .toggleTerminal))\"), \"Hide terminal (⌘J)\" by default; DroppyCode/Core/Models/Shortcuts.swift:32-34 description is KeyNames.modifierSymbols(modifierFlags) + KeyNames.label(for: keyCode), and :43-50 modifierSymbols concatenates \"⌃\", \"⌥\", \"⇧\", \"⌘\" with no separator",
         "port": "Chords render in Windows notation (Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl): \"Hide terminal (Ctrl+J)\"."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-TERM-010",
@@ -3565,7 +3574,8 @@
         "DroppyCode/App/Views/Terminal/TerminalPanel.swift:84-99",
         "DroppyCode/App/Views/Terminal/TerminalPanel.swift:114-256"
       ],
-      "notes": "AppKit y increases upward, so the source's positive delta means dragging up. On Windows and in the DOM the sign must be inverted. mouseUp applies one final onChange before onEnd, so the release pixel counts."
+      "notes": "AppKit y increases upward, so the source's positive delta means dragging up. On Windows and in the DOM the sign must be inverted. mouseUp applies one final onChange before onEnd, so the release pixel counts.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-TERM-012",
@@ -3588,7 +3598,8 @@
         "DroppyCode/App/Views/Terminal/TerminalPanel.swift:147-153",
         "DroppyCode/App/Views/Terminal/TerminalPanel.swift:191-210"
       ],
-      "notes": "The same affordance as the sidebar's edge grip (the source names SidebarResizeHandleView); porting/extracts/chrome-design-tokens.md:358 confirms SidebarResizeHandleView.Grip.duration is also 0.18."
+      "notes": "The same affordance as the sidebar's edge grip (the source names SidebarResizeHandleView); porting/extracts/chrome-design-tokens.md:358 confirms SidebarResizeHandleView.Grip.duration is also 0.18.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-TERM-013",
@@ -3611,7 +3622,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:51 - `case .headline, .body: 13` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)"
       ],
       "notes": "Reached by closing every tab; the drawer deliberately stays open rather than hiding itself. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal does not apply.",
-      "b2_change": "B1 DroppyCode/App/Views/Terminal/TerminalPanel.swift:69 `.font(.system(size: 13))` -> B2 DroppyCode/App/Views/Terminal/TerminalPanel.swift:69 `.font(.system(.body))`, 13 points at the default size per B1 DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (file deleted at B2; the B2 size is macOS's text-style metric, UNVERIFIED per UNK-0003). Colour: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (primaryText is Color(nsColor: .labelColor), :76). String unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Terminal/TerminalPanel.swift:69 `.font(.system(size: 13))` -> B2 DroppyCode/App/Views/Terminal/TerminalPanel.swift:69 `.font(.system(.body))`, 13 points at the default size per B1 DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (file deleted at B2; the B2 size is macOS's text-style metric, UNVERIFIED per UNK-0003). Colour: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (primaryText is Color(nsColor: .labelColor), :76). String unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-TERM-014",
@@ -3636,7 +3648,8 @@
         "decision": "OD-0005",
         "upstream": "DroppyCode/App/Views/Terminal/TerminalPanel.swift:74 `.buttonStyle(.glass)`, macOS Liquid Glass, over the drawer's opaque fill (:107 `.fill(colorScheme == .dark ? Color(white: 0.08) : Color(white: 0.985))`)",
         "port": "Over the app's own content a shader reproduces the source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing. The Acrylic-class Windows system material, without lensing, refraction or chromatic fringing, is used only where the window shows the desktop, which this surface does not"
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-TERM-015",
