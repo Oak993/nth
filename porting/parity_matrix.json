@@ -7,9 +7,9 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "IMPLEMENTED": 2766,
+      "IMPLEMENTED": 2773,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
-      "SPECIFIED": 1131,
+      "SPECIFIED": 1124,
       "RETIRED": 6,
       "DISCOVERED": 10
     },
@@ -75080,7 +75080,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct translation of all four constants and the clamping order. Note the area is the detail pane's size, not the window's (port_impacts entry 182).",
       "verification_method": "unit test on the size and clamp arithmetic at small and large areas.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -75104,7 +75104,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Glass: by owner ruling OD-0005 the title capsule's `.chromeGlassCapsule()` surface and the round glass close button are an Acrylic-class Windows system material where they show the desktop, and the source-defined material over the app's own content; lensing, refraction and chromatic fringing are not reproduced over the desktop. Metrics and strings are unchanged. By owner ruling OD-0010 the close button's `xmark` is drawn as the Lucide icon `x` from the published table porting/icons/sf-symbols-to-lucide.json. Owner ruling OD-0014: the main window stays clear by default, as upstream, so until the user sets a wallpaper the panel floats over the desktop seen through the window and takes the Acrylic path plus the app-drawn scrim (OD-0005, probe P3); once a wallpaper is set it floats over the app's own backdrop and takes the source-defined material.",
       "verification_method": "interaction test asserting the three strings and the conditional close button.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -75137,7 +75137,7 @@
       "cancellation": "A cancelled drag delivers the end handler and persists whatever origin it had reached.",
       "windows_path": "Same key name and the same two-element double array form.",
       "verification_method": "restart test on the persisted origin plus a fixture with a malformed stored array.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -75163,7 +75163,7 @@
       "cancellation": "A cancelled drag leaves the last written size in place.",
       "windows_path": "Same key name and array form. Reproduce both clamp arithmetics separately and accept that a sub-240 or sub-320 size can reach the store (port_impacts entry 155). The frame-resize cursor is the Windows diagonal resize cursor.",
       "verification_method": "unit test on the clamp proving a sub-minimum value is written in a narrow area, plus a restart test.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "56",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -75186,7 +75186,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Glass: by owner ruling OD-0005 the panel's `.glassEffect(.regular, in: shape)` is an Acrylic-class Windows system material where the panel shows the desktop, and the source-defined material over the app's own content; lensing, refraction and chromatic fringing are not reproduced over the desktop. Everything the source defines around it is reproduced: the 22 pt continuous radius, the `Chrome.glassTint` wash at 0.22 (dark) and 0.16 (light), the clip, the backing plate (black at 0.3 dark, white at 0.34 light) and the shadow (black at 1 dark and 0.65 light, radius 28, y 10). Owner ruling OD-0014: the main window stays clear by default, as upstream, so until the user sets a wallpaper the panel floats over the desktop seen through the window and takes the Acrylic path plus the app-drawn scrim (OD-0005, probe P3); once a wallpaper is set it floats over the app's own backdrop and takes the source-defined material.",
       "verification_method": "capture comparison in both themes.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -75212,7 +75212,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct translation. The absence of a glide in the panel is deliberate: a ghost cannot cross from the panel's window into the main one.",
       "verification_method": "interaction test asserting the panel stays open and no ghost flies.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -75489,7 +75489,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the `dragOrigin ?? rest` read in the resize clamp rather than substituting the resting origin. Recorded alongside upstream defect 56 in PR-SIDEBAR-146, which covers the min-last clamp ordering in the same expression.",
       "verification_method": "unit test driving a strip drag and a grip drag together and asserting the clamp uses the dragged origin.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "57",
       "blocked_by": null,
       "depends_on_unknown": null

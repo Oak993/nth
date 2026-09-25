@@ -18303,7 +18303,8 @@
         "decision": "OD-0005",
         "upstream": "FloatingSidebarPanel.swift:86-94 fills the panel shape with `.glassEffect(.regular, in: shape)` (macOS Liquid Glass) under the tint wash.",
         "port": "An Acrylic-class Windows system material where the surface shows the desktop, and the source-defined material (shape, corner radius, tint colour and opacity, interactivity) over the app's own content; lensing, refraction and chromatic fringing are not reproduced over the desktop. Tint wash, clip, backing plate and shadow unchanged."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "SIDEBAR",
@@ -18329,7 +18330,8 @@
         "decision": "OD-0005",
         "upstream": "FloatingSidebarPanel.swift:48 puts the title on `.chromeGlassCapsule()` (Chrome.swift:129-131, Liquid Glass through ChromeGlassSurface :153-185).",
         "port": "An Acrylic-class Windows system material where the surface shows the desktop, and the source-defined material (shape, corner radius, tint colour and opacity, interactivity) over the app's own content; lensing, refraction and chromatic fringing are not reproduced over the desktop."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "SIDEBAR",
@@ -18352,7 +18354,8 @@
         "DroppyCode/App/Views/Sidebar/FloatingSidebarPanel.swift:56-61",
         "DroppyCode/App/Views/Sidebar/FloatingSidebarPanel.swift:105-125"
       ],
-      "notes": "Tooltip and accessibility label are both exactly `Drag to move`."
+      "notes": "Tooltip and accessibility label are both exactly `Drag to move`.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "SIDEBAR",
@@ -18373,7 +18376,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Sidebar/FloatingSidebarPanel.swift:62-68"
       ],
-      "notes": "The glyph is `xmark` and the tooltip is exactly `Back into the column`."
+      "notes": "The glyph is `xmark` and the tooltip is exactly `Back into the column`.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "SIDEBAR",
@@ -18395,7 +18399,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Sidebar/FloatingSidebarPanel.swift:70-86"
       ],
-      "notes": "Tooltip is exactly `Drag to resize`. Two upstream defects live here: the clamp can persist a size below the 240x320 minimum in a narrow area, and it anchors on the dragged origin rather than the resting one while the strip is also held."
+      "notes": "Tooltip is exactly `Drag to resize`. Two upstream defects live here: the clamp can persist a size below the 240x320 minimum in a narrow area, and it anchors on the dragged origin rather than the resting one while the strip is also held.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "SIDEBAR",

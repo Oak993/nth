@@ -11263,42 +11263,14 @@
     "App.Views.Sidebar.SidebarView"
    ],
    "records_total": 12,
-   "records_todo": [
-    "PR-SIDEBAR-143",
-    "PR-SIDEBAR-144",
-    "PR-SIDEBAR-145",
-    "PR-SIDEBAR-146",
-    "PR-SIDEBAR-147",
-    "PR-SIDEBAR-148",
-    "PR-SIDEBAR-158",
-    "UI-SIDEBAR-045",
-    "UI-SIDEBAR-046",
-    "UI-SIDEBAR-047",
-    "UI-SIDEBAR-048",
-    "UI-SIDEBAR-049"
-   ],
-   "parts": [
-    [
-     "PR-SIDEBAR-143",
-     "PR-SIDEBAR-144",
-     "PR-SIDEBAR-145",
-     "PR-SIDEBAR-146",
-     "PR-SIDEBAR-147",
-     "PR-SIDEBAR-148",
-     "PR-SIDEBAR-158",
-     "UI-SIDEBAR-045",
-     "UI-SIDEBAR-046",
-     "UI-SIDEBAR-047",
-     "UI-SIDEBAR-048",
-     "UI-SIDEBAR-049"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M7-190",
     "T-M7-191"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "App.Views.Sidebar.SidebarView",
