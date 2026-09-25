@@ -7,9 +7,9 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "IMPLEMENTED": 2773,
+      "IMPLEMENTED": 2791,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
-      "SPECIFIED": 1124,
+      "SPECIFIED": 1106,
       "RETIRED": 6,
       "DISCOVERED": 10
     },
@@ -8285,7 +8285,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Both phrasings verbatim; monospaced digits from the port's text face, Inter (OD-0009). Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "verification_method": "capture comparison at 1 and 12 follow-ups",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -8310,7 +8310,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Verbatim strings; the state belongs to the thread runtime, not to the view.",
       "verification_method": "interaction test folding, draining the queue and queueing again",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -8334,7 +8334,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep every control in the tab out of the tab order and keep its popovers rect-anchored. The macOS freeze that motivated this has no Windows analogue, but the resulting behavior (nothing in the tab is tabbable, row text is not selectable) is user-visible and must be reproduced.",
       "verification_method": "interaction test tabbing through the chat with a queue present",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -8360,7 +8360,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same formula, using the measured mean row height rather than a constant.",
       "verification_method": "capture comparison with 7 and 9 queued prompts",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -8381,7 +8381,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same mask insets and the same collapse behavior.",
       "verification_method": "capture comparison mid-fold with a row lifted",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -8403,7 +8403,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same shape and paddings. Glass: OD-0005 applies (Acrylic where the window shows the desktop, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing); an owner-approved deviation, not parity. OD-0014: the window stays clear by default, as upstream, so over the desktop the Acrylic branch with the app-drawn scrim applies until the user sets a wallpaper.",
       "verification_method": "capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -8425,7 +8425,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same numbering walk, including the hadPrevious guard so the first prompt always starts at 1. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "verification_method": "unit test of numbers() over a bundled list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -8452,7 +8452,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Verbatim strings; haptics dropped silently.",
       "verification_method": "interaction test unlinking the middle of a three-prompt bundle",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -8480,7 +8480,7 @@
       "cancellation": "A cancelled gesture is ended by the isGrabbing reset or the local mouse-up monitor.",
       "windows_path": "An explicit LIFO cursor-owner stack mirroring each push and pop site (port_impacts X8(a)); the global coordinate space is screen coordinates. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "verification_method": "interaction test dragging and releasing outside the window",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -8533,7 +8533,7 @@
       "cancellation": "See PR-COMPOSER-163.",
       "windows_path": "Reproduce the 0.25 band, the 32 point fallback and the vertical-only settle; haptics dropped.",
       "verification_method": "unit test of settle over a fixture order, plus an interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -8558,7 +8558,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exactly 0.6 of the measured row height, with the same 32 point fallback.",
       "verification_method": "interaction test dragging one of a pair",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -8586,7 +8586,7 @@
       "cancellation": "The monitor is removed when the drag ends and on disappearance.",
       "windows_path": "Same springs, same insertion point. The mouse-up monitor becomes an app-scoped message filter or a capture release.",
       "verification_method": "interaction test pairing two rows and reordering the bundle",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -8608,7 +8608,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same fills, border width, shadow and scales. The deliberately tiny scales exist because a larger one would be cut off at the scroll view's edge.",
       "verification_method": "capture comparison mid-pair",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -8633,7 +8633,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Compute proseLift from the cap height and x-height of the port's text face, Inter (OD-0009), with the same rounding; do not hard-code the macOS value.",
       "verification_method": "capture comparison of a one-line and a two-line row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -8656,7 +8656,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Verbatim strings and the same ordering (images before files). Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "verification_method": "unit test over the four combinations",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -8678,7 +8678,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same sizes; icons follow OD-0010 (SF Symbols map to Lucide through the published symbol-by-symbol table). Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "verification_method": "capture comparison and an interaction test of each button",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -8700,7 +8700,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Verbatim strings and the same three-way test.",
       "verification_method": "unit test across the three states",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -8822,7 +8822,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same ownership: the edit belongs to the thread runtime, the popover to the row.",
       "verification_method": "interaction test switching threads mid-edit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

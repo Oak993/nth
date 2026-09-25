@@ -3174,7 +3174,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:46-155 `let shape = UnevenRoundedRectangle(topLeadingRadius: 12, topTrailingRadius: 12, style: .continuous)` (47), the mask `.padding(.horizontal, -32)` and `.padding(.vertical, isCollapsed ? 0 : -16)` (142-146), `.padding(.horizontal, 12)`, `.padding(.top, 7)`, `.padding(.bottom, 7 + Self.overlap)`, `.frame(maxWidth: 560)`, `.glassEffect(.regular, in: shape)` (150-154)"
       ],
-      "notes": "Nothing inside this tab may mount a native text view or join the keyboard focus loop."
+      "notes": "Nothing inside this tab may mount a native text view or join the keyboard focus loop.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "COMPOSER",
@@ -3197,7 +3198,8 @@
         "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:52-82 `Button { withAnimation(Chrome.panelSlide) { runtime.followUpsCollapsed.toggle() } } label: { HStack(spacing: 7) { ... } .font(.system(.callout, weight: .medium).monospacedDigit()) }`, `.focusable(false)`, `.help(isCollapsed ? \"Expand queued follow-ups\" : \"Collapse queued follow-ups\")`, `.accessibilityValue(Text(isCollapsed ? \"Collapsed\" : \"Expanded\"))`"
       ],
       "notes": "The accessibility label uses different wording (\"N queued follow-ups\") and the value is \"Collapsed\" or \"Expanded\".",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:70 `.font(.system(size: 12, weight: .medium).monospacedDigit())` -> B2 :70 `.font(.system(.callout, weight: .medium).monospacedDigit())`, 12 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2; the port uses these sizes per ED-059). Chrome.inlineIconFont also changed: B1 DroppyCode/UI/Chrome/Chrome.swift:29 `.system(size: 11, weight: .semibold)` -> B2 :29 `.system(.subheadline, weight: .semibold)` (11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059))."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:70 `.font(.system(size: 12, weight: .medium).monospacedDigit())` -> B2 :70 `.font(.system(.callout, weight: .medium).monospacedDigit())`, 12 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2; the port uses these sizes per ED-059). Chrome.inlineIconFont also changed: B1 DroppyCode/UI/Chrome/Chrome.swift:29 `.system(size: 11, weight: .semibold)` -> B2 :29 `.system(.subheadline, weight: .semibold)` (11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059)).",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "COMPOSER",
@@ -3222,7 +3224,8 @@
         "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:301-525 `private struct FollowUpRow: View {` - the row `HStack(alignment: .center, spacing: 8)` (345), the text `if prompt.text.trimmed.isEmpty { Text(verbatim: attachmentOnlyLabel).font(.system(.callout)) ... } else { ... Text(verbatim: prompt.text).font(.system(.callout)) ... }` (424-439), attachmentOnlyLabel ending `guard !parts.isEmpty else { return \"Empty follow-up\" }` (522)"
       ],
       "notes": "Row text is deliberately not selectable; the pencil is how the full text is reached for copying.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:426 and :435 `.font(.system(size: 12))` -> B2 :426 and :435 `.font(.system(.callout))`, 12 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2; the port uses these sizes per ED-059). The emptiness test B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:424 `prompt.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty` -> B2 :424 `prompt.text.trimmed.isEmpty`, the same test (DroppyCode/Core/Support/Text.swift:132)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:426 and :435 `.font(.system(size: 12))` -> B2 :426 and :435 `.font(.system(.callout))`, 12 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2; the port uses these sizes per ED-059). The emptiness test B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:424 `prompt.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty` -> B2 :424 `prompt.text.trimmed.isEmpty`, the same test (DroppyCode/Core/Support/Text.swift:132).",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "COMPOSER",
@@ -3246,7 +3249,8 @@
         "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:212-226"
       ],
       "notes": "A bundle shares one number, shown on its first row; the accent colour marks that row as the head of a pair.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:374 `.font(.system(size: 11, weight: .medium).monospacedDigit())` -> B2 :374 `.font(.system(.subheadline, weight: .medium).monospacedDigit())`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:374 `.font(.system(size: 11, weight: .medium).monospacedDigit())` -> B2 :374 `.font(.system(.subheadline, weight: .medium).monospacedDigit())`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059).",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "COMPOSER",
@@ -3269,7 +3273,8 @@
         "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:348-371 `Image(systemName: \"link\").font(.system(.footnote, weight: .semibold)).foregroundStyle(Color.accentColor)` in a button with `.help(\"Unlink from the follow-up above\")` and `.accessibilityLabel(Text(\"Unlink\"))`, or as a plain image with `.accessibilityHidden(true)`"
       ],
       "notes": "Tooltip and accessibility label differ: \"Unlink from the follow-up above\" versus \"Unlink\".",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:358 and :368 `.font(.system(size: 10, weight: .semibold))` -> B2 :358 and :368 `.font(.system(.footnote, weight: .semibold))`, 10 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10` (file deleted at B2; the port uses these sizes per ED-059)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:358 and :368 `.font(.system(size: 10, weight: .semibold))` -> B2 :358 and :368 `.font(.system(.footnote, weight: .semibold))`, 10 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10` (file deleted at B2; the port uses these sizes per ED-059).",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "COMPOSER",
@@ -3293,7 +3298,8 @@
         "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:380-410 `Image(systemName: \"line.3.horizontal\").font(.system(.subheadline, weight: .medium))` in `.frame(width: 28, height: 22)` with `NSCursor.openHand.push()` on hover, `DragGesture(minimumDistance: 1, coordinateSpace: .global)`, `.help(\"Drag above or below to reorder · drop onto the middle of another to send them together\")`, `.accessibilityLabel(Text(\"Drag to reorder\"))`"
       ],
       "notes": "The tooltip's separator is U+00B7. Sideways travel plays no part in the reorder.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:381 `.font(.system(size: 11, weight: .medium))` -> B2 :381 `.font(.system(.subheadline, weight: .medium))`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:381 `.font(.system(size: 11, weight: .medium))` -> B2 :381 `.font(.system(.subheadline, weight: .medium))`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059).",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "COMPOSER",
@@ -3314,7 +3320,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:411-422"
       ],
-      "notes": "These thumbnails must not mount an anchor view, because nothing in this tab may join the key-view-loop walk."
+      "notes": "These thumbnails must not mount an anchor view, because nothing in this tab may join the key-view-loop walk.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "COMPOSER",
@@ -3337,7 +3344,8 @@
         "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:527-547 `private struct QueueIconButton` - `Image(systemName: symbol).font(.system(.subheadline, weight: .semibold)).foregroundStyle(Chrome.secondaryText.opacity(isEnabled ? 1 : 0.35)).frame(width: 22, height: 22)`, `.focusable(false)`, `.help(help)`, `.accessibilityLabel(Text(help))`"
       ],
       "notes": "Tooltip and accessibility label are the same string, and both change with the run state.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:536 `.font(.system(size: 11, weight: .semibold))` in QueueIconButton -> B2 :536 `.font(.system(.subheadline, weight: .semibold))`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:536 `.font(.system(size: 11, weight: .semibold))` in QueueIconButton -> B2 :536 `.font(.system(.subheadline, weight: .semibold))`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059).",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "COMPOSER",
@@ -3360,7 +3368,8 @@
         "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:527-547 `private struct QueueIconButton` - `Image(systemName: symbol).font(.system(.subheadline, weight: .semibold)).foregroundStyle(Chrome.secondaryText.opacity(isEnabled ? 1 : 0.35)).frame(width: 22, height: 22)`, `.focusable(false)`, `.help(help)`, `.accessibilityLabel(Text(help))`"
       ],
       "notes": "The button reports its window rect rather than mounting an anchor view.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:536 `.font(.system(size: 11, weight: .semibold))` in QueueIconButton -> B2 :536 `.font(.system(.subheadline, weight: .semibold))`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:536 `.font(.system(size: 11, weight: .semibold))` in QueueIconButton -> B2 :536 `.font(.system(.subheadline, weight: .semibold))`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059).",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "COMPOSER",
@@ -3382,7 +3391,8 @@
         "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:527-547 `private struct QueueIconButton` - `Image(systemName: symbol).font(.system(.subheadline, weight: .semibold)).foregroundStyle(Chrome.secondaryText.opacity(isEnabled ? 1 : 0.35)).frame(width: 22, height: 22)`, `.focusable(false)`, `.help(help)`, `.accessibilityLabel(Text(help))`"
       ],
       "notes": "Deletion is immediate and unconfirmed; the confirmBeforeDeleting setting is not consulted here. This is source behavior for a queued draft, not a stored record.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:536 `.font(.system(size: 11, weight: .semibold))` in QueueIconButton -> B2 :536 `.font(.system(.subheadline, weight: .semibold))`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:536 `.font(.system(size: 11, weight: .semibold))` in QueueIconButton -> B2 :536 `.font(.system(.subheadline, weight: .semibold))`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059).",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "COMPOSER",

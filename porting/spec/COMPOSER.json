@@ -3480,7 +3480,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Both phrasings verbatim; monospaced digits from the port's text face, Inter (OD-0009). Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "verification_method": "capture comparison at 1 and 12 follow-ups",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3504,7 +3504,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Verbatim strings; the state belongs to the thread runtime, not to the view.",
       "verification_method": "interaction test folding, draining the queue and queueing again",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3527,7 +3527,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep every control in the tab out of the tab order and keep its popovers rect-anchored. The macOS freeze that motivated this has no Windows analogue, but the resulting behavior (nothing in the tab is tabbable, row text is not selectable) is user-visible and must be reproduced.",
       "verification_method": "interaction test tabbing through the chat with a queue present",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3552,7 +3552,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same formula, using the measured mean row height rather than a constant.",
       "verification_method": "capture comparison with 7 and 9 queued prompts",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3572,7 +3572,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same mask insets and the same collapse behavior.",
       "verification_method": "capture comparison mid-fold with a row lifted",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3593,7 +3593,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same shape and paddings. Glass: OD-0005 applies (Acrylic where the window shows the desktop, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing); an owner-approved deviation, not parity. OD-0014: the window stays clear by default, as upstream, so over the desktop the Acrylic branch with the app-drawn scrim applies until the user sets a wallpaper.",
       "verification_method": "capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3614,7 +3614,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same numbering walk, including the hadPrevious guard so the first prompt always starts at 1. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "verification_method": "unit test of numbers() over a bundled list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3640,7 +3640,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Verbatim strings; haptics dropped silently.",
       "verification_method": "interaction test unlinking the middle of a three-prompt bundle",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3667,7 +3667,7 @@
       "cancellation": "A cancelled gesture is ended by the isGrabbing reset or the local mouse-up monitor.",
       "windows_path": "An explicit LIFO cursor-owner stack mirroring each push and pop site (port_impacts X8(a)); the global coordinate space is screen coordinates. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "verification_method": "interaction test dragging and releasing outside the window",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3718,7 +3718,7 @@
       "cancellation": "See PR-COMPOSER-163.",
       "windows_path": "Reproduce the 0.25 band, the 32 point fallback and the vertical-only settle; haptics dropped.",
       "verification_method": "unit test of settle over a fixture order, plus an interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3742,7 +3742,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exactly 0.6 of the measured row height, with the same 32 point fallback.",
       "verification_method": "interaction test dragging one of a pair",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3769,7 +3769,7 @@
       "cancellation": "The monitor is removed when the drag ends and on disappearance.",
       "windows_path": "Same springs, same insertion point. The mouse-up monitor becomes an app-scoped message filter or a capture release.",
       "verification_method": "interaction test pairing two rows and reordering the bundle",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3790,7 +3790,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same fills, border width, shadow and scales. The deliberately tiny scales exist because a larger one would be cut off at the scroll view's edge.",
       "verification_method": "capture comparison mid-pair",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3814,7 +3814,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Compute proseLift from the cap height and x-height of the port's text face, Inter (OD-0009), with the same rounding; do not hard-code the macOS value.",
       "verification_method": "capture comparison of a one-line and a two-line row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3836,7 +3836,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Verbatim strings and the same ordering (images before files). Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "verification_method": "unit test over the four combinations",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3857,7 +3857,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same sizes; icons follow OD-0010 (SF Symbols map to Lucide through the published symbol-by-symbol table). Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "verification_method": "capture comparison and an interaction test of each button",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3878,7 +3878,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Verbatim strings and the same three-way test.",
       "verification_method": "unit test across the three states",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3995,7 +3995,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same ownership: the edit belongs to the thread runtime, the popover to the row.",
       "verification_method": "interaction test switching threads mid-edit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5942,7 +5942,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:46-155 `let shape = UnevenRoundedRectangle(topLeadingRadius: 12, topTrailingRadius: 12, style: .continuous)` (47), the mask `.padding(.horizontal, -32)` and `.padding(.vertical, isCollapsed ? 0 : -16)` (142-146), `.padding(.horizontal, 12)`, `.padding(.top, 7)`, `.padding(.bottom, 7 + Self.overlap)`, `.frame(maxWidth: 560)`, `.glassEffect(.regular, in: shape)` (150-154)"
       ],
-      "notes": "Nothing inside this tab may mount a native text view or join the keyboard focus loop."
+      "notes": "Nothing inside this tab may mount a native text view or join the keyboard focus loop.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-048",
@@ -5964,7 +5965,8 @@
         "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:52-82 `Button { withAnimation(Chrome.panelSlide) { runtime.followUpsCollapsed.toggle() } } label: { HStack(spacing: 7) { ... } .font(.system(.callout, weight: .medium).monospacedDigit()) }`, `.focusable(false)`, `.help(isCollapsed ? \"Expand queued follow-ups\" : \"Collapse queued follow-ups\")`, `.accessibilityValue(Text(isCollapsed ? \"Collapsed\" : \"Expanded\"))`"
       ],
       "notes": "The accessibility label uses different wording (\"N queued follow-ups\") and the value is \"Collapsed\" or \"Expanded\".",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:70 `.font(.system(size: 12, weight: .medium).monospacedDigit())` -> B2 :70 `.font(.system(.callout, weight: .medium).monospacedDigit())`, 12 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2; the port uses these sizes per ED-059). Chrome.inlineIconFont also changed: B1 DroppyCode/UI/Chrome/Chrome.swift:29 `.system(size: 11, weight: .semibold)` -> B2 :29 `.system(.subheadline, weight: .semibold)` (11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059))."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:70 `.font(.system(size: 12, weight: .medium).monospacedDigit())` -> B2 :70 `.font(.system(.callout, weight: .medium).monospacedDigit())`, 12 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2; the port uses these sizes per ED-059). Chrome.inlineIconFont also changed: B1 DroppyCode/UI/Chrome/Chrome.swift:29 `.system(size: 11, weight: .semibold)` -> B2 :29 `.system(.subheadline, weight: .semibold)` (11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059)).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-049",
@@ -5988,7 +5990,8 @@
         "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:301-525 `private struct FollowUpRow: View {` - the row `HStack(alignment: .center, spacing: 8)` (345), the text `if prompt.text.trimmed.isEmpty { Text(verbatim: attachmentOnlyLabel).font(.system(.callout)) ... } else { ... Text(verbatim: prompt.text).font(.system(.callout)) ... }` (424-439), attachmentOnlyLabel ending `guard !parts.isEmpty else { return \"Empty follow-up\" }` (522)"
       ],
       "notes": "Row text is deliberately not selectable; the pencil is how the full text is reached for copying.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:426 and :435 `.font(.system(size: 12))` -> B2 :426 and :435 `.font(.system(.callout))`, 12 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2; the port uses these sizes per ED-059). The emptiness test B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:424 `prompt.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty` -> B2 :424 `prompt.text.trimmed.isEmpty`, the same test (DroppyCode/Core/Support/Text.swift:132)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:426 and :435 `.font(.system(size: 12))` -> B2 :426 and :435 `.font(.system(.callout))`, 12 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2; the port uses these sizes per ED-059). The emptiness test B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:424 `prompt.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty` -> B2 :424 `prompt.text.trimmed.isEmpty`, the same test (DroppyCode/Core/Support/Text.swift:132).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-050",
@@ -6011,7 +6014,8 @@
         "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:212-226"
       ],
       "notes": "A bundle shares one number, shown on its first row; the accent colour marks that row as the head of a pair.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:374 `.font(.system(size: 11, weight: .medium).monospacedDigit())` -> B2 :374 `.font(.system(.subheadline, weight: .medium).monospacedDigit())`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:374 `.font(.system(size: 11, weight: .medium).monospacedDigit())` -> B2 :374 `.font(.system(.subheadline, weight: .medium).monospacedDigit())`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-051",
@@ -6033,7 +6037,8 @@
         "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:348-371 `Image(systemName: \"link\").font(.system(.footnote, weight: .semibold)).foregroundStyle(Color.accentColor)` in a button with `.help(\"Unlink from the follow-up above\")` and `.accessibilityLabel(Text(\"Unlink\"))`, or as a plain image with `.accessibilityHidden(true)`"
       ],
       "notes": "Tooltip and accessibility label differ: \"Unlink from the follow-up above\" versus \"Unlink\".",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:358 and :368 `.font(.system(size: 10, weight: .semibold))` -> B2 :358 and :368 `.font(.system(.footnote, weight: .semibold))`, 10 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10` (file deleted at B2; the port uses these sizes per ED-059)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:358 and :368 `.font(.system(size: 10, weight: .semibold))` -> B2 :358 and :368 `.font(.system(.footnote, weight: .semibold))`, 10 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10` (file deleted at B2; the port uses these sizes per ED-059).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-052",
@@ -6056,7 +6061,8 @@
         "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:380-410 `Image(systemName: \"line.3.horizontal\").font(.system(.subheadline, weight: .medium))` in `.frame(width: 28, height: 22)` with `NSCursor.openHand.push()` on hover, `DragGesture(minimumDistance: 1, coordinateSpace: .global)`, `.help(\"Drag above or below to reorder · drop onto the middle of another to send them together\")`, `.accessibilityLabel(Text(\"Drag to reorder\"))`"
       ],
       "notes": "The tooltip's separator is U+00B7. Sideways travel plays no part in the reorder.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:381 `.font(.system(size: 11, weight: .medium))` -> B2 :381 `.font(.system(.subheadline, weight: .medium))`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:381 `.font(.system(size: 11, weight: .medium))` -> B2 :381 `.font(.system(.subheadline, weight: .medium))`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-053",
@@ -6076,7 +6082,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:411-422"
       ],
-      "notes": "These thumbnails must not mount an anchor view, because nothing in this tab may join the key-view-loop walk."
+      "notes": "These thumbnails must not mount an anchor view, because nothing in this tab may join the key-view-loop walk.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-054",
@@ -6098,7 +6105,8 @@
         "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:527-547 `private struct QueueIconButton` - `Image(systemName: symbol).font(.system(.subheadline, weight: .semibold)).foregroundStyle(Chrome.secondaryText.opacity(isEnabled ? 1 : 0.35)).frame(width: 22, height: 22)`, `.focusable(false)`, `.help(help)`, `.accessibilityLabel(Text(help))`"
       ],
       "notes": "Tooltip and accessibility label are the same string, and both change with the run state.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:536 `.font(.system(size: 11, weight: .semibold))` in QueueIconButton -> B2 :536 `.font(.system(.subheadline, weight: .semibold))`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:536 `.font(.system(size: 11, weight: .semibold))` in QueueIconButton -> B2 :536 `.font(.system(.subheadline, weight: .semibold))`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-055",
@@ -6120,7 +6128,8 @@
         "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:527-547 `private struct QueueIconButton` - `Image(systemName: symbol).font(.system(.subheadline, weight: .semibold)).foregroundStyle(Chrome.secondaryText.opacity(isEnabled ? 1 : 0.35)).frame(width: 22, height: 22)`, `.focusable(false)`, `.help(help)`, `.accessibilityLabel(Text(help))`"
       ],
       "notes": "The button reports its window rect rather than mounting an anchor view.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:536 `.font(.system(size: 11, weight: .semibold))` in QueueIconButton -> B2 :536 `.font(.system(.subheadline, weight: .semibold))`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:536 `.font(.system(size: 11, weight: .semibold))` in QueueIconButton -> B2 :536 `.font(.system(.subheadline, weight: .semibold))`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-056",
@@ -6141,7 +6150,8 @@
         "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:527-547 `private struct QueueIconButton` - `Image(systemName: symbol).font(.system(.subheadline, weight: .semibold)).foregroundStyle(Chrome.secondaryText.opacity(isEnabled ? 1 : 0.35)).frame(width: 22, height: 22)`, `.focusable(false)`, `.help(help)`, `.accessibilityLabel(Text(help))`"
       ],
       "notes": "Deletion is immediate and unconfirmed; the confirmBeforeDeleting setting is not consulted here. This is source behavior for a queued draft, not a stored record.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:536 `.font(.system(size: 11, weight: .semibold))` in QueueIconButton -> B2 :536 `.font(.system(.subheadline, weight: .semibold))`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:536 `.font(.system(size: 11, weight: .semibold))` in QueueIconButton -> B2 :536 `.font(.system(.subheadline, weight: .semibold))`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-057",
