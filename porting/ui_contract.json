@@ -22993,7 +22993,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2) - the size ED-059 adopts for .body"
       ],
       "notes": "This label uses the localized Text(\"...\") form rather than Text(verbatim:), which in this checkout resolves to the key itself because no string catalogue exists; port it as a plain string (port_impacts entry 207).",
-      "b2_change": "B1 DroppyCode/App/Views/Usage/UsagePanel.swift:43 `.font(.system(size: 13))` -> B2 DroppyCode/App/Views/Usage/UsagePanel.swift:43 `.font(.system(.body))`. At the macOS default .body is 13 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). String and colour unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Usage/UsagePanel.swift:43 `.font(.system(size: 13))` -> B2 DroppyCode/App/Views/Usage/UsagePanel.swift:43 `.font(.system(.body))`. At the macOS default .body is 13 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). String and colour unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "USAGE",
@@ -23016,7 +23017,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2) - the size ED-059 adopts for .body"
       ],
       "notes": "Spaces are load-bearing: one space either side of the slash and one before the opening parenthesis, none inside it. Counts are compacted with k, M and B and a stripped .0.",
-      "b2_change": "B1 DroppyCode/App/Views/Usage/UsagePanel.swift:43 `.font(.system(size: 13))` -> B2 DroppyCode/App/Views/Usage/UsagePanel.swift:43 `.font(.system(.body))`. At the macOS default .body is 13 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). The value inherits the row font; monospacedDigit unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Usage/UsagePanel.swift:43 `.font(.system(size: 13))` -> B2 DroppyCode/App/Views/Usage/UsagePanel.swift:43 `.font(.system(.body))`. At the macOS default .body is 13 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). The value inherits the row font; monospacedDigit unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "USAGE",
@@ -23039,7 +23041,8 @@
         "DroppyCode/App/Views/Usage/UsagePanel.swift:44-45",
         "DroppyCode/App/Views/Usage/UsageViews.swift:374-395"
       ],
-      "notes": "Accessibility label is Context window and the value is the clamped rounded percentage plus the word used."
+      "notes": "Accessibility label is Context window and the value is the clamped rounded percentage plus the word used.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "USAGE",
@@ -23062,7 +23065,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2) - the size ED-059 adopts for .callout"
       ],
       "notes": "The separator is U+00B7 MIDDLE DOT with one space each side. The role words are the literals Lead and Heads.",
-      "b2_change": "B1 DroppyCode/App/Views/Usage/UsagePanel.swift:94 `.font(.system(size: 12, weight: .semibold))` -> B2 DroppyCode/App/Views/Usage/UsagePanel.swift:94 `.font(.system(.callout, weight: .semibold))`. At the macOS default .callout is 12 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). Icon, spacing and string unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Usage/UsagePanel.swift:94 `.font(.system(size: 12, weight: .semibold))` -> B2 DroppyCode/App/Views/Usage/UsagePanel.swift:94 `.font(.system(.callout, weight: .semibold))`. At the macOS default .callout is 12 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). Icon, spacing and string unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "USAGE",
@@ -23722,7 +23726,8 @@
         "DroppyCode/App/Views/Usage/UsagePanel.swift:48-66, :101-103",
         "DroppyCode/App/Views/Usage/UsageViews.swift:32-36"
       ],
-      "notes": "Five distinct divider rules with different predicates and two different padding shapes; they must not be unified."
+      "notes": "Five distinct divider rules with different predicates and two different padding shapes; they must not be unified.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "USAGE",

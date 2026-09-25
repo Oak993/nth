@@ -7,9 +7,9 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "IMPLEMENTED": 2835,
+      "IMPLEMENTED": 2848,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
-      "SPECIFIED": 1062,
+      "SPECIFIED": 1049,
       "RETIRED": 6,
       "DISCOVERED": 10
     },
@@ -91372,7 +91372,7 @@
       "cancellation": "The read runs on its own task, so closing the popover that asked for it does not cancel it (ProviderRegistry.swift:604-606).",
       "windows_path": "Mount effect calling the two registry methods; the reads must be detached from component lifetime so unmounting cannot abort them.",
       "verification_method": "interaction test with a fake registry counting calls, including the heads case",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -91397,7 +91397,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep the context fraction derived from windowTokens so the implication still holds; copy the predicate as written (port_impacts entry 199).",
       "verification_method": "unit test that fraction is nil without a positive windowTokens, plus an interaction test on the no-window case",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "72",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -91422,7 +91422,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Flex row with a monospaced-numeral font feature (font-variant-numeric: tabular-nums) on the value only. ED-059: on Windows .body is 13 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`), set in Inter (OD-0009); the size is fixed per text style and scales only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference. Visual size parity stays UNVERIFIED (OD-0001). ED-062: Chrome.secondaryText is Chrome.primaryText at 0.7 opacity, as B2 DroppyCode/UI/Chrome/Chrome.swift:79 defines it; ED-051's secondaryLabelColor literal does not apply to this token.",
       "verification_method": "capture comparison plus unit test on the composed string",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": "UNK-0003",
@@ -91446,7 +91446,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Math.round on (fraction * 100); JavaScript rounds half up, which matches Swift's rounded() for the non-negative values this receives.",
       "verification_method": "unit test at 0.004, 0.005, 0.5, 0.995 and 1.0",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -91469,7 +91469,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pure function; toFixed(1) with a trailing \".0\" strip. Must not use a locale-aware compact number formatter, which would produce \"1.2K\" or a different separator.",
       "verification_method": "unit test at 0, 999, 1000, 1500, 999999, 1000000, 1200000, 1000000000",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -91492,7 +91492,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Shared bar component with an explicit accent tint.",
       "verification_method": "capture comparison at a high fraction confirming the bar stays accent while the ring turns warning",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -91517,7 +91517,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same guard in the panel component; the caller supplies both provider ids.",
       "verification_method": "interaction test with a pair whose heads run on the lead's provider and one where they differ",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -91541,7 +91541,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Conditional 1px separators with 14px margin above and below; reproduce the asymmetry exactly.",
       "verification_method": "capture comparison for Command Code with and without a context fraction",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -91565,7 +91565,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Two section components with the two distinct divider predicates; do not simplify to \"divider between siblings\".",
       "verification_method": "capture comparison across the four combinations of context and lead exposure",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -91589,7 +91589,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Early return inside the section component, before the separator.",
       "verification_method": "interaction test with a heads provider that exposes nothing",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -91618,7 +91618,7 @@
       "cancellation": "not cancellable",
       "windows_path": "13px SVG plus a 12px semibold label; the middle dot is a literal U+00B7, not a hyphen or bullet. ED-059: on Windows .callout is 12 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`), set in Inter (OD-0009); the size is fixed per text style and scales only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference. Visual size parity stays UNVERIFIED (OD-0001).",
       "verification_method": "capture comparison against the field capture plus a unit test on the composed string",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": "UNK-0003",
@@ -91642,7 +91642,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Unconditional separator inside the section when both children render.",
       "verification_method": "capture comparison with Command Code as lead or heads",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -94042,7 +94042,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Resolve the four styles through one table to 13, 12, 11 and 10 pixels at 100% zoom, taken from upstream's B1 table, and apply them per site as listed. ED-059 settles the scaling question for the port: each style is fixed at the size in upstream's B1 table (B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, :52 `case .callout: 12`, :53 `case .subheadline: 11`, :54 `case .footnote, .caption, .caption2: 10`) and scales only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; the port does not follow a Windows text-size setting. Visual size parity with macOS stays UNVERIFIED (OD-0001, UNK-0003). The face follows OD-0009 (Inter).",
       "verification_method": "static check that every font site in the usage views uses the style listed in source_evidence, a unit test on the style-to-size table (body 13, callout 12, subheadline 11, footnote 10), and a capture comparison of the popover at the default zoom; the macOS side of the table stays UNVERIFIED (OD-0001, UNK-0003)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": "UNK-0003",

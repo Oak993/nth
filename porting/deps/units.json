@@ -12179,55 +12179,15 @@
     "App.Views.Usage.UsageViews"
    ],
    "records_total": 18,
-   "records_todo": [
-    "PR-USAGE-010",
-    "PR-USAGE-011",
-    "PR-USAGE-012",
-    "PR-USAGE-013",
-    "PR-USAGE-014",
-    "PR-USAGE-015",
-    "PR-USAGE-016",
-    "PR-USAGE-017",
-    "PR-USAGE-018",
-    "PR-USAGE-019",
-    "PR-USAGE-020",
-    "PR-USAGE-021",
-    "PR-USAGE-111",
-    "UI-USAGE-005",
-    "UI-USAGE-006",
-    "UI-USAGE-007",
-    "UI-USAGE-008",
-    "UI-USAGE-035"
-   ],
-   "parts": [
-    [
-     "PR-USAGE-010",
-     "PR-USAGE-011",
-     "PR-USAGE-012",
-     "PR-USAGE-013",
-     "PR-USAGE-014",
-     "PR-USAGE-015",
-     "PR-USAGE-016",
-     "PR-USAGE-017",
-     "PR-USAGE-018",
-     "PR-USAGE-019",
-     "PR-USAGE-020",
-     "PR-USAGE-021",
-     "PR-USAGE-111",
-     "UI-USAGE-005",
-     "UI-USAGE-006",
-     "UI-USAGE-007",
-     "UI-USAGE-008",
-     "UI-USAGE-035"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M7-230",
     "T-M7-231",
     "T-M7-232"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "App.Views.Usage.UsageViews",
