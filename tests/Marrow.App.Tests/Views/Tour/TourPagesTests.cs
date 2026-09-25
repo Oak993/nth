@@ -26,7 +26,6 @@ public sealed class TourPagesTests(HeadlessSession headless)
     [Trait("Req", "UI-UPDATE-051")] // App/Views/Tour/TourPages.swift:10
     [Trait("Req", "UI-UPDATE-052")] // App/Views/Tour/TourPages.swift:11
     [Trait("Req", "UI-UPDATE-053")] // App/Views/Tour/TourPages.swift:12
-    [Trait("Decision", "OD-0012")]
     public void Pages_have_the_required_ordered_titles_descriptions_and_artwork()
     {
         var expected = new[]
@@ -80,7 +79,6 @@ public sealed class TourPagesTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-UPDATE-089")] // App/Views/Tour/TourPages.swift:15-24
-    [Trait("Decision", "OD-0012")]
     public void Themes_page_derives_its_count_word_from_the_theme_catalogue()
     {
         var count = SwiftEnum<AppTheme>.AllCases.Count;
@@ -98,7 +96,6 @@ public sealed class TourPagesTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "UI-UPDATE-053")] // App/Views/Tour/TourPages.swift:12
-    [Trait("Decision", "OD-0012")]
     public void Themes_page_renders_the_computed_count_and_port_description()
     {
         Assert.Equal(
