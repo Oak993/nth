@@ -25,7 +25,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Settings toggle bound to the same-named persisted key in the Windows settings store; default false.",
       "verification_method": "restart test (toggle, restart, read back) plus unit test on the default",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2957,7 +2957,8 @@
         "DroppyCode/App/Views/Settings/HydraSettingsPage.swift:101-106",
         "DroppyCode/App/AppSettings.swift:162, :583-585, :763"
       ],
-      "notes": "The detail line is exact and must not be reworded: \"The team's changes go out as a merge request and are merged.\" There is no separate confirmation and no per-project override."
+      "notes": "The detail line is exact and must not be reworded: \"The team's changes go out as a merge request and are merged.\" There is no separate confirmation and no per-project override.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRAMERGE-002",

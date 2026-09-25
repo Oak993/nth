@@ -3667,7 +3667,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same layout, including the negative 9-point overlap of the five glyphs. The glyph personas come from the shared roster and belong to the Hydra area.",
       "verification_method": "capture comparison of the card at both themes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3693,7 +3693,7 @@
       "cancellation": "The pending close is cancelled by re-entering either surface.",
       "windows_path": "Same hover-open, hover-keep and 320ms grace close. Keep the mark out of the tab order.",
       "verification_method": "interaction test on the open, keep-open and delayed-close paths",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3743,7 +3743,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One disabled-and-dimmed wrapper over exactly those four sections, with the fifth deliberately outside it.",
       "verification_method": "interaction test asserting the four sections are inert and the fifth is not",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3766,7 +3766,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two tiles; the checkout copy itself belongs to the Hydra runtime area, where Windows uses a git worktree or a directory copy.",
       "verification_method": "interaction test for both exact sentences",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3791,7 +3791,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same nine segments and the same non-pluralised sentence. Keep \"No cap\" as the accessible name of the infinity segment.",
       "verification_method": "interaction test over all nine segments asserting the exact detail sentence, including the ungrammatical singular",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3812,7 +3812,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same row and switch.",
       "verification_method": "interaction test; restart test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3832,7 +3832,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same row and switch.",
       "verification_method": "interaction test; restart test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3852,7 +3852,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same tile order; do not normalise the false-first ordering.",
       "verification_method": "capture comparison; unit test on the option order",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3872,7 +3872,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two tiles and the same dependent detail.",
       "verification_method": "interaction test for both exact sentences",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3895,7 +3895,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the string byte for byte, em dash included: owner ruling OD-0008 B14 keeps all eight upstream em-dash strings verbatim (the no-em-dash rule belongs to the separate Electron Marrow repository).",
       "verification_method": "interaction test comparing the string byte for byte, asserting U+2014 at the expected offset",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3916,7 +3916,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same substitution of the detail line, the same disabled state and the same 0.5 opacity, which is this page's standard dimming.",
       "verification_method": "interaction test asserting the substituted sentence and that the stored value survives",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3936,7 +3936,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two rows in the same order.",
       "verification_method": "capture comparison; interaction test for both strings",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3958,7 +3958,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two rows. The merge itself belongs to the Hydra merge area, where the port must still honour the rule that commit, push and pull-request actions ask the user first.",
       "verification_method": "capture comparison; interaction test for both strings",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3983,7 +3983,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three-part structure and the same header-trailing placement.",
       "verification_method": "capture comparison; interaction test for both long strings",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4004,7 +4004,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two shapes and the same divider rule.",
       "verification_method": "capture comparison at zero, one and three pairs",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4028,7 +4028,7 @@
       "cancellation": "not cancellable; a wrong pair is removed with its own minus button.",
       "windows_path": "Same three-step fallback in the same order. Reduce Motion is read live from the system animation setting at each query point.",
       "verification_method": "unit test over the three fallback cases",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4058,7 +4058,7 @@
       "cancellation": "Leaving the page cancels the catalog task.",
       "windows_path": "Same summary composition and the same separator. The catalog load belongs to the provider area.",
       "verification_method": "unit test over the summary composition with every combination of custom name, efforts, cap and unavailable heads provider",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4082,7 +4082,7 @@
       "cancellation": "not cancellable and not undoable",
       "windows_path": "Same immediate removal with no confirmation. This is deliberately not covered by BLK-0001, which names only the custom-MCP delete affordance and its credential teardown; removing a pair destroys no credential.",
       "verification_method": "interaction test asserting one click removes the pair and no dialog appears",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4109,7 +4109,7 @@
       "cancellation": "Dismissing the popover keeps every change already made; there is no cancel.",
       "windows_path": "Same anchored popover at the same width. Windows popovers do not auto-focus a first field the way AppKit does, so the explicit blur may be unnecessary; keep the field unfocused on open either way.",
       "verification_method": "interaction test asserting the name field is not focused when the popover opens",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4134,7 +4134,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same field and the same nil-on-empty write; keep the trim-on-read rather than trimming on write, so a stored whitespace name behaves the same.",
       "verification_method": "unit test on the empty and whitespace cases; interaction test for the placeholder and caption",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4158,7 +4158,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two labels and the same row metrics; note these rows are NOT ChromeRow and have different paddings (14/5 rather than 16/10/11).",
       "verification_method": "capture comparison of the open editor",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4183,7 +4183,7 @@
       "cancellation": "The catalog load is a detached task with no cancellation.",
       "windows_path": "Same three-branch reconciliation and the same include-the-current-provider rule for the options list.",
       "verification_method": "unit test over the three heads-side branches",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4204,7 +4204,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same option list and the same conditional effort clear, including the do-nothing branch when the model is unknown.",
       "verification_method": "unit test: set effort high on a model that has it, switch to a model without it, assert the effort is nil",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4231,7 +4231,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same fallback chain and the same title rule. Keep the fallback-when-empty behaviour: dropping it would hide the effort row for a reasoning model whose scale has not been walked yet.",
       "verification_method": "unit test on allEfforts, efforts(of:fallback:) and effortTitle over the documented cases",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4255,7 +4255,7 @@
       "cancellation": "The catalog load is detached with no cancellation.",
       "windows_path": "Same option list, the same normalisation of 'same as lead' to nil, and the same clear.",
       "verification_method": "unit test asserting choosing the lead's provider stores nil and that model and effort are cleared on a real change",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4276,7 +4276,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two wordings and the same conditional effort clear.",
       "verification_method": "interaction test for both inheritance labels",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4298,7 +4298,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same nine options with this page's second wording; do not unify the two no-cap strings.",
       "verification_method": "interaction test for the exact first option string",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4325,7 +4325,7 @@
       "cancellation": "Closing the popover cancels the loading task.",
       "windows_path": "Same two sentences and the same sequential load. Both use a single horizontal ellipsis character in the loading form.",
       "verification_method": "interaction test with a stubbed registry in loading and empty states",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4347,7 +4347,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three rows. Keep the 16.75 Copilot size literally, not rounded to 17: the value was chosen for optical balance.",
       "verification_method": "capture comparison of the section",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4373,7 +4373,7 @@
       "cancellation": "Dismissing the popover cancels the catalog-loading task.",
       "windows_path": "Same fixed-size panel and the same header strings.",
       "verification_method": "capture comparison of the open panel",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -7811,7 +7811,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:50, :53 chatBaseSize - .title3 15, .subheadline 11 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "The glyph row is hidden from accessibility. The subtitle is truncated to one line, so a narrow pane clips it rather than wrapping.",
-      "b2_change": "Re-cited: the cited ranges keep their line numbers at 1fbf81e6; the literal font sizes became text styles of the same default size (.footnote 10pt, .subheadline 11pt, .callout 12pt, .body 13pt, .title3 15pt, .title2 17pt, .title 22pt)."
+      "b2_change": "Re-cited: the cited ranges keep their line numbers at 1fbf81e6; the literal font sizes became text styles of the same default size (.footnote 10pt, .subheadline 11pt, .callout 12pt, .body 13pt, .title3 15pt, .title2 17pt, .title 22pt).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-030",
@@ -7868,7 +7869,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:52 chatBaseSize - .callout 12 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "The first segment draws the \"infinity\" symbol in place of its title but keeps \"No cap\" as its accessibility label. The row's detail reads \"At most 1 heads in parallel.\" at a cap of one; the singular is not special-cased and must be reproduced.",
-      "b2_change": "DroppyCode/UI/Chrome/ChromeSegmentedPicker.swift:57 `.system(size: 12, weight: ...)` -> `.system(.callout, weight: ...)` at 1fbf81e6. Chrome.secondaryText is `primaryText.opacity(0.7)` at 1fbf81e6 (DroppyCode/UI/Chrome/Chrome.swift:79), the label colour at 70% opacity; at dd2b86ef it was `Color(nsColor: .secondaryLabelColor)` (DroppyCode/UI/Chrome/Chrome.swift:77 at dd2b86ef)."
+      "b2_change": "DroppyCode/UI/Chrome/ChromeSegmentedPicker.swift:57 `.system(size: 12, weight: ...)` -> `.system(.callout, weight: ...)` at 1fbf81e6. Chrome.secondaryText is `primaryText.opacity(0.7)` at 1fbf81e6 (DroppyCode/UI/Chrome/Chrome.swift:79), the label colour at 70% opacity; at dd2b86ef it was `Color(nsColor: .secondaryLabelColor)` (DroppyCode/UI/Chrome/Chrome.swift:77 at dd2b86ef).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-032",
@@ -7890,7 +7892,8 @@
         "DroppyCode/App/Views/Settings/HydraSettingsPage.swift:110",
         "DroppyCode/App/Views/Settings/HydraSettingsPage.swift:203-220"
       ],
-      "notes": "SF Symbol \"book\". It sits in the section header rather than in a card so the card keeps its full width for the explanatory words."
+      "notes": "SF Symbol \"book\". It sits in the section header rather than in a card so the card keeps its full width for the explanatory words.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-033",
@@ -7910,7 +7913,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Settings/HydraSettingsPage.swift:222-236"
       ],
-      "notes": "SF Symbol \"plus\". It appears on the \"No pairs yet\" row and on the \"Another pair\" row, which are mutually exclusive."
+      "notes": "SF Symbol \"plus\". It appears on the \"No pairs yet\" row and on the \"Another pair\" row, which are mutually exclusive.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-034",
@@ -7935,7 +7939,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:51-53 chatBaseSize - .body 13, .callout 12, .subheadline 11 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "The summary omits anything the title and the marks already say; a pair with defaults has one short line. The minus button's tooltip and accessibility label are both \"Remove this pair\".",
-      "b2_change": "Re-cited: the cited ranges keep their line numbers at 1fbf81e6; the literal font sizes became text styles of the same default size (.footnote 10pt, .subheadline 11pt, .callout 12pt, .body 13pt, .title3 15pt, .title2 17pt, .title 22pt)."
+      "b2_change": "Re-cited: the cited ranges keep their line numbers at 1fbf81e6; the literal font sizes became text styles of the same default size (.footnote 10pt, .subheadline 11pt, .callout 12pt, .body 13pt, .title3 15pt, .title2 17pt, .title 22pt).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-035",
@@ -7962,7 +7967,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:50, :53 chatBaseSize - .title3 15, .subheadline 11 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "An empty field stores nil, not \"\". The blur on open is explicit and load-bearing: without it the caret landing in the field reads as a prompt to rename.",
-      "b2_change": "Re-cited: the cited ranges keep their line numbers at 1fbf81e6; the literal font sizes became text styles of the same default size (.footnote 10pt, .subheadline 11pt, .callout 12pt, .body 13pt, .title3 15pt, .title2 17pt, .title 22pt)."
+      "b2_change": "Re-cited: the cited ranges keep their line numbers at 1fbf81e6; the literal font sizes became text styles of the same default size (.footnote 10pt, .subheadline 11pt, .callout 12pt, .body 13pt, .title3 15pt, .title2 17pt, .title 22pt).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-036",
@@ -7985,7 +7991,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:51, :53 chatBaseSize - .body 13, .subheadline 11 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "These rows are NOT ChromeRow and use different paddings. Two rows are titled \"Provider\", two \"Model\" and two \"Effort\"; only the section label above them distinguishes the two sides, which matters for accessible naming.",
-      "b2_change": "Re-cited: the cited ranges keep their line numbers at 1fbf81e6; the literal font sizes became text styles of the same default size (.footnote 10pt, .subheadline 11pt, .callout 12pt, .body 13pt, .title3 15pt, .title2 17pt, .title 22pt)."
+      "b2_change": "Re-cited: the cited ranges keep their line numbers at 1fbf81e6; the literal font sizes became text styles of the same default size (.footnote 10pt, .subheadline 11pt, .callout 12pt, .body 13pt, .title3 15pt, .title2 17pt, .title 22pt).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-037",

@@ -7217,7 +7217,8 @@
         "DroppyCode/App/Views/Settings/HydraSettingsPage.swift:101-106",
         "DroppyCode/App/AppSettings.swift:162, :583-585, :763"
       ],
-      "notes": "The detail line is exact and must not be reworded: \"The team's changes go out as a merge request and are merged.\" There is no separate confirmation and no per-project override."
+      "notes": "The detail line is exact and must not be reworded: \"The team's changes go out as a merge request and are merged.\" There is no separate confirmation and no per-project override.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "HYDRAMERGE",
@@ -15918,7 +15919,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:50, :53 chatBaseSize - .title3 15, .subheadline 11 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "The glyph row is hidden from accessibility. The subtitle is truncated to one line, so a narrow pane clips it rather than wrapping.",
-      "b2_change": "Re-cited: the cited ranges keep their line numbers at 1fbf81e6; the literal font sizes became text styles of the same default size (.footnote 10pt, .subheadline 11pt, .callout 12pt, .body 13pt, .title3 15pt, .title2 17pt, .title 22pt)."
+      "b2_change": "Re-cited: the cited ranges keep their line numbers at 1fbf81e6; the literal font sizes became text styles of the same default size (.footnote 10pt, .subheadline 11pt, .callout 12pt, .body 13pt, .title3 15pt, .title2 17pt, .title 22pt).",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "SETTINGS",
@@ -15977,7 +15979,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:52 chatBaseSize - .callout 12 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "The first segment draws the \"infinity\" symbol in place of its title but keeps \"No cap\" as its accessibility label. The row's detail reads \"At most 1 heads in parallel.\" at a cap of one; the singular is not special-cased and must be reproduced.",
-      "b2_change": "DroppyCode/UI/Chrome/ChromeSegmentedPicker.swift:57 `.system(size: 12, weight: ...)` -> `.system(.callout, weight: ...)` at 1fbf81e6. Chrome.secondaryText is `primaryText.opacity(0.7)` at 1fbf81e6 (DroppyCode/UI/Chrome/Chrome.swift:79), the label colour at 70% opacity; at dd2b86ef it was `Color(nsColor: .secondaryLabelColor)` (DroppyCode/UI/Chrome/Chrome.swift:77 at dd2b86ef)."
+      "b2_change": "DroppyCode/UI/Chrome/ChromeSegmentedPicker.swift:57 `.system(size: 12, weight: ...)` -> `.system(.callout, weight: ...)` at 1fbf81e6. Chrome.secondaryText is `primaryText.opacity(0.7)` at 1fbf81e6 (DroppyCode/UI/Chrome/Chrome.swift:79), the label colour at 70% opacity; at dd2b86ef it was `Color(nsColor: .secondaryLabelColor)` (DroppyCode/UI/Chrome/Chrome.swift:77 at dd2b86ef).",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "SETTINGS",
@@ -16000,7 +16003,8 @@
         "DroppyCode/App/Views/Settings/HydraSettingsPage.swift:110",
         "DroppyCode/App/Views/Settings/HydraSettingsPage.swift:203-220"
       ],
-      "notes": "SF Symbol \"book\". It sits in the section header rather than in a card so the card keeps its full width for the explanatory words."
+      "notes": "SF Symbol \"book\". It sits in the section header rather than in a card so the card keeps its full width for the explanatory words.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "SETTINGS",
@@ -16021,7 +16025,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Settings/HydraSettingsPage.swift:222-236"
       ],
-      "notes": "SF Symbol \"plus\". It appears on the \"No pairs yet\" row and on the \"Another pair\" row, which are mutually exclusive."
+      "notes": "SF Symbol \"plus\". It appears on the \"No pairs yet\" row and on the \"Another pair\" row, which are mutually exclusive.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "SETTINGS",
@@ -16047,7 +16052,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:51-53 chatBaseSize - .body 13, .callout 12, .subheadline 11 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "The summary omits anything the title and the marks already say; a pair with defaults has one short line. The minus button's tooltip and accessibility label are both \"Remove this pair\".",
-      "b2_change": "Re-cited: the cited ranges keep their line numbers at 1fbf81e6; the literal font sizes became text styles of the same default size (.footnote 10pt, .subheadline 11pt, .callout 12pt, .body 13pt, .title3 15pt, .title2 17pt, .title 22pt)."
+      "b2_change": "Re-cited: the cited ranges keep their line numbers at 1fbf81e6; the literal font sizes became text styles of the same default size (.footnote 10pt, .subheadline 11pt, .callout 12pt, .body 13pt, .title3 15pt, .title2 17pt, .title 22pt).",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "SETTINGS",
@@ -16075,7 +16081,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:50, :53 chatBaseSize - .title3 15, .subheadline 11 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "An empty field stores nil, not \"\". The blur on open is explicit and load-bearing: without it the caret landing in the field reads as a prompt to rename.",
-      "b2_change": "Re-cited: the cited ranges keep their line numbers at 1fbf81e6; the literal font sizes became text styles of the same default size (.footnote 10pt, .subheadline 11pt, .callout 12pt, .body 13pt, .title3 15pt, .title2 17pt, .title 22pt)."
+      "b2_change": "Re-cited: the cited ranges keep their line numbers at 1fbf81e6; the literal font sizes became text styles of the same default size (.footnote 10pt, .subheadline 11pt, .callout 12pt, .body 13pt, .title3 15pt, .title2 17pt, .title 22pt).",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "SETTINGS",
@@ -16099,7 +16106,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:51, :53 chatBaseSize - .body 13, .subheadline 11 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "These rows are NOT ChromeRow and use different paddings. Two rows are titled \"Provider\", two \"Model\" and two \"Effort\"; only the section label above them distinguishes the two sides, which matters for accessible naming.",
-      "b2_change": "Re-cited: the cited ranges keep their line numbers at 1fbf81e6; the literal font sizes became text styles of the same default size (.footnote 10pt, .subheadline 11pt, .callout 12pt, .body 13pt, .title3 15pt, .title2 17pt, .title 22pt)."
+      "b2_change": "Re-cited: the cited ranges keep their line numbers at 1fbf81e6; the literal font sizes became text styles of the same default size (.footnote 10pt, .subheadline 11pt, .callout 12pt, .body 13pt, .title3 15pt, .title2 17pt, .title 22pt).",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "SETTINGS",

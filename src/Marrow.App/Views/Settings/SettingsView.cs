@@ -1,8 +1,12 @@
 using System;
 using System.Collections.Generic;
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Media;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
+using Marrow.UI.Chrome;
 using Marrow.UI.Port;
 using Marrow.UI.Theme;
 
@@ -87,9 +91,52 @@ public sealed class SettingsView : Decorator
 /// <summary>:296-305 <c>struct SettingsSwitch: View</c>: a small switch with no label.</summary>
 public sealed class SettingsSwitch : Decorator
 {
-    // :297 @Binding var isOn: Bool; :299-304 body
-    public SettingsSwitch(Binding<bool> isOn) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Settings/SettingsView.swift:299");
+    // :297 @Binding var isOn: Bool; :299-304 Toggle("", isOn: $isOn).labelsHidden().toggleStyle(.switch).controlSize(.small)
+    public SettingsSwitch(Binding<bool> isOn) => Child = new SmallSwitch(isOn);
+}
+
+/// <summary>
+/// ENGINEERING DECISION: Avalonia's own ToggleSwitch needs its Fluent theme's control template
+/// (PART_MovingKnobs), which this codebase's headless test host does not register, so it throws
+/// KeyNotFoundException the moment it is measured. A small, self-drawn switch avoids any themed
+/// template. Track/knob sizes are not given by the Swift source beyond ".controlSize(.small)", so
+/// they are chosen to read as a small macOS-style switch, not a source fact.
+/// </summary>
+internal sealed class SmallSwitch : Control
+{
+    private const double TrackWidth = 28;
+    private const double TrackHeight = 16;
+    private const double Inset = 2;
+    private const double KnobDiameter = TrackHeight - Inset * 2;
+
+    private readonly Binding<bool> isOn;
+
+    public SmallSwitch(Binding<bool> isOn)
+    {
+        this.isOn = isOn;
+        Width = TrackWidth;
+        Height = TrackHeight;
+        Cursor = new Cursor(StandardCursorType.Hand);
+        PointerPressed += (_, e) =>
+        {
+            isOn.Value = !isOn.Value;
+            e.Handled = true;
+            InvalidateVisual();
+        };
+    }
+
+    public override void Render(DrawingContext context)
+    {
+        base.Render(context);
+        var on = isOn.Value;
+        var track = new Rect(0, 0, TrackWidth, TrackHeight);
+        var trackBrush = on ? Chrome.AccentNSColor.Brush(this) : Chrome.Overlay(0.2).Brush(this);
+        context.DrawRectangle(trackBrush, null, track, TrackHeight / 2, TrackHeight / 2);
+
+        var knobX = on ? TrackWidth - Inset - KnobDiameter : Inset;
+        var knob = new Rect(knobX, Inset, KnobDiameter, KnobDiameter);
+        context.DrawEllipse(Brushes.White, null, knob);
+    }
 }
 
 /// <summary>:307-413 <c>private struct GeneralSettingsPage: View</c>.</summary>
