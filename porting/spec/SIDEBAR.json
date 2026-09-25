@@ -652,7 +652,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The comparator must be implemented as a total order with the same tie-breaks; the `(nil, .some)` asymmetry is deliberate and is not a stable-sort accident.",
       "verification_method": "unit test over a permuted fixture asserting the exact resulting order.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1379,7 +1379,7 @@
       "cancellation": "not cancellable once committed.",
       "windows_path": "Direct translation; the Bool return feeds RowDrag's break (port_impacts entry 154).",
       "verification_method": "contract fixture asserting the rewritten sortOrder array and the inherited pin, plus a restart test.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1403,7 +1403,7 @@
       "cancellation": "not cancellable once committed.",
       "windows_path": "Direct translation; start-of-day uses the user's local calendar.",
       "verification_method": "contract fixture asserting per-thread activityOrderDay from each thread's own updatedAt, plus a restart test.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1886,7 +1886,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The dock badge becomes the Windows taskbar overlay icon. Platform boundary: taskbar badging.",
       "verification_method": "contract fixture asserting every field, plus a restart test.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1936,7 +1936,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct translation; note `children(of:)` is a wider set than `helpers(of:)` and the difference is deliberate.",
       "verification_method": "contract fixture asserting every field including the cleared activity place, plus a restart test.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2022,7 +2022,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Session stop and worktree release are the Windows process and Git layers. Dock badge becomes the taskbar overlay.",
       "verification_method": "contract fixture asserting every field on the thread and its helpers.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2156,7 +2156,7 @@
       "cancellation": "not cancellable once started; the Git work is fire-and-forget.",
       "windows_path": "Git worktree removal on Windows must cope with locked files and long paths; failures are still swallowed to preserve parity. Platform boundary: file system and Git.",
       "verification_method": "contract fixture asserting the recursion, the head interruption and the two worktree conditions.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2205,7 +2205,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct translation with the same Unicode trim set.",
       "verification_method": "unit test on the trim and the empty rejection.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "b2_change": "Citation only: B1 AppModel.swift:749 `let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)` -> B2 :749 `let trimmed = title.trimmed`, defined at B2 Text.swift:132 as the same trim. Behaviour unchanged."
@@ -2708,7 +2708,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The persisted field name must be `expandsHelpers` with the inverted meaning, or every existing library would come back unfolded.",
       "verification_method": "restart test plus a decode fixture with the key absent.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3196,7 +3196,7 @@
       "cancellation": "Dismissing the confirmation cancels. Once confirmed, or with confirmBeforeDeleting off, not cancellable.",
       "windows_path": "Owner ruling OD-0008 A9 (BLK-0009 RESOLVED, FIX): both Remove project paths (ellipsis popover and context menu) honour `confirmBeforeDeleting` the way the three thread-deletion paths do. Owner ruling OD-0012 E2 gives the wording, in the style of the thread delete question (SidebarView.swift:968-984): a popover menu 280 pt wide on the project row with the section header `Remove this project?`, the note `“<name>” and its threads will be removed. Files in your project stay as they are.` (`<name>` is project.name; the quotes are U+201C and U+201D), a divider, and one destructive item `Remove project` drawn in Chrome.danger with the `trash` symbol, as the thread question's item has (Lucide `trash` by OD-0010). Dismissing it removes nothing.",
       "verification_method": "interaction test: with confirmBeforeDeleting on, choosing Remove project from each path shows the question `Remove this project?`, the note `“<name>” and its threads will be removed. Files in your project stay as they are.` filled with the project's name (U+201C/U+201D) and the red `Remove project` action, removes nothing until that action is chosen, and dismissing keeps the project; with it off the project is removed at once; contract fixture asserting threads removed, selection cleared, lastProjectID cleared and no Git work scheduled.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "blocked_by": null,

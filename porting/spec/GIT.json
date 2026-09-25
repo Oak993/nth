@@ -1447,7 +1447,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Model the phase as a closed two-case enumeration whose raw values are exactly these literals.",
       "verification_method": "unit asserting only two phases exist",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1530,7 +1530,7 @@
       "cancellation": "Stopping the turn while it is starting is checked after the awaits (currentTurnID == turn.id); the checkpoint ref is still written.",
       "windows_path": "Run the capture concurrently with session start and await both before sending. Keep the ordering; it is a correctness property, not an optimisation.",
       "verification_method": "interaction test: send a message and assert the start ref exists before the first provider byte",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1554,7 +1554,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port including the conditional and the silence.",
       "verification_method": "interaction test asserting no -end ref exists when the -start capture failed",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1603,7 +1603,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port. Worktree removal on Windows must contend with open file handles; the try? swallow is reproduced.",
       "verification_method": "interaction test on both menu choices",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1627,7 +1627,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port; keep the loop serial rather than parallelising it.",
       "verification_method": "interaction test with one user worktree and one Hydra copy",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2989,7 +2989,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Platform boundary: the worktrees root moves from the home directory dot-folder to the chosen Windows state directory. Keep the slug rule space-only, because the Hydra orphan sweeper matches on the same rule and any added sanitising would have to be added there too or worktrees leak.",
       "verification_method": "interaction test asserting the folder name, the branch name and the two alert bodies",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3045,7 +3045,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port of the selection rule at every site.",
       "verification_method": "interaction test with a worktree thread asserting the checkpoint ref lands in the worktree's own administrative directory",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3071,7 +3071,7 @@
       "cancellation": "The task is shared, so a hover that moves away does not cancel it.",
       "windows_path": "Direct port including the ten second window, which is what lets edits made outside the app be picked up soon after.",
       "verification_method": "unit asserting one git run across a hover and an immediate click",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3095,7 +3095,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port; sort with an ordinal comparison.",
       "verification_method": "unit over a three-turn thread asserting the union and the chosen end checkpoint",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3119,7 +3119,7 @@
       "cancellation": "not applicable",
       "windows_path": "Direct port of all three messages verbatim.",
       "verification_method": "unit over each guard asserting the exact string",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3143,7 +3143,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port; keep the verification ahead of the provider rewind.",
       "verification_method": "interaction test deleting the checkpoint ref then reverting, asserting the conversation is intact",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3168,7 +3168,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port of all four messages and the branch conditions.",
       "verification_method": "unit per provider branch asserting the exact strings",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3195,7 +3195,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port including the message prefix and the colon and space.",
       "verification_method": "interaction test making the restore fail and asserting the notice text",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3221,7 +3221,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port including the ordering, since the notice must be appended after the trim to survive it.",
       "verification_method": "restart test asserting the trimmed thread reloads with the expected turns and status; unit test that a head-reported path pending before a revert is absent from the next finished turn's touchedPaths",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3246,7 +3246,7 @@
       "cancellation": "The editor is disabled while sending.",
       "windows_path": "Direct port of the three-way outcome.",
       "verification_method": "interaction test with a restore failure asserting the edit stays in the composer",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3763,7 +3763,7 @@
       "cancellation": "not applicable",
       "windows_path": "Direct port.",
       "verification_method": "interaction test opening from a tool row, then from the tab, asserting the list starts at the top",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3843,7 +3843,7 @@
       "cancellation": "not applicable",
       "windows_path": "Direct port including the one-based display index over a zero-based stored index.",
       "verification_method": "interaction test with a mix of qualifying and non-qualifying turns",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3869,7 +3869,7 @@
       "cancellation": "The shared task is not cancelled by a caller going away.",
       "windows_path": "Direct port including both cache bounds.",
       "verification_method": "unit asserting a second request for a finished turn spawns nothing",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3894,7 +3894,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port of the span search order.",
       "verification_method": "unit over a selection whose middle turn has no checkpoints",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3920,7 +3920,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The containment test is TouchedPaths.relative, so the Windows absolute-path rule applies here too.",
       "verification_method": "unit with an edit in the temporary directory and one in a second project",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3949,7 +3949,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port; the field name touchedPaths is fixed by existing thread documents.",
       "verification_method": "restart test reading a thread document written with and without the field; unit test that head paths pending before a revert are not in the next finished turn's touchedPaths",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
