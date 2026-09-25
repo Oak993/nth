@@ -1,35 +1,39 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using System.Text.RegularExpressions;
+using Avalonia;
+using Avalonia.Automation;
+using Avalonia.Automation.Peers;
+using Avalonia.Automation.Provider;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.Controls.Shapes;
+using Avalonia.Interactivity;
+using Avalonia.Layout;
+using Avalonia.Media;
+using Avalonia.Media.Imaging;
+using Avalonia.Styling;
 using Marrow.Core.Port;
+using Marrow.Core.Support;
+using Marrow.UI.Chrome;
+using Marrow.UI.Common;
+using Marrow.UI.Markdown;
 using Marrow.UI.Port;
 
 namespace Marrow.App.Views.Settings;
 
-// Source: DroppyCode/App/Views/Settings/AboutUpdateViews.swift (B2 1fbf81e), :1-845.
-// Skeleton (c100 group 4): every type the file declares, private ones included, with the records' shapes and the
-// members other files use; every view body and every member with behaviour is left to the implementing unit
-// (MARROW_STUB), as are the digest's private parse helpers (:86-185) and the views' private members.
-// Forms (ED-095): a SwiftUI View is a Decorator whose constructor builds `body`; a Swift struct is a sealed record
-// (R-VAL-1); Color is SwiftColor. ReleaseNoteCategory has no raw values, so, like HydraMergeStage (Hydra.cs), it is a
-// plain C# enum whose CaseIterable order is written out in ReleaseNoteCategoryExtensions.AllCases and whose computed
-// members are C# 14 extension members there (R-NAME-4). AboutVersionPill's private enum Standing cannot be extended
-// from a top-level static class (it is private and nested), so its three computed properties (:592-614) are private
-// static functions of AboutVersionPill named after them. Swift `private`/`fileprivate` top-level types are `internal`.
-
-/// <summary>:12-60 <c>enum ReleaseNoteCategory: CaseIterable, Identifiable</c>: the three sections a release's notes
-/// are written in.</summary>
+/// <summary>The three sections a release's notes are written in.</summary>
 public enum ReleaseNoteCategory
 {
-    NewFeatures, // :13
-    BugFixes, // :14
-    Refinements, // :15
+    NewFeatures,
+    BugFixes,
+    Refinements,
 }
 
-/// <summary>:12-60 the members of <c>ReleaseNoteCategory</c>.</summary>
 public static class ReleaseNoteCategoryExtensions
 {
-    // CaseIterable: declaration order (:13-15).
     public static IReadOnlyList<ReleaseNoteCategory> AllCases { get; } =
     [
         ReleaseNoteCategory.NewFeatures,
@@ -39,215 +43,1282 @@ public static class ReleaseNoteCategoryExtensions
 
     extension(ReleaseNoteCategory category)
     {
-        // :17 var id: Self { self }
-        public ReleaseNoteCategory Id =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Settings/AboutUpdateViews.swift:17");
+        public ReleaseNoteCategory Id => category;
 
-        // :19-25 var assetName: String
-        public string AssetName =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Settings/AboutUpdateViews.swift:19");
+        public string AssetName => category switch
+        {
+            ReleaseNoteCategory.NewFeatures => "UpdateNewFeaturesIcon",
+            ReleaseNoteCategory.BugFixes => "UpdateBugFixesIcon",
+            ReleaseNoteCategory.Refinements => "UpdateRefinementsIcon",
+            _ => throw new ArgumentOutOfRangeException(nameof(category)),
+        };
 
-        // :28-34 var cardTitle: String
-        public string CardTitle =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Settings/AboutUpdateViews.swift:28");
+        public string CardTitle => category switch
+        {
+            ReleaseNoteCategory.NewFeatures => "New",
+            ReleaseNoteCategory.BugFixes => "Bugs",
+            ReleaseNoteCategory.Refinements => "Refinements",
+            _ => throw new ArgumentOutOfRangeException(nameof(category)),
+        };
 
-        // :36-42 var sectionTitle: String
-        public string SectionTitle =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Settings/AboutUpdateViews.swift:36");
+        public string SectionTitle => category switch
+        {
+            ReleaseNoteCategory.NewFeatures => "New features",
+            ReleaseNoteCategory.BugFixes => "Bug fixes",
+            ReleaseNoteCategory.Refinements => "Refinements",
+            _ => throw new ArgumentOutOfRangeException(nameof(category)),
+        };
 
-        // :44-50 func countSummary(_ count: Int) -> String
-        public string CountSummary(long count) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Settings/AboutUpdateViews.swift:44");
+        public string CountSummary(long count) => category switch
+        {
+            ReleaseNoteCategory.NewFeatures => count == 1 ? "1 addition" : $"{count} additions",
+            ReleaseNoteCategory.BugFixes => $"{count} fixed",
+            ReleaseNoteCategory.Refinements => $"{count} improved",
+            _ => throw new ArgumentOutOfRangeException(nameof(category)),
+        };
 
-        // :53-59 var cardTint: Color
-        public SwiftColor CardTint =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Settings/AboutUpdateViews.swift:53");
+        public SwiftColor CardTint => category switch
+        {
+            ReleaseNoteCategory.NewFeatures => new SwiftColor(red: 0.09, green: 0.44, blue: 0.85),
+            ReleaseNoteCategory.BugFixes => new SwiftColor(red: 0.90, green: 0.30, blue: 0.24),
+            ReleaseNoteCategory.Refinements => new SwiftColor(red: 0.43, green: 0.23, blue: 0.72),
+            _ => throw new ArgumentOutOfRangeException(nameof(category)),
+        };
     }
 }
 
-/// <summary>:67-186 <c>struct UpdateReleaseNotesDigest: Equatable</c>: a release's notes read into the three
-/// sections.</summary>
+/// <summary>A release's description parsed into its recognized, non-empty sections.</summary>
 public sealed record UpdateReleaseNotesDigest
 {
-    /// <summary>:68-77 <c>struct Section: Equatable, Identifiable</c>.</summary>
     public sealed record Section
     {
-        public required ReleaseNoteCategory Category { get; init; } // :69
-        public required ValueList<string> Bullets { get; init; } // :70
-        public string? Rollup { get; init; } // :72
-        public required long RollupCount { get; init; } // :73
+        public required ReleaseNoteCategory Category { get; init; }
+        public required ValueList<string> Bullets { get; init; }
+        public string? Rollup { get; init; }
+        public required long RollupCount { get; init; }
 
-        // :75 var id: ReleaseNoteCategory { category }
-        public ReleaseNoteCategory Id =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Settings/AboutUpdateViews.swift:75");
-
-        // :76 var changeCount: Int
-        public long ChangeCount =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Settings/AboutUpdateViews.swift:76");
+        public ReleaseNoteCategory Id => Category;
+        public long ChangeCount => Bullets.Count + RollupCount;
     }
 
-    public required ValueList<Section> Sections { get; init; } // :79
+    public required ValueList<Section> Sections { get; init; }
 
-    // :80 var isEmpty: Bool
-    public bool IsEmpty =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Settings/AboutUpdateViews.swift:80");
+    public bool IsEmpty => Sections.Count == 0;
 
-    // :82-84 func section(for:) -> Section? (R-NAME-3: named like the nested type Section; Swift: section)
     public Section? UpdateReleaseNotesDigestSection(ReleaseNoteCategory @for) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Settings/AboutUpdateViews.swift:82");
+        Sections.FirstOrDefault(section => section.Category == @for);
 
-    // :91-98 @MainActor static func parse(_ raw: String?) -> UpdateReleaseNotesDigest
-    public static UpdateReleaseNotesDigest Parse(string? raw) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Settings/AboutUpdateViews.swift:91");
+    private static readonly HashSet<char> BulletMarkers = ['-', '\u2010', '\u2013', '\u2014', '\u2212', '*', '•'];
+    private static string? lastRaw;
+    private static UpdateReleaseNotesDigest? lastDigest;
+
+    public static UpdateReleaseNotesDigest Parse(string? raw)
+    {
+        if (string.IsNullOrEmpty(raw))
+            return new UpdateReleaseNotesDigest { Sections = new ValueList<Section>(Array.Empty<Section>()) };
+        if (string.Equals(lastRaw, raw, StringComparison.Ordinal) && lastDigest is not null)
+            return lastDigest;
+
+        var digest = ParseNotes(raw);
+        lastRaw = raw;
+        lastDigest = digest;
+        return digest;
+    }
+
+    private static UpdateReleaseNotesDigest ParseNotes(string raw)
+    {
+        var collected = new Dictionary<ReleaseNoteCategory, List<string>>();
+        ReleaseNoteCategory? current = null;
+
+        foreach (var sourceLine in raw.Split('\n'))
+        {
+            var line = sourceLine.Trim();
+            if (line.Length == 0 || line == "---" || line.StartsWith("<", StringComparison.Ordinal))
+                continue;
+
+            if (BulletBody(line) is { } bullet)
+            {
+                if (current is { } category)
+                {
+                    var clean = StripInlineMarkdown(bullet);
+                    if (clean.Length > 0)
+                    {
+                        if (!collected.TryGetValue(category, out var items))
+                            collected[category] = items = [];
+                        items.Add(clean);
+                    }
+                }
+                continue;
+            }
+
+            if (CategoryForHeader(line) is { } recognized)
+                current = recognized;
+            else if (IsHeader(line))
+                current = null;
+        }
+
+        var sections = new List<Section>();
+        foreach (var category in ReleaseNoteCategoryExtensions.AllCases)
+        {
+            if (!collected.TryGetValue(category, out var parsed) || parsed.Count == 0)
+                continue;
+
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var unique = parsed.Where(item => seen.Add(item)).ToList();
+            if (unique.Count == 0)
+                continue;
+
+            var rollupCount = RollupCountIn(unique[^1]);
+            if (rollupCount is > 0)
+            {
+                sections.Add(new Section
+                {
+                    Category = category,
+                    Bullets = new ValueList<string>(unique.Take(unique.Count - 1)),
+                    Rollup = unique[^1],
+                    RollupCount = rollupCount.Value,
+                });
+            }
+            else
+            {
+                sections.Add(new Section
+                {
+                    Category = category,
+                    Bullets = new ValueList<string>(unique),
+                    Rollup = null,
+                    RollupCount = 0,
+                });
+            }
+        }
+
+        return new UpdateReleaseNotesDigest { Sections = new ValueList<Section>(sections) };
+    }
+
+    private static string? BulletBody(string line)
+    {
+        if (line.Length < 2 || !BulletMarkers.Contains(line[0]) || line[1] is not (' ' or '\t'))
+            return null;
+        var body = line[1..].Trim();
+        return body.Length == 0 ? null : body;
+    }
+
+    private static bool IsHeader(string line)
+    {
+        if (line.StartsWith("#", StringComparison.Ordinal))
+        {
+            var index = 0;
+            while (index < line.Length && line[index] == '#')
+                index++;
+            return index == line.Length || line[index] is ' ' or '\t';
+        }
+
+        return line.StartsWith("**", StringComparison.Ordinal) &&
+               line.EndsWith("**", StringComparison.Ordinal) &&
+               line.Length > 4;
+    }
+
+    private static ReleaseNoteCategory? CategoryForHeader(string line)
+    {
+        var text = line;
+        var index = 0;
+        while (index < text.Length && text[index] == '#')
+            index++;
+        text = text[index..].Trim();
+        if (text.StartsWith("**", StringComparison.Ordinal))
+            text = text[2..];
+        if (text.EndsWith("**", StringComparison.Ordinal))
+            text = text[..^2];
+        text = text.Trim(' ', '\t', ':');
+
+        return text.ToLowerInvariant() switch
+        {
+            "new features" or "new" => ReleaseNoteCategory.NewFeatures,
+            "bug fixes" or "fixes" or "bugs" => ReleaseNoteCategory.BugFixes,
+            "refinements" or "improvements" => ReleaseNoteCategory.Refinements,
+            _ => null,
+        };
+    }
+
+    private static long? RollupCountIn(string bullet)
+    {
+        var words = bullet.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var extraIndex = Array.FindIndex(words, word =>
+            string.Equals(TrimPunctuation(word), "extra", StringComparison.OrdinalIgnoreCase));
+        if (extraIndex <= 0)
+            return null;
+
+        var digits = new string(words[extraIndex - 1].Where(char.IsDigit).ToArray());
+        return long.TryParse(digits, NumberStyles.None, CultureInfo.InvariantCulture, out var count) && count > 0
+            ? count
+            : null;
+    }
+
+    private static string TrimPunctuation(string value)
+    {
+        var start = 0;
+        var end = value.Length;
+        while (start < end && char.IsPunctuation(value[start]))
+            start++;
+        while (end > start && char.IsPunctuation(value[end - 1]))
+            end--;
+        return value[start..end];
+    }
+
+    private static string StripInlineMarkdown(string text)
+    {
+        var result = Regex.Replace(text, @"\[([^\]]+)\]\([^)]*\)", "$1", RegexOptions.CultureInvariant);
+        result = Regex.Replace(result, @"\*\*([^*]+)\*\*", "$1", RegexOptions.CultureInvariant);
+        result = Regex.Replace(result, @"`([^`]+)`", "$1", RegexOptions.CultureInvariant);
+        return result.Trim();
+    }
 }
 
-/// <summary>:190-253 <c>struct UpdateReleaseSectionCards: View</c>: the notes as three tappable cards.</summary>
 public sealed class UpdateReleaseSectionCards : Decorator
 {
-    // :191-192 let digest, let version; :196-203 body
-    public UpdateReleaseSectionCards(UpdateReleaseNotesDigest digest, string version) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Settings/AboutUpdateViews.swift:196");
+    private sealed class ViewState : MainActorModel
+    {
+        private ReleaseNoteCategory? presented;
+        public ReleaseNoteCategory? Presented { get => Read(presented); set => Set(ref presented, value); }
+    }
+
+    private readonly ViewState state = new();
+
+    public UpdateReleaseSectionCards(UpdateReleaseNotesDigest digest, string version)
+    {
+        var row = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitions("*,10,*,10,*"),
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+        };
+
+        for (var index = 0; index < ReleaseNoteCategoryExtensions.AllCases.Count; index++)
+        {
+            var category = ReleaseNoteCategoryExtensions.AllCases[index];
+            var section = digest.UpdateReleaseNotesDigestSection(category);
+            var button = BuildCard(category, section);
+            var popover = new Popup
+            {
+                Placement = PlacementMode.Bottom,
+                PlacementTarget = button,
+                IsLightDismissEnabled = true,
+            };
+            popover.Opened += (_, _) => popover.Child = section is null
+                ? new Border()
+                : new UpdateReleaseSectionPopover(section, version).PresentedChrome();
+            popover.Closed += (_, _) =>
+            {
+                if (state.Presented == category)
+                    state.Presented = null;
+            };
+            var shown = false;
+            button.Track(() => state.Presented == category, presented =>
+            {
+                if (presented == shown)
+                    return;
+                shown = presented;
+                Presentation.Presenter.Current.SetPresented(popover, presented);
+            });
+            Grid.SetColumn(button, index * 2);
+            row.Children.Add(button);
+        }
+
+        Child = row;
+        HorizontalAlignment = HorizontalAlignment.Stretch;
+    }
+
+    private Button BuildCard(ReleaseNoteCategory category, UpdateReleaseNotesDigest.Section? section)
+    {
+        var icon = SwiftImage.Named(category.AssetName)
+            .Resizable()
+            .Interpolation(BitmapInterpolationMode.HighQuality)
+            .AspectRatio(ContentMode.Fit);
+        icon.Width = 26;
+        icon.Height = 26;
+
+        var title = new TextBlock
+        {
+            Text = category.CardTitle,
+            MaxLines = 1,
+            TextWrapping = TextWrapping.NoWrap,
+            HorizontalAlignment = HorizontalAlignment.Center,
+        };
+        SwiftFont.System(12.5, weight: SwiftFont.Weight.Medium).Apply(title);
+        title.Foreground = Chrome.PrimaryText.Brush(title);
+
+        var count = new TextBlock
+        {
+            Text = section is null ? "Nothing here" : category.CountSummary(section.ChangeCount),
+            MaxLines = 1,
+            TextWrapping = TextWrapping.NoWrap,
+            HorizontalAlignment = HorizontalAlignment.Center,
+        };
+        SwiftFont.System(SwiftFont.TextStyle.Subheadline).Apply(count);
+        count.Foreground = Chrome.SecondaryText.Brush(count);
+
+        var labelStack = new StackPanel
+        {
+            Orientation = Orientation.Vertical,
+            Spacing = 6,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            Children = { icon, title, count },
+        };
+        var surface = new Border
+        {
+            Padding = new Thickness(8, 12),
+            Child = labelStack,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            VerticalAlignment = VerticalAlignment.Stretch,
+        }.RoundedRectangle(14, RoundedCornerStyle.Continuous);
+        surface.Background = category.CardTint.Opacity(0.09).Brush(surface);
+
+        var button = PlainControls.Button(surface, () =>
+        {
+            if (section is not null)
+                state.Presented = state.Presented == category ? null : category;
+        });
+        button.HorizontalAlignment = HorizontalAlignment.Stretch;
+        button.VerticalAlignment = VerticalAlignment.Stretch;
+        button.IsEnabled = section is not null;
+        button.Opacity = section is null ? 0.45 : 1;
+        ToolTip.SetTip(button, section is null
+            ? "Nothing here"
+            : $"Every change in {category.SectionTitle.ToLowerInvariant()}");
+        AutomationProperties.SetName(button, category.SectionTitle);
+        return button;
+    }
 }
 
-/// <summary>:255-301 <c>private struct UpdateReleaseSectionPopover: View</c>.</summary>
 internal sealed class UpdateReleaseSectionPopover : Decorator
 {
-    // :256-257 let section, let version; :259-300 body
-    public UpdateReleaseSectionPopover(UpdateReleaseNotesDigest.Section section, string version) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Settings/AboutUpdateViews.swift:259");
+    public UpdateReleaseSectionPopover(UpdateReleaseNotesDigest.Section section, string version)
+    {
+        var headerIcon = SwiftImage.Named(section.Category.AssetName)
+            .Resizable()
+            .Interpolation(BitmapInterpolationMode.HighQuality)
+            .AspectRatio(ContentMode.Fit);
+        headerIcon.Width = 24;
+        headerIcon.Height = 24;
+
+        var title = StyledText(section.Category.SectionTitle, SwiftFont.System(SwiftFont.TextStyle.Body, weight: SwiftFont.Weight.Semibold), Chrome.PrimaryText);
+        var releaseVersion = StyledText(version, SwiftFont.System(SwiftFont.TextStyle.Subheadline), Chrome.SecondaryText);
+        var titleStack = new StackPanel
+        {
+            Orientation = Orientation.Vertical,
+            Spacing = 1,
+            Children = { title, releaseVersion },
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+        };
+        var header = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 9,
+            Children = { headerIcon, titleStack, new Control { Width = 0, HorizontalAlignment = HorizontalAlignment.Stretch } },
+        };
+
+        var bullets = new StackPanel
+        {
+            Orientation = Orientation.Vertical,
+            Spacing = 9,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+        };
+        foreach (var bullet in section.Bullets)
+        {
+            var text = StyledText(bullet, SwiftFont.System(SwiftFont.TextStyle.Body), Chrome.SecondaryText);
+            text.TextWrapping = TextWrapping.Wrap;
+            text.HorizontalAlignment = HorizontalAlignment.Stretch;
+            bullets.Children.Add(text);
+        }
+
+        if (section.Rollup is { } rollup)
+        {
+            var text = StyledText(rollup, SwiftFont.System(SwiftFont.TextStyle.Callout), Chrome.SecondaryText);
+            text.TextWrapping = TextWrapping.Wrap;
+            text.HorizontalAlignment = HorizontalAlignment.Stretch;
+            bullets.Children.Add(text);
+        }
+
+        var scroll = new ScrollViewer
+        {
+            Content = bullets,
+            MaxHeight = 320,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Hidden,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+        };
+        var stack = new StackPanel
+        {
+            Orientation = Orientation.Vertical,
+            Spacing = 12,
+            Children = { header, scroll },
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+        };
+        Child = new Border
+        {
+            Width = 320,
+            Padding = new Thickness(14),
+            Child = stack,
+            HorizontalAlignment = HorizontalAlignment.Left,
+        };
+    }
+
+    private static TextBlock StyledText(string value, SwiftFont font, SwiftColor color)
+    {
+        var text = new TextBlock { Text = value };
+        font.Apply(text);
+        text.Foreground = color.Brush(text);
+        return text;
+    }
 }
 
-/// <summary>:307-337 <c>@MainActor private final class FractionChase</c>: a per-frame exponential chase of a target
-/// that only moves forward.</summary>
 internal sealed class FractionChase
 {
-    // :312-314 init(initial:)
-    public FractionChase(double initial) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Settings/AboutUpdateViews.swift:312");
+    private double displayed;
+    private double? lastTime;
 
-    // :316-336 func advance(to:target:response:minimumSpeed:) -> Double
-    public double Advance(double to, double target, double response, double minimumSpeed) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Settings/AboutUpdateViews.swift:316");
+    public FractionChase(double initial) => displayed = initial;
+
+    public double Advance(double to, double target, double response, double minimumSpeed)
+    {
+        var previousTime = lastTime;
+        lastTime = to;
+        if (previousTime is null)
+        {
+            displayed = target;
+            return displayed;
+        }
+
+        if (target < displayed)
+        {
+            displayed = target;
+            return displayed;
+        }
+
+        var dt = Math.Max(0, Math.Min(to - previousTime.Value, 0.25));
+        var remaining = target - displayed;
+        if (remaining <= 0 || dt <= 0)
+            return displayed;
+
+        var step = remaining * (1 - Math.Exp(-dt / Math.Max(response, 0.01)));
+        step = Math.Max(step, minimumSpeed * dt);
+        displayed = Math.Min(displayed + step, target);
+        if (target - displayed < 0.0001)
+            displayed = target;
+        return displayed;
+    }
 }
 
-/// <summary>:341-378 <c>struct SmoothedUpdateProgressSlider: View</c>: hosts the slider and chases the raw
-/// target every display frame.</summary>
 public sealed class SmoothedUpdateProgressSlider : Decorator
 {
-    // :353-361 init(target:response:minimumSpeed:trackHeight:headDiameter:); :363-377 body
+    private sealed class ViewState : MainActorModel
+    {
+        private double target;
+        private bool settled;
+
+        public double Target { get => Read(target); set => Set(ref target, value); }
+        public bool Settled { get => Read(settled); set => Set(ref settled, value); }
+    }
+
+    private readonly ViewState state = new();
+    private readonly FractionChase chase;
+    private readonly UpdateProgressSlider slider;
+    private readonly double response;
+    private readonly double minimumSpeed;
+
     public SmoothedUpdateProgressSlider(
         UpdateInstallProgress.FractionTarget target,
         double response = 0.3,
         double minimumSpeed = 0,
         double trackHeight = 14,
-        double headDiameter = 20) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Settings/AboutUpdateViews.swift:353");
+        double headDiameter = 20)
+    {
+        this.response = response;
+        this.minimumSpeed = minimumSpeed;
+        state.Target = target.Value;
+        chase = new FractionChase(target.Value);
+        slider = new UpdateProgressSlider(target.Value, trackHeight, headDiameter);
+        Child = slider;
+
+        this.Track(() => target.Value, value =>
+        {
+            state.Target = value;
+            state.Settled = false;
+        });
+        this.TimelineView(
+            () => new AnimationTimelineSchedule(
+                1.0 / 60.0,
+                state.Settled || ScrollActivity.Shared.Current.IsScrolling),
+            date =>
+            {
+                var time = (date.UtcTicks - DateTimeOffset.UnixEpoch.UtcTicks) / (double)TimeSpan.TicksPerSecond;
+                var fraction = chase.Advance(time, state.Target, this.response, this.minimumSpeed);
+                slider.SetFraction(fraction);
+                state.Settled = fraction == state.Target;
+            });
+    }
 }
 
-/// <summary>:382-439 <c>struct UpdateProgressSlider: View</c>: a pill track filling with blues behind a soft white
-/// head.</summary>
 public sealed class UpdateProgressSlider : Decorator
 {
-    // :383-385 let fraction, var trackHeight = 14, var headDiameter = 20; :397-423 body
-    public UpdateProgressSlider(double fraction, double trackHeight = 14, double headDiameter = 20) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Settings/AboutUpdateViews.swift:397");
+    private const ulong SparkleSeed = 0x5EED_D80B;
+    private static readonly ValueList<SwiftColor> FillColors = new(
+    [
+        new SwiftColor(red: 0x67 / 255.0, green: 0xB9 / 255.0, blue: 0xEE / 255.0),
+        new SwiftColor(red: 0x1A / 255.0, green: 0x77 / 255.0, blue: 0xB4 / 255.0),
+        new SwiftColor(red: 0x12 / 255.0, green: 0x6C / 255.0, blue: 0xAF / 255.0),
+    ]);
+    private static readonly ValueList<SparkleParticle> Sparkles = SparkleParticle.Field(14, SparkleSeed);
 
-    // :426-428 fileprivate static func headX(for:width:trackHeight:) -> CGFloat
-    internal static double HeadX(double @for, double width, double trackHeight) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Settings/AboutUpdateViews.swift:426");
+    private readonly ProgressTrack track;
+    private double fraction;
 
-    // :431-438 fileprivate static func fillOpacity(for:) -> Double
-    internal static double FillOpacity(double @for) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Settings/AboutUpdateViews.swift:431");
-}
+    public double Fraction => fraction;
 
-/// <summary>:443-491 <c>private struct FillCanvas: View</c>: the blue fill and its sparkles in one canvas.</summary>
-internal sealed class FillCanvas : Decorator
-{
-    // :444-447 let fraction, trackHeight, colors, sparkles; :449-490 body
-    public FillCanvas(double fraction, double trackHeight, IReadOnlyList<SwiftColor> colors, IReadOnlyList<SparkleParticle> sparkles) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Settings/AboutUpdateViews.swift:449");
-}
-
-/// <summary>:494-524 <c>private struct SparkleParticle</c>: one sparkle on the track.</summary>
-internal sealed record SparkleParticle
-{
-    public required double X { get; init; } // :495
-    public required double Y { get; init; } // :496
-    public required double Size { get; init; } // :497
-    public required double Speed { get; init; } // :498
-    public required double Phase { get; init; } // :499
-    public required double Drift { get; init; } // :500
-
-    // :502-523 static func field(count:seed:) -> [SparkleParticle]
-    public static ValueList<SparkleParticle> Field(long count, ulong seed) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Settings/AboutUpdateViews.swift:502");
-}
-
-/// <summary>:527-535 <c>struct UpdateAvailableDot: View</c>: the unread dot while a release waits.</summary>
-public sealed class UpdateAvailableDot : Decorator
-{
-    // :528-534 body
-    public UpdateAvailableDot() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Settings/AboutUpdateViews.swift:528");
-}
-
-/// <summary>:542-549 <c>struct AboutUpdateChromeAccessory: View</c>: the About page's chrome.</summary>
-public sealed class AboutUpdateChromeAccessory : Decorator
-{
-    // :543-548 body
-    public AboutUpdateChromeAccessory() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Settings/AboutUpdateViews.swift:543");
-}
-
-/// <summary>:551-571 <c>private struct AboutIdentityPill: View</c>.</summary>
-internal sealed class AboutIdentityPill : Decorator
-{
-    // :552-570 body
-    public AboutIdentityPill() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Settings/AboutUpdateViews.swift:552");
-}
-
-/// <summary>:576-704 <c>private struct AboutVersionPill: View</c>: the one control of the update story.</summary>
-internal sealed class AboutVersionPill : Decorator
-{
-    // :623-685 body
-    public AboutVersionPill() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Settings/AboutUpdateViews.swift:623");
-
-    /// <summary>:587-615 <c>private enum Standing</c>.</summary>
-    private enum Standing
+    public UpdateProgressSlider(double fraction, double trackHeight = 14, double headDiameter = 20)
     {
-        UpToDate, // :588
-        Failed, // :589
-        Unchecked, // :590
+        this.fraction = fraction;
+        track = new ProgressTrack(fraction, trackHeight, headDiameter, FillColors, Sparkles);
+        Child = track;
+        AutomationProperties.SetName(this, "Updating Marrow");
+        AttachedToVisualTree += (_, _) =>
+            track.SetReduceMotion(EnvironmentValues.GetAccessibilityReduceMotion(this));
+        ActualThemeVariantChanged += (_, _) => track.UpdateTheme(ActualThemeVariant);
     }
 
-    // :592-598 Standing.symbol: String
-    private static string Symbol(Standing standing) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Settings/AboutUpdateViews.swift:592");
+    internal void SetFraction(double value)
+    {
+        if (fraction.Equals(value))
+            return;
+        fraction = value;
+        track.SetFraction(value);
+    }
 
-    // :600-606 Standing.title: String
-    private static string Title(Standing standing) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Settings/AboutUpdateViews.swift:600");
+    protected override AutomationPeer OnCreateAutomationPeer() => new ProgressPeer(this);
 
-    // :608-614 Standing.tint: Color
-    private static SwiftColor Tint(Standing standing) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Settings/AboutUpdateViews.swift:608");
+    internal static double HeadX(double @for, double width, double trackHeight) =>
+        trackHeight / 2 + (width - trackHeight) * Math.Clamp(@for, 0, 1);
+
+    internal static double FillOpacity(double @for)
+    {
+        const double start = 0.012;
+        const double end = 0.05;
+        if (@for <= start)
+            return 0;
+        if (@for >= end)
+            return 1;
+        var t = (@for - start) / (end - start);
+        return t * t * (3 - 2 * t);
+    }
+
+    private sealed class ProgressPeer(UpdateProgressSlider owner) : ControlAutomationPeer(owner), IValueProvider
+    {
+        protected override AutomationControlType GetAutomationControlTypeCore() => AutomationControlType.ProgressBar;
+
+        public string Value => owner.fraction.ToString("P0", CultureInfo.CurrentCulture);
+        public bool IsReadOnly => true;
+
+        public void SetValue(string? value) =>
+            throw new InvalidOperationException("The progress value is read-only.");
+    }
 }
 
-/// <summary>:712-819 <c>struct AboutSoftwareUpdateSection: View</c>: what the About page shows of the update.</summary>
+internal sealed record SparkleParticle
+{
+    public required double X { get; init; }
+    public required double Y { get; init; }
+    public required double Size { get; init; }
+    public required double Speed { get; init; }
+    public required double Phase { get; init; }
+    public required double Drift { get; init; }
+
+    public static ValueList<SparkleParticle> Field(long count, ulong seed)
+    {
+        var state = seed;
+        double Next()
+        {
+            unchecked
+            {
+                state += 0x9E37_79B9_7F4A_7C15UL;
+                var z = state;
+                z = (z ^ (z >> 30)) * 0xBF58_476D_1CE4_E5B9UL;
+                z = (z ^ (z >> 27)) * 0x94D0_49BB_1331_11EBUL;
+                z ^= z >> 31;
+                return (z >> 11) / 9007199254740992.0;
+            }
+        }
+
+        var particles = new List<SparkleParticle>((int)Math.Max(0, count));
+        for (var index = 0L; index < count; index++)
+        {
+            particles.Add(new SparkleParticle
+            {
+                X = Next(),
+                Y = 0.12 + Next() * 0.76,
+                Size = 1.2 + Next() * 1.6,
+                Speed = 0.9 + Next() * 2.4,
+                Phase = Next() * Math.PI * 2,
+                Drift = 0.6 + Next() * 1.4,
+            });
+        }
+        return new ValueList<SparkleParticle>(particles);
+    }
+}
+
+internal sealed class ProgressTrack : Panel
+{
+    private readonly Border track;
+    private readonly FillCanvas fill;
+    private readonly Border head;
+    private readonly double trackHeight;
+    private readonly double headDiameter;
+    private double fraction;
+    private double width;
+
+    public ProgressTrack(
+        double fraction,
+        double trackHeight,
+        double headDiameter,
+        IReadOnlyList<SwiftColor> colors,
+        IReadOnlyList<SparkleParticle> sparkles)
+    {
+        this.fraction = fraction;
+        this.trackHeight = trackHeight;
+        this.headDiameter = headDiameter;
+        track = new Border { HorizontalAlignment = HorizontalAlignment.Stretch };
+        fill = new FillCanvas(fraction, trackHeight, colors, sparkles);
+        var inner = new Ellipse
+        {
+            Width = headDiameter * 0.64,
+            Height = headDiameter * 0.64,
+            Fill = new SolidColorBrush(Color.FromArgb(245, 255, 255, 255)),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        head = new Border { Width = headDiameter, Height = headDiameter, Child = inner };
+        AutomationProperties.SetAccessibilityView(track, AccessibilityView.Raw);
+        AutomationProperties.SetAccessibilityView(fill, AccessibilityView.Raw);
+        AutomationProperties.SetAccessibilityView(head, AccessibilityView.Raw);
+        AutomationProperties.SetAccessibilityView(inner, AccessibilityView.Raw);
+        Children.Add(track);
+        Children.Add(fill);
+        Children.Add(head);
+        UpdateTheme(ActualThemeVariant);
+    }
+
+    public void SetFraction(double value)
+    {
+        fraction = value;
+        fill.SetFraction(value, width, trackHeight);
+        InvalidateArrange();
+    }
+
+    public void SetReduceMotion(bool reduceMotion) => fill.SetReduceMotion(reduceMotion);
+
+    public void UpdateTheme(ThemeVariant? theme)
+    {
+        var dark = PlainControls.IsDark(theme);
+        track.Background = dark
+            ? new SolidColorBrush(Color.FromArgb(26, 255, 255, 255))
+            : new SolidColorBrush(Color.FromArgb(18, 0, 0, 0));
+    }
+
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        var measuredWidth = double.IsFinite(availableSize.Width) ? availableSize.Width : 104;
+        track.Measure(new Size(measuredWidth, trackHeight));
+        fill.Measure(new Size(measuredWidth, trackHeight));
+        head.Measure(new Size(headDiameter, headDiameter));
+        return new Size(measuredWidth, headDiameter);
+    }
+
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        width = finalSize.Width;
+        var y = (finalSize.Height - trackHeight) / 2;
+        track.Arrange(new Rect(0, y, finalSize.Width, trackHeight));
+        fill.Arrange(new Rect(0, y, finalSize.Width, trackHeight));
+        fill.SetFraction(fraction, finalSize.Width, trackHeight);
+        var x = UpdateProgressSlider.HeadX(fraction, finalSize.Width, trackHeight) - headDiameter / 2;
+        head.Arrange(new Rect(x, (finalSize.Height - headDiameter) / 2, headDiameter, headDiameter));
+        return finalSize;
+    }
+}
+
+internal sealed class FillCanvas : Decorator
+{
+    private readonly Grid content;
+    private readonly Border gradient;
+    private readonly Canvas sparkleCanvas;
+    private readonly IReadOnlyList<SparkleParticle> allSparkles;
+    private readonly double trackHeight;
+    private IReadOnlyList<SparkleParticle> sparkles;
+    private readonly List<Ellipse> sparkleEllipses = [];
+    private double width;
+    private double currentTime;
+    private readonly ViewState animationState = new();
+
+    private sealed class ViewState : MainActorModel
+    {
+        private bool paused;
+        public bool Paused { get => Read(paused); set => Set(ref paused, value); }
+    }
+
+    public FillCanvas(double fraction, double trackHeight, IReadOnlyList<SwiftColor> colors, IReadOnlyList<SparkleParticle> sparkles)
+    {
+        this.trackHeight = trackHeight;
+        allSparkles = sparkles;
+        this.sparkles = sparkles;
+
+        var stops = new GradientStops();
+        for (var index = 0; index < colors.Count; index++)
+        {
+            stops.Add(new GradientStop(colors[index].Resolve(ThemeVariant.Light), index / (double)(colors.Count - 1)));
+        }
+        var brush = new LinearGradientBrush
+        {
+            StartPoint = new RelativePoint(0, 0.5, RelativeUnit.Relative),
+            EndPoint = new RelativePoint(1, 0.5, RelativeUnit.Relative),
+            GradientStops = stops,
+        };
+        gradient = new Border { Background = brush };
+        sparkleCanvas = new Canvas();
+        AutomationProperties.SetAccessibilityView(gradient, AccessibilityView.Raw);
+        AutomationProperties.SetAccessibilityView(sparkleCanvas, AccessibilityView.Raw);
+        content = new Grid { Children = { gradient, sparkleCanvas } };
+        Child = content;
+        BuildSparkles();
+        SetFraction(fraction, 0, trackHeight);
+        animationState.Paused = sparkles.Count == 0 || ScrollActivity.Shared.Current.IsScrolling;
+        this.TimelineView(
+            () => new AnimationTimelineSchedule(
+                1.0 / 30.0,
+                animationState.Paused || ScrollActivity.Shared.Current.IsScrolling),
+            date =>
+            {
+                currentTime = (date.UtcTicks - DateTimeOffset.UnixEpoch.UtcTicks) / (double)TimeSpan.TicksPerSecond;
+                UpdateSparkles(currentTime);
+            });
+    }
+
+    public void SetFraction(double value, double availableWidth, double height)
+    {
+        width = availableWidth;
+        Opacity = UpdateProgressSlider.FillOpacity(value);
+        var headX = UpdateProgressSlider.HeadX(value, availableWidth, trackHeight);
+        var revealWidth = Math.Max(headX, trackHeight / 2);
+        content.Clip = availableWidth > 0 && height > 0
+            ? SwiftShapes.RoundedRectangleGeometry(new Rect(0, 0, Math.Min(revealWidth, availableWidth), height), height / 2, RoundedCornerStyle.Circular)
+            : null;
+        UpdateSparkles(currentTime);
+    }
+
+    public void SetReduceMotion(bool reduceMotion)
+    {
+        sparkles = reduceMotion ? Array.Empty<SparkleParticle>() : allSparkles;
+        animationState.Paused = sparkles.Count == 0 || ScrollActivity.Shared.Current.IsScrolling;
+        BuildSparkles();
+        UpdateSparkles(currentTime);
+    }
+
+    private void BuildSparkles()
+    {
+        sparkleEllipses.Clear();
+        sparkleCanvas.Children.Clear();
+        foreach (var particle in sparkles)
+        {
+            var sparkle = new Ellipse
+            {
+                Width = particle.Size,
+                Height = particle.Size,
+                Fill = Brushes.White,
+                IsHitTestVisible = false,
+            };
+            sparkle.Classes.Add("update-sparkle");
+            AutomationProperties.SetAccessibilityView(sparkle, AccessibilityView.Raw);
+            sparkleEllipses.Add(sparkle);
+            sparkleCanvas.Children.Add(sparkle);
+        }
+    }
+
+    private void UpdateSparkles(double time)
+    {
+        currentTime = time;
+        if (width <= 0)
+            return;
+
+        var usableWidth = Math.Max(0, width - 10);
+        var usableHeight = Math.Max(0, trackHeight - 6);
+        for (var index = 0; index < sparkles.Count; index++)
+        {
+            var particle = sparkles[index];
+            var twinkle = 0.5 + 0.5 * Math.Sin(time * particle.Speed + particle.Phase);
+            var opacity = 0.08 + 0.72 * twinkle * twinkle;
+            var drift = Math.Sin(time * particle.Speed * 0.31 + particle.Phase * 2.1) * particle.Drift;
+            var x = 5 + particle.X * usableWidth + drift - particle.Size / 2;
+            var y = 3 + particle.Y * usableHeight - particle.Size / 2;
+            var sparkle = sparkleEllipses[index];
+            Canvas.SetLeft(sparkle, x);
+            Canvas.SetTop(sparkle, y);
+            sparkle.Opacity = Math.Min(1, opacity);
+        }
+    }
+}
+
+public sealed class UpdateAvailableDot : Decorator
+{
+    public UpdateAvailableDot()
+    {
+        var dot = new Ellipse
+        {
+            Width = 7,
+            Height = 7,
+            Fill = Chrome.Accent.Brush(this),
+            RenderTransform = new TranslateTransform(2.5, -2.5),
+        };
+        AutomationProperties.SetName(dot, "Update available");
+        Child = dot;
+    }
+}
+
+public sealed class AboutUpdateChromeAccessory : Decorator
+{
+    public AboutUpdateChromeAccessory()
+    {
+        Child = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 10,
+            Children = { new AboutIdentityPill(), new AboutVersionPill() },
+        };
+    }
+}
+
+internal sealed class AboutIdentityPill : Decorator
+{
+    public AboutIdentityPill()
+    {
+        var version = AppInfo.Current.Version;
+        var icon = SwiftImage.Named("droppy-logo")
+            .Resizable()
+            .Interpolation(BitmapInterpolationMode.HighQuality)
+            .AspectRatio(ContentMode.Fit);
+        icon.Width = 20;
+        icon.Height = 20;
+        AutomationProperties.SetAccessibilityView(icon, AccessibilityView.Raw);
+
+        var text = new TextBlock
+        {
+            Text = $"v{version}",
+            MaxLines = 1,
+            TextWrapping = TextWrapping.NoWrap,
+        };
+        SwiftFont.System(SwiftFont.TextStyle.Callout, weight: SwiftFont.Weight.Semibold).Apply(text);
+        text.Foreground = Chrome.PrimaryText.Brush(text);
+
+        var content = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 6,
+            Children = { icon, text },
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        var padded = new Border
+        {
+            Padding = new Thickness(Chrome.CapsuleHorizontalPadding - 4, Chrome.CapsuleVerticalPadding,
+                Chrome.CapsuleHorizontalPadding, Chrome.CapsuleVerticalPadding),
+            Height = Chrome.CapsuleContentHeight + Chrome.CapsuleVerticalPadding * 2,
+            Child = content,
+        };
+        Child = padded.ChromeGlassCapsule();
+        AutomationProperties.SetName(this, $"Marrow {version}");
+    }
+}
+
+internal sealed class AboutVersionPill : Decorator
+{
+    private enum Standing
+    {
+        UpToDate,
+        Failed,
+        Unchecked,
+    }
+
+    private readonly record struct Snapshot(
+        AvailableUpdate? Update,
+        bool UpdateAvailable,
+        bool IsChecking,
+        DateTimeOffset? LastCheckedAt,
+        string? LastError,
+        UpdateInstallProgress.Phase Phase);
+
+    private readonly UpdateChecker checker;
+    private readonly UpdateInstallProgress progress;
+
+    public AboutVersionPill()
+    {
+        checker = UpdateChecker.Shared;
+        progress = UpdateInstallProgress.Shared;
+        Child = Build(ReadSnapshot());
+        this.Track(ReadSnapshot, snapshot => Child = Build(snapshot));
+    }
+
+    private Snapshot ReadSnapshot() => new(
+        checker.Update,
+        checker.UpdateAvailable,
+        checker.IsChecking,
+        checker.LastCheckedAt,
+        checker.LastError,
+        progress.UpdateInstallProgressPhase);
+
+    private Control Build(Snapshot snapshot)
+    {
+        if (snapshot.Phase is not (UpdateInstallProgress.Phase.Idle or UpdateInstallProgress.Phase.Failed))
+        {
+            var slider = new SmoothedUpdateProgressSlider(
+                progress.UpdateInstallProgressFractionTarget,
+                response: EnvironmentValues.GetAccessibilityReduceMotion(this)
+                    ? 0.15
+                    : snapshot.Phase == UpdateInstallProgress.Phase.Celebrating ? 0.72 : 0.3,
+                minimumSpeed: snapshot.Phase == UpdateInstallProgress.Phase.Celebrating ? 0.12 : 0,
+                trackHeight: 14,
+                headDiameter: 20)
+            {
+                Width = 104,
+                Height = Chrome.CapsuleContentHeight,
+            };
+            var inner = new Border
+            {
+                Width = 104,
+                Height = Chrome.CapsuleContentHeight,
+                Child = slider,
+            };
+            var padded = new Border
+            {
+                Padding = new Thickness(Chrome.CapsuleHorizontalPadding, Chrome.CapsuleVerticalPadding),
+                Child = inner,
+            };
+            return padded.ChromeGlassCapsule();
+        }
+
+        var isReady = snapshot.UpdateAvailable && snapshot.Update is not null;
+        var standing = ResolveStanding(snapshot);
+        var iconName = isReady ? "arrow.down.circle.fill" : Symbol(standing);
+        var icon = SwiftImage.SystemName(iconName)
+            .Font(Chrome.InlineIconFont)
+            .ForegroundStyle(isReady ? Chrome.Blue : Tint(standing));
+        var title = new TextBlock
+        {
+            Text = isReady ? "Update & restart" : Title(standing),
+            MaxLines = 1,
+            TextWrapping = TextWrapping.NoWrap,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        SwiftFont.System(SwiftFont.TextStyle.Callout, weight: SwiftFont.Weight.Semibold).Apply(title);
+        title.Foreground = (isReady ? Chrome.Blue : Chrome.PrimaryText).Brush(title);
+
+        var label = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 6,
+            Children = { icon, title },
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        var face = new Border
+        {
+            Padding = new Thickness(Chrome.CapsuleHorizontalPadding, Chrome.CapsuleVerticalPadding),
+            MinHeight = Chrome.CapsuleContentHeight + Chrome.CapsuleVerticalPadding * 2,
+            Child = label,
+        };
+        face.Capsule(RoundedCornerStyle.Continuous);
+        if (isReady)
+            face.Background = Chrome.Blue.Opacity(0.2).Brush(face);
+
+        var button = PlainControls.Button(face, () =>
+        {
+            if (snapshot.UpdateAvailable && snapshot.Update is { } update &&
+                snapshot.Phase is UpdateInstallProgress.Phase.Idle or UpdateInstallProgress.Phase.Failed)
+                AppUpdater.Shared.Install(update);
+        });
+        button.IsHitTestVisible = isReady;
+        button.Focusable = isReady;
+        button.HorizontalAlignment = HorizontalAlignment.Stretch;
+        ToolTip.SetTip(button, isReady
+            ? $"Installs Marrow {snapshot.Update?.Version ?? string.Empty} and relaunches"
+            : StandingHelp(snapshot, standing));
+        AutomationProperties.SetName(button, isReady
+            ? "Update & restart"
+            : $"Marrow {AppInfo.Current.Version}, {Title(standing).ToLowerInvariant()}");
+        return button.ChromeGlassCapsule();
+    }
+
+    private static Standing ResolveStanding(Snapshot snapshot)
+    {
+        if (snapshot.LastError is not null)
+            return Standing.Failed;
+        if (snapshot.LastCheckedAt is null)
+            return Standing.Unchecked;
+        return Standing.UpToDate;
+    }
+
+    private static string Symbol(Standing standing) => standing switch
+    {
+        Standing.UpToDate => "checkmark.seal.fill",
+        Standing.Failed => "exclamationmark.triangle.fill",
+        Standing.Unchecked => "clock",
+        _ => throw new ArgumentOutOfRangeException(nameof(standing)),
+    };
+
+    private static string Title(Standing standing) => standing switch
+    {
+        Standing.UpToDate => "Up to date",
+        Standing.Failed => "Check failed",
+        Standing.Unchecked => "Not checked yet",
+        _ => throw new ArgumentOutOfRangeException(nameof(standing)),
+    };
+
+    private static SwiftColor Tint(Standing standing) => standing switch
+    {
+        Standing.UpToDate => Chrome.Success,
+        Standing.Failed => Chrome.Warning,
+        Standing.Unchecked => Chrome.SecondaryText,
+        _ => throw new ArgumentOutOfRangeException(nameof(standing)),
+    };
+
+    private static string StandingHelp(Snapshot snapshot, Standing standing) => standing switch
+    {
+        Standing.UpToDate => $"Marrow {AppInfo.Current.Version} is the latest version",
+        Standing.Failed => snapshot.LastError ?? "The last check did not reach GitLab",
+        Standing.Unchecked => "Marrow has not asked GitLab for a release yet",
+        _ => string.Empty,
+    };
+}
+
 public sealed class AboutSoftwareUpdateSection : Decorator
 {
-    // :720-744 body
-    public AboutSoftwareUpdateSection() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Settings/AboutUpdateViews.swift:720");
+    private readonly UpdateChecker checker;
+    private readonly UpdateInstallProgress progress;
+    private UpdateReleaseNotesDigest digest = new()
+    {
+        Sections = new ValueList<UpdateReleaseNotesDigest.Section>(Array.Empty<UpdateReleaseNotesDigest.Section>()),
+    };
+    private string? digestVersion;
+    private TaskHandle? celebration;
+
+    private readonly record struct Snapshot(bool UpdateAvailable, AvailableUpdate? Update);
+
+    public AboutSoftwareUpdateSection()
+    {
+        checker = UpdateChecker.Shared;
+        progress = UpdateInstallProgress.Shared;
+        ApplySnapshot(ReadSnapshot());
+        this.Track(ReadSnapshot, ApplySnapshot);
+        this.Task(
+            () => 0,
+            async _ =>
+            {
+                if (progress.ConsumePendingCelebration())
+                    StartCelebrationSweep();
+                await checker.Check();
+            });
+        DetachedFromVisualTree += (_, _) =>
+        {
+            celebration?.Cancel();
+            celebration = null;
+            progress.CompleteCelebration();
+        };
+    }
+
+    private Snapshot ReadSnapshot() => new(checker.UpdateAvailable, checker.Update);
+
+    private void ApplySnapshot(Snapshot snapshot)
+    {
+        var version = snapshot.Update?.Version;
+        if (!string.Equals(version, digestVersion, StringComparison.Ordinal))
+        {
+            digestVersion = version;
+            digest = UpdateReleaseNotesDigest.Parse(snapshot.Update?.Notes);
+        }
+
+        Child = Build(snapshot);
+        HorizontalAlignment = HorizontalAlignment.Stretch;
+    }
+
+    private Control Build(Snapshot snapshot)
+    {
+        var stack = new StackPanel
+        {
+            Orientation = Orientation.Vertical,
+            Spacing = Chrome.SectionSpacing,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+        };
+        if (snapshot.UpdateAvailable && snapshot.Update is { } update)
+            stack.Children.Add(ReleaseBody(update));
+        return stack;
+    }
+
+    private Control ReleaseBody(AvailableUpdate update)
+    {
+        var content = new StackPanel
+        {
+            Orientation = Orientation.Vertical,
+            Spacing = 10,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+        };
+
+        if (!digest.IsEmpty)
+        {
+            content.Children.Add(new UpdateReleaseSectionCards(digest, update.Version));
+        }
+        else if (!string.IsNullOrEmpty(update.Notes))
+        {
+            var markdown = new MarkdownView(update.Notes);
+            MarkdownView.SetMarkdownPointSize(markdown, 12.5);
+            markdown.Margin = new Thickness(16, 16, 16, 16);
+            markdown.HorizontalAlignment = HorizontalAlignment.Stretch;
+            var scroll = new ScrollViewer
+            {
+                Content = markdown,
+                MaxHeight = 240,
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+            };
+            content.Children.Add(new ChromeCard(() => scroll));
+        }
+
+        var releaseLink = BuildReleaseLink(update);
+        var detail = ReleaseDetail(update);
+        content.Children.Add(new ChromeCard(() =>
+            new ChromeRow("Unsigned Windows installer", () => releaseLink, detail)));
+        return content;
+    }
+
+    private static Control BuildReleaseLink(AvailableUpdate update)
+    {
+        var label = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 4,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        var text = new TextBlock { Text = "Release notes" };
+        SwiftFont.System(SwiftFont.TextStyle.Callout, weight: SwiftFont.Weight.Medium).Apply(text);
+        text.Foreground = Chrome.Accent.Brush(text);
+        var arrow = SwiftImage.SystemName("arrow.up.right")
+            .Font(SwiftFont.System(SwiftFont.TextStyle.Footnote, weight: SwiftFont.Weight.Semibold))
+            .ForegroundStyle(Chrome.Accent);
+        label.Children.Add(text);
+        label.Children.Add(arrow);
+
+        var button = PlainControls.Button(label, () =>
+            ShellWorkspace.OpenWithDefaultApp(update.PageURL.RelativeString));
+        ToolTip.SetTip(button, "Open the release on GitLab");
+        AutomationProperties.SetName(button, "Release notes");
+        return button;
+    }
+
+    private static string ReleaseDetail(AvailableUpdate update)
+    {
+        var parts = new List<string>();
+        if (update.ReleasedAt is { } releasedAt)
+        {
+            var date = SwiftFormatters.Formatted(
+                releasedAt,
+                DateFormatStyle.Of(DateFormatStyle.DateStyle.Long, DateFormatStyle.TimeStyle.Omitted));
+            parts.Add($"Released {date}");
+        }
+        if (update.Size is { } size)
+            parts.Add(SwiftFormatters.FileByteCount(size, SwiftFormatters.CurrentLocale.Current));
+        parts.Add("Update & restart installs it in place and relaunches.");
+        return string.Join(" · ", parts);
+    }
+
+    private void StartCelebrationSweep()
+    {
+        celebration?.Cancel();
+        var reduceMotion = EnvironmentValues.GetAccessibilityReduceMotion(this);
+        celebration = MainActor.Spawn(async () =>
+        {
+            var currentProgress = UpdateInstallProgress.Shared;
+            await SwiftTask.TrySleep(TimeSpan.FromMilliseconds(550));
+            if (SwiftTask.IsCancelled || currentProgress.UpdateInstallProgressPhase != UpdateInstallProgress.Phase.Celebrating)
+                return;
+
+            currentProgress.FinishCelebrationSweep();
+            if (reduceMotion)
+            {
+                Haptics.Perform(HapticPattern.Alignment);
+                await SwiftTask.TrySleep(TimeSpan.FromMilliseconds(900));
+            }
+            else
+            {
+                await SwiftTask.TrySleep(TimeSpan.FromMilliseconds(900));
+                if (SwiftTask.IsCancelled)
+                    return;
+                Haptics.Perform(HapticPattern.Alignment);
+                await SwiftTask.TrySleep(TimeSpan.FromMilliseconds(450));
+                if (SwiftTask.IsCancelled)
+                    return;
+                Haptics.Perform(HapticPattern.LevelChange);
+                await SwiftTask.TrySleep(TimeSpan.FromMilliseconds(700));
+            }
+
+            if (!SwiftTask.IsCancelled)
+                currentProgress.CompleteCelebration();
+        });
+    }
 }
 
-/// <summary>:822-845 <c>struct AboutUpdateCheckRow: View</c>: when GitLab was last asked, and ask again.</summary>
 public sealed class AboutUpdateCheckRow : Decorator
 {
-    // :825-834 body
-    public AboutUpdateCheckRow() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Settings/AboutUpdateViews.swift:825");
+    private readonly record struct Snapshot(
+        bool IsChecking,
+        DateTimeOffset? LastCheckedAt,
+        string? LastError,
+        bool UpdateAvailable,
+        string? Version);
+
+    private readonly UpdateChecker checker;
+
+    public AboutUpdateCheckRow()
+    {
+        checker = UpdateChecker.Shared;
+        Child = Build(ReadSnapshot());
+        this.Track(ReadSnapshot, snapshot => Child = Build(snapshot));
+    }
+
+    private Snapshot ReadSnapshot() => new(
+        checker.IsChecking,
+        checker.LastCheckedAt,
+        checker.LastError,
+        checker.UpdateAvailable,
+        checker.Update?.Version);
+
+    private Control Build(Snapshot snapshot)
+    {
+        var detail = Detail(snapshot);
+        var label = new TextBlock { Text = snapshot.IsChecking ? "Checking…" : "Check now" };
+        SwiftFont.System(SwiftFont.TextStyle.Callout, weight: SwiftFont.Weight.Medium).Apply(label);
+        var face = new Border { Padding = new Thickness(9, 5), Child = label };
+        var button = PlainControls.Button(face, () =>
+        {
+            if (!snapshot.IsChecking)
+                MainActor.Spawn(async () => await checker.Check());
+        });
+        button.IsEnabled = !snapshot.IsChecking;
+        var glass = button.ChromeGlassCapsule();
+        return new ChromeRow("Software update", () => glass, detail);
+    }
+
+    private static string Detail(Snapshot snapshot)
+    {
+        if (snapshot.IsChecking)
+            return "Asking GitLab for the latest release…";
+
+        var checkedText = snapshot.LastCheckedAt is { } checkedAt
+            ? $"Checked {SwiftFormatters.RelativeNamed(checkedAt)}."
+            : "Not checked yet.";
+        if (snapshot.LastError is { } error)
+            return $"{error} {checkedText}";
+        if (snapshot.UpdateAvailable && snapshot.Version is { } version)
+            return $"Marrow {version} is ready to install. {checkedText}";
+        return $"Marrow checks GitLab for new versions a few times a day. {checkedText}";
+    }
 }
