@@ -409,15 +409,15 @@ public sealed partial record Git
     /// </summary>
     public async Task MergePullRequest(MergeRequestLink link)
     {
-        // :211
+        // :232
         var number = link.Number.ToString(CultureInfo.InvariantCulture);
-        // :212's initial "The request could not be merged." is never read (porting/dead_code.md entry 49, PR-GIT-049
-        // NOT_APPLICABLE_WITH_EVIDENCE, ED-061): every way to :226 assigns lastFailure at :221 first.
+        // :233's initial "The request could not be merged." is never read (porting/dead_code.md entry 49, PR-GIT-049
+        // NOT_APPLICABLE_WITH_EVIDENCE, ED-061): every way to :247 assigns lastFailure at :242 first.
         string? lastFailure = null;
-        // :213
+        // :234
         for (var attempt = 0; attempt < 6; attempt++)
         {
-            // :214-219. :216 passes "--remove-source-branch" last, so GitLab removes the request's source branch on
+            // :235-240. :237 passes "--remove-source-branch" last, so GitLab removes the request's source branch on
             // the remote once it merges; the agent-facing prompt (Core/Models/MergeRequestLink.swift:50) keeps
             // `glab mr merge <number> --yes` without it at B2, and the port leaves that difference as it is.
             var result = link.LinkForge switch
@@ -427,18 +427,18 @@ public sealed partial record Git
                 MergeRequestLink.Forge.Github => await Shell.RunTool("gh", ["pr", "merge", number, "--merge"], @in: Directory, timeout: 300),
                 MergeRequestLink.Forge.Gitea => await Shell.RunTool("tea", ["pulls", "merge", number], @in: Directory, timeout: 300),
             };
-            // :220-222. No separator between the two streams.
+            // :241-243. No separator between the two streams.
             if (result.Succeeded) return;
             lastFailure = result.FailureMessage;
             var text = SwiftString.Lowercased(result.Output + result.ErrorOutput);
-            // :223. UPSTREAM DEFECT 77, reproduced: "405" matches those digits anywhere. ASCII needles, ordinal search.
+            // :244. UPSTREAM DEFECT 77, reproduced: "405" matches those digits anywhere. ASCII needles, ordinal search.
             if (!(link.LinkForge == MergeRequestLink.Forge.Gitlab && (text.Contains("405", StringComparison.Ordinal) ||
                     text.Contains("not allowed", StringComparison.Ordinal) || text.Contains("checking", StringComparison.Ordinal))))
                 break;
-            // :224. UPSTREAM DEFECT 76, reproduced: the sixth failure still sleeps 13 s. A cancelled sleep is swallowed.
+            // :245. UPSTREAM DEFECT 76, reproduced: the sixth failure still sleeps 13 s. A cancelled sleep is swallowed.
             await SwiftTask.TrySleep(TimeSpan.FromSeconds(checked(3 + attempt * 2)));
         }
-        // :226
+        // :247
         throw new ShellError(SwiftTraps.Unwrap(lastFailure));
     }
 

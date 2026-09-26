@@ -279,7 +279,7 @@ public sealed class GitFifthTests
     }
 
     [Fact]
-    [Trait("Req", "PR-GIT-164")] // Services/Git/Git.swift:311-313
+    [Trait("Req", "PR-GIT-164")] // Services/Git/Git.swift:322
     public async Task CaptureTreeOnto_skips_a_contested_path_whose_working_tree_already_matches_the_remote()
     {
         using var runtime = new TestRuntime();
@@ -293,6 +293,43 @@ public sealed class GitFifthTests
         Assert.NotNull(result);
         Assert.Equal("skip-v2-remote\n", repository.Git("cat-file", "-p", result.Value.Tree + ":skip.txt"));
         Assert.Empty(result.Value.Merged);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-GIT-164")] // Services/Git/Git.swift:311-313
+    public async Task CaptureTreeOnto_skips_a_contested_path_deleted_on_both_sides()
+    {
+        using var runtime = new TestRuntime();
+        var scenario = Scenario();
+        using var repository = scenario.Repository;
+        var head = scenario.Head;
+        var @base = scenario.Base;
+        // remotedelete.txt is already gone at base (Scenario()); deleting it from the working tree too puts it in
+        // the true (nil, nil) branch, distinct from the skip test above (remote == working, both present).
+        File.Delete(repository.Child("remotedelete.txt"));
+        var git = new GitValue(repository.Root);
+        var result = await git.CaptureTree(["remotedelete.txt"], onto: @base, from: head);
+        Assert.NotNull(result);
+        Assert.Empty(result.Value.Merged);
+        Assert.False(GitRepository.Raw(repository.Root, null, "cat-file", "-e", result.Value.Tree + ":remotedelete.txt").Succeeded);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-GIT-163")] // Services/Git/Git.swift:298 ("--no-renames")
+    public async Task CaptureTreeOnto_treats_a_remote_rename_as_a_delete_of_the_old_path()
+    {
+        using var runtime = new TestRuntime();
+        var scenario = Scenario();
+        using var repository = scenario.Repository;
+        var head = scenario.Head;
+        var @base = scenario.Base;
+        // The team is still editing the pre-rename path; with "--no-renames" the diff between head and base names
+        // rename_old.txt as changed (deleted), so it lands in contested with remote nil and working non-nil (:318-320),
+        // and the call refuses. Without "--no-renames" git's own rename detector would pair the delete with
+        // rename_new.txt's add and never mention rename_old.txt, so it would be treated as clean and staged as-is.
+        repository.Write("rename_old.txt", "RN-1\nRN-2\nRN-3\nTEAM-RN-4\nRN-5\n");
+        var git = new GitValue(repository.Root);
+        Assert.Null(await git.CaptureTree(["rename_old.txt"], onto: @base, from: head));
     }
 
     [Fact]
@@ -415,7 +452,7 @@ public sealed class GitFifthTests
 
     [Fact]
     [Trait("Req", "PR-GIT-070")] // Services/Git/Git.swift:291-293 (B3)
-    public async Task CaptureTreeOnto_removes_its_droppy_code_rebase_scratch_on_success_and_on_a_null_return()
+    public async Task CaptureTreeOnto_names_a_scratch_directory_holding_an_index_and_removes_it_on_success_null_and_throw()
     {
         using var runtime = new TestRuntime();
         var scenario = Scenario();
@@ -425,12 +462,24 @@ public sealed class GitFifthTests
         var git = new GitValue(repository.Root);
         var before = ScratchDirectories();
 
+        // Success: nail the scratch directory's own shape (a directory, not a file) and that its GIT_INDEX_FILE is
+        // "<scratch>\index" inside it, the way GitThirdTests does for droppy-code-index-<UUID>.
+        var log = GitProbes.InstallIndexProbe(repository);
         repository.Write("clean.txt", "clean-v2-team\n");
         Assert.NotNull(await git.CaptureTree(["clean.txt"], onto: @base, from: head));
+        var index = Assert.Single(GitProbes.ProbedIndexFiles(log).Distinct());
+        Assert.Matches(RebaseIndex, index);
+        Assert.False(Directory.Exists(System.IO.Path.GetDirectoryName(index)));
         Assert.Equal(before, ScratchDirectories());
 
+        // A null return (a genuine merge conflict) still runs the deferred cleanup.
         repository.Write("conflict.txt", "L1\nL2\nTEAM-L3\nL4\nL5\n");
         Assert.Null(await git.CaptureTree(["conflict.txt"], onto: @base, from: head));
+        Assert.Equal(before, ScratchDirectories());
+
+        // A thrown ShellError (read-tree fails on a bad "onto") still runs the deferred cleanup: the scratch
+        // directory the call created before failing does not survive it.
+        await Assert.ThrowsAsync<ShellError>(() => git.CaptureTree(["clean.txt"], onto: "not-a-commit", from: head));
         Assert.Equal(before, ScratchDirectories());
     }
 
@@ -438,6 +487,13 @@ public sealed class GitFifthTests
 
     private static readonly Regex RebaseScratch = new(
         "\\Adroppy-code-rebase-[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}\\z", RegexOptions.CultureInvariant);
+
+    /// <summary>A scratch directory's own GIT_INDEX_FILE: "&lt;TempPath&gt;droppy-code-rebase-&lt;UPPER-UUID&gt;\index"
+    /// (PR-GIT-070), the same convention GitThirdTests.TemporaryIndex uses for droppy-code-index-&lt;UUID&gt;.</summary>
+    private static readonly Regex RebaseIndex = new(
+        "\\A" + Regex.Escape(System.IO.Path.GetTempPath().TrimEnd('\\')) +
+        "\\\\droppy-code-rebase-[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}\\\\index\\z",
+        RegexOptions.CultureInvariant);
 
     /// <summary>The droppy-code-rebase-&lt;UUID&gt; directories currently under the system temporary folder (PR-GIT-070).</summary>
     private static IReadOnlyList<string> ScratchDirectories() =>
@@ -457,7 +513,9 @@ public sealed class GitFifthTests
     /// base changes only its mode (chmod +x), content unchanged. teamdelete_bad.txt: base changes its content.
     /// remotedelete.txt: base deletes it. addadd.txt: absent at head, base adds "added-by-remote". merge.txt: base
     /// changes line 1 (and sets the executable bit); a team edit to a different line merges cleanly. conflict.txt:
-    /// base changes line 3; a team edit to the same line conflicts.
+    /// base changes line 3; a team edit to the same line conflicts. rename_old.txt: base renames it to
+    /// rename_new.txt with a small edit, so its own default (no "--no-renames") diff would pair the two as one
+    /// rename entry naming only rename_new.txt.
     /// </summary>
     private static (GitRepository Repository, string Head, string Base) Scenario()
     {
@@ -469,6 +527,7 @@ public sealed class GitFifthTests
         repository.Write("remotedelete.txt", "remotedelete-v1\n");
         repository.Write("merge.txt", "L1\nL2\nL3\nL4\nL5\n");
         repository.Write("conflict.txt", "L1\nL2\nL3\nL4\nL5\n");
+        repository.Write("rename_old.txt", "RN-1\nRN-2\nRN-3\nRN-4\nRN-5\n");
         var head = repository.CommitAll("shared", 1_700_000_100);
 
         var scratch = repository.Root + "-remote-build";
@@ -481,6 +540,8 @@ public sealed class GitFifthTests
             File.WriteAllText(scratch + "\\addadd.txt", "added-by-remote\n");
             File.WriteAllText(scratch + "\\merge.txt", "REMOTE-L1\nL2\nL3\nL4\nL5\n");
             File.WriteAllText(scratch + "\\conflict.txt", "L1\nL2\nREMOTE-L3\nL4\nL5\n");
+            File.Delete(scratch + "\\rename_old.txt");
+            File.WriteAllText(scratch + "\\rename_new.txt", "RN-1\nRN-2\nRN-3\nRENAMED-RN-4\nRN-5\n");
             GitRepository.GitIn(scratch, null, "add", "-A");
             GitRepository.GitIn(scratch, null, "update-index", "--chmod=+x", "teamdelete_ok.txt");
             GitRepository.GitIn(scratch, null, "update-index", "--chmod=+x", "merge.txt");
