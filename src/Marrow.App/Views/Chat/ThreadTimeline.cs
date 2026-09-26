@@ -1,6 +1,8 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
+using Avalonia.Media;
+using Marrow.UI.Markdown;
 using Marrow.App.Port;
 using Marrow.App.Runtime;
 using Marrow.Core.Models;
@@ -42,6 +44,17 @@ public sealed class ThreadTimeline : Decorator
     private string? windowStartID; // :81
     private bool historyLoadPending; // :76
     private double paneWidthAtSlideStart; // :56
+    private readonly TimelineScrollTracking tracking = new(); // :44
+    private readonly TimelineRevealBox revealBox = new(); // :90
+    private bool anchorsBottomOnGrowth = true; // :74
+    private double viewportHeight; // :52
+    private ScrollViewer? currentScroll;
+    private readonly Dictionary<string, Control> laidOutRows = [];
+    private TimelineScrollState? state;
+    private ThreadRuntime? ownerRuntime;
+    private Action? redraw;
+    private Action<TimeSpan>? scrollFrame;
+    private IFrameSource? scrollFrames;
     // :58 private static let resizeStep: CGFloat = 12
     private const double ResizeStep = 12;
 
@@ -67,6 +80,8 @@ public sealed class ThreadTimeline : Decorator
         double columnHeight,
         bool showsMinimap = true)
     {
+        state = scrollState; ownerRuntime = runtime;
+        SetRevealTimelineEnd(this, revealBox); revealBox.Action = RevealEnd; revealBox.Follow = FollowEnd;
         var host = new Border(); Child = host;
         void Draw()
         {
@@ -86,19 +101,44 @@ public sealed class ThreadTimeline : Decorator
             {
                 // STOP #1: external row rendering is not substituted by fabricated content.
                 var rows = new StackPanel { Spacing = TimelineMetrics.RowSpacing };
-                foreach (var block in blocks.Skip(WindowStartIndex(blocks))) rows.Children.Add(new DisplayBlockView(block, runtime, new RowContext(workingDirectory, false, false)));
+                var rewindable = supportsRewind && !runtime.IsRunning ? runtime.Turns.Select(turn => turn.Id).ToHashSet() : [];
+                foreach (var id in laidOutRows.Keys) tracking.SetVisible(id, false); laidOutRows.Clear();
+                foreach (var block in blocks.Skip(WindowStartIndex(blocks)))
+                {
+                    var row = new DisplayBlockView(block, runtime, new RowContext(workingDirectory, block.TurnID is { } id && rewindable.Contains(id), false)).Transition(Transition(block));
+                    laidOutRows[block.Id] = row; rows.Children.Add(row);
+                }
+                new ScrollFreeze(tracking).Body(rows);
+                tracking.SetOutline(blocks.Skip(WindowStartIndex(blocks)).Select(block => (block.Id, block.HasUserMessage)).ToArray());
                 var body = new StackPanel(); var hidden = WindowStartIndex(blocks);
-                if (hidden > 0) body.Children.Add(EarlierPill(hidden, () => { LoadEarlier(blocks); Draw(); }));
+                Button? earlier = hidden > 0 ? EarlierPill(hidden, () => { LoadEarlier(blocks); Draw(); }) : null;
+                if (earlier is not null) body.Children.Add(earlier);
                 body.Children.Add(rows);
+                var sentinel = new Border { Height = 1, Background = Brushes.Transparent }; body.Children.Add(sentinel); // :402-409
                 var resize = AppEnvironment.GetWindowLiveResize(this);
                 var width = SteppedWidth(resize.IsReshaping, Bounds.Width, model.Sidebar.IsSliding, paneWidthAtSlideStart, model.Sidebar.SlideDelta);
                 var column = CreateColumn(body, SteppedHeight(columnHeight, 0, 0), width);
                 var scroll = new ScrollViewer { Content = column, VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Hidden, HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled }; // :384-440
-                scroll.SizeChanged += (_, _) => column.MinHeight = SteppedHeight(scroll.Bounds.Height, 0, 0); // :446-449
-                host.Child = scroll;
+                currentScroll = scroll; viewportHeight = column.MinHeight;
+                scroll.SizeChanged += (_, _) => { viewportHeight = SteppedHeight(scroll.Bounds.Height, 0, 0); column.MinHeight = viewportHeight; }; // :446-449
+                var oldMetrics = new ScrollMetrics();
+                scroll.ScrollChanged += (_, _) =>
+                {
+                    var next = new ScrollMetrics { ContentHeight = scroll.Extent.Height, ContainerHeight = scroll.Viewport.Height, Offset = scroll.Offset.Y, Travel = Math.Max(0, scroll.Offset.Y), DistanceFromBottom = scroll.Extent.Height - scroll.Viewport.Height - scroll.Offset.Y, CenterY = scroll.Offset.Y + scroll.Viewport.Height / 2 };
+                    NoteMetrics(oldMetrics, next, resize.IsActive); oldMetrics = next; scrollChrome.Update(next.Travel);
+                    foreach (var pair in laidOutRows) tracking.SetVisible(pair.Key, VisibleFraction(pair.Value, scroll) >= 0.001);
+                    SetEndVisible(VisibleFraction(sentinel, scroll) >= 0.01);
+                    if (earlier is not null && VisibleFraction(earlier, scroll) >= 0.1 && !historyLoadPending) { LoadEarlier(blocks); MainActor.Post(Draw); }
+                };
+                var overlay = new Grid { Children = { scroll } };
+                if (ShouldShowMinimap(showsMinimap, blocks)) overlay.Children.Add(new TimelineMinimapColumn(blocks, tracking, Math.Max(0, columnHeight - WindowChrome.TitlebarHeight), (id, animated) => Jump(id, blocks, animated)) { Width = 30, HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, WindowChrome.TitlebarHeight, 0, 0), RenderTransform = new TranslateTransform(-ChatView.GetReserveSlideLeading(this) - ChatView.GetReserveSlideOffset(this), 0) });
+                host.Child = overlay; MainActor.Post(() => { if (ReferenceEquals(currentScroll, scroll) && tracking.IsPinnedToBottom) SnapEnd(); });
             }
         }
         this.Track(() => (runtime.IsLoadingHistory, runtime.Entries, runtime.IsRunning, runtime.IsHydraMerging, runtime.HydraMergeNoteID, AppEnvironment.GetAppModel(this).Settings.ShowReasoning), _ => Draw());
+        redraw = Draw;
+        DetachedFromVisualTree += (_, _) => { tracking.EndActivity(); if (scrollFrame is not null) scrollFrames?.CancelFrame(scrollFrame); scrollFrame = null; };
+        this.Track(() => scrollState.JumpRequest, _ => { tracking.IsPinnedToBottom = anchorsBottomOnGrowth = true; SnapEnd(); });
         // :594-607. The cancellable task belongs to this timeline's visual lifetime.
         this.Task(() => runtime.IsLoadingHistory, async loading =>
         {
@@ -107,7 +147,7 @@ public sealed class ThreadTimeline : Decorator
             {
                 var model = AppEnvironment.GetAppModel(this);
                 var blocks = TimelineBlockCache.Cache(runtime.ThreadID).Blocks(runtime.Entries, model.Settings.ShowReasoning, runtime.IsRunning, runtime.IsHydraMerging ? runtime.HydraMergeNoteID ?? "hydra-merging" : null);
-                LoadEarlier(blocks, TimelineWindow.Initial); Draw();
+                tracking.HoldEnd(1.0); LoadEarlier(blocks, TimelineWindow.Initial); Draw(); tracking.ArmBlankWatch();
             });
         });
         this.Track(() => AppEnvironment.GetAppModel(this).Sidebar.IsSliding, sliding => { if (sliding) paneWidthAtSlideStart = Bounds.Width; });
@@ -134,7 +174,7 @@ public sealed class ThreadTimeline : Decorator
     private void LoadEarlier(IReadOnlyList<DisplayBlock> blocks, int? count = null)
     {
         if (historyLoadPending) return; var start = WindowStartIndex(blocks); var target = count is { } wanted ? Math.Max(0, blocks.Count - wanted) : Math.Max(0, start - TimelineWindow.Page);
-        if (target >= start) return; historyLoadPending = true; windowStartID = blocks[target].Id;
+        if (target >= start) return; historyLoadPending = true; anchorsBottomOnGrowth = true; windowStartID = blocks[target].Id;
     }
     // :366-382
     private Button EarlierPill(int hidden, Action load)
@@ -151,15 +191,68 @@ public sealed class ThreadTimeline : Decorator
 
     // :307-311 private static func transition(for:) -> AnyTransition
     private static SwiftTransition Transition(DisplayBlock @for) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ThreadTimeline.swift:307");
+        @for is DisplayBlock.Turn { Summary: not null } or DisplayBlock.Group { Value: TimelineGroup.Work { Entries.Count: > SoftAppearLimit } } ? SwiftTransition.Identity : RowTransition; // :307-314
 
     // :317-321 static let rowTransition: AnyTransition
     public static SwiftTransition RowTransition =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ThreadTimeline.swift:317");
+        SwiftTransition.Asymmetric(SwiftTransition.Modifier(new SoftAppearModifier(false), new SoftAppearModifier(true)).Animation(Animation.SoftAppear), SwiftTransition.Identity); // :317-321
 
     // :824-826 private static func jumpTolerance(_:) -> CGFloat
     private static double JumpTolerance(double viewportHeight) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ThreadTimeline.swift:824");
+        Math.Max(48, viewportHeight / 4); // :833-835
+
+    // :180-200. Width gating belongs to ChatView, which supplies showsMinimap.
+    private static bool ShouldShowMinimap(bool enabled, IReadOnlyList<DisplayBlock> blocks) => enabled && blocks.Count(block => block.HasUserMessage) > 1;
+    // :335-338,379-382,404-409. Intersections are area fractions, not pixel distances.
+    private static double VisibleFraction(Control row, ScrollViewer scroll)
+    {
+        var point = row.TranslatePoint(default, scroll); if (point is null || row.Bounds.Width <= 0 || row.Bounds.Height <= 0) return 0;
+        var rect = new Rect(point.Value, row.Bounds.Size); var intersection = rect.Intersect(new Rect(scroll.Viewport)); return intersection.Width * intersection.Height / (rect.Width * rect.Height);
+    }
+    // :402-409
+    private void SetEndVisible(bool visible) { if (state is not null && state.ShowsJumpButton == visible) Transaction.WithAnimation(Animation.Spring(response: 0.38, dampingFraction: 0.78), () => state.ShowsJumpButton = !visible); }
+    // :224-252
+    private void Jump(string id, IReadOnlyList<DisplayBlock> blocks, bool animated)
+    {
+        var index = blocks.Select((block, index) => (block, index)).Where(pair => pair.block.Id == id).Select(pair => (int?)pair.index).FirstOrDefault(); var expand = false;
+        if (index is { } found) { if (found < WindowStartIndex(blocks)) { windowStartID = blocks[found].Id; historyLoadPending = expand = true; } tracking.IsPinnedToBottom = id == blocks.LastOrDefault()?.Id; anchorsBottomOnGrowth = tracking.IsPinnedToBottom || expand; }
+        void Scroll() { if (currentScroll is not null && laidOutRows.TryGetValue(id, out var row) && row.TranslatePoint(default, currentScroll) is { } point) ScrollTo(new Vector(currentScroll.Offset.X, currentScroll.Offset.Y + point.Y), animated ? Animation.Smooth(0.35) : null); }
+        if (expand) { redraw?.Invoke(); MainActor.Post(() => Transaction.WithAnimation(animated ? Animation.Smooth(0.35) : null, Scroll)); } else Transaction.WithAnimation(animated ? Animation.Smooth(0.35) : null, Scroll);
+    }
+    // :813-829
+    private void RevealEnd() { if (state is null || !state.ShowsJumpButton || tracking.IsPinnedToBottom || tracking.DistanceFromBottom < viewportHeight) FollowEnd(); }
+    private void FollowEnd() { tracking.IsPinnedToBottom = anchorsBottomOnGrowth = true; EndWithAnimation(Transaction.Current); NoteScrollMovement(); }
+    private void SnapEnd() => EndWithAnimation(null);
+    private void EndWithAnimation(Animation? animation) { if (currentScroll is { } scroll) ScrollTo(new Vector(scroll.Offset.X, Math.Max(0, scroll.Extent.Height - scroll.Viewport.Height)), animation); }
+    // :242-252. Avalonia offsets are not SwiftUI state; run the source curve on the shared frame clock.
+    private void ScrollTo(Vector target, Animation? animation)
+    {
+        if (scrollFrame is not null) scrollFrames?.CancelFrame(scrollFrame); scrollFrame = null;
+        if (currentScroll is not { } scroll) return; if (animation is null) { scroll.Offset = target; return; }
+        var origin = scroll.Offset; var started = SwiftClock.Now; scrollFrames = FrameClock.Source.Current;
+        Action<TimeSpan>? frame = null; frame = _ => { var elapsed = (SwiftClock.Now - started).TotalSeconds; var complete = elapsed >= animation.Duration; var progress = complete ? 1 : animation.Progress(elapsed); scroll.Offset = origin + (target - origin) * progress; if (complete) scrollFrame = null; else scrollFrames.RequestFrame(frame!); };
+        scrollFrame = frame; scrollFrames.RequestFrame(frame);
+    }
+    // :727-745
+    private void NoteScrollMovement()
+    {
+        tracking.LastMovementAt = SwiftClock.Now.Ticks / (double)TimeSpan.TicksPerSecond; if (tracking.IsReaderScrolling) return;
+        tracking.IsReaderScrolling = true; if (ownerRuntime is not null) tracking.ReportActivity(ownerRuntime.ThreadID); tracking.SettleWatch?.Cancel();
+        tracking.SettleWatch = MainActor.Spawn(async () => { while (await SwiftTask.TrySleep(TimeSpan.FromMilliseconds(80))) if (SwiftClock.Now.Ticks / (double)TimeSpan.TicksPerSecond - tracking.LastMovementAt >= 0.15) { tracking.IsReaderScrolling = false; if (ownerRuntime is not null) tracking.ReportActivity(ownerRuntime.ThreadID); return; } });
+    }
+    // :490-593. Every correction from a geometry callback is deferred to prevent display-pass recursion.
+    private void NoteMetrics(ScrollMetrics old, ScrollMetrics next, bool liveResizeActive)
+    {
+        tracking.NoteGeometry(next.Offset, next.DistanceFromBottom, next.Travel);
+        if (next.CenterY != old.CenterY && next.ContentHeight == old.ContentHeight && !tracking.IsCoasting) NoteScrollMovement();
+        var anchorMove = anchorsBottomOnGrowth ? next.ContentHeight - old.ContentHeight : 0; var readerMoved = Math.Abs(next.Offset - old.Offset - anchorMove) > 1;
+        if (readerMoved) tracking.NoteReaderMovement(); var scrolled = tracking.IsUserScrolling || (!tracking.IsArriving && readerMoved && next.ContainerHeight == old.ContainerHeight && !tracking.IsCoasting); var atRest = !tracking.IsUserScrolling && !tracking.IsCoasting;
+        if (atRest && !scrolled) { var shrink = Math.Max(0, old.ContentHeight - next.ContentHeight); var drift = Math.Abs(next.Offset - old.Offset - anchorMove); if (tracking.NoteDrift(shrink + drift, JumpTolerance(viewportHeight))) tracking.ArmViewportRefresh(); if (shrink > 1) tracking.ArmBlankWatch(); } else if (scrolled) tracking.ResetDrift();
+        if (next.DistanceFromBottom < -1 && atRest && (next.ContentHeight != old.ContentHeight || next.ContainerHeight != old.ContainerHeight)) MainActor.Post(SnapEnd);
+        else if (historyLoadPending && next.ContentHeight > old.ContentHeight) { historyLoadPending = false; anchorsBottomOnGrowth = tracking.IsPinnedToBottom || next.DistanceFromBottom < 48; if (tracking.IsPinnedToBottom && next.DistanceFromBottom > 1) MainActor.Post(SnapEnd); }
+        else if (scrolled) tracking.IsPinnedToBottom = anchorsBottomOnGrowth = next.DistanceFromBottom < 48;
+        else if ((tracking.IsPinnedToBottom || old.DistanceFromBottom < 48) && atRest && Math.Abs(next.DistanceFromBottom) > 1 && !liveResizeActive) { tracking.IsPinnedToBottom = anchorsBottomOnGrowth = true; MainActor.Post(SnapEnd); }
+    }
 
     // :2238-2243 extension EnvironmentValues { var revealTimelineEnd: TimelineRevealBox? }, an inherited environment
     // value (R-VIEW-6, ED-095).
@@ -178,6 +271,14 @@ public sealed class ThreadTimeline : Decorator
 /// <summary>:887-1237 <c>@MainActor @Observable final class TimelineScrollTracking: ScrollActivityReporter</c>.</summary>
 public sealed class TimelineScrollTracking : MainActorModel, ScrollActivityReporter
 {
+    private string[] outlineIDs = []; // :923
+    private HashSet<string> outlineSet = []; // :924
+    private HashSet<string> userBlockIDs = []; // :925
+    private HashSet<string> visibleIDs = []; // :927
+    private double arrivingUntil, lastReaderMovementAt, phaseStartedAt, drift; // :935-936,1028,969
+    private Guid? reportedTimeline; // :1057
+    private TaskHandle? phaseWatch, blankWatch; // :937,942
+    private static double Now => SwiftClock.Now.Ticks / (double)TimeSpan.TicksPerSecond; // CACurrentMediaTime
     private bool isReaderScrolling;   // :905 = false
     private string? activeBlockID;    // :919
     private int checkRequest;         // :947 = 0
@@ -238,91 +339,122 @@ public sealed class TimelineScrollTracking : MainActorModel, ScrollActivityRepor
 
     // :967 var isNudging: Bool
     public bool IsNudging =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ThreadTimeline.swift:967");
+        false; // :976. Avalonia's bounded eager stack has no remembered virtual viewport to nudge (PR-CHAT-056/057 windows_path).
 
     // :970-972 var showsNothing: Bool
     public bool ShowsNothing =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ThreadTimeline.swift:970");
+        outlineIDs.Length != 0 && !visibleIDs.Overlaps(outlineSet); // :979-981
 
     // :976-979 var endUnseen: Bool
     public bool EndUnseen =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ThreadTimeline.swift:976");
+        outlineIDs.Length != 0 && !visibleIDs.Contains(outlineIDs[^1]); // :987-990
 
     // :982-991 @discardableResult func setOutline(_:) -> Bool
-    public bool SetOutline(IReadOnlyList<(string Id, bool HasUserMessage)> blocks) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ThreadTimeline.swift:983");
+    public bool SetOutline(IReadOnlyList<(string Id, bool HasUserMessage)> blocks)
+    {
+        var ids = blocks.Select(block => block.Id).ToArray(); if (ids.SequenceEqual(outlineIDs)) return false;
+        outlineIDs = ids; outlineSet = ids.ToHashSet(StringComparer.Ordinal); userBlockIDs = blocks.Where(block => block.HasUserMessage).Select(block => block.Id).ToHashSet(StringComparer.Ordinal); ResolveActive(); return true; // :995-1001
+    }
 
     // :993-1007 func setVisible(_:_:)
-    public void SetVisible(string id, bool isVisible) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ThreadTimeline.swift:993");
+    public void SetVisible(string id, bool isVisible)
+    {
+        if (isVisible) { if (!visibleIDs.Add(id)) return; blankWatch?.Cancel(); blankWatch = null; BlankRepairs = 0; }
+        else { if (!visibleIDs.Remove(id)) return; if (ShowsNothing) ArmBlankWatch(); }
+        ResolveActive(); // :1004-1019
+    }
 
     // :1009-1012 func clearVisible()
-    public void ClearVisible() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ThreadTimeline.swift:1009");
+    public void ClearVisible() { visibleIDs.Clear(); if (ActiveBlockID is not null) ActiveBlockID = null; } // :1021-1024
 
     // :1021 var isArriving: Bool
     public bool IsArriving =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ThreadTimeline.swift:1021");
+        Now < arrivingUntil; // :1034
 
     // :1023-1025 func holdEnd(for:)
     public void HoldEnd(double @for) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ThreadTimeline.swift:1023");
+        arrivingUntil = Math.Max(arrivingUntil, Now + @for); // :1036-1038
 
     // :1028-1030 func noteReaderMovement()
     public void NoteReaderMovement() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ThreadTimeline.swift:1028");
+        lastReaderMovementAt = Now; // :1041-1043
 
     // :1032-1039 func noteGeometry(offset:distanceFromBottom:travel:)
-    public void NoteGeometry(double offset, double distanceFromBottom, double travel) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ThreadTimeline.swift:1032");
+    public void NoteGeometry(double offset, double distanceFromBottom, double travel)
+    {
+        Offset = offset; DistanceFromBottom = distanceFromBottom; Travel = travel; // :1045-1052
+    }
 
     // :1049-1055 func reportActivity(timeline:)
-    public void ReportActivity(Guid timeline) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ThreadTimeline.swift:1049");
+    public void ReportActivity(Guid timeline)
+    {
+        if (reportedTimeline is { } old && old != timeline) ScrollActivity.Shared.Current.SetScrolling(false, old);
+        reportedTimeline = timeline; ScrollActivity.Shared.Current.SetScrolling(IsScrollingNow, timeline, this); // :1062-1068
+    }
 
     // :1058 var isScrollingNow: Bool (ScrollActivityReporter, RenderBudget.swift:74)
     public bool IsScrollingNow =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ThreadTimeline.swift:1058");
+        IsReaderScrolling || IsCoasting; // :1071
 
     // :1062-1073 func endActivity()
-    public void EndActivity() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ThreadTimeline.swift:1062");
+    public void EndActivity()
+    {
+        SettleWatch?.Cancel(); SettleWatch = null; phaseWatch?.Cancel(); phaseWatch = null; blankWatch?.Cancel(); blankWatch = null;
+        IsReaderScrolling = false; IsCoasting = false; IsUserScrolling = false;
+        if (reportedTimeline is { } id) ScrollActivity.Shared.Current.SetScrolling(false, id); // :1075-1086
+    }
+
+    // :1093-1120. Avalonia wheel events have no phases; pointer gestures map to these Swift phase names.
+    public void NotePhase(string phase)
+    {
+        IsUserScrolling = phase is "interacting" or "decelerating"; IsCoasting = phase is "decelerating" or "animating";
+        if (IsUserScrolling) drift = 0; phaseWatch?.Cancel(); phaseWatch = null; if (!IsUserScrolling && !IsCoasting) return;
+        lastReaderMovementAt = phaseStartedAt = Now; var still = phase == "interacting" ? 2.0 : 0.4;
+        phaseWatch = MainActor.Spawn(async () =>
+        {
+            while (await SwiftTask.TrySleep(TimeSpan.FromMilliseconds(200)))
+            {
+                if (Now - lastReaderMovementAt < still && Now - phaseStartedAt < 3.0) continue;
+                IsUserScrolling = false; IsCoasting = false; if (reportedTimeline is { } id && !IsReaderScrolling) ScrollActivity.Shared.Current.SetScrolling(false, id); CheckRequest++; return;
+            }
+        });
+    }
 
     // :1116-1123 func armBlankWatch()
-    public void ArmBlankWatch() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ThreadTimeline.swift:1116");
+    public void ArmBlankWatch()
+    {
+        blankWatch?.Cancel(); blankWatch = MainActor.Spawn(async () => { if (await SwiftTask.TrySleep(TimeSpan.FromMilliseconds(300)) && ShowsNothing) CheckRequest++; }); // :1125-1132
+    }
 
     // :1128-1133 func noteReturnToFront()
-    public void NoteReturnToFront() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ThreadTimeline.swift:1128");
+    public void NoteReturnToFront() { BlankRepairs = 0; CheckRequest++; ArmBlankWatch(); ArmViewportRefresh(); } // :1135-1140
 
     // :1139-1144 func noteDrift(_:tolerance:) -> Bool
-    public bool NoteDrift(double amount, double tolerance) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ThreadTimeline.swift:1139");
+    public bool NoteDrift(double amount, double tolerance) { drift += amount; if (drift <= tolerance) return false; drift = 0; return true; } // :1146-1151
 
     // :1146-1148 func resetDrift()
     public void ResetDrift() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ThreadTimeline.swift:1146");
+        drift = 0; // :1154-1156
 
     // :1153-1174 func armViewportRefresh()
-    public void ArmViewportRefresh() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ThreadTimeline.swift:1153");
+    public void ArmViewportRefresh() { drift = 0; } // :1161-1181. Eager rows measure against the live viewport; no virtualization refresh is needed.
 
     // :1184-1199 func beginNudge() -> Bool
     public bool BeginNudge() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ThreadTimeline.swift:1184");
+        false; // :1193-1208. No virtualized range to rebuild in the eager Avalonia stack.
 
     // :1202-1204 func noteNudgeSeen()
-    public void NoteNudgeSeen() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ThreadTimeline.swift:1202");
+    public void NoteNudgeSeen() { } // :1211-1213; no nudge in the eager stack.
 
     // :1208-1226 func restoreNudge(then:)
-    public void RestoreNudge(Action then) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ThreadTimeline.swift:1208");
+    public void RestoreNudge(Action then) { } // :1217-1235; no nudge can be started in the eager stack.
 
     // :1230-1236 private func resolveActive()
-    private void ResolveActive() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ThreadTimeline.swift:1230");
+    private void ResolveActive()
+    {
+        var onScreen = outlineIDs.Select((id, index) => (id, index)).Where(pair => visibleIDs.Contains(pair.id)).ToArray(); if (onScreen.Length == 0) return;
+        var middle = onScreen[onScreen.Length / 2].index; var resolved = outlineIDs.Take(middle + 1).LastOrDefault(userBlockIDs.Contains); if (resolved != ActiveBlockID) ActiveBlockID = resolved; // :1239-1245
+    }
 }
 
 /// <summary>:1241-1271 <c>private struct ScrollViewProbe: NSViewRepresentable</c>.</summary>
@@ -744,8 +876,63 @@ public sealed class WorkingIndicator : Decorator
         bool showsCard,
         DateTimeOffset? finishedAt = null,
         bool chronological = false,
-        string? workingDirectory = null) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ThreadTimeline.swift:2087");
+        string? workingDirectory = null)
+    {
+        var isExpanded = chronological; var showsAllSteps = chronological; var now = SwiftDate.Now;
+        var canExpand = thinkingSteps.Count != 0 || liveWork.Count != 0; var running = finishedAt is null;
+        var shell = new Border { CornerRadius = new CornerRadius(TimelineMetrics.PillRadius), Background = SwiftColor.Quaternary.Opacity(0.32).Brush(this) }; Child = shell;
+        void Draw()
+        {
+            var elapsed = Math.Max(0, (now - startedAt).TotalSeconds); var word = WorkingWords.Word(seed, (long)elapsed);
+            // STOP #2 at the external summary only: no guessed tool labels.
+            var label = liveWork.Any(entry => entry.TimelineEntryKind == TimelineEntry.Kind.Tool) ? WorkGroupSummary.Text(liveWork) : running ? word + "\u2026" : "Earlier steps"; // :2100-2105
+            var column = new StackPanel { Spacing = TimelineMetrics.RowSpacing };
+            var header = new BaselineHeader(showsCard);
+            header.Children.Add(new HydraWorkingTitle(label, running, TextAlignment.Left)); header.Children.Add(new HydraElapsedTime(startedAt, finishedAt, running));
+            if (canExpand) { var chevron = SwiftImage.SystemName("chevron.right").Font(ChatFont.Chat(SwiftFont.TextStyle.Caption2, SwiftFont.Weight.Semibold)); chevron.RenderTransform = new RotateTransform(isExpanded ? 90 : 0); header.Children.Add(chevron); }
+            var inner = new StackPanel { Spacing = 10, Children = { header } };
+            if (showsCard) inner.Children.Add(new HydraProgressBar(runtime, startedAt, finishedAt, running ? HydraHeadInfo.Status.Running : HydraHeadInfo.Status.Stopped, Chrome.Accent, turnEntries));
+            var frame = new Border { Padding = showsCard ? new Thickness(14, 11) : new Thickness(TimelineMetrics.PillLeading, TimelineMetrics.PillVertical, TimelineMetrics.PillTrailing, TimelineMetrics.PillVertical), CornerRadius = new CornerRadius(TimelineMetrics.PillRadius), Child = inner, HorizontalAlignment = HorizontalAlignment.Left };
+            if (showsCard) frame.Width = CardWidth;
+            var button = PlainControls.Button(frame, () => { if (!canExpand) return; Transaction.WithAnimation(Animation.Snappy(0.24), () => { isExpanded = !isExpanded; if (isExpanded) ThreadTimeline.GetRevealTimelineEnd(this)?.Follow(); Draw(); }); });
+            ToolTip.SetTip(button, canExpand ? isExpanded ? "Hide these steps" : "Show these steps" : ""); Avalonia.Automation.AutomationProperties.SetHelpText(button, canExpand ? "Shows what the agent is doing" : ""); column.Children.Add(button);
+            if (isExpanded && canExpand)
+            {
+                var details = new StackPanel { Spacing = TimelineMetrics.RowSpacing };
+                if (thinkingSteps.Count != 0)
+                {
+                    var thinking = new StackPanel { Spacing = TimelineMetrics.RowSpacing, Margin = new Thickness(TimelineMetrics.IconWidth + TimelineMetrics.IconSpacing, 0, 0, 0) };
+                    MarkdownView.SetMarkdownPointSize(thinking, 12); MarkdownView.SetMarkdownDimmed(thinking, true);
+                    foreach (var step in thinkingSteps) thinking.Children.Add(new MarkdownView(step.Text, step.IsStreaming)); details.Children.Add(thinking.Transition(SwiftTransition.SoftAppear));
+                }
+                // STOP #2: WorkSteps remains the external implementation, with the original binding and arguments.
+                if (liveWork.Count != 0) details.Children.Add(new WorkSteps(liveWork, runtime, new Binding<bool>(() => showsAllSteps, value => showsAllSteps = value), workingDirectory));
+                column.Children.Add(new Border { Padding = new Thickness(14, 0, 14, 11), Child = details });
+            }
+            shell.Child = column;
+        }
+        Draw(); // :2185-2188. The source retains chronological, but ThreadTimeline always passes false.
+        this.Task(() => running, async active => { if (!active) return; while (await SwiftTask.TrySleep(TimeSpan.FromSeconds(1))) await MainActor.Run(() => { now = SwiftDate.Now; Draw(); }); }); // :2189-2196; front visibility added with the monitor in part 3.
+    }
+
+    // :2122. The title fills only the card's surplus width; every child aligns on its first text baseline.
+    private sealed class BaselineHeader(bool fillsTitle) : Panel
+    {
+        private static double Baseline(Control child) => child switch { TextBlock text => text.TextLayout.TextLines.FirstOrDefault()?.Baseline ?? child.DesiredSize.Height, Decorator { Child: { } content } => Baseline(content), Panel panel when panel.Children.Count > 0 => Baseline(panel.Children[0]), _ => child.DesiredSize.Height };
+        protected override Size MeasureOverride(Size availableSize)
+        {
+            foreach (var child in Children) child.Measure(new Size(double.PositiveInfinity, availableSize.Height));
+            var other = Children.Skip(1).Sum(child => child.DesiredSize.Width) + Math.Max(0, Children.Count - 1) * 8;
+            if (fillsTitle && double.IsFinite(availableSize.Width) && Children.Count > 0) Children[0].Measure(new Size(Math.Max(0, availableSize.Width - other), availableSize.Height));
+            var above = Children.Select(Baseline).DefaultIfEmpty().Max(); var below = Children.Select(child => child.DesiredSize.Height - Baseline(child)).DefaultIfEmpty().Max();
+            return new Size(fillsTitle && double.IsFinite(availableSize.Width) ? availableSize.Width : Children.Sum(child => child.DesiredSize.Width) + Math.Max(0, Children.Count - 1) * 8, above + below);
+        }
+        protected override Size ArrangeOverride(Size finalSize)
+        {
+            var baseline = Children.Select(Baseline).DefaultIfEmpty().Max(); var x = 0.0; var other = Children.Skip(1).Sum(child => child.DesiredSize.Width) + Math.Max(0, Children.Count - 1) * 8;
+            for (var i = 0; i < Children.Count; i++) { var child = Children[i]; var width = i == 0 && fillsTitle ? Math.Max(0, finalSize.Width - other) : child.DesiredSize.Width; child.Arrange(new Rect(x, baseline - Baseline(child), width, child.DesiredSize.Height)); x += width + 8; } return finalSize;
+        }
+    }
 }
 
 /// <summary>:2189-2192 <c>struct ThinkingStep: Equatable</c>.</summary>
@@ -820,5 +1007,5 @@ public sealed record ScrollFreeze(TimelineScrollTracking Tracking)
 {
     // :2311-2313 func body(content:)
     public Control Body(Control content) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ThreadTimeline.swift:2311");
+        content.Track(() => Tracking.IsReaderScrolling, scrolling => content.IsHitTestVisible = !scrolling); // :2320-2325
 }
