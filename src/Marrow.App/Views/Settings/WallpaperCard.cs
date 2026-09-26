@@ -12,17 +12,17 @@ using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using Avalonia.Automation;
 using Marrow.App.Port;
-using Marrow.App.Theme;
 using Marrow.Core.Port;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
+using Marrow.UI.Theme;
 
 namespace Marrow.App.Views.Settings;
 
-// Source: DroppyCode/App/Views/Settings/WallpaperCard.swift (B2 1fbf81e), :1-190.
+// Source: DroppyCode/App/Views/Settings/WallpaperCard.swift (B3 52bc7926), :1-190.
 // Forms (ED-095): a SwiftUI View is a Decorator whose constructor builds `body`. `let store = WallpaperStore.shared`
-// (:8) has its value in the declaration, so it is not an input; WallpaperStore is the App-layer type HANDOFF section 9
-// moves out of UI/Theme/Wallpaper.swift.
+// (:8) has its value in the declaration, so it is not an input; WallpaperStore is Marrow.UI.Theme.WallpaperStore
+// (ED-195, lane A10: B3 fixes the layering that used to keep it in Marrow.App, HANDOFF section 9).
 
 /// <summary>:7-190 <c>struct WallpaperCard: View</c>: a picture of the user's own behind the glass.</summary>
 public sealed class WallpaperCard : Decorator

@@ -1,6 +1,8 @@
-// Source: DroppyCode/Services/Store/Storage.swift (B2 1fbf81e), :1-390.
+// Source: DroppyCode/Services/Store/Storage.swift (B3 52bc7926), :1-387.
 // R-FILE-1: every type this Swift file declares lives here (StoredContinuation, Storage, AttachmentSource,
-// MimeType, DocumentPrefetch, DiskWriter).
+// MimeType, DocumentPrefetch, DiskWriter). root, wallpaperDirectory and directory(_:) moved out to
+// Core/Support/StoragePaths.cs at B3 (N2, ED-195); wallpaperDirectory's own forwarding member left this file at
+// lane A10/ED-195, once UI.Theme.Wallpaper moved to reading Core.Support.StoragePaths.WallpaperDirectory directly.
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text.Json;
@@ -49,19 +51,20 @@ public interface IStorageLocations
     string LibraryURL { get; }
     string ThreadsDirectory { get; }
     string AttachmentsDirectory { get; }
-    string WallpaperDirectory { get; }
     string WorktreesDirectory { get; }
     string PatchesDirectory { get; }
 }
 
 /// <summary>
-/// The production shape of Storage.swift's five remaining roots (:19-39; two more, root and wallpaperDirectory,
-/// moved to Core.Support.StoragePaths in B3 - see <see cref="paths"/>). Each of <see cref="Root"/>,
-/// <see cref="ThreadsDirectory"/>, <see cref="AttachmentsDirectory"/>, <see cref="WallpaperDirectory"/>,
-/// <see cref="WorktreesDirectory"/> and <see cref="PatchesDirectory"/> is created with intermediates on first
-/// access and cached for the life of the instance (PR-STORE-001, -003, -004, -005, -006, -007); a creation
-/// failure is swallowed (<c>try?</c>) exactly as the source swallows it, and the resolved path is still returned
-/// and cached. <see cref="LibraryURL"/> (:21) is a pure derivation with no side effect.
+/// The production shape of Storage.swift's four remaining roots (:19-39; two more, root and wallpaperDirectory,
+/// moved to Core.Support.StoragePaths in B3 - see <see cref="paths"/>; wallpaperDirectory's own forwarding member
+/// left this type at lane A10/ED-195, once UI.Theme.Wallpaper moved to reading
+/// Core.Support.StoragePaths.WallpaperDirectory directly). Each of <see cref="Root"/>,
+/// <see cref="ThreadsDirectory"/>, <see cref="AttachmentsDirectory"/>, <see cref="WorktreesDirectory"/> and
+/// <see cref="PatchesDirectory"/> is created with intermediates on first access and cached for the life of the
+/// instance (PR-STORE-001, -003, -004, -006, -007); a creation failure is swallowed (<c>try?</c>) exactly as the
+/// source swallows it, and the resolved path is still returned and cached. <see cref="LibraryURL"/> (:21) is a
+/// pure derivation with no side effect.
 /// </summary>
 public sealed class StorageLocations : IStorageLocations
 {
@@ -111,9 +114,6 @@ public sealed class StorageLocations : IStorageLocations
     public string LibraryURL => SwiftPath.AppendingPathComponent(Root, "library.json"); // :21, no side effect
     public string ThreadsDirectory => threadsDirectory.Value; // :25, via directory(_:) (now Core.Support.StoragePaths)
     public string AttachmentsDirectory => attachmentsDirectory.Value; // :27
-    // Removed from Storage.swift in B3 (moved to StoragePaths.swift :15); kept here until lane A10 (ED-195/O5)
-    // updates UI.Theme.Wallpaper to read Core.Support.StoragePaths.WallpaperDirectory directly and retires this.
-    public string WallpaperDirectory => paths.WallpaperDirectory;
     public string WorktreesDirectory => worktreesDirectory.Value; // :29
     public string PatchesDirectory => patchesDirectory.Value; // :32
 
@@ -143,7 +143,6 @@ file sealed class UnboundStorageLocations : IStorageLocations
     public string LibraryURL => throw new SwiftTrapException(Message);
     public string ThreadsDirectory => throw new SwiftTrapException(Message);
     public string AttachmentsDirectory => throw new SwiftTrapException(Message);
-    public string WallpaperDirectory => throw new SwiftTrapException(Message);
     public string WorktreesDirectory => throw new SwiftTrapException(Message);
     public string PatchesDirectory => throw new SwiftTrapException(Message);
 }
@@ -344,11 +343,19 @@ public sealed class DiskWriter
 
     private readonly SerialQueue queue = new("droppycode.storage.write"); // :339
     private readonly Mutex<Dictionary<string, object>> pending = new(new Dictionary<string, object>(SwiftStringComparer.Instance)); // :343
+    // :333-334. The size of the last write per file, so a caller can space its saves by it (PR-STORE-174). Only
+    // encodeAndWrite's queued hop records a size (:349-350 below); writeSynchronously and removeSynchronously
+    // never touch this map, even though they write or remove the same files.
+    private readonly Mutex<Dictionary<string, int>> sizes = new(new Dictionary<string, int>(SwiftStringComparer.Instance));
 
     private DiskWriter() { }
 
     // Test-only (PR-STORE-035); internal per R-NAME-6, visible to Marrow.Services.Tests.
     internal string QueueLabel => queue.Label; // :339
+
+    // :336-338 lastWrittenSize(of:)
+    public int? LastWrittenSize(string url) =>
+        sizes.WithLock((ref Dictionary<string, int> map) => map.TryGetValue(url, out var size) ? size : (int?)null);
 
     // :345-356
     public void EncodeAndWrite(object value, string url)
@@ -369,7 +376,8 @@ public sealed class DiskWriter
                 return v;
             });
             if (latest is null) return; // :353
-            Write(latest, url); // :354
+            // :349 if let size = Self.write(value, to: url) { sizes.withLock { $0[url] = size } }
+            if (Write(latest, url) is { } size) sizes.WithLock((ref Dictionary<string, int> map) => map[url] = size);
         });
     }
 
@@ -377,7 +385,7 @@ public sealed class DiskWriter
     public void WriteSynchronously(object value, string url)
     {
         pending.WithLock((ref Dictionary<string, object> map) => map.Remove(url)); // :359
-        queue.Sync(() => { Write(value, url); return true; }); // :360
+        queue.Sync(() => Write(value, url)); // :360. The returned size is discarded: only encodeAndWrite records one.
     }
 
     // :363-365
@@ -401,9 +409,10 @@ public sealed class DiskWriter
     // :377-379
     public void WaitForQueuedWrites() => queue.Sync(() => true);
 
-    // :381-388. DEVIATION OD-0012 F1: the diagnostic text renames "Droppy Code" to "Marrow"; no record fixes its
-    // exact wording (NSLog has no other caller in the tree).
-    private static void Write(object value, string url)
+    // :376-386. DEVIATION OD-0012 F1: the diagnostic text renames "Droppy Code" to "Marrow"; no record fixes its
+    // exact wording (NSLog has no other caller in the tree). Returns the written byte count on success (:381,
+    // data.count), or null on an encode failure (:378) or a write failure (:383-385) - PR-STORE-174.
+    private static int? Write(object value, string url)
     {
         byte[] data;
         try
@@ -413,11 +422,12 @@ public sealed class DiskWriter
         }
         catch (Exception e) when (SwiftTry.IsThrownError(e))
         {
-            return;
+            return null;
         }
         try
         {
             FileOps.WriteAtomic(url, data); // :384
+            return data.Length; // :381
         }
         catch (Exception error)
         {
@@ -428,6 +438,7 @@ public sealed class DiskWriter
                 _ => SwiftErrors.LocalizedDescription(error),
             };
             FailureLog.Error($"Marrow could not save {SwiftPath.LastPathComponent(url)}: {description}"); // :386
+            return null;
         }
     }
 }
@@ -441,7 +452,6 @@ public static partial class Storage
     public static string LibraryURL => Locations.Current.LibraryURL; // :27
     public static string ThreadsDirectory => Locations.Current.ThreadsDirectory; // :31
     public static string AttachmentsDirectory => Locations.Current.AttachmentsDirectory; // :33
-    public static string WallpaperDirectory => Locations.Current.WallpaperDirectory; // :36
     public static string WorktreesDirectory => Locations.Current.WorktreesDirectory; // :38
     public static string PatchesDirectory => Locations.Current.PatchesDirectory; // :41
 

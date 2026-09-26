@@ -14,12 +14,12 @@ using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Marrow.App.Port;
-using Marrow.App.Theme;
 using Marrow.App.Views.Settings;
 using Marrow.Core.Port;
-using Marrow.Services.Store;
+using Marrow.Core.Support;
 using Marrow.Testing;
 using Marrow.UI.Port;
+using Marrow.UI.Theme;
 
 namespace Marrow.App.Tests.Fixtures;
 
@@ -52,13 +52,15 @@ public sealed class WallpaperCardScope : IDisposable
         // Every animation reads SwiftClock.Now for its elapsed time (ED-098 (1), AnimatedColor.Set), so the clock
         // advances in lockstep with the frame source or a transition never completes.
         overrides.Add(SwiftClock.Provider.Override(Time));
-        // Install (Wallpaper.swift:113-144) copies into Storage.WallpaperDirectory (R-TEST-9): a throwaway root.
+        // Install (Wallpaper.swift:113-144) copies into StoragePaths.WallpaperDirectory (R-TEST-9, ED-195): a
+        // throwaway root. The store reads Core.Support.StoragePaths directly (it no longer touches
+        // Marrow.Services.Store.Storage at all), so only StoragePaths.Locations needs binding here.
         var dataDirectory = Marrow.Testing.TestDataDirectory.Read();
         if (string.IsNullOrEmpty(dataDirectory)) dataDirectory = System.IO.Path.GetTempPath();
         baseFolder = System.IO.Path.Combine(dataDirectory, "WallpaperCardTests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(baseFolder);
-        var locations = StorageLocations.Create(System.IO.Path.Combine(baseFolder, "root"), System.IO.Path.Combine(baseFolder, "home"));
-        overrides.Add(Storage.Locations.Override(locations));
+        var locations = StoragePathsLocations.Create(System.IO.Path.Combine(baseFolder, "root"));
+        overrides.Add(StoragePaths.Locations.Override(locations));
         Store = (WallpaperStore)Activator.CreateInstance(typeof(WallpaperStore), nonPublic: true)!;
         overrides.Add(WallpaperStore.Shared.Override(Store));
         overrides.Add(WallpaperFileDialog.Current.Override(Dialog));
