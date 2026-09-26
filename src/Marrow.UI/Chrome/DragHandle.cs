@@ -401,6 +401,20 @@ public sealed class DragHandleView : Canvas
     // steals it, or the platform revokes it) where AppKit has no separate notion of losing an implicit mouseDown
     // capture. This is the closest Avalonia gets to :127-133's mid-drag detach, so it clears state the same way -
     // without invoking onEnd or onChange.
+    //
+    // ENGINEERING DECISION: :134-137's grip-refresh clause has no literal analogue here either - this event has
+    // no Swift original at all, unlike :127-133's drag-clear, which does. But the component contract (PR-WIN-234)
+    // ties the glow's opacity to isDragging (:176 `isDragging ? dragGlow : hoverGlow`) every time UpdateGrip runs.
+    // When capture moves to another element that Avalonia can still hit-test, that element's own arrival already
+    // raises PointerExited on this view (ED-202), and since isDragging is false by the time that fires, nothing
+    // here gates it, so OnPointerExited's own RefreshHover-free `isHovering = false; UpdateGrip(animated: true)`
+    // settles things regardless of this method. But when capture is simply revoked without moving to a live,
+    // hit-tested element - the platform drops it, or a caller does `pointer.Capture(null)` outside the normal
+    // release path - no such trailing exit follows, and nothing else will ever re-run UpdateGrip; the grip/glow
+    // would stay rendered at their mid-drag values indefinitely, even with the pointer still over the strip. Settle
+    // them the same way :134-137 itself does on an equally abrupt, non-user-driven state change (animated: false -
+    // a snap, not a transition): safe to do unconditionally, since the ED-202 path above simply re-does the same
+    // work a moment later on the sub-case it already covers.
     protected override void OnPointerCaptureLost(PointerCaptureLostEventArgs e)
     {
         base.OnPointerCaptureLost(e);
@@ -408,6 +422,8 @@ public sealed class DragHandleView : Canvas
         if (!isDragging) return;
         isDragging = false;
         if (DragCursor is not null) Cursor = IsActive ? configuredCursor : null;
+        RefreshHover();
+        UpdateGrip(animated: false);
     }
 
     // :234-245 override func updateTrackingAreas(). See the top-of-file note: nothing to port, no Avalonia

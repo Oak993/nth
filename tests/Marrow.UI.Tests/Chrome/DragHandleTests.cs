@@ -482,4 +482,41 @@ public sealed class DragHandleTests(HeadlessSession headless)
             Assert.False(ended); // :130-133's rule, generalized: no onEnd on a capture loss either
         });
     }
+
+    [Trait("Req", "PR-WIN-234")] // :176's `isDragging ? dragGlow : hoverGlow` rule must still hold once isDragging clears
+    [Fact]
+    public void Losing_pointer_capture_without_a_transfer_settles_the_grip_and_glow_to_the_still_hovering_state()
+    {
+        headless.OnUiThread(() =>
+        {
+            var grip = new DragHandleView.Grip(12, 28, 2.5, GlowInset: 4);
+            var (window, view) = NewAttachedHandle(axis: DragHandleView.Axis.Vertical, grip: grip, width: 300);
+            var cursor = new FakeCursorPlatform(null);
+            using var _ = DragHandleView.CursorPlatform.Override(cursor);
+            Down(window, new Point(150, 150), cursor);
+            Move(window, new Point(150, 100), cursor); // still well inside the strip's own bounds
+            Assert.True(view.IsDraggingForTest);
+            // mouseDown's own UpdateGrip(animated: true) (:206) leaves this transitioning rather than at its
+            // target; force the same unanimated snap the hover test above does (see its comment) so this
+            // precondition reads the drag's actual target value, not a mid-flight one.
+            view.IsActive = false;
+            view.IsActive = true;
+            Assert.Equal(grip.DragGlow, view.GlowLayerForTest.Opacity);
+            var pointer = view.CapturedPointerForTest;
+            Assert.NotNull(pointer);
+            // Capture(null) - a capture simply revoked, not handed to another hit-testable element - is the sub-
+            // case OnPointerCaptureLost's own follow-up refresh exists for: capturing to a live element instead
+            // would raise a real PointerExited right behind it (ED-202), which settles things on its own once
+            // isDragging is already false; a bare revoke raises no such exit, so nothing else ever will. The
+            // pointer itself never leaves the strip's bounds, so isHovering was, and remains, true throughout.
+            pointer!.Capture(null);
+            Assert.False(view.IsDraggingForTest);
+            Assert.True(view.IsHoveringForTest);
+            // Without settling the grip here, this stays frozen at grip.DragGlow (the bug this guards against):
+            // isDragging cleared, but nothing re-ran :176's rule, so the glow never dims down to its resting
+            // hover level even though the drag that justified the brighter glow has already ended.
+            Assert.Equal(grip.HoverGlow, view.GlowLayerForTest.Opacity);
+            Assert.Equal(grip.ShownLength, view.GripLayerForTest.Width); // still shown: the pointer never left
+        });
+    }
 }
