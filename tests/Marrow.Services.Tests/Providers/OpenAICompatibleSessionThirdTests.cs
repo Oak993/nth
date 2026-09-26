@@ -750,7 +750,12 @@ public sealed class OpenAICompatibleSessionThirdTests
     {
         using var runtime = new TestRuntime();
         var session = new OpenAICompatibleSessionTestSeam(MakeConfig(), MakeSessionConfiguration(RuntimeMode.Supervised, InteractionMode.Build)).Wired();
-        var task = session.ApproveIfNeededForTests(toolKind, "do it", "detail text", "item-1");
+        // Started through runtime.OnMain, not called directly on the xUnit test thread: see the comment on
+        // ApproveIfNeeded_resolves_true_on_allow_and_false_on_decline below for why a direct call captures
+        // xUnit's own SynchronizationContext instead of runtime.Loop's, racing ResolveApproval against the
+        // continuation that registers the pending approval. This test hit that same race under the parallel
+        // suite (a recurring provider test-host abort with zero assertion failures, blaming this theory).
+        var task = runtime.OnMain(() => session.ApproveIfNeededForTests(toolKind, "do it", "detail text", "item-1"));
         runtime.Loop.RunUntilIdle();
 
         var request = session.Events.OfType<ProviderEvent.Approval>().Single().Value;
@@ -803,7 +808,10 @@ public sealed class OpenAICompatibleSessionThirdTests
         using var runtime = new TestRuntime();
         var session = new OpenAICompatibleSessionTestSeam(MakeConfig(), MakeSessionConfiguration(RuntimeMode.Supervised, InteractionMode.Build)).Wired();
 
-        var task = session.ApproveIfNeededForTests(ToolCall.Kind.Command, "run", null, null);
+        // Same reason as the theory above and ApproveIfNeeded_resolves_true_on_allow_and_false_on_decline: start
+        // through runtime.OnMain so the approval-registering continuation resumes on runtime.Loop, not on an
+        // arbitrary thread pool thread racing Interrupt() below.
+        var task = runtime.OnMain(() => session.ApproveIfNeededForTests(ToolCall.Kind.Command, "run", null, null));
         runtime.Loop.RunUntilIdle();
         Assert.Single(session.Events.OfType<ProviderEvent.Approval>());
 
