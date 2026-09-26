@@ -1645,6 +1645,69 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
         (type.GetMethod(name, System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)
             ?? throw new Xunit.Sdk.XunitException("no private static method " + name)).Invoke(null, arguments);
 
+    [Fact]
+    [Trait("Req", "PR-CHAT-082")] // App/Views/Chat/TimelineRows.swift:184-190, :214-228
+    public void Edit_from_here_posts_only_the_confirmation_intent_and_a_non_revertable_menu_cannot_post_it()
+    {
+        OnMain(headless, () =>
+        {
+            var requests = new MessageMenuRequests();
+            var confirming = new Binding<bool>(() => requests.ConfirmRevert, value => requests.ConfirmRevert = value);
+            var allowed = Assert.IsAssignableFrom<IReadOnlyList<RowAction>>(InvokeStatic(typeof(UserMessageRow), "MessageActions", "prompt", true, confirming));
+            Assert.False(requests.ConfirmRevert);
+            var edit = Assert.Single(allowed, action => action.Title == "Edit from here");
+            Assert.True(edit.StartsGroup);
+            edit.Action();
+            Assert.True(requests.ConfirmRevert);
+            requests.ConfirmRevert = false;
+            var disallowed = Assert.IsAssignableFrom<IReadOnlyList<RowAction>>(InvokeStatic(typeof(UserMessageRow), "MessageActions", "prompt", false, confirming));
+            Assert.DoesNotContain(disallowed, action => action.Title == "Edit from here");
+            Assert.False(requests.ConfirmRevert);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-104")] // App/Views/Chat/TimelineRows.swift:2631-2680; PR-CHAT-104.windows_path (identity swap)
+    public void Both_finished_turn_body_branches_remain_opaque_and_leave_immediately_under_the_fold_animation()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            using var clock = FrameClock.Source.Override(new ManualFrameSource());
+            h.Main.OnMain(() =>
+            {
+                var turn = System.Guid.NewGuid();
+                var block = new TurnFinishedBlock(h.Runtime, turn, Summary(turn), ValueList<TimelineEntry>.Empty,
+                    new ValueList<TimelineEntry>([ReplyEntry(CodeOnlyReply, turn: turn)]), null, false, false);
+                var derived = Invoke(block, "DerivedFor", false);
+                var answer = Assert.IsAssignableFrom<Control>(Invoke(block, "Answer", derived));
+                var steps = Assert.IsAssignableFrom<Control>(Invoke(block, "Steps", derived, false));
+                foreach (var branch in new[] { answer, steps })
+                {
+                    var host = new Panel();
+                    var window = Show(host);
+                    Transaction.WithAnimation(Animation.Snappy(duration: 0.24), () => SwiftTransition.Insert(host, 0, branch));
+                    Assert.Equal(1, branch.Opacity);
+                    Transaction.WithAnimation(Animation.Snappy(duration: 0.24), () => SwiftTransition.Remove(host, branch));
+                    Assert.Empty(host.Children);
+                    Close(window);
+                }
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-078")] // App/Runtime/ThreadRuntime.swift:71-99; App/Views/Chat/TimelineRows.swift:92
+    public void The_inherited_quote_reader_consumes_only_leading_blocks_and_rejoins_the_lifted_command()
+    {
+        var (quotes, body) = ReplyQuote.Peel("/ask\n\n> first\n> second\n\n> third\n\n\nanswer\n> still body");
+        Assert.Equal(["first\nsecond", "third"], quotes.Select(quote => quote.Text));
+        Assert.Equal("/ask answer\n> still body", body);
+        var (none, unchanged) = ReplyQuote.Peel("answer\n> not leading");
+        Assert.Empty(none);
+        Assert.Equal("answer\n> not leading", unchanged);
+    }
+
     private static TimelineEntry PlanEntry(ProposedPlan.State state, string markdown = "```\nstep one\n```", System.Guid? turn = null) =>
         new(new TimelineItem(turn, new TimelineItem.Content.Plan(new ProposedPlan { Markdown = markdown, ProposedPlanState = state })));
 
