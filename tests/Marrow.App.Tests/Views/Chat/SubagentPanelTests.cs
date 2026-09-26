@@ -4,6 +4,7 @@ using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Input;
+using Avalonia.Layout;
 using Avalonia.LogicalTree;
 using Avalonia.Threading;
 using Marrow.App.Views.Chat;
@@ -370,7 +371,9 @@ public sealed class SubagentPanelTests(HeadlessSession headless)
             var handle = new PanelDragHandle(size => travel = size, () => ended = true)
             {
                 Width = 300,
-                Height = 50
+                Height = 50,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Top
             };
             var window = new Avalonia.Controls.Window { Content = handle, Width = 400, Height = 300 };
             window.Show();
