@@ -282,6 +282,84 @@ public sealed class ThreadTimelineTests(HeadlessSession headless)
     // Missing: MarkdownView has a global OpenUrl callback, not an inherited per-timeline open-URL action.
     // Needed: the UI-layer inherited link hook; mention personas/targets are supplied without replacing a global callback.
 
+    [Fact]
+    [Trait("Req", "PR-CHAT-192")] // App/Views/Chat/ThreadTimeline.swift:270-278,595-603,1804-1811
+    public void Fallback_keeps_three_leaves_a_stale_anchor_and_delayed_load_uses_its_captured_blocks() => WithTimeline((view, _, _, _, h) =>
+    {
+        var blocks = Enumerable.Range(0, 30).Select(i => (DisplayBlock)new DisplayBlock.Merging("b" + i)).ToArray(); Put(view, "windowStartID", "stale"); Assert.Equal(27, Invoke<int>(view, "WindowStartIndex", (object)blocks)); Assert.Equal("stale", Field<string?>(view, "windowStartID")); Assert.Equal(28, Invoke<int>(view, "WindowStartIndex", (object)blocks.Append(new DisplayBlock.Merging("new")).ToArray())); Put(view, "windowStartID", null); Invoke<object?>(view, "StartInitialHistoryLoad", (object)blocks); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); h.Main.AdvanceMilliseconds(249); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); Assert.Null(Field<string?>(view, "windowStartID")); h.Main.AdvanceMilliseconds(1); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); Assert.Equal("b6", Field<string?>(view, "windowStartID"));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-GIT-121")] // App/Views/Chat/ThreadTimeline.swift:167-172,326
+    public void Rewindable_turn_ids_are_empty_for_running_or_unsupported_and_built_once_for_idle_supported() => OnMain(() =>
+    {
+        var method = typeof(ThreadTimeline).GetMethod("RewindableIDs", BindingFlags.NonPublic | BindingFlags.Static)!; var ids = new[] { Turn, Guid.NewGuid() }; Assert.Equal(ids.ToHashSet(), (HashSet<Guid>)method.Invoke(null, [true, false, ids])!); Assert.Empty((HashSet<Guid>)method.Invoke(null, [false, false, ids])!); Assert.Empty((HashSet<Guid>)method.Invoke(null, [true, true, ids])!);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-HYDRAMERGE-086")] // App/Views/Chat/ThreadTimeline.swift:114,1504,1635-1643
+    public void Synthetic_merge_uses_exact_fallback_and_has_neither_turn_id_nor_outline_tick() => OnMain(() =>
+    {
+        var method = typeof(ThreadTimeline).GetMethod("MergeID", BindingFlags.NonPublic | BindingFlags.Static)!; Assert.Equal("hydra-merging", method.Invoke(null, [true, null])); Assert.Equal("note-id", method.Invoke(null, [true, "note-id"])); Assert.Null(method.Invoke(null, [false, "note-id"])); var block = Blocks([], merge: "hydra-merging").Single(); Assert.Equal("hydra-merging", block.Id); Assert.Null(block.TurnID); Assert.False(block.HasUserMessage); Assert.IsType<HydraMergePhase.Merging>(block.HydraMergePhase);
+    });
+
+    [Theory]
+    [InlineData("Hydra merged project", true)]
+    [InlineData("Hydra did not merge: the checkout kept moving.", true)]
+    [InlineData("Hydra left a file outside every project.", true)]
+    [InlineData("Hydra has no files left to merge.", true)]
+    [InlineData("Hydra is waiting for another chat's files.", true)]
+    [InlineData("Project: Hydra merged branch", false)]
+    [InlineData("Project: Hydra did not merge", false)]
+    [InlineData("Hydra", false)]
+    [Trait("Req", "PR-HYDRAMERGE-087")] // App/Views/Chat/ThreadTimeline.swift:1645-1652
+    [Trait("Req", "UI-HYDRAMERGE-031")] // App/Views/Chat/ThreadTimeline.swift:1645-1652
+    public void Multi_project_prefix_is_not_normalized_and_legacy_literal_Hydra_titles_keep_the_pill(string title, bool expected) => OnMain(() =>
+    {
+        Assert.Equal(expected, DisplayBlock.IsMergeOutcome(new UserMessage { Text = title + "\nbody", HydraHeads = new([]) }));
+    });
+
+    [Fact]
+    [Trait("Req", "UI-CHAT-001")] // App/Views/Chat/ThreadTimeline.swift:416-449,1365-1384
+    public void Scroll_metrics_cap_travel_and_short_content_reports_zero_distance() => OnMain(() =>
+    {
+        var method = typeof(ScrollMetrics).GetMethod("From", BindingFlags.NonPublic | BindingFlags.Static)!; var shortContent = (ScrollMetrics)method.Invoke(null, [400.0, 480.0, 50.0, 12.0, 18.0, 290.0])!; Assert.Equal(0, shortContent.Travel); Assert.Equal(0, shortContent.DistanceFromBottom); var tall = (ScrollMetrics)method.Invoke(null, [800.0, 480.0, 500.0, 12.0, 18.0, 740.0])!; Assert.Equal(350, tall.Travel); Assert.Equal(-162, tall.DistanceFromBottom);
+    });
+
+    [Fact]
+    [Trait("Req", "UI-CHAT-002")] // App/Views/Chat/ThreadTimeline.swift:364-383
+    public void Earlier_pill_has_chat_callout_on_text_and_icon_and_exact_capsule_insets() => WithTimeline((view, _, _, _, _) =>
+    {
+        var pill = Invoke<Button>(view, "EarlierPill", 42, (Action)(() => { })); Assert.Equal(Avalonia.Layout.HorizontalAlignment.Center, pill.HorizontalAlignment); Assert.Equal(new Thickness(0, 20, 0, 0), pill.Margin); var frame = LogicalQuery.SelfAndDescendants<Border>(pill).Single(border => border.Padding == new Thickness(14, 7)); Assert.True(frame.CornerRadius.TopLeft >= 14); Assert.Equal(19, Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(frame.Background).Color.A); var text = LogicalQuery.SelfAndDescendants<TextBlock>(pill).Single(); Assert.Equal("Show 42 earlier messages", text.Text); Assert.Equal(12, text.FontSize); var icon = LogicalQuery.SelfAndDescendants<SwiftImage>(pill).Single(); Assert.Equal(ChatFont.Chat(SwiftFont.TextStyle.Callout), SwiftImage.GetFont(icon));
+    });
+
+    [Fact]
+    [Trait("Req", "UI-CHAT-003")] // App/Views/Chat/ThreadTimeline.swift:179-208
+    public void Rail_is_an_unframed_thirty_point_overlay_below_the_titlebar() => WithTimeline((view, _, _, _, _) =>
+    {
+        var blocks = Blocks(new[] { User("first"), User("second") }); var rail = Invoke<Control?>(view, "CreateRail", blocks, true, 600.0); Assert.NotNull(rail); Assert.Equal(30, rail.Width); Assert.Equal(new Thickness(0, WindowChrome.TitlebarHeight, 0, 0), rail.Margin); Assert.Equal(Avalonia.Layout.HorizontalAlignment.Left, rail.HorizontalAlignment); Assert.Null(Invoke<Control?>(view, "CreateRail", blocks, false, 600.0));
+    });
+
+    [Fact]
+    [Trait("Req", "UI-CHAT-043")] // App/Views/Chat/ThreadTimeline.swift:2121-2196
+    [Trait("Req", "UI-CHAT-044")] // App/Views/Chat/ThreadTimeline.swift:2157-2168
+    [Trait("Req", "UI-CHAT-069")] // App/Views/Chat/ThreadTimeline.swift:2104,2123
+    public void Working_thinking_opens_with_source_color_typography_indent_and_unconditional_follow() => WithTimeline((view, runtime, _, _, _) =>
+    {
+        var card = new WorkingIndicator(runtime, SwiftDate.Now, 1, new([new ThinkingStep("thought", false)]), new([]), new([]), true, SwiftDate.Now); var icon = LogicalQuery.SelfAndDescendants<SwiftImage>(card).Single(); Assert.Equal(SwiftColor.Tertiary.Resolve(icon.ActualThemeVariant), Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(icon.Foreground).Color); var title = LogicalQuery.SelfAndDescendants<TextBlock>(card).Single(text => text.Text == "Earlier steps"); Assert.Equal(13, title.FontSize); Assert.Equal(Avalonia.Media.FontWeight.Medium, title.FontWeight); var follows = 0; ThreadTimeline.SetRevealTimelineEnd(card, new TimelineRevealBox { Follow = () => follows++ }); var button = LogicalQuery.SelfAndDescendants<Button>(card).Single(); button.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent)); Assert.Equal(1, follows); var markdown = LogicalQuery.SelfAndDescendants<Marrow.UI.Markdown.MarkdownView>(card).Single(); Assert.Equal(12, Marrow.UI.Markdown.MarkdownView.GetMarkdownPointSize(markdown)); Assert.True(Marrow.UI.Markdown.MarkdownView.GetMarkdownDimmed(markdown)); var stack = Assert.IsType<StackPanel>(markdown.Parent); Assert.Equal(new Thickness(24, 0, 0, 0), stack.Margin); Assert.Equal(20, stack.Spacing); Assert.Equal(90, Assert.IsType<Avalonia.Media.RotateTransform>(LogicalQuery.SelfAndDescendants<SwiftImage>(card).Single().RenderTransform).Angle);
+    });
+
+    [Fact]
+    [Trait("Req", "UI-CHAT-060")] // App/Views/Chat/ThreadTimeline.swift:345,393-397,665-672
+    public void Question_badge_follows_blocks_and_uses_question_prefixed_row_identity() => WithTimeline((view, runtime, _, _, _) =>
+    {
+        var request = new QuestionRequest("q", new([new QuestionRequest.Question("choice", "Header", "Choose", new([]), false, false, false)])); typeof(ThreadRuntime).GetProperty("Entries")!.SetValue(runtime, new ValueList<TimelineEntry>(new[] { Reply("reply", Turn) })); typeof(ThreadRuntime).GetProperty("Questions")!.SetValue(runtime, new ValueList<QuestionRequest>(new[] { request })); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); var badge = LogicalQuery.SelfAndDescendants<Marrow.App.Views.Composer.QuestionBadgeRow>(view).Single(); Assert.Equal("question-q", badge.Name); var stack = Assert.IsType<StackPanel>(badge.Parent); Assert.Same(badge, stack.Children[^1]);
+    });
+
+    // STOP App.Views.Chat.ThreadTimeline #5
+    // Kind: dependency. Swift: ChatView.swift:108-111; ThreadTimeline.swift:26-35,180. Records: PR-CHAT-160/UI-CHAT-003 (caller mounting/free-width flag only).
+    // Missing: external ChatView is still a skeleton. Needed: caller memoization and free-width/docked-side showsMinimap expression; the timeline honors its supplied flag.
+
     // STOP App.Views.Chat.ThreadTimeline #1
     // Kind: dependency. Swift: ThreadTimeline.swift:104-107,186-197,1886-1934,2049-2065.
     // Records: PR-CHAT-021/022/026/027/034/035/039/045/046 (rendering/integration only).
