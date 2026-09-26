@@ -118,3 +118,8 @@ public sealed class DroppyCodeAppTests
 // Done so far: the six-step prologue (minus the three platform-boundary steps and the two not-ported/inert ones)
 // and the single-instance lock are implemented and tested; the scene's only real effect (constructing WindowManager
 // and showing the main window) is wired to the real, still-throwing callee rather than stubbed out.
+// Boot merge (2026-09-26): both dependencies named above are in impl/b2 (App.AppDelegate, App.Window.WindowManager),
+// and the Boot unit wrote the ED-002 reopen path: a second launch sets Port/ReopenSignal.cs's signal and exits, and the
+// running instance runs AppDelegate.swift:36-39 through Port/AppShell.cs Reopen (tests: Port/ReopenSignalTests.cs,
+// Port/AppShellSecondTests.cs, PR-LAUNCH-072, marked IMPLEMENTED at that merge). PR-LAUNCH-004 and PR-WIN-001 are not
+// re-examined here.

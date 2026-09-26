@@ -1469,7 +1469,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same ordering at startup. Keep the Settings window opening automatically: it is how the user sees the install finished.",
       "verification_method": "restart test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2280,7 +2280,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key name, same default, same 700 ms delay after the main window is shown. Persist it in the app-settings store alongside the other AppSettings keys.",
       "verification_method": "restart test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

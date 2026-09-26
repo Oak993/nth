@@ -679,7 +679,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One application-scoped model instance owned by the window manager, with the lifecycle handler holding a nullable reference to it.",
       "verification_method": "unit test asserting a single model instance",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -958,7 +958,7 @@
       "cancellation": "The sleeping task is never cancelled and nothing cancels the presentation; quitting inside the window simply ends the process.",
       "windows_path": "Direct port: same 700 ms delay, same one-shot setting key, same write on both finish and close. The tour's own pages and controls belong to the tour area.",
       "verification_method": "interaction test: first launch shows the tour after 700 ms, second launch does not",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1240,7 +1240,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port including the exact key name, the remove-before-compare ordering and the version equality test. The installer mechanics belong to the update area.",
       "verification_method": "restart test with the key seeded to the matching and to a non-matching version",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1262,7 +1262,7 @@
       "cancellation": "not cancellable",
       "windows_path": "PLATFORM BOUNDARY: Windows has no Dock reopen. Because closing the main window quits the app (OD-0008 C1, PR-LAUNCH-074), the no-visible-window state is not reached by closing it. The path this handler defines runs on a second launch of the single-instance app (engineering_decisions.md, [LAUNCH] single-instance lock): the main window is shown when none is visible, and the app is activated in both cases.",
       "verification_method": "interaction test: with the app running, launch it again; assert one process and one main window, brought to the front and active",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1289,7 +1289,7 @@
       "cancellation": "not applicable",
       "windows_path": "The close and shutdown handler returns 'may close' immediately in the same two cases (platform_adaptations PA-0006).",
       "verification_method": "unit test on the terminate decision with and without a merging runtime",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1887,7 +1887,7 @@
       "cancellation": "not applicable",
       "windows_path": "ENGINEERING DECISION ED-002 (engineering_decisions.md, [LAUNCH] single-instance lock): Windows has no Launch Services single-activation behavior, so without an explicit lock a double-click would start a second process. The port implements a single-instance lock, and on the second launch runs exactly the reopen path the source already defines (AppDelegate.swift:36-39 applicationShouldHandleReopen, see PR-LAUNCH-048): the main window is shown when none is visible and the app is activated. The two-process store sharing described above therefore does not arise in the port.",
       "verification_method": "interaction test: launching twice results in one visible main window",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1941,7 +1941,7 @@
       "cancellation": "The quit can be deferred while a Hydra merge runs but never refused (PR-LAUNCH-050).",
       "windows_path": "Owner ruling OD-0008 C1: the main window's close button, like Alt+F4 (OD-0008 C2), quits the app through the same termination sequence, keeping the upstream 250 ms / 4 minute deferral while a Hydra merge is running (ED-004). The ruling settles the choice this record left open; the source has no notification-area icon and none is added.",
       "verification_method": "interaction test: with no merge running, closing the main window ends the process after the three termination steps; with a Hydra merge running, the process stays alive until the merge ends or 4 minutes pass, then ends",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
