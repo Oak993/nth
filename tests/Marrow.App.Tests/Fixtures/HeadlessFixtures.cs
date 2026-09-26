@@ -4,6 +4,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
+using Avalonia.Threading;
 using Marrow.Core.Port;
 using Marrow.UI.Port;
 
@@ -34,6 +35,31 @@ public sealed class HeadlessSession : IDisposable
         MainActor.Bind(AvaloniaMainExecutor.Instance);
         body();
     }, CancellationToken.None).GetAwaiter().GetResult();
+
+    /// <summary>
+    /// From inside an <see cref="OnUiThread"/> body: runs the headless dispatcher in a nested frame until
+    /// <paramref name="signal"/> completes. This is for a view whose Swift <c>.task</c> awaits real off-main work (an
+    /// R-ISO-2 <c>@concurrent</c> Task.Run) and then resumes on main. That continuation needs this same dispatcher,
+    /// which a test body occupies and a single RunJobs() may run before the continuation is queued. The frame exits
+    /// the moment the signal completes, so nothing sleeps or polls. <paramref name="bound"/> only turns work that never
+    /// finishes into a failure instead of a hung run.
+    /// </summary>
+    public static void RunDispatcherUntil(Task signal, TimeSpan bound)
+    {
+        Dispatcher.UIThread.VerifyAccess();
+        if (!signal.IsCompleted)
+        {
+            var frame = new DispatcherFrame();
+            // Exit on the UI thread, so the frame reads Continue after the job that completed the signal.
+            void Exit() => Dispatcher.UIThread.Post(() => frame.Continue = false, DispatcherPriority.Send);
+            using var timeout = new CancellationTokenSource(bound);
+            using var expired = timeout.Token.Register(Exit);
+            _ = signal.ContinueWith(_ => Exit(), CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
+            Dispatcher.UIThread.PushFrame(frame);
+        }
+        if (!signal.IsCompleted)
+            throw new TimeoutException("The awaited main-actor work did not finish within " + bound + ".");
+    }
 
     // Forces the embedded Inter release files to resolve every weight this assembly's tests draw with (Regular, Bold,
     // SemiBold) before any test measures text, so a test whose first layout pass needs two glyph typefaces of the
