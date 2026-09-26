@@ -1,0 +1,939 @@
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Headless;
+using Avalonia.Input;
+using Avalonia.Interactivity;
+using Avalonia.Media;
+using Avalonia.Styling;
+using Avalonia.Threading;
+using Marrow.App.Port;
+using Marrow.App.Tests.Fixtures;
+using Marrow.App.Views.Settings;
+using Marrow.App.Window;
+using Marrow.Core.Port;
+using Marrow.Core.Support;
+using Marrow.UI.Chrome;
+using Marrow.UI.Common;
+using Marrow.UI.Port;
+using Marrow.UI.Theme;
+using AvaloniaWindow = Avalonia.Controls.Window;
+
+namespace Marrow.App.Tests.Window;
+
+// Source: DroppyCode/App/Window/WindowManager.swift (B3 52bc792), :1-222. The file is unchanged from B2 1fbf81e, so
+// the B2 and B3 line numbers are the same. Part 1 of 2 (work packet part1.md).
+// Every expectation is transcribed from the cited Swift lines (or, where the record says so, from its windows_path):
+//   :19 main 1320 x 860; :20 main minimum 860 x 560; :21 settings 780 x 580; :24 frame name "DroppyCodeMainWindow"
+//   :26-30 showMain: `mainWindow ?? makeMainWindow()`, cached, then present
+//   :32-38 showSettings: the page first, then `settingsWindow ?? makeSettingsWindow()`, centred over main, present
+//   :41-55 centre over the main window: guard visible and not miniaturized else window.center(); origin =
+//          (parent.mid - size / 2).rounded(); clamped into the main window's screen's visible frame
+//   :57-60 present: activate, then make key and order front
+//   :62-72 the main window: resizable, title AppInfo.name, contentMinSize, setFrameUsingName else center, autosave
+//   :80-84 the settings window: "Settings", not resizable, SecondaryWindow, centred
+//   :92-108 makeWindow: titled, closable, miniaturizable, full-size content, not released when closed, one
+//          container holding one FrameHostingView holding HostedRoot(model, liveResize, content)
+//   :118-140 WindowLiveResize; :143-161 HostedRoot; :165-179 HostedEnvironment; :183-193 ThemeTint;
+//   :197-222 FrameHostingView
+// Forms (ED-095, packet part1.md): NSWindow is an Avalonia Window; a point is one DIP (ED-071); the headless screen
+// is one 1920 x 1280 working area at scale 1 (Avalonia.Headless HeadlessScreensStub), so pixels and points agree.
+// The two windows' content builders (:63 RootView(), :81 SettingsView()) are replaced by stand-ins through
+// WindowManager.MainContent and SettingsContent, because RootView's and SettingsView's bodies are still MARROW_STUB
+// (STOP App.Window.WindowManager #1 below).
+[Collection("Headless")]
+public sealed class WindowManagerTests(HeadlessSession headless)
+{
+    // Headless screen (Avalonia.Headless 12.1.2 HeadlessScreensStub): working area (0, 0, 1920, 1280), scale 1.
+    private const int ScreenWidth = 1920;
+    private const int ScreenHeight = 1280;
+
+    // WindowsMessages the live-resize hook reads (winuser.h).
+    private const uint WM_SIZING = 0x0214;
+    private const uint WM_MOVING = 0x0216;
+    private const uint WM_ENTERSIZEMOVE = 0x0231;
+    private const uint WM_EXITSIZEMOVE = 0x0232;
+
+    // One test body: a real AppModel store in a throwaway folder (AppModelHarness), a fresh WindowManager whose two
+    // windows host the given stand-ins, and the process-wide values a test here changes put back afterwards.
+    private void WithManager(Action<AppModelHarness, WindowManager> body) => headless.OnUiThread(() =>
+    {
+        var application = SwiftTraps.Unwrap(Application.Current);
+        var variant = application.RequestedThemeVariant;
+        var theme = ThemeManager.Current;
+        using var harness = new AppModelHarness();
+        var page = harness.Main.OnMain(() => SettingsNavigation.Shared.RequestedPage);
+        try
+        {
+            var manager = harness.Main.OnMain(() => new WindowManager());
+            body(harness, manager);
+        }
+        finally
+        {
+            harness.Main.OnMain(() => SettingsNavigation.Shared.RequestedPage = page);
+            ThemeManager.Current = theme;
+            application.RequestedThemeVariant = variant;
+            Dispatcher.UIThread.RunJobs();
+        }
+    });
+
+    private static void Settle(TopLevel window)
+    {
+        for (var pass = 0; pass < 5; pass++)
+        {
+            window.UpdateLayout();
+            Dispatcher.UIThread.RunJobs();
+        }
+    }
+
+    // The window a hosted control sits in, by its logical parents (content, ZoomLayout, HostedRoot, FrameHostingView,
+    // the container, the window).
+    private static AvaloniaWindow WindowOf(Control content)
+    {
+        StyledElement? element = content;
+        while (element is not null and not AvaloniaWindow) element = element.Parent;
+        return Assert.IsAssignableFrom<AvaloniaWindow>(element);
+    }
+
+    private static AvaloniaWindow ShowMain(AppModelHarness harness, WindowManager manager, Control content)
+    {
+        manager.MainContent = () => content;
+        harness.Main.OnMain(manager.ShowMain);
+        var window = WindowOf(content);
+        harness.Main.OnMain(() => Settle(window));
+        return window;
+    }
+
+    private static AvaloniaWindow ShowSettings(AppModelHarness harness, WindowManager manager, Control content)
+    {
+        manager.SettingsContent = () => content;
+        harness.Main.OnMain(() => manager.ShowSettings());
+        var window = WindowOf(content);
+        harness.Main.OnMain(() => Settle(window));
+        return window;
+    }
+
+    // NSWindow.frame's size here: the content size (the headless platform reports no decorations, FrameSize null).
+    private static Size SizeOf(AvaloniaWindow window) => new(window.Width, window.Height);
+
+    // ---- PR-WIN-003: the main window is built at most once ----
+
+    [Fact]
+    [Trait("Req", "PR-WIN-003")] // App/Window/WindowManager.swift:15, :26-30
+    public void ShowMain_builds_the_main_window_once_and_every_later_call_presents_that_same_window() => WithManager((harness, manager) =>
+    {
+        var content = new Border();
+        var built = 0;
+        manager.MainContent = () =>
+        {
+            built++;
+            return content;
+        };
+        harness.Main.OnMain(manager.ShowMain);
+        var first = WindowOf(content);
+        harness.Main.OnMain(manager.ShowMain);
+        harness.Main.OnMain(manager.ShowMain);
+        Assert.Equal(1, built);
+        Assert.Same(first, WindowOf(content));
+        Assert.True(first.IsVisible);
+    });
+
+    // ---- PR-WIN-004, PR-WIN-005: main window size and minimum ----
+
+    [Fact]
+    [Trait("Req", "PR-WIN-004")] // App/Window/WindowManager.swift:19, :63, :95-96
+    public void The_main_window_opens_with_a_1320_by_860_content_area() => WithManager((harness, manager) =>
+    {
+        var window = ShowMain(harness, manager, new Border());
+        Assert.Equal(1320d, window.Width);
+        Assert.Equal(860d, window.Height);
+        Assert.Equal(new Size(1320, 860), window.ClientSize);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-005")] // App/Window/WindowManager.swift:20, :66
+    public void The_main_window_content_minimum_is_860_by_560() => WithManager((harness, manager) =>
+    {
+        var window = ShowMain(harness, manager, new Border());
+        Assert.Equal(860d, window.MinWidth);
+        Assert.Equal(560d, window.MinHeight);
+    });
+
+    // ---- PR-WIN-006: the frame autosave name ----
+
+    [Fact]
+    [Trait("Req", "PR-WIN-006")] // App/Window/WindowManager.swift:67-69
+    public void With_no_saved_frame_the_main_window_is_centred_on_the_screen() => WithManager((harness, manager) =>
+    {
+        var window = ShowMain(harness, manager, new Border());
+        Assert.Equal(new PixelPoint((ScreenWidth - 1320) / 2, (ScreenHeight - 860) / 2), window.Position);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-006")] // App/Window/WindowManager.swift:24, :67
+    public void A_saved_frame_under_DroppyCodeMainWindow_is_applied_as_it_is_without_centring_or_clamping() => WithManager((harness, manager) =>
+    {
+        // The frame the previous main window wrote (see the next test), entirely off the screen: no clamp (the record's
+        // failure case: setFrameUsingName applies it unconditionally).
+        var first = harness.Main.OnMain(() => new WindowManager());
+        var earlier = ShowMain(harness, first, new Border());
+        harness.Main.OnMain(() =>
+        {
+            earlier.Width = 1000;
+            earlier.Height = 700;
+            Settle(earlier);
+            earlier.Position = new PixelPoint(-5000, -3000);
+            Settle(earlier);
+        });
+
+        var window = ShowMain(harness, manager, new Border());
+        Assert.Equal(new PixelPoint(-5000, -3000), window.Position);
+        Assert.Equal(1000d, window.Width);
+        Assert.Equal(700d, window.Height);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-006")] // App/Window/WindowManager.swift:24, :67-70
+    public void Every_later_move_or_resize_is_written_back_under_DroppyCodeMainWindow_and_restored_by_the_next_main_window() => WithManager((harness, manager) =>
+    {
+        var window = ShowMain(harness, manager, new Border());
+        harness.Defaults.Writes.Clear();
+        harness.Main.OnMain(() =>
+        {
+            window.Position = new PixelPoint(123, 45);
+            Settle(window);
+        });
+        Assert.Contains("DroppyCodeMainWindow", harness.Defaults.Writes);
+        harness.Defaults.Writes.Clear();
+        harness.Main.OnMain(() =>
+        {
+            window.Width = 1400;
+            window.Height = 900;
+            Settle(window);
+        });
+        Assert.Contains("DroppyCodeMainWindow", harness.Defaults.Writes);
+        Assert.All(harness.Defaults.Writes, key => Assert.Equal("DroppyCodeMainWindow", key));
+
+        var next = harness.Main.OnMain(() => new WindowManager());
+        var restored = ShowMain(harness, next, new Border());
+        Assert.Equal(new PixelPoint(123, 45), restored.Position);
+        Assert.Equal(1400d, restored.Width);
+        Assert.Equal(900d, restored.Height);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-006")] // App/Window/WindowManager.swift:70
+    public void A_minimised_main_window_writes_no_frame() => WithManager((harness, manager) =>
+    {
+        // AppKit leaves a miniaturized window's frame where it was; Windows parks a minimised window at (-32000,
+        // -32000) (platform), so a frame written then would bring the next window back off the screen.
+        var window = ShowMain(harness, manager, new Border());
+        harness.Defaults.Writes.Clear();
+        harness.Main.OnMain(() =>
+        {
+            window.WindowState = WindowState.Minimized;
+            window.Position = new PixelPoint(-32000, -32000);
+            Settle(window);
+        });
+        Assert.DoesNotContain("DroppyCodeMainWindow", harness.Defaults.Writes);
+    });
+
+    // ---- PR-WIN-007, PR-WIN-010: style ----
+
+    [Fact]
+    [Trait("Req", "PR-WIN-007")] // App/Window/WindowManager.swift:63, :81, :93-94, :101
+    [Trait("Req", "PR-WIN-010")] // App/Window/WindowManager.swift:81
+    public void The_main_window_is_resizable_and_the_Settings_window_is_not_and_both_extend_their_content_under_the_title_bar() => WithManager((harness, manager) =>
+    {
+        var main = ShowMain(harness, manager, new Border());
+        var settings = ShowSettings(harness, manager, new Border());
+        Assert.True(main.CanResize);
+        Assert.False(settings.CanResize);
+        Assert.False(settings.CanMaximize); // no .resizable: the zoom control is inert
+        foreach (var window in new[] { main, settings })
+        {
+            Assert.True(window.CanMinimize); // .miniaturizable
+            Assert.Equal(WindowDecorations.Full, window.WindowDecorations); // .titled, .closable (ED-063)
+            Assert.True(window.ExtendClientAreaToDecorationsHint); // .fullSizeContentView
+        }
+    });
+
+    // ---- PR-WIN-008, PR-SETTINGS-001: kept when closed ----
+
+    [Fact]
+    [Trait("Req", "PR-WIN-008")] // App/Window/WindowManager.swift:98
+    [Trait("Req", "PR-SETTINGS-001")] // App/Window/WindowManager.swift:32-37, :98
+    [Trait("Req", "PR-WIN-003")] // App/Window/WindowManager.swift:16, :34-35, :98
+    public void Closing_the_Settings_window_hides_it_and_the_next_showSettings_presents_the_same_window_and_content() => WithManager((harness, manager) =>
+    {
+        var content = new Border();
+        var built = 0;
+        manager.SettingsContent = () =>
+        {
+            built++;
+            return content;
+        };
+        harness.Main.OnMain(() => manager.ShowSettings());
+        var window = WindowOf(content);
+        harness.Main.OnMain(() =>
+        {
+            window.Close();
+            Settle(window);
+        });
+        Assert.False(window.IsVisible);
+        harness.Main.OnMain(() => manager.ShowSettings());
+        Assert.True(window.IsVisible);
+        Assert.Same(window, WindowOf(content));
+        Assert.Equal(1, built);
+    });
+
+    // ---- PR-WIN-009: the main window's title ----
+
+    [Fact]
+    [Trait("Req", "PR-WIN-009")] // App/Window/WindowManager.swift:63, :97; Core/Support/Text.swift:4
+    public void The_main_window_title_is_the_app_display_name() => WithManager((harness, manager) =>
+    {
+        // OD-0002: the Windows build's CFBundleDisplayName is "Marrow".
+        using var name = AppInfo.Running.Override(AppInfo.Read(new Dictionary<string, object?> { ["CFBundleDisplayName"] = "Marrow" }, isDevelopment: false));
+        var window = ShowMain(harness, manager, new Border());
+        Assert.Equal("Marrow", window.Title);
+    });
+
+    // ---- PR-WIN-010, PR-SETTINGS-001: the settings window ----
+
+    [Fact]
+    [Trait("Req", "PR-WIN-010")] // App/Window/WindowManager.swift:21, :81
+    [Trait("Req", "PR-SETTINGS-001")] // App/Window/WindowManager.swift:21, :80-84, :97
+    public void The_Settings_window_is_titled_Settings_and_measures_780_by_580() => WithManager((harness, manager) =>
+    {
+        var window = ShowSettings(harness, manager, new Border());
+        Assert.Equal("Settings", window.Title);
+        Assert.Equal(780d, window.Width);
+        Assert.Equal(580d, window.Height);
+        Assert.Equal(new Size(780, 580), window.ClientSize);
+        Assert.IsType<SecondaryWindow>(window);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-001")] // App/Window/WindowManager.swift:80-84 (no setFrameAutosaveName, unlike :70)
+    [Trait("Req", "PR-WIN-010")] // App/Window/WindowManager.swift:80-84
+    public void The_Settings_window_has_no_frame_autosave_so_moving_or_resizing_it_writes_nothing() => WithManager((harness, manager) =>
+    {
+        var window = ShowSettings(harness, manager, new Border());
+        harness.Defaults.Writes.Clear();
+        harness.Main.OnMain(() =>
+        {
+            window.Position = new PixelPoint(11, 22);
+            window.Width = 800;
+            Settle(window);
+        });
+        Assert.Empty(harness.Defaults.Writes);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-001")] // App/Window/WindowManager.swift:16, :32-37
+    public void The_Settings_window_is_built_once_and_reused_by_every_showSettings() => WithManager((harness, manager) =>
+    {
+        var content = new Border();
+        var built = 0;
+        manager.SettingsContent = () =>
+        {
+            built++;
+            return content;
+        };
+        harness.Main.OnMain(() => manager.ShowSettings());
+        var window = WindowOf(content);
+        harness.Main.OnMain(() => manager.ShowSettings(SettingsPage.Hydra));
+        harness.Main.OnMain(() => manager.ShowSettings());
+        Assert.Equal(1, built);
+        Assert.Same(window, WindowOf(content));
+    });
+
+    // ---- PR-WIN-011, PR-SETTINGS-002: centred over the main window ----
+
+    [Fact]
+    [Trait("Req", "PR-WIN-011")] // App/Window/WindowManager.swift:42-44, :82
+    [Trait("Req", "PR-SETTINGS-002")] // App/Window/WindowManager.swift:40-44
+    public void With_no_main_window_the_Settings_window_is_centred_on_the_screen() => WithManager((harness, manager) =>
+    {
+        var window = ShowSettings(harness, manager, new Border());
+        Assert.Equal(new PixelPoint((ScreenWidth - 780) / 2, (ScreenHeight - 580) / 2), window.Position);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-011")] // App/Window/WindowManager.swift:42-44
+    [Trait("Req", "PR-SETTINGS-002")] // App/Window/WindowManager.swift:42-44
+    public void With_the_main_window_hidden_or_minimised_the_Settings_window_is_centred_on_the_screen() => WithManager((harness, manager) =>
+    {
+        var main = ShowMain(harness, manager, new Border());
+        harness.Main.OnMain(() =>
+        {
+            main.Position = new PixelPoint(0, 0);
+            main.Hide();
+            Settle(main);
+        });
+        var settings = ShowSettings(harness, manager, new Border());
+        Assert.Equal(new PixelPoint((ScreenWidth - 780) / 2, (ScreenHeight - 580) / 2), settings.Position);
+
+        harness.Main.OnMain(() =>
+        {
+            settings.Position = new PixelPoint(7, 9);
+            manager.ShowMain();
+            main.WindowState = WindowState.Minimized;
+            Settle(main);
+            manager.ShowSettings();
+        });
+        Assert.Equal(new PixelPoint((ScreenWidth - 780) / 2, (ScreenHeight - 580) / 2), settings.Position);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-011")] // App/Window/WindowManager.swift:46-49, :54
+    [Trait("Req", "PR-SETTINGS-002")] // App/Window/WindowManager.swift:46-49
+    public void The_Settings_window_is_centred_over_the_visible_main_window() => WithManager((harness, manager) =>
+    {
+        var main = ShowMain(harness, manager, new Border());
+        harness.Main.OnMain(() =>
+        {
+            main.Position = new PixelPoint(100, 50);
+            Settle(main);
+        });
+        var settings = ShowSettings(harness, manager, new Border());
+        // parent (100, 50, 1320, 860): mid (760, 480); origin (760 - 390, 480 - 290).
+        Assert.Equal(new PixelPoint(370, 190), settings.Position);
+        Assert.Equal(new Size(780, 580), SizeOf(settings));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-011")] // App/Window/WindowManager.swift:48-49
+    public void Each_centred_coordinate_is_rounded_to_a_whole_point_half_away_from_zero_before_the_clamp() => WithManager((harness, manager) =>
+    {
+        var main = ShowMain(harness, manager, new Border());
+        harness.Main.OnMain(() =>
+        {
+            main.Width = 1321;
+            main.Height = 861;
+            Settle(main);
+            main.Position = new PixelPoint(0, 0);
+            Settle(main);
+        });
+        var settings = ShowSettings(harness, manager, new Border());
+        // mid (660.5, 430.5): (660.5 - 390).rounded() = 271, (430.5 - 290).rounded() = 141 (.toNearestOrAwayFromZero).
+        Assert.Equal(new PixelPoint(271, 141), settings.Position);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-011")] // App/Window/WindowManager.swift:50-53
+    [Trait("Req", "PR-SETTINGS-002")] // App/Window/WindowManager.swift:50-53
+    public void The_centred_frame_is_clamped_into_the_working_area_of_the_main_window_screen() => WithManager((harness, manager) =>
+    {
+        var main = ShowMain(harness, manager, new Border());
+        harness.Main.OnMain(() =>
+        {
+            main.Position = new PixelPoint(1000, 700);
+            Settle(main);
+        });
+        var settings = ShowSettings(harness, manager, new Border());
+        // Centred at (1270, 840): the right and bottom edges would pass the working area, so min(.., max - size).
+        Assert.Equal(new PixelPoint(ScreenWidth - 780, ScreenHeight - 580), settings.Position);
+
+        harness.Main.OnMain(() =>
+        {
+            main.Position = new PixelPoint(-600, -400);
+            Settle(main);
+            manager.ShowSettings();
+        });
+        // Centred at (-330, -260): max(.., min) puts the left and top edges on the working area's.
+        Assert.Equal(new PixelPoint(0, 0), settings.Position);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-011")] // App/Window/WindowManager.swift:34-36
+    public void The_Settings_window_is_recentred_over_the_main_window_on_every_show() => WithManager((harness, manager) =>
+    {
+        var main = ShowMain(harness, manager, new Border());
+        harness.Main.OnMain(() =>
+        {
+            main.Position = new PixelPoint(100, 50);
+            Settle(main);
+        });
+        var settings = ShowSettings(harness, manager, new Border());
+        harness.Main.OnMain(() =>
+        {
+            settings.Position = new PixelPoint(3, 4);
+            main.Position = new PixelPoint(200, 100);
+            Settle(main);
+            manager.ShowSettings();
+        });
+        Assert.Equal(new PixelPoint(470, 240), settings.Position);
+    });
+
+    // ---- PR-WIN-012: the requested page ----
+
+    [Fact]
+    [Trait("Req", "PR-WIN-012")] // App/Window/WindowManager.swift:32-34
+    public void showSettings_with_a_page_sets_the_requested_page_before_the_window_is_built() => WithManager((harness, manager) =>
+    {
+        SettingsPage? seen = null;
+        var content = new Border();
+        manager.SettingsContent = () =>
+        {
+            seen = SettingsNavigation.Shared.RequestedPage;
+            return content;
+        };
+        harness.Main.OnMain(() => SettingsNavigation.Shared.RequestedPage = null);
+        harness.Main.OnMain(() => manager.ShowSettings(SettingsPage.Hydra));
+        Assert.Equal(SettingsPage.Hydra, seen);
+        Assert.Equal(SettingsPage.Hydra, harness.Main.OnMain(() => SettingsNavigation.Shared.RequestedPage));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-012")] // App/Window/WindowManager.swift:33
+    public void showSettings_without_a_page_leaves_the_requested_page_untouched() => WithManager((harness, manager) =>
+    {
+        harness.Main.OnMain(() => SettingsNavigation.Shared.RequestedPage = SettingsPage.General);
+        ShowSettings(harness, manager, new Border());
+        Assert.Equal(SettingsPage.General, harness.Main.OnMain(() => SettingsNavigation.Shared.RequestedPage));
+        harness.Main.OnMain(() => SettingsNavigation.Shared.RequestedPage = null);
+        harness.Main.OnMain(() => manager.ShowSettings());
+        Assert.Null(harness.Main.OnMain(() => SettingsNavigation.Shared.RequestedPage));
+    });
+
+    // ---- PR-WIN-013: present ----
+
+    [Fact]
+    [Trait("Req", "PR-WIN-013")] // App/Window/WindowManager.swift:29, :37, :57-60
+    [Trait("Req", "PR-SETTINGS-002")] // App/Window/WindowManager.swift:57-60
+    public void Presenting_a_window_shows_it_and_makes_it_the_active_window() => WithManager((harness, manager) =>
+    {
+        var main = ShowMain(harness, manager, new Border());
+        Assert.True(main.IsVisible);
+        Assert.True(main.IsActive);
+        var settings = ShowSettings(harness, manager, new Border());
+        Assert.True(settings.IsVisible);
+        Assert.True(settings.IsActive);
+        harness.Main.OnMain(() =>
+        {
+            main.Hide();
+            Settle(main);
+            manager.ShowMain();
+            Settle(main); // the platform reports the activation on a later dispatcher turn
+        });
+        Assert.True(main.IsVisible);
+        Assert.True(main.IsActive);
+    });
+
+    // ---- PR-WIN-014, PR-WIN-015, PR-WIN-016: the hosting view ----
+
+    [Fact]
+    [Trait("Req", "PR-WIN-014")] // App/Window/WindowManager.swift:103-108, :197-204
+    public void A_window_content_is_one_container_holding_one_hosting_view_that_fills_the_window() => WithManager((harness, manager) =>
+    {
+        var window = ShowMain(harness, manager, new Border());
+        var container = Assert.IsAssignableFrom<Panel>(window.Content);
+        var hosting = Assert.IsType<FrameHostingView>(Assert.Single(container.Children));
+        Assert.Equal(new Rect(0, 0, 1320, 860), hosting.Bounds);
+        Assert.Equal(new Rect(0, 0, 1320, 860), container.Bounds);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-014")] // App/Window/WindowManager.swift:200-203
+    [Trait("Decision", "ED-150")]
+    public void The_hosting_view_takes_its_size_from_its_frame_and_never_from_its_content() => headless.OnUiThread(() =>
+    {
+        // sizingOptions = []: a content that wants more or less than the frame changes nothing about the host.
+        var large = new Border { Width = 3000, Height = 2000 };
+        var small = new Border { Width = 10, Height = 10 };
+        var hostOfLarge = new FrameHostingView(large);
+        var hostOfSmall = new FrameHostingView(small);
+        hostOfLarge.Measure(new Size(500, 400));
+        hostOfSmall.Measure(new Size(500, 400));
+        Assert.Equal(new Size(0, 0), hostOfLarge.DesiredSize);
+        Assert.Equal(new Size(0, 0), hostOfSmall.DesiredSize);
+        hostOfLarge.Arrange(new Rect(0, 0, 500, 400));
+        Assert.Equal(new Size(500, 400), hostOfLarge.Bounds.Size);
+        Assert.Equal(Avalonia.Layout.HorizontalAlignment.Stretch, hostOfLarge.HorizontalAlignment); // .width
+        Assert.Equal(Avalonia.Layout.VerticalAlignment.Stretch, hostOfLarge.VerticalAlignment); // .height
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-015")] // App/Window/WindowManager.swift:210-214
+    public void The_hosting_view_always_accepts_focus() => headless.OnUiThread(() =>
+    {
+        Assert.True(new FrameHostingView(new Border()).Focusable);
+        Assert.True(new FrameHostingView(new TextBlock()).Focusable);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-016")] // App/Window/WindowManager.swift:216-221
+    public void A_hidden_hosting_view_keeps_its_default_button_chord_to_itself() => headless.OnUiThread(() =>
+    {
+        // Two chat columns, as RootView.swift:224-243 keeps them: one shown, the previous one hidden. Each holds a
+        // Return button (.keyboardShortcut(.defaultAction) is Button.IsDefault in the port).
+        var shownClicks = 0;
+        var hiddenClicks = 0;
+        var shownButton = new Button { IsDefault = true, Content = "Approve" };
+        var hiddenButton = new Button { IsDefault = true, Content = "Approve" };
+        shownButton.Click += (_, _) => shownClicks++;
+        hiddenButton.Click += (_, _) => hiddenClicks++;
+        var shown = new FrameHostingView(shownButton);
+        var hidden = new FrameHostingView(hiddenButton) { IsVisible = false };
+        var window = new AvaloniaWindow { Width = 400, Height = 300, Content = new Panel { Children = { hidden, shown } } };
+        window.Show();
+        Settle(window);
+        window.KeyPress(Key.Return, RawInputModifiers.None, PhysicalKey.Enter, null);
+        window.KeyRelease(Key.Return, RawInputModifiers.None, PhysicalKey.Enter, null);
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(1, shownClicks);
+        Assert.Equal(0, hiddenClicks);
+        Assert.True(hiddenButton.IsVisible); // the hidden column's own controls are live; only the host is hidden
+        window.Close();
+        Dispatcher.UIThread.RunJobs();
+    });
+
+    // ---- PR-WIN-017, PR-WIN-018: live resize ----
+
+    private static void Send(WindowLiveResize liveResize, uint message)
+    {
+        var handled = false;
+        liveResize.WndProc(0, message, 0, 0, ref handled);
+        Assert.False(handled); // an observer only: the window's own handling goes on
+    }
+
+    [Fact]
+    [Trait("Req", "PR-WIN-017")] // App/Window/WindowManager.swift:118-140
+    public void A_live_resize_sets_isActive_for_that_window_until_it_ends() => WithManager((harness, manager) =>
+    {
+        harness.Main.OnMain(() =>
+        {
+            var liveResize = new WindowLiveResize(new AvaloniaWindow());
+            Assert.False(liveResize.IsActive);
+            Send(liveResize, WM_ENTERSIZEMOVE);
+            Send(liveResize, WM_SIZING);
+            Assert.True(liveResize.IsActive); // :133-135 willStartLiveResize
+            Send(liveResize, WM_SIZING);
+            Assert.True(liveResize.IsActive);
+            Send(liveResize, WM_EXITSIZEMOVE);
+            Assert.False(liveResize.IsActive); // :136-138 didEndLiveResize
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-017")] // App/Window/WindowManager.swift:133-138 (windows_path: a move is not a live resize)
+    public void A_window_move_is_not_a_live_resize() => WithManager((harness, manager) =>
+    {
+        harness.Main.OnMain(() =>
+        {
+            var liveResize = new WindowLiveResize(new AvaloniaWindow());
+            Send(liveResize, WM_ENTERSIZEMOVE);
+            Send(liveResize, WM_MOVING);
+            Send(liveResize, WM_MOVING);
+            Assert.False(liveResize.IsActive);
+            Send(liveResize, WM_EXITSIZEMOVE);
+            Assert.False(liveResize.IsActive);
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-017")] // App/Window/WindowManager.swift:113-117, :131-133 (`object: window`)
+    public void A_live_resize_of_one_window_leaves_another_window_flag_alone() => WithManager((harness, manager) =>
+    {
+        harness.Main.OnMain(() =>
+        {
+            var resized = new WindowLiveResize(new AvaloniaWindow());
+            var other = new WindowLiveResize(new AvaloniaWindow());
+            Send(resized, WM_ENTERSIZEMOVE);
+            Send(resized, WM_SIZING);
+            Assert.True(resized.IsActive);
+            Assert.False(other.IsActive);
+            Send(resized, WM_EXITSIZEMOVE);
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-018")] // App/Window/WindowManager.swift:121-127
+    public void isReshaping_is_true_while_either_the_window_or_a_pane_is_being_reshaped() => WithManager((harness, manager) =>
+    {
+        harness.Main.OnMain(() =>
+        {
+            var liveResize = new WindowLiveResize(new AvaloniaWindow());
+            Assert.False(liveResize.IsReshaping);
+            liveResize.IsPaneResizing = true;
+            Assert.True(liveResize.IsReshaping);
+            liveResize.IsPaneResizing = false;
+            Assert.False(liveResize.IsReshaping);
+            Send(liveResize, WM_ENTERSIZEMOVE);
+            Send(liveResize, WM_SIZING);
+            Assert.True(liveResize.IsReshaping);
+            liveResize.IsPaneResizing = true;
+            Send(liveResize, WM_EXITSIZEMOVE);
+            Assert.True(liveResize.IsReshaping);
+            liveResize.IsPaneResizing = false;
+            Assert.False(liveResize.IsReshaping);
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-018")] // App/Window/WindowManager.swift:118, :125-127 (@Observable: a view reading isReshaping)
+    public void A_view_reading_isReshaping_is_told_when_the_pane_drag_begins_and_ends() => WithManager((harness, manager) =>
+    {
+        var seen = new List<bool>();
+        WindowLiveResize? liveResize = null;
+        Tracked<bool>? tracked = null;
+        harness.Main.OnMain(() =>
+        {
+            liveResize = new WindowLiveResize(new AvaloniaWindow());
+            tracked = new Tracked<bool>(() => liveResize.IsReshaping, seen.Add);
+        });
+        harness.Main.OnMain(() => liveResize!.IsPaneResizing = true);
+        harness.Main.OnMain(() => liveResize!.IsPaneResizing = false);
+        harness.Main.OnMain(() =>
+        {
+            Send(liveResize!, WM_ENTERSIZEMOVE);
+            Send(liveResize!, WM_SIZING);
+        });
+        harness.Main.OnMain(() => Send(liveResize!, WM_EXITSIZEMOVE));
+        tracked!.Dispose();
+        Assert.Equal([false, true, false, true, false], seen);
+    });
+
+    // ---- PR-WIN-019, PR-WIN-221: the hosted environment ----
+
+    // The hosted content's ancestors, nearest first, as makeWindow builds them (:104-108).
+    private static (ZoomLayout Zoom, HostedRoot Root, FrameHostingView Hosting) Hosts(Control content)
+    {
+        var zoom = Assert.IsType<ZoomLayout>(content.Parent);
+        var root = Assert.IsType<HostedRoot>(zoom.Parent);
+        var hosting = Assert.IsType<FrameHostingView>(root.Parent);
+        return (zoom, root, hosting);
+    }
+
+    private static double ScaleOf(Control content) => Assert.IsType<ScaleTransform>(content.RenderTransform).ScaleX;
+
+    [Fact]
+    [Trait("Req", "PR-WIN-019")] // App/Window/WindowManager.swift:143-150, :165-179
+    [Trait("Req", "PR-WIN-221")] // App/Window/WindowManager.swift:104, :143-150, :173-175
+    public void Every_window_root_carries_the_model_the_live_resize_object_the_app_zoom_the_capsule_shape_and_the_theme_tint() => WithManager((harness, manager) =>
+    {
+        harness.Main.OnMain(() =>
+        {
+            manager.Model.Settings.AppZoom = 125;
+            manager.Model.Settings.Theme = AppTheme.Dracula;
+        });
+        var mainContent = new Border();
+        var settingsContent = new Border();
+        ShowMain(harness, manager, mainContent);
+        ShowSettings(harness, manager, settingsContent);
+        // :172 one live-resize object per window (:103)
+        Assert.NotSame(AppEnvironment.GetWindowLiveResize(mainContent), AppEnvironment.GetWindowLiveResize(settingsContent));
+        foreach (var content in new[] { mainContent, settingsContent })
+        {
+            Hosts(content);
+            Assert.Same(manager.Model, AppEnvironment.GetAppModel(content)); // :171
+            Assert.Equal(1.25, ScaleOf(content)); // :175, AppZoom.swift:22
+            Assert.True(Popovers.GetIsCapsuleButtonBorderShape(content)); // :176
+            Assert.Equal(Color.FromRgb(0xBD, 0x93, 0xF9), SwiftTraps.Unwrap(Popovers.GetTint(content)).Resolve(ThemeVariant.Dark)); // :177, AppTheme.swift:119
+        }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-019")] // App/Window/WindowManager.swift:163-179; App/Views/RootView.swift:276-282
+    [Trait("Req", "PR-WIN-221")] // App/Window/WindowManager.swift:173-175; App/Views/RootView.swift:280
+    public void A_chat_column_hosted_apart_carries_the_same_environment_when_given_HostedEnvironment() => WithManager((harness, manager) =>
+    {
+        harness.Main.OnMain(() =>
+        {
+            manager.Model.Settings.AppZoom = 150;
+            manager.Model.Settings.Theme = AppTheme.Dracula;
+            var liveResize = new WindowLiveResize(new AvaloniaWindow());
+            var column = new Border();
+            var hosting = new FrameHostingView(new HostedEnvironment(manager.Model, liveResize).Body(column));
+            Assert.Same(manager.Model, AppEnvironment.GetAppModel(column));
+            Assert.Same(liveResize, AppEnvironment.GetWindowLiveResize(column));
+            Assert.Equal(1.5, ScaleOf(column));
+            Assert.IsType<ZoomLayout>(column.Parent);
+            Assert.True(Popovers.GetIsCapsuleButtonBorderShape(column));
+            Assert.Equal(Color.FromRgb(0xBD, 0x93, 0xF9), SwiftTraps.Unwrap(Popovers.GetTint(column)).Resolve(ThemeVariant.Dark));
+            Assert.NotNull(hosting.Child);
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-221")] // App/Window/WindowManager.swift:173-175
+    public void Changing_the_app_zoom_rescales_every_hosted_tree_live_without_rebuilding_its_content() => WithManager((harness, manager) =>
+    {
+        // Layout rounding off for the stand-in, so its bounds show the unrounded division (as AppZoomTests does).
+        var mainContent = new Border { UseLayoutRounding = false };
+        var settingsContent = new Border();
+        var attached = 0;
+        mainContent.AttachedToVisualTree += (_, _) => attached++;
+        ShowMain(harness, manager, mainContent);
+        ShowSettings(harness, manager, settingsContent);
+        var zoom = Hosts(mainContent).Zoom;
+        Assert.Equal(1d, ScaleOf(mainContent));
+        var attachedBefore = attached;
+
+        harness.Main.OnMain(() => manager.Model.Settings.AppZoom = 175);
+        harness.Main.OnMain(() => Settle(WindowOf(mainContent)));
+        Assert.Equal(1.75, ScaleOf(mainContent));
+        Assert.Equal(1.75, ScaleOf(settingsContent));
+        Assert.Same(zoom, Hosts(mainContent).Zoom); // the same layout, the same content: nothing rebuilt
+        Assert.Equal(attachedBefore, attached); // never detached and attached again
+        // AppZoom.swift:40-46: laid out in the window's space divided by the scale.
+        Assert.Equal(new Size(1320 / 1.75, 860 / 1.75), mainContent.Bounds.Size);
+
+        harness.Main.OnMain(() => manager.Model.Settings.AppZoom = 95); // not a level: normalized to 100
+        harness.Main.OnMain(() => Settle(WindowOf(mainContent)));
+        Assert.Equal(1d, ScaleOf(mainContent));
+    });
+
+    // ---- PR-WIN-020, PR-THEME-039: colour scheme and process appearance ----
+
+    [Fact]
+    [Trait("Req", "PR-WIN-020")] // App/Window/WindowManager.swift:151-159
+    [Trait("Req", "PR-THEME-039")] // App/Window/WindowManager.swift:151-159
+    public void At_first_build_the_theme_sets_the_window_colour_scheme_and_the_process_appearance() => WithManager((harness, manager) =>
+    {
+        var application = SwiftTraps.Unwrap(Application.Current);
+        application.RequestedThemeVariant = ThemeVariant.Light;
+        harness.Main.OnMain(() => manager.Model.Settings.Theme = AppTheme.Dracula); // a dark palette (AppTheme.swift:119)
+        var content = new Border();
+        ShowMain(harness, manager, content);
+        Assert.Equal(ThemeVariant.Dark, Hosts(content).Root.RequestedThemeVariant); // :151 preferredColorScheme
+        Assert.Equal(ThemeVariant.Dark, application.RequestedThemeVariant); // :152-156 initial: true, .darkAqua
+        Assert.Equal(ThemeVariant.Dark, content.ActualThemeVariant);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-020")] // App/Window/WindowManager.swift:151-159
+    [Trait("Req", "PR-THEME-039")] // App/Window/WindowManager.swift:151-159
+    public void Changing_the_theme_sets_both_the_colour_scheme_and_the_process_appearance() => WithManager((harness, manager) =>
+    {
+        var application = SwiftTraps.Unwrap(Application.Current);
+        var content = new Border();
+        ShowMain(harness, manager, content);
+        var root = Hosts(content).Root;
+
+        harness.Main.OnMain(() => manager.Model.Settings.Theme = AppTheme.CatppuccinLatte); // light (AppTheme.swift:19)
+        harness.Main.OnMain(() => Settle(WindowOf(content)));
+        Assert.Equal(ThemeVariant.Light, root.RequestedThemeVariant);
+        Assert.Equal(ThemeVariant.Light, application.RequestedThemeVariant); // :155 .aqua
+
+        harness.Main.OnMain(() => manager.Model.Settings.Theme = AppTheme.Dark); // AppTheme.swift:116
+        harness.Main.OnMain(() => Settle(WindowOf(content)));
+        Assert.Equal(ThemeVariant.Dark, root.RequestedThemeVariant);
+        Assert.Equal(ThemeVariant.Dark, application.RequestedThemeVariant); // :156 .darkAqua
+    });
+
+    [Fact]
+    [Trait("Req", "PR-THEME-039")] // App/Window/WindowManager.swift:151, :154
+    [Trait("Req", "PR-WIN-020")] // App/Window/WindowManager.swift:151, :154
+    public void The_System_theme_leaves_both_the_colour_scheme_and_the_process_appearance_to_Windows() => WithManager((harness, manager) =>
+    {
+        var application = SwiftTraps.Unwrap(Application.Current);
+        harness.Main.OnMain(() => manager.Model.Settings.Theme = AppTheme.Dark);
+        var content = new Border();
+        ShowMain(harness, manager, content);
+        Assert.Equal(ThemeVariant.Dark, application.RequestedThemeVariant);
+        harness.Main.OnMain(() => manager.Model.Settings.Theme = AppTheme.System); // AppTheme.swift:114, scheme nil
+        harness.Main.OnMain(() => Settle(WindowOf(content)));
+        Assert.Equal(ThemeVariant.Default, Hosts(content).Root.RequestedThemeVariant); // preferredColorScheme(nil)
+        Assert.Equal(ThemeVariant.Default, application.RequestedThemeVariant); // :154 case nil: nil
+    });
+
+    // ---- PR-WIN-021, PR-THEME-040: the tint ----
+
+    [Fact]
+    [Trait("Req", "PR-WIN-021")] // App/Window/WindowManager.swift:177, :183-193
+    [Trait("Req", "PR-THEME-040")] // App/Window/WindowManager.swift:177, :183-193
+    public void The_theme_accent_is_the_tint_of_the_whole_tree_and_a_nil_accent_is_a_nil_tint() => WithManager((harness, manager) =>
+    {
+        var content = new Border();
+        var inner = new TextBlock();
+        content.Child = inner;
+        harness.Main.OnMain(() => manager.Model.Settings.Theme = AppTheme.System); // AppTheme.swift:114, no accent
+        ShowMain(harness, manager, content);
+        Assert.Null(Popovers.GetTint(inner)); // a nil tint keeps the system accent (:190-191)
+
+        harness.Main.OnMain(() => manager.Model.Settings.Theme = AppTheme.Dracula);
+        harness.Main.OnMain(() => Settle(WindowOf(content)));
+        Assert.Equal(Color.FromRgb(0xBD, 0x93, 0xF9), SwiftTraps.Unwrap(Popovers.GetTint(inner)).Resolve(ThemeVariant.Dark));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-021")] // App/Window/WindowManager.swift:187-191
+    [Trait("Req", "PR-THEME-040")] // App/Window/WindowManager.swift:183-193
+    public void Changing_between_a_theme_with_an_accent_and_one_without_changes_the_tint_and_nothing_else() => WithManager((harness, manager) =>
+    {
+        var content = new Border();
+        var attached = 0;
+        var detached = 0;
+        content.AttachedToVisualTree += (_, _) => attached++;
+        content.DetachedFromVisualTree += (_, _) => detached++;
+        harness.Main.OnMain(() => manager.Model.Settings.Theme = AppTheme.Light); // AppTheme.swift:115, no accent
+        ShowMain(harness, manager, content);
+        var (zoom, root, hosting) = Hosts(content);
+        var attachedBefore = attached;
+
+        harness.Main.OnMain(() => manager.Model.Settings.Theme = AppTheme.CatppuccinLatte); // an accent (AppTheme.swift:19)
+        harness.Main.OnMain(() => Settle(WindowOf(content)));
+        Assert.NotNull(Popovers.GetTint(content));
+        harness.Main.OnMain(() => manager.Model.Settings.Theme = AppTheme.Light);
+        harness.Main.OnMain(() => Settle(WindowOf(content)));
+        Assert.Null(Popovers.GetTint(content));
+
+        var after = Hosts(content);
+        Assert.Same(zoom, after.Zoom);
+        Assert.Same(root, after.Root);
+        Assert.Same(hosting, after.Hosting);
+        Assert.Equal(attachedBefore, attached);
+        Assert.Equal(0, detached);
+    });
+}
+
+// STOP App.Window.WindowManager #1 (build agent, 2026-09-26)
+// Kind: missing dependency
+// Swift: DroppyCode/App/Window/WindowManager.swift:63, :81 (B3 52bc792): `{ RootView() }`, `{ SettingsView() }`
+// Requirements: PR-WIN-003, PR-WIN-009 (hosts RootView), PR-SETTINGS-001, PR-WIN-010
+// What is unclear or missing: both content builders are written exactly as the Swift has them
+// (WindowManager.MainContent is `() => new RootView()`, SettingsContent `() => new SettingsView()`), but RootView's
+// body (App.Views.RootView, RootView.cs :8) and SettingsView's body (App.Views.Settings.SettingsView, :109) are still
+// MARROW_STUB and throw on construction, so the real app's showMain() and showSettings() stop inside those callees.
+// Readings or options: (a) leave the builders as written and test every window behaviour through the internal
+// content seam -> this file; (b) substitute any other content in production -> an invented window content.
+// Needed to proceed: units App.Views.RootView (body) and App.Views.Settings.SettingsView (body); then one end-to-end
+// test per window with the real content.
+// Done so far: every WindowManager member is implemented; the tests above host stand-ins and are green.
+
+// STOP App.Window.WindowManager #2 (build agent, 2026-09-26)
+// Kind: missing dependency
+// Swift: DroppyCode/App/Window/WindowManager.swift:98 `window.isReleasedWhenClosed = false` (B3 52bc792)
+// Requirements: PR-WIN-003, PR-WIN-008 (their OD-0008 C1 deviation); PR-LAUNCH-074
+// What is unclear or missing: OD-0008 C1 makes closing the MAIN window quit the app through the termination
+// sequence, with the upstream 250 ms / 4 minute wait while a Hydra merge runs (AppDelegate.swift:35-48,
+// PR-LAUNCH-049, PR-LAUNCH-050, PR-LAUNCH-074). That sequence is App.AppDelegate's, not yet ported, and the port has
+// no termination path yet (Program.cs runs no application lifetime). Quitting without the wait would break the ruling.
+// Readings or options: (a) keep :98 for every window until AppDelegate lands: a closed window, main included, is
+// hidden and kept, as upstream -> the Settings half of both records is met, the main-window quit is not yet;
+// (b) quit on the main window's close without the Hydra wait -> contradicts OD-0008 C1.
+// Needed to proceed: unit App.AppDelegate (applicationShouldTerminate and PR-LAUNCH-074), which intercepts the main
+// window's close and starts the termination sequence.
+// Done so far: (a) is implemented and tested for the Settings window; nothing is written for the main-window quit.
+
+// STOP App.Window.WindowManager #3 (build agent, 2026-09-26)
+// Kind: untestable
+// Swift: DroppyCode/App/Window/WindowManager.swift:101 `WindowChrome.configure(window)` (B3 52bc792)
+// Requirements: PR-WIN-007, PR-SETTINGS-001, PR-THEME-039 (windows_path: the ED-063 caption hook); PR-WIN-017
+// (the live-resize hook's wiring)
+// What is unclear or missing: ED-063 (probe P7) requires a WndProc hook on every window that performs minimise,
+// maximise, restore and close for the app-drawn caption buttons (WM_NCLBUTTONDOWN swallowed, SC_* posted on
+// WM_NCLBUTTONUP) and shows the system menu on WM_CONTEXTMENU and SC_KEYMENU with its item states set first. No unit
+// has written it (UI/Chrome/WindowChrome.cs hands it to the App layer), probe P7 left the item states unmeasured
+// (its deviation 3), and OD-0013 withholds acceptance of this chrome until probe P4b removes the live-resize edge
+// strip. This test project runs Avalonia.Headless, where Win32Properties.AddWndProcHookCallback does nothing, so
+// neither that hook nor the WindowLiveResize hook's registration can be exercised here; WindowLiveResize's message
+// handling is tested above through the hook method itself.
+// Readings or options: (a) write the caption hook here without a harness that can run it -> unverified Win32 code;
+// (b) schedule it as a probe-verified port unit on the real desktop (P7's method) -> verifiable.
+// Needed to proceed: a decision (which unit owns the ED-063 caption hook) and a desktop test harness (probe P7 style).
+// The hook must leave the Settings window's zoom control inert (PR-WIN-007: no .resizable; CanMaximize is false).
+// Done so far: WindowChrome.Configure runs for every window (:101); the caption hook is not written; the live-resize
+// hook is registered through Win32Properties.AddWndProcHookCallback and its message handling is tested.
