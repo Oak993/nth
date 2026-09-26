@@ -1,14 +1,19 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Collections.Immutable;
 using System.Threading.Tasks;
 using Avalonia;
+using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Marrow.App.Port;
 using Marrow.App.Runtime;
 using Marrow.App.Views.Diff;
+using Marrow.App.Views.Chat;
+using Marrow.App.Views.Usage;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
@@ -478,8 +483,14 @@ public sealed class ComposerView : Decorator
         {
             if (directory is { } prepared) await fileIndex.Prepare(prepared);
         });
-        // MARROW_STUB :219-225 .task(id: attachmentNotice), the notice's five-second timeout: part 3 of this unit
-        // (PR-COMPOSER-060).
+        // :219-225 The string is the task key: equal notices do not restart the wait.
+        this.Task(() => state.AttachmentNotice, async notice =>
+        {
+            if (notice is null) return;
+            await SwiftTask.TrySleep(TimeSpan.FromSeconds(5));
+            if (SwiftTask.IsCancelled) return;
+            Transaction.WithAnimation(Chrome.PanelSlide, () => state.AttachmentNotice = null);
+        });
     }
 
     private void Appear()
@@ -1001,9 +1012,18 @@ public sealed class ComposerView : Decorator
     // :522-524
     private void Note(string message) => Transaction.WithAnimation(Chrome.PanelSlide, () => state.AttachmentNotice = message);
 
-    // :526-533 private func chooseFiles(). MARROW_STUB: part 3 of this unit (PR-COMPOSER-063).
-    private void ChooseFiles() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Composer/ComposerView.swift:526");
+    // :526-533 The native seam carries prompt as the accept label, not the title.
+    private void ChooseFiles()
+    {
+        var owner = TopLevel.GetTopLevel(this) as Avalonia.Controls.Window;
+        MainActor.Spawn(async () =>
+        {
+            var paths = await ComposerFileDialog.Current.Current.Choose(owner,
+                allowsMultipleSelection: true, canChooseDirectories: false, prompt: "Attach");
+            if (paths is null) return; // :532 only OK attaches
+            Attach(paths.Select(path => (AttachmentSource)new AttachmentSource.File(path)).ToArray());
+        });
+    }
 }
 
 /// <summary>:536-607 <c>private struct ComposerTextColumn: View</c>.</summary>
@@ -1213,8 +1233,43 @@ internal sealed class ComposerControls : Decorator
         Binding<bool> showingRecents,
         Action<IReadOnlyList<string>> onAttach,
         Action onChooseFiles,
-        Action onSend) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Composer/ComposerView.swift:625");
+        Action onSend)
+    {
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 2 }; // :626
+        var icon = SwiftImage.SystemName("paperclip").Font(Chrome.IconFont); // :634-635
+        var attach = PlainControls.Button(icon, () =>
+        {
+            if (recentDownloadsPicker) showingRecents.Value = !showingRecents.Value; // :628-629
+            else onChooseFiles(); // :631
+        });
+        // STOP #6: :637 .chip(active:) belongs to UI.Common.Components, whose ChipButtonStyleHelper is empty.
+        // Only that styling site is unwritten; the action, label and presentation below are source behavior.
+        attach.Focusable = false; // :638
+        ToolTip.SetTip(attach, "Attach files"); // :639
+        AutomationProperties.SetName(attach, "Attach files"); // :640
+        var popup = new Popup { PlacementTarget = attach, Placement = PlacementMode.Bottom, IsLightDismissEnabled = true }; // :641
+        var presented = false;
+        attach.Track(() => showingRecents.Value, shown =>
+        {
+            if (shown == presented) return;
+            presented = shown;
+            if (shown) popup.Child = new DownloadsPopover(
+                pick: path => { showingRecents.Value = false; onAttach([path]); }, // :643
+                chooseOther: () => { showingRecents.Value = false; onChooseFiles(); }); // :644
+            Presentation.Presenter.Current.SetPresented(popup, shown);
+            if (!shown) popup.Child = null;
+        });
+        popup.Closed += (_, _) => { if (showingRecents.Value) showingRecents.Value = false; };
+        DetachedFromVisualTree += (_, _) => { if (presented) Presentation.Presenter.Current.SetPresented(popup, false); };
+        row.Children.Add(attach);
+        row.Children.Add(new ModelEffortSlot(runtime, thread, compact)); // :647
+        if (!compact) row.Children.Add(new ContextMeter(runtime, thread.Provider, headsProvider)); // :650-651
+        row.Children.Add(new SendButton(runtime, goesToHead, queueGoesToHead, onSend)); // :653
+        Child = row;
+    }
+
+    // :655 .fixedSize(): measure the control row without compressing either axis.
+    protected override Size MeasureOverride(Size availableSize) => PlainControls.MeasureFixed(this, Child, availableSize);
 }
 
 /// <summary>:659-675 <c>private struct ComposerWorkingDotsSlot: View</c>.</summary>
@@ -1222,40 +1277,163 @@ internal sealed class ComposerWorkingDotsSlot : Decorator
 {
     // :662 let runtime; :664-674 body. Reading isRunning here keeps the pill's body off the run flag, so starting and
     // stopping a turn repaints the dots alone.
-    public ComposerWorkingDotsSlot(ThreadRuntime runtime) =>
-        this.Track(() => runtime.IsRunning, running => Child = running ? Dots() : null); // :665
+    public ComposerWorkingDotsSlot(ThreadRuntime runtime)
+    {
+        var panel = new Panel();
+        var clip = new Border { Child = panel, ClipToBounds = true }.RoundedRectangle(22, RoundedCornerStyle.Continuous); // :671
+        clip.SizeChanged += (_, e) => clip.Clip = SwiftShapes.RoundedRectangleGeometry(new Rect(e.NewSize), 22, RoundedCornerStyle.Continuous);
+        Control? current = null;
+        this.Track(() => runtime.IsRunning, running =>
+        {
+            if (running && current is null)
+            {
+                current = Dots().Transition(SwiftTransition.Opacity.Animation(Animation.EaseInOut(0.4))); // :672
+                SwiftTransition.Insert(panel, 0, current);
+            }
+            else if (!running && current is { } leaving)
+            {
+                SwiftTransition.Remove(panel, leaving);
+                current = null;
+            }
+        });
+        Child = clip;
+    }
 
     // :666-672 the dots, their frame, clip and transition. MARROW_STUB: part 3 of this unit (PR-COMPOSER-101).
-    private static Control Dots() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Composer/ComposerView.swift:666");
+    private static Control Dots()
+    {
+        var dots = new ComposerWorkingDots { VerticalAlignment = VerticalAlignment.Bottom }; // :667-669
+        var geometry = new Grid { Children = { dots } }; // :666 GeometryReader
+        geometry.SizeChanged += (_, e) => dots.Height = e.NewSize.Height * 0.4; // :668
+        return geometry;
+    }
 }
 
 /// <summary>:679-690 <c>private struct ModelEffortSlot: View</c>.</summary>
 internal sealed class ModelEffortSlot : Decorator
 {
     // :683-685 the view's inputs; :687-689 body
-    public ModelEffortSlot(ThreadRuntime runtime, ChatThread thread, bool compact) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Composer/ComposerView.swift:687");
+    public ModelEffortSlot(ThreadRuntime runtime, ChatThread thread, bool compact)
+    {
+        // STOP #6: :688 ModelEffortButton(thread, !runtime.Turns.IsEmpty, compact) is MARROW_STUB in EffortSlider.cs.
+        // This single dependency site remains unwritten; no replacement model chip or canned content is supplied.
+    }
 }
 
 /// <summary>:692-773 <c>private struct ContextMeter: View</c>.</summary>
 internal sealed class ContextMeter : Decorator
 {
+    // :702 @State isPresented
+    private sealed class ViewState : MainActorModel
+    {
+        private bool isPresented;
+        public bool IsPresented { get => Read(isPresented); set => Set(ref isPresented, value); }
+    }
+    private readonly ViewState state = new();
     // :698-700 the view's inputs; :704-762 body
-    public ContextMeter(ThreadRuntime runtime, ProviderKind provider, ProviderKind? headsProvider) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Composer/ComposerView.swift:704");
+    public ContextMeter(ThreadRuntime runtime, ProviderKind provider, ProviderKind? headsProvider)
+    {
+        Button? button = null;
+        Popup? popup = null;
+        var presented = false;
+        this.Track(() => (Usage: runtime.Usage, Model: AppEnvironment.GetAppModel(this),
+                Credits: CreditsReader.ExposesCredits(provider) && AppEnvironment.GetAppModel(this).Settings.HasAPIKey(provider),
+                PoppedOut: AppEnvironment.GetAppModel(this).Settings.ShowsUsagePanel), input =>
+        {
+            var fraction = input.Usage?.Fraction; // :705-706
+            if (input.PoppedOut || !(fraction is not null || PlanLimitsReader.ExposesLimits(provider) || input.Credits)) // :709-713
+            {
+                if (presented && popup is not null) Presentation.Presenter.Current.SetPresented(popup, false);
+                presented = false;
+                state.IsPresented = false;
+                Child = null;
+                button = null;
+                popup = null;
+                return;
+            }
+            var ring = new Grid { Width = 15, Height = 15 }; // :717,725
+            var track = new Avalonia.Controls.Shapes.Ellipse { StrokeThickness = 2.5 }; // :718-719
+            track.Stroke = SwiftColor.Quaternary.Brush(track);
+            var arc = new Avalonia.Controls.Shapes.Path
+            {
+                StrokeThickness = 2.5, StrokeLineCap = PenLineCap.Round, // :722
+                RenderTransform = new RotateTransform(-90), RenderTransformOrigin = RelativePoint.Center, // :723
+                Data = Arc(fraction ?? 0), // :721
+            };
+            arc.Stroke = ((fraction ?? 0) > 0.85 ? Chrome.Warning : Popovers.GetTint(this) ?? SwiftColor.AccentColor).Brush(arc); // :722
+            ring.Children.Add(track); ring.Children.Add(arc);
+            if (button is null)
+            {
+                button = PlainControls.Button(ring, () => state.IsPresented = !state.IsPresented); // :714-715
+                button.Focusable = false; // :731
+                button.Padding = new Thickness(6, 5); // :726-728 rectangular hit area
+                popup = new Popup { PlacementTarget = button, Placement = PlacementMode.Bottom, IsLightDismissEnabled = true }; // :737
+                popup.Closed += (_, _) => state.IsPresented = false;
+                Child = button;
+            }
+            else button.Content = ring;
+            var sentence = fraction is { } value ? ((long)(value * 100)).ToString(System.Globalization.CultureInfo.InvariantCulture) + "% of the context window used" : "";
+            ToolTip.SetTip(button, fraction is not null ? sentence : input.Credits ? "Remaining credits" : "Usage limits"); // :732,764-767
+            AutomationProperties.SetName(button, fraction is not null ? "Context window" : input.Credits ? "Remaining credits" : "Usage limits"); // :733,769-772
+            AutomationProperties.SetHelpText(button, sentence); // :736 spoken value, exposed via Avalonia help text
+            // :757 The same panel reads the latest usage, including the pair's distinct heads provider.
+            if (state.IsPresented && popup is not null) popup.Child = Content(input.Usage, input.Model);
+        });
+        this.Track(() => state.IsPresented, shown =>
+        {
+            if (popup is null || shown == presented) return;
+            presented = shown;
+            if (shown) popup.Child = Content(runtime.Usage, AppEnvironment.GetAppModel(this));
+            Presentation.Presenter.Current.SetPresented(popup, shown);
+            if (!shown) popup.Child = null;
+        });
+        DetachedFromVisualTree += (_, _) => { if (presented && popup is not null) Presentation.Presenter.Current.SetPresented(popup, false); };
+
+        Control Content(ContextUsage? usage, AppModel model)
+        {
+            var stack = new StackPanel { Spacing = 0 }; // :738
+            var header = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto"), Margin = new Thickness(16,10,16,0) }; // :743,755-756
+            header.ColumnDefinitions[1].MinWidth = 8; // :747
+            var title = new TextBlock { Text = "Usage", VerticalAlignment = VerticalAlignment.Center }; // :744
+            SwiftFont.System(SwiftFont.TextStyle.Callout, weight: SwiftFont.Weight.Semibold).Apply(title); // :745
+            title.Foreground = Chrome.SecondaryText.Brush(title); // :746
+            header.Children.Add(title);
+            var popout = new ChromeCircleButton("arrow.up.right", "Open as a floating panel beside the chat", () =>
+            {
+                state.IsPresented = false; // :749
+                Transaction.WithAnimation(Chrome.PanelSlide, () => model.Settings.ShowsUsagePanel = true); // :750-752
+            });
+            Grid.SetColumn(popout, 2); header.Children.Add(popout); // :748
+            stack.Children.Add(header);
+            stack.Children.Add(new UsagePanel(usage, provider, headsProvider)); // :757 width and padding are owned by UsagePanel
+            return stack.PresentedChrome(); // :759
+        }
+    }
+
+    // :720-723 A circle trimmed from zero, before its -90 degree rotation.
+    private static Geometry Arc(double fraction)
+    {
+        if (fraction >= 1) return new EllipseGeometry(new Rect(0, 0, 15, 15));
+        var geometry = new StreamGeometry();
+        if (fraction <= 0) return geometry;
+        using var context = geometry.Open();
+        context.BeginFigure(new Point(15, 7.5), false);
+        var angle = fraction * 2 * Math.PI;
+        context.ArcTo(new Point(7.5 + 7.5 * Math.Cos(angle), 7.5 + 7.5 * Math.Sin(angle)), new Size(7.5,7.5), 0,
+            fraction > 0.5, SweepDirection.Clockwise);
+        context.EndFigure(false);
+        return geometry;
+    }
 }
 
 /// <summary>:775-781 <c>@MainActor private enum SendShortcutText</c>, a caseless enum used as a namespace.</summary>
 internal static class SendShortcutText
 {
     // :779 static let queue = ShortcutStore.label(for: .queueChat)
-    public static string? Queue =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Composer/ComposerView.swift:779");
+    public static string? Queue { get; } = ShortcutStore.Label(AppShortcut.QueueChat);
 
     // :780 static let stop = ShortcutStore.hint(for: .stopTurn)
-    public static string Stop =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Composer/ComposerView.swift:780");
+    public static string Stop { get; } = ShortcutStore.Hint(AppShortcut.StopTurn);
 }
 
 /// <summary>:783-796 <c>private struct SendButton: View</c>.</summary>
@@ -1263,7 +1441,7 @@ internal sealed class SendButton : Decorator
 {
     // :784-791 the view's inputs; :793-795 body
     public SendButton(ThreadRuntime runtime, bool goesToHead, bool queueGoesToHead, Action send) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Composer/ComposerView.swift:793");
+        Child = new SendRunState(runtime, goesToHead, queueGoesToHead, send); // :794
 }
 
 /// <summary>:798-813 <c>private struct SendRunState: View</c>.</summary>
@@ -1271,7 +1449,8 @@ internal sealed class SendRunState : Decorator
 {
     // :801-804 the view's inputs; :806-812 body
     public SendRunState(ThreadRuntime runtime, bool goesToHead, bool queueGoesToHead, Action send) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Composer/ComposerView.swift:806");
+        this.Track(() => (Running: runtime.IsRunning, Heads: runtime.IsRunning && runtime.HasWorkingHeads), input =>
+            Child = new SendDraftState(runtime, input.Running, input.Heads, goesToHead, queueGoesToHead, send)); // :807-811
 }
 
 /// <summary>:815-866 <c>private struct SendDraftState: View</c>.</summary>
@@ -1284,13 +1463,51 @@ internal sealed class SendDraftState : Decorator
         bool headsWorking,
         bool goesToHead,
         bool queueGoesToHead,
-        Action send) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Composer/ComposerView.swift:825");
+        Action send)
+    {
+        var image = SwiftImage.SystemName(isRunning ? "stop.fill" : "arrow.up").Font(Chrome.IconFont).ForegroundStyle(SwiftColor.White); // :831-833
+        image.ContentTransitionSymbolEffect(SymbolEffectKind.Replace); // :834 MARROW_DEFERRED ED-182: symbol cross-fade
+        var label = new Border { Width = 28, Height = 28, Child = image }.Capsule(RoundedCornerStyle.Circular); // :835-836 circle
+        var button = PlainControls.Button(label, () => { if (isRunning) runtime.Interrupt(); else send(); }); // :828-829,838
+        button.Focusable = false; // :839
+        button.Margin = new Thickness(4,0,0,0); // :841
+        ToolTip.SetTip(button, HelpText(isRunning, headsWorking, goesToHead, queueGoesToHead)); // :842
+        AutomationProperties.SetName(button, isRunning ? "Stop" : goesToHead ? "Send to a head" : "Send"); // :843
+        void Apply(bool empty, bool reverting)
+        {
+            var enabled = isRunning || !empty; // :826-827
+            button.IsEnabled = enabled && !reverting; // :840
+            label.Background = (enabled ? Popovers.GetTint(this) ?? SwiftColor.AccentColor : SwiftColor.Quaternary).Brush(label); // :836
+        }
+        Apply(runtime.Draft.IsEmpty, runtime.IsReverting);
+        this.Track(() => (Empty: runtime.Draft.IsEmpty, Reverting: runtime.IsReverting), input => Apply(input.Empty, input.Reverting));
+        Child = button;
+    }
+
+    // :848-865 The shortcuts are read from the launch-wide cache, not looked up per keystroke.
+    private static string HelpText(bool isRunning, bool headsWorking, bool goesToHead, bool queueGoesToHead)
+    {
+        var queue = SendShortcutText.Queue;
+        if (isRunning)
+        {
+            if (headsWorking) return queueGoesToHead ? "Heads are at work: your message goes to a head" : "Heads are at work: your message waits for the lead";
+            var running = new List<string> { "Stop" + SendShortcutText.Stop, "Return steers" };
+            if (queue is not null) running.Add(queue + " queues");
+            return string.Join(" \u00b7 ", running);
+        }
+        var idle = new List<string> { goesToHead ? "Send to a head (Return) \u00b7 the lead reports back" : "Send (Return)" };
+        if (queue is not null) idle.Add(queue + (headsWorking ? " queues until the heads report" : " queues while running"));
+        return string.Join(" \u00b7 ", idle);
+    }
 }
 
 /// <summary>:868-944 <c>private struct DraftChips: View</c>.</summary>
 internal sealed class DraftChips : Decorator
 {
+    private readonly ThreadRuntime runtime;
+    private readonly Panel rows = new();
+    private Control? current;
+    private bool evaluated;
     /// <summary>:871-874 <c>private struct ChipKey: Equatable</c>.</summary>
     private sealed record ChipKey
     {
@@ -1299,57 +1516,146 @@ internal sealed class DraftChips : Decorator
     }
 
     // :869 let runtime; :876-943 body
-    public DraftChips(ThreadRuntime runtime) =>
+    public DraftChips(ThreadRuntime runtime)
+    {
+        this.runtime = runtime;
+        Child = rows;
         this.Track(() => (runtime.Draft.Quotes, runtime.Draft.Command), draft => Show(draft.Quotes, draft.Command)); // :877-878
+    }
 
     private void Show(ValueList<ReplyQuote> quotes, DraftCommand? command)
     {
+        var wasEvaluated = evaluated;
+        evaluated = true;
         // :879 nothing to show: no row, so the column's zero spacing leaves no room for it
         if (quotes.Count == 0 && command is null)
         {
-            Child = null;
+            if (current is { } leaving) Transaction.WithAnimation(Chrome.PanelSlide, () => SwiftTransition.Remove(rows, leaving));
+            current = null;
             return;
         }
         var chipRow = Row(quotes, command);
         chipRow.Margin = new Thickness(0, 0, 0, 8); // :939 .padding(.bottom, 8)
-        Child = chipRow;
+        chipRow.Transition(SwiftTransition.Modifier(new ChipRowCollapse(true), new ChipRowCollapse(false))); // :940
+        if (current is null && wasEvaluated)
+            Transaction.WithAnimation(Chrome.PanelSlide, () => SwiftTransition.Insert(rows, 0, chipRow));
+        else if (current is null) SwiftTransition.Insert(rows, 0, chipRow);
+        else
+        {
+            // :941 Text edits leave the animation key alone. A nonempty single-line scroller keeps its height.
+            rows.Children.Clear();
+            SwiftTransition.Insert(rows, 0, chipRow);
+        }
+        current = chipRow;
     }
 
     // :880-938 the chips' scroller, and :940-941 its transition and animation. MARROW_STUB: part 3 of this unit
     // (PR-COMPOSER-086 to PR-COMPOSER-089).
-    private static Control Row(ValueList<ReplyQuote> quotes, DraftCommand? command) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Composer/ComposerView.swift:880");
+    private Control Row(ValueList<ReplyQuote> quotes, DraftCommand? command)
+    {
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 }; // :881
+        if (command is not null) // :882
+            row.Children.Add(Chip(command.IsBuiltIn ? "command" : "sparkles", "/" + command.Name, command.Detail,
+                "Remove command", () => runtime.Draft = runtime.Draft with { Command = null }, true)); // :883-906
+        foreach (var quote in quotes) // :908
+            row.Children.Add(Chip("text.quote", quote.Excerpt, quote.Text, "Remove quote",
+                () => runtime.Draft = runtime.Draft with { Quotes = new ValueList<ReplyQuote>(runtime.Draft.Quotes.Where(held => held.Id != quote.Id)) }, false)); // :909-935
+        return new ScrollViewer { Content = row, HorizontalScrollBarVisibility = ScrollBarVisibility.Hidden,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Disabled }; // :880
+    }
+
+    // :883-906,909-935 Each capsule combines the label and remove action; full detail is its tooltip.
+    private static Control Chip(string symbol, string text, string detail, string removeLabel, Action remove, bool commandChip)
+    {
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 5 }; // :883,909
+        row.Children.Add(SwiftImage.SystemName(symbol)
+            .Font(SwiftFont.System(SwiftFont.TextStyle.Footnote, weight: SwiftFont.Weight.Semibold)).ForegroundStyle(Chrome.SecondaryText)); // :884-886,910-912
+        var title = new TextBlock { Text = text, MaxLines = 1, TextWrapping = TextWrapping.NoWrap, TextTrimming = TextTrimming.CharacterEllipsis }; // :887,913,916-917
+        SwiftFont.System(SwiftFont.TextStyle.Subheadline, weight: commandChip ? SwiftFont.Weight.Medium : SwiftFont.Weight.Regular).Apply(title); // :888,914
+        title.Foreground = Chrome.PrimaryText.Opacity(0.9).Brush(title); // :889,915
+        if (!commandChip) { title.MaxWidth = 260; title.HorizontalAlignment = HorizontalAlignment.Left; } // :918
+        row.Children.Add(title);
+        var x = SwiftImage.SystemName("xmark").Font(SwiftFont.System(SwiftFont.TextStyle.Caption2, weight: SwiftFont.Weight.Bold)).ForegroundStyle(Chrome.SecondaryText); // :895-897,924-926
+        var button = PlainControls.Button(x, () => Transaction.WithAnimation(Chrome.PanelSlide, remove)); // :890-899,919-928
+        button.Focusable = false; // :900,929
+        ToolTip.SetTip(button, removeLabel); // :901,930
+        AutomationProperties.SetName(button, removeLabel); // :902,931
+        row.Children.Add(button);
+        var chrome = new ChipChrome().Body(row); // :904,933
+        ToolTip.SetTip(chrome, detail); // :905,934
+        AutomationProperties.SetName(chrome, text); // :906,935 combined chip name
+        return chrome;
+    }
 }
 
 /// <summary>:946-959 <c>private struct ChipRowCollapse: ViewModifier</c>.</summary>
-internal sealed record ChipRowCollapse(bool Collapsed)
+internal sealed record ChipRowCollapse(bool Collapsed) : IAnimatableModifier
 {
+    private double? fraction;
+    public ImmutableArray<double> AnimatableData => [fraction ?? (Collapsed ? 0 : 1)];
+    public IAnimatableModifier WithAnimatableData(ImmutableArray<double> data) => this with { fraction = data[0] };
     // :953-958 func body(content:)
-    public Control Body(Control content) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Composer/ComposerView.swift:953");
+    public Control Body(Control content)
+    {
+        content.VerticalAlignment = VerticalAlignment.Top; // :955
+        var clip = new Border { Child = content, ClipToBounds = true }; // :956
+        Update(clip);
+        return clip;
+    }
+
+    public void Update(Control body)
+    {
+        var clip = (Border)body;
+        var progress = AnimatableData[0];
+        clip.Child!.Measure(Size.Infinity);
+        clip.Height = progress == 1 ? double.NaN : Math.Max(0, clip.Child.DesiredSize.Height * progress); // :955, ED-098
+        clip.Opacity = progress; // :957
+    }
 }
 
 /// <summary>:961-970 <c>struct ChipChrome: ViewModifier</c>: the capsule behind a composer chip.</summary>
 public sealed record ChipChrome
 {
     // :963-969 func body(content:)
-    public Control Body(Control content) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Composer/ComposerView.swift:963");
+    public Control Body(Control content)
+    {
+        var capsule = new Border { Child = content, Padding = new Thickness(9,5,7,5) }.Capsule(RoundedCornerStyle.Continuous); // :965-968
+        capsule.Background = Chrome.Overlay(0.12).Brush(capsule); // :968
+        return capsule;
+    }
 }
 
 /// <summary>:972-1033 <c>private struct DraftAttachments: View</c>.</summary>
 internal sealed class DraftAttachments : Decorator
 {
+    private readonly ThreadRuntime runtime;
+    private readonly AttachmentPreviewSlot preview = new(); // :977
+    private readonly HashSet<Guid> drawn = []; // :978
+    private ForEach<Attachment, Guid>? cells;
+    private readonly Dictionary<Guid, Attachment> shown = [];
     // :973 let runtime; :980-988 body
-    public DraftAttachments(ThreadRuntime runtime) =>
+    public DraftAttachments(ThreadRuntime runtime)
+    {
+        this.runtime = runtime;
         this.Track(() => runtime.Draft.Attachments, Show); // :981
+        DetachedFromVisualTree += (_, _) => preview.Close(); // :1031
+    }
 
     private void Show(ValueList<Attachment> attachments)
     {
         // :982 an empty strip takes no room at all
         if (attachments.Count == 0)
         {
+            preview.Retire(new HashSet<Guid>()); // :1028-1029
             Child = null;
+            cells = null;
+            this.shown.Clear();
+            return;
+        }
+        if (Child is not null && cells is not null)
+        {
+            cells.Apply(attachments);
+            preview.Retire(attachments.Select(attachment => attachment.Id).ToHashSet()); // :1028-1029
             return;
         }
         var shown = Strip(attachments); // :983
@@ -1360,8 +1666,50 @@ internal sealed class DraftAttachments : Decorator
 
     // :990-1032 private func strip(_:), with :975-978 its @State. MARROW_STUB: part 3 of this unit (PR-COMPOSER-067,
     // PR-COMPOSER-068).
-    private static Control Strip(ValueList<Attachment> attachments) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Composer/ComposerView.swift:990");
+    private Control Strip(ValueList<Attachment> attachments)
+    {
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 0 }; // :1000
+        cells = new ForEach<Attachment, Guid>(row, attachment => attachment.Id, MakeCell, (control, attachment) =>
+        {
+            if (shown.TryGetValue(attachment.Id, out var old) && old == attachment) return;
+            ((AttachmentArrival)control).Children.Clear();
+            ((AttachmentArrival)control).Children.Add(Cell(attachment));
+            shown[attachment.Id] = attachment;
+        });
+        cells.Apply(attachments); // :1001
+        var layer = new Grid { Children = { new AttachmentAnchorCapture(view => preview.SetAnchor(view)), row } }; // :1024-1026
+        return new ScrollViewer { Content = layer, HorizontalScrollBarVisibility = ScrollBarVisibility.Hidden, VerticalScrollBarVisibility = ScrollBarVisibility.Disabled }; // :991
+    }
+
+    // :1002,1021 new arrivals remember their id for the life of this draft strip.
+    private Control MakeCell(Attachment attachment)
+    {
+        shown[attachment.Id] = attachment;
+        var arrival = new AttachmentArrival(!drawn.Contains(attachment.Id), content: Cell(attachment));
+        arrival.AttachedToVisualTree += (_, _) => drawn.Add(attachment.Id);
+        return arrival;
+    }
+
+    // :1003-1019 The overhang is reserved inside this cell, not in its neighbor's gap.
+    private Control Cell(Attachment attachment)
+    {
+        var thumbnail = new AttachmentThumbnail(attachment, preview, size: 48); // :1003
+        var overlay = new Grid { Children = { thumbnail } }; // :1004
+        var image = SwiftImage.SystemName("xmark.circle.fill").SymbolRenderingMode(SymbolRenderingMode.Palette)
+            .ForegroundStyle(SwiftColor.White, SwiftColor.Black.Opacity(0.6)); // :1008-1010 MARROW_DEFERRED ED-182 palette
+        var remove = PlainControls.Button(image, () => runtime.Draft = runtime.Draft with
+        {
+            Attachments = new ValueList<Attachment>(runtime.Draft.Attachments.Where(held => held.Id != attachment.Id)), // :1005-1006
+        });
+        remove.Padding = new Thickness(4); // :1011
+        remove.Focusable = false; // :1014
+        remove.HorizontalAlignment = HorizontalAlignment.Right;
+        remove.VerticalAlignment = VerticalAlignment.Top;
+        remove.RenderTransform = new TranslateTransform(6,-6); // :1015
+        AutomationProperties.SetName(remove, "Remove " + attachment.Name); // :1016
+        overlay.Children.Add(remove);
+        return new Border { Child = overlay, Padding = new Thickness(0,2,8,0) }; // :1018-1019
+    }
 }
 
 /// <summary>:1037-1049 <c>struct SuggestionState: Equatable</c>.</summary>

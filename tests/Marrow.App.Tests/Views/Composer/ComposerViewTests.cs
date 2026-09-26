@@ -2646,17 +2646,6 @@ public sealed class ComposerViewTests(HeadlessSession headless)
     private static void Click(Button button) => button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
     private static void InvokePrivate(object target, string method, params object[] args) => target.GetType().GetMethod(method, System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.Invoke(target, args);
 
-    private sealed class ComposerDialogProbe : IComposerFileDialog
-    {
-        public (bool Multiple, bool Directories, string Prompt)? Options;
-        public ValueList<string>? Result { get; set; }
-        public System.Threading.Tasks.Task<ValueList<string>?> Choose(AvaloniaWindow? owner, bool allowsMultipleSelection, bool canChooseDirectories, string prompt)
-        {
-            Options = (allowsMultipleSelection, canChooseDirectories, prompt);
-            return System.Threading.Tasks.Task.FromResult(Result);
-        }
-    }
-
     [Fact]
     [Trait("Req", "PR-COMPOSER-060")] // App/Views/Composer/ComposerView.swift:219-225
     public void B3_attachment_notice_uses_a_five_second_string_key_and_equal_notices_do_not_restart_it()
@@ -2666,7 +2655,7 @@ public sealed class ComposerViewTests(HeadlessSession headless)
             using var h = RuntimeHarness();
             var frames = new ManualFrameSource(); using var fs = FrameClock.Source.Override(frames);
             var runtime = Unresolved(h);
-            var view = h.Main.OnMain(() => Pill(h, runtime));
+            var view = Pill(h, runtime);
             var window = h.Main.OnMain(() => Show(view, h.App, 500));
             h.Main.OnMain(() => InvokePrivate(view, "Note", "first")); Pump(h, window);
             h.Main.Advance(TimeSpan.FromSeconds(4)); Pump(h, window); Assert.Equal("first", view.AttachmentNotice);
@@ -2768,6 +2757,7 @@ public sealed class ComposerViewTests(HeadlessSession headless)
     {
         headless.OnUiThread(() =>
         {
+            var frames = new ManualFrameSource(); using var fs = FrameClock.Source.Override(frames);
             using var h = RuntimeHarness(); h.Main.OnMain(() => h.Runtime.Draft = new ComposerDraft { Text = "keep", Command = new DraftCommand { Name = "plan", Detail = "Turn plan mode on or off", IsBuiltIn = true } });
             var chips = h.Main.OnMain(() => new DraftChips(h.Runtime)); var window = h.Main.OnMain(() => Show(chips, h.App, 400)); Pump(h, window);
             h.Main.OnMain(() =>
@@ -2785,6 +2775,7 @@ public sealed class ComposerViewTests(HeadlessSession headless)
     {
         headless.OnUiThread(() =>
         {
+            var frames = new ManualFrameSource(); using var fs = FrameClock.Source.Override(frames);
             using var h = RuntimeHarness(); var a = new ReplyQuote { Text = "\n  alpha   beta\nsecond" }; var b = new ReplyQuote { Text = "other" };
             h.Main.OnMain(() => h.Runtime.Draft = new ComposerDraft { Quotes = new ValueList<ReplyQuote>([a, b]) });
             var chips = h.Main.OnMain(() => new DraftChips(h.Runtime)); var window = h.Main.OnMain(() => Show(chips, h.App, 400)); Pump(h, window);
@@ -2799,9 +2790,10 @@ public sealed class ComposerViewTests(HeadlessSession headless)
     {
         headless.OnUiThread(() =>
         {
+            var frames = new ManualFrameSource(); using var fs = FrameClock.Source.Override(frames);
             using var h = RuntimeHarness(); h.Main.OnMain(() => h.Runtime.Draft = new ComposerDraft { Quotes = new ValueList<ReplyQuote>([new() { Text = "quote" }]) });
             var chips = h.Main.OnMain(() => new DraftChips(h.Runtime)); var window = h.Main.OnMain(() => Show(chips, h.App, 400)); Pump(h, window);
-            h.Main.OnMain(() => { Assert.Equal(6, One<StackPanel>(chips).Spacing); Assert.Equal(Avalonia.Controls.Primitives.ScrollBarVisibility.Hidden, One<ScrollViewer>(chips).HorizontalScrollBarVisibility); var collapsed = Assert.IsType<Border>(new ChipRowCollapse(true).Body(new Border())); Assert.Equal(0, collapsed.Height); Assert.Equal(0, collapsed.Opacity); Assert.True(collapsed.ClipToBounds); }); Close(h, window);
+            h.Main.OnMain(() => { Assert.Equal(6, Assert.IsType<StackPanel>(One<ScrollViewer>(chips).Content).Spacing); Assert.Equal(Avalonia.Controls.Primitives.ScrollBarVisibility.Hidden, One<ScrollViewer>(chips).HorizontalScrollBarVisibility); var collapsed = Assert.IsType<Border>(new ChipRowCollapse(true).Body(new Border())); Assert.Equal(0, collapsed.Height); Assert.Equal(0, collapsed.Opacity); Assert.True(collapsed.ClipToBounds); }); Close(h, window);
         });
     }
 
@@ -2933,6 +2925,7 @@ public sealed class ComposerViewTests(HeadlessSession headless)
     {
         headless.OnUiThread(() =>
         {
+            var frames = new ManualFrameSource(); using var fs = FrameClock.Source.Override(frames);
             using var h=RuntimeHarness(); h.Main.OnMain(() => h.Runtime.RehearseTurn("working")); var slot=h.Main.OnMain(() => new ComposerWorkingDotsSlot(h.Runtime)); var window=h.Main.OnMain(() => Show(slot,h.App,400)); h.Main.OnMain(() => slot.Height=100); Pump(h,window);
             h.Main.OnMain(() => { var dots=One<ComposerWorkingDots>(slot); Assert.Equal(40,dots.Bounds.Height); Assert.Equal(60,Frame(dots,slot).Y); var clip=Assert.IsType<Border>(slot.Child); Assert.Equal(new CornerRadius(22),clip.CornerRadius); Assert.True(clip.ClipToBounds); }); Close(h,window);
         });
@@ -3016,3 +3009,21 @@ public sealed class ComposerViewTests(HeadlessSession headless)
 // Done so far: the sites are written. Tested: a focus loss outside the panel closes it (PR-COMPOSER-053), hovering a
 // row selects it and Return commits that row (PR-COMPOSER-055), and the failure note and the retry row with its
 // label, symbol and place (PR-COMPOSER-050).
+
+// STOP App.Views.Composer.ComposerView #6
+// Kind: missing dependency
+// Swift: DroppyCode/App/Views/Composer/ComposerView.swift:637,688 (B3 52bc792)
+// Records: PR-COMPOSER-077 (active styling), PR-COMPOSER-090 (model content), UI-COMPOSER-011.
+// Missing: UI.Common.Components ChipButtonStyleHelper has no implementation or callable styling API;
+// ModelEffortButton in App.Views.Composer.EffortSlider still throws MARROW_STUB at Swift:59.
+// Needed: owning units implement the chip style and ModelEffortButton. No dependency file was edited.
+// Only those calls remain unwritten. Attach action/popup/focus and trailing-row layout are implemented and tested.
+// ModelEffortSlot has no substitute content. Rendering a model chip is not claimed verified.
+
+// STOP App.Views.Composer.ComposerView #7
+// Kind: missing dependency
+// Swift: DroppyCode/App/Views/Composer/ComposerView.swift:941 (B3 52bc792)
+// Records: PR-COMPOSER-088 (keyed movement within a nonempty chip row).
+// Missing: foundation ForEach applies topology immediately and carries no animated re-layout of surviving rows.
+// Needed: geometric layout animation in its owning foundation unit. Arrival/departure clip and fade are implemented;
+// adding/removing/reordering chips while the row remains nonempty has immediate layout, explicitly unverified.
