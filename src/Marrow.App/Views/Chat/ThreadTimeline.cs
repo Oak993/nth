@@ -1,5 +1,9 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Presenters;
+using Avalonia.Controls.Templates;
+using Avalonia.Input;
+using Avalonia.Input.GestureRecognizers;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Marrow.UI.Markdown;
@@ -13,7 +17,7 @@ using Marrow.UI.Common;
 using Marrow.UI.Port;
 
 // Source: DroppyCode/App/Views/Chat/ThreadTimeline.swift (B3 52bc792), :1-2327.
-// SKELETON (cycle c100, group 3). Every member with behaviour throws MARROW_STUB until its unit ports it.
+// B3 owned behavior is ported. Exact external/platform gaps are documented in ThreadTimelineTests STOP #1-5.
 // Forms (ED-095): a SwiftUI View is a Decorator whose constructor builds `body`; a ViewModifier is a sealed record with
 // `Control Body(Control content)`; an NSViewRepresentable/NSView is a Control; NSWindow is Avalonia's Window. An enum
 // with associated values is an abstract record with nested sealed records (R-ENUM-2); where a case's labelled value
@@ -22,24 +26,15 @@ using Marrow.UI.Port;
 // @ObservationIgnored storage plain auto-properties (R-OBS-5); `static let shared` is an Ambient (R-LIFE-2, the
 // ScrollActivity.Shared precedent). A Task handle is TaskHandle; CFTimeInterval/TimeInterval are double; `[T]` in a
 // value is ValueList<T>, `[K: V]` ValueMap, `Set<T>` ValueSet (R-VAL-2). A Swift argument label that is a C# keyword
-// is written with `@` (MCPProxy.Url(string @for) precedent). The `extension EnvironmentValues` (:2238-2243) cannot
+// is written with `@` (MCPProxy.Url(string @for) precedent). The `extension EnvironmentValues` (:2250-2256) cannot
 // be a static class named after the file (R-NAME-4, ED-095): that name is the view's, so its attached property
-// lives on ThreadTimeline; RevealTimelineEndKey (:2234-2236) holds its default.
-// NEEDS DECISION (group report): `@Environment(AppModel.self)` / `@Environment(WindowLiveResize.self)` are read by the
-// bodies, not passed in, so they are no constructor parameters. SwiftUI's ScrollPhase, ScrollGeometry, ScrollPosition
-// and GeometryProxy have no port types, so TimelineScrollTracking.notePhase(_:) (:1084-1111), ScrollMetrics.init
-// (:1356-1374) and ThreadTimeline.visibleHeight (:882-884) are not declared yet. `[ObjectIdentifier]` (:1676, :1996)
-// has no port type: TimelineBlockCache.Key keeps the entries themselves, to be compared by identity.
-// The views' `static ==` (:26-35, :1870-1872, :2016-2018) stand for SwiftUI's `.equatable()`; not declared yet.
-// Not declared yet, private in Swift and read by no other file: every view's @State/@Environment storage and private
-// instance methods (ThreadTimeline :59-96, :157-878; WorkingBlockView.thinking :2291-2302) and the private storage of
-// TimelineScrollTracking (:921-965), FrontMonitor (:1291-1293), TimelineBlockCache (:1657-1709) and TurnGroupCache
-// (:1996-1997), which the implementing unit adds with the bodies. The Swift-private view types are public, as the App
-// views ported so far do (ShortcutsSettingsPage.cs).
+// lives on ThreadTimeline; RevealTimelineEndKey (:2246-2248) holds its default.
+// AppModel and WindowLiveResize are inherited environments. Identity keys retain entry references rather than
+// substituting value equality for ObjectIdentifier. The bounded eager stack needs no virtualized-range nudge.
 
 namespace Marrow.App.Views.Chat;
 
-/// <summary>:4-885 <c>struct ThreadTimeline: View, Equatable</c>.</summary>
+/// <summary>:4-895 <c>struct ThreadTimeline: View, Equatable</c>.</summary>
 public sealed class ThreadTimeline : Decorator
 {
     private string? windowStartID; // :81
@@ -52,11 +47,21 @@ public sealed class ThreadTimeline : Decorator
     private ScrollViewer? currentScroll;
     private readonly Dictionary<string, Control> laidOutRows = [];
     private readonly Dictionary<string, (DisplayBlock Block, RowContext Context, Control Row)> rowViews = [];
+    private readonly Dictionary<string, (QuestionRequest Request, Control Row)> questionViews = []; // :393-397, stable ForEach identity
     private TimelineScrollState? state;
     private ThreadRuntime? ownerRuntime;
     private Action? redraw;
     private Action<TimeSpan>? scrollFrame;
     private IFrameSource? scrollFrames;
+    private TaskHandle? initialHistoryTask; // :594-607
+    private bool initialHistoryStarted;
+    // :363,436-441. Own the scroll presenter, as SidebarView does, rather than depending on a themed template.
+    private static readonly FuncControlTemplate<ScrollViewer> TimelineScrollTemplate = new((viewer, scope) =>
+    {
+        var presenter = new ScrollContentPresenter { Name = "PART_ContentPresenter", [!ContentPresenter.ContentProperty] = viewer[!ContentControl.ContentProperty] };
+        presenter.GestureRecognizers.Add(new ScrollGestureRecognizer { CanVerticallyScroll = true, CanHorizontallyScroll = false });
+        return presenter.RegisterInNameScope(scope);
+    });
     private long? seenAutoStartedTurnToken; // :83-85
     private bool? seenRunning;
     private string? seenLastEntryID;
@@ -99,7 +104,11 @@ public sealed class ThreadTimeline : Decorator
                 return;
             }
             var model = AppEnvironment.GetAppModel(this);
-            var blocks = TimelineBlockCache.Cache(runtime.ThreadID).Blocks(runtime.Entries, model.Settings.ShowReasoning, runtime.IsRunning, runtime.IsHydraMerging ? runtime.HydraMergeNoteID ?? "hydra-merging" : null);
+            var team = model.Helpers(runtime.ThreadID).Where(thread => thread.IsHydraHead).ToArray();
+            // STOP #1 is only the external roster extraction, not this unit's finish ordering and cut.
+            var finished = team.Length == 0 ? new ValueList<HydraHeadInfo>([]) : HydraHeadsWorkingRow.FinishedHeads(team);
+            var pills = SplitHeadPills(finished, runtime.IsRunning ? runtime.TurnStartedAt : null);
+            var blocks = TimelineBlockCache.Cache(runtime.ThreadID).Blocks(runtime.Entries, model.Settings.ShowReasoning, runtime.IsRunning, MergeID(runtime.IsHydraMerging, runtime.HydraMergeNoteID), pills);
             var lastID = runtime.Questions.LastOrDefault() is { } question ? "question-" + question.Id : blocks.LastOrDefault()?.Id;
             if (seenLastEntryID != lastID) { seenLastEntryID = lastID; NoteArrival(lastID, blocks); }
             var heads = model.Children(runtime.ThreadID).Where(thread => thread.IsHydraHead).ToArray();
@@ -113,20 +122,33 @@ public sealed class ThreadTimeline : Decorator
             {
                 // STOP #1: external row rendering is not substituted by fabricated content.
                 var rows = new StackPanel { Spacing = TimelineMetrics.RowSpacing };
-                var rewindable = supportsRewind && !runtime.IsRunning ? runtime.Turns.Select(turn => turn.Id).ToHashSet() : [];
+                var rewindable = RewindableIDs(supportsRewind, runtime.IsRunning, runtime.Turns.Select(turn => turn.Id));
                 foreach (var id in laidOutRows.Keys) tracking.SetVisible(id, false); laidOutRows.Clear();
                 foreach (var block in blocks.Skip(WindowStartIndex(blocks)))
                 {
                     var context = new RowContext(workingDirectory, block.TurnID is { } id && rewindable.Contains(id), false);
-                    var row = rowViews.TryGetValue(block.Id, out var existing) && existing.Block == block && existing.Context == context ? existing.Row : new DisplayBlockView(block, runtime, context).Transition(Transition(block));
+                    var hadIdentity = rowViews.TryGetValue(block.Id, out var existing);
+                    var row = hadIdentity && existing.Block == block && existing.Context == context ? existing.Row : new DisplayBlockView(block, runtime, context).Transition(Transition(block));
                     if (row.Parent is Panel parent) parent.Children.Remove(row);
                     rowViews[block.Id] = (block, context, row);
-                    laidOutRows[block.Id] = row; rows.Children.Add(row);
+                    laidOutRows[block.Id] = row;
+                    if (hadIdentity) rows.Children.Add(row); else SwiftTransition.Insert(rows, rows.Children.Count, row);
                 }
                 foreach (var gone in rowViews.Keys.Except(laidOutRows.Keys).ToArray()) rowViews.Remove(gone);
-                foreach (var request in runtime.Questions) rows.Children.Add(new QuestionBadgeRow(request, runtime).Transition(SwiftTransition.SoftAppear)); // :393-397
+                foreach (var request in runtime.Questions)
+                {
+                    var id = "question-" + request.Id; var hadIdentity = questionViews.TryGetValue(id, out var existing);
+                    var badge = hadIdentity && existing.Request == request ? existing.Row : new QuestionBadgeRow(request, runtime) { Name = id }.Transition(RowTransition);
+                    if (badge.Parent is Panel parent) parent.Children.Remove(badge);
+                    questionViews[id] = (request, badge);
+                    if (hadIdentity) rows.Children.Add(badge); else SwiftTransition.Insert(rows, rows.Children.Count, badge);
+                } // :393-397
+                foreach (var gone in questionViews.Keys.Except(runtime.Questions.Select(request => "question-" + request.Id)).ToArray()) questionViews.Remove(gone);
                 new ScrollFreeze(tracking).Body(rows);
-                tracking.SetOutline(blocks.Skip(WindowStartIndex(blocks)).Select(block => (block.Id, block.HasUserMessage)).ToArray());
+                if (tracking.SetOutline(blocks.Skip(WindowStartIndex(blocks)).Select(block => (block.Id, block.HasUserMessage)).ToArray()))
+                {
+                    tracking.ArmBlankWatch(); if (tracking.IsPinnedToBottom && !tracking.IsArriving) tracking.ArmViewportRefresh();
+                } // :346-354
                 var body = new StackPanel(); var hidden = WindowStartIndex(blocks);
                 Button? earlier = hidden > 0 ? EarlierPill(hidden, () => { LoadEarlier(blocks); Draw(); }) : null;
                 if (earlier is not null) body.Children.Add(earlier);
@@ -135,28 +157,40 @@ public sealed class ThreadTimeline : Decorator
                 var resize = AppEnvironment.GetWindowLiveResize(this);
                 var width = SteppedWidth(resize.IsReshaping, Bounds.Width, model.Sidebar.IsSliding, paneWidthAtSlideStart, model.Sidebar.SlideDelta);
                 var column = CreateColumn(body, SteppedHeight(columnHeight, 0, 0), width);
-                var scroll = new ScrollViewer { Content = column, VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Hidden, HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled }; // :384-440
+                var scroll = new ScrollViewer { Content = column, Template = TimelineScrollTemplate, VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Hidden, HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled }; // :384-440
                 if (currentScroll is null) tracking.HoldEnd(1.5); var oldOffset = currentScroll?.Offset ?? default;
                 currentScroll = scroll; viewportHeight = column.MinHeight;
                 scroll.SizeChanged += (_, _) => { viewportHeight = SteppedHeight(scroll.Bounds.Height, 0, 0); column.MinHeight = viewportHeight; }; // :446-449
                 var oldMetrics = new ScrollMetrics();
-                scroll.ScrollChanged += (_, _) =>
+                scroll.ScrollChanged += (_, change) =>
                 {
-                    var next = new ScrollMetrics { ContentHeight = scroll.Extent.Height, ContainerHeight = scroll.Viewport.Height, Offset = scroll.Offset.Y, Travel = Math.Max(0, scroll.Offset.Y), DistanceFromBottom = scroll.Extent.Height - scroll.Viewport.Height - scroll.Offset.Y, CenterY = scroll.Offset.Y + scroll.Viewport.Height / 2 };
+                    var next = ScrollMetrics.From(scroll.Extent.Height, scroll.Viewport.Height, scroll.Offset.Y, 0, 0, scroll.Offset.Y + scroll.Viewport.Height / 2);
+                    // :439-441. Avalonia has no content-size anchor; retain the bottom-relative position before
+                    // classifying movement, and apply the offset next turn, never from the geometry callback.
+                    if (oldMetrics.ContentHeight > 0 && anchorsBottomOnGrowth && (change.ExtentDelta.Y != 0 || change.ViewportDelta.Y != 0))
+                    {
+                        var offset = Math.Clamp(next.Offset + change.ExtentDelta.Y - change.ViewportDelta.Y, 0, Math.Max(0, next.ContentHeight - next.ContainerHeight));
+                        if (Math.Abs(offset - next.Offset) > 1)
+                        {
+                            next = ScrollMetrics.From(next.ContentHeight, next.ContainerHeight, offset, 0, 0, offset + next.ContainerHeight / 2);
+                            MainActor.Post(() => { if (ReferenceEquals(currentScroll, scroll)) scroll.Offset = new Vector(scroll.Offset.X, offset); });
+                        }
+                    }
                     NoteMetrics(oldMetrics, next, resize.IsActive); oldMetrics = next; scrollChrome.Update(next.Travel);
                     foreach (var pair in laidOutRows) tracking.SetVisible(pair.Key, VisibleFraction(pair.Value, scroll) >= 0.001);
                     SetEndVisible(VisibleFraction(sentinel, scroll) >= 0.01);
                     if (earlier is not null && VisibleFraction(earlier, scroll) >= 0.1 && !historyLoadPending) { LoadEarlier(blocks); MainActor.Post(Draw); }
                 };
                 var overlay = new Grid { Children = { scroll } };
-                if (ShouldShowMinimap(showsMinimap, blocks)) overlay.Children.Add(new TimelineMinimapColumn(blocks, tracking, Math.Max(0, columnHeight - WindowChrome.TitlebarHeight), (id, animated) => Jump(id, blocks, animated)) { Width = 30, HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, WindowChrome.TitlebarHeight, 0, 0), RenderTransform = new TranslateTransform(-ChatView.GetReserveSlideLeading(this) - ChatView.GetReserveSlideOffset(this), 0) });
+                if (CreateRail(blocks, showsMinimap, columnHeight) is { } rail) overlay.Children.Add(rail);
                 host.Child = overlay; MainActor.Post(() => { if (!ReferenceEquals(currentScroll, scroll)) return; if (tracking.IsPinnedToBottom) SnapEnd(); else scroll.Offset = oldOffset; });
+                if (!initialHistoryStarted) StartInitialHistoryLoad(blocks); // :594-607; task starts only with a timeline, never with the empty prompt.
             }
         }
         this.Track(() => (runtime.IsLoadingHistory, runtime.Entries, runtime.IsRunning, runtime.IsHydraMerging, runtime.HydraMergeNoteID, AppEnvironment.GetAppModel(this).Settings.ShowReasoning), _ => Draw());
         this.Track(() => runtime.Questions, _ => Draw());
         redraw = Draw;
-        DetachedFromVisualTree += (_, _) => { tracking.EndActivity(); if (scrollFrame is not null) scrollFrames?.CancelFrame(scrollFrame); scrollFrame = null; };
+        DetachedFromVisualTree += (_, _) => { initialHistoryTask?.Cancel(); initialHistoryTask = null; initialHistoryStarted = false; tracking.EndActivity(); if (scrollFrame is not null) scrollFrames?.CancelFrame(scrollFrame); scrollFrame = null; };
         this.Track(() => scrollState.JumpRequest, _ => { tracking.IsPinnedToBottom = anchorsBottomOnGrowth = true; EndWithAnimation(scrollState.JumpRequest == 0 ? null : Animation.Smooth(0.35)); });
         this.Track(() => runtime.IsRunning, running => { if (seenRunning is { } previous && previous != running) NoteTurnChange(running, runtime.AutoStartedTurnToken); seenRunning = running; });
         this.Track(() => scrollState.AreaGrowthRequest, _ => { if (scrollState.AreaGrowthRequest != 0) ComposerGrew(AppEnvironment.GetWindowLiveResize(this).IsActive); });
@@ -166,18 +200,6 @@ public sealed class ThreadTimeline : Decorator
         };
         this.Track(() => FrontMonitor.Shared.Current.Revision, _ => { if (FrontMonitor.Shared.Current.Concerns(TopLevel.GetTopLevel(this) as Avalonia.Controls.Window)) tracking.NoteReturnToFront(); });
         this.Track(() => AppEnvironment.GetWindowLiveResize(this).IsReshaping, active => { if (!active) SettleAfterResize(); else if (scrollFrame is not null) { scrollFrames?.CancelFrame(scrollFrame); scrollFrame = null; } });
-        // :594-607. The cancellable task belongs to this timeline's visual lifetime.
-        this.Task(() => runtime.IsLoadingHistory, async loading =>
-        {
-            if (loading || !await SwiftTask.TrySleep(TimeSpan.FromMilliseconds(250))) return;
-            await MainActor.Run(() =>
-            {
-                var model = AppEnvironment.GetAppModel(this);
-                var blocks = TimelineBlockCache.Cache(runtime.ThreadID).Blocks(runtime.Entries, model.Settings.ShowReasoning, runtime.IsRunning, runtime.IsHydraMerging ? runtime.HydraMergeNoteID ?? "hydra-merging" : null);
-                tracking.HoldEnd(1.0); LoadEarlier(blocks, TimelineWindow.Initial); Draw(); tracking.ArmBlankWatch();
-            });
-            await WarmMarkdown();
-        });
         this.Track(() => AppEnvironment.GetAppModel(this).Sidebar.IsSliding, sliding => { if (sliding) paneWidthAtSlideStart = Bounds.Width; });
     }
 
@@ -189,7 +211,7 @@ public sealed class ThreadTimeline : Decorator
     private Control CreateColumn(Control rows, double viewportHeight, double? layoutWidth)
     {
         var stack = new Grid { RowDefinitions = new RowDefinitions("*,Auto") }; Grid.SetRow(rows, 1); stack.Children.Add(new Border()); stack.Children.Add(rows);
-        var content = new Border { MaxWidth = 820, Margin = new Thickness(20, Chrome.ContentTopInset, 20, 18), Child = stack, HorizontalAlignment = HorizontalAlignment.Center };
+        var content = new Border { MaxWidth = 820, Margin = new Thickness(20, Chrome.ContentTopInset, 20, 18), Child = stack, HorizontalAlignment = HorizontalAlignment.Stretch };
         var column = new Grid { MinHeight = viewportHeight, Children = { content } }; if (layoutWidth is { } width) column.Width = width; return column;
     }
     // :272-278
@@ -207,7 +229,7 @@ public sealed class ThreadTimeline : Decorator
     // :366-382
     private Button EarlierPill(int hidden, Action load)
     {
-        var label = new StackPanel { Orientation = Orientation.Horizontal, Children = { SwiftImage.SystemName("chevron.up"), new TextBlock { Text = $"Show {hidden} earlier messages" }.Font(ChatFont.Chat(SwiftFont.TextStyle.Callout)) } };
+        var label = new StackPanel { Orientation = Orientation.Horizontal, Children = { SwiftImage.SystemName("chevron.up").Font(ChatFont.Chat(SwiftFont.TextStyle.Callout)), new TextBlock { Text = $"Show {hidden} earlier messages" }.Font(ChatFont.Chat(SwiftFont.TextStyle.Callout)) } };
         label.SetValue(Avalonia.Controls.Primitives.TemplatedControl.ForegroundProperty, SwiftColor.Secondary.Brush(this));
         var pill = PlainControls.Button(new Border { Padding = new Thickness(14, 7), CornerRadius = new CornerRadius(999), Background = SwiftColor.Quaternary.Opacity(0.5).Brush(this), Child = label }, load);
         pill.HorizontalAlignment = HorizontalAlignment.Center; pill.Margin = new Thickness(0, TimelineMetrics.RowSpacing, 0, 0); return pill;
@@ -217,13 +239,24 @@ public sealed class ThreadTimeline : Decorator
     private static ValueMap<string, HydraMentionTarget> MentionTargets(IReadOnlyList<ChatThread> @for) =>
         new(@for.OrderBy(head => head.CreatedAt).Where(head => head.Hydra is not null).Aggregate(new Dictionary<string, HydraMentionTarget>(StringComparer.Ordinal), (map, head) => { map[head.Hydra!.Persona.Name] = new HydraMentionTarget { ThreadID = head.Id, Task = head.Hydra.Task, Status = head.Hydra.HydraHeadInfoStatus }; return map; })); // :148-155
 
+    // :104-110. Nil finish dates sort as distantPast; membership is by roster index, not record identity.
+    private static HeadPills SplitHeadPills(IReadOnlyList<HydraHeadInfo> finished, DateTimeOffset? since)
+    {
+        var sorted = finished.OrderBy(head => head.FinishedAt ?? SwiftDate.DistantPast).ToArray();
+        var earlier = since is { } cut ? sorted.Where(head => (head.FinishedAt ?? SwiftDate.DistantPast) < cut).ToArray() : [];
+        var indices = earlier.Select(head => head.Index).ToHashSet();
+        return new HeadPills { Earlier = new(earlier.Select(head => checked((int)head.Index))), Later = new(sorted.Where(head => !indices.Contains(head.Index)).Select(head => checked((int)head.Index))) };
+    }
+
     // :307-311 private static func transition(for:) -> AnyTransition
     private static SwiftTransition Transition(DisplayBlock @for) =>
         @for is DisplayBlock.Turn { Summary: not null } or DisplayBlock.Group { Value: TimelineGroup.Work { Entries.Count: > SoftAppearLimit } } ? SwiftTransition.Identity : RowTransition; // :307-314
 
     // :317-321 static let rowTransition: AnyTransition
     public static SwiftTransition RowTransition =>
-        SwiftTransition.Asymmetric(SwiftTransition.Modifier(new SoftAppearModifier(false), new SoftAppearModifier(true)).Animation(Animation.SoftAppear), SwiftTransition.Identity); // :317-321
+        // :317-321; Chrome.swift:940-944. Decompose the modifier's exact layer effects so the shared transition
+        // interpolates them; its Bool-only modifier path otherwise applies identity immediately.
+        SwiftTransition.Asymmetric(SwiftTransition.Opacity.Combined(SwiftTransition.Offset(y: 4)).Animation(Animation.SoftAppear), SwiftTransition.Identity);
 
     // :824-826 private static func jumpTolerance(_:) -> CGFloat
     private static double JumpTolerance(double viewportHeight) =>
@@ -231,6 +264,22 @@ public sealed class ThreadTimeline : Decorator
 
     // :180-200. Width gating belongs to ChatView, which supplies showsMinimap.
     private static bool ShouldShowMinimap(bool enabled, IReadOnlyList<DisplayBlock> blocks) => enabled && blocks.Count(block => block.HasUserMessage) > 1;
+    // :179-208
+    private Control? CreateRail(IReadOnlyList<DisplayBlock> blocks, bool enabled, double columnHeight) => !ShouldShowMinimap(enabled, blocks) ? null : new TimelineMinimapColumn(blocks, tracking, Math.Max(0, columnHeight - WindowChrome.TitlebarHeight), (id, animated) => Jump(id, blocks, animated)) { Width = 30, HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, WindowChrome.TitlebarHeight, 0, 0), RenderTransform = new TranslateTransform(-ChatView.GetReserveSlideLeading(this) - ChatView.GetReserveSlideOffset(this), 0) };
+    // :114
+    private static string? MergeID(bool merging, string? noteID) => merging ? noteID ?? "hydra-merging" : null;
+    // :167-172
+    private static HashSet<Guid> RewindableIDs(bool supportsRewind, bool running, IEnumerable<Guid> turns) => supportsRewind && !running ? turns.ToHashSet() : [];
+    // :594-607. The source task captures this pass's immutable blocks, not a rebuilt list after sleeping.
+    private void StartInitialHistoryLoad(IReadOnlyList<DisplayBlock> blocks)
+    {
+        initialHistoryTask?.Cancel(); initialHistoryStarted = true;
+        initialHistoryTask = MainActor.Spawn(async () =>
+        {
+            if (!await SwiftTask.TrySleep(TimeSpan.FromMilliseconds(250))) return;
+            tracking.HoldEnd(1.0); LoadEarlier(blocks, TimelineWindow.Initial); redraw?.Invoke(); tracking.ArmBlankWatch(); await WarmMarkdown();
+        });
+    }
     // :335-338,379-382,404-409. Intersections are area fractions, not pixel distances.
     private static double VisibleFraction(Control row, ScrollViewer scroll)
     {
@@ -285,7 +334,11 @@ public sealed class ThreadTimeline : Decorator
     private bool SameInputs(ThreadTimeline other) => inputs == other.inputs;
     // :289-297
     private static string[] FinishedMarkdownTexts(IReadOnlyList<TimelineEntry> entries) => entries.Where(entry => entry.Item.TimelineItemContent is TimelineItem.Content.Assistant { Value.IsStreaming: false }).Select(entry => ((TimelineItem.Content.Assistant)entry.Item.TimelineItemContent).Value.Text).ToArray();
-    private async Task WarmMarkdown() { if (ownerRuntime is null) return; var texts = FinishedMarkdownTexts(ownerRuntime.Entries); if (texts.Length != 0) await MarkdownView.Warm(texts); }
+    private async Task WarmMarkdown()
+    {
+        if (ownerRuntime is null) return; var texts = FinishedMarkdownTexts(ownerRuntime.Entries); if (texts.Length == 0) return;
+        try { await MarkdownView.Warm(texts); } catch (Exception) { } // :296, try?; warming errors, including cancellation, are deliberately ignored.
+    }
     // :624-661
     private void NoteTurnChange(bool running, long autoStartedToken)
     {
@@ -307,21 +360,21 @@ public sealed class ThreadTimeline : Decorator
     // :840-851
     private void SettleAfterResize() { if (tracking.IsUserScrolling || tracking.IsCoasting || tracking.IsReaderScrolling) { tracking.ArmViewportRefresh(); return; } if (tracking.IsPinnedToBottom) SnapEnd(); else tracking.ArmViewportRefresh(); tracking.ArmBlankWatch(); }
 
-    // :2238-2243 extension EnvironmentValues { var revealTimelineEnd: TimelineRevealBox? }, an inherited environment
+    // :2250-2256 extension EnvironmentValues { var revealTimelineEnd: TimelineRevealBox? }, an inherited environment
     // value (R-VIEW-6, ED-095).
     public static readonly AttachedProperty<TimelineRevealBox?> RevealTimelineEndProperty =
         AvaloniaProperty.RegisterAttached<Control, TimelineRevealBox?>(
             "RevealTimelineEnd", typeof(ThreadTimeline), RevealTimelineEndKey.DefaultValue, inherits: true);
 
-    // :2240 get
+    // :2253 get
     public static TimelineRevealBox? GetRevealTimelineEnd(Control control) => control.GetValue(RevealTimelineEndProperty);
 
-    // :2241 set
+    // :2254 set
     public static void SetRevealTimelineEnd(Control control, TimelineRevealBox? value) =>
         control.SetValue(RevealTimelineEndProperty, value);
 }
 
-/// <summary>:887-1237 <c>@MainActor @Observable final class TimelineScrollTracking: ScrollActivityReporter</c>.</summary>
+/// <summary>:903-1245 <c>@MainActor @Observable final class TimelineScrollTracking: ScrollActivityReporter</c>.</summary>
 public sealed class TimelineScrollTracking : MainActorModel, ScrollActivityReporter
 {
     private string[] outlineIDs = []; // :923
@@ -510,14 +563,14 @@ public sealed class TimelineScrollTracking : MainActorModel, ScrollActivityRepor
     }
 }
 
-/// <summary>:1241-1271 <c>private struct ScrollViewProbe: NSViewRepresentable</c>.</summary>
+/// <summary>:1250-1287 <c>private struct ScrollViewProbe: NSViewRepresentable</c>.</summary>
 public sealed class ScrollViewProbe : Control
 {
     /// <param name="onResolve">:1242 <c>let onResolve: (NSView) -> Void</c>.</param>
     // :1244-1250 makeNSView / updateNSView
     public ScrollViewProbe(Action<Control> onResolve) { IsHitTestVisible = false; Width = Height = 0; AttachedToVisualTree += (_, _) => onResolve(this); } // :1249-1283
 
-    /// <summary>:1252-1270 <c>private final class ProbeView: NSView</c>.</summary>
+    /// <summary>:1261-1286 <c>private final class ProbeView: NSView</c>.</summary>
     private sealed class ProbeView : Control
     {
         // :1253 var onResolve: (NSView) -> Void
@@ -528,7 +581,7 @@ public sealed class ScrollViewProbe : Control
     }
 }
 
-/// <summary>:1281-1341 <c>@MainActor @Observable final class FrontMonitor</c>.</summary>
+/// <summary>:1292-1353 <c>@MainActor @Observable final class FrontMonitor</c>.</summary>
 public sealed class FrontMonitor : MainActorModel
 {
     private WeakReference<Avalonia.Controls.Window>? uncovered; // :1303
@@ -570,8 +623,7 @@ public sealed class FrontMonitor : MainActorModel
     private void RefreshVisibility() { IsVisible = windows.Any(reference => reference.TryGetTarget(out var window) && window.IsActive && window.IsVisible && window.WindowState != WindowState.Minimized); } // :1350-1353 (native occlusion check remains STOP #3).
 }
 
-/// <summary>:1346-1375 <c>private struct ScrollMetrics: Equatable</c>. The init(geometry:) (:1356-1374) waits on a
-/// port type for ScrollGeometry.</summary>
+/// <summary>:1355-1384 <c>private struct ScrollMetrics: Equatable</c>. From adapts the native scroll geometry.</summary>
 public sealed record ScrollMetrics
 {
     public double ContentHeight { get; init; }      // :1347
@@ -580,9 +632,16 @@ public sealed record ScrollMetrics
     public double Travel { get; init; }             // :1350
     public double CenterY { get; init; }            // :1352
     public double Offset { get; init; }             // :1354
+    // :1365-1384. Avalonia has no separate content-safe-area insets here; caller supplies zero for those two values.
+    internal static ScrollMetrics From(double contentHeight, double containerHeight, double offset, double top, double bottom, double centerY) => new()
+    {
+        ContentHeight = contentHeight, ContainerHeight = containerHeight, Offset = offset, CenterY = centerY,
+        Travel = Math.Min(Math.Max(0, offset + top), Math.Max(0, contentHeight + top + bottom - containerHeight)),
+        DistanceFromBottom = contentHeight + top + bottom <= containerHeight + 1 ? 0 : contentHeight + bottom - offset - containerHeight,
+    };
 }
 
-/// <summary>:1377-1450 <c>enum TimelineGroup: Identifiable, Equatable</c> (R-ENUM-2).</summary>
+/// <summary>:1386-1459 <c>enum TimelineGroup: Identifiable, Equatable</c> (R-ENUM-2).</summary>
 public abstract record TimelineGroup
 {
     private TimelineGroup() { }
@@ -635,14 +694,14 @@ public abstract record TimelineGroup
     }
 }
 
-/// <summary>:1454 <c>struct HeadPills: Equatable</c>.</summary>
+/// <summary>:1463-1468 <c>struct HeadPills: Equatable</c>.</summary>
 public sealed record HeadPills
 {
     public ValueList<int> Earlier { get; init; } = ValueList<int>.Empty; // :1454 var earlier: [Int] = []
     public ValueList<int> Later { get; init; } = ValueList<int>.Empty;   // :1454 var later: [Int] = []
 }
 
-/// <summary>:1467-1644 <c>enum DisplayBlock: Identifiable, Equatable</c> (R-ENUM-2).</summary>
+/// <summary>:1476-1653 <c>enum DisplayBlock: Identifiable, Equatable</c> (R-ENUM-2).</summary>
 public abstract record DisplayBlock
 {
     private DisplayBlock() { }
@@ -672,7 +731,7 @@ public abstract record DisplayBlock
     // :1488 case headsWorking(heads: [Int], trailing: Bool)
     public sealed record HeadsWorking(ValueList<int> Heads, bool Trailing) : DisplayBlock;
 
-    /// <summary>:1537-1544 <c>struct Built</c>.</summary>
+    /// <summary>:1546-1553 <c>struct Built</c>.</summary>
     public sealed record Built(ValueList<DisplayBlock> Blocks, int StableCount, int LastRunStart); // :1538-1543
 
     // :1490-1498 var id: String
@@ -742,7 +801,7 @@ public abstract record DisplayBlock
     }
 }
 
-/// <summary>:1652-1787 <c>@MainActor final class TimelineBlockCache</c>.</summary>
+/// <summary>:1662-1796 <c>@MainActor final class TimelineBlockCache</c>.</summary>
 public sealed class TimelineBlockCache
 {
     private static readonly Dictionary<Guid, TimelineBlockCache> shared = new(); // :1666
@@ -792,8 +851,7 @@ public sealed class TimelineBlockCache
         if (roster) list.AddRange(HydraRoster.Personas.Where(persona => seen.Add(persona.Name))); personaHeads = indices; personaRoster = roster; personas = new(list); return personas; // :1784-1795
     }
 
-    /// <summary>:1675-1697 <c>private struct Key: Equatable</c>. <c>entries: [ObjectIdentifier]</c> (:1676) keeps the
-    /// entries, compared by identity by the implementing unit (no port type for ObjectIdentifier yet).</summary>
+    /// <summary>:1684-1706 <c>private struct Key: Equatable</c>. Entry references preserve ObjectIdentifier equality.</summary>
     private sealed record Key
     {
         public required IReadOnlyList<TimelineEntry> Entries { get; init; } // :1676
@@ -810,7 +868,7 @@ public sealed class TimelineBlockCache
     }
 }
 
-/// <summary>:1795-1799 <c>enum TimelineWindow</c>.</summary>
+/// <summary>:1804-1811 <c>enum TimelineWindow</c>.</summary>
 public static class TimelineWindow
 {
     public const int FirstPaint = 3; // :1796
@@ -819,7 +877,7 @@ public static class TimelineWindow
     public const int EagerLimit = 96; // :1808-1810 B3 eager stack ceiling
 }
 
-/// <summary>:1805-1852 <c>struct TimelineMeta</c>.</summary>
+/// <summary>:1817-1863 <c>struct TimelineMeta</c>.</summary>
 public sealed record TimelineMeta
 {
     public ValueMap<Guid, string> LastAssistantIDByTurn { get; init; } = ValueMap<Guid, string>.Empty; // :1806
@@ -849,13 +907,13 @@ public sealed record TimelineMeta
         @for is TimelineGroup.Single { Value.TimelineEntryKind: TimelineEntry.Kind.TurnEnd } single && single.Value.TurnID is { } turn && TurnsWithReply.Contains(turn); // :1858-1863
 }
 
-/// <summary>:1857-1863 <c>struct RowContext: Equatable</c>.</summary>
+/// <summary>:1869-1875 <c>struct RowContext: Equatable</c>.</summary>
 /// <param name="WorkingDirectory">:1858 <c>var workingDirectory: String?</c>.</param>
 /// <param name="CanRewind">:1860 <c>var canRewind: Bool</c>.</param>
 /// <param name="Chronological">:1862 <c>var chronological: Bool</c>.</param>
 public sealed record RowContext(string? WorkingDirectory, bool CanRewind, bool Chronological);
 
-/// <summary>:1865-1925 <c>private struct DisplayBlockView: View, Equatable</c>.</summary>
+/// <summary>:1877-1936 <c>private struct DisplayBlockView: View, Equatable</c>.</summary>
 public sealed class DisplayBlockView : Decorator
 {
     /// <param name="block">:1866 <c>let block: DisplayBlock</c>.</param>
@@ -883,7 +941,7 @@ public sealed class DisplayBlockView : Decorator
         (new(entries.Where(entry => entry.TimelineEntryKind == TimelineEntry.Kind.User)), new(entries.Where(entry => entry.TimelineEntryKind != TimelineEntry.Kind.User))); // :1887-1895
 }
 
-/// <summary>:1930-1990 <c>private struct TurnRunningBlock: View</c>.</summary>
+/// <summary>:1942-2002 <c>private struct TurnRunningBlock: View</c>.</summary>
 public sealed class TurnRunningBlock : Decorator
 {
     /// <param name="runtime">:1931 <c>let runtime: ThreadRuntime</c>.</param>
@@ -894,9 +952,9 @@ public sealed class TurnRunningBlock : Decorator
     public TurnRunningBlock(ThreadRuntime runtime, ValueList<TimelineEntry> entries, bool showsWorking, RowContext context)
     {
         var partition = Partition(new TurnGroupCache().Groups(entries)); var stack = new StackPanel { Spacing = TimelineMetrics.RowSpacing }; Child = stack;
-        foreach (var group in partition.Rows) stack.Children.Add(new TurnRow(group, runtime, context).Transition(ThreadTimeline.RowTransition));
-        if (partition.Heads is { } heads) stack.Children.Add(new TurnRow(heads, runtime, context).Transition(ThreadTimeline.RowTransition));
-        if (showsWorking || partition.Work.Count != 0) stack.Children.Add(new WorkingBlockView(runtime, partition.Work, context.WorkingDirectory, context.Chronological, showsWorking ? null : entries).Transition(ThreadTimeline.RowTransition)); // :1977-2001
+        foreach (var group in partition.Rows) SwiftTransition.Insert(stack, stack.Children.Count, new TurnRow(group, runtime, context).Transition(ThreadTimeline.RowTransition));
+        if (partition.Heads is { } heads) SwiftTransition.Insert(stack, stack.Children.Count, new TurnRow(heads, runtime, context).Transition(ThreadTimeline.RowTransition));
+        if (showsWorking || partition.Work.Count != 0) SwiftTransition.Insert(stack, stack.Children.Count, new WorkingBlockView(runtime, partition.Work, context.WorkingDirectory, context.Chronological, showsWorking ? null : entries).Transition(ThreadTimeline.RowTransition)); // :1977-2001
     }
     // :1948-1976
     private static (ValueList<TimelineGroup> Rows, TimelineGroup? Heads, ValueList<TimelineEntry> Work) Partition(IReadOnlyList<TimelineGroup> groups)
@@ -907,7 +965,7 @@ public sealed class TurnRunningBlock : Decorator
     }
 }
 
-/// <summary>:1994-2007 <c>@MainActor private final class TurnGroupCache</c>.</summary>
+/// <summary>:2007-2019 <c>@MainActor private final class TurnGroupCache</c>.</summary>
 public sealed class TurnGroupCache
 {
     private TimelineEntry[] identities = []; // :2007
@@ -919,7 +977,7 @@ public sealed class TurnGroupCache
     }
 }
 
-/// <summary>:2011-2025 <c>private struct TurnRow: View, Equatable</c>.</summary>
+/// <summary>:2023-2037 <c>private struct TurnRow: View, Equatable</c>.</summary>
 public sealed class TurnRow : Decorator
 {
     /// <param name="group">:2012 <c>let group: TimelineGroup</c>.</param>
@@ -930,7 +988,7 @@ public sealed class TurnRow : Decorator
         Child = new TimelineGroupView(group, runtime, null, false, context); // :2033-2036
 }
 
-/// <summary>:2027-2058 <c>struct TimelineGroupView: View</c>.</summary>
+/// <summary>:2039-2071 <c>struct TimelineGroupView: View</c>.</summary>
 public sealed class TimelineGroupView : Decorator
 {
     /// <param name="group">:2028 <c>let group: TimelineGroup</c>.</param>
@@ -960,9 +1018,12 @@ public sealed class TimelineGroupView : Decorator
     }
 }
 
-/// <summary>:2063-2186 <c>private struct WorkingIndicator: View</c>.</summary>
+/// <summary>:2075-2197 <c>private struct WorkingIndicator: View</c>.</summary>
 public sealed class WorkingIndicator : Decorator
 {
+    private Action<ValueList<ThinkingStep>, ValueList<TimelineEntry>, ValueList<TimelineEntry>, bool>? applyInputs;
+    // :2080-2092. Updating view values retains the indicator's local expansion state.
+    internal void UpdateValues(ValueList<ThinkingStep> thinkingSteps, ValueList<TimelineEntry> liveWork, ValueList<TimelineEntry> turnEntries, bool showsCard) => applyInputs?.Invoke(thinkingSteps, liveWork, turnEntries, showsCard);
     // :2083 private static let change = Animation.smooth(duration: 0.3)
     private static Animation Change => Animation.Smooth(duration: 0.3);
 
@@ -995,15 +1056,17 @@ public sealed class WorkingIndicator : Decorator
         var isExpanded = chronological; var showsAllSteps = chronological; var now = SwiftDate.Now;
         var canExpand = thinkingSteps.Count != 0 || liveWork.Count != 0; var running = finishedAt is null;
         var shell = new Border { CornerRadius = new CornerRadius(TimelineMetrics.PillRadius), Background = SwiftColor.Quaternary.Opacity(0.32).Brush(this) }; Child = shell;
-        void Draw()
+        string? drawnLabel = null;
+        void Draw(bool force = true)
         {
             var elapsed = Math.Max(0, (now - startedAt).TotalSeconds); var word = WorkingWords.Word(seed, (long)elapsed);
             // STOP #2 at the external summary only: no guessed tool labels.
             var label = liveWork.Any(entry => entry.TimelineEntryKind == TimelineEntry.Kind.Tool) ? WorkGroupSummary.Text(liveWork) : running ? word + "\u2026" : "Earlier steps"; // :2100-2105
+            if (!force && drawnLabel == label) return; drawnLabel = label;
             var column = new StackPanel { Spacing = TimelineMetrics.RowSpacing };
             var header = new BaselineHeader(showsCard);
             header.Children.Add(new HydraWorkingTitle(label, running, TextAlignment.Left)); header.Children.Add(new HydraElapsedTime(startedAt, finishedAt, running));
-            if (canExpand) { var chevron = SwiftImage.SystemName("chevron.right").Font(ChatFont.Chat(SwiftFont.TextStyle.Caption2, SwiftFont.Weight.Semibold)); chevron.RenderTransform = new RotateTransform(isExpanded ? 90 : 0); header.Children.Add(chevron); }
+            if (canExpand) { var chevron = SwiftImage.SystemName("chevron.right").Font(ChatFont.Chat(SwiftFont.TextStyle.Caption2, SwiftFont.Weight.Semibold)).ForegroundStyle(SwiftColor.Tertiary).Transition(SwiftTransition.Opacity); chevron.RenderTransform = new RotateTransform(isExpanded ? 90 : 0); header.Children.Add(chevron); }
             var inner = new StackPanel { Spacing = 10, Children = { header } };
             if (showsCard) inner.Children.Add(new HydraProgressBar(runtime, startedAt, finishedAt, running ? HydraHeadInfo.Status.Running : HydraHeadInfo.Status.Stopped, Chrome.Accent, turnEntries));
             var frame = new Border { Padding = showsCard ? new Thickness(14, 11) : new Thickness(TimelineMetrics.PillLeading, TimelineMetrics.PillVertical, TimelineMetrics.PillTrailing, TimelineMetrics.PillVertical), CornerRadius = new CornerRadius(TimelineMetrics.PillRadius), Child = inner, HorizontalAlignment = HorizontalAlignment.Left };
@@ -1017,7 +1080,7 @@ public sealed class WorkingIndicator : Decorator
                 {
                     var thinking = new StackPanel { Spacing = TimelineMetrics.RowSpacing, Margin = new Thickness(TimelineMetrics.IconWidth + TimelineMetrics.IconSpacing, 0, 0, 0) };
                     MarkdownView.SetMarkdownPointSize(thinking, 12); MarkdownView.SetMarkdownDimmed(thinking, true);
-                    foreach (var step in thinkingSteps) thinking.Children.Add(new MarkdownView(step.Text, step.IsStreaming)); details.Children.Add(thinking.Transition(SwiftTransition.SoftAppear));
+                    foreach (var step in thinkingSteps) thinking.Children.Add(new MarkdownView(step.Text, step.IsStreaming)); SwiftTransition.Insert(details, details.Children.Count, thinking.Transition(ThreadTimeline.RowTransition));
                 }
                 // STOP #2: WorkSteps remains the external implementation, with the original binding and arguments.
                 if (liveWork.Count != 0) details.Children.Add(new WorkSteps(liveWork, runtime, new Binding<bool>(() => showsAllSteps, value => showsAllSteps = value), workingDirectory));
@@ -1025,8 +1088,9 @@ public sealed class WorkingIndicator : Decorator
             }
             shell.Child = column;
         }
+        applyInputs = (thinking, work, entries, card) => { thinkingSteps = thinking; liveWork = work; turnEntries = entries; showsCard = card; canExpand = thinking.Count != 0 || work.Count != 0; Draw(); };
         Draw(); // :2185-2188. The source retains chronological, but ThreadTimeline always passes false.
-        this.Task(() => FrontMonitor.Shared.Current.IsVisible && running, async active => { if (!active) return; while (await SwiftTask.TrySleep(TimeSpan.FromSeconds(1))) await MainActor.Run(() => { now = SwiftDate.Now; Draw(); }); }); // :2189-2196
+        this.Task(() => FrontMonitor.Shared.Current.IsVisible && running, async active => { if (!active) return; while (await SwiftTask.TrySleep(TimeSpan.FromSeconds(1))) await MainActor.Run(() => { now = SwiftDate.Now; Draw(false); }); }); // :2189-2196
     }
 
     // :2122. The title fills only the card's surplus width; every child aligns on its first text baseline.
@@ -1049,12 +1113,12 @@ public sealed class WorkingIndicator : Decorator
     }
 }
 
-/// <summary>:2189-2192 <c>struct ThinkingStep: Equatable</c>.</summary>
+/// <summary>:2201-2204 <c>struct ThinkingStep: Equatable</c>.</summary>
 /// <param name="Text">:2190 <c>var text: String</c>.</param>
 /// <param name="IsStreaming">:2191 <c>var isStreaming: Bool</c>.</param>
 public sealed record ThinkingStep(string Text, bool IsStreaming);
 
-/// <summary>:2195-2215 <c>@MainActor @Observable final class TimelineScrollState</c>.</summary>
+/// <summary>:2209-2227 <c>@MainActor @Observable final class TimelineScrollState</c>.</summary>
 public sealed class TimelineScrollState : MainActorModel
 {
     private bool showsJumpButton; // :2198 = false
@@ -1079,7 +1143,7 @@ public sealed class TimelineScrollState : MainActorModel
         AreaGrowthRequest++; // :2224-2226
 }
 
-/// <summary>:2222-2232 <c>@MainActor final class TimelineRevealBox: Equatable</c>. Swift's <c>==</c> is identity
+/// <summary>:2235-2244 <c>@MainActor final class TimelineRevealBox: Equatable</c>. Swift's <c>==</c> is identity
 /// (<c>===</c>, :2229-2231), which is a C# class's default equality.</summary>
 public sealed class TimelineRevealBox
 {
@@ -1090,15 +1154,15 @@ public sealed class TimelineRevealBox
     public Action Follow { get; set; } = () => { };
 }
 
-/// <summary>:2234-2236 <c>private struct RevealTimelineEndKey: EnvironmentKey</c>: the default of
+/// <summary>:2246-2248 <c>private struct RevealTimelineEndKey: EnvironmentKey</c>: the default of
 /// ThreadTimeline.RevealTimelineEndProperty.</summary>
 file static class RevealTimelineEndKey
 {
-    // :2235 static let defaultValue: TimelineRevealBox? = nil
+    // :2247 static let defaultValue: TimelineRevealBox? = nil
     public static TimelineRevealBox? DefaultValue => null;
 }
 
-/// <summary>:2249-2303 <c>private struct WorkingBlockView: View</c>.</summary>
+/// <summary>:2261-2315 <c>private struct WorkingBlockView: View</c>.</summary>
 public sealed class WorkingBlockView : Decorator
 {
     /// <param name="runtime">:2251 <c>let runtime: ThreadRuntime</c>.</param>
@@ -1109,8 +1173,12 @@ public sealed class WorkingBlockView : Decorator
     // :2260-2274 body
     public WorkingBlockView(ThreadRuntime runtime, ValueList<TimelineEntry> liveWork, string? workingDirectory, bool chronological = false, ValueList<TimelineEntry>? earlierEntries = null)
     {
-        this.Track(() => (AppEnvironment.GetAppModel(this).Settings.ShowsWorkingCard, AppEnvironment.GetAppModel(this).Settings.ShowReasoning, Thinking(runtime)), values =>
-            Child = new WorkingIndicator(runtime, earlierEntries?.FirstOrDefault()?.Item.Date ?? runtime.TurnStartedAt ?? SwiftDate.Now, WorkingWords.Seed(SwiftUUID.UuidString(runtime.ThreadID)), earlierEntries is null && values.ShowReasoning ? values.Item3 : new([]), liveWork, earlierEntries ?? TurnEntries(runtime), values.ShowsWorkingCard, earlierEntries?.LastOrDefault()?.Item.Date, chronological, workingDirectory)); // :2267-2285
+        this.Track(() => (AppEnvironment.GetAppModel(this).Settings.ShowsWorkingCard, AppEnvironment.GetAppModel(this).Settings.ShowReasoning, earlierEntries is null && AppEnvironment.GetAppModel(this).Settings.ShowReasoning ? Thinking(runtime) : new ValueList<ThinkingStep>([])), values =>
+        {
+            var thinking = earlierEntries is null && values.ShowReasoning ? values.Item3 : new([]); var entries = earlierEntries ?? TurnEntries(runtime);
+            if (Child is WorkingIndicator indicator) indicator.UpdateValues(thinking, liveWork, entries, values.ShowsWorkingCard);
+            else Child = new WorkingIndicator(runtime, earlierEntries?.FirstOrDefault()?.Item.Date ?? runtime.TurnStartedAt ?? SwiftDate.Now, WorkingWords.Seed(SwiftUUID.UuidString(runtime.ThreadID)), thinking, liveWork, entries, values.ShowsWorkingCard, earlierEntries?.LastOrDefault()?.Item.Date, chronological, workingDirectory);
+        }); // :2267-2285
     }
 
     // :2278-2287 private static func turnEntries(of:) -> [TimelineEntry]
@@ -1123,7 +1191,7 @@ public sealed class WorkingBlockView : Decorator
     private static ValueList<ThinkingStep> Thinking(ThreadRuntime runtime) => new(TurnEntries(runtime).Where(entry => entry.TimelineEntryKind == TimelineEntry.Kind.Reasoning && entry.Item.TimelineItemContent is TimelineItem.Content.Reasoning { Value.Text.Length: > 0 }).Select(entry => { var reasoning = ((TimelineItem.Content.Reasoning)entry.Item.TimelineItemContent).Value; return new ThinkingStep(reasoning.Text, reasoning.IsStreaming); }));
 }
 
-/// <summary>:2308-2314 <c>private struct ScrollFreeze: ViewModifier</c>.</summary>
+/// <summary>:2320-2326 <c>private struct ScrollFreeze: ViewModifier</c>.</summary>
 /// <param name="Tracking">:2309 <c>let tracking: TimelineScrollTracking</c>.</param>
 public sealed record ScrollFreeze(TimelineScrollTracking Tracking)
 {
