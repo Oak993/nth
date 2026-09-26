@@ -1705,16 +1705,48 @@ internal sealed class ProjectRow : Decorator
     // :1093-1163 body. `snapshot`, `count` and `togglesExpansion` are stored, non-reactive inputs in Swift too (no
     // @State on any of them): the caller (ProjectItems, part 2) already rebuilds every row fresh whenever the thread
     // count, a project's own expansion or the settled fold changes (ListMotion, :117-119), so this constructor reads
-    // them once. `project` (:1085) and `isActive` (:1096) are computed properties Swift's body re-reads on every
-    // render; SidebarRow (UI/Chrome/Chrome.cs) has no external hook to re-invoke its own `accessory` closure other
-    // than its own internal hover state, so this Tracks the two computed values directly onto the row it already
-    // built, the way ActivityViewToggle and SettledHeader mutate an already-built control's properties rather than
-    // rebuilding it (surgical update, not a fresh SidebarRow, so its own internal hover state survives).
+    // them once. `project` (:1085, including its own :1108 `.icon`) and `isActive` (:1096) are computed properties
+    // Swift's body re-reads on every render; SidebarRow (UI/Chrome/Chrome.cs) has no external hook to re-invoke its
+    // own `icon`/`accessory` closures other than its own internal hover state, so this Tracks the computed values
+    // directly onto the row it already built, the way ActivityViewToggle and SettledHeader mutate an already-built
+    // control's properties rather than rebuilding it (surgical update, not a fresh SidebarRow, so its own internal
+    // hover state survives): one Track for `current`/`isActive` (also re-populating the icon glyph, since Swift
+    // recomputes it from the same `project` read) and a second, below, for `isMenuPresented` (:1091), a @State Swift
+    // re-reads on every write regardless of hover, which SidebarRow's own hover Track alone cannot reach (REVIEW
+    // FIX, part 6: both Tracks were reviewer findings against the initial part 6 implementation).
     public ProjectRow(Project snapshot, long count, bool togglesExpansion = true)
     {
         var state = new ViewState();
         var current = snapshot; // :1085, refreshed by the Track below
         var isMenuPresented = new Binding<bool>(() => state.IsMenuPresented, value => state.IsMenuPresented = value);
+        SidebarIconBadge? iconBadge = null;
+        Control BuildIconGlyph() => // :1108-1112, re-read fresh wherever this is invoked, matching Swift's computed `project.icon`
+            current.Icon is { } icon ? new ProjectIconMark(icon, 12) : new SidebarSymbol("folder.fill");
+        Control BuildAccessory(bool hovering) // :1115-1133, invoked by SidebarRow's own hover Track and, below, this row's own isMenuPresented Track
+        {
+            if (hovering || state.IsMenuPresented) // :1116
+            {
+                var isActive = Model.Settings.IsProjectActive(current.Id); // :1096, read fresh at invocation time
+                var cluster = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 0 }; // :1117
+                cluster.Children.Add(new RowActionsButton(Actions(Model, current, isActive), isMenuPresented)); // :1118
+                var plus = PlainControls.Button(new RowAccessoryIcon("plus"), () => Model.NewThread(current)); // :1119-1123, :1124 .buttonStyle(.plain)
+                ToolTip.SetTip(plus, "New thread in " + current.Name); // :1125
+                cluster.Children.Add(plus);
+                return cluster;
+            }
+            if (!current.IsExpanded && count > 0) // :1127
+            {
+                var text = new TextBlock { Text = count.ToString(CultureInfo.InvariantCulture) }; // :1128
+                SwiftFont.Subheadline.MonospacedDigit().Apply(text); // :1129
+                text.Foreground = Chrome.SecondaryText.Brush(text); // :1130
+                // SidebarRow (UI/Chrome/Chrome.cs) sets `built.Margin` itself, unconditionally, once accessory()
+                // returns; a Margin set here would be overwritten. :1131's own .padding(.trailing, 4) nests
+                // inside SidebarRow's own trailing space the same way SwiftUI composes nested paddings, so it is
+                // carried as this wrapper's own Padding, which SidebarRow's Margin assignment does not touch.
+                return new Border { Padding = new Thickness(0, 0, 4, 0), Child = text };
+            }
+            return new Border(); // :1115-1133, no branch matched: EmptyView, nothing drawn
+        }
         var row = new SidebarRow(
             snapshot.Name, // :1098; no source path renames a project, so the title itself needs no reactivity
             action: () => // :1100-1105
@@ -1722,33 +1754,8 @@ internal sealed class ProjectRow : Decorator
                 if (!togglesExpansion) return; // :1101
                 Transaction.WithAnimation(Chrome.PanelSlide, () => Model.UpdateProject(snapshot.Id, p => p with { IsExpanded = !p.IsExpanded })); // :1102-1104
             },
-            icon: () => new SidebarIconBadge(() => // :1106-1114
-                current.Icon is { } icon ? new ProjectIconMark(icon, 12) : new SidebarSymbol("folder.fill")), // :1108-1112
-            accessory: hovering => // :1115-1133, invoked by SidebarRow's own hover Track (see this constructor's own comment)
-            {
-                if (hovering || state.IsMenuPresented) // :1116
-                {
-                    var isActive = Model.Settings.IsProjectActive(current.Id); // :1096, read fresh at invocation time
-                    var cluster = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 0 }; // :1117
-                    cluster.Children.Add(new RowActionsButton(Actions(Model, current, isActive), isMenuPresented)); // :1118
-                    var plus = PlainControls.Button(new RowAccessoryIcon("plus"), () => Model.NewThread(current)); // :1119-1123, :1124 .buttonStyle(.plain)
-                    ToolTip.SetTip(plus, "New thread in " + current.Name); // :1125
-                    cluster.Children.Add(plus);
-                    return cluster;
-                }
-                if (!current.IsExpanded && count > 0) // :1127
-                {
-                    var text = new TextBlock { Text = count.ToString(CultureInfo.InvariantCulture) }; // :1128
-                    SwiftFont.Subheadline.MonospacedDigit().Apply(text); // :1129
-                    text.Foreground = Chrome.SecondaryText.Brush(text); // :1130
-                    // SidebarRow (UI/Chrome/Chrome.cs) sets `built.Margin` itself, unconditionally, once accessory()
-                    // returns; a Margin set here would be overwritten. :1131's own .padding(.trailing, 4) nests
-                    // inside SidebarRow's own trailing space the same way SwiftUI composes nested paddings, so it is
-                    // carried as this wrapper's own Padding, which SidebarRow's Margin assignment does not touch.
-                    return new Border { Padding = new Thickness(0, 0, 4, 0), Child = text };
-                }
-                return new Border(); // :1115-1133, no branch matched: EmptyView, nothing drawn
-            },
+            icon: () => iconBadge = new SidebarIconBadge(BuildIconGlyph), // :1106-1114
+            accessory: BuildAccessory,
             accessoryWidth: 40); // :1099
         row.Track(() =>
         {
@@ -1764,8 +1771,50 @@ internal sealed class ProjectRow : Decorator
         {
             current = value.Item1;
             Opacity = value.Item2 ? 1d : 0.55d; // :1135, on this ProjectRow itself (the whole body, as the source's own .opacity() wraps it), not the inner SidebarRow
+            // REVIEW FIX (part 6): SwiftUI re-reads `project.icon` (:1085, :1108) on every render, but the icon
+            // slot (SidebarIconBadge, UI/Chrome/Chrome.cs) is built once, synchronously, inside SidebarRow's own
+            // constructor (Chrome.cs:1079 `var iconSlot = icon();`), before this Track is ever installed; nothing
+            // else re-invokes that closure. This Track already fires whenever the live project record changes
+            // (the same record `current.Icon` reads), so it also re-populates the already-built badge in place,
+            // the way this method's own header comment describes the whole constructor doing (surgical update,
+            // not a fresh SidebarRow).
+            if (iconBadge is not null) ReplaceGlyph(iconBadge, BuildIconGlyph());
+        });
+        // REVIEW FIX (part 6): SidebarRow's own hover Track (Chrome.cs:1120-1128) rebuilds the trailing accessory
+        // only when ITS OWN `state.IsHovering` changes; `isMenuPresented` (:1091) lives on this row's own ViewState,
+        // which nothing in SidebarRow ever reads, so closing the ellipsis popover while the pointer is not back
+        // over the row left the ellipsis+plus cluster on screen indefinitely. Swift's `body` re-evaluates in full
+        // on any @State write, so any write to `isMenuPresented` alone must refresh this same accessory; there is
+        // no external hook to re-invoke SidebarRow's own hover Track, so this reaches into the already-built
+        // overlay the same way SidebarRow's own Track does (Chrome.cs:1119-1128), using the button's own
+        // Avalonia-tracked IsPointerOver as this row's outside view of `state.IsHovering` (both are driven by the
+        // same PointerEntered/PointerExited pair, UI/Port/PlainControls.cs OnHover).
+        row.Track(() => state.IsMenuPresented, _ =>
+        {
+            if (row.Child is not Panel overlay || overlay.Children.Count == 0) return;
+            var hovering = overlay.Children[0] is InputElement button && button.IsPointerOver;
+            var built = BuildAccessory(hovering); // :732-733/:1122
+            built.Margin = new Thickness(0, 0, 6, 0); // :734, matching SidebarRow's own treatment of the built accessory
+            built.HorizontalAlignment = HorizontalAlignment.Right;
+            built.VerticalAlignment = VerticalAlignment.Center;
+            if (overlay.Children.Count > 1) overlay.Children.RemoveAt(overlay.Children.Count - 1);
+            overlay.Children.Add(built);
         });
         Child = row;
+    }
+
+    // REVIEW FIX (part 6): SidebarIconBadge (UI/Chrome/Chrome.cs :674-677) sets its glyph's own foreground and
+    // centers it once, inside its own constructor, the moment the glyph factory first returns; swapping the glyph
+    // afterwards (this method) must reapply that same treatment, since a freshly built ProjectIconMark or
+    // SidebarSymbol does not get it a second time from SidebarIconBadge's own constructor.
+    private static void ReplaceGlyph(SidebarIconBadge badge, Control glyph)
+    {
+        glyph.SetValue(TextElement.ForegroundProperty, Chrome.PrimaryText.Opacity(0.85).Brush(glyph)); // Chrome.cs :676
+        glyph.HorizontalAlignment = HorizontalAlignment.Center; // Chrome.cs :674, :677 (centered inside the Panel)
+        glyph.VerticalAlignment = VerticalAlignment.Center;
+        if (badge.Child is not Panel panel) return;
+        panel.Children.Clear();
+        panel.Children.Add(glyph);
     }
 
     // :5 @Environment(AppModel.self) private var model (this file's own convention: SidebarView.cs:337)

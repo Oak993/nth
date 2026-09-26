@@ -5259,6 +5259,102 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         });
     });
 
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-127")] // App/Views/Sidebar/SidebarView.swift:1085, :1106-1114 (REVIEW FIX, part 6)
+    public void The_icon_glyph_follows_the_live_project_icon_without_rebuilding_the_row() => headless.OnUiThread(() =>
+    {
+        // REVIEW FIX: :1085 `project` is a computed property Swift's body re-reads on every render, so :1106-1114's
+        // icon glyph always reflects the live project.icon, changed live from Settings' icon picker
+        // (SettingsView.swift:1152). The initial part 6 implementation built the glyph once, inside SidebarRow's
+        // own constructor (icon(), Chrome.cs:1079) and SidebarIconBadge's own constructor (glyph(), Chrome.cs:1044),
+        // synchronously before this class's own Track was ever installed, so a later icon change never reached the
+        // already-built row. Verified this fails (the glyph stays "folder.fill"/no TextBlock) against the pre-fix
+        // code and passes against ReplaceGlyph.
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha"); // no icon yet
+        var model = Model(harness, [project], []);
+        Control row = null!;
+        harness.Main.OnMain(() =>
+        {
+            row = ShownProjectRow(model, project, 0);
+            var fallback = LogicalQuery.SelfAndDescendants<SwiftImage>(row).Single(i => i.SymbolName is not null);
+            Assert.Equal("folder.fill", fallback.SymbolName); // :1111 SidebarSymbol("folder.fill"), no icon picked
+        });
+
+        harness.Main.OnMain(() => model.UpdateProject(project.Id, p => p with { Icon = new ProjectIcon.Symbol("star.fill") })); // :1108-1109, a picked symbol
+        harness.Main.OnMain(() =>
+        {
+            var symbol = LogicalQuery.SelfAndDescendants<SwiftImage>(row).Single(i => i.SymbolName is not null); // same row instance, not a fresh one
+            Assert.Equal("star.fill", symbol.SymbolName); // no longer the folder.fill fallback
+        });
+
+        harness.Main.OnMain(() => model.UpdateProject(project.Id, p => p with { Icon = new ProjectIcon.Emoji("\U0001F680") })); // :1108-1109, an emoji icon
+        harness.Main.OnMain(() =>
+        {
+            Assert.DoesNotContain(LogicalQuery.SelfAndDescendants<SwiftImage>(row), i => i.SymbolName is not null); // the symbol glyph is gone entirely
+            var emoji = LogicalQuery.SelfAndDescendants<TextBlock>(row).Single(t => t.Text == "\U0001F680"); // :18 Text(verbatim: emoji)
+            Assert.NotNull(emoji);
+        });
+
+        harness.Main.OnMain(() => model.UpdateProject(project.Id, p => p with { Icon = null })); // the icon is cleared again
+        harness.Main.OnMain(() =>
+        {
+            var backToFallback = LogicalQuery.SelfAndDescendants<SwiftImage>(row).Single(i => i.SymbolName is not null);
+            Assert.Equal("folder.fill", backToFallback.SymbolName); // :1111, back to the fallback
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-128")] // App/Views/Sidebar/SidebarView.swift:1091, :1115-1133 (REVIEW FIX, part 6)
+    public void The_hover_accessory_collapses_the_instant_the_ellipsis_menu_closes_even_while_not_hovering() => headless.OnUiThread(() =>
+    {
+        // REVIEW FIX: any write to :1091 `isMenuPresented` is a SwiftUI @State change that re-evaluates the whole
+        // body, including :1115-1133's accessory branch (`hovering || isMenuPresented`), with or without a
+        // concurrent hover change. The initial part 6 implementation only re-invoked the accessory closure from
+        // SidebarRow's own hover Track (Chrome.cs:1120-1128), keyed on ITS OWN state.IsHovering; a change to this
+        // row's own isMenuPresented alone (e.g. the ellipsis popover closing while the pointer is not back over the
+        // row) registered no dependency there, so the ellipsis+plus cluster stayed on screen indefinitely instead
+        // of reverting to the collapsed (here, empty: :1127 count == 0) state. Verified this fails (the cluster
+        // survives, the DoesNotContain assertions below fail) against the pre-fix code and passes against the added
+        // isMenuPresented Track. count is 0 (rather than a positive collapsed count, already covered independently
+        // by UI-SIDEBAR-009) so the collapsed branch is the plain EmptyView Border (:1115-1133's own last branch),
+        // not a fresh MonospacedDigit TextBlock: this assembly's headless Skia text-shaper (confirmed pre-existing,
+        // unrelated to this fix: tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs's own WarmFonts/CapHeight
+        // gaps) can throw "Could not create glyphTypeface" the first time a fresh glyph run is measured right after
+        // an older control carrying the same weight is torn out of the same overlay in the same pass, which the
+        // ellipsis/plus cluster's own removal below would otherwise also trigger a second time for that TextBlock.
+        using var harness = new AppModelHarness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource()); // the hover fill's own AnimatedColor needs a bound clock
+        using var presenter = Presentation.Presenter.Override(new RecordingPresenter()); // Avalonia 12.1.2 headless cannot open a real Popup (Port/ViewLifetime.cs); the ellipsis click below only needs isMenuPresented to flip, not a real popover
+        var project = NewProject(harness, "Alpha") with { IsExpanded = false };
+        var model = Model(harness, [project], []);
+        Control row = null!;
+        AvaloniaWindow window = null!;
+        harness.Main.OnMain(() =>
+        {
+            row = ShownProjectRow(model, project, 0); // :1127 count == 0, see this test's own header comment
+            window = WindowOf(row);
+        });
+        harness.Main.OnMain(() => window.MouseMove(row.TranslatePoint(new Point(10, 10), window)!.Value)); // :1116 hovering
+        Button ellipsis = null!;
+        harness.Main.OnMain(() =>
+        {
+            ellipsis = LogicalQuery.SelfAndDescendants<Button>(row).Single(b => ToolTip.GetTip(b) as string == "More"); // Popovers.cs :396
+            Click(ellipsis); // :391 isPresented.toggle() -> isMenuPresented = true
+        });
+        harness.Main.OnMain(() => window.MouseMove(new Point(1, 1))); // pointer leaves the row; :1116 hovering false, isMenuPresented still true
+        harness.Main.OnMain(() =>
+        {
+            Assert.Contains(LogicalQuery.SelfAndDescendants<Button>(row), b => ToolTip.GetTip(b) as string == "More"); // :1116 hovering || isMenuPresented, still shown
+            Click(ellipsis); // closes the popover the same way a menu item's dismiss() does (Popovers.cs SetClosePopover): isMenuPresented = false, pointer still away
+        });
+        harness.Main.OnMain(() =>
+        {
+            Assert.DoesNotContain(LogicalQuery.SelfAndDescendants<Button>(row), b => ToolTip.GetTip(b) as string == "More"); // :1127 the ellipsis must collapse
+            Assert.DoesNotContain(LogicalQuery.SelfAndDescendants<Button>(row), b => ToolTip.GetTip(b) as string == "New thread in Alpha"); // :1127 the plus button collapses with it
+        });
+    });
+
     // ---- UI-SIDEBAR-014: the project menu's items (ellipsis popover and context menu) ----
 
     [Fact]
