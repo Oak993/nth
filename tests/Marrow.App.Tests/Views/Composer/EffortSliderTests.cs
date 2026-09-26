@@ -413,6 +413,68 @@ public sealed class EffortSliderTests(HeadlessSession headless)
         AssertColor(SwiftColor.Yellow.Opacity(0.18).Resolve(theme), Effective(circle.Fill));
         window.Close();
     });
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-119")] // EffortSlider.swift:670 .symbolEffect(.bounce, value: isOn); ED-182 defers the effect itself but requires it be recorded (MARROW_DEFERRED ED-182), per SwiftImage.cs:32's own citation of this exact call site
+    public void A_fast_mode_buttons_glyph_records_the_deferred_bounce_symbol_effect_on_build_and_after_toggling() => headless.OnUiThread(() =>
+    {
+        var box = new ObservableBoolBox();
+        var control = new FastModeButton(box.AsBinding());
+        var window = Show(control);
+
+        Assert.Equal(SymbolEffectKind.Bounce, Assert.Single(window.GetVisualDescendants().OfType<SwiftImage>()).DeferredSymbolEffect);
+
+        box.Value = true;
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal(SymbolEffectKind.Bounce, Assert.Single(window.GetVisualDescendants().OfType<SwiftImage>()).DeferredSymbolEffect);
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-119")] // EffortSlider.swift:678 .onHover { isHovering = $0 } carries no withAnimation, unlike RoundIconButton's :702-703
+    public void Hovering_a_fast_mode_button_changes_its_plate_instantly_with_no_animation() => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        using var source = FrameClock.Source.Override(frames);
+        using var clock = SwiftClock.Provider.Override(new ManualTimeProvider());
+        var control = new FastModeButton(new ObservableBoolBox().AsBinding());
+        var window = Show(control);
+        var theme = window.ActualThemeVariant;
+        var circle = Assert.Single(window.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Ellipse>());
+
+        AssertColor(Chrome.Overlay(0.06).Resolve(theme), Effective(circle.Fill));
+
+        window.MouseMove(Centre(control, window), RawInputModifiers.None);
+        Dispatcher.UIThread.RunJobs(); // no frame ticks advanced: an animated transition would still show the old colour here
+
+        AssertColor(Chrome.Overlay(0.1).Resolve(theme), Effective(circle.Fill));
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-119")] // EffortSlider.swift:665, :673: the isOn toggle's plate rides the toggle's own spring(response: 0.3, dampingFraction: 0.7), not a hover ease
+    public void Toggling_a_fast_mode_button_animates_its_plate_with_the_toggles_spring_not_a_hover_ease() => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        using var source = FrameClock.Source.Override(frames);
+        using var clock = SwiftClock.Provider.Override(new ManualTimeProvider());
+        var box = new ObservableBoolBox();
+        var control = new FastModeButton(box.AsBinding());
+        var window = Show(control);
+        var theme = window.ActualThemeVariant;
+        var circle = Assert.Single(window.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Ellipse>());
+
+        Transaction.WithAnimation(Animation.Spring(response: 0.3, dampingFraction: 0.7), () => box.Value = true); // :665
+        Dispatcher.UIThread.RunJobs();
+
+        Frames(frames, count: 15); // 150ms: past Chrome.Hover's 0.1s duration, well inside the spring's ~0.47s settling time
+        Assert.NotEqual(SwiftColor.Yellow.Opacity(0.18).Resolve(theme), Effective(circle.Fill)); // still mid-flight on the (slower) spring; a 0.1s ease would already be done
+
+        Frames(frames, count: 60); // finish it off
+        AssertColor(SwiftColor.Yellow.Opacity(0.18).Resolve(theme), Effective(circle.Fill));
+        window.Close();
+    });
 }
 
 // STOP App.Views.Composer.EffortSlider #1 (helper Claude, 2026-09-26)

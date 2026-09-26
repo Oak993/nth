@@ -218,9 +218,10 @@ public sealed class FastModeButton : Decorator
         void Apply(bool on, bool hovering)
         {
             iconHost.Children.Clear();
-            iconHost.Children.Add(SwiftImage.SystemName(on ? "bolt.fill" : "bolt") // :664
-                .Font(SwiftFont.System(SwiftFont.TextStyle.Body, weight: SwiftFont.Weight.Semibold)) // :666
-                .ForegroundStyle(on ? SwiftColor.Yellow : Chrome.SecondaryText)); // :667
+            iconHost.Children.Add(SwiftImage.SystemName(on ? "bolt.fill" : "bolt") // :667
+                .Font(SwiftFont.System(SwiftFont.TextStyle.Body, weight: SwiftFont.Weight.Semibold)) // :668
+                .ForegroundStyle(on ? SwiftColor.Yellow : Chrome.SecondaryText) // :669
+                .SymbolEffect(SymbolEffectKind.Bounce, on)); // :670 MARROW_DEFERRED ED-182 (EffortSlider.swift:670)
         }
 
         Apply(isOn.Value, state.IsHovering);
@@ -228,20 +229,21 @@ public sealed class FastModeButton : Decorator
 
         var frame = new Panel
         {
-            Width = 30, // :668-669 .frame(width: 30, height: 30)
+            Width = 30, // :671 .frame(width: 30, height: 30)
             Height = 30,
             Children = { circle, iconHost },
         };
 
-        var button = PlainControls.Button(frame, () => // :663
-            Transaction.WithAnimation(Animation.Spring(response: 0.3, dampingFraction: 0.7), () => isOn.Value = !isOn.Value)); // :671-672
-        button.OnHover(hovering => Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = hovering)); // :675-677 (Chrome.hover stands in for the plain onHover here; only the fill and help text are animated)
+        var button = PlainControls.Button(frame, () => // :664
+            Transaction.WithAnimation(Animation.Spring(response: 0.3, dampingFraction: 0.7), () => isOn.Value = !isOn.Value)); // :665
+        button.OnHover(hovering => state.IsHovering = hovering); // :678 .onHover { isHovering = $0 } has no withAnimation wrapper, unlike RoundIconButton's :702-703
 
         this.Track(() => (isOn.Value, state.IsHovering), current =>
         {
             var (on, hovering) = current;
             Apply(on, hovering);
-            fill.Set(CirclePlate(on, hovering), Chrome.Hover);
+            // :673 inherits whichever ambient animation (the :665 spring for isOn, or none for an unwrapped :678 hover) drove this apply.
+            fill.Set(CirclePlate(on, hovering), Transaction.Current);
             ToolTip.SetTip(button, on ? "Fast mode is on" : "Fast mode"); // :679 .help(...)
             AutomationProperties.SetItemStatus(button, on ? "On" : "Off"); // :681 .accessibilityValue(...)
         });
