@@ -5,6 +5,8 @@
 // each line itself with TextFormatter.FormatLine, at the x and width the paragraph style gives that line.
 using System.Runtime.CompilerServices;
 using Avalonia;
+using Avalonia.Automation;
+using Avalonia.Automation.Peers;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
@@ -21,14 +23,16 @@ namespace Marrow.UI.Port;
 /// and ends the paragraph before it); a paragraph's first line starts at <c>firstLineHeadIndent</c>, its later lines at
 /// <c>headIndent</c>; <c>paragraphSpacingBefore</c> goes above its first line and <c>paragraphSpacing</c> below its
 /// last (the Swift's literal paragraph style, every paragraph alike; whether TextKit drops either at the edges of
-/// the text is UNVERIFIED under OD-0001); a tab moves the pen to the first tab stop right of it, else to the next
+/// the text is UNVERIFIED under OD-0001, oracle O-71, porting/IMPLEMENTING.md); a tab moves the pen to the first tab stop right of it, else to the next
 /// multiple of <c>defaultTabInterval</c>, both measured from the container's leading edge (NSTextTab), and with
 /// neither it does not move the pen (UNVERIFIED); an attachment is a box of its bounds on the baseline.
 /// </summary>
 public sealed class ParagraphTextPresenter : Control
 {
-    /// <summary>The selection highlight: the same property, and so the same default, as SelectableTextBlock's, which
-    /// draws a LinkParagraphView paragraph.</summary>
+    /// <summary>The selection highlight: the same property as SelectableTextBlock's, which draws a LinkParagraphView
+    /// paragraph, but not its default (SelectableTextBlock.SelectionBrushProperty's own AddOwner default is null in
+    /// Avalonia 12.1.2 with no Fluent/Simple theme loaded to override it; the constructor gives this control its
+    /// own, below).</summary>
     public static readonly StyledProperty<IBrush?> SelectionBrushProperty =
         SelectableTextBlock.SelectionBrushProperty.AddOwner<ParagraphTextPresenter>();
 
@@ -48,6 +52,45 @@ public sealed class ParagraphTextPresenter : Control
         // The colours' brushes follow the theme (SwiftColor.Brush); the laid-out lines draw with them, so a theme
         // change only needs a redraw (the adaptive NSColors of LinkParagraphView.swift:121, :485-489).
         ActualThemeVariantChanged += (_, _) => InvalidateVisual();
+        // SelectableTextBlock.SelectionBrushProperty's own default is null (Avalonia 12.1.2, no Fluent/Simple theme
+        // loaded to override it), so with nothing set here a selection dragged across this control never painted:
+        // Ctrl+C copied it, GlyphIndexAt still hit-tested it, but Render's `SelectionBrush is { } highlight` guard
+        // (below) always failed. NSTextView never has that gap: AppKit always resolves selectedTextAttributes'
+        // backgroundColor default (SwiftColor.SelectedTextBackgroundColor). Set once here rather than through the
+        // styled-property default so the brush is the presenter's own theme-following one (SwiftColor.Brush(this),
+        // the same helper the run text uses below).
+        SelectionBrush = Brush(SwiftColor.SelectedTextBackgroundColor);
+        // LinkParagraphView.swift:453-461: a right-click (or control-click) that misses a link falls through to
+        // `super.menu(for:)` / `super.rightMouseDown(with:)`, AppKit's own text menu. This is the Windows
+        // counterpart the presenter draws for itself (LinkTextView.PresentLinkPopover, :523-531, still wins first
+        // when the click is on a link; see its own citation for how the two never both show).
+        ContextMenu = BuildContextMenu();
+    }
+
+    private ContextMenu BuildContextMenu()
+    {
+        var copy = new MenuItem { Header = "Copy" };
+        copy.Click += (_, _) => Copy();
+        var selectAll = new MenuItem { Header = "Select All" };
+        selectAll.Click += (_, _) => SelectAll();
+        return new ContextMenu { Items = { copy, selectAll } };
+    }
+
+    // :275-332, :453-461: a run's automation exposure. The port's own paragraph path (a SelectableTextBlock) gets
+    // Avalonia's TextBlockAutomationPeer for free (Owner.Inlines?.Text ?? Owner.Text, AutomationControlType.Text);
+    // this hand-rolled Control has no such default (Control.OnCreateAutomationPeer returns NoneAutomationPeer,
+    // IsControlElement/IsContentElement both false), so Narrator never reads a finished message's prose.
+    protected override AutomationPeer OnCreateAutomationPeer() => new TextPeer(this);
+
+    private sealed class TextPeer(ParagraphTextPresenter owner) : ControlAutomationPeer(owner)
+    {
+        protected override AutomationControlType GetAutomationControlTypeCore() => AutomationControlType.Text;
+
+        protected override string? GetNameCore() => owner.Text.String;
+
+        protected override bool IsControlElementCore() => true;
+
+        protected override bool IsContentElementCore() => true;
     }
 
     /// <summary>The text storage's contents.</summary>

@@ -575,6 +575,12 @@ public sealed class LinkTextView : Decorator
             // Tunnel: a head or link press is the view's (mouseDown :444-451, clickedOnLink) before the presenter's
             // own press starts a selection.
             presenter.AddHandler(PointerPressedEvent, OnPointerPressed, RoutingStrategies.Tunnel);
+            // Tunnel: suppresses the presenter's own ContextMenu (ParagraphTextPresenter's Windows counterpart of
+            // AppKit's text menu, :459-461) when the press this release pairs with already showed LinkPopover
+            // (:453-456 `rightMouseDown`: presentLinkPopover-or-super, never both). Avalonia opens a control's
+            // ContextMenu from a released, still-unhandled right button (Control.OnPointerReleased), a separate
+            // event from the press PresentLinkPopover already handled, so it needs its own veto here.
+            presenter.AddHandler(PointerReleasedEvent, OnPointerReleasedOverLink, RoutingStrategies.Tunnel);
             presenter.PointerMoved += OnPointerMoved;
             presenter.PointerExited += OnPointerExited;
             if (textBlock is { } old)
@@ -713,6 +719,17 @@ public sealed class LinkTextView : Decorator
             if (Delegate?.TextView(this, hit.Url, hit.Range.Location) != true) MarkdownLinkOpener.Open(hit.Url);
             e.Handled = true;
         }
+    }
+
+    // See the wiring comment at the AddHandler call in Render(_:): a right-button release over a link would
+    // otherwise still open the presenter's own ContextMenu (Avalonia's Control.OnPointerReleased opens it from any
+    // released, unhandled right button, independently of the press PresentLinkPopover already handled). Checked at
+    // the release point, not carried over from the press, the same way LinkAndRange itself is always a fresh
+    // lookup; the two agree except across a drag, which :453-461 has no counterpart for either.
+    private void OnPointerReleasedOverLink(object? sender, PointerReleasedEventArgs e)
+    {
+        if (e.InitialPressMouseButton != MouseButton.Right) return;
+        if (LinkAndRange(e.GetPosition(this)) is not null) e.Handled = true;
     }
 
     // :481-496 render(_:)

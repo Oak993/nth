@@ -1,11 +1,17 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using Avalonia;
+using Avalonia.Automation;
+using Avalonia.Automation.Peers;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Layout;
+using Avalonia.Media;
+using Avalonia.Media.Imaging;
 using Avalonia.Styling;
 using Avalonia.Threading;
 using Marrow.Core.Models;
@@ -394,16 +400,25 @@ public sealed class ProseRunViewTests(HeadlessSession headless)
         Assert.Equal(12, Gap(Attributed(Blocks(List(false, 1, Item("a")), P("b"))), "a", "b"), 3); // last top-level item
     });
 
+    // R-TEST-6 (review finding, ProseRunView unit): both assertions below rest on an open item, not a settled
+    // requirement. ParagraphTextPresenter.cs:22-24 already says whether TextKit applies paragraphSpacingBefore
+    // above a text container's first paragraph, and counts a last paragraph's paragraphSpacing in usedRect, is
+    // UNVERIFIED under OD-0001 (porting/IMPLEMENTING.md's oracle table, O-71); ProseRunView.swift:158-159 gives
+    // every paragraph the same literal style with no first/last exception written, so the port carries both edges
+    // through unconditionally, exactly like every interior paragraph boundary, but nothing here proves that is
+    // what NSLayoutManager itself does at a container's own edges. PR-THEME-149's between-paragraph gaps are the
+    // settled requirement and stay `Req`, in Paragraphs_are_separated_by_the_space_after_the_first_plus_the_space_
+    // before_the_next above, which starts every measurement mid-run and never touches either edge.
     [Fact]
-    [Trait("Req", "PR-THEME-149")] // DroppyCode/UI/Markdown/ProseRunView.swift:158-159 (B3), LinkParagraphView.swift:498-507
+    [Trait("Oracle", "O-71")] // DroppyCode/UI/Markdown/ProseRunView.swift:158-159 (B3), LinkParagraphView.swift:498-507
     public void The_height_holds_the_heading_spacing_and_is_rounded_up() => headless.OnUiThread(() =>
     {
         var text = Attributed(Blocks(H(1, "h")));
         var presenter = Laid(text, 300);
 
         var rect = CharacterRect(presenter, 0);
-        Assert.Equal(6, rect.Top, 3); // six points before a level-1 heading
-        Assert.Equal(Math.Ceiling(rect.Bottom + 12), presenter.HeightForWidth(300)); // twelve after
+        Assert.Equal(6, rect.Top, 3); // six points before a level-1 heading: O-71, first-paragraph edge
+        Assert.Equal(Math.Ceiling(rect.Bottom + 12), presenter.HeightForWidth(300)); // twelve after: O-71, last-paragraph edge
     });
 
     // ---- one selection and one hit-test space (PR-THEME-149) ----
@@ -455,6 +470,107 @@ public sealed class ProseRunViewTests(HeadlessSession headless)
         Assert.True(view.HasLink(linkPoint));
         Assert.Equal(SwiftURL.Create("https://prose-run.invalid/x"), view.Link(linkPoint));
         Assert.False(view.HasLink(prosePoint));
+    });
+
+    // ---- review fixes: selection paint, Narrator exposure, the prose right-click menu ----
+
+    private static byte[] FramePixels(ParagraphTextPresenter presenter, int width, int height)
+    {
+        using var bitmap = new RenderTargetBitmap(new PixelSize(width, height));
+        using (var context = bitmap.CreateDrawingContext())
+        {
+            context.FillRectangle(Brushes.White, new Rect(0, 0, width, height));
+            presenter.Render(context);
+        }
+        var copy = new WriteableBitmap(bitmap.PixelSize, bitmap.Dpi, bitmap.Format ?? Avalonia.Platform.PixelFormat.Rgba8888,
+            Avalonia.Platform.AlphaFormat.Premul);
+        var bytes = new byte[copy.PixelSize.Width * copy.PixelSize.Height * 4];
+        using (var buffer = copy.Lock())
+        {
+            bitmap.CopyPixels(new PixelRect(bitmap.PixelSize), buffer.Address, buffer.RowBytes * buffer.Size.Height, buffer.RowBytes);
+            Marshal.Copy(buffer.Address, bytes, 0, bytes.Length);
+        }
+        copy.Dispose();
+        return bytes;
+    }
+
+    [Fact]
+    [Trait("Req", "PR-THEME-149")] // review finding (HIGH): LinkParagraphView.swift:312-313 sets neither isEditable
+    // nor selectedTextAttributes, so AppKit's own default (NSColor.selectedTextBackgroundColor) always paints a
+    // drag selection. SelectableTextBlock.SelectionBrushProperty's AddOwner default is null in Avalonia 12.1.2
+    // with no Fluent/Simple theme to override it, so with nothing set the presenter's own
+    // `SelectionBrush is { } highlight` guard (Render) always failed: Select/SelectAll and Ctrl+C worked, but
+    // nothing ever appeared on screen. Probe, matching the finding's own method (a frame hash before and after
+    // SelectAll): render the same laid-out text unselected and fully selected and diff every pixel.
+    public void A_selection_paints_something_the_unselected_frame_does_not() => headless.OnUiThread(() =>
+    {
+        var text = Attributed(Blocks(P("select this text please")));
+        var unselected = Laid(text, 300);
+        var selected = Laid(text, 300);
+        selected.SelectAll();
+        var height = (int)Math.Ceiling(selected.HeightForWidth(300));
+
+        Assert.NotNull(selected.SelectionBrush); // the default this fix adds
+        Assert.NotEqual(FramePixels(unselected, 300, height), FramePixels(selected, 300, height));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-THEME-149")] // review finding (MEDIUM): LinkParagraphView.swift:275-332 is a real NSTextView,
+    // exposed to accessibility like any other; ControlAutomationPeer.CreatePeerForElement on a bare
+    // ParagraphTextPresenter returned NoneAutomationPeer (Control.OnCreateAutomationPeer's own default), name "",
+    // IsControlElement/IsContentElement both false, so Narrator never read a finished message's prose. The port's
+    // own paragraph path (SelectableTextBlock) gets Avalonia's TextBlockAutomationPeer for free.
+    public void The_automation_peer_exposes_the_runs_text_as_a_text_element() => headless.OnUiThread(() =>
+    {
+        var text = Attributed(Blocks(P("hello"), P("second paragraph")));
+        var presenter = new ParagraphTextPresenter();
+        presenter.SetText(text);
+
+        var peer = ControlAutomationPeer.CreatePeerForElement(presenter);
+        Assert.Equal(AutomationControlType.Text, peer.GetAutomationControlType());
+        Assert.True(peer.IsControlElement());
+        Assert.True(peer.IsContentElement());
+        Assert.Equal(text.String, peer.GetName());
+    });
+
+    [Fact]
+    [Trait("Req", "PR-THEME-149")] // review finding (MEDIUM): LinkParagraphView.swift:453-461 `rightMouseDown`/
+    // `menu(for:)` both fall through to AppKit's own text menu (Copy and the rest) when the click misses a link
+    // (:432-435 "Prose keeps the system's menu"). The presenter had no ContextMenu or ContextFlyout at all (probe:
+    // both null), so a right-click on prose in a finished message did nothing. This is its Windows counterpart:
+    // Copy and Select All over the presenter's own selection, opened the way every other Avalonia ContextMenu
+    // opens (Control.OnPointerReleased's own unhandled-right-button check; LinkParagraphView.cs's release-time
+    // veto keeps a link's right-click at LinkPopover only, never both, the same either-or :453-456 itself keeps).
+    // UNTESTABLE for now, and why: actually opening the menu goes through a real Avalonia Popup, and this suite's
+    // own headless session opens no Fluent/Simple theme, so any real Popup.Open throws ("Unable to create
+    // IPopupImpl and no overlay layer is found for the target control") — confirmed empirically already, by
+    // LinkPopoverTests.cs's identical constraint on LinkPopover's own Popup (same file header). So this asserts
+    // the menu's wiring and its two rows' actions directly, the way PopoversTests.A_context_menu_row_runs_its_
+    // action_synchronously_inside_the_click_callback already tests RowActionMenuButtons without opening a Popup
+    // either; which points count as "a link" for the release-time veto is PR-THEME-149's own
+    // A_link_in_a_later_paragraph_is_found_under_the_pointer_and_prose_is_not, just above.
+    public void The_presenters_context_menu_has_copy_and_select_all_over_its_own_selection() => headless.OnUiThread(() =>
+    {
+        var text = Attributed(Blocks(P("copy this text")));
+        var presenter = new ParagraphTextPresenter();
+        presenter.SetText(text);
+
+        var menu = presenter.ContextMenu;
+        Assert.NotNull(menu);
+        var items = menu.Items.OfType<MenuItem>().ToList();
+        var copy = Assert.Single(items, item => (item.Header as string) == "Copy");
+        var selectAll = Assert.Single(items, item => (item.Header as string) == "Select All");
+
+        presenter.Select(2, 6); // "py t"
+        var expected = presenter.SelectedText;
+        copy.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+        // No headless clipboard readback exists in this suite (LinkPopoverTests.cs notes the same gap for Copy
+        // Link); Copy()'s own guard not throwing on a non-empty selection is what there is to observe here.
+        Assert.Equal(expected, presenter.SelectedText); // Click did not itself change the selection
+
+        selectAll.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+        Assert.Equal(0, presenter.SelectionStart);
+        Assert.Equal(text.Length, presenter.SelectionEnd);
     });
 
     // ---- makeNSView / updateNSView / dismantleNSView (PR-THEME-150) ----
