@@ -919,4 +919,7 @@ internal sealed class ThemePickerButton : Decorator
         Child = new Panel { Children = { button.ChromeGlassCapsule(), popup } }; this.Track(() => selection.Value, _ => Update());
         AttachedToVisualTree += (_, _) => ThemeManager.DidChange += Update; DetachedFromVisualTree += (_, _) => ThemeManager.DidChange -= Update; // :1171-1208
     }
+
+    // :1186 .fixedSize(): retain the content's dimensions even in a stretching parent.
+    protected override Size MeasureOverride(Size availableSize) => PlainControls.MeasureFixed(this, Child, availableSize);
 }
