@@ -408,16 +408,29 @@ public sealed class ThreadTimelineTests(HeadlessSession headless)
         var badge = LogicalQuery.SelfAndDescendants<Marrow.App.Views.Composer.QuestionBadgeRow>(view).Single();
         Assert.Equal(0, badge.Opacity); Assert.Equal(4, Assert.IsType<Avalonia.Media.TranslateTransform>(badge.RenderTransform).Y);
         h.Main.AdvanceMilliseconds(160); frames.Advance(TimeSpan.FromMilliseconds(160)); Assert.InRange(badge.Opacity, 0.001, 0.999);
-        h.Main.AdvanceMilliseconds(160); frames.Advance(TimeSpan.FromMilliseconds(160)); Assert.Equal(1, badge.Opacity); Assert.Equal(0, Assert.IsType<Avalonia.Media.TranslateTransform>(badge.RenderTransform).Y);
+        var settle = TimeSpan.FromSeconds(Animation.SoftAppear.Duration); h.Main.Advance(settle); frames.Advance(settle); Assert.Equal(1, badge.Opacity); Assert.Equal(0, Assert.IsType<Avalonia.Media.TranslateTransform>(badge.RenderTransform).Y);
         Field<Action>(view, "redraw")(); Avalonia.Threading.Dispatcher.UIThread.RunJobs();
         Assert.Same(badge, LogicalQuery.SelfAndDescendants<Marrow.App.Views.Composer.QuestionBadgeRow>(view).Single()); Assert.Equal(1, badge.Opacity);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-034")] // App/Views/Chat/ThreadTimeline.swift:104-110,1608-1614
+    [Trait("Req", "PR-CHAT-035")] // App/Views/Chat/ThreadTimeline.swift:108-110,1615-1617
+    public void Finished_head_partition_uses_finish_order_a_strict_cut_and_index_membership() => OnMain(() =>
+    {
+        var cut = DateTimeOffset.FromUnixTimeSeconds(100);
+        HydraHeadInfo Head(int index, DateTimeOffset? finish) => new(index, "task", HydraHeadInfo.Kind.Droppy, HydraHeadInfo.Origin.Delegated) { FinishedAt = finish };
+        var heads = new[] { Head(3, cut.AddSeconds(1)), Head(4, cut), Head(2, cut.AddSeconds(-2)), Head(1, null), Head(3, cut.AddSeconds(-1)) };
+        var method = typeof(ThreadTimeline).GetMethod("SplitHeadPills", BindingFlags.Static | BindingFlags.NonPublic)!;
+        var running = (HeadPills)method.Invoke(null, [heads, cut])!; Assert.Equal(new[] { 1, 2, 3 }, running.Earlier); Assert.Equal(new[] { 4 }, running.Later);
+        var idle = (HeadPills)method.Invoke(null, [heads, null])!; Assert.Empty(idle.Earlier); Assert.Equal(new[] { 1, 2, 3, 4, 3 }, idle.Later);
     });
 
     // STOP App.Views.Chat.ThreadTimeline #1
     // Kind: dependency. Swift: ThreadTimeline.swift:104-107,186-197,1886-1934,2049-2065.
     // Records: PR-CHAT-021/022/026/027/034/035/039/045/046 (rendering/integration only).
     // Missing: external TimelineRows message/work/head/finished-turn constructors and FinishedHeads are MARROW_STUB.
-    // Needed: TimelineRows unit implementations. Owned grouping, metadata, cache and layout are independently covered.
+    // Needed: TimelineRows unit implementations. Owned finish sorting/partition, grouping, metadata, cache and layout are independently covered.
     // No fabricated row content or fabricated finished-head roster substitutes for those sites.
 
     [Fact]
