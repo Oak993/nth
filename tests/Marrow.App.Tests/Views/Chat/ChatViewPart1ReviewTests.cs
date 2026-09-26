@@ -95,6 +95,7 @@ public sealed class ChatViewPart1ReviewTests(HeadlessSession headless)
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
             ChatChromeRow row = null!;
+            Avalonia.Controls.Window window = null!;
             harness.Main.OnMain(() =>
             {
                 var project = model.AddProject(new Project("P", harness.NewFolder("project")).Url);
@@ -102,6 +103,9 @@ public sealed class ChatViewPart1ReviewTests(HeadlessSession headless)
                 model.Settings.SidebarFloats = false;
                 model.Settings.HydraEnabled = false;
                 row = new ChatChromeRow(model, model.Runtime(thread.Id), new ChromeScrollModel(), "T", project, project.Path, new GitStatusModel());
+                window = new Avalonia.Controls.Window { Content = row };
+                window.Show();
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
                 Assert.Single(LogicalQuery.SelfAndDescendants<ThreadsButton>(row));
                 Assert.Empty(LogicalQuery.SelfAndDescendants<HydraButton>(row));
                 model.Settings.SidebarFloats = true;
@@ -111,6 +115,8 @@ public sealed class ChatViewPart1ReviewTests(HeadlessSession headless)
             harness.Main.RunUntilIdle();
             Assert.Empty(LogicalQuery.SelfAndDescendants<ThreadsButton>(row));
             Assert.Single(LogicalQuery.SelfAndDescendants<HydraButton>(row));
+            window.Close();
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
         });
     }
 
@@ -125,11 +131,15 @@ public sealed class ChatViewPart1ReviewTests(HeadlessSession headless)
             using var store = ShortcutStore.Shared.Override(harness.Main.OnMain(() => (ShortcutStore)Activator.CreateInstance(typeof(ShortcutStore), nonPublic: true)!));
             var model = harness.MakeModel();
             ChatChromeRow row = null!;
+            Avalonia.Controls.Window window = null!;
             harness.Main.OnMain(() =>
             {
                 var project = model.AddProject(new Project("P", harness.NewFolder("project")).Url);
                 var thread = model.NewThread(project)!;
                 row = new ChatChromeRow(model, model.Runtime(thread.Id), new ChromeScrollModel(), "T", project, project.Path, new GitStatusModel());
+                window = new Avalonia.Controls.Window { Content = row };
+                window.Show();
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
                 ShortcutStore.Shared.Current.Set(null, AppShortcut.NewThread);
                 ShortcutStore.Shared.Current.Set(null, AppShortcut.ToggleTerminal);
             });
@@ -137,6 +147,8 @@ public sealed class ChatViewPart1ReviewTests(HeadlessSession headless)
             var tips = LogicalQuery.SelfAndDescendants<Button>(row).Select(ToolTip.GetTip).ToArray();
             Assert.Contains("New thread", tips);
             Assert.Contains("Terminal", tips);
+            window.Close();
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
         });
     }
 }

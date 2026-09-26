@@ -22,6 +22,7 @@ public sealed class ChatViewPart4Tests(HeadlessSession headless)
     {
         var window = new AvaloniaWindow { Content = control };
         window.Show();
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
         return control;
     }
 

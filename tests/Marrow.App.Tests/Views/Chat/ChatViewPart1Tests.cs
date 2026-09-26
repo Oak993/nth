@@ -32,6 +32,7 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
     {
         var window = new AvaloniaWindow { Content = control };
         window.Show();
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
         return control;
     }
 
@@ -544,6 +545,8 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
     [Trait("Req", "PR-CHAT-158")] // ChatView.swift:743,761
     public void AnimatesWidth_true_also_skips_the_glide()
     {
+        using var runtime = new TestRuntime();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
         var slide = new ReserveSlide(new PanelReserve { Leading = 0, Trailing = 0 }, Slides: true, AnimatesWidth: true);
         var content = new Border();
         slide.Body(content);
