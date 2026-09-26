@@ -471,7 +471,7 @@ public sealed class MCPProxyTests : IDisposable
 
     // ---- PR-MCP-134 ----
 
-    [Trait("Req", "PR-MCP-134")] // DroppyCode/Services/MCP/MCPProxy.swift:372-387, chunked, one chunk per byte
+    [Trait("Req", "PR-MCP-134")] // DroppyCode/Services/MCP/MCPProxy.swift:379-389, chunked, one chunk per line
     [Fact]
     public async Task An_event_stream_response_is_relayed_as_chunked_with_content_preserved()
     {
@@ -487,6 +487,101 @@ public sealed class MCPProxyTests : IDisposable
         Assert.Equal("chunked", headers["Transfer-Encoding"]);
         Assert.Equal("close", headers["Connection"]);
         Assert.Equal("data: hi\n\n", Encoding.UTF8.GetString(Dechunk(body)));
+    }
+
+    [Trait("Req", "PR-MCP-134")] // DroppyCode/Services/MCP/MCPProxy.swift:379-389, 413-418, exact chunk-boundary bytes
+    [Fact]
+    public async Task Event_stream_chunk_boundaries_land_exactly_at_each_newline_with_lowercase_hex_sizes()
+    {
+        var id = NewID();
+        await using var upstream = new FakeUpstreamServer
+        {
+            Handler = _ => new FakeResponse(200, [("Content-Type", "text/event-stream")], [],
+                SseChunks: ["data: hi\n\n"]),
+        };
+        Proxy.Register(id, upstream.BaseUrl, new Dictionary<string, string>(), usesOAuth: false);
+        var (status, _, body) = await SendRawAsync($"GET /mcp/{id} HTTP/1.1\r\n\r\n");
+        Assert.Equal(200, status);
+        // "data: hi\n\n" splits at each 0x0A: "data: hi\n" (9 bytes) then "\n" (1 byte), each its own chunk, then
+        // the "0\r\n\r\n" terminator - the exact example DroppyCode/Services/MCP/MCPProxy.swift:379-389 produces.
+        Assert.Equal("9\r\ndata: hi\n\r\n1\r\n\n\r\n0\r\n\r\n", Encoding.UTF8.GetString(body));
+    }
+
+    [Trait("Req", "PR-MCP-134")] // DroppyCode/Services/MCP/MCPProxy.swift:387-389, a clean end still flushes a non-newline-terminated remainder
+    [Fact]
+    public async Task Event_stream_payload_without_a_trailing_newline_still_gets_one_final_chunk()
+    {
+        var id = NewID();
+        await using var upstream = new FakeUpstreamServer
+        {
+            Handler = _ => new FakeResponse(200, [("Content-Type", "text/event-stream")], [],
+                SseChunks: ["data: bye"]), // no trailing 0x0A anywhere in the payload
+        };
+        Proxy.Register(id, upstream.BaseUrl, new Dictionary<string, string>(), usesOAuth: false);
+        var (status, _, body) = await SendRawAsync($"GET /mcp/{id} HTTP/1.1\r\n\r\n");
+        Assert.Equal(200, status);
+        Assert.Equal("9\r\ndata: bye\r\n0\r\n\r\n", Encoding.UTF8.GetString(body));
+    }
+
+    [Trait("Req", "PR-MCP-134")] // DroppyCode/Services/MCP/MCPProxy.swift:390-392, a stream error drops the unsent remainder, no error frame, terminator still sent
+    [Fact]
+    public async Task An_upstream_stream_error_mid_line_drops_the_unsent_remainder_but_still_sends_the_terminator()
+    {
+        var id = NewID();
+        await using var upstream = new FakeUpstreamServer
+        {
+            // A declared Content-Length far beyond what is actually written, then the connection closes: the
+            // client's read throws partway through the unterminated tail, simulating the upstream stream error
+            // DroppyCode/Services/MCP/MCPProxy.swift:390-391 (the empty `catch {}`) silently absorbs.
+            Handler = _ => new FakeResponse(200,
+                [("Content-Type", "text/event-stream"), ("Content-Length", "1000")], [],
+                SseChunks: ["data: hi\n", "no newline here so this tail is never flushed"]),
+        };
+        Proxy.Register(id, upstream.BaseUrl, new Dictionary<string, string>(), usesOAuth: false);
+        var (status, headers, body) = await SendRawAsync($"GET /mcp/{id} HTTP/1.1\r\n\r\n");
+        Assert.Equal(200, status);
+        Assert.Equal("chunked", headers["Transfer-Encoding"]);
+        // Only the complete first line went out as a chunk; the unterminated tail is dropped, but the
+        // terminating "0\r\n\r\n" chunk is still sent (:392).
+        Assert.Equal("9\r\ndata: hi\n\r\n0\r\n\r\n", Encoding.UTF8.GetString(body));
+    }
+
+    // ---- PR-MCP-124, PR-MCP-125 (Logger, not standard output; ED-163) ----
+
+    [Trait("Req", "PR-MCP-125")] // DroppyCode/Services/MCP/MCPProxy.swift:7, 116: Self.log.info("listening on <port>")
+    [Fact]
+    public void Listening_is_logged_through_Logger_at_info_level_in_the_mcp_proxy_category()
+    {
+        // Start() (idempotent) already ran once, for the whole fixture, inside its own Logger.Sink.Override
+        // scope (MCPProxySingletonFixture): the "listening on <port>" line landed in fixture.LoggedLines then,
+        // not on standard output, and stays there for the life of the fixture.
+        Assert.Contains(fixture.LoggedLines, line => line.Channel == "iordv.marrow/mcp-proxy" && line.Message == $"listening on {fixture.Port}");
+    }
+
+    [Trait("Req", "PR-MCP-124")] // DroppyCode/Services/MCP/MCPProxy.swift:305: Self.log.error("request to '<id>' failed: <desc>")
+    [Fact]
+    public async Task An_upstream_request_failure_is_logged_through_Logger_at_error_level_not_standard_output()
+    {
+        var id = NewID();
+        Proxy.Register(id, "not a url", new Dictionary<string, string>(), usesOAuth: false); // not a valid absolute URL, forces SendUpstreamAsync to throw
+        var (status, _, _) = await SendRawAsync($"GET /mcp/{id} HTTP/1.1\r\n\r\n");
+        Assert.Equal(502, status);
+        var deadline = DateTime.UtcNow.AddSeconds(5);
+        var foundAny = false;
+        (string Message, string Channel) found = default;
+        while (!foundAny && DateTime.UtcNow < deadline)
+        {
+            foreach (var line in fixture.LoggedLines)
+            {
+                if (!line.Message.StartsWith($"request to '{id}' failed: ", StringComparison.Ordinal)) continue;
+                found = line;
+                foundAny = true;
+                break;
+            }
+            if (!foundAny) await Task.Delay(10);
+        }
+        Assert.True(foundAny, "expected a Logger line for the failed upstream request");
+        Assert.Equal("iordv.marrow/mcp-proxy", found.Channel);
     }
 
     // ---- PR-MCP-135 ----
