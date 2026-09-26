@@ -19,9 +19,16 @@ namespace Marrow.App.Tests;
 // implementation. B3 lines: the file gained :2 and :10-14 over B2, so B2's
 // :2-8 are B3's :3-9 and B2's :9-87 are B3's :15-93 (git diff 1fbf81e 52bc792 -- DroppyCode/App/AppDelegate.swift).
 //
-// MCPHub's list of live server processes is process-wide (MCPHub.swift:21-24); in this assembly only this class
-// tracks processes in it or ends them (AppDelegate.ApplicationWillTerminate), and xUnit runs one class's tests one at
-// a time, so no other test sees these recording processes.
+// Two records these members serve carry no Req trait in this unit, because the half of each that is not written here
+// is a STOP note below: UI-LAUNCH-005's two tap interactions are userNotificationCenter(_:didReceive:) (:77-92, STOP
+// #3), and PR-WIN-073's action is the main window's close button and Alt+F4 (OD-0008 C1, C2), whose wiring is STOP #4.
+// The tests of the presentation states and of the quit deferral name PR-LAUNCH-063, PR-LAUNCH-049 and PR-LAUNCH-050,
+// whose expected results they prove whole; PR-LAUNCH-074 is the record of the close wiring.
+//
+// MCPHub's list of live server processes is process-wide (MCPHub.swift:21-30, a private static let): these tests add
+// recording processes to it, and every ApplicationWillTerminate they run ends everything in it (:60). R-TEST-5, so
+// they run in a collection that never runs in parallel with another (Fixtures/AppDelegateFixtures.cs).
+[Collection("MCPHub processes")]
 public sealed class AppDelegateTests
 {
     private const string LiveSpendFileName = "token-activity-live-v2.json"; // TokenLedger.swift:356
@@ -75,7 +82,6 @@ public sealed class AppDelegateTests
 
     [Fact]
     [Trait("Req", "PR-LAUNCH-049")] // App/AppDelegate.swift:45; App/AppModel+HydraMerge.swift:36
-    [Trait("Req", "PR-WIN-073")] // App/AppDelegate.swift:45
     public void A_quit_while_no_live_runtime_is_merging_is_answered_terminate_now_with_no_wait()
     {
         using var h = new AppModelHarness();
@@ -137,7 +143,7 @@ public sealed class AppDelegateTests
     }
 
     [Fact]
-    [Trait("Req", "PR-WIN-073")] // App/AppDelegate.swift:45-53; App/AppModel+HydraMerge.swift:36
+    [Trait("Req", "PR-LAUNCH-050")] // App/AppDelegate.swift:45-53; App/AppModel+HydraMerge.swift:36
     public void A_quit_waits_while_any_live_chat_is_merging_even_when_the_merging_chat_changes_during_the_wait()
     {
         using var h = new AppModelHarness();
@@ -171,7 +177,7 @@ public sealed class AppDelegateTests
     }
 
     [Fact]
-    [Trait("Req", "PR-WIN-073")] // App/AppDelegate.swift:45-53
+    [Trait("Req", "PR-LAUNCH-050")] // App/AppDelegate.swift:45-53
     public void The_deferred_quit_replies_from_a_later_main_turn_and_checks_the_merge_before_its_first_sleep()
     {
         using var h = new AppModelHarness();
@@ -195,7 +201,7 @@ public sealed class AppDelegateTests
     }
 
     [Fact]
-    [Trait("Req", "PR-WIN-073")] // App/AppDelegate.swift:48-51
+    [Trait("Req", "PR-LAUNCH-050")] // App/AppDelegate.swift:48-51
     public void A_merge_that_ends_before_the_first_poll_is_seen_at_250_ms_and_not_sooner()
     {
         using var h = new AppModelHarness();
@@ -216,7 +222,7 @@ public sealed class AppDelegateTests
     }
 
     [Fact]
-    [Trait("Req", "PR-WIN-073")] // App/AppDelegate.swift:47-51
+    [Trait("Req", "PR-LAUNCH-050")] // App/AppDelegate.swift:47-51
     public void The_four_minute_cap_is_counted_from_the_quit_and_not_from_an_earlier_time()
     {
         using var h = new AppModelHarness();
@@ -604,7 +610,7 @@ public sealed class AppDelegateTests
     }
 
     [Theory]
-    [Trait("Req", "UI-LAUNCH-005")] // App/AppDelegate.swift:63-75; App/AppModel.swift:1265; App/UpdateChecker.swift:252
+    [Trait("Req", "PR-LAUNCH-063")] // App/AppDelegate.swift:63-75; App/AppModel.swift:1265; App/UpdateChecker.swift:252
     [InlineData("selected thread", true, true)]
     [InlineData("selected thread", false, false)]
     [InlineData("other thread", true, false)]
@@ -634,6 +640,50 @@ public sealed class AppDelegateTests
         Assert.Equal(
             suppressed ? UNNotificationPresentationOptions.None : UNNotificationPresentationOptions.Banner | UNNotificationPresentationOptions.Sound,
             options);
+    }
+
+    [Theory]
+    [Trait("Req", "PR-LAUNCH-063")] // App/AppDelegate.swift:69-74; App/AppModel.swift:1172-1176, both NSApp.isActive
+    [InlineData(true)]
+    [InlineData(false)]
+    public void The_presentation_gate_and_the_models_own_gate_read_one_and_the_same_NSApp_isActive(bool appIsActive)
+    {
+        using var h = new AppModelHarness();
+        var (model, thread, _) = ModelWithLiveRuntime(h);
+        h.Main.OnMain(() => model.SelectedThreadID = thread.Id); // selecting marks it read (AppModel.swift:85-86)
+        h.Main.OnMain(() => model.UpdateThread(thread.Id, current => current with { HasUnread = true }));
+        Assert.True(h.Main.OnMain(() => model.Thread(thread.Id)!.HasUnread));
+        using var active = NSApplication.IsActive.Override(() => appIsActive);
+        var appDelegate = new AppDelegate { Model = model };
+
+        var options = Present(h, appDelegate, ThreadNotification(SwiftUUID.UuidString(thread.Id)));
+        h.Main.OnMain(() => model.ThreadNeedsAttention(thread.Id));
+
+        // Active with the chat open: no banner (AppDelegate.swift:70-72), and the model marks the thread read
+        // (AppModel.swift:1172-1173). Not active: a banner (:74), and the model leaves the thread unread and goes on to
+        // notify (AppModel.swift:1176). In the Swift both gates read the one NSApp.isActive, so they never disagree.
+        var banner = UNNotificationPresentationOptions.Banner | UNNotificationPresentationOptions.Sound;
+        Assert.Equal(appIsActive ? UNNotificationPresentationOptions.None : banner, options);
+        Assert.Equal(!appIsActive, h.Main.OnMain(() => model.Thread(thread.Id)!.HasUnread));
+    }
+
+    // ===== R-TEST-5: MCPHub's list of live server processes is process-wide =====
+
+    [Fact]
+    [Trait("Rule", "R-TEST-5")] // Services/MCP/MCPHub.swift:21-30, a static list; App/AppDelegate.swift:60 ends it
+    public void These_tests_run_in_a_collection_that_never_runs_in_parallel_with_another()
+    {
+        var collection = typeof(AppDelegateTests).GetCustomAttributesData()
+            .SingleOrDefault(attribute => attribute.AttributeType == typeof(CollectionAttribute))?
+            .ConstructorArguments[0].Value as string;
+        Assert.NotNull(collection);
+        var definition = typeof(AppDelegateTests).Assembly.GetTypes()
+            .SelectMany(type => type.GetCustomAttributesData())
+            .Single(attribute => attribute.AttributeType == typeof(CollectionDefinitionAttribute)
+                && Equals(attribute.ConstructorArguments[0].Value, collection));
+        Assert.Contains(definition.NamedArguments, argument =>
+            argument.MemberName == nameof(CollectionDefinitionAttribute.DisableParallelization)
+            && Equals(argument.TypedValue.Value, true));
     }
 }
 
@@ -705,8 +755,8 @@ public sealed class AppDelegateTests
 // Kind: missing dependency
 // Swift: DroppyCode/App/AppDelegate.swift:77-92 (B3 52bc792), userNotificationCenter(_:didReceive:)
 // Requirements: PR-LAUNCH-064, PR-LAUNCH-065, PR-UPDATE-024; part 2: PR-WIN-076, the two tap interactions of
-// UI-LAUNCH-005 (its presentation states, :63-75, are implemented and tested above) and the update-notification
-// opening of UI-LAUNCH-003 (:90)
+// UI-LAUNCH-005 (its presentation states, :63-75, are implemented and tested above under PR-LAUNCH-063; UI-LAUNCH-005
+// itself carries no Req trait until this stop closes) and the update-notification opening of UI-LAUNCH-003 (:90)
 // What is unclear or missing: the routing calls WindowManager.shared.showMain() (:85) and
 // WindowManager.shared.showSettings(page: .about) (:90), both MARROW_STUB, and NSApp.activate() (:89), whose Windows
 // form WindowManager's present(_:) owns (WindowManager.swift:57-60). No Windows toast activation pipeline exists to
@@ -720,7 +770,8 @@ public sealed class AppDelegateTests
 // Kind: missing dependency
 // Swift: DroppyCode/App/AppDelegate.swift:1-93 (no applicationShouldTerminateAfterLastWindowClosed), :41-54, :56-61
 // Requirements: PR-LAUNCH-074; part 2: the close-button and Alt+F4 half of PR-WIN-073 (its deferral, 250 ms poll and
-// four-minute cap are implemented and tested above) and the WM_QUERYENDSESSION note of its windows_path (ED-004)
+// four-minute cap are implemented and tested above under PR-LAUNCH-049 and PR-LAUNCH-050; PR-WIN-073 itself carries no
+// Req trait until this stop closes) and the WM_QUERYENDSESSION note of its windows_path (ED-004)
 // What is unclear or missing: OD-0008 C1 makes the main window's close (and Alt+F4, C2) quit the app through the
 // terminate handshake. The delegate's side is ported and tested here (PR-LAUNCH-049, -050, -051); what is missing is
 // the window and the shell that turn a close into ApplicationShouldTerminate, implement ITerminationSender (continue

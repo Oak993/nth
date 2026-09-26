@@ -8,6 +8,15 @@ namespace Marrow.App.Tests.Fixtures;
 
 // Helpers for AppDelegateTests (App/AppDelegate.swift). Helper types live here, never inside a test class (R-TEST-3).
 
+/// <summary>
+/// The AppDelegate tests run alone (R-TEST-5): MCPHub's list of live server processes is process-wide
+/// (MCPHub.swift:21-30, a private static let), the tests add recording processes to it, and every
+/// ApplicationWillTerminate they run ends everything in it (AppDelegate.swift:60), so no other test may have a server
+/// in that list while they run.
+/// </summary>
+[CollectionDefinition("MCPHub processes", DisableParallelization = true)]
+public sealed class MCPHubProcessesCollection;
+
 /// <summary>The NSApplication that asked applicationShouldTerminate(_:) (AppDelegate.swift:44): records every
 /// reply(toApplicationShouldTerminate:) it is given (:51).</summary>
 public sealed class RecordingTerminationSender : ITerminationSender
