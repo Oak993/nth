@@ -272,14 +272,15 @@ public sealed class HydraPanel : Decorator
     /// reported through <c>onChange</c> once it has passed the handle's 2-point slop, and the release is
     /// reported through <c>onEnd</c>. B3 has no <c>PanelDragHandleView</c> symbol anywhere in the tree; that
     /// name, and the press/move/release logic wired below, are what B2's SubagentPanel.swift used before the
-    /// shared DragHandle existed (B2 had no UI/Chrome/DragHandle.swift at all). The C# port at
-    /// <c>Marrow.App.Views.Chat.SubagentPanel</c> is still pinned to B2 (its own header: "SubagentPanel.swift
-    /// (B2 1fbf81e)") and has not yet been re-verified against B3, so it still carries that old
-    /// <c>PanelDragHandle</c>/<c>PanelDragHandleView</c> pair rather than a shared
-    /// <c>Marrow.UI.Chrome.DragHandle</c>; <c>WireDragHandle</c> here duplicates that same pre-refactor
-    /// pointer-tracking directly instead of reusing a shared type, because no shared
-    /// <c>Marrow.UI.Chrome.DragHandle</c> (the plan's N8) exists yet. Re-pointing both call sites onto N8
-    /// once it lands, after SubagentPanel.cs itself is re-verified against B3, is out of this unit's scope.
+    /// shared DragHandle existed (B2 had no UI/Chrome/DragHandle.swift at all). The C# port's own
+    /// <c>Marrow.App.Views.Chat.SubagentPanel.PanelDragHandle</c> (SubagentPanel.cs:796-849) has since been
+    /// re-pinned against B3 (unit App.Views.Chat.SubagentPanel) and now wraps the shared
+    /// <see cref="Marrow.UI.Chrome.DragHandleView"/> instead of carrying its own B2-era
+    /// <c>PanelDragHandleView</c> press-tracking, so that precondition is now met: <c>WireDragHandle</c> here
+    /// is the one remaining place in the tree still duplicating that same pre-refactor pointer-tracking
+    /// directly instead of reusing the shared <c>Marrow.UI.Chrome.DragHandle</c> (the plan's N8). Re-pointing
+    /// this call site onto N8, the way SubagentPanel.cs's own <c>PanelDragHandle</c> now does, is out of this
+    /// unit's scope.
     /// </summary>
     private static void WireDragHandle(Border handle, Action<Size> onDrag, Action onDragEnd)
     {
