@@ -1128,3 +1128,33 @@ those two new tests, while the behavioural PushBranch_with_force_overwrites_a_br
 passes. FOLLOW-UP: the rest of PR-GIT-003's table; before this decision the Git test classes held 12 per-site budget tests
 (10 git sites, 2 forge-CLI sites), against 82 git sites and 6 forge-CLI sites. ENGINEERING DECISION (test infrastructure); no product change, not a deviation.
 
+ED-208 [MCP][NET] A per-header origin-bound mark on `URLRequest`, so F.HTTP's redirect handling can drop one of a
+caller's own header fields on a cross-origin redirect, the same way ED-152 already drops Authorization
+(`src/Marrow.Core/Port/Http.cs`: `URLRequest.MarkOriginBound`/`OriginBoundHeaderFields`, `Hop.OriginBoundFields`,
+`Redirected`). FOUND: lane L3a review finding L3a-1 (HIGH). PR-MCP-188's deviation record already states OD-0022
+("Marrow sends a server's custom headers only to that server: a redirect that changes scheme, host or port drops
+them") and both MCPWire.cs and MCPProbe.cs carried a comment tracking the gap, but neither `MCPHub.swift:343-352`'s
+port (`MCPHub.cs`'s private `Post`) nor F.HTTP itself ever implemented it, and no test exercised a redirect at
+all: `MCPWire.Post` (`MCPWire.swift:66` `for (field, value) in headers { request.setValue(...) }`) put every one of
+a server's custom headers directly on the request with no marking, and `Http.cs`'s `Redirected` (`Http.cs`,
+ED-152) stripped only a literal `Authorization` field on an origin change, so `X-Api-Key` and any other custom
+header rode along to a redirect target the server never configured. DECISION: `URLRequest.MarkOriginBound(field)`
+records a field name (case-insensitive, idempotent) that `Hop.OriginBoundFields` carries through every redirect
+hop; `Redirected` drops it, alongside `Authorization`, the moment scheme, host or port changes, and never restores
+it even if a later hop returns to the original origin (matching Authorization's own one-way rule, UNVERIFIED
+O-29). `MCPWire.Post` (`:90`) now calls `.MarkOriginBound(field)` for every one of its caller-supplied `headers`
+entries (a server's own custom headers), which is the only per-server secret MCPHub's http client ever sends,
+before `Content-Type`, `Accept`, `MCP-Protocol-Version` and `Mcp-Session-Id` are added (those are protocol
+constants, never marked, and travel with every redirect exactly as before). PORT-ONLY: upstream `URLRequest` has
+no such member; like ED-152's own Authorization handling, this is F.HTTP-internal machinery with no Swift source
+line, justified by OD-0022's ruling. `MCPProbe.cs:246-266` carries its own, still-open copy of the same note for
+its own inline `Post` (a different unit, Services.MCP.MCPProbe, out of this lane's scope) and is not touched here.
+Tests: `HttpTests.A_same_origin_redirect_keeps_an_origin_bound_header` and
+`A_redirect_to_another_origin_drops_an_origin_bound_header_but_keeps_an_unmarked_one` (Core, the mechanism
+in isolation, mirroring the existing Authorization pair); `MCPHubTests.Http_client_keeps_the_servers_custom_header_across_a_same_origin_redirect`
+and `Http_client_drops_the_servers_custom_header_across_a_cross_origin_redirect` (through the real hub and two
+LoopbackHttpServer instances, all three of a client's POSTs - initialize, notifications/initialized, the real
+call - each redirecting in turn, since `MCPHub.swift:317,328,335` all post to the same configured URL, never a
+remembered redirect target). ENGINEERING DECISION extending ED-152's mechanism; the resulting behaviour (headers
+dropped across an origin-changing redirect) is OD-0022's owner-ruled deviation, not a new one.
+

@@ -507,7 +507,10 @@ internal sealed class MCPClient : Actor
         return replyBody;
     }
 
-    // :343-352
+    // :343-352. DEVIATION OD-0022 (ED-152, ED-208): `headers` here is this client's spec.headers, the server's own
+    // custom headers (e.g. X-Api-Key). MCPWire.Post marks each one origin-bound before sending, so F.HTTP's
+    // Redirected drops it the moment a redirect changes scheme, host or port, and keeps it across a same-server
+    // hop; this call site does nothing further, it inherits the marking from MCPWire.Post's own headers loop.
     private async Task<MCPHTTPReply> Post(Uri url, ValueMap<string, string> headers, JSONValue payload, int? id, TimeSpan timeout)
     {
         try

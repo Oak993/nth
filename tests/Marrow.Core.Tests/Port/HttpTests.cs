@@ -553,6 +553,58 @@ public sealed class HttpTests
 
     [Fact]
     [Trait("Rule", "R-NET-1")]
+    [Trait("Decision", "ED-208")]
+    public async Task A_same_origin_redirect_keeps_an_origin_bound_header()
+    {
+        // ED-208 (OD-0022, extends ED-152): URLRequest.MarkOriginBound lets a caller (MCPWire.Post) name one of
+        // its own headers as a server's secret, so Redirected treats it like Authorization above: kept to the
+        // same origin, dropped the moment the chain leaves it (next test).
+        using var runtime = new TestRuntime();
+        await using var server = new LoopbackHttpServer();
+        var request = new URLRequest(server.Url("/mcp"), timeoutInterval: 15)
+            .SetValue("secret-key", forHTTPHeaderField: "X-Api-Key").MarkOriginBound("X-Api-Key");
+        var pending = URLSession.Shared.Data(request);
+        var first = await server.NextExchange();
+        Assert.Equal(["secret-key"], first.HeaderValues("X-Api-Key"));
+        await first.Respond(302, "Found", [], ("Location", "/mcp2"));
+        var second = await server.NextExchange();
+        Assert.Equal("/mcp2", second.Target);
+        Assert.Equal(["secret-key"], second.HeaderValues("X-Api-Key"));
+        await second.Respond(200, "OK", Ascii("{}"));
+        await pending.WaitAsync(Guard);
+    }
+
+    [Fact]
+    [Trait("Rule", "R-NET-1")]
+    [Trait("Decision", "ED-208")]
+    public async Task A_redirect_to_another_origin_drops_an_origin_bound_header_but_keeps_an_unmarked_one()
+    {
+        // ED-208 (OD-0022): a redirect that changes scheme, host or port drops a marked header exactly as it
+        // drops Authorization, while an unmarked header (here MCP-Protocol-Version, a protocol constant, never
+        // marked by MCPWire.Post) is still carried across, same as :525's anthropic-beta and Accept.
+        using var runtime = new TestRuntime();
+        await using var server = new LoopbackHttpServer();
+        await using var other = new LoopbackHttpServer();
+        var request = new URLRequest(server.Url("/mcp"), timeoutInterval: 15)
+            .SetValue("secret-key", forHTTPHeaderField: "X-Api-Key").MarkOriginBound("X-Api-Key")
+            .SetValue("2025-06-18", forHTTPHeaderField: "MCP-Protocol-Version");
+        var pending = URLSession.Shared.Data(request);
+        var first = await server.NextExchange();
+        Assert.Equal(["secret-key"], first.HeaderValues("X-Api-Key"));
+        await first.Respond(302, "Found", [], ("Location", other.Url("/mcp2").AbsoluteUri));
+        var second = await other.NextExchange();
+        Assert.Equal("GET", second.Method);
+        Assert.Equal("/mcp2", second.Target);
+        Assert.Empty(second.HeaderValues("X-Api-Key"));
+        Assert.Equal(["2025-06-18"], second.HeaderValues("MCP-Protocol-Version"));
+        await second.Respond(200, "OK", Ascii("{}"));
+        var (data, response) = await pending.WaitAsync(Guard);
+        Assert.Equal(200, Assert.IsType<HTTPURLResponse>(response).StatusCode);
+        Assert.Equal(Ascii("{}"), data);
+    }
+
+    [Fact]
+    [Trait("Rule", "R-NET-1")]
     [Trait("Rule", "R-TEST-4")]
     public async Task Negative_control_the_default_dotnet_redirect_handler_drops_Authorization_on_a_same_origin_redirect()
     {
