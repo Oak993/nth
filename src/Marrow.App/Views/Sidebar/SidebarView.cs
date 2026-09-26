@@ -1677,19 +1677,181 @@ internal static class SidebarViewExtensions
     }
 }
 
-/// <summary>:1078-1230 <c>private struct ProjectRow: View</c>.</summary>
+/// <summary>:1078-1230 <c>private struct ProjectRow: View</c>. Part 6. The row's own body (PR-SIDEBAR-126 the
+/// click-to-expand and its togglesExpansion guard, PR-SIDEBAR-127 the icon and the accessory's three branches,
+/// PR-SIDEBAR-128 opacity by activation) and the context menu's own ITEMS (PR-SIDEBAR-129, below) are now provable
+/// directly. PR-SIDEBAR-133 (the AppKit context menu itself, live on a right-click) stays out of scope: SwiftUI's
+/// <c>.contextMenu</c> (:1138-1161) re-evaluates isActive, hasOverride and pairsSnapshot fresh every time the menu
+/// opens, and no ED or platform-adaptation entry names a Windows/Avalonia foundation for that per-open refresh
+/// (porting/engineering_decisions.md and porting/platform_adaptations.md have no ".contextMenu" or "ContextMenu"
+/// entry; RowActionMenuButtons' own header comment already anticipates "a caller" installing its Items on a live
+/// ContextMenu.Items, but no unit has done so yet). Attaching a menu fixed at construction time would go stale the
+/// first time isActive or hasOverride changed without the row itself being rebuilt - an invented, silently wrong
+/// behaviour, worse than the honest gap. See STOP #7 (SidebarViewTests.cs, narrowed this part) and PR-SIDEBAR-130
+/// (STOP #7's own: the confirmation this same menu's "Remove project" item would need).</summary>
 internal sealed class ProjectRow : Decorator
 {
+    // :1091 @State private var isMenuPresented = false
+    private sealed class ViewState : MainActorModel
+    {
+        private bool isMenuPresented;
+
+        public bool IsMenuPresented { get => Read(isMenuPresented); set => Set(ref isMenuPresented, value); }
+    }
+
     /// <param name="snapshot">:1081 <c>let snapshot: Project</c>.</param>
     /// <param name="count">:1088 <c>let count: Int</c>.</param>
     /// <param name="togglesExpansion">:1089 <c>var togglesExpansion = true</c>.</param>
-    // :1093-1163 body
-    public ProjectRow(Project snapshot, long count, bool togglesExpansion = true) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1093");
+    // :1093-1163 body. `snapshot`, `count` and `togglesExpansion` are stored, non-reactive inputs in Swift too (no
+    // @State on any of them): the caller (ProjectItems, part 2) already rebuilds every row fresh whenever the thread
+    // count, a project's own expansion or the settled fold changes (ListMotion, :117-119), so this constructor reads
+    // them once. `project` (:1085) and `isActive` (:1096) are computed properties Swift's body re-reads on every
+    // render; SidebarRow (UI/Chrome/Chrome.cs) has no external hook to re-invoke its own `accessory` closure other
+    // than its own internal hover state, so this Tracks the two computed values directly onto the row it already
+    // built, the way ActivityViewToggle and SettledHeader mutate an already-built control's properties rather than
+    // rebuilding it (surgical update, not a fresh SidebarRow, so its own internal hover state survives).
+    public ProjectRow(Project snapshot, long count, bool togglesExpansion = true)
+    {
+        var state = new ViewState();
+        var current = snapshot; // :1085, refreshed by the Track below
+        var isMenuPresented = new Binding<bool>(() => state.IsMenuPresented, value => state.IsMenuPresented = value);
+        var row = new SidebarRow(
+            snapshot.Name, // :1098; no source path renames a project, so the title itself needs no reactivity
+            action: () => // :1100-1105
+            {
+                if (!togglesExpansion) return; // :1101
+                Transaction.WithAnimation(Chrome.PanelSlide, () => Model.UpdateProject(snapshot.Id, p => p with { IsExpanded = !p.IsExpanded })); // :1102-1104
+            },
+            icon: () => new SidebarIconBadge(() => // :1106-1114
+                current.Icon is { } icon ? new ProjectIconMark(icon, 12) : new SidebarSymbol("folder.fill")), // :1108-1112
+            accessory: hovering => // :1115-1133, invoked by SidebarRow's own hover Track (see this constructor's own comment)
+            {
+                if (hovering || state.IsMenuPresented) // :1116
+                {
+                    var isActive = Model.Settings.IsProjectActive(current.Id); // :1096, read fresh at invocation time
+                    var cluster = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 0 }; // :1117
+                    cluster.Children.Add(new RowActionsButton(Actions(Model, current, isActive), isMenuPresented)); // :1118
+                    var plus = PlainControls.Button(new RowAccessoryIcon("plus"), () => Model.NewThread(current)); // :1119-1123, :1124 .buttonStyle(.plain)
+                    ToolTip.SetTip(plus, "New thread in " + current.Name); // :1125
+                    cluster.Children.Add(plus);
+                    return cluster;
+                }
+                if (!current.IsExpanded && count > 0) // :1127
+                {
+                    var text = new TextBlock { Text = count.ToString(CultureInfo.InvariantCulture) }; // :1128
+                    SwiftFont.Subheadline.MonospacedDigit().Apply(text); // :1129
+                    text.Foreground = Chrome.SecondaryText.Brush(text); // :1130
+                    // SidebarRow (UI/Chrome/Chrome.cs) sets `built.Margin` itself, unconditionally, once accessory()
+                    // returns; a Margin set here would be overwritten. :1131's own .padding(.trailing, 4) nests
+                    // inside SidebarRow's own trailing space the same way SwiftUI composes nested paddings, so it is
+                    // carried as this wrapper's own Padding, which SidebarRow's Margin assignment does not touch.
+                    return new Border { Padding = new Thickness(0, 0, 4, 0), Child = text };
+                }
+                return new Border(); // :1115-1133, no branch matched: EmptyView, nothing drawn
+            },
+            accessoryWidth: 40); // :1099
+        row.Track(() =>
+        {
+            // AppSettings.IsProjectActive(id) (App.AppSettings, a dependency of this unit) reads its backing field
+            // directly rather than through the tracked ProjectActivationOverrides/ProjectsEnabled properties, so
+            // calling it alone here would record no dependency and this Track would never re-fire when either
+            // changes; reading both properties (even unused) registers them, matching what Swift's Observable
+            // macro instruments transitively and this port's own Read()/Set() otherwise would not.
+            _ = Model.Settings.ProjectActivationOverrides;
+            _ = Model.Settings.ProjectsEnabled;
+            return (Model.Project(snapshot.Id) ?? snapshot, Model.Settings.IsProjectActive(snapshot.Id)); // :1085, :1096
+        }, value =>
+        {
+            current = value.Item1;
+            Opacity = value.Item2 ? 1d : 0.55d; // :1135, on this ProjectRow itself (the whole body, as the source's own .opacity() wraps it), not the inner SidebarRow
+        });
+        Child = row;
+    }
 
-    // :1168-1203 private static func contextMenuActions(project:isActive:hasOverride:model:) -> [RowAction]
-    private static ValueList<RowAction> ContextMenuActions(Project project, bool isActive, bool hasOverride, AppModel model) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1168");
+    // :5 @Environment(AppModel.self) private var model (this file's own convention: SidebarView.cs:337)
+    private AppModel Model => AppEnvironment.GetAppModel(this); // :1079
+
+    // :1168-1203 private static func contextMenuActions(project:isActive:hasOverride:model:) -> [RowAction]. Part 6.
+    // The weak-model capture mirrors ThreadActions.MakeContextMenu's own reasoning (the AppKit menu outlives the
+    // right-click): its own caller is not yet wired (see this class's own header), but this piece is proven directly.
+    // PR-SIDEBAR-127, PR-SIDEBAR-129; OD-0008 B1 ("Reveal in File Explorer" replaces "Reveal in Finder").
+    private static ValueList<RowAction> ContextMenuActions(Project project, bool isActive, bool hasOverride, AppModel model)
+    {
+        var projectID = project.Id; // :1169
+        var weakModel = new WeakReference<AppModel>(model); // [weak model]
+        var items = new List<RowAction>
+        {
+            new() { Title = "New thread", Symbol = "square.and.pencil", Action = () => { if (weakModel.TryGetTarget(out var live)) live.NewThread(project); } }, // :1171-1174
+            new() { Title = "New thread in worktree", Symbol = "square.stack.3d.up", Action = () => { if (weakModel.TryGetTarget(out var live)) live.NewThread(project, WorkspaceMode.Worktree); } }, // :1175-1178
+            new() { Title = "Reveal in File Explorer", Symbol = "folder", StartsGroup = true, Action = () => { if (weakModel.TryGetTarget(out _)) ShellWorkspace.RevealInFileExplorer(project.Path); } }, // :1179-1182, OD-0008 B1
+            new() { Title = "Remove project", Symbol = "trash", IsDestructive = true, StartsGroup = true, Action = () => { if (weakModel.TryGetTarget(out var live)) live.RemoveProject(project); } }, // :1183-1186
+        };
+        items.Add(new RowAction // :1188-1195
+        {
+            Title = isActive ? "Deactivate project" : "Activate project",
+            Symbol = "power",
+            StartsGroup = true,
+            Action = () => { if (weakModel.TryGetTarget(out var live)) live.Settings.SetProjectActive(!isActive, projectID); },
+        });
+        if (hasOverride) // :1196
+        {
+            items.Add(new RowAction { Title = "Follow global setting", Symbol = "arrow.uturn.backward", Action = () => { if (weakModel.TryGetTarget(out var live)) live.Settings.ClearProjectActivationOverride(projectID); } }); // :1197-1200
+        }
+        return new ValueList<RowAction>(items);
+    }
+
+    // :1205-1229 private func actions(isActive:) -> [RowAction]. Part 6. The ellipsis popover's own list: live
+    // closures over the model and project, unlike ContextMenuActions' weak snapshots above (the popover button owns
+    // its own lifetime; there is no AppKit menu to outlive it, matching ThreadActions.Make's own reasoning).
+    // PR-SIDEBAR-127, PR-SIDEBAR-129; OD-0008 B1.
+    private static ValueList<RowAction> Actions(AppModel model, Project project, bool isActive)
+    {
+        var items = new List<RowAction>
+        {
+            new() { Title = "New thread", Symbol = "square.and.pencil", Action = () => model.NewThread(project) }, // :1207
+            new() { Title = "New thread in worktree", Symbol = "square.stack.3d.up", Action = () => model.NewThread(project, WorkspaceMode.Worktree) }, // :1208-1210
+            new() { Title = "Reveal in File Explorer", Symbol = "folder", StartsGroup = true, Action = () => ShellWorkspace.RevealInFileExplorer(project.Path) }, // :1211, OD-0008 B1
+            new() { Title = "Remove project", Symbol = "trash", IsDestructive = true, StartsGroup = true, Action = () => model.RemoveProject(project) }, // :1212-1214
+        };
+        items.Add(new RowAction // :1216-1220
+        {
+            Title = isActive ? "Deactivate project" : "Activate project",
+            Symbol = "power",
+            StartsGroup = true,
+            Action = () => model.Settings.SetProjectActive(!isActive, project.Id),
+        });
+        if (model.Settings.HasProjectActivationOverride(project.Id)) // :1223
+        {
+            items.Add(new RowAction { Title = "Follow global setting", Symbol = "arrow.uturn.backward", Action = () => model.Settings.ClearProjectActivationOverride(project.Id) }); // :1224-1226
+        }
+        return new ValueList<RowAction>(items);
+    }
+
+    // :1138-1161 the context menu's own content, assembled from an already-resolved snapshot the way this file's
+    // static pieces always take their collaborators explicitly (BuildTrailingOverlay, BuildFoldOverlay); a caller
+    // installs the result on a live ContextMenu.Items once one exists (see this class's own header comment). Part 6.
+    // PR-SIDEBAR-129, UI-SIDEBAR-014, UI-SIDEBAR-015, UI-SIDEBAR-016.
+    private static IReadOnlyList<Control> BuildContextMenuItems(
+        Project project, bool isActive, bool hasOverride, AppModel model, IReadOnlyList<ProjectPairChoice> pairs)
+    {
+        var items = new List<Control>(new RowActionMenuButtons(ContextMenuActions(project, isActive, hasOverride, model)).Items); // :1143-1148
+        if (pairs.Count > 0) // :1154 pairsSnapshot.isEmpty
+        {
+            items.Add(new Separator()); // :1155
+            var submenu = new MenuItem // :1156-1160
+            {
+                Header = new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    Spacing = 6,
+                    Children = { SwiftImage.SystemName("point.3.connected.trianglepath.dotted").Font(Chrome.IconFont), new TextBlock { Text = "Start new chats on" } }, // :1159
+                },
+            };
+            foreach (var item in new ProjectPairMenuItems(project.Id, project.HydraPairID, pairs, model).Items) submenu.Items.Add(item); // :1157
+            items.Add(submenu);
+        }
+        return items;
+    }
 }
 
 /// <summary>:1233-1236 <c>private struct ProjectPairChoice: Identifiable</c>.</summary>
@@ -1699,16 +1861,51 @@ internal sealed record ProjectPairChoice
     public required string Title { get; init; } // :1235
 }
 
-/// <summary>:1241-1270 <c>private struct ProjectPairMenuItems: View</c>.</summary>
+/// <summary>:1241-1270 <c>private struct ProjectPairMenuItems: View</c>. Part 6. PR-SIDEBAR-133: the source's own
+/// capture changed from <c>[weak model]</c> to a direct one at B2 (not user-visible; this file's own note at
+/// UI-SIDEBAR-016).</summary>
 internal sealed class ProjectPairMenuItems : Decorator
 {
     /// <param name="projectID">:1242 <c>let projectID: UUID</c>.</param>
     /// <param name="selectedID">:1243 <c>let selectedID: UUID?</c>.</param>
     /// <param name="pairs">:1244 <c>let pairs: [ProjectPairChoice]</c>.</param>
     /// <param name="model">:1245 <c>let model: AppModel</c>.</param>
+    /// <summary>The rows this produces, in order, for a caller's submenu <c>Items</c> (as RowActionMenuButtons
+    /// exposes its own for a ContextMenu.Items).</summary>
+    public IReadOnlyList<Control> Items { get; }
+
     // :1247-1269 body
-    public ProjectPairMenuItems(Guid projectID, Guid? selectedID, IReadOnlyList<ProjectPairChoice> pairs, AppModel model) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1247");
+    public ProjectPairMenuItems(Guid projectID, Guid? selectedID, IReadOnlyList<ProjectPairChoice> pairs, AppModel model)
+    {
+        var items = new List<Control> { BuildItem("The chat's last pair", selectedID is null, () => model.SetHydraPair(null, projectID)) }; // :1248-1256
+        items.Add(new Separator()); // :1257
+        foreach (var pair in pairs) // :1258
+        {
+            var pairID = pair.Id; // :1259
+            items.Add(BuildItem(pair.Title, selectedID == pair.Id, () => model.SetHydraPair(pairID, projectID))); // :1259-1267
+        }
+        Items = items;
+    }
+
+    // :1250-1255 (the clearing item) and :1262-1266 (a pair item): a checkmark Label for the current choice, plain
+    // Text otherwise, with no reserved check column for the unchecked items (the label itself is swapped, not a
+    // menu-state flag).
+    private static MenuItem BuildItem(string title, bool isSelected, Action action)
+    {
+        var menuItem = new MenuItem
+        {
+            Header = isSelected
+                ? new StackPanel // :1252 Label(_, systemImage: "checkmark")
+                {
+                    Orientation = Orientation.Horizontal,
+                    Spacing = 6,
+                    Children = { SwiftImage.SystemName("checkmark").Font(Chrome.IconFont), new TextBlock { Text = title } },
+                }
+                : new TextBlock { Text = title }, // :1254 Text(title)
+        };
+        menuItem.Click += (_, _) => action();
+        return menuItem;
+    }
 }
 
 /// <summary>:1272-1312 <c>private enum ThreadRowMetrics</c>.</summary>
