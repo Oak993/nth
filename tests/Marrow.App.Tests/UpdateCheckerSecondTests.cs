@@ -379,7 +379,14 @@ public sealed class UpdateCheckerSecondTests
 
         runtime.OnMain(checker.StartBackgroundChecks);
         runtime.Advance(TimeSpan.FromSeconds(8)); // the launch check
-        runtime.Loop.RunUntil(() => server.Requests.Count >= 1, TimeSpan.FromSeconds(20));
+        // Wait for the check to actually finish (LastCheckedAt set), not just for the server to have seen the
+        // request: server.Requests.Count >= 1 only means the request arrived, which can still be a real network
+        // hop ahead of Check() finishing and setting LastCheckedAt (:176/:183). HandleActivation's staleness test
+        // reads LastCheckedAt right after this, so on that narrower, real race this test asserted "not stale" (or
+        // even "still not stale" at exactly the 6-hour mark) while the launch check's own LastCheckedAt write was
+        // still in flight, seeing it as null (never checked: always stale) instead - reproduced 3 of 8 solo runs
+        // with no load at all before this fix.
+        runtime.Loop.RunUntil(() => checker.LastCheckedAt is not null, TimeSpan.FromSeconds(20));
         Assert.Single(server.Requests);
         // Stop the loop here so only HandleActivation drives every further request: otherwise the loop's own
         // 6-hourly tick (PR-UPDATE-007) resets lastCheckedAt at the same instants this test advances to.
