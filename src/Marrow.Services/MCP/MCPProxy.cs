@@ -54,6 +54,22 @@ public sealed class MCPProxy
         return picked;
     }
 
+    // Test-only seam (InternalsVisibleTo Marrow.Services.Tests): PR-MCP-124's bind-failure/repick path (:113-132)
+    // needs a second instance, isolated from the collection's shared MCPProxy.Shared.Current, so exercising a
+    // failed bind on the fixture's already-listening port doesn't disturb the singleton the rest of the
+    // collection depends on.
+    internal static MCPProxy CreateForTests() => new();
+
+    // Test-only seam (InternalsVisibleTo Marrow.Services.Tests): RepickPort (above) mutates the static portBox
+    // and rewrites PortFile unconditionally - both process-wide, shared by every MCPProxy instance including
+    // MCPProxy.Shared.Current. A test that forces a repick must rewind this afterward, or MCPProxy.Port (and
+    // MCPProxy.Url) stop matching MCPProxySingletonFixture.Port for the rest of the collection.
+    internal static void ResetPortForTests(ushort port)
+    {
+        portBox.WithLock((ref ushort value) => value = port);
+        SwiftTry.Ignore(() => FileOps.WriteAtomic(PortFile, Encoding.UTF8.GetBytes(port.ToString(CultureInfo.InvariantCulture))));
+    }
+
     // :19-27 UInt16(text.trimmed): unsigned, no leading '-', overflow is nil.
     private static ushort? ParseUInt16(string text)
     {
@@ -538,8 +554,26 @@ public sealed class MCPProxy
         return frame; // :417
     }
 
-    private static async Task SendAsync(NetworkStream stream, byte[] data) =>
-        await stream.WriteAsync(data).ConfigureAwait(false); // :420-426, a completion-callback continuation here is one write-and-await
+    // :420-426. Swift's send(_:_:) is declared non-throwing (CheckedContinuation<Void, Never>) and its
+    // completion's error is discarded at every call site, so a failed local write to a client that has already
+    // disconnected is always silent, never observable. NetworkStream.WriteAsync has no such guarantee - it
+    // throws IOException/ObjectDisposedException on a reset or already-closed socket - so this swallows here,
+    // once, so every call site (WriteBackAsync's three writes above, RespondAsync's own) inherits the same
+    // never-throws contract uniformly instead of each needing its own try/catch.
+    private static async Task SendAsync(NetworkStream stream, byte[] data)
+    {
+        try
+        {
+            await stream.WriteAsync(data).ConfigureAwait(false);
+        }
+        catch
+        {
+        }
+    }
+
+    // Test-only seam (InternalsVisibleTo Marrow.Services.Tests): asserts SendAsync's never-throws contract
+    // directly, since it is otherwise only reachable through the private call sites above.
+    internal static Task SendAsyncForTests(NetworkStream stream, byte[] data) => SendAsync(stream, data);
 
     // :428-439
     private async Task RespondAsync(TcpClient client, NetworkStream stream, int status, byte[] body)

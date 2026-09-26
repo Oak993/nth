@@ -546,6 +546,31 @@ public sealed class MCPProxyTests : IDisposable
         Assert.Equal("9\r\ndata: hi\n\r\n0\r\n\r\n", Encoding.UTF8.GetString(body));
     }
 
+    // ---- send(_:_:)'s never-throws contract (R-NET-2), predates B3, reviewed alongside this lane's WriteBackAsync rewrite ----
+
+    // DroppyCode/Services/MCP/MCPProxy.swift:420-426 send(_:_:) is declared non-throwing
+    // (CheckedContinuation<Void, Never>) and its completion's error is discarded, so a failed local write to a
+    // client that already disconnected is always silent - at every call site in WriteBackAsync, including the
+    // status-head write and the terminating "0\r\n\r\n" write this lane's SSE per-line rewrite left unguarded.
+    // No PR-MCP record cites :420-426 directly (it is unchanged from B2 apart from citation renumbering), so
+    // this names R-NET-2 (reproducing Network.framework behavior exactly) rather than a Req id.
+    [Trait("Rule", "R-NET-2")]
+    [Fact]
+    public async Task SendAsync_never_throws_once_the_local_connection_is_already_closed()
+    {
+        using var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        var port = ((IPEndPoint)listener.LocalEndpoint!).Port;
+        using var client = new TcpClient();
+        await client.ConnectAsync(IPAddress.Loopback, port);
+        using var accepted = await listener.AcceptTcpClientAsync();
+        var stream = accepted.GetStream();
+        accepted.Close(); // the proxy's own end is already gone, as it would be relaying to a disconnected
+                           // client; :420-426 says the next write must be swallowed, never thrown
+        var thrown = await Record.ExceptionAsync(() => MCPProxy.SendAsyncForTests(stream, "hello"u8.ToArray()));
+        Assert.Null(thrown);
+    }
+
     // ---- PR-MCP-124, PR-MCP-125 (Logger, not standard output; ED-163) ----
 
     [Trait("Req", "PR-MCP-125")] // DroppyCode/Services/MCP/MCPProxy.swift:7, 116: Self.log.info("listening on <port>")
@@ -558,7 +583,13 @@ public sealed class MCPProxyTests : IDisposable
         Assert.Contains(fixture.LoggedLines, line => line.Channel == "iordv.marrow/mcp-proxy" && line.Message == $"listening on {fixture.Port}");
     }
 
-    [Trait("Req", "PR-MCP-124")] // DroppyCode/Services/MCP/MCPProxy.swift:305: Self.log.error("request to '<id>' failed: <desc>")
+    // PR-MCP-124's own evidence is the listener's async .failed state at MCPProxy.swift:113-132 (Self.log.error
+    // at :118, then repickPort). :305's Self.log.error("request to '<id>' failed: ...") is a different code path
+    // entirely - sendUpstream's caller catch at :302-307 - which is PR-MCP-131's own source_evidence. Retagged
+    // from PR-MCP-124 (which this test never exercised: an unparseable upstream URL never reaches Listen() at
+    // all) to PR-MCP-131, which it already duplicates/extends alongside An_unparseable_upstream_URL_answers_502
+    // below.
+    [Trait("Req", "PR-MCP-131")] // DroppyCode/Services/MCP/MCPProxy.swift:305: Self.log.error("request to '<id>' failed: <desc>")
     [Fact]
     public async Task An_upstream_request_failure_is_logged_through_Logger_at_error_level_not_standard_output()
     {
@@ -582,6 +613,57 @@ public sealed class MCPProxyTests : IDisposable
         }
         Assert.True(foundAny, "expected a Logger line for the failed upstream request");
         Assert.Equal("iordv.marrow/mcp-proxy", found.Channel);
+    }
+
+    // A genuine PR-MCP-124 test: Listen()'s bind-failure path (MCPProxy.swift:107-132). MCPProxySingletonFixture's
+    // own MCPProxy.Shared.Current is already listening on fixture.Port, so a second, isolated instance
+    // (CreateForTests) trying to bind that exact port collides the same way the record's windows_path describes
+    // ("the same collision arises when two builds share %LOCALAPPDATA%\<AppName>\mcp\proxy-port"): TcpListener.Start
+    // has no SO_REUSEADDR-equivalent set, so the bind fails synchronously (folded into the sync catch per this
+    // file's header ENGINEERING DECISION note, playing Swift's async ".failed" branch). RepickPort (:30-35) is
+    // static and process-wide, so it is rewound in `finally` - otherwise MCPProxy.Port and MCPProxy.Url would stop
+    // matching fixture.Port for the rest of the collection (see Url_includes_the_current_port).
+    [Trait("Req", "PR-MCP-124")] // DroppyCode/Services/MCP/MCPProxy.swift:107-132
+    [Fact]
+    public void A_listener_that_fails_to_bind_repicks_once_and_logs_the_failure_through_Logger()
+    {
+        var originalPort = MCPProxy.Port;
+        var logged = new List<(string Message, string Channel)>();
+        var proxy = MCPProxy.CreateForTests();
+        // RepickPort's own write goes through PortFile -> MCPPaths.Directory -> Storage.Root, which the fixture's
+        // StorageScratchFolder bound only for its own constructor flow (and the proxy's background accept-loop
+        // task descended from it), never for this test method's own flow (R-TEST-9): a fresh, local scratch
+        // folder here is all RepickPort's disk write needs, and it is unrelated to fixture.Port's own identity.
+        using var storage = new StorageScratchFolder();
+        try
+        {
+            using (Logger.Sink.Override((message, channel) => logged.Add((message, channel))))
+            {
+                proxy.Start(); // :86-94 -> Listen(originalPort, canRepick: true); originalPort is already bound
+            }
+            // :118 Self.log.error("listener on <port> failed: <error>") - the error text is platform-specific
+            // (matching Swift's own \(error) interpolation, whose exact text is not a source fact either), so
+            // only the fixed prefix and channel are asserted, as the retagged PR-MCP-131 test above already does
+            // for its own Logger.error line.
+            Assert.Contains(logged, line =>
+                line.Channel == "iordv.marrow/mcp-proxy" &&
+                line.Message.StartsWith($"listener on {originalPort} failed: ", StringComparison.Ordinal));
+
+            // :124-125 canRepick -> repickPort() picks a fresh port, once, and listen() is retried with
+            // canRepick: false. The retry lands on a genuinely free port, so it succeeds and logs :116's info line.
+            var repickedPort = MCPProxy.Port;
+            Assert.NotEqual(originalPort, repickedPort);
+            Assert.Contains(logged, line => line.Channel == "iordv.marrow/mcp-proxy" && line.Message == $"listening on {repickedPort}");
+
+            using var probe = new TcpClient();
+            probe.Connect(IPAddress.Loopback, repickedPort); // the repicked listener is actually accepting
+            Assert.True(probe.Connected);
+        }
+        finally
+        {
+            proxy.Stop(); // :139-152
+            MCPProxy.ResetPortForTests(originalPort); // rewind the static port state RepickPort mutated
+        }
     }
 
     // ---- PR-MCP-135 ----
