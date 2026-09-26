@@ -2286,7 +2286,8 @@ public sealed class TurnFinishedBlock : Decorator
         };
         card.RoundedRectangle(TimelineMetrics.PillRadius, RoundedCornerStyle.Continuous); // :2660
         card.Background = SwiftColor.Quaternary.Opacity(0.32).Brush(card); // :2661
-        return card;
+        // PR-CHAT-104.windows_path: no whole-layer fade over a potentially thousands-point body.
+        return card.Transition(SwiftTransition.Identity);
     }
 
     // :2664-2680 the folded turn: the answer as the same menu-bearing text as a reply row, then the plans, then the
@@ -2306,7 +2307,7 @@ public sealed class TurnFinishedBlock : Decorator
         }
         foreach (var entry in turn.CollapsedPlans) column.Children.Add(new PlanCard(entry, runtime)); // :2672-2674
         foreach (var entry in turn.CollapsedNotices) column.Children.Add(new NoticeRow(entry)); // :2675-2677
-        return column;
+        return column.Transition(SwiftTransition.Identity); // PR-CHAT-104.windows_path
     }
 
     // :2688-2699 the file card: a weak runtime for review, so the card (and its review closure) never keeps the thread
