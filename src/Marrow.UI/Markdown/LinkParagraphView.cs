@@ -168,12 +168,15 @@ public sealed class LinkParagraphView : Decorator
 /// fragment whose path starts with "/" opens as a local file (stripping a trailing ":&lt;positive int&gt;" line
 /// suffix first, when the full path does not exist but the stripped one does and is not a directory); anything
 /// else goes to <c>NSWorkspace.shared.open</c>. OD-0026 (owner ruling on unknowns.md UNK-0027; PA-0020) extends
-/// this for Windows: a drive-letter path (<c>C:\...</c>, <c>C:/...</c>, or the file-URL form <c>/C:/...</c>)
-/// takes the same local-file branch and suffix rule; a UNC target (<c>\\host\...</c>, <c>file://host/...</c>) is
-/// never opened or revealed (named safety deviation); and a local target of a type Windows runs directly is
-/// revealed, selected, in File Explorer rather than launched (ED-204, another named safety deviation). ED-203
-/// hardens the generic openers this reaches (<see cref="ShellWorkspace.OpenWithDefaultApp"/> here, and
-/// <c>Marrow.Services.Port.Workspace.ShellOpen</c>) against a relative or scheme-less-host string.
+/// this for Windows: a drive-letter path (<c>C:\...</c>, <c>C:/...</c>, or the file-URL form <c>/C:/...</c> or
+/// <c>file:C:/...</c>) takes the same local-file branch, with no query/fragment exemption (review A29: unlike the
+/// source's own POSIX guard, a "?"/"#" here is exactly as attacker-controllable as the rest of a chat-authored
+/// link, and letting it skip the branch would defeat the reason OD-0026's Windows-only shapes exist); a UNC
+/// target (<c>\\host\...</c>, <c>//host/...</c>, <c>/\host\...</c>, <c>file://host/...</c>) is never opened or
+/// revealed (named safety deviation); and a local target of a type Windows runs directly is revealed, selected,
+/// in File Explorer rather than launched (ED-204, another named safety deviation). ED-203 hardens the generic
+/// opener this reaches when neither branch matches (<see cref="ShellWorkspace.OpenWithDefaultApp"/>'s own gate)
+/// against a relative or scheme-less-host string.
 /// </summary>
 public static class MarkdownLinkOpener
 {
@@ -205,29 +208,56 @@ public static class MarkdownLinkOpener
             && url.Path.Length > 0 && url.Path[0] == '/')
             return url.Path; // :228-229
 
-        if (url.Scheme is { Length: 1 } drive && IsAsciiLetter(drive[0])
-            && url.Host is null && url.Query is null && url.Fragment is null
-            && url.Path.Length > 0 && (url.Path[0] == '/' || url.Path[0] == '\\'))
-            return drive + ":" + url.Path; // OD-0026: C:\... or C:/...
+        if (url.Scheme is { Length: 1 } drive && IsAsciiLetter(drive[0]))
+        {
+            // review A29: a doubled separator right after the drive letter ("C://Windows/...") is exactly what
+            // Windows treats as "C:/Windows/..." (it collapses a repeated path separator), but RFC 3986 parses
+            // the doubled slash as an authority (a Host) rather than folding it into Path; both shapes must be
+            // recognised, or "C://..." reaches ShellWorkspace.OpenWithDefaultApp raw and skips ShouldReveal.
+            if (url.Host is { Length: > 0 } host && (url.Path.Length == 0 || url.Path[0] == '/'))
+                return drive + ":/" + host + url.Path;
+            if (url.Host is null && url.Path.Length > 0 && (url.Path[0] == '/' || url.Path[0] == '\\'))
+                return drive + ":" + url.Path; // OD-0026: C:\... or C:/...
+        }
 
-        if (url.Scheme is { } scheme && SwiftString.Lowercased(scheme) == "file" && string.IsNullOrEmpty(url.Host)
-            && url.Query is null && url.Fragment is null
-            && url.Path.Length >= 4 && url.Path[0] == '/' && IsAsciiLetter(url.Path[1]) && url.Path[2] == ':'
-            && (url.Path[3] == '/' || url.Path[3] == '\\'))
-            return url.Path[1..]; // OD-0026: /C:/... from file:///C:/...
+        if (url.Scheme is { } scheme && SwiftString.Lowercased(scheme) == "file" && string.IsNullOrEmpty(url.Host))
+        {
+            var path = url.Path;
+            if (path.Length >= 4 && path[0] == '/' && IsAsciiLetter(path[1]) && path[2] == ':'
+                && (path[3] == '/' || path[3] == '\\'))
+                return path[1..]; // OD-0026: /C:/... from file:///C:/...
+            // review A29: "file:C:/..." (no "//" before the drive letter) is the same drive-letter path with one
+            // fewer separator; with no authority to consume, SwiftURL's Path already starts at the drive letter.
+            if (path.Length >= 3 && IsAsciiLetter(path[0]) && path[1] == ':' && (path[2] == '/' || path[2] == '\\'))
+                return path;
+        }
 
         return null;
     }
 
-    /// <summary>ED-204: the two literal UNC shapes; a drive-letter path that happens to map to a network share is
-    /// not inspected.</summary>
+    /// <summary>
+    /// ED-204: a UNC target is never opened or revealed. <c>\\host\...</c> and <c>file://host/...</c> are the two
+    /// shapes OD-0026 names; review A29 adds the shapes Windows treats identically but RFC 3986 does not parse the
+    /// same way: <c>//host/...</c> (a doubled forward slash, which .NET's own File.Exists/Directory.Exists resolve
+    /// as a UNC path exactly like <c>\\host\...</c>) and a mixed <c>/\host\...</c> or <c>\/host\...</c>, plus the
+    /// <c>file:</c> form of a doubled forward slash (<c>file:////host/...</c>, an empty authority followed by a
+    /// path that still starts with two separators). A drive-letter path that happens to map to a network share is
+    /// not inspected.
+    /// </summary>
     internal static bool IsUnc(SwiftURL url)
     {
-        if (url.Scheme is null && url.Path.StartsWith(@"\\", StringComparison.Ordinal)) return true; // \host\...
-        if (url.Scheme is { } scheme && SwiftString.Lowercased(scheme) == "file" && !string.IsNullOrEmpty(url.Host))
-            return true; // file://host/...
+        if (url.Scheme is null && HasUncPrefix(url.Path)) return true; // \host\..., //host/..., /\host\...
+        if (url.Scheme is { } scheme && SwiftString.Lowercased(scheme) == "file")
+        {
+            if (!string.IsNullOrEmpty(url.Host)) return true; // file://host/...
+            if (HasUncPrefix(url.Path)) return true; // file:////host/... (an empty authority, then //host/...)
+        }
         return false;
     }
+
+    private static bool HasUncPrefix(string path) => path.Length >= 2 && IsSeparator(path[0]) && IsSeparator(path[1]);
+
+    private static bool IsSeparator(char c) => c is '/' or '\\';
 
     /// <summary>:234-242: a trailing ":&lt;positive integer&gt;" is stripped when the full path does not exist but
     /// the stripped path does, and is not a directory.</summary>

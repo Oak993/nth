@@ -219,6 +219,49 @@ public sealed class LinkParagraphViewTests(HeadlessSession headless)
         Assert.Null(MarkdownLinkOpener.LocalFilePath(SwiftURL.Create("https://example.com/a")!));
     }
 
+    // ---- review A29 finding 1: a doubled separator, a drive-relative form, and "file:" without the leading "/" ----
+
+    [Fact]
+    [Trait("Decision", "ED-204")] // a doubled slash right after the drive letter parses as an authority (a Host),
+                                  // not into Path, but Windows treats "C://x" and "C:/x" as the same path
+    public void A_doubled_slash_after_the_drive_letter_still_qualifies_as_a_local_file()
+    {
+        var url = SwiftURL.Create("C://Windows/System32/calc.exe")!;
+        Assert.Equal("Windows", url.Host); // pins the parse this fix depends on
+        Assert.Equal("C:/Windows/System32/calc.exe", MarkdownLinkOpener.LocalFilePath(url));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-203")] // a drive-relative form is not rooted: Windows would resolve it against
+                                  // whatever the process's current directory on that drive happens to be
+    public void A_drive_relative_path_does_not_qualify_as_a_local_file()
+    {
+        Assert.Null(MarkdownLinkOpener.LocalFilePath(SwiftURL.Create("C:tool.exe")!));
+        Assert.Null(MarkdownLinkOpener.LocalFilePath(SwiftURL.Create("C:../tool.exe")!));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-204")] // "file:C:/..." omits the "//" a file URL usually carries; SwiftURL then parses
+                                  // no authority at all, and Path starts directly at the drive letter
+    public void The_file_url_form_of_a_drive_letter_path_with_no_authority_marker_qualifies_as_a_local_file()
+    {
+        var url = SwiftURL.Create("file:C:/x/a.exe")!;
+        Assert.Null(url.Host);
+        Assert.Equal("C:/x/a.exe", MarkdownLinkOpener.LocalFilePath(url));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-204")] // a query does not exempt a Windows drive-letter shape the way it does the
+                                  // source's own POSIX rule: it is exactly as attacker-controllable as the rest
+                                  // of a chat-authored link, and ShellExecuteW's own file: URI handling resolves
+                                  // this to the local path regardless
+    public void A_file_url_drive_letter_path_with_a_query_still_qualifies_as_a_local_file()
+    {
+        var url = SwiftURL.Create("file:///C:/x/a.exe?q")!;
+        Assert.Equal("q", url.Query);
+        Assert.Equal("C:/x/a.exe", MarkdownLinkOpener.LocalFilePath(url));
+    }
+
     [Fact]
     [Trait("Decision", "ED-204")] // \host\... is never opened or revealed
     public void A_raw_backslash_unc_path_is_recognized_as_unc()
@@ -247,6 +290,43 @@ public sealed class LinkParagraphViewTests(HeadlessSession headless)
     public void A_posix_local_path_is_never_treated_as_unc()
     {
         Assert.False(MarkdownLinkOpener.IsUnc(SwiftURL.Create("/abs/a.swift")!));
+    }
+
+    // ---- review A29 finding 2: shapes Windows treats as UNC that RFC 3986 does not parse as \\host\... ----
+
+    [Fact]
+    [Trait("Decision", "ED-204")] // a doubled forward slash parses as an empty authority (Host nullified by the
+                                  // "empty host, no user/password/port" bincompat rule), so it survives into Path
+                                  // still doubled; .NET's own File.Exists/Directory.Exists resolve it as \\host\...
+    public void A_doubled_forward_slash_prefix_is_recognized_as_unc()
+    {
+        var url = SwiftURL.Create("////host/share/a.exe")!;
+        Assert.Null(url.Host); // pins the parse this fix depends on
+        Assert.True(MarkdownLinkOpener.IsUnc(url));
+        // Open() checks IsUnc first and never reaches LocalFilePath for this shape (see
+        // Open_does_nothing_for_a_doubled_slash_unc_link); LocalFilePath's own POSIX branch, unchanged from the
+        // source's literal "/"-rooted rule, still matches a "//"-led path taken on its own.
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-204")] // a mixed leading pair ("/\" or "\/") is just as much a UNC prefix to Windows'
+                                  // own path resolution as "\\" or "//"; SwiftURL parses no authority for either
+                                  // (doubleSlashExists requires two literal '/', and '\' is not a scheme-scan break
+                                  // character), so this reaches Path unrecognized unless checked explicitly
+    public void A_mixed_slash_backslash_prefix_is_recognized_as_unc()
+    {
+        Assert.True(MarkdownLinkOpener.IsUnc(SwiftURL.Create(@"/\host\share\a.exe")!));
+        Assert.True(MarkdownLinkOpener.IsUnc(SwiftURL.Create(@"\/host/share/a.exe")!));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-204")] // "file:////host/..." parses an empty authority the same way the scheme-less
+                                  // doubled-slash form does, then the doubled slash re-emerges at the head of Path
+    public void A_file_url_with_a_doubled_slash_path_is_recognized_as_unc()
+    {
+        var url = SwiftURL.Create("file:////host/share/a.exe")!;
+        Assert.Null(url.Host); // pins the parse this fix depends on
+        Assert.True(MarkdownLinkOpener.IsUnc(url));
     }
 
     [Fact]
@@ -409,7 +489,11 @@ public sealed class LinkParagraphViewTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-THEME-185")] // a safe local file opens with the default app
+    [Trait("Req", "PR-THEME-185")] // a safe local file opens with the default app. The seam is mocked here, as in
+                                  // every other test in this class (R-TEST-10); that the REAL gate also accepts
+                                  // this exact bare, scheme-less "/"-rooted string (review A29 finding 4: it does
+                                  // not, by itself, "carry a scheme") is asserted separately, without invoking
+                                  // ShellExecuteW, by ShellWorkspaceTests.A_rooted_scheme_less_path_is_accepted.
     public void Open_opens_a_safe_local_file_with_the_default_app()
     {
         var previousOpen = ShellWorkspace.OpenWithDefaultApp;
@@ -446,6 +530,59 @@ public sealed class LinkParagraphViewTests(HeadlessSession headless)
             MarkdownLinkOpener.Open(SwiftURL.Create("/abs/tool.exe")!);
             Assert.Equal("/abs/tool.exe", revealed);
             Assert.False(opened);
+        }
+        finally
+        {
+            ShellWorkspace.OpenWithDefaultApp = previousOpen;
+            ShellWorkspace.RevealInFileExplorer = previousReveal;
+        }
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-204")] // review A29 finding 1: a doubled slash right after the drive letter must still
+                                  // reach the reveal-vs-open decision, not ShellWorkspace.OpenWithDefaultApp raw
+    public void Open_reveals_a_doubled_slash_drive_letter_executable_instead_of_opening_it()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "marrow-linkopener-" + Guid.NewGuid());
+        Directory.CreateDirectory(dir);
+        var file = Path.Combine(dir, "tool.exe");
+        File.WriteAllText(file, "x");
+        var doubledSlashUrl = file[0].ToString() + "://" + file[2..].Replace('\\', '/').TrimStart('/');
+        var previousOpen = ShellWorkspace.OpenWithDefaultApp;
+        var previousReveal = ShellWorkspace.RevealInFileExplorer;
+        string? revealed = null;
+        var opened = false;
+        ShellWorkspace.OpenWithDefaultApp = _ => opened = true;
+        ShellWorkspace.RevealInFileExplorer = path => revealed = path;
+        try
+        {
+            MarkdownLinkOpener.Open(SwiftURL.Create(doubledSlashUrl)!);
+            Assert.NotNull(revealed);
+            Assert.True(File.Exists(revealed)); // the reconstructed path still resolves to the same file
+            Assert.False(opened);
+        }
+        finally
+        {
+            ShellWorkspace.OpenWithDefaultApp = previousOpen;
+            ShellWorkspace.RevealInFileExplorer = previousReveal;
+            Directory.Delete(dir, recursive: true);
+        }
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-204")] // review A29 finding 2: a doubled-forward-slash UNC form is refused exactly like
+                                  // "\\host\..." rather than reaching File.Exists (an SMB access) or the shell
+    public void Open_does_nothing_for_a_doubled_slash_unc_link()
+    {
+        var previousOpen = ShellWorkspace.OpenWithDefaultApp;
+        var previousReveal = ShellWorkspace.RevealInFileExplorer;
+        var called = false;
+        ShellWorkspace.OpenWithDefaultApp = _ => called = true;
+        ShellWorkspace.RevealInFileExplorer = _ => called = true;
+        try
+        {
+            MarkdownLinkOpener.Open(SwiftURL.Create("////host/share/a.exe")!);
+            Assert.False(called);
         }
         finally
         {
