@@ -21,8 +21,7 @@ namespace Marrow.Core.Models;
 // added no new SupportsCompact arms (already covered by part 4) and implemented RuntimeMode's Id, Title,
 // Summary and Symbol. SlashCommand.Id and Suggestions, and WorkspaceMode.Id and Title, are not named by
 // any record in this unit's five work packets and stay MARROW_STUB; a later unit that is given a record
-// covering them ports them then. Unit App.Views.Composer.ComposerView part 2 of 5 (B3 52bc792, :306-323
-// unchanged from B2) ported SlashCommand.Suggestions for PR-COMPOSER-042, which cites :306-323.
+// covering them ports them then.
 
 // :3-18
 public enum ProviderKind
@@ -396,38 +395,9 @@ public sealed record SlashCommand
         return started ? token.ToString() : null;
     }
 
-    // :306-323 `static func suggestions(_:matching:recent:)`. PR-COMPOSER-042. A command matches when the query is
-    // empty or its lowercased name contains the lowercased query; a name seen earlier wins over a later duplicate;
-    // prefix matches come first, then the rank in `recent` (its first place, most recent first; unseen last), then the
-    // lowercased name. ENGINEERING DECISION: `name.contains(needle)` is read as a literal search, the reading the tree
-    // gives Swift's String.contains elsewhere (CommandCodeAPI.cs:333).
     public static ValueList<SlashCommand> Suggestions(IReadOnlyList<SlashCommand> commands, string matching,
-        IReadOnlyList<string> recent)
-    {
-        var needle = SwiftString.Lowercased(matching); // :307
-        // :308 Dictionary(recent.enumerated().map { ($0.element, $0.offset) }, uniquingKeysWith: min)
-        var ranks = new Dictionary<string, long>(SwiftStringComparer.Instance);
-        for (var offset = 0; offset < recent.Count; offset++)
-            ranks[recent[offset]] = ranks.TryGetValue(recent[offset], out var earlier) && earlier < offset ? earlier : offset;
-        var seen = new HashSet<string>(SwiftStringComparer.Instance); // :309
-        // :310-312 Lowercased once per command, not once per comparison of the sort.
-        var matched = new List<(SlashCommand Command, string Name, bool Prefixed, long Rank)>(commands.Count);
-        foreach (var command in commands) // :313 where seen.insert(command.name).inserted
-        {
-            if (!seen.Add(command.Name)) continue;
-            var name = SwiftString.Lowercased(command.Name); // :314
-            if (!(needle.Length == 0 || name.Contains(needle, StringComparison.Ordinal))) continue; // :315
-            matched.Add((command, name, SwiftString.HasPrefix(name, needle), ranks.TryGetValue(command.Name, out var rank) ? rank : long.MaxValue)); // :316
-        }
-        // :318-321 matched.sort { ... }, stable (R-COLL-1)
-        var sorted = matched.OrderBy(entry => entry, Comparer<(SlashCommand Command, string Name, bool Prefixed, long Rank)>.Create((lhs, rhs) =>
-        {
-            if (lhs.Prefixed != rhs.Prefixed) return lhs.Prefixed ? -1 : 1; // :319
-            if (lhs.Rank != rhs.Rank) return lhs.Rank < rhs.Rank ? -1 : 1; // :320
-            return SwiftString.Compare(lhs.Name, rhs.Name); // :320 lhs.name < rhs.name
-        }));
-        return new ValueList<SlashCommand>(sorted.Select(entry => entry.Command)); // :322
-    }
+        IReadOnlyList<string> recent) =>
+        throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Provider.swift:306");
 
     // :325-333. PR-PROVCLI-351/352/353. One plain text part unless both hold: this command owns a
     // skillPath, AND the text still names it (NameIn(text) == Name). Then two parts: the rewritten text

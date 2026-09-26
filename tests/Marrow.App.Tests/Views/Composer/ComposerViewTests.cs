@@ -3284,3 +3284,24 @@ public sealed class ComposerViewTests(HeadlessSession headless)
 // Needed: owning Services.Providers.ProviderRegistry unit must notify these observable properties as Swift @Observable
 // does. The source-correct observer wiring is present; its executable regression test remains failing, not skipped.
 // Historical STOP #4's ComposerControls mount obstruction is resolved; this separate dependency now blocks proof.
+
+// STOP App.Views.Composer.ComposerView #9
+// Kind: missing dependency
+// Swift: DroppyCode/App/Views/Composer/ComposerView.swift:482; Core/Models/Provider.swift:306-323 (B3 52bc792)
+// Records: PR-COMPOSER-042; dependent command suggestion and selection records PR-COMPOSER-039 through 055,
+// UI-COMPOSER-019/021/022 where command suggestions are exercised.
+// Missing: SlashCommand.Suggestions is MARROW_STUB in impl/b2. The inherited WIP edited Provider.cs outside this unit.
+// That edit is restored to impl/b2 during scope cleanup; all original suggestion tests remain unchanged and unskipped.
+// Needed: Core.Models.Provider owning unit implements the existing public Suggestions API. No local fallback is invented.
+// Composer's call, built-in command inputs and suggestion-row mapping are ready; command execution proof is blocked.
+
+// STOP App.Views.Composer.ComposerView #10
+// Kind: missing dependency
+// Swift: DroppyCode/App/Views/Composer/ComposerView.swift:23,56 (B3 52bc792)
+// Records: UI-COMPOSER-001 (glass merging spacing 8), PR-COMPOSER-003 (surviving approval row movement).
+// Missing: foundation has no GlassEffectContainer spacing/merging implementation or animated geometric re-layout.
+// Needed: foundation/compositor support; glass is deferred under ED-180. Approval insertion/removal fading and all
+// measured area ordering, spacing, cap and padding are verified. Continuous-corner rendering remains ED-181.
+
+// B3 resolution of historical STOP #5(c): forced retry is now proven by observing the in-flight registry load after
+// clicking the actual retry row while a fetched command list is still fresh. #5(a)/(b) popup hit/scroll limits remain.

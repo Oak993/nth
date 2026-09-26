@@ -1,4 +1,5 @@
-// PORT-ONLY: NSOpenPanel at ComposerView.swift:526-533, with an exact accept-button label and multi-file selection.
+// Source: DroppyCode/App/Views/Composer/ComposerView.swift (B3 52bc792), :526-533.
+// PORT-ONLY: the Windows NSOpenPanel seam, with an exact accept-button label and multi-file selection.
 using System;
 using System.Threading.Tasks;
 using System.Threading;
