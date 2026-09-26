@@ -21,7 +21,11 @@ namespace Marrow.Core.Tests.Port;
 //     string? CurrentDirectoryURL                    null: the parent's
 //     IReadOnlyDictionary<string, string>? Environment   null: inherit; set: replaces the whole environment
 //     ProcessPipe? StandardInput, StandardOutput, StandardError   null: the null device (R-PROC-1)
-//     bool UsesJobObject                             default true (Shell, MCPHub, MCPProbe); false for StdioProcess (ED-047 (b))
+//     bool UsesJobObject                             default true (Shell, MCPHub, MCPProbe; since ED-194, the B3
+//                                                    amendment of ED-047 (b) and ED-126, StdioProcess too: a job with
+//                                                    no limits and no KILL_ON_JOB_CLOSE, so MCPLiveProcesses can
+//                                                    KillTree it at quit, while its stop ladder still reaches the pid
+//                                                    alone); false: no job at all
 //     PseudoConsoleSize? PseudoConsole               null: none; set: the child runs on a ConPTY (P5), whose
 //                                                    output arrives on StandardOutput and whose input is StandardInput
 //     Action<ProcessLauncher>? TerminationHandler    called once after exit, off the main actor, outside any task
@@ -351,10 +355,12 @@ public sealed class ProcessLauncherSpawnTests
     [Fact]
     [Trait("Rule", "R-PROC-1")]
     [Trait("Decision", "ED-047")]
-    public void Terminate_alone_ends_a_cooperating_pipe_child_that_has_no_job_the_Stdio_shape()
+    public void Terminate_alone_ends_a_cooperating_pipe_child_that_has_no_job_and_a_stdin_pipe()
     {
         // ED-047 (b) as ED-126 words it: StdioProcess.swift:123 process.terminate() is CTRL_BREAK_EVENT to the child's
-        // process group, with NO job object; StdioProcess.swift:18 and :42 always give the child a stdin pipe.
+        // process group; StdioProcess.swift:18 and :42 always give the child a stdin pipe. This child has no job, as
+        // ED-047 (b) had it; since ED-194 (B3) StdioProcess's own child sits in a job (no limits, no
+        // KILL_ON_JOB_CLOSE) that Terminate never uses, so this pins the UsesJobObject=false form of the same step.
         TerminateEndsACooperatingChild(usesJobObject: false, withInput: true);
     }
 
@@ -465,7 +471,8 @@ public sealed class ProcessLauncherSpawnTests
     public void Without_a_job_KillProcess_ends_the_child_alone_and_the_grandchild_survives()
     {
         // ED-047 (b): StdioProcess.swift:126 kill(pid, SIGKILL) takes the pid alone; on Windows TerminateProcess
-        // with no job object, "so grandchildren survive exactly as they do on macOS".
+        // with no job object, "so grandchildren survive exactly as they do on macOS". Since ED-194 (B3) the
+        // StdioProcess child is in a job, which KillProcess never uses; this test pins the UsesJobObject=false mode.
         var (launcher, grandchild, _, _) = StartChildWithGrandchild(usesJobObject: false, pseudoConsole: null);
         try
         {
@@ -490,6 +497,8 @@ public sealed class ProcessLauncherSpawnTests
         // in a KILL_ON_JOB_CLOSE job; that job dies with its last handle, when the launcher lets go of it. So: the
         // child is killed, its termination handler has run, the launcher is unreachable and collected, and the
         // grandchild must still be alive after a bounded wait of 2,000 ms (probe P5 control B3 used the same wait).
+        // ED-194 (B3) has since put the StdioProcess child in a job (no KILL_ON_JOB_CLOSE), so this now pins only
+        // the UsesJobObject=false mode: no job at all.
         var grandchild = StartAndKillChildWithoutJob();
         try
         {
