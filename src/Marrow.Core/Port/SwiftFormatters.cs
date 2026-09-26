@@ -297,6 +297,265 @@ public static class SwiftFormatters
         return (number ?? "") + " " + unit;
     }
 
+    // ---- Duration.UnitsFormatStyle, narrow width, maximumUnitCount 2, fractionalPart .hide(rounded: .down) --------
+    //
+    // decisions_draft.md E1 (evidence_6_1/sf-swift-6.2-RELEASE-Duration+UnitsFormatStyle.swift,
+    // sf-swift-6.2-RELEASE-DurUnitsTests.swift, dur.js/dur.out.txt). UNVERIFIED under ED-086: not run against
+    // macOS Foundation.framework. Oracle O-65.
+
+    /// <summary>
+    /// The three duration units the B3 call sites allow (swift-foundation Duration.UnitsFormatStyle.Unit,
+    /// Duration+UnitsFormatStyle.swift :73-138: only the seconds/minutes/hours cases are ever requested).
+    /// Hydra.swift:1420-1423 (<c>duration(_:)</c>) and HydraPanel.swift:545-551 (<c>elapsed</c>) allow
+    /// {Seconds, Minutes}; Components.swift:37-40 (<c>RelativeTime.duration</c>, called from
+    /// HydraHeadPopovers.swift:125) allows {Seconds, Minutes, Hours}.
+    /// </summary>
+    public enum DurationUnit { Hours, Minutes, Seconds }
+
+    // Largest to smallest, with each unit's length in seconds and its ICU duration subtype name
+    // (Unit.icuSkeleton, Duration+UnitsFormatStyle.swift :92-113: "measure-unit/duration-<subtype>").
+    private static readonly (DurationUnit Unit, long Seconds, string IcuName)[] DurationUnitsBySize =
+    [
+        (DurationUnit.Hours, 3600L, "hour"),
+        (DurationUnit.Minutes, 60L, "minute"),
+        (DurationUnit.Seconds, 1L, "second"),
+    ];
+
+    /// <summary>
+    /// <c>Duration.seconds(totalSeconds).formatted(.units(allowed: allowedUnits, width: .narrow, maximumUnitCount: 2,
+    /// fractionalPart: .hide(rounded: .down)))</c>, en: the exact configuration of Hydra.swift:1420-1423,
+    /// HydraPanel.swift:545-551 ({.seconds, .minutes}) and Components.swift:37-40 ({.seconds, .minutes, .hours}).
+    /// Ported from swift-foundation Duration+UnitsFormatStyle.swift:
+    /// <list type="bullet">
+    /// <item><c>unitsToUse</c> (:434-469): when the allowed count already fits <c>maximumUnitCount</c>, zero-valued
+    /// units are dropped (:440-442); otherwise, if dropping zero units still does not fit, the first
+    /// <c>maximumUnitCount</c> units starting at the first non-zero one are kept and their values recomputed fresh
+    /// from the total (:459-469).</item>
+    /// <item><c>_getSkeletons</c>/<c>_formatFields</c> (:307-367): a narrow ICU measure-unit skeleton per field, 0
+    /// fraction digits (<c>fractionalPart</c> is hidden), a sign shown only on the first (most significant) field of
+    /// a negative value (:337-358).</item>
+    /// <item>The <c>units.count == 0</c> fallback to the smallest allowed unit at zero (:323-328): "0s" for both B3
+    /// configurations, since seconds is always allowed.</item>
+    /// <item><c>_getFullListPattern</c>/<c>format</c> (:274-282, :392-419): here ICU's own list formatter over CLDR's
+    /// <c>listPattern/unit-narrow</c> (<c>ulistfmt_openForType</c>, ULISTFMT_TYPE_UNITS/ULISTFMT_WIDTH_NARROW) stands
+    /// in for Apple's <c>uatmufmt_getListPattern</c>, which Windows ICU does not export.</item>
+    /// </list>
+    /// Width is always narrow, <c>maximumUnitCount</c> is always 2 and <c>fractionalPart</c> is always
+    /// <c>hide(rounded: .down)</c>: every integer-second input the three sites format has no leftover to round, so
+    /// that rounding rule is never actually exercised, and this helper does not generalize beyond these
+    /// configurations (decisions_draft.md E1).
+    /// </summary>
+    public static string DurationUnits(long totalSeconds, IReadOnlyCollection<DurationUnit> allowedUnits, string locale)
+    {
+        const int maximumUnitCount = 2;
+
+        var units = new List<DurationUnit>(3);
+        foreach (var (unit, _, _) in DurationUnitsBySize)
+        {
+            if (Contains(allowedUnits, unit)) units.Add(unit);
+        }
+
+        var values = ValuesForDurationUnits(units, totalSeconds);
+
+        List<DurationUnit> useUnits;
+        List<long> useValues;
+        if (allowedUnits.Count <= maximumUnitCount) // :440-442
+        {
+            (useUnits, useValues) = RemovingZeroDurationUnits(units, values);
+        }
+        else
+        {
+            var (nonZeroUnits, nonZeroValues) = RemovingZeroDurationUnits(units, values);
+            if (nonZeroUnits.Count <= maximumUnitCount)
+            {
+                useUnits = nonZeroUnits;
+                useValues = nonZeroValues;
+            }
+            else
+            {
+                var idx = values.FindIndex(v => v != 0);
+                var count = Math.Min(units.Count, idx + maximumUnitCount) - idx;
+                useUnits = units.GetRange(idx, count);
+                useValues = ValuesForDurationUnits(useUnits, totalSeconds); // :467, recomputed fresh from the total
+            }
+        }
+
+        if (useUnits.Count == 0)
+        {
+            // :323-328: the smallest allowed unit, shown at zero. Both B3 configurations always allow seconds.
+            var smallest = DurationUnit.Seconds;
+            foreach (var (unit, _, _) in DurationUnitsBySize)
+            {
+                if (Contains(allowedUnits, unit)) smallest = unit; // walks largest to smallest; the last hit is smallest
+            }
+            return FormatDurationField(0, smallest, signAlways: false, locale);
+        }
+
+        var mostSignificant = useUnits[0]; // DurationUnitsBySize order keeps useUnits sorted largest to smallest
+        var isNegative = false;
+        foreach (var v in useValues) { if (v < 0) { isNegative = true; break; } }
+
+        var fields = new string[useUnits.Count];
+        for (var i = 0; i < useUnits.Count; i++)
+        {
+            var signAlways = isNegative && useUnits[i] == mostSignificant;
+            fields[i] = FormatDurationField(useValues[i], useUnits[i], signAlways, locale);
+        }
+
+        return fields.Length == 1 ? fields[0] : (IcuFormatting.FormatUnitList(locale, fields) ?? string.Join(" ", fields));
+    }
+
+    private static bool Contains(IReadOnlyCollection<DurationUnit> allowed, DurationUnit unit)
+    {
+        foreach (var u in allowed) { if (u == unit) return true; }
+        return false;
+    }
+
+    // swift-foundation duration.valuesForUnits(_:trailingFractionalLength:smallestUnitRounding:roundingIncrement:)
+    // (Duration+FieldsFormatStyle.swift, not saved as evidence): each unit's whole count, largest to smallest, with
+    // the remainder carried to the next unit. The B3 sites always pass a whole number of seconds (Duration.seconds(Int)),
+    // so the trailing "rounded: .down" fractional step never has anything left to round, and truncating integer
+    // division (which C#'s "/" already does toward zero, matching Duration's own division) is exact.
+    private static List<long> ValuesForDurationUnits(IReadOnlyList<DurationUnit> units, long totalSeconds)
+    {
+        var values = new List<long>(units.Count);
+        var remainder = totalSeconds;
+        for (var i = 0; i < units.Count; i++)
+        {
+            var unitSeconds = SecondsPerDurationUnit(units[i]);
+            if (i == units.Count - 1)
+            {
+                values.Add(remainder / unitSeconds);
+            }
+            else
+            {
+                var value = remainder / unitSeconds;
+                values.Add(value);
+                remainder -= value * unitSeconds;
+            }
+        }
+        return values;
+    }
+
+    // Duration+UnitsFormatStyle.swift :421-431 removingZeroUnits
+    private static (List<DurationUnit> Units, List<long> Values) RemovingZeroDurationUnits(List<DurationUnit> units, List<long> values)
+    {
+        var keptUnits = new List<DurationUnit>(units.Count);
+        var keptValues = new List<long>(values.Count);
+        for (var i = 0; i < values.Count; i++)
+        {
+            if (values[i] != 0) { keptUnits.Add(units[i]); keptValues.Add(values[i]); }
+        }
+        return (keptUnits, keptValues);
+    }
+
+    private static long SecondsPerDurationUnit(DurationUnit unit)
+    {
+        foreach (var (u, seconds, _) in DurationUnitsBySize) { if (u == unit) return seconds; }
+        throw new ArgumentOutOfRangeException(nameof(unit));
+    }
+
+    private static string DurationIcuName(DurationUnit unit)
+    {
+        foreach (var (u, _, name) in DurationUnitsBySize) { if (u == unit) return name; }
+        throw new ArgumentOutOfRangeException(nameof(unit));
+    }
+
+    // Duration+UnitsFormatStyle.swift :316-367 _getSkeletons/_formatFields: a narrow ICU measure-unit skeleton, 0
+    // fraction digits (fractionalPart is hidden), sign shown only when signAlways is set (the most significant field
+    // of a negative value, :348-358; the .always(includingZero: true) epsilon case at :350-355 is unreachable for
+    // these two configurations, since zero-dropping never leaves a zero-valued field as the most significant one
+    // when the total is a nonzero integer number of seconds).
+    private static string FormatDurationField(long value, DurationUnit unit, bool signAlways, string locale)
+    {
+        var icuName = DurationIcuName(unit);
+        var skeleton = "measure-unit/duration-" + icuName + " unit-width-narrow precision-integer "
+            + (signAlways ? "sign-always" : "sign-never");
+        // :312 fallback if ICU can't format it: "\(value) \(unit.icuSkeleton)"
+        return IcuFormatting.FormatSkeleton(skeleton, locale, value)
+            ?? (value.ToString(CultureInfo.InvariantCulture) + " measure-unit/duration-" + icuName);
+    }
+
+    // ---- ByteCountFormatStyle(style: .file) -------------------------------------------------------------------
+    //
+    // decisions_draft.md E2 (evidence_6_1/sf-swift-6.2-RELEASE-ByteCountFormatStyle.swift,
+    // sf-swift-6.2-RELEASE-ByteTests.swift). Not the same wording as SwiftFormatters.FileByteCount (ByteCountFormatter,
+    // ED-133): "kB" not "KB", "Zero kB" not "Zero KB", and the unit switches to kB at 999 bytes exactly (:194-207,
+    // strict "&lt;"). UNVERIFIED under ED-086: not run against macOS Foundation.framework. Oracle O-66.
+
+    // ByteCountFormatStyle.Unit (:28-54): only byte through petabyte are named; exabyte and above are declared but
+    // never reached (maxDecimalSizes has 6 entries, and Int64.max as the last one means petabyte is the practical
+    // ceiling, confirmed by ByteTests.swift testEveryAllowedUnit :190-208, where allowing eb/zb/ybOrHigher alone
+    // still formats in PB).
+    private static readonly string[] DigitalUnitNames = ["byte", "kilobyte", "megabyte", "gigabyte", "terabyte", "petabyte"];
+
+    // :123 maxDecimalSizes. The comparison below is a strict "&lt;" (:201), so each threshold value itself already
+    // belongs to the NEXT unit, not the one it is the "max" of: 999 is the first kB value (not the last byte value),
+    // 999_499 is the first MB value (not the last kB value), and 999_949_999 is the first GB value (not the last MB
+    // value). decisions_draft.md's own table gets the byte/kB transition right but mislabels the kB/MB and MB/GB
+    // transition examples as staying in the lower unit; the source (this file) wins over the draft (see the unit's
+    // report to the orchestrator).
+    private static readonly long[] MaxDecimalSizes = [999L, 999_499L, 999_949_999L, 999_994_999_999L, 999_994_999_999_999L, long.MaxValue];
+
+    // :53 decimalByteSizes
+    private static readonly long[] DecimalByteSizes = [1L, 1_000L, 1_000_000L, 1_000_000_000L, 1_000_000_000_000L, 1_000_000_000_000_000L];
+
+    /// <summary>
+    /// <c>ByteCountFormatStyle(style: .file).format(_:)</c> at its defaults (<c>allowedUnits</c> .all,
+    /// <c>spellsOutZero</c> true, <c>includesActualByteCount</c> false): the three B3 sites (AttachmentPreview.swift:95-98,
+    /// DownloadsPopover.swift:68, AboutUpdateViews.swift:787) all use <c>.byteCount(style: .file)</c> or
+    /// <c>ByteCountFormatStyle(style: .file)</c> with no other parameter, so none overrides a default.
+    /// Ported from swift-foundation ByteCountFormatStyle.swift <c>Attributed._format</c> (:151-242): the best unit is
+    /// chosen by <c>maxDecimalSizes</c> with a strict "&lt;" comparison (:194-207); the number carries 0 fraction
+    /// digits for byte and kilobyte, up to 1 for megabyte, and up to 2 from gigabyte up, ICU's own optional "#"
+    /// digits, trimmed and half-even rounded (:212-220, ICU's default rounding mode); and only the byte unit is
+    /// <c>unit-width-full-name</c> ("1 byte", "998 bytes") — every other unit takes ICU's default (short) measure
+    /// width, which is where "kB" (not <see cref="FileByteCount"/>'s "KB") comes from (:222).
+    /// </summary>
+    public static string ByteCountStyleFile(long bytes, string locale)
+    {
+        double doubleValue = bytes;
+        if (doubleValue == 0) return ZeroByteCount(locale); // :153-180, style-independent
+
+        var absValue = Math.Abs(doubleValue);
+        var bestUnit = 0;
+        for (var idx = 0; idx < MaxDecimalSizes.Length; idx++)
+        {
+            bestUnit = idx; // :196-200: bestUnit is set before the break check, every iteration
+            if (absValue < MaxDecimalSizes[idx]) break;
+        }
+
+        var unitValue = doubleValue / DecimalByteSizes[bestUnit];
+        var precision = bestUnit switch // :212-220
+        {
+            0 or 1 => ".",   // byte, kilobyte: 0 fraction digits
+            2 => ".#",       // megabyte: up to 1
+            _ => ".##",      // gigabyte and above: up to 2
+        };
+        var widthToken = bestUnit == 0 ? " unit-width-full-name" : ""; // :222
+        var skeleton = precision + " measure-unit/digital-" + DigitalUnitNames[bestUnit] + widthToken;
+        return IcuFormatting.FormatSkeleton(skeleton, locale, unitValue)
+            ?? (unitValue.ToString(CultureInfo.InvariantCulture) + " " + DigitalUnitNames[bestUnit]);
+    }
+
+    // ByteCountFormatStyle.swift :153-179: spellsOutZero (default true) with unit .kilobyte, since allowedUnits .all
+    // contains .kb (:152). useSpelloutZero(forLocale:unit:) returns true for language "en" (:131-133), so the numeric
+    // run becomes NumberFormatter .spellOut of 0, capitalized to the beginning of a sentence
+    // (DescriptiveNumberFormatConfiguration .beginningOfSentence, :164; SwiftFormatters.SpellOut already ports the
+    // same RBNF call), and only the unit text keeps the plain "0 kB" formatting's CLDR word (:175-177 replaces just
+    // the numeric run of the attributed string, not the unit run; this port has no attributed-string field ranges, so
+    // it locates the unit word by splitting on the first space instead, which is exact for the en family this
+    // configuration ever reaches, ED-132).
+    private static string ZeroByteCount(string locale)
+    {
+        var zeroKilobytes = IcuFormatting.FormatSkeleton("measure-unit/digital-kilobyte", locale, 0L) ?? "0 kilobyte";
+        var spaceIndex = zeroKilobytes.IndexOf(' ', StringComparison.Ordinal);
+        var unitWord = spaceIndex >= 0 ? zeroKilobytes[(spaceIndex + 1)..] : zeroKilobytes;
+        var spelled = SpellOut(0, locale) ?? "zero";
+        var capitalized = SwiftString.Uppercased(SwiftString.Prefix(spelled, 1)) + SwiftString.DropFirst(spelled);
+        return capitalized + " " + unitWord;
+    }
+
     // ---- ED-132: the default of CurrentLocale --------------------------------------------------------------------
 
     // swift-foundation Locale_ICU.swift:204-281 for an app whose bundle localizations are only ["en"] (ED-132), plus
@@ -764,6 +1023,8 @@ internal static class IcuFormatting
     private const int UdatpgMatchAllFieldsLength = (1 << 16) - 1; // UDATPG_MATCH_ALL_FIELDS_LENGTH
     private const int UdispctxCapitalizationNone = 1 << 8;       // UDISPCTX_CAPITALIZATION_NONE, FormatStyleCapitalizationContext .unknown
     private const int UdatStyleLong = 0;                         // UDAT_STYLE_LONG, unitsStyle .wide
+    private const int UlistfmtTypeUnits = 2;                     // ULISTFMT_TYPE_UNITS (AND=0, OR=1, UNITS=2)
+    private const int UlistfmtWidthNarrow = 2;                   // ULISTFMT_WIDTH_NARROW (WIDE=0, SHORT=1, NARROW=2)
 
 
     internal static void Check(int status, string call)
@@ -1018,6 +1279,48 @@ internal static class IcuFormatting
         }
     }
 
+    // ---- Lists (Duration.UnitsFormatStyle's list join) ----------------------------------------------------------
+
+    // swift-foundation Duration+UnitsFormatStyle.swift :369-419 _getFullListPattern/_getListPattern: the CLDR
+    // listPattern/unit-narrow entries Apple reads through uatmufmt_getListPattern, which Windows ICU does not export.
+    // ulistfmt_openForType(locale, ULISTFMT_TYPE_UNITS, ULISTFMT_WIDTH_NARROW) reads the same CLDR list-pattern data
+    // directly, and ICU itself picks the right pattern for the item count (there are never more than 2 items here,
+    // since SwiftFormatters.DurationUnits' maximumUnitCount is always 2).
+    internal static string? FormatUnitList(string localeIdentifier, IReadOnlyList<string> items)
+    {
+        if (items.Count == 0) return "";
+        if (items.Count == 1) return items[0];
+
+        var handles = new IntPtr[items.Count];
+        var lengths = new int[items.Count];
+        for (var i = 0; i < items.Count; i++)
+        {
+            handles[i] = Marshal.StringToHGlobalUni(items[i]);
+            lengths[i] = items[i].Length;
+        }
+        try
+        {
+            var status = 0;
+            var formatter = Native.ulistfmt_openForType(localeIdentifier, UlistfmtTypeUnits, UlistfmtWidthNarrow, ref status);
+            try
+            {
+                if (status > 0 || formatter == IntPtr.Zero) return null;
+                return ReadUChars((char[] b, int c, ref int s) => Native.ulistfmt_format(formatter, handles, lengths, items.Count, b, c, ref s));
+            }
+            finally
+            {
+                if (formatter != IntPtr.Zero) Native.ulistfmt_close(formatter);
+            }
+        }
+        finally
+        {
+            foreach (var handle in handles)
+            {
+                if (handle != IntPtr.Zero) Marshal.FreeHGlobal(handle);
+            }
+        }
+    }
+
     // ---- Numbers -----------------------------------------------------------------------------------------------
 
     // The number skeleton API swift-foundation's ICUNumberFormatter uses (unumf_openForSkeletonAndLocale).
@@ -1159,6 +1462,12 @@ internal static class IcuFormatting
         internal static extern void ureldatefmt_close(IntPtr formatter);
         [DllImport(Library, CharSet = CharSet.Unicode)] [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         internal static extern int ureldatefmt_format(IntPtr formatter, double offset, int unit, [Out] char[] buffer, int capacity, ref int status);
+        [DllImport(Library, CharSet = CharSet.Unicode)] [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+        internal static extern IntPtr ulistfmt_openForType([MarshalAs(UnmanagedType.LPStr)] string locale, int type, int width, ref int status);
+        [DllImport(Library)] [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+        internal static extern void ulistfmt_close(IntPtr listfmt);
+        [DllImport(Library, CharSet = CharSet.Unicode)] [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+        internal static extern int ulistfmt_format(IntPtr listfmt, [In] IntPtr[] strings, [In] int[] stringLengths, int stringCount, [Out] char[] result, int resultCapacity, ref int status);
         [DllImport(Library, CharSet = CharSet.Unicode)] [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         internal static extern IntPtr unumf_openForSkeletonAndLocale(string skeleton, int length, [MarshalAs(UnmanagedType.LPStr)] string locale, ref int status);
         [DllImport(Library)] [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
