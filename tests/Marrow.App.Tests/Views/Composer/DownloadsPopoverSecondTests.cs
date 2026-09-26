@@ -36,12 +36,18 @@ public sealed class DownloadsPopoverSecondTests(HeadlessSession headless)
         return window;
     }
 
-    /// <summary>Pumps the dispatcher until <paramref name="loaded"/> is true or 2s pass: RecentDownloads.Load's
-    /// scan runs on a real background thread (Task.detached, R-TASK-1), so its completion posting back to the
-    /// dispatcher is not guaranteed to be queued by the time a single RunJobs() call runs.</summary>
+    /// <summary>Pumps the dispatcher until <paramref name="loaded"/> is true or the deadline passes:
+    /// RecentDownloads.Load's scan runs on a real background thread (Task.detached, R-TASK-1), so its completion
+    /// posting back to the dispatcher is not guaranteed to be queued by the time a single RunJobs() call runs.
+    /// Ten seconds, not two: the same real-background-hop wait WallpaperCardFixtures.WaitFor polls for (a real
+    /// file copy and decode) already uses a ten-second ceiling for exactly this reason ("nothing can drive the
+    /// pool, so this pumps the UI thread until the condition holds"); two seconds was an outlier short bound for
+    /// the identical hazard, tight enough that this scan's real disk read plus its ThreadPool hop back to main
+    /// could still lose the race under the full suite's load even after the pool has enough threads to run it
+    /// promptly (ThreadPoolWarmup.EnsureMinThreads).</summary>
     private static void PumpUntil(Func<bool> loaded)
     {
-        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(2);
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(10);
         while (!loaded() && DateTime.UtcNow < deadline)
         {
             Thread.Sleep(5);
