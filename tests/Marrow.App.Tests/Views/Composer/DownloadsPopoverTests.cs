@@ -5,16 +5,18 @@ using Marrow.Testing;
 
 namespace Marrow.App.Tests.Views.Composer;
 
-// Source: DroppyCode/App/Views/Composer/DownloadsPopover.swift (B2 1fbf81e), :1-97 (RecentDownload, RecentDownloads).
+// Source: DroppyCode/App/Views/Composer/DownloadsPopover.swift (B3 52bc792), :1-91 (RecentDownload, RecentDownloads).
 // RecentDownloads.Directory is seamed behind RecentDownloads.DirectoryProvider (a test-only Ambient factory, since
 // SHGetKnownFolderPath has no override in the Swift itself): every test here points it at a throwaway folder under
 // MARROW_PORT_DATA_DIR, never the real Downloads directory (R-TEST-9).
+// ED-198: at B3 the size text comes from SwiftFormatters.ByteCountStyleFile (.formatted(.byteCount(style: .file))),
+// not the ByteCountFormatter-based FileByteCount the B2 body called; "1 KB" becomes "1 kB" (lowercase b, oracle O-66).
 public sealed class DownloadsPopoverTests
 {
     private static IDisposable Directed(string? path) => RecentDownloads.DirectoryProvider.Override(() => path);
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-078")] // DownloadsPopover.swift:39-96, :50-58
+    [Trait("Req", "PR-COMPOSER-078")] // DownloadsPopover.swift:33-90, :44-52
     public void Load_lists_files_newest_first_and_drops_hidden_files_and_directories()
     {
         using var folder = new ScratchDownloads();
@@ -34,7 +36,7 @@ public sealed class DownloadsPopoverTests
     }
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-078")] // DownloadsPopover.swift:18-19 limit = 15, :56-57 sorted then prefix(limit)
+    [Trait("Req", "PR-COMPOSER-078")] // DownloadsPopover.swift:18-19 limit = 15, :50-51 sorted then prefix(limit)
     public void Load_keeps_only_the_15_most_recently_modified_files()
     {
         using var folder = new ScratchDownloads();
@@ -57,7 +59,7 @@ public sealed class DownloadsPopoverTests
     }
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-078")] // DownloadsPopover.swift:74 size > 0 ? formatted : nil
+    [Trait("Req", "PR-COMPOSER-078")] // DownloadsPopover.swift:68 size > 0 ? Int64(size).formatted(.byteCount(style: .file)) : nil (B3, ED-198)
     public void Load_formats_a_positive_size_and_omits_it_for_a_zero_byte_file()
     {
         using var folder = new ScratchDownloads();
@@ -72,7 +74,7 @@ public sealed class DownloadsPopoverTests
 
         var sizedItem = Assert.Single(downloads.Items, item => item.Name == "sized.bin");
         var emptyItem = Assert.Single(downloads.Items, item => item.Name == "empty.bin");
-        Assert.Equal("1 KB", sizedItem.Size); // :34-37 ByteCountFormatter, countStyle .file
+        Assert.Equal("1 kB", sizedItem.Size); // ByteCountFormatStyle(.file), lowercase "kB" (B3, ED-198, oracle O-66)
         Assert.Null(emptyItem.Size);
     }
 
@@ -98,7 +100,7 @@ public sealed class DownloadsPopoverTests
     }
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-078")] // DownloadsPopover.swift:40 guard let directory else return
+    [Trait("Req", "PR-COMPOSER-078")] // DownloadsPopover.swift:34 guard let directory else return
     public void Load_returns_early_and_stays_unloaded_when_there_is_no_downloads_directory()
     {
         using var directed = Directed(null);
@@ -111,7 +113,7 @@ public sealed class DownloadsPopoverTests
     }
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-078")] // DownloadsPopover.swift:44-48 (try? ... ) ?? []
+    [Trait("Req", "PR-COMPOSER-078")] // DownloadsPopover.swift:38-42 (try? ... ) ?? []
     public void Load_yields_an_empty_loaded_list_when_the_directory_read_throws()
     {
         using var directed = Directed(@"Z:\marrow-port-tests-nonexistent\does-not-exist");
