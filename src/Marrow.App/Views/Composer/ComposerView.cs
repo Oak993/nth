@@ -63,7 +63,8 @@ public sealed class ComposerArea : Decorator
     private readonly DiffPopoverCoordinator diffPopover = new();
 
     // :25-27 the approval cards, keyed by request id (R-VIEW-8), with the request each card was drawn from.
-    private readonly ForEach<ApprovalRequest, string> approvals;
+    private readonly StackPanel approvalStack;
+    private readonly Dictionary<string, Control> approvalRows = new(SwiftStringComparer.Instance);
     private readonly Dictionary<string, ApprovalRequest> drawnRequests = new(SwiftStringComparer.Instance);
     private string[]? approvalIDs;
 
@@ -111,7 +112,7 @@ public sealed class ComposerArea : Decorator
         // :24 VStack(spacing: 12): the approval cards, then the group.
         var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 12 };
         stack.Children.Add(layers);
-        approvals = new ForEach<ApprovalRequest, string>(stack, request => request.Id, MakeCard, UpdateCard);
+        approvalStack = stack;
 
         // :23 GlassEffectContainer(spacing: 8). MARROW_DEFERRED ED-180: the container's glass merging at spacing 8 has
         // no drawn material yet; its children record their own glass (SwiftGlass).
@@ -130,8 +131,33 @@ public sealed class ComposerArea : Decorator
         var changed = approvalIDs is not null && !approvalIDs.SequenceEqual(ids, SwiftStringComparer.Instance);
         approvalIDs = ids;
         // R-VIEW-4: the id list alone keys the animation; a request whose other fields change re-lays out without it.
-        if (changed) Transaction.WithAnimation(Chrome.PanelSlide, () => approvals.Apply(requests));
-        else approvals.Apply(requests);
+        void Apply()
+        {
+            var keep = new System.Collections.Generic.HashSet<string>(ids, SwiftStringComparer.Instance);
+            foreach (var id in approvalRows.Keys.Where(id => !keep.Contains(id)).ToArray())
+            {
+                SwiftTransition.Remove(approvalStack, approvalRows[id]);
+                approvalRows.Remove(id);
+                drawnRequests.Remove(id);
+            }
+            for (var index = 0; index < requests.Count; index++)
+            {
+                var request = requests[index];
+                if (approvalRows.TryGetValue(request.Id, out var row))
+                {
+                    UpdateCard(row, request);
+                    var at = approvalStack.Children.IndexOf(row);
+                    if (at != index) approvalStack.Children.Move(at, index);
+                }
+                else
+                {
+                    approvalRows[request.Id] = row = MakeCard(request);
+                    SwiftTransition.Insert(approvalStack, index, row);
+                }
+            }
+        }
+        if (changed) Transaction.WithAnimation(Chrome.PanelSlide, Apply);
+        else Apply();
     }
 
     // :26 ApprovalCard(request: request, runtime: runtime)
@@ -1012,6 +1038,8 @@ internal sealed class ComposerTextColumn : Decorator
     private string placeholder;
     private string? attachmentNotice;
     private TextBlock? notice;
+    private IFrameSource? heightFrames;
+    private Action<TimeSpan>? heightFrame;
 
     // :556-561. DEVIATION OD-0009: the port's text face is Inter, so the line is Inter's at 14 points; its wrap points can
     // differ from the macOS face's.
@@ -1143,10 +1171,30 @@ internal sealed class ComposerTextColumn : Decorator
     {
         var height = ComposerHeight;
         textView.Height = height; // :599 .frame(height: composerHeight), :600 with no animation
-        clip.Height = height; // :601-602 .frame(height: composerHeight, alignment: .top).clipped()
-        // MARROW_STUB :603-604 .animation(liveResize.isReshaping ? nil : .smooth(duration: 0.28), value: composerHeight)
-        // is not written: WindowLiveResize is not reachable from a view yet (STOP App.Views.Composer.ComposerView #1 in
-        // ComposerViewTests.cs), so the clip takes the height at once.
+        if (heightFrame is { } pending) heightFrames!.CancelFrame(pending);
+        heightFrame = null;
+        var resize = GetValue(AppEnvironment.WindowLiveResizeProperty);
+        if (resize is null || resize.IsReshaping || double.IsNaN(clip.Height) || clip.Height == height)
+        {
+            clip.Height = height;
+            return;
+        }
+        // :601-604 Only the top-aligned clip interpolates on the smooth 0.28 curve; each new height replaces it.
+        var from = clip.Height;
+        var animation = Animation.Smooth(0.28);
+        var start = SwiftClock.Now;
+        heightFrames = FrameClock.Source.Current;
+        Action<TimeSpan>? frame = null;
+        frame = _ =>
+        {
+            var elapsed = (SwiftClock.Now - start).TotalSeconds;
+            var complete = elapsed >= animation.Duration;
+            clip.Height = complete ? height : from + (height - from) * animation.Progress(elapsed);
+            if (complete) heightFrame = null;
+            else heightFrames.RequestFrame(frame!);
+        };
+        heightFrame = frame;
+        heightFrames.RequestFrame(frame);
     }
 }
 
