@@ -330,7 +330,7 @@ public sealed class ThreadTimelineTests(HeadlessSession headless)
     [Trait("Req", "UI-CHAT-002")] // App/Views/Chat/ThreadTimeline.swift:364-383
     public void Earlier_pill_has_chat_callout_on_text_and_icon_and_exact_capsule_insets() => WithTimeline((view, _, _, _, _) =>
     {
-        var pill = Invoke<Button>(view, "EarlierPill", 42, (Action)(() => { })); Assert.Equal(Avalonia.Layout.HorizontalAlignment.Center, pill.HorizontalAlignment); Assert.Equal(new Thickness(0, 20, 0, 0), pill.Margin); var frame = LogicalQuery.SelfAndDescendants<Border>(pill).Single(border => border.Padding == new Thickness(14, 7)); Assert.True(frame.CornerRadius.TopLeft >= 14); Assert.Equal(19, Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(frame.Background).Color.A); var text = LogicalQuery.SelfAndDescendants<TextBlock>(pill).Single(); Assert.Equal("Show 42 earlier messages", text.Text); Assert.Equal(12, text.FontSize); var icon = LogicalQuery.SelfAndDescendants<SwiftImage>(pill).Single(); Assert.Equal(ChatFont.Chat(SwiftFont.TextStyle.Callout), SwiftImage.GetFont(icon));
+        var pill = Invoke<Button>(view, "EarlierPill", 42, (Action)(() => { })); Assert.Equal(Avalonia.Layout.HorizontalAlignment.Center, pill.HorizontalAlignment); Assert.Equal(new Thickness(0, 20, 0, 0), pill.Margin); var frame = LogicalQuery.SelfAndDescendants<Border>(pill).Single(border => border.Padding == new Thickness(14, 7)); Assert.True(frame.CornerRadius.TopLeft >= 14); Assert.Equal(SwiftColor.Quaternary.Opacity(0.5).Resolve(pill.ActualThemeVariant), Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(frame.Background).Color); var text = LogicalQuery.SelfAndDescendants<TextBlock>(pill).Single(); Assert.Equal("Show 42 earlier messages", text.Text); Assert.Equal(12, text.FontSize); var icon = LogicalQuery.SelfAndDescendants<SwiftImage>(pill).Single(); Assert.Equal(ChatFont.Chat(SwiftFont.TextStyle.Callout), SwiftImage.GetFont(icon));
     });
 
     [Fact]
@@ -359,6 +359,21 @@ public sealed class ThreadTimelineTests(HeadlessSession headless)
     // STOP App.Views.Chat.ThreadTimeline #5
     // Kind: dependency. Swift: ChatView.swift:108-111; ThreadTimeline.swift:26-35,180. Records: PR-CHAT-160/UI-CHAT-003 (caller mounting/free-width flag only).
     // Missing: external ChatView is still a skeleton. Needed: caller memoization and free-width/docked-side showsMinimap expression; the timeline honors its supplied flag.
+
+    [Fact]
+    [Trait("Req", "UI-CHAT-001")] // App/Views/Chat/ThreadTimeline.swift:416-422
+    public void A_short_row_still_gets_the_full_eight_hundred_twenty_point_column_and_leading_alignment() => WithTimeline((view, _, _, _, _) =>
+    {
+        var rows = new Border { Height = 40 }; var column = Invoke<Control>(view, "CreateColumn", rows, 480.0, null); column.Measure(new Size(960, 480)); column.Arrange(new Rect(0, 0, 960, 480)); var content = LogicalQuery.SelfAndDescendants<Border>(column).Single(border => border.MaxWidth == 820); Assert.Equal(820, content.Bounds.Width); Assert.Equal(70, rows.TranslatePoint(default, column)!.Value.X);
+    });
+
+    [Fact]
+    [Trait("Req", "UI-CHAT-043")] // App/Views/Chat/ThreadTimeline.swift:2089-2092,2107-2119,2155-2176,2185-2188
+    [Trait("Req", "UI-CHAT-044")] // App/Views/Chat/ThreadTimeline.swift:2157-2168,2303-2314
+    public void Streaming_thinking_keeps_the_same_working_indicator_and_its_open_state() => WithTimeline((view, runtime, _, _, _) =>
+    {
+        var model = AppEnvironment.GetAppModel(view); ((Decorator)view.Parent!).Child = null; model.Settings.ShowReasoning = true; var entry = Reason("thinking", Turn); typeof(ThreadRuntime).GetProperty("Entries")!.SetValue(runtime, new ValueList<TimelineEntry>(new[] { entry })); var work = new WorkingBlockView(runtime, new([]), null); var host = new Border { Child = work }; AppEnvironment.SetAppModel(host, model); var window = new Avalonia.Controls.Window { Content = host, Width = 600, Height = 400 }; try { window.Show(); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); var indicator = Assert.IsType<WorkingIndicator>(work.Child); LogicalQuery.SelfAndDescendants<Button>(indicator).Single().RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent)); Assert.Single(LogicalQuery.SelfAndDescendants<Marrow.UI.Markdown.MarkdownView>(indicator)); entry.Item = entry.Item with { TimelineItemContent = new TimelineItem.Content.Reasoning(new ReasoningBlock { Text = "more thinking", IsStreaming = true }) }; Avalonia.Threading.Dispatcher.UIThread.RunJobs(); Assert.Same(indicator, work.Child); Assert.Single(LogicalQuery.SelfAndDescendants<Marrow.UI.Markdown.MarkdownView>(indicator)); } finally { window.Close(); }
+    });
 
     // STOP App.Views.Chat.ThreadTimeline #1
     // Kind: dependency. Swift: ThreadTimeline.swift:104-107,186-197,1886-1934,2049-2065.
