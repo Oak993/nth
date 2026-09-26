@@ -152,9 +152,14 @@ public sealed class StorageTests
         Assert.Equal(Path.Combine(root, "library.json"), Storage.LibraryURL);
         Assert.Equal(Path.Combine(root, "threads"), Storage.ThreadsDirectory);
         Assert.Equal(Path.Combine(root, "attachments"), Storage.AttachmentsDirectory);
-        // wallpaper/ moved to Core.Support.StoragePaths at B3 (ED-195): StorageLocations builds its own
-        // StoragePathsLocations from this very same root factory (Storage.cs's StorageLocations constructor),
-        // never through the StoragePaths.Locations Ambient, so it still hangs off Storage.Root without binding it.
+        // wallpaper/ moved to Core.Support.StoragePaths at B3 (ED-195): StorageLocations builds its own private
+        // StoragePathsLocations field directly from this very same root factory (Storage.cs's StorageLocations
+        // constructor), never through the StoragePaths.Locations Ambient, so *that private field* hangs off
+        // Storage.Root regardless of whether the Ambient is bound. It says nothing about whether
+        // Marrow.Core.Support.StoragePaths.WallpaperDirectory (the Ambient UI.Theme.Wallpaper actually reads,
+        // Wallpaper.cs:154, :187, :191) is wired anywhere: that is proven by
+        // ProgramStartupBindingTests.Main_binds_every_Ambient_a_production_caller_reads_before_any_window_opens
+        // (Marrow.App.Tests), not by this assertion.
         Assert.Equal(Path.Combine(root, "wallpaper"), StoragePathsLocations.Create(root).WallpaperDirectory);
         Assert.Equal(Path.Combine(root, "mcp.json"), Marrow.Services.Models.MCPPaths.ConnectionsURL);
         Assert.Equal(Path.Combine(root, "custom-mcp.json"), Marrow.Services.Models.MCPPaths.CustomsURL);
