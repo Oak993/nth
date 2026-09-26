@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
@@ -9,8 +10,10 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Templates;
 using Avalonia.Input;
 using Avalonia.Input.GestureRecognizers;
+using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.VisualTree;
 using Marrow.App.Port;
 using Marrow.App.Runtime;
 using Marrow.App.Views.Settings;
@@ -25,14 +28,17 @@ using Marrow.UI.Port;
 // Skeleton (c100 group 5): every type the file declares, the views' inputs, the record shapes, the metrics constants
 // and the members the other files use. Every view body and every member with behaviour is left to the implementing
 // unit (MARROW_STUB).
-// Implemented so far (part 1 of 8): SidebarView's body (:69-205) with its search field, bell, list and bottom rows,
-// query (:61-63), the scroll freeze (:392-404), the placements and helper grouping (:385-422), listItems (:424-448),
-// hasRunningHead, helperItems and orderedHeads (:450-485), addProject (:498-511), projectItems (:515-557),
-// needsAttention (:633-636), search (:690-749), rowTransition and itemView's dispatch (:312-376), SidebarItem.id(for:)
-// and the two extensions (:1053-1076), SidebarThreadRow.mergeStage (:1980-1984), ActivityViewToggle (:2316-2343),
-// PlacementCache, ThreadPlacement and SidebarItemCache (:2480-2658). Still MARROW_STUB and named where they stand:
-// the row views, the activity layout, the thread and helper arms of itemView and threadRow (parts 2 to 8), and the
-// empty-needle case of the search match (STOP #1 in SidebarViewTests.cs).
+// Implemented so far (parts 1 and 2 of 8): SidebarView's body (:69-205) with its search field, bell, list and bottom
+// rows, query (:61-63), the scroll freeze (:392-404), the placements and helper grouping (:385-422), listItems
+// (:424-448), hasRunningHead, helperItems and orderedHeads (:450-485), addProject (:498-511), projectItems (:515-557),
+// the activity layout (:559-686), search (:690-749), rowTransition and itemView's dispatch and thread arm (:312-347),
+// reorderableRow and the reorder (:753-868: the list's drag gesture, dragChanged, dragEnded, peers, slotHeights,
+// DragPeers), SidebarItem.id(for:) and the two extensions (:1053-1076), ThreadRowMetrics.headCardHeight
+// (:1305-1311), SidebarThreadRow.mergeStage (:1980-1984), ActivityViewToggle (:2316-2343), RowHeights and RowFrames
+// (:2442-2472), PlacementCache, ThreadPlacement and SidebarItemCache (:2480-2658). Still MARROW_STUB and named where
+// they stand: the row views, the helper, head-card and stub arms of itemView and threadRow (parts 3 to 8), the
+// empty-needle case of the search match (STOP #1 in SidebarViewTests.cs) and the list's pointer style while a row is
+// grabbed (:124, STOP #5).
 // Forms (ED-095): a SwiftUI View is a Decorator whose constructor builds `body`; a ViewModifier is a sealed record
 // with `Control Body(Control content)`; a Shape is a sealed record with `Geometry Path(Rect in)`; a caseless enum is a
 // static class; an enum with associated values is an abstract record (R-ENUM-2), an unlabelled payload named Value; a
@@ -46,11 +52,10 @@ using Marrow.UI.Port;
 // on ChatThread, :1064-1076 on AnyTransition) go in SidebarViewExtensions, as C# 14 extension blocks (ED-164): the
 // file's own name belongs to the view.
 // Not declared yet (private, read only by the bodies the implementing unit writes): SidebarView's other @State storage
-// (:13-49: the rename, delete and archive popovers' state, menuRequests, drag, rowHeights, listFrame, rowFrames,
-// dragPeers) and its remaining private helpers (:207-306, :487-494, :561-631, :638-685, :753-897), the rows' @State
-// storage, their private helpers (ProjectRow.actions :1205-1229, SidebarHelperRow.makeActions :1422-1424,
-// SidebarThreadRow :1895-2000), HelperConnector.style (:1642, a StrokeStyle with a dash pattern, no port type yet) and
-// the private storage of RowFrames (:2457) and MinuteClock.tick (:2671).
+// (:13-30 and :42: the rename, delete and archive popovers' state, menuRequests, listFrame) and its remaining private
+// helpers (:207-306, :487-494, :870-897), the rows' @State storage, their private helpers (ProjectRow.actions
+// :1205-1229, SidebarHelperRow.makeActions :1422-1424, SidebarThreadRow :1895-2000), HelperConnector.style (:1642, a
+// StrokeStyle with a dash pattern, no port type yet) and MinuteClock.tick (:2671).
 // The rows' custom `==` (SidebarHelperRow :1413-1420, SidebarThreadRow :1882-1891) stand for `.equatable()`; a
 // Control keeps reference equality, so they are not declared as Equals (NEEDS DECISION, as group 3 reports).
 
@@ -73,10 +78,14 @@ public sealed class SidebarView : Decorator
     private sealed class ViewState : MainActorModel
     {
         private string search = ""; // :12
+        private RowDrag<Guid> drag = new(); // :33
         private bool isListScrolling; // :56
 
         // :12 @State private var search = ""
         public string Search { get => Read(search); set => Set(ref search, value); }
+
+        // :31-33 @State private var drag = RowDrag<UUID>(): the live reorder; the grabbed row follows the pointer.
+        public RowDrag<Guid> Drag { get => Read(drag); set => Set(ref drag, value); }
 
         // :56 @State private var isListScrolling = false
         public bool IsListScrolling { get => Read(isListScrolling); set => Set(ref isListScrolling, value); }
@@ -92,6 +101,20 @@ public sealed class SidebarView : Decorator
 
     // :385 @State private var placementCache = PlacementCache()
     private readonly PlacementCache placementCache = new();
+
+    // :34-38 @State private var rowHeights = RowHeights(): every row's height by its item id, out of observation.
+    private readonly RowHeights rowHeights = new();
+
+    // :43-46 @State private var rowFrames = RowFrames(): every open thread row's frame in the list, out of observation.
+    private readonly RowFrames rowFrames = new();
+
+    // :47-49 @State private var dragPeers: DragPeers? (read only by actions: a field, R-VIEW-2).
+    private DragPeers? dragPeers;
+
+    // :129 the DragGesture's own state: where the press began in the list's space, and whether the pointer has since
+    // travelled the gesture's minimum distance (it has succeeded).
+    private Point? pressStart;
+    private bool gestureActive;
 
     // :101-124 the ScrollView and its LazyVStack.
     private readonly ScrollViewer scroll;
@@ -175,6 +198,15 @@ public sealed class SidebarView : Decorator
         };
         Add(scroll, new GridLength(1, GridUnitType.Star));
 
+        // :124 .pointerStyle(drag.id != nil ? .grabActive : nil): STOP #5 (SidebarViewTests.cs), left unwritten.
+        // :123, :125-137 One drag gesture for the whole list, ahead of every row's own click: it listens on the way down
+        // (tunnelling), so it sees a press before the row's button does. The list's space here is the stack's own:
+        // the rows report their frames and the gesture reads its locations in it, whatever the scroll position.
+        list.AddHandler(InputElement.PointerPressedEvent, ListPressed, RoutingStrategies.Tunnel, handledEventsToo: true);
+        list.AddHandler(InputElement.PointerMovedEvent, ListMoved, RoutingStrategies.Tunnel, handledEventsToo: true);
+        list.AddHandler(InputElement.PointerReleasedEvent, ListReleased, RoutingStrategies.Tunnel, handledEventsToo: true);
+        list.PointerCaptureLost += (_, _) => GestureCancelled();
+
         // :164-178 Add project and Settings, 1 pt apart, below the list.
         var addProject = new SidebarRow("Add project", AddProject, // :165
             () => new SidebarIconBadge(() => new SidebarSymbol("plus"))); // :166
@@ -242,7 +274,7 @@ public sealed class SidebarView : Decorator
             Transaction.WithAnimation(Chrome.PanelSlide, () => ScrollTo(SidebarItem.IdFor(thread))); // :158-160
         }));
         // :184-205 the menu requests and the archive question are taken up by part 4 of this unit (PR-SIDEBAR-086,
-        // PR-SIDEBAR-094); the drag gesture and its pointer style (:125-137) by the drag records of parts 2 and 3.
+        // PR-SIDEBAR-094).
     }
 
     private void Disappear()
@@ -528,10 +560,31 @@ public sealed class SidebarView : Decorator
         return true;
     }
 
-    // :339-346 the thread arm: reorderableRow (:757-765) with its frame and height reports. Parts 2 to 4 write it
-    // (the drag records and the thread row's own).
+    // :339-347 the thread arm: reorderableRow with its height and frame reports.
     private Control ThreadItemView(SidebarItem item, SidebarItem.Kind.Thread thread) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:339");
+        ReportsFrame(ReorderableRow(thread.Value, thread.ProjectName, thread.ProjectIcon, thread.Peers, thread.HasHelpers), item.Id, thread.Value);
+
+    // :341-347 .onGeometryChange(for: CGRect.self, of: { $0.frame(in: .named(Self.listSpace)) }) { frame in ... } and
+    // .onDisappear. The frame is the row's laid-out slot in the list's space: a lifted row's offset (:760) is drawn,
+    // not laid out, so it does not move the frame.
+    private Control ReportsFrame(Control row, string itemID, ChatThread thread)
+    {
+        void Report()
+        {
+            if (row.GetVisualParent() is not Visual parent || parent.TranslatePoint(row.Bounds.Position, list) is not { } origin) return;
+            var frame = new Rect(origin, row.Bounds.Size);
+            rowHeights.Note(itemID, frame.Height); // :342
+            // :343-344 A settled row keeps its place among the settled; there is nothing to reorder.
+            if (!thread.IsSettled) rowFrames.Note(thread.Id, frame);
+        }
+        row.PropertyChanged += (_, e) =>
+        {
+            if (e.Property == Visual.BoundsProperty) Report();
+        };
+        // :346-347 A row that has left the list (scrolled out, settled, deleted) is not there to grab.
+        row.DetachedFromVisualTree += (_, _) => rowFrames.Forget(thread.Id);
+        return row;
+    }
 
     // :347-367 the helper arm: the helper row inside the delete and archive popovers (part 4).
     private Control HelperItemView(SidebarItem item, SidebarItem.Kind.Helper helper) =>
@@ -549,6 +602,226 @@ public sealed class SidebarView : Decorator
     // and 4).
     private Control ThreadRow(ChatThread thread, string? projectName, ProjectIcon? projectIcon, bool hasHelpers, bool isDragged = false) =>
         throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:870");
+
+    // MARK: Rows
+
+    // :753-762 Drag a row up or down the list and it moves live: within its project in the project layout, within its
+    // group in the activity layout. The list's one gesture drives it (see the constructor), ahead of the row's own
+    // click, so a drag never selects the thread on release; a plain click still does. The row only lifts and follows
+    // here.
+    private Control ReorderableRow(ChatThread thread, string? projectName, ProjectIcon? projectIcon, ValueList<Guid>? peers, bool hasHelpers) =>
+        Lifted(thread.Id, isDragged => ThreadRow(thread, projectName, projectIcon, hasHelpers, isDragged)); // :759
+
+    // :758-761 The row as a drag sees it: built with whether it is the grabbed one (:758-759, its `let` input, so a
+    // change builds it again), offset by the drag's visual offset while grabbed (:760) and lifted over its
+    // neighbours (:761). The offset moves along the change's animation, and at once when there is none (:777-779).
+    private Control Lifted(Guid id, Func<bool, Control> row)
+    {
+        var translate = new TranslateTransform();
+        var host = new Decorator { RenderTransform = translate };
+        bool? builtDragged = null;
+        double target = 0;
+        IFrameSource? frames = null;
+        Action<TimeSpan>? pending = null;
+        host.Track(() => (IsDragged: state.Drag.Id == id, Offset: state.Drag.VisualOffset), value =>
+        {
+            var isDragged = value.IsDragged; // :758
+            if (builtDragged != isDragged)
+            {
+                builtDragged = isDragged;
+                host.Child = row(isDragged); // :759
+            }
+            host.ZIndex = isDragged ? 1 : 0; // :761 .zIndex(isDragged ? 1 : 0)
+            var to = isDragged ? value.Offset : 0; // :760 .offset(y: isDragged ? drag.visualOffset : 0)
+            if (to == target) return;
+            target = to;
+            if (pending is { } running) frames?.CancelFrame(running);
+            pending = null;
+            if (Transaction.Current is not { } animation)
+            {
+                translate.Y = to;
+                return;
+            }
+            var from = translate.Y;
+            var start = SwiftClock.Now;
+            var source = FrameClock.Source.Current;
+            Action<TimeSpan>? tick = null;
+            tick = _ =>
+            {
+                var seconds = (SwiftClock.Now - start).TotalSeconds;
+                var complete = seconds >= animation.Duration;
+                translate.Y = complete ? to : from + (to - from) * animation.Progress(seconds);
+                if (complete) pending = null;
+                else source.RequestFrame(tick!);
+            };
+            frames = source;
+            pending = tick;
+            source.RequestFrame(tick);
+        });
+        return host;
+    }
+
+    // MARK: Reorder
+
+    // :129 DragGesture(minimumDistance: 4, coordinateSpace: .named(Self.listSpace)), enabled only while the query is
+    // empty (:136 isEnabled: query.isEmpty): nothing to reorder while searching. A primary-button press starts it.
+    private void ListPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (gestureActive) return; // another button pressed during a drag starts nothing
+        pressStart = null;
+        gestureActive = false;
+        if (Query.Length != 0 || !e.GetCurrentPoint(list).Properties.IsLeftButtonPressed) return;
+        pressStart = e.GetPosition(list);
+    }
+
+    private void ListMoved(object? sender, PointerEventArgs e)
+    {
+        if (pressStart is not { } start) return;
+        // A drag lives only while the button is held: a release the list never saw ends it here.
+        if (!e.GetCurrentPoint(list).Properties.IsLeftButtonPressed)
+        {
+            GestureCancelled();
+            return;
+        }
+        var translation = e.GetPosition(list) - start;
+        if (!gestureActive)
+        {
+            // The gesture succeeds once the pointer is 4 pt from where it was pressed, in the list's own points.
+            if (Math.Sqrt(translation.X * translation.X + translation.Y * translation.Y) < 4) return;
+            gestureActive = true;
+            // :128 .highPriorityGesture: from here the gesture has the pointer, so the row's button under it never
+            // sees its release and does not click.
+            e.Pointer.Capture(list);
+        }
+        // :130-133 .onChanged: the row under the pointer at the grab is the one that moves.
+        if ((state.Drag.Id ?? rowFrames.Thread(start)) is not { } id) return; // :131
+        DragChanged(id, translation.Y); // :132
+    }
+
+    private void ListReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        if (pressStart is null) return;
+        var succeeded = gestureActive;
+        pressStart = null;
+        gestureActive = false;
+        if (!succeeded) return;
+        e.Pointer.Capture(null);
+        DragEnded(); // :134 .onEnded { _ in dragEnded() }
+    }
+
+    // A gesture the system takes away (its pointer capture lost) ends, as a cancelled SwiftUI gesture does.
+    private void GestureCancelled()
+    {
+        if (pressStart is null) return;
+        var succeeded = gestureActive;
+        pressStart = null;
+        gestureActive = false;
+        if (succeeded) DragEnded();
+    }
+
+    // :769-801 The pointer has moved `translation` since the grab. The grabbed row follows it exactly and RowDrag swaps
+    // it past every neighbour whose centre it has crossed.
+    private void DragChanged(Guid id, double translation)
+    {
+        if (state.Drag.Id != id) // :772
+        {
+            state.Drag = new RowDrag<Guid> { Id = id }; // :773
+            // :774-775 Taken once at the grab: the peers and their slots stand until a swap.
+            dragPeers = new DragPeers(Peers(id), SlotHeights);
+        }
+        // :777-779 A transaction that disables animations: the row follows the pointer one to one.
+        Transaction.WithAnimation(null, () => state.Drag = state.Drag with { Translation = translation });
+
+        if (dragPeers is not { } snapshot) return; // :781
+        var (order, group) = (snapshot.Order, snapshot.Group); // :782
+        var (settled, moved) = state.Drag.Settle(order, snapshot.Heights, fallbackHeight: Chrome.RowHeight + 1, move: (neighbour, placeAfter) => // :783
+        {
+            // :784-793 The neighbour slides and the grabbed row's slot moves in the same animation as its
+            // compensation, so it stays put under the pointer while the list flows around it.
+            var result = false;
+            Transaction.WithAnimation(Slide, () =>
+            {
+                result = group is { } peers
+                    ? Model.MoveInActivity(id, neighbour, placeAfter, peers) // :789
+                    : Model.MoveThread(id, neighbour, placeAfter); // :791
+            });
+            return result;
+        });
+        state.Drag = settled; // the mutating call's copy, written back to the state when it returns
+        if (moved) // :795
+        {
+            // :796-798 The row's peers as the list stands now, not as it stood at the grab: every swap reorders them.
+            // The slots are by id and stand.
+            dragPeers = new DragPeers(Peers(id), SlotHeights);
+            // :799 NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now)
+            // DEVIATION ED-008: no Windows desktop haptic; the cue is omitted and nothing stands in for it.
+        }
+    }
+
+    // :803-809
+    private void DragEnded()
+    {
+        if (state.Drag.Id is null) return; // :804
+        dragPeers = null; // :805
+        // :806-808 The offset animates from wherever the pointer let go to the row's slot, so the row settles instead of
+        // snapping.
+        Transaction.WithAnimation(Animation.Spring(response: 0.32, dampingFraction: 0.8), () => state.Drag = new RowDrag<Guid>());
+    }
+
+    // :811-825 The threads a row can be reordered among, in their current order: its activity group (returned as
+    // `group` too, for the move) or its project's top-level threads.
+    private (ValueList<Guid> Order, ValueList<Guid>? Group) Peers(Guid of)
+    {
+        var model = Model;
+        if (model.Settings.SidebarActivityView) // :814
+        {
+            var placements = ThreadPlacements; // :815
+            foreach (var item in ListItems(placements, HelpersByParent(placements))) // :816
+            {
+                if (item.SidebarItemKind is SidebarItem.Kind.Thread { Peers: { } peers } thread && thread.Value.Id == of) // :817
+                    return (peers, peers); // :818
+            }
+            return (ValueList<Guid>.Empty, null); // :821
+        }
+        if (model.Thread(of) is not { } found || model.Project(found.ProjectID) is not { } project) return (ValueList<Guid>.Empty, null); // :823
+        return (new ValueList<Guid>(model.ThreadsIn(project).Where(thread => !thread.IsSettled).Select(thread => thread.Id)), null); // :824
+    }
+
+    // :827-854 Each peer's slot: its row, the helper rows or folded line under it, and the list's spacing after each.
+    private ValueMap<Guid, double> SlotHeights(ValueList<Guid> order)
+    {
+        var model = Model;
+        var grouped = HelpersByParent(ThreadPlacements); // :830
+        var heights = new Dictionary<Guid, double>(); // :831
+        foreach (var id in order) // :832
+        {
+            var uuid = SwiftUUID.UuidString(id);
+            var height = (rowHeights.Values.TryGetValue(uuid, out var row) ? row : Chrome.RowHeight) + 1; // :833
+            var helpers = grouped.TryGetValue(id, out var own) ? own : ValueList<ChatThread>.Empty; // :834
+            if (helpers.Count > 0) // :835
+            {
+                if (model.Thread(id)?.FoldsHelpers == true) // :836
+                {
+                    height += (rowHeights.Values.TryGetValue("helpers-" + uuid, out var stub) ? stub : ThreadRowMetrics.HelperHeight) + 1; // :837
+                }
+                else
+                {
+                    foreach (var helper in helpers.Where(helper => !helper.IsHydraHead)) // :839
+                        height += (rowHeights.Values.TryGetValue(SwiftUUID.UuidString(helper.Id), out var line) ? line : ThreadRowMetrics.HelperHeight) + 1; // :840
+                    long headCount = model.Settings.HydraAutoHidesIdleHeads && !HasRunningHead(helpers.Where(helper => helper.IsHydraHead).ToList()) // :842
+                        ? 0
+                        : helpers.Count(helper => helper.IsHydraHead); // :843-844
+                    if (headCount > 0) // :845
+                    {
+                        var rows = (headCount + 5) / 6; // :846
+                        height += (rowHeights.Values.TryGetValue("heads-" + uuid, out var card) ? card : ThreadRowMetrics.HeadCardHeight(rows)) + 1; // :847
+                    }
+                }
+            }
+            heights[id] = height; // :851
+        }
+        return new ValueMap<Guid, double>(heights); // :853
+    }
 
     // MARK: Where the threads sit
 
@@ -709,9 +982,92 @@ public sealed class SidebarView : Decorator
 
     // MARK: Activity layout
 
-    // :561-605 activityItems(helpers:): the activity layout (PR-SIDEBAR-034 to -042), written by part 2 of this unit.
-    private ValueList<SidebarItem> ActivityItems(ValueMap<Guid, ValueList<ChatThread>> helpers) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:561");
+    // :561-605
+    private ValueList<SidebarItem> ActivityItems(ValueMap<Guid, ValueList<ChatThread>> helpers)
+    {
+        var model = Model;
+        var shown = model.Threads.Where(thread => !thread.IsArchived && !thread.IsInPanel).ToList(); // :562
+        // :563-566 A helper whose parent is here sits under it (see helperItems); one whose parent is gone or archived
+        // stands on its own.
+        var shownIDs = shown.Select(thread => thread.Id).ToHashSet(); // :565
+        var active = shown.Where(thread => thread.ParentThreadID is not { } parentID || !shownIDs.Contains(parentID)).ToList(); // :566
+        // :567-569 A settled thread stays among the settled whatever it is up to.
+        var attention = Placed(active.Where(thread => NeedsAttention(thread) && !thread.IsSettled).ToList()); // :568
+        var rest = active.Where(thread => !NeedsAttention(thread) || thread.IsSettled).ToList(); // :569
+        var items = new List<SidebarItem>(); // :570
+        if (attention.Count > 0) // :571-574
+        {
+            items.Add(new SidebarItem { Id = "attention", SidebarItemKind = new SidebarItem.Kind.Header("Needs attention", IsFirst: true) });
+            items.AddRange(ActivityThreadItems(attention, helpers));
+        }
+        // :575-581 Open pinned threads sit above the day groups, in the activity sort's order.
+        var open = rest.Where(thread => !thread.IsSettled).ToList(); // :576
+        var pinned = Placed(open.Where(thread => thread.IsPinned).ToList()); // :577
+        if (pinned.Count > 0) // :578
+        {
+            items.Add(new SidebarItem { Id = "day-Pinned", SidebarItemKind = new SidebarItem.Kind.Header("Pinned", IsFirst: items.Count == 0) }); // :579
+            items.AddRange(ActivityThreadItems(pinned, helpers)); // :580
+        }
+        foreach (var group in ActivityGroups(open.Where(thread => !thread.IsPinned).ToList())) // :582
+        {
+            // :583-584 Without an attention section the day header is the first row, so it takes the tighter top padding.
+            items.Add(new SidebarItem { Id = "day-" + group.Title, SidebarItemKind = new SidebarItem.Kind.Header(group.Title, IsFirst: items.Count == 0) });
+            items.AddRange(ActivityThreadItems(group.Threads, helpers)); // :585
+        }
+        // :587-590 The settled threads sit under everything, whatever day they were last active, latest settled first,
+        // under a header that folds them away. They keep their place: no dragging among them.
+        var settled = Sorted(rest.Where(thread => thread.IsSettled), AppModel.SettledFirst);
+        if (settled.Count > 0) // :591
+        {
+            items.Add(new SidebarItem { Id = "settled", SidebarItemKind = new SidebarItem.Kind.SettledHeader(settled.Count, IsFirst: items.Count == 0) }); // :592
+            if (!model.Settings.SettledCollapsed) // :593
+            {
+                foreach (var thread in settled) // :594
+                {
+                    var project = model.Project(thread.ProjectID); // :595
+                    var compact = model.Settings.ActivityThreadStyle == ActivityThreadStyle.Icon; // :596
+                    items.Add(new SidebarItem // :597-600
+                    {
+                        Id = SidebarItem.IdFor(thread),
+                        SidebarItemKind = new SidebarItem.Kind.Thread(thread, ProjectName: compact ? null : (project?.Name ?? ""), ProjectIcon: ActivityMark(project, compact), Peers: null, HasHelpers: false),
+                    });
+                }
+            }
+        }
+        return new ValueList<SidebarItem>(items); // :604
+    }
+
+    // :607-620 Threads of one activity group, each with the helpers under it. A thread can be dragged to another place
+    // within its own group; its helpers follow it.
+    private List<SidebarItem> ActivityThreadItems(IReadOnlyList<ChatThread> threads, ValueMap<Guid, ValueList<ChatThread>> helpers)
+    {
+        var model = Model;
+        var peers = new ValueList<Guid>(threads.Select(thread => thread.Id)); // :610
+        var items = new List<SidebarItem>();
+        foreach (var thread in threads) // :611 flatMap
+        {
+            var own = helpers.TryGetValue(thread.Id, out var found) ? found : ValueList<ChatThread>.Empty; // :612
+            var project = model.Project(thread.ProjectID); // :613
+            var compact = model.Settings.ActivityThreadStyle == ActivityThreadStyle.Icon; // :614
+            items.Add(new SidebarItem // :615-618
+            {
+                Id = SwiftUUID.UuidString(thread.Id),
+                SidebarItemKind = new SidebarItem.Kind.Thread(thread, ProjectName: compact ? null : (project?.Name ?? ""), ProjectIcon: ActivityMark(project, compact), Peers: peers, HasHelpers: !thread.IsSettled && own.Count > 0),
+            });
+            items.AddRange(HelperItems(thread, own)); // :618
+        }
+        return items;
+    }
+
+    // :622-631 A thread's project mark in the activity layout. In the icon style the slot in front of the title belongs
+    // to the project: the mark picked for it, or the folder mark until one is. In the project-name style a picked mark
+    // leads the title and the project line below it drops; with none picked, the row keeps the folder line. The
+    // folder mark is drawn as Lucide `folder` where symbols are drawn (OD-0010).
+    private ProjectIcon? ActivityMark(Project? project, bool compact)
+    {
+        if (!compact) return project?.Icon; // :629
+        return project?.Icon ?? new ProjectIcon.Symbol("folder.fill"); // :630
+    }
 
     // :633-636
     private bool NeedsAttention(ChatThread thread)
@@ -719,6 +1075,69 @@ public sealed class SidebarView : Decorator
         if (Model.ExistingRuntime(thread.Id) is not { } runtime) return false; // :634
         return runtime.Approvals.Count > 0 || runtime.Questions.Count > 0; // :635
     }
+
+    // :643-656 Threads grouped under Today, Yesterday, a weekday within the week, then a date.
+    private static List<ActivityGroup> ActivityGroups(IReadOnlyList<ChatThread> threads)
+    {
+        var calendar = CurrentCalendar; // :645
+        var groups = new List<ActivityGroup>(); // :646
+        foreach (var thread in threads.OrderByDescending(thread => thread.UpdatedAt)) // :647, a stable sort (R-COLL-1)
+        {
+            var title = DayTitle(thread.UpdatedAt, calendar); // :648
+            if (groups.Count > 0 && SwiftString.Equal(groups[^1].Title, title)) // :649
+                groups[^1] = groups[^1] with { Threads = groups[^1].Threads.Appending(thread) }; // :650
+            else
+                groups.Add(new ActivityGroup { Title = title, Threads = new ValueList<ChatThread>([thread]) }); // :652
+        }
+        return groups.Select(group => new ActivityGroup { Title = group.Title, Threads = Placed(group.Threads) }).ToList(); // :655
+    }
+
+    // :658-675 Newest first, except threads dragged into place, which keep that place for the rest of their day.
+    private static ValueList<ChatThread> Placed(IReadOnlyList<ChatThread> threads)
+    {
+        // :660-665 A place counts only while it was taken on the day the thread was last active (Calendar.current's
+        // isDate(_:inSameDayAs:), :663).
+        double? Order(ChatThread thread)
+        {
+            if (thread.ActivityOrder is not { } order || thread.ActivityOrderDay is not { } day || LocalDay(day) != LocalDay(thread.UpdatedAt)) return null;
+            return order;
+        }
+        return Sorted(threads, (lhs, rhs) => (Order(lhs), Order(rhs)) switch // :666-674
+        {
+            ({ } left, { } right) when left != right => left < right, // :668
+            // :669-670 Threads that became active after a reorder have no place yet and stay on top.
+            (null, not null) => true,
+            (not null, null) => false, // :671
+            _ => lhs.UpdatedAt > rhs.UpdatedAt, // :672
+        });
+    }
+
+    // :677-686. `.now` is read once: the three reads Swift makes are one moment for the title.
+    private static string DayTitle(DateTimeOffset date, System.Globalization.Calendar calendar)
+    {
+        var day = LocalDay(date);
+        var today = LocalDay(SwiftDate.Now);
+        if (day == today) return "Today"; // :678 isDateInToday
+        if (day == today.AddDays(-1)) return "Yesterday"; // :679 isDateInYesterday
+        // :680 dateComponents([.day], from: startOfDay(for: date), to: startOfDay(for: .now)).day: whole calendar days.
+        var days = (today - day).Days;
+        if (days < 7) return SwiftFormatters.Formatted(date, DateFormatStyle.DateTime.Weekday(DateFormatStyle.Symbol.Weekday.Wide)); // :681
+        if (calendar.GetEra(day) == calendar.GetEra(today) && calendar.GetYear(day) == calendar.GetYear(today)) // :682 isDate(_:equalTo:toGranularity: .year)
+            return SwiftFormatters.Formatted(date, DateFormatStyle.DateTime.Month(DateFormatStyle.Symbol.Month.Wide).Day()); // :683
+        return SwiftFormatters.Formatted(date, DateFormatStyle.DateTime.Month(DateFormatStyle.Symbol.Month.Wide).Day().Year()); // :685
+    }
+
+    // Calendar.current (:645, :660): ED-094, the Windows user's calendar with the local zone.
+    private static System.Globalization.Calendar CurrentCalendar => CultureInfo.CurrentCulture.Calendar;
+
+    // The calendar day a moment falls on in Calendar.current's zone, as a wall-clock date: a day runs from midnight to
+    // midnight there in every calendar Foundation offers, so the day itself needs only the zone.
+    private static DateTime LocalDay(DateTimeOffset date) => TimeZoneInfo.ConvertTime(date, SwiftFormatters.CurrentTimeZone.Current).Date;
+
+    // R-COLL-1: `sorted(by:)` as a stable sort by the source's predicate.
+    private static ValueList<ChatThread> Sorted(IEnumerable<ChatThread> threads, Func<ChatThread, ChatThread, bool> areInIncreasingOrder) =>
+        new(threads.OrderBy(thread => thread, Comparer<ChatThread>.Create((lhs, rhs) =>
+            areInIncreasingOrder(lhs, rhs) ? -1 : areInIncreasingOrder(rhs, lhs) ? 1 : 0)));
 
     // MARK: Search
 
@@ -791,16 +1210,21 @@ public sealed class SidebarView : Decorator
         public required ValueList<ChatThread> Threads { get; init; } // :640 var threads
     }
 
-    /// <summary>:858-868 <c>private struct DragPeers</c>.</summary>
+    /// <summary>:856-868 <c>private struct DragPeers</c>: what a drag reuses between pointer moves: the grabbed row's
+    /// peers in their order, the group they form in the activity layout, and each peer's slot height.</summary>
     private sealed record DragPeers
     {
-        public ValueList<Guid> Order { get; } = ValueList<Guid>.Empty; // :859
+        public ValueList<Guid> Order { get; } // :859
         public ValueList<Guid>? Group { get; } // :860
-        public ValueMap<Guid, double> Heights { get; } = ValueMap<Guid, double>.Empty; // :861
+        public ValueMap<Guid, double> Heights { get; } // :861
 
         // :863-867 init(_ peers: (order: [UUID], group: [UUID]?), heights: ([UUID]) -> [UUID: CGFloat])
-        public DragPeers((ValueList<Guid> Order, ValueList<Guid>? Group) peers, Func<ValueList<Guid>, ValueMap<Guid, double>> heights) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:863");
+        public DragPeers((ValueList<Guid> Order, ValueList<Guid>? Group) peers, Func<ValueList<Guid>, ValueMap<Guid, double>> heights)
+        {
+            Order = peers.Order; // :864
+            Group = peers.Group; // :865
+            Heights = heights(peers.Order); // :866
+        }
     }
 }
 
@@ -945,9 +1369,13 @@ internal static class ThreadRowMetrics
     public const double HeadRowGap = 6; // :1303
     public const double HeadCardPadding = 6; // :1304
 
-    // :1308-1311 static func headCardHeight(rows: Int) -> CGFloat
-    public static double HeadCardHeight(long rows) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1308");
+    // :1305-1311 A head card's height for `rows` rows of glyphs: the rows, the gaps between them and the padding. The
+    // card reports its own height as it lays out; this stands in until the first measurement lands.
+    public static double HeadCardHeight(long rows)
+    {
+        var count = Math.Max(1, rows); // :1309
+        return 2 * HeadCardPadding + count * HeadGlyphSize + (count - 1) * HeadRowGap; // :1310
+    }
 }
 
 /// <summary>:1317-1425 <c>private struct SidebarHelperRow: View, Equatable</c>.</summary>
@@ -1244,31 +1672,48 @@ internal sealed class FrameHolder
         throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2436");
 }
 
-/// <summary>:2445-2452 <c>private final class RowHeights</c>: every row's measured height.</summary>
+/// <summary>:2442-2452 <c>private final class RowHeights</c>: every row's measured height.</summary>
 internal sealed class RowHeights
 {
     // :2446 var values: [String: CGFloat] = [:]
     public ValueMap<string, double> Values { get; set; } = ValueMap<string, double>.Empty;
 
-    // :2448-2451 func note(_ id: String, _ height: CGFloat)
-    public void Note(string id, double height) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2448");
+    // :2448-2451 func note(_ id: String, _ height: CGFloat): unchanged reports are skipped.
+    public void Note(string id, double height)
+    {
+        if (Values.TryGetValue(id, out var noted) && noted == height) return; // :2449
+        Values = Values.Mutating(values => values[id] = height); // :2450
+    }
 }
 
-/// <summary>:2456-2472 <c>private final class RowFrames</c>: every open thread row's frame in the list.</summary>
+/// <summary>:2454-2472 <c>private final class RowFrames</c>: every open thread row's frame in the list.</summary>
 internal sealed class RowFrames
 {
+    // :2457 private var frames: [UUID: CGRect] = [:]
+    private readonly Dictionary<Guid, Rect> frames = [];
+
     // :2459-2462 func note(_ id: UUID, _ frame: CGRect)
-    public void Note(Guid id, Rect frame) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2459");
+    public void Note(Guid id, Rect frame)
+    {
+        if (frames.TryGetValue(id, out var noted) && noted == frame) return; // :2460
+        frames[id] = frame; // :2461
+    }
 
     // :2464-2466 func forget(_ id: UUID)
-    public void Forget(Guid id) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2464");
+    public void Forget(Guid id) => frames.Remove(id); // :2465
 
-    // :2469-2471 func thread(at point: CGPoint) -> UUID?
-    public Guid? Thread(Point at) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2469");
+    // :2468-2471 The thread whose row is under `point`, if an open one is: the first frame holding it in the map's own
+    // order. UPSTREAM DEFECT 58, reproduced: two overlapping frames get no tie-break.
+    public Guid? Thread(Point at)
+    {
+        foreach (var (id, frame) in frames) // :2470 frames.first { $0.value.contains(point) }?.key
+            if (Contains(frame, at)) return id;
+        return null;
+    }
+
+    // CGRect.contains(_:): a point on the minimum edges is inside, one on the maximum edges is not.
+    private static bool Contains(Rect rect, Point point) =>
+        point.X >= rect.X && point.X < rect.Right && point.Y >= rect.Y && point.Y < rect.Bottom;
 }
 
 /// <summary>:2475-2479 <c>private struct SidebarSearchResult</c>: one project's search hits.</summary>

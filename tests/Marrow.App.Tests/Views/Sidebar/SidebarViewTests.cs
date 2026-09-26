@@ -1,12 +1,15 @@
 using System.Collections;
+using System.Globalization;
 using System.Reflection;
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
+using Avalonia.Media;
 using Avalonia.VisualTree;
 using Marrow.App.Port;
 using Marrow.App.Runtime;
@@ -15,6 +18,7 @@ using Marrow.App.Views.Settings;
 using Marrow.App.Views.Sidebar;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
+using Marrow.Services.Providers;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
 using Xunit;
@@ -23,8 +27,9 @@ using AvaloniaWindow = Avalonia.Controls.Window;
 namespace Marrow.App.Tests.Views.Sidebar;
 
 // Source: DroppyCode/App/Views/Sidebar/SidebarView.swift (B3 52bc792), :1-2695. Part 1 of 8: PR-HYDRAMERGE-100,
-// PR-SIDEBAR-001 to -006, -009 to -025. Every expected value is transcribed from the B3 line cited on the test or from
-// the record, never from the C# implementation. Non-ASCII text is written as escapes (R-STR-9).
+// PR-SIDEBAR-001 to -006, -009 to -025. Part 2 of 8: PR-SIDEBAR-026, -028 to -050. Every expected value is
+// transcribed from the B3 line cited on the test or from the record, never from the C# implementation. Non-ASCII text
+// is written as escapes (R-STR-9).
 //
 // How the view is driven. Marrow.App has no InternalsVisibleTo (ED-119), so the file's private types and members are
 // reached by reflection, as NewThreadPromptTests does. A view is either ATTACHED (in a shown headless window: its
@@ -96,6 +101,36 @@ namespace Marrow.App.Tests.Views.Sidebar;
 // Needed to proceed: a fix in unit App.AppModel (reading (a)), or a recorded decision.
 // Done so far: the dedupe test adds the folder through this row twice, so both reads agree and the source's rule is
 // observable; no test asserts the stored path of a chosen folder.
+//
+// STOP App.Views.Sidebar.SidebarView #5
+// Kind: platform gap
+// Swift: DroppyCode/App/Views/Sidebar/SidebarView.swift:124 (B3 52bc792) `.pointerStyle(drag.id != nil ? .grabActive : nil)`
+// Requirements: PR-SIDEBAR-049 (B3 replaced B2's `NSCursor.closedHand.push()` at :775 and `NSCursor.pop()` at :805
+// with this pointer style)
+// What is unclear or missing: while a row is grabbed the list shows the closed-hand ("grab active") pointer; nil
+// leaves the rows' own pointers. Windows has no closed-hand system cursor (IDC_HAND is the pointing hand) and no
+// decision maps `.grabActive` (FollowUpQueueTab.swift:384 and ModelsSettingsPage.swift:184 use it too, with
+// `.grabIdle`).
+// Readings or options: (a) a bundled closed-hand cursor image -> the source's look; (b) a stock cursor such as
+// StandardCursorType.SizeAll or DragMove -> a different shape; (c) no pointer change -> the cursor stays as it was.
+// Needed to proceed: a decision (ED or PA) mapping `.grabActive` and `.grabIdle` for the three sites.
+// Done so far: the grab, the peers snapshot and the release are implemented and tested; the list's pointer style is
+// left unwritten.
+//
+// STOP App.Views.Sidebar.SidebarView #6
+// Kind: unverified
+// Swift: DroppyCode/App/Views/Sidebar/SidebarView.swift:743, :745 (B3 52bc792) `.lowercased().contains(needle)`
+// Requirements: PR-SIDEBAR-043
+// What is unclear or missing: ED-009 asks the search fixture to cover a combining-mark case. Which `contains` the
+// source binds (STOP #1) also decides how a combining mark matches: the standard library's Collection.contains walks
+// Characters under canonical equivalence (a needle "e" does not match inside "e" + U+0301, and a precomposed U+00E9
+// needle matches a decomposed title), while the port's `Contains` (part 1) is an ordinal substring test (the
+// opposite answer in both cases). Lowercasing itself is settled (O-07, per-scalar) and is pinned below with U+0130,
+// U+0131 and the final sigma, where every reading agrees.
+// Readings or options: (a) Character-wise canonical matching -> the answers above; (b) ordinal UTF-16 matching -> the
+// opposite answers; (c) Foundation's `range(of:)` without options -> its own rules.
+// Needed to proceed: the same oracle item or decision STOP #1 needs.
+// Done so far: no test asserts either reading for combining marks; part 1's matcher is unchanged.
 
 [Collection("Headless")]
 public sealed class SidebarViewTests(HeadlessSession headless)
@@ -1334,6 +1369,1089 @@ public sealed class SidebarViewTests(HeadlessSession headless)
                     ["project-" + U(alpha.Id), U(open.Id), "settled-gap-" + U(alpha.Id), "settled-header-" + U(alpha.Id)],
                     items.Select(IdOf));
                 Assert.Equal(2L, Get(KindOf(items[3]), "Count")); // the full settled count
+            });
+        });
+    }
+
+    // ======== Part 2 of 8 ========
+
+    private static object? Field(object target, string name) =>
+        target.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(target);
+
+    private static object? CallOn(object target, string method, params object?[] args) =>
+        target.GetType().GetMethod(method, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)!.Invoke(target, args);
+
+    // helpersByParent(placements:) (:410-422) over the view's own placements (:386-388).
+    private static ValueMap<Guid, ValueList<ChatThread>> Helpers(SidebarView view) =>
+        (ValueMap<Guid, ValueList<ChatThread>>)Call(view, "HelpersByParent", Get(view, "ThreadPlacements"))!;
+
+    private static ValueList<ChatThread> HelpersOf(SidebarView view, Guid parent) =>
+        Helpers(view).TryGetValue(parent, out var own) ? own : ValueList<ChatThread>.Empty;
+
+    // activityItems(helpers:) (:561-605).
+    private static List<object> ActivityItems(SidebarView view) => Items(Call(view, "ActivityItems", Helpers(view)));
+
+    // helperItems(under:helpers:) (:458-474).
+    private static List<object> HelperItems(SidebarView view, ChatThread under, IReadOnlyList<ChatThread> helpers) =>
+        Items(Call(view, "HelperItems", under, helpers));
+
+    private static ChatThread ThreadOf(object item) => (ChatThread)Get(KindOf(item), "Value")!;
+
+    private static IEnumerable<object> ThreadItems(IEnumerable<object> items) => items.Where(item => KindName(item) == "Thread");
+
+    private static string U(Guid id) => SwiftUUID.UuidString(id);
+
+    // The manual clock's start (Marrow.Testing ManualTimeProvider): 2026-09-22 12:00 UTC, a Tuesday.
+    private static readonly DateTimeOffset Now = new(2026, 9, 22, 12, 0, 0, TimeSpan.Zero);
+
+    private static ChatThread ThreadAt(Project project, string title, DateTimeOffset updatedAt) =>
+        AppModelSamples.Thread(project) with { Title = title, CreatedAt = updatedAt, UpdatedAt = updatedAt };
+
+    // Calendar.current, the formatters' locale and zone, pinned for one flow (ED-094: a Gregorian culture per flow).
+    private static void InDays(Action body, TimeZoneInfo? zone = null)
+    {
+        using var zoneScope = SwiftFormatters.CurrentTimeZone.Override(zone ?? TimeZoneInfo.Utc);
+        using var localeScope = SwiftFormatters.CurrentLocale.Override("en_US");
+        var culture = CultureInfo.CurrentCulture;
+        CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("en-US");
+        try
+        {
+            Assert.Equal(Now, SwiftDate.Now);
+            body();
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = culture;
+        }
+    }
+
+    private static void Approve(AppModel model, Guid thread) =>
+        model.Runtime(thread).Rehearse(new ProviderEvent.Approval(new ApprovalRequest(
+            "approval", ApprovalRequest.Kind.Command, "Run it?", ValueList<ApprovalRequest.Option>.Empty)));
+
+    private static void Ask(AppModel model, Guid thread) =>
+        model.Runtime(thread).Rehearse(new ProviderEvent.Question(new QuestionRequest("question", ValueList<QuestionRequest.Question>.Empty)));
+
+    private static RowDrag<Guid> Drag(SidebarView view) => (RowDrag<Guid>)Get(Field(view, "state")!, "Drag")!;
+
+    private static void NoteFrame(SidebarView view, Guid id, Rect frame) => CallOn(Field(view, "rowFrames")!, "Note", id, frame);
+
+    private static Guid? ThreadAtPoint(object frames, Point point) => (Guid?)CallOn(frames, "Thread", point);
+
+    // The list's stack (:103), the scroll view's content.
+    private static StackPanel ListPanel(SidebarView view) => (StackPanel)LogicalQuery.SelfAndDescendants<ScrollViewer>(view).Single().Content!;
+
+    // ---- PR-SIDEBAR-026: a folded project's count ----
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-026")] // App/Views/Sidebar/SidebarView.swift:521-524
+    public void A_project_item_counts_its_top_level_threads_and_every_helper_under_them_settled_ones_included()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var alpha = NewProject(harness, "Alpha") with { IsExpanded = false };
+            var empty = NewProject(harness, "Empty") with { IsExpanded = false };
+            var open = NewThread(alpha, "Open", 1);
+            var settled = NewThread(alpha, "Settled", 2) with { IsSettled = true, SettledAt = Base.AddHours(1) };
+            var helper = NewThread(alpha, "Helper", 3) with { ParentThreadID = open.Id };
+            var head = NewThread(alpha, "Head", 4) with { ParentThreadID = open.Id, Hydra = AppModelSamples.Head(HydraHeadInfo.Status.Completed), IsInPanel = true };
+            var underSettled = NewThread(alpha, "Under settled", 5) with { ParentThreadID = settled.Id };
+            var archived = NewThread(alpha, "Archived", 6) with { IsArchived = true };
+            var panelled = NewThread(alpha, "Panelled helper", 7) with { ParentThreadID = open.Id, IsInPanel = true };
+            var model = Model(harness, [alpha, empty], [open, settled, helper, head, underSettled, archived, panelled]);
+            harness.Main.OnMain(() =>
+            {
+                var items = ProjectItems(Detached(model));
+                // Two top-level threads (the settled one counts), the helper and the panelled head under the open one
+                // (a panelled plain helper is not grouped, :415) and one under the settled one: 2 + 2 + 1.
+                Assert.Equal([5L, 0L], items.Where(item => KindName(item) == "Project").Select(item => (long)Get(KindOf(item), "Count")!));
+            });
+        });
+    }
+
+    // ---- PR-SIDEBAR-028 to -033: helpers and heads ----
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-028")] // App/Views/Sidebar/SidebarView.swift:410-422
+    public void Helpers_are_grouped_by_parent_newest_created_first_leaving_out_archived_and_panelled_non_head_threads()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var alpha = NewProject(harness, "Alpha");
+            var parent = NewThread(alpha, "Parent", 0);
+            var lone = NewThread(alpha, "Lone", 0);
+            var first = NewThread(alpha, "First", 1) with { ParentThreadID = parent.Id };
+            var third = NewThread(alpha, "Third", 3) with { ParentThreadID = parent.Id };
+            var archived = NewThread(alpha, "Archived", 5) with { ParentThreadID = parent.Id, IsArchived = true };
+            var panelled = NewThread(alpha, "Panelled", 6) with { ParentThreadID = parent.Id, IsInPanel = true };
+            var panelledHead = NewThread(alpha, "Panelled head", 2) with { ParentThreadID = parent.Id, IsInPanel = true, Hydra = AppModelSamples.Head(HydraHeadInfo.Status.Completed) };
+            var head = NewThread(alpha, "Head", 4) with { ParentThreadID = parent.Id, Hydra = AppModelSamples.Head(HydraHeadInfo.Status.Completed) };
+            var missingParent = Guid.NewGuid();
+            var stray = NewThread(alpha, "Stray", 7) with { ParentThreadID = missingParent };
+            var model = Model(harness, [alpha], [parent, lone, first, third, archived, panelled, panelledHead, head, stray]);
+            harness.Main.OnMain(() =>
+            {
+                var helpers = Helpers(Detached(model));
+                Assert.Equal([head.Id, third.Id, panelledHead.Id, first.Id], helpers[parent.Id].Select(thread => thread.Id));
+                // A helper whose parent is shown nowhere is still grouped under that id (:416-417).
+                Assert.Equal([stray.Id], helpers[missingParent].Select(thread => thread.Id));
+                Assert.False(helpers.ContainsKey(lone.Id));
+                Assert.Equal(2, helpers.Count);
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-029")] // App/Views/Sidebar/SidebarView.swift:460
+    public void A_settled_thread_emits_no_helper_items_and_they_return_when_it_reopens()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var alpha = NewProject(harness, "Alpha");
+            var parent = NewThread(alpha, "Parent", 0) with { IsSettled = true, SettledAt = Base.AddHours(1), ExpandsHelpers = true };
+            var folded = NewThread(alpha, "Folded", 1) with { IsSettled = true, SettledAt = Base.AddHours(2) };
+            var lone = NewThread(alpha, "Lone", 2);
+            var helper = NewThread(alpha, "Helper", 3) with { ParentThreadID = parent.Id };
+            var head = NewThread(alpha, "Head", 4) with { ParentThreadID = parent.Id, Hydra = AppModelSamples.Head(HydraHeadInfo.Status.Completed) };
+            var foldedHelper = NewThread(alpha, "Folded helper", 5) with { ParentThreadID = folded.Id };
+            var model = Model(harness, [alpha], [parent, folded, lone, helper, head, foldedHelper]);
+            harness.Main.OnMain(() =>
+            {
+                model.Settings.SettledCollapsed = false; // AppSettings.swift starts it folded
+                var view = Detached(model);
+                Assert.Empty(HelperItems(view, parent, HelpersOf(view, parent.Id)));
+                Assert.Empty(HelperItems(view, folded, HelpersOf(view, folded.Id))); // no folded stub either
+                Assert.Empty(HelperItems(view, lone, ValueList<ChatThread>.Empty));
+                Assert.DoesNotContain(ProjectItems(view), item => KindName(item) is "Helper" or "HeadCards" or "HelperStub");
+                model.UpdateThread(parent.Id, thread => thread with { IsSettled = false, SettledAt = null });
+                var ids = ProjectItems(view).Select(IdOf).ToList();
+                Assert.Contains(U(helper.Id), ids);
+                Assert.Contains("heads-" + U(parent.Id), ids);
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-030")] // App/Views/Sidebar/SidebarView.swift:461-463; Core/Models/Library.swift:166-170
+    public void A_folded_thread_emits_exactly_one_stub_keyed_helpers_dash_its_uuid()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var alpha = NewProject(harness, "Alpha");
+            var parent = NewThread(alpha, "Parent", 0);
+            var older = NewThread(alpha, "Older", 1) with { ParentThreadID = parent.Id };
+            var head = NewThread(alpha, "Head", 2) with { ParentThreadID = parent.Id, Hydra = AppModelSamples.Head(HydraHeadInfo.Status.Completed) };
+            var newer = NewThread(alpha, "Newer", 3) with { ParentThreadID = parent.Id };
+            var model = Model(harness, [alpha], [parent, older, head, newer]);
+            harness.Main.OnMain(() =>
+            {
+                var view = Detached(model);
+                Assert.False(parent.ExpandsHelpers); // Library.swift:166, so foldsHelpers (:167-170) is true
+                Assert.True(parent.FoldsHelpers);
+                var items = HelperItems(view, parent, HelpersOf(view, parent.Id));
+                var stub = Assert.Single(items);
+                Assert.Equal("helpers-" + U(parent.Id), IdOf(stub));
+                Assert.Equal("HelperStub", KindName(stub));
+                Assert.Equal(parent.Id, ((ChatThread)Get(KindOf(stub), "Parent")!).Id);
+                Assert.Equal([newer.Id, head.Id, older.Id], ((IEnumerable<ChatThread>)Get(KindOf(stub), "Helpers")!).Select(thread => thread.Id));
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-031")] // App/Views/Sidebar/SidebarView.swift:464-473
+    public void Unfolded_helpers_emit_a_row_each_newest_first_then_one_head_card_keyed_heads_dash_the_parent_uuid()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var alpha = NewProject(harness, "Alpha");
+            var parent = NewThread(alpha, "Parent", 0) with { ExpandsHelpers = true };
+            var older = NewThread(alpha, "Older", 1) with { ParentThreadID = parent.Id };
+            var olderHead = NewThread(alpha, "Older head", 2) with { ParentThreadID = parent.Id, Hydra = AppModelSamples.Head(HydraHeadInfo.Status.Completed) };
+            var newer = NewThread(alpha, "Newer", 3) with { ParentThreadID = parent.Id };
+            var newerHead = NewThread(alpha, "Newer head", 4) with { ParentThreadID = parent.Id, Hydra = AppModelSamples.Head(HydraHeadInfo.Status.Failed) };
+            var model = Model(harness, [alpha], [parent, older, olderHead, newer, newerHead]);
+            harness.Main.OnMain(() =>
+            {
+                var view = Detached(model);
+                var items = HelperItems(view, parent, HelpersOf(view, parent.Id));
+                Assert.Equal([U(newer.Id), U(older.Id), "heads-" + U(parent.Id)], items.Select(IdOf));
+                Assert.Equal(["Helper", "Helper", "HeadCards"], items.Select(KindName));
+                // A card follows, so no helper row ends the connector.
+                Assert.Equal([false, false], items.Take(2).Select(item => (bool)Get(KindOf(item), "IsLast")!));
+                Assert.Equal(parent.Id, ((ChatThread)Get(KindOf(items[2]), "Parent")!).Id);
+                Assert.Equal([newerHead.Id, olderHead.Id], ((IEnumerable<ChatThread>)Get(KindOf(items[2]), "Heads")!).Select(thread => thread.Id));
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-031")] // App/Views/Sidebar/SidebarView.swift:467-472
+    public void The_last_plain_helper_ends_the_connector_only_when_no_card_follows_and_heads_alone_give_just_the_card()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var alpha = NewProject(harness, "Alpha");
+            var plainParent = NewThread(alpha, "Plain parent", 0) with { ExpandsHelpers = true };
+            var older = NewThread(alpha, "Older", 1) with { ParentThreadID = plainParent.Id };
+            var newer = NewThread(alpha, "Newer", 2) with { ParentThreadID = plainParent.Id };
+            var headParent = NewThread(alpha, "Head parent", 3) with { ExpandsHelpers = true };
+            var head = NewThread(alpha, "Head", 4) with { ParentThreadID = headParent.Id, Hydra = AppModelSamples.Head(HydraHeadInfo.Status.Completed) };
+            var model = Model(harness, [alpha], [plainParent, older, newer, headParent, head]);
+            harness.Main.OnMain(() =>
+            {
+                var view = Detached(model);
+                var plain = HelperItems(view, plainParent, HelpersOf(view, plainParent.Id));
+                Assert.Equal([U(newer.Id), U(older.Id)], plain.Select(IdOf));
+                Assert.Equal([false, true], plain.Select(item => (bool)Get(KindOf(item), "IsLast")!));
+                var card = Assert.Single(HelperItems(view, headParent, HelpersOf(view, headParent.Id)));
+                Assert.Equal("heads-" + U(headParent.Id), IdOf(card));
+                Assert.Equal("HeadCards", KindName(card));
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-032")] // App/Views/Sidebar/SidebarView.swift:452-454, :466; App/AppSettings.swift:606-607, :770
+    public void With_hydraAutoHidesIdleHeads_on_the_card_shows_only_while_a_live_head_runs()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var alpha = NewProject(harness, "Alpha");
+            var parent = NewThread(alpha, "Parent", 0) with { ExpandsHelpers = true };
+            var plain = NewThread(alpha, "Plain", 1) with { ParentThreadID = parent.Id };
+            var first = NewThread(alpha, "First head", 2) with { ParentThreadID = parent.Id, Hydra = AppModelSamples.Head(HydraHeadInfo.Status.Completed) };
+            var second = NewThread(alpha, "Second head", 3) with { ParentThreadID = parent.Id, Hydra = AppModelSamples.Head(HydraHeadInfo.Status.Stopped) };
+            var model = Model(harness, [alpha], [parent, plain, first, second]);
+            harness.Main.OnMain(() =>
+            {
+                var view = Detached(model);
+                Assert.False(model.Settings.HydraAutoHidesIdleHeads); // :770 default false
+                var snapshot = HelpersOf(view, parent.Id);
+                Assert.Equal(["Helper", "HeadCards"], HelperItems(view, parent, snapshot).Select(KindName));
+
+                model.Settings.HydraAutoHidesIdleHeads = true;
+                Assert.Equal(true, harness.Defaults.Object("hydraAutoHidesIdleHeads")); // :607
+                var hidden = HelperItems(view, parent, snapshot);
+                Assert.Equal([U(plain.Id)], hidden.Select(IdOf));
+                Assert.Equal(true, Get(KindOf(hidden[0]), "IsLast")); // no card follows
+
+                // The running check reads the live record (:453): the snapshot still says completed.
+                model.UpdateThread(first.Id, thread => thread with { Hydra = thread.Hydra! with { HydraHeadInfoStatus = HydraHeadInfo.Status.Running } });
+                Assert.Equal(HydraHeadInfo.Status.Completed, snapshot.Single(thread => thread.Id == first.Id).Hydra!.HydraHeadInfoStatus);
+                var shown = HelperItems(view, parent, snapshot);
+                Assert.Equal([U(plain.Id), "heads-" + U(parent.Id)], shown.Select(IdOf));
+                Assert.Equal(false, Get(KindOf(shown[0]), "IsLast"));
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-033")] // App/Views/Sidebar/SidebarView.swift:478-485
+    public void Heads_are_ordered_running_first_then_newest_created_first_within_each_block()
+    {
+        using var runtime = new Marrow.Testing.TestRuntime(); // ChatThread.init reads the defaults (Library.swift:204-226)
+        var project = new Project("Alpha", @"C:\alpha");
+        ChatThread Head(HydraHeadInfo.Status status, int minute) =>
+            AppModelSamples.Thread(project) with { CreatedAt = Base.AddMinutes(minute), Hydra = AppModelSamples.Head(status) };
+        var runningOld = Head(HydraHeadInfo.Status.Running, 1);
+        var completedOld = Head(HydraHeadInfo.Status.Completed, 2);
+        var runningNew = Head(HydraHeadInfo.Status.Running, 3);
+        var failedNew = Head(HydraHeadInfo.Status.Failed, 4);
+        var stoppedNewest = Head(HydraHeadInfo.Status.Stopped, 5);
+        var ordered = SidebarView.OrderedHeads([runningOld, completedOld, runningNew, failedNew, stoppedNewest]);
+        Assert.Equal([runningNew.Id, runningOld.Id, stoppedNewest.Id, failedNew.Id, completedOld.Id], ordered.Select(thread => thread.Id));
+    }
+
+    // ---- PR-SIDEBAR-034 to -042: the activity layout ----
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-034")] // App/Views/Sidebar/SidebarView.swift:561-605
+    public void Activity_sections_run_attention_pinned_days_settled_and_only_the_first_emitted_header_is_first()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var alpha = NewProject(harness, "Alpha");
+            var attention = ThreadAt(alpha, "Attention", Now.AddHours(-1));
+            var pinned = ThreadAt(alpha, "Pinned", Now.AddHours(-2)) with { IsPinned = true };
+            var today = ThreadAt(alpha, "Today", Now.AddHours(-3));
+            var yesterday = ThreadAt(alpha, "Yesterday", Now.AddDays(-1));
+            var settled = ThreadAt(alpha, "Settled", Now.AddHours(-4)) with { IsSettled = true, SettledAt = Now.AddHours(-4) };
+            var model = Model(harness, [alpha], [attention, pinned, today, yesterday, settled]);
+            harness.Main.OnMain(() => InDays(() =>
+            {
+                model.Settings.SettledCollapsed = false;
+                Approve(model, attention.Id);
+                var items = ActivityItems(Detached(model));
+                Assert.Equal(
+                    ["attention", U(attention.Id), "day-Pinned", U(pinned.Id), "day-Today", U(today.Id), "day-Yesterday", U(yesterday.Id), "settled", "settled-" + U(settled.Id)],
+                    items.Select(IdOf));
+                var headers = items.Where(item => KindName(item) is "Header" or "SettledHeader").ToList();
+                Assert.Equal(["Header", "Header", "Header", "Header", "SettledHeader"], headers.Select(KindName));
+                Assert.Equal(["Needs attention", "Pinned", "Today", "Yesterday"], headers.Take(4).Select(item => (string)Get(KindOf(item), "Value")!));
+                Assert.Equal([true, false, false, false, false], headers.Select(item => (bool)Get(KindOf(item), "IsFirst")!));
+                Assert.Equal(1L, Get(KindOf(headers[4]), "Count"));
+            }));
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-034")] // App/Views/Sidebar/SidebarView.swift:579, :584, :592
+    public void Without_earlier_sections_the_first_header_emitted_is_the_first_and_no_threads_give_no_headers()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var alpha = NewProject(harness, "Alpha");
+            var pinned = ThreadAt(alpha, "Pinned", Now.AddHours(-2)) with { IsPinned = true };
+            var today = ThreadAt(alpha, "Today", Now.AddHours(-3));
+            var model = Model(harness, [alpha], [pinned, today]);
+            harness.Main.OnMain(() => InDays(() =>
+            {
+                var view = Detached(model);
+                bool? FirstOf(string id) => ActivityItems(view).Where(item => IdOf(item) == id).Select(item => (bool?)Get(KindOf(item), "IsFirst")).SingleOrDefault();
+                Assert.Equal(true, FirstOf("day-Pinned"));
+                Assert.Equal(false, FirstOf("day-Today"));
+                model.UpdateThread(pinned.Id, thread => thread with { IsPinned = false });
+                Assert.Equal(true, FirstOf("day-Today"));
+                model.Settings.SettledCollapsed = true;
+                model.UpdateThread(pinned.Id, thread => thread with { IsSettled = true, SettledAt = Now.AddHours(-5) });
+                model.UpdateThread(today.Id, thread => thread with { IsSettled = true, SettledAt = Now.AddHours(-6) });
+                Assert.Equal(["settled"], ActivityItems(view).Select(IdOf));
+                Assert.Equal(true, FirstOf("settled"));
+            }));
+        });
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var model = harness.MakeModel();
+            harness.Main.OnMain(() => InDays(() => Assert.Empty(ActivityItems(Detached(model)))));
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-035")] // App/Views/Sidebar/SidebarView.swift:562-566
+    public void The_activity_layout_leaves_out_archived_and_panelled_threads_and_lifts_a_helper_whose_parent_is_not_shown()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var alpha = NewProject(harness, "Alpha");
+            var parent = ThreadAt(alpha, "Parent", Now.AddHours(-1)) with { ExpandsHelpers = true };
+            var child = ThreadAt(alpha, "Child", Now.AddHours(-2)) with { ParentThreadID = parent.Id };
+            var head = ThreadAt(alpha, "Head", Now.AddHours(-3)) with { ParentThreadID = parent.Id, IsInPanel = true, Hydra = AppModelSamples.Head(HydraHeadInfo.Status.Completed) };
+            var archived = ThreadAt(alpha, "Archived", Now.AddHours(-4)) with { IsArchived = true };
+            var panelled = ThreadAt(alpha, "Panelled", Now.AddHours(-5)) with { IsInPanel = true };
+            var archivedParent = ThreadAt(alpha, "Archived parent", Now.AddHours(-6)) with { IsArchived = true };
+            var orphan = ThreadAt(alpha, "Orphan", Now.AddHours(-7)) with { ParentThreadID = archivedParent.Id };
+            var stray = ThreadAt(alpha, "Stray", Now.AddHours(-8)) with { ParentThreadID = Guid.NewGuid() };
+            var model = Model(harness, [alpha], [parent, child, head, archived, panelled, archivedParent, orphan, stray]);
+            harness.Main.OnMain(() => InDays(() =>
+            {
+                var items = ActivityItems(Detached(model));
+                Assert.Equal([parent.Id, orphan.Id, stray.Id], ThreadItems(items).Select(item => ThreadOf(item).Id));
+                Assert.Equal(["day-Today", U(parent.Id), U(child.Id), "heads-" + U(parent.Id), U(orphan.Id), U(stray.Id)], items.Select(IdOf));
+                // The panelled head is only in its parent's card.
+                Assert.Equal([head.Id], ((IEnumerable<ChatThread>)Get(KindOf(items[3]), "Heads")!).Select(thread => thread.Id));
+                var everyID = items.Select(IdOf).ToList();
+                foreach (var gone in new[] { archived, panelled, archivedParent })
+                    Assert.DoesNotContain(everyID, id => id.Contains(U(gone.Id), StringComparison.Ordinal));
+            }));
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-036")] // App/Views/Sidebar/SidebarView.swift:568-569, :633-636
+    public void Threads_with_pending_approvals_or_questions_head_the_list_unless_settled_or_without_a_live_runtime()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var alpha = NewProject(harness, "Alpha");
+            var approval = ThreadAt(alpha, "Approval", Now.AddHours(-3));
+            var question = ThreadAt(alpha, "Question", Now.AddHours(-2));
+            var noRuntime = ThreadAt(alpha, "No runtime", Now.AddHours(-1));
+            var idle = ThreadAt(alpha, "Idle runtime", Now.AddHours(-4));
+            var settled = ThreadAt(alpha, "Settled", Now.AddHours(-5)) with { IsSettled = true, SettledAt = Now.AddHours(-5) };
+            var model = Model(harness, [alpha], [approval, question, noRuntime, idle, settled]);
+            harness.Main.OnMain(() => InDays(() =>
+            {
+                model.Settings.SettledCollapsed = false;
+                Approve(model, approval.Id);
+                Ask(model, question.Id);
+                Approve(model, settled.Id);
+                _ = model.Runtime(idle.Id);
+                var items = ActivityItems(Detached(model));
+                Assert.Equal(
+                    ["attention", U(question.Id), U(approval.Id), "day-Today", U(noRuntime.Id), U(idle.Id), "settled", "settled-" + U(settled.Id)],
+                    items.Select(IdOf));
+                // The lookup never makes a runtime (:634).
+                Assert.Null(model.ExistingRuntime(noRuntime.Id));
+            }));
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-037")] // App/Views/Sidebar/SidebarView.swift:644-656, :677-686
+    public void Day_groups_read_Today_Yesterday_a_wide_weekday_within_seven_calendar_days_then_month_and_day_then_the_year()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var alpha = NewProject(harness, "Alpha");
+            var today = ThreadAt(alpha, "Today", new DateTimeOffset(2026, 9, 22, 8, 0, 0, TimeSpan.Zero));
+            var alsoToday = ThreadAt(alpha, "Also today", new DateTimeOffset(2026, 9, 22, 0, 0, 0, TimeSpan.Zero));
+            var yesterday = ThreadAt(alpha, "Yesterday", new DateTimeOffset(2026, 9, 21, 23, 59, 0, TimeSpan.Zero));
+            var sunday = ThreadAt(alpha, "Sunday", new DateTimeOffset(2026, 9, 20, 10, 0, 0, TimeSpan.Zero));
+            var wednesday = ThreadAt(alpha, "Six days", new DateTimeOffset(2026, 9, 16, 0, 0, 0, TimeSpan.Zero));
+            // 157 hours back, under 7 x 24, but seven calendar days back: not a weekday.
+            var sevenDays = ThreadAt(alpha, "Seven days", new DateTimeOffset(2026, 9, 15, 23, 0, 0, TimeSpan.Zero));
+            var newYear = ThreadAt(alpha, "New year", new DateTimeOffset(2026, 1, 1, 10, 0, 0, TimeSpan.Zero));
+            var lastYear = ThreadAt(alpha, "Last year", new DateTimeOffset(2025, 12, 31, 10, 0, 0, TimeSpan.Zero));
+            var model = Model(harness, [alpha], [lastYear, sevenDays, today, sunday, newYear, yesterday, wednesday, alsoToday]);
+            harness.Main.OnMain(() => InDays(() =>
+            {
+                var items = ActivityItems(Detached(model));
+                Assert.Equal(
+                    [
+                        "day-Today", U(today.Id), U(alsoToday.Id),
+                        "day-Yesterday", U(yesterday.Id),
+                        "day-Sunday", U(sunday.Id),
+                        "day-Wednesday", U(wednesday.Id),
+                        "day-September 15", U(sevenDays.Id),
+                        "day-January 1", U(newYear.Id),
+                        "day-December 31, 2025", U(lastYear.Id),
+                    ],
+                    items.Select(IdOf));
+                Assert.Equal(["Today", "Yesterday", "Sunday", "Wednesday", "September 15", "January 1", "December 31, 2025"],
+                    items.Where(item => KindName(item) == "Header").Select(item => (string)Get(KindOf(item), "Value")!));
+            }));
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-037")] // App/Views/Sidebar/SidebarView.swift:678-681
+    public void A_future_date_takes_the_weekday_branch_and_days_follow_the_local_calendar_day()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var alpha = NewProject(harness, "Alpha");
+            var future = ThreadAt(alpha, "Future", new DateTimeOffset(2026, 9, 25, 10, 0, 0, TimeSpan.Zero));
+            // 2026-09-21 16:00 UTC is 2026-09-22 01:00 in Tokyo (UTC+9, no daylight time), where it is then 21:00.
+            var late = ThreadAt(alpha, "Late", new DateTimeOffset(2026, 9, 21, 16, 0, 0, TimeSpan.Zero));
+            var model = Model(harness, [alpha], [future, late]);
+            harness.Main.OnMain(() =>
+            {
+                InDays(() => Assert.Equal(["day-Friday", U(future.Id), "day-Yesterday", U(late.Id)], ActivityItems(Detached(model)).Select(IdOf)));
+                InDays(() => Assert.Equal(["day-Friday", U(future.Id), "day-Today", U(late.Id)], ActivityItems(Detached(model)).Select(IdOf)),
+                    TimeZoneInfo.FindSystemTimeZoneById("Tokyo Standard Time"));
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-038")] // App/Views/Sidebar/SidebarView.swift:659-675
+    public void A_group_puts_threads_without_a_place_for_the_day_first_newest_first_then_placed_ones_by_ascending_order()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var alpha = NewProject(harness, "Alpha");
+            var day = new DateTimeOffset(2026, 9, 22, 0, 0, 0, TimeSpan.Zero);
+            var second = ThreadAt(alpha, "Placed second", Now.AddHours(-2)) with { ActivityOrder = 2, ActivityOrderDay = day };
+            var first = ThreadAt(alpha, "Placed first", Now.AddHours(-3)) with { ActivityOrder = 1, ActivityOrderDay = day };
+            var tiedOlder = ThreadAt(alpha, "Placed tie", Now.AddHours(-4)) with { ActivityOrder = 1, ActivityOrderDay = day };
+            var fresh = ThreadAt(alpha, "Fresh", Now.AddMinutes(-30));
+            // A place taken on an earlier day no longer counts (:662-663).
+            var stale = ThreadAt(alpha, "Stale", Now.AddHours(-1)) with { ActivityOrder = 0.5, ActivityOrderDay = day.AddDays(-1) };
+            var model = Model(harness, [alpha], [second, first, tiedOlder, fresh, stale]);
+            harness.Main.OnMain(() => InDays(() =>
+            {
+                var items = ActivityItems(Detached(model));
+                Assert.Equal(["day-Today", U(fresh.Id), U(stale.Id), U(first.Id), U(tiedOlder.Id), U(second.Id)], items.Select(IdOf));
+            }));
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-039")] // App/Views/Sidebar/SidebarView.swift:576-586
+    public void Open_pinned_threads_sit_under_Pinned_above_the_days_unless_they_need_attention()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var alpha = NewProject(harness, "Alpha");
+            var pinnedToday = ThreadAt(alpha, "Pinned today", Now.AddHours(-3)) with { IsPinned = true };
+            var pinnedYesterday = ThreadAt(alpha, "Pinned yesterday", Now.AddDays(-1)) with { IsPinned = true };
+            var pinnedAsking = ThreadAt(alpha, "Pinned asking", Now.AddHours(-2)) with { IsPinned = true };
+            var plain = ThreadAt(alpha, "Plain", Now.AddHours(-1));
+            var model = Model(harness, [alpha], [pinnedToday, pinnedYesterday, pinnedAsking, plain]);
+            harness.Main.OnMain(() => InDays(() =>
+            {
+                Ask(model, pinnedAsking.Id);
+                var items = ActivityItems(Detached(model));
+                Assert.Equal(
+                    ["attention", U(pinnedAsking.Id), "day-Pinned", U(pinnedToday.Id), U(pinnedYesterday.Id), "day-Today", U(plain.Id)],
+                    items.Select(IdOf));
+                Assert.Equal("Pinned", Get(KindOf(items[2]), "Value"));
+            }));
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-040")] // App/Views/Sidebar/SidebarView.swift:590-603; App/AppModel.swift:387-389
+    public void The_Settled_section_closes_the_list_latest_settled_first_with_rows_only_while_unfolded()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var alpha = NewProject(harness, "Alpha");
+            var open = ThreadAt(alpha, "Open", Now.AddDays(-3));
+            var early = ThreadAt(alpha, "Early", Now.AddHours(-9)) with { IsSettled = true, SettledAt = Now.AddHours(-2) };
+            var undated = ThreadAt(alpha, "Undated", Now.AddDays(-2)) with { IsSettled = true };
+            var late = ThreadAt(alpha, "Late", Now.AddDays(-9)) with { IsSettled = true, SettledAt = Now.AddHours(-1) };
+            var helper = ThreadAt(alpha, "Helper", Now.AddHours(-8)) with { ParentThreadID = early.Id };
+            var model = Model(harness, [alpha], [open, early, undated, late, helper]);
+            harness.Main.OnMain(() => InDays(() =>
+            {
+                var view = Detached(model);
+                model.Settings.SettledCollapsed = true;
+                var folded = ActivityItems(view);
+                Assert.Equal("settled", IdOf(folded[^1]));
+                Assert.Equal(3L, Get(KindOf(folded[^1]), "Count"));
+                Assert.Equal(false, Get(KindOf(folded[^1]), "IsFirst"));
+                model.Settings.SettledCollapsed = false;
+                var items = ActivityItems(view);
+                var at = items.FindIndex(item => IdOf(item) == "settled");
+                Assert.Equal(["settled", "settled-" + U(late.Id), "settled-" + U(early.Id), "settled-" + U(undated.Id)], items.Skip(at).Select(IdOf));
+                foreach (var row in items.Skip(at + 1))
+                {
+                    Assert.Null(Get(KindOf(row), "Peers"));
+                    Assert.Equal(false, Get(KindOf(row), "HasHelpers"));
+                }
+            }));
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-041")] // App/Views/Sidebar/SidebarView.swift:595-599, :613-617, :628-631; App/AppSettings.swift:277-278, :724
+    public void Activity_rows_carry_the_project_mark_in_the_icon_style_and_the_project_name_in_the_other()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var alpha = NewProject(harness, "Alpha") with { Icon = new ProjectIcon.Symbol("star") };
+            var beta = NewProject(harness, "Beta");
+            var gone = NewProject(harness, "Gone");
+            var inAlpha = ThreadAt(alpha, "In alpha", Now.AddHours(-1));
+            var inBeta = ThreadAt(beta, "In beta", Now.AddHours(-2));
+            var orphan = ThreadAt(gone, "Orphan", Now.AddHours(-3));
+            var settled = ThreadAt(beta, "Settled", Now.AddHours(-4)) with { IsSettled = true, SettledAt = Now.AddHours(-4) };
+            var model = Model(harness, [alpha, beta], [inAlpha, inBeta, orphan, settled]);
+            harness.Main.OnMain(() => InDays(() =>
+            {
+                model.Settings.SettledCollapsed = false;
+                var view = Detached(model);
+                Assert.Contains(model.Threads, thread => thread.Id == orphan.Id); // its project is gone
+                Assert.Equal(ActivityThreadStyle.Icon, model.Settings.ActivityThreadStyle); // :724 default .icon
+                var folder = new ProjectIcon.Symbol("folder.fill");
+                var icon = ThreadItems(ActivityItems(view)).ToList();
+                Assert.Equal([inAlpha.Id, inBeta.Id, orphan.Id, settled.Id], icon.Select(item => ThreadOf(item).Id));
+                Assert.All(icon, item => Assert.Null(Get(KindOf(item), "ProjectName")));
+                Assert.Equal<ProjectIcon?>([new ProjectIcon.Symbol("star"), folder, folder, folder], icon.Select(item => (ProjectIcon?)Get(KindOf(item), "ProjectIcon")));
+
+                model.Settings.ActivityThreadStyle = ActivityThreadStyle.ProjectName;
+                Assert.Equal("projectName", harness.Defaults.Object("activityThreadStyle")); // :278
+                var named = ThreadItems(ActivityItems(view)).ToList();
+                Assert.Equal(["Alpha", "Beta", "", "Beta"], named.Select(item => (string?)Get(KindOf(item), "ProjectName")));
+                Assert.Equal<ProjectIcon?>([new ProjectIcon.Symbol("star"), null, null, null], named.Select(item => (ProjectIcon?)Get(KindOf(item), "ProjectIcon")));
+            }));
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-042")] // App/Views/Sidebar/SidebarView.swift:599, :609-617, :813-825
+    public void Activity_rows_carry_their_own_section_as_peers_and_settled_rows_none()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var alpha = NewProject(harness, "Alpha");
+            var asking = ThreadAt(alpha, "Asking", Now.AddMinutes(-10));
+            var pinnedA = ThreadAt(alpha, "Pinned A", Now.AddHours(-1)) with { IsPinned = true };
+            var pinnedB = ThreadAt(alpha, "Pinned B", Now.AddHours(-2)) with { IsPinned = true };
+            var todayA = ThreadAt(alpha, "Today A", Now.AddHours(-3));
+            var todayB = ThreadAt(alpha, "Today B", Now.AddHours(-4));
+            var yesterday = ThreadAt(alpha, "Yesterday", Now.AddDays(-1));
+            var settled = ThreadAt(alpha, "Settled", Now.AddHours(-5)) with { IsSettled = true, SettledAt = Now.AddHours(-5) };
+            var model = Model(harness, [alpha], [asking, pinnedA, pinnedB, todayA, todayB, yesterday, settled]);
+            harness.Main.OnMain(() => InDays(() =>
+            {
+                model.Settings.SettledCollapsed = false;
+                Approve(model, asking.Id);
+                var view = Detached(model);
+                var rows = ThreadItems(ActivityItems(view)).ToDictionary(item => ThreadOf(item).Id, item => (IEnumerable<Guid>?)Get(KindOf(item), "Peers"));
+                Assert.Equal([asking.Id], rows[asking.Id]!);
+                Assert.Equal([pinnedA.Id, pinnedB.Id], rows[pinnedA.Id]!);
+                Assert.Equal([pinnedA.Id, pinnedB.Id], rows[pinnedB.Id]!);
+                Assert.Equal([todayA.Id, todayB.Id], rows[todayB.Id]!);
+                Assert.Equal([yesterday.Id], rows[yesterday.Id]!);
+                Assert.Null(rows[settled.Id]);
+
+                (IEnumerable<Guid> Order, IEnumerable<Guid>? Group) PeersOf(Guid id)
+                {
+                    var tuple = Call(view, "Peers", id)!;
+                    return ((IEnumerable<Guid>)tuple.GetType().GetField("Item1")!.GetValue(tuple)!, (IEnumerable<Guid>?)tuple.GetType().GetField("Item2")!.GetValue(tuple));
+                }
+                model.Settings.SidebarActivityView = true;
+                var today = PeersOf(todayA.Id);
+                Assert.Equal([todayA.Id, todayB.Id], today.Order);
+                Assert.Equal([todayA.Id, todayB.Id], today.Group!);
+                var none = PeersOf(settled.Id);
+                Assert.Empty(none.Order);
+                Assert.Null(none.Group);
+                Assert.Empty(PeersOf(Guid.NewGuid()).Order);
+                // The project layout reorders among the project's open top-level threads (:823-824).
+                model.Settings.SidebarActivityView = false;
+                var project = PeersOf(todayA.Id);
+                Assert.Equal(model.ThreadsIn(alpha).Where(thread => !thread.IsSettled).Select(thread => thread.Id), project.Order);
+                Assert.Null(project.Group);
+                Assert.Empty(PeersOf(Guid.NewGuid()).Order);
+            }));
+        });
+    }
+
+    // ---- PR-SIDEBAR-043 / -044 / -045: search ----
+
+    private static List<object> SearchResults(SidebarView view, string query)
+    {
+        SearchBox(view).Text = query;
+        return Items(Call(view, "SearchResults", Helpers(view)));
+    }
+
+    private static string ResultProject(object result) => ((Project)Get(result, "Project")!).Name;
+
+    private static Guid[] ResultThreads(object result) => ((IEnumerable<ChatThread>)Get(result, "Threads")!).Select(thread => thread.Id).ToArray();
+
+    private static long ResultCount(object result) => (long)Get(result, "Count")!;
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-043")] // App/Views/Sidebar/SidebarView.swift:737-749
+    public void A_project_name_match_returns_its_every_thread_with_helpers_after_their_parent_and_a_title_match_only_matches()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var alpha = NewProject(harness, "Alpha");
+            var beta = NewProject(harness, "Beta");
+            var gamma = NewProject(harness, "Gamma");
+            var one = NewThread(alpha, "One", 1);
+            var two = NewThread(alpha, "Two", 2);
+            var helper = NewThread(alpha, "Helper", 3) with { ParentThreadID = one.Id };
+            var settled = NewThread(alpha, "Three", 4) with { IsSettled = true, SettledAt = Base.AddHours(1) };
+            var notes = NewThread(beta, "Alpha notes", 5);
+            var other = NewThread(beta, "Other", 6);
+            var lonely = NewThread(gamma, "Nothing here", 7);
+            var model = Model(harness, [alpha, beta, gamma], [one, two, helper, settled, notes, other, lonely]);
+            harness.Main.OnMain(() =>
+            {
+                var view = Detached(model);
+                // threads(in:) order (open newest first, then settled), each followed by its helpers (:742).
+                var byName = SearchResults(view, "ALP");
+                Assert.Equal(["Alpha", "Beta"], byName.Select(ResultProject));
+                Assert.Equal([two.Id, one.Id, helper.Id, settled.Id], ResultThreads(byName[0]));
+                Assert.Equal(4L, ResultCount(byName[0]));
+                Assert.Equal([notes.Id], ResultThreads(byName[1]));
+                Assert.Equal(2L, ResultCount(byName[1])); // the project's full candidate count
+
+                var byTitle = SearchResults(view, "o");
+                Assert.Equal(["Alpha", "Beta", "Gamma"], byTitle.Select(ResultProject));
+                Assert.Equal([two.Id, one.Id], ResultThreads(byTitle[0]));
+                Assert.Equal(4L, ResultCount(byTitle[0]));
+                Assert.Equal([other.Id, notes.Id], ResultThreads(byTitle[1]));
+                Assert.Equal([lonely.Id], ResultThreads(byTitle[2]));
+
+                var helperOnly = SearchResults(view, "per");
+                Assert.Equal(["Alpha"], helperOnly.Select(ResultProject));
+                Assert.Equal([helper.Id], ResultThreads(helperOnly[0]));
+                Assert.Empty(SearchResults(view, "zzz"));
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-043")] // App/Views/Sidebar/SidebarView.swift:740, :743-745
+    [Trait("Decision", "ED-009")]
+    public void Search_lowercases_per_scalar_so_dotted_capital_I_dotless_i_and_the_final_sigma_match_as_Swift_does()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var travel = NewProject(harness, "Travel");
+            var izmir = NewThread(travel, "\U00000130zmir", 1); // U+0130 LATIN CAPITAL LETTER I WITH DOT ABOVE
+            var red = NewThread(travel, "K\U00000131rm\U00000131z\U00000131", 2); // U+0131 LATIN SMALL LETTER DOTLESS I
+            var road = NewThread(travel, "\U0000039F\U00000394\U0000039F\U000003A3", 3); // GREEK CAPITAL OMICRON, DELTA, OMICRON, SIGMA
+            var model = Model(harness, [travel], [izmir, red, road]);
+            harness.Main.OnMain(() =>
+            {
+                var view = Detached(model);
+                Guid[] Found(string query) => SearchResults(view, query).SelectMany(ResultThreads).ToArray();
+                // U+0130 lowercases to "i" + U+0307 COMBINING DOT ABOVE, so "iz" is not in it; the dotted needle is.
+                Assert.Empty(Found("iz"));
+                Assert.Equal([izmir.Id], Found("\U00000130z"));
+                // The .NET APIs ED-009 rules out answer differently: Turkish-tailored lowercasing gives a bare "i" (so
+                // "iz" would match) and invariant lowercasing leaves U+0130 alone (so the dotted needle would not).
+                Assert.Contains("iz", "\U00000130zmir".ToLower(CultureInfo.GetCultureInfo("tr-TR")), StringComparison.Ordinal);
+                Assert.DoesNotContain("i\U00000307z", "\U00000130zmir".ToLowerInvariant(), StringComparison.Ordinal); // U+0307 COMBINING DOT ABOVE
+                // No Turkish tailoring: "I" lowercases to "i", never to U+0131.
+                Assert.Empty(Found("KIR"));
+                Assert.Equal([red.Id], Found("K\U00000131R"));
+                // Per scalar, capital sigma is always U+03C3, never the final U+03C2.
+                Assert.Equal([road.Id], Found("\U000003B4\U000003BF\U000003C3")); // GREEK SMALL DELTA, OMICRON, SIGMA
+                Assert.Empty(Found("\U000003B4\U000003BF\U000003C2")); // GREEK SMALL DELTA, OMICRON, FINAL SIGMA
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-044")] // App/Views/Sidebar/SidebarView.swift:705-714
+    public void Search_groups_are_separated_by_a_plain_10_point_spacer_that_is_no_list_item()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var alpha = NewProject(harness, "Alpha");
+            var beta = NewProject(harness, "Beta");
+            var parent = NewThread(alpha, "Fix the parent", 1);
+            var helper = NewThread(alpha, "Fix the helper", 2) with { ParentThreadID = parent.Id };
+            var other = NewThread(beta, "Fix the other", 3);
+            var model = Model(harness, [alpha, beta], [parent, helper, other]);
+            harness.Main.OnMain(() =>
+            {
+                var view = Detached(model);
+                SearchBox(view).Text = "fix";
+                var helpers = Helpers(view);
+                var entries = Items(Call(view, "SearchEntries", Call(view, "SearchResults", helpers), helpers));
+                string Shape(object entry) => Get(entry, "Value") switch
+                {
+                    double => "gap",
+                    ValueTuple<Project, long> => "project",
+                    ValueTuple<ChatThread, bool> => "thread",
+                    var value => throw new InvalidOperationException(value?.GetType().Name),
+                };
+                Assert.Equal(["project", "thread", "thread", "gap", "project", "thread"], entries.Select(Shape));
+                var gap = entries[3];
+                Assert.Equal(10d, Get(gap, "Value")); // Chrome.groupGap
+                Assert.Null(Get(gap, "Target")); // not an item ScrollViewReader can reach, unlike the project layout's gap
+                var spacer = Assert.IsType<Border>(((Func<Control>)Get(gap, "Make")!)());
+                Assert.Equal(10d, spacer.Height);
+                Assert.Null(spacer.Child);
+                Assert.Null(spacer.Background);
+                var first = (ValueTuple<Project, long>)Get(entries[0], "Value")!;
+                Assert.Equal(alpha.Id, first.Item1.Id);
+                Assert.Equal(2L, first.Item2);
+                var threads = entries.Where(entry => Shape(entry) == "thread").ToList();
+                // Threads keyed like the main list (:711), handed hasHelpers (:712).
+                Assert.Equal([U(parent.Id), U(helper.Id), U(other.Id)], threads.Select(entry => (string?)Get(entry, "Target")));
+                Assert.Equal([true, false, false], threads.Select(entry => ((ValueTuple<ChatThread, bool>)Get(entry, "Value")!).Item2));
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-045")] // App/Views/Sidebar/SidebarView.swift:693-703
+    public void An_empty_search_shows_No_results_and_the_hint_6_points_apart_with_8_and_14_points_of_padding()
+    {
+        headless.OnUiThread(() =>
+        {
+            var stack = Assert.IsType<StackPanel>(typeof(SidebarView).GetMethod("NoResults", BindingFlags.Static | BindingFlags.NonPublic)!.Invoke(null, null));
+            Assert.Equal(Orientation.Vertical, stack.Orientation);
+            Assert.Equal(6d, stack.Spacing);
+            Assert.Equal(HorizontalAlignment.Left, stack.HorizontalAlignment);
+            Assert.Equal(new Thickness(8, 14, 8, 0), stack.Margin);
+            Assert.Equal(2, stack.Children.Count);
+            var title = Assert.IsType<TextBlock>(stack.Children[0]);
+            var hint = Assert.IsType<TextBlock>(stack.Children[1]);
+            Assert.Equal("No results", title.Text);
+            Assert.Equal("Try a thread title or a project name.", hint.Text);
+            Assert.Equal(13d, title.FontSize); // .body, B1:DroppyCode/UI/Common/ChatZoom.swift:51 (ED-059)
+            Assert.Equal(FontWeight.SemiBold, title.FontWeight);
+            Assert.Equal(11d, hint.FontSize); // .subheadline, B1:DroppyCode/UI/Common/ChatZoom.swift:53 (ED-059)
+            Assert.Equal(FontWeight.Normal, hint.FontWeight);
+            Assert.Equal(Chrome.PrimaryText.Opacity(0.92).Resolve(title.ActualThemeVariant), ((ISolidColorBrush)title.Foreground!).Color);
+            Assert.Equal(Chrome.SecondaryText.Resolve(hint.ActualThemeVariant), ((ISolidColorBrush)hint.Foreground!).Color);
+        });
+    }
+
+    // ---- PR-SIDEBAR-046 to -050: the drag ----
+
+    // A stand-in for a row's own button (every row is a plain button): a 28 pt slot that counts its clicks.
+    private static Button StandInRow(Action clicked) =>
+        PlainControls.Button(new Border { Height = 28, Background = Brushes.Transparent }, clicked);
+
+    private static Point At(Control control, double x, double y, Visual window) => control.TranslatePoint(new Point(x, y), window)!.Value;
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-047")] // App/Views/Sidebar/SidebarView.swift:129-137
+    public void A_press_moved_less_than_4_points_still_clicks_the_row_and_a_drag_grabs_the_row_under_its_start_without_clicking()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var model = harness.MakeModel();
+            var id = Guid.NewGuid();
+            SidebarView view = null!;
+            harness.Main.OnMain(() => view = Attached(model));
+            harness.Main.OnMain(() =>
+            {
+                var window = (AvaloniaWindow)TopLevel.GetTopLevel(view)!;
+                var clicks = 0;
+                var row = StandInRow(() => clicks++);
+                ListPanel(view).Children.Add(row);
+                window.UpdateLayout();
+                NoteFrame(view, id, row.Bounds);
+                var start = At(row, 40, 10, window);
+
+                window.MouseDown(start, MouseButton.Left);
+                window.MouseMove(new Point(start.X, start.Y + 3), RawInputModifiers.LeftMouseButton);
+                window.MouseUp(new Point(start.X, start.Y + 3), MouseButton.Left);
+                Assert.Equal(1, clicks);
+                Assert.Null(Drag(view).Id);
+
+                window.MouseDown(start, MouseButton.Left);
+                window.MouseMove(new Point(start.X, start.Y + 5), RawInputModifiers.LeftMouseButton);
+                Assert.Equal(id, Drag(view).Id);
+                Assert.Equal(5d, Drag(view).Translation);
+                // Only the vertical travel counts, and the row stays grabbed wherever the pointer goes.
+                window.MouseMove(new Point(start.X + 30, start.Y + 12), RawInputModifiers.LeftMouseButton);
+                Assert.Equal(12d, Drag(view).Translation);
+                window.MouseMove(new Point(start.X, start.Y + 200), RawInputModifiers.LeftMouseButton);
+                Assert.Equal(id, Drag(view).Id);
+                Assert.Equal(200d, Drag(view).Translation);
+                window.MouseMove(new Point(start.X, start.Y + 6), RawInputModifiers.LeftMouseButton);
+                window.MouseUp(new Point(start.X, start.Y + 6), MouseButton.Left);
+                Assert.Equal(1, clicks); // the drag won over the row's click
+                Assert.Null(Drag(view).Id);
+                Close(view);
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-047")] // App/Views/Sidebar/SidebarView.swift:131-132, :339-347
+    public void A_drag_from_a_point_no_open_row_reported_grabs_nothing_and_only_open_rows_report_their_frame()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var model = harness.MakeModel();
+            SidebarView view = null!;
+            harness.Main.OnMain(() => view = Attached(model));
+            harness.Main.OnMain(() =>
+            {
+                var window = (AvaloniaWindow)TopLevel.GetTopLevel(view)!;
+                var clicks = 0;
+                var row = StandInRow(() => clicks++);
+                var list = ListPanel(view);
+                list.Children.Add(row);
+                window.UpdateLayout();
+                var start = At(row, 40, 10, window);
+                window.MouseDown(start, MouseButton.Left);
+                window.MouseMove(new Point(start.X, start.Y + 10), RawInputModifiers.LeftMouseButton);
+                Assert.Null(Drag(view).Id);
+                window.MouseUp(new Point(start.X, start.Y + 10), MouseButton.Left);
+                Assert.Null(Drag(view).Id);
+                Assert.Equal(0, clicks); // the gesture took the press, though it moved nothing
+
+                // :341-347: an open row reports its height and frame, a settled one its height alone; a row that
+                // leaves the list is forgotten.
+                var project = new Project("Alpha", @"C:\alpha");
+                var open = AppModelSamples.Thread(project);
+                var settled = AppModelSamples.Thread(project) with { IsSettled = true };
+                var openRow = (Control)Call(view, "ReportsFrame", new Border { Height = 30 }, U(open.Id), open)!;
+                var settledRow = (Control)Call(view, "ReportsFrame", new Border { Height = 24 }, "settled-" + U(settled.Id), settled)!;
+                list.Children.Add(openRow);
+                list.Children.Add(settledRow);
+                window.UpdateLayout();
+                var frames = Field(view, "rowFrames")!;
+                var heights = (IReadOnlyDictionary<string, double>)Get(Field(view, "rowHeights")!, "Values")!;
+                Assert.Equal(30d, heights[U(open.Id)]);
+                Assert.Equal(24d, heights["settled-" + U(settled.Id)]);
+                var openCentre = openRow.Bounds.Center;
+                Assert.Equal(open.Id, ThreadAtPoint(frames, openCentre));
+                Assert.Null(ThreadAtPoint(frames, settledRow.Bounds.Center));
+                list.Children.Remove(openRow);
+                Assert.Null(ThreadAtPoint(frames, openCentre));
+                Close(view);
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-046")] // App/Views/Sidebar/SidebarView.swift:129, :136
+    public void While_the_search_field_holds_a_query_no_drag_is_recognised_and_the_row_still_clicks()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var model = harness.MakeModel();
+            var id = Guid.NewGuid();
+            SidebarView view = null!;
+            harness.Main.OnMain(() =>
+            {
+                view = Attached(model);
+                SearchBox(view).Text = " x ";
+            });
+            harness.Main.OnMain(() =>
+            {
+                var window = (AvaloniaWindow)TopLevel.GetTopLevel(view)!;
+                var clicks = 0;
+                var row = StandInRow(() => clicks++);
+                ListPanel(view).Children.Add(row);
+                window.UpdateLayout();
+                NoteFrame(view, id, row.Bounds);
+                var start = At(row, 40, 10, window);
+                window.MouseDown(start, MouseButton.Left);
+                window.MouseMove(new Point(start.X + 20, start.Y + 8), RawInputModifiers.LeftMouseButton);
+                Assert.Null(Drag(view).Id);
+                window.MouseUp(new Point(start.X + 20, start.Y + 8), MouseButton.Left);
+                Assert.Null(Drag(view).Id);
+                Assert.Equal(1, clicks);
+                // The same drag with the field cleared grabs the row.
+                SearchBox(view).Text = "";
+                window.MouseDown(start, MouseButton.Left);
+                window.MouseMove(new Point(start.X, start.Y + 8), RawInputModifiers.LeftMouseButton);
+                Assert.Equal(id, Drag(view).Id);
+                window.MouseUp(new Point(start.X, start.Y + 8), MouseButton.Left);
+                Assert.Equal(1, clicks);
+                Close(view);
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-048")] // App/Views/Sidebar/SidebarView.swift:2456-2472
+    [Trait("Req", "PR-SIDEBAR-047")] // App/Views/Sidebar/SidebarView.swift:2469-2471
+    public void A_point_inside_two_frames_finds_one_of_them_and_a_frame_holds_its_min_edges_but_not_its_max_edges()
+    {
+        var frames = Activator.CreateInstance(Private("RowFrames"), nonPublic: true)!;
+        var a = Guid.NewGuid();
+        var b = Guid.NewGuid();
+        var c = Guid.NewGuid();
+        CallOn(frames, "Note", a, new Rect(0, 0, 100, 28));
+        CallOn(frames, "Note", b, new Rect(0, 20, 100, 28));
+        CallOn(frames, "Note", c, new Rect(0, 100, 100, 28));
+        Assert.Contains(ThreadAtPoint(frames, new Point(50, 24)), new Guid?[] { a, b });
+        Assert.Equal(a, ThreadAtPoint(frames, new Point(50, 10)));
+        Assert.Equal(b, ThreadAtPoint(frames, new Point(50, 40)));
+        // CGRect.contains: minX <= x < maxX and minY <= y < maxY.
+        Assert.Equal(c, ThreadAtPoint(frames, new Point(0, 100)));
+        Assert.Null(ThreadAtPoint(frames, new Point(50, 128)));
+        Assert.Null(ThreadAtPoint(frames, new Point(100, 110)));
+        Assert.Null(ThreadAtPoint(frames, new Point(50, 70)));
+        CallOn(frames, "Forget", c);
+        Assert.Null(ThreadAtPoint(frames, new Point(50, 110)));
+        CallOn(frames, "Note", c, new Rect(0, 60, 100, 28));
+        Assert.Equal(c, ThreadAtPoint(frames, new Point(50, 70)));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-049")] // App/Views/Sidebar/SidebarView.swift:771-776, :803-805, :829-868
+    public void A_grab_takes_its_peers_and_slot_heights_once_and_a_release_without_a_grab_does_nothing()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var alpha = NewProject(harness, "Alpha");
+            var older = NewThread(alpha, "Older", 1);
+            var newer = NewThread(alpha, "Newer", 2);
+            var settled = NewThread(alpha, "Settled", 3) with { IsSettled = true, SettledAt = Base.AddHours(1) };
+            var model = Model(harness, [alpha], [older, newer, settled]);
+            harness.Main.OnMain(() =>
+            {
+                var view = Detached(model);
+                var idle = Drag(view);
+                Call(view, "DragEnded");
+                Assert.Same(idle, Drag(view)); // :804 nothing grabbed, nothing written
+                Assert.Null(Field(view, "dragPeers"));
+
+                Call(view, "DragChanged", older.Id, 10d);
+                Assert.Equal(older.Id, Drag(view).Id);
+                Assert.Equal(10d, Drag(view).Translation);
+                var peers = Field(view, "dragPeers")!;
+                Assert.Equal([newer.Id, older.Id], (IEnumerable<Guid>)Get(peers, "Order")!);
+                Assert.Null(Get(peers, "Group"));
+                // Unmeasured rows: Chrome.rowHeight plus the list's 1 pt spacing (:833).
+                var heights = (IReadOnlyDictionary<Guid, double>)Get(peers, "Heights")!;
+                Assert.Equal(2, heights.Count);
+                Assert.Equal(29d, heights[newer.Id]);
+                Assert.Equal(29d, heights[older.Id]);
+
+                Call(view, "DragChanged", older.Id, 12d);
+                Assert.Same(peers, Field(view, "dragPeers")); // no swap, no new snapshot
+                Assert.Equal(12d, Drag(view).Translation);
+
+                Call(view, "DragEnded");
+                Assert.Null(Drag(view).Id);
+                Assert.Null(Field(view, "dragPeers"));
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-050")] // App/Views/Sidebar/SidebarView.swift:757-762, :777-779; UI/Chrome/RowDrag.swift:15
+    public void The_grabbed_row_is_lifted_and_offset_by_the_pointer_travel_at_once_even_inside_an_animation()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var model = harness.MakeModel();
+            var grabbed = Guid.NewGuid();
+            var neighbour = Guid.NewGuid();
+            SidebarView view = null!;
+            Control lifted = null!;
+            Control still = null!;
+            AvaloniaWindow window = null!;
+            harness.Main.OnMain(() =>
+            {
+                view = Detached(model);
+                lifted = (Control)Call(view, "Lifted", grabbed, (Func<bool, Control>)(isDragged => new Border { Height = 28, Tag = isDragged }))!;
+                still = (Control)Call(view, "Lifted", neighbour, (Func<bool, Control>)(isDragged => new Border { Height = 28, Tag = isDragged }))!;
+                window = new AvaloniaWindow { Content = new StackPanel { Children = { lifted, still } }, Width = 200, Height = 200 };
+                window.Show();
+            });
+            static double OffsetOf(Control control) => control.RenderTransform is TranslateTransform translate ? translate.Y : 0;
+            static object? DraggedInput(Control control) => ((Decorator)control).Child!.Tag;
+            harness.Main.OnMain(() =>
+            {
+                Assert.Equal(0d, OffsetOf(lifted));
+                Assert.Equal(0, lifted.ZIndex);
+                Assert.Equal(false, DraggedInput(lifted));
+                Call(view, "DragChanged", grabbed, 30d);
+            });
+            harness.Main.OnMain(() =>
+            {
+                Assert.Equal(30d, OffsetOf(lifted));
+                Assert.Equal(1, lifted.ZIndex);
+                Assert.Equal(true, DraggedInput(lifted)); // the row is built with isDragged (:759)
+                Assert.Equal(0d, OffsetOf(still));
+                Assert.Equal(0, still.ZIndex);
+                Assert.Equal(false, DraggedInput(still));
+                Transaction.WithAnimation(Animation.Spring(response: 0.5, dampingFraction: 1), () => Call(view, "DragChanged", grabbed, 45d));
+            });
+            harness.Main.OnMain(() =>
+            {
+                Assert.Equal(45d, OffsetOf(lifted)); // no animation: it tracks the pointer one to one
+                window.Close();
             });
         });
     }
