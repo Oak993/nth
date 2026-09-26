@@ -444,14 +444,14 @@ internal sealed class AppZoomCard : Decorator
     public AppZoomCard(Binding<long> percent)
     {
         var controls = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-        Button Command(string symbol, string help, Action action)
+        Button Command(string symbol, string help, Action action, SwiftFont.Weight weight = SwiftFont.Weight.Regular)
         {
-            var button = PlainControls.Button(SwiftImage.SystemName(symbol).Font(SwiftFont.System(11, SwiftFont.Weight.Medium)).ForegroundStyle(Chrome.SecondaryText), action); button.Width = 22; button.Height = 22; ToolTip.SetTip(button, help); return button;
+            var button = PlainControls.Button(SwiftImage.SystemName(symbol).Font(SwiftFont.System(11, weight)).ForegroundStyle(Chrome.SecondaryText), action); button.Width = 22; button.Height = 22; ToolTip.SetTip(button, help); return button;
         }
         var smaller = Command("textformat.size.smaller", "Zoom out", () => percent.Value = AppZoom.Next((int)percent.Value, increasing: false)); // :475-483
         var label = new TextBlock { MinWidth = 46, TextAlignment = TextAlignment.Center, Foreground = Chrome.PrimaryText.Brush(this) }.Font(SwiftFont.System(11, SwiftFont.Weight.Medium).MonospacedDigit()); // :483-486
         var larger = Command("textformat.size.larger", "Zoom in", () => percent.Value = AppZoom.Next((int)percent.Value, increasing: true)); // :491-499
-        var reset = Command("arrow.counterclockwise", "Back to the stock size", () => percent.Value = 100); // :501-510
+        var reset = Command("arrow.counterclockwise", "Back to the stock size", () => percent.Value = 100, SwiftFont.Weight.Medium); // :501-510
         controls.Children.Add(smaller); controls.Children.Add(label); controls.Children.Add(larger); controls.Children.Add(reset);
         var row = new ChromeRow("Zoom", () => controls); Child = new ChromeCard(() => row);
         var primed = false; var fade = new SettingsScalarAnimation(reset, 0, value => reset.Opacity = Math.Clamp(value, 0, 1));
@@ -771,7 +771,7 @@ internal sealed class AboutSettingsPage : Decorator
         {
             new MadeByDroppyRow(SwiftURL.Create("https://getdroppy.app")!), new ChromeRowDivider(),
             new ChromeRow("Working indicators", () => new CreditLink("zeronsh/zeron", SwiftURL.Create("https://github.com/zeronsh/zeron")!), "Ported from Zeron by Wing, MIT License."), new ChromeRowDivider(),
-            // STOP #4: terminal credit remains unwritten until the Windows component is identified (OD-0012 H).
+            new ChromeRow("Terminal", () => new Panel()), new ChromeRowDivider(), // :953-956. STOP #4: only CreditLink and component-dependent detail await OD-0012 H.
             new ChromeRow("Welcome tour", () => new CreditLink("rampatra/TourKit", SwiftURL.Create("https://github.com/rampatra/TourKit")!), "Ported from TourKit by Ram Patra, MIT License."), new ChromeRowDivider(), new LicensesRow(),
         } }));
         Child = new StackPanel { Spacing = Chrome.SectionSpacing, Children = { new AboutSoftwareUpdateSection(), card, credits } }; // :942-965 UPSTREAM DEFECT: empty update slot still reserves the gap.
@@ -786,7 +786,8 @@ internal sealed class AboutSettingsPage : Decorator
             new StackPanel { Orientation = Orientation.Horizontal, Spacing = 14, Margin = new Thickness(16), Children = { icon, labels } }, new ChromeRowDivider(),
             new ChromeRow("Welcome tour", () => PlainControls.Button(new TextBlock { Text = "Show" }, () => Marrow.App.Views.Tour.Tour.Present(AppEnvironment.GetAppModel(this))).ChromeGlassCapsule(), "The slideshow from the first launch: Hydra, the effort slider, panels and themes."), new ChromeRowDivider(), new AboutUpdateCheckRow(), new ChromeRowDivider(),
             new TextBlock { Text = "A native home for your coding agents, built in C# with Avalonia.", Margin = new Thickness(16, 11, 10, 11), TextWrapping = TextWrapping.Wrap }.Font(SwiftFont.System(13)),
-            // STOP #4: the terminal-dependent licence sentence is deliberately not fabricated.
+            new ChromeRowDivider(), // :996
+            new TextBlock { Text = "Marrow is licensed under the GNU AGPL v3.0 with attribution terms; ", Foreground = Chrome.SecondaryText.Brush(this), Margin = new Thickness(16, 11, 10, 11), TextWrapping = TextWrapping.Wrap }.Font(SwiftFont.System(12)), // :997-1002, OD-0012 F1. STOP #4: only the trailing terminal name/licence fragment awaits its component.
         } };
     }
 }

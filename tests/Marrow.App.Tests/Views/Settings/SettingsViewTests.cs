@@ -531,7 +531,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
         Assert.Contains("Marrow", Text(view)); Assert.Contains("A native home for your coding agents, built in C# with Avalonia.", Text(view));
         var licence = Assert.Single(Nodes<TextBlock>(stack.Children[1]), text => text.Text == "Marrow is licensed under the GNU AGPL v3.0 with attribution terms; "); // :996-1002, OD-0012 F1
         Assert.Equal(12, licence.FontSize); Assert.Equal(new Thickness(16, 11, 10, 11), licence.Margin);
-        var appRows = Assert.IsType<StackPanel>(Assert.IsType<ChromeCard>(stack.Children[1]).Child); Assert.IsType<ChromeRowDivider>(appRows.Children[appRows.Children.IndexOf(licence) - 1]);
+        var appRows = Assert.Single(Nodes<StackPanel>(stack.Children[1]), panel => panel.Children.Contains(licence)); Assert.IsType<ChromeRowDivider>(appRows.Children[appRows.Children.IndexOf(licence) - 1]);
         var terminal = Row(stack.Children[2], "Terminal"); Assert.Empty(Nodes<CreditLink>(terminal)); // :953-956; unknown Windows component is not fabricated.
         var creditRows = Assert.Single(Nodes<StackPanel>(stack.Children[2]), panel => panel.Children.Contains(terminal)); Assert.IsType<ChromeRowDivider>(creditRows.Children[creditRows.Children.IndexOf(terminal) + 1]);
         Assert.Contains("Based on Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app", Text(view));
