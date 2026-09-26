@@ -23,7 +23,7 @@ using Marrow.UI.Port;
 
 namespace Marrow.App.Views.Chat;
 
-// Source: DroppyCode/App/Views/Chat/HydraPanel.swift (B2 1fbf81e), :1-553.
+// Source: DroppyCode/App/Views/Chat/HydraPanel.swift (B3 52bc7926), :1-552.
 
 /// <summary>:4-201 <c>struct HydraPanel: View</c>: the lead's team as a floating glass panel.</summary>
 public sealed class HydraPanel : Decorator
@@ -265,12 +265,14 @@ public sealed class HydraPanel : Decorator
     }
 
     /// <summary>
-    /// :169-175, :640-738. The strip's invisible handle. In the source the middle of the strip is
+    /// :169-175, :639-737. The strip's invisible handle. In the source the middle of the strip is
     /// <c>PanelDragHandle</c>, an NSViewRepresentable over SubagentPanel.swift's <c>PanelDragHandleView</c>
-    /// (:677-738): a press is tracked, the pointer's travel is reported through <c>onDrag</c> once it has
-    /// passed the source's 2-point slop (:685), and the release is reported through <c>onDragEnd</c>. That
-    /// pair belongs to the SubagentPanel twin, whose bodies are not ported yet, so the strip wires the same
-    /// pointer behaviour here.
+    /// (:676-737): a press is tracked, the pointer's travel is reported through <c>onDrag</c> once it has
+    /// passed the source's 2-point slop (:684), and the release is reported through <c>onDragEnd</c>. That
+    /// pair is already ported at <c>Marrow.App.Views.Chat.SubagentPanel.PanelDragHandle</c>/
+    /// <c>PanelDragHandleView</c> (SubagentPanel.cs:793-914), but not yet shared through a common base (the
+    /// plan's N8, <c>Marrow.UI.Chrome.DragHandle</c>, not created yet), so the strip wires the same pointer
+    /// behaviour here directly instead of reusing that type.
     /// </summary>
     private static void WireDragHandle(Border handle, Action<Size> onDrag, Action onDragEnd)
     {
@@ -797,15 +799,17 @@ public static class HydraStatusText
             : $" \U000000B7 {info.ToolCalls.ToString(CultureInfo.InvariantCulture)} steps"; // U+00B7 MIDDLE DOT
     }
 
-    // :547-552
+    // :545-551. ED-197: Duration.UnitsFormatStyle(allowed: [.seconds, .minutes], width: .narrow, maximumUnitCount:
+    // 2, fractionalPart: .hide(rounded: .down)), the same configuration as Hydra.swift:1420-1423's duration(_:).
+    private static readonly SwiftFormatters.DurationUnit[] ElapsedUnits =
+        [SwiftFormatters.DurationUnit.Seconds, SwiftFormatters.DurationUnit.Minutes];
+
     private static string Elapsed(HydraHeadInfo info)
     {
         if (info.FinishedAt is not { } finished) return "";
         var seconds = SwiftNumber.TruncatingToInt(SwiftDate.TimeIntervalSince(finished, info.StartedAt));
         if (seconds <= 0) return "";
-        return seconds < 60
-            ? $" in {seconds.ToString(CultureInfo.InvariantCulture)}s"
-            : $" in {(seconds / 60).ToString(CultureInfo.InvariantCulture)}m {(seconds % 60).ToString(CultureInfo.InvariantCulture)}s";
+        return " in " + SwiftFormatters.DurationUnits(seconds, ElapsedUnits, SwiftFormatters.CurrentLocale.Current);
     }
 
     // Text.swift:63-73 TextCleanup.singleLine, at this file's own call sites (:505, :518, :520, :522).
