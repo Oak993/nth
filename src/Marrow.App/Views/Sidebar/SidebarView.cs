@@ -14,6 +14,7 @@ using Avalonia.Input.GestureRecognizers;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Styling;
 using Avalonia.VisualTree;
 using Marrow.App.Port;
 using Marrow.App.Runtime;
@@ -25,6 +26,7 @@ using Marrow.Core.Support;
 using Marrow.UI.Chrome;
 using Marrow.UI.Common;
 using Marrow.UI.Port;
+using Marrow.UI.Sound;
 
 // Source: DroppyCode/App/Views/Sidebar/SidebarView.swift (B3 52bc792), :1-2695.
 // Skeleton (c100 group 5): every type the file declares, the views' inputs, the record shapes, the metrics constants
@@ -47,9 +49,23 @@ using Marrow.UI.Port;
 // stays MARROW_STUB: its full body needs settle()/reopen(), archiveWithGenie(), makeActions(), RowGlideAnimator and
 // ThreadActions.makeContextMenu (parts 4+); the pieces above are written so that constructor can call them once
 // those exist, and each is proven directly by its own SidebarViewTests.cs test in the meantime.
-// Still MARROW_STUB and named where they stand: the row views' remaining assembly, the helper, head-card and stub
-// arms of itemView and threadRow, ProjectRow, the popovers, ThreadActions, ActivityHeader, SettledHeader and
-// ThreadGhostBadge (parts 4 to 8), and the empty-needle case of the search match (STOP #1 in SidebarViewTests.cs).
+// Part 4 of 8 adds: DeleteThreadPopover (:967-983) and ArchiveThreadPopover (:905-963, its key monitor as the
+// window-scoped handler pair AttachmentPreviewPanel.cs:160-195 already establishes) in full; SidebarView's popover
+// coordinator state (renaming, renameText, pendingDeletionID, pendingArchiveID, confirmedDeletion,
+// isDeletePopoverShown: :13-30) and menuRequests (:42); its private helpers requestDeletion (the :890-896, :360-366,
+// :190-196 shared branch), deletePopover, archivePopover, confirmDeletion, carryOutConfirmedDeletion (:207-306) and
+// liveRenameTarget (:882-887, :357); the three `.onChange` handlers this adds to Appear() (:184-202); HelperConnector
+// and HelperConnectorShape in full (:1636-1675); SidebarThreadRow.FinishRequestReceived, Settle, Reopen, Glide and
+// ArchiveWithGenie (:1863-1870, :1904-1953, :1988-1999) as directly testable static pieces, each cited; ThreadActions
+// Make and MakeContextMenu in full (:2193-2312); SidebarHelperRow.TitleWeight, TitleOpacity, TrailingPadding,
+// BackgroundFill, HeadGlyph and BuildTrailingOverlay (:1361-1384) as directly testable static pieces of that row's
+// body. renamePopover (:239-252) stays MARROW_STUB: STOP #6 (SidebarViewTests.cs), RenameThreadPopover's
+// `.textFieldStyle(.roundedBorder)` and `.buttonStyle(.bordered)`/`.buttonStyle(.borderedProminent)` have no Windows
+// chrome or governing decision yet.
+// Still MARROW_STUB and named where they stand: RenameThreadPopover and renamePopover (STOP #6 above); the row
+// views' remaining assembly (SidebarThreadRow's and SidebarHelperRow's own constructors, ThreadRow, HelperItemView),
+// the head-card and stub arms of itemView, ProjectRow, ActivityHeader, SettledHeader and ThreadGhostBadge's own body
+// (parts 5 to 8), and the empty-needle case of the search match (STOP #1 in SidebarViewTests.cs).
 // Forms (ED-095): a SwiftUI View is a Decorator whose constructor builds `body`; a ViewModifier is a sealed record
 // with `Control Body(Control content)`; a Shape is a sealed record with `Geometry Path(Rect in)`; a caseless enum is a
 // static class; an enum with associated values is an abstract record (R-ENUM-2), an unlabelled payload named Value; a
@@ -91,6 +107,12 @@ public sealed class SidebarView : Decorator
         private string search = ""; // :12
         private RowDrag<Guid> drag = new(); // :33
         private bool isListScrolling; // :56
+        private ChatThread? renaming; // :13
+        private string renameText = ""; // :14
+        private Guid? pendingDeletionID; // :17
+        private Guid? pendingArchiveID; // :19
+        private ConfirmedDeletion? confirmedDeletion; // :22
+        private bool isDeletePopoverShown; // :26
 
         // :12 @State private var search = ""
         public string Search { get => Read(search); set => Set(ref search, value); }
@@ -100,9 +122,31 @@ public sealed class SidebarView : Decorator
 
         // :56 @State private var isListScrolling = false
         public bool IsListScrolling { get => Read(isListScrolling); set => Set(ref isListScrolling, value); }
+
+        // :13 @State private var renaming: ChatThread? (part 4). PR-SIDEBAR-093.
+        public ChatThread? Renaming { get => Read(renaming); set => Set(ref renaming, value); }
+
+        // :14 @State private var renameText = "" (part 4). PR-SIDEBAR-093.
+        public string RenameText { get => Read(renameText); set => Set(ref renameText, value); }
+
+        // :17 @State private var pendingDeletionID: UUID? (part 4). PR-SIDEBAR-086, PR-SIDEBAR-087.
+        public Guid? PendingDeletionID { get => Read(pendingDeletionID); set => Set(ref pendingDeletionID, value); }
+
+        // :19 @State private var pendingArchiveID: UUID? (part 4). PR-SIDEBAR-094, PR-SIDEBAR-095.
+        public Guid? PendingArchiveID { get => Read(pendingArchiveID); set => Set(ref pendingArchiveID, value); }
+
+        // :22 @State private var confirmedDeletion: ConfirmedDeletion? (part 4). PR-SIDEBAR-089.
+        public ConfirmedDeletion? ConfirmedDeletion { get => Read(confirmedDeletion); set => Set(ref confirmedDeletion, value); }
+
+        // :26 @State private var isDeletePopoverShown = false (part 4). PR-SIDEBAR-087, PR-SIDEBAR-089, PR-SIDEBAR-097.
+        public bool IsDeletePopoverShown { get => Read(isDeletePopoverShown); set => Set(ref isDeletePopoverShown, value); }
     }
 
     private readonly ViewState state = new();
+
+    // :42 @State private var menuRequests = SidebarMenuRequests() (part 4): held only for the rows a later part
+    // assembles (ThreadRow, HelperItemView) to write into; read only by actions, so a plain field (R-VIEW-2).
+    private readonly SidebarMenuRequests menuRequests = new();
 
     // :59 @State private var scrollSettle: Task<Void, Never>? (read only by actions: a field, R-VIEW-2).
     private TaskHandle? scrollSettle;
@@ -287,8 +331,29 @@ public sealed class SidebarView : Decorator
             if (Model.Thread(id) is not { } thread) return; // :157
             Transaction.WithAnimation(Chrome.PanelSlide, () => ScrollTo(SidebarItem.IdFor(thread))); // :158-160
         }));
-        // :184-205 the menu requests and the archive question are taken up by part 4 of this unit (PR-SIDEBAR-086,
-        // PR-SIDEBAR-094).
+        // :184-188 A rename requested from the AppKit context menu (the ellipsis popover reads the live thread
+        // itself, at the row: PR-SIDEBAR-093). The posted value is used as-is, unlike the live lookup.
+        changes.Add(new OnChange<ChatThread?>(() => menuRequests.Rename, (_, thread) =>
+        {
+            if (thread is not { } posted) return; // :185
+            menuRequests.Rename = null; // :186
+            state.RenameText = posted.Title; // :187
+            state.Renaming = posted; // :188
+        }));
+        // :189-196 A delete requested from the AppKit context menu. PR-SIDEBAR-086.
+        changes.Add(new OnChange<ChatThread?>(() => menuRequests.Delete, (_, thread) =>
+        {
+            if (thread is not { } posted) return; // :190
+            menuRequests.Delete = null; // :191
+            RequestDeletion(posted.Id); // :192-196
+        }));
+        // :198-202 The shortcut's question lands on the thread's own row. PR-SIDEBAR-094.
+        changes.Add(new OnChange<AppModel.ArchiveRequest?>(() => Model.AppModelArchiveRequest, (_, request) =>
+        {
+            if (request is not { } posted || Model.Thread(posted.ThreadID) is null) return; // :199
+            Model.AppModelArchiveRequest = null; // :200
+            state.PendingArchiveID = posted.ThreadID; // :201
+        }));
     }
 
     private void Disappear()
@@ -1217,6 +1282,120 @@ public sealed class SidebarView : Decorator
         public required bool RemoveWorktree { get; init; } // :310
     }
 
+    // :889-895 threadRow onDelete, :359-365 the helper row's identical branch, :189-196 the context-menu branch
+    // (wired above in Appear()). The other two call sites are wired once ThreadRow and HelperItemView (parts 4+) pass
+    // this as their row's onDelete. PR-SIDEBAR-086.
+    private void RequestDeletion(Guid threadID)
+    {
+        if (Model.Settings.ConfirmBeforeDeleting) state.PendingDeletionID = threadID; // :890, :360, :190
+        else Model.Delete(threadID); // :896, :366, :196 (removeWorktree defaults false)
+    }
+
+    /// <summary>:207-216, :217-237 deletePopover(for:on:). The binding compares ids only (the doc comment at :203-216
+    /// records why: an earlier ordering read a torn-down view's presentation binding and crashed). PR-SIDEBAR-086,
+    /// PR-SIDEBAR-087.</summary>
+    private Control DeletePopover(ChatThread thread, Control row)
+    {
+        var threadID = thread.Id;
+        var isPresented = new Binding<bool>(
+            () => state.PendingDeletionID == threadID, // :221
+            value =>
+            {
+                if (!value && state.PendingDeletionID == threadID) state.PendingDeletionID = null; // :222
+            });
+        var popup = PlainControls.Popover(row, isPresented, () =>
+        {
+            state.IsDeletePopoverShown = true; // :229
+            return BuildDeletePopoverContent(thread);
+        }, PlacementMode.Right); // :220 arrowEdge: .trailing
+        popup.Closed += (_, _) =>
+        {
+            state.IsDeletePopoverShown = false; // :231
+            CarryOutConfirmedDeletion(); // :232
+        };
+        return new Panel { Children = { row, popup } };
+    }
+
+    /// <summary>:225-227 the delete popover's content, extracted so it is directly testable (Avalonia's headless
+    /// Popup never opens, R-TEST-7's RecordingPresenter records the request but never fires the content factory
+    /// above). PR-SIDEBAR-086, PR-SIDEBAR-088, PR-SIDEBAR-089.</summary>
+    private DeleteThreadPopover BuildDeletePopoverContent(ChatThread thread)
+    {
+        var threadID = thread.Id;
+        return new DeleteThreadPopover(Model.Thread(threadID) ?? thread, removeWorktree => ConfirmDeletion(threadID, removeWorktree)); // :225-227
+    }
+
+    /// <summary>:239-252 renamePopover(for:on:). STOP #6 (RenameThreadPopover, this unit): the content this wraps has
+    /// no chrome yet, so this wrapper stays unwritten rather than calling a MARROW_STUB constructor from a live
+    /// path. PR-SIDEBAR-091.</summary>
+    private Control RenamePopover(ChatThread thread, Control row) =>
+        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:239 (STOP #6)");
+
+    /// <summary>:267-291 archivePopover(for:on:). PR-SIDEBAR-094, PR-SIDEBAR-095, PR-SIDEBAR-096, PR-SIDEBAR-097.</summary>
+    private Control ArchivePopover(ChatThread thread, Control row)
+    {
+        var threadID = thread.Id;
+        var isPresented = new Binding<bool>(
+            () => state.PendingArchiveID == threadID, // :271
+            value =>
+            {
+                if (!value && state.PendingArchiveID == threadID) state.PendingArchiveID = null; // :272
+            });
+        var popup = PlainControls.Popover(row, isPresented, () =>
+        {
+            state.IsDeletePopoverShown = true; // :285, shared with the delete popover so the two can never race
+            return BuildArchivePopoverContent(thread);
+        }, PlacementMode.Right); // :270 arrowEdge: .trailing
+        popup.Closed += (_, _) =>
+        {
+            state.IsDeletePopoverShown = false; // :287
+            CarryOutConfirmedDeletion(); // :288
+        };
+        return new Panel { Children = { row, popup } };
+    }
+
+    /// <summary>:275-284 the archive popover's content, extracted so it is directly testable (see
+    /// BuildDeletePopoverContent above for why). PR-SIDEBAR-094, PR-SIDEBAR-095, PR-SIDEBAR-096, PR-SIDEBAR-097.</summary>
+    private ArchiveThreadPopover BuildArchivePopoverContent(ChatThread thread)
+    {
+        var threadID = thread.Id;
+        return new ArchiveThreadPopover(
+            Model.Thread(threadID) ?? thread,
+            onArchive: () =>
+            {
+                state.PendingArchiveID = null; // :278
+                Transaction.WithAnimation(Chrome.PanelSlide, () => Model.Archive(threadID)); // :279
+            },
+            onDelete: () => ConfirmDeletion(threadID, removeWorktree: false), // :281
+            onDismiss: () => state.PendingArchiveID = null); // :283
+    }
+
+    /// <summary>:256-263 confirmDeletion(of:removeWorktree:). PR-SIDEBAR-089.</summary>
+    private void ConfirmDeletion(Guid id, bool removeWorktree)
+    {
+        state.ConfirmedDeletion = new ConfirmedDeletion { ThreadID = id, RemoveWorktree = removeWorktree }; // :258
+        state.PendingDeletionID = null; // :259
+        state.PendingArchiveID = null; // :260
+        if (!state.IsDeletePopoverShown) CarryOutConfirmedDeletion(); // :261
+    }
+
+    /// <summary>:295-306 carryOutConfirmedDeletion(). PR-SIDEBAR-089.</summary>
+    private void CarryOutConfirmedDeletion()
+    {
+        if (state.ConfirmedDeletion is not { } confirmed) return; // :300
+        state.ConfirmedDeletion = null; // :301
+        var model = Model; // :302
+        MainActor.Spawn(() => // :303-305 Task { @MainActor in ... }
+        {
+            model.Delete(confirmed.ThreadID, confirmed.RemoveWorktree);
+            return Task.CompletedTask;
+        });
+    }
+
+    /// <summary>:882-887, :354-358 the ellipsis path's live lookup, contrasted with the context menu's posted
+    /// snapshot (:182-186, wired in Appear() as-is). PR-SIDEBAR-093.</summary>
+    private static ChatThread LiveRenameTarget(AppModel model, ChatThread thread) => model.Thread(thread.Id) ?? thread; // :886, :357
+
     /// <summary>:638-641 <c>private struct ActivityGroup</c>.</summary>
     private sealed record ActivityGroup
     {
@@ -1242,37 +1421,167 @@ public sealed class SidebarView : Decorator
     }
 }
 
-/// <summary>:905-963 <c>private struct ArchiveThreadPopover: View</c>: the archive shortcut's question.</summary>
+/// <summary>:905-963 <c>private struct ArchiveThreadPopover: View</c>: the archive shortcut's question. Part 4.
+/// PR-SIDEBAR-095, PR-SIDEBAR-096.</summary>
 internal sealed class ArchiveThreadPopover : Decorator
 {
+    // :912 @State private var keyMonitor: Any?, ported as the window-scoped handler pair (ENGINEERING DECISION, the
+    // same substitution AttachmentPreviewPanel.cs:160-195 already makes for a local NSEvent monitor).
+    private Avalonia.Controls.Window? monitorWindow;
+    private Button? archiveButton;
+    private readonly Action onArchive;
+    private readonly Action onDismiss;
+
     /// <param name="thread">:906 <c>let thread: ChatThread</c>.</param>
     /// <param name="onArchive">:907 <c>let onArchive: () -> Void</c>.</param>
     /// <param name="onDelete">:908 <c>let onDelete: () -> Void</c>.</param>
     /// <param name="onDismiss">:909 <c>let onDismiss: () -> Void</c>.</param>
     // :914-962 body
-    public ArchiveThreadPopover(ChatThread thread, Action onArchive, Action onDelete, Action onDismiss) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:914");
+    public ArchiveThreadPopover(ChatThread thread, Action onArchive, Action onDelete, Action onDismiss)
+    {
+        this.onArchive = onArchive;
+        this.onDismiss = onDismiss;
+
+        // :917 Text("Archive \(Text(verbatim: "\u{201C}\(thread.title)\u{201D}").fontWeight(.semibold))?")
+        var question = new TextBlock
+        {
+            TextWrapping = TextWrapping.Wrap, // :919-920 lineLimit(2), fixedSize(vertical: true)
+            MaxLines = 2,
+            TextTrimming = TextTrimming.CharacterEllipsis, // :920 .truncationMode(.tail)
+            HorizontalAlignment = HorizontalAlignment.Stretch, // :922 frame(maxWidth: .infinity, alignment: .leading)
+        };
+        SwiftFont.Callout.Apply(question); // :918
+        var styled = new StyledText("Archive ")
+            + new StyledText("“" + thread.Title + "”").FontWeight(SwiftFont.Weight.Semibold) // :917
+            + new StyledText("?");
+        styled.Render(question);
+
+        // :926-929 Text("Delete").foregroundStyle(.red), .buttonStyle(.glass). UNVERIFIED O-63: controlSize(.small)'s
+        // exact height and horizontal padding have no sourced Windows number yet (only the regular capsule height,
+        // Chrome.CapsuleContentHeight, is settled); the button below sizes to its content instead of a guessed height.
+        var deleteLabel = new TextBlock { Text = "Delete", Foreground = Chrome.Danger.Brush(this) }; // :927
+        var delete = GlassButton(deleteLabel, onDelete);
+        ToolTip.SetTip(delete, "Remove the thread and its history"); // :929 .help(...)
+
+        var archiveLabel = new TextBlock { Text = "Archive" }; // :931 Button("Archive", action: onArchive)
+        var archive = GlassProminentButton(archiveLabel, onArchive);
+        archive.IsDefault = true; // :932 .keyboardShortcut(.defaultAction)
+        archive.Focusable = true; // :933 .focusable()
+        ToolTip.SetTip(archive, "Move it to Archived (Return)"); // :936 .help(...)
+        archiveButton = archive;
+
+        var buttons = new StackPanel // :925 HStack(spacing: 6)
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 6,
+            Children = { delete, archive },
+            HorizontalAlignment = HorizontalAlignment.Right, // :923 Spacer(minLength: 0)
+        };
+        var column = new StackPanel // :916 VStack(alignment: .leading, spacing: 9)
+        {
+            Orientation = Orientation.Vertical,
+            Spacing = 9,
+            Children = { question, buttons },
+        };
+        var padded = new Border { Padding = new Thickness(8, 6, 8, 4), Child = column }; // :938-940
+        var menu = new PopoverMenu(() => padded);
+        menu.Width = 272; // :943 .frame(width: 272)
+        Child = menu;
+
+        AttachedToVisualTree += (_, _) => Appear(); // :944 .onAppear
+        DetachedFromVisualTree += (_, _) => Disappear(); // :958 .onDisappear
+    }
+
+    // :926-929, :931-936 the untinted and accent-tinted twins of FollowUpEditor.cs's glass buttons, sized to their
+    // content: OD-0005 governs the material, not this button's height.
+    private static Button GlassButton(Control label, Action action)
+    {
+        label.VerticalAlignment = VerticalAlignment.Center;
+        var framed = new Border { Padding = new Thickness(10, 4), Child = label };
+        framed.Capsule(RoundedCornerStyle.Continuous);
+        SwiftGlass.SetEffect(framed, GlassEffect.Regular(GlassShape.Capsule(RoundedCornerStyle.Continuous)).Interactive());
+        return PlainControls.Button(framed, action);
+    }
+
+    private static Button GlassProminentButton(Control label, Action action)
+    {
+        label.VerticalAlignment = VerticalAlignment.Center;
+        var framed = new Border { Padding = new Thickness(10, 4), Child = label };
+        framed.Capsule(RoundedCornerStyle.Continuous);
+        SwiftGlass.SetEffect(framed, GlassEffect.Regular(GlassShape.Capsule(RoundedCornerStyle.Continuous)).Tint(Chrome.Accent, 0.3).Interactive());
+        framed.Background = Chrome.Accent.Opacity(0.3).Brush(framed);
+        return PlainControls.Button(framed, action);
+    }
+
+    // :944-956 onAppear: focus the Archive button, then install the window-scoped key handler.
+    private void Appear()
+    {
+        archiveButton?.Focus(); // :945 isFocused = true
+        if (TopLevel.GetTopLevel(this) is not Avalonia.Controls.Window window) return;
+        monitorWindow = window;
+        window.AddHandler(InputElement.KeyDownEvent, OnWindowKeyDown, RoutingStrategies.Tunnel, handledEventsToo: true); // :946-955
+    }
+
+    // :958-961 onDisappear: tear the handler down.
+    private void Disappear()
+    {
+        if (monitorWindow is { } window) window.RemoveHandler(InputElement.KeyDownEvent, OnWindowKeyDown);
+        monitorWindow = null;
+    }
+
+    // :946-955 the monitor's body: Return/keypad Enter archives, Escape dismisses, any modifier held or any other key
+    // passes through untouched.
+    private void OnWindowKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (((ChordModifiers)e.KeyModifiers & KeyChord.AllowedModifiers) != 0) return; // :949
+        if (e.PhysicalKey is PhysicalKey.Enter or PhysicalKey.NumPadEnter) onArchive(); // :951 keyCode 36, 76
+        else if (e.PhysicalKey == PhysicalKey.Escape) onDismiss(); // :952 keyCode 53
+        else return; // :953 default: return event
+        e.Handled = true; // :954 return nil
+    }
 }
 
-/// <summary>:967-983 <c>private struct DeleteThreadPopover: View</c>.</summary>
+/// <summary>:967-983 <c>private struct DeleteThreadPopover: View</c>. Part 4. PR-SIDEBAR-088.</summary>
 internal sealed class DeleteThreadPopover : Decorator
 {
     /// <param name="thread">:968 <c>let thread: ChatThread</c>.</param>
     /// <param name="onDelete">:969 <c>let onDelete: (_ removeWorktree: Bool) -> Void</c>.</param>
     // :971-982 body
-    public DeleteThreadPopover(ChatThread thread, Action<bool> onDelete) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:971");
+    public DeleteThreadPopover(ChatThread thread, Action<bool> onDelete)
+    {
+        var menu = new PopoverMenu(() => // :971-981
+        {
+            var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 0 };
+            stack.Children.Add(new PopoverSectionHeader("Delete this thread?")); // :973
+            // :974 "“\(thread.title)” and its history will be removed. Files in your project stay as they are."
+            stack.Children.Add(new PopoverNote(
+                "“" + thread.Title + "” and its history will be removed. Files in your project stay as they are."));
+            stack.Children.Add(new PopoverDivider()); // :975
+            stack.Children.Add(new PopoverItem("Delete thread", () => onDelete(false), symbol: "trash", isDestructive: true)); // :976
+            if (thread.WorktreePath is not null) // :977
+                stack.Children.Add(new PopoverItem("Delete thread and worktree", () => onDelete(true), symbol: "trash", isDestructive: true)); // :978
+            return stack;
+        });
+        menu.Width = 280; // :980 .frame(width: 280)
+        Child = menu;
+    }
 }
 
-/// <summary>:987-1025 <c>private struct RenameThreadPopover: View</c>.</summary>
+/// <summary>:987-1025 <c>private struct RenameThreadPopover: View</c>. PR-SIDEBAR-091: STOP #6 (see
+/// SidebarViewTests.cs).</summary>
 internal sealed class RenameThreadPopover : Decorator
 {
     /// <param name="title">:988 <c>let title: String</c>.</param>
     /// <param name="onRename">:989 <c>let onRename: (String) -> Void</c>.</param>
     /// <param name="onCancel">:990 <c>let onCancel: () -> Void</c>.</param>
-    // :995-1000 init; :1002-1024 body
+    // :995-1000 init; :1002-1024 body. STOP #6 (this unit): `.textFieldStyle(.roundedBorder)` (:1009) and
+    // `.buttonStyle(.bordered)`/`.buttonStyle(.borderedProminent)` (:1017, :1019-1022) have no Windows chrome anywhere
+    // in this port yet, and no ED/PA decision (this packet's part 4 list: ED-008, ED-009, ED-010, ED-041, ED-051,
+    // ED-059, ED-062, ED-149, ED-187, OD-0001, OD-0005, OD-0008, OD-0009, OD-0010, PA-0019) or engineering_decisions.md
+    // entry names either style. Every other row-level popover this part ports (Delete, Archive) reuses PopoverItem or
+    // the already-decided `.glass`/`.glassProminent` recipe (OD-0005); this one alone needs a new, undecided pair.
     public RenameThreadPopover(string title, Action<string> onRename, Action onCancel) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:995");
+        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:995 (STOP #6)");
 }
 
 /// <summary>:1030-1056 <c>private struct SidebarItem: Identifiable</c>: one entry of the sidebar list.</summary>
@@ -1401,9 +1710,45 @@ internal sealed class SidebarHelperRow : Decorator
     /// <param name="onFold">:1331 <c>let onFold: () -> Void</c>.</param>
     /// <param name="onRename">:1332 <c>let onRename: () -> Void</c>.</param>
     /// <param name="onDelete">:1333 <c>let onDelete: () -> Void</c>.</param>
-    // :1338-1409 body
+    // :1338-1409 body. Still MARROW_STUB: the constructor needs RowGlideAnimator.Shared.IsHiding(_:) and
+    // model.IsSelected(_:) wired through a live per-row @State (isHovering, isMenuPresented) that no part has added
+    // yet; the pieces below are written so that constructor can call them once it is assembled, each proven directly.
     public SidebarHelperRow(ChatThread snapshot, bool isLast, SidebarMenuRequests menuRequests, Action onFold, Action onRename, Action onDelete) =>
         throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1338");
+
+    // :1361 .font(.system(.callout, weight: isSelected || thread.hasUnread ? .medium : .regular)). PR-SIDEBAR-107.
+    internal static SwiftFont.Weight TitleWeight(bool isSelected, bool hasUnread) =>
+        isSelected || hasUnread ? SwiftFont.Weight.Medium : SwiftFont.Weight.Regular;
+
+    // :1362 .foregroundStyle(Chrome.primaryText.opacity(isSelected ? 0.96 : 0.8)). PR-SIDEBAR-107.
+    internal static double TitleOpacity(bool isSelected) => isSelected ? 0.96 : 0.8;
+
+    // :1365-1367 the trailing padding: 8 (Chrome.rowHorizontalPadding) plus 26 while the actions show, 18 otherwise.
+    // PR-SIDEBAR-107.
+    internal static double TrailingPadding(bool showsActions) => Chrome.RowHorizontalPadding + (showsActions ? 26 : 18);
+
+    // :1370-1372 the row's own background: the label colour at 0.12 selected, 0.06 hovered, transparent otherwise, in
+    // the row's rounded rect, animated on selection. Reuses SidebarThreadRow.Fill (:1875-1877, PR-SIDEBAR-063): the
+    // identical formula. PR-SIDEBAR-107.
+    internal static double BackgroundFill(bool isSelected, bool isHovering) => SidebarThreadRow.Fill(isSelected, isHovering);
+
+    // :1354-1357 HydraGlyph(persona: head.persona, size: ThreadRowMetrics.headGlyphSize, status: head.status): no
+    // isRunning argument, unlike HeadCardsRow's explicit isRunning: (info.status == .running) (:1477). Reproduces the
+    // upstream defect (porting/upstream_defects.md entry 65): a running head's glyph shows no breath ring here, even
+    // for the same head the parent's card shows with one. PR-SIDEBAR-108.
+    internal static HydraGlyph? HeadGlyph(ChatThread thread) =>
+        thread.Hydra is { } head ? new HydraGlyph(head.Persona, ThreadRowMetrics.HeadGlyphSize, status: head.HydraHeadInfoStatus) : null;
+
+    // :1375-1384 the trailing overlay, 6 pt from the edge: the ellipsis while hovered or the menu is open, the
+    // activity status otherwise. A helper row never shows a settle check, an archive button, a fold chevron or a
+    // relative time. PR-SIDEBAR-109.
+    internal static Control BuildTrailingOverlay(bool showsActions, ChatThread thread, Control actionsButton)
+    {
+        Control content = showsActions ? actionsButton : new ActivityStatus(thread); // :1376-1380
+        content.Margin = new Thickness(0, 0, 6, 0); // :1382 .padding(.trailing, 6)
+        content.HorizontalAlignment = HorizontalAlignment.Right;
+        return content;
+    }
 }
 
 /// <summary>:1427-1548 <c>private struct HeadCardsRow: View</c>: the parent's Hydra heads as glyph cards.</summary>
@@ -1450,27 +1795,72 @@ internal sealed record RidesWithDraggedParent(Guid? ParentID, RowDrag<Guid> Drag
     }
 }
 
-/// <summary>:1636-1660 <c>private struct HelperConnector: View</c>: the dotted connector beside a helper's row.</summary>
+/// <summary>:1636-1660 <c>private struct HelperConnector: View</c>: the dotted connector beside a helper's row.
+/// Part 4. PR-SIDEBAR-110.</summary>
 internal sealed class HelperConnector : Decorator
 {
+    // :1642 static let style = StrokeStyle(lineWidth: 1, lineCap: .round, dash: [0.1, 3.6])
+    private static readonly double[] Dash = [0.1, 3.6];
+
     /// <param name="endsHere">:1637 <c>let endsHere: Bool</c>.</param>
     /// <param name="action">:1638 <c>let action: () -> Void</c>.</param>
     // :1648-1659 body
-    public HelperConnector(bool endsHere, Action action) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1648");
+    public HelperConnector(bool endsHere, Action action)
+    {
+        var state = new ViewState();
+        var stroke = new Avalonia.Controls.Shapes.Path // :1649 HelperConnectorShape(endsHere: endsHere).stroke(...)
+        {
+            StrokeThickness = 1, // :1642 lineWidth: 1
+            StrokeLineCap = PenLineCap.Round, // :1642 lineCap: .round
+            StrokeDashArray = new Avalonia.Collections.AvaloniaList<double>(Dash), // :1642 dash: [0.1, 3.6]
+        };
+        var fill = new AnimatedColor(stroke);
+        stroke.Stroke = fill.Brush;
+        stroke.SizeChanged += (_, e) => stroke.Data = new HelperConnectorShape(endsHere).Path(new Rect(e.NewSize)); // :1649-1651
+        stroke.Track(() => state.IsHovering, hovering => fill.Set(Color(hovering), Transaction.Current)); // :1650 .animation(Chrome.hover, value:)
+        var label = new Border { Child = stroke, IsHitTestVisible = true }; // :1651 .contentShape(.rect): the whole rect is the hit area
+        var button = PlainControls.Button(label, action); // :1648 Button(action:)
+        button.OnHover(hovering => Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = hovering)); // :1656 .onHover
+        ToolTip.SetTip(button, "Hide helpers"); // :1657 .help("Hide helpers")
+        AutomationProperties.SetName(button, "Hide helpers"); // :1658 .accessibilityLabel(Text("Hide helpers"))
+        Child = button;
+    }
+
+    // :1640 @State private var isHovering = false
+    private sealed class ViewState : MainActorModel
+    {
+        private bool isHovering;
+
+        public bool IsHovering { get => Read(isHovering); set => Set(ref isHovering, value); }
+    }
 
     // :1644-1646 static func color(hovering: Bool) -> Color
     public static SwiftColor Color(bool hovering) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1644");
+        Chrome.SecondaryText.Opacity(hovering ? 0.9 : 0.45); // :1645
 }
 
-/// <summary>:1662-1675 <c>private struct HelperConnectorShape: Shape</c>.</summary>
+/// <summary>:1662-1675 <c>private struct HelperConnectorShape: Shape</c>. Part 4. PR-SIDEBAR-110.</summary>
 /// <param name="EndsHere">:1663 <c>let endsHere: Bool</c>.</param>
 internal sealed record HelperConnectorShape(bool EndsHere)
 {
-    // :1665-1674 func path(in rect: CGRect) -> Path
-    public Geometry Path(Rect @in) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1665");
+    // :1665-1674 func path(in rect: CGRect) -> Path. Two disjoint strokes: the vertical stem (full height, or only to
+    // the midpoint on the last row) and the horizontal tick into the row at the midpoint.
+    public Geometry Path(Rect @in)
+    {
+        var x = ThreadRowMetrics.ConnectorLineX; // :1666
+        var midY = @in.Center.Y; // :1667 rect.midY
+        var geometry = new StreamGeometry();
+        using (var context = geometry.Open())
+        {
+            context.BeginFigure(new Point(x, @in.Top), isFilled: false); // :1668
+            context.LineTo(new Point(x, EndsHere ? midY : @in.Bottom)); // :1669
+            context.EndFigure(isClosed: false);
+            context.BeginFigure(new Point(x, midY), isFilled: false); // :1670
+            context.LineTo(new Point(@in.Right - 2, midY)); // :1671
+            context.EndFigure(isClosed: false);
+        }
+        return geometry;
+    }
 }
 
 /// <summary>:1682-2001 <c>private struct SidebarThreadRow: View, Equatable</c>: a thread in either layout.</summary>
@@ -1504,7 +1894,7 @@ internal sealed class SidebarThreadRow : Decorator
         throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1716");
 
     // :1874-1877 private static func fill(isSelected: Bool, isHovering: Bool) -> Double. PR-SIDEBAR-063.
-    private static double Fill(bool isSelected, bool isHovering)
+    internal static double Fill(bool isSelected, bool isHovering)
     {
         if (isSelected) return 0.12; // :1875
         return isHovering ? 0.06 : 0; // :1876
@@ -1669,6 +2059,117 @@ internal sealed class SidebarThreadRow : Decorator
         if (of is not { } runtime || !runtime.IsHydraMerging) return null; // :1982
         return (runtime.HydraMergeStage ?? "Merging") + "\U00002026"; // :1983 U+2026 HORIZONTAL ELLIPSIS
     }
+
+    // MARK: Settling (part 4)
+
+    /// <summary>:1863-1870 the row's own <c>.onChange(of: model.finishRequest)</c>: a settle or reopen asked for
+    /// elsewhere is taken up only by the matching row, so it looks exactly like a click on the check.
+    /// PR-SIDEBAR-083.</summary>
+    internal static void FinishRequestReceived(AppModel model, ChatThread thread, bool isSettled, Action settle, Action reopen)
+    {
+        if (model.AppModelFinishRequest is not { } request || request.ThreadID != thread.Id || request.Reopens != isSettled) return; // :1864
+        model.AppModelFinishRequest = null; // :1865
+        if (request.Reopens) reopen(); else settle(); // :1866-1867
+    }
+
+    /// <summary>:1904-1910 settle(). The row's own exit: the check pops and the thread settles in the same pass, so
+    /// the row leaves on the list's removal fade and no ghost flies. PR-SIDEBAR-079.</summary>
+    internal static void Settle(AppModel model, ChatThread thread, bool isSettling, bool settleSound, Action<bool> setIsSettling)
+    {
+        if (isSettling || thread.IsSettled) return; // :1907
+        if (settleSound) SettleChime.Play(); // :1908
+        Transaction.WithAnimation(Animation.Spring(response: 0.3, dampingFraction: 0.45), () => setIsSettling(true)); // :1909
+        Transaction.WithAnimation(Chrome.PanelSlide, () => model.Settle(thread.Id, sounds: false)); // :1910
+    }
+
+    /// <summary>:1912-1916 reopen(). A settled row's check reopens it with a gliding ghost. PR-SIDEBAR-081.</summary>
+    internal static void Reopen(AppModel model, ChatThread thread, Action glide)
+    {
+        if (!thread.IsSettled) return; // :1913
+        glide(); // :1914 glide(.reopen), launched first so the arriving row can report its frame to it
+        model.ReopenAnimated(thread.Id); // :1915
+    }
+
+    /// <summary>:1929-1953 glide(_:). Sends the row's ghost from this row's frame to where the thread's other row
+    /// will be. Only a reopen flies (see <see cref="Reopen"/>); the direction parameter and the settled-fallback
+    /// arithmetic are kept for the flight's shape, as the source itself notes. PR-SIDEBAR-081.</summary>
+    internal static void Glide(
+        RowGlideAnimator animator,
+        RowGlideAnimator.Glide.Direction direction,
+        Rect listFrame,
+        Rect windowFrame,
+        ChatThread thread,
+        string? projectName,
+        ProjectIcon? projectIcon,
+        bool isSelected,
+        bool isHovering,
+        ThreadRuntime? runtime,
+        ThemeVariant colorScheme)
+    {
+        var from = windowFrame; // :1930
+        var bounds = listFrame; // :1931
+        var settled = direction == RowGlideAnimator.Glide.Direction.Settle; // :1933
+        // :1935-1940 the thread as its other row will show it.
+        var arriving = thread with
+        {
+            IsSettled = settled,
+            IsPinned = settled ? false : thread.IsPinned,
+            HasUnread = settled ? false : thread.HasUnread,
+        };
+        var arrivalHeight = settled // :1941
+            ? ThreadRowMetrics.SettledHeight
+            : projectName is not null ? ThreadRowMetrics.DetailedHeight : Chrome.RowHeight;
+        var fallback = new Rect(from.X, settled ? bounds.Bottom : bounds.Y - arrivalHeight, from.Width, arrivalHeight); // :1942-1947
+        Control Badge() => new ThreadGhostBadge(thread, runtime); // :1949
+        var departureClearance = TrailingClearance(thread.IsSettled, projectName is not null, showsActions: true); // :1952
+        var arrivalClearance = TrailingClearance(settled, !settled && projectName is not null, showsActions: false); // :1953
+        var departure = animator.Render(
+            new ThreadRowFace(thread, projectName, isSelected, departureClearance, Badge, projectIcon), from.Size, colorScheme); // :1954-1957
+        if (departure is null) return; // :1958 guard let departure = ..., let arrival = ... else { return }
+        var arrival = animator.Render(
+            new ThreadRowFace(arriving, projectName, isSelected, arrivalClearance, Badge, projectIcon),
+            new Size(from.Width, arrivalHeight), colorScheme); // :1959-1961
+        if (arrival is null) return;
+        animator.Launch( // :1962-1970
+            thread.Id,
+            direction,
+            from,
+            fallback,
+            bounds,
+            departure,
+            arrival,
+            Fill(isSelected, isHovering),
+            Fill(isSelected, false));
+    }
+
+    // MARK: Archiving (part 4)
+
+    /// <summary>:1988-1999 archiveWithGenie(). The hover archive button flies a genie ghost of the row and archives
+    /// the thread. PR-SIDEBAR-084.</summary>
+    internal static void ArchiveWithGenie(
+        GenieAnimator animator,
+        AppModel model,
+        ChatThread thread,
+        string? projectName,
+        ProjectIcon? projectIcon,
+        bool isSelected,
+        ThreadRuntime? runtime,
+        Rect windowFrame,
+        ThemeVariant colorScheme)
+    {
+        var fill = Chrome.Overlay(isSelected ? 0.12 : 0.06); // :1991
+        var badge = new ThreadGhostBadge(thread, runtime); // :1993
+        animator.Launch(windowFrame, colorScheme, () => // :1994-1997
+        {
+            var face = new ThreadRowFace(thread, projectName, isSelected, 52, () => badge, projectIcon);
+            // :1992, :1996 .background { shape.fill(fill) }: the row's own rounded rect, filled, drawn behind the face.
+            var backed = new Border { Child = face };
+            backed.RoundedRectangle(Chrome.RowCornerRadius, RoundedCornerStyle.Continuous);
+            backed.Background = fill.Brush(backed);
+            return backed;
+        });
+        Transaction.WithAnimation(Chrome.PanelSlide, () => model.Archive(thread.Id)); // :1998
+    }
 }
 
 /// <summary>:2006-2079 <c>private struct ThreadRowFace&lt;Badge: View&gt;: View</c>: what a thread row shows, drawn
@@ -1773,7 +2274,8 @@ internal sealed class ThreadRowFace : Decorator
     }
 }
 
-/// <summary>:2083-2109 <c>private struct ThreadGhostBadge: View</c>: the badge as a ghost carries it.</summary>
+/// <summary>:2083-2109 <c>private struct ThreadGhostBadge: View</c>: the badge as a ghost carries it. Part 4, built
+/// so Glide and ArchiveWithGenie (PR-SIDEBAR-081, PR-SIDEBAR-084) have a real badge to carry, not a stub.</summary>
 internal sealed class ThreadGhostBadge : Decorator
 {
     public ChatThread Thread { get; } // :2084
@@ -1781,8 +2283,26 @@ internal sealed class ThreadGhostBadge : Decorator
     public bool IsRunning { get; } // :2086
 
     // :2088-2092 init(thread:runtime:); :2094-2108 body
-    public ThreadGhostBadge(ChatThread thread, ThreadRuntime? runtime) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2088");
+    public ThreadGhostBadge(ChatThread thread, ThreadRuntime? runtime)
+    {
+        Thread = thread;
+        NeedsInput = runtime is { } r1 && (r1.Approvals.Count > 0 || r1.Questions.Count > 0); // :2089
+        IsRunning = runtime is { } r2 && (r2.IsRunning || r2.IsHydraMerging || r2.HasWorkingHelpers); // :2090
+        Child = new SidebarIconBadge(() => // :2095
+            NeedsInput
+                ? Tinted(new SidebarSymbol("hand.raised.fill"), Chrome.Orange) // :2097-2099
+                : IsRunning
+                    ? new MiniSpinner(cellSize: 2.4, isStill: true) // :2100-2101
+                    : thread.IsPinned
+                        ? Tinted(new SidebarSymbol("pin.fill", scale: 0.9), Chrome.Danger.Opacity(0.85)) // :2102-2104
+                        : new ProviderIcon { Provider = thread.Provider, Size = 14 }); // :2105-2106
+    }
+
+    private static Control Tinted(Control symbol, SwiftColor color)
+    {
+        symbol.SetValue(Avalonia.Controls.Documents.TextElement.ForegroundProperty, color.Brush(symbol));
+        return symbol;
+    }
 }
 
 /// <summary>:2114-2141 <c>private struct SettleCheck: View</c>.</summary>
@@ -1939,13 +2459,161 @@ internal sealed class SidebarMenuRequests : ObservableModel
 /// <summary>:2191-2313 <c>@MainActor private enum ThreadActions</c>: what a thread row offers.</summary>
 internal static class ThreadActions
 {
-    // :2193-2246 static func make(model:thread:onRename:onDelete:onSettle:onReopen:) -> [RowAction]
-    public static ValueList<RowAction> Make(AppModel model, ChatThread thread, Action onRename, Action onDelete, Action? onSettle = null, Action? onReopen = null) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2193");
+    // :2193-2246 static func make(model:thread:onRename:onDelete:onSettle:onReopen:) -> [RowAction]. Order: Rename;
+    // Pin/Unpin; Forward to new thread; Reveal worktree; the settle/archive group; Delete. PR-SIDEBAR-098 (order and
+    // equivalence with MakeContextMenu below), PR-SIDEBAR-099 (Pin/Unpin), PR-SIDEBAR-100 (Forward), PR-SIDEBAR-101
+    // (Reveal, OD-0008 B1 deviation), PR-SIDEBAR-102 (a helper offers no Pin, no Settle).
+    public static ValueList<RowAction> Make(AppModel model, ChatThread thread, Action onRename, Action onDelete, Action? onSettle = null, Action? onReopen = null)
+    {
+        var items = new List<RowAction> { new() { Title = "Rename", Symbol = "pencil", Action = onRename } }; // :2200
+        if (!thread.IsHelper && !thread.IsSettled) // :2204, :2196-2198
+        {
+            items.Add(new RowAction
+            {
+                Title = thread.IsPinned ? "Unpin" : "Pin", // :2205
+                Symbol = thread.IsPinned ? "pin.slash" : "pin", // :2205
+                Action = () => Transaction.WithAnimation(Chrome.PanelSlide, () => // :2206-2207
+                    model.UpdateThread(thread.Id, t => t with { IsPinned = !t.IsPinned })),
+            });
+        }
+        items.Add(new RowAction // :2210-2212
+        {
+            Title = "Forward to new thread",
+            Symbol = "arrowshape.turn.up.right",
+            Action = () => MainActor.Spawn(async () => { await model.ForwardThread(thread.Id); return; }),
+        });
+        if (thread.WorktreePath is { } path) // :2214
+        {
+            items.Add(new RowAction // :2215, OD-0008 B1: the label deviates from upstream's "Reveal worktree in Finder"
+            {
+                Title = "Reveal worktree in File Explorer",
+                Symbol = "folder",
+                Action = () => ShellWorkspace.RevealInFileExplorer(path),
+            });
+        }
+        var settleFirst = !thread.IsHelper && model.Settings.ThreadFinishAction == ThreadFinishAction.Settle; // :2220
+        var archive = new RowAction // :2221-2223
+        {
+            Title = "Archive",
+            Symbol = "archivebox",
+            StartsGroup = !settleFirst,
+            Action = () => Transaction.WithAnimation(Chrome.PanelSlide, () => model.Archive(thread.Id)),
+        };
+        if (thread.IsHelper) // :2224
+        {
+            items.Add(archive); // :2225
+        }
+        else
+        {
+            var settle = new RowAction // :2227-2231
+            {
+                Title = thread.IsSettled ? "Reopen" : "Settle",
+                Symbol = thread.IsSettled ? "arrow.uturn.backward" : "checkmark.circle",
+                StartsGroup = settleFirst,
+                Action = () => // :2233-2240 the row's own handlers fly the ghost; without them the thread just moves
+                {
+                    if (thread.IsSettled) { if (onReopen is { } reopen) reopen(); else model.ReopenAnimated(thread.Id); }
+                    else if (onSettle is { } settleNow) settleNow();
+                    else model.SettleAnimated(thread.Id);
+                },
+            };
+            items.AddRange(settleFirst ? [settle, archive] : [archive, settle]); // :2242
+        }
+        items.Add(new RowAction { Title = "Delete…", Symbol = "trash", IsDestructive = true, Action = onDelete }); // :2244
+        return new ValueList<RowAction>(items);
+    }
 
-    // :2253-2312 static func makeContextMenu(model:thread:settleFirst:requests:) -> [RowAction]
-    public static ValueList<RowAction> MakeContextMenu(AppModel model, ChatThread thread, bool settleFirst, SidebarMenuRequests requests) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2253");
+    // :2253-2312 static func makeContextMenu(model:thread:settleFirst:requests:) -> [RowAction]. The identical list,
+    // built from value snapshots with weak model captures (:2245-2250): the AppKit menu outlives the right-click, so
+    // its callbacks must not retain the row. Rename and Delete post to requests; Settle/Reopen post a finish request;
+    // everything else touches only the model. PR-SIDEBAR-098, PR-SIDEBAR-099, PR-SIDEBAR-100, PR-SIDEBAR-101,
+    // PR-SIDEBAR-102, PR-SIDEBAR-103.
+    public static ValueList<RowAction> MakeContextMenu(AppModel model, ChatThread thread, bool settleFirst, SidebarMenuRequests requests)
+    {
+        var threadID = thread.Id; // :2258
+        var weakModel = new WeakReference<AppModel>(model); // [weak model]
+        var items = new List<RowAction>
+        {
+            new() // :2259-2262
+            {
+                Title = "Rename",
+                Symbol = "pencil",
+                Action = () => { if (weakModel.TryGetTarget(out _)) requests.Rename = thread; }, // :2260-2261
+            },
+        };
+        if (!thread.IsHelper && !thread.IsSettled) // :2265
+        {
+            var isPinned = thread.IsPinned; // :2266
+            items.Add(new RowAction
+            {
+                Title = isPinned ? "Unpin" : "Pin", // :2267
+                Symbol = isPinned ? "pin.slash" : "pin",
+                Action = () => // :2267-2272
+                {
+                    if (!weakModel.TryGetTarget(out var live)) return; // :2269
+                    Transaction.WithAnimation(Chrome.PanelSlide, () => live.UpdateThread(threadID, t => t with { IsPinned = !t.IsPinned })); // :2270-2271
+                },
+            });
+        }
+        items.Add(new RowAction // :2277-2280
+        {
+            Title = "Forward to new thread",
+            Symbol = "arrowshape.turn.up.right",
+            Action = () =>
+            {
+                if (!weakModel.TryGetTarget(out var live)) return; // :2278
+                MainActor.Spawn(async () => { await live.ForwardThread(threadID); return; }); // :2279
+            },
+        });
+        if (thread.WorktreePath is { } path) // :2282
+        {
+            items.Add(new RowAction // :2283-2286
+            {
+                Title = "Reveal worktree in File Explorer", // OD-0008 B1 deviation
+                Symbol = "folder",
+                Action = () => { if (weakModel.TryGetTarget(out _)) ShellWorkspace.RevealInFileExplorer(path); }, // :2284-2285
+            });
+        }
+        var archive = new RowAction // :2288-2292
+        {
+            Title = "Archive",
+            Symbol = "archivebox",
+            StartsGroup = !settleFirst,
+            Action = () =>
+            {
+                if (!weakModel.TryGetTarget(out var live)) return; // :2290
+                Transaction.WithAnimation(Chrome.PanelSlide, () => live.Archive(threadID)); // :2291
+            },
+        };
+        if (thread.IsHelper) // :2293
+        {
+            items.Add(archive); // :2294
+        }
+        else
+        {
+            var isSettled = thread.IsSettled; // :2296
+            var settle = new RowAction // :2297-2301
+            {
+                Title = isSettled ? "Reopen" : "Settle",
+                Symbol = isSettled ? "arrow.uturn.backward" : "checkmark.circle",
+                StartsGroup = settleFirst,
+                Action = () =>
+                {
+                    if (!weakModel.TryGetTarget(out var live)) return; // :2303
+                    live.AppModelFinishRequest = new AppModel.FinishRequest(threadID, isSettled); // :2304
+                },
+            };
+            items.AddRange(settleFirst ? [settle, archive] : [archive, settle]); // :2306
+        }
+        items.Add(new RowAction // :2308-2311
+        {
+            Title = "Delete…",
+            Symbol = "trash",
+            IsDestructive = true,
+            Action = () => { if (weakModel.TryGetTarget(out _)) requests.Delete = thread; }, // :2309-2310
+        });
+        return new ValueList<RowAction>(items);
+    }
 }
 
 /// <summary>:2316-2343 <c>private struct ActivityViewToggle: View</c>.</summary>
