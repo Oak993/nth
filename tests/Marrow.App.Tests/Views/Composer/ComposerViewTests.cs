@@ -15,6 +15,8 @@ using Marrow.App.Views.Composer;
 using Marrow.App.Views.Diff;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
+using Marrow.Services.Providers;
+using Marrow.Services.Store;
 using Marrow.UI.Chrome;
 using Marrow.UI.Common;
 using Marrow.UI.Port;
@@ -23,9 +25,11 @@ using AvaloniaWindow = Avalonia.Controls.Window;
 
 namespace Marrow.App.Tests.Views.Composer;
 
-// Source: DroppyCode/App/Views/Composer/ComposerView.swift (B3 52bc792), :4-112, :139-189, :275-422, :540-607,
-// :1048, :1290-1307. Part 1 of 5 of App.Views.Composer.ComposerView: the area, the tab slot, the stats refresh, the
-// pill's layout, placeholder, keys, send and recall, the text column and the surface.
+// Source: DroppyCode/App/Views/Composer/ComposerView.swift (B3 52bc792), :4-112, :139-273, :275-533, :540-607,
+// :1037-1101, :1103-1288, :1290-1307; DroppyCode/Core/Models/Provider.swift (B3 52bc792), :306-323. Part 1 of 5 of
+// App.Views.Composer.ComposerView: the area, the tab slot, the stats refresh, the pill's layout, placeholder, keys,
+// send and recall, the text column and the surface. Part 2 of 5: steer, the caret's suggestion refresh, the file and
+// command lists, pick, the panel, command loading, focus and visibility wirings, the file index and attach.
 //
 // Two runtimes are used. The harness's own runtime has a thread the model resolves; the pill's controls
 // (ComposerControls, part 3 of this unit) are built for a resolved thread, so a pill with such a runtime is only
@@ -1127,6 +1131,1404 @@ public sealed class ComposerViewTests(HeadlessSession headless)
             Assert.False(runtime.IsRunning);
         });
     }
+
+    // ======== Part 2 of 5 (ComposerView.swift :190-218, :228-273, :311-330, :384-398, :424-524, :1037-1101,
+    // :1103-1288; Provider.swift :306-323): steer, the suggestion list, the command list, pick, the file index and
+    // attach ========
+
+    // The key the text view reports for a chord (ComposerTextView.swift:329-357), raised as part 1's Press does.
+    private static bool Press(ComposerView view, Key key, KeyModifiers modifiers)
+    {
+        var textView = One<ComposerNSTextView>(view);
+        var args = new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = key, KeyModifiers = modifiers };
+        textView.RaiseEvent(args);
+        return args.Handled;
+    }
+
+    // The text box as a user leaves it: the text, then the caret. The text view reports both (ComposerTextView.swift:
+    // 317-327), the text through the draft binding.
+    private static void Type(ComposerView view, string text, int? caret = null)
+    {
+        var box = One<ComposerNSTextView>(view);
+        box.Text = text;
+        // The text box raises TextChanged from a posted dispatcher job; it runs here, before the caret moves, so the
+        // draft holds the text when the caret is reported, as a keystroke delivers them (ComposerTextView.swift:317-327).
+        Drain();
+        var at = caret ?? text.Length;
+        box.SelectionStart = at;
+        box.SelectionEnd = at;
+    }
+
+    // Pumps the main loop, the dispatcher and layout until the condition holds: a search or an index build runs off main
+    // and comes back to it.
+    private static void Until(ThreadRuntimePart12Harness h, AvaloniaWindow? window, Func<bool> condition) =>
+        h.Main.Loop.RunUntil(() =>
+        {
+            if (window is null) Drain();
+            else Settle(window);
+            return condition();
+        }, AppModelHarness.Bound);
+
+    // A pill that is not on screen, with a working directory, for the resolved harness thread: the controls a resolved
+    // thread draws (ComposerControls) are part 3's, so such a pill is exercised unattached, as part 1 does.
+    private static ComposerView Pill(ThreadRuntimePart12Harness h, ThreadRuntime runtime, string? workingDirectory) => h.Main.OnMain(() =>
+    {
+        var view = new ComposerView(runtime, workingDirectory);
+        AppEnvironment.SetAppModel(view, h.App);
+        Drain();
+        return view;
+    });
+
+    // A pill on screen beside another focusable control, its text view focused. Its runtime resolves no thread, so the
+    // controls are left out (ComposerView.swift:160) and the file list, which needs no thread, can be shown.
+    private static (ComposerView View, AvaloniaWindow Window, Button Other, StackPanel Stack) OnScreen(
+        ThreadRuntimePart12Harness h, ThreadRuntime runtime, string? workingDirectory, bool takesFocusOnAppear = true)
+    {
+        var (view, window, other, stack) = h.Main.OnMain(() =>
+        {
+            var view = new ComposerView(runtime, workingDirectory, takesFocusOnAppear: takesFocusOnAppear);
+            var other = new Button { Content = "Other" };
+            var stack = new StackPanel
+            {
+                Width = 600,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Bottom,
+            };
+            stack.Children.Add(view);
+            stack.Children.Add(other);
+            AppEnvironment.SetAppModel(stack, h.App);
+            var window = new AvaloniaWindow { Content = stack, Width = 1400, Height = 900 };
+            window.Show();
+            Settle(window);
+            return (view, window, other, stack);
+        });
+        Pump(h, window);
+        h.Main.OnMain(() => One<ComposerNSTextView>(view).Focus());
+        Pump(h, window);
+        return (view, window, other, stack);
+    }
+
+    // Empty files at the given relative paths ("/" separated) under root.
+    private static void Touch(string root, params string[] relative)
+    {
+        foreach (var path in relative)
+        {
+            var full = Path.Combine(root, path.Replace('/', Path.DirectorySeparatorChar));
+            Directory.CreateDirectory(Path.GetDirectoryName(full)!);
+            File.WriteAllBytes(full, []);
+        }
+    }
+
+    // Builds the shared index for a directory before a composer asks for it (ComposerView.swift:1121-1127: a composer
+    // that finds its directory built is served at once).
+    private static void Indexed(ThreadRuntimePart12Harness h, string directory)
+    {
+        var index = h.Main.OnMain(() => new FileIndex());
+        h.Main.Loop.Run(() => index.Prepare(directory), AppModelHarness.Bound);
+    }
+
+    // What the controller last handed the popover (ComposerTextView.swift:51-84): the fixed frame holding the menu.
+    private static Border Shown(RecordingPresenter presenter)
+    {
+        var (popup, presented) = presenter.Calls[^1];
+        Assert.True(presented);
+        return Assert.IsType<Border>(popup.Child);
+    }
+
+    private static string HeaderText(Control menu) => Assert.IsType<TextBlock>(One<PopoverSectionHeader>(menu).Child).Text!;
+
+    private static string[] Titles(ComposerView view) => view.Suggestions.Items.Select(item => item.Title).ToArray();
+
+    private static ShortcutStore FreshStore() => (ShortcutStore)Activator.CreateInstance(typeof(ShortcutStore), nonPublic: true)!;
+
+    private static string Whoami() => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "whoami.exe");
+
+    private static Attachment Fake(int index) => new()
+    {
+        Name = "held" + index.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".txt",
+        Path = @"C:\no-such-folder\held" + index.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".txt",
+        MimeType = "text/plain",
+    };
+
+
+    // ---- steer (:384-398) ----
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-031")] // App/Views/Composer/ComposerView.swift:388-397
+    public void Command_Return_with_nothing_running_sends_the_draft_because_there_is_nothing_to_steer_behind()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            using var shared = ShortcutStore.Shared.Override(FreshStore());
+            var runtime = h.Runtime;
+            var view = Pill(h, runtime);
+            h.Main.OnMain(() => runtime.Draft = new ComposerDraft { Text = "steer me" });
+            Assert.True(h.Main.OnMain(() => Press(view, Key.Enter, KeyModifiers.Control)));
+            Assert.True(runtime.Draft.IsEmpty);
+            Assert.Empty(runtime.FollowUps);
+            h.Main.Loop.RunUntil(() => runtime.Phase == RuntimePhase.Idle && runtime.Turns.Count == 1, AppModelHarness.Bound);
+            Assert.Equal(["steer me"], runtime.SentPrompts);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-031")] // App/Views/Composer/ComposerView.swift:392-394
+    public void Command_Return_while_a_turn_runs_with_the_default_queue_chord_queues_the_draft_as_a_follow_up()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            using var shared = ShortcutStore.Shared.Override(FreshStore());
+            var runtime = h.Runtime;
+            var view = Pill(h, runtime);
+            h.Main.OnMain(() =>
+            {
+                runtime.RehearseTurn("working");
+                runtime.Draft = new ComposerDraft { Text = "after that, the tests" };
+            });
+            var running = runtime.Turns.Single().Id;
+            Assert.True(h.Main.OnMain(() => Press(view, Key.Enter, KeyModifiers.Control)));
+            Assert.True(runtime.Draft.IsEmpty);
+            Assert.Equal(["after that, the tests"], runtime.FollowUps.Select(prompt => prompt.Text).ToArray());
+            Assert.True(runtime.IsRunning);
+            Assert.Equal(TurnStatus.Running, runtime.Turns.Single(turn => turn.Id == running).Status);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-031")] // App/Views/Composer/ComposerView.swift:392-397
+    public void Once_the_queue_chord_is_rebound_Command_Return_falls_back_to_send_which_leaves_a_running_turn_and_the_draft_alone()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            var store = FreshStore();
+            using var shared = ShortcutStore.Shared.Override(store);
+            var runtime = h.Runtime;
+            var view = Pill(h, runtime);
+            h.Main.OnMain(() =>
+            {
+                store.Set(new KeyChord(0x1F, ChordModifiers.Control), AppShortcut.QueueChat);
+                runtime.RehearseTurn("working");
+                runtime.Draft = new ComposerDraft { Text = "after that, the tests" };
+            });
+            Assert.True(h.Main.OnMain(() => Press(view, Key.Enter, KeyModifiers.Control)));
+            Assert.Empty(runtime.FollowUps);
+            Assert.Equal("after that, the tests", runtime.Draft.Text);
+            Assert.True(runtime.IsRunning);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-031")] // App/Views/Composer/ComposerView.swift:389
+    public void Command_Return_with_an_empty_draft_is_taken_and_does_nothing()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            using var shared = ShortcutStore.Shared.Override(FreshStore());
+            var runtime = h.Runtime;
+            var view = Pill(h, runtime);
+            h.Main.OnMain(() => runtime.RehearseTurn("working"));
+            Assert.True(h.Main.OnMain(() => Press(view, Key.Enter, KeyModifiers.Control)));
+            Assert.Empty(runtime.FollowUps);
+            Assert.True(runtime.IsRunning);
+        });
+    }
+
+    // ---- caret moves and the warm-up (:426-437) ----
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-035")] // App/Views/Composer/ComposerView.swift:323-326, :429-436
+    public void Escape_latches_the_list_shut_and_the_next_caret_move_clears_the_latch_so_it_opens_again()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            var view = Pill(h, h.Runtime, workingDirectory: null);
+            h.Main.OnMain(() => Type(view, "/"));
+            Until(h, null, () => view.Suggestions.IsVisible);
+            Assert.True(h.Main.OnMain(() => Press(view, Key.Escape)));
+            Until(h, null, () => true);
+            Assert.False(view.Suggestions.IsVisible);
+            h.Main.OnMain(() => Type(view, "/p"));
+            Until(h, null, () => view.Suggestions.IsVisible);
+            Assert.Equal(["/plan", "/compact"], Titles(view));
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-035")] // App/Views/Composer/ComposerView.swift:432-436
+    public void Each_caret_report_cancels_the_refresh_before_it_and_leaves_one_refresh_running()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            var view = Pill(h, h.Runtime, workingDirectory: null);
+            var (first, second) = h.Main.OnMain(() =>
+            {
+                var box = One<ComposerNSTextView>(view);
+                box.Text = "/p";
+                box.SelectionStart = box.SelectionEnd = 1;
+                var earlier = view.Controller.SuggestionRefresh;
+                box.SelectionStart = box.SelectionEnd = 2;
+                return (earlier, view.Controller.SuggestionRefresh);
+            });
+            Assert.NotNull(first);
+            Assert.NotNull(second);
+            Assert.NotSame(first, second);
+            Assert.True(first!.IsCancelled);
+            Assert.False(second!.IsCancelled);
+            Until(h, null, () => view.Suggestions.IsVisible);
+            Assert.Equal(["/plan", "/compact"], Titles(view));
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-036")] // App/Views/Composer/ComposerView.swift:431; App/Runtime/ThreadRuntime.swift:1416-1427
+    public void Typing_into_an_idle_thread_warms_its_session_which_settles_the_model_before_any_send()
+    {
+        headless.OnUiThread(() =>
+        {
+            // Claude's catalog starts from its seed, so the warm-up's ensureModel has a default to settle on
+            // (ThreadRuntime.swift:1423); its CLI is the harness's missing path, so the start that follows fails quietly.
+            System.Threading.Tasks.Task.Run(() => Marrow.Core.Support.LoginEnvironment.Load()).GetAwaiter().GetResult();
+            using var h = new ThreadRuntimePart12Harness(ProviderKind.Claude);
+            var runtime = h.Runtime;
+            Loaded(h, runtime);
+            Assert.Null(h.App.Thread(h.Thread.Id)!.Model);
+            Assert.NotNull(h.App.Providers.DefaultModel(ProviderKind.Claude));
+            var view = Pill(h, runtime, workingDirectory: null);
+            h.Main.OnMain(() => Type(view, "h"));
+            Until(h, null, () => h.App.Thread(h.Thread.Id)!.Model is not null);
+            Assert.Equal(h.App.Providers.DefaultModel(ProviderKind.Claude)!.Id, h.App.Thread(h.Thread.Id)!.Model);
+            Assert.Empty(runtime.Turns);
+            Assert.Equal(RuntimePhase.Idle, runtime.Phase);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-036")] // App/Views/Composer/ComposerView.swift:431; App/Runtime/ThreadRuntime.swift:1418
+    public void Typing_into_an_archived_thread_warms_nothing()
+    {
+        headless.OnUiThread(() =>
+        {
+            System.Threading.Tasks.Task.Run(() => Marrow.Core.Support.LoginEnvironment.Load()).GetAwaiter().GetResult();
+            using var h = new ThreadRuntimePart12Harness(ProviderKind.Claude);
+            Loaded(h, h.Runtime);
+            Assert.NotNull(h.App.Providers.DefaultModel(ProviderKind.Claude));
+            h.Main.OnMain(() => h.App.UpdateThread(h.Thread.Id, thread => thread with { IsArchived = true }));
+            var view = Pill(h, h.Runtime, workingDirectory: null);
+            h.Main.OnMain(() => Type(view, "h"));
+            for (var round = 0; round < 20; round++) h.Main.OnMain(Drain);
+            Assert.Null(h.App.Thread(h.Thread.Id)!.Model);
+        });
+    }
+
+    // ---- the word before the caret (:439-473) ----
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-037")] // App/Views/Composer/ComposerView.swift:445-452
+    public void The_word_runs_back_from_the_caret_to_the_last_space_newline_or_tab()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            var presenter = new RecordingPresenter();
+            using var seam = Presentation.Presenter.Override(presenter);
+            var directory = h.Store.NewFolder("words");
+            Touch(directory, "main.swift");
+            Indexed(h, directory);
+            var (view, window, _, _) = OnScreen(h, Unresolved(h), directory);
+
+            h.Main.OnMain(() => Type(view, "one two\n@ma"));
+            Until(h, window, () => view.Suggestions.IsVisible);
+            Assert.Equal((8, 3), view.Suggestions.Range);
+
+            h.Main.OnMain(() => Type(view, "a\t@mai"));
+            Until(h, window, () => view.Suggestions.Range == (2, 4));
+
+            h.Main.OnMain(() => Type(view, "a b @main"));
+            Until(h, window, () => view.Suggestions.Range == (4, 5));
+
+            h.Main.OnMain(() => Type(view, "x@ma"));
+            Until(h, window, () => !view.Suggestions.IsVisible);
+            Close(h, window);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-037")] // App/Views/Composer/ComposerView.swift:440-452
+    public void Offsets_are_UTF_16_units_as_NSString_counts_them()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            var presenter = new RecordingPresenter();
+            using var seam = Presentation.Presenter.Override(presenter);
+            var directory = h.Store.NewFolder("utf16");
+            Touch(directory, "main.swift");
+            Indexed(h, directory);
+            var (view, window, _, _) = OnScreen(h, Unresolved(h), directory);
+            // U+00E9, then U+1F642 (two UTF-16 units), then a space: the word starts at unit 4.
+            var text = "\U000000E9\U0001F642 @ma"; // U+00E9 LATIN SMALL LETTER E WITH ACUTE, U+1F642 SLIGHTLY SMILING FACE
+            h.Main.OnMain(() => Type(view, text));
+            Until(h, window, () => view.Suggestions.IsVisible);
+            Assert.Equal((4, 3), view.Suggestions.Range);
+            Close(h, window);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-037")] // App/Views/Composer/ComposerView.swift:441-443
+    public void A_caret_at_the_very_start_closes_an_open_list()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            var view = Pill(h, h.Runtime, workingDirectory: null);
+            h.Main.OnMain(() => Type(view, "/pl"));
+            Until(h, null, () => view.Suggestions.IsVisible);
+            h.Main.OnMain(() =>
+            {
+                var box = One<ComposerNSTextView>(view);
+                box.SelectionStart = box.SelectionEnd = 0;
+            });
+            Until(h, null, () => !view.Suggestions.IsVisible);
+            Assert.Equal("/pl", h.Runtime.Draft.Text);
+        });
+    }
+
+    // ---- @ file mentions (:455-462) ----
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-038")] // App/Views/Composer/ComposerView.swift:455-462, :1179-1183
+    public void An_at_word_offers_at_most_eight_paths_each_titled_by_its_last_component_with_the_path_as_detail_and_the_doc_symbol()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            var presenter = new RecordingPresenter();
+            using var seam = Presentation.Presenter.Override(presenter);
+            var directory = h.Store.NewFolder("mentions");
+            var made = Enumerable.Range(0, 10).Select(n => "src/file" + n.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".txt").ToArray();
+            Touch(directory, made);
+            Indexed(h, directory);
+            var (view, window, _, _) = OnScreen(h, Unresolved(h), directory);
+            h.Main.OnMain(() => Type(view, "@file"));
+            Until(h, window, () => view.Suggestions.IsVisible);
+            var suggestions = view.Suggestions;
+            Assert.Equal(SuggestionState.Kind.File, suggestions.SuggestionKind);
+            Assert.Equal(8, suggestions.Items.Count);
+            var relative = made.Select(path => path.Replace('/', '\\')).ToHashSet(StringComparer.Ordinal);
+            foreach (var item in suggestions.Items)
+            {
+                Assert.Contains(item.Detail, relative);
+                Assert.Equal(SwiftPath.LastPathComponent(item.Detail), item.Title);
+                Assert.StartsWith("file", item.Title, StringComparison.Ordinal);
+                Assert.Equal("@" + item.Detail + " ", item.Value);
+                Assert.Equal("doc", item.Symbol);
+                Assert.Null(item.Command);
+                Assert.Equal(item.Value, item.Id);
+            }
+            Assert.Equal(8, suggestions.Items.Select(item => item.Detail).Distinct(StringComparer.Ordinal).Count());
+            Close(h, window);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-038")] // App/Views/Composer/ComposerView.swift:467-470
+    public void An_at_word_matching_no_path_offers_nothing()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            var presenter = new RecordingPresenter();
+            using var seam = Presentation.Presenter.Override(presenter);
+            var directory = h.Store.NewFolder("nomatch");
+            Touch(directory, "main.swift");
+            Indexed(h, directory);
+            var (view, window, _, _) = OnScreen(h, Unresolved(h), directory);
+            h.Main.OnMain(() => Type(view, "@ma"));
+            Until(h, window, () => view.Suggestions.IsVisible && presenter.Calls.Count > 0);
+            var shown = presenter.Calls[^1].Popup;
+            h.Main.OnMain(() => Type(view, "@qqq"));
+            Until(h, window, () => !view.Suggestions.IsVisible && !presenter.Calls[^1].Presented);
+            Assert.Same(shown, presenter.Calls[^1].Popup);
+            Close(h, window);
+        });
+    }
+
+    // ---- / commands (:463-466, :475-485) ----
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-039")] // App/Views/Composer/ComposerView.swift:463-465
+    public void A_slash_word_at_the_very_start_of_the_draft_offers_commands()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            var view = Pill(h, h.Runtime, workingDirectory: null);
+            h.Main.OnMain(() => Type(view, "/"));
+            Until(h, null, () => view.Suggestions.IsVisible);
+            Assert.Equal(SuggestionState.Kind.Command, view.Suggestions.SuggestionKind);
+            Assert.Equal((0, 1), view.Suggestions.Range);
+            Assert.Contains("/plan", Titles(view));
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-039")] // App/Views/Composer/ComposerView.swift:463, :467-470
+    public void A_slash_word_anywhere_but_the_start_offers_nothing_at_all()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            var view = Pill(h, h.Runtime, workingDirectory: null);
+            h.Main.OnMain(() => Type(view, "/pl"));
+            Until(h, null, () => view.Suggestions.IsVisible);
+            h.Main.OnMain(() => Type(view, "run /pl"));
+            Until(h, null, () => !view.Suggestions.IsVisible);
+            h.Main.OnMain(() => Type(view, " /pl"));
+            Until(h, null, () => true);
+            Assert.False(view.Suggestions.IsVisible);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-040")] // App/Views/Composer/ComposerView.swift:477, :482-484
+    public void The_command_list_always_holds_plan_built_in_with_its_detail_and_the_command_symbol()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            var view = Pill(h, h.Runtime, workingDirectory: null);
+            h.Main.OnMain(() => Type(view, "/pla"));
+            Until(h, null, () => view.Suggestions.IsVisible);
+            var plan = Assert.Single(view.Suggestions.Items);
+            Assert.Equal("/plan ", plan.Value);
+            Assert.Equal("/plan", plan.Title);
+            Assert.Equal("Turn plan mode on or off", plan.Detail);
+            Assert.Equal("command", plan.Symbol);
+            Assert.Equal(new SlashCommand { Name = "plan", Detail = "Turn plan mode on or off", IsBuiltIn = true }, plan.Command);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-041")] // App/Views/Composer/ComposerView.swift:478-480; Core/Models/Provider.swift:149-154
+    public void Compact_is_offered_on_the_seven_providers_that_support_it_and_on_no_other()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            var view = Pill(h, h.Runtime, workingDirectory: null);
+            ProviderKind[] supporting =
+            [
+                ProviderKind.Codex, ProviderKind.Claude, ProviderKind.Copilot, ProviderKind.Deepseek, ProviderKind.Meta,
+                ProviderKind.Zai, ProviderKind.Pi,
+            ];
+            foreach (var provider in SwiftEnum<ProviderKind>.AllCases)
+            {
+                h.Main.OnMain(() =>
+                {
+                    h.App.UpdateThread(h.Thread.Id, thread => thread with { Provider = provider });
+                    Type(view, "");
+                });
+                Until(h, null, () => !view.Suggestions.IsVisible);
+                h.Main.OnMain(() => Type(view, "/"));
+                Until(h, null, () => view.Suggestions.IsVisible);
+                var compact = view.Suggestions.Items.Where(item => item.Title == "/compact").ToArray();
+                if (supporting.Contains(provider))
+                {
+                    var only = Assert.Single(compact);
+                    Assert.Equal("Summarize the conversation to free up context", only.Detail);
+                    Assert.Equal("command", only.Symbol);
+                    Assert.True(only.Command!.IsBuiltIn);
+                }
+                else
+                {
+                    Assert.Empty(compact);
+                }
+            }
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-042")] // App/Views/Composer/ComposerView.swift:481-482; Core/Models/Provider.swift:306-323
+    public void Provider_commands_join_the_built_ins_and_rank_by_prefix_then_recency_then_name()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            var directory = h.Store.NewFolder("commands");
+            var view = Pill(h, h.Runtime, directory);
+            h.Main.OnMain(() =>
+            {
+                h.App.Providers.UpdateCommands(new ValueList<SlashCommand>(
+                [
+                    new SlashCommand { Name = "review", Detail = "Review the diff" },
+                    new SlashCommand { Name = "prereview", Detail = "Before the review" },
+                    new SlashCommand { Name = "rebase", Detail = "Rebase the branch" },
+                    new SlashCommand { Name = "Refactor", Detail = "Tidy the code" },
+                    new SlashCommand { Name = "zzz", Detail = "Sleep" },
+                    new SlashCommand { Name = "plan", Detail = "A provider plan" },
+                ]), ProviderKind.Codex, directory);
+                h.App.Providers.RecordCommand("prereview", ProviderKind.Codex);
+                h.App.Providers.RecordCommand("rebase", ProviderKind.Codex);
+                Type(view, "/re");
+            });
+            Until(h, null, () => view.Suggestions.IsVisible);
+            Assert.Equal(["/rebase", "/Refactor", "/review", "/prereview"], Titles(view));
+
+            h.Main.OnMain(() => Type(view, "/"));
+            Until(h, null, () => view.Suggestions.Items.Count > 4);
+            // An empty query: every name is a prefix match, so recency, then the lowercased name, decide.
+            Assert.Equal(["/rebase", "/prereview", "/compact", "/plan", "/Refactor", "/review", "/zzz"], Titles(view));
+            // The built-in plan came first, so the provider's plan is the duplicate that is dropped.
+            var plan = view.Suggestions.Items.Single(item => item.Title == "/plan");
+            Assert.Equal("Turn plan mode on or off", plan.Detail);
+            Assert.Equal("command", plan.Symbol);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-042")] // Core/Models/Provider.swift:306-323
+    public void Suggestions_match_a_lowercased_substring_drop_later_duplicates_and_rank_a_name_by_its_most_recent_use()
+    {
+        SlashCommand Command(string name) => new() { Name = name, Detail = name + " detail" };
+        var commands = new[] { Command("Deploy"), Command("undeploy"), Command("Deploy"), Command("docs"), Command("build") };
+        var matched = SlashCommand.Suggestions(commands, "DEP", ["undeploy", "docs", "undeploy"]);
+        Assert.Equal(["Deploy", "undeploy"], matched.Select(command => command.Name).ToArray());
+        Assert.Same(commands[0], matched[0]);
+
+        // Recency: "docs" at 1 and again at 3 keeps rank 1; "build" at 0 is the most recent.
+        var all = SlashCommand.Suggestions(commands, "", ["build", "docs", "zzz", "docs"]);
+        Assert.Equal(["build", "docs", "Deploy", "undeploy"], all.Select(command => command.Name).ToArray());
+
+        Assert.Empty(SlashCommand.Suggestions(commands, "nothing", []));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-043")] // App/Views/Composer/ComposerView.swift:482-484
+    public void A_provider_command_row_carries_slash_name_space_as_value_slash_name_as_title_its_detail_and_the_sparkles_symbol()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            var directory = h.Store.NewFolder("rows");
+            var view = Pill(h, h.Runtime, directory);
+            var review = new SlashCommand { Name = "review", Detail = "Review the diff", SkillPath = "C:/skills/review" };
+            h.Main.OnMain(() =>
+            {
+                h.App.Providers.UpdateCommands(new ValueList<SlashCommand>([review]), ProviderKind.Codex, directory);
+                Type(view, "/rev");
+            });
+            Until(h, null, () => view.Suggestions.IsVisible);
+            var row = Assert.Single(view.Suggestions.Items);
+            Assert.Equal("/review ", row.Value);
+            Assert.Equal("/review", row.Title);
+            Assert.Equal("Review the diff", row.Detail);
+            Assert.Equal("sparkles", row.Symbol);
+            Assert.Equal(review, row.Command);
+        });
+    }
+
+    // ---- the highlighted row (:471-472) and the keys while the list is open (:311-330) ----
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-044")] // App/Views/Composer/ComposerView.swift:471-472
+    public void Typing_on_in_the_same_word_keeps_the_highlight_clamped_and_a_word_elsewhere_starts_at_the_first_row()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            var presenter = new RecordingPresenter();
+            using var seam = Presentation.Presenter.Override(presenter);
+            var directory = h.Store.NewFolder("highlight");
+            Touch(directory, "aa1.txt", "aa2.txt", "aa3.txt", "ab1.txt", "ab2.txt", "ab3.txt");
+            Indexed(h, directory);
+            var (view, window, _, _) = OnScreen(h, Unresolved(h), directory);
+            h.Main.OnMain(() => Type(view, "@a"));
+            Until(h, window, () => view.Suggestions.Items.Count == 6);
+            for (var step = 0; step < 4; step++) Assert.True(h.Main.OnMain(() => Press(view, Key.Down)));
+            Assert.Equal(4, view.Suggestions.Selected);
+
+            h.Main.OnMain(() => Type(view, "@aa"));
+            Until(h, window, () => view.Suggestions.Items.Count == 3);
+            Assert.Equal(2, view.Suggestions.Selected);
+            Assert.Equal(0, view.Suggestions.Range.Location);
+
+            h.Main.OnMain(() => Type(view, "@aa @a"));
+            Until(h, window, () => view.Suggestions.Range.Location == 4);
+            Assert.Equal(0, view.Suggestions.Selected);
+            Close(h, window);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-045")] // App/Views/Composer/ComposerView.swift:312-319
+    public void While_the_list_is_open_Up_and_Down_move_the_highlight_within_bounds_and_history_is_never_recalled()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            var runtime = h.Runtime;
+            h.Main.OnMain(() => runtime.RehearseTurn("an earlier prompt"));
+            var view = Pill(h, runtime, workingDirectory: null);
+            h.Main.OnMain(() => Type(view, "/"));
+            Until(h, null, () => view.Suggestions.IsVisible);
+            Assert.Equal(["/compact", "/plan"], Titles(view));
+            Assert.True(h.Main.OnMain(() => Press(view, Key.Up)));
+            Assert.Equal(0, view.Suggestions.Selected);
+            Assert.True(h.Main.OnMain(() => Press(view, Key.Down)));
+            Assert.Equal(1, view.Suggestions.Selected);
+            Assert.True(h.Main.OnMain(() => Press(view, Key.Down)));
+            Assert.Equal(1, view.Suggestions.Selected);
+            Assert.True(h.Main.OnMain(() => Press(view, Key.Up)));
+            Assert.Equal(0, view.Suggestions.Selected);
+            Assert.Equal("/", runtime.Draft.Text);
+        });
+    }
+
+    [Theory]
+    [InlineData(Key.Tab, KeyModifiers.None)]
+    [InlineData(Key.Enter, KeyModifiers.None)]
+    [InlineData(Key.Enter, KeyModifiers.Control)]
+    [Trait("Req", "PR-COMPOSER-045")] // App/Views/Composer/ComposerView.swift:320-322
+    public void Tab_Return_and_Command_Return_each_commit_the_highlighted_row(Key key, KeyModifiers modifiers)
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            using var shared = ShortcutStore.Shared.Override(FreshStore());
+            var runtime = h.Runtime;
+            var view = Pill(h, runtime, workingDirectory: null);
+            h.Main.OnMain(() => Type(view, "/"));
+            Until(h, null, () => view.Suggestions.IsVisible);
+            Assert.True(h.Main.OnMain(() => Press(view, Key.Down)));
+            Assert.True(h.Main.OnMain(() => Press(view, key, modifiers)));
+            Until(h, null, () => runtime.Draft.Text.Length == 0);
+            Assert.Equal(new DraftCommand { Name = "plan", Detail = "Turn plan mode on or off", IsBuiltIn = true }, runtime.Draft.Command);
+            Assert.False(view.Suggestions.IsVisible);
+            Assert.Empty(runtime.Turns);
+            Assert.Empty(runtime.FollowUps);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-045")] // App/Views/Composer/ComposerView.swift:323-326
+    public void Escape_closes_the_open_list_and_is_consumed_leaving_the_terminal_open()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            var runtime = h.Runtime;
+            var view = Pill(h, runtime, workingDirectory: null);
+            h.Main.OnMain(() => runtime.IsTerminalVisible = true);
+            h.Main.OnMain(() => Type(view, "/"));
+            Until(h, null, () => view.Suggestions.IsVisible);
+            Assert.True(h.Main.OnMain(() => Press(view, Key.Escape)));
+            Assert.False(view.Suggestions.IsVisible);
+            Assert.True(runtime.IsTerminalVisible);
+            Assert.Equal("/", runtime.Draft.Text);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-045")] // App/Views/Composer/ComposerView.swift:327-328
+    public void Backspace_at_the_start_is_not_consumed_while_the_list_is_open_so_the_chip_stays()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            var runtime = h.Runtime;
+            var view = Pill(h, runtime, workingDirectory: null);
+            var chip = new DraftCommand { Name = "plan", Detail = "Turn plan mode on or off", IsBuiltIn = true };
+            h.Main.OnMain(() => Type(view, "/"));
+            Until(h, null, () => view.Suggestions.IsVisible);
+            h.Main.OnMain(() => runtime.Draft = runtime.Draft with { Command = chip });
+            // The caret goes to the start and Backspace follows in the same turn, before the refresh that closes the
+            // list has run.
+            var handled = h.Main.OnMain(() =>
+            {
+                var box = One<ComposerNSTextView>(view);
+                box.SelectionStart = box.SelectionEnd = 0;
+                Assert.True(view.Suggestions.IsVisible);
+                return Press(view, Key.Back);
+            });
+            Assert.False(handled);
+            Assert.Equal(chip, runtime.Draft.Command);
+        });
+    }
+
+    // ---- the panel (:239-262) ----
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-048")] // App/Views/Composer/ComposerView.swift:190-196, :244
+    public void The_file_list_is_shown_in_the_panel_under_the_header_Files()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            var presenter = new RecordingPresenter();
+            using var seam = Presentation.Presenter.Override(presenter);
+            var directory = h.Store.NewFolder("header");
+            Touch(directory, "main.swift", "mail.txt");
+            Indexed(h, directory);
+            var (view, window, _, _) = OnScreen(h, Unresolved(h), directory);
+            h.Main.OnMain(() => Type(view, "@mai"));
+            Until(h, window, () => view.Suggestions.IsVisible && presenter.Calls.Count > 0);
+            var frame = Shown(presenter);
+            Assert.Equal("Files", HeaderText(frame));
+            Assert.Equal(2, LogicalQuery.SelfAndDescendants<SuggestionPopoverRow>(frame).Count());
+            Assert.Equal(44 + 2 * 26, frame.Height); // ComposerTextView.swift:70 with itemCount 2
+            Assert.Empty(LogicalQuery.SelfAndDescendants<PopoverNote>(frame));
+            Close(h, window);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-048")] // App/Views/Composer/ComposerView.swift:244
+    public void The_command_list_is_headed_Commands_middle_dot_Recently_used_first()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            var view = Pill(h, h.Runtime, workingDirectory: null);
+            h.Main.OnMain(() => Type(view, "/"));
+            Until(h, null, () => view.Suggestions.IsVisible);
+            var menu = h.Main.OnMain(() => view.SuggestionMenu());
+            Assert.Equal("Commands \U000000B7 Recently used first", HeaderText(menu)); // U+00B7 MIDDLE DOT
+            Assert.Equal(2, LogicalQuery.SelfAndDescendants<SuggestionPopoverRow>(menu).Count());
+        });
+    }
+
+    // ---- pick (:487-501) ----
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-049")] // App/Views/Composer/ComposerView.swift:487-497
+    public void Picking_a_command_deletes_the_typed_slash_word_and_puts_a_chip_with_its_name_detail_and_flag_on_the_draft()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            var directory = h.Store.NewFolder("pick");
+            var runtime = h.Runtime;
+            var view = Pill(h, runtime, directory);
+            h.Main.OnMain(() =>
+            {
+                h.App.Providers.UpdateCommands(new ValueList<SlashCommand>([new SlashCommand { Name = "review", Detail = "Review the diff" }]), ProviderKind.Codex, directory);
+                Type(view, "/rev");
+            });
+            Until(h, null, () => view.Suggestions.IsVisible);
+            Assert.True(h.Main.OnMain(() => Press(view, Key.Enter)));
+            Assert.False(view.Suggestions.IsVisible);
+            Until(h, null, () => runtime.Draft.Text.Length == 0);
+            Assert.Equal("", One<ComposerNSTextView>(view).Text);
+            Assert.Equal(new DraftCommand { Name = "review", Detail = "Review the diff", IsBuiltIn = false }, runtime.Draft.Command);
+            Assert.Empty(runtime.Turns);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-049")] // App/Views/Composer/ComposerView.swift:487-490, :499-500
+    public void Picking_a_file_replaces_the_typed_at_word_with_at_path_space_and_leaves_the_caret_after_it()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            var presenter = new RecordingPresenter();
+            using var seam = Presentation.Presenter.Override(presenter);
+            var directory = h.Store.NewFolder("pickfile");
+            Touch(directory, "main.swift");
+            Indexed(h, directory);
+            var runtime = Unresolved(h);
+            var (view, window, _, _) = OnScreen(h, runtime, directory);
+            h.Main.OnMain(() => Type(view, "see @mai and"));
+            h.Main.OnMain(() =>
+            {
+                var box = One<ComposerNSTextView>(view);
+                box.SelectionStart = box.SelectionEnd = 8;
+            });
+            Until(h, window, () => view.Suggestions.IsVisible);
+            Assert.Equal((4, 4), view.Suggestions.Range);
+            Assert.True(h.Main.OnMain(() => Press(view, Key.Tab)));
+            Until(h, window, () => runtime.Draft.Text == "see @main.swift  and");
+            var box = h.Main.OnMain(() => One<ComposerNSTextView>(view));
+            Assert.Equal("see @main.swift ".Length, h.Main.OnMain(() => box.SelectionStart));
+            Assert.Null(runtime.Draft.Command);
+            Assert.True(h.Main.OnMain(() => box.IsFocused));
+            Close(h, window);
+        });
+    }
+
+    // ---- command loading and its failure (:245-248, :264-273) ----
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-050")] // App/Views/Composer/ComposerView.swift:245-248
+    public void A_failed_command_load_shows_its_description_then_a_Retry_loading_commands_row_with_the_arrow_clockwise_symbol()
+    {
+        headless.OnUiThread(() =>
+        {
+            System.Threading.Tasks.Task.Run(() => Marrow.Core.Support.LoginEnvironment.Load()).GetAwaiter().GetResult();
+            using var h = new ThreadRuntimePart12Harness(ProviderKind.Claude);
+            Loaded(h, h.Runtime);
+            var directory = h.Store.NewFolder("failing");
+            h.Main.OnMain(() => h.App.Settings.SetBinaryPath(Whoami(), ProviderKind.Claude));
+            var view = Pill(h, h.Runtime, directory);
+            h.Main.Loop.Run(() => view.LoadCommands(), AppModelHarness.Bound);
+            var key = ProviderRegistry.CommandKey(ProviderKind.Claude, directory);
+            // ClaudeSession.swift:208: the process ended before it answered the handshake.
+            Assert.Equal("Claude's command discovery did not finish. Try again.", h.App.Providers.CommandErrors[key]);
+
+            h.Main.OnMain(() => Type(view, "/"));
+            Until(h, null, () => view.Suggestions.IsVisible);
+            var menu = h.Main.OnMain(() => view.SuggestionMenu());
+            var note = One<PopoverNote>(menu);
+            Assert.Equal("Claude's command discovery did not finish. Try again.", Assert.IsType<TextBlock>(note.Child).Text);
+            var retry = One<PopoverItem>(menu);
+            var button = One<Button>(retry);
+            Assert.Equal("Retry loading commands", Avalonia.Automation.AutomationProperties.GetName(button));
+            var glyph = LogicalQuery.SelfAndDescendants<SwiftImage>(retry).Single(image => image.SymbolName is not null);
+            Assert.Equal("arrow.clockwise", glyph.SymbolName);
+            // In order: the header, the note, the retry row, then the rows.
+            var order = LogicalQuery.SelfAndDescendants<Control>(menu)
+                .Where(control => control is PopoverSectionHeader or PopoverNote or PopoverItem or SuggestionPopoverRow)
+                .Select(control => control.GetType().Name).ToArray();
+            Assert.Equal(["PopoverSectionHeader", "PopoverNote", "PopoverItem", "SuggestionPopoverRow", "SuggestionPopoverRow"], order);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-050")] // App/Views/Composer/ComposerView.swift:245
+    public void The_failure_rows_belong_to_the_command_list_only()
+    {
+        headless.OnUiThread(() =>
+        {
+            System.Threading.Tasks.Task.Run(() => Marrow.Core.Support.LoginEnvironment.Load()).GetAwaiter().GetResult();
+            using var h = new ThreadRuntimePart12Harness(ProviderKind.Claude);
+            Loaded(h, h.Runtime);
+            var directory = h.Store.NewFolder("failing-files");
+            Touch(directory, "main.swift");
+            h.Main.OnMain(() => h.App.Settings.SetBinaryPath(Whoami(), ProviderKind.Claude));
+            var view = Pill(h, h.Runtime, directory);
+            h.Main.Loop.Run(() => view.LoadCommands(), AppModelHarness.Bound);
+            Assert.NotEmpty(h.App.Providers.CommandErrors);
+            h.Main.OnMain(() => Type(view, "/"));
+            Until(h, null, () => view.Suggestions.IsVisible);
+            h.Main.OnMain(() => Type(view, "/zzzz"));
+            Until(h, null, () => !view.Suggestions.IsVisible);
+            var menu = h.Main.OnMain(() => view.SuggestionMenu());
+            // With the list closed the kind is the default, file: no failure rows.
+            Assert.Empty(LogicalQuery.SelfAndDescendants<PopoverNote>(menu));
+            Assert.Empty(LogicalQuery.SelfAndDescendants<PopoverItem>(menu));
+            Assert.Equal("Files", HeaderText(menu));
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-051")] // App/Views/Composer/ComposerView.swift:264-273
+    public void Loading_commands_asks_the_registry_for_the_thread_provider_in_the_working_directory()
+    {
+        headless.OnUiThread(() =>
+        {
+            System.Threading.Tasks.Task.Run(() => Marrow.Core.Support.LoginEnvironment.Load()).GetAwaiter().GetResult();
+            using var h = new ThreadRuntimePart12Harness(ProviderKind.Claude);
+            Loaded(h, h.Runtime);
+            var directory = h.Store.NewFolder("keyed");
+            h.Main.OnMain(() => h.App.Settings.SetBinaryPath(Whoami(), ProviderKind.Claude));
+            var view = Pill(h, h.Runtime, directory);
+            h.Main.Loop.Run(() => view.LoadCommands(), AppModelHarness.Bound);
+            Assert.Equal([ProviderRegistry.CommandKey(ProviderKind.Claude, directory)], h.App.Providers.CommandErrors.Keys.ToArray());
+            Assert.Equal("claude\n", ProviderRegistry.CommandKey(ProviderKind.Claude, directory)[..7]);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-051")] // App/Views/Composer/ComposerView.swift:265, :270
+    public void Without_a_working_directory_no_commands_are_loaded()
+    {
+        headless.OnUiThread(() =>
+        {
+            System.Threading.Tasks.Task.Run(() => Marrow.Core.Support.LoginEnvironment.Load()).GetAwaiter().GetResult();
+            using var h = new ThreadRuntimePart12Harness(ProviderKind.Claude);
+            Loaded(h, h.Runtime);
+            h.Main.OnMain(() => h.App.Settings.SetBinaryPath(Whoami(), ProviderKind.Claude));
+            var view = Pill(h, h.Runtime, workingDirectory: null);
+            h.Main.Loop.Run(() => view.LoadCommands(), AppModelHarness.Bound);
+            Assert.Empty(h.App.Providers.CommandErrors);
+            Assert.Empty(h.App.Providers.Commands);
+        });
+    }
+
+    // ---- focus and visibility (:197-203, :228-237) ----
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-053")] // App/Views/Composer/ComposerView.swift:228-237
+    public void Focus_leaving_for_a_control_outside_the_panel_clears_the_list_and_closes_the_panel()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            var presenter = new RecordingPresenter();
+            using var seam = Presentation.Presenter.Override(presenter);
+            var directory = h.Store.NewFolder("blur");
+            Touch(directory, "main.swift");
+            Indexed(h, directory);
+            var (view, window, other, _) = OnScreen(h, Unresolved(h), directory);
+            h.Main.OnMain(() => Type(view, "@ma"));
+            Until(h, window, () => view.Suggestions.IsVisible && presenter.Calls.Count > 0);
+            h.Main.OnMain(() => other.Focus());
+            Until(h, window, () => !view.Suggestions.IsVisible && !presenter.Calls[^1].Presented);
+            Close(h, window);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-054")] // App/Views/Composer/ComposerView.swift:197
+    public void The_panel_closes_when_the_composer_leaves_the_screen()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            var presenter = new RecordingPresenter();
+            using var seam = Presentation.Presenter.Override(presenter);
+            var directory = h.Store.NewFolder("disappear");
+            Touch(directory, "main.swift");
+            Indexed(h, directory);
+            var (view, window, _, stack) = OnScreen(h, Unresolved(h), directory);
+            h.Main.OnMain(() => Type(view, "@ma"));
+            Until(h, window, () => view.Suggestions.IsVisible && presenter.Calls.Count > 0);
+            var shown = presenter.Calls[^1].Popup;
+            h.Main.OnMain(() => stack.Children.Remove(view));
+            Pump(h, window);
+            Assert.Equal((shown, false), presenter.Calls[^1]);
+            Close(h, window);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-054")] // App/Views/Composer/ComposerView.swift:201-203
+    public void Hiding_the_chat_column_closes_the_panel_and_showing_it_again_gives_the_text_the_keyboard()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            var presenter = new RecordingPresenter();
+            using var seam = Presentation.Presenter.Override(presenter);
+            var directory = h.Store.NewFolder("column");
+            Touch(directory, "main.swift");
+            Indexed(h, directory);
+            var (view, window, other, stack) = OnScreen(h, Unresolved(h), directory);
+            h.Main.OnMain(() => Type(view, "@ma"));
+            Until(h, window, () => view.Suggestions.IsVisible && presenter.Calls.Count > 0);
+            var shown = presenter.Calls[^1].Popup;
+            h.Main.OnMain(() => Marrow.App.Views.RootView.SetChatColumnIsShown(stack, false));
+            Pump(h, window);
+            Assert.Equal((shown, false), presenter.Calls[^1]);
+
+            h.Main.OnMain(() => other.Focus());
+            Pump(h, window);
+            var box = h.Main.OnMain(() => One<ComposerNSTextView>(view));
+            Assert.False(h.Main.OnMain(() => box.IsFocused));
+            h.Main.OnMain(() => Marrow.App.Views.RootView.SetChatColumnIsShown(stack, true));
+            Pump(h, window);
+            Assert.True(h.Main.OnMain(() => box.IsFocused));
+            Close(h, window);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-054")] // App/Views/Composer/ComposerView.swift:202
+    public void A_composer_that_does_not_take_focus_on_appear_leaves_the_keyboard_where_it_is_when_its_column_returns()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            var (view, window, other, stack) = OnScreen(h, Unresolved(h), workingDirectory: null, takesFocusOnAppear: false);
+            h.Main.OnMain(() => Marrow.App.Views.RootView.SetChatColumnIsShown(stack, false));
+            Pump(h, window);
+            h.Main.OnMain(() => other.Focus());
+            Pump(h, window);
+            h.Main.OnMain(() => Marrow.App.Views.RootView.SetChatColumnIsShown(stack, true));
+            Pump(h, window);
+            Assert.False(h.Main.OnMain(() => One<ComposerNSTextView>(view).IsFocused));
+            Assert.True(h.Main.OnMain(() => other.IsFocused));
+            Close(h, window);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-055")] // App/Views/Composer/ComposerView.swift:249-256, :1096-1099
+    public void Hovering_a_row_highlights_it_so_Return_commits_that_row()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            var frames = new ManualFrameSource();
+            using var frameScope = FrameClock.Source.Override(frames);
+            var presenter = new RecordingPresenter();
+            using var seam = Presentation.Presenter.Override(presenter);
+            var directory = h.Store.NewFolder("hover");
+            Touch(directory, "ma1.txt", "ma2.txt", "ma3.txt");
+            Indexed(h, directory);
+            var runtime = Unresolved(h);
+            var (view, window, _, _) = OnScreen(h, runtime, directory);
+            h.Main.OnMain(() => Type(view, "@ma"));
+            Until(h, window, () => view.Suggestions.Items.Count == 3 && presenter.Calls.Count > 0);
+            Assert.Equal(0, view.Suggestions.Selected);
+            var rows = LogicalQuery.SelfAndDescendants<SuggestionPopoverRow>(Shown(presenter)).ToArray();
+            Assert.Equal(3, rows.Length);
+            h.Main.OnMain(() =>
+            {
+                var button = One<Button>(rows[2]);
+                button.RaiseEvent(new PointerEventArgs(
+                    InputElement.PointerEnteredEvent, button, null!, button, default, 0, new PointerPointProperties(), KeyModifiers.None));
+            });
+            Until(h, window, () => view.Suggestions.Selected == 2);
+            var third = view.Suggestions.Items[2];
+            Assert.True(h.Main.OnMain(() => Press(view, Key.Enter)));
+            Until(h, window, () => runtime.Draft.Text == third.Value);
+            Close(h, window);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-055")] // App/Views/Composer/ComposerView.swift:1088-1091
+    public void The_highlighted_row_is_filled_with_the_overlay_at_a_tenth_and_the_others_are_clear()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            var frames = new ManualFrameSource();
+            using var frameScope = FrameClock.Source.Override(frames);
+            var presenter = new RecordingPresenter();
+            using var seam = Presentation.Presenter.Override(presenter);
+            var directory = h.Store.NewFolder("fill");
+            Touch(directory, "ma1.txt", "ma2.txt");
+            Indexed(h, directory);
+            var (view, window, _, _) = OnScreen(h, Unresolved(h), directory);
+            h.Main.OnMain(() => Type(view, "@ma"));
+            Until(h, window, () => view.Suggestions.Items.Count == 2 && presenter.Calls.Count > 0);
+            Assert.True(h.Main.OnMain(() => Press(view, Key.Down)));
+            Until(h, window, () => view.Suggestions.Selected == 1);
+            Pump(h, window);
+            var rows = LogicalQuery.SelfAndDescendants<SuggestionPopoverRow>(Shown(presenter)).ToArray();
+            Color Fill(SuggestionPopoverRow row) =>
+                Assert.IsAssignableFrom<ISolidColorBrush>(LogicalQuery.SelfAndDescendants<Border>(row).First(border => border.Background is not null).Background).Color;
+            Assert.Equal(0, Fill(rows[0]).A);
+            Assert.Equal(Chrome.Overlay(0.1).Resolve(rows[1].ActualThemeVariant), Fill(rows[1]));
+            Close(h, window);
+        });
+    }
+
+    // ---- the file index (:1103-1288) ----
+
+    private static AppModelHarness IndexStore()
+    {
+        System.Threading.Tasks.Task.Run(() => Marrow.Core.Support.LoginEnvironment.Load()).GetAwaiter().GetResult();
+        return new AppModelHarness();
+    }
+
+    private static ValueList<string> Search(AppModelHarness store, FileIndex index, string query, long limit = 8) =>
+        store.Main.Loop.Run(() => index.Search(query, limit), AppModelHarness.Bound);
+
+    private static FileIndex Prepared(AppModelHarness store, string directory)
+    {
+        var index = store.Main.OnMain(() => new FileIndex());
+        store.Main.Loop.Run(() => index.Prepare(directory), AppModelHarness.Bound);
+        return index;
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-056")] // App/Views/Composer/ComposerView.swift:1121-1135
+    public void A_built_index_is_shared_so_a_second_composer_in_the_same_directory_is_served_without_a_rebuild()
+    {
+        using var store = IndexStore();
+        var directory = store.NewFolder("shared");
+        Touch(directory, "one.txt");
+        var first = Prepared(store, directory);
+        Assert.Equal(["one.txt"], Search(store, first, "one"));
+        Touch(directory, "two.txt");
+        var second = Prepared(store, directory);
+        Assert.Empty(Search(store, second, "two"));
+        Assert.Equal(["one.txt"], Search(store, second, "one"));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-056")] // App/Views/Composer/ComposerView.swift:1127, :1133-1157
+    public void An_index_is_rebuilt_only_once_it_is_more_than_60_seconds_old()
+    {
+        using var store = IndexStore();
+        var directory = store.NewFolder("fresh");
+        Touch(directory, "one.txt");
+        Prepared(store, directory);
+        Touch(directory, "two.txt");
+        store.Main.Advance(TimeSpan.FromSeconds(60));
+        Assert.Empty(Search(store, Prepared(store, directory), "two"));
+        store.Main.Advance(TimeSpan.FromMilliseconds(1));
+        Assert.Equal(["two.txt"], Search(store, Prepared(store, directory), "two"));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-056")] // App/Views/Composer/ComposerView.swift:1131-1132, :1155
+    public void A_prepare_whose_directory_changed_under_it_abandons_its_result_and_the_build_is_still_shared()
+    {
+        using var store = IndexStore();
+        var first = store.NewFolder("first");
+        var second = store.NewFolder("second");
+        Touch(first, "alpha.txt");
+        Touch(second, "beta.txt");
+        var index = store.Main.OnMain(() => new FileIndex());
+        store.Main.Loop.Run(() => System.Threading.Tasks.Task.WhenAll(index.Prepare(first), index.Prepare(second)), AppModelHarness.Bound);
+        Assert.Empty(Search(store, index, "alpha"));
+        Assert.Equal(["beta.txt"], Search(store, index, "beta"));
+        Assert.Equal(["alpha.txt"], Search(store, Prepared(store, first), "alpha"));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-056")] // App/Views/Composer/ComposerView.swift:1130-1131, :1155
+    public void A_cancelled_prepare_leaves_the_index_as_it_was()
+    {
+        using var store = IndexStore();
+        var kept = store.NewFolder("kept");
+        var abandoned = store.NewFolder("abandoned");
+        Touch(kept, "kept.txt");
+        Touch(abandoned, "gone.txt");
+        var index = Prepared(store, kept);
+        store.Main.OnMain(() =>
+        {
+            var task = MainActor.Spawn(() => index.Prepare(abandoned));
+            task.Cancel();
+        });
+        store.Main.RunUntilIdle();
+        Assert.Equal(["kept.txt"], Search(store, index, "kept"));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-057")] // App/Views/Composer/ComposerView.swift:1257-1262
+    public void In_a_git_repository_the_index_holds_the_tracked_and_the_untracked_unignored_files()
+    {
+        using var store = IndexStore();
+        var directory = store.NewFolder("repo");
+        var repository = AppModelGitRepo.WithCommit(directory);
+        File.WriteAllBytes(Path.Combine(directory, ".gitignore"), System.Text.Encoding.UTF8.GetBytes("*.log\n"));
+        Touch(directory, "sub/b.txt", "ignored.log", "node_modules/kept-by-git.js");
+        Assert.Equal("true", repository.Git("rev-parse", "--is-inside-work-tree").Trim());
+        var index = Prepared(store, directory);
+        Assert.Equal([".gitignore", "a.txt", "node_modules/kept-by-git.js", "sub/b.txt"], Search(store, index, "").OrderBy(path => path, StringComparer.Ordinal).ToArray());
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-057")] // App/Views/Composer/ComposerView.swift:1266-1286
+    public void Outside_a_repository_the_walk_skips_the_seven_names_and_hidden_entries_and_lists_files_only()
+    {
+        using var store = IndexStore();
+        var directory = store.NewFolder("walk");
+        Touch(directory,
+            "keep.txt", "src/a.txt", "node_modules/x.js", "build/y.txt", "dist/z.txt", ".build/w.txt", "DerivedData/q.txt",
+            "Pods/p.txt", "target/t.txt", "src/target", "hidden.txt", "cloak/inner.txt", "empty/.keep-me-visible");
+        File.SetAttributes(Path.Combine(directory, "hidden.txt"), FileAttributes.Hidden);
+        var cloak = new DirectoryInfo(Path.Combine(directory, "cloak"));
+        cloak.Attributes |= FileAttributes.Hidden;
+        var index = Prepared(store, directory);
+        Assert.Equal([@"empty\.keep-me-visible", "keep.txt", @"src\a.txt"], Search(store, index, "").OrderBy(path => path, StringComparer.Ordinal).ToArray());
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-057")] // App/Views/Composer/ComposerView.swift:1278
+    public void The_walk_lists_files_down_to_level_16_and_nothing_deeper()
+    {
+        using var store = IndexStore();
+        var directory = store.NewFolder("deep");
+        var fifteen = string.Join("/", Enumerable.Range(1, 15).Select(n => "d" + n.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+        Touch(directory, fifteen + "/level16.txt", fifteen + "/d16/level17.txt");
+        var index = Prepared(store, directory);
+        var found = Search(store, index, "level");
+        Assert.Equal([fifteen.Replace('/', '\\') + @"\level16.txt"], found);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-057")] // App/Views/Composer/ComposerView.swift:1284
+    public void The_walk_stops_at_20000_files()
+    {
+        using var store = IndexStore();
+        var directory = store.NewFolder("many");
+        for (var n = 0; n < 20_001; n++)
+            File.WriteAllBytes(Path.Combine(directory, "f" + n.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".txt"), []);
+        var index = Prepared(store, directory);
+        Assert.Equal(20_000, Search(store, index, "", limit: 30_000).Count);
+    }
+
+    // A repository with no commit: git lists the untracked files sorted by path, which is the index's order.
+    private static FileIndex GitIndexed(AppModelHarness store, string label, params string[] files)
+    {
+        var directory = store.NewFolder(label);
+        AppModelGitRepo.Empty(directory);
+        Touch(directory, files);
+        return Prepared(store, directory);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-058")] // App/Views/Composer/ComposerView.swift:1196-1214, :1169
+    public void Matches_rank_exact_name_then_name_prefix_then_name_substring_then_path_substring_then_subsequence_less_the_length()
+    {
+        using var store = IndexStore();
+        var index = GitIndexed(store, "scores", "a1b2c3", "abc", "abc.txt", "abczzzz/zz", "nomatch", "xabcx", "zz/abc");
+        // abc 1000-3; zz/abc 1000-6; abc.txt 800-7; xabcx 600-5; abczzzz/zz 400-10; a1b2c3 100-6.
+        Assert.Equal(["abc", "zz/abc", "abc.txt", "xabcx", "abczzzz/zz", "a1b2c3"], Search(store, index, "ABC"));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-058")] // App/Views/Composer/ComposerView.swift:1169, :1210
+    public void The_length_penalty_stops_at_99_characters()
+    {
+        using var store = IndexStore();
+        var longName = "abc" + new string('x', 100) + ".txt";
+        var index = GitIndexed(store, "penalty", longName, "xabc");
+        // The long prefix match scores 800-99, still above the short substring match at 600-4.
+        Assert.Equal([longName, "xabc"], Search(store, index, "abc"));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-058")] // App/Views/Composer/ComposerView.swift:1211-1214
+    public void Equal_scores_keep_the_index_order_and_only_the_best_limit_are_kept()
+    {
+        using var store = IndexStore();
+        var index = GitIndexed(store, "ties", "b/abc9", "c/abc1", "d/abc5", "e/xabc");
+        Assert.Equal(["b/abc9", "c/abc1", "d/abc5", "e/xabc"], Search(store, index, "abc"));
+        Assert.Equal(["b/abc9", "c/abc1"], Search(store, index, "abc", limit: 2));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-058")] // App/Views/Composer/ComposerView.swift:1181, :1189
+    public void An_empty_query_returns_the_first_eight_entries_unscored_and_a_limit_of_zero_returns_nothing()
+    {
+        using var store = IndexStore();
+        var names = Enumerable.Range(0, 10).Select(n => "f" + n.ToString(System.Globalization.CultureInfo.InvariantCulture) + "-" + new string('y', 10 - n)).ToArray();
+        var index = GitIndexed(store, "empty", names);
+        Assert.Equal(names.OrderBy(name => name, StringComparer.Ordinal).Take(8).ToArray(), Search(store, index, ""));
+        Assert.Empty(Search(store, index, "f", limit: 0));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-058")] // App/Views/Composer/ComposerView.swift:1235-1254
+    public void A_subsequence_walks_bytes_for_ASCII_but_a_carriage_return_sends_it_to_the_Character_walk()
+    {
+        Assert.True(FileIndex.IsSubsequence("ace", "abcde", ascii: true));
+        Assert.False(FileIndex.IsSubsequence("aec", "abcde", ascii: true));
+        Assert.True(FileIndex.IsSubsequence("", "abcde", ascii: true));
+        Assert.True(FileIndex.IsSubsequence("", "", ascii: false));
+        // "\r\n" is one Character: a lone "\r" is not in it, although its byte is.
+        Assert.False(FileIndex.IsSubsequence("\r", "a\r\nb", ascii: true));
+        Assert.False(FileIndex.IsSubsequence("\r", "a\r\nb", ascii: false));
+        Assert.True(FileIndex.IsSubsequence("ab", "a\r\nb", ascii: true));
+        Assert.True(FileIndex.IsSubsequence("\r\n", "a\r\nb", ascii: true));
+        // The Character walk compares Characters: U+00E9 matches its decomposed spelling.
+        Assert.True(FileIndex.IsSubsequence("\U000000E9", "cafe\U00000301", ascii: false)); // U+00E9 LATIN SMALL LETTER E WITH ACUTE, U+0301 COMBINING ACUTE ACCENT
+    }
+
+    // ---- attach (:505-524) ----
+    // The notices are read from the pill's own state: a pill on screen draws the draft's attachments in DraftAttachments'
+    // strip, which is part 3's (MARROW_STUB at :990), so these pills stay off screen.
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-059")] // App/Views/Composer/ComposerView.swift:507-518
+    public void Attaching_more_files_than_fit_attaches_what_fits_and_says_how_many_were_left_out()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            var runtime = h.Runtime;
+            var folder = h.Store.NewFolder("attach");
+            Touch(folder, "a.txt", "b.txt", "c.txt", "d.txt");
+            var view = Pill(h, runtime, workingDirectory: null);
+            h.Main.OnMain(() => runtime.Draft = new ComposerDraft { Attachments = new ValueList<Attachment>(Enumerable.Range(0, 6).Select(Fake)) });
+            h.Main.OnMain(() => One<ComposerNSTextView>(view).OnAttach!(
+                new[] { "a.txt", "b.txt", "c.txt", "d.txt" }.Select(name => (AttachmentSource)new AttachmentSource.File(Path.Combine(folder, name))).ToList()));
+            Assert.Equal("2 files were left out: a message holds 8 attachments", view.AttachmentNotice);
+            Until(h, null, () => runtime.Draft.Attachments.Count == 8);
+            Assert.Equal(["a.txt", "b.txt"], runtime.Draft.Attachments.Skip(6).Select(attachment => attachment.Name).ToArray());
+        });
+    }
+
+    [Theory]
+    [InlineData(7, false, "One file was left out: a message holds 8 attachments")]
+    [InlineData(8, true, "The image was left out: a message holds 8 attachments")]
+    [InlineData(8, false, "One file was left out: a message holds 8 attachments")]
+    [Trait("Req", "PR-COMPOSER-059")] // App/Views/Composer/ComposerView.swift:511-517
+    public void One_source_left_out_is_named_as_a_file_or_as_the_pasted_image(int held, bool pasted, string notice)
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            var runtime = h.Runtime;
+            var folder = h.Store.NewFolder("one");
+            Touch(folder, "a.txt", "b.txt");
+            var view = Pill(h, runtime, workingDirectory: null);
+            h.Main.OnMain(() => runtime.Draft = new ComposerDraft { Attachments = new ValueList<Attachment>(Enumerable.Range(0, held).Select(Fake)) });
+            IReadOnlyList<AttachmentSource> sources = pasted
+                ? [new AttachmentSource.Image([0x89, 0x50, 0x4E, 0x47], AttachmentSource.PngMimeType)]
+                : held == 8
+                    ? [new AttachmentSource.File(Path.Combine(folder, "a.txt"))]
+                    : [new AttachmentSource.File(Path.Combine(folder, "a.txt")), new AttachmentSource.File(Path.Combine(folder, "b.txt"))];
+            h.Main.OnMain(() => One<ComposerNSTextView>(view).OnAttach!(sources));
+            Assert.Equal(notice, view.AttachmentNotice);
+            Until(h, null, () => runtime.Draft.Attachments.Count == 8);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-059")] // App/Views/Composer/ComposerView.swift:511
+    public void Nothing_left_out_says_nothing()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            var runtime = h.Runtime;
+            var folder = h.Store.NewFolder("fits");
+            Touch(folder, "a.txt");
+            var view = Pill(h, runtime, workingDirectory: null);
+            h.Main.OnMain(() => runtime.Draft = new ComposerDraft { Attachments = new ValueList<Attachment>(Enumerable.Range(0, 7).Select(Fake)) });
+            h.Main.OnMain(() => One<ComposerNSTextView>(view).OnAttach!([new AttachmentSource.File(Path.Combine(folder, "a.txt"))]));
+            Assert.Null(view.AttachmentNotice);
+            Until(h, null, () => runtime.Draft.Attachments.Count == 8);
+            Assert.Null(view.AttachmentNotice);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-059")] // App/Views/Composer/ComposerView.swift:519
+    public void An_attach_hands_the_keyboard_back_to_the_text()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            var runtime = Unresolved(h);
+            var (view, window, other, _) = OnScreen(h, runtime, workingDirectory: null);
+            h.Main.OnMain(() => other.Focus());
+            Pump(h, window);
+            var box = h.Main.OnMain(() => One<ComposerNSTextView>(view));
+            Assert.False(h.Main.OnMain(() => box.IsFocused));
+            // A file that cannot be copied: the attach still counts its slot and takes the keyboard back, and the draft
+            // gains nothing for the strip to draw.
+            var missing = Path.Combine(h.Store.NewFolder("missing"), "gone.txt");
+            h.Main.OnMain(() => box.OnAttach!([new AttachmentSource.File(missing)]));
+            Pump(h, window);
+            Assert.True(h.Main.OnMain(() => box.IsFocused));
+            Assert.Empty(runtime.Draft.Attachments);
+            Close(h, window);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-059")] // App/Views/Composer/ComposerView.swift:137; Services/Store/Storage.swift:153
+    public void The_limit_is_the_storage_attachment_limit_of_eight()
+    {
+        Assert.Equal(8, ComposerView.MaxAttachments);
+        Assert.Equal(Storage.AttachmentLimit, ComposerView.MaxAttachments);
+    }
 }
 
 // STOP App.Views.Composer.ComposerView #1
@@ -1167,3 +2569,34 @@ public sealed class ComposerViewTests(HeadlessSession headless)
 // close wirings and which anchor the popover hangs from are therefore not observable in a test.
 // Needed to proceed: a decision on how DiffPopoverCoordinator presents (the R-VIEW-9 seam), in its own unit.
 // Done so far: the sites are written; the arrival rule on appear and the 640 by 540 size are tested and pass.
+//
+// STOP App.Views.Composer.ComposerView #4
+// Kind: untestable
+// Swift: DroppyCode/App/Views/Composer/ComposerView.swift:204-215 (B3 52bc792)
+// Requirements: PR-COMPOSER-051, PR-COMPOSER-052
+// What is unclear or missing: the .task(id: commandKey) load and the three observers (commands landing, an error
+// landing while the list is open, the command list becoming visible) run only on a pill that is on screen and whose
+// thread resolves, because commandKey is empty without a resolved thread (:265). Such a pill draws ComposerControls
+// (:160-173), whose constructor is still MARROW_STUB (part 3 of this unit), so it cannot be put on screen in a test
+// yet. The focus test the observers make (hasFocus, ComposerTextView.swift:33-36) also needs the pill on screen.
+// Needed to proceed: part 3 of this unit (ComposerControls and the views under it); the tests for these wirings are
+// then written against a focused, on-screen pill.
+// Done so far: the sites are written. Tested off screen: loadCommands itself (:269-273, PR-COMPOSER-051: the thread's
+// provider and the working directory reach the registry, and nothing loads without a directory). On screen, with a
+// thread that does not resolve, the file index task (:216-218) is exercised by every @ test.
+//
+// STOP App.Views.Composer.ComposerView #5
+// Kind: untestable
+// Swift: DroppyCode/App/Views/Composer/ComposerView.swift:231, :247, :260 (B3 52bc792); ComposerTextView.swift:92-96
+// Requirements: PR-COMPOSER-053, PR-COMPOSER-055, PR-COMPOSER-050
+// What is unclear or missing: the list's panel is an Avalonia Popup, which headless tests cannot open (the R-VIEW-9
+// seam records the show instead, see STOP #3). So (a) a focus loss whose click lands inside the open panel
+// (isClickInsideSuggestions, IsPointerOverPopup) cannot be produced, (b) the selected row being scrolled into view
+// (:260, BringIntoView once the show has put the list in the popover) cannot be measured, because the list is never
+// laid out, and (c) activating "Retry loading commands" reloads with force (:247), but every failure a test can
+// provoke stores the same description, and a forced and a stale reload are indistinguishable from the registry's
+// public state.
+// Needed to proceed: a presenter seam that hosts the popover content in a window, or an oracle run.
+// Done so far: the sites are written. Tested: a focus loss outside the panel closes it (PR-COMPOSER-053), hovering a
+// row selects it and Return commits that row (PR-COMPOSER-055), and the failure note and the retry row with its
+// label, symbol and place (PR-COMPOSER-050).

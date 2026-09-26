@@ -11,6 +11,9 @@ using Marrow.App.Runtime;
 using Marrow.App.Views.Diff;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
+using Marrow.Core.Support;
+using Marrow.Services.Git;
+using Marrow.Services.Providers;
 using Marrow.Services.Store;
 using Marrow.UI.Chrome;
 using Marrow.UI.Common;
@@ -40,6 +43,15 @@ namespace Marrow.App.Views.Composer;
 // (:980-987) and ComposerWorkingDotsSlot (:664-665) carry only their conditions and gaps here; what they draw is parts 2
 // to 5's, as are ComposerView's other body modifiers (:190-226) and private members, marked MARROW_STUB where they
 // stand. Not written: the height animation at :604 (STOP #1 in ComposerViewTests.cs, WindowLiveResize missing).
+//
+// Part 2 of 5 (B3 52bc792, unchanged from B2): ComposerView's body modifiers :190-218 (the list's show and hide, the
+// hide on disappear, thread change and hidden column, the column-shown focus, the command and file index tasks and the
+// command observers), suggestionMenu (:239-262), commandKey and loadCommands (:264-273), steer (:384-398),
+// commandSuggestions (:475-485), pick (:487-501), attach and note (:505-524), Suggestion.id (:1058),
+// SuggestionPopoverRow (:1061-1101) and FileIndex (:1103-1288); the pick arm of handleKey now follows upstream defect
+// 50's windows_path. SlashCommand.suggestions (Provider.swift:306-323), which commandSuggestions ranks with, is ported
+// in Provider.cs. Still MARROW_STUB for parts 3 to 5: the notice's timeout (:219-225), chooseFiles (:526-533),
+// ComposerControls and the views under it, the chip row, the attachment strip, ChipRowCollapse and ChipChrome.
 
 /// <summary>:4-58 <c>struct ComposerArea: View</c>.</summary>
 public sealed class ComposerArea : Decorator
@@ -328,7 +340,9 @@ public sealed class ComposerView : Decorator
     public static long MaxAttachments => Storage.AttachmentLimit;
 
     private readonly ThreadRuntime runtime;
+    private readonly string? workingDirectory; // :120
     private readonly bool compactModelChip;
+    private readonly bool takesFocusOnAppear; // :123
     private readonly ComposerController controller = new(); // :126
     private readonly ViewState state = new();
     private readonly ComposerTextColumn textColumn;
@@ -338,6 +352,22 @@ public sealed class ComposerView : Decorator
     private readonly FileIndex fileIndex = new(); // :132
     private ComposerControls? controls;
     private (ChatThread Thread, bool RecentDownloadsPicker, bool GoesToHead, bool QueueGoesToHead, ProviderKind? HeadsProvider)? drawnControls;
+
+    // :190-215 the .onChange observers, alive while the pill is on screen.
+    private readonly List<IDisposable> observers = [];
+    private bool onScreen;
+
+    // :239-262 the hosted list. ENGINEERING DECISION: it keeps its identity from one show to the next, as the
+    // NSHostingController whose rootView each show replaces keeps SwiftUI's (ComposerTextView.swift:72-78): the scroller,
+    // its offset and the rows with their hover state survive, and each show hands them the current values.
+    private PopoverMenu? menu;
+    private StackPanel? menuHead;
+    private StackPanel? menuRowsPanel;
+    private ForEach<(int Index, Suggestion Item), int>? menuRows;
+    private PopoverSectionHeader? menuHeader;
+    private string? menuHeaderTitle;
+    private (PopoverNote Note, PopoverItem Retry, string Error)? menuFailure;
+    private long? menuSelected;
 
     // :115 @Environment(AppModel.self) private var model
     private AppModel Model => AppEnvironment.GetAppModel(this);
@@ -350,8 +380,9 @@ public sealed class ComposerView : Decorator
         bool takesFocusOnAppear = true)
     {
         this.runtime = runtime;
+        this.workingDirectory = workingDirectory;
         this.compactModelChip = compactModelChip;
-        _ = workingDirectory; // :120, read by the file index and the command key (parts 2 and 3 of this unit)
+        this.takesFocusOnAppear = takesFocusOnAppear;
 
         // :146-158 The resolved thread comes from the environment, which a control reaches once it is in the tree, so
         // the column starts with no placeholder and takes the thread's own as it appears (the Track below).
@@ -396,9 +427,80 @@ public sealed class ComposerView : Decorator
         // :160-174
         this.Track(ControlInputs, ShowControls);
 
-        // MARROW_STUB :190-226 the body's remaining modifiers (the suggestion list, the command and file index tasks,
-        // the notice's timeout, the column-shown focus): parts 2 and 3 of this unit.
+        // :190-203, :205-215 the list's show and hide, and the observers of the commands, their errors and the list's
+        // visibility, alive while the pill is on screen.
+        AttachedToVisualTree += (_, _) => Appear();
+        DetachedFromVisualTree += (_, _) => Disappear();
+        // :201-203 The column shown again takes the keyboard back, as it did when it first appeared; one going behind
+        // another drops its list.
+        PropertyChanged += (_, e) =>
+        {
+            if (!onScreen || e.Property != Views.RootView.ChatColumnIsShownProperty) return;
+            if (Views.RootView.GetChatColumnIsShown(this))
+            {
+                if (this.takesFocusOnAppear) controller.Focus();
+            }
+            else
+            {
+                controller.HideSuggestions();
+            }
+        };
+        // :204 .task(id: commandKey) { await loadCommands() }
+        this.Task(() => CommandKey, async _ => await LoadCommands());
+        // :216-218 .task(id: workingDirectory)
+        this.Task(() => this.workingDirectory, async directory =>
+        {
+            if (directory is { } prepared) await fileIndex.Prepare(prepared);
+        });
+        // MARROW_STUB :219-225 .task(id: attachmentNotice), the notice's five-second timeout: part 3 of this unit
+        // (PR-COMPOSER-060).
     }
+
+    private void Appear()
+    {
+        onScreen = true;
+        // :190-196
+        observers.Add(new OnChange<SuggestionState>(() => state.Suggestions, (_, now) =>
+        {
+            if (now.IsVisible) controller.ShowSuggestions(SuggestionMenu, now.Items.Count);
+            else controller.HideSuggestions();
+        }));
+        // :198 The runtime is this control's input, fixed for its life, so this observer does not fire here.
+        observers.Add(new OnChange<Guid>(() => runtime.ThreadID, (_, _) => controller.HideSuggestions()));
+        // :205-207
+        observers.Add(new OnChange<ValueList<SlashCommand>?>(LoadedCommands, (_, _) =>
+        {
+            if (controller.HasFocus) CursorMoved(controller.CursorLocation);
+        }));
+        // :208-212
+        observers.Add(new OnChange<string?>(CommandError, (_, _) =>
+        {
+            if (controller.HasFocus && state.Suggestions.IsVisible)
+                controller.ShowSuggestions(SuggestionMenu, state.Suggestions.Items.Count);
+        }));
+        // :213-215
+        observers.Add(new OnChange<bool>(() => state.Suggestions.IsVisible, (_, visible) =>
+        {
+            if (visible && state.Suggestions.SuggestionKind == SuggestionState.Kind.Command)
+                MainActor.Spawn(async () => await LoadCommands());
+        }));
+    }
+
+    private void Disappear()
+    {
+        onScreen = false;
+        foreach (var observer in observers) observer.Dispose();
+        observers.Clear();
+        controller.HideSuggestions(); // :197
+    }
+
+    // :205 model.providers.commands[commandKey]
+    private ValueList<SlashCommand>? LoadedCommands() =>
+        Model.Providers.Commands.TryGetValue(CommandKey, out var commands) ? commands : null;
+
+    // :208 model.providers.commandErrors[commandKey]
+    private string? CommandError() =>
+        Model.Providers.CommandErrors.TryGetValue(CommandKey, out var error) ? error : null;
 
     // :142, :160-173 what the controls are drawn from, nil without a resolved thread.
     private (ChatThread Thread, bool RecentDownloadsPicker, bool GoesToHead, bool QueueGoesToHead, ProviderKind? HeadsProvider)? ControlInputs()
@@ -448,6 +550,118 @@ public sealed class ComposerView : Decorator
             controller.SuggestionRefresh?.Cancel();
             state.Suggestions = new SuggestionState();
         }
+    }
+
+    // :239-262 The slash/@ list hosted in the caret-anchored popover (see ComposerController). Internal for this unit's
+    // tests (InternalsVisibleTo Marrow.App.Tests); private in Swift.
+    internal Control SuggestionMenu()
+    {
+        if (menu is null)
+        {
+            // :243 PopoverMenu { ... }: its stack holds the header and the failure rows, then one row per item.
+            var content = new StackPanel { Orientation = Orientation.Vertical, Spacing = 0 };
+            menuHead = new StackPanel { Orientation = Orientation.Vertical, Spacing = 0 };
+            menuRowsPanel = new StackPanel { Orientation = Orientation.Vertical, Spacing = 0 };
+            content.Children.Add(menuHead);
+            content.Children.Add(menuRowsPanel);
+            menu = new PopoverMenu(() => content);
+            // :249 ForEach(suggestions.items.indices, id: \.self), each row :257 .id(index)
+            menuRows = new ForEach<(int Index, Suggestion Item), int>(menuRowsPanel, row => row.Index, MakeRow, UpdateRow);
+        }
+        else if (menu.Parent is Decorator host)
+        {
+            host.Child = null; // the frame of the previous show gives the hosted list up to this one's
+        }
+        var suggestions = state.Suggestions;
+
+        // :244 PopoverSectionHeader: the command list's header, or "Files"
+        var title = suggestions.SuggestionKind == SuggestionState.Kind.Command
+            ? "Commands \U000000B7 Recently used first" // U+00B7 MIDDLE DOT
+            : "Files";
+        if (menuHeader is null || menuHeaderTitle != title)
+        {
+            if (menuHeader is not null) menuHead!.Children.Remove(menuHeader);
+            menuHeader = new PopoverSectionHeader(title);
+            menuHeaderTitle = title;
+            menuHead!.Children.Insert(0, menuHeader);
+        }
+
+        // :245-248 A command list whose load failed says why, with a way to try again.
+        if (suggestions.SuggestionKind == SuggestionState.Kind.Command && CommandError() is { } error)
+        {
+            if (menuFailure is not { } failure)
+            {
+                var note = new PopoverNote(error); // :246
+                // :247 PopoverItem("Retry loading commands", symbol: "arrow.clockwise") { Task { await loadCommands(force: true) } }
+                var retry = new PopoverItem(
+                    "Retry loading commands",
+                    () => MainActor.Spawn(async () => await LoadCommands(force: true)),
+                    symbol: "arrow.clockwise");
+                menuHead!.Children.Add(note);
+                menuHead.Children.Add(retry);
+                menuFailure = (note, retry, error);
+            }
+            else if (failure.Error != error)
+            {
+                // A new description in the same note; the row after it keeps its state.
+                var note = new PopoverNote(error);
+                menuHead!.Children[menuHead.Children.IndexOf(failure.Note)] = note;
+                menuFailure = (note, failure.Retry, error);
+            }
+        }
+        else if (menuFailure is { } gone)
+        {
+            menuHead!.Children.Remove(gone.Note);
+            menuHead.Children.Remove(gone.Retry);
+            menuFailure = null;
+        }
+
+        menuRows!.Apply(suggestions.Items.Select((item, index) => (index, item)).ToList()); // :249-258
+
+        // :260 .onChange(of: suggestions.selected) { _, selected in proxy.scrollTo(selected) }. The row is brought into
+        // view on the next main turn, once this show has put the list in the popover.
+        if (menuSelected is { } previous && previous != suggestions.Selected
+            && suggestions.Selected >= 0 && suggestions.Selected < menuRowsPanel!.Children.Count)
+        {
+            var target = menuRowsPanel.Children[(int)suggestions.Selected];
+            MainActor.Post(() => target.BringIntoView());
+        }
+        menuSelected = suggestions.Selected;
+        return menu;
+    }
+
+    // :250-256
+    private Control MakeRow((int Index, Suggestion Item) row) =>
+        new SuggestionPopoverRow(
+            row.Item,
+            isSelected: row.Index == state.Suggestions.Selected, // :253
+            select: () => state.Suggestions = state.Suggestions with { Selected = row.Index }, // :254
+            pick: () => Pick(row.Item)); // :255
+
+    private void UpdateRow(Control control, (int Index, Suggestion Item) row) =>
+        ((SuggestionPopoverRow)control).Update(
+            row.Item,
+            isSelected: row.Index == state.Suggestions.Selected,
+            select: () => state.Suggestions = state.Suggestions with { Selected = row.Index },
+            pick: () => Pick(row.Item));
+
+    // :264-267
+    private string CommandKey
+    {
+        get
+        {
+            if (Model.Thread(runtime.ThreadID) is not { } thread || workingDirectory is not { } directory) return ""; // :265
+            return ProviderRegistry.CommandKey(thread.Provider, directory); // :266
+        }
+    }
+
+    // :269-273. Internal for this unit's tests (InternalsVisibleTo Marrow.App.Tests); private in Swift.
+    internal async Task LoadCommands(bool force = false)
+    {
+        var model = Model;
+        if (model.Thread(runtime.ThreadID) is not { } thread || workingDirectory is not { } directory) return; // :270
+        await model.Providers.LoadCommands(thread.Provider, directory, force); // :271
+        if (controller.HasFocus) CursorMoved(controller.CursorLocation); // :272
     }
 
     // :275-288. Internal for this unit's tests (InternalsVisibleTo Marrow.App.Tests); private in Swift.
@@ -501,7 +715,10 @@ public sealed class ComposerView : Decorator
                     };
                     return true;
                 case ComposerKey.Tab or ComposerKey.Submit or ComposerKey.Steer: // :320-322
-                    Pick(state.Suggestions.Items[checked((int)state.Suggestions.Selected)]);
+                    // UPSTREAM DEFECT 50: Swift subscripts items with selected unchecked and would trap on an index out
+                    // of range; PR-COMPOSER-045's windows_path makes that case a no-op.
+                    if (state.Suggestions.Selected >= 0 && state.Suggestions.Selected < state.Suggestions.Items.Count)
+                        Pick(state.Suggestions.Items[checked((int)state.Suggestions.Selected)]);
                     return true;
                 case ComposerKey.Escape: // :323-326
                     dismissedSuggestions = true;
@@ -565,9 +782,25 @@ public sealed class ComposerView : Decorator
         else runtime.Send(); // :380
     }
 
-    // :384-398 Command-Return. MARROW_STUB: part 2 of this unit (PR-COMPOSER-031).
-    private void Steer() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Composer/ComposerView.swift:388");
+    // :384-398 Command-Return: steer the running turn by queueing the draft behind it. Idle, there is nothing to steer
+    // behind, so it just sends. The menu owns the chord while a turn runs; this path only sees it when the command is
+    // disabled or rebound, so it falls back to send once the chord moves.
+    private void Steer()
+    {
+        if (runtime.Draft.IsEmpty) return; // :389
+        historyIndex = null; // :390
+        state.Suggestions = new SuggestionState(); // :391
+        // :392-393 KeyChord(keyCode: 36, modifiers: .command) is Return with Control on Windows (ED-099); the stored chord
+        // is compared, not the key event.
+        if (runtime.CanQueue && ShortcutStore.Shared.Current.Chord(AppShortcut.QueueChat) == new KeyChord(0x1C, ChordModifiers.Control))
+        {
+            runtime.QueueDraftAsFollowUp(); // :394
+        }
+        else
+        {
+            runtime.Send(); // :396
+        }
+    }
 
     // :400-422
     private bool Recall(bool older)
@@ -672,18 +905,75 @@ public sealed class ComposerView : Decorator
         state.Suggestions = new SuggestionState { SuggestionKind = kind, Range = range, Items = items, Selected = selected }; // :472
     }
 
-    // :475-485 private func commandSuggestions(matching:). MARROW_STUB: part 2 of this unit (PR-COMPOSER-040 to
-    // PR-COMPOSER-043).
-    private ValueList<Suggestion> CommandSuggestions(string matching) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Composer/ComposerView.swift:475");
+    // The list's state and the controller, for this unit's tests (InternalsVisibleTo Marrow.App.Tests).
+    internal SuggestionState Suggestions => state.Suggestions;
 
-    // :487-505 private func pick(_:). MARROW_STUB: part 2 of this unit (PR-COMPOSER-049).
-    private void Pick(Suggestion suggestion) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Composer/ComposerView.swift:487");
+    internal ComposerController Controller => controller;
 
-    // :507-520 private func attach(_:). MARROW_STUB: part 2 of this unit (PR-COMPOSER-059).
-    private void Attach(IReadOnlyList<AttachmentSource> sources) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Composer/ComposerView.swift:507");
+    internal string? AttachmentNotice => state.AttachmentNotice;
+
+    // :475-485 The built-in commands, then the provider's, ranked for the query (Provider.swift:306-323).
+    private ValueList<Suggestion> CommandSuggestions(string matching)
+    {
+        if (Model.Thread(runtime.ThreadID) is not { } thread) return ValueList<Suggestion>.Empty; // :476
+        var commands = new List<SlashCommand> { new() { Name = "plan", Detail = "Turn plan mode on or off", IsBuiltIn = true } }; // :477
+        if (thread.Provider.SupportsCompact) // :478
+            commands.Add(new SlashCommand { Name = "compact", Detail = "Summarize the conversation to free up context", IsBuiltIn = true }); // :479
+        if (Model.Providers.Commands.TryGetValue(CommandKey, out var loaded)) commands.AddRange(loaded); // :481
+        var recent = Model.Providers.RecentCommands.TryGetValue(SwiftEnum<ProviderKind>.RawValue(thread.Provider), out var names)
+            ? names
+            : ValueList<string>.Empty; // :482
+        return new ValueList<Suggestion>(SlashCommand.Suggestions(commands, matching, recent).Select(command => new Suggestion // :482-484
+        {
+            Value = "/" + command.Name + " ",
+            Title = "/" + command.Name,
+            Detail = command.Detail,
+            Symbol = command.IsBuiltIn ? "command" : "sparkles",
+            Command = command,
+        }));
+    }
+
+    // :487-501 A command becomes a chip before the text; anything else is inserted in place of the typed word.
+    private void Pick(Suggestion suggestion)
+    {
+        var range = state.Suggestions.Range; // :488
+        var wasCommand = state.Suggestions.SuggestionKind == SuggestionState.Kind.Command; // :489
+        state.Suggestions = new SuggestionState(); // :490
+        if (wasCommand && suggestion.Command is { } c) // :491
+        {
+            controller.ReplaceCharacters(range.Location, range.Length, ""); // :492
+            Transaction.WithAnimation(Chrome.PanelSlide, () => // :493-495
+                runtime.Draft = runtime.Draft with { Command = new DraftCommand { Name = c.Name, Detail = c.Detail, IsBuiltIn = c.IsBuiltIn } });
+            controller.Focus(); // :496
+            return;
+        }
+        controller.ReplaceCharacters(range.Location, range.Length, suggestion.Value); // :499
+        controller.Focus(); // :500
+    }
+
+    // :505-520 Files and images go through Storage.attach: the slots are counted here, the copies and transcodes run off
+    // the main actor, and what lands past the cap is said.
+    private void Attach(IReadOnlyList<AttachmentSource> sources)
+    {
+        var room = Math.Max(0, MaxAttachments - runtime.Draft.Attachments.Count); // :508
+        var dropped = sources.Count - Math.Min(sources.Count, room); // :509
+        // :510 Storage.attach(sources, to: Bindable(runtime).draft.attachments)
+        Storage.Attach(sources, () => runtime.Draft.Attachments, attachments => runtime.Draft = runtime.Draft with { Attachments = attachments });
+        if (dropped > 0) // :511
+        {
+            var isImage = sources.Count == 1 && sources[0] is AttachmentSource.Image; // :512
+            var limit = MaxAttachments.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            Note(isImage // :513-517
+                ? "The image was left out: a message holds " + limit + " attachments"
+                : dropped == 1
+                    ? "One file was left out: a message holds " + limit + " attachments"
+                    : dropped.ToString(System.Globalization.CultureInfo.InvariantCulture) + " files were left out: a message holds " + limit + " attachments");
+        }
+        controller.Focus(); // :519
+    }
+
+    // :522-524
+    private void Note(string message) => Transaction.WithAnimation(Chrome.PanelSlide, () => state.AttachmentNotice = message);
 
     // :526-533 private func chooseFiles(). MARROW_STUB: part 3 of this unit (PR-COMPOSER-063).
     private void ChooseFiles() =>
@@ -1055,16 +1345,122 @@ public sealed record Suggestion
     public SlashCommand? Command { get; init; } = null; // :1056
 
     // :1058 var id: String { value }
-    public string Id =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Composer/ComposerView.swift:1058");
+    public string Id => Value;
 }
 
 /// <summary>:1061-1101 <c>private struct SuggestionPopoverRow: View</c>.</summary>
 internal sealed class SuggestionPopoverRow : Decorator
 {
+    // The @State the body reads (R-VIEW-2).
+    private sealed class ViewState : MainActorModel
+    {
+        private bool isHovering;
+
+        // :1067 @State private var isHovering = false
+        public bool IsHovering { get => Read(isHovering); set => Set(ref isHovering, value); }
+    }
+
+    private readonly ViewState state = new();
+    private readonly Panel symbolSlot;
+    private readonly MiddleTruncatingText title;
+    private readonly TextBlock detail;
+    private readonly AnimatedColor fill;
+    private Suggestion item;
+    private bool isSelected;
+    private Action select;
+    private Action pick;
+    private bool? drawnHighlight;
+
     // :1062-1065 the view's inputs; :1069-1100 body
-    public SuggestionPopoverRow(Suggestion item, bool isSelected, Action select, Action pick) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Composer/ComposerView.swift:1069");
+    public SuggestionPopoverRow(Suggestion item, bool isSelected, Action select, Action pick)
+    {
+        this.item = item;
+        this.isSelected = isSelected;
+        this.select = select;
+        this.pick = pick;
+
+        // :1071 HStack(spacing: 8). ENGINEERING DECISION: the title keeps its natural width and the detail takes the
+        // rest, trimmed, after the spacer's 16; SwiftUI's own share-out between two truncating texts is not in the source.
+        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("16,Auto,16,*"), ColumnSpacing = 8 };
+        symbolSlot = new Panel { Width = 16 }; // :1072-1074 .frame(width: 16)
+        row.Children.Add(symbolSlot);
+        title = new MiddleTruncatingText { TextWrapping = TextWrapping.NoWrap }; // :1075-1078 .lineLimit(1).truncationMode(.middle)
+        SwiftFont.Body.Apply(title); // :1076
+        Grid.SetColumn(title, 1);
+        row.Children.Add(title);
+        // :1079 Spacer(minLength: 16): column 2.
+        detail = new TextBlock
+        {
+            MaxLines = 1, // :1083 .lineLimit(1)
+            TextWrapping = TextWrapping.NoWrap,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            HorizontalAlignment = HorizontalAlignment.Right,
+        };
+        SwiftFont.Callout.Apply(detail); // :1081
+        detail.Foreground = Chrome.SecondaryText.Brush(detail); // :1082
+        Grid.SetColumn(detail, 3);
+        row.Children.Add(detail);
+        row.SetValue(Avalonia.Controls.Documents.TextElement.ForegroundProperty, Chrome.PrimaryText.Brush(row)); // :1085
+        row.VerticalAlignment = VerticalAlignment.Center;
+
+        fill = new AnimatedColor(row);
+        var background = new Border
+        {
+            Child = row,
+            Padding = new Thickness(8, 0), // :1086 .padding(.horizontal, 8)
+            Height = 26, // :1087 .frame(height: 26)
+            Background = fill.Brush, // :1088-1091, and :1092 .contentShape(.rect): the fill takes the hits, clear or not
+        }.RoundedRectangle(6, RoundedCornerStyle.Continuous);
+        Draw();
+        ApplyFill(null);
+
+        // :1070 Button(action: pick) { ... }, :1094 .buttonStyle(.plain), :1095 .focusable(false)
+        var button = PlainControls.Button(background, () => this.pick());
+        button.Focusable = false;
+        // :1096-1099
+        button.PointerEntered += (_, _) => Hover(true);
+        button.PointerExited += (_, _) => Hover(false);
+        Child = button;
+    }
+
+    // The menu's body run again with the row's new values (R-VIEW-1: a ForEach row keyed by its index).
+    internal void Update(Suggestion item, bool isSelected, Action select, Action pick)
+    {
+        var redraw = item != this.item;
+        this.item = item;
+        this.isSelected = isSelected;
+        this.select = select;
+        this.pick = pick;
+        if (redraw) Draw();
+        ApplyFill(Transaction.Current);
+    }
+
+    private void Draw()
+    {
+        symbolSlot.Children.Clear();
+        var symbol = SwiftImage.SystemName(item.Symbol).Font(SwiftFont.Callout); // :1072-1073
+        symbol.Width = 16; // :1074
+        symbolSlot.Children.Add(symbol);
+        title.FullText = item.Title; // :1075 Text(verbatim: item.title)
+        detail.Text = item.Detail; // :1080 Text(verbatim: item.detail)
+    }
+
+    // :1096-1099
+    private void Hover(bool hovering)
+    {
+        Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = hovering); // :1097
+        ApplyFill(Chrome.Hover);
+        if (hovering) select(); // :1098
+    }
+
+    // :1090 .fill(isSelected || isHovering ? Chrome.overlay(0.1) : Color.clear)
+    private void ApplyFill(Animation? animation)
+    {
+        var highlight = isSelected || state.IsHovering;
+        if (drawnHighlight == highlight) return;
+        drawnHighlight = highlight;
+        fill.Set(highlight ? Chrome.Overlay(0.1) : SwiftColor.Clear, animation);
+    }
 }
 
 /// <summary>:1103-1288 <c>@MainActor @Observable final class FileIndex</c> (R-OBS-6): paths for <c>@</c> mentions.
@@ -1081,19 +1477,231 @@ public sealed class FileIndex : MainActorModel
         public required bool IsASCII { get; init; } // :1115
     }
 
+    private ValueList<Entry> entries = ValueList<Entry>.Empty; // :1118 @ObservationIgnored
+    private string? directory; // :1119 @ObservationIgnored
+
+    // :1121-1127 Built indexes per directory, shared by every composer, so switching threads in a project never lists and
+    // lowercases its files again. A stale index is served and rebuilt behind it. A composer that finds its directory
+    // already building joins that build rather than waiting on nothing; two builds run at most, and two indexes are
+    // kept. Main-actor statics, read and written on main only.
+    private static readonly RecentCache<string, (ValueList<Entry> Entries, DateTimeOffset BuiltAt)> Built = new(limit: 2); // :1125
+    private static readonly Dictionary<string, TaskHandle<ValueList<Entry>>> Building = new(SwiftStringComparer.Instance); // :1126
     private const double Freshness = 60; // :1127
 
     // :1129-1159 func prepare(_:) async
-    public Task Prepare(string directory) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Composer/ComposerView.swift:1129");
+    public async Task Prepare(string directory)
+    {
+        if (SwiftTask.IsCancelled) return; // :1130
+        this.directory = directory; // :1131
+        while (!SwiftTask.IsCancelled && this.directory is { } current && SwiftString.Equal(current, directory)) // :1132
+        {
+            if (Built.TryGetValue(directory, out var cached)) // :1133
+            {
+                entries = cached.Entries; // :1134
+                if (!(SwiftDate.TimeIntervalSince(SwiftDate.Now, cached.BuiltAt) > Freshness)) return; // :1135
+            }
+            else
+            {
+                entries = ValueList<Entry>.Empty; // :1137
+            }
+            TaskHandle<ValueList<Entry>> task; // :1139
+            if (Building.TryGetValue(directory, out var pending)) // :1140
+            {
+                task = pending; // :1141
+            }
+            else if (Building.Count >= 2) // :1142
+            {
+                // :1142 Self.building.values.first: any one of the two (a dictionary's order is unspecified, R-COLL-2).
+                _ = await Building.Values.First().Value; // :1143
+                continue; // :1144
+            }
+            else
+            {
+                task = MainActor.Spawn(async () => // :1146-1151
+                {
+                    var built = await Build(directory);
+                    Built.Insert((built, SwiftDate.Now), directory);
+                    Building.Remove(directory);
+                    return built;
+                });
+                Building[directory] = task; // :1152
+            }
+            var fresh = await task.Value; // :1154
+            if (SwiftTask.IsCancelled || !(this.directory is { } now && SwiftString.Equal(now, directory))) return; // :1155
+            entries = fresh; // :1156
+            return; // :1157
+        }
+    }
 
-    // :1179-1183 func search(_:limit:) async -> [String]
-    public Task<ValueList<string>> Search(string query, long limit = 8) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Composer/ComposerView.swift:1179");
+    // :1161-1173 @concurrent. The lowercased path, its last component, and what its length costs a score, taken once
+    // here: a Swift string's count walks the whole string, and the search used to take it for every match.
+    private static Task<ValueList<Entry>> Build(string directory) => System.Threading.Tasks.Task.Run(() => BuildBody(directory));
 
-    // :1235-1254 nonisolated static func isSubsequence(_:of:ascii:) -> Bool
-    public static bool IsSubsequence(string needle, string of, bool ascii) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Composer/ComposerView.swift:1235");
+    private static async Task<ValueList<Entry>> BuildBody(string directory) =>
+        new((await List(directory)).Select(path =>
+        {
+            var lowercased = SwiftString.Lowercased(path); // :1164
+            return new Entry
+            {
+                Path = path, // :1166
+                Lowercased = lowercased, // :1167
+                Name = SwiftPath.LastPathComponent(lowercased), // :1168
+                LengthPenalty = Math.Min(SwiftString.Count(path), 99), // :1169
+                IsASCII = lowercased.All(unit => unit < 128), // :1170 utf8.allSatisfy { $0 < 128 }
+            };
+        }));
+
+    // :1175-1183 The best matches for a query. Scored off the main actor: the index holds up to 60,000 paths and every
+    // keystroke after an @ scored each of them. The caller drops the answer when the caret has moved on (the task is
+    // cancelled), so the scan stops early too.
+    public async Task<ValueList<string>> Search(string query, long limit = 8)
+    {
+        var needle = SwiftString.Lowercased(query); // :1180
+        if (needle.Length == 0) // :1181
+        {
+            if (limit < 0) throw SwiftTraps.Fatal("Can't take a prefix of negative length from a collection"); // prefix(limit)
+            return new ValueList<string>(entries.Take(checked((int)Math.Min(limit, entries.Count))).Select(entry => entry.Path));
+        }
+        return await Search(needle, entries, limit); // :1182
+    }
+
+    // :1185-1186 @concurrent private nonisolated static func search(_:in:limit:) async -> [String]
+    private static Task<ValueList<string>> Search(string needle, ValueList<Entry> @in, long limit) =>
+        System.Threading.Tasks.Task.Run(() => SearchBody(needle, @in, limit));
+
+    // :1187-1216 The best `limit` so far, highest score first. An insertion into a list this short beats collecting every
+    // match and sorting them all.
+    private static ValueList<string> SearchBody(string needle, ValueList<Entry> entries, long limit)
+    {
+        if (limit <= 0) return ValueList<string>.Empty; // :1189
+        var best = new List<(string Path, long Score)>(); // :1190-1191
+        var isASCII = needle.All(unit => unit < 128); // :1192
+        for (var offset = 0; offset < entries.Count; offset++) // :1193
+        {
+            if (offset % 2_048 == 0 && SwiftTask.IsCancelled) return ValueList<string>.Empty; // :1194
+            var entry = entries[offset];
+            var ascii = isASCII && entry.IsASCII; // :1195
+            long score; // :1196
+            if (SwiftString.Equal(entry.Name, needle)) score = 1_000; // :1197-1198
+            else if (SwiftString.HasPrefix(entry.Name, needle)) score = 800; // :1199-1200
+            else if (Contains(needle, entry.Name, ascii)) score = 600; // :1201-1202
+            else if (Contains(needle, entry.Lowercased, ascii)) score = 400; // :1203-1204
+            else if (IsSubsequence(needle, entry.Lowercased, ascii)) score = 100; // :1205-1206
+            else continue; // :1207-1208
+            var scored = score - entry.LengthPenalty; // :1210
+            if (best.Count == limit && scored <= best[checked((int)limit) - 1].Score) continue; // :1211
+            var index = best.FindIndex(candidate => candidate.Score < scored); // :1212 firstIndex { $0.score < scored }
+            best.Insert(index < 0 ? best.Count : index, (entry.Path, scored)); // :1212-1213
+            if (best.Count > limit) best.RemoveAt(best.Count - 1); // :1214
+        }
+        return new ValueList<string>(best.Select(candidate => candidate.Path)); // :1216
+    }
+
+    // :1219-1233 Substring search on the bytes when both sides are ASCII; a carriage return in the path is the one byte a
+    // grapheme can span, so it takes the general path, as in isSubsequence. On ASCII text a byte search (memmem) and a
+    // search of UTF-16 units are the same search. ENGINEERING DECISION: the general `haystack.contains(needle)` is read as
+    // a literal search, the reading the tree gives Swift's String.contains elsewhere (CommandCodeAPI.cs:333); which
+    // overload Swift picks decides non-ASCII and carriage-return matches, and no oracle item settles that yet.
+    private static bool Contains(string needle, string @in, bool ascii)
+    {
+        if (!ascii) return @in.Contains(needle, StringComparison.Ordinal); // :1224
+        // :1225-1231 memchr(base, 13) finds a carriage return: nil, the general path; otherwise memmem.
+        bool? found = @in.Contains('\r', StringComparison.Ordinal) ? null : @in.Contains(needle, StringComparison.Ordinal);
+        return found ?? @in.Contains(needle, StringComparison.Ordinal); // :1232
+    }
+
+    // :1235-1254 nonisolated static func isSubsequence(_:of:ascii:) -> Bool: on the bytes for ASCII, on Characters
+    // otherwise, and for a path holding a carriage return, whose "\r\n" is one Character.
+    public static bool IsSubsequence(string needle, string of, bool ascii)
+    {
+        if (ascii) // :1236
+        {
+            var remaining = System.Text.Encoding.UTF8.GetBytes(needle); // :1237
+            var next = 0; // :1238 remaining.next(); nil once next reaches the end
+            foreach (var @byte in System.Text.Encoding.UTF8.GetBytes(of)) // :1239
+            {
+                if (@byte == 13) return IsSubsequence(needle, of, ascii: false); // :1240
+                if (next < remaining.Length && @byte == remaining[next]) // :1241
+                {
+                    next += 1; // :1242
+                    if (next == remaining.Length) return true; // :1243
+                }
+            }
+            return next == remaining.Length; // :1246
+        }
+        var characters = SwiftString.Characters(needle).ToList(); // :1248 var remaining = needle[...]
+        var matched = 0;
+        foreach (var character in SwiftString.Characters(of)) // :1249 where character == remaining.first
+        {
+            if (matched >= characters.Count || !SwiftString.Equal(character, characters[matched])) continue;
+            matched += 1; // :1250
+            if (matched == characters.Count) return true; // :1251
+        }
+        return matched == characters.Count; // :1253
+    }
+
+    // :1256-1264 @concurrent. A repository's tracked and untracked unignored files, capped at 60,000; else the walk.
+    private static Task<IReadOnlyList<string>> List(string directory) => System.Threading.Tasks.Task.Run(() => ListBody(directory));
+
+    private static async Task<IReadOnlyList<string>> ListBody(string directory)
+    {
+        var git = new Git(directory); // :1258
+        if (await git.IsRepository()) // :1259
+        {
+            var files = await git.ListFiles(); // :1260
+            if (files.Count != 0) return files.Take(60_000).ToList(); // :1261
+        }
+        return Enumerate(directory); // :1263
+    }
+
+    // :1266-1287 The walk: files only, relative to the directory, at most 20,000. Nothing a mention would want sits deeper
+    // than level 16, and a tree that deep is usually a vendored or generated one whose name the list does not know.
+    // DEVIATION PR-COMPOSER-057 windows_path: .skipsHiddenFiles is the Windows hidden attribute, and
+    // .skipsPackageDescendants, which has no Windows counterpart, is dropped. ENGINEERING DECISION: the walk is the
+    // enumerator's pre-order (a directory, then what it holds); a reparse point is the link itself, as a URL's
+    // isDirectory reads a symbolic link, so it is listed and not entered.
+    private static IReadOnlyList<string> Enumerate(string directory)
+    {
+        var skipped = new HashSet<string>(SwiftStringComparer.Instance)
+        {
+            "node_modules", "build", "dist", ".build", "DerivedData", "Pods", "target", // :1268
+        };
+        var root = new DirectoryInfo(directory); // :1267 URL(fileURLWithPath: directory)
+        if (!root.Exists) return []; // :1269-1273 no enumerator
+        var options = new EnumerationOptions
+        {
+            RecurseSubdirectories = false,
+            AttributesToSkip = FileAttributes.Hidden, // :1272 .skipsHiddenFiles
+            IgnoreInaccessible = true,
+        };
+        var results = new List<string>(); // :1274
+
+        // False once the cap stops the walk.
+        bool Walk(DirectoryInfo folder, int level)
+        {
+            IEnumerable<FileSystemInfo> children;
+            try { children = folder.EnumerateFileSystemInfos("*", options); }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException or System.Security.SecurityException) { return true; }
+            foreach (var child in children) // :1275
+            {
+                // :1278-1281 a skipped name, or a level past 16, is neither listed nor entered
+                if (skipped.Contains(child.Name) || level > 16) continue;
+                var attributes = child.Attributes;
+                // :1282 directories are not listed; the enumerator enters them next
+                if (attributes.HasFlag(FileAttributes.Directory) && !attributes.HasFlag(FileAttributes.ReparsePoint))
+                {
+                    if (!Walk((DirectoryInfo)child, level + 1)) return false;
+                    continue;
+                }
+                results.Add(ToolTitles.RelativePath(child.FullName, directory)); // :1283
+                if (results.Count >= 20_000) return false; // :1284
+            }
+            return true;
+        }
+
+        Walk(root, 1);
+        return results; // :1286
+    }
 }
 
 /// <summary>:1290-1307 <c>private struct ComposerSurface: ViewModifier</c>.</summary>
