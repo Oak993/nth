@@ -431,7 +431,7 @@
       "id": "PR-PROVCLI-019",
       "title": "Claude control requests are numbered marrow-<n> from 1 and resolved by exact id match",
       "source_evidence": [
-        "DroppyCode/Services/Providers/ClaudeSession.swift:301-309 - control(_:) pre-increments controlCounter, builds requestID = \"droppy-code-\\(controlCounter)\", stores the continuation and sends {\"type\":\"control_request\",\"request_id\":<id>,\"request\":<request>}",
+        "DroppyCode/Services/Providers/ClaudeSession.swift:301-309 - control(_:) pre-increments controlCounter, builds requestID = \"droppy-code-\\(controlCounter)\", registers it with `pendingControl.register(requestID)` (a PendingReplies, :37) and inside that registration sends {\"type\":\"control_request\",\"request_id\":<id>,\"request\":<request>}",
         "DroppyCode/Services/Providers/ClaudeSession.swift:36 - controlCounter = 0",
         "DroppyCode/Services/Providers/ClaudeSession.swift:334-341 - control_response resolves pendingControl by response.request_id",
         "porting/decision_batch_20260922b.md F1 - every remaining \"Droppy Code\" / \"droppy-code\" the app shows or sends out becomes \"Marrow\" / \"marrow\", except droppy-code.json and DROPPY_CODE_PROJECT_ROOT (accepted by OD-0012)"
@@ -447,7 +447,7 @@
         "hasClosed already true: throws with the stored launch error or the verbatim \"Claude exited.\"",
         "No process: ProviderError.notRunning, described as \"The agent session is not running.\""
       ],
-      "cancellation": "didClose resumes every waiting continuation by throwing.",
+      "cancellation": "didClose fails every waiting request by throwing (pendingControl.failAll, ClaudeSession.swift:684). A caller that is cancelled is handled by PR-PROVCLI-442: cancelled before the send, its number is used up and never appears on the wire.",
       "windows_path": "None beyond the rename. The id prefix is read back only by the app's own matcher (port_impacts.md entry 20), so the sender and the matcher use the same prefix. OD-0012 F1 renames every remaining \"droppy-code\" the app sends out to \"marrow\"; this prefix is not one of its two exceptions (droppy-code.json and DROPPY_CODE_PROJECT_ROOT).",
       "verification_method": "unit test on the counter plus a contract fixture on the envelope",
       "status": "IMPLEMENTED",
@@ -1002,7 +1002,8 @@
       "id": "PR-PROVCLI-042",
       "title": "Claude resolves a control response by id, throwing for an error subtype",
       "source_evidence": [
-        "DroppyCode/Services/Providers/ClaudeSession.swift:334-341 - control_response case"
+        "DroppyCode/Services/Providers/ClaudeSession.swift:334-341 - control_response case: `let response = message[\"response\"] ?? .null` / `guard let requestID = response[\"request_id\"]?.string else { return }` / `if response[\"subtype\"]?.string == \"error\" {` / `pendingControl.fail(requestID, ProviderError.failed(response[\"error\"]?.string ?? \"Claude rejected the request.\"))` / `} else {` / `pendingControl.resolve(requestID, response[\"response\"] ?? .null)`",
+        "DroppyCode/Core/Support/PendingReplies.swift:38-50 - resolve and fail remove the waiting entry and resume it, and return false doing nothing when no entry has that id"
       ],
       "preconditions": "A pending control continuation.",
       "action": "A control_response arrives.",
@@ -1012,7 +1013,7 @@
       "failure_cases": [
         "An unmatched id is dropped and the original caller waits until didClose."
       ],
-      "cancellation": "not cancellable",
+      "cancellation": "The waiting caller can be cancelled (PR-PROVCLI-442); a control_response for a request whose caller was cancelled finds no waiting entry and is dropped like any unmatched id.",
       "windows_path": "None.",
       "verification_method": "unit test over success, error and unmatched ids",
       "status": "IMPLEMENTED",
@@ -1140,7 +1141,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "CHANGED (comment only): B2 adds the comment at ClaudeSession.swift:400-403 stating that the head's running total is deliberately not added to the ledger; the code is unchanged (B1 :399-408 emitted the same .agentProgress and wrote no ledger entry). Lines 399-408 -> 399-412."
+      "b2_change": "CHANGED (comment only): B2 adds the comment at ClaudeSession.swift:402-405 stating that the head's running total is deliberately not added to the ledger; the code is unchanged (B1 :399-408 emitted the same .agentProgress and wrote no ledger entry). Lines 399-408 -> 399-412."
     },
     {
       "id": "PR-PROVCLI-048",
@@ -1171,7 +1172,7 @@
       "id": "PR-PROVCLI-049",
       "title": "Claude keeps one stream state per head and takes it out, mutates it and puts it back around each callback",
       "source_evidence": [
-        "DroppyCode/Services/Providers/ClaudeSession.swift:350-368 - stream_event and assistant cases with the comment at :354-356",
+        "DroppyCode/Services/Providers/ClaudeSession.swift:350-368 - stream_event and assistant cases with the comment at :352-354",
         "DroppyCode/Services/Providers/ClaudeSession.swift:21-27 - StreamState holds currentMessageID, blockIDs, openText, openThinking",
         "DroppyCode/Services/Providers/ClaudeSession.swift:447-453 - leadSink is lazily made once; agentSink(_:) wraps events in .agentEvent"
       ],
@@ -1241,7 +1242,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "MOVED: B1 ClaudeSession.swift:499-513 -> B2 :505-519 (4 comment lines added above at B2 :402-405). The one changed line swaps .trimmingCharacters(in: .whitespacesAndNewlines) for .trimmed (B2 :514), which B2 defines as that exact call (Core/Support/Text.swift:224). Behaviour unchanged."
+      "b2_change": "MOVED: B1 ClaudeSession.swift:501-515 -> B2 :505-519 (4 comment lines added above at B2 :402-405). The one changed line swaps .trimmingCharacters(in: .whitespacesAndNewlines) for .trimmed (B2 :514), which B2 defines as that exact call (Core/Support/Text.swift:132). Behaviour unchanged."
     },
     {
       "id": "PR-PROVCLI-052",
@@ -1251,7 +1252,7 @@
       ],
       "preconditions": "A non-synthetic assistant message with a content array.",
       "action": "handleAssistant processes the blocks.",
-      "expected_result": "A message without message.content as an array is ignored. message.uuid, when a string, is emitted as .assistantMessageID first. Then for each block: \"text\" takes the first id queued in openText for that message id with removeFirst, or mints \"<messageID>-text-<UUID>\", and emits .messageCompleted; \"thinking\" does the same through openThinking and .reasoningCompleted; \"tool_use\" requires a string id and name, records the name, and for the tool named exactly \"TodoWrite\" emits .todos from the parsed todos, otherwise emits .toolStarted followed by .toolUpdated carrying the same title, detail, edits and kind. Any other block type is ignored. The message id is body.id or a fresh UUID.",
+      "expected_result": "A message without message.content as an array is ignored. message.uuid, when a string, is emitted as .assistantMessageID first. Then for each block: \"text\" takes the first id queued in openText for that message id with removeFirst, or mints \"<messageID>-text-<UUID>\", and emits .messageCompleted; \"thinking\" does the same through openThinking and .reasoningCompleted; \"tool_use\" requires a string id and name, records the name, and for the tool named exactly \"TodoWrite\" emits .todos(ACPSession.parseTodoItems(input[\"todos\"])) (:534-535, PR-PROVCLI-063), otherwise emits .toolStarted followed by .toolUpdated carrying the same title, detail, edits and kind. Any other block type is ignored. The message id is body.id or a fresh UUID.",
       "side_effects": [
         "Provider events"
       ],
@@ -1271,9 +1272,9 @@
       "id": "PR-PROVCLI-053",
       "title": "Claude tool results close the row, hide five tools and read a decline out of the error text",
       "source_evidence": [
-        "DroppyCode/Services/Providers/ClaudeSession.swift:546-560 - handleToolResults",
+        "DroppyCode/Services/Providers/ClaudeSession.swift:546-560 - handleToolResults; the output is `let output = ToolText.blocks(block[\"content\"])` (:553)",
         "DroppyCode/Services/Providers/ClaudeSession.swift:696-697 - hiddenResultTools = [\"AskUserQuestion\", \"ExitPlanMode\", \"EnterPlanMode\", \"TodoWrite\", \"ToolSearch\"]",
-        "DroppyCode/Services/Providers/ClaudeSession.swift:777-781 - resultText"
+        "DroppyCode/Services/Providers/ProviderSession.swift:211-219 ToolText.blocks - `guard let value, !value.isNull else { return \"\" }` / `if let text = value.string { return text }` / `guard let blocks = value.array else { return \"\" }` / `return blocks.compactMap { $0[\"text\"]?.string }.joined(separator: \"\\n\")` (the shared helper that replaced ClaudeSession's own resultText at B3, with the same results)"
       ],
       "preconditions": "A user message carrying tool_result blocks.",
       "action": "handleToolResults processes them.",
@@ -1322,7 +1323,7 @@
       "id": "PR-PROVCLI-055",
       "title": "A Claude result after start ends the turn with usage, spend, cleared state and one of three statuses",
       "source_evidence": [
-        "DroppyCode/Services/Providers/ClaudeSession.swift:572-607 - handleResult body: turnActive = false; if let usage = Self.contextUsage(message) { onEvent?(.usage(usage)); if let spend = Self.turnSpendEvent(message, model: model) { TokenLedger.shared.record(spend: spend.totalTokens); onEvent?(.tokenSpend(spend)) } }; for requestID in pendingTools.keys { onEvent?(.requestResolved(id: requestID)) } ..., including the comment at :577-582 about head usage and the comment at :593-595 about keeping the heads' streams",
+        "DroppyCode/Services/Providers/ClaudeSession.swift:572-607 - handleResult body: turnActive = false; if let usage = Self.contextUsage(message) { onEvent?(.usage(usage)); if let spend = Self.turnSpendEvent(message, model: model) { TokenLedger.shared.record(spend: spend.totalTokens); onEvent?(.tokenSpend(spend)) } }; for requestID in pendingTools.keys { onEvent?(.requestResolved(id: requestID)) } ..., including the comment at :575-580 about head usage and the comment at :591-593 about keeping the heads' streams",
         "DroppyCode/Services/Providers/ClaudeSession.swift:759-812 - turnSpend, turnSpendEvent and contextUsage"
       ],
       "preconditions": "isStarted is true.",
@@ -1343,7 +1344,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "CHANGED: B1 ClaudeSession.swift:568-595 recorded \"let spend = Self.turnSpend(message); if spend > 0 { TokenLedger.shared.record(spend: spend) }\" and emitted no spend event. B2 :583-586: \"if let spend = Self.turnSpendEvent(message, model: model) { TokenLedger.shared.record(spend: spend.totalTokens); onEvent?(.tokenSpend(spend)) }\". The ledger amount is the same; a new .tokenSpend event follows .usage and precedes the .requestResolved events. Lines 570-597 -> 574-609."
+      "b2_change": "CHANGED: B1 ClaudeSession.swift:570-597 recorded \"let spend = Self.turnSpend(message); if spend > 0 { TokenLedger.shared.record(spend: spend) }\" and emitted no spend event. B2 :583-586: \"if let spend = Self.turnSpendEvent(message, model: model) { TokenLedger.shared.record(spend: spend.totalTokens); onEvent?(.tokenSpend(spend)) }\". The ledger amount is the same; a new .tokenSpend event follows .usage and precedes the .requestResolved events. Lines 570-597 -> 574-609."
     },
     {
       "id": "PR-PROVCLI-056",
@@ -1452,7 +1453,7 @@
       "id": "PR-PROVCLI-060",
       "title": "Claude turns any other tool request into an approval whose kind follows the tool call, with edits suppressed",
       "source_evidence": [
-        "DroppyCode/Services/Providers/ClaudeSession.swift:652-675 - the default branch with its comment at :655-656"
+        "DroppyCode/Services/Providers/ClaudeSession.swift:652-675 - the default branch with its comment at :653-654"
       ],
       "preconditions": "An inbound can_use_tool request for a tool other than AskUserQuestion and ExitPlanMode.",
       "action": "The CLI asks permission.",
@@ -1480,7 +1481,7 @@
       ],
       "preconditions": "The child's message stream ended.",
       "action": "didClose runs.",
-      "expected_result": "hasClosed is set. The reason is the stored launchError when present, otherwise TextCleanup.lastLines of the stderr tail, and it is written BACK into launchError so a later control() call reports it. Every waiting control continuation is resumed by throwing ProviderError.failed(reason ?? \"Claude exited.\"). Every pending tool emits .requestResolved and the map is cleared. turnActive becomes false. Finally .exited(error: <last lines of the tail>) is emitted ONLY when the session is not stopping AND isStarted is true - a launch that failed is reported by start() throwing instead.",
+      "expected_result": "hasClosed is set. The reason is the stored launchError when present, otherwise TextCleanup.lastLines of the stderr tail, and it is written BACK into launchError so a later control() call reports it. Every waiting control request is failed with ProviderError.failed(reason ?? \"Claude exited.\") (pendingControl.failAll, :684). Every pending tool emits .requestResolved and the map is cleared. turnActive becomes false. Finally .exited(error: <last lines of the tail>) is emitted ONLY when the session is not stopping AND isStarted is true - a launch that failed is reported by start() throwing instead.",
       "side_effects": [
         "Provider events"
       ],
@@ -1521,13 +1522,14 @@
     },
     {
       "id": "PR-PROVCLI-063",
-      "title": "Claude todo parsing maps three status strings and skips entries without content",
+      "title": "Claude todo parsing uses the shared todo parser: four text keys in order, blank entries dropped, seven status strings",
       "source_evidence": [
-        "DroppyCode/Services/Providers/ClaudeSession.swift:765-775 - todos(from:)"
+        "DroppyCode/Services/Providers/ClaudeSession.swift:534-535 - `if name == \"TodoWrite\" {` / `sink(.todos(ACPSession.parseTodoItems(input[\"todos\"])))`",
+        "DroppyCode/Services/Providers/ACPSession.swift:685-699 parseTodoItems - `(value?.array ?? []).compactMap { item -> TodoStep? in` / `guard let text = item[\"content\"]?.string ?? item[\"text\"]?.string ?? item[\"step\"]?.string ?? item[\"title\"]?.string,` / `!text.trimmed.isEmpty else { return nil }` / `case \"completed\", \"complete\", \"done\": .done` / `case \"in_progress\", \"inProgress\", \"in-progress\", \"active\": .active` / `default: .pending` / `return TodoStep(text: text, status: status)`"
       ],
       "preconditions": "A TodoWrite tool_use block.",
       "action": "The todo list is parsed.",
-      "expected_result": "Each entry of input.todos with a string \"content\" becomes a TodoStep with that text; entries without it are skipped. Status \"completed\" -> .done, \"in_progress\" -> .active, anything else including a missing status -> .pending. The result is emitted as .todos. Note that Claude's key is \"content\" only, with no alternates, unlike Command Code, which also accepts \"text\" and \"title\".",
+      "expected_result": "input.todos is read as an array; a missing or non-array value gives no entries. For each entry the text is the first of \"content\", \"text\", \"step\" and \"title\" that holds a string. An entry with none of them is skipped, and so is one whose text is empty or only whitespace and newlines (a present but blank \"content\" is not replaced by a later key; the entry is dropped). The text is kept as it is, untrimmed. Status \"completed\", \"complete\" or \"done\" -> .done; \"in_progress\", \"inProgress\", \"in-progress\" or \"active\" -> .active; anything else, including a missing status -> .pending. The result is emitted as .todos.",
       "side_effects": [
         "One provider event"
       ],
@@ -1536,12 +1538,13 @@
         "A missing todos array yields an empty list, which is still emitted."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "None.",
-      "verification_method": "unit test over all three statuses",
-      "status": "IMPLEMENTED",
+      "windows_path": "The port calls its ACPSession.ParseTodoItems, the parser the ACP path already uses, instead of a Claude-only parser. The blank test is Swift's whitespacesAndNewlines trim.",
+      "verification_method": "unit test over all seven status strings, each of the four text keys, the key order (content before text before step before title), a blank content entry (dropped, with no fallback) and a missing status",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "At 1.7.0 Claude's own todos(from:) (B2 ClaudeSession.swift:765-775) was deleted and TodoWrite goes through ACPSession.parseTodoItems (ClaudeSession.swift:535; ACPSession.swift:688-699): the text falls back from content to text, step and title, blank items are dropped, and seven status spellings are recognised instead of two."
     },
     {
       "id": "PR-PROVCLI-064",
@@ -2535,7 +2538,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "CHANGED (implementation): B1 CodexSession.swift:464-475 parsed the ISO branch with ISO8601DateFormatter using [.withInternetDateTime, .withFractionalSeconds], then a default ISO8601DateFormatter(). B2 :472 is \"return ISO8601.date(from: text)\", which tries Date.ISO8601FormatStyle(includingFractionalSeconds: true) then Date.ISO8601FormatStyle() (Core/Support/ISO8601.swift:10,:13,:19-21). The attempt order is the same; whether edge inputs (offsets other than Z, lowercase letters) parse identically under the two APIs is UNKNOWN: nothing was run. Lines 461-472 -> 464-473.",
+      "b2_change": "CHANGED (implementation): B1 CodexSession.swift:461-472 parsed the ISO branch with ISO8601DateFormatter using [.withInternetDateTime, .withFractionalSeconds], then a default ISO8601DateFormatter(). B2 :472 is \"return ISO8601.date(from: text)\", which tries Date.ISO8601FormatStyle(includingFractionalSeconds: true) then Date.ISO8601FormatStyle() (Core/Support/ISO8601.swift:10,:13,:19-21). The attempt order is the same; whether edge inputs (offsets other than Z, lowercase letters) parse identically under the two APIs is UNKNOWN: nothing was run. Lines 461-472 -> 464-473.",
       "open_question": "UNRESOLVED and not yet registered in porting/unknowns.md: which ISO 8601 strings other than the Z-suffixed shapes named here Date.ISO8601FormatStyle accepts - numeric offsets such as +02:00 or +0200, lowercase t or z separators, other fraction lengths. That is Foundation runtime behaviour, not in the pinned tree, and nothing was run. Until one unknown shared by PR-PROVCLI-105, PR-PROVCLI-173 and PR-PROVCLI-341 is registered and settled, only the Z-suffixed shapes and the rejection of junk are specified, and the port must not claim parity for any other input."
     },
     {
@@ -2588,7 +2591,7 @@
       "id": "PR-PROVCLI-108",
       "title": "Codex handles seventeen distinct notification methods and ignores the rest",
       "source_evidence": [
-        "DroppyCode/Services/Providers/CodexSession.swift:536-539,:547-659 - if method == \"thread/started\" { headStarted(params[\"thread\"] ?? .null); return }; then switch method { case \"turn/started\" ... case \"item/started\" ... case \"item/completed\" ... case \"item/agentMessage/delta\" ... case \"item/reasoning/summaryTextDelta\", \"item/reasoning/textDelta\" ... case \"item/reasoning/summaryPartAdded\" ... case \"item/commandExecution/outputDelta\" ... case \"item/plan/delta\" ... case \"turn/plan/updated\" ... case \"turn/diff/updated\" ... case \"thread/tokenUsage/updated\" ... case \"error\" ... case \"turn/completed\" ... case \"serverRequest/resolved\" ... case \"thread/compacted\" ... default: break }"
+        "DroppyCode/Services/Providers/CodexSession.swift:536-539,:550-662 - if method == \"thread/started\" { headStarted(params[\"thread\"] ?? .null); return }; then switch method { case \"turn/started\" ... case \"item/started\" ... case \"item/completed\" ... case \"item/agentMessage/delta\" ... case \"item/reasoning/summaryTextDelta\", \"item/reasoning/textDelta\" ... case \"item/reasoning/summaryPartAdded\" ... case \"item/commandExecution/outputDelta\" ... case \"item/plan/delta\" ... case \"turn/plan/updated\" ... case \"turn/diff/updated\" ... case \"thread/tokenUsage/updated\" ... case \"error\" ... case \"turn/completed\" ... case \"serverRequest/resolved\" ... case \"thread/compacted\" ... default: break }"
       ],
       "preconditions": "A routed notification.",
       "action": "The switch runs.",
@@ -2607,7 +2610,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "MOVED: B1 CodexSession.swift:549-660 -> B2 :547-659, and thread/started is cited at its own early return (:533-536). The only change inside the switch is the spend path of thread/tokenUsage/updated (see PR-PROVCLI-110 and PR-PROVCLI-111); the seventeen handled names are unchanged."
+      "b2_change": "MOVED: B1 CodexSession.swift:546-657 -> B2 :547-659, and thread/started is cited at its own early return (:533-536). The only change inside the switch is the spend path of thread/tokenUsage/updated (see PR-PROVCLI-110 and PR-PROVCLI-111); the seventeen handled names are unchanged."
     },
     {
       "id": "PR-PROVCLI-109",
@@ -2637,9 +2640,9 @@
       "id": "PR-PROVCLI-110",
       "title": "Codex converts a growing cumulative token total into per-update spend for the lead and records it under the lead thread id",
       "source_evidence": [
-        "DroppyCode/Services/Providers/CodexSession.swift:597-615 - thread/tokenUsage/updated lead branch with the comment at :600-606: if let total = usage[\"total\"]?[\"totalTokens\"]?.int, total > 0 { let spend = spendTracker.spend(total: total, before: max(0, total - used)); recordCodexSpend(spend, rolloutID: threadID, model: activeModel) } else { recordCodexSpend(used, rolloutID: threadID, model: activeModel) }",
+        "DroppyCode/Services/Providers/CodexSession.swift:597-615 - thread/tokenUsage/updated lead branch with the comment at :603-609: if let total = usage[\"total\"]?[\"totalTokens\"]?.int, total > 0 { let spend = spendTracker.spend(total: total, before: max(0, total - used)); recordCodexSpend(spend, rolloutID: threadID, model: activeModel) } else { recordCodexSpend(used, rolloutID: threadID, model: activeModel) }",
         "DroppyCode/Services/Providers/CodexSession.swift:671-677 - recordCodexSpend (PR-PROVCLI-441)",
-        "DroppyCode/Services/Providers/CodexSession.swift:39,:96,:105,:299 - activeModel, set from the thread/start, thread/resume and fork results",
+        "DroppyCode/Services/Providers/CodexSession.swift:39,:96,:105,:301 - activeModel, set from the thread/start, thread/resume and fork results",
         "DroppyCode/Services/Providers/CodexSession.swift:43 - spendTracker"
       ],
       "preconditions": "A thread/tokenUsage/updated notification for the lead.",
@@ -2662,7 +2665,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "CHANGED: B1 CodexSession.swift:596-614 wrote \"if spend > 0 { TokenLedger.shared.record(spend: spend) }\" (and record(spend: used) in the fallback) and emitted no spend event. B2 :609 and :611 call recordCodexSpend(spend|used, rolloutID: threadID, model: activeModel) (:668-674): the ledger write is record(codexSpend:rolloutID:), keyed by the lowercased thread id, only when the id is non-empty, and a .tokenSpend(provider .codex) event is emitted whenever the spend is positive. The tracker and seed are unchanged. Lines 593-611 -> 594-612."
+      "b2_change": "CHANGED: B1 CodexSession.swift:593-611 wrote \"if spend > 0 { TokenLedger.shared.record(spend: spend) }\" (and record(spend: used) in the fallback) and emitted no spend event. B2 :609 and :611 call recordCodexSpend(spend|used, rolloutID: threadID, model: activeModel) (:668-674): the ledger write is record(codexSpend:rolloutID:), keyed by the lowercased thread id, only when the id is non-empty, and a .tokenSpend(provider .codex) event is emitted whenever the spend is positive. The tracker and seed are unchanged. Lines 593-611 -> 594-612."
     },
     {
       "id": "PR-PROVCLI-111",
@@ -2690,7 +2693,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "CHANGED: B1 CodexSession.swift:615-627 wrote TokenLedger.shared.record(spend:) and emitted only .agentProgress. B2 :613-625 calls recordCodexSpend(spend|used, rolloutID: head, model: headModels[head], agentID: head): the ledger write is record(codexSpend:rolloutID: head id) and a .tokenSpend(provider .codex, agentID head) is emitted BEFORE the unchanged .agentProgress. The per-head tracker is unchanged."
+      "b2_change": "CHANGED: B1 CodexSession.swift:612-624 wrote TokenLedger.shared.record(spend:) and emitted only .agentProgress. B2 :613-625 calls recordCodexSpend(spend|used, rolloutID: head, model: headModels[head], agentID: head): the ledger write is record(codexSpend:rolloutID: head id) and a .tokenSpend(provider .codex, agentID head) is emitted BEFORE the unchanged .agentProgress. The per-head tracker is unchanged."
     },
     {
       "id": "PR-PROVCLI-112",
@@ -2790,7 +2793,7 @@
       "id": "PR-PROVCLI-116",
       "title": "Codex registers a head from thread/started when the lead is its parent, and logs an adoption otherwise",
       "source_evidence": [
-        "DroppyCode/Services/Providers/CodexSession.swift:679-705 - headStarted: guard let id = thread[\"id\"]?.string, let threadID, !headThreads.contains(id) else { return }; guard thread[\"parentThreadId\"]?.string == threadID else { ... guard nickname != nil || role != nil else { return }; Self.log.notice(...); headThreads.insert(id); headModels[id] = thread[\"model\"]?.string; ... return }; headThreads.insert(id); headModels[id] = thread[\"model\"]?.string; ... onEvent?(.agentStarted(AgentSpawn(id: id, taskID: nil, toolUseID: nil, description: description, prompt: preview.nilIfEmpty, model: thread[\"model\"]?.string))), with the comment at :680-684 and the Logger notice at :686",
+        "DroppyCode/Services/Providers/CodexSession.swift:679-705 - headStarted: guard let id = thread[\"id\"]?.string, let threadID, !headThreads.contains(id) else { return }; guard thread[\"parentThreadId\"]?.string == threadID else { ... guard nickname != nil || role != nil else { return }; Self.log.notice(...); headThreads.insert(id); headModels[id] = thread[\"model\"]?.string; ... return }; headThreads.insert(id); headModels[id] = thread[\"model\"]?.string; ... onEvent?(.agentStarted(AgentSpawn(id: id, taskID: nil, toolUseID: nil, description: description, prompt: preview.nilIfEmpty, model: thread[\"model\"]?.string))), with the comment at :684-688 and the Logger notice at :690",
         "DroppyCode/Services/Providers/CodexSession.swift:13 - Logger(subsystem: \"iordv.droppycode\", category: \"codex\")"
       ],
       "preconditions": "A thread/started notification.",
@@ -2810,7 +2813,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "MOVED: B1 CodexSession.swift:663-687 -> B2 :676-701. Two lines were added (B2 :688 and :695, headModels[id] = thread[\"model\"]?.string, specified in PR-PROVCLI-440) and the preview trim uses .trimmed. The registration, adoption, logging and .agentStarted behaviour here is unchanged."
+      "b2_change": "MOVED: B1 CodexSession.swift:660-683 -> B2 :676-701. Two lines were added (B2 :688 and :695, headModels[id] = thread[\"model\"]?.string, specified in PR-PROVCLI-440) and the preview trim uses .trimmed. The registration, adoption, logging and .agentStarted behaviour here is unchanged."
     },
     {
       "id": "PR-PROVCLI-117",
@@ -2883,13 +2886,13 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "MOVED: B1 CodexSession.swift:741-761 -> B2 :755-774. The one changed line (B2 :770) uses .trimmed for the prompt, the same call. Behaviour unchanged. Note: a receiver registered here gets no headModels entry (PR-PROVCLI-440)."
+      "b2_change": "MOVED: B1 CodexSession.swift:737-756 -> B2 :755-774. The one changed line (B2 :770) uses .trimmed for the prompt, the same call. Behaviour unchanged. Note: a receiver registered here gets no headModels entry (PR-PROVCLI-440)."
     },
     {
       "id": "PR-PROVCLI-120",
       "title": "Codex adopts an unknown head from a subAgentActivity note and ends it on completed or interrupted",
       "source_evidence": [
-        "DroppyCode/Services/Providers/CodexSession.swift:781-804 - describeHeads subAgentActivity branch, with the comment at :778-782 and the Logger notice at :785"
+        "DroppyCode/Services/Providers/CodexSession.swift:781-804 - describeHeads subAgentActivity branch, with the comment at :785-789 and the Logger notice at :792"
       ],
       "preconditions": "A subAgentActivity item with a string agentThreadId.",
       "action": "describeHeads runs.",
@@ -3223,7 +3226,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "MOVED: B1 CodexSession.swift:792-799 -> B2 :803-810; the trim is now .trimmed (the same call). Behaviour unchanged."
+      "b2_change": "MOVED: B1 CodexSession.swift:785-792 -> B2 :803-810; the trim is now .trimmed (the same call). Behaviour unchanged."
     },
     {
       "id": "PR-PROVCLI-134",
@@ -5425,7 +5428,7 @@
       "id": "PR-PROVCLI-224",
       "title": "Command Code handles twenty-three event names across twenty-two labels and deliberately ignores nine more",
       "source_evidence": [
-        "DroppyCode/Services/Providers/CommandCodeSession.swift:286-415 - handleEvent, with tool_hook_blocked and tool_denied sharing one label and the default comment at :427-429 naming the ignored frames"
+        "DroppyCode/Services/Providers/CommandCodeSession.swift:286-415 - handleEvent, with tool_hook_blocked and tool_denied sharing one label and the default comment at :411-413 naming the ignored frames"
       ],
       "preconditions": "An event object.",
       "action": "handleEvent dispatches it.",
@@ -5444,7 +5447,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Re-cited at B2: CommandCodeSession.swift:286-415 keeps its lines; only :322, :331 and :423 swap .trimmingCharacters(in: .whitespacesAndNewlines) for .trimmed, the same call. Behaviour unchanged."
+      "b2_change": "Re-cited at B2: CommandCodeSession.swift:286-431 keeps its lines; only :322, :331 and :423 swap .trimmingCharacters(in: .whitespacesAndNewlines) for .trimmed, the same call. Behaviour unchanged."
     },
     {
       "id": "PR-PROVCLI-225",
@@ -5549,7 +5552,7 @@
       "id": "PR-PROVCLI-229",
       "title": "Command Code queues a tool row, diverts todo_write, snapshots a file before a write and rescans the gate",
       "source_evidence": [
-        "DroppyCode/Services/Providers/CommandCodeSession.swift:342-356 - tool_queued with the comment at :371",
+        "DroppyCode/Services/Providers/CommandCodeSession.swift:342-356 - tool_queued with the comment at :355",
         "DroppyCode/Services/Providers/CommandCodeSession.swift:640-646 - snapshot reads text files up to 1 MB and returns nil otherwise"
       ],
       "preconditions": "A tool_queued event with a call id and a tool name.",
@@ -5690,7 +5693,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Re-cited at B2: CommandCodeSession.swift:404-409 keeps its lines; :423 uses .trimmed, the same call. Behaviour unchanged."
+      "b2_change": "Re-cited at B2: CommandCodeSession.swift:420-425 keeps its lines; :423 uses .trimmed, the same call. Behaviour unchanged."
     },
     {
       "id": "PR-PROVCLI-235",
@@ -6400,11 +6403,11 @@
       "id": "PR-PROVCLI-263",
       "title": "Command Code's effort table lists efforts for forty-six model ids and none for the rest",
       "source_evidence": [
-        "DroppyCode/Services/Providers/CommandCodeAPI.swift:281-310 - efforts(for:) with its doc comment"
+        "DroppyCode/Services/Providers/CommandCodeAPI.swift:281-310 - efforts(for:) with its doc comment; the full row is `\"claude-opus-5-5\": full, \"claude-opus-5\": full, \"claude-opus-4-8\": full, \"claude-opus-4-7\": full,` at :291"
       ],
       "preconditions": "A model id.",
       "action": "efforts runs.",
-      "expected_result": "The id is lowercased and looked up in the CLI's own table; a miss returns the EMPTY array, so the effort slider stays out of the way for a model the table does not know. The five shapes used are: full = [low, medium, high, xhigh, max]; toXHigh = [low, medium, high, xhigh]; toHigh = [low, medium, high]; highMax = [high, max]; lowHighMax = [low, high, max]. The table, verbatim: claude-sonnet-5, claude-sonnet-4-6, claude-fable-5-1, claude-fable-5, claude-opus-5, claude-opus-4-8, claude-opus-4-7, gpt-6-astra, gpt-5.6-sol, gpt-5.6-terra, gpt-5.6-luna and meta/muse-spark-1.3 take full; gpt-5.5, gpt-5.4, gpt-5.3-codex, xai/grok-4.6, meta/muse-spark-1.1, meta/muse-spark-1.2, meta/muse-spark-1.2-contributor and meta/muse-spark-1.3-contributor take toXHigh; gpt-5.4-mini, google/gemini-3.8-flash, google/gemini-3.7-flash, google/gemini-3.6-flash, google/gemini-3.5-flash, google/gemini-3.5-flash-lite, google/gemini-3.1-flash-lite, tencent/hy4-preview, xai/grok-4.5, minimaxai/minimax-m3 and minimax/minimax-m3-free take toHigh; deepseek/deepseek-v4-pro, deepseek/deepseek-v4-flash, deepseek/deepseek-v4-flash-vision-exp and zai-org/glm-5.2 take highMax; deepseek/deepseek-v4-flash-fast, deepseek/deepseek-v4.1-flash, moonshotai/kimi-k3, zai-org/glm-5.3 and z-ai/glm-5.3-flash take lowHighMax; sakana/fugu-ultra takes exactly [high, xhigh]; and qwen/qwen3.8-max-0902, qwen/qwen3.8-max, qwen/qwen3.8-27b and qwen/qwen3.8-flash each take exactly [low, medium, xhigh].",
+      "expected_result": "The id is lowercased and looked up in the CLI's own table; a miss returns the EMPTY array, so the effort slider stays out of the way for a model the table does not know. The five shapes used are: full = [low, medium, high, xhigh, max]; toXHigh = [low, medium, high, xhigh]; toHigh = [low, medium, high]; highMax = [high, max]; lowHighMax = [low, high, max]. The table, verbatim: claude-sonnet-5, claude-sonnet-4-6, claude-fable-5-1, claude-fable-5, claude-opus-5-5, claude-opus-5, claude-opus-4-8, claude-opus-4-7, gpt-6-astra, gpt-5.6-sol, gpt-5.6-terra, gpt-5.6-luna and meta/muse-spark-1.3 take full; gpt-5.5, gpt-5.4, gpt-5.3-codex, xai/grok-4.6, meta/muse-spark-1.1, meta/muse-spark-1.2, meta/muse-spark-1.2-contributor and meta/muse-spark-1.3-contributor take toXHigh; gpt-5.4-mini, google/gemini-3.8-flash, google/gemini-3.7-flash, google/gemini-3.6-flash, google/gemini-3.5-flash, google/gemini-3.5-flash-lite, google/gemini-3.1-flash-lite, tencent/hy4-preview, xai/grok-4.5, minimaxai/minimax-m3 and minimax/minimax-m3-free take toHigh; deepseek/deepseek-v4-pro, deepseek/deepseek-v4-flash, deepseek/deepseek-v4-flash-vision-exp and zai-org/glm-5.2 take highMax; deepseek/deepseek-v4-flash-fast, deepseek/deepseek-v4.1-flash, moonshotai/kimi-k3, zai-org/glm-5.3 and z-ai/glm-5.3-flash take lowHighMax; sakana/fugu-ultra takes exactly [high, xhigh]; and qwen/qwen3.8-max-0902, qwen/qwen3.8-max, qwen/qwen3.8-27b and qwen/qwen3.8-flash each take exactly [low, medium, xhigh].",
       "side_effects": [],
       "persistence": "Part of the persisted catalog; also gates whether --effort is passed at all.",
       "failure_cases": [
@@ -6412,21 +6415,22 @@
       ],
       "cancellation": "not cancellable",
       "windows_path": "The lowercased lookup must be invariant. This is a product table copied from the CLI and is transcribed verbatim; a dropped entry silently changes whether a run is even accepted.",
-      "verification_method": "unit test asserting every listed id maps to its exact array and an unknown id maps to the empty array",
-      "status": "IMPLEMENTED",
+      "verification_method": "unit test asserting every one of the forty-six listed ids (claude-opus-5-5 included) maps to its exact array and an unknown id maps to the empty array",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "At 1.7.0 the effort table gains \"claude-opus-5-5\": full (CommandCodeAPI.swift:291), so that id yields [low, medium, high, xhigh, max] instead of []; the table now has 46 ids (B2 had 45)."
     },
     {
       "id": "PR-PROVCLI-264",
       "title": "Command Code's context-window table gives the meter its ceiling, falling back to a short-name match",
       "source_evidence": [
-        "DroppyCode/Services/Providers/CommandCodeAPI.swift:312-345 - contextWindow(for:) with its doc comment"
+        "DroppyCode/Services/Providers/CommandCodeAPI.swift:312-345 - contextWindow(for:) with its doc comment; the table has 70 entries, among them `\"claude-opus-5-5\": 1_000_000` at :317"
       ],
       "preconditions": "A model id, possibly nil.",
       "action": "contextWindow runs.",
-      "expected_result": "A nil id yields nil. The lowercased id is looked up in the table of sixty-odd entries; the values to transcribe exactly include 1000000 for the Claude Sonnet, Fable and Opus rows and 200000 for claude-haiku-4-5 and claude-haiku-4-5-20251001; 1050000 for gpt-6-astra, gpt-5.6-sol, gpt-5.6-terra and gpt-5.6-luna, and 400000 for gpt-5.5, gpt-5.4, gpt-5.3-codex and gpt-5.4-mini; 1048576 for z-ai/glm-5.3-flash, meituan/longcat-2.0:free, tencent/hy4-preview and the four meta/muse-spark rows; 262144 for qwen/qwen3.8-27b, tencent/hy3-paid and inclusionai/ling-3.0-flash-sante:free; 262000 for moonshotai/kimi-k2.7-code-highspeed; 256000 for moonshotai/kimi-k2.7-code, moonshotai/kimi-k2.6, moonshotai/kimi-k2.5, stepfun/step-3.7-flash, thinkingmachines/inkling and poolside/laguna-s-2.1-free; 500000 for xai/grok-4.5 and xai/grok-4.6; 197000 for minimaxai/minimax-m2.7; and 200000 for minimaxai/minimax-m2.5, zai-org/glm-5 and zai-org/glm-5.1. On a MISS the first table entry whose key MATCHES the id by the CLI's own rule - full id or the name after the slash, case-insensitively - supplies its value.",
+      "expected_result": "A nil id yields nil. The lowercased id is looked up in the table of seventy entries; the values to transcribe exactly include 1000000 for the Claude Sonnet, Fable and Opus rows (claude-opus-5-5 included) and 200000 for claude-haiku-4-5 and claude-haiku-4-5-20251001; 1050000 for gpt-6-astra, gpt-5.6-sol, gpt-5.6-terra and gpt-5.6-luna, and 400000 for gpt-5.5, gpt-5.4, gpt-5.3-codex and gpt-5.4-mini; 1048576 for z-ai/glm-5.3-flash, meituan/longcat-2.0:free, tencent/hy4-preview and the four meta/muse-spark rows; 262144 for qwen/qwen3.8-27b, tencent/hy3-paid and inclusionai/ling-3.0-flash-sante:free; 262000 for moonshotai/kimi-k2.7-code-highspeed; 256000 for moonshotai/kimi-k2.7-code, moonshotai/kimi-k2.6, moonshotai/kimi-k2.5, stepfun/step-3.7-flash, thinkingmachines/inkling and poolside/laguna-s-2.1-free; 500000 for xai/grok-4.5 and xai/grok-4.6; 197000 for minimaxai/minimax-m2.7; and 200000 for minimaxai/minimax-m2.5, zai-org/glm-5 and zai-org/glm-5.1. On a MISS the first table entry whose key MATCHES the id by the CLI's own rule - full id or the name after the slash, case-insensitively - supplies its value.",
       "side_effects": [],
       "persistence": "Feeds the context meter's ceiling.",
       "failure_cases": [
@@ -6435,21 +6439,22 @@
       ],
       "cancellation": "not cancellable",
       "windows_path": "The lookup must be invariant-lowercased.",
-      "verification_method": "unit test over a direct hit, a short-name fallback and an unknown id",
-      "status": "IMPLEMENTED",
+      "verification_method": "unit test over a direct hit (claude-opus-5-5 gives 1000000), a short-name fallback and an unknown id, plus a golden check of all seventy entries",
+      "status": "SPECIFIED",
       "upstream_defect": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "At 1.7.0 the context-window table gains \"claude-opus-5-5\": 1_000_000 (CommandCodeAPI.swift:317), 70 entries instead of 69, so that id gets a 1,000,000 ceiling where B2 returned nil."
     },
     {
       "id": "PR-PROVCLI-265",
-      "title": "Command Code ships a nine-row seed catalog that doubles as an equality sentinel",
+      "title": "Command Code ships an eleven-row seed catalog that doubles as an equality sentinel",
       "source_evidence": [
-        "DroppyCode/Services/Providers/CommandCodeAPI.swift:347-361 - the seed array with its doc comment",
+        "DroppyCode/Services/Providers/CommandCodeAPI.swift:347-361 - the seed array with its doc comment; the new rows are :352 (claude-opus-5-5) and :356 (gpt-5.6-luna)",
         "porting/port_impacts.md entry 11"
       ],
       "preconditions": "A machine that has not listed models yet.",
       "action": "The registry needs a starting catalog.",
-      "expected_result": "Exactly nine rows, in this order, transcribed byte for byte. claude-sonnet-5 / \"Claude Sonnet 5\" / \"Anthropic · best combo of speed & intelligence\", marked default. claude-fable-5-1 / \"Claude Fable 5.1\" / \"Anthropic · most capable for demanding reasoning & long-horizon agents\". claude-opus-5 / \"Claude Opus 5\" / \"Anthropic · most intelligent Opus for agents and coding\". gpt-6-astra / \"GPT-6 Astra\" / \"OpenAI · most capable OpenAI model for demanding reasoning & agents\". gpt-5.6-sol / \"GPT-5.6 Sol\" / \"OpenAI · latest frontier model for general complex work\". google/gemini-3.8-flash / \"Gemini 3.8 Flash\" / \"Google · newest Gemini Flash, improved core reasoning\". deepseek/deepseek-v4-flash / \"DeepSeek V4 Flash\" / \"Open Source · fast hybrid-attention reasoning\". moonshotai/kimi-k3 / \"Kimi K3\" / \"Open Source · long-horizon coding & knowledge work with 1M context\". zai-org/glm-5.3 / \"GLM 5.3\" / \"Open Source · frontier coding with emergent cyber capabilities\". Each row's efforts come from efforts(for: its id). Only the first row is default. The separators are U+00B7 with a space on each side, and the ampersands are literal.",
+      "expected_result": "Exactly eleven rows, in this order, transcribed byte for byte. claude-sonnet-5 / \"Claude Sonnet 5\" / \"Anthropic · best combo of speed & intelligence\", marked default. claude-fable-5-1 / \"Claude Fable 5.1\" / \"Anthropic · most capable for demanding reasoning & long-horizon agents\". claude-opus-5-5 / \"Claude Opus 5.5\" / \"Anthropic · the newest Opus, for everyday complex work and coding\". claude-opus-5 / \"Claude Opus 5\" / \"Anthropic · most intelligent Opus for agents and coding\". gpt-6-astra / \"GPT-6 Astra\" / \"OpenAI · most capable OpenAI model for demanding reasoning & agents\". gpt-5.6-sol / \"GPT-5.6 Sol\" / \"OpenAI · latest frontier model for general complex work\". gpt-5.6-luna / \"GPT-5.6 Luna\" / \"OpenAI · fast and efficient model\". google/gemini-3.8-flash / \"Gemini 3.8 Flash\" / \"Google · newest Gemini Flash, improved core reasoning\". deepseek/deepseek-v4-flash / \"DeepSeek V4 Flash\" / \"Open Source · fast hybrid-attention reasoning\". moonshotai/kimi-k3 / \"Kimi K3\" / \"Open Source · long-horizon coding & knowledge work with 1M context\". zai-org/glm-5.3 / \"GLM 5.3\" / \"Open Source · frontier coding with emergent cyber capabilities\". Each row's efforts come from efforts(for: its id). Only the first row is default. The separators are U+00B7 with a space on each side, and the ampersands are literal.",
       "side_effects": [],
       "persistence": "The seed is persisted as the catalog until a live list replaces it, and the registry compares against it to decide whether a catalog has been loaded.",
       "failure_cases": [
@@ -6457,10 +6462,11 @@
       ],
       "cancellation": "not cancellable",
       "windows_path": "The seed doubles as an equality sentinel, so ANY drift in a name, a detail string, the \"1M\" casing or an effort array silently changes when the live catalog is fetched (port_impacts.md entry 11).",
-      "verification_method": "unit test comparing all nine rows field by field against the source text",
-      "status": "IMPLEMENTED",
+      "verification_method": "unit test comparing all eleven rows field by field against the source text",
+      "status": "SPECIFIED",
       "upstream_defect": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "At 1.7.0 the seed has eleven rows: \"Claude Opus 5.5\" (claude-opus-5-5) is new third, between Claude Fable 5.1 and Claude Opus 5 (CommandCodeAPI.swift:352), and \"GPT-5.6 Luna\" (gpt-5.6-luna) is new seventh, between GPT-5.6 Sol and Gemini 3.8 Flash (:356)."
     },
     {
       "id": "PR-PROVCLI-266",
@@ -6692,7 +6698,9 @@
       "id": "PR-PROVCLI-275",
       "title": "Pi's handshake is get_state then get_commands, with no initialize and no version negotiation",
       "source_evidence": [
-        "DroppyCode/Services/Providers/PiSession.swift:136-157 - the handshake sequence",
+        "DroppyCode/Services/Providers/PiSession.swift:136-157 - the handshake sequence: `let state = await request([\"type\": .string(\"get_state\")])` (:136) and `let commandsResponse = await request([\"type\": .string(\"get_commands\")])` (:146)",
+        "DroppyCode/Services/Providers/PiSession.swift:258-270 request(_:) - `/// Writes a request line with a fresh id and resumes with the `response` that` / `/// carries it, or `.null` after 30 seconds.` / `guard let process else { return .null }` / `requestCounter += 1` / `let id = \"droppy-\\(requestCounter)\"` / `line[\"id\"] = .string(id)` / `let value = try? await pendingResponses.register(id, timeout: .seconds(30), timeoutValue: .null) {` / `process.send(.object(line))` / `}` / `return value ?? .null`",
+        "DroppyCode/Services/Providers/PiSession.swift:593-594 - didClose begins with `pendingResponses.resolveAll(.null)`",
         "porting/extracts/provider-argv-and-handshakes.md section 6.3"
       ],
       "preconditions": "The process started and the reader attached.",
@@ -6703,27 +6711,30 @@
       ],
       "persistence": "The session id is the thread's persisted resume id.",
       "failure_cases": [
-        "Neither request can fail: both resolve with JSON null after 30 seconds (PR-PROVCLI-276)."
+        "Neither request can throw. Each resolves with JSON null after 30 seconds, at once when pi exits (didClose resolves every waiting request with null first, PR-PROVCLI-299), and at once when start()'s own task is cancelled; a request whose task is already cancelled is not written at all (PR-PROVCLI-276). The handshake then carries on with the null payloads: no session id, no context window from get_state, no commands."
       ],
-      "cancellation": "not cancellable",
+      "cancellation": "Cancelling start()'s task makes the waiting handshake request, and any later one, return JSON null at once; a request made after the cancellation is never written to stdin. start() does not throw for it: it carries on and returns the session id or the empty string.",
       "windows_path": "None beyond the framing.",
       "verification_method": "contract fixture comparing both request lines and a unit test over both reply shapes",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "At 1.7.0 the handshake's two requests go through PendingReplies (PiSession.swift:266), so besides the 30 second timeout they also return null at once when pi exits (didClose's resolveAll, :594) or when start()'s task is cancelled, in which case the line is not even sent."
     },
     {
       "id": "PR-PROVCLI-276",
-      "title": "Pi requests are numbered droppy-<n> from 1 and resolve with JSON null after thirty seconds instead of throwing",
+      "title": "Pi requests are numbered droppy-<n> from 1 and resolve with JSON null, never throwing: after thirty seconds, when pi exits, or when the caller is cancelled",
       "source_evidence": [
-        "DroppyCode/Services/Providers/PiSession.swift:258-270 - request(_:) with its doc comment",
-        "DroppyCode/Services/Providers/PiSession.swift:288-294 - the response case resolving pendingResponses by id",
+        "DroppyCode/Services/Providers/PiSession.swift:258-270 request(_:) - `/// Writes a request line with a fresh id and resumes with the `response` that` / `/// carries it, or `.null` after 30 seconds.` / `guard let process else { return .null }` / `requestCounter += 1` / `let id = \"droppy-\\(requestCounter)\"` / `line[\"id\"] = .string(id)` / `let value = try? await pendingResponses.register(id, timeout: .seconds(30), timeoutValue: .null) {` / `process.send(.object(line))` / `}` / `return value ?? .null`",
+        "DroppyCode/Services/Providers/PiSession.swift:288-294 - the response case: `guard let id = message[\"id\"]?.string else { return }` / `if !pendingResponses.resolve(id, message),` then the unmatched failed-prompt branch",
+        "DroppyCode/Services/Providers/PiSession.swift:594 - didClose's first statement `pendingResponses.resolveAll(.null)`",
+        "DroppyCode/Services/Providers/PiSession.swift:57 `private var pendingResponses = PendingReplies<JSONValue>()`, with DroppyCode/Core/Support/PendingReplies.swift:10-36 register (PR-PROVACP-164)",
         "porting/extracts/provider-argv-and-handshakes.md section 6.9"
       ],
       "preconditions": "A live process.",
       "action": "Any request is made.",
-      "expected_result": "With no process the call returns JSON null at once. Otherwise requestCounter is incremented BEFORE use, so the first id is exactly \"droppy-1\"; the literal prefix is \"droppy-\", NOT \"marrow-\" as Claude uses (PR-PROVCLI-019, OD-0012 F1). The id is added to the request object and the line written. The continuation resolves when a line arrives whose type is \"response\" and whose id matches. A detached Task sleeps exactly 30 seconds and, if the continuation is still pending, resolves it with JSON NULL. The timeout NEVER THROWS. The consequence, recorded as an upstream oddity: a hung get_state leaves start() returning an EMPTY session id rather than reporting an error, and the thread then believes it has a session it cannot resume.",
+      "expected_result": "With no process the call returns JSON null at once, with no id used. Otherwise requestCounter is incremented BEFORE use, so the first id is exactly \"droppy-1\"; the literal prefix is \"droppy-\", NOT \"marrow-\" as Claude uses (PR-PROVCLI-019, OD-0012 F1). The id is added to the request object. If the calling task is already cancelled, the call returns JSON null without writing the line, and the id number is still used up. Otherwise the id is registered first and the line is then written. The call returns the whole reply message when a line arrives whose type is \"response\" and whose id matches. It returns JSON NULL when 30 seconds pass first, when the process closes first (didClose resolves every waiting request with null before anything else, PR-PROVCLI-299), or when the calling task is cancelled while waiting. It NEVER THROWS. The consequence, recorded as an upstream oddity: a hung get_state leaves start() returning an EMPTY session id rather than reporting an error, and the thread then believes it has a session it cannot resume.",
       "side_effects": [
         "One stdin line per request"
       ],
@@ -6731,13 +6742,14 @@
       "failure_cases": [
         "A hung CLI silently produces an empty session id and an empty command list."
       ],
-      "cancellation": "The 30 second timer is the only bound.",
-      "windows_path": "None. The id prefix is a contract with the app's own reader. It is \"droppy-\", which is neither \"Droppy Code\" nor \"droppy-code\", the two spellings OD-0012 F1 renames, so it is kept.",
-      "verification_method": "interaction test with a stand-in that never answers get_state, asserting start() returns an empty id after 30 seconds",
-      "status": "IMPLEMENTED",
+      "cancellation": "Bounded by the 30 second timer, by the process closing and by the caller's cancellation, whichever comes first; an already-cancelled caller writes nothing. The 30 second timer is not cancelled with the caller.",
+      "windows_path": "None beyond the port's PendingReplies (B3_PLAN.md section 3 N1) with a 30 second timeout whose value is JSON null. The id prefix is a contract with the app's own reader. It is \"droppy-\", which is neither \"Droppy Code\" nor \"droppy-code\", the two spellings OD-0012 F1 renames, so it is kept.",
+      "verification_method": "interaction test with a stand-in that never answers get_state, asserting start() returns an empty id after 30 seconds; plus a stand-in that exits while a request waits (null at once), a caller cancelled while waiting (null at once) and a pre-cancelled caller (null, no stdin line, requestCounter advanced)",
+      "status": "SPECIFIED",
       "upstream_defect": "provider-argv-and-handshakes.md section 10 item 8 (Pi's 30 second timeout resolves null silently, so start() can return an empty session id)",
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "At 1.7.0 request(_:) registers through PendingReplies (PiSession.swift:266-269): the 30 second timer is no longer the only bound, since a request also resolves null when pi exits (:594) or when its caller is cancelled, and an already-cancelled caller sends no line."
     },
     {
       "id": "PR-PROVCLI-277",
@@ -6796,7 +6808,7 @@
       "id": "PR-PROVCLI-279",
       "title": "Pi refuses a second turn while one is running and re-reads the context window after a model switch",
       "source_evidence": [
-        "DroppyCode/Services/Providers/PiSession.swift:160-179 - send(_:) guards, set_model with the comment at :168-169, set_thinking_level"
+        "DroppyCode/Services/Providers/PiSession.swift:160-179 - send(_:) guards, set_model with the comment at :169-170, set_thinking_level"
       ],
       "preconditions": "A live session.",
       "action": "send(_:) begins.",
@@ -6940,8 +6952,8 @@
       "id": "PR-PROVCLI-285",
       "title": "Pi approvals answer with one of three exact option strings and record a session grant for always",
       "source_evidence": [
-        "DroppyCode/Services/Providers/PiSession.swift:227-241 - resolveApproval",
-        "DroppyCode/Services/Providers/PiSession.swift:290-296 - grantKey",
+        "DroppyCode/Services/Providers/PiSession.swift:227-241 - resolveApproval; the always branch is `sessionGrants.insert(request.kind.grantKey)` (:233)",
+        "DroppyCode/Services/Providers/ProviderSession.swift:221-230 - `extension ApprovalRequest.Kind` / `var grantKey: String {` / `case .command: \"command\"` / `case .fileChange: \"fileChange\"` / `case .tool, .permissions, .plan: \"tool\"` (moved there from PiSession's own grantKey at B3, unchanged)",
         "DroppyCode/Services/Providers/PiCLI.swift:211 - the options array [\"Allow\", \"Allow for session\", \"Deny\"]"
       ],
       "preconditions": "A pending approval keyed by requestID.",
@@ -6990,7 +7002,10 @@
       "id": "PR-PROVCLI-287",
       "title": "Pi handles thirteen inbound line types, including a failed prompt response that ends the turn",
       "source_evidence": [
-        "DroppyCode/Services/Providers/PiSession.swift:286-326 - handle(_:) over response, message_start, message_update, message_end, tool_execution_start, tool_execution_update, tool_execution_end, agent_end, compaction_start, compaction_end, auto_retry_start, extension_error, extension_ui_request, with a default that breaks"
+        "DroppyCode/Services/Providers/PiSession.swift:286-326 - handle(_:) over response, message_start, message_update, message_end, tool_execution_start, tool_execution_update, tool_execution_end, agent_end, compaction_start, compaction_end, auto_retry_start, extension_error, extension_ui_request, with a default that breaks",
+        "DroppyCode/Services/Providers/PiSession.swift:290-291 - `if !pendingResponses.resolve(id, message),` / `message[\"command\"]?.string == \"prompt\", message[\"success\"]?.bool == false {`: the failed-prompt branch runs only when no request was waiting on that id",
+        "DroppyCode/Services/Providers/PiSession.swift:297-298 `stream.startMessage()` / `stream.resetThinking()`, with DroppyCode/Services/Providers/SessionSupport.swift:61-67 and :109-113 (a new message id from the counter, the message text emptied, the reasoning id cleared and its text emptied)",
+        "DroppyCode/Services/Providers/PiSession.swift:307 `let text = ToolText.blocks(message[\"partialResult\"]?[\"content\"])` (DroppyCode/Services/Providers/ProviderSession.swift:211-219)"
       ],
       "preconditions": "A parsed line.",
       "action": "handle(_:) dispatches it.",
@@ -7014,9 +7029,9 @@
       "id": "PR-PROVCLI-288",
       "title": "Pi namespaces message, reasoning and plan ids with an eight-character launch id in its own shapes",
       "source_evidence": [
-        "DroppyCode/Services/Providers/PiSession.swift:37-38 - the comment plus launchID = String(UUID().uuidString.prefix(8))",
-        "DroppyCode/Services/Providers/PiSession.swift:313,:353 - message ids \"<launchID>-m-<n>\"",
-        "DroppyCode/Services/Providers/PiSession.swift:361 - reasoning ids \"<launchID>-t-<n>\"",
+        "DroppyCode/Services/Providers/PiSession.swift:37-38 - the comment `/// Namespaces ids per launch, so a resumed thread never streams into an old entry.` and `private let launchID: String`, set in init at :61-66: `let launchID = String(UUID().uuidString.prefix(8))` / `self.launchID = launchID` / `stream = StreamedTextTracker(` / `messageID: { \"\\(launchID)-m-\\($0)\" },` / `thinkingID: { \"\\(launchID)-t-\\($0)\" }`",
+        "DroppyCode/Services/Providers/SessionSupport.swift:62-67 and :70-78 - message ids are minted from the counter through that closure, on message_start (PiSession.swift:297) and on a text delta with no open message (:333): \"<launchID>-m-<n>\"",
+        "DroppyCode/Services/Providers/SessionSupport.swift:80-99 - reasoning ids the same way on a thinking delta with no open reasoning (PiSession.swift:336): \"<launchID>-t-<n>\"",
         "DroppyCode/Services/Providers/PiSession.swift:476 - plan id \"<launchID>-plan-<turnCounter>\""
       ],
       "preconditions": "A session.",
@@ -7039,7 +7054,7 @@
       "id": "PR-PROVCLI-289",
       "title": "Pi accumulates text and thinking deltas and reports usage from a total or four named fallback pairs",
       "source_evidence": [
-        "DroppyCode/Services/Providers/PiSession.swift:328-352 - handleUpdate, including the comment at :371-374 explaining why each part is named"
+        "DroppyCode/Services/Providers/PiSession.swift:328-352 - handleUpdate, including the comment at :342-345 explaining why each part is named; the deltas go through `stream.appendMessage(delta)` (:333) and `stream.appendThinking(delta)` (:336), DroppyCode/Services/Providers/SessionSupport.swift:70-78 and :88-99, where Pi takes the default resetsText true, so a new reasoning id empties the reasoning text (startThinking, :80-84)"
       ],
       "preconditions": "A message_update line.",
       "action": "handleUpdate runs.",
@@ -7063,7 +7078,8 @@
       "id": "PR-PROVCLI-290",
       "title": "Pi completes a message from its content blocks when they are non-empty, and records the reply for plan mode",
       "source_evidence": [
-        "DroppyCode/Services/Providers/PiSession.swift:354-376 - handleMessageEnd: guard message[\"role\"]?.string == \"assistant\" else { return }; ... if !joined.isEmpty { finalText = joined }; if let id = currentThinkingID, !thinkingText.trimmed.isEmpty { onEvent?(.reasoningCompleted(id: id, text: thinkingText)) }; ... lastReplyText = finalText; ... if message[\"stopReason\"]?.string == \"error\" { turnError = message[\"errorMessage\"]?.string ?? \"Pi reported an error.\" }"
+        "DroppyCode/Services/Providers/PiSession.swift:354-376 - handleMessageEnd: guard message[\"role\"]?.string == \"assistant\" else { return }; var finalText = stream.messageText; ... if !joined.isEmpty { finalText = joined }; if let id = stream.currentThinkingID, !stream.thinkingText.trimmed.isEmpty { onEvent?(.reasoningCompleted(id: id, text: stream.thinkingText)) }; stream.endThinking(); if let id = stream.currentMessageID { onEvent?(.messageCompleted(id: id, text: finalText)); lastReplyText = finalText }; stream.endMessage(); if message[\"stopReason\"]?.string == \"error\" { turnError = message[\"errorMessage\"]?.string ?? \"Pi reported an error.\" }",
+        "DroppyCode/Services/Providers/SessionSupport.swift:101-107 - endThinking and endMessage clear the open ids"
       ],
       "preconditions": "A message_end line.",
       "action": "handleMessageEnd runs.",
@@ -7082,14 +7098,14 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Re-cited at B2: PiSession.swift:354-376 keeps its lines; :393 uses .trimmed, the same call. Behaviour unchanged."
+      "b2_change": "Re-cited at B2: PiSession.swift:383-405 keeps its lines; :393 uses .trimmed, the same call. Behaviour unchanged."
     },
     {
       "id": "PR-PROVCLI-291",
       "title": "Pi maps six tool-name groups to row kinds and snapshots a file before a write",
       "source_evidence": [
-        "DroppyCode/Services/Providers/PiSession.swift:378-420 - handleToolStart",
-        "DroppyCode/Services/Providers/PiSession.swift:496-500 - snapshot"
+        "DroppyCode/Services/Providers/PiSession.swift:378-420 - handleToolStart; a write takes its snapshot with `editSnapshots.capture(id, path: path)` (:383-385)",
+        "DroppyCode/Services/Providers/SessionSupport.swift:7-11 and :35-40 - EditSnapshots.capture stores `Self.read(path) ?? \"\"`; read accepts a file of at most 1,000,000 bytes decoded as UTF-8, and anything else (binary, too large, missing) reads as nil, so the stored snapshot is the empty string (moved from PiSession's own snapshot at B3, unchanged)"
       ],
       "preconditions": "A tool_execution_start line with a call id and a tool name.",
       "action": "handleToolStart runs.",
@@ -7113,7 +7129,7 @@
       "id": "PR-PROVCLI-292",
       "title": "Pi reads a declined tool result out of the gate's own block-reason prefix",
       "source_evidence": [
-        "DroppyCode/Services/Providers/PiSession.swift:422-437 - handleToolEnd with the comment at :456-457",
+        "DroppyCode/Services/Providers/PiSession.swift:422-437 - handleToolEnd with the comment at :427-428; the output is `ToolText.blocks(result[\"content\"])` (:425, DroppyCode/Services/Providers/ProviderSession.swift:211-219)",
         "DroppyCode/Services/Providers/PiCLI.swift:213 - return { block: true, reason: \"The user declined this \" + ... }",
         "porting/extracts/provider-argv-and-handshakes.md section 9 item 17"
       ],
@@ -7139,7 +7155,7 @@
       "id": "PR-PROVCLI-293",
       "title": "Pi builds a whole-file unified diff for edits and writes, through a no-op relativization",
       "source_evidence": [
-        "DroppyCode/Services/Providers/PiSession.swift:439-466 - editDiff and unifiedDiff with the doc comment",
+        "DroppyCode/Services/Providers/PiSession.swift:439-466 - editDiff and unifiedDiff with the doc comment; a write's old side is `editSnapshots.text(id)` then `editSnapshots.discard(id)` (:450-451, DroppyCode/Services/Providers/SessionSupport.swift:13-15, :21-23)",
         "porting/extracts/provider-argv-and-handshakes.md section 6.9"
       ],
       "preconditions": "A finished edit or write.",
@@ -7162,7 +7178,7 @@
       "id": "PR-PROVCLI-294",
       "title": "Pi finishes a turn by publishing a plan in plan mode and choosing one of three statuses",
       "source_evidence": [
-        "DroppyCode/Services/Providers/PiSession.swift:468-486 - finishTurn with the comment at :518: if interactionMode == .plan, error == nil, !interruptRequested, !lastReplyText.trimmed.isEmpty { onEvent?(.planCompleted(id: \"\\(launchID)-plan-\\(turnCounter)\", markdown: lastReplyText)) }; then .interrupted, .failed with the error, or .completed"
+        "DroppyCode/Services/Providers/PiSession.swift:468-486 - finishTurn with the comment at :473: if interactionMode == .plan, error == nil, !interruptRequested, !lastReplyText.trimmed.isEmpty { onEvent?(.planCompleted(id: \"\\(launchID)-plan-\\(turnCounter)\", markdown: lastReplyText)) }; then .interrupted, .failed with the error, or .completed"
       ],
       "preconditions": "A turn is active.",
       "action": "agent_end arrives, or a failed prompt response does.",
@@ -7181,7 +7197,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Re-cited at B2: PiSession.swift:468-486 keeps its lines; :520 uses .trimmed, the same call. Behaviour unchanged."
+      "b2_change": "Re-cited at B2: PiSession.swift:513-531 keeps its lines; :520 uses .trimmed, the same call. Behaviour unchanged."
     },
     {
       "id": "PR-PROVCLI-295",
@@ -7282,13 +7298,13 @@
     },
     {
       "id": "PR-PROVCLI-299",
-      "title": "Pi's close path ends an active turn, then reports an exit with the status and the stderr tail",
+      "title": "Pi's close path first releases every waiting request with JSON null, then ends an active turn and reports an exit with the status and the stderr tail",
       "source_evidence": [
-        "DroppyCode/Services/Providers/PiSession.swift:593-609 - didClose(status:)"
+        "DroppyCode/Services/Providers/PiSession.swift:593-609 - didClose(status:), whose first statement is `pendingResponses.resolveAll(.null)` (:594)"
       ],
       "preconditions": "The process's message stream ended.",
       "action": "didClose runs.",
-      "expected_result": "The stderr tail is taken FIRST, then the process reference cleared. When a turn was active, it is cleared and .turnCompleted is emitted with .interrupted when interruptRequested, else .failed, carrying the tail as the error when it is non-empty and nil when it is empty. Then, when the session was stopped, the method returns. Otherwise started becomes false and: an exit status of exactly 0 emits .exited(error: nil); any other status emits .exited with \"Pi exited with status <status>\" plus, when the tail is non-empty, a newline and the tail.",
+      "expected_result": "FIRST every waiting request is resolved with JSON null (pendingResponses.resolveAll(.null)), so a handshake or model-switch get_state that is still waiting returns at once (PR-PROVCLI-276). Then the stderr tail is taken and the process reference cleared. When a turn was active, it is cleared and .turnCompleted is emitted with .interrupted when interruptRequested, else .failed, carrying the tail as the error when it is non-empty and nil when it is empty. Then, when the session was stopped, the method returns. Otherwise started becomes false and: an exit status of exactly 0 emits .exited(error: nil); any other status emits .exited with \"Pi exited with status <status>\" plus, when the tail is non-empty, a newline and the tail.",
       "side_effects": [
         "Provider events"
       ],
@@ -7298,11 +7314,12 @@
       ],
       "cancellation": "A stop suppresses the exit notice but NOT the turn completion, because the turn branch runs before the stopped guard.",
       "windows_path": "The exit status appears verbatim in user-visible text, so a Windows termination code will be shown; the source formats it as a signed integer. The tail comes from the bounded stderr collector (PA-0008).",
-      "verification_method": "interaction test over a zero exit, a non-zero exit and a stop mid-turn",
-      "status": "IMPLEMENTED",
+      "verification_method": "interaction test over a zero exit, a non-zero exit, a stop mid-turn, and a request waiting at the moment of exit (it returns JSON null)",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "At 1.7.0 didClose begins with pendingResponses.resolveAll(.null) (PiSession.swift:594), so waiting requests are released before the stderr tail is read and the turn and exit events are emitted."
     },
     {
       "id": "PR-PROVCLI-300",
@@ -8147,7 +8164,7 @@
       "id": "PR-PROVCLI-334",
       "title": "Antigravity converts a cumulative session total into per-turn spend, seeding a resumed conversation's baseline uncharged",
       "source_evidence": [
-        "DroppyCode/Services/Providers/AntigravitySession.swift:282-311 - handleResult's usage block with the comment at :297-304",
+        "DroppyCode/Services/Providers/AntigravitySession.swift:282-311 - handleResult's usage block with the comment at :286-293",
         "DroppyCode/Services/Providers/AntigravitySession.swift:30-36 - spendTracker and the spendBaselineKnown comment"
       ],
       "preconditions": "A result event carrying usage.",
@@ -8191,13 +8208,13 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "MOVED: B1 AntigravitySession.swift:309-327 -> B2 :323-341; :326 uses .trimmed, the same call. Behaviour unchanged."
+      "b2_change": "MOVED: B1 AntigravitySession.swift:320-338 -> B2 :323-341; :326 uses .trimmed, the same call. Behaviour unchanged."
     },
     {
       "id": "PR-PROVCLI-336",
       "title": "Antigravity ends a turn on one of five status branches, testing denied WAITING first",
       "source_evidence": [
-        "DroppyCode/Services/Providers/AntigravitySession.swift:331-352 - the status switch with the comments at :347-349 and :352-353"
+        "DroppyCode/Services/Providers/AntigravitySession.swift:331-352 - the status switch with the comments at :336-338 and :341-342"
       ],
       "preconditions": "A result event.",
       "action": "handleResult finishes.",
@@ -8266,7 +8283,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "MOVED: B1 AntigravitySession.swift:432-503 -> B2 :446-517; the one changed line (:469, let trimmed = line.trimmed) is the same call. Behaviour unchanged."
+      "b2_change": "MOVED: B1 AntigravitySession.swift:443-514 -> B2 :446-517; the one changed line (:469, let trimmed = line.trimmed) is the same call. Behaviour unchanged."
     },
     {
       "id": "PR-PROVCLI-339",
@@ -8296,7 +8313,7 @@
       "id": "PR-PROVCLI-340",
       "title": "Antigravity reads plan limits from two zero-token headless calls and never reports a plan name",
       "source_evidence": [
-        "DroppyCode/Services/Providers/AntigravitySession.swift:531-551 - readPlanLimits with the comment at :544-546"
+        "DroppyCode/Services/Providers/AntigravitySession.swift:531-551 - readPlanLimits with the comment at :533-535"
       ],
       "preconditions": "A resolved executable.",
       "action": "The usage panel reads Antigravity's limits.",
@@ -8339,7 +8356,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "CHANGED: B1 AntigravitySession.swift:550-589 parsed bucket.reset_time and the text fallback's fourth field with a default ISO8601DateFormatter(), so a fractional-seconds stamp gave no reset time. B2 :577 and :594 use ISO8601.date(from:) (fractional seconds, then whole seconds). The rest is unchanged. Lines 561-580 -> 564-583 and 582-600 -> 585-603.",
+      "b2_change": "CHANGED: B1 AntigravitySession.swift:561-600 parsed bucket.reset_time and the text fallback's fourth field with a default ISO8601DateFormatter(), so a fractional-seconds stamp gave no reset time. B2 :577 and :594 use ISO8601.date(from:) (fractional seconds, then whole seconds). The rest is unchanged. Lines 561-580 -> 564-583 and 582-600 -> 585-603.",
       "open_question": "UNRESOLVED and not yet registered in porting/unknowns.md: which ISO 8601 strings other than the Z-suffixed shapes named here Date.ISO8601FormatStyle accepts - numeric offsets such as +02:00 or +0200, lowercase t or z separators, other fraction lengths. That is Foundation runtime behaviour, not in the pinned tree, and nothing was run. Until one unknown shared by PR-PROVCLI-105, PR-PROVCLI-173 and PR-PROVCLI-341 is registered and settled, only the Z-suffixed shapes and the rejection of junk are specified, and the port must not claim parity for any other input."
     },
     {
@@ -8392,7 +8409,7 @@
       "id": "PR-PROVCLI-344",
       "title": "Antigravity classifies a tool by name into one of eight kinds, then builds the row from ordered parameter key lists (dispatch contract)",
       "source_evidence": [
-        "DroppyCode/Services/Providers/AntigravitySession.swift:625-665 - makeToolCall with the doc comment at :631-635",
+        "DroppyCode/Services/Providers/AntigravitySession.swift:625-665 - makeToolCall with the doc comment at :620-624",
         "DroppyCode/Services/Providers/AntigravitySession.swift:693-705 - path(in:) and string(in:keys:)",
         "DroppyCode/Services/Providers/AntigravitySession.swift:707-712 - lineRange",
         "DroppyCode/Services/Providers/AntigravitySession.swift:714-718 - humanize"
@@ -10128,7 +10145,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "MOVED: B1 AntigravitySession.swift:454-457 -> B2 :468-471. The line trim is now line.trimmed, which B2 defines as trimmingCharacters(in: .whitespacesAndNewlines) (Core/Support/Text.swift:224); the per-part trim still uses .whitespaces only. Behaviour unchanged."
+      "b2_change": "MOVED: B1 AntigravitySession.swift:465-468 -> B2 :468-471. The line trim is now line.trimmed, which B2 defines as trimmingCharacters(in: .whitespacesAndNewlines) (Core/Support/Text.swift:132); the per-part trim still uses .whitespaces only. Behaviour unchanged."
     },
     {
       "id": "PR-PROVCLI-429",
@@ -10408,7 +10425,7 @@
         "DroppyCode/Services/Providers/CodexSession.swift:665-677 - \"Without an id only the runtime event is emitted; history owns the daily total.\" private func recordCodexSpend(_ spend: Int, rolloutID: String?, model: String?, agentID: String? = nil) { guard spend > 0 else { return }; if let rolloutID, !rolloutID.isEmpty { TokenLedger.shared.record(codexSpend: spend, rolloutID: rolloutID) }; onEvent?(.tokenSpend(TokenSpend(provider: .codex, totalTokens: spend, model: model, agentID: agentID))) }",
         "DroppyCode/Services/Store/TokenLedger.swift:122-126 - func record(codexSpend spend: Int, rolloutID: String, on date: Date = Date()) { guard !rolloutID.isEmpty else { return }; record(spend: spend, codexRollout: rolloutID.lowercased(), on: date) }",
         "DroppyCode/Services/Store/TokenLedger.swift:128-145 - guard spend > 0; state.daily[day] += spend; dailyTotals[day] += spend; if let codexRollout { state.liveCodex[codexRollout, default: 0] += spend }; guard liveSave == nil else { return }; liveSave = Task { @MainActor [weak self] in try? await Task.sleep(for: .seconds(2)); guard let self, !Task.isCancelled else { return }; liveSave = nil; LiveSpendStateStore.save(state) }",
-        "DroppyCode/Services/Providers/CodexSession.swift:612,:611,:621,:623 - the four callers (lead: rolloutID threadID, model activeModel; head: rolloutID head, model headModels[head], agentID head)",
+        "DroppyCode/Services/Providers/CodexSession.swift:612,:614,:624,:626 - the four callers (lead: rolloutID threadID, model activeModel; head: rolloutID head, model headModels[head], agentID head)",
         "DroppyCode/Services/Store/TokenLedger.swift:147-153 - flushLiveSpend"
       ],
       "preconditions": "A Codex spend amount computed from thread/tokenUsage/updated (PR-PROVCLI-110, PR-PROVCLI-111).",
@@ -10430,6 +10447,35 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-442",
+      "title": "A Claude control request honours its caller's cancellation: an already-cancelled caller sends nothing, and a caller cancelled while waiting stops waiting",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/ClaudeSession.swift:301-309 control(_:) - `controlCounter += 1` / `let requestID = \"droppy-code-\\(controlCounter)\"` / `return try await pendingControl.register(requestID) {` / `process.send([\"type\": \"control_request\", \"request_id\": .string(requestID), \"request\": request])`",
+        "DroppyCode/Services/Providers/ClaudeSession.swift:37 `private var pendingControl = PendingReplies<JSONValue>()`",
+        "DroppyCode/Core/Support/PendingReplies.swift:10-36 register - `try Task.checkCancellation()` comes before the continuation is stored and `send()` runs (:17-20); on cancellation `self?.continuations.removeValue(forKey: id)?.resume(throwing: CancellationError())` runs in a main-actor task (:31-34)",
+        "DroppyCode/Services/Providers/ClaudeSession.swift:336-341 - a control_response that arrives later for that id finds no waiting entry (PendingReplies.swift:38-50 return false) and is dropped"
+      ],
+      "preconditions": "A control request (initialize, set_permission_mode, set_model, interrupt, stop_task) is made from a task that is, or becomes, cancelled.",
+      "action": "control(_:) runs.",
+      "expected_result": "The process and hasClosed checks come first (PR-PROVCLI-019); then controlCounter is advanced and the id is built. If the calling task is already cancelled, control(_:) throws CancellationError before anything is stored or written: no control_request line is sent, and that id number is used up, so the next request's id skips it. Otherwise the id is registered before the line is sent. If the calling task is cancelled while the reply is outstanding, the waiting entry is removed and the caller resumes by throwing CancellationError, and a control_response that arrives later for that id is dropped; a reply delivered before the cancellation takes effect is returned to the caller as usual. No timeout applies: a caller that is neither cancelled nor answered waits until the reply arrives or didClose fails it. This holds for every control() caller, start()'s initialize included.",
+      "side_effects": [
+        "A request cancelled before the send advances controlCounter without writing to stdin"
+      ],
+      "persistence": "none",
+      "failure_cases": [
+        "Cancelled before the send: CancellationError, nothing sent, the id skipped",
+        "Cancelled while waiting: CancellationError, and the late reply is dropped"
+      ],
+      "cancellation": "Cancellable before the send and while waiting, as described; the removal on cancellation runs as a separate main-actor task.",
+      "windows_path": "Use the port's PendingReplies (the C# counterpart of Core/Support/PendingReplies.swift, B3_PLAN.md section 3 N1) keyed by the \"marrow-<n>\" id (OD-0012 F1): check for cancellation before registering and sending, and on cancellation remove the entry and fail the waiter with the port's cancellation error.",
+      "verification_method": "unit with a fake process: a pre-cancelled caller throws CancellationError, no stdin line is written and the next request id is two higher; a caller cancelled while waiting throws CancellationError and a later reply for its id changes nothing; a reply that arrives before the cancellation is returned",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null,
+      "status": "SPECIFIED",
+      "b3_note": "New at 1.7.0 (impact R3-48 ClaudeSession #1, with R3-13 #3 folded in): pendingControl became a PendingReplies (ClaudeSession.swift:37, :306), so control() became cancellable."
     }
   ],
   "ui": [
@@ -10507,7 +10553,7 @@
         "DroppyCode/Services/Providers/CopilotSession.swift:795",
         "DroppyCode/Services/Providers/CommandCodeSession.swift:688",
         "DroppyCode/Services/Providers/PiSession.swift:586",
-        "DroppyCode/Services/Providers/CodexSession.swift:1007,:961"
+        "DroppyCode/Services/Providers/CodexSession.swift:1007,:968"
       ],
       "notes": "The option ID differs between providers (\"deny\" versus \"decline\") while the LABEL is identical. Pi resolves by ROLE rather than by id, so an unrecognized id there also declines.",
       "status": "IMPLEMENTED"
@@ -10574,7 +10620,7 @@
         "click - option id \"cancel\"; the stored server payload for that name is echoed back as the decision"
       ],
       "source_evidence": [
-        "DroppyCode/Services/Providers/CodexSession.swift:999,:1001,:1013-1014"
+        "DroppyCode/Services/Providers/CodexSession.swift:999,:1008,:1020-1021"
       ],
       "notes": "This is the only approval option in the area with the .cancel role, and the only one that ends the whole turn rather than one call. The sort order [.approve, .approveAlways, .decline, .cancel] is what puts it last.",
       "status": "IMPLEMENTED"
@@ -10660,7 +10706,7 @@
         "click - answered as confirmed true, because the reply sets \"confirmed\" to whether the first selected text is exactly \"Yes\""
       ],
       "source_evidence": [
-        "DroppyCode/Services/Providers/PiSession.swift:506,:248"
+        "DroppyCode/Services/Providers/PiSession.swift:506,:249"
       ],
       "notes": "The comparison against the literal \"Yes\" is ordinal and is the ONLY thing that makes this button mean yes; a translated label would silently answer no."
     },
@@ -10701,7 +10747,7 @@
         "none - it is a label"
       ],
       "source_evidence": [
-        "DroppyCode/Services/Providers/PiSession.swift:504,:562-563,:592"
+        "DroppyCode/Services/Providers/PiSession.swift:504,:517-518,:547"
       ],
       "notes": "Pi is the only provider in this area that sets a non-empty question header; Claude uses the CLI's own header or the empty string, and Codex and Copilot use the empty string or the server's."
     },
@@ -10851,14 +10897,14 @@
     {
       "id": "UI-PROVCLI-019",
       "screen": "Model picker (Command Code)",
-      "element": "The nine seed model rows shown before a live catalog is fetched",
+      "element": "The eleven seed model rows shown before a live catalog is fetched",
       "role": "row",
       "exact_text": null,
       "geometry": "Not defined in this area; owned by the model picker.",
       "typography": "Not defined in this area.",
       "colors": "Not defined in this area.",
       "states": [
-        "Shown in this exact order with these exact names and details: \"Claude Sonnet 5\" / \"Anthropic · best combo of speed & intelligence\" (the default row); \"Claude Fable 5.1\" / \"Anthropic · most capable for demanding reasoning & long-horizon agents\"; \"Claude Opus 5\" / \"Anthropic · most intelligent Opus for agents and coding\"; \"GPT-6 Astra\" / \"OpenAI · most capable OpenAI model for demanding reasoning & agents\"; \"GPT-5.6 Sol\" / \"OpenAI · latest frontier model for general complex work\"; \"Gemini 3.8 Flash\" / \"Google · newest Gemini Flash, improved core reasoning\"; \"DeepSeek V4 Flash\" / \"Open Source · fast hybrid-attention reasoning\"; \"Kimi K3\" / \"Open Source · long-horizon coding & knowledge work with 1M context\"; \"GLM 5.3\" / \"Open Source · frontier coding with emergent cyber capabilities\"",
+        "Shown in this exact order with these exact names and details: \"Claude Sonnet 5\" / \"Anthropic · best combo of speed & intelligence\" (the default row); \"Claude Fable 5.1\" / \"Anthropic · most capable for demanding reasoning & long-horizon agents\"; \"Claude Opus 5.5\" / \"Anthropic · the newest Opus, for everyday complex work and coding\"; \"Claude Opus 5\" / \"Anthropic · most intelligent Opus for agents and coding\"; \"GPT-6 Astra\" / \"OpenAI · most capable OpenAI model for demanding reasoning & agents\"; \"GPT-5.6 Sol\" / \"OpenAI · latest frontier model for general complex work\"; \"GPT-5.6 Luna\" / \"OpenAI · fast and efficient model\"; \"Gemini 3.8 Flash\" / \"Google · newest Gemini Flash, improved core reasoning\"; \"DeepSeek V4 Flash\" / \"Open Source · fast hybrid-attention reasoning\"; \"Kimi K3\" / \"Open Source · long-horizon coding & knowledge work with 1M context\"; \"GLM 5.3\" / \"Open Source · frontier coding with emergent cyber capabilities\"",
         "Only the first row is marked default",
         "Replaced wholesale once a live catalog is fetched"
       ],
@@ -10869,7 +10915,8 @@
         "DroppyCode/Services/Providers/CommandCodeAPI.swift:347-361"
       ],
       "notes": "The separators are U+00B7 with a space on each side, the ampersands are literal, and \"1M\" is that exact casing. This seed doubles as an equality sentinel for the registry, so any drift silently changes when the live catalog is fetched.",
-      "status": "IMPLEMENTED"
+      "status": "SPECIFIED",
+      "b3_note": "At 1.7.0 the seed list gains \"Claude Opus 5.5\" / \"Anthropic · the newest Opus, for everyday complex work and coding\" (CommandCodeAPI.swift:352) and \"GPT-5.6 Luna\" / \"OpenAI · fast and efficient model\" (:356), eleven rows in all."
     },
     {
       "id": "UI-PROVCLI-020",
@@ -10915,10 +10962,10 @@
         "click - selects the base slug, which normalize may then pair with a forced effort"
       ],
       "source_evidence": [
-        "DroppyCode/Services/Providers/AntigravitySession.swift:454-505,:400-412"
+        "DroppyCode/Services/Providers/AntigravitySession.swift:454-505,:389-401"
       ],
       "notes": "Selecting a model whose base slug contains \"claude\" suppresses --effort entirely, so the slider's value is silently ignored for those rows; and gpt-oss-120b is always forced to medium whatever the slider shows.",
-      "b2_change": "MOVED: B1 AntigravitySession.swift:451-502 -> B2 :465-516 (the catalog grouping in listModels). Nothing visible changed.",
+      "b2_change": "MOVED: B1 AntigravitySession.swift:462-513 -> B2 :465-516 (the catalog grouping in listModels). Nothing visible changed.",
       "status": "IMPLEMENTED"
     },
     {
@@ -11009,10 +11056,10 @@
         "none"
       ],
       "source_evidence": [
-        "DroppyCode/Services/Providers/AntigravitySession.swift:556-572,:605-627,:560-561"
+        "DroppyCode/Services/Providers/AntigravitySession.swift:556-572,:594-616,:549-550"
       ],
       "notes": "The credits bar carries no proportion, so it reads as either empty or full; that is source behavior and is not a rendering bug.",
-      "b2_change": "MOVED: B1 AntigravitySession.swift:553-569 -> B2 :567-583 (parseUsage). Titles, the credits row and the percent are unchanged; the reset stamp parser changed (see PR-PROVCLI-341), which only affects whether a reset time is known.",
+      "b2_change": "MOVED: B1 AntigravitySession.swift:564-580 -> B2 :567-583 (parseUsage). Titles, the credits row and the percent are unchanged; the reset stamp parser changed (see PR-PROVCLI-341), which only affects whether a reset time is known.",
       "status": "IMPLEMENTED"
     },
     {
@@ -11121,11 +11168,11 @@
       ],
       "source_evidence": [
         "DroppyCode/Services/Providers/ClaudeSession.swift:378",
-        "DroppyCode/Services/Providers/CodexSession.swift:124,:630,:985",
+        "DroppyCode/Services/Providers/CodexSession.swift:124,:633,:992",
         "DroppyCode/Services/Providers/CopilotSession.swift:224",
         "DroppyCode/Services/Providers/CommandCodeSession.swift:477",
         "DroppyCode/Services/Providers/AntigravitySession.swift:322-325",
-        "DroppyCode/Services/Providers/PiSession.swift:318-320,:576",
+        "DroppyCode/Services/Providers/PiSession.swift:318-320,:531",
         "porting/decision_batch_20260922b.md F1 - every remaining \"Droppy Code\" / \"droppy-code\" the app shows or sends out becomes \"Marrow\" / \"marrow\", except droppy-code.json and DROPPY_CODE_PROJECT_ROOT (accepted by OD-0012)"
       ],
       "notes": "The Codex elicitation notice embeds the product name on a user-visible surface; OD-0012 F1 renames it to \"Marrow\" (upstream \"which Droppy Code cannot show yet.\").",
@@ -11157,9 +11204,9 @@
         "none"
       ],
       "source_evidence": [
-        "DroppyCode/Services/Providers/ClaudeSession.swift:602,:689",
-        "DroppyCode/Services/Providers/CommandCodeSession.swift:441,:466-489",
-        "DroppyCode/Services/Providers/AntigravitySession.swift:339,:359,:369,:389",
+        "DroppyCode/Services/Providers/ClaudeSession.swift:602,:684",
+        "DroppyCode/Services/Providers/CommandCodeSession.swift:441,:449-472",
+        "DroppyCode/Services/Providers/AntigravitySession.swift:339,:348,:358,:378",
         "DroppyCode/Services/Providers/PiSession.swift:607",
         "DroppyCode/Services/Providers/CopilotSession.swift:719,:729",
         "DroppyCode/Services/Providers/CodexSession.swift:918"
@@ -11246,8 +11293,8 @@
         "none"
       ],
       "source_evidence": [
-        "DroppyCode/Services/Providers/CommandCodeSession.swift:704,:390,:386",
-        "DroppyCode/Services/Providers/CommandCodeAPI.swift:424,:426,:430",
+        "DroppyCode/Services/Providers/CommandCodeSession.swift:704,:374,:370",
+        "DroppyCode/Services/Providers/CommandCodeAPI.swift:424,:428,:432",
         "DroppyCode/Services/Providers/PiCLI.swift:199,:201,:213",
         "DroppyCode/Services/Providers/AntigravitySession.swift:240",
         "porting/decision_batch_20260922b.md F1 - every remaining \"Droppy Code\" / \"droppy-code\" the app shows or sends out becomes \"Marrow\" / \"marrow\", except droppy-code.json and DROPPY_CODE_PROJECT_ROOT (accepted by OD-0012)"
@@ -11281,7 +11328,7 @@
         "DroppyCode/Services/Providers/ClaudeSession.swift:497-517"
       ],
       "notes": "Before this filter existed the chat drew \"No response requested.\" as a reply from the lead. The two placeholder strings must be matched exactly, including the trailing period on the first and the parentheses on the second.",
-      "b2_change": "MOVED: B1 ClaudeSession.swift:493-513 -> B2 :499-519 (4 comment lines added above at :402-405). The two placeholder strings at :503 are unchanged.",
+      "b2_change": "MOVED: B1 ClaudeSession.swift:495-515 -> B2 :499-519 (4 comment lines added above at :402-405). The two placeholder strings at :503 are unchanged.",
       "status": "IMPLEMENTED"
     }
   ]
