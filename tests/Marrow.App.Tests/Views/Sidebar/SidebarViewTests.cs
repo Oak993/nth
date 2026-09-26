@@ -231,6 +231,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     [Fact]
     [Trait("Req", "PR-HYDRAMERGE-100")] // App/Views/Sidebar/SidebarView.swift:1980-1984
     [Trait("Req", "PR-SIDEBAR-071")] // App/Views/Sidebar/SidebarView.swift:1980-1984
+    [Trait("Req", "UI-HYDRAMERGE-030")] // App/Views/Sidebar/SidebarView.swift:1980-1984 (part 6: the same stage line, absent state)
     public void Merge_stage_is_nil_without_a_runtime_and_while_no_merge_runs()
     {
         headless.OnUiThread(() =>
@@ -253,6 +254,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     [Fact]
     [Trait("Req", "PR-HYDRAMERGE-100")] // App/Views/Sidebar/SidebarView.swift:1980-1984
     [Trait("Req", "PR-SIDEBAR-071")] // App/Views/Sidebar/SidebarView.swift:1980-1984, :2057-2058 (the row reads it)
+    [Trait("Req", "UI-HYDRAMERGE-030")] // App/Views/Sidebar/SidebarView.swift:1980-1984 (part 6: the stage words, present state)
     public void Merge_stage_is_the_stage_words_followed_by_one_horizontal_ellipsis()
     {
         headless.OnUiThread(() =>
@@ -274,6 +276,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     [Fact]
     [Trait("Req", "PR-HYDRAMERGE-100")] // App/Views/Sidebar/SidebarView.swift:1983
     [Trait("Req", "PR-SIDEBAR-071")] // App/Views/Sidebar/SidebarView.swift:1983
+    [Trait("Req", "UI-HYDRAMERGE-030")] // App/Views/Sidebar/SidebarView.swift:1983 (part 6: the fallback words, single ellipsis)
     public void Merge_stage_falls_back_to_Merging_with_the_single_ellipsis_character()
     {
         headless.OnUiThread(() =>
@@ -298,6 +301,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-001")] // App/Views/Sidebar/SidebarView.swift:74-80
+    [Trait("Req", "UI-SIDEBAR-001")] // App/Views/Sidebar/SidebarView.swift:74-80 (part 6: the same spacer, as a screen-contract record)
     public void The_window_column_opens_with_a_14_point_clearance_under_16_points_and_the_popover_has_none()
     {
         headless.OnUiThread(() =>
@@ -860,6 +864,8 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-013")] // App/Views/Sidebar/SidebarView.swift:170-174; App/Views/Settings/AboutUpdateViews.swift:526-534
+    [Trait("Req", "PR-UPDATE-080")] // App/Views/Sidebar/SidebarView.swift:168-175 (part 6: this file's half of the record; the
+    // About row's own placement is App/Views/Settings/SettingsView.swift:159-163, a different unit)
     public void The_update_dot_sits_on_the_gear_only_while_an_update_is_available()
     {
         headless.OnUiThread(() =>
@@ -1204,6 +1210,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-023")] // App/Views/Sidebar/SidebarView.swift:517-524
+    [Trait("Req", "UI-SIDEBAR-006")] // App/Views/Sidebar/SidebarView.swift:517-519, :331-332 (part 6: the same gap item, as a screen-contract record)
     public void Projects_come_in_library_order_with_a_10_point_gap_item_before_every_project_but_the_first()
     {
         headless.OnUiThread(() =>
@@ -1242,6 +1249,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-024")] // App/Views/Sidebar/SidebarView.swift:525-554, :1281
+    [Trait("Req", "UI-SIDEBAR-007")] // App/Views/Sidebar/SidebarView.swift:533-537, :1281 (part 6: the same gap item, as a screen-contract record)
     public void Pinned_open_threads_lead_then_the_others_then_a_4_point_gap_the_Settled_header_and_the_settled_threads()
     {
         headless.OnUiThread(() =>
@@ -1284,6 +1292,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-024")] // App/Views/Sidebar/SidebarView.swift:536-544
+    [Trait("Req", "UI-SIDEBAR-007")] // App/Views/Sidebar/SidebarView.swift:536-537 (part 6: the gap item's absence state)
     public void A_project_whose_threads_are_all_settled_gets_the_header_but_no_gap()
     {
         headless.OnUiThread(() =>
@@ -2899,6 +2908,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-067")] // App/Views/Sidebar/SidebarView.swift:2034-2052
+    [Trait("Req", "UI-SIDEBAR-019")] // App/Views/Sidebar/SidebarView.swift:2053 (part 6: the project line's absence with a picked icon)
     public void A_detailed_row_with_a_picked_mark_leads_the_title_at_14pt_and_drops_the_project_line()
     {
         headless.OnUiThread(() =>
@@ -2921,6 +2931,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-070")] // App/Views/Sidebar/SidebarView.swift:2053-2063
+    [Trait("Req", "UI-SIDEBAR-019")] // App/Views/Sidebar/SidebarView.swift:2053-2063 (part 6: the same project line, as a screen-contract record)
     public void A_detailed_second_line_shows_a_folder_or_branch_mark_then_the_project_name_or_merge_stage()
     {
         headless.OnUiThread(() =>
@@ -2956,6 +2967,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-068")] // App/Views/Sidebar/SidebarView.swift:2147-2165
+    [Trait("Req", "UI-SIDEBAR-018")] // App/Views/Sidebar/SidebarView.swift:2143-2179 (part 6: the same badge, as a screen-contract record)
     public void The_badge_shows_the_hand_then_the_spinner_then_the_pin_then_the_provider_icon()
     {
         headless.OnUiThread(() =>
@@ -2999,6 +3011,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-069")] // App/Views/Sidebar/SidebarView.swift:2166-2173
+    [Trait("Req", "UI-SIDEBAR-018")] // App/Views/Sidebar/SidebarView.swift:2143-2179 (part 6: the badge's unread-dot state)
     public void An_unread_threads_badge_carries_a_7pt_dot_danger_or_accent_unless_the_hand_or_spinner_shows()
     {
         headless.OnUiThread(() =>
@@ -3250,6 +3263,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-078")] // App/Views/Sidebar/SidebarView.swift:2122-2140
+    [Trait("Req", "UI-SIDEBAR-020")] // App/Views/Sidebar/SidebarView.swift:2114-2142 (part 6: the same check, as a screen-contract record)
     public void The_settle_check_is_filled_while_settled_or_popping_and_outlined_otherwise_with_the_right_tips()
     {
         headless.OnUiThread(() =>
@@ -3444,6 +3458,8 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-088")] // App/Views/Sidebar/SidebarView.swift:966-981
+    [Trait("Req", "UI-GIT-057")] // App/Views/Sidebar/SidebarView.swift:965-983; App/AppModel.swift:943-966 (part 6: the same
+    // popover, as a screen-contract record)
     public void The_delete_popover_is_280_wide_with_a_header_a_curly_quoted_note_a_divider_and_delete_rows() => headless.OnUiThread(() =>
     {
         using var harness = new AppModelHarness();
@@ -3469,6 +3485,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-088")] // App/Views/Sidebar/SidebarView.swift:977-978
+    [Trait("Req", "UI-GIT-057")] // App/Views/Sidebar/SidebarView.swift:977-978 (part 6: the worktree row's own state)
     public void The_delete_and_worktree_row_shows_only_with_a_worktree_and_deletes_with_it_true() => headless.OnUiThread(() =>
     {
         using var harness = new AppModelHarness();
@@ -4308,35 +4325,43 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     // Records: PR-SIDEBAR-111, -113, -114, -115, -116, -117, -118, -119, -120, -123, -125, -154, -155, -159 (14 of
     // this part's 24). PR-SIDEBAR-121, -122, -126, -127, -128, -129, -130, -133, -134, -135 are the STOP below.
     //
-    // STOP App.Views.Sidebar.SidebarView #7
+    // STOP App.Views.Sidebar.SidebarView #7 (narrowed part 6: ProjectRow's own constructor is now built, along with
+    // contextMenuActions, actions(isActive:) and ProjectPairMenuItems; see ProjectRow's own header comment in
+    // SidebarView.cs for why PR-SIDEBAR-133, the live AppKit-style context menu, is a separate, still-open gap)
     // Kind: missing dependency
-    // Swift: DroppyCode/App/Views/Sidebar/SidebarView.swift:1436-1548 HeadCardsRow's own constructor;
-    // :1081-1270 ProjectRow's own constructor (and ProjectPairMenuItems' caller); :1820-1833, :1933-1978
-    // SidebarThreadRow.windowFrame/glide (B3 52bc792)
+    // Swift: DroppyCode/App/Views/Sidebar/SidebarView.swift:1436-1548 HeadCardsRow's own constructor; :1138-1161
+    // ProjectRow's own <c>.contextMenu</c> attachment; :1820-1833, :1933-1978 SidebarThreadRow.windowFrame/glide
+    // (B3 52bc792)
     // Requirements: PR-SIDEBAR-121, PR-SIDEBAR-122 (HeadCardsRow's glyph buttons, hover, selection and the card's own
-    // animation/fold); PR-SIDEBAR-126, PR-SIDEBAR-127, PR-SIDEBAR-128, PR-SIDEBAR-129, PR-SIDEBAR-130,
-    // PR-SIDEBAR-133 (ProjectRow's click-to-expand, icon, hover accessory, opacity, context menu and Hydra-pair
-    // submenu); PR-SIDEBAR-134, PR-SIDEBAR-135 (the row's frame report and the reopen/settle glide it launches)
-    // What is unclear or missing: all three views' own constructors stay MARROW_STUB (the file's own header:
-    // "ProjectRow, ActivityHeader and SettledHeader (parts 5 to 8)"; ActivityHeader and SettledHeader are now built
-    // this part, ProjectRow and HeadCardsRow are not). HeadCardsRow needs a geometry-observed width (PR-SIDEBAR-117's
-    // and PR-SIDEBAR-118's PerRow/RowGap are proven as static pieces below, but the live SizeChanged wiring, the
-    // per-glyph hover scale and selection ring, and the card's own opacity/animation are still unassembled).
-    // ProjectRow's "Remove project" item (PR-SIDEBAR-130) needs a confirmation popover while confirmBeforeDeleting is
-    // on (OD-0008 A9, OD-0012 E2 wording); SidebarMenuRequests carries the identical Rename/Delete precedent (part
-    // 4) but no ProjectRemoval request field yet, and building the popover's own UI is a SidebarView-level concern
-    // (like the DeleteThreadPopover this file's part 4 built), not ProjectRow's own. SidebarThreadRow.windowFrame and
-    // .glide are part of that row's own still-MARROW_STUB constructor (STOP #7's own note in SidebarView.cs); PR-
-    // SIDEBAR-135's two offscreen renders go through RowGlideAnimator (a separate file/unit, RowGlide.cs), reachable
-    // only once the row itself calls it.
-    // Readings or options: none attempted; a partial assembly of any of the three constructors risked an untested or
-    // wrong behaviour standing in for a hard feature, which the contract forbids more than an honest gap does.
-    // Needed to proceed: HeadCardsRow's and ProjectRow's own constructor assembly (this unit, a later part); for
-    // PR-SIDEBAR-130, a request field on SidebarMenuRequests plus the confirmation popover's own SidebarView-level
-    // wiring, named by an owner or engineering decision if the shape is not already settled elsewhere.
+    // animation/fold); PR-SIDEBAR-130 (the "Remove project" item's own confirmation, gated behind the same missing
+    // live menu); PR-SIDEBAR-133 (the AppKit context menu itself, live on a right-click); PR-SIDEBAR-134,
+    // PR-SIDEBAR-135 (the row's frame report and the reopen/settle glide it launches)
+    // What is unclear or missing: HeadCardsRow's own constructor and SidebarThreadRow.windowFrame/glide stay
+    // MARROW_STUB, unchanged from part 5 (HeadCardsRow needs a geometry-observed width: PR-SIDEBAR-117's and
+    // PR-SIDEBAR-118's PerRow/RowGap are proven as static pieces below, but the live SizeChanged wiring, the
+    // per-glyph hover scale and selection ring, and the card's own opacity/animation are still unassembled;
+    // SidebarThreadRow.windowFrame and .glide are part of that row's own still-MARROW_STUB constructor). New this
+    // part: ProjectRow's own constructor, contextMenuActions, actions(isActive:) and ProjectPairMenuItems are built
+    // and proven (UI-SIDEBAR-008, -009, -010, -014, -015, -016), but SwiftUI's <c>.contextMenu</c> modifier
+    // re-evaluates isActive, hasOverride and the pairs snapshot fresh every time the menu opens (:1138-1161), and no
+    // ED or platform-adaptation entry names a Windows/Avalonia foundation for that per-open refresh
+    // (porting/engineering_decisions.md and porting/platform_adaptations.md have no ".contextMenu" or "ContextMenu"
+    // entry). A menu attached once, at construction time, would go stale the first time isActive or hasOverride
+    // changed without the row itself being rebuilt: an invented, silently wrong behaviour. PR-SIDEBAR-130's own
+    // confirmation popover (OD-0008 A9, OD-0012 E2 wording; SidebarMenuRequests would need a ProjectRemoval request
+    // field, as it already carries Rename and Delete) is reachable only once that same menu exists, so it is gated
+    // behind this same STOP, not a separate one.
+    // Readings or options: for the context menu, (a) build a menu fixed at construction time -> goes stale, an
+    // invented behaviour the contract forbids more than an honest gap does; (b) invent a rebuild-on-open hook with no
+    // ED/PA backing -> the same objection. For HeadCardsRow and SidebarThreadRow's own remaining pieces: none
+    // attempted; a partial assembly risked an untested or wrong behaviour standing in for a hard feature.
+    // Needed to proceed: an engineering or platform-adaptation decision naming the Windows/Avalonia foundation for
+    // SwiftUI's <c>.contextMenu</c> re-evaluation-on-open (then PR-SIDEBAR-130's request field and popover follow);
+    // separately, HeadCardsRow's own constructor assembly and SidebarThreadRow's own remaining collaborators.
     // Done so far: HeadCardsRow.Usable, PerRow, RowGap, Chunk, Capped, Visible, CardRows and ChevronTooltip are
-    // proven directly (PR-SIDEBAR-117, -118, -119, -120 below); nothing is claimed for PR-SIDEBAR-121, -122, -126,
-    // -127, -128, -129, -130, -133, -134 or -135, and no test names them.
+    // proven directly (PR-SIDEBAR-117, -118, -119, -120, part 5); ProjectRow's own body, contextMenuActions,
+    // actions(isActive:), BuildContextMenuItems and ProjectPairMenuItems are proven directly (part 6, below); nothing
+    // is claimed for PR-SIDEBAR-121, -122, -130, -133, -134 or -135, and no test names them.
 
     private static IReadOnlyList<object> Enumerate(object valueList) => ((IEnumerable)valueList).Cast<object>().ToList();
 
@@ -4526,6 +4551,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-116")] // App/Views/Sidebar/SidebarView.swift:1804-1814, :1288 foldInset = 46
+    [Trait("Req", "UI-SIDEBAR-022")] // App/Views/Sidebar/SidebarView.swift:1803-1814 (part 6: the same chevron, as a screen-contract record)
     public void The_fold_chevron_points_right_folded_and_down_unfolded_46pt_in_tooltipped_and_labelled() => headless.OnUiThread(() =>
     {
         var type = Private("SidebarThreadRow");
@@ -4798,6 +4824,561 @@ public sealed class SidebarViewTests(HeadlessSession headless)
                 Assert.Equal("Rename", menu[0].Title); // :2259-2262
                 Assert.Equal("pencil", menu[0].Symbol);
             }
+        });
+    });
+
+    // ======== Part 6 of 8 ========
+    //
+    // Records: PR-SIDEBAR-160, -161, -162, -163, PR-UPDATE-080, UI-GIT-057, UI-HYDRAMERGE-030, UI-SIDEBAR-001, -004,
+    // -005, -006, -007, -008, -009, -010, -014, -015, -016, -017, -018, -019, -020, -021, -022 (24 of this part's
+    // records). PR-UPDATE-080, UI-GIT-057, UI-HYDRAMERGE-030, UI-SIDEBAR-001, -006, -007, -018, -019, -020, -022 are
+    // proven by adding this part's own [Trait] to a test parts 1-5 already wrote for the identical evidence (the
+    // code and the record describe the same site; grep the id to find the added trait, e.g. UI-SIDEBAR-001 on
+    // The_window_column_opens_with_a_14_point_clearance..., PR-SIDEBAR-023's own test). ProjectRow's own constructor
+    // (UI-SIDEBAR-008, -009, -010), contextMenuActions, actions(isActive:), BuildContextMenuItems and
+    // ProjectPairMenuItems (UI-SIDEBAR-014, -015, -016) are new this part (SidebarView.cs, ProjectRow's own header
+    // comment there explains what PR-SIDEBAR-133 still needs). UI-SIDEBAR-017 is the STOP below.
+    //
+    // STOP App.Views.Sidebar.SidebarView #8
+    // Kind: missing dependency
+    // Swift: DroppyCode/App/Views/Sidebar/SidebarView.swift:1682-1872, :2006-2080 SidebarThreadRow's own constructor
+    // (B3 52bc792)
+    // Requirements: UI-SIDEBAR-017 (the thread row as a whole: its selection, hover, pinned, dragged, settling and
+    // hidden-under-glide states, and its own right-click context menu)
+    // What is unclear or missing: SidebarThreadRow's own constructor stays MARROW_STUB (SidebarView.cs:2094,
+    // unchanged since the file's own skeleton). Every piece this part's UI-SIDEBAR-018 to -022 prove (ThreadBadge,
+    // ThreadRowFace's project line, SettleCheck, BuildTrailingOverlay's archive button, BuildFoldOverlay) is one of
+    // the row's own collaborators; assembling the row itself additionally needs the drag-styled cluster state
+    // (isSelected/isHovering/isDragging/isSettling), RowGlideAnimator's own frame reporting (windowFrame/.glide,
+    // named by STOP #7 above, a different unit's own remaining piece: RowGlide.cs) and, for the row's own
+    // right-click, the exact same missing Avalonia-ContextMenu-per-open-refresh foundation named in ProjectRow's own
+    // header comment (SidebarView.cs) and STOP #7 above: no ED or platform-adaptation entry names it, and
+    // RowActionMenuButtons and ThreadActions.MakeContextMenu already exist for a caller that does not yet exist.
+    // Readings or options: none attempted; a partial assembly of the row risked an untested or wrong behaviour
+    // standing in for a hard feature, which the contract forbids more than an honest gap does.
+    // Needed to proceed: RowGlideAnimator's own frame-reporting wiring (a different unit's remaining piece, named at
+    // STOP #7); an engineering or platform-adaptation decision naming the Windows/Avalonia foundation for a
+    // per-open-refreshed context menu (STOP #7's own need, shared by this row).
+    // Done so far: every one of the row's own extractable static and standalone pieces that this part's records ask
+    // for is proven directly (ThreadBadge, ThreadRowFace, SettleCheck, BuildTrailingOverlay, BuildFoldOverlay,
+    // MergeStage, below and in earlier parts); nothing is claimed for the row's own constructor, and no test names it.
+
+    // ---- helpers for ProjectRow (part 6) ----
+
+    private static Control ShownProjectRow(AppModel model, Project project, long count, bool togglesExpansion = true)
+    {
+        var row = (Control)Activator.CreateInstance(Private("ProjectRow"), project, count, togglesExpansion)!;
+        row.VerticalAlignment = VerticalAlignment.Top; // the row's own 28pt height, not the host's full stretch
+        var host = new Border { Child = row };
+        AppEnvironment.SetAppModel(host, model);
+        var window = new AvaloniaWindow { Content = host, Width = 320, Height = 100 };
+        window.Show();
+        window.UpdateLayout();
+        return row;
+    }
+
+    private static ValueList<RowAction> ProjectRowContextMenuActions(Project project, bool isActive, bool hasOverride, AppModel model) =>
+        (ValueList<RowAction>)CallStatic(Private("ProjectRow"), "ContextMenuActions", project, isActive, hasOverride, model)!;
+
+    private static ValueList<RowAction> ProjectRowActions(AppModel model, Project project, bool isActive) =>
+        (ValueList<RowAction>)CallStatic(Private("ProjectRow"), "Actions", model, project, isActive)!;
+
+    private static object ProjectPairChoices(params (Guid Id, string Title)[] pairs)
+    {
+        var choiceType = Private("ProjectPairChoice");
+        var list = (System.Collections.IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(choiceType))!;
+        foreach (var (id, title) in pairs)
+        {
+            var choice = Activator.CreateInstance(choiceType)!;
+            SetProp(choice, "Id", id);
+            SetProp(choice, "Title", title);
+            list.Add(choice);
+        }
+        return list;
+    }
+
+    private static IReadOnlyList<Control> ProjectRowBuildContextMenuItems(Project project, bool isActive, bool hasOverride, AppModel model, object pairs) =>
+        (IReadOnlyList<Control>)CallStatic(Private("ProjectRow"), "BuildContextMenuItems", project, isActive, hasOverride, model, pairs)!;
+
+    // ---- PR-SIDEBAR-160: the Archive item ----
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-160")] // App/Views/Sidebar/SidebarView.swift:2219-2226
+    public void Archive_is_always_offered_and_starts_a_group_only_when_settle_is_not_first() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Thread", 0);
+        var helper = NewThread(project, "Helper", 1) with { ParentThreadID = thread.Id };
+        var model = Model(harness, [project], [thread, helper]);
+        harness.Main.OnMain(() =>
+        {
+            model.Settings.ThreadFinishAction = ThreadFinishAction.Archive; // settleFirst false for a non-helper
+            var archive = ThreadActionsMake(model, thread).Single(a => a.Title == "Archive"); // :2221-2223
+            Assert.Equal("archivebox", archive.Symbol);
+            Assert.True(archive.StartsGroup); // :2224 !settleFirst
+            archive.Action(); // :2223 model.archive(thread.id)
+            Assert.True(model.Thread(thread.Id)!.IsArchived);
+
+            model.Settings.ThreadFinishAction = ThreadFinishAction.Settle; // settleFirst true for this non-helper
+            var archiveNotFirst = ThreadActionsMake(model, model.Thread(thread.Id)!).Single(a => a.Title == "Archive");
+            Assert.False(archiveNotFirst.StartsGroup);
+
+            // A helper always gets Archive (it has no place of its own to settle into: :2219-2220), and settleFirst
+            // is false for a helper regardless of the setting, so its Archive item always starts the group.
+            var helperArchive = ThreadActionsMake(model, helper).Single(a => a.Title == "Archive");
+            Assert.True(helperArchive.StartsGroup); // :2224-2225
+        });
+    });
+
+    // ---- PR-SIDEBAR-161: the Settle/Reopen item ----
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-161")] // App/Views/Sidebar/SidebarView.swift:2227-2242
+    public void Settle_or_Reopen_is_offered_to_non_helpers_only_and_prefers_the_rows_own_handler() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var open = NewThread(project, "Open", 0);
+        var settled = NewThread(project, "Settled", 1) with { IsSettled = true };
+        var helper = NewThread(project, "Helper", 2) with { ParentThreadID = open.Id };
+        var model = Model(harness, [project], [open, settled, helper]);
+        harness.Main.OnMain(() =>
+        {
+            Assert.DoesNotContain(ThreadActionsMake(model, helper), a => a.Title is "Settle" or "Reopen"); // :2224-2226
+
+            model.Settings.ThreadFinishAction = ThreadFinishAction.Settle; // settleFirst true for a non-helper
+            var settle = ThreadActionsMake(model, open).Single(a => a.Title is "Settle" or "Reopen"); // :2228-2231
+            Assert.Equal("Settle", settle.Title);
+            Assert.Equal("checkmark.circle", settle.Symbol);
+            Assert.True(settle.StartsGroup); // :2230 settleFirst
+
+            var reopenItem = ThreadActionsMake(model, settled).Single(a => a.Title is "Settle" or "Reopen");
+            Assert.Equal("Reopen", reopenItem.Title);
+            Assert.Equal("arrow.uturn.backward", reopenItem.Symbol);
+
+            model.Settings.ThreadFinishAction = ThreadFinishAction.Archive; // settleFirst false now
+            var settleNotFirst = ThreadActionsMake(model, open).Single(a => a.Title is "Settle" or "Reopen");
+            Assert.False(settleNotFirst.StartsGroup); // :2230
+
+            // The row's own handler, when supplied, flies the glide; without it the model moves the thread directly
+            // (:2233-2240).
+            var handlerCalled = false;
+            var withHandler = ThreadActionsMake(model, open, onSettle: () => handlerCalled = true).Single(a => a.Title == "Settle");
+            withHandler.Action();
+            Assert.True(handlerCalled);
+            Assert.False(model.Thread(open.Id)!.IsSettled); // the handler ran instead of the model call
+
+            var withoutHandler = ThreadActionsMake(model, open).Single(a => a.Title == "Settle");
+            withoutHandler.Action(); // :2239 model.settleAnimated(thread.id)
+            Assert.True(model.Thread(open.Id)!.IsSettled);
+
+            var reopenHandlerCalled = false;
+            var settledWithHandler = ThreadActionsMake(model, settled, onReopen: () => reopenHandlerCalled = true).Single(a => a.Title == "Reopen");
+            settledWithHandler.Action();
+            Assert.True(reopenHandlerCalled);
+            Assert.True(model.Thread(settled.Id)!.IsSettled); // the handler ran instead of the model call
+
+            var settledWithoutHandler = ThreadActionsMake(model, settled).Single(a => a.Title == "Reopen");
+            settledWithoutHandler.Action(); // :2236 model.reopenAnimated(thread.id)
+            Assert.False(model.Thread(settled.Id)!.IsSettled);
+        });
+    });
+
+    // ---- PR-SIDEBAR-162: settle/archive swap by the finish-action setting ----
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-162")] // App/Views/Sidebar/SidebarView.swift:2219-2221, :2225-2227, :2242
+    public void Settle_and_archive_swap_places_by_the_finish_action_and_a_helper_gets_archive_alone() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Thread", 0);
+        var helper = NewThread(project, "Helper", 1) with { ParentThreadID = thread.Id };
+        var model = Model(harness, [project], [thread, helper]);
+        harness.Main.OnMain(() =>
+        {
+            model.Settings.ThreadFinishAction = ThreadFinishAction.Settle;
+            var helperGroup = ThreadActionsMake(model, helper).Where(a => a.Title is "Settle" or "Reopen" or "Archive").ToList();
+            Assert.Equal(["Archive"], helperGroup.Select(a => a.Title)); // :2224-2226, no Settle/Reopen at all
+            Assert.True(helperGroup[0].StartsGroup);
+
+            var settleFirst = ThreadActionsMake(model, thread).Where(a => a.Title is "Settle" or "Archive").ToList();
+            Assert.Equal(["Settle", "Archive"], settleFirst.Select(a => a.Title)); // :2242
+            Assert.True(settleFirst[0].StartsGroup);
+            Assert.False(settleFirst[1].StartsGroup);
+
+            model.Settings.ThreadFinishAction = ThreadFinishAction.Archive;
+            var archiveFirst = ThreadActionsMake(model, thread).Where(a => a.Title is "Settle" or "Archive").ToList();
+            Assert.Equal(["Archive", "Settle"], archiveFirst.Select(a => a.Title));
+            Assert.True(archiveFirst[0].StartsGroup);
+            Assert.False(archiveFirst[1].StartsGroup);
+        });
+    });
+
+    // ---- PR-SIDEBAR-163: the Delete… item ----
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-163")] // App/Views/Sidebar/SidebarView.swift:2244-2245, :2309-2312
+    public void Delete_is_always_the_last_item_destructive_symbol_trash_and_one_ellipsis_character() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Thread", 0);
+        var helper = NewThread(project, "Helper", 1) with { ParentThreadID = thread.Id };
+        var settled = NewThread(project, "Settled", 2) with { IsSettled = true };
+        var model = Model(harness, [project], [thread, helper, settled]);
+        harness.Main.OnMain(() =>
+        {
+            foreach (var candidate in new[] { thread, helper, settled })
+            {
+                var delete = ThreadActionsMake(model, candidate)[^1]; // :2244-2245, unconditional, last
+                Assert.Equal("Delete\u2026", delete.Title); // one U+2026, not three periods
+                Assert.Equal(new byte[] { 0x44, 0x65, 0x6C, 0x65, 0x74, 0x65, 0xE2, 0x80, 0xA6 }, System.Text.Encoding.UTF8.GetBytes(delete.Title));
+                Assert.Equal("trash", delete.Symbol);
+                Assert.True(delete.IsDestructive);
+                Assert.False(delete.StartsGroup); // sits directly under the settle/archive group, no separator of its own
+                Assert.Null(delete.Confirms); // the confirmation is the popover, not this flag
+            }
+
+            var deleted = false;
+            var madeDirect = ((IEnumerable)CallStatic(Private("ThreadActions"), "Make", model, thread,
+                (Action)(() => { }), (Action)(() => deleted = true), null, null)!).Cast<RowAction>().ToList();
+            madeDirect[^1].Action(); // :2245 onDelete()
+            Assert.True(deleted);
+
+            var requests = Activator.CreateInstance(Private("SidebarMenuRequests"))!;
+            var contextDelete = ThreadActionsMakeContextMenu(model, thread, false, requests)[^1];
+            Assert.Equal("Delete\u2026", contextDelete.Title); // :2308-2311
+            contextDelete.Action();
+            Assert.Equal(thread, Get(requests, "Delete")); // :2309-2310 requests.delete = thread
+        });
+    });
+
+    // ---- UI-SIDEBAR-004: the activity-view bell's colours ----
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-004")] // App/Views/Sidebar/SidebarView.swift:2316-2343
+    public void The_bell_glyph_and_background_colours_follow_the_on_off_and_hovered_while_off_states()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var manual = new ManualFrameSource();
+            using var frames = FrameClock.Source.Override(manual);
+            var model = harness.MakeModel();
+            SidebarView view = null!;
+            harness.Main.OnMain(() => view = Attached(model));
+            var window = WindowOf(view);
+            var glyph = LogicalQuery.SelfAndDescendants<SwiftImage>(view).Single(image => image.SymbolName == "bell"); // :2325-2326
+            var circle = LogicalQuery.SelfAndDescendants<Avalonia.Controls.Shapes.Ellipse>(view).Single(e => e.Width == 30); // :2329-2332
+            Color GlyphColor() => ((ISolidColorBrush)glyph.Foreground!).Color;
+            Color FillColor() => ((ISolidColorBrush)circle.Fill!).Color;
+            var button = ButtonNamed(view, "Activity view");
+            var inside = button.TranslatePoint(new Point(15, 15), window)!.Value;
+            var away = new Point(1, 1);
+            void Settle() { for (var i = 0; i < 20; i++) { harness.Main.Advance(TimeSpan.FromMilliseconds(16)); manual.Advance(TimeSpan.FromMilliseconds(16)); } }
+
+            harness.Main.OnMain(() =>
+            {
+                // Off, not hovering: secondaryText glyph, Color.clear background, set with no animation at construction (:2327, :2331).
+                Assert.Equal(Chrome.SecondaryText.Resolve(glyph.ActualThemeVariant), GlyphColor());
+                Assert.Equal(SwiftColor.Clear.Resolve(circle.ActualThemeVariant), FillColor());
+            });
+
+            harness.Main.OnMain(() => window.MouseMove(inside)); // pointer input reaches MainActorModel.Set; needs the main actor
+            Settle();
+            harness.Main.OnMain(() =>
+            {
+                // Hovered, still off: the label colour's own 0.08 overlay, glyph unchanged (:2331).
+                Assert.Equal(Chrome.SecondaryText.Resolve(glyph.ActualThemeVariant), GlyphColor());
+                Assert.Equal(Chrome.Overlay(0.08).Resolve(circle.ActualThemeVariant), FillColor());
+            });
+
+            harness.Main.OnMain(() => window.MouseMove(away));
+            Settle();
+            harness.Main.OnMain(() => Assert.Equal(SwiftColor.Clear.Resolve(circle.ActualThemeVariant), FillColor()));
+
+            harness.Main.OnMain(() => Click(button)); // on
+            Settle();
+            harness.Main.OnMain(() =>
+            {
+                // On: accent glyph, accent at 0.16 background (:2327, :2331).
+                Assert.Equal(Chrome.Accent.Resolve(glyph.ActualThemeVariant), GlyphColor());
+                Assert.Equal(Chrome.Accent.Opacity(0.16).Resolve(circle.ActualThemeVariant), FillColor());
+            });
+            Close(view);
+        });
+    }
+
+    // ---- UI-SIDEBAR-005: the scrolling list's own geometry and its list-wide drag gesture ----
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-005")] // App/Views/Sidebar/SidebarView.swift:101-148
+    public void The_list_has_no_scroll_indicators_10_12_10_8_padding_and_1pt_spacing()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            using var frames = FrameClock.Source.Override(new ManualFrameSource()); // the row's own insertion transition (:117-119) needs a bound clock
+            var alpha = NewProject(harness, "Alpha") with { IsExpanded = false };
+            var model = Model(harness, [alpha], []);
+            SidebarView view = null!;
+            harness.Main.OnMain(() => view = Attached(model));
+
+            var scroll = LogicalQuery.SelfAndDescendants<ScrollViewer>(view).Single();
+            Assert.Equal(ScrollBarVisibility.Disabled, scroll.HorizontalScrollBarVisibility); // :102, :139 .scrollIndicators(.never)
+            Assert.Equal(ScrollBarVisibility.Hidden, scroll.VerticalScrollBarVisibility);
+
+            var list = ListStack(view);
+            Assert.Equal(Orientation.Vertical, list.Orientation); // :103 LazyVStack(alignment: .leading, spacing: 1)
+            Assert.Equal(1d, list.Spacing);
+            Assert.Equal(new Thickness(Chrome.ListInset, 12, Chrome.ListInset, 8), list.Margin); // :120-122
+            Assert.Null(list.Background); // rows supply their own fills
+
+            // The list's own DragGesture, attached ahead of every row's own click, and its query-empty gating
+            // (:123-137, :129, :776) are exercised through real presses on a bare (non-SidebarRow) row by the
+            // reorder tests above (part 2), so this test does not repeat that interaction here.
+            Close(view);
+        });
+    }
+
+    // ---- UI-SIDEBAR-021: the archive button's tooltip and click ----
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-021")] // App/Views/Sidebar/SidebarView.swift:1775-1784
+    public void The_archive_button_is_tooltipped_Archive_thread_and_its_click_runs_the_supplied_action() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Thread", 0);
+        var type = Private("SidebarThreadRow");
+        var actions = new List<RowAction> { new() { Title = "Rename", Action = () => { } } };
+        var isMenuPresented = new Binding<bool>(() => false, _ => { });
+        var archived = false;
+        var overlay = Shown((Control)CallStatic(type, "BuildTrailingOverlay",
+            thread, true, false, false, false, false, (Action)(() => archived = true), actions, isMenuPresented)!);
+        var archive = LogicalQuery.SelfAndDescendants<Button>(overlay).First(); // :1785, ahead of the ellipsis
+        Assert.Equal("Archive thread", ToolTip.GetTip(archive)); // :1783
+        Click(archive);
+        Assert.True(archived); // :1777-1782 Button(action: archiveAction)
+    });
+
+    // ---- UI-SIDEBAR-008, -009, -010: ProjectRow's own body ----
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-008")] // App/Views/Sidebar/SidebarView.swift:1078-1166; UI/Chrome/Chrome.swift:681-746
+    public void The_project_row_toggles_expansion_unless_disabled_and_dims_to_0_55_while_inactive() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var model = Model(harness, [project], []);
+        Control row = null!;
+        harness.Main.OnMain(() =>
+        {
+            row = ShownProjectRow(model, project, 0);
+            Assert.Equal(28d, row.Bounds.Height); // :1099 accessoryWidth into SidebarRow's own Chrome.rowHeight row
+            Assert.Equal(1d, row.Opacity); // :1135, active by default
+            Assert.True(model.Project(project.Id)!.IsExpanded); // Project.IsExpanded defaults true (Library.cs:86)
+            Click(ButtonNamed(row, "Alpha")); // :1100-1105, :738 the button's own automation name is the title
+            Assert.False(model.Project(project.Id)!.IsExpanded);
+        });
+
+        harness.Main.OnMain(() =>
+        {
+            var neverToggles = ShownProjectRow(model, project, 0, togglesExpansion: false);
+            Click(ButtonNamed(neverToggles, "Alpha")); // :1101 guard togglesExpansion else return
+            Assert.False(model.Project(project.Id)!.IsExpanded); // unchanged
+        });
+
+        harness.Main.OnMain(() => model.Settings.SetProjectActive(false, project.Id));
+        harness.Main.OnMain(() => Assert.Equal(0.55d, row.Opacity)); // :1135, a later pass, not a rebuild
+        harness.Main.OnMain(() => model.Settings.SetProjectActive(true, project.Id));
+        harness.Main.OnMain(() => Assert.Equal(1d, row.Opacity));
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-009")] // App/Views/Sidebar/SidebarView.swift:1127-1132, :521-523
+    public void The_collapsed_count_label_shows_only_while_collapsed_with_a_positive_count() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha") with { IsExpanded = false };
+        var model = Model(harness, [project], []);
+        harness.Main.OnMain(() =>
+        {
+            var row = ShownProjectRow(model, project, 3);
+            var count = LogicalQuery.SelfAndDescendants<TextBlock>(row).Single(t => t.Text == "3"); // :1128, a bare decimal
+            Assert.Equal(Chrome.SecondaryText.Resolve(count.ActualThemeVariant), ((ISolidColorBrush)count.Foreground!).Color); // :1130
+            var wrapper = Assert.IsType<Border>(count.Parent); // SidebarRow (Chrome.cs) sets its own Margin on the returned
+            Assert.Equal(new Thickness(0, 0, 4, 0), wrapper.Padding); // control unconditionally, so :1131's own padding nests as this Padding
+        });
+
+        // ProjectRow's own accessory reads the model's live project (this constructor's own header comment), not the
+        // constructor argument, once attached; a row built after the model is expanded reflects that, not the
+        // snapshot passed in.
+        harness.Main.OnMain(() => model.UpdateProject(project.Id, p => p with { IsExpanded = true }));
+        harness.Main.OnMain(() =>
+        {
+            var expandedRow = ShownProjectRow(model, project, 3);
+            Assert.DoesNotContain(LogicalQuery.SelfAndDescendants<TextBlock>(expandedRow), t => t.Text == "3"); // :1127 !isExpanded
+        });
+
+        harness.Main.OnMain(() => model.UpdateProject(project.Id, p => p with { IsExpanded = false }));
+        harness.Main.OnMain(() =>
+        {
+            var zeroRow = ShownProjectRow(model, project, 0);
+            Assert.DoesNotContain(LogicalQuery.SelfAndDescendants<TextBlock>(zeroRow), t => t.Text == "0"); // :1127 count > 0
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-010")] // App/Views/Sidebar/SidebarView.swift:1119-1125
+    public void The_plus_button_shows_only_while_hovered_and_creates_a_thread_with_an_untruncated_tooltip() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource()); // the hover fill's own AnimatedColor needs a bound clock
+        var project = NewProject(harness, "Alpha Beta Gamma Delta Epsilon"); // long enough to show a truncated tooltip if one happened
+        var model = Model(harness, [project], []);
+        Control row = null!;
+        AvaloniaWindow window = null!;
+        harness.Main.OnMain(() =>
+        {
+            row = ShownProjectRow(model, project, 0);
+            window = WindowOf(row);
+            Assert.DoesNotContain(LogicalQuery.SelfAndDescendants<Button>(row),
+                b => ToolTip.GetTip(b) is string tip && tip.StartsWith("New thread in", StringComparison.Ordinal)); // :1116, not hovering
+        });
+        harness.Main.OnMain(() => window.MouseMove(row.TranslatePoint(new Point(10, 10), window)!.Value)); // needs the main actor (MainActorModel.Set)
+        harness.Main.OnMain(() =>
+        {
+            var plus = LogicalQuery.SelfAndDescendants<Button>(row)
+                .Single(b => ToolTip.GetTip(b) as string == "New thread in Alpha Beta Gamma Delta Epsilon"); // :1125, untruncated
+            Assert.Empty(model.ThreadsIn(project));
+            Click(plus); // :1119-1123
+            Assert.Single(model.ThreadsIn(project)); // :1120 model.newThread(in: project)
+        });
+    });
+
+    // ---- UI-SIDEBAR-014: the project menu's items (ellipsis popover and context menu) ----
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-014")] // App/Views/Sidebar/SidebarView.swift:1168-1229
+    public void The_project_menu_offers_new_thread_worktree_reveal_remove_and_the_activation_item_in_order() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var model = Model(harness, [project], []);
+        harness.Main.OnMain(() =>
+        {
+            foreach (var made in new[]
+            {
+                ProjectRowActions(model, project, isActive: true).ToList(),
+                ProjectRowContextMenuActions(project, true, false, model).ToList(),
+            })
+            {
+                Assert.Equal(
+                    ["New thread", "New thread in worktree", "Reveal in File Explorer", "Remove project", "Deactivate project"],
+                    made.Select(a => a.Title));
+                Assert.Equal(["square.and.pencil", "square.stack.3d.up", "folder", "trash", "power"], made.Select(a => a.Symbol));
+                Assert.True(made[3].IsDestructive); // Remove project, :1183/:1212
+                Assert.True(made[2].StartsGroup); // Reveal in File Explorer, :1179/:1211
+                Assert.True(made[3].StartsGroup); // Remove project, its own separator
+                Assert.True(made[4].StartsGroup); // the activation item, :1188/:1216
+            }
+
+            Assert.Equal("Activate project", ProjectRowActions(model, project, isActive: false).Last().Title); // :1189/:1217
+            Assert.Equal("Activate project", ProjectRowContextMenuActions(project, false, false, model).Last().Title);
+
+            // hasOverride adds "Follow global setting" last, symbol arrow.uturn.backward, no separator (:1196-1200/:1223-1226).
+            var overriddenMenu = ProjectRowContextMenuActions(project, true, true, model);
+            Assert.Equal("Follow global setting", overriddenMenu.Last().Title);
+            Assert.Equal("arrow.uturn.backward", overriddenMenu.Last().Symbol);
+            Assert.False(overriddenMenu.Last().StartsGroup);
+            Assert.Equal(6, overriddenMenu.Count);
+
+            // Actions(isActive:) reads the override off the live model (:1223), unlike ContextMenuActions' own param.
+            model.Settings.SetProjectActive(false, project.Id); // creates a per-project override
+            var isActive = model.Settings.IsProjectActive(project.Id);
+            var overriddenActions = ProjectRowActions(model, project, isActive);
+            Assert.True(model.Settings.HasProjectActivationOverride(project.Id));
+            Assert.Equal("Follow global setting", overriddenActions.Last().Title);
+
+            // The action itself calls through to the model (Reveal in File Explorer and Remove project are exercised
+            // structurally above; New thread is exercised directly here as the cheapest observable one).
+            Assert.Empty(model.ThreadsIn(project));
+            ProjectRowActions(model, project, isActive: true)[0].Action(); // :1207 model.newThread(in: project)
+            Assert.Single(model.ThreadsIn(project));
+        });
+    });
+
+    // ---- UI-SIDEBAR-015, -016: the pair submenu and its items ----
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-015")] // App/Views/Sidebar/SidebarView.swift:1140-1165, :1149-1161
+    public void The_start_new_chats_on_submenu_appears_only_when_there_is_a_hydra_pair_to_choose() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var model = Model(harness, [project], []);
+        harness.Main.OnMain(() =>
+        {
+            var none = ProjectRowBuildContextMenuItems(project, true, false, model, ProjectPairChoices());
+            Assert.DoesNotContain(none, c => c is MenuItem item && item.Header is StackPanel panel
+                && panel.Children.OfType<TextBlock>().Any(t => t.Text == "Start new chats on")); // :1154 pairsSnapshot.isEmpty
+
+            var withPairs = ProjectRowBuildContextMenuItems(project, true, false, model, ProjectPairChoices((Guid.NewGuid(), "Claude, GPT")));
+            Assert.IsType<Separator>(withPairs[^2]); // :1155
+            var submenu = Assert.IsType<MenuItem>(withPairs[^1]); // :1156-1160
+            var header = Assert.IsType<StackPanel>(submenu.Header);
+            Assert.Contains(header.Children, c => c is SwiftImage img && img.SymbolName == "point.3.connected.trianglepath.dotted"); // OD-0010
+            Assert.Contains(header.Children, c => c is TextBlock t && t.Text == "Start new chats on"); // :1159
+            Assert.Equal(3, submenu.Items.Count); // :1157 ProjectPairMenuItems: the clearing item, a divider, one pair
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-016")] // App/Views/Sidebar/SidebarView.swift:1241-1270
+    public void The_pair_submenu_lists_the_clearing_item_then_each_pair_with_a_checkmark_on_the_current_choice() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var model = Model(harness, [project], []);
+        var firstID = Guid.NewGuid();
+        var secondID = Guid.NewGuid();
+        harness.Main.OnMain(() =>
+        {
+            var pairs = ProjectPairChoices((firstID, "Claude, GPT"), (secondID, "Gemini, Grok"));
+
+            var unselected = Activator.CreateInstance(Private("ProjectPairMenuItems"), project.Id, (Guid?)null, pairs, model)!;
+            var items = (IReadOnlyList<Control>)Get(unselected, "Items")!;
+            Assert.Equal(4, items.Count); // the clearing item, a divider, then one item per pair (:1248-1267)
+
+            var clearing = Assert.IsType<MenuItem>(items[0]);
+            var clearingHeader = Assert.IsType<StackPanel>(clearing.Header); // :1250-1255, selectedID nil -> checked
+            Assert.Contains(clearingHeader.Children, c => c is SwiftImage img && img.SymbolName == "checkmark");
+            Assert.Contains(clearingHeader.Children, c => c is TextBlock t && t.Text == "The chat's last pair");
+
+            Assert.IsType<Separator>(items[1]); // :1257
+
+            var first = Assert.IsType<MenuItem>(items[2]);
+            var firstText = Assert.IsType<TextBlock>(first.Header); // :1254, not selected: plain Text
+            Assert.Equal("Claude, GPT", firstText.Text);
+
+            var second = Assert.IsType<MenuItem>(items[3]);
+            Assert.Equal("Gemini, Grok", Assert.IsType<TextBlock>(second.Header).Text);
+
+            ((MenuItem)items[2]).RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent)); // :1259-1260
+            Assert.Equal(firstID, model.Project(project.Id)!.HydraPairID);
+
+            var selectedSecond = Activator.CreateInstance(Private("ProjectPairMenuItems"), project.Id, (Guid?)secondID, pairs, model)!;
+            var selectedItems = (IReadOnlyList<Control>)Get(selectedSecond, "Items")!;
+            var secondSelected = Assert.IsType<MenuItem>(selectedItems[3]);
+            var secondHeader = Assert.IsType<StackPanel>(secondSelected.Header); // :1262-1266, selectedID == pair.id -> checked
+            Assert.Contains(secondHeader.Children, c => c is SwiftImage img && img.SymbolName == "checkmark");
+            Assert.Contains(secondHeader.Children, c => c is TextBlock t && t.Text == "Gemini, Grok");
+
+            ((MenuItem)selectedItems[0]).RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent)); // :1248-1249, clears
+            Assert.Null(model.Project(project.Id)!.HydraPairID);
         });
     });
 }
