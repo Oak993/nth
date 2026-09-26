@@ -91,7 +91,13 @@ internal static class CodexStandIn
                 continue;
             }
             if (line.Length == 0) continue;
-            File.WriteAllText(Path.Combine(dir, "captured-" + call + "-" + message + ".txt"), line, new UTF8Encoding(false));
+            // Atomic publish (matches tests/fixtures/antigravity-cli/AntigravityStandIn.cs and the claude-cli stand-in):
+            // write under a .tmp name, then rename, so a reader polling with File.Exists on the final name never
+            // observes the name before this process has closed the file. File.Move is atomic on NTFS.
+            string capturedPath = Path.Combine(dir, "captured-" + call + "-" + message + ".txt");
+            string pendingCaptured = capturedPath + ".tmp";
+            File.WriteAllText(pendingCaptured, line, new UTF8Encoding(false));
+            File.Move(pendingCaptured, capturedPath);
             message++;
 
             string method = ExtractString(line, "\"method\":\"");

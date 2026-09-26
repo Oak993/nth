@@ -637,7 +637,10 @@ public sealed class LinkTextVeil
 {
     private readonly StreamVeil veil = new(); // StreamVeil.swift:346
     private DisplayLink? displayLink; // StreamVeil.swift:347
-    private readonly Dictionary<Run, IBrush?> painted = new(); // StreamVeil.swift:350
+    // StreamVeil.swift:350 painted: here, the pristine (un-split, un-coloured) Inlines of each TextBlock as
+    // they stood before this fade's first Paint(), so every Paint() rebuilds from the same clean basis instead
+    // of accumulating splits, and Clear() can restore them exactly.
+    private readonly Dictionary<TextBlock, List<Inline>> painted = new();
     private WeakReference<LinkTextView>? tickTarget; // StreamVeil.swift:374
 
     // StreamVeil.swift:354-367.
@@ -695,88 +698,151 @@ public sealed class LinkTextVeil
     // StreamVeil.swift:401-407.
     private void Clear(LinkTextView view)
     {
-        foreach (var (run, foreground) in painted)
+        foreach (var textBlock in TextBlocks(view))
         {
-            if (run.Parent is TextBlock) run.Foreground = foreground;
+            if (!painted.TryGetValue(textBlock, out var clean)) continue;
+            textBlock.Inlines!.Clear();
+            foreach (var piece in clean) textBlock.Inlines!.Add(piece);
         }
 
         painted.Clear();
     }
 
-    // StreamVeil.swift:409-430.
+    // StreamVeil.swift:409-430. AppKit paints by enumerating attribute runs WITHIN the veil's nsRange, so only
+    // the characters actually inside a span's range are ever recoloured, whatever run they fall in the middle
+    // of; a Run in this port is atomic, so matching that means splitting a Run at the span's boundary rather
+    // than recolouring it whole whenever a chunk boundary and a run boundary land on different characters
+    // (e.g. a chunk starting mid-run at a shared space before a link).
     private void Paint(LinkTextView view, DateTimeOffset at)
     {
         var textBlocks = TextBlocks(view).ToArray();
         if (textBlocks.Length == 0) return;
-        Clear(view);
         var spans = veil.Spans(at);
-        if (spans.Count == 0) return;
+        if (spans.Count == 0)
+        {
+            Clear(view);
+            return;
+        }
 
         var joinedText = TextOf(view);
-        var characterRanges = new List<(int Start, int End, double Alpha)>();
+        var perCharacter = new List<(int Start, int End, double Alpha)>();
         var globalOffset = 0;
         var characterIndex = 0;
         foreach (var character in SwiftString.Characters(joinedText))
         {
             var end = globalOffset + character.Length;
             var alpha = AlphaAt(characterIndex, spans);
-            if (alpha is { } opacity) characterRanges.Add((globalOffset, end, opacity));
+            if (alpha is { } opacity) perCharacter.Add((globalOffset, end, opacity));
             globalOffset = end;
             characterIndex++;
         }
 
-        var runOffset = 0;
+        // Coalesce adjacent same-alpha characters into one range, so a Run is split at most at a real chunk
+        // boundary, never at every character of a multi-character chunk.
+        var characterRanges = new List<(int Start, int End, double Alpha)>();
+        foreach (var character in perCharacter)
+        {
+            if (characterRanges.Count > 0)
+            {
+                var last = characterRanges[^1];
+                if (last.End == character.Start && last.Alpha == character.Alpha)
+                {
+                    characterRanges[^1] = (last.Start, character.End, last.Alpha);
+                    continue;
+                }
+            }
+            characterRanges.Add(character);
+        }
+
         foreach (var textBlock in textBlocks)
         {
-            if (textBlock.Inlines is not { } inlines)
+            if (!painted.TryGetValue(textBlock, out var clean))
             {
-                runOffset += (textBlock.Text ?? "").Length;
-                continue;
+                clean = textBlock.Inlines is { } current ? [.. current] : [];
+                painted.Add(textBlock, clean);
             }
 
-            foreach (var inline in inlines)
+            var rebuilt = new List<Inline>();
+            var runOffset = 0;
+            foreach (var inline in clean)
             {
                 if (inline is Run run)
                 {
                     var runText = run.Text ?? "";
-                    var end = runOffset + runText.Length;
-                    var alpha = AlphaForPaintRange(runOffset, end, characterRanges);
-                    if (alpha is { } opacity && opacity < 1)
-                    {
-                        if (!painted.ContainsKey(run)) painted.Add(run, run.Foreground);
-                        var existing = run.Foreground as SolidColorBrush;
-                        var accentColor = Marrow.UI.Chrome.Chrome.Accent.Resolve(textBlock.ActualThemeVariant);
-                        var isLink = existing is not null && existing.Color == accentColor;
-                        var color = isLink
-                            ? accentColor
-                            : existing?.Color ?? SwiftColor.LabelColor.Resolve(textBlock.ActualThemeVariant);
-                        var opaqueColor = Color.FromArgb(255, color.R, color.G, color.B);
-                        run.Foreground = new SolidColorBrush(opaqueColor) { Opacity = opacity };
-                    }
-
-                    runOffset = end;
+                    var length = runText.Length;
+                    PaintRun(run, runText, runOffset, characterRanges, textBlock, rebuilt);
+                    runOffset += length;
                 }
-                else if (inline is LineBreak)
+                else
                 {
-                    runOffset++;
+                    rebuilt.Add(inline);
+                    if (inline is LineBreak) runOffset++;
                 }
             }
+
+            textBlock.Inlines!.Clear();
+            foreach (var piece in rebuilt) textBlock.Inlines!.Add(piece);
         }
     }
 
-    // StreamVeil.swift:409-430.
-    private static double? AlphaForPaintRange(
-        int lower,
-        int upper,
-        IReadOnlyList<(int Start, int End, double Alpha)> characters)
+    /// <summary>Appends `run`'s pieces to `into`, splitting at any span boundary that falls inside it so only
+    /// the overlapping characters carry the veil colour; the rest keep the run's own, unpainted colour.</summary>
+    private static void PaintRun(
+        Run run,
+        string runText,
+        int runOffset,
+        List<(int Start, int End, double Alpha)> characterRanges,
+        TextBlock textBlock,
+        List<Inline> into)
     {
-        foreach (var character in characters)
+        var length = runText.Length;
+        var end = runOffset + length;
+        var overlapping = characterRanges
+            .Where(range => range.Start < end && range.End > runOffset)
+            .OrderBy(range => range.Start)
+            .ToList();
+        if (overlapping.Count == 0)
         {
-            if (character.Start < upper && character.End > lower) return character.Alpha;
+            into.Add(run);
+            return;
         }
 
-        return null;
+        var existing = run.Foreground as SolidColorBrush;
+        var accentColor = Marrow.UI.Chrome.Chrome.Accent.Resolve(textBlock.ActualThemeVariant);
+        var isLink = existing is not null && existing.Color == accentColor;
+        var color = isLink ? accentColor : existing?.Color ?? SwiftColor.LabelColor.Resolve(textBlock.ActualThemeVariant);
+        var opaqueColor = Color.FromArgb(255, color.R, color.G, color.B);
+
+        var cursor = runOffset;
+        foreach (var range in overlapping)
+        {
+            var segStart = Math.Max(range.Start, runOffset);
+            var segEnd = Math.Min(range.End, end);
+            if (segStart > cursor) into.Add(CloneRun(run, runText[(cursor - runOffset)..(segStart - runOffset)], run.Foreground));
+            if (range.Alpha < 1)
+            {
+                into.Add(CloneRun(
+                    run,
+                    runText[(segStart - runOffset)..(segEnd - runOffset)],
+                    new SolidColorBrush(opaqueColor) { Opacity = range.Alpha }));
+            }
+            else
+            {
+                into.Add(CloneRun(run, runText[(segStart - runOffset)..(segEnd - runOffset)], run.Foreground));
+            }
+            cursor = segEnd;
+        }
+        if (cursor < end) into.Add(CloneRun(run, runText[(cursor - runOffset)..], run.Foreground));
     }
+
+    private static Run CloneRun(Run original, string text, IBrush? foreground) => new(text)
+    {
+        FontSize = original.FontSize,
+        FontFamily = original.FontFamily,
+        FontWeight = original.FontWeight,
+        FontStyle = original.FontStyle,
+        Foreground = foreground,
+    };
 
     // StreamVeil.swift:412-430.
     private static string TextOf(LinkTextView view) =>

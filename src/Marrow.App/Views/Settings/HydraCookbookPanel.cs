@@ -12,10 +12,16 @@ using Marrow.Services.Providers;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
 
-// Source: DroppyCode/App/Views/Settings/HydraCookbookPanel.swift (B2 1fbf81e), :1-134.
+// Source: DroppyCode/App/Views/Settings/HydraCookbookPanel.swift (B3 52bc7926), :1-134.
 // The resolve logic itself (isReady/provider(for:)/missingProvider/resolve/model(named:)/version(of:)) is
 // DroppyCode/App/HydraCookbook+Resolve.swift:1-69, not yet its own unit; ported here as a private static class
 // since nothing else in the tree calls it yet (R-FILE-1 would give it its own twin once another caller exists).
+// B3 (AM-0003): both Swift files are byte-identical to B2 (last touched 5c63f538a/2afcd6c37, long before
+// 52bc7926; line counts unchanged at 134 and 69) -- this file needs no code change for B3. The recipe data
+// this panel renders (Core/Models/HydraCookbook.swift) DID change at B3 (five titles renamed to "Opus 5.5"
+// and two recipes added, astra-sol and sol-luna, :29-42) but that file is Core.Models.HydraCookbook, a
+// separate, unassigned unit; this panel iterates HydraCookbook.Recipes rather than hardcoding a count or
+// title, so its own body is unaffected by that change (PR-SETTINGS-177 b3_note).
 
 namespace Marrow.App.Views.Settings;
 

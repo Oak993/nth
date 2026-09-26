@@ -10505,6 +10505,66 @@
       "depends_on_unknown": null,
       "status": "SPECIFIED",
       "b3_note": "New at 1.7.0 (impact R3-48 ClaudeSession #1, with R3-13 #3 folded in): pendingControl became a PendingReplies (ClaudeSession.swift:37, :306), so control() became cancellable."
+    },
+    {
+      "id": "PR-PROVCLI-443",
+      "title": "StreamedTextTracker tracks one streamed turn's message and thinking ids and text, minting a fresh id only when a delta arrives with none current, and keeping accumulated text across ids until a reset clears it too",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/SessionSupport.swift:45-59 struct StreamedTextTracker - stored state (:48-54) and init(messageID:thinkingID:) (:56-59)",
+        "DroppyCode/Services/Providers/SessionSupport.swift:62-67 startMessage() - `messageCounter += 1` / `currentMessageID = messageID(messageCounter)` / `messageText = \"\"` / `streamedText = false`",
+        "DroppyCode/Services/Providers/SessionSupport.swift:70-78 appendMessage(_:) - mints an id only `if currentMessageID == nil`, then always sets `streamedText = true` and appends to `messageText`",
+        "DroppyCode/Services/Providers/SessionSupport.swift:80-99 startThinking() and appendThinking(_:resetsText:) - `resetsText` true calls startThinking() (clears thinkingText); false mints an id directly without clearing it",
+        "DroppyCode/Services/Providers/SessionSupport.swift:101-107 endThinking() and endMessage() clear only the current id, not the text",
+        "DroppyCode/Services/Providers/SessionSupport.swift:109-113 resetThinking() clears both currentThinkingID and thinkingText",
+        "DroppyCode/Services/Providers/SessionSupport.swift:115-118 resetForTurn() clears only streamedText",
+        "DroppyCode/Services/Providers/SessionSupport.swift:120-123 resetIDs() clears both current ids but not the accumulated text"
+      ],
+      "preconditions": "A provider session (Pi, Command Code or Antigravity) is streaming one assistant turn and holds one StreamedTextTracker (Swift: `var stream`) for it.",
+      "action": "The session calls the tracker's mutating methods as the turn's stream events arrive: startMessage/appendMessage for message text, startThinking/appendThinking for reasoning text, and endThinking/endMessage/resetThinking/resetForTurn/resetIDs to close or clear state.",
+      "expected_result": "startMessage always mints a fresh message id (messageCounter incremented, id built from it), empties messageText and clears streamedText. appendMessage mints an id only when none is current (the first delta of a turn); otherwise it keeps the current id. Every appendMessage call sets streamedText true and appends the delta to messageText, so a later call accumulates onto the existing buffer. startThinking always mints a fresh thinking id and empties thinkingText. appendThinking mints an id only when none is current: resetsText true (the default, Pi's fallback) does so by calling startThinking, which also empties thinkingText; resetsText false (Command Code's fallback) mints the id directly without clearing thinkingText, so text already accumulated survives. Every appendThinking call, on either path, appends the delta to thinkingText. endThinking and endMessage each clear only their own current id, leaving the accumulated text untouched. resetThinking clears both currentThinkingID and thinkingText together (a message_start that interrupts an in-progress reasoning block drops it). resetForTurn clears only streamedText, leaving ids and text alone. resetIDs clears both currentMessageID and currentThinkingID but leaves messageText, thinkingText and streamedText untouched.",
+      "side_effects": [
+        "messageCounter and thinkingCounter are monotonically incremented counters that never reset, so minted ids stay unique across a session's turns"
+      ],
+      "persistence": "none",
+      "failure_cases": [],
+      "cancellation": "not cancellable (every method is a synchronous, in-memory state mutation with no suspension point).",
+      "windows_path": "Ported verbatim as the sealed class StreamedTextTracker in src/Marrow.Services/Providers/SessionSupport.cs (:45-124, unit N7): Func<long,string> delegates for messageID/thinkingID (Swift `(Int) -> String`), long counters for messageCounter/thinkingCounter (Swift Int), and get-only properties for CurrentMessageID/CurrentThinkingID/MessageText/ThinkingText/StreamedText mirroring the Swift private(set) vars. Shared by every session that adopts SessionSupport; Pi, Command Code and Antigravity keep their own inlined copies until their own lanes switch them over (this unit, lane L2b, only adds the shared type).",
+      "verification_method": "unit test per method: StartMessage mints a fresh id, clears the buffer and streamedText; AppendMessage mints an id only when none is current and always sets streamedText, keeping the current id and accumulating text on a later call; StartThinking mints a fresh id and clears thinkingText; AppendThinking exercises both resetsText branches (true starts fresh and clears the buffer, false mints an id without clearing it); EndThinking and EndMessage clear only the current id; ResetThinking clears both the current id and the reasoning text; ResetForTurn clears only the streamedText flag; ResetIDs clears both current ids but not the accumulated text",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null,
+      "status": "IMPLEMENTED",
+      "b3_note": "New at B3 (unit N7): SessionSupport.swift is a new file at 1.7.0, gathering StreamedTextTracker verbatim out of the Pi, Command Code and Antigravity sessions' own inlined copies (Pi PiSession.swift:37-44, 57, 310-316, 346-405, 496-500; CommandCodeSession.swift:42-50, 293-337, 438-439, 629-646; AntigravitySession.swift:47, 232, 259-273); those three files keep their own inlined copies until their own lanes adopt this shared type."
+    },
+    {
+      "id": "PR-PROVCLI-444",
+      "title": "EditSnapshots captures a file's before-text when a tool call starts and reports the finished edit as before/after text, or as a no-diff edit when the file did not change, when the call finishes",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/SessionSupport.swift:4-11 struct EditSnapshots, capture(_:path:) - `contents[id] = Self.read(path) ?? \"\"`",
+        "DroppyCode/Services/Providers/SessionSupport.swift:27-33 finish(_:path:relativeTo:) - `guard let before = contents.removeValue(forKey: id) else { return nil }` / `let relative = ToolTitles.relativePath(path, to: root)` / `let after = Self.read(path) ?? \"\"` / `guard before != after else { return [FileEdit(path: relative)] }` / `return [FileEdit(path: relative, old: before, new: after)]`",
+        "DroppyCode/Services/Providers/SessionSupport.swift:13-19 discard(_:) removes a snapshot without finishing it; removeAll() clears every snapshot",
+        "DroppyCode/Services/Providers/SessionSupport.swift:21-23 text(_:) - `contents[id] ?? \"\"`",
+        "DroppyCode/Services/Providers/SessionSupport.swift:36-40 read(_:) - a file over 1,000,000 bytes, or one resourceValues(forKeys: [.fileSizeKey]) cannot stat or String(contentsOf:encoding:) cannot decode as UTF-8, reads as nil"
+      ],
+      "preconditions": "A tool call that edits a file (a provider session's edit/write tool) is about to run, and the session holds one EditSnapshots (Swift: `var edits`) across the call.",
+      "action": "capture(_:path:) is called as the tool call starts; finish(_:path:relativeTo:) is called when it completes. discard/removeAll/text are used elsewhere to drop a pending snapshot, clear all of them, or read a snapshot's captured text without finishing it.",
+      "expected_result": "capture reads the file's current text and stores it keyed by the call's id; a file that read(_:) returns nil for (missing, over 1 MB, or undecodable as UTF-8) is stored as empty string, so a call that then writes a brand-new file reports a whole-file addition rather than failing to find a before-text. finish removes and returns that stored before-text; if the id has no stored snapshot (never captured, or already finished/discarded) it returns nil and the row's edits list is left as already queued. Otherwise it re-reads the file's current text as after (again empty if unreadable), turns path into a root-relative path (ToolTitles.relativePath), and if before and after are equal by Swift's canonical `!=` comparison it returns a single FileEdit with no diff; otherwise it returns a single FileEdit carrying both before and after text. discard drops a snapshot without producing a FileEdit. removeAll drops every pending snapshot. text returns the id's captured text, or empty string if nothing was captured for it, without removing it.",
+      "side_effects": [
+        "capture and finish/discard mutate the shared `contents` dictionary keyed by call id, so a session must not reuse a call id across two in-flight snapshots"
+      ],
+      "persistence": "none",
+      "failure_cases": [
+        "finish for an id with no stored snapshot returns nil rather than throwing or fabricating text",
+        "a file that cannot be read (missing, larger than 1 MB, or not valid UTF-8) is treated as empty string on both capture and finish, not as an error"
+      ],
+      "cancellation": "not cancellable (capture/finish each do a single synchronous file read; no suspension point).",
+      "windows_path": "Ported as the sealed class EditSnapshots in src/Marrow.Services/Providers/SessionSupport.cs (:16-44, unit N7), backed by a Dictionary<string,string> keyed with SwiftStringComparer.Instance (:18) rather than plain ordinal string keys, matching Swift's canonical Dictionary<String,String> key equality. Read(path) (:36-40) checks FileInfo.Exists/Length instead of Swift's resourceValues(forKeys: [.fileSizeKey]), and decodes with SwiftText.DecodeUtf8OrNil over File.ReadAllBytes instead of Foundation's String(contentsOf:encoding:), matching this port's established UTF-8-decode convention (keeps a literal U+FEFF for a BOM, unlike Encoding.UTF8's reader/writer defaults) rather than a plain File.ReadAllText call. Finish's before/after comparison uses SwiftString.Equal, not C#'s ordinal ==, to match Swift's canonical `!=` (:31).",
+      "verification_method": "unit test per behavior: capture+finish with no change returns a single no-diff FileEdit; capture+finish with a change returns the before/after FileEdit; finish for an uncaptured id returns null; finish reports a path relative to the given root; capture of a missing file and of a file over 1 MB both read as empty so a subsequent write shows as a whole-file addition; discard removes a snapshot without finishing it; removeAll clears every snapshot; text returns the captured text or empty string; and a dedicated test pins Swift canonical string equality (precomposed vs. decomposed accented character), not ordinal ==, for the before/after comparison in finish",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null,
+      "status": "IMPLEMENTED",
+      "b3_note": "New at B3 (unit N7): SessionSupport.swift is a new file at 1.7.0, gathering EditSnapshots verbatim out of the Pi, Command Code and Antigravity sessions' own inlined copies (Pi PiSession.swift:37-44, 57, 310-316, 346-405, 496-500; CommandCodeSession.swift:42-50, 293-337, 438-439, 629-646; AntigravitySession.swift:47, 232, 259-273); those three files keep their own inlined copies until their own lanes adopt this shared type."
     }
   ],
   "ui": [

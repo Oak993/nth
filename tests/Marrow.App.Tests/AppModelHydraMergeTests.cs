@@ -136,6 +136,22 @@ public sealed class AppModelHydraMergeTests
         Assert.NotNull(method);
         return Assert.IsType<string>(method!.Invoke(null, [held]));
     }
+
+    // SyncDefaultBranch is `private static async Task<bool>` (AppModel+HydraMerge.cs:647): MethodInfo.Invoke on an
+    // async method hands back the Task, never the eventual bool, exactly like InvokeConflictMarkerScan above for
+    // PathsWithConflictMarkers. Asserting the raw Invoke() result IsType<bool> (as this helper's one call site used
+    // to) fails every time (reproduced 4/4): under this runtime's reflection invoker the failure surfaced as the
+    // compiler-generated async state machine's AsyncTaskMethodBuilder, not even a boxed Task<bool>, but either way
+    // a bare bool was never going to come back from an async method through reflection.
+    private static async Task<bool> InvokeSyncDefaultBranch(
+        Marrow.Services.Git.Git git, string head, string target, IReadOnlyList<string> ownPaths)
+    {
+        var method = typeof(AppModel).GetMethod("SyncDefaultBranch", BindingFlags.Static | BindingFlags.NonPublic);
+        Assert.NotNull(method);
+        var result = method!.Invoke(null, [git, head, target, ownPaths]);
+        var task = Assert.IsAssignableFrom<Task<bool>>(result);
+        return await task;
+    }
     [Fact]
     [Trait("Req", "PR-HYDRAMERGE-039")] // AppModel+HydraMerge.swift:801-809
     public void Hydra_branch_name_uses_a_normalized_title_slug_and_six_lowercase_hex_characters()
@@ -687,12 +703,20 @@ public void Files_line_for_zero_files_keeps_both_zero_totals()
 
 [Fact]
 [Trait("Req", "PR-HYDRAMERGE-063")] // AppModel+HydraMerge.swift:722-748
-public void Sync_default_branch_fast_forwards_and_checks_out_remote_changes()
+public async Task Sync_default_branch_fast_forwards_and_checks_out_remote_changes()
 {
     using var h = new AppModelHarness();
     var repository = AppModelGitRepo.WithCommit(h.NewFolder("sync-project"));
     var bare = h.NewFolder("sync-remote.git");
-    repository.Git("init", "--bare", bare);
+    // -b main, exactly like AppModelGitRepo.Empty's own checkout: without it, the bare repo's initial branch (and
+    // so its HEAD) follows the host's init.defaultbranch config (this machine: "master"), which git does not
+    // retarget to "main" just because "main" is what gets pushed to it. That left HEAD at refs/heads/master (an
+    // unborn ref no push ever touches), so the clone below warned "remote HEAD refers to nonexistent ref, unable
+    // to checkout" and landed on an empty local "master" - not "main" - branch. The later `push origin main` from
+    // that clone then failed deterministically with "src refspec main does not match any" (reproduced 4/4, no
+    // load needed): every commit made on the clone lands on "master", so no local "main" ever exists to push.
+    // Reproduced directly against this host's git (2.54.0.windows.1, init.defaultbranch=master) before this fix.
+    repository.Git("init", "--bare", "-b", "main", bare);
     repository.Git("remote", "add", "origin", bare);
     repository.Git("push", "-u", "origin", "main");
     var head = repository.Git("rev-parse", "HEAD").Trim();
@@ -709,10 +733,8 @@ public void Sync_default_branch_fast_forwards_and_checks_out_remote_changes()
     remote.Git("commit", "-q", "-m", "remote change");
     remote.Git("push", "origin", "main");
 
-    var method = typeof(AppModel).GetMethod("SyncDefaultBranch", BindingFlags.Static | BindingFlags.NonPublic);
-    Assert.NotNull(method);
-    var synced = Assert.IsType<bool>(method!.Invoke(null,
-        [new Marrow.Services.Git.Git(repository.Root), head, "main", Array.Empty<string>()]));
+    var synced = await InvokeSyncDefaultBranch(
+        new Marrow.Services.Git.Git(repository.Root), head, "main", Array.Empty<string>());
 
     Assert.True(synced);
     Assert.Equal(remote.Git("rev-parse", "HEAD").Trim(), repository.Git("rev-parse", "HEAD").Trim());
