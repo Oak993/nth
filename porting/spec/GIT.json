@@ -1196,7 +1196,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "GitLab vector [\"mr\", \"merge\", number, \"--yes\"] (B1 DroppyCode/Services/Git/Git.swift:237) -> [\"mr\", \"merge\", number, \"--yes\", \"--squash\", \"--remove-source-branch\"] (B2 Git.swift:237). B1 DroppyCode/App/AppModel+HydraMerge.swift:374-375 said squash and remove-source-branch \"are left to the project's defaults, as before\"; B2 AppModel+HydraMerge.swift:431-432 says they \"are explicit for GitLab team merges\". The GitHub and Gitea vectors, the number's argv position and the 300 s timeout are unchanged. The precondition and action now name the one caller, AppModel+HydraMerge.swift:369 (B1 :275), instead of a chat link."
+      "b2_change": "GitLab vector [\"mr\", \"merge\", number, \"--yes\"] (B1 DroppyCode/Services/Git/Git.swift:216) -> [\"mr\", \"merge\", number, \"--yes\", \"--squash\", \"--remove-source-branch\"] (B2 Git.swift:216). B1 DroppyCode/App/AppModel+HydraMerge.swift:327-328 said squash and remove-source-branch \"are left to the project's defaults, as before\"; B2 AppModel+HydraMerge.swift:372-373 says they \"are explicit for GitLab team merges\". The GitHub and Gitea vectors, the number's argv position and the 300 s timeout are unchanged. The precondition and action now name the one caller, AppModel+HydraMerge.swift:320 (B1 :275), instead of a chat link."
     },
     {
       "id": "PR-GIT-048",
@@ -3961,7 +3961,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 DroppyCode/App/Runtime/ThreadRuntime.swift:2341-2342 (`touched.formUnion(hydraTouched)`, `hydraTouched.removeAll()`) unioned every head path pending since the last finished turn; the same lines run at B2 :2369-2370, but revert now empties hydraTouched first (B2 :1924), so paths pending before a revert no longer reach the next turn. B2 also adds `hydraCurrentTurnTouchedPaths.formUnion(touched)` (:2381) after the record is written; B1 had no such set. Side effects changed from none to that in-memory fold."
+      "b2_change": "B1 DroppyCode/App/Runtime/ThreadRuntime.swift:2299-2300 (`touched.formUnion(hydraTouched)`, `hydraTouched.removeAll()`) unioned every head path pending since the last finished turn; the same lines run at B2 :2369-2370, but revert now empties hydraTouched first (B2 :1924), so paths pending before a revert no longer reach the next turn. B2 also adds `hydraCurrentTurnTouchedPaths.formUnion(touched)` (:2381) after the record is written; B1 had no such set. Side effects changed from none to that in-memory fold."
     },
     {
       "id": "PR-GIT-148",
@@ -5626,7 +5626,7 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:51 - `case .headline, .body: 13` (ED-059: upstream's table of the size each text style is laid out at)"
       ],
       "notes": "Section title \"Commit message instructions\"; placeholder exactly \"For example: use conventional commit prefixes\", with no trailing period. Stored under the defaults key \"commitInstructions\" and used by both the commit sheet and the Hydra landing path. ED-059: .body at 13 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:51), set in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal does not apply.",
-      "b2_change": "`.font(.system(size: 13))` (B1 DroppyCode/App/Views/Settings/SettingsView.swift:783, :811) -> `.font(.system(.body))` (B2 :845, :850); B1 DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` is upstream's own table of the size macOS lays that style out at; ChatZoom.swift no longer exists at B2. The section moved from B1 :802-818 to B2 :841-857."
+      "b2_change": "`.font(.system(size: 13))` (B1 DroppyCode/App/Views/Settings/SettingsView.swift:806, :811) -> `.font(.system(.body))` (B2 :845, :850); B1 DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` is upstream's own table of the size macOS lays that style out at; ChatZoom.swift no longer exists at B2. The section moved from B1 :802-818 to B2 :841-857."
     },
     {
       "id": "UI-GIT-059",

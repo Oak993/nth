@@ -546,7 +546,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 DroppyCode/App/Views/Terminal/TerminalPanel.swift:155 `.foregroundStyle(.secondary)` (SwiftUI's hierarchical secondary style) -> B2 DroppyCode/App/Views/Terminal/TerminalPanel.swift:155 `.foregroundStyle(Chrome.secondaryText)`; B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (primaryText is Color(nsColor: .labelColor), :76). Glyph, font, tooltip, label and the not-running rule unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Terminal/TerminalPanel.swift:280 `.foregroundStyle(.secondary)` (SwiftUI's hierarchical secondary style) -> B2 DroppyCode/App/Views/Terminal/TerminalPanel.swift:280 `.foregroundStyle(Chrome.secondaryText)`; B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (primaryText is Color(nsColor: .labelColor), :76). Glyph, font, tooltip, label and the not-running rule unchanged."
     },
     {
       "id": "PR-TERM-023",
@@ -572,7 +572,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 DroppyCode/App/Views/Terminal/TerminalPanel.swift:164 `.foregroundStyle(.secondary)` -> B2 DroppyCode/App/Views/Terminal/TerminalPanel.swift:164 `.foregroundStyle(Chrome.secondaryText)`; B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (primaryText is Color(nsColor: .labelColor), :76). The hover/selected opacity and hit-test rule, tooltip and label are unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Terminal/TerminalPanel.swift:289 `.foregroundStyle(.secondary)` -> B2 DroppyCode/App/Views/Terminal/TerminalPanel.swift:289 `.foregroundStyle(Chrome.secondaryText)`; B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (primaryText is Color(nsColor: .labelColor), :76). The hover/selected opacity and hit-test rule, tooltip and label are unchanged."
     },
     {
       "id": "PR-TERM-024",
@@ -3451,7 +3451,7 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:54 - `case .footnote, .caption, .caption2: 10` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)"
       ],
       "notes": "Tooltip is exactly \"Start a new shell in this tab\"; accessibility label is \"Restart \" followed by the session title. SF Symbol \"arrow.clockwise\". A restarted script tab does NOT re-run its script. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal does not apply.",
-      "b2_change": "B1 DroppyCode/App/Views/Terminal/TerminalPanel.swift:155 `.foregroundStyle(.secondary)` -> B2 DroppyCode/App/Views/Terminal/TerminalPanel.swift:155 `.foregroundStyle(Chrome.secondaryText)`; B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (primaryText is Color(nsColor: .labelColor), :76). Typography unchanged.",
+      "b2_change": "B1 DroppyCode/App/Views/Terminal/TerminalPanel.swift:280 `.foregroundStyle(.secondary)` -> B2 DroppyCode/App/Views/Terminal/TerminalPanel.swift:280 `.foregroundStyle(Chrome.secondaryText)`; B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (primaryText is Color(nsColor: .labelColor), :76). Typography unchanged.",
       "status": "IMPLEMENTED"
     },
     {
@@ -3477,7 +3477,7 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:54 - `case .footnote, .caption, .caption2: 10` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)"
       ],
       "notes": "Tooltip is exactly \"Close terminal\"; accessibility label is \"Close \" followed by the session title. SF Symbol \"xmark\". There is no confirmation and settings.confirmBeforeDeleting is not consulted. Use opacity 0 with pointer-events none, not display none, or the chip will jump on hover. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal does not apply.",
-      "b2_change": "B1 DroppyCode/App/Views/Terminal/TerminalPanel.swift:164 `.foregroundStyle(.secondary)` -> B2 DroppyCode/App/Views/Terminal/TerminalPanel.swift:164 `.foregroundStyle(Chrome.secondaryText)`; B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (primaryText is Color(nsColor: .labelColor), :76). Typography unchanged.",
+      "b2_change": "B1 DroppyCode/App/Views/Terminal/TerminalPanel.swift:289 `.foregroundStyle(.secondary)` -> B2 DroppyCode/App/Views/Terminal/TerminalPanel.swift:289 `.foregroundStyle(Chrome.secondaryText)`; B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (primaryText is Color(nsColor: .labelColor), :76). Typography unchanged.",
       "status": "IMPLEMENTED"
     },
     {

@@ -216,7 +216,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Re-cited: dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:95-102 `search.trimmingCharacters(in: .whitespacesAndNewlines)` -> 1fbf81e6 :101 `search.trimmed`, the same trim set (Text.swift:224). The page count an empty query shows is now ten (PR-SETTINGS-005)."
+      "b2_change": "Re-cited: dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:95-102 `search.trimmingCharacters(in: .whitespacesAndNewlines)` -> 1fbf81e6 :101 `search.trimmed`, the same trim set (Text.swift:132). The page count an empty query shows is now ten (PR-SETTINGS-005)."
     },
     {
       "id": "PR-SETTINGS-010",
@@ -1223,7 +1223,7 @@
       "upstream_defect": 70,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "The comparison setting chatZoom no longer exists at 1fbf81e6 (PR-SETTINGS-041 retired); the sentence now names appZoom (DroppyCode/App/AppSettings.swift:722 `appZoom = AppZoom.normalized(defaults.object(forKey: Key.appZoom) as? Int ?? 100)`). terminalHeight itself is unchanged."
+      "b2_change": "The comparison setting chatZoom no longer exists at 1fbf81e6 (PR-SETTINGS-041 retired); the sentence now names appZoom (DroppyCode/App/AppSettings.swift:718 `appZoom = AppZoom.normalized(defaults.object(forKey: Key.appZoom) as? Int ?? 100)`). terminalHeight itself is unchanged."
     },
     {
       "id": "PR-SETTINGS-051",
@@ -2437,7 +2437,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Re-cited only: dd2b86ef DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:116-123 -> 1fbf81e6 :126-134 (ten lines added above for the expansion state); `query.trimmingCharacters(in: .whitespacesAndNewlines)` became `query.trimmed`, the same trim."
+      "b2_change": "Re-cited only: dd2b86ef DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:116-124 -> 1fbf81e6 :126-134 (ten lines added above for the expansion state); `query.trimmingCharacters(in: .whitespacesAndNewlines)` became `query.trimmed`, the same trim."
     },
     {
       "id": "PR-SETTINGS-098",
@@ -4629,7 +4629,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Re-cited only: dd2b86ef DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:102-124 -> 1fbf81e6 :112-135; the order is still re-read on every move, now through `query.trimmed`.",
+      "b2_change": "Re-cited only: dd2b86ef DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:102-125 -> 1fbf81e6 :112-135; the order is still re-read on every move, now through `query.trimmed`.",
       "b3_note": "B3 deletes the NSCursor.openHand/closedHand push/pop calls in dragChanged, dragEnded and the grip's onHover, replacing them with `.pointerStyle(isDragged ? .grabActive : .grabIdle)` (:184), a state-driven SwiftUI pointer style that needs no push/pop balancing and cannot leak (per decisions_draft.md O6's reasoning for the matching FollowUpQueueTab case, COMPOSER area). The grip cursor today is a constant Hand, a pre-existing gap (6.2) that must be closed with real grab-idle/grab-active cursors."
     },
     {
@@ -4723,7 +4723,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "dd2b86ef DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:288-334: a static header (icon and name) over a ChromeCard of the filtered options. 1fbf81e6 :313-449: the header is a toggle button with a chevron (:341-364), expansion comes from the page (:320, :75-84, default expanded), and the card is an eager VStack with the same fill walking the whole catalogue with per-row reveals (:365-447).",
+      "b2_change": "dd2b86ef DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:303-372: a static header (icon and name) over a ChromeCard of the filtered options. 1fbf81e6 :313-449: the header is a toggle button with a chevron (:341-364), expansion comes from the page (:320, :75-84, default expanded), and the card is an eager VStack with the same fill walking the whole catalogue with per-row reveals (:365-447).",
       "b3_note": "Citation only: the header button (B2 :341-364) is extracted into the shared CollapsibleProviderHeader (:416-448), called at :326; ProviderModelsSection itself moves to :298-329 (a cumulative shift from the grip's cursor-to-pointerStyle change earlier in the file, PR-SETTINGS-186). The header's appearance and behaviour are unchanged."
     },
     {
@@ -4750,7 +4750,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "dd2b86ef DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:310-317 showed the row when the FILTERED options were empty, including a populated catalogue filtered to nothing. 1fbf81e6 :368-382 shows it only for an empty unfiltered catalogue, inside a ChromeRevealLayout keyed on cardVisible."
+      "b2_change": "dd2b86ef DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:325-332 showed the row when the FILTERED options were empty, including a populated catalogue filtered to nothing. 1fbf81e6 :368-382 shows it only for an empty unfiltered catalogue, inside a ChromeRevealLayout keyed on cardVisible."
     },
     {
       "id": "PR-SETTINGS-192",
@@ -4778,7 +4778,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "dd2b86ef DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:319-328 drew a divider above every filtered row but index 0 and always toggled inside withAnimation(Chrome.panelSlide) (:347-350). 1fbf81e6 :384-432: each divider and row has its own reveal (:390-394), a divider shows only above a visible row that is not the first visible one, the toggle is unanimated while filtering (:403-412), and hidden rows are inert (:429-432). The bolt, the 17-point symbol, 0.35, the tooltips and the labels are unchanged (:397-425)."
+      "b2_change": "dd2b86ef DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:334-366 drew a divider above every filtered row but index 0 and always toggled inside withAnimation(Chrome.panelSlide) (:347-350). 1fbf81e6 :384-432: each divider and row has its own reveal (:390-394), a divider shows only above a visible row that is not the first visible one, the toggle is unanimated while filtering (:403-412), and hidden rows are inert (:429-432). The bolt, the 17-point symbol, 0.35, the tooltips and the labels are unchanged (:397-425)."
     },
     {
       "id": "PR-SETTINGS-193",
@@ -5855,7 +5855,7 @@
       "status": "SPECIFIED",
       "upstream_defect": null,
       "depends_on_unknown": null,
-      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:657-686 -> 1fbf81e6 :712-741 and :688-708 -> :720-740; the row is now inside the collapsible card (PR-SETTINGS-225). Strings, field and eye button unchanged.",
+      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:680-709 -> 1fbf81e6 :712-741 and :688-708 -> :720-740; the row is now inside the collapsible card (PR-SETTINGS-225). Strings, field and eye button unchanged.",
       "deviation": {
         "decision": "OD-0012 G2; OD-0012 E5",
         "upstream": "DroppyCode/App/Views/Settings/SettingsView.swift:689-718 details \"Stored in your Keychain. Get one at <source>.\" and \"Instead of `<login command>`: a Studio key from <source>, stored in your Keychain and handed to the CLI.\"; a key the Keychain refuses is kept in plain text and nothing is shown (AppSettings.swift:367-400, :491-498).",
@@ -5912,7 +5912,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Re-cited only: dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:687-696 -> 1fbf81e6 :742-751 inside the collapsible card; DroppyCode/Core/Models/Provider.swift installURL moved to :81-98."
+      "b2_change": "Re-cited only: dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:710-719 -> 1fbf81e6 :742-751 inside the collapsible card; DroppyCode/Core/Models/Provider.swift installURL moved to :81-98."
     },
     {
       "id": "PR-SETTINGS-230",
@@ -5938,7 +5938,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:698-705 -> 1fbf81e6 :753-760; OpenCode Go is a new CLI provider whose executable name is also \"opencode\" (DroppyCode/Core/Models/Provider.swift:46 at 1fbf81e6)."
+      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:721-728 -> 1fbf81e6 :753-760; OpenCode Go is a new CLI provider whose executable name is also \"opencode\" (DroppyCode/Core/Models/Provider.swift:46 at 1fbf81e6)."
     },
     {
       "id": "PR-SETTINGS-231",
@@ -5967,7 +5967,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:706-725 -> 1fbf81e6 :761-780 inside the collapsible card; OpenCode Go shares \"opencode auth login\" (DroppyCode/Core/Models/Provider.swift:68 at 1fbf81e6)."
+      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:729-748 -> 1fbf81e6 :761-780 inside the collapsible card; OpenCode Go shares \"opencode auth login\" (DroppyCode/Core/Models/Provider.swift:68 at 1fbf81e6)."
     },
     {
       "id": "PR-SETTINGS-232",
@@ -6013,7 +6013,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:779-796 -> 1fbf81e6 :841-858; `.system(size: 13)` -> `.system(.body)` for the editor and the placeholder, 13pt at the default text size."
+      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:802-819 -> 1fbf81e6 :841-858; `.system(size: 13)` -> `.system(.body)` for the editor and the placeholder, 13pt at the default text size."
     },
     {
       "id": "PR-SETTINGS-234",
@@ -6148,7 +6148,7 @@
       "upstream_defect": "99",
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:929-965 -> 1fbf81e6 :991-1027; the literal sizes 15 semibold, 12, 13 and 12 became `.title3` semibold, `.callout`, `.body` and `.callout`, the same sizes at the default text size. Strings unchanged.",
+      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:952-988 -> 1fbf81e6 :991-1027; the literal sizes 15 semibold, 12, 13 and 12 became `.title3` semibold, `.callout`, `.body` and `.callout`, the same sizes at the default text size. Strings unchanged.",
       "deviation": {
         "decision": "OD-0008 B15; OD-0012 F1; OD-0012 H",
         "upstream": "DroppyCode/App/Views/Settings/SettingsView.swift:991 \"The coding app by Droppy: a native home for your coding agents, built in Swift with Liquid Glass.\" and :1020 \"Droppy Code is licensed under the GNU AGPL v3.0 with attribution terms; SwiftTerm is MIT licensed.\" The header is Text(\"Droppy Code\") (:998).",
@@ -6463,7 +6463,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:1020-1063 -> 1fbf81e6 :1083-1125 and :1088-1105 -> :1127-1144; the literal sizes 13 semibold, 11, 12 medium and 10 semibold became `.body` semibold, `.subheadline`, `.callout` medium and `.footnote` semibold. Strings and links unchanged.",
+      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:1043-1086 -> 1fbf81e6 :1083-1125 and :1088-1105 -> :1127-1144; the literal sizes 13 semibold, 11, 12 medium and 10 semibold became `.body` semibold, `.subheadline`, `.callout` medium and `.footnote` semibold. Strings and links unchanged.",
       "deviation": {
         "decision": "OD-0008 B15; OD-0012 F3; OD-0012 H",
         "upstream": "DroppyCode/App/Views/Settings/SettingsView.swift:1076 \"Droppy Code is a coding app by Droppy for Mac.\" and :977-978 ChromeRow(title: \"Terminal\", detail: \"SwiftTerm by Miguel de Icaza, MIT License.\") with CreditLink(title: \"SwiftTerm\", url: https://github.com/migueldeicaza/SwiftTerm)",
@@ -6497,7 +6497,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:968-1018 -> 1fbf81e6 :1030-1080; the title font `.system(size: 13, weight: .semibold)` became `.system(.body, weight: .semibold)`, 13pt at the default text size. Unchanged otherwise.",
+      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:991-1041 -> 1fbf81e6 :1030-1080; the title font `.system(size: 13, weight: .semibold)` became `.system(.body, weight: .semibold)`, 13pt at the default text size. Unchanged otherwise.",
       "deviation": {
         "decision": "OD-0012 F1",
         "upstream": "DroppyCode/App/Views/Settings/SettingsView.swift:1013 `(\"Droppy Code\", \"LICENSE\")`",
@@ -6525,7 +6525,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Re-cited only: the stored-property block grew from dd2b86ef DroppyCode/App/AppSettings.swift:188-697 to 1fbf81e6 :189-701 (chronologicalTimeline added at :237-239, chatZoom replaced by appZoom at :253-255); every property still persists in its didSet.",
+      "b2_change": "Re-cited only: the stored-property block grew from dd2b86ef DroppyCode/App/AppSettings.swift:188-693 to 1fbf81e6 :189-701 (chronologicalTimeline added at :237-239, chatZoom replaced by appZoom at :253-255); every property still persists in its didSet.",
       "deviation": {
         "decision": "OD-0008 A1; OD-0012 E1",
         "upstream": "MCPSettingsPage.swift:565 calls model.mcp.deleteCustom(server) on one click, ignoring confirmBeforeDeleting.",
@@ -7610,7 +7610,7 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:50-51 chatBaseSize - .title3 15, .body 13 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "Carries the header accessibility trait. Note it is 15pt semibold in primaryText, unlike a ChromeSection header which is .system(.body, weight: .semibold) in Chrome.secondaryText at B2.",
-      "b2_change": "DroppyCode/App/Views/Settings/TokenActivitySection.swift:56 `.system(size: 15, weight: .semibold)` -> `.system(.title3, weight: .semibold)` at 1fbf81e6; the ChromeSection comparison is updated for DroppyCode/UI/Chrome/Chrome.swift:1041-1042 (`.system(.body, weight: .semibold)`, `Chrome.secondaryText`).",
+      "b2_change": "DroppyCode/App/Views/Settings/TokenActivitySection.swift:56 `.system(size: 15, weight: .semibold)` -> `.system(.title3, weight: .semibold)` at 1fbf81e6; the ChromeSection comparison is updated for DroppyCode/UI/Chrome/Chrome.swift:1035-1036 (`.system(.body, weight: .semibold)`, `Chrome.secondaryText`).",
       "status": "IMPLEMENTED"
     },
     {
@@ -8080,7 +8080,7 @@
         "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:391-394"
       ],
       "notes": "Accessibility label names the model but does not reflect the disabled state, so a full picker still reads \"Add <model> to the picker\". Reproduce that.",
-      "b2_change": "dd2b86ef DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:319-327 always toggled inside Chrome.panelSlide; 1fbf81e6 :403-412 toggles without animation while filtering, and :429-432 hides the control with its row.",
+      "b2_change": "dd2b86ef DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:334-365 always toggled inside Chrome.panelSlide; 1fbf81e6 :403-412 toggles without animation while filtering, and :429-432 hides the control with its row.",
       "status": "IMPLEMENTED"
     },
     {
@@ -8372,7 +8372,7 @@
         "DroppyCode/App/Views/Settings/SettingsView.swift:784-795"
       ],
       "notes": "Placeholder is \"sk-…\" with one horizontal ellipsis character, used for all four providers even though only some issue sk- prefixed keys.",
-      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:657-686 -> 1fbf81e6 :712-741; unchanged.",
+      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:680-709 -> 1fbf81e6 :712-741; unchanged.",
       "deviation": {
         "decision": "OD-0008 A6; OD-0012 E5",
         "upstream": "A key the Keychain refuses is kept in plain text under the defaults and nothing is shown (AppSettings.swift:367-400, :491-498).",
@@ -8402,7 +8402,7 @@
         "DroppyCode/UI/Common/Components.swift:117-133"
       ],
       "notes": "The 16-point label clamp exists so a monospaced label does not draw a taller capsule than a plain one beside it. The Sign in row is hidden while a check runs so it never flashes in before the answer.",
-      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:687-725 -> 1fbf81e6 :742-780; unchanged."
+      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:710-748 -> 1fbf81e6 :742-780; unchanged."
     },
     {
       "id": "UI-SETTINGS-052",
@@ -8425,7 +8425,7 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:51 chatBaseSize - .body 13 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "This is the only multi-line text input in the settings window.",
-      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:779-796 -> 1fbf81e6 :841-858; `.system(size: 13)` -> `.system(.body)`."
+      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:802-819 -> 1fbf81e6 :841-858; `.system(size: 13)` -> `.system(.body)`."
     },
     {
       "id": "UI-SETTINGS-053",
@@ -8601,7 +8601,7 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:51-54 chatBaseSize - .body 13, .callout 12, .subheadline 11, .footnote 10 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "Tooltip \"Open getdroppy.app\"; accessibility label \"Made by Droppy. Open getdroppy.app\". The trailing padding is rowControlTrailingPadding + 4, which is 14, not the usual 10. The attribution is a licence obligation and must remain.",
-      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:1020-1063 -> 1fbf81e6 :1083-1125; literal sizes became text styles of the same default size.",
+      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:1043-1086 -> 1fbf81e6 :1083-1125; literal sizes became text styles of the same default size.",
       "deviation": {
         "decision": "OD-0008 B15; OD-0012 F3",
         "upstream": "DroppyCode/App/Views/Settings/SettingsView.swift:1076 \"Droppy Code is a coding app by Droppy for Mac.\"",
@@ -8630,7 +8630,7 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:51 chatBaseSize - .body 13 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "The three resources are LICENSE (no extension), THIRD_PARTY_NOTICES.md and TRADEMARK.md. Texts are read once into a static cache because the popover's body re-runs on every hover and scroll.",
-      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:968-1018 -> 1fbf81e6 :1030-1080.",
+      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:991-1041 -> 1fbf81e6 :1030-1080.",
       "deviation": {
         "decision": "OD-0012 F1",
         "upstream": "DroppyCode/App/Views/Settings/SettingsView.swift:1013 `(\"Droppy Code\", \"LICENSE\")`",
@@ -8809,7 +8809,7 @@
         "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:330-344"
       ],
       "notes": "Its row's title is \"Loading models…\" or \"No models loaded\". It no longer appears when the catalogue is populated but the search filters every model out.",
-      "b2_change": "dd2b86ef DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:310-317 showed it for an empty filtered list; 1fbf81e6 :368-382 only for an empty unfiltered catalogue, inside a ChromeRevealLayout.",
+      "b2_change": "dd2b86ef DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:325-332 showed it for an empty filtered list; 1fbf81e6 :368-382 only for an empty unfiltered catalogue, inside a ChromeRevealLayout.",
       "status": "IMPLEMENTED"
     },
     {
@@ -8923,7 +8923,7 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:52, :54 chatBaseSize - .callout 12, .footnote 10 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "Unlike the Made by Droppy row, these do not change opacity on hover. Their tooltip is the absolute URL string, not a sentence.",
-      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:1065-1082 -> 1fbf81e6 :1127-1144; literal sizes became text styles of the same default size.",
+      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:1088-1105 -> 1fbf81e6 :1127-1144; literal sizes became text styles of the same default size.",
       "deviation": {
         "decision": "OD-0008 B15; OD-0012 H",
         "upstream": "DroppyCode/App/Views/Settings/SettingsView.swift:955 CreditLink(title: \"SwiftTerm\", url: URL(string: \"https://github.com/migueldeicaza/SwiftTerm\")!) in the \"Terminal\" row",
