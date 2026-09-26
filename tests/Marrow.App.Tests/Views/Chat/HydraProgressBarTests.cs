@@ -190,22 +190,14 @@ public sealed class HydraProgressBarTests(HeadlessSession headless)
             .SetValue(instance, value);
 }
 
-// STOP App.Views.Chat.HydraProgressBar #1 (helper Claude, 2026-09-25)
-// Kind: missing dependency
-// Swift: DroppyCode/App/Views/Chat/HydraProgressBar.swift:43-46,266-275,279-309,312-337,347-353
-// Requirements: UI-HYDRA-027, UI-HYDRA-029 (partial: the tool-kind counts line itself is HydraProgressBar's own
-// code and is correct; only rendering it for a Tool timeline entry is blocked, below)
-// What is unclear or missing: Tool_events_produce_the_ordered_counts_line fails with
-// "MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:2242" from ToolPresentation.McpParts, called through
-// HydraProgressBar's own EventsIn -> StaveCache.Resolve -> Refresh chain for every Tool timeline entry.
-// App.Views.Chat.TimelineRows is an entire not-yet-started skeleton unit (every member throws MARROW_STUB); this
-// packet only owns HydraProgressBar.swift, not TimelineRows.swift.
-// Readings or options: (a) implement ToolPresentation.McpParts here, ahead of TimelineRows's own unit -> guesses at
-// behavior that file, not this one, specifies, and risks diverging from TimelineRows's eventual real port; (b)
-// leave the dependency unmet and the one test failing, documented here -> safe, visible, matches the
-// App.DroppyCodeApp #1 precedent for a cross-unit MARROW_STUB blocker.
-// Needed to proceed: App.Views.Chat.TimelineRows ported (owns ToolPresentation.McpParts and every other member this
-// file's skeleton currently stubs).
-// Done so far: HydraProgressBar.swift itself has 0 MARROW_STUB; SweepBudget, HydraWorkingTitle, HydraElapsedTime,
-// HydraHeadProgress and the reply-events-excluded path are implemented and green. Only the tool-events counts-line
-// test, which exercises a live Tool entry through TimelineRows's still-stubbed McpParts, is blocked.
+// RESOLVED App.Views.Chat.HydraProgressBar #1 (was: STOP #1, helper Claude, 2026-09-25; resolved B3, Claude Sonnet 5,
+// 2026-09-26)
+// Swift: DroppyCode/App/Views/Chat/TimelineRows.swift:2189-2233,2242-2250 (unchanged B2 1fbf81e -> B3 52bc7926).
+// ENGINEERING DECISION: Tool_events_produce_the_ordered_counts_line's blocker was
+// ToolPresentation.McpParts/Label/Verb/Symbol(ToolCall.Kind) in App.Views.Chat.TimelineRows, all still
+// MARROW_STUB. Of TimelineRows's skeleton, only these four are pure, self-contained functions of ToolCall's
+// already-ported Kind/Status/Title plus SwiftString and the already-ported MCPCatalog.EntryMatching, with no
+// dependency on any other still-stubbed TimelineRows member or type; every other member either builds a View or
+// depends on one that does. Ported just those four in TimelineRows.cs (:2189-2233 label/verb/symbol(for kind),
+// :2242-2250 mcpParts), each transcribed from the pinned Swift and cited by line, rather than guessed. The rest of
+// App.Views.Chat.TimelineRows remains an unread, unstarted skeleton; only its unit may port anything more of it.
