@@ -109,7 +109,12 @@ public sealed class RecentDownloads : MainActorModel
                     {
                         if (await ThumbnailCache.Shared.Current.ThumbnailFor(path, PreviewPointSize, fillingSquare: true)
                             is not { } thumbnail) return null; // :79-83
-                        return (path, (IImage)thumbnail.Image.ToBitmap()); // :84
+                        // DEVIATION (platform adaptation, not a Swift behaviour change): a TaskGroup child runs on
+                        // the pool (R-TASK-5), so ToBitmap's Avalonia WriteableBitmap allocation is hopped onto
+                        // MainActor.Run here, exactly as Wallpaper.cs's Render()/Install() do for the identical
+                        // hazard ("Unable to locate IPlatformRenderInterface" from an arbitrary ThreadPool thread
+                        // under contention). CGImage construction in Swift needs no such hop.
+                        return (path, (IImage)await MainActor.Run(() => thumbnail.Image.ToBitmap())); // :84
                     });
                 }
             }

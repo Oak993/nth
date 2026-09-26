@@ -114,7 +114,17 @@ internal static class ClaudeStandIn
                 continue;
             }
             if (line.Length == 0) continue;
-            File.WriteAllText(Path.Combine(dir, "captured-" + call + "-" + message + ".txt"), line, new UTF8Encoding(false));
+            // Atomic publish, exactly like argv-<n>.txt above: write under a .tmp name, then rename. A reader
+            // (ClaudeScript.CapturedLine) polls with File.Exists on the final name; without this, File.Exists could
+            // observe the name the instant this process creates it, while WriteAllText's handle was still open (or
+            // not yet flushed/closed), so the reader's File.ReadAllText raced this writer and threw "the process
+            // cannot access the file because it is being used by another process" (seen under the parallel suite,
+            // where CPU contention widens the window between create and close). File.Move is atomic on NTFS: the
+            // final name only ever appears once the file is completely written and closed.
+            string capturedPath = Path.Combine(dir, "captured-" + call + "-" + message + ".txt");
+            string pendingCaptured = capturedPath + ".tmp";
+            File.WriteAllText(pendingCaptured, line, new UTF8Encoding(false));
+            File.Move(pendingCaptured, capturedPath);
             message++;
             if (responseTemplate == null) continue;
             // Only a control_request (never an outbound control_response or user message the session itself
