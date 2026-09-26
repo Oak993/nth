@@ -158,11 +158,17 @@ public sealed class MCPSetupPanelView : Decorator
         this.Track(() => EnvironmentValues.GetAccessibilityReduceMotion(this), _ => UpdateBody());
     }
 
-    // :117-185 body
+    // :117-185 body. B3/ED-200 forces this: WindowDragArea is no longer a Decorator a caller can wrap content in
+    // (:124-130 `.background { WindowDragArea() }.background { WindowBackdrop(opacity: 0.5) }` - SwiftUI's
+    // background stacks behind the modified view in call order, so content sits above WindowDragArea, which sits
+    // above WindowBackdrop). A Grid gives the same stack bottom to top, the way MCPKeyPanel.cs :108-114 already
+    // layers its own WindowBackdrop/WindowDragArea/content.
     private void PaddingHost(Control content)
     {
-        var drag = new WindowDragArea { Child = content };
-        var backdrop = new WindowBackdrop(0.5) { Child = drag };
+        var layers = new Grid();
+        layers.Children.Add(new WindowBackdrop(0.5));
+        layers.Children.Add(new WindowDragArea());
+        layers.Children.Add(content);
         Child = new Border
         {
             Width = 400,
@@ -170,7 +176,7 @@ public sealed class MCPSetupPanelView : Decorator
             Background = Brushes.Transparent,
             ClipToBounds = true,
             CornerRadius = new CornerRadius(Chrome.WindowCornerRadius),
-            Child = backdrop,
+            Child = layers,
         };
     }
 

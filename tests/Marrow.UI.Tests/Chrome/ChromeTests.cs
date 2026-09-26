@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Reflection;
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Automation.Peers;
@@ -68,6 +69,13 @@ public sealed class ChromeTests(HeadlessSession headless)
         Dispatcher.UIThread.RunJobs();
         return window;
     }
+
+    /// Fires WindowBase's own Deactivated event and clears IsActive, standing in for AppKit's
+    /// didResignKeyNotification: headless activates every shown window and has no real platform deactivation to
+    /// drive this from outside (see AttachmentPreviewPanelTests.SimulateDeactivate, the same technique).
+    private static void SimulateDeactivate(Window window) =>
+        typeof(WindowBase).GetMethod("HandleDeactivated", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .Invoke(window, null);
 
     private static Control TopLeft(Control control)
     {
@@ -462,8 +470,7 @@ public sealed class ChromeTests(HeadlessSession headless)
         var behind = new Border { Width = 200, Height = 44, Child = new WindowDragArea() };
         behind.AddHandler(InputElement.PointerPressedEvent, (_, _) => reached.Add("pressed"), RoutingStrategies.Bubble);
         var window = Show(TopLeft(behind));
-        // Headless never activates a window on Show(); this stands in for AppKit's inactive state (see
-        // AttachmentPreviewPanelTests' SimulateDeactivate for the equivalent Deactivated-side technique).
+        SimulateDeactivate(window);
         Assert.False(window.IsActive);
 
         Click(window, new Point(100, 22));
