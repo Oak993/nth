@@ -75,19 +75,33 @@ public sealed class HydraPopoverHeader : Decorator
             column.Children.Add(titleText);
         }
 
-        // :15 HStack(alignment: .top, spacing: 12)
-        var row = new StackPanel
+        // :15 HStack(alignment: .top, spacing: 12), then :36 Spacer(minLength: 0) pushing :38-40's optional accessory
+        // to the trailing edge once :44 stretches the HStack to the header's full width. A StackPanel has no
+        // flexible-spacer primitive (Avalonia), so this is a two-column Grid ("*,Auto"), following the convention
+        // already established for Spacer(minLength:) at ChromeRow (Chrome.cs:1648-1653) and
+        // TokenActivitySection.BuildHeader (TokenActivitySection.cs:452-474): column 0 stretches to hold the
+        // glyph+text group, column 1 (Auto) holds the accessory, so it lands at the row's trailing edge regardless
+        // of column 0's width.
+        var leadingGroup = new StackPanel
         {
             Orientation = Orientation.Horizontal,
             Spacing = 12,
             VerticalAlignment = VerticalAlignment.Top,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
         };
         glyph.VerticalAlignment = VerticalAlignment.Top;
-        row.Children.Add(glyph);
-        row.Children.Add(column);
-        row.Children.Add(new Border { Width = 0, HorizontalAlignment = HorizontalAlignment.Stretch }); // :37 Spacer(minLength: 0)
+        leadingGroup.Children.Add(glyph);
+        leadingGroup.Children.Add(column);
+
+        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
+        Grid.SetColumn(leadingGroup, 0);
+        row.Children.Add(leadingGroup);
         if (accessory is not null) // :38-40
+        {
+            accessory.VerticalAlignment = VerticalAlignment.Top;
+            Grid.SetColumn(accessory, 1);
             row.Children.Add(accessory);
+        }
 
         // :42-46
         Child = new Border
@@ -190,17 +204,35 @@ public sealed class HydraHeadReportPopover : Decorator
         _ => throw new UnreachableException(),
     };
 
-    // :124-129. Swift: duration(from:to:).
-    public static string Duration(DateTimeOffset from, DateTimeOffset to) =>
-        RelativeTime.Duration(to - from); // :125
+    // :124-129. Swift: duration(from:to:), which reads UI/Common/Components.swift:37-40 RelativeTime.duration.
+    // ED-197 (F.ICUFormatters/SwiftFormatters.DurationUnits) identifies that shared helper's register -
+    // `Duration.seconds(max(0, Int(interval.rounded()))).formatted(.units(allowed: [.seconds, .minutes, .hours],
+    // width: .narrow, maximumUnitCount: 2, fractionalPart: .hide(rounded: .down)))` - as one of B3's three ICU
+    // duration sites; `RelativeTime.Duration` in Components.cs has not yet been migrated onto it (it is still the
+    // pre-B3 hand-built "Ns" / "Mm Ss" register), so this site calls `SwiftFormatters.DurationUnits` directly,
+    // matching the pattern already migrated for the sibling ED-197 sites at Hydra.cs:1732-1740 (PR-HYDRA-254) and
+    // HydraPanel.cs:810-820. When Components.cs's RelativeTime.Duration is migrated, this can call it instead.
+    private static readonly SwiftFormatters.DurationUnit[] DurationUnitsAllowed =
+        [SwiftFormatters.DurationUnit.Seconds, SwiftFormatters.DurationUnit.Minutes, SwiftFormatters.DurationUnit.Hours];
 
-    // :74, :149 Divider(). ENGINEERING DECISION: a bare SwiftUI Divider() has no port counterpart of its own; this
-    // matches HydraReportsPopover.cs's rendering of the same bare Divider() between a fixed header and a scrolling
-    // body in this popover family (Chrome.secondaryText, full width, no inset).
+    public static string Duration(DateTimeOffset from, DateTimeOffset to)
+    {
+        var totalSeconds = Math.Max(0, SwiftNumber.TruncatingToInt(SwiftNumber.Rounded((to - from).TotalSeconds))); // :38 max(0, Int(interval.rounded()))
+        return SwiftFormatters.DurationUnits(totalSeconds, DurationUnitsAllowed, SwiftFormatters.CurrentLocale.Current); // :39
+    }
+
+    // :74, :149 Divider(). ENGINEERING DECISION: a bare SwiftUI Divider() draws the system separator colour, which
+    // has no port counterpart. This reuses Chrome.PrimaryText.Opacity(0.22), the colour the port's UI layer already
+    // establishes for exactly this SwiftUI construct - ChromeDivider (Chrome.cs:545-555, from Chrome.swift:324-331)
+    // and PopoverDivider (Popovers.cs:200-212, from Popovers.swift:152-158) both resolve a bare Divider() to it -
+    // full width and with no inset, since unlike PopoverDivider this Divider() carries no .padding() of its own.
+    // (HydraReportsPopover.cs:325-330 renders the same bare Divider() at HydraReportsPopover.swift:240 with
+    // Chrome.SecondaryText instead, with no ENGINEERING DECISION recorded there; that is a separate, unresolved
+    // inconsistency, out of this unit's scope to fix.)
     internal static Control Divider()
     {
         var bar = new Border { Height = 1, HorizontalAlignment = HorizontalAlignment.Stretch };
-        bar.Background = Chrome.SecondaryText.Brush(bar);
+        bar.Background = Chrome.PrimaryText.Opacity(0.22).Brush(bar);
         return bar;
     }
 }

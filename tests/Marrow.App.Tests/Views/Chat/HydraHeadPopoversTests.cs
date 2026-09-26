@@ -8,6 +8,7 @@ using Avalonia.Styling;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Chat;
 using Marrow.Core.Models;
+using Marrow.Core.Port;
 using Marrow.UI.Chrome;
 using Marrow.UI.Common;
 using Marrow.UI.Markdown;
@@ -192,6 +193,32 @@ public sealed class HydraHeadPopoversTests(HeadlessSession headless)
     }
 
     [Fact]
+    [Trait("Req", "PR-HYDRA-216")] // App/Views/Chat/HydraHeadPopovers.swift:15, :36-40, :44
+    [Trait("Req", "UI-HYDRA-047")]
+    public void Header_pushes_the_accessory_to_the_row_trailing_edge_not_immediately_after_the_text_column()
+    {
+        headless.OnUiThread(() =>
+        {
+            var header = new HydraPopoverHeader(Persona, title: "Stream the parser", accessory: new CopyButton("x"));
+            header.Measure(new Size(460, double.PositiveInfinity)); // :102 HydraHeadReportPopover.width, a real caller's constraint
+            header.Arrange(new Rect(header.DesiredSize));
+
+            var row = LogicalQuery.SelfAndDescendants<Control>(header).OfType<Grid>().Single();
+            var accessory = LogicalQuery.SelfAndDescendants<Control>(header).OfType<CopyButton>().Single();
+            var titleLabel = Text(header, "Stream the parser");
+
+            // :36-40 Spacer(minLength: 0), once :44 .frame(maxWidth: .infinity) stretches the HStack: the accessory
+            // sits flush against the row's own trailing edge, not merely somewhere to the right of the text column.
+            // A StackPanel has no flexible-spacer primitive, so a `Border{Width=0}` "spacer" contributes zero pixels
+            // and the accessory lands immediately after the text column instead (the regression this guards).
+            Assert.Equal(row.Bounds.Width - accessory.Bounds.Width, accessory.Bounds.X, 3);
+            Assert.True(
+                accessory.Bounds.X > titleLabel.Bounds.X + titleLabel.Bounds.Width + 12,
+                $"accessory.X was {accessory.Bounds.X}, not to the right of the text column ({titleLabel.Bounds.X + titleLabel.Bounds.Width})");
+        });
+    }
+
+    [Fact]
     [Trait("Req", "PR-HYDRA-216")] // App/Views/Chat/HydraHeadPopovers.swift:42-46
     [Trait("Req", "UI-HYDRA-047")]
     [Trait("Decision", "ED-062")]
@@ -320,27 +347,62 @@ public sealed class HydraHeadPopoversTests(HeadlessSession headless)
     [InlineData(HydraHeadInfo.Status.Stopped, "Stopped")]
     [Trait("Req", "PR-HYDRA-214")] // App/Views/Chat/HydraHeadPopovers.swift:112-113
     [Trait("Req", "UI-HYDRA-048")]
+    [Trait("Decision", "ED-197")]
     public void Caption_with_a_finish_time_appends_a_middle_dot_and_the_relative_duration(HydraHeadInfo.Status status, string baseText)
     {
+        using var locale = SwiftFormatters.CurrentLocale.Override("en_US");
+
         var startedAt = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
         var finishedAt = startedAt.AddSeconds(90);
         var head = Head(status: status, startedAt: startedAt, finishedAt: finishedAt);
 
-        // The exact duration string is UNRESOLVED (B3_PLAN.md 6.1 E1, RelativeTime.duration's Duration.UnitsFormatStyle
-        // output on the reference runtime): this asserts the composition (base word, " · ", the shared
-        // duration) against RelativeTime.Duration itself rather than a literal string, so it holds however that
-        // shared helper's own open item settles.
-        Assert.Equal(baseText + " \U000000B7 " + RelativeTime.Duration(finishedAt - startedAt), HydraHeadReportPopover.Caption(head));
+        // 90s -> "1m 30s" (SwiftFormattersSecondTests.RelativeTime_duration_allows_seconds_minutes_and_hours(90L,
+        // "1m 30s")): the {seconds, minutes, hours} ICU register Components.swift:37-40 RelativeTime.duration
+        // resolves to (ED-197), not the pre-B3 hand-built "Nm Ss" RelativeTime.Duration in Components.cs still
+        // produces (that migration is tracked separately; this call site bypasses it, see Duration below).
+        Assert.Equal(baseText + " \U000000B7 1m 30s", HydraHeadReportPopover.Caption(head));
+    }
+
+    [Theory]
+    [Trait("Req", "PR-HYDRA-214")] // App/Views/Chat/HydraHeadPopovers.swift:124-126
+    [Trait("Decision", "ED-197")]
+    [InlineData(0.0, "0s")]
+    [InlineData(1.0, "1s")]
+    [InlineData(60.0, "1m")]     // the zero-valued seconds unit is dropped, not "1m 0s" (RelativeTime.Duration's old register)
+    [InlineData(90.0, "1m 30s")]
+    [InlineData(3600.0, "1h")]   // hours is an allowed unit here (unlike Hydra.cs/HydraPanel.cs's {seconds, minutes}), so this becomes "1h", not "60m"
+    [InlineData(3725.0, "1h 2m")]
+    public void Duration_uses_SwiftFormatters_DurationUnits_over_seconds_minutes_and_hours(double elapsedSeconds, string expected)
+    {
+        // Swift: duration(from:to:) reads UI/Common/Components.swift:37-40 RelativeTime.duration, whose register is
+        // {seconds, minutes, hours} (ED-197; SwiftFormattersSecondTests.RelativeTime_duration_allows_seconds_minutes_and_hours
+        // is this exact table). RelativeTime.Duration in Components.cs has not itself been migrated onto that
+        // register yet, so this asserts the literal ICU output directly rather than delegating to it.
+        using var locale = SwiftFormatters.CurrentLocale.Override("en_US");
+
+        var from = new DateTimeOffset(2026, 3, 1, 12, 0, 0, TimeSpan.Zero);
+        var to = from.AddSeconds(elapsedSeconds);
+
+        Assert.Equal(expected, HydraHeadReportPopover.Duration(from, to));
     }
 
     [Fact]
     [Trait("Req", "PR-HYDRA-214")] // App/Views/Chat/HydraHeadPopovers.swift:124-126
-    public void Duration_delegates_to_the_shared_relative_time_duration_over_the_elapsed_span()
+    [Trait("Decision", "ED-197")]
+    public void Duration_no_longer_matches_the_unmigrated_RelativeTime_Duration_register()
     {
-        var from = new DateTimeOffset(2026, 3, 1, 12, 0, 0, TimeSpan.Zero);
-        var to = from.AddSeconds(3725);
+        // Guards against silently reverting to the pre-B3 hand-built "Nm Ss" register (RelativeTime.Duration,
+        // Components.cs, not yet migrated under ED-197): for an elapsed span whose two registers disagree - 60s is
+        // "1m 0s" in the old register, "1m" (zero unit dropped) in the ICU one - this site must produce the
+        // ICU-backed string, not RelativeTime.Duration's.
+        using var locale = SwiftFormatters.CurrentLocale.Override("en_US");
 
-        Assert.Equal(RelativeTime.Duration(to - from), HydraHeadReportPopover.Duration(from, to));
+        var from = new DateTimeOffset(2026, 3, 1, 12, 0, 0, TimeSpan.Zero);
+        var to = from.AddSeconds(60);
+
+        Assert.Equal("1m", HydraHeadReportPopover.Duration(from, to));
+        Assert.Equal("1m 0s", RelativeTime.Duration(to - from)); // the old register, for contrast
+        Assert.NotEqual(RelativeTime.Duration(to - from), HydraHeadReportPopover.Duration(from, to));
     }
 
     [Theory]
@@ -361,6 +423,24 @@ public sealed class HydraHeadPopoversTests(HeadlessSession headless)
         };
 
         Assert.Equal(Of(expected), Of(HydraHeadReportPopover.CaptionColor(status)));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-HYDRA-213")] // App/Views/Chat/HydraHeadPopovers.swift:74
+    [Trait("Decision", "ED-062")]
+    public void Report_popover_divider_is_a_1_point_hairline_at_22_percent_primary_text()
+    {
+        headless.OnUiThread(() =>
+        {
+            var popover = new HydraHeadReportPopover(Head());
+            var divider = LogicalQuery.SelfAndDescendants<Control>(popover).OfType<Border>().Single(b => b.Height == 1);
+
+            // A bare SwiftUI Divider() has no port counterpart; this matches the colour the port's UI layer already
+            // establishes for exactly this construct - ChromeDivider (Chrome.cs:545-555) and PopoverDivider
+            // (Popovers.cs:200-212) both resolve a bare Divider() to Chrome.PrimaryText.Opacity(0.22) - rather than
+            // HydraReportsPopover.cs's unlabelled, differently-coloured border for the same Swift construct.
+            Assert.Equal(Of(Chrome.PrimaryText.Opacity(0.22)), SolidColor(divider.Background));
+        });
     }
 
     // ---- HydraBriefPopover (PR-HYDRA-215, UI-HYDRA-051) ----
