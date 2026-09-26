@@ -8,14 +8,16 @@ Exact-parity Windows 11 x64 port of the macOS app Droppy Code. Read
 `porting/PORT_CONTRACT.md` and `porting/contract_amendments.md` before doing anything; they are the
 authority and override this file. This file is the short index, not a substitute.
 
-## Pinned baseline (B2, frozen; owner decision OD-0006, amendment AM-0002)
+## Pinned baseline (B3, frozen; owner decision OD-0024, amendment AM-0003)
 
 - Repository `https://gitlab.com/droppyformac1/droppy-code`, branch `main`.
-- Commit `1fbf81e61e28a079508a074c01ee1830a9cc23dc`, tree `a583cec47ea4e97dbdb81349fa0cb45499b88fe6`.
-- App version 1.6.2, build 20, bundle id `iordv.droppycode`.
-- Pristine reference: `E:\Droppy\reference\droppy-code-v1.6.2`. **Never write to it.**
-- The earlier pin B1 (1.6.0, `dd2b86ef`, `E:\Droppy\reference\droppy-code`) is history only; never
-  implement from it.
+- Commit `52bc7926097cd622d08d6294e0d8b08a48c7516e`, tree `115745914ccc103dfe4e74d96c6c539faab2eedb`.
+- App version 1.7.0, build 21, bundle id `iordv.droppycode`.
+- Pristine reference: `E:\Droppy\reference\droppy-code-v1.7.0`. **Never write to it.**
+- Earlier pins are history only; never implement from them: B2 (1.6.2, `1fbf81e6`,
+  `E:\Droppy\reference\droppy-code-v1.6.2`, archived reading record `porting/baselines/B2/`) and B1 (1.6.0, `dd2b86ef`,
+  `E:\Droppy\reference\droppy-code`). Code citations to B2 lines in files whose Swift changed are re-pointed as those
+  units are re-verified (AM-0003). The integration branch keeps its name `impl/b2`.
 - Port workspace: `E:\Droppy\port`, branch `port/windows-exact-parity`. Record: `porting/baseline.json`.
 - Product identity on Windows: "Marrow"; install and data identity "Marrow Code"
   (`%LOCALAPPDATA%\Marrow Code`), so it never touches the owner's separate Electron app "Marrow".
@@ -81,8 +83,9 @@ from a reader report that carries findings. A hash-and-set script does not count
 
 ## Current gate
 
-See `porting/STATE.md`. At B2, Gate A passes (436/436 files read with evidence) and Gate B is
-re-earned for the 1.6.0 to 1.6.2 delta by the spec refresh. Implementation runs unit by unit (one
+See `porting/STATE.md` and `E:\Droppy\HANDOFF.md` section 7h. At B3 (AM-0003, 2026-09-26) Gate A is re-opened for the
+B2 to B3 delta: 346 files carried over byte-identical, 84 changed and 11 added files UNREAD until an evidence-bearing
+report is accepted by `ledger_apply.mjs`; Gate B is re-earned for every record citing a changed file. Implementation runs unit by unit (one
 Swift file per unit) under `porting/IMPLEMENTING.md`: tests first, adversarial review, then code.
 
 ## Implementation runs (how a unit agent is set up)

@@ -434,8 +434,7 @@ Both remain open options for the owner alone.
 
 ## UNK-0025 Upstream has moved past the pinned baseline (B2, 1.6.2) to 1.7.0
 
-- **Status:** OPEN, raised 2026-09-26 by Claude. Owner decision needed; not blocking - implementation continues on the
-  frozen B2 pin per OD-0006/AM-0002 until the owner rules.
+- **Status:** RESOLVED 2026-09-26 by OD-0024 (move to 1.7.0, AM-0003). Raised 2026-09-26 by Claude.
 - **Evidence (SOURCE FACT, checked against `https://gitlab.com/droppyformac1/droppy-code.git`, branch `main`, at
   `52bc79260...`):** 16 commits, 101 files, +2188/-2577 lines past our pin `1fbf81e61e28a079508a074c01ee1830a9cc23dc`.
   `project.yml` MARKETING_VERSION is now `1.7.0` (ours: 1.6.2). Notable commits: `249fc5a9e` "1.7.0: Opus 5.5 and

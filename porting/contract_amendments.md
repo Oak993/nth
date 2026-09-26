@@ -96,3 +96,23 @@ then, asked which version, the selected option "Switch to live 1.6.2 (Recommende
 - Work already marked DONE is re-verified against B2 before it counts.
 - The verification tools read the baseline from `porting/baseline.json` instead of constants, so
   this change is one auditable record (`porting/tools/baseline.mjs`, `porting/tools/rebaseline.py`).
+
+---
+
+## AM-0003, 2026-09-26 - The pinned baseline moves to live 1.7.0
+
+**Owner instruction:** "Move to 1.7.0, check what needs updating and changing and plan accordingly." (OD-0024)
+
+### Effect
+
+- Contract section 4's frozen baseline is now `52bc7926097cd622d08d6294e0d8b08a48c7516e` (B3, tree
+  `115745914ccc103dfe4e74d96c6c539faab2eedb`, 1.7.0 build 21). "The pinned source" means B3 from this date. The
+  pristine reference is `E:\Droppy\reference\droppy-code-v1.7.0`; the B2 checkout stays as history.
+- As in AM-0002, Gate A and Gate B are re-earned for the B2 to B3 delta (84 changed, 11 added, 6 removed files;
+  `porting/tools/rebaseline.py` carried reading evidence only for the 346 byte-identical files): every changed or added
+  file fully read with an evidence-bearing report accepted by `ledger_apply.mjs`; every record citing a changed file
+  re-classified against B3; every new behaviour specified before it is implemented; work already DONE on a changed
+  file re-verified against B3 before it counts.
+- Code citations (`// :a-b`, `Swift.swift:a-b`) in C# files whose Swift twin changed are re-pointed to B3 lines as those
+  units are re-verified; `porting/tools/cite_check.mjs` reads the pin from `porting/baseline.json`.
+- The integration branch keeps its name `impl/b2`.

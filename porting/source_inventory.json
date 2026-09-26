@@ -1,21 +1,21 @@
 {
   "schema": "droppy-windows-port/source_inventory/1",
   "generated_by": "porting/tools/gen_inventory.mjs",
-  "note": "Mechanical facts only. read_status is UNREAD for every entry at generation time and may only be advanced by porting/tools/ledger_apply.mjs from evidence-bearing reader reports. Rebaselined from dd2b86efef9e77168f304a86e8a8411877578bbe by porting/tools/rebaseline.py: reading evidence carried over for 317 byte-identical files; 119 changed or added files are UNREAD until ledger_apply.mjs accepts a fresh reader report.",
+  "note": "Mechanical facts only. read_status is UNREAD for every entry at generation time and may only be advanced by porting/tools/ledger_apply.mjs from evidence-bearing reader reports. Rebaselined from 1fbf81e61e28a079508a074c01ee1830a9cc23dc by porting/tools/rebaseline.py: reading evidence carried over for 346 byte-identical files; 95 changed or added files are UNREAD until ledger_apply.mjs accepts a fresh reader report.",
   "baseline": {
     "repository": "https://gitlab.com/droppyformac1/droppy-code",
     "default_branch": "main",
-    "commit_sha": "1fbf81e61e28a079508a074c01ee1830a9cc23dc",
-    "tree_sha": "a583cec47ea4e97dbdb81349fa0cb45499b88fe6",
-    "reference_path": "E:/Droppy/reference/droppy-code-v1.6.2"
+    "commit_sha": "52bc7926097cd622d08d6294e0d8b08a48c7516e",
+    "tree_sha": "115745914ccc103dfe4e74d96c6c539faab2eedb",
+    "reference_path": "E:/Droppy/reference/droppy-code-v1.7.0"
   },
   "counts": {
-    "total_files": 436,
+    "total_files": 441,
     "by_classification": {
       "first_party_agent_config": 1,
       "first_party_repo_root": 5,
       "first_party_build_config": 4,
-      "first_party_app": 378,
+      "first_party_app": 383,
       "first_party_legal": 3,
       "first_party_docs": 5,
       "first_party_release_tooling": 5,
@@ -28,7 +28,7 @@
       "pbxproj": 1,
       "xcworkspacedata": 1,
       "resolved": 1,
-      "swift": 195,
+      "swift": 200,
       "h": 3,
       "m": 2,
       "svg": 74,
@@ -50,7 +50,7 @@
       "txt": 1,
       "xml": 1
     },
-    "total_text_lines": 87100
+    "total_text_lines": 86711
   },
   "items": [
     {
@@ -126,29 +126,20 @@
     {
       "path": "CHANGELOG.md",
       "git_mode": "100644",
-      "git_blob": "8618d6c0ad0b0cabbfcee2ef6bf856c57620bbb9",
-      "sha256": "fde0544376e91dbfa0259831d5c70a0f547befb53b3e994f327f44659fe15994",
-      "size_bytes": 42292,
+      "git_blob": "304d25451eb0e6e38d25f7d2f279ca325e33d933",
+      "sha256": "4846c81afcbdb995c2c79e9b5b990bfb5c6603021acb4578696a0885df37cdd3",
+      "size_bytes": 44796,
       "ext": "md",
       "kind": "text",
-      "line_count": 400,
+      "line_count": 407,
       "has_crlf": true,
       "classification": "first_party_repo_root",
       "build_inclusion": "not_in_app_target",
       "inclusion_evidence": "repository root file",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          200
-        ],
-        [
-          201,
-          400
-        ]
-      ],
-      "reader": "R2-41-reader",
-      "findings_ref": "porting/read_ledger.jsonl#CHANGELOG.md",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -255,25 +246,20 @@
     {
       "path": "DroppyCode/App/AppDelegate.swift",
       "git_mode": "100644",
-      "git_blob": "d64e77ce368338e5c629c19bd6fdda3383a644a3",
-      "sha256": "2a6ac91d4d46266e121085f6cb2c07d6a1d0490faea9f59fae21fe6b171dad76",
-      "size_bytes": 3715,
+      "git_blob": "12da790f20c0511c927519210c138863a9581980",
+      "sha256": "eb655bec3fea8387906d437bc1e81ca809b9c5e438d1d5265caad736d06e2d90",
+      "size_bytes": 4170,
       "ext": "swift",
       "kind": "text",
-      "line_count": 87,
+      "line_count": 93,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          87
-        ]
-      ],
-      "reader": "R003-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/AppDelegate.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -313,29 +299,20 @@
     {
       "path": "DroppyCode/App/AppModel+HydraMerge.swift",
       "git_mode": "100644",
-      "git_blob": "c76315586928a490e168bc9f9d8be225feb38cdf",
-      "sha256": "cbac441bed2d92af63b4e336b9e36d4fb1eb66f453d5b384fe814d8700d20692",
-      "size_bytes": 59084,
+      "git_blob": "730a7a59577ea8114f6f5a79a907cfb8190eb3a0",
+      "sha256": "801237073a6ceee82d23c8653a8da0f6dc4f6b9c03b9505fea04b1756c4687b0",
+      "size_bytes": 61367,
       "ext": "swift",
       "kind": "text",
-      "line_count": 893,
+      "line_count": 948,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          450
-        ],
-        [
-          451,
-          893
-        ]
-      ],
-      "reader": "R2-01-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/AppModel+HydraMerge.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -367,62 +344,40 @@
     {
       "path": "DroppyCode/App/AppModel.swift",
       "git_mode": "100644",
-      "git_blob": "ddcdc740e8231ce8dbeef90d9740ccfe83d4c569",
-      "sha256": "d90a94379d30cb56946e856312fc2fb558bad7016afe7f5a8ddd786f7bc21cb7",
-      "size_bytes": 64881,
+      "git_blob": "cde372a81933c2b4bf0416a416e61c60b5f7d906",
+      "sha256": "b9b3191cbc497384ec9a5ca273f77eba16b15ec2c64219ad39620736e22908b7",
+      "size_bytes": 66136,
       "ext": "swift",
       "kind": "text",
-      "line_count": 1356,
+      "line_count": 1374,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          450
-        ],
-        [
-          451,
-          900
-        ],
-        [
-          901,
-          1356
-        ]
-      ],
-      "reader": "R2-02-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/AppModel.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
     {
       "path": "DroppyCode/App/AppSettings.swift",
       "git_mode": "100644",
-      "git_blob": "e1708424d9b6788d4a1f142dc4951975b8612f1a",
-      "sha256": "dfbf4705d76f17e7ecd187b76e7908df2e339efe17cad19bda36a5cff9321ef7",
-      "size_bytes": 43476,
+      "git_blob": "408a580ae48d61848cfb5fb18b890b3416a9db19",
+      "sha256": "8c5a58d0830344b27d81f404c282bf263a0c186f426797a9664ffabf816e752c",
+      "size_bytes": 43512,
       "ext": "swift",
       "kind": "text",
-      "line_count": 947,
+      "line_count": 951,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          480
-        ],
-        [
-          481,
-          947
-        ]
-      ],
-      "reader": "R2-03-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/AppSettings.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -479,9 +434,9 @@
     {
       "path": "DroppyCode/App/Captures/TourCaptures.swift",
       "git_mode": "100644",
-      "git_blob": "cf9ee78afe23347ef69d8ec0dbdaebc00e49ddff",
-      "sha256": "578d1a0ddbde9a2a250fa05d3ca286ce85ed0e3c55b0b232f57d40036734e560",
-      "size_bytes": 18086,
+      "git_blob": "cd081ff2a7d74da26b6be731aa0c782ec4634877",
+      "sha256": "eca17d2568a1ec4b87b99dd79a978d5afdbfd29de2e78830bf77b056fead3af5",
+      "size_bytes": 18081,
       "ext": "swift",
       "kind": "text",
       "line_count": 313,
@@ -489,40 +444,30 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          313
-        ]
-      ],
-      "reader": "R006-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/Captures/TourCaptures.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
     {
       "path": "DroppyCode/App/Captures/WebsiteCaptures.swift",
       "git_mode": "100644",
-      "git_blob": "fe49a2c850efa9c6340b38dd414905c571ce76c9",
-      "sha256": "5adef6405a43350c4cf1df4908ddf9de011a5bd46dd375112ce5340e8c2d6113",
-      "size_bytes": 61699,
+      "git_blob": "1936f820c36d4b1cb3176182177cff3cbffe485a",
+      "sha256": "97d994eb3ca8cb52a206be8a7232578e26393cdf23a6a765f4e63cb4503941d6",
+      "size_bytes": 61257,
       "ext": "swift",
       "kind": "text",
-      "line_count": 1122,
+      "line_count": 1114,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          1122
-        ]
-      ],
-      "reader": "R006-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/Captures/WebsiteCaptures.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -654,58 +599,29 @@
     {
       "path": "DroppyCode/App/Runtime/ThreadRuntime.swift",
       "git_mode": "100644",
-      "git_blob": "1ea9c93482909fca3c68fb0aefd64d325d2e3c40",
-      "sha256": "57679aa03b9e005ecb49424d8e4da8abda0810a98979dc4bf628e3921a0c09e6",
-      "size_bytes": 199849,
+      "git_blob": "0c9e867aed78f3ff640c4515a9edaddd0a43d7d3",
+      "sha256": "42970a0252d4e2d59bee1069b746d70c454b2b190ff2602dfc3bc97956987a1d",
+      "size_bytes": 203362,
       "ext": "swift",
       "kind": "text",
-      "line_count": 3758,
+      "line_count": 3804,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          600
-        ],
-        [
-          601,
-          1200
-        ],
-        [
-          1201,
-          1800
-        ],
-        [
-          1801,
-          2400
-        ],
-        [
-          2401,
-          3000
-        ],
-        [
-          3001,
-          3400
-        ],
-        [
-          3401,
-          3758
-        ]
-      ],
-      "reader": "R2-04-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/Runtime/ThreadRuntime.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
     {
       "path": "DroppyCode/App/UpdateChecker.swift",
       "git_mode": "100644",
-      "git_blob": "14abaeaca4cc4e5ce3de595d07533d0ad86cf39f",
-      "sha256": "dd1b3d7b5e438f77c16acd772c0f636dab213c5f3897517eb068299505f165ea",
-      "size_bytes": 14285,
+      "git_blob": "cf7341c9dc7dd0d9289dabcdd00d3a465398ad8a",
+      "sha256": "ef3ce2cd37f197f9589167e23ef859280c1c088a0c24ce14a6b5b26ff8fe3811",
+      "size_bytes": 14280,
       "ext": "swift",
       "kind": "text",
       "line_count": 327,
@@ -713,15 +629,10 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          327
-        ]
-      ],
-      "reader": "R2-03-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/UpdateChecker.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -753,9 +664,9 @@
     {
       "path": "DroppyCode/App/Views/Chat/ChatView.swift",
       "git_mode": "100644",
-      "git_blob": "1bdf597c94d6a7dbf721a1b8a845509ce9b86323",
-      "sha256": "db1868d31bb988550c438a1e7f20ec55ad089a90003559b14a7c50887885c1dd",
-      "size_bytes": 88839,
+      "git_blob": "d901c39a6df9848bb20a56194f7ee9ebe90aeb88",
+      "sha256": "e7bba4d453a571460f49d24e31f2b238eb56714ecbd750a32d6a5249cbd0a6ef",
+      "size_bytes": 88829,
       "ext": "swift",
       "kind": "text",
       "line_count": 1730,
@@ -763,36 +674,19 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          450
-        ],
-        [
-          451,
-          900
-        ],
-        [
-          901,
-          1320
-        ],
-        [
-          1321,
-          1730
-        ]
-      ],
-      "reader": "R2-05-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/Views/Chat/ChatView.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
     {
       "path": "DroppyCode/App/Views/Chat/HydraButton.swift",
       "git_mode": "100644",
-      "git_blob": "04054240b90b58d985c9bcf8fdb9f96f00226e18",
-      "sha256": "de108d38c018661f8dd1bc6496a1799c52026a2e9bcb17624078f72c31e4ad03",
-      "size_bytes": 34092,
+      "git_blob": "172a4e15b051ce0f0cd162e354835adc4a89db62",
+      "sha256": "32182bb75d1305413928ee4dabd0c5b0ffbfb7cf6f9b53287f458b166c9c0619",
+      "size_bytes": 34087,
       "ext": "swift",
       "kind": "text",
       "line_count": 711,
@@ -800,40 +694,30 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          711
-        ]
-      ],
-      "reader": "R2-06-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/Views/Chat/HydraButton.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
     {
       "path": "DroppyCode/App/Views/Chat/HydraHeadPopovers.swift",
       "git_mode": "100644",
-      "git_blob": "860517a948c0012b4e03d84d53a075855a4dfc3f",
-      "sha256": "b2463f575c4d7edabe8c4c5810bd978aad54b5b5af18aa198ded51486245056f",
-      "size_bytes": 6843,
+      "git_blob": "d1a47ef34f3d1c82a6eb1c7371832a31295d83ab",
+      "sha256": "c8c80de1102fe2a1ba8b03d39460cb144e6d2f92bd550da306ffc8776620156d",
+      "size_bytes": 6704,
       "ext": "swift",
       "kind": "text",
-      "line_count": 173,
+      "line_count": 170,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          173
-        ]
-      ],
-      "reader": "R2-06-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/Views/Chat/HydraHeadPopovers.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -890,25 +774,20 @@
     {
       "path": "DroppyCode/App/Views/Chat/HydraPanel.swift",
       "git_mode": "100644",
-      "git_blob": "088ee2c375729518ad6d49b67bd25b711c6f67c5",
-      "sha256": "30a63402765866ad10224ed8db4ac6d9088cd1c04fb6446d641dec31a1269aba",
-      "size_bytes": 26880,
+      "git_blob": "0e425e6fd7a0dbfb4a8fea48fb94800028f80708",
+      "sha256": "08bbe26313bb31bff4138cd2e1dc63dc545cec4419fca3e60e27910f1e0db0b2",
+      "size_bytes": 26781,
       "ext": "swift",
       "kind": "text",
-      "line_count": 553,
+      "line_count": 552,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          553
-        ]
-      ],
-      "reader": "R2-06-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/Views/Chat/HydraPanel.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -940,9 +819,9 @@
     {
       "path": "DroppyCode/App/Views/Chat/HydraReportsPopover.swift",
       "git_mode": "100644",
-      "git_blob": "9575ec9a843e3f2eb8f39e6d92e69280d1540def",
-      "sha256": "504c2de3c2f38b83721bc81f70f0b20c4527d27dba9e6b69e0c6afb9e6636b99",
-      "size_bytes": 29901,
+      "git_blob": "32cd587a6358a295f1ca67f44d9bdf0f67293dd3",
+      "sha256": "f695d8339dc4e6091d470c08d153a09e362aa0ae0ac84b3cd888dc34342e910b",
+      "size_bytes": 29910,
       "ext": "swift",
       "kind": "text",
       "line_count": 655,
@@ -950,65 +829,10 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          655
-        ]
-      ],
-      "reader": "R2-07-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/Views/Chat/HydraReportsPopover.swift",
-      "asset_inspection": null,
-      "exclusion_reason": null
-    },
-    {
-      "path": "DroppyCode/App/Views/Chat/HydraRunMetricsView.swift",
-      "git_mode": "100644",
-      "git_blob": "c3405572587d38adb06235a63d2ba615c0c7aee2",
-      "sha256": "6427baa7651f932209126db659779664cffe12ebb3417d3b6d3771b0dc5b666d",
-      "size_bytes": 17088,
-      "ext": "swift",
-      "kind": "text",
-      "line_count": 398,
-      "has_crlf": true,
-      "classification": "first_party_app",
-      "build_inclusion": "in_app_target",
-      "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          398
-        ]
-      ],
-      "reader": "R2-07-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/Views/Chat/HydraRunMetricsView.swift",
-      "asset_inspection": null,
-      "exclusion_reason": null
-    },
-    {
-      "path": "DroppyCode/App/Views/Chat/LimitResumeBadge.swift",
-      "git_mode": "100644",
-      "git_blob": "cc3c9ce94039bbc22e2ac37fde0425e0a09f6fa3",
-      "sha256": "4ada8df8ed71b1b8c1fe4555288f09bd82abb6fa5f25c963a68d45e86eb32ed7",
-      "size_bytes": 2893,
-      "ext": "swift",
-      "kind": "text",
-      "line_count": 60,
-      "has_crlf": true,
-      "classification": "first_party_app",
-      "build_inclusion": "in_app_target",
-      "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          60
-        ]
-      ],
-      "reader": "R2-07-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/Views/Chat/LimitResumeBadge.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -1090,99 +914,60 @@
     {
       "path": "DroppyCode/App/Views/Chat/SubagentPanel.swift",
       "git_mode": "100644",
-      "git_blob": "e7a5407786f4df6f898b0945bbe8bccd4a72fe83",
-      "sha256": "feb811786779e441691973a5f04ad8490e24b24d3461861ca3d79e64d4c3b892",
-      "size_bytes": 33838,
+      "git_blob": "27cb3da020403ba198ae61e0b8042974850b7e72",
+      "sha256": "41315f9666bc82b7a8006cfeb65122898ea16d32aad08e81dd3d6477dce6f7ac",
+      "size_bytes": 31414,
       "ext": "swift",
       "kind": "text",
-      "line_count": 738,
+      "line_count": 666,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          370
-        ],
-        [
-          370,
-          738
-        ]
-      ],
-      "reader": "R2-08-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/Views/Chat/SubagentPanel.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
     {
       "path": "DroppyCode/App/Views/Chat/ThreadTimeline.swift",
       "git_mode": "100644",
-      "git_blob": "7a96b46081dc086a5290aa0da09f6658bf9eb502",
-      "sha256": "b79b32253f93e6e09efec658106599a5facfa86a1e564d833410b3267b3a4cea",
-      "size_bytes": 123372,
+      "git_blob": "468385d961a620a1e7e45ab48555e0de5a481e5f",
+      "sha256": "21d2fc91cbb79a9fd4e9b4a7ea9fb21814b38dbcdd5f1ad2c59ec16e8b43ba31",
+      "size_bytes": 124217,
       "ext": "swift",
       "kind": "text",
-      "line_count": 2314,
+      "line_count": 2326,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          400
-        ],
-        [
-          401,
-          800
-        ],
-        [
-          801,
-          1200
-        ],
-        [
-          1201,
-          1600
-        ],
-        [
-          1601,
-          2000
-        ],
-        [
-          2001,
-          2314
-        ]
-      ],
-      "reader": "R2-09-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/Views/Chat/ThreadTimeline.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
     {
       "path": "DroppyCode/App/Views/Chat/TimelineMinimap.swift",
       "git_mode": "100644",
-      "git_blob": "0cca2265ac02144f5fa8ee19775ee439e1faa9b2",
-      "sha256": "00f2b49ed1300850286cf08137938b88513ec59b9aab6e2acc2cf81700e10b53",
-      "size_bytes": 20576,
+      "git_blob": "5ce81ba18c980e5bcaf20fda3af672883ab5996c",
+      "sha256": "446e851117e02e5dc82831792cf7216fe23ef50573dd9d579f53ff7e360e141e",
+      "size_bytes": 20014,
       "ext": "swift",
       "kind": "text",
-      "line_count": 449,
+      "line_count": 435,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          449
-        ]
-      ],
-      "reader": "R2-10-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/Views/Chat/TimelineMinimap.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -1346,25 +1131,20 @@
     {
       "path": "DroppyCode/App/Views/Composer/DownloadsPopover.swift",
       "git_mode": "100644",
-      "git_blob": "3bf48fcd74001e56248eee383f4b680efcf4419c",
-      "sha256": "6943615e9f37b97778ce4c68e89c799bf12c87044012bb1d8844339724705761",
-      "size_bytes": 9555,
+      "git_blob": "3053dc8e69f3a1de8be969973367f1a1aa90e34d",
+      "sha256": "88aa9ce4fe83d572264c89fff767c75bfbc149feff0117ed138bac7a4cead072",
+      "size_bytes": 9366,
       "ext": "swift",
       "kind": "text",
-      "line_count": 242,
+      "line_count": 236,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          242
-        ]
-      ],
-      "reader": "R2-12-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/Views/Composer/DownloadsPopover.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -1396,9 +1176,9 @@
     {
       "path": "DroppyCode/App/Views/Composer/EffortSlider.swift",
       "git_mode": "100644",
-      "git_blob": "6c5f9db6fd03dbcb4adebeb6998e81da369bb3c4",
-      "sha256": "5e29add941eaca4e17cb9cf176eec40fced9725c58f22778d41a5743c9075b03",
-      "size_bytes": 63591,
+      "git_blob": "cae753e6a0b6a1f8a4cbde034dff2ccc1dea7a3a",
+      "sha256": "de5e74d6c869b21a0f2260b5a180690258f243ec77d3c5632f40d3f80f7519a1",
+      "size_bytes": 63581,
       "ext": "swift",
       "kind": "text",
       "line_count": 1347,
@@ -1406,19 +1186,10 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          700
-        ],
-        [
-          701,
-          1347
-        ]
-      ],
-      "reader": "R2-13-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/Views/Composer/EffortSlider.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -1450,25 +1221,20 @@
     {
       "path": "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift",
       "git_mode": "100644",
-      "git_blob": "77c9abd8986a0d82b13d1cafd81fdb47a39b2a34",
-      "sha256": "0a1e80cce1ce58df2becfcfccc94f4cfabce4c8be421416259db2801a26ae321",
-      "size_bytes": 28956,
+      "git_blob": "838f0fb4f36134982d6a774d5f2f43cf588fb8b2",
+      "sha256": "6e1effc7c9c9a870ea24ba9daa7e3fc8362bf8040d7eecd868e81ed3006bfd30",
+      "size_bytes": 28272,
       "ext": "swift",
       "kind": "text",
-      "line_count": 547,
+      "line_count": 532,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          547
-        ]
-      ],
-      "reader": "R2-13-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/Views/Composer/FollowUpQueueTab.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -1600,9 +1366,9 @@
     {
       "path": "DroppyCode/App/Views/Diff/DiffInspector.swift",
       "git_mode": "100644",
-      "git_blob": "b434969dd829991326ac5c747a09f71fba14c378",
-      "sha256": "9175c08227a6cd699605135521c319195bfff1d10c62f2a53d114c63235d2fd4",
-      "size_bytes": 30718,
+      "git_blob": "02bf6e6fe759ce53e54a179da52046d9bab317db",
+      "sha256": "d7e2030351854083326d6b5af22a2d9cbcb122e0bdddbc27625e2ee0cdfcb7be",
+      "size_bytes": 30708,
       "ext": "swift",
       "kind": "text",
       "line_count": 692,
@@ -1610,15 +1376,10 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          692
-        ]
-      ],
-      "reader": "R2-14-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/Views/Diff/DiffInspector.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -1650,25 +1411,20 @@
     {
       "path": "DroppyCode/App/Views/RootView.swift",
       "git_mode": "100644",
-      "git_blob": "a23a8dbe1236b26cdde689952a3db081421e8613",
-      "sha256": "4b2a7b59360fcca67684a48be854da13f89f34018c36263ffdcdc5920ab98a0e",
-      "size_bytes": 22454,
+      "git_blob": "a70925cb26602c3e6106f1997a43befbe499f5b6",
+      "sha256": "6f07d63c1489ef4a67b631188740cf0e313325fc461b8653d9c94e3d7670a1b5",
+      "size_bytes": 21355,
       "ext": "swift",
       "kind": "text",
-      "line_count": 479,
+      "line_count": 450,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          479
-        ]
-      ],
-      "reader": "R2-14-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/Views/RootView.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -1698,6 +1454,26 @@
       ],
       "reader": "R2-15-reader",
       "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/Views/Settings/AboutUpdateViews.swift",
+      "asset_inspection": null,
+      "exclusion_reason": null
+    },
+    {
+      "path": "DroppyCode/App/Views/Settings/FloatingGuidePanel.swift",
+      "git_mode": "100644",
+      "git_blob": "14e65ada46fc664d4c589fb24a0ea5c31e97789e",
+      "sha256": "14825a92b8c0b09c97ac5206de9580df7f30a4d15fd82c06aee6d62dfca31d90",
+      "size_bytes": 2748,
+      "ext": "swift",
+      "kind": "text",
+      "line_count": 71,
+      "has_crlf": true,
+      "classification": "first_party_app",
+      "build_inclusion": "in_app_target",
+      "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -1754,34 +1530,29 @@
     {
       "path": "DroppyCode/App/Views/Settings/MCPKeyPanel.swift",
       "git_mode": "100644",
-      "git_blob": "738c194e112f05ce1b9380e145c63be8c397ffcf",
-      "sha256": "48ae2c759b326fe11cc570aa331813bdb089d6303e281bb02a62e5ef5d4392c9",
-      "size_bytes": 9688,
+      "git_blob": "4a371885a0e565c12e84b462246e9944e2bddf27",
+      "sha256": "3b7063fd132674e845837dd73d87a53839f5f116a664058b12e9cfc4cae458f4",
+      "size_bytes": 7366,
       "ext": "swift",
       "kind": "text",
-      "line_count": 251,
+      "line_count": 195,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          251
-        ]
-      ],
-      "reader": "R2-15-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/Views/Settings/MCPKeyPanel.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
     {
       "path": "DroppyCode/App/Views/Settings/MCPSettingsPage.swift",
       "git_mode": "100644",
-      "git_blob": "cdd1a00f9fdf67fa9befcb90f4a488fb99a566f7",
-      "sha256": "748df6d55eb545bed51e411f686fd567b703f246cf838ba73ead06034fbd73be",
-      "size_bytes": 48014,
+      "git_blob": "196d59bda72a9daef7f4a5c183fd483a855a33f5",
+      "sha256": "660f1caa44e965e539029ace138d764a25810048f45604a753ac63d6e116ecbd",
+      "size_bytes": 48038,
       "ext": "swift",
       "kind": "text",
       "line_count": 1141,
@@ -1789,73 +1560,50 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          400
-        ],
-        [
-          401,
-          800
-        ],
-        [
-          801,
-          1141
-        ]
-      ],
-      "reader": "R2-16-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/Views/Settings/MCPSettingsPage.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
     {
       "path": "DroppyCode/App/Views/Settings/MCPSetupPanel.swift",
       "git_mode": "100644",
-      "git_blob": "1cb706187128455cb20e8fba9cf0810fd3aa2eab",
-      "sha256": "3379237716a00cb0945c14fe0eb017c73d80dea9856238d214720900698af3ed",
-      "size_bytes": 10660,
+      "git_blob": "a74d531655e85e9c7ca37a3becf981c20b3d1e99",
+      "sha256": "b501b1ba871ccdec12bf2bbef89b38f3853f62bb276e75edc01059639a364810",
+      "size_bytes": 8455,
       "ext": "swift",
       "kind": "text",
-      "line_count": 262,
+      "line_count": 212,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          262
-        ]
-      ],
-      "reader": "R2-16-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/Views/Settings/MCPSetupPanel.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
     {
       "path": "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift",
       "git_mode": "100644",
-      "git_blob": "4680b139ea01a9fbc4ac569857936163a4c2a69d",
-      "sha256": "ec6c57006014477cf170367c5da6287b4ba2369ca7435a7dfe1edcbdf7196467",
-      "size_bytes": 23103,
+      "git_blob": "8b01926e638321b2ee77979cdae601c95858e34a",
+      "sha256": "73c00cb210a3361dd39850028f35351ca7106681cf2e1d47ee4c4e250c1c0105",
+      "size_bytes": 22756,
       "ext": "swift",
       "kind": "text",
-      "line_count": 452,
+      "line_count": 448,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          452
-        ]
-      ],
-      "reader": "R2-16-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/Views/Settings/ModelsSettingsPage.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -1887,29 +1635,20 @@
     {
       "path": "DroppyCode/App/Views/Settings/SettingsView.swift",
       "git_mode": "100644",
-      "git_blob": "f03953c799a43be71120a4c4b071e38dadc4064e",
-      "sha256": "87732e72ded939a72fa800ab90c322bbae4da8a5f5cbe7655832dd22b39076ed",
-      "size_bytes": 59018,
+      "git_blob": "57f838afed7ad00396020d2c0a463260bd78e15b",
+      "sha256": "2fa3b58f147283dba7e7e8b215834a0c20c9db53312fe6a129818b9c5b89a85f",
+      "size_bytes": 57862,
       "ext": "swift",
       "kind": "text",
-      "line_count": 1232,
+      "line_count": 1209,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          620
-        ],
-        [
-          621,
-          1232
-        ]
-      ],
-      "reader": "R2-17-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/Views/Settings/SettingsView.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -2041,49 +1780,20 @@
     {
       "path": "DroppyCode/App/Views/Sidebar/SidebarView.swift",
       "git_mode": "100644",
-      "git_blob": "792bd13e70c83d0b96f03cc054f2127fb03714b4",
-      "sha256": "c67ac6c6a777e82b1d9355c8d2980c1e7ce5656061fcd86b1608a9e6ac175713",
-      "size_bytes": 134358,
+      "git_blob": "bae8840ad5a95aa0680c66990159acfeb89debb6",
+      "sha256": "0ef49296864ce205f77921ff98127af44e791f53b834053e21f75bdd0f24eb8e",
+      "size_bytes": 134365,
       "ext": "swift",
       "kind": "text",
-      "line_count": 2696,
+      "line_count": 2695,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          450
-        ],
-        [
-          450,
-          899
-        ],
-        [
-          900,
-          1319
-        ],
-        [
-          1319,
-          1718
-        ],
-        [
-          1718,
-          2117
-        ],
-        [
-          2117,
-          2416
-        ],
-        [
-          2416,
-          2696
-        ]
-      ],
-      "reader": "R2-19-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/Views/Sidebar/SidebarView.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -2115,25 +1825,20 @@
     {
       "path": "DroppyCode/App/Views/Terminal/TerminalPanel.swift",
       "git_mode": "100644",
-      "git_blob": "3d16d4d7310daf768c9345757c8b88443f63757a",
-      "sha256": "f7ff7ea00d7b17f10ce9fa168ba014625d3bca482c7a62dd652f4721edff33fd",
-      "size_bytes": 18001,
+      "git_blob": "7169a55d31a8df6f16def20b15e61dbf7432280c",
+      "sha256": "dc8090eb0357eee1542baea809acfe7b7272c6b72c355c99cef728015a775c98",
+      "size_bytes": 14044,
       "ext": "swift",
       "kind": "text",
-      "line_count": 443,
+      "line_count": 318,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          443
-        ]
-      ],
-      "reader": "R2-20-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/Views/Terminal/TerminalPanel.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -2540,58 +2245,40 @@
     {
       "path": "DroppyCode/Core/Models/Hydra.swift",
       "git_mode": "100644",
-      "git_blob": "c5549d56ac8a89a8e1931cdfbbee50df0a1b005e",
-      "sha256": "c3c9e31bbe36e163a5870b4f8fd9fe2b0a4c0d2318bf1a6cb01e3be403edc613",
-      "size_bytes": 91460,
+      "git_blob": "ba1c39a00f98d4b785afbebca089b458c0bffb8b",
+      "sha256": "1e9bcd922db4b79305c446e83d96575d6665a5acd4851a4698190d46e726925d",
+      "size_bytes": 91878,
       "ext": "swift",
       "kind": "text",
-      "line_count": 1434,
+      "line_count": 1438,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          480
-        ],
-        [
-          481,
-          960
-        ],
-        [
-          961,
-          1434
-        ]
-      ],
-      "reader": "R2-22-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Core/Models/Hydra.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
     {
       "path": "DroppyCode/Core/Models/HydraCookbook.swift",
       "git_mode": "100644",
-      "git_blob": "bc97223e71b4209a82ce5f6e325e0a861db50710",
-      "sha256": "f03943b728732273ad0ef00710d718ab89b9881cb6ec8442be2037304cdc6c03",
-      "size_bytes": 5755,
+      "git_blob": "c6b14af472cf4e71feb356583bc2cd3c7f84b110",
+      "sha256": "b791e87571d87e1dc9d159b69c25fca8387268b70bc9609c6f0d9ed01250d5a4",
+      "size_bytes": 6444,
       "ext": "swift",
       "kind": "text",
-      "line_count": 52,
+      "line_count": 54,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          52
-        ]
-      ],
-      "reader": "R031-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Core/Models/HydraCookbook.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -2648,25 +2335,20 @@
     {
       "path": "DroppyCode/Core/Models/MCP.swift",
       "git_mode": "100644",
-      "git_blob": "5538aaf7fe897a490f1f8a6e3251a52384214177",
-      "sha256": "9e112ce2bd847316413746c187f72c53e8cbc8f1dbb0274e475a6aa353e23c97",
-      "size_bytes": 10526,
+      "git_blob": "61cceafabeb9851e1265f794ed8cc01568a5c68d",
+      "sha256": "cab83ae3ccebdb89f6d884c2963c29f16d582db7fc15bd3969bb8abb276e2b75",
+      "size_bytes": 8266,
       "ext": "swift",
       "kind": "text",
-      "line_count": 263,
+      "line_count": 220,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          263
-        ]
-      ],
-      "reader": "R2-22-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Core/Models/MCP.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -2873,25 +2555,20 @@
     {
       "path": "DroppyCode/Core/Models/Timeline.swift",
       "git_mode": "100644",
-      "git_blob": "1c57a9e020ac4a24985021b4888bda0ce986b3c0",
-      "sha256": "3d00a7fce0953d9e8e069b0adff9a688e4c00d1269af4490080de84f5f4a367b",
-      "size_bytes": 13816,
+      "git_blob": "7d7764c5adc76ab48fd6105066fead47898de7b9",
+      "sha256": "0dcf2b023a58dcabce56803957d5c5ac68bea41d9fc31f931e08918e667d735e",
+      "size_bytes": 13990,
       "ext": "swift",
       "kind": "text",
-      "line_count": 366,
+      "line_count": 369,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          366
-        ]
-      ],
-      "reader": "R2-23-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Core/Models/Timeline.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -3096,6 +2773,26 @@
       "exclusion_reason": null
     },
     {
+      "path": "DroppyCode/Core/Support/PendingReplies.swift",
+      "git_mode": "100644",
+      "git_blob": "a6d23ebbc40e94c6a1409af52526c78fce6089f6",
+      "sha256": "a3f12679cc1ed21e6136aafc321fb23d8ab4998223c530707c9a317eaeb2890e",
+      "size_bytes": 2307,
+      "ext": "swift",
+      "kind": "text",
+      "line_count": 63,
+      "has_crlf": true,
+      "classification": "first_party_app",
+      "build_inclusion": "in_app_target",
+      "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
+      "asset_inspection": null,
+      "exclusion_reason": null
+    },
+    {
       "path": "DroppyCode/Core/Support/RecentCache.swift",
       "git_mode": "100644",
       "git_blob": "bfc510193d26e8744649d5507f4b3e3c20c6ae83",
@@ -3173,25 +2870,40 @@
     {
       "path": "DroppyCode/Core/Support/StdioProcess.swift",
       "git_mode": "100644",
-      "git_blob": "fb65ec9e7ab4ca8190d3cb463495a93b8936519a",
-      "sha256": "3a123ab5c963a9167443e0934943249ba02389d0daad311360d30d4ec40131cd",
-      "size_bytes": 6548,
+      "git_blob": "f21fe26bd9fa7cb0166095efce836f26e580bb16",
+      "sha256": "0b2789577aa60a1e7af9fe315956d5f98e054322bdfe646e73925e0c37adedc5",
+      "size_bytes": 6612,
       "ext": "swift",
       "kind": "text",
-      "line_count": 183,
+      "line_count": 184,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          183
-        ]
-      ],
-      "reader": "R2-24-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Core/Support/StdioProcess.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
+      "asset_inspection": null,
+      "exclusion_reason": null
+    },
+    {
+      "path": "DroppyCode/Core/Support/StoragePaths.swift",
+      "git_mode": "100644",
+      "git_blob": "c47f0851251e5de7f0f80376ed3b89fd781f6bbe",
+      "sha256": "1c1cf209b9d575544eaabde88bf70468b679b76d32ceeda3f0920b10f7a13321",
+      "size_bytes": 1096,
+      "ext": "swift",
+      "kind": "text",
+      "line_count": 23,
+      "has_crlf": true,
+      "classification": "first_party_app",
+      "build_inclusion": "in_app_target",
+      "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -3223,25 +2935,20 @@
     {
       "path": "DroppyCode/Core/Support/Text.swift",
       "git_mode": "100644",
-      "git_blob": "18c8123445a49b06942ef4e68edb9991cb6834de",
-      "sha256": "6f53039cbd93d83871d76c56411535877261fda14fec4123aee4c176f27b0299",
-      "size_bytes": 6500,
+      "git_blob": "79c5f083989d59179fbba2eb79e1ed3ad54fd610",
+      "sha256": "8661aacafcb23fc5ed9bf534893617158fc9f4748f13883ac8d762b9395dc2b0",
+      "size_bytes": 9542,
       "ext": "swift",
       "kind": "text",
-      "line_count": 133,
+      "line_count": 225,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          133
-        ]
-      ],
-      "reader": "R2-24-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Core/Support/Text.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -3298,9 +3005,9 @@
     {
       "path": "DroppyCode/Resources/AppIcon.icon/Assets/mascot (3).png",
       "git_mode": "100644",
-      "git_blob": "5788604489299d86b88d897ada2b4955ba0060a0",
-      "sha256": "50e7235981eb956261bc04f9f9a1da0e27335e358f48576403e177d2593e813a",
-      "size_bytes": 614192,
+      "git_blob": "ae5161f4e9c02b80bb1f00b3d9d13fa76a2a30b4",
+      "sha256": "bdfe8fa072a9cde1809d2852235e5ae7a4b5c08bc13dc3bce327a7addd03b312",
+      "size_bytes": 592376,
       "ext": "png",
       "kind": "binary",
       "line_count": null,
@@ -3308,11 +3015,11 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": null,
-      "reader": "R063-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Resources/AppIcon.icon/Assets/mascot (3).png",
-      "asset_inspection": "PNG, 1528x1749, 8-bit RGBA (colorType 6), non-interlaced, 614192 bytes. Chunks IHDR,pHYs,sRGB,gAMA,tEXt,IDAT,IEND; pHYs 5669x5669 px/metre (=144 dpi), sRGB intent 0, gAMA 45455, tEXt Software=Figma. Artwork: the Droppy mascot, a glossy light-blue teardrop whose point leans to the upper right, with two tall white oval eyes low-centre and a soft white inner highlight along the bottom; a wide white blurred halo bleeds past the drop on a transparent background.",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
+      "asset_inspection": null,
       "exclusion_reason": null
     },
     {
@@ -3358,9 +3065,9 @@
     {
       "path": "DroppyCode/Resources/AppIcon.icon/Assets/shadow def.png",
       "git_mode": "100644",
-      "git_blob": "9ae26353dc28bb6c62ad969b73ef0ab9a1387f54",
-      "sha256": "53533afd2dd1a8d0bc2bf064684543ba1159fab7a4d47b2afb6e4907c1e963ea",
-      "size_bytes": 279706,
+      "git_blob": "4a79769b0c481fb8d34201f1cb4ed9776edd590e",
+      "sha256": "b2f2f537143b75ea28a722b82817eec42561ac0c00fa27bf426c9a7c50cd32d1",
+      "size_bytes": 319334,
       "ext": "png",
       "kind": "binary",
       "line_count": null,
@@ -3368,19 +3075,19 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": null,
-      "reader": "R063-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Resources/AppIcon.icon/Assets/shadow def.png",
-      "asset_inspection": "PNG, 743x339, 8-bit RGBA, non-interlaced, 279706 bytes. Chunks IHDR,pHYs,sRGB,gAMA,tEXt,IDAT,IEND; pHYs 2835x2835 unit=1, sRGB intent 0, gAMA 45455, tEXt Software=Figma. Artwork: the same soft stretched ellipse as 'shadow dark.png' but tinted slate/steel blue, with a desaturated navy core fading out through pale blue-grey to transparency, matching the blue icon plate.",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
+      "asset_inspection": null,
       "exclusion_reason": null
     },
     {
       "path": "DroppyCode/Resources/AppIcon.icon/icon.json",
       "git_mode": "100644",
-      "git_blob": "2ec2db927e9a11d2d39febbfe36eaa78f10c141e",
-      "sha256": "f3aabbba2ccadedea2e5263467a6092739595c424ff9f1b727728f0e3db04b2b",
-      "size_bytes": 4284,
+      "git_blob": "a4b2545224614b1fba9e47693aa46e713dcc7485",
+      "sha256": "36380f11d43c87b66f7cbb449b303eef3a27994961621161b569b0a1e1c3b9ee",
+      "size_bytes": 4278,
       "ext": "json",
       "kind": "text",
       "line_count": 187,
@@ -3388,15 +3095,10 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          187
-        ]
-      ],
-      "reader": "R034-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Resources/AppIcon.icon/icon.json",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -3638,9 +3340,9 @@
     {
       "path": "DroppyCode/Resources/Assets.xcassets/droppy-logo.imageset/droppy-logo.png",
       "git_mode": "100644",
-      "git_blob": "f57590663d52f79c5fae0f3e5e18af102628fd3e",
-      "sha256": "0f5d9663a0d23c458ab8e2783237596e5618d482f4ac23f00ead91eccef04388",
-      "size_bytes": 51677,
+      "git_blob": "bf1e1c9dda72c5dea9d75a6c09d0e0574e8f6bb5",
+      "sha256": "307aca65b532fe56c1faf38423e40812fcdd4969e105bd1e936224cb19e4de95",
+      "size_bytes": 42660,
       "ext": "png",
       "kind": "binary",
       "line_count": null,
@@ -3648,19 +3350,19 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": null,
-      "reader": "R063-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Resources/Assets.xcassets/droppy-logo.imageset/droppy-logo.png",
-      "asset_inspection": "PNG, 256x256, 8-bit RGBA, non-interlaced, 51677 bytes. Chunks IHDR,gAMA,cHRM,eXIf,pHYs,iTXt,IDAT,IEND; gAMA 45455, pHYs 5669x5669 unit=1, iTXt XML:com.adobe.xmp written by XMP Core 6.0.0. Artwork: the Droppy company mark, a rounded-square (squircle) tile filled with a light-to-mid blue vertical gradient carrying the glossy translucent teardrop mascot with two white oval eyes. Plain blue plate, no binary-digit pattern.",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
+      "asset_inspection": null,
       "exclusion_reason": null
     },
     {
       "path": "DroppyCode/Resources/Assets.xcassets/droppy-logo.imageset/droppy-logo@2x.png",
       "git_mode": "100644",
-      "git_blob": "8e1a4775f69ceaf1964728ca40f3c3acb5f2eb8d",
-      "sha256": "8007b4c58a34c96525245976b4d715930a24b4a8fac1614811c058720d98943d",
-      "size_bytes": 168848,
+      "git_blob": "7a8b44f7075ec60c528d52bf14a3d3436b18f2d6",
+      "sha256": "467897a05e5b29238ee4df44e38eb130fb7bdf93a9d0acec38f342afdf1c242c",
+      "size_bytes": 127975,
       "ext": "png",
       "kind": "binary",
       "line_count": null,
@@ -3668,11 +3370,11 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": null,
-      "reader": "R063-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Resources/Assets.xcassets/droppy-logo.imageset/droppy-logo@2x.png",
-      "asset_inspection": "PNG, 512x512, 8-bit RGBA, non-interlaced, 168848 bytes. Chunks IHDR,gAMA,cHRM,eXIf,pHYs,iTXt,IDAT,IEND; gAMA 45455, pHYs 5669x5669 unit=1, iTXt XML:com.adobe.xmp. Artwork: the same plain-blue squircle Droppy mark at double resolution; the teardrop's glassy rim highlight and the two white eyes are visibly crisper, and the plate's gradient runs pale blue at the top to a stronger blue at the bottom.",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
+      "asset_inspection": null,
       "exclusion_reason": null
     },
     {
@@ -7688,29 +7390,20 @@
     {
       "path": "DroppyCode/Services/Git/Git.swift",
       "git_mode": "100644",
-      "git_blob": "919c04d76dcf19dfa6ae42f44d469a4b53e0f35a",
-      "sha256": "2294e4d921d7124898ed665f70ac24e82d8e4396765829ec9ac57e568a9de953",
-      "size_bytes": 37070,
+      "git_blob": "a4a34277ead67532f6f9394793e1ff65250e9e03",
+      "sha256": "99906625bd2ec9de5b00b7665074065c2d4ab073f128b1e03d729babe44893b6",
+      "size_bytes": 43774,
       "ext": "swift",
       "kind": "text",
-      "line_count": 723,
+      "line_count": 828,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          370
-        ],
-        [
-          371,
-          723
-        ]
-      ],
-      "reader": "R2-25-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/Git/Git.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -7821,9 +7514,9 @@
     {
       "path": "DroppyCode/Services/MCP/MCPBridgeSource.swift",
       "git_mode": "100644",
-      "git_blob": "b9ef36874fad68b66457627155c04bdd63681683",
-      "sha256": "ea745c50864a2f9d9cebde713b6258af3cfe12bc04767d9efddb0c229259de9a",
-      "size_bytes": 11513,
+      "git_blob": "d9ffd772d570845dea9fe098e2985eda3a9b1d32",
+      "sha256": "a33b53ff2af4f30a3843af151eabe9052559e470c207936390261cc9ace24020",
+      "size_bytes": 11530,
       "ext": "swift",
       "kind": "text",
       "line_count": 252,
@@ -7831,15 +7524,30 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          252
-        ]
-      ],
-      "reader": "R037-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/MCP/MCPBridgeSource.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
+      "asset_inspection": null,
+      "exclusion_reason": null
+    },
+    {
+      "path": "DroppyCode/Services/MCP/MCPCatalogEntry+Resolve.swift",
+      "git_mode": "100644",
+      "git_blob": "102acf93652e764711d8c50a7b5f3e75e51c11ed",
+      "sha256": "3561b7c015f8e4398e8c0928509fb3b8080967ddf1a2df27c01ef2c9ef6dbf86",
+      "size_bytes": 1125,
+      "ext": "swift",
+      "kind": "text",
+      "line_count": 25,
+      "has_crlf": true,
+      "classification": "first_party_app",
+      "build_inclusion": "in_app_target",
+      "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -7871,150 +7579,140 @@
     {
       "path": "DroppyCode/Services/MCP/MCPHub.swift",
       "git_mode": "100644",
-      "git_blob": "98310053d21454e4c7121e45ca8210ee628d0605",
-      "sha256": "ab3a29a05d7e0c32af72470bb95e4cb5215cb953432df42993163bc8a0b53288",
-      "size_bytes": 22419,
+      "git_blob": "3b8d80606e37c08e6d4692ec5cac9bc311d8c61e",
+      "sha256": "6b2f34b1b246367b91e85220cb3925fe653eeb89359dd46ad2a602fbc3d1be92",
+      "size_bytes": 15177,
       "ext": "swift",
       "kind": "text",
-      "line_count": 557,
+      "line_count": 376,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          557
-        ]
-      ],
-      "reader": "R2-26-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/MCP/MCPHub.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
     {
       "path": "DroppyCode/Services/MCP/MCPKeychain.swift",
       "git_mode": "100644",
-      "git_blob": "e83b50db6e0606de201b396a9df23b375aff13b2",
-      "sha256": "68068d97f06f8f8137ef884ca28bb25a33e0659faa74f1bd90ac1d92f1342638",
-      "size_bytes": 2911,
+      "git_blob": "b255c3d2e6d85811b42b889a85b5c15b85903e74",
+      "sha256": "48a2e74d328cc8951da724fd62b478246be6760665baf324fd4517d0fe20a01f",
+      "size_bytes": 1243,
       "ext": "swift",
       "kind": "text",
-      "line_count": 68,
+      "line_count": 32,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          68
-        ]
-      ],
-      "reader": "R2-26-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/MCP/MCPKeychain.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
     {
       "path": "DroppyCode/Services/MCP/MCPOAuth.swift",
       "git_mode": "100644",
-      "git_blob": "c4ef769497702ca395650ba103dc430652c9232e",
-      "sha256": "58912b3c8f0407eb88637c164782ee9c96c112c653311c434ef741eddca2dfcd",
-      "size_bytes": 40497,
+      "git_blob": "6869188ab0a53be719e70e1c547e178f91f442c4",
+      "sha256": "dbd39055456708ea2766602e4ae47edc5dd122b2f490277a6fcd2ee8b53f7f55",
+      "size_bytes": 40695,
       "ext": "swift",
       "kind": "text",
-      "line_count": 930,
+      "line_count": 933,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          930
-        ]
-      ],
-      "reader": "R2-26-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/MCP/MCPOAuth.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
+      "asset_inspection": null,
+      "exclusion_reason": null
+    },
+    {
+      "path": "DroppyCode/Services/MCP/MCPPaths.swift",
+      "git_mode": "100644",
+      "git_blob": "811ad809baab62ddc967aebaf3a558c8d9fae1a0",
+      "sha256": "431c5e1a418c48259303901cc6dc918c89b23d7005a44e74459e008ce6108915",
+      "size_bytes": 1245,
+      "ext": "swift",
+      "kind": "text",
+      "line_count": 22,
+      "has_crlf": true,
+      "classification": "first_party_app",
+      "build_inclusion": "in_app_target",
+      "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
     {
       "path": "DroppyCode/Services/MCP/MCPProbe.swift",
       "git_mode": "100644",
-      "git_blob": "29321c3b5a001f5e5829df31a23cc4a08a7a946f",
-      "sha256": "52265ebb6205c4791dcee1887edbfc34ca6e0619865664985cc56649fa1fbf9c",
-      "size_bytes": 18693,
+      "git_blob": "7fd4fa4fbac231fc5bd226658a1d068e573161d1",
+      "sha256": "f474b6e561a4ebb1dacb2e7cb3af233cdef872aef0d066e429f61acdbf532770",
+      "size_bytes": 11187,
       "ext": "swift",
       "kind": "text",
-      "line_count": 430,
+      "line_count": 235,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          430
-        ]
-      ],
-      "reader": "R2-26-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/MCP/MCPProbe.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
     {
       "path": "DroppyCode/Services/MCP/MCPProviderConfig.swift",
       "git_mode": "100644",
-      "git_blob": "7c8b1f7c53b5c42e431d38f1e3caaf139d0dba29",
-      "sha256": "f563e93b9f6d6b2edc8881d8710763f565579e7c4a942bf23d62793c83b1308e",
-      "size_bytes": 11917,
+      "git_blob": "148180303aa2dd07d9edc3d783a19529feb10c93",
+      "sha256": "9772c48257fb2f6e3bab581b2cb5dc1d4bac892623fcdc502d1a65043f69f4e2",
+      "size_bytes": 11597,
       "ext": "swift",
       "kind": "text",
-      "line_count": 252,
+      "line_count": 244,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          252
-        ]
-      ],
-      "reader": "R037-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/MCP/MCPProviderConfig.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
     {
       "path": "DroppyCode/Services/MCP/MCPProxy.swift",
       "git_mode": "100644",
-      "git_blob": "9a8ae3862336e35dde92d689caf908805e2bfa40",
-      "sha256": "12b5cb00891ae0244748889f0520276fbe94e69f10d4850cd6c40b9ee437f0ce",
-      "size_bytes": 20217,
+      "git_blob": "946c950e54c6862074a483a616d2fc3353eccd8d",
+      "sha256": "396051edcf230e2db4711107585ac7d2a6fe635a4a29252fe359112f957bf85f",
+      "size_bytes": 20912,
       "ext": "swift",
       "kind": "text",
-      "line_count": 460,
+      "line_count": 477,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          460
-        ]
-      ],
-      "reader": "R2-27-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/MCP/MCPProxy.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -8046,25 +7744,40 @@
     {
       "path": "DroppyCode/Services/MCP/MCPStore.swift",
       "git_mode": "100644",
-      "git_blob": "3c3b969d5557dab2372a80b8d9e0d963f397a6af",
-      "sha256": "6823eaf09814ea4c07fcbaf06cc00aea1d0a62654c8b814e3fc70aa834cf2c0d",
-      "size_bytes": 16499,
+      "git_blob": "a2bc9426e158da1e705f781c8a0ade3cd5e9ef7c",
+      "sha256": "5ca8a744ef327998ea99b8a3c149089212d50ccdd07e0ff04057ceb26046cfb8",
+      "size_bytes": 16236,
       "ext": "swift",
       "kind": "text",
-      "line_count": 356,
+      "line_count": 350,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          356
-        ]
-      ],
-      "reader": "R2-27-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/MCP/MCPStore.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
+      "asset_inspection": null,
+      "exclusion_reason": null
+    },
+    {
+      "path": "DroppyCode/Services/MCP/MCPWire.swift",
+      "git_mode": "100644",
+      "git_blob": "5db0df35a04e23ddcba2ac73e13a896f01d6ecd5",
+      "sha256": "1d2fdc26cf92968a339d0a05d56cef91eac19f8518d60de3ada3e8c7a85b0058",
+      "size_bytes": 9785,
+      "ext": "swift",
+      "kind": "text",
+      "line_count": 246,
+      "has_crlf": true,
+      "classification": "first_party_app",
+      "build_inclusion": "in_app_target",
+      "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -8100,187 +7813,120 @@
     {
       "path": "DroppyCode/Services/Providers/APIKeychain.swift",
       "git_mode": "100644",
-      "git_blob": "292bebe80a7c252dcdbd3eca4ba37ff35ecd0f48",
-      "sha256": "79739d65caddc0033fbcbc7862bb9c60d782412028ca37566826a13fc152d072",
-      "size_bytes": 2804,
+      "git_blob": "26a956616006929ee874a022a1dd3f3073b308ba",
+      "sha256": "b13659dc14feeefb3b972009befc05ead703615ad38bcf49542d5576f47e195b",
+      "size_bytes": 3654,
       "ext": "swift",
       "kind": "text",
-      "line_count": 66,
+      "line_count": 84,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          66
-        ]
-      ],
-      "reader": "R2-28-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/Providers/APIKeychain.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
     {
       "path": "DroppyCode/Services/Providers/AntigravitySession.swift",
       "git_mode": "100644",
-      "git_blob": "bfbaa47e9d727463386a30e79510c6d8c6b724ee",
-      "sha256": "18a346dc6e88127899bd0385f9e6d04a54381a658ed972207753a5ea863a93b8",
-      "size_bytes": 37156,
+      "git_blob": "ecaf47992626c385b5ef86b18169260b8392242b",
+      "sha256": "1144a1dbee29b5c1f72767e591958b354729fe1ca0e285c743cab49677b69567",
+      "size_bytes": 36468,
       "ext": "swift",
       "kind": "text",
-      "line_count": 730,
+      "line_count": 719,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          369
-        ],
-        [
-          370,
-          730
-        ]
-      ],
-      "reader": "R2-28-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/Providers/AntigravitySession.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
     {
       "path": "DroppyCode/Services/Providers/ClaudeSession.swift",
       "git_mode": "100644",
-      "git_blob": "dbb33ee377e824f491c94aa52be62334cb543806",
-      "sha256": "647ac75ea4b2d74bf3723c5c4f7fb9b6e213ababf42651d3fa722e0ffcf2d438",
-      "size_bytes": 44296,
+      "git_blob": "0a170693d352067df069225281f4ef8a5680db7b",
+      "sha256": "140af4e1f4dd4eb965cb85f77187165d8847da8c169f0ca3ade7c5d8bca1adfa",
+      "size_bytes": 43236,
       "ext": "swift",
       "kind": "text",
-      "line_count": 853,
+      "line_count": 829,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          853
-        ]
-      ],
-      "reader": "R2-29-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/Providers/ClaudeSession.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
     {
       "path": "DroppyCode/Services/Providers/CodexSession.swift",
       "git_mode": "100644",
-      "git_blob": "98bdf08547d6152720108f1f0b2d3ecdc57a6509",
-      "sha256": "c09a1157db5e5d51a28a32a4d9cc88273c2314bc012142efbdc48d00460aa1dd",
-      "size_bytes": 54663,
+      "git_blob": "672c365d9bf6daab132a4d3307573aec81ecfd37",
+      "sha256": "f87dcf4cfd07b883dd301c5473489c3af978dde1ee08aeb683b5b0478bd109af",
+      "size_bytes": 55021,
       "ext": "swift",
       "kind": "text",
-      "line_count": 1052,
+      "line_count": 1059,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          529
-        ],
-        [
-          530,
-          1052
-        ]
-      ],
-      "reader": "R2-29-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/Providers/CodexSession.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
     {
       "path": "DroppyCode/Services/Providers/CommandCodeAPI.swift",
       "git_mode": "100644",
-      "git_blob": "4423539dca6f073dbcb9b043d52a490b21dfc034",
-      "sha256": "e6206fe851accb6d7fbe4ed4f9944b9856eff8e2f6308f9effeeac11bf7acf8d",
-      "size_bytes": 27391,
+      "git_blob": "21da339ec7a80bad875a63dccf252d635d21818f",
+      "sha256": "6e3f4302a1c2de79f6c2403f58c88f84ac3340b5537cc617df6183a5a89c27ad",
+      "size_bytes": 27785,
       "ext": "swift",
       "kind": "text",
-      "line_count": 458,
+      "line_count": 460,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          458
-        ]
-      ],
-      "reader": "R2-30-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/Providers/CommandCodeAPI.swift",
-      "asset_inspection": null,
-      "exclusion_reason": null
-    },
-    {
-      "path": "DroppyCode/Services/Providers/CommandCodeKeychain.swift",
-      "git_mode": "100644",
-      "git_blob": "ea57949917ca3524978b1ec35a6316a06fc47840",
-      "sha256": "b96de05848dfc446acc3994a49271b5fcc8ccfaa77f2aaed0e9ecbec2ccecc5d",
-      "size_bytes": 717,
-      "ext": "swift",
-      "kind": "text",
-      "line_count": 18,
-      "has_crlf": true,
-      "classification": "first_party_app",
-      "build_inclusion": "in_app_target",
-      "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          18
-        ]
-      ],
-      "reader": "R043-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/Providers/CommandCodeKeychain.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
     {
       "path": "DroppyCode/Services/Providers/CommandCodeSession.swift",
       "git_mode": "100644",
-      "git_blob": "a1179c1206059f2f92642326afe04ef7b82c8e8e",
-      "sha256": "8e50c8a20b4d9f0384277886326b3b8f6d45e2977316357adf787a5d646912a7",
-      "size_bytes": 38052,
+      "git_blob": "41af3a79c79965780897b9348b45f682474fecae",
+      "sha256": "5b37d9aa0b281a00cfacfd171a2b6148513be30ecaea504aeaa1bc38464b629a",
+      "size_bytes": 35944,
       "ext": "swift",
       "kind": "text",
-      "line_count": 771,
+      "line_count": 722,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          400
-        ],
-        [
-          401,
-          771
-        ]
-      ],
-      "reader": "R2-30-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/Providers/CommandCodeSession.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -8320,50 +7966,20 @@
     {
       "path": "DroppyCode/Services/Providers/DeepSeekAPI.swift",
       "git_mode": "100644",
-      "git_blob": "0ef2635713b81d6fb5f7d204d9cfd57b8474551e",
-      "sha256": "0d86620a374a0bbab26db8e874feec70cd71352f2311ef8bbc0f0f3889221bb8",
-      "size_bytes": 5647,
+      "git_blob": "613fe737cdc8a1c11adfcd6b1efd1143c2afbeeb",
+      "sha256": "99ce635288809370f3700a73dcc093bb4e882ffb8bf51a1cd7af6325396dbb42",
+      "size_bytes": 4376,
       "ext": "swift",
       "kind": "text",
-      "line_count": 99,
+      "line_count": 78,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          99
-        ]
-      ],
-      "reader": "R2-31-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/Providers/DeepSeekAPI.swift",
-      "asset_inspection": null,
-      "exclusion_reason": null
-    },
-    {
-      "path": "DroppyCode/Services/Providers/DeepSeekKeychain.swift",
-      "git_mode": "100644",
-      "git_blob": "5051b925cb06fd99b98e14ca10f013f5ebffa4f3",
-      "sha256": "f938b86e1ac461eeb62256a306d985f4a58c0f693d6a97012a67df0aab5c8b5b",
-      "size_bytes": 513,
-      "ext": "swift",
-      "kind": "text",
-      "line_count": 16,
-      "has_crlf": true,
-      "classification": "first_party_app",
-      "build_inclusion": "in_app_target",
-      "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          16
-        ]
-      ],
-      "reader": "R040-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/Providers/DeepSeekKeychain.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -8395,50 +8011,20 @@
     {
       "path": "DroppyCode/Services/Providers/MetaAPI.swift",
       "git_mode": "100644",
-      "git_blob": "beb4945627217be3e0b1e1949d4ee8592a214f7d",
-      "sha256": "2c77dec22046b70f48f086375af04472065b7b452402ebd6dfc6a2ae5a0abebd",
-      "size_bytes": 5084,
+      "git_blob": "a3cf4c62343fd3d3d6a3e6faed717483f5282856",
+      "sha256": "e92ac382af17894be51323db11f9428b7c35dc7997143ee7a2a3017586d5668c",
+      "size_bytes": 3957,
       "ext": "swift",
       "kind": "text",
-      "line_count": 89,
+      "line_count": 70,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          89
-        ]
-      ],
-      "reader": "R2-31-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/Providers/MetaAPI.swift",
-      "asset_inspection": null,
-      "exclusion_reason": null
-    },
-    {
-      "path": "DroppyCode/Services/Providers/MetaKeychain.swift",
-      "git_mode": "100644",
-      "git_blob": "36fd09909aef8bcb25a22a77f8c4e611c7631a12",
-      "sha256": "89d04643675b6588b0b5e879579e63af1dceb2ac3c4b04b750d6474a1e65639c",
-      "size_bytes": 523,
-      "ext": "swift",
-      "kind": "text",
-      "line_count": 16,
-      "has_crlf": true,
-      "classification": "first_party_app",
-      "build_inclusion": "in_app_target",
-      "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          16
-        ]
-      ],
-      "reader": "R040-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/Providers/MetaKeychain.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -8493,35 +8079,42 @@
       "exclusion_reason": null
     },
     {
-      "path": "DroppyCode/Services/Providers/OpenAICompatibleSession.swift",
+      "path": "DroppyCode/Services/Providers/OpenAICompatibleAPI.swift",
       "git_mode": "100644",
-      "git_blob": "ce21c22b57de7c137fcc2bac04904ea4e55d7734",
-      "sha256": "029bbc4b468bb666c5cbba7a4b3b6d8049c089e8ebb98b34076f246b2477f9f0",
-      "size_bytes": 69588,
+      "git_blob": "97fbc68d80334e637ee9fdba5c199aed9d5e3b79",
+      "sha256": "7f2923cc00767081eb19a3a44aa3b896750faf28d6ed0b9dcbe5a8b440195714",
+      "size_bytes": 1727,
       "ext": "swift",
       "kind": "text",
-      "line_count": 1336,
+      "line_count": 35,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          450
-        ],
-        [
-          451,
-          900
-        ],
-        [
-          901,
-          1336
-        ]
-      ],
-      "reader": "R2-32-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/Providers/OpenAICompatibleSession.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
+      "asset_inspection": null,
+      "exclusion_reason": null
+    },
+    {
+      "path": "DroppyCode/Services/Providers/OpenAICompatibleSession.swift",
+      "git_mode": "100644",
+      "git_blob": "1aac73c16001c8d0a52187b6cc1b3627a100cdbf",
+      "sha256": "d035efb7f23405b5d6063964425028cc33aaebf69aff2e529b9a4ee136e56d37",
+      "size_bytes": 69537,
+      "ext": "swift",
+      "kind": "text",
+      "line_count": 1334,
+      "has_crlf": true,
+      "classification": "first_party_app",
+      "build_inclusion": "in_app_target",
+      "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -8578,25 +8171,20 @@
     {
       "path": "DroppyCode/Services/Providers/PiSession.swift",
       "git_mode": "100644",
-      "git_blob": "8ea3d4772d82e4815fbeef9ff5cf2d8c77e85af5",
-      "sha256": "97437e43944efc1e786b0506f40ba8c416112c106343fe58fffc6e943264e782",
-      "size_bytes": 30280,
+      "git_blob": "cbd31f169526efa4fb56b617a65704954c236f82",
+      "sha256": "d7fd06b2f471dd488dc4809c9b6329f988153fc48d3cb1f5e56e8ed794d4f938",
+      "size_bytes": 28396,
       "ext": "swift",
       "kind": "text",
-      "line_count": 654,
+      "line_count": 610,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          654
-        ]
-      ],
-      "reader": "R2-32-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/Providers/PiSession.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -8678,54 +8266,60 @@
     {
       "path": "DroppyCode/Services/Providers/ProviderRegistry.swift",
       "git_mode": "100644",
-      "git_blob": "25fb6ab5ea6d1f2b03938adac5b6262dd7796fe2",
-      "sha256": "456174642e860dbd567c196c5d2600a0734209702e43c2215216470d4921eecb",
-      "size_bytes": 49653,
+      "git_blob": "4a1d440ec4d4b53703e68b417d0f622a99e84f49",
+      "sha256": "bb2011e28bbfc9831ef4539148d8eae0f8c41988286e00db82ab8bde16a642f6",
+      "size_bytes": 54400,
       "ext": "swift",
       "kind": "text",
-      "line_count": 879,
+      "line_count": 958,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          450
-        ],
-        [
-          451,
-          879
-        ]
-      ],
-      "reader": "R2-33-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/Providers/ProviderRegistry.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
     {
       "path": "DroppyCode/Services/Providers/ProviderSession.swift",
       "git_mode": "100644",
-      "git_blob": "7eaff74106733fd010571605601126efeeb1aeec",
-      "sha256": "67ca77f0a84d227db3a5278ac266bd9128305640fbce543499d454583bfab501",
-      "size_bytes": 8786,
+      "git_blob": "fd8aca6114b86e0c22d5d8e797f36638d1e42c00",
+      "sha256": "83872e1d86e538286e13225faf7ec1efbe1910e74b15d8b9edfdffaeb1ee584f",
+      "size_bytes": 9506,
       "ext": "swift",
       "kind": "text",
-      "line_count": 209,
+      "line_count": 230,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          209
-        ]
-      ],
-      "reader": "R2-33-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/Providers/ProviderSession.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
+      "asset_inspection": null,
+      "exclusion_reason": null
+    },
+    {
+      "path": "DroppyCode/Services/Providers/SessionSupport.swift",
+      "git_mode": "100644",
+      "git_blob": "fbd20a9472c637889d3908001f0e098e2afd4c2c",
+      "sha256": "7711c7a1183d91f3a5facdb5bf798e69b6a80d29aec3ba15032533e65db023f9",
+      "size_bytes": 4297,
+      "ext": "swift",
+      "kind": "text",
+      "line_count": 124,
+      "has_crlf": true,
+      "classification": "first_party_app",
+      "build_inclusion": "in_app_target",
+      "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -8782,50 +8376,20 @@
     {
       "path": "DroppyCode/Services/Providers/ZaiAPI.swift",
       "git_mode": "100644",
-      "git_blob": "ee8f16bc72dcf97a325f638a8bbbb3497b45f969",
-      "sha256": "0d01d260b1b073c4ff89fe7b09f19fc7e32b4ec20aa8d8e0de0a3915e2377953",
-      "size_bytes": 11680,
+      "git_blob": "b66a00e577ff1678742b3d9cae5a15635e9ff235",
+      "sha256": "8c014fa45b6efe9d8ce1d2715511d9fffb8ac8a0f745ec9d9f29ec03590616f0",
+      "size_bytes": 10510,
       "ext": "swift",
       "kind": "text",
-      "line_count": 224,
+      "line_count": 207,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          224
-        ]
-      ],
-      "reader": "R2-33-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/Providers/ZaiAPI.swift",
-      "asset_inspection": null,
-      "exclusion_reason": null
-    },
-    {
-      "path": "DroppyCode/Services/Providers/ZaiKeychain.swift",
-      "git_mode": "100644",
-      "git_blob": "b28ccb3f1aee8d020877ad9a443067b4de0bec4b",
-      "sha256": "7752219c87d6daf54389269b8f9c377d9f6ea1b9eae73c26f65c22ec2a33d089",
-      "size_bytes": 500,
-      "ext": "swift",
-      "kind": "text",
-      "line_count": 16,
-      "has_crlf": true,
-      "classification": "first_party_app",
-      "build_inclusion": "in_app_target",
-      "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          16
-        ]
-      ],
-      "reader": "R040-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/Providers/ZaiKeychain.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -8857,87 +8421,60 @@
     {
       "path": "DroppyCode/Services/Store/Storage.swift",
       "git_mode": "100644",
-      "git_blob": "4b8474c01503a7d30fcea9523e965791be56ac63",
-      "sha256": "5497b7eaa7522e854b0b7f051a4d5bafb85e5098664e2caceb775120a0cae14f",
-      "size_bytes": 18494,
+      "git_blob": "12a6041f397e7915d899dd42600f3e8a2824d8e9",
+      "sha256": "766d2bffa792fbed41eea2f2083e322a15abd8dc78b275d53f7200e34d300eb4",
+      "size_bytes": 18230,
       "ext": "swift",
       "kind": "text",
-      "line_count": 389,
+      "line_count": 387,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          389
-        ]
-      ],
-      "reader": "R047-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/Store/Storage.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
     {
       "path": "DroppyCode/Services/Store/TokenLedger.swift",
       "git_mode": "100644",
-      "git_blob": "b816a90abe67702da57640000e768760279d9b60",
-      "sha256": "8fef606154126adacd34e63aba41bff810e02cceda7f1ec0183a1cd67d65afde",
-      "size_bytes": 34371,
+      "git_blob": "01040bf70c3900815c4163b7b2f76254fc8f9160",
+      "sha256": "509961b0af6498e9a83fe330db2a1caceb3188926e2d93ee2564e60f305ad080",
+      "size_bytes": 33691,
       "ext": "swift",
       "kind": "text",
-      "line_count": 707,
+      "line_count": 698,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          360
-        ],
-        [
-          361,
-          707
-        ]
-      ],
-      "reader": "R2-34-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/Store/TokenLedger.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
     {
       "path": "DroppyCode/UI/Chrome/Chrome.swift",
       "git_mode": "100644",
-      "git_blob": "6ed94f48437b101174f43029a48d019c3e367c1f",
-      "sha256": "a76251f5a3f7c25dfc70a0eb8496cc4449236c69378c27ee89cb216c6a4e4e89",
-      "size_bytes": 45122,
+      "git_blob": "e6a066bdbe7eb8f9c06aa8ec88a2cda1ebe9ed4c",
+      "sha256": "0c5eec1af7b3964b79318435e9f883b9566d2e725452f44c18fdb25d0f033b1a",
+      "size_bytes": 45069,
       "ext": "swift",
       "kind": "text",
-      "line_count": 1140,
+      "line_count": 1137,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          400
-        ],
-        [
-          401,
-          800
-        ],
-        [
-          801,
-          1140
-        ]
-      ],
-      "reader": "R2-35-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/UI/Chrome/Chrome.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -8988,6 +8525,26 @@
       ],
       "reader": "R2-35-reader",
       "findings_ref": "porting/read_ledger.jsonl#DroppyCode/UI/Chrome/ChromeVisualPicker.swift",
+      "asset_inspection": null,
+      "exclusion_reason": null
+    },
+    {
+      "path": "DroppyCode/UI/Chrome/DragHandle.swift",
+      "git_mode": "100644",
+      "git_blob": "22190068cad44f9899c7c090faad41da95d02cf7",
+      "sha256": "c2c2a7661e745cfc491d00df7a22c4cd5f177db36f68cab5f399de2df39af023",
+      "size_bytes": 10769,
+      "ext": "swift",
+      "kind": "text",
+      "line_count": 304,
+      "has_crlf": true,
+      "classification": "first_party_app",
+      "build_inclusion": "in_app_target",
+      "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -9144,25 +8701,20 @@
     {
       "path": "DroppyCode/UI/Chrome/WindowChrome.swift",
       "git_mode": "100644",
-      "git_blob": "bb0109c0641e964c16935e1c2c97d3e6f7be8f25",
-      "sha256": "0cc559377fc6e116dafd58a8923390f418536f0417ddb455f6659819fa2e15e4",
-      "size_bytes": 25377,
+      "git_blob": "fa2bcd3a1b8ac18390c043b77b7fe4207dda28af",
+      "sha256": "9c9748a0c155b23485ea3a595f4500af6973d78be00ec1f9117bf8dbffc4473b",
+      "size_bytes": 19420,
       "ext": "swift",
       "kind": "text",
-      "line_count": 571,
+      "line_count": 401,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          571
-        ]
-      ],
-      "reader": "R049-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/UI/Chrome/WindowChrome.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -9194,25 +8746,20 @@
     {
       "path": "DroppyCode/UI/Common/AttachmentPreview.swift",
       "git_mode": "100644",
-      "git_blob": "80bca843f59677d5d21d9fdabf442a80d9dfdfe9",
-      "sha256": "6f6f84c6d98744cc4ea58fc11e5d07a63127e2257dfe1ea347f83dbe812edafd",
-      "size_bytes": 20447,
+      "git_blob": "8a4c6632cc86db8a2fcab1f7603e5fbba26d6596",
+      "sha256": "1429454d0ae5a22c37d68f194867683c1837501181417282c62c9843b1f257c2",
+      "size_bytes": 20168,
       "ext": "swift",
       "kind": "text",
-      "line_count": 440,
+      "line_count": 433,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          440
-        ]
-      ],
-      "reader": "R2-36-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/UI/Common/AttachmentPreview.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -9269,25 +8816,20 @@
     {
       "path": "DroppyCode/UI/Common/Components.swift",
       "git_mode": "100644",
-      "git_blob": "b3b56a4b189168f20bc313d765dcb4ab7626917a",
-      "sha256": "3e530391c8c393a6e5d9719b5e3bcd61ae56237250b3a36da5a6f2627a56e487",
-      "size_bytes": 6866,
+      "git_blob": "bf8b8b1f5a815b3cf69d608f1a0c0e36ffc1c05b",
+      "sha256": "ae4f24f0faf8008bb55dbefcd5c2681b0d9abdd639e0710b661ef6bab66ee747",
+      "size_bytes": 6843,
       "ext": "swift",
       "kind": "text",
-      "line_count": 168,
+      "line_count": 166,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          168
-        ]
-      ],
-      "reader": "R050-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/UI/Common/Components.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -9467,11 +9009,31 @@
       "exclusion_reason": null
     },
     {
+      "path": "DroppyCode/UI/Markdown/LinkHover.swift",
+      "git_mode": "100644",
+      "git_blob": "caa22c75014a671b2fa4bb0e7abbee417e257127",
+      "sha256": "faeb47e8c06a80a71d90a04330074b473e763a32264967eb954cf9fb048a15c1",
+      "size_bytes": 2212,
+      "ext": "swift",
+      "kind": "text",
+      "line_count": 51,
+      "has_crlf": true,
+      "classification": "first_party_app",
+      "build_inclusion": "in_app_target",
+      "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
+      "asset_inspection": null,
+      "exclusion_reason": null
+    },
+    {
       "path": "DroppyCode/UI/Markdown/LinkParagraphView.swift",
       "git_mode": "100644",
-      "git_blob": "35360e5ae6dad4cc09ed0c1cbde6ee58f1dcd422",
-      "sha256": "50ac250d009070148da8514241539d725b7c5bc9510b799a4fe716f3e5814f7f",
-      "size_bytes": 27139,
+      "git_blob": "427f21f103fc9fc720d60a9fb465cc998175bef6",
+      "sha256": "ef6c67e05001b7d4f0386bf4760949e9b8e85f18a90ffaccfb9222337019c34e",
+      "size_bytes": 27066,
       "ext": "swift",
       "kind": "text",
       "line_count": 550,
@@ -9479,23 +9041,18 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          550
-        ]
-      ],
-      "reader": "R2-37-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/UI/Markdown/LinkParagraphView.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
     {
       "path": "DroppyCode/UI/Markdown/LinkPopover.swift",
       "git_mode": "100644",
-      "git_blob": "7f1a6a9252d76eb044ec0c6978299b867931811e",
-      "sha256": "ab8949c67ce76d3607cb0acca111cb2294c4d0be2402ed64091b99a003273707",
+      "git_blob": "bd50e2f08c289cbb1620f89c55abb1ac06d07183",
+      "sha256": "2172d3284c08f97da8003e5412f3bfe3a072cfcadbd405460e5fb5e834c391db",
       "size_bytes": 4231,
       "ext": "swift",
       "kind": "text",
@@ -9504,15 +9061,10 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          108
-        ]
-      ],
-      "reader": "R051-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/UI/Markdown/LinkPopover.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -9569,58 +9121,60 @@
     {
       "path": "DroppyCode/UI/Markdown/MarkdownView.swift",
       "git_mode": "100644",
-      "git_blob": "77af125a5bcc6e0a4fe6f9909991c1b020073c85",
-      "sha256": "8bfff077620db5968c0185fb9a8613ce4bcdf98ad9c9531ab76180ba910ed46c",
-      "size_bytes": 73000,
+      "git_blob": "3c984f6ee6f3d57f7b3663785c91b877ba3eb3be",
+      "sha256": "3c7757be4a5f9ea62ff29ec733fe505bf37b8eb0223933e9b808f4e7a50ae038",
+      "size_bytes": 69152,
       "ext": "swift",
       "kind": "text",
-      "line_count": 1498,
+      "line_count": 1425,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          500
-        ],
-        [
-          500,
-          999
-        ],
-        [
-          1000,
-          1498
-        ]
-      ],
-      "reader": "R2-38-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/UI/Markdown/MarkdownView.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
+      "asset_inspection": null,
+      "exclusion_reason": null
+    },
+    {
+      "path": "DroppyCode/UI/Markdown/MentionScanner.swift",
+      "git_mode": "100644",
+      "git_blob": "8d29267d1fd368ef7f3b0f263a6cac07f460409e",
+      "sha256": "df328504471048d28b70f6f184f739cfc01770b8ee556a95402efea416b08539",
+      "size_bytes": 1628,
+      "ext": "swift",
+      "kind": "text",
+      "line_count": 33,
+      "has_crlf": true,
+      "classification": "first_party_app",
+      "build_inclusion": "in_app_target",
+      "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
     {
       "path": "DroppyCode/UI/Markdown/ProseRunView.swift",
       "git_mode": "100644",
-      "git_blob": "f288463865f8338f746336190e074ab8f21798eb",
-      "sha256": "b4e0bd967ab2e2c762165fd4b77940d46d0580fe40b6144c2e3b9582ca615bac",
-      "size_bytes": 12146,
+      "git_blob": "65dfbc3ca08884b720e1182941de9ca413255bdb",
+      "sha256": "9e9f7f7bb95b1e49da13154089b4586972c4fc5268455e85938a19d30cf3f58f",
+      "size_bytes": 10252,
       "ext": "swift",
       "kind": "text",
-      "line_count": 244,
+      "line_count": 209,
       "has_crlf": true,
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          244
-        ]
-      ],
-      "reader": "R2-38-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/UI/Markdown/ProseRunView.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -9806,9 +9360,9 @@
     {
       "path": "DroppyCode/UI/Theme/Wallpaper.swift",
       "git_mode": "100644",
-      "git_blob": "f75fe292ea1b564914d5fc1d7ca8fb4c9b4ade62",
-      "sha256": "742e96b698201c5a2dddaa6c3f1e6ea65c4dce6035ec6e32b6bbaa8785b39d12",
-      "size_bytes": 12658,
+      "git_blob": "7ac4643735c275f6e59f31085eaf15aab1c7db73",
+      "sha256": "a3d0ae09f1a1a5abb0487c433cc38874717bb1149b345d88857847d742c21750",
+      "size_bytes": 12668,
       "ext": "swift",
       "kind": "text",
       "line_count": 270,
@@ -9816,19 +9370,10 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          140
-        ],
-        [
-          141,
-          270
-        ]
-      ],
-      "reader": "R053-reader",
-      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/UI/Theme/Wallpaper.swift",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -9985,9 +9530,9 @@
     {
       "path": "docs/droppy-logo.png",
       "git_mode": "100644",
-      "git_blob": "f57590663d52f79c5fae0f3e5e18af102628fd3e",
-      "sha256": "0f5d9663a0d23c458ab8e2783237596e5618d482f4ac23f00ead91eccef04388",
-      "size_bytes": 51677,
+      "git_blob": "e8d69024687d642f94574a40fc229ba61aa4d273",
+      "sha256": "6fb64b5f2dc5fb5740e9f095380a3bdb9787aea5a54fcc15ef8b1be965b74bb2",
+      "size_bytes": 42660,
       "ext": "png",
       "kind": "binary",
       "line_count": null,
@@ -9995,19 +9540,19 @@
       "classification": "first_party_docs",
       "build_inclusion": "not_in_app_target",
       "inclusion_evidence": "repository documentation",
-      "read_status": "READ",
-      "ranges_read": null,
-      "reader": "R063-reader",
-      "findings_ref": "porting/read_ledger.jsonl#docs/droppy-logo.png",
-      "asset_inspection": "PNG, 256x256, 8-bit RGBA, non-interlaced, 51677 bytes. Chunks IHDR,gAMA,cHRM,eXIf,pHYs,iTXt,IDAT,IEND; gAMA 45455, pHYs 5669x5669 unit=1, iTXt XML:com.adobe.xmp from XMP Core 6.0.0. Its sha256 is identical to DroppyCode/Resources/Assets.xcassets/droppy-logo.imageset/droppy-logo.png, so it is a byte-for-byte duplicate of the in-app 1x logo. Artwork: the plain blue squircle Droppy company mark with the glassy teardrop and two white eyes, no binary backdrop.",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
+      "asset_inspection": null,
       "exclusion_reason": null
     },
     {
       "path": "docs/icon.png",
       "git_mode": "100644",
-      "git_blob": "5e9f03eca96fd396f656eb3790b92f206b44a978",
-      "sha256": "5541c64f4d6d628b978aa9ceb07a7c86a3bc5991b39dbc0914984248b96a7a3e",
-      "size_bytes": 168110,
+      "git_blob": "93b51b3e289a8ae047259c2ae4b5c67469f09807",
+      "sha256": "7238842a211d7352a938f09803a2f495bf43279318abe70d0effe9b7d41f686e",
+      "size_bytes": 134947,
       "ext": "png",
       "kind": "binary",
       "line_count": null,
@@ -10015,11 +9560,11 @@
       "classification": "first_party_docs",
       "build_inclusion": "not_in_app_target",
       "inclusion_evidence": "repository documentation",
-      "read_status": "READ",
-      "ranges_read": null,
-      "reader": "R063-reader",
-      "findings_ref": "porting/read_ledger.jsonl#docs/icon.png",
-      "asset_inspection": "PNG, 512x512, 8-bit RGBA, non-interlaced, 168110 bytes. Chunks IHDR,gAMA,cHRM,eXIf,pHYs,iTXt,IDAT,IEND; gAMA 45455, pHYs 5669x5669 unit=1, iTXt XML:com.adobe.xmp. Artwork: the Droppy CODE app icon rather than the plain Droppy logo. A blue squircle whose plate is filled with rows of faint white binary digits (0s and 1s), a soft drop shadow beneath the tile, and the glossy translucent teardrop mascot with two white oval eyes centred on top.",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
+      "asset_inspection": null,
       "exclusion_reason": null
     },
     {
@@ -10075,8 +9620,8 @@
     {
       "path": "project.yml",
       "git_mode": "100644",
-      "git_blob": "f10d1457f3686d5a57ee58ee5937830ed5c06c39",
-      "sha256": "ccf8ed7edffa278bcc8cfea6c6d96c3e6e49185c976d665c2299db07ffd7ba98",
+      "git_blob": "dc6afd0487eb6480ce437efff14c79e4eedb494e",
+      "sha256": "e4d8cda1f1db16006c4c62873f27895115140d282e694cbfe1d5780ad0753aba",
       "size_bytes": 2113,
       "ext": "yml",
       "kind": "text",
@@ -10085,15 +9630,10 @@
       "classification": "first_party_build_config",
       "build_inclusion": "build_system",
       "inclusion_evidence": "XcodeGen manifest; authoritative source of target/version/settings",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          59
-        ]
-      ],
-      "reader": "R2-41-reader",
-      "findings_ref": "porting/read_ledger.jsonl#project.yml",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -10561,9 +10101,9 @@
     {
       "path": "website/assets/brand/droppy-code-icon-180.png",
       "git_mode": "100644",
-      "git_blob": "6351d54975d62171310008ff8febd91a7f9b2068",
-      "sha256": "ae48a205e0b7f810e8f835ba139969b7dc2ed3976810b7d59c169d6024b21202",
-      "size_bytes": 34477,
+      "git_blob": "a300836182cfb405a7ff487d3135cbdc1af37025",
+      "sha256": "1a75b6dafe3352a71d9a64f3c4780aed556f79d103777092a8cd847b8fa41deb",
+      "size_bytes": 30174,
       "ext": "png",
       "kind": "binary",
       "line_count": null,
@@ -10571,19 +10111,19 @@
       "classification": "first_party_website",
       "build_inclusion": "not_in_app_target",
       "inclusion_evidence": "netlify.toml site; may supply runtime content (changelog/update feed) - must be checked",
-      "read_status": "READ",
-      "ranges_read": null,
-      "reader": "R063-reader",
-      "findings_ref": "porting/read_ledger.jsonl#website/assets/brand/droppy-code-icon-180.png",
-      "asset_inspection": "PNG, 180x180, 8-bit RGBA, non-interlaced, 34477 bytes. Chunks IHDR,gAMA,cHRM,eXIf,pHYs,iTXt,IDAT,IEND; gAMA 45455, pHYs 5669x5669 unit=1, iTXt XML:com.adobe.xmp. Artwork: the Droppy Code app icon, a blue squircle plate patterned with faint white binary digits, a soft shadow beneath the tile, and the glossy translucent teardrop with two white oval eyes on top.",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
+      "asset_inspection": null,
       "exclusion_reason": null
     },
     {
       "path": "website/assets/brand/droppy-code-icon-256.webp",
       "git_mode": "100644",
-      "git_blob": "364337b50b27631ce0b5c646c95234387c458288",
-      "sha256": "88e73a0910d3d5101f126f728af195da2dafbfc35d085a86db574524d8a00cfb",
-      "size_bytes": 11020,
+      "git_blob": "5fa079e68af4ca5278b9754326b05b0807be7a28",
+      "sha256": "53a4e85e9b0634152f74a26cfea4bf321f39b5d4930c59e379bd4b66b8417d45",
+      "size_bytes": 10462,
       "ext": "webp",
       "kind": "binary",
       "line_count": null,
@@ -10591,19 +10131,19 @@
       "classification": "first_party_website",
       "build_inclusion": "not_in_app_target",
       "inclusion_evidence": "netlify.toml site; may supply runtime content (changelog/update feed) - must be checked",
-      "read_status": "READ",
-      "ranges_read": null,
-      "reader": "R063-reader",
-      "findings_ref": "porting/read_ledger.jsonl#website/assets/brand/droppy-code-icon-256.webp",
-      "asset_inspection": "WebP (RIFF/WEBP), 11020 bytes, extended container: a VP8X chunk (length 10) declaring canvas 256x256 with flags 0x10 (alpha present; no animation, no ICC, no EXIF, no XMP), then an ALPH chunk (length 1992, lossy alpha plane) and a VP8 chunk (length 8982, lossy 256x256). Artwork: the Droppy Code app icon at 256px, the blue binary-digit squircle with a drop shadow and the glassy teardrop mascot with two white eyes.",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
+      "asset_inspection": null,
       "exclusion_reason": null
     },
     {
       "path": "website/assets/brand/droppy-code-icon-96.png",
       "git_mode": "100644",
-      "git_blob": "804425efe51f8141f84b870939f8b890aae91b7d",
-      "sha256": "b402b0ff565b1d2a9c10f1e73e8583152d9e25a3b49ce217b484471689c6bfcf",
-      "size_bytes": 12960,
+      "git_blob": "34c56870815b56044e8a02c0d7a6a88f39daadfc",
+      "sha256": "afe4c1d63de31382695dce43e9fa3d936c9320a586d555c4a3bd02c545ff075e",
+      "size_bytes": 11969,
       "ext": "png",
       "kind": "binary",
       "line_count": null,
@@ -10611,19 +10151,19 @@
       "classification": "first_party_website",
       "build_inclusion": "not_in_app_target",
       "inclusion_evidence": "netlify.toml site; may supply runtime content (changelog/update feed) - must be checked",
-      "read_status": "READ",
-      "ranges_read": null,
-      "reader": "R063-reader",
-      "findings_ref": "porting/read_ledger.jsonl#website/assets/brand/droppy-code-icon-96.png",
-      "asset_inspection": "PNG, 96x96, 8-bit RGBA, non-interlaced, 12960 bytes. Chunks IHDR,gAMA,cHRM,eXIf,pHYs,iTXt,IDAT,IEND; gAMA 45455, pHYs 5669x5669 unit=1, iTXt XML:com.adobe.xmp. Artwork: the Droppy Code binary-plate app icon with the teardrop mascot, small enough that the binary digits read as texture rather than as legible glyphs.",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
+      "asset_inspection": null,
       "exclusion_reason": null
     },
     {
       "path": "website/assets/brand/droppy-icon-64.png",
       "git_mode": "100644",
-      "git_blob": "07c919d5c29aa74ac00114d36e91802a239138cc",
-      "sha256": "3441bdd3bb4fa2ec321379ad64823064679d526febd32f1a48950db6f72cf514",
-      "size_bytes": 6637,
+      "git_blob": "5a590bbcad1a2db33cf2bd3f0e5c3cb867b0b829",
+      "sha256": "a8120584bfead4b16db057322199cb7a2c22cc489be3a71424d485d1f0098543",
+      "size_bytes": 5913,
       "ext": "png",
       "kind": "binary",
       "line_count": null,
@@ -10631,19 +10171,19 @@
       "classification": "first_party_website",
       "build_inclusion": "not_in_app_target",
       "inclusion_evidence": "netlify.toml site; may supply runtime content (changelog/update feed) - must be checked",
-      "read_status": "READ",
-      "ranges_read": null,
-      "reader": "R063-reader",
-      "findings_ref": "porting/read_ledger.jsonl#website/assets/brand/droppy-icon-64.png",
-      "asset_inspection": "PNG, 64x64, 8-bit RGBA, non-interlaced, 6637 bytes. Chunks IHDR,gAMA,cHRM,eXIf,pHYs,iTXt,IDAT,IEND; gAMA 45455, pHYs 5669x5669 unit=1, iTXt XML:com.adobe.xmp. Artwork: the plain Droppy PARENT-brand squircle, a pale-to-mid blue gradient plate with the glassy teardrop and two white eyes and NO binary-digit pattern, which is exactly what separates it from the droppy-code-icon-* files.",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
+      "asset_inspection": null,
       "exclusion_reason": null
     },
     {
       "path": "website/assets/brand/favicon.ico",
       "git_mode": "100644",
-      "git_blob": "ab44fa11302f83f5bd0e04d98a7f9b5e25f2a4bb",
-      "sha256": "fd46251b76c988078014b44812bda266caeb9350b95d4ef4351236c8ea05e7e2",
-      "size_bytes": 6862,
+      "git_blob": "df86aa718eb1659893737551ca2c9ffd5dc4e153",
+      "sha256": "463335e2c215e224d2df34349b50f072b4841348468435be0cc8db2fad0afd7e",
+      "size_bytes": 7504,
       "ext": "ico",
       "kind": "binary",
       "line_count": null,
@@ -10651,11 +10191,11 @@
       "classification": "first_party_website",
       "build_inclusion": "not_in_app_target",
       "inclusion_evidence": "netlify.toml site; may supply runtime content (changelog/update feed) - must be checked",
-      "read_status": "READ",
-      "ranges_read": null,
-      "reader": "R063-reader",
-      "findings_ref": "porting/read_ledger.jsonl#website/assets/brand/favicon.ico",
-      "asset_inspection": "Windows ICO resource, 6862 bytes, reserved 0, type 1 (icon), 3 directory entries, every frame PNG-encoded 8-bit RGBA (bit depth 8, colour type 6) declared at 32 bits/pixel with 0 palette entries: entry 0 is 16x16 (687 bytes at offset 54), entry 1 is 32x32 (2081 bytes at offset 741), entry 2 is 48x48 (4040 bytes at offset 2822). Decoding the 48x48 frame shows the Droppy Code squircle filling the frame with roughly 4px of transparent margin behind a rounded-rectangle alpha mask; the dominant opaque colours run #4396ff, #6cb5ff, #6fb8ff, #7ac0ff, #7bc0ff, #7bc1ff, #7dc2ff, #7ec3ff.",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
+      "asset_inspection": null,
       "exclusion_reason": null
     },
     {
@@ -10916,9 +10456,9 @@
     {
       "path": "website/assets/og/og-home.png",
       "git_mode": "100644",
-      "git_blob": "ae2827b3bf41330e3369749df0a3b354560453ef",
-      "sha256": "53ab48949031096df3d46a8c9b0308b918f7859acfdaacf753370385d9a10881",
-      "size_bytes": 135966,
+      "git_blob": "d292bd81db0732ad31146efac3a6a648c9fd58c9",
+      "sha256": "4b935b054b5fff99534df9ada74ee2317cd135059dcaafbfbddff2394534533b",
+      "size_bytes": 147893,
       "ext": "png",
       "kind": "binary",
       "line_count": null,
@@ -10926,18 +10466,18 @@
       "classification": "first_party_website",
       "build_inclusion": "not_in_app_target",
       "inclusion_evidence": "netlify.toml site; may supply runtime content (changelog/update feed) - must be checked",
-      "read_status": "READ",
-      "ranges_read": null,
-      "reader": "R063-reader",
-      "findings_ref": "porting/read_ledger.jsonl#website/assets/og/og-home.png",
-      "asset_inspection": "PNG, 1200x630, 8-bit RGB (colorType 2, no alpha), non-interlaced, 135966 bytes, chunks IHDR,IDAT,IEND only, which is headless-Chromium screenshot output with no colour profile. Content: a near-black canvas covered by a faint field of blue 0s and 1s that fades out toward the bottom, the Droppy Code app icon centred near the top, the headline 'All your coding agents,' / 'one native <Apple logo> Mac app' with 'coding agents,' in light blue, the subtitle 'Streaming replies, inline approvals, a diff for every turn. Free and open source.', and a kicker row with the small Droppy mark and the words 'The coding app by Droppy'.",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
+      "asset_inspection": null,
       "exclusion_reason": null
     },
     {
       "path": "website/changelog.html",
       "git_mode": "100644",
-      "git_blob": "e7de374a210cbd3826a777b2503bf1962f3d22e2",
-      "sha256": "de89ec2d3819496d1ccb147b3d9c7d85e665433d6846c18b7675cc1b593af12e",
+      "git_blob": "ca38286db5f843d59a488f1abc70fca94f0d7505",
+      "sha256": "23906682abba5ae969183322a07d87cd893f747c2964151a10398c848de9909a",
       "size_bytes": 11222,
       "ext": "html",
       "kind": "text",
@@ -10946,15 +10486,10 @@
       "classification": "first_party_website",
       "build_inclusion": "not_in_app_target",
       "inclusion_evidence": "netlify.toml site; may supply runtime content (changelog/update feed) - must be checked",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          178
-        ]
-      ],
-      "reader": "R058-reader",
-      "findings_ref": "porting/read_ledger.jsonl#website/changelog.html",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -10990,8 +10525,8 @@
     {
       "path": "website/index.html",
       "git_mode": "100644",
-      "git_blob": "97bde1c8d2cf208bca84924b7b9bd31527069e3b",
-      "sha256": "57d7dd91f7c13ee7eba7113ad8548e460c596775bf9eb6c1f4e3ec13a54b0018",
+      "git_blob": "0c305649373b696208dc2488480dbeb49a72e745",
+      "sha256": "99d28116c0d8f4cd26b123c744a2cfefb4050af3848e2a6531a83e3d0df219dd",
       "size_bytes": 70113,
       "ext": "html",
       "kind": "text",
@@ -11000,15 +10535,10 @@
       "classification": "first_party_website",
       "build_inclusion": "not_in_app_target",
       "inclusion_evidence": "netlify.toml site; may supply runtime content (changelog/update feed) - must be checked",
-      "read_status": "READ",
-      "ranges_read": [
-        [
-          1,
-          782
-        ]
-      ],
-      "reader": "R059-reader",
-      "findings_ref": "porting/read_ledger.jsonl#website/index.html",
+      "read_status": "UNREAD",
+      "ranges_read": [],
+      "reader": null,
+      "findings_ref": null,
       "asset_inspection": null,
       "exclusion_reason": null
     },

@@ -358,3 +358,19 @@ instruction may change one.
   that changes scheme, host or port drops them, and a same-server redirect keeps them. This matches ED-152's rule for
   `Authorization`. It is a named safety deviation: a server that deliberately redirects elsewhere and expects the key
   there may fail to connect on Windows where it may work on the Mac.
+
+## OD-0023 The ED-192 relaunch-probe test keeps launching a console program
+
+- **Asked 2026-09-26** (main Claude): the test AppUpdaterInstallerScriptTests.After_a_successful_swap_the_relaunch_step_
+  launches_the_new_executable_not_the_destination_folder starts a copy of sort.exe, which Windows 11 shows in a Windows
+  Terminal window for a few seconds during every full test run. Options: (a) intercept Start-Process and assert the
+  target, (b) a windowless probe exe in a new test project, (c) leave it.
+- **Owner answer, verbatim:** "Option C".
+- **Effect:** the test is unchanged and keeps its end-to-end launch check; the window during run_suite.sh is expected.
+
+## OD-0024 The pinned baseline moves to live 1.7.0 (B3)
+
+- **Asked 2026-09-26** (main Claude, UNK-0025): upstream main moved 16 commits past B2 (101 files) to 1.7.0.
+- **Owner answer, verbatim:** "Move to 1.7.0, check what needs updating and changing and plan accordingly."
+- **Effect:** AM-0003. The pin is B3, commit 52bc7926097cd622d08d6294e0d8b08a48c7516e (1.7.0, build 21), reference
+  E:\Droppy\reference\droppy-code-v1.7.0. UNK-0025 is resolved by this ruling.
