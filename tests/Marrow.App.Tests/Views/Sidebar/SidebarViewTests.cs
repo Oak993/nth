@@ -879,6 +879,9 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     [Trait("Req", "UI-SIDEBAR-043")] // App/Views/Sidebar/SidebarView.swift:170-174; App/Views/Settings/AboutUpdateViews.swift:526-534
     // (part 7: the same update dot, as a screen-contract record; OD-0008 C6, OD-0012 I1 keep the dot hidden until the
     // owner sets a Windows release feed)
+    [Trait("Req", "UI-UPDATE-010")] // App/Views/Sidebar/SidebarView.swift:168-175; App/Views/Settings/AboutUpdateViews.swift:527-534
+    // (part 8: the same update dot, as a screen-contract record; UI-SIDEBAR-043 above proves presence, placement and
+    // accessibility, this part adds the dot's own geometry and color)
     public void The_update_dot_sits_on_the_gear_only_while_an_update_is_available()
     {
         headless.OnUiThread(() =>
@@ -912,6 +915,15 @@ public sealed class SidebarViewTests(HeadlessSession headless)
                     Assert.Equal(HorizontalAlignment.Right, dot.HorizontalAlignment); // :170 .overlay(alignment: .topTrailing)
                     Assert.Equal(VerticalAlignment.Top, dot.VerticalAlignment);
                     Assert.Contains(LogicalQuery.SelfAndDescendants<Control>(dot), control => AutomationProperties.GetName(control) == "Update available");
+                    // UI-UPDATE-010 geometry: Circle 7x7, offset x +2.5 and y -2.5.
+                    var glyph = (Avalonia.Controls.Shapes.Ellipse)dot.Child!;
+                    Assert.Equal(7d, glyph.Width);
+                    Assert.Equal(7d, glyph.Height);
+                    var offset = (TranslateTransform)glyph.RenderTransform!;
+                    Assert.Equal(2.5d, offset.X);
+                    Assert.Equal(-2.5d, offset.Y);
+                    // UI-UPDATE-010 colors: Chrome.accent.
+                    Assert.Equal(Chrome.Accent.Resolve(glyph.ActualThemeVariant), ((ISolidColorBrush)glyph.Fill!).Color);
                     Close(view);
                 }
             });
@@ -2434,6 +2446,9 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-049")] // App/Views/Sidebar/SidebarView.swift:124 (B3; replaces B2's NSCursor push/pop)
+    [Trait("Req", "UI-SIDEBAR-060")] // App/Views/Sidebar/SidebarView.swift:124 (part 8: the same grabActive pointer
+    // style, as one piece of the dragged-row-lift screen-contract record; the other pieces are proven by the tests
+    // below tagged the same way)
     public void The_list_carries_the_grab_active_pointer_style_only_while_a_row_is_dragged()
     {
         headless.OnUiThread(() =>
@@ -2600,6 +2615,8 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     [Fact]
     [Trait("Req", "PR-SIDEBAR-052")] // App/Views/Sidebar/SidebarView.swift:767, :784-793
     [Trait("Req", "PR-SIDEBAR-053")] // App/Views/Sidebar/SidebarView.swift:794-801
+    [Trait("Req", "UI-SIDEBAR-060")] // App/Views/Sidebar/SidebarView.swift:767, :784-793 (part 8: the "neighbours
+    // slide on response 0.28 damping 0.82" piece of the dragged-row-lift screen-contract record)
     public void An_accepted_swap_runs_inside_the_slide_spring_and_re_takes_the_peer_snapshot()
     {
         headless.OnUiThread(() =>
@@ -2703,6 +2720,9 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-054")] // App/Views/Sidebar/SidebarView.swift:1838-1849
+    [Trait("Req", "UI-SIDEBAR-060")] // App/Views/Sidebar/SidebarView.swift:1838-1849 (part 8: the "lifted while
+    // dragged" and "springs in and out on response 0.25 damping 0.8" pieces of the dragged-row-lift screen-contract
+    // record)
     public void The_lifted_rows_scale_fill_and_shadow_spring_in_and_out_on_response_0_25_damping_0_8()
     {
         headless.OnUiThread(() =>
@@ -2759,6 +2779,8 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-054")] // App/Views/Sidebar/SidebarView.swift:1735, :1838-1843
+    [Trait("Req", "UI-SIDEBAR-060")] // App/Views/Sidebar/SidebarView.swift:1838-1843 (part 8: the "colors" piece of
+    // the dragged-row-lift screen-contract record, "opaque backing fill Chrome.overlay(0.12); shadow black at 0.28")
     public void The_lifted_rows_fill_and_shadow_follow_the_rows_own_continuous_row_corner_radius()
     {
         headless.OnUiThread(() =>
@@ -2776,6 +2798,16 @@ public sealed class SidebarViewTests(HeadlessSession headless)
                 // the lift's fill and shadow follow at :1838-1843. Chrome.RowCornerRadius is 7 (Chrome.cs:104).
                 Assert.Equal(new CornerRadius(Chrome.RowCornerRadius), lift.CornerRadius);
                 Assert.Equal(RoundedCornerStyle.Continuous, SwiftShapes.GetCornerStyle(lift));
+                // :1842 .fill(Chrome.overlay(0.12)): an opaque backing fill, so a row sliding underneath the lifted
+                // one during a swap never shows through it.
+                Assert.Equal(Chrome.Overlay(0.12).Resolve(lift.ActualThemeVariant), ((ISolidColorBrush)lift.Background!).Color);
+                // :1843 .shadow(color: .black.opacity(0.28), radius: 10, y: 4).
+                Assert.Equal(1, lift.BoxShadow.Count);
+                var shadow = lift.BoxShadow[0];
+                Assert.Equal(Color.FromArgb((byte)(0.28 * 255), 0, 0, 0), shadow.Color);
+                Assert.Equal(10d, shadow.Blur);
+                Assert.Equal(0d, shadow.OffsetX);
+                Assert.Equal(4d, shadow.OffsetY);
             });
         });
     }
@@ -5944,4 +5976,42 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     // constructor are proven directly above, including their ellipsis-popover/click-to-select/hover-scale/selection-
     // ring/chevron pieces; nothing is claimed for PR-SIDEBAR-133 or -130, or for the right-click interaction alone
     // of UI-SIDEBAR-033/-037, and no test names them.
+
+    // ======== Part 8 of 8 ========
+    // Records: UI-SIDEBAR-060, UI-UPDATE-010. Both records describe behaviour parts 1 to 3 already implemented and
+    // parts 2, 3 and 7 already tested under PR-ids (the pointer style PR-SIDEBAR-049, the neighbour slide
+    // PR-SIDEBAR-052/-053, the lift's scale and fade PR-SIDEBAR-054, the update dot's presence and placement
+    // PR-SIDEBAR-013/UI-SIDEBAR-043): those existing tests now also carry the UI-SIDEBAR-060 or UI-UPDATE-010 trait
+    // above, and the lift's fill/shadow colors and the dot's own geometry/color were added to two of them (part 8).
+    // The one piece no earlier part captured is the release spring dragEnded sets up once the drag clears; proven
+    // below.
+
+    // ---- UI-SIDEBAR-060: the release spring dragEnded's write runs inside ----
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-060")] // App/Views/Sidebar/SidebarView.swift:803-807 (part 8: the "release springs the
+    // offset home on response 0.32 damping 0.8" piece of the dragged-row-lift screen-contract record)
+    public void DragEnded_springs_the_offset_home_on_response_0_32_damping_0_8()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var model = harness.MakeModel();
+            var grabbed = Guid.NewGuid();
+            SidebarView view = null!;
+            harness.Main.OnMain(() =>
+            {
+                view = Detached(model);
+                Call(view, "DragChanged", grabbed, 30d); // :773-775 grabs
+            });
+            Animation? during = null;
+            using var probe = new OnChange<RowDrag<Guid>>(() => Drag(view), (_, _) => during = Transaction.Current);
+            harness.Main.OnMain(() => Call(view, "DragEnded"));
+            harness.Main.OnMain(() =>
+            {
+                Assert.Equal(Animation.Spring(response: 0.32, dampingFraction: 0.8), during); // :806-808
+                Assert.Null(Drag(view).Id); // :808 drag = RowDrag() clears the grab inside that same spring
+            });
+        });
+    }
 }
