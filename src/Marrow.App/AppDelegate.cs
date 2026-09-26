@@ -46,7 +46,7 @@ public sealed class AppDelegate
         // :10-13 URLCache.shared = URLCache(memoryCapacity: 8 * 1024 * 1024, diskCapacity: 0). NOT PORTED (STOP
         // App.AppDelegate #1): the port's shared cache (Core/Port/Http.cs URLCache.Shared, ED-118 (4)-(5)) already keeps
         // nothing on disk, and its 8 MiB memory cap has no port form while ED-118 parks any size cut-off under O-33.
-        MarkdownBlockView.HydraDelegationBlock = (json, sent) => new HydraDelegationBlock(json, sent); // :14
+        MarkdownDelegationCard.Render = (json, sent) => new HydraDelegationBlock(json, sent); // :14
         // :15 UNUserNotificationCenter.current().delegate = self. NOT PORTED (STOP App.AppDelegate #1, PR-LAUNCH-025):
         // no unit has built the Windows toast activation handler this line maps to (Port/UpdateNotificationCenter.cs
         // binds a no-op, AppModel.Notify delivers nothing), so no notification can arrive to be routed.

@@ -150,4 +150,20 @@ public sealed class MarkdownViewCachingTests
         Assert.Contains("quoted text", result);
         Assert.DoesNotContain("code text", result);
     }
+
+    [Fact]
+    [Trait("Req", "PR-THEME-123")] // DroppyCode/UI/Markdown/MarkdownView.swift:532: RichLink.streamingSlots now
+    // reads MarkdownView.streamingSlots (48), no longer its own hardcoded 4.
+    public void RichLinks_streaming_cache_keeps_48_entries_before_evicting()
+    {
+        var first = "richlink-slots-probe-" + Guid.NewGuid();
+        var firstBuild = RichLink.PrettyAttributed(first, streaming: true);
+
+        // 47 more distinct streaming entries: 48 total, first still the oldest but not yet evicted.
+        for (var i = 0; i < 47; i++) RichLink.PrettyAttributed("richlink-slots-filler-" + Guid.NewGuid(), streaming: true);
+        Assert.Same(firstBuild, RichLink.PrettyAttributed(first, streaming: true)); // a hit never reorders the ring
+
+        RichLink.PrettyAttributed("richlink-slots-filler-" + Guid.NewGuid(), streaming: true); // the 49th: evicts first
+        Assert.NotSame(firstBuild, RichLink.PrettyAttributed(first, streaming: true));
+    }
 }
