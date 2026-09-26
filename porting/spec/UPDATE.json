@@ -637,7 +637,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Windows toasts are shown by the shell whether or not the app is focused; there is no willPresent hook. Name this as a PLATFORM BOUNDARY where the source's decision is already the Windows default.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

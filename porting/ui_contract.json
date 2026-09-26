@@ -8343,7 +8343,8 @@
         "decision": "OD-0008 C2",
         "upstream": "DroppyCode/App/AppCommands.swift:11-114 - the system Quit item, never replaced",
         "port": "Window close button and Alt+F4 only; no invented menu item"
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "LAUNCH",
@@ -20126,7 +20127,8 @@
         "decision": "OD-0008 C3, B7",
         "upstream": "DroppyCode/App/AppCommands.swift:42-44 - the View group item \"Toggle terminal\" with the ⌘J chord",
         "port": "No menu bar. Every command the source defines stays on its shortcut and in the command palette; text fields keep standard Ctrl+C/V/X/Z/A. Chords render in Windows notation (Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl)."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "TERM",
@@ -20155,7 +20157,8 @@
         "decision": "OD-0008 C3, B7",
         "upstream": "DroppyCode/App/AppCommands.swift:89-94 - the menu item titled \"Run <name>\" or \"Run top script\" with the ⌘R chord",
         "port": "No menu bar. Every command the source defines stays on its shortcut and in the command palette; text fields keep standard Ctrl+C/V/X/Z/A. Chords render in Windows notation (Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl)."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "TERM",
@@ -24336,7 +24339,8 @@
         "decision": "OD-0008 C3, B7",
         "upstream": "DroppyCode/App/AppCommands.swift:27-29 - an item of the macOS menu bar installed by DroppyCode/App/DroppyCodeApp.swift:21-25. Upstream chords are written in macOS modifier glyphs (DroppyCode/Core/Models/Shortcuts.swift:43-50 modifierSymbols: \"⌃\", \"⌥\", \"⇧\", \"⌘\").",
         "port": "No menu bar. Every command the source defines stays on its shortcut and in the command palette; text fields keep standard Ctrl+C/V/X/Z/A. Chords are named in Windows notation (OD-0008 B7: Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl); key labels stay the US-position table (OD-0008 B9)."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "WIN",
@@ -24365,7 +24369,8 @@
         "decision": "OD-0008 C3, B7",
         "upstream": "DroppyCode/App/AppCommands.swift:30-31 - an item of the macOS menu bar installed by DroppyCode/App/DroppyCodeApp.swift:21-25. Upstream chords are written in macOS modifier glyphs (DroppyCode/Core/Models/Shortcuts.swift:43-50 modifierSymbols: \"⌃\", \"⌥\", \"⇧\", \"⌘\").",
         "port": "No menu bar. Every command the source defines stays on its shortcut and in the command palette; text fields keep standard Ctrl+C/V/X/Z/A. Chords are named in Windows notation (OD-0008 B7: Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl); key labels stay the US-position table (OD-0008 B9)."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "WIN",
@@ -24394,7 +24399,8 @@
         "decision": "OD-0008 C3, B7",
         "upstream": "DroppyCode/App/AppCommands.swift:33-34 - an item of the macOS menu bar installed by DroppyCode/App/DroppyCodeApp.swift:21-25. Upstream chords are written in macOS modifier glyphs (DroppyCode/Core/Models/Shortcuts.swift:43-50 modifierSymbols: \"⌃\", \"⌥\", \"⇧\", \"⌘\").",
         "port": "No menu bar. Every command the source defines stays on its shortcut and in the command palette; text fields keep standard Ctrl+C/V/X/Z/A. Chords are named in Windows notation (OD-0008 B7: Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl); key labels stay the US-position table (OD-0008 B9)."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "WIN",
@@ -24423,7 +24429,8 @@
         "decision": "OD-0008 C3, B7",
         "upstream": "DroppyCode/App/AppCommands.swift:38-39 - an item of the macOS menu bar installed by DroppyCode/App/DroppyCodeApp.swift:21-25. Upstream chords are written in macOS modifier glyphs (DroppyCode/Core/Models/Shortcuts.swift:43-50 modifierSymbols: \"⌃\", \"⌥\", \"⇧\", \"⌘\").",
         "port": "No menu bar. Every command the source defines stays on its shortcut and in the command palette; text fields keep standard Ctrl+C/V/X/Z/A. Read as the ruling's resolution note records it (porting/owner_decisions_pending.md:57: \"Every source command keeps its shortcut and command-palette entry\"): a command keeps the palette row the source gives it and gains none; at B2 the palette's only actions are New thread, New thread in worktree, Add project, Toggle terminal, Toggle changes, the finish action and Settings (DroppyCode/App/Views/Palette/CommandPalette.swift:153-178), so this command has no palette row in the port. Chords are named in Windows notation (OD-0008 B7: Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl); key labels stay the US-position table (OD-0008 B9)."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "WIN",
@@ -24452,7 +24459,8 @@
         "decision": "OD-0008 C3, B7",
         "upstream": "DroppyCode/App/AppCommands.swift:40-41 - an item of the macOS menu bar installed by DroppyCode/App/DroppyCodeApp.swift:21-25. Upstream chords are written in macOS modifier glyphs (DroppyCode/Core/Models/Shortcuts.swift:43-50 modifierSymbols: \"⌃\", \"⌥\", \"⇧\", \"⌘\").",
         "port": "No menu bar. Every command the source defines stays on its shortcut and in the command palette; text fields keep standard Ctrl+C/V/X/Z/A. Read as the ruling's resolution note records it (porting/owner_decisions_pending.md:57: \"Every source command keeps its shortcut and command-palette entry\"): a command keeps the palette row the source gives it and gains none; at B2 the palette's only actions are New thread, New thread in worktree, Add project, Toggle terminal, Toggle changes, the finish action and Settings (DroppyCode/App/Views/Palette/CommandPalette.swift:153-178), so this command has no palette row in the port. Chords are named in Windows notation (OD-0008 B7: Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl); key labels stay the US-position table (OD-0008 B9)."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "WIN",
@@ -24481,7 +24489,8 @@
         "decision": "OD-0008 C3, B7",
         "upstream": "DroppyCode/App/AppCommands.swift:42-44 - an item of the macOS menu bar installed by DroppyCode/App/DroppyCodeApp.swift:21-25. Upstream chords are written in macOS modifier glyphs (DroppyCode/Core/Models/Shortcuts.swift:43-50 modifierSymbols: \"⌃\", \"⌥\", \"⇧\", \"⌘\").",
         "port": "No menu bar. Every command the source defines stays on its shortcut and in the command palette; text fields keep standard Ctrl+C/V/X/Z/A. Chords are named in Windows notation (OD-0008 B7: Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl); key labels stay the US-position table (OD-0008 B9)."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "WIN",
@@ -24510,7 +24519,8 @@
         "decision": "OD-0008 C3, B7",
         "upstream": "DroppyCode/App/AppCommands.swift:45-47 - an item of the macOS menu bar installed by DroppyCode/App/DroppyCodeApp.swift:21-25. Upstream chords are written in macOS modifier glyphs (DroppyCode/Core/Models/Shortcuts.swift:43-50 modifierSymbols: \"⌃\", \"⌥\", \"⇧\", \"⌘\").",
         "port": "No menu bar. Every command the source defines stays on its shortcut and in the command palette; text fields keep standard Ctrl+C/V/X/Z/A. Chords are named in Windows notation (OD-0008 B7: Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl); key labels stay the US-position table (OD-0008 B9)."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "WIN",
@@ -24567,7 +24577,8 @@
         "decision": "OD-0008 C3, B7",
         "upstream": "DroppyCode/App/AppCommands.swift:65-109 - an item of the macOS menu bar installed by DroppyCode/App/DroppyCodeApp.swift:21-25. Upstream chords are written in macOS modifier glyphs (DroppyCode/Core/Models/Shortcuts.swift:43-50 modifierSymbols: \"⌃\", \"⌥\", \"⇧\", \"⌘\").",
         "port": "No menu bar. Every command the source defines stays on its shortcut and in the command palette; text fields keep standard Ctrl+C/V/X/Z/A. Chords are named in Windows notation (OD-0008 B7: Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl); key labels stay the US-position table (OD-0008 B9)."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "WIN",
@@ -24597,7 +24608,8 @@
         "decision": "OD-0008 C3, B7",
         "upstream": "DroppyCode/App/AppCommands.swift:66-68 - an item of the macOS menu bar installed by DroppyCode/App/DroppyCodeApp.swift:21-25. Upstream chords are written in macOS modifier glyphs (DroppyCode/Core/Models/Shortcuts.swift:43-50 modifierSymbols: \"⌃\", \"⌥\", \"⇧\", \"⌘\").",
         "port": "No menu bar. Every command the source defines stays on its shortcut and in the command palette; text fields keep standard Ctrl+C/V/X/Z/A. Read as the ruling's resolution note records it (porting/owner_decisions_pending.md:57: \"Every source command keeps its shortcut and command-palette entry\"): a command keeps the palette row the source gives it and gains none; at B2 the palette's only actions are New thread, New thread in worktree, Add project, Toggle terminal, Toggle changes, the finish action and Settings (DroppyCode/App/Views/Palette/CommandPalette.swift:153-178), so this command has no palette row in the port. Chords are named in Windows notation (OD-0008 B7: Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl); key labels stay the US-position table (OD-0008 B9)."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "WIN",
@@ -24657,7 +24669,8 @@
         "decision": "OD-0008 C3, B7",
         "upstream": "DroppyCode/App/AppCommands.swift:78-83 - an item of the macOS menu bar installed by DroppyCode/App/DroppyCodeApp.swift:21-25. Upstream chords are written in macOS modifier glyphs (DroppyCode/Core/Models/Shortcuts.swift:43-50 modifierSymbols: \"⌃\", \"⌥\", \"⇧\", \"⌘\").",
         "port": "No menu bar. Every command the source defines stays on its shortcut and in the command palette; text fields keep standard Ctrl+C/V/X/Z/A. Read as the ruling's resolution note records it (porting/owner_decisions_pending.md:57: \"Every source command keeps its shortcut and command-palette entry\"): a command keeps the palette row the source gives it and gains none; at B2 the palette's only actions are New thread, New thread in worktree, Add project, Toggle terminal, Toggle changes, the finish action and Settings (DroppyCode/App/Views/Palette/CommandPalette.swift:153-178), so this command has no palette row in the port. Chords are named in Windows notation (OD-0008 B7: Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl); key labels stay the US-position table (OD-0008 B9)."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "WIN",
@@ -24686,7 +24699,8 @@
         "decision": "OD-0008 C3, B7",
         "upstream": "DroppyCode/App/AppCommands.swift:85-86 - an item of the macOS menu bar installed by DroppyCode/App/DroppyCodeApp.swift:21-25. Upstream chords are written in macOS modifier glyphs (DroppyCode/Core/Models/Shortcuts.swift:43-50 modifierSymbols: \"⌃\", \"⌥\", \"⇧\", \"⌘\").",
         "port": "No menu bar. Every command the source defines stays on its shortcut and in the command palette; text fields keep standard Ctrl+C/V/X/Z/A. Read as the ruling's resolution note records it (porting/owner_decisions_pending.md:57: \"Every source command keeps its shortcut and command-palette entry\"): a command keeps the palette row the source gives it and gains none; at B2 the palette's only actions are New thread, New thread in worktree, Add project, Toggle terminal, Toggle changes, the finish action and Settings (DroppyCode/App/Views/Palette/CommandPalette.swift:153-178), so this command has no palette row in the port. Chords are named in Windows notation (OD-0008 B7: Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl); key labels stay the US-position table (OD-0008 B9)."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "WIN",
@@ -24715,7 +24729,8 @@
         "decision": "OD-0008 C3, B7",
         "upstream": "DroppyCode/App/AppCommands.swift:87-88 - an item of the macOS menu bar installed by DroppyCode/App/DroppyCodeApp.swift:21-25. Upstream chords are written in macOS modifier glyphs (DroppyCode/Core/Models/Shortcuts.swift:43-50 modifierSymbols: \"⌃\", \"⌥\", \"⇧\", \"⌘\").",
         "port": "No menu bar. Every command the source defines stays on its shortcut and in the command palette; text fields keep standard Ctrl+C/V/X/Z/A. Read as the ruling's resolution note records it (porting/owner_decisions_pending.md:57: \"Every source command keeps its shortcut and command-palette entry\"): a command keeps the palette row the source gives it and gains none; at B2 the palette's only actions are New thread, New thread in worktree, Add project, Toggle terminal, Toggle changes, the finish action and Settings (DroppyCode/App/Views/Palette/CommandPalette.swift:153-178), so this command has no palette row in the port. Chords are named in Windows notation (OD-0008 B7: Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl); key labels stay the US-position table (OD-0008 B9)."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "WIN",
@@ -24745,7 +24760,8 @@
         "decision": "OD-0008 C3, B7",
         "upstream": "DroppyCode/App/AppCommands.swift:89-94 - an item of the macOS menu bar installed by DroppyCode/App/DroppyCodeApp.swift:21-25. Upstream chords are written in macOS modifier glyphs (DroppyCode/Core/Models/Shortcuts.swift:43-50 modifierSymbols: \"⌃\", \"⌥\", \"⇧\", \"⌘\").",
         "port": "No menu bar. Every command the source defines stays on its shortcut and in the command palette; text fields keep standard Ctrl+C/V/X/Z/A. Read as the ruling's resolution note records it (porting/owner_decisions_pending.md:57: \"Every source command keeps its shortcut and command-palette entry\"): a command keeps the palette row the source gives it and gains none; at B2 the palette's only actions are New thread, New thread in worktree, Add project, Toggle terminal, Toggle changes, the finish action and Settings (DroppyCode/App/Views/Palette/CommandPalette.swift:153-178), so this command has no palette row in the port. Chords are named in Windows notation (OD-0008 B7: Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl); key labels stay the US-position table (OD-0008 B9)."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "WIN",
@@ -24775,7 +24791,8 @@
         "decision": "OD-0008 C3, B7",
         "upstream": "DroppyCode/App/AppCommands.swift:95-98 - an item of the macOS menu bar installed by DroppyCode/App/DroppyCodeApp.swift:21-25. Upstream chords are written in macOS modifier glyphs (DroppyCode/Core/Models/Shortcuts.swift:43-50 modifierSymbols: \"⌃\", \"⌥\", \"⇧\", \"⌘\").",
         "port": "No menu bar. Every command the source defines stays on its shortcut and in the command palette; text fields keep standard Ctrl+C/V/X/Z/A. Read as the ruling's resolution note records it (porting/owner_decisions_pending.md:57: \"Every source command keeps its shortcut and command-palette entry\"): a command keeps the palette row the source gives it and gains none; at B2 the palette's only actions are New thread, New thread in worktree, Add project, Toggle terminal, Toggle changes, the finish action and Settings (DroppyCode/App/Views/Palette/CommandPalette.swift:153-178), so this command has no palette row in the port. Chords are named in Windows notation (OD-0008 B7: Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl); key labels stay the US-position table (OD-0008 B9)."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "WIN",
@@ -24868,7 +24885,8 @@
         "decision": "OD-0008 C3, B7",
         "upstream": "DroppyCode/App/AppCommands.swift:106-108 - an item of the macOS menu bar installed by DroppyCode/App/DroppyCodeApp.swift:21-25. Upstream chords are written in macOS modifier glyphs (DroppyCode/Core/Models/Shortcuts.swift:43-50 modifierSymbols: \"⌃\", \"⌥\", \"⇧\", \"⌘\").",
         "port": "No menu bar. Every command the source defines stays on its shortcut and in the command palette; text fields keep standard Ctrl+C/V/X/Z/A. Read as the ruling's resolution note records it (porting/owner_decisions_pending.md:57: \"Every source command keeps its shortcut and command-palette entry\"): a command keeps the palette row the source gives it and gains none; at B2 the palette's only actions are New thread, New thread in worktree, Add project, Toggle terminal, Toggle changes, the finish action and Settings (DroppyCode/App/Views/Palette/CommandPalette.swift:153-178), so this command has no palette row in the port. Chords are named in Windows notation (OD-0008 B7: Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl); key labels stay the US-position table (OD-0008 B9)."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "WIN",
@@ -26127,7 +26145,8 @@
         "decision": "OD-0008 C3, B7",
         "upstream": "DroppyCode/App/AppCommands.swift:55-56 - 'Button(\"Zoom Out\")' with `.keyboardShortcut(\"-\", modifiers: .command)`. Upstream chords are written in macOS modifier glyphs (DroppyCode/Core/Models/Shortcuts.swift:43-50 modifierSymbols: \"⌃\", \"⌥\", \"⇧\", \"⌘\").",
         "port": "No menu bar. Every command the source defines stays on its shortcut and in the command palette; text fields keep standard Ctrl+C/V/X/Z/A. Read as the ruling's resolution note records it (porting/owner_decisions_pending.md:57: \"Every source command keeps its shortcut and command-palette entry\"): a command keeps the palette row the source gives it and gains none; at B2 the palette's only actions are New thread, New thread in worktree, Add project, Toggle terminal, Toggle changes, the finish action and Settings (DroppyCode/App/Views/Palette/CommandPalette.swift:153-178), so this command has no palette row in the port. Chords are named in Windows notation (OD-0008 B7: Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl); key labels stay the US-position table (OD-0008 B9)."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "WIN",
@@ -26155,7 +26174,8 @@
         "decision": "OD-0008 C3, B7; OD-0012 G6",
         "upstream": "DroppyCode/App/AppCommands.swift:57-58 - 'Button(\"Actual Size\") { model.settings.appZoom = 100 }' with `.keyboardShortcut(\"0\", modifiers: .command)`. Upstream chords are written in macOS modifier glyphs (DroppyCode/Core/Models/Shortcuts.swift:43-50 modifierSymbols: \"⌃\", \"⌥\", \"⇧\", \"⌘\").",
         "port": "No menu bar. Every command the source defines stays on its shortcut and in the command palette; text fields keep standard Ctrl+C/V/X/Z/A. Read as the ruling's resolution note records it (porting/owner_decisions_pending.md:57: \"Every source command keeps its shortcut and command-palette entry\"): a command keeps the palette row the source gives it and gains none; at B2 the palette's only actions are New thread, New thread in worktree, Add project, Toggle terminal, Toggle changes, the finish action and Settings (DroppyCode/App/Views/Palette/CommandPalette.swift:153-178), so this command has no palette row in the port. Chords are named in Windows notation (OD-0008 B7: Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl); key labels stay the US-position table (OD-0008 B9). OD-0012 G6: Ctrl+0 is Actual Size; \"Show Marrow\" keeps no default chord."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "WIN",

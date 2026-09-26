@@ -918,7 +918,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Apply the accent as one inherited value on the root. The single-branch rule is a real bug fix: any Windows implementation that swaps the subtree when the accent becomes non-nil will reset Settings' scroll position on a theme change.",
       "verification_method": "interaction test: scroll Settings to the bottom, change the theme, the scroll position is unchanged",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

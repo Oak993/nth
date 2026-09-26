@@ -1743,7 +1743,7 @@
       "cancellation": "not cancellable",
       "windows_path": "No menu item. The chord handler keeps the menu item's action and its disabled rule (model.selectedThreadID == nil).",
       "verification_method": "interaction test pressing the chord with and without a selected thread, plus an assertion that no menu bar exists",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4044,7 +4044,8 @@
         "decision": "OD-0008 C3, B7",
         "upstream": "DroppyCode/App/AppCommands.swift:42-44 - the View group item \"Toggle terminal\" with the ⌘J chord",
         "port": "No menu bar. Every command the source defines stays on its shortcut and in the command palette; text fields keep standard Ctrl+C/V/X/Z/A. Chords render in Windows notation (Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl)."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-TERM-032",
@@ -4072,7 +4073,8 @@
         "decision": "OD-0008 C3, B7",
         "upstream": "DroppyCode/App/AppCommands.swift:89-94 - the menu item titled \"Run <name>\" or \"Run top script\" with the ⌘R chord",
         "port": "No menu bar. Every command the source defines stays on its shortcut and in the command palette; text fields keep standard Ctrl+C/V/X/Z/A. Chords render in Windows notation (Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl)."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-TERM-033",

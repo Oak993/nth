@@ -1340,7 +1340,7 @@
       "cancellation": "not cancellable; termination has already been agreed",
       "windows_path": "The Windows shutdown handler runs the same three steps in the same order (platform_adaptations PA-0006). Child-process cleanup at exit is an explicit Gate E check.",
       "verification_method": "unit test on the shutdown sequencer asserting order; Gate E check that no child process survives",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1499,7 +1499,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port including the guard: with no pending save, nothing is written at quit even if the in-memory state differs from disk.",
       "verification_method": "restart test: spend tokens, quit, relaunch, assert the spend survived",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1526,7 +1526,7 @@
       "cancellation": "not cancellable",
       "windows_path": "PLATFORM BOUNDARY (platform_adaptations PA-0007 and port_impacts.md entry 54): Windows has no SIGTERM with these delivery semantics. The candidate is a Job Object per spawned child with JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE to match the negative-pid group kill, preceded by a cooperative shutdown or console control event. This must be probed, not assumed. Gate E checks that no npx or node child survives the app.",
       "verification_method": "Gate E check: after quit, no MCP server child process or grandchild remains",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1554,7 +1554,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce, with the requirement that none of these background tasks may keep the Windows process alive after the shutdown sequence; they must be background or daemon work that dies with the process.",
       "verification_method": "Gate E check: the process actually exits; unit test asserting the shutdown sequencer cancels only the two documented tasks",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1971,7 +1971,7 @@
       "cancellation": "not applicable",
       "windows_path": "Direct port: the shutdown sequence must tolerate a null model and still run the other two steps.",
       "verification_method": "unit test on the shutdown sequencer with a null model",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2336,7 +2336,8 @@
         "decision": "OD-0008 C2",
         "upstream": "DroppyCode/App/AppCommands.swift:11-114 - the system Quit item, never replaced",
         "port": "Window close button and Alt+F4 only; no invented menu item"
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-LAUNCH-007",
