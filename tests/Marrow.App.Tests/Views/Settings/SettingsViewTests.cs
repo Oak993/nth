@@ -31,11 +31,11 @@ namespace Marrow.App.Tests.Views.Settings;
 public sealed class SettingsViewTests(HeadlessSession headless)
 {
     // STOP App.Views.Settings.SettingsView #1
-    // Kind: dependency. Swift: SettingsView.swift:839. Records: PR-GIT-150.
+    // Kind: dependency. Swift: SettingsView.swift:839. Records: PR-GIT-150, UI-SETTINGS-069.
     // Missing: Workspace.RevealInFileExplorer is a throwing dependency in UI/Common/Components.cs.
     // Needed: that unit's Windows reveal implementation. The row/path/label are covered; invoking Reveal is not.
     // STOP App.Views.Settings.SettingsView #2
-    // Kind: dependency. Swift: SettingsView.swift:750-751. Records: provider Login action (parts 5-6).
+    // Kind: dependency. Swift: SettingsView.swift:750-751. Records: provider Login action (parts 5-6), UI-SETTINGS-051.
     // Missing: Workspace.OpenTerminal is BLOCKED PR-PROVREG-233 in UI/Common/Components.cs.
     // Needed: the upstream unit's terminal launcher. The login row can be ported; its action cannot be verified.
     private static T Field<T>(object obj, string name) => (T)obj.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(obj)!;
@@ -72,6 +72,50 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     private void WithSettings(Action<Control, AppModel, AppModelHarness> check) => WithView(() => new SettingsView(), check, _ => SettingsNavigation.Shared.RequestedPage = SettingsPage.Archive);
     private static ChromeRow Row(Control view, string title) => Nodes<ChromeRow>(view).Single(row => Text(row).FirstOrDefault() == title);
 
+    [Fact]
+    [Trait("Req", "UI-SETTINGS-015")] // App/Views/Settings/SettingsView.swift:344-348
+    [Trait("Req", "UI-SETTINGS-065")] // App/Views/Settings/SettingsView.swift:395-399,432-442
+    public void Owned_visual_pickers_keep_option_order_symbols_and_uniform_stage_and_caption_metrics()
+    {
+        WithView(() => new GeneralSettingsPage(), (view, _, _) => { Check(Row(view, "Working line"), ["Card", "Line"], ["rectangle.fill", "minus"]); Check(Row(view, "Done with a thread"), ["Settle", "Archive"], ["checkmark", "archivebox"]); });
+        WithView(() => new AppearanceSettingsPage(), (view, _, _) => { Check(Row(view, "Sidebar"), ["Column", "Floating", "Panel only"], ["sidebar.left", "macwindow.on.rectangle", "macwindow"]); Check(Row(view, "Activity list"), ["Icon", "Project name"], ["list.bullet", "text.alignleft"]); });
+        static void Check(Control row, string[] titles, string[] symbols)
+        {
+            var tiles = Nodes<ChromeVisualTile>(row); Assert.Equal(titles, tiles.Select(AutomationProperties.GetName)); Assert.Equal(symbols, tiles.Select(tile => Assert.Single(Nodes<SwiftImage>(tile)).SymbolName));
+            foreach (var tile in tiles) { var stage = Field<Border>(tile, "stageBack"); Assert.Equal(76, stage.Width); Assert.Equal(48, stage.Height); Assert.Equal(new CornerRadius(6), stage.CornerRadius); var caption = Field<TextBlock>(tile, "captionBlock"); Assert.Equal(11, caption.FontSize); Assert.Equal(2, caption.MaxLines); Assert.Equal(6, Assert.Single(Nodes<StackPanel>(tile)).Spacing); }
+        }
+    }
+
+    [Fact]
+    [Trait("Req", "UI-SETTINGS-061")] // App/Views/Settings/SettingsView.swift:148-157
+    [Trait("Req", "UI-SETTINGS-062")] // App/Views/Settings/SettingsView.swift:151-155
+    [Trait("Req", "UI-SETTINGS-063")] // App/Views/Settings/SettingsView.swift:148-157
+    [Trait("Req", "UI-SETTINGS-064")] // App/Views/Settings/SettingsView.swift:159-163
+    [Trait("Req", "UI-SETTINGS-073")] // App/Views/Settings/SettingsView.swift:148-157
+    [Trait("Req", "UI-SETTINGS-074")] // App/Views/Settings/SettingsView.swift:148-157
+    public void Sidebar_icons_use_source_sizes_and_labels_without_using_page_tints() => WithSettings((view, _, _) =>
+    {
+        var rows = Nodes<SidebarRow>(view); foreach (var row in rows) { var title = Nodes<TextBlock>(row).Single(); Assert.Equal(13, title.FontSize); Assert.Equal(title.Text == "Archive" ? Avalonia.Media.FontWeight.Medium : Avalonia.Media.FontWeight.Normal, title.FontWeight); var badge = Assert.Single(Nodes<SidebarIconBadge>(row)); Assert.Equal(20, Assert.IsType<Panel>(badge.Child).Width); }
+        foreach (var (title, symbol, side) in new[] { ("General", "gear", 16.1), ("Providers", "cpu", 14.0), ("MCP", "puzzlepiece.extension", 14.0), ("Models", "slider.horizontal.3", 14.0), ("About", "info.circle", 14.0) }) { var image = Assert.Single(Nodes<SwiftImage>(rows.Single(row => Text(row).Contains(title)))); Assert.Equal(symbol, image.SymbolName); Assert.Equal(side, image.Width, 4); Assert.Equal(side, image.Height, 4); }
+        var hydra = Assert.Single(Nodes<HydraMarkImage>(rows.Single(row => Text(row).Contains("Hydra")))); Assert.Equal(16.1, hydra.Width, 4); Assert.Equal(16.1, hydra.Height, 4);
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SETTINGS-051")] // App/Views/Settings/SettingsView.swift:719-757
+    [Trait("Req", "UI-SETTINGS-069")] // App/Views/Settings/SettingsView.swift:838-840
+    public void Sign_in_and_reveal_keep_the_source_glass_capsule_wrappers_without_invoking_blocked_actions()
+    {
+        WithView(() => new SourceControlSettingsPage(), (view, _, _) => Assert.Single(Nodes<Border>(Row(view, "Worktrees")), border => !border.IsHitTestVisible));
+        WithView(() => new ProviderSettingsSection(ProviderKind.Commandcode, Binding<bool>.Constant(true)), (view, _, _) => { var row = Row(view, "Sign in"); Assert.Equal(16, Nodes<TextBlock>(row).Single(text => text.Text == "Login").Height); Assert.Single(Nodes<Border>(row), border => !border.IsHitTestVisible); }, model => Seed(model, ProviderKind.Commandcode, new ProviderStatus { Executable = SwiftURL.FileURLWithPath("/fixture/command-code"), ProviderStatusAuth = new ProviderStatus.Auth.SignedOut() }));
+    }
+
+    [Fact]
+    [Trait("Req", "UI-SETTINGS-052")] // App/Views/Settings/SettingsView.swift:818-835
+    public void Commit_editor_binds_multiline_wrapping_caret_and_selection_into_its_actual_presenter() => WithView(() => new SourceControlSettingsPage(), (view, _, _) =>
+    {
+        var editor = Assert.Single(Nodes<TextBox>(view)); Assert.True(editor.AcceptsReturn); Assert.Equal(Avalonia.Media.TextWrapping.Wrap, editor.TextWrapping); editor.Text = "first\nsecond"; editor.CaretIndex = 3; editor.SelectionStart = 1; editor.SelectionEnd = 3; Sync(); editor.ApplyTemplate(); var presenter = Assert.Single(editor.GetVisualDescendants().OfType<TextPresenter>()); Assert.Equal("first\nsecond", presenter.Text); Assert.Equal(Avalonia.Media.TextWrapping.Wrap, presenter.TextWrapping); Assert.Equal(editor.CaretIndex, presenter.CaretIndex); Assert.Equal(1, presenter.SelectionStart); Assert.Equal(3, presenter.SelectionEnd);
+    });
+
     private static Control Opened(Avalonia.Controls.Primitives.Popup popup)
     {
         ((EventHandler?)typeof(Avalonia.Controls.Primitives.Popup).GetField("Opened", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(popup))?.Invoke(popup, EventArgs.Empty);
@@ -98,6 +142,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     [Trait("Req", "UI-PROVREG-037")] // App/Views/Settings/SettingsView.swift:689-696
     [Trait("Req", "UI-PROVREG-038")] // App/Views/Settings/SettingsView.swift:697-707
     [Trait("Req", "UI-PROVREG-039")] // App/Views/Settings/SettingsView.swift:708-717
+    [Trait("Req", "UI-SETTINGS-050")] // App/Views/Settings/SettingsView.swift:689-718,784-795
     [Trait("Req", "UI-PROVREG-040")] // App/Views/Settings/SettingsView.swift:719-728
     [Trait("Req", "UI-PROVREG-041")] // App/Views/Settings/SettingsView.swift:730-737,780-783
     [Trait("Req", "UI-PROVREG-042")] // App/Views/Settings/SettingsView.swift:738-746
@@ -228,6 +273,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     [Fact]
     [Trait("Req", "UI-PROVAPI-010")] // App/Views/Settings/SettingsView.swift:667-672
     [Trait("Req", "UI-PROVREG-008")] // App/Views/Settings/SettingsView.swift:667-672
+    [Trait("Req", "UI-SETTINGS-066")] // App/Views/Settings/SettingsView.swift:668-671
     public void Provider_enable_switch_is_keyboard_accessible_even_during_a_check_and_updates_disabled_providers() => WithView(() => new ProviderSettingsSection(ProviderKind.Deepseek, Binding<bool>.Constant(true)), (view, model, _) =>
     {
         Seed(model, ProviderKind.Deepseek, model.Providers.Status(ProviderKind.Deepseek) with { IsChecking = true }); Sync(); var toggle = Assert.Single(Nodes<SmallSwitch>(view)); Assert.True(toggle.Focusable); Assert.True(toggle.IsEffectivelyEnabled);
@@ -257,6 +303,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     [Trait("Req", "UI-PROVREG-004")] // App/Views/Settings/SettingsView.swift:651-653
     [Trait("Req", "UI-PROVREG-005")] // App/Views/Settings/SettingsView.swift:650-656
     [Trait("Req", "UI-PROVREG-006")] // App/Views/Settings/SettingsView.swift:657-660
+    [Trait("Req", "UI-SETTINGS-049")] // App/Views/Settings/SettingsView.swift:648-675
     public void Providers_keep_all_sections_and_status_header_metrics_and_animate_reveal_without_unmounting() => WithView(() => new ProvidersSettingsPage(), (view, model, h) =>
     {
         Assert.Equal("Providers", SettingsPage.Providers.Title); Assert.Equal("cpu", SettingsPage.Providers.Symbol); Assert.Equal(Chrome.Blue, SettingsPage.Providers.Tint); Assert.Equal(39, SettingsPage.Providers.Keywords.Count);
@@ -311,6 +358,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     [Trait("Req", "PR-THEME-047")] // App/Views/Settings/SettingsView.swift:1204-1208
     [Trait("Req", "PR-THEME-048")] // App/Views/Settings/SettingsView.swift:1168-1192
     [Trait("Req", "PR-THEME-049")] // App/Views/Settings/SettingsView.swift:424-426
+    [Trait("Req", "UI-SETTINGS-017")] // App/Views/Settings/SettingsView.swift:1157-1209
     public void Theme_capsule_has_source_metrics_and_menu_checks_the_selected_theme_and_updates_Nord_detail() => WithView(() => new AppearanceSettingsPage(), (view, model, _) =>
     {
         var picker = Assert.Single(Nodes<ThemePickerButton>(view)); var label = Assert.Single(Nodes<StackPanel>(picker), stack => stack.Height == 28); Assert.Equal(6, label.Spacing); Assert.Equal(new Thickness(12, 0), label.Margin);
@@ -325,6 +373,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     [Trait("Req", "PR-THEME-050")] // App/Views/Settings/SettingsView.swift:428-430,526-539
     [Trait("Req", "PR-THEME-051")] // App/Views/Settings/SettingsView.swift:524,540-562
     [Trait("Req", "PR-THEME-052")] // App/Views/Settings/SettingsView.swift:563
+    [Trait("Req", "UI-SETTINGS-018")] // App/Views/Settings/SettingsView.swift:519-563
     public void Transparency_reset_fades_and_offsets_over_200ms_without_consuming_layout_width() => WithView(() => new AppearanceSettingsPage(), (view, model, h) =>
     {
         var control = Assert.Single(Nodes<BackdropOpacitySlider>(view)); var reset = Assert.Single(Nodes<Button>(control)); var slider = Assert.Single(Nodes<Slider>(control));
@@ -368,6 +417,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-UPDATE-083")] // App/Views/Settings/SettingsView.swift:985-987
+    [Trait("Req", "UI-SETTINGS-070")] // App/Views/Settings/SettingsView.swift:985-987
     public void About_Show_replays_all_eight_tour_pages_even_when_the_tour_was_already_seen() => WithView(() => new AboutSettingsPage(), (view, model, _) =>
     {
         model.Settings.HasSeenTour = true; Sync(); try { Click(Button(Row(((StackPanel)((AboutSettingsPage)view).Child!).Children[1], "Welcome tour"), "Show")); Sync(); var window = Field<Avalonia.Controls.Window>(Marrow.App.Views.Tour.TourWindowController.Shared, "window"); Assert.True(window.IsVisible); Assert.Equal(8, Marrow.App.Views.Tour.Tour.Pages.Count); }
@@ -378,6 +428,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     [Trait("Req", "PR-UPDATE-085")] // App/Views/Settings/SettingsView.swift:946-964
     [Trait("Req", "PR-UPDATE-086")] // App/Views/Settings/SettingsView.swift:1060-1101
     [Trait("Req", "PR-UPDATE-087")] // App/Views/Settings/SettingsView.swift:1012-1056
+    [Trait("Req", "UI-SETTINGS-059")] // App/Views/Settings/SettingsView.swift:1060-1102
     public void Droppy_attribution_link_and_legal_document_titles_are_exact() => WithView(() => new AboutSettingsPage(), (view, _, _) =>
     {
         var droppy = Assert.Single(Nodes<MadeByDroppyRow>(view)); var button = Assert.Single(Nodes<Button>(droppy)); Assert.Equal("Open getdroppy.app", ToolTip.GetTip(button)); Assert.Equal("Made by Droppy. Open getdroppy.app", AutomationProperties.GetName(button));
@@ -388,7 +439,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
 
     // STOP App.Views.Settings.SettingsView #4
     // Kind: dependency / owner decision. Swift: SettingsView.swift:954-955,1002 (terminal fragments only).
-    // Records: PR-SETTINGS-238, PR-SETTINGS-248, PR-UPDATE-082, PR-UPDATE-084, PR-UPDATE-085 (terminal clauses only).
+    // Records: PR-SETTINGS-238, PR-SETTINGS-248, PR-UPDATE-082, PR-UPDATE-084, PR-UPDATE-085, UI-SETTINGS-072 (terminal clauses only).
     // Missing: TerminalHostView explicitly has no renderer or chosen terminal component.
     // Needed: the shipped terminal's name, author, licence and project URL; do not credit SwiftTerm on Windows.
     // Keep the Terminal title/divider and the AGPL sentence prefix; only its CreditLink, component detail and trailing licence fragment are blocked.
@@ -490,6 +541,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     [Trait("Req", "PR-SETTINGS-232")] // App/Views/Settings/SettingsView.swift:808-816
     [Trait("Req", "PR-SETTINGS-233")] // App/Views/Settings/SettingsView.swift:818-834
     [Trait("Req", "PR-SETTINGS-234")] // App/Views/Settings/SettingsView.swift:836-847
+    [Trait("Req", "UI-SETTINGS-068")] // App/Views/Settings/SettingsView.swift:808-816
     public void Commit_editor_keeps_whitespace_and_text_generation_uses_the_source_asset_map() => WithView(() => new SourceControlSettingsPage(), (view, model, _) =>
     {
         var editor = Assert.Single(Nodes<TextBox>(view)); Assert.True(editor.AcceptsReturn); Assert.Equal(90, editor.MinHeight); editor.Text = " \nKeep this\n "; Sync(); Assert.Equal(" \nKeep this\n ", model.Settings.CommitInstructions);
@@ -500,6 +552,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SETTINGS-235")] // App/Views/Settings/SettingsView.swift:854-885
+    [Trait("Req", "UI-SETTINGS-053")] // App/Views/Settings/SettingsView.swift:851-885
     public void Delete_all_uses_singular_confirmation_and_cancels_without_deleting() => WithView(() => new ArchiveDeleteAllButton(), (view, model, _) =>
     {
         var presenter = new RecordingPresenter(); using var presentation = Presentation.Presenter.Override(presenter);
@@ -511,6 +564,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SETTINGS-236")] // App/Views/Settings/SettingsView.swift:888-935
+    [Trait("Req", "UI-SETTINGS-054")] // App/Views/Settings/SettingsView.swift:896-934
     public void Archived_rows_restore_immediately_and_delete_only_after_the_shared_dialog_confirms() => WithView(() => new ArchiveSettingsPage(), (view, model, _) =>
     {
         Assert.Equal(new[] { "Archived", "Another" }, Nodes<ChromeRow>(view).Select(x => Text(x).First())); Assert.Single(Nodes<ChromeRowDivider>(view)); Assert.Contains("One", Text(Row(view, "Archived")));
@@ -525,6 +579,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     [Trait("Req", "PR-SETTINGS-238")] // App/Views/Settings/SettingsView.swift:968-1005
     [Trait("Req", "PR-SETTINGS-239")] // App/Views/Settings/SettingsView.swift:985-987
     [Trait("Req", "PR-SETTINGS-248")] // App/Views/Settings/SettingsView.swift:946-963,1060-1121
+    [Trait("Req", "UI-SETTINGS-072")] // App/Views/Settings/SettingsView.swift:950-960,1104-1121
     public void About_keeps_the_empty_update_slot_and_truthful_product_and_attribution_content() => WithView(() => new AboutSettingsPage(), (view, _, _) =>
     {
         var stack = Assert.IsType<StackPanel>(Assert.IsType<AboutSettingsPage>(view).Child); Assert.Equal(20, stack.Spacing); Assert.Equal(3, stack.Children.Count); Assert.IsType<AboutSoftwareUpdateSection>(stack.Children[0]);
@@ -542,6 +597,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SETTINGS-249")] // App/Views/Settings/SettingsView.swift:1009-1057
+    [Trait("Req", "UI-SETTINGS-060")] // App/Views/Settings/SettingsView.swift:1007-1057
     public void Licences_are_read_once_and_the_three_markdown_blocks_use_fixed_popover_geometry() => WithView(() => new LicensesRow(), (view, _, _) =>
     {
         var presenter = new RecordingPresenter(); using var presentation = Presentation.Presenter.Override(presenter); Click(Button(view, "Show")); Sync(); var content = Opened(presenter.Calls.Last(x => x.Presented).Popup);
@@ -645,6 +701,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SETTINGS-121")] // App/Views/Settings/SettingsView.swift:1130-1154
+    [Trait("Req", "UI-SETTINGS-016")] // App/Views/Settings/SettingsView.swift:1130-1154
     public void Marks_edit_is_disabled_without_projects_and_opens_the_400_wide_list_in_library_order() => WithView(() => new ProjectMarksRow(), (view, model, h) =>
     {
         var presenter = new RecordingPresenter(); using var presentation = Presentation.Presenter.Override(presenter);
