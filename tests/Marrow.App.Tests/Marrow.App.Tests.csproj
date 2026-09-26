@@ -26,6 +26,9 @@
     <ProjectReference Include="..\..\src\Marrow.UI\Marrow.UI.csproj" />
     <ProjectReference Include="..\..\src\Marrow.Services\Marrow.Services.csproj" />
     <ProjectReference Include="..\..\src\Marrow.Core\Marrow.Core.csproj" />
+    <!-- Marrow.Services.Tests.Fixtures.ForgeFixtures (ForgeStandIns/ForgeScript): the scripted, offline glab/gh/tea
+         stand-in used by L4c's own-branch merge regression test (PR-HYDRAMERGE-127/-128). -->
+    <ProjectReference Include="..\Marrow.Services.Tests\Marrow.Services.Tests.csproj" />
   </ItemGroup>
 
 </Project>

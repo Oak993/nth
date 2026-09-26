@@ -90,28 +90,6 @@ public sealed class AppModelHydraMergeTests
         Assert.Equal(["first-line.txt"], found);
     }
 
-    [Fact]
-    [Trait("Req", "PR-HYDRAMERGE-115")] // AppModel+HydraMerge.swift:846-850
-    public void Held_detail_sorts_the_distinct_names_and_paths_and_shows_only_six_paths()
-    {
-        var held = new Dictionary<string, string>
-        {
-            [@"C:\repo\file-07"] = "Zulu",
-            [@"C:\repo\file-03"] = "Alpha",
-            [@"C:\repo\file-01"] = "Zulu",
-            [@"C:\repo\file-06"] = "Alpha",
-            [@"C:\repo\file-02"] = "Alpha",
-            [@"C:\repo\file-05"] = "Zulu",
-            [@"C:\repo\file-04"] = "Alpha",
-        };
-
-        var detail = InvokeHeldDetail(held);
-
-        Assert.Equal(
-            "7 files the team changed are also claimed by Alpha, Zulu: `C:\\repo\\file-01`, `C:\\repo\\file-02`, `C:\\repo\\file-03`, `C:\\repo\\file-04`, `C:\\repo\\file-05`, `C:\\repo\\file-06` and 1 more.",
-            detail);
-    }
-
     private static async Task InvokeResumeHydraMerges(AppModel model)
     {
         var method = typeof(AppModel).GetMethod("ResumeHydraMerges", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
@@ -130,13 +108,6 @@ public sealed class AppModelHydraMergeTests
         return await task;
     }
 
-    private static string InvokeHeldDetail(IReadOnlyDictionary<string, string> held)
-    {
-        var method = typeof(AppModel).GetMethod("HeldDetail", BindingFlags.Static | BindingFlags.NonPublic);
-        Assert.NotNull(method);
-        return Assert.IsType<string>(method!.Invoke(null, [held]));
-    }
-
     // SyncDefaultBranch is `private static async Task<bool>` (AppModel+HydraMerge.cs:647): MethodInfo.Invoke on an
     // async method hands back the Task, never the eventual bool, exactly like InvokeConflictMarkerScan above for
     // PathsWithConflictMarkers. Asserting the raw Invoke() result IsType<bool> (as this helper's one call site used
@@ -148,7 +119,9 @@ public sealed class AppModelHydraMergeTests
     {
         var method = typeof(AppModel).GetMethod("SyncDefaultBranch", BindingFlags.Static | BindingFlags.NonPublic);
         Assert.NotNull(method);
-        var result = method!.Invoke(null, [git, head, target, ownPaths]);
+        // :778 merged defaults to [:] in Swift; SyncDefaultBranch's `merged` C# parameter is optional too, but
+        // reflection's Invoke does not apply parameter defaults on its own, so it is passed explicitly here.
+        var result = method!.Invoke(null, [git, head, target, ownPaths, null]);
         var task = Assert.IsAssignableFrom<Task<bool>>(result);
         return await task;
     }
@@ -256,65 +229,31 @@ public sealed class AppModelHydraMergeTests
         Assert.Equal(detail, SwiftErrors.LocalizedDescription(error));
     }
 
+    // B3 removes the Held outcome from every write path (PR-HYDRAMERGE-122): AppModel+HydraMerge.swift no longer
+    // declares recordHydraHold or heldDetail (the lane's "Retire the HeldDetail and RecordHydraHold tests"), so the
+    // B2-era Held_detail_* and Hold_records_deduplicate_* tests that exercised RecordHydraHold/HeldDetail are
+    // retired along with those methods. RecordHydraSettlement itself is still B3 source (:902-906) and is checked
+    // directly below.
     [Fact]
-    [Trait("Req", "PR-HYDRAMERGE-115")] // AppModel+HydraMerge.swift:846-850
-    public void Held_detail_uses_singular_wording_for_one_path()
-    {
-        var detail = InvokeHeldDetail(new Dictionary<string, string> { [@"C:\repo\one.txt"] = "Another chat" });
-
-        Assert.Equal("1 file the team changed is also claimed by Another chat: \u0060C:\\repo\\one.txt\u0060.", detail);
-    }
-
-    [Fact]
-    [Trait("Req", "PR-HYDRAMERGE-113")] // AppModel+HydraMerge.swift:829-833
-    [Trait("Req", "PR-HYDRAMERGE-114")] // AppModel+HydraMerge.swift:835-841
-    [Trait("Req", "PR-CHAT-189")] // AppModel+HydraMerge.swift:835-841: recordHydraHold writes once per distinct
-    // holding detail (the guard last?.outcome != .held || last?.detail != detail), which this test's two
-    // recordHold calls with the same `first` dictionary already prove by observing only one Held record for them.
-    public void Hold_records_deduplicate_by_exact_detail_and_settlement_waits_for_no_unmerged_files()
+    [Trait("Req", "PR-HYDRAMERGE-113")] // AppModel+HydraMerge.swift:902-906
+    public void Record_settlement_writes_once_when_no_files_remain_unmerged()
     {
         using var h = new AppModelHarness();
-        var repository = AppModelGitRepo.WithCommit(h.NewFolder("project"));
-        var project = AppModelSamples.Project("Project", repository.Root);
+        var project = AppModelSamples.Project("Project", h.NewFolder("settlement-project"));
         var lead = AppModelSamples.Thread(project) with { HydraEnabled = true, UpdatedAt = SwiftDate.Now };
-        var turn = new TurnRecord
-        {
-            Id = Guid.NewGuid(),
-            Index = 1,
-            Status = TurnStatus.Completed,
-            CompletedAt = SwiftDate.Now,
-            TouchedPaths = ValueList<string>.Empty,
-        };
         h.WriteLibrary([project], [lead]);
-        DiskWriter.Shared.WriteSynchronously(
-            new ThreadDocument(lead.Id) { Turns = new ValueList<TurnRecord>([turn]) },
-            Storage.ThreadURL(lead.Id));
+        AppModelHarness.WriteDocument(lead.Id);
         var model = h.MakeModel();
-        h.Main.OnMain(() =>
-        {
-            model.Settings.HydraEnabled = true;
-            model.Settings.HydraAutoMerge = true;
-        });
-
-        h.Main.Loop.Run(() => InvokeResumeHydraMerges(model), AppModelHarness.Bound);
 
         var observed = h.Main.OnMain(() =>
         {
-            var runtime = model.ExistingRuntime(lead.Id);
-            Assert.NotNull(runtime);
-            var recordHold = typeof(AppModel).GetMethod("RecordHydraHold", BindingFlags.Instance | BindingFlags.NonPublic);
+            var runtime = model.Runtime(lead.Id);
             var recordSettlement = typeof(AppModel).GetMethod("RecordHydraSettlement", BindingFlags.Instance | BindingFlags.NonPublic);
-            Assert.NotNull(recordHold);
             Assert.NotNull(recordSettlement);
-            var first = new Dictionary<string, string> { [@"C:\repo\a.txt"] = "Zulu" };
-            var changed = new Dictionary<string, string> { [@"C:\repo\a.txt"] = "Alpha" };
 
-            recordHold!.Invoke(model, [first, lead.Id, runtime]);
-            recordHold.Invoke(model, [first, lead.Id, runtime]);
-            recordHold.Invoke(model, [changed, lead.Id, runtime]);
             recordSettlement!.Invoke(model, [lead.Id, runtime]);
 
-            var notes = runtime!.Entries
+            var notes = runtime.Entries
                 .Select(entry => entry.Item.TimelineItemContent)
                 .OfType<TimelineItem.Content.User>()
                 .Where(content => content.Value.HydraHeads is { Count: 0 })
@@ -323,42 +262,18 @@ public sealed class AppModelHydraMergeTests
             return (Records: runtime.HydraMerges.ToArray(), Notes: notes);
         });
 
-        Assert.Collection(
-            observed.Records,
-            first =>
-            {
-                Assert.Equal(HydraMergeRecord.Outcome.Held, first.HydraMergeRecordOutcome);
-                Assert.Equal(1, first.Files);
-                Assert.Null(first.Project);
-                Assert.Null(first.Label);
-                Assert.Null(first.Url);
-                Assert.Equal("1 file the team changed is also claimed by Zulu: \u0060C:\\repo\\a.txt\u0060.", first.Detail);
-            },
-            second =>
-            {
-                Assert.Equal(HydraMergeRecord.Outcome.Held, second.HydraMergeRecordOutcome);
-                Assert.Equal(1, second.Files);
-                Assert.Equal("1 file the team changed is also claimed by Alpha: \u0060C:\\repo\\a.txt\u0060.", second.Detail);
-            },
-            settled =>
-            {
-                Assert.Equal(HydraMergeRecord.Outcome.Settled, settled.HydraMergeRecordOutcome);
-                Assert.Equal(0, settled.Files);
-                Assert.Null(settled.Project);
-                Assert.Null(settled.Label);
-                Assert.Null(settled.Url);
-                Assert.Null(settled.Detail);
-            });
+        var record = Assert.Single(observed.Records);
+        Assert.Equal(HydraMergeRecord.Outcome.Settled, record.HydraMergeRecordOutcome);
+        Assert.Equal(0, record.Files);
+        Assert.Null(record.Project);
+        Assert.Null(record.Label);
+        Assert.Null(record.Url);
+        Assert.Null(record.Detail);
         Assert.Equal(
-            [
-                "Hydra is waiting for another chat's files.\n1 file the team changed is also claimed by Zulu: \u0060C:\\repo\\a.txt\u0060. " +
-                "The work stays in the checkout. Hydra retries after the other chat finishes or its queued merge completes.",
-                "Hydra is waiting for another chat's files.\n1 file the team changed is also claimed by Alpha: \u0060C:\\repo\\a.txt\u0060. " +
-                "The work stays in the checkout. Hydra retries after the other chat finishes or its queued merge completes.",
-                "Hydra has no files left to merge.\nThe checkout has no remaining changes from this job to send. No new merge request was needed.",
-            ],
+            ["Hydra has no files left to merge.\nThe checkout has no remaining changes from this job to send. No new merge request was needed."],
             observed.Notes);
     }
+
     private static T InvokeHydraMergeHelper<T>(string name, ShellResult result)
     {
         var method = typeof(AppModel).GetMethod(name, BindingFlags.Static | BindingFlags.NonPublic);
@@ -488,7 +403,6 @@ public sealed class AppModelHydraMergeTests
                     ValueList<Guid>.Empty,
                     ValueList<string>.Empty,
                     ValueList<HydraMergeHead>.Empty,
-                    new Dictionary<string, string>(),
                 ],
                 culture: null);
             Assert.NotNull(work);
@@ -531,8 +445,11 @@ public sealed class AppModelHydraMergeTests
     }
 
     [Fact]
-    [Trait("Req", "PR-HYDRAMERGE-030")] // AppModel+HydraMerge.swift:225-229
-    public void An_in_progress_merge_records_the_specific_failure_and_note()
+    [Trait("Req", "PR-HYDRAMERGE-030")] // AppModel+HydraMerge.swift:245-249 (B3): an operation in progress is quiet
+    // and retried, not recorded or noted. The B2-era text ("Hydra did not merge: a rebase or merge is underway.")
+    // is gone from B3 DroppyCode entirely: `guard !(await git.hasOperationInProgress()) else { scheduleHydraMergeRetry(of:
+    // leadID); return .deferred }` writes nothing and says nothing, unlike B2's fail(...).
+    public void An_in_progress_merge_is_deferred_silently_and_schedules_a_retry()
     {
         using var h = new AppModelHarness();
         var repository = AppModelGitRepo.WithCommit(h.NewFolder("operation-in-progress"));
@@ -576,23 +493,19 @@ public sealed class AppModelHydraMergeTests
         {
             var runtime = model.ExistingRuntime(lead.Id);
             Assert.NotNull(runtime);
-            var messages = runtime!.Entries
+            var notes = runtime!.Entries
                 .Select(entry => entry.Item.TimelineItemContent)
                 .OfType<TimelineItem.Content.User>()
-                .Select(content => content.Value);
-            var note = Assert.Single(messages, message => message.HydraHeads is { Count: 0 });
-            return (Record: Assert.Single(runtime.HydraMerges), Note: note);
+                .Where(content => content.Value.HydraHeads is { Count: 0 });
+            return (Runtime: runtime, Notes: notes.ToArray());
         });
 
-        Assert.Equal(HydraMergeRecord.Outcome.Failed, result.Record.HydraMergeRecordOutcome);
-        Assert.Equal("Project", result.Record.Project);
-        Assert.Equal(0, result.Record.Files);
-        Assert.Equal(
-            "Hydra did not merge: a rebase or merge is underway.: The team's work is in the checkout; finish that first and merge by hand.",
-            result.Record.Detail);
-        Assert.Equal(
-            "Hydra did not merge: a rebase or merge is underway.\nThe team's work is in the checkout; finish that first and merge by hand.",
-            result.Note.Text);
+        // :246-249 records nothing and says nothing; the turn stays unmerged so the sweep can pick it up again.
+        Assert.Empty(result.Runtime.HydraMerges);
+        Assert.Empty(result.Notes);
+        Assert.DoesNotContain(result.Runtime.Turns, candidate => candidate.Id == turn.Id && candidate.HydraMerged);
+        // :247 scheduleHydraMergeRetry sets the one-pending-per-chat flag (ThreadRuntime.cs:621) before sleeping.
+        Assert.True(result.Runtime.HasHydraMergeRetryPending);
     }
 
     [Fact]
@@ -644,13 +557,17 @@ public sealed class AppModelHydraMergeTests
 
         Assert.Equal(HydraMergeRecord.Outcome.Failed, result.Record.HydraMergeRecordOutcome);
         Assert.Equal(0, result.Record.Files);
+        // :259 (B3): the record's detail and the note's body are both the full sentence, resolution text included
+        // ("Resolve them and the merge goes out by itself."), not the shorter B2 wording ("Resolve them, then ask
+        // for the merge again.") that stayed only in the note there.
         Assert.Equal(
-            "Hydra did not merge: conflict markers in a file.: `a.txt` still holds conflict markers from a head's landing.",
+            "Hydra did not merge: conflict markers in a file.: `a.txt` still holds conflict markers from a head's landing. Resolve them and the merge goes out by itself.",
             result.Record.Detail);
         Assert.Equal(
-            "Hydra did not merge: conflict markers in a file.\n`a.txt` still holds conflict markers from a head's landing. Resolve them, then ask for the merge again.",
+            "Hydra did not merge: conflict markers in a file.\n`a.txt` still holds conflict markers from a head's landing. Resolve them and the merge goes out by itself.",
             result.Note.Text);
         Assert.Equal("main", repository.Git("branch", "--show-current").Trim());
+        Assert.Null(result.Record.Retryable); // :259 not retryable: fail(headline, body) with no retryable argument
     }
 
     [Fact]
@@ -881,6 +798,191 @@ public void Reported_paths_drop_empty_and_build_output_and_keep_inside_paths_rel
         var canStillMerge = h.Main.OnMain(() => Assert.IsType<bool>(method!.Invoke(model, [lead])));
 
         Assert.False(canStillMerge);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-HYDRAMERGE-127")] // AppModel+HydraMerge.swift:336-339 (B3): ownBranch moves refs/heads/<branch>
+    // with the two-argument UpdateRef (Git.cs:644), not the compare-and-swap overload with an empty "must not
+    // exist" old value.
+    [Trait("Req", "PR-HYDRAMERGE-128")] // AppModel+HydraMerge.swift:348 (B3): pushBranch(branch, force: ownBranch).
+    public void Second_own_branch_merge_reuses_and_force_pushes_the_existing_hydra_branch()
+    {
+        using var h = new AppModelHarness();
+        var repository = AppModelGitRepo.WithCommit(h.NewFolder("own-branch-project"));
+        var bare = h.NewFolder("own-branch-remote.git");
+        repository.Git("init", "--bare", "-b", "main", bare);
+        repository.Git("remote", "add", "origin", bare);
+        repository.Git("push", "-u", "origin", "main");
+        // The scripted, offline tea.exe (Forge() reads a plain bare path as Gitea) answers every call with success
+        // and no output, so HydraCreateMergeRequest always returns null: the merge fails at "could not open a merge
+        // request" every time, never reaching a real forge. That is what both attempts below must fail with; a
+        // "reference already exists" (the :293 bug this test targets) or a rejected non-fast-forward push (the
+        // missing --force at :300) would instead surface as the generic catch-all's "Hydra could not merge the
+        // team's work" at :407.
+        Marrow.Services.Tests.Fixtures.ForgeStandIns.Ensure();
+
+        var project = AppModelSamples.Project("Project", repository.Root);
+        var lead = AppModelSamples.Thread(project) with { HydraEnabled = true, UpdatedAt = SwiftDate.Now };
+        var turn = new TurnRecord
+        {
+            Id = Guid.NewGuid(),
+            Index = 1,
+            Status = TurnStatus.Completed,
+            CompletedAt = SwiftDate.Now,
+            TouchedPaths = new ValueList<string>(["a.txt"]),
+        };
+        File.WriteAllBytes(Path.Combine(repository.Root, "a.txt"), Encoding.UTF8.GetBytes("changed once\n"));
+        h.WriteLibrary([project], [lead]);
+        DiskWriter.Shared.WriteSynchronously(
+            new ThreadDocument(lead.Id) { Turns = new ValueList<TurnRecord>([turn]) },
+            Storage.ThreadURL(lead.Id));
+
+        var model = h.MakeModel();
+        h.Main.OnMain(() =>
+        {
+            model.Settings.HydraEnabled = true;
+            model.Settings.HydraAutoMerge = true;
+        });
+
+        h.Main.Loop.Run(() => InvokeResumeHydraMerges(model), AppModelHarness.Bound);
+        // Changed again before the retry, so the two attempts build genuinely different commits (never a trivial
+        // no-op push) regardless of whether they land in the same wall-clock second.
+        File.WriteAllBytes(Path.Combine(repository.Root, "a.txt"), Encoding.UTF8.GetBytes("changed twice\n"));
+        h.Main.Loop.Run(() => InvokeResumeHydraMerges(model), AppModelHarness.Bound);
+
+        var branches = repository.Git("branch", "--list", "hydra/*")
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        // The second try moves the existing hydra/<slug>-<id6> ref rather than failing to create a sibling one.
+        Assert.Single(branches);
+
+        var records = h.Main.OnMain(() =>
+        {
+            var runtime = model.ExistingRuntime(lead.Id);
+            Assert.NotNull(runtime);
+            return runtime!.HydraMerges.ToArray();
+        });
+
+        // Both attempts push and fail to open a request with the exact same detail (the branch name is stable, so
+        // the message never changes), so fail()'s own dedup (:230) collapses them to one record. With either bug
+        // present, the second attempt instead throws (a locked ref, or a rejected non-fast-forward push) and is
+        // caught by the generic catch-all at :407, whose distinct "Hydra could not merge the team's work" detail
+        // does not match the first record and so is NOT deduplicated, leaving two records behind.
+        Assert.Single(records);
+        Assert.All(records, record =>
+        {
+            Assert.Equal(HydraMergeRecord.Outcome.Failed, record.HydraMergeRecordOutcome);
+            Assert.StartsWith("Hydra pushed hydra/", record.Detail, StringComparison.Ordinal);
+            Assert.True(record.Retryable);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-HYDRAMERGE-113")] // AppModel+HydraMerge.swift:183 (B3): "Hydra left <N> files outside every
+    // project." for more than one stray file (was "Hydra left files outside every project.", missing the count).
+    public void Stray_note_title_after_a_successful_merge_uses_the_files_count_for_plural()
+    {
+        using var h = new AppModelHarness();
+        var repository = AppModelGitRepo.WithCommit(h.NewFolder("stray-plural-project"));
+        repository.Git("remote", "add", "origin", "https://example.invalid/group/project.git");
+        var originalHead = repository.Git("rev-parse", "HEAD").Trim();
+
+        var project = AppModelSamples.Project("Project", repository.Root);
+        var lead = AppModelSamples.Thread(project) with { HydraEnabled = true, UpdatedAt = SwiftDate.Now };
+        // a.txt is reported but unchanged from HEAD, so its group's MergeHydraProject returns AlreadyOnMain
+        // (:308) without ever touching the network; the two absolute paths outside the checkout and outside
+        // every scratch root (:194-209) and every project stay in `outside`, becoming the stray group (:143).
+        var strayRoot = @"C:\marrow-hydra-merge-stray-test\" + Guid.NewGuid().ToString("N");
+        var stray1 = strayRoot + @"\stray-1.txt";
+        var stray2 = strayRoot + @"\stray-2.txt";
+        var turn = new TurnRecord
+        {
+            Id = Guid.NewGuid(),
+            Index = 1,
+            Status = TurnStatus.Completed,
+            CompletedAt = SwiftDate.Now,
+            TouchedPaths = new ValueList<string>(["a.txt", stray1, stray2]),
+        };
+        h.WriteLibrary([project], [lead]);
+        DiskWriter.Shared.WriteSynchronously(
+            new ThreadDocument(lead.Id) { Turns = new ValueList<TurnRecord>([turn]) },
+            Storage.ThreadURL(lead.Id));
+
+        var model = h.MakeModel();
+        h.Main.OnMain(() =>
+        {
+            model.Settings.HydraEnabled = true;
+            model.Settings.HydraAutoMerge = true;
+        });
+
+        h.Main.Loop.Run(() => InvokeResumeHydraMerges(model), AppModelHarness.Bound);
+
+        var state = h.Main.OnMain(() =>
+        {
+            var runtime = model.ExistingRuntime(lead.Id);
+            Assert.NotNull(runtime);
+            var messages = runtime!.Entries
+                .Select(entry => entry.Item.TimelineItemContent)
+                .OfType<TimelineItem.Content.User>()
+                .Select(content => content.Value);
+            return (Records: runtime.HydraMerges.ToArray(), Messages: messages.ToArray());
+        });
+
+        // AlreadyOnMain on the only group plus a non-empty stray list takes the :181-183 branch, not :184-186.
+        var record = Assert.Single(state.Records);
+        Assert.Equal(HydraMergeRecord.Outcome.Stray, record.HydraMergeRecordOutcome);
+        Assert.Equal(2, record.Files);
+        var note = Assert.Single(state.Messages, message => message.HydraHeads is { Count: 0 });
+        Assert.StartsWith("Hydra left 2 files outside every project.\n", note.Text, StringComparison.Ordinal);
+        Assert.Equal(originalHead, repository.Git("rev-parse", "HEAD").Trim());
+    }
+
+    [Fact]
+    [Trait("Req", "PR-HYDRAMERGE-029")] // AppModel+HydraMerge.swift:226-236 (B3): fail() de-duplicates against the
+    // last record of the same outcome and detail before recording or noting again.
+    public void Repeated_identical_failure_is_recorded_and_noted_only_once()
+    {
+        using var h = new AppModelHarness();
+        var repository = AppModelGitRepo.WithCommit(h.NewFolder("dedup-project"));
+        var project = AppModelSamples.Project("Project", repository.Root);
+        var lead = AppModelSamples.Thread(project) with { HydraEnabled = true, UpdatedAt = SwiftDate.Now };
+        var turn = new TurnRecord
+        {
+            Id = Guid.NewGuid(),
+            Index = 1,
+            Status = TurnStatus.Completed,
+            CompletedAt = SwiftDate.Now,
+            TouchedPaths = new ValueList<string>(["a.txt"]),
+        };
+        h.WriteLibrary([project], [lead]);
+        DiskWriter.Shared.WriteSynchronously(
+            new ThreadDocument(lead.Id) { Turns = new ValueList<TurnRecord>([turn]) },
+            Storage.ThreadURL(lead.Id));
+        var model = h.MakeModel();
+        h.Main.OnMain(() =>
+        {
+            model.Settings.HydraEnabled = true;
+            model.Settings.HydraAutoMerge = true;
+        });
+
+        // No remote: every attempt hits the same non-retryable fail("Hydra did not merge: no remote.", ...) with
+        // the exact same detail, so a second run must not add a second record or a second note (:230).
+        h.Main.Loop.Run(() => InvokeResumeHydraMerges(model), AppModelHarness.Bound);
+        h.Main.Loop.Run(() => InvokeResumeHydraMerges(model), AppModelHarness.Bound);
+
+        var state = h.Main.OnMain(() =>
+        {
+            var runtime = model.ExistingRuntime(lead.Id);
+            Assert.NotNull(runtime);
+            var messages = runtime!.Entries
+                .Select(entry => entry.Item.TimelineItemContent)
+                .OfType<TimelineItem.Content.User>()
+                .Where(content => content.Value.HydraHeads is { Count: 0 })
+                .ToArray();
+            return (Records: runtime.HydraMerges.ToArray(), Messages: messages);
+        });
+
+        Assert.Single(state.Records);
+        Assert.Single(state.Messages);
     }
 
     // UNRESOLVED: PR-HYDRAMERGE-077 and PR-HYDRAMERGE-078 need a controlled sibling-claim fixture, including tracked/deleted paths and an injected git cat-file stream failure. The supplied fixtures do not expose the required git-command seam.
