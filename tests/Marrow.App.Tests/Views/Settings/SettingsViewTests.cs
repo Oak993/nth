@@ -18,6 +18,10 @@ using Marrow.UI.Theme;
 using Marrow.UI.Markdown;
 using Marrow.Core.Support;
 using Marrow.Testing;
+using Avalonia.VisualTree;
+using Avalonia.Controls.Presenters;
+using Marrow.Services.Port;
+using Marrow.UI.Common;
 
 namespace Marrow.App.Tests.Views.Settings;
 
@@ -76,6 +80,101 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     {
         h.Main.AdvanceMilliseconds(milliseconds); ((ManualFrameSource)FrameClock.Source.Current).Advance(TimeSpan.FromMilliseconds(milliseconds)); Sync();
     }
+
+    // STOP App.Views.Settings.SettingsView #6
+    // Kind: dependency / adaptation. Swift: SettingsView.swift:705,735. Records: UI-PROVAPI-005, UI-PROVREG-009.
+    // Missing: the shared plain-field primitive does not implement the native roundedBorder style.
+    // Needed: a Windows rounded-border field form with its platform styling defined. Masking is implemented
+    // locally; guessed border radii, padding and colours are not substituted for an OS-defined source style.
+
+    [Theory]
+    [InlineData(ProviderKind.Deepseek, "platform.deepseek.com", "api.deepseek.com", "https://platform.deepseek.com/api_keys")]
+    [InlineData(ProviderKind.Meta, "dev.meta.ai", "api.meta.ai/v1", "https://dev.meta.ai/")]
+    [InlineData(ProviderKind.Zai, "z.ai/manage-apikey/apikey-list", "api.z.ai/api/coding/paas/v4", "https://z.ai/manage-apikey/apikey-list")]
+    [Trait("Req", "UI-PROVAPI-001")] // App/Views/Settings/SettingsView.swift:661-665
+    [Trait("Req", "UI-PROVAPI-002")] // App/Views/Settings/SettingsView.swift:691-696
+    [Trait("Req", "UI-PROVAPI-003")] // App/Views/Settings/SettingsView.swift:691-696
+    [Trait("Req", "UI-PROVAPI-004")] // App/Views/Settings/SettingsView.swift:691-696
+    [Trait("Req", "UI-PROVAPI-007")] // App/Views/Settings/SettingsView.swift:719-728
+    [Trait("Req", "UI-PROVAPI-008")] // App/Views/Settings/SettingsView.swift:719-728
+    [Trait("Req", "UI-PROVAPI-009")] // App/Views/Settings/SettingsView.swift:719-728
+    [Trait("Req", "UI-PROVREG-007")] // App/Views/Settings/SettingsView.swift:661-665
+    public void API_provider_rows_use_exact_host_key_source_and_install_URL_without_CLI_rows(ProviderKind provider, string source, string host, string url) => WithView(() => new ProviderSettingsSection(provider, Binding<bool>.Constant(true)), (view, model, _) =>
+    {
+        var key = Row(view, "API key"); Assert.Contains($"Stored in your Credential Manager. Get one at {source}.", Text(key)); var texts = Nodes<TextBlock>(key); Assert.Equal(13, texts[0].FontSize); Assert.Equal(11, texts[1].FontSize);
+        Assert.Equal(new Thickness(16, 11, 10, 11), Assert.IsType<Border>(key.Child).Padding); Assert.DoesNotContain(Text(view), text => text is "Binary path" or "Install" or "Sign in");
+        var get = Row(view, "Get a key"); Assert.Contains(provider.DisplayName + " needs an API key. Nothing to install.", Text(get)); var link = Button(get, "Get a " + provider.DisplayName + " key"); Assert.Equal(16, Nodes<TextBlock>(link).Single().Height);
+        SwiftURL? opened = null; using var browser = Marrow.Services.Port.Workspace.Open.Override(value => { opened = value; return true; }); Click(link); Assert.Equal(url, opened!.AbsoluteString);
+        Seed(model, provider, model.Providers.Status(provider) with { ApiKeyConfigured = true, Version = "API", ProviderStatusAuth = new ProviderStatus.Auth.SignedOut() }); Sync(); Assert.DoesNotContain("Get a key", Text(view)); Assert.Contains($"Native API \u00b7 {host}", Text(view)); Assert.DoesNotContain("Version API", Text(view));
+        var native = Nodes<TextBlock>(view).Single(x => x.Text == $"Native API \u00b7 {host}"); Assert.Equal(11, native.FontSize); Assert.Equal(Chrome.SecondaryText.Resolve(native.ActualThemeVariant), Assert.IsType<Avalonia.Media.SolidColorBrush>(native.Foreground).Color);
+    });
+
+    [Fact]
+    [Trait("Req", "UI-PROVAPI-005")] // App/Views/Settings/SettingsView.swift:697-707,768-799; OD-0012 E5
+    [Trait("Req", "UI-PROVAPI-006")] // App/Views/Settings/SettingsView.swift:708-716
+    public void Secure_key_presenter_masks_the_actual_rendered_text_and_refused_keys_show_the_owner_message_under_the_field() => WithView(() => new ProviderSettingsSection(ProviderKind.Meta, Binding<bool>.Constant(true)), (view, model, _) =>
+    {
+        var backend = new AppSettingsCredentialBackend(() => true) { RefuseWrites = true }; using var credentials = SecretStore.Shared.Override(new SecretStore(backend));
+        var field = Assert.Single(Nodes<TextBox>(view)); Assert.Equal("sk-\u2026", field.PlaceholderText); field.Text = "fixture-key-never-sent"; Sync();
+        var presenter = Assert.Single(field.GetVisualDescendants().OfType<TextPresenter>()); Assert.Equal('\u2022', presenter.PasswordChar);
+        const string refusal = "Credential Manager did not accept this key, so it was not saved."; Assert.Equal(refusal, model.Settings.APIKeyRefusal(ProviderKind.Meta)); Assert.Contains(refusal, Text(view));
+        var block = Assert.Single(Nodes<StackPanel>(view), stack => stack.Children.Count == 2 && stack.Children[0] is StackPanel && stack.Children[1] is TextBlock note && note.Text == refusal); Assert.Same(field, Nodes<TextBox>(block).Single());
+        var eye = Nodes<Button>(view).Single(button => Equals(ToolTip.GetTip(button), "Show the API key")); Click(eye); Sync(); Assert.Equal('\0', presenter.PasswordChar); Assert.Equal("Hide the API key", ToolTip.GetTip(eye)); Assert.Equal(SwiftFont.System(12), SwiftImage.GetFont(Nodes<SwiftImage>(eye).Single()));
+        field.Text = ""; Sync();
+    });
+
+    [Fact]
+    [Trait("Req", "UI-PROVAPI-010")] // App/Views/Settings/SettingsView.swift:667-672
+    [Trait("Req", "UI-PROVREG-008")] // App/Views/Settings/SettingsView.swift:667-672
+    public void Provider_enable_switch_is_keyboard_accessible_even_during_a_check_and_updates_disabled_providers() => WithView(() => new ProviderSettingsSection(ProviderKind.Deepseek, Binding<bool>.Constant(true)), (view, model, _) =>
+    {
+        Seed(model, ProviderKind.Deepseek, model.Providers.Status(ProviderKind.Deepseek) with { IsChecking = true }); Sync(); var toggle = Assert.Single(Nodes<SmallSwitch>(view)); Assert.True(toggle.Focusable); Assert.True(toggle.IsEffectivelyEnabled);
+        toggle.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Space, Source = toggle }); Sync(); Assert.False(model.Settings.IsEnabled(ProviderKind.Deepseek));
+        toggle.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Space, Source = toggle }); Sync(); Assert.True(model.Settings.IsEnabled(ProviderKind.Deepseek));
+    });
+
+    [Theory]
+    [InlineData(ProviderKind.Zai, 1, 0)]
+    [InlineData(ProviderKind.Deepseek, 0, 1)]
+    [InlineData(ProviderKind.Meta, 0, 0)]
+    [Trait("Req", "PR-USAGE-077")] // App/Views/Settings/SettingsView.swift:679-684,772-779
+    [Trait("Req", "UI-PROVAPI-029")] // App/Views/Settings/SettingsView.swift:676-688
+    [Trait("Req", "UI-PROVAPI-030")] // App/Views/Settings/SettingsView.swift:676-688
+    public void Provider_usage_embeds_the_shared_views_with_14_spacing_and_16_by_12_insets(ProviderKind provider, int limits, int credits) => WithView(() => new ProviderSettingsSection(provider, Binding<bool>.Constant(false)), (view, model, _) =>
+    {
+        Assert.Equal(limits, Nodes<Marrow.App.Views.Usage.PlanLimitsView>(view).Length); Assert.Equal(credits, Nodes<Marrow.App.Views.Usage.CreditsView>(view).Length);
+        if (limits + credits > 0) { var usage = Assert.Single(Nodes<StackPanel>(view), stack => stack.Spacing == 14); Assert.Equal(new Thickness(16, 12), usage.Margin); }
+        var reveal = Assert.Single(Nodes<ChromeRevealLayout>(view)); Assert.Equal(0, reveal.Fraction); Assert.False(reveal.IsEnabled); Assert.False(reveal.IsHitTestVisible); Assert.Equal(AccessibilityView.Raw, AutomationProperties.GetAccessibilityView(reveal));
+        Seed(model, provider, model.Providers.Status(provider) with { ProviderStatusAuth = new ProviderStatus.Auth.SignedOut() }); Sync(); Assert.Empty(Nodes<Marrow.App.Views.Usage.PlanLimitsView>(view)); Assert.Empty(Nodes<Marrow.App.Views.Usage.CreditsView>(view));
+    }, model => Seed(model, provider, new ProviderStatus { ApiKeyConfigured = true, ProviderStatusAuth = new ProviderStatus.Auth.SignedIn(null) }));
+
+    [Fact]
+    [Trait("Req", "UI-PROVREG-001")] // App/Views/Settings/SettingsView.swift:9,23,38,55,72
+    [Trait("Req", "UI-PROVREG-002")] // App/Views/Settings/SettingsView.swift:254-255,566-579
+    [Trait("Req", "UI-PROVREG-003")] // App/Views/Settings/SettingsView.swift:585-615,646-766
+    [Trait("Req", "UI-PROVREG-004")] // App/Views/Settings/SettingsView.swift:651-653
+    [Trait("Req", "UI-PROVREG-005")] // App/Views/Settings/SettingsView.swift:650-656
+    [Trait("Req", "UI-PROVREG-006")] // App/Views/Settings/SettingsView.swift:657-660
+    public void Providers_keep_all_sections_and_status_header_metrics_and_animate_reveal_without_unmounting() => WithView(() => new ProvidersSettingsPage(), (view, model, h) =>
+    {
+        Assert.Equal("Providers", SettingsPage.Providers.Title); Assert.Equal("cpu", SettingsPage.Providers.Symbol); Assert.Equal(Chrome.Blue, SettingsPage.Providers.Tint); Assert.Equal(39, SettingsPage.Providers.Keywords.Count);
+        var section = Nodes<ProviderSettingsSection>(view).Single(x => Field<ProviderKind>(x, "provider") == ProviderKind.Codex); var reveal = Assert.Single(Nodes<ChromeRevealLayout>(section)); var card = Assert.Single(Nodes<ChromeCard>(section));
+        var header = Assert.Single(Nodes<CollapsibleProviderHeader>(section)); Assert.Equal(0, reveal.Fraction); Click(Assert.Single(Nodes<Button>(header))); Sync(); Assert.InRange(reveal.Fraction, 0, 0.001); AdvanceFrames(h, 160); Assert.InRange(reveal.Fraction, 0.001, 0.999); AdvanceFrames(h, 1000); Assert.Equal(1, reveal.Fraction); Assert.Same(card, Assert.Single(Nodes<ChromeCard>(section)));
+        var statusRow = Nodes<Grid>(section).Single(grid => grid.ColumnDefinitions.Count == 3); Assert.Equal(new Thickness(16, 11, 10, 11), statusRow.Margin); Assert.Equal(12, statusRow.ColumnSpacing); Assert.Equal(22, statusRow.ColumnDefinitions[0].Width.Value);
+        var icon = Nodes<ProviderIcon>(section).Single(x => x.Size == 18); Assert.Equal(18, icon.Size);
+        Seed(model, ProviderKind.Codex, new ProviderStatus { Version = "1.2.3", IsChecking = true }); Sync(); Assert.Contains("Checking\u2026", Text(section)); Assert.Contains("Version 1.2.3", Text(section));
+        var summary = Nodes<TextBlock>(statusRow).Single(x => x.Text == "Checking\u2026"); Assert.Equal(13, summary.FontSize); var version = Nodes<TextBlock>(statusRow).Single(x => x.Text == "Version 1.2.3"); Assert.Equal(11, version.FontSize);
+    });
+
+    [Fact]
+    [Trait("Req", "UI-GIT-058")] // App/Views/Settings/SettingsView.swift:818-834
+    [Trait("Req", "UI-GIT-059")] // App/Views/Settings/SettingsView.swift:836-847
+    public void Source_control_editor_and_worktree_rows_keep_their_exact_geometry_and_placeholder_state() => WithView(() => new SourceControlSettingsPage(), (view, model, _) =>
+    {
+        var editor = Assert.Single(Nodes<TextBox>(view)); Assert.Equal(13, editor.FontSize); Assert.Equal(90, editor.MinHeight); var placeholder = Nodes<TextBlock>(view).Single(x => x.Text == "For example: use conventional commit prefixes"); Assert.Equal(new Thickness(5, 0), placeholder.Margin); Assert.False(placeholder.IsHitTestVisible); Assert.True(placeholder.IsVisible);
+        editor.Text = " "; Sync(); Assert.Equal(" ", model.Settings.CommitInstructions); Assert.False(placeholder.IsVisible); editor.Text = ""; Sync(); Assert.True(placeholder.IsVisible);
+        var section = Nodes<ChromeSection>(view).Single(x => Text(x).First() == "Worktrees and pull requests"); Assert.Equal(2, Nodes<ChromeRow>(section).Length); Assert.Single(Nodes<ChromeRowDivider>(section)); Assert.Empty(Nodes<Button>(Row(section, "Pull requests")));
+    });
 
     [Fact]
     [Trait("Req", "PR-SETTINGS-267")] // App/Views/Settings/SettingsView.swift:417-457,246-272,278
