@@ -78,7 +78,7 @@ public sealed class TimelineTests
     // ---- PR-CHAT-002: isEmptyReasoning trims Unicode whitespace-and-newlines ----
 
     [Theory]
-    [Trait("Req", "PR-CHAT-002")] // Core/Models/Timeline.swift:28-32; Core/Support/Text.swift:132
+    [Trait("Req", "PR-CHAT-002")] // Core/Models/Timeline.swift:28-32; Core/Support/Text.swift:222-224
     [InlineData("")]
     [InlineData("   ")]
     [InlineData("\n\t \n")]
@@ -709,6 +709,34 @@ public sealed class TimelineTests
     {
         var legacy = "{\"at\":\"2026-01-01T00:00:00Z\",\"outcome\":\"failed\",\"files\":1,\"detail\":\"a conflict\"}";
         Assert.Null(Decode<HydraMergeRecord>(legacy).Retryable);
+    }
+
+    // PR-HYDRAMERGE-132's failure_cases: "A record carrying false, which this build never writes, is treated
+    // like nil by both readers." This model itself is a faithful three-state field: an explicit "retryable":false
+    // key (never produced by this build, but a hand-written or third-party record could carry one) decodes as
+    // false, not squashed to null, and a record built with Retryable = false round-trips as false rather than
+    // being omitted the way null is. The "treated like nil" behaviour belongs to the field's readers, not to
+    // this decode/encode step; see HydraTests.cs's
+    // MergeStatus_failed_outcome_with_retryable_false_matches_retryable_null_not_retryable_true for the one such
+    // reader in this lane's scope (Core.Models.Hydra.MergeStatus). The other reader named by
+    // the record, AppModel+HydraMerge.swift:233's fail() "saysIt" check, is App-layer runtime behaviour outside
+    // Core.Models and is left for the unit that owns AppModel+HydraMerge.swift.
+    [Fact]
+    [Trait("Req", "PR-HYDRAMERGE-132")] // Core/Models/Timeline.swift:281-283: false is a real, distinct wire value
+    public void An_explicit_false_retryable_key_decodes_as_false_and_round_trips_as_false_not_null()
+    {
+        var explicitFalse = "{\"at\":\"2026-01-01T00:00:00Z\",\"outcome\":\"failed\",\"files\":1,\"detail\":\"a conflict\",\"retryable\":false}";
+        var reloaded = Decode<HydraMergeRecord>(explicitFalse);
+        Assert.False(reloaded.Retryable is null);
+        Assert.Equal(false, reloaded.Retryable);
+
+        var built = new HydraMergeRecord
+        {
+            At = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero), HydraMergeRecordOutcome = HydraMergeRecord.Outcome.Failed, Files = 1, Retryable = false,
+        };
+        var json = Encode(built);
+        Assert.Contains("\"retryable\":false", json, StringComparison.Ordinal); // written, not omitted: only null is omitted
+        Assert.Equal(false, Decode<HydraMergeRecord>(json).Retryable);
     }
 
     // ---- PR-CHAT-018 / PR-HYDRAMERGE-081: held is a legacy raw value, still valid on decode, never written here ----

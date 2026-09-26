@@ -48,7 +48,7 @@ namespace Marrow.Core.Models;
 // FallbackReportNote, FallbackPreamble/FallbackReportPreamble, HeldBackMessage, UnreadableBlockMessage (its
 // VerificationMarkers table too, for WithoutVerificationSteps), WithoutVerificationSteps, DelegatedHeadPrompt,
 // QueuedHeadPrompt, and ReportMessage with its private helpers LandingLine, Duration, Listed and Quoted (:1401-
-// 1433, not declared until now per this file's own header note). PR-HYDRA-054 (workerPrompt/scoutPrompt) was
+// 1437, not declared until now per this file's own header note). PR-HYDRA-054 (workerPrompt/scoutPrompt) was
 // already implemented in part 2 (ClaudeAgents/CopilotAgents read it directly); this part only adds its test
 // coverage. HydraDelegationBudget (CanDelegate, BeginTurn, ChargeRound, Refuse, NoteDropped, TakeDropNotice) and
 // DelegationBlockRange/HasDelegationBlock/HasDelegationOpener/Delegations/WithoutDelegationBlock/
@@ -1167,7 +1167,7 @@ public static partial class HydraPrompts
     }
 
     // :894-904. Codex's model test is only `!model.isEmpty`: there is no "default"/"auto" sentinel here, unlike
-    // Claude (Policy, :753-758) and Copilot (CopilotAgents, :1096-1097).
+    // Claude (ClaudeAgents, :820) and Copilot (CopilotAgents, :853).
     public static ValueMap<string, JSONValue> CodexConfig(HydraLaunch launch)
     {
         var agents = new ValueDictionary();
@@ -1509,7 +1509,7 @@ public static partial class HydraPrompts
         return text[..opener.Lower] + "```hydra-sent\n" + text[opener.Upper..];
     }
 
-    // :1211-1217. The single call site (ThreadRuntime.swift:2846) always passes nil, so the reason branch is
+    // :1211-1217. The single call site (ThreadRuntime.swift:2888) always passes nil, so the reason branch is
     // ported for structural parity only; it is unreachable in shipped code.
     public static string UnreadableBlockMessage(string? reason)
     {
