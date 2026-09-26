@@ -1050,12 +1050,13 @@ public sealed class HydraTests
 
     // ---- PR-HYDRA-036: HydraPrompts.AutoMergeRule is one exact paragraph ----
 
-    [Trait("Req", "PR-HYDRA-036")] // DroppyCode/Core/Models/Hydra.swift:708
+    [Trait("Req", "PR-HYDRA-036")] // DroppyCode/Core/Models/Hydra.swift:708 (B3 52bc792)
     [Fact]
     public void AutoMergeRule_is_the_exact_text_with_Marrow_in_place_of_Droppy_Code() // DEVIATION OD-0012 F1
     {
+        // B3 adds "if it says Marrow retries by itself..." and "A merge never waits on another chat or session...".
         Assert.Equal(
-            "Marrow handles branches, commits and merge requests after all heads return and you finish. Never run or delegate those operations. For merge/status questions, use only the current [Hydra] note: if merged, give its link; if files remain, say they land when your answer ends; if merging failed or files are outside every project, give the stated reason and required user action. If nothing is pending, promise no merge. Never claim a merge without the note confirming it.",
+            "Marrow handles branches, commits and merge requests after all heads return and you finish. Never run or delegate those operations. For merge/status questions, use only the current [Hydra] note: if merged, give its link; if files remain, say they land when your answer ends; if it says Marrow retries by itself, say the work lands by itself and ask nothing; if merging failed or files are outside every project, give the stated reason and required user action. A merge never waits on another chat or session: never say it does, and never ask the user to merge. If nothing is pending, promise no merge. Never claim a merge without the note confirming it.",
             HydraPrompts.AutoMergeRule);
     }
 
@@ -1879,7 +1880,7 @@ public sealed class HydraTests
     // ---- PR-HYDRA-066: mergeStatus renders eight shapes; the failed branch omits the pending sentence ----
 
     private static HydraMergeRecord Merge(HydraMergeRecord.Outcome outcome, DateTimeOffset at, long files = 0,
-        string? label = null, SwiftURL? url = null, string? project = null, string? detail = null) => new()
+        string? label = null, SwiftURL? url = null, string? project = null, string? detail = null, bool? retryable = null) => new()
     {
         At = at,
         HydraMergeRecordOutcome = outcome,
@@ -1888,6 +1889,7 @@ public sealed class HydraTests
         Url = url,
         Project = project,
         Detail = detail,
+        Retryable = retryable,
     };
 
     [Trait("Req", "PR-HYDRA-066")] // DroppyCode/Core/Models/Hydra.swift:994-997 no records
@@ -1917,7 +1919,7 @@ public sealed class HydraTests
         Assert.EndsWith(" (3 files). Nothing has changed since, so no merge is pending and none is coming.", text, StringComparison.Ordinal);
     }
 
-    [Trait("Req", "PR-HYDRA-066")] // DroppyCode/Core/Models/Hydra.swift:1001-1002 failed omits the pending sentence
+    [Trait("Req", "PR-HYDRA-066")] // DroppyCode/Core/Models/Hydra.swift:1001-1005 (B3) failed, non-retryable, omits the pending sentence
     [Fact]
     public void MergeStatus_failed_outcome_never_appends_the_pending_sentence()
     {
@@ -1926,12 +1928,14 @@ public sealed class HydraTests
 
         var text = HydraPrompts.MergeStatus([record], 5, now);
 
-        Assert.Contains("sign-in required. The work is still in the checkout and is retried once you finish this answer; if the reason needs the user (a sign-in, a conflict), say exactly that.", text, StringComparison.Ordinal);
+        Assert.Contains(
+            "sign-in required. The work is still in the checkout and goes out by itself once that is settled; if the reason needs the user (a sign-in, conflict markers, a real conflict with the remote), say exactly that.",
+            text, StringComparison.Ordinal);
         Assert.DoesNotContain("not merged yet", text, StringComparison.Ordinal);
         Assert.DoesNotContain("Nothing has changed since", text, StringComparison.Ordinal);
     }
 
-    [Trait("Req", "PR-HYDRA-066")] // DroppyCode/Core/Models/Hydra.swift:1001-1002 no reason recorded fallback
+    [Trait("Req", "PR-HYDRA-066")] // DroppyCode/Core/Models/Hydra.swift:1001-1005 (B3) no reason recorded fallback
     [Fact]
     public void MergeStatus_failed_outcome_with_no_detail_says_no_reason_recorded()
     {
@@ -1943,26 +1947,58 @@ public sealed class HydraTests
         Assert.Contains(": no reason recorded. The work is still", text, StringComparison.Ordinal);
     }
 
-    [Trait("Req", "PR-HYDRA-066")] // DroppyCode/Core/Models/Hydra.swift:1003-1007 held, no files left vs waiting with the run-on fallback
-    [Trait("Req", "PR-HYDRAMERGE-083")] // DroppyCode/Core/Models/Hydra.swift:1003-1007 the .held branch B2 adds
+    [Trait("Req", "PR-HYDRA-253")] // DroppyCode/Core/Models/Hydra.swift:1001-1004 NEW at B3: retryable true
+    [Trait("Req", "PR-HYDRAMERGE-132")] // DroppyCode/Core/Models/Timeline.swift:281-283
     [Fact]
-    public void MergeStatus_held_outcome_has_two_shapes_and_the_nil_fallback_run_on_sentence()
+    public void MergeStatus_failed_outcome_with_retryable_true_says_it_retries_by_itself_and_appends_no_pending_sentence() // DEVIATION OD-0012 F1
+    {
+        var now = SwiftDate.Now;
+        var record = Merge(HydraMergeRecord.Outcome.Failed, now, detail: "still checking the forge", retryable: true);
+
+        var text = HydraPrompts.MergeStatus([record], 5, now);
+
+        Assert.Equal(
+            "Merge state: the last try at " + FormattedShortTime(now) + " did not land yet (still checking the forge). Marrow retries it by itself within a minute; nothing is needed from the user, so do not ask for anything or describe it as a problem. Do not claim a successful merge.",
+            text);
+        Assert.DoesNotContain("not merged yet", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Nothing has changed since", text, StringComparison.Ordinal);
+    }
+
+    [Trait("Req", "PR-HYDRA-253")] // DroppyCode/Core/Models/Hydra.swift:1001-1004 no reason recorded fallback
+    [Fact]
+    public void MergeStatus_failed_outcome_with_retryable_true_and_no_detail_says_no_reason_recorded()
+    {
+        var now = SwiftDate.Now;
+        var record = Merge(HydraMergeRecord.Outcome.Failed, now, retryable: true);
+
+        var text = HydraPrompts.MergeStatus([record], 0, now);
+
+        Assert.Contains("did not land yet (no reason recorded). Marrow retries it by itself within a minute", text, StringComparison.Ordinal);
+    }
+
+    [Trait("Req", "PR-HYDRA-066")] // DroppyCode/Core/Models/Hydra.swift:1006-1011 (B3) held, legacy-only: no files left vs N files, using pendingLine
+    [Trait("Req", "PR-HYDRAMERGE-083")] // DroppyCode/Core/Models/Hydra.swift:1006-1013 (B3)
+    [Fact]
+    public void MergeStatus_held_outcome_is_legacy_only_with_two_shapes_keyed_on_unmerged_files()
     {
         var now = SwiftDate.Now;
         var record = Merge(HydraMergeRecord.Outcome.Held, now);
 
         Assert.Equal(
-            "Merge state: the earlier wait has no recorded files left to merge. Do not claim a new merge or promise another one.",
+            "Merge state: nothing from this job is left to merge. Do not claim a new merge or promise another one.",
             HydraPrompts.MergeStatus([record], 0, now));
 
-        var text = HydraPrompts.MergeStatus([record], 4, now);
-        Assert.Contains(
-            "another chat holds this job's files The work is still in the checkout. Explain the recorded dependency without assuming a completed chat needs more work: active work must finish, while completed jobs merge in order. Hydra retries automatically while this job remains eligible. Do not claim a successful merge.",
-            text, StringComparison.Ordinal);
+        Assert.Equal(
+            "Merge state: 4 files from this job are not merged yet; they go out by themselves once you finish this answer with every head back.",
+            HydraPrompts.MergeStatus([record], 4, now));
+
+        Assert.Equal(
+            "Merge state: 1 file from this job is not merged yet; it goes out by itself once you finish this answer with every head back.",
+            HydraPrompts.MergeStatus([record], 1, now));
     }
 
-    [Trait("Req", "PR-HYDRA-066")] // DroppyCode/Core/Models/Hydra.swift:1008-1009 settled, exact assembly
-    [Trait("Req", "PR-HYDRAMERGE-083")] // DroppyCode/Core/Models/Hydra.swift:1008-1009 the .settled branch B2 adds
+    [Trait("Req", "PR-HYDRA-066")] // DroppyCode/Core/Models/Hydra.swift:1012-1013 (B3) settled, exact assembly
+    [Trait("Req", "PR-HYDRAMERGE-083")] // DroppyCode/Core/Models/Hydra.swift:1012-1013 (B3) the .settled branch
     [Fact]
     public void MergeStatus_settled_outcome_exact_text_with_pending_and_do_not_describe_sentence()
     {
@@ -2187,7 +2223,7 @@ public sealed class HydraTests
         Assert.StartsWith("Hydra reports: Hank finished. Otto and Nova are still at work; their reports come as a later message.\n\n", twoStillWorking, StringComparison.Ordinal);
     }
 
-    [Trait("Req", "PR-HYDRA-076")] // DroppyCode/Core/Models/Hydra.swift:1318-1335, :1416-1419 duration()
+    [Trait("Req", "PR-HYDRA-076")] // DroppyCode/Core/Models/Hydra.swift:1322-1339, :1420-1423 (B3) duration()
     [Fact]
     public void ReportMessage_per_head_section_header_has_outcome_and_effort_and_falls_back_to_No_report()
     {
@@ -2200,6 +2236,25 @@ public sealed class HydraTests
         Assert.Contains("## Hank: the task (2m 5s, 3 tools)\nNo report.", text, StringComparison.Ordinal);
         Assert.Contains("## Walter: the task (failed)\nfound the bug", text, StringComparison.Ordinal); // elapsed 0.4s < 1 contributes nothing
         Assert.Contains("## Ada: the task (stopped by the user before finishing) (1 tool)\npartial", text, StringComparison.Ordinal);
+    }
+
+    // ---- PR-HYDRA-254: duration() is SwiftFormatters.DurationUnits({seconds, minutes}, narrow, max 2 units) ----
+
+    [Theory]
+    [Trait("Req", "PR-HYDRA-254")] // DroppyCode/Core/Models/Hydra.swift:1420-1423 (B3): Duration.UnitsFormatStyle, not the hand-built "Ns"/"Mm Ss"
+    [InlineData(1.0, "1s")]
+    [InlineData(45.0, "45s")]
+    [InlineData(60.0, "1m")]   // B2 hand-built gave "1m 0s"; B3's ICU-backed formatter drops the zero-valued unit
+    [InlineData(61.0, "1m 1s")]
+    [InlineData(127.0, "2m 7s")]
+    [InlineData(3599.0, "59m 59s")]
+    [InlineData(3600.0, "60m")] // B2 hand-built gave "60m 0s"; minutes is not an allowed unit here, so never "1h"
+    [InlineData(3725.0, "62m 5s")]
+    public void Duration_matches_SwiftFormatters_DurationUnits_for_seconds_and_minutes(double elapsed, string expected)
+    {
+        var report = Report(0, HydraHeadInfo.Origin.Delegated, HydraHeadInfo.Status.Completed, "", elapsed: elapsed);
+        var text = HydraPrompts.ReportMessage([report]);
+        Assert.Contains($"## Hank: the task ({expected})\nNo report.", text, StringComparison.Ordinal);
     }
 
     [Trait("Req", "PR-HYDRA-077")] // DroppyCode/Core/Models/Hydra.swift:1397-1414 landingLine's seven shapes

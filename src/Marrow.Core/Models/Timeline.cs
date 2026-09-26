@@ -8,10 +8,10 @@ using Marrow.Core.Support;
 
 namespace Marrow.Core.Models;
 
-// Source: DroppyCode/Core/Models/Timeline.swift (B2 1fbf81e), :1-366.
+// Source: DroppyCode/Core/Models/Timeline.swift (B3 52bc792), :1-369.
 // :202-207 FileEdit is already ported in Models/FileEdit.cs (pre-convention file, kept as is).
 //
-// BLOCKED (reported, not invented): TurnRecord.TokenSpends (:303) and ThreadDocument.Continuation (:350) are left
+// BLOCKED (reported, not invented): TurnRecord.TokenSpends (:306) and ThreadDocument.Continuation (:353) are left
 // undecoded and unwritten below. Both need the Codable conformance of a sibling skeleton in this unit's dependency
 // cycle (Core.Models.TokenSpend, TokenSpend.swift:56-65 init(from:); Core.Models.ThreadContinuation) which their own
 // file headers say is "left to the implementing unit" - not this one. Writing that Codable here would be inventing
@@ -733,10 +733,12 @@ internal sealed class TurnSummaryConverter : JsonConverter<TurnSummary>
     }
 }
 
-// :270-281.
+// :270-284. B3 adds Retryable (:281-283); the doc comment on Held (:271-272) now says it is legacy-decode-only.
 [JsonConverter(typeof(HydraMergeRecordConverter))]
 public sealed record HydraMergeRecord
 {
+    // :271-272. `Held` is no longer written by B3: a merge never waits on another chat's files now. It stays a
+    // valid raw value so records written by earlier versions still decode.
     // :273
     public enum Outcome
     {
@@ -754,6 +756,10 @@ public sealed record HydraMergeRecord
     public SwiftURL? Url { get; init; }                                // :278
     public required long Files { get; init; }                         // :279
     public string? Detail { get; init; }                              // :280
+
+    // :281-283. NEW at B3. A failure that clears by itself and is retried quietly (the forge still checking, a
+    // remote that moved); nil on the ones that need the user (PR-HYDRAMERGE-132).
+    public bool? Retryable { get; init; }
 }
 
 internal sealed class HydraMergeRecordConverter : JsonConverter<HydraMergeRecord>
@@ -773,6 +779,7 @@ internal sealed class HydraMergeRecordConverter : JsonConverter<HydraMergeRecord
         Url = SwiftDecoding.DecodeIfPresent(element, "url", SwiftURL.JsonConverter.Decode),
         Files = SwiftDecoding.Decode(element, "files", SwiftDecoding.ReadInt),
         Detail = SwiftDecoding.DecodeIfPresent(element, "detail", SwiftDecoding.ReadString),
+        // Retryable (:281-283): RED, not yet decoded (L1h tests-first commit).
     };
 
     public override void Write(Utf8JsonWriter writer, HydraMergeRecord value, JsonSerializerOptions options) => WriteMembers(writer, value);
@@ -791,31 +798,32 @@ internal sealed class HydraMergeRecordConverter : JsonConverter<HydraMergeRecord
         }
         writer.WriteNumber("files", value.Files);
         if (value.Detail is { } detail) writer.WriteString("detail", detail);
+        // Retryable (:281-283): RED, not yet written (L1h tests-first commit).
         writer.WriteEndObject();
     }
 }
 
-// :283-307
+// :286-310
 [JsonConverter(typeof(TurnRecordConverter))]
 public sealed record TurnRecord
 {
-    public Guid Id { get; init; } = Guid.NewGuid();                     // :284
-    public required long Index { get; init; }                           // :285
-    public string? ProviderTurnID { get; init; }                        // :286
-    public DateTimeOffset StartedAt { get; init; } = SwiftDate.Now;     // :287
-    public DateTimeOffset? CompletedAt { get; init; }                   // :288
-    public TurnStatus Status { get; init; } = TurnStatus.Running;       // :289
-    public string? BaseCheckpoint { get; init; }                        // :290
-    public string? EndCheckpoint { get; init; }                         // :291
-    public string? UserItemID { get; init; }                            // :292
-    public string? ProviderDiff { get; init; }                          // :294
-    public string? ProviderAnchor { get; init; }                        // :296
-    public ValueList<string>? TouchedPaths { get; init; }               // :299
-    public ValueList<TokenSpend>? TokenSpends { get; init; }            // :303 BLOCKED, see the file header note
-    public bool HydraMerged { get; init; } = false;                     // :306
+    public Guid Id { get; init; } = Guid.NewGuid();                     // :287
+    public required long Index { get; init; }                           // :288
+    public string? ProviderTurnID { get; init; }                        // :289
+    public DateTimeOffset StartedAt { get; init; } = SwiftDate.Now;     // :290
+    public DateTimeOffset? CompletedAt { get; init; }                   // :291
+    public TurnStatus Status { get; init; } = TurnStatus.Running;       // :292
+    public string? BaseCheckpoint { get; init; }                        // :293
+    public string? EndCheckpoint { get; init; }                         // :294
+    public string? UserItemID { get; init; }                            // :295
+    public string? ProviderDiff { get; init; }                          // :297
+    public string? ProviderAnchor { get; init; }                        // :299
+    public ValueList<string>? TouchedPaths { get; init; }               // :302
+    public ValueList<TokenSpend>? TokenSpends { get; init; }            // :306 BLOCKED, see the file header note
+    public bool HydraMerged { get; init; } = false;                     // :309
 }
 
-// :309-329 init(from:): every field read with a default, so an older turn still decodes (PR-GIT-148). The
+// :312-332 init(from:): every field read with a default, so an older turn still decodes (PR-GIT-148). The
 // encoder is synthesized (declaration order, nil optionals omitted); there is no custom encode(to:) in the Swift.
 internal sealed class TurnRecordConverter : JsonConverter<TurnRecord>
 {
@@ -827,7 +835,7 @@ internal sealed class TurnRecordConverter : JsonConverter<TurnRecord>
 
     internal static TurnRecord Decode(JsonElement element)
     {
-        // :313 decoder.container(keyedBy:) throws typeMismatch for a non-object element, before any field is read;
+        // :316 decoder.container(keyedBy:) throws typeMismatch for a non-object element, before any field is read;
         // every field below is then read leniently through Coding.Value, which never itself throws.
         if (element.ValueKind != JsonValueKind.Object) throw new DecodingError("typeMismatch", "Expected to decode Dictionary<String, Any>.");
         return DecodeFields(element);
@@ -835,21 +843,21 @@ internal sealed class TurnRecordConverter : JsonConverter<TurnRecord>
 
     private static TurnRecord DecodeFields(JsonElement element) => new()
     {
-        Id = Coding.Value(element, "id", SwiftDecoding.ReadUUID, () => Guid.NewGuid()),                                   // :314
-        Index = Coding.Value(element, "index", SwiftDecoding.ReadInt, () => 0L),                                          // :315
-        ProviderTurnID = Coding.Value(element, "providerTurnID", SwiftDecoding.ReadString, () => (string?)null),          // :316
-        StartedAt = Coding.Value(element, "startedAt", SwiftDecoding.ReadStorageDate, () => SwiftDate.Now),               // :317
-        CompletedAt = Coding.Value(element, "completedAt", field => (DateTimeOffset?)SwiftDecoding.ReadStorageDate(field), () => (DateTimeOffset?)null), // :318
-        Status = Coding.Value(element, "status", SwiftDecoding.ReadRawValue<TurnStatus>, () => TurnStatus.Running),       // :319
-        BaseCheckpoint = Coding.Value(element, "baseCheckpoint", SwiftDecoding.ReadString, () => (string?)null),          // :320
-        EndCheckpoint = Coding.Value(element, "endCheckpoint", SwiftDecoding.ReadString, () => (string?)null),            // :321
-        UserItemID = Coding.Value(element, "userItemID", SwiftDecoding.ReadString, () => (string?)null),                  // :322
-        ProviderDiff = Coding.Value(element, "providerDiff", SwiftDecoding.ReadString, () => (string?)null),              // :323
-        ProviderAnchor = Coding.Value(element, "providerAnchor", SwiftDecoding.ReadString, () => (string?)null),          // :324
+        Id = Coding.Value(element, "id", SwiftDecoding.ReadUUID, () => Guid.NewGuid()),                                   // :317
+        Index = Coding.Value(element, "index", SwiftDecoding.ReadInt, () => 0L),                                          // :318
+        ProviderTurnID = Coding.Value(element, "providerTurnID", SwiftDecoding.ReadString, () => (string?)null),          // :319
+        StartedAt = Coding.Value(element, "startedAt", SwiftDecoding.ReadStorageDate, () => SwiftDate.Now),               // :320
+        CompletedAt = Coding.Value(element, "completedAt", field => (DateTimeOffset?)SwiftDecoding.ReadStorageDate(field), () => (DateTimeOffset?)null), // :321
+        Status = Coding.Value(element, "status", SwiftDecoding.ReadRawValue<TurnStatus>, () => TurnStatus.Running),       // :322
+        BaseCheckpoint = Coding.Value(element, "baseCheckpoint", SwiftDecoding.ReadString, () => (string?)null),          // :323
+        EndCheckpoint = Coding.Value(element, "endCheckpoint", SwiftDecoding.ReadString, () => (string?)null),            // :324
+        UserItemID = Coding.Value(element, "userItemID", SwiftDecoding.ReadString, () => (string?)null),                  // :325
+        ProviderDiff = Coding.Value(element, "providerDiff", SwiftDecoding.ReadString, () => (string?)null),              // :326
+        ProviderAnchor = Coding.Value(element, "providerAnchor", SwiftDecoding.ReadString, () => (string?)null),          // :327
         TouchedPaths = Coding.Value(element, "touchedPaths",
-            field => (ValueList<string>?)SwiftDecoding.ReadArray(field, SwiftDecoding.ReadString), () => (ValueList<string>?)null), // :325
-        // :326 tokenSpends - BLOCKED (see file header): left undecoded until Core.Models.TokenSpend has its Codable.
-        HydraMerged = Coding.Value(element, "hydraMerged", SwiftDecoding.ReadBool, () => false),                          // :327
+            field => (ValueList<string>?)SwiftDecoding.ReadArray(field, SwiftDecoding.ReadString), () => (ValueList<string>?)null), // :328
+        // :329 tokenSpends - BLOCKED (see file header): left undecoded until Core.Models.TokenSpend has its Codable.
+        HydraMerged = Coding.Value(element, "hydraMerged", SwiftDecoding.ReadBool, () => false),                          // :330
     };
 
     public override void Write(Utf8JsonWriter writer, TurnRecord value, JsonSerializerOptions options) => WriteMembers(writer, value);
@@ -881,14 +889,14 @@ internal sealed class TurnRecordConverter : JsonConverter<TurnRecord>
     }
 }
 
-// :331-339
+// :334-342
 [JsonConverter(typeof(ContextUsageConverter))]
 public sealed record ContextUsage
 {
-    public required long UsedTokens { get; init; }  // :332
-    public long? WindowTokens { get; init; }        // :333
+    public required long UsedTokens { get; init; }  // :335
+    public long? WindowTokens { get; init; }        // :336
 
-    // :335-338
+    // :338-341
     public double? Fraction => WindowTokens is { } window && window > 0 ? Math.Min(1, (double)UsedTokens / window) : null;
 }
 
@@ -917,26 +925,26 @@ internal sealed class ContextUsageConverter : JsonConverter<ContextUsage>
     }
 }
 
-// :341-366
+// :344-369
 [JsonConverter(typeof(ThreadDocumentConverter))]
 public sealed record ThreadDocument
 {
-    public Guid ThreadID { get; init; }                                                        // :342
-    public ValueList<TimelineItem> Items { get; init; } = ValueList<TimelineItem>.Empty;       // :343
-    public ValueList<TurnRecord> Turns { get; init; } = ValueList<TurnRecord>.Empty;           // :344
-    public ContextUsage? Usage { get; init; }                                                  // :345
-    public ValueList<FollowUpPrompt> FollowUps { get; init; } = ValueList<FollowUpPrompt>.Empty; // :346
-    public ValueList<HydraMergeRecord> HydraMerges { get; init; } = ValueList<HydraMergeRecord>.Empty; // :347
-    public ThreadContinuation? Continuation { get; init; } = null;                             // :350 BLOCKED, see file header
+    public Guid ThreadID { get; init; }                                                        // :345
+    public ValueList<TimelineItem> Items { get; init; } = ValueList<TimelineItem>.Empty;       // :346
+    public ValueList<TurnRecord> Turns { get; init; } = ValueList<TurnRecord>.Empty;           // :347
+    public ContextUsage? Usage { get; init; }                                                  // :348
+    public ValueList<FollowUpPrompt> FollowUps { get; init; } = ValueList<FollowUpPrompt>.Empty; // :349
+    public ValueList<HydraMergeRecord> HydraMerges { get; init; } = ValueList<HydraMergeRecord>.Empty; // :350
+    public ThreadContinuation? Continuation { get; init; } = null;                             // :353 BLOCKED, see file header
 
-    // :352-354
+    // :355-357
     public ThreadDocument(Guid threadID)
     {
         ThreadID = threadID;
     }
 }
 
-// :356-365 init(from:): items, turns, followUps and hydraMerges decode leniently, dropping any element that fails
+// :359-368 init(from:): items, turns, followUps and hydraMerges decode leniently, dropping any element that fails
 // (PR-CHAT-019); usage defaults to null; threadID is the one field that is not lenient (a missing threadID fails
 // the whole decode). The encoder is synthesized (declaration order, nil optionals omitted).
 internal sealed class ThreadDocumentConverter : JsonConverter<ThreadDocument>
@@ -947,13 +955,13 @@ internal sealed class ThreadDocumentConverter : JsonConverter<ThreadDocument>
         return Decode(document.RootElement);
     }
 
-    internal static ThreadDocument Decode(JsonElement element) => new(SwiftDecoding.Decode(element, "threadID", SwiftDecoding.ReadUUID)) // :358
+    internal static ThreadDocument Decode(JsonElement element) => new(SwiftDecoding.Decode(element, "threadID", SwiftDecoding.ReadUUID)) // :361
     {
-        Items = Coding.LenientList(element, "items", TimelineItemConverter.Decode, () => ValueList<TimelineItem>.Empty),           // :359
-        Turns = Coding.LenientList(element, "turns", TurnRecordConverter.Decode, () => ValueList<TurnRecord>.Empty),               // :360
-        Usage = Coding.Value(element, "usage", ContextUsageConverter.Decode, () => (ContextUsage?)null),                           // :361
-        FollowUps = Coding.LenientList(element, "followUps", FollowUpPromptConverter.Decode, () => ValueList<FollowUpPrompt>.Empty), // :362
-        HydraMerges = Coding.LenientList(element, "hydraMerges", HydraMergeRecordConverter.Decode, () => ValueList<HydraMergeRecord>.Empty), // :363
+        Items = Coding.LenientList(element, "items", TimelineItemConverter.Decode, () => ValueList<TimelineItem>.Empty),           // :362
+        Turns = Coding.LenientList(element, "turns", TurnRecordConverter.Decode, () => ValueList<TurnRecord>.Empty),               // :363
+        Usage = Coding.Value(element, "usage", ContextUsageConverter.Decode, () => (ContextUsage?)null),                           // :364
+        FollowUps = Coding.LenientList(element, "followUps", FollowUpPromptConverter.Decode, () => ValueList<FollowUpPrompt>.Empty), // :365
+        HydraMerges = Coding.LenientList(element, "hydraMerges", HydraMergeRecordConverter.Decode, () => ValueList<HydraMergeRecord>.Empty), // :366
         // continuation: BLOCKED (see file header) - left null until Core.Models.ThreadContinuation has its Codable.
     };
 
