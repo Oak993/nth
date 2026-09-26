@@ -1,0 +1,114 @@
+{
+  "bundle_id": "R3-18",
+  "reader": "R3-18-reader",
+  "files": [
+    {
+      "path": "DroppyCode/Services/MCP/MCPHub.swift",
+      "sha256": "6b2f34b1b246367b91e85220cb3925fe653eeb89359dd46ad2a602fbc3d1be92",
+      "ranges_read": [
+        [
+          1,
+          200
+        ],
+        [
+          201,
+          376
+        ]
+      ],
+      "asset_inspection": null,
+      "purpose": "MCPHub.swift is the in-app MCP client that the model-API providers use (OpenAICompatibleSession.swift:510 awaits MCPHub.shared.tools(), :904 awaits MCPHub.shared.call). The actor MCPHub reads server specs from the exported claude.json (MCPPaths.claudeConfigURL, readSpecs :126-149, command preferred over url). It lists tools per server in sorted id order, caching successes and adding failures to a failed set. It routes \"mcp__<server>__<tool>\" call names (parse :109-117) to one private MCPClient actor per server, and reload() (:100-107, called from MCPStore.swift:283) drops every client, cache and failure. MCPClient talks JSON-RPC to a stdio child (at most one relaunch, then dead: ensureStdio :266-277) or to a streamable-HTTP endpoint (initialize once, adopt Mcp-Session-Id: httpRPC :310-341). It flattens tools/call content to text with \"[image]\" and \"[resource: <uri>]\" placeholders (callTool :202-224) and turns every failure into an MCPHubError literal. In B3 the file owns no transport machinery of its own. The stdio child, the line reader and the reply demultiplexing now live in MCPStdioConnection (MCPWire.swift:121-246) over StdioProcess. The message builders, the tools/list paging, the error extraction and the HTTP POST/SSE reader are now MCPWire statics shared with MCPProbe. MCPLiveProcesses (:355-376) still records every launched server, now as a StdioProcess, so AppDelegate.swift:60 can end them all synchronously at quit.",
+      "key_symbols": [
+        "enum MCPHubError: LocalizedError, Sendable { case unknownTool(String) -> \"Unknown tool: <name>.\"; case server(String) -> the message } (:4-16)",
+        "actor MCPHub { static let shared (:19) }",
+        "private static let liveProcesses = MCPLiveProcesses() (:24)",
+        "nonisolated static func track(_ process: StdioProcess) (:26) - B2 took Process",
+        "nonisolated static func terminateAll() (:30)",
+        "struct MCPHub.Tool: Sendable, Hashable { server, name, description, inputSchema; var callName = \"mcp__\" + server + \"__\" + name } (:32-39)",
+        "struct MCPHub.Result: Sendable { text: String; isError: Bool } (:41-44)",
+        "private var specs: [String: MCPServerSpec]?; clients: [String: MCPClient]; toolCache: [String: [Tool]]; failed: Set<String> (:46-49)",
+        "func tools() async -> [Tool] (:51-77)",
+        "func call(_ callName: String, arguments: JSONValue) async throws -> Result (:79-98)",
+        "func reload() (:100-107)",
+        "nonisolated static func parse(callName:) -> (server: String, tool: String)? (:109-117)",
+        "private func client(for:spec:) -> MCPClient (:119-124)",
+        "nonisolated private static func readSpecs() -> [String: MCPServerSpec] (:126-149)",
+        "private enum MCPServerSpec { case stdio(command:args:env:); case http(url:headers:) } (:152-155)",
+        "private actor MCPClient (:157-353): let id, spec; private var stdio: MCPStdioConnection?; nextID = 1; initialized; didRestart; dead; sessionID (:158-166)",
+        "MCPClient.stop() (:173-178): stdio?.stop(); stdio = nil; initialized = false; sessionID = nil",
+        "MCPClient.listTools() async throws -> [MCPHub.Tool] (:180-200): MCPWire.listTools paging plus the 400-character description cap and the empty-object schema fallback",
+        "MCPClient.callTool(name:arguments:) (:202-224), tools/call with timeout 120",
+        "MCPClient.rpc(method:params:timeout:) (:226-233)",
+        "MCPClient.checkReply(_:) (:235-239) -> MCPWire.errorMessage(in:)",
+        "MCPClient.stdioRPC (:243-249)",
+        "MCPClient.stdioReply(_:method:params:timeout:) (:251-264), new in B3: maps MCPWireError.exited(code) -> \"The server quit (exit <code>).\" / \"The server quit.\" and .timedOut -> \"The server didn't answer in time.\"",
+        "MCPClient.ensureStdio (:266-277)",
+        "MCPClient.startStdio (:279-306): MCPStdioConnection.launch, MCPHub.track(connection.process), initialize with timeout 60, connection.notify(\"notifications/initialized\")",
+        "MCPClient.httpRPC (:310-341)",
+        "MCPClient.post(url:headers:payload:id:timeout:) -> MCPHTTPReply (:343-352), wraps MCPWire.post and maps MCPHTTPError",
+        "private final class MCPLiveProcesses: Sendable { state = Mutex<[StdioProcess]>([]); add(_:); terminateAll() } (:355-376)"
+      ],
+      "calls_into": [
+        "MCPPaths.claudeConfigURL (:127)",
+        "JSONValue.parse / subscripts / .object / .string / .array / .bool / .isNull",
+        "LoginEnvironment.which(_:in:), LoginEnvironment.current (:280, :283)",
+        "MCPWire.listTools(_:) (MCPWire.swift:38-51) (:181)",
+        "MCPWire.initializeParams() (MCPWire.swift:9-15) (:295, :317)",
+        "MCPWire.request(id:method:params:) (:317, :335)",
+        "MCPWire.notification(method:) (:328)",
+        "MCPWire.errorMessage(in:) (MCPWire.swift:31-34) (:236)",
+        "MCPWire.post(to:headers:sessionID:payload:id:timeout:) (MCPWire.swift:55-103) (:345)",
+        "MCPStdioConnection.launch(executable:arguments:environment:) (MCPWire.swift:139-150) (:288)",
+        "MCPStdioConnection.request(_:_:timeout:) (MCPWire.swift:162-187) (:253)",
+        "MCPStdioConnection.notify(_:) (:299), .stop() (:174), .process (:268, :293)",
+        "StdioProcess.isRunning / terminate() / processIdentifier (MCPLiveProcesses :362, :368-373)",
+        "getpgid, kill(_, SIGKILL) (:373)",
+        "Synchronization.Mutex (:358)",
+        "print(\"MCPHub: <id>: <message>\") (:68)"
+      ],
+      "state_owned": [
+        "MCPHub.specs: [String: MCPServerSpec]? - lazily read from claude.json, cleared by reload()",
+        "MCPHub.clients: [String: MCPClient]",
+        "MCPHub.toolCache: [String: [Tool]]",
+        "MCPHub.failed: Set<String> - servers whose listing failed; consulted only by tools(), never by call()",
+        "static MCPHub.liveProcesses: MCPLiveProcesses (Mutex<[StdioProcess]>) - every server process launched this run",
+        "MCPClient.stdio: MCPStdioConnection? (B3; replaces B2 process/conversation/stdinHandle/replies)",
+        "MCPClient.nextID (B3: used only by the HTTP path; stdio ids come from the connection's own counter, MCPWire.swift:126)",
+        "MCPClient.initialized, didRestart, dead, sessionID"
+      ],
+      "side_effects": [
+        "Reads <data root>/mcp/claude.json via MCPPaths.claudeConfigURL",
+        "Launches a stdio server child through MCPStdioConnection.launch: login environment with the spec env layered on, working directory FileManager.default.homeDirectoryForCurrentUser (MCPWire.swift:143)",
+        "Writes JSON-RPC lines to the child's stdin on StdioProcess's write queue (initialize, tools/list, tools/call, notifications/initialized)",
+        "HTTP POSTs to remote MCP servers with Content-Type, Accept, MCP-Protocol-Version 2025-06-18 and Mcp-Session-Id headers (MCPWire.swift:63-70)",
+        "Prints \"MCPHub: <id>: <error>\" to the console when a listing fails (:68)",
+        "Terminates server children on stop/reload (StdioProcess.terminate: stdin closed, SIGTERM, SIGKILL on the pid 3 s later)",
+        "At quit terminateAll sends SIGTERM to every running child, then SIGKILL to the process group (or the pid) of any still running (:367-375)"
+      ],
+      "platform_assumptions": [
+        "POSIX signals: SIGTERM via Process.terminate, SIGKILL via kill, process-group kill via getpgid(pid) == pid ? -pid : pid (:373)",
+        "Foundation Process under StdioProcess; a Process child outlives its parent (comment :21-23, 'until the Mac restarts')",
+        "applicationWillTerminate is synchronous, so terminateAll must not rely on the delayed SIGKILL in StdioProcess.terminate (comment :370)",
+        "Command resolution through the login shell environment (LoginEnvironment.which)",
+        "URLSession.shared.bytes streaming for streamable HTTP and SSE (MCPWire.swift:72)"
+      ],
+      "persisted_fields": [
+        "none written; reads claude.json mcpServers.<id>.command, .args, .env, .url, .headers (:129-146)"
+      ],
+      "ui_elements": [],
+      "feature_notes": [
+        "B2->B3 is a transport extraction: 62 insertions, 243 deletions. The MCPHub actor itself (:1-150), including tools(), call(), reload(), parse() and readSpecs(), is byte-identical except track(_:) now takes StdioProcess (:26). Lines 1-157 keep their B2 numbering.",
+        "MCPClient stdio: B2's Process/Pipe wiring, the HubConversation line buffer (B2 :496-533), the replies map (B2 :169-172) and the 10 ms polling waitStdio (B2 :393-418) are gone. Replaced by one MCPStdioConnection (MCPWire.swift:121-246) over StdioProcess: requests await a CheckedContinuation keyed by RPCID, replies for other ids are buffered, and a task group races the reply against Task.sleep(timeout). User-visible literals are unchanged: \"The server didn't answer in time.\", \"The server quit (exit <code>).\", \"The server quit.\".",
+        "Changed stdio semantics (SOURCE FACT, from MCPWire.swift and StdioProcess.swift). (a) JSON-RPC ids are allocated per connection starting at 1 (MCPWire.swift:126, :164-168), so after the single relaunch the new child's initialize is id 1 again; B2 continued the client-wide nextID. (b) A process found not running is reported with its exit code after waitForExit (MCPWire.swift:163), not the bare B2 :410 \"The server quit.\". (c) Pending requests fail only when the message stream ends, at stdout EOF or 1 s after exit (StdioProcess.swift:177-182), not on the next 10 ms poll after the termination handler. (d) Reply ids match by RPCID, so a reply with string id \"1\" no longer matches request 1; B2 used JSONValue.int, which parses strings. (e) Stdout lines lose trailing CR/space and an unterminated final line is delivered at EOF (StdioProcess.swift:147-157). (f) Stderr is kept in a bounded buffer (StdioProcess.swift:159-166) instead of drained and discarded, but the hub never reads errorTail.",
+        "stop() (:173-178) now calls MCPStdioConnection.stop() -> StdioProcess.terminate() (StdioProcess.swift:120-129): stdin is closed first, then SIGTERM, then SIGKILL on the pid alone after 3 s. B2's private MCPClient.terminate (B2 :286-295) sent SIGTERM and after 1 s SIGKILL to the process group when the child led one. So reload() and a listing failure now leave a stubborn server's group alive up to 3 s and then kill only the leader.",
+        "HTTP: post (:343-352) delegates to MCPWire.post and now passes the JSON-RPC id (init id :317, nil for the notification :328, request id :335). SSE is read incrementally (URLSession.bytes, MCPWire.swift:72-102), and the first data: object whose id (via JSONValue.int) equals the request id is returned, so a held-open stream no longer hangs the call and a frame for another id is skipped. For a notification (id nil) an SSE response returns body nil without reading the stream (MCPWire.swift:92). A non-2xx now reads up to 2000 body bytes into MCPHTTPError.body, but the hub still reports only \"The server answered <status>.\" (:350); a non-HTTP response is still \"The server sent something unexpected: invalid reply.\" (:348).",
+        "The initialize params, request/notification builders, checkReply's \"unknown error\" fallback and the ten-page tools/list cursor loop are unchanged in value. They moved to MCPWire (MCPWire.swift:7-51), where protocolVersion \"2025-06-18\" is one constant used for both the params and the MCP-Protocol-Version header. clientInfo is still {\"name\": \"Droppy Code\", \"version\": \"1.0\"} (MCPWire.swift:13), so the OD-0012 F1 deviation citation moves there.",
+        "MCPLiveProcesses (:355-376) now holds StdioProcess. terminateAll still snapshots running processes, terminates each and immediately SIGKILLs survivors by group or pid, with a new comment (:370) that the delayed SIGKILL in terminate() never fires at quit. Because StdioProcess.terminate also queues a stdin close, quit now closes each server's stdin (asynchronously) as well.",
+        "MCPProbe was switched to the same MCPStdioConnection/MCPWire in B3 (MCPProbe.swift:94, :116, :124, :152). So the hub and the probe now share one stdio reader and one SSE reader. PR-MCP-186's windows_path 'Do not unify the two readers' and the probe halves of PR-MCP-111/117 need the MCPProbe reader's confirmation."
+      ],
+      "unresolved_questions": [
+        "Windows quit-time tree kill: the hub's children are now StdioProcess. The C# StdioProcess launches with UsesJobObject = false (src/Marrow.Core/Support/StdioProcess.cs:13, ED-126), and ProcessLauncher.KillTree without a job falls back to TerminateProcess on the pid alone (src/Marrow.Core/Port/ProcessLauncher.cs:476-487). A straight port would therefore leak npx's node grandchild at quit, against PR-MCP-191 and PR-LAUNCH-058's windows_path. This needs a ruling: a job object for hub-launched StdioProcess children, or a pid-tree kill.",
+        "Whether any real MCP server echoes a JSON-RPC id as a string is unknown. B3 stdio no longer matches such a reply (RPCID .string vs .int), while B3 HTTP SSE still does (JSONValue.int parses strings). The port must reproduce both as-is; there is no evidence that the difference is intended."
+      ]
+    }
+  ]
+}

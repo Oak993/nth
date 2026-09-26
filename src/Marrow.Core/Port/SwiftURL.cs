@@ -1,6 +1,7 @@
 // PORT-ONLY: Foundation URL(string:) has no .NET equivalent; System.Uri parses, canonicalizes and fails differently (R-PATH-1).
 using System.Collections.Immutable;
 using System.Globalization;
+using System.IO;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -9,12 +10,17 @@ namespace Marrow.Core.Port;
 
 // Source: swift-foundation tag swift-6.2-RELEASE (not the B2 tree; Foundation is Apple's), the path URL(string:) takes on
 // macOS 26 (URL.swift:611-614 routes URL to _SwiftURL; the transfer question stays with ED-086):
-//   Sources/FoundationEssentials/URL/URL_Swift.swift:75-98 (init), :385-388 (scheme), :444-491 (host), :497-532 (path),
-//     :574-624 (file-system path, POSIX style), :641-647 (pathComponents, ED-143), :282-284 and :339-341 (strings).
-//   Sources/FoundationEssentials/URL/URL.swift:1371-1378 (hash and ==), :1412-1415 (the POSIX default path style).
+//   Sources/FoundationEssentials/URL/URL_Swift.swift:75-98 (init), :119-137 (the fileURLWithPath initializers),
+//     :143-230 (the shared filePath initializer they call), :385-388 (scheme), :444-491 (host), :497-532 (path),
+//     :574-624 (file-system path, POSIX style), :641-647 (pathComponents, ED-143), :282-284 and :339-341 (strings),
+//     :875-879 and :881-894 (query), :896-898 and :900-910 (fragment), :1118-1145 (isDirectory(_:), checkFileSystem).
+//   Sources/FoundationEssentials/URL/URL.swift:1371-1378 (hash and ==), :1412-1415 (the POSIX default path style),
+//     :2598-2610 (PathStyle, defaultPathStyle), :2614-2657 (isAbsolute(standardizing:pathStyle:)), :2909-2916
+//     (DirectoryHint).
 //   Sources/FoundationEssentials/URL/URLParser.swift:18-198 (parse info, UIDNA hook), :200-958 (RFC3986Parser, the
-//     non-compatibility parse with encodingInvalidCharacters: true and allowEmptyScheme: true), :963-1133 (hex and
-//     percent coding), :1169-1270 (the allowed-set table).
+//     non-compatibility parse with encodingInvalidCharacters: true and allowEmptyScheme: true), :582-619
+//     (parse(filePath:isAbsolute:), the direct construction FileURLWithPath below reproduces through Create),
+//     :963-1133 (hex and percent coding), :1169-1270 (the allowed-set table).
 //   Sources/FoundationEssentials/String/String+Path.swift:49-77 (pathComponents), :420-428 (_droppingTrailingSlashes).
 //   Sources/FoundationInternationalization/URLParser+ICU.swift:28-221 (UIDNAHookICU), over Windows icu.dll (IcuNative).
 // Not ported: the compatibility parse (URLParser.swift:1305-1618; URL(string:) never takes it, URL_Swift.swift:83-88),
@@ -69,6 +75,53 @@ public sealed class SwiftURL : IEquatable<SwiftURL>
         var separator = basePath.EndsWith("/", StringComparison.Ordinal) ? "" : "/";
         return Create(basePath + separator + encoded) ??
             throw new SwiftTrapException("SwiftURL.Appending produced an invalid URL: " + basePath + separator + encoded);
+    }
+
+    /// <summary>
+    /// <c>URL(fileURLWithPath:)</c> with no base: not failable, unlike <see cref="Create"/>. URL_Swift.swift:
+    /// 134-137 (the single-argument initializer) and :143-230 (the shared initializer it calls with pathStyle
+    /// always .posix, URL.swift:1412-1415, as the rest of this file already assumes). Narrowed to the one shape
+    /// this port's call site needs, an absolute path: LinkParagraphView.swift:243 is reached only through :228's
+    /// guard <c>url.path.hasPrefix("/")</c>, so the relative-path and current-directory branches (URL.swift:
+    /// 2635-2657; URL_Swift.swift:191-195, :207-213's <c>baseURL</c> arm) are never exercised and are not ported.
+    /// </summary>
+    public static SwiftURL FileURLWithPath(string path)
+    {
+        // URL_Swift.swift:135 the hint comes from the ORIGINAL path, before the empty-path substitution at :136.
+        var hasTrailingSlash = path.Length > 0 && path[^1] == '/';
+        var filePath = path.Length == 0 ? "." : path; // :136
+
+        // URL.swift:2615-2617 isAbsolute(standardizing:): a path starting with "/" is absolute at once, with no
+        // standardization (the tilde expansion of :2650-2656 is never reached for such a path).
+        if (filePath.Length == 0 || filePath[0] != '/')
+            throw SwiftTraps.Fatal("precondition failed: SwiftURL.FileURLWithPath is narrowed to an absolute path.");
+
+        // URL_Swift.swift:197-219, narrowed to the two directoryHint cases :135 can produce (.isDirectory,
+        // .checkFileSystem; .notDirectory and .inferFromPath belong to the other three fileURLWithPath overloads,
+        // none of which this port's call site uses). PLATFORM ADAPTATION: ".checkFileSystem" (:204-213) asks the
+        // file system through Self.isDirectory(_:), lstat() on the macOS build (:1118, :1139-1144) and never
+        // following a trailing symlink; lstat has no Windows equivalent for a POSIX-shaped path, so this port asks
+        // System.IO for the same fact about the literal string.
+        var isDirectory = hasTrailingSlash || IsDirectoryOnDisk(filePath); // :198-200, :204-213
+
+        if (isDirectory && filePath[^1] != '/') filePath += "/"; // :221-223
+
+        var encodedPath = RFC3986Parser.PercentEncode(filePath, URLComponent.Path) ?? "/"; // :225
+
+        // URLParser.swift:583-601 parse(filePath:isAbsolute:) builds "file://" plus the encoded path directly, with
+        // an empty host and no query or fragment (:591-593). Going through Create gives the identical parse: the
+        // freshly percent-encoded path already contains only bytes InvalidComponents accepts, so Parse (:646-649)
+        // returns it unchanged, the same way the source's own comment (URLParser.swift:582) calls its direct
+        // construction only "an optimization" over this general path.
+        return Create("file://" + encodedPath)
+            ?? throw new SwiftTrapException("SwiftURL.FileURLWithPath produced an invalid URL: " + encodedPath);
+    }
+
+    // URL_Swift.swift:1118-1145 isDirectory(_:): on the macOS build, lstat() on the exact path given.
+    private static bool IsDirectoryOnDisk(string path)
+    {
+        try { return Directory.Exists(path); }
+        catch { return false; }
     }
 
     /// <summary><c>url.scheme</c>, as written. URL_Swift.swift:385-388.</summary>
@@ -140,6 +193,21 @@ public sealed class SwiftURL : IEquatable<SwiftURL>
             return RFC3986Parser.PercentDecode(path) is { } decoded ? DroppingTrailingSlashes(decoded) : "";
         }
     }
+
+    /// <summary>
+    /// <c>url.query</c>: <c>query(percentEncoded: true)</c>, the default (LinkParagraphView.swift:228). With no
+    /// base (<see cref="Create"/> never passes one) this is exactly the parsed component, percent-encoded as
+    /// written, or nil when there is none: the <c>baseURL?.query(...)</c> fallback (:884) is also nil with no base,
+    /// so both arms of that branch agree with the plain <c>guard let query else { return nil }</c> below it.
+    /// URL_Swift.swift:875-879, :881-894.
+    /// </summary>
+    public string? Query => _parseInfo.Query;
+
+    /// <summary>
+    /// <c>url.fragment</c>: <c>fragment(percentEncoded: true)</c>, the default (LinkParagraphView.swift:228),
+    /// percent-encoded as written, nil when absent. URL_Swift.swift:896-898, :900-910.
+    /// </summary>
+    public string? Fragment => _parseInfo.Fragment;
 
     // UNVERIFIED O-44: macOS 26 splits the encoded path and decodes each component, as swift-foundation 6.2 reads.
     /// <summary><c>url.pathComponents</c> (ED-143). URL_Swift.swift:641-647.</summary>

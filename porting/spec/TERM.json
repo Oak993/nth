@@ -33,7 +33,7 @@
       "title": "The drawer's height is the live drag height when a drag is in progress, otherwise the persisted terminalHeight applied with no clamp",
       "source_evidence": [
         "DroppyCode/App/Views/Terminal/TerminalPanel.swift:80 - .frame(height: dragHeight ?? model.settings.terminalHeight)",
-        "DroppyCode/App/AppSettings.swift:731 - terminalHeight = defaults.object(forKey: Key.terminalHeight) as? Double ?? 260",
+        "DroppyCode/App/AppSettings.swift:735 - terminalHeight = defaults.object(forKey: Key.terminalHeight) as? Double ?? 260",
         "DroppyCode/App/Views/Terminal/TerminalPanel.swift:89 - the 140...760 clamp exists only inside the drag's onChange",
         "porting/upstream_defects.md:153 entry 70 - the persisted height is applied verbatim and can only be corrected by dragging",
         "porting/port_impacts.md:416 entry 204 - persist under terminalHeight, default 260, clamp only while dragging, apply the stored value unclamped on load; do not add a load-time clamp"
@@ -283,7 +283,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Terminal/TerminalPanel.swift:84-99 - .overlay(alignment: .top) containing TerminalResizeHandle with .frame(height: 8)",
         "DroppyCode/App/Views/Terminal/TerminalPanel.swift:81-83 - the comment explaining the strip exists so a sideways drag across the tabs scrolls them",
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:216-219 resetCursorRects - addCursorRect(bounds, cursor: .resizeUpDown)"
+        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:122-129 TerminalResizeHandle.body - `DragHandle(axis: .vertical, grip: ..., cursor: .resizeUpDown, onBegin:, onChange:, onEnd:)`",
+        "DroppyCode/UI/Chrome/DragHandle.swift:188-192 resetCursorRects - `guard isActive else { return }; addCursorRect(bounds, cursor: cursor)`"
       ],
       "preconditions": "The panel is visible.",
       "action": "The pointer enters the top 8 points of the panel.",
@@ -297,42 +298,46 @@
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "Citation only: resetCursorRects moves from TerminalPanel.swift (B2 :216-219) into the shared UI.Chrome.DragHandle (N8, WIN area) at DragHandle.swift:188-192; the cursor rect and the .resizeUpDown cursor are unchanged. TerminalPanel.swift keeps only the DragHandle(cursor: .resizeUpDown, ...) configuration at :122-129."
     },
     {
       "id": "PR-TERM-013",
       "title": "Pressing the resize strip captures the current persisted height as the drag origin and marks the pane as resizing",
       "source_evidence": [
         "DroppyCode/App/Views/Terminal/TerminalPanel.swift:86 - onBegin sets dragOrigin = model.settings.terminalHeight and runtime.isTerminalResizing = true",
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:221-226 mouseDown - records pressOriginY = event.locationInWindow.y, sets isDragging, animates the grip, calls onBegin"
+        "DroppyCode/UI/Chrome/DragHandle.swift:198-208 mouseDown - `pressOrigin = event.locationInWindow`; a clickCount-2 onDoubleClick hook, unused by Terminal (nil); `guard slop == 0 else { isDragging = false; return }` (Terminal's slop is the default 0, so this guard always passes); `isDragging = true`; `updateGrip(animated: true)`; `onBegin?()`"
       ],
       "preconditions": "The panel is visible.",
       "action": "The user presses the mouse inside the resize strip.",
-      "expected_result": "dragOrigin becomes the current settings.terminalHeight, runtime.isTerminalResizing becomes true, the press's window y is recorded as pressOriginY, and the grip animates to its shown state.",
+      "expected_result": "dragOrigin becomes the current settings.terminalHeight, runtime.isTerminalResizing becomes true, the press's window location is recorded as pressOrigin, and the grip animates to its shown state. Terminal's slop is 0 (the DragHandle default), so isDragging becomes true and onBegin fires on the press itself, with no minimum travel required first.",
       "side_effects": [
         "runtime.isTerminalResizing true makes the chat column treat the pane as live-resizing (see PR-TERM-020)."
       ],
       "persistence": "Nothing is written on press.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "pointerdown with pointer capture; record the pointer y and the current height.",
+      "windows_path": "pointerdown with pointer capture; record the pointer position and the current height.",
       "verification_method": "interaction test",
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "Citation only: mouseDown moves from TerminalPanel.swift (B2 :221-226) into the shared UI.Chrome.DragHandle (N8, WIN area) at DragHandle.swift:198-208, which also adds a slop threshold and a double-click hook that Terminal does not use (slop 0, no onDoubleClick), leaving Terminal's own press behaviour unchanged."
     },
     {
       "id": "PR-TERM-014",
       "title": "Dragging the strip sets a live height of origin plus upward travel, clamped to 140...760, without writing settings",
       "source_evidence": [
         "DroppyCode/App/Views/Terminal/TerminalPanel.swift:87-90 - onChange computes origin as dragOrigin ?? model.settings.terminalHeight and sets dragHeight = min(760, max(140, origin + delta))",
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:228-230 mouseDragged - passes event.locationInWindow.y - pressOriginY",
+        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:127 - `onChange: { onChange($0.height) }`, taking only the height component of DragHandle's reported travel",
+        "DroppyCode/UI/Chrome/DragHandle.swift:210-220 mouseDragged - once dragging (Terminal's slop 0 means it always is by the time a move arrives), `onChange?(travel)` on every move",
+        "DroppyCode/UI/Chrome/DragHandle.swift:259-266 travel(to:) for `.vertical` - `CGSize(width: 0, height: point.y - pressOrigin.y)`",
         "DroppyCode/App/Views/Terminal/TerminalPanel.swift:11-13 - the comment: settings take the height on release, so a drag never writes user defaults on every frame"
       ],
       "preconditions": "A drag is in progress.",
       "action": "The pointer moves.",
-      "expected_result": "delta is the pointer's travel since the press in window coordinates with y increasing upward, so dragging UP gives a positive delta and grows the drawer. dragHeight becomes min(760, max(140, origin + delta)), clamped on every frame. The persisted setting is untouched for the whole drag. If dragOrigin is nil the current settings height is used instead.",
+      "expected_result": "delta is the pointer's travel since the press in window coordinates with y increasing upward (event.locationInWindow.y minus the press's y, exactly as at B2), so dragging UP gives a positive delta and grows the drawer. dragHeight becomes min(760, max(140, origin + delta)), clamped on every frame. The persisted setting is untouched for the whole drag. If dragOrigin is nil the current settings height is used instead.",
       "side_effects": [],
       "persistence": "None during the drag.",
       "failure_cases": [
@@ -344,19 +349,21 @@
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "Citation only: mouseDragged moves from TerminalPanel.swift (B2 :228-230) into the shared UI.Chrome.DragHandle (N8, WIN area) at DragHandle.swift:210-220, with the axis-aware travel(to:) helper (:259-266) computing the same point.y - pressOrigin.y for a .vertical handle. TerminalResizeHandle.body passes `onChange: { onChange($0.height) }` (:127) so the callback into TerminalPanel.swift still receives just the height delta, unchanged from B2."
     },
     {
       "id": "PR-TERM-015",
-      "title": "Releasing the strip applies one final delta, commits the height to settings and clears the drag state",
+      "title": "Releasing the strip applies one final delta, commits the height to settings, clears the drag state, and re-reads hover from the real pointer position",
       "source_evidence": [
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:232-237 mouseUp - calls onChange with the release delta FIRST, then clears isDragging, animates the grip and calls onEnd",
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:91-96 - onEnd assigns model.settings.terminalHeight from dragHeight when it is non-nil, clears dragHeight and dragOrigin, and sets runtime.isTerminalResizing = false",
+        "DroppyCode/UI/Chrome/DragHandle.swift:222-232 mouseUp - guard isDragging else return; computes the release travel; isDragging = false; pops dragCursor if one is set (Terminal passes none); calls onChange(travel), THEN onEnd(); then refreshHover() and updateGrip(animated: true)",
+        "DroppyCode/UI/Chrome/DragHandle.swift:142-151 refreshHover - guard isActive, a window, and not hidden, else isHovering = false; otherwise isHovering = bounds.contains(the real mouseLocationOutsideOfEventStream converted into the view)",
+        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:91-96, 126-128 - onEnd assigns model.settings.terminalHeight from dragHeight when it is non-nil, clears dragHeight and dragOrigin, and sets runtime.isTerminalResizing = false; TerminalResizeHandle wires this onEnd straight to DragHandle's onEnd parameter, unchanged from B2's onEnd callback",
         "DroppyCode/App/AppSettings.swift:309-311 - terminalHeight's didSet writes defaults.set(terminalHeight, forKey: Key.terminalHeight)"
       ],
       "preconditions": "A drag is in progress.",
       "action": "The user releases the mouse.",
-      "expected_result": "The release position is applied as one last clamped onChange, so the final pixel counts. Then settings.terminalHeight takes the clamped dragHeight and is written to the defaults store under the key \"terminalHeight\"; dragHeight and dragOrigin are cleared; runtime.isTerminalResizing becomes false; the grip animates back to its resting width unless the pointer is still hovering. A press with no movement still commits, writing back the same value it started from.",
+      "expected_result": "mouseUp does nothing unless isDragging is already true. The release position is applied as one last clamped onChange call, so the final pixel counts; onEnd then runs, which takes settings.terminalHeight from the clamped dragHeight and writes it to the defaults store under the key \"terminalHeight\", clears dragHeight and dragOrigin, and sets runtime.isTerminalResizing = false. Only after onEnd does the handle re-read the grip's shown state: refreshHover() asks for the pointer's actual current position (not the last tracked enter/exit event) and sets isHovering from whether that position is still inside the strip's bounds, then updateGrip animates the grip to its resting width unless the pointer is truly still over the strip at that instant. A press with no movement still commits, writing back the same value it started from.",
       "side_effects": [
         "One write to the persistent settings store."
       ],
@@ -365,24 +372,27 @@
         "dragHeight nil (no onChange ever ran): nothing is written and only the flags clear. mouseUp itself prevents this by calling onChange before onEnd."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "pointerup; write the same key with the same name and type.",
-      "verification_method": "restart test: drag, quit, relaunch, assert the height",
-      "status": "IMPLEMENTED",
+      "windows_path": "pointerup; write the same key with the same name and type. Re-read hover from the real pointer position (a hit test against the strip's bounds) after committing, rather than trusting the last enter/exit event.",
+      "verification_method": "restart test: drag, quit, relaunch, assert the height; plus an interaction test releasing with the pointer off the strip, asserting the grip retracts immediately",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "The whole resize-handle mechanism (mouseDown/mouseDragged/mouseUp, the cursor rect, the grip CALayer, the tracking area) moves out of TerminalPanel.swift into the new shared UI.Chrome.DragHandle (N8, WIN area); TerminalPanel.swift keeps only the vertical/12-28-2.5/.resizeUpDown configuration and the onBegin/onChange/onEnd callbacks (:85-98, unchanged in substance from B2's :86-96). Within that move, mouseUp's B3 order (isDragging=false, pop dragCursor, onChange, onEnd, THEN refreshHover+updateGrip) differs from B2's (onChange first, then isDragging=false, animate grip, onEnd): the commit-before-clear semantics for the persisted height are unchanged, but the grip's post-release state now comes from the pointer's real position (DragHandle.swift:144-150) rather than from whichever enter/exit event fired last, so a release with the pointer already off the strip retracts the grip at once instead of possibly staying shown."
     },
     {
       "id": "PR-TERM-016",
       "title": "The resize grip is a centred rounded bar that widens and fades in on hover or drag over 0.18 seconds",
       "source_evidence": [
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:147-153 Grip - height 2.5, restWidth 12, shownWidth 28, alpha 0.6, duration 0.18",
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:164-165 - gripLayer.cornerRadius = Grip.height / 2 and gripLayer.opacity = 0",
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:191-210 showsGrip and updateGrip(animated:) - width, centred frame, opacity, CATransaction with easeOut timing when animated and disabled actions when not"
+        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:124 - `grip: DragHandleView.Grip(restLength: 12, shownLength: 28, thickness: 2.5)`, taking the Grip struct's default alpha of 0.6 and leaving glowInset nil (no glow layer)",
+        "DroppyCode/UI/Chrome/DragHandle.swift:18-30 Grip struct - restLength, shownLength, thickness, alpha default 0.6, optional glowInset, refreshesHoverOnLayout default false, hoverGlow/dragGlow defaults (unused without a glowInset)",
+        "DroppyCode/UI/Chrome/DragHandle.swift:58-61 Metrics - glowRadius 4, duration 0.18",
+        "DroppyCode/UI/Chrome/DragHandle.swift:140 showsGrip - `isActive && (isHovering || isDragging)`",
+        "DroppyCode/UI/Chrome/DragHandle.swift:153-181 updateGrip(animated:) - length is shownLength or restLength per showsGrip; gripLayer.cornerRadius = thickness / 2 recomputed on every call; the bar's frame is centred in the strip on the cross axis; opacity is grip.alpha or 0; CATransaction with duration 0.18 and an easeOut timing function when animated, disabled actions when not; the glow layer stays at opacity 0 with no glowInset configured"
       ],
       "preconditions": "The panel is visible.",
       "action": "The pointer enters or leaves the strip, or a drag begins or ends.",
-      "expected_result": "The bar is 2.5 points tall with a corner radius of 1.25, centred both horizontally and vertically in the 8-point strip. At rest it is 12 points wide at opacity 0 (invisible). While hovering OR dragging it is 28 points wide at opacity 0.6. Changes driven by hover or drag animate over 0.18 seconds with an ease-out curve; changes driven by layout are applied with animations disabled. The shown state persists while dragging even if the pointer leaves the strip.",
+      "expected_result": "The bar is 2.5 points tall with a corner radius of 1.25, centred both horizontally and vertically in the 8-point strip. At rest it is 12 points wide at opacity 0 (invisible). While hovering OR dragging it is 28 points wide at opacity 0.6 (Terminal's Grip takes the default alpha and configures no glow, so no glow layer ever shows). Changes driven by hover or drag animate over 0.18 seconds with an ease-out curve; changes driven by layout are applied with animations disabled (moot for Terminal, whose refreshesHoverOnLayout is false, so layout never re-reads hover). The shown state persists while dragging even if the pointer leaves the strip.",
       "side_effects": [],
       "persistence": "None.",
       "failure_cases": [],
@@ -392,17 +402,18 @@
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "Citation only: the Grip struct, showsGrip and updateGrip move from TerminalPanel.swift (B2 :147-153, :164-165, :191-210) into the shared UI.Chrome.DragHandle (N8, WIN area, DragHandle.swift). The struct gains fields Terminal does not use (alpha as an overridable default, glowInset, refreshesHoverOnLayout, hoverGlow, dragGlow) for the sidebar's richer grip (PR-WIN-16x); Terminal's own restLength/shownLength/thickness values and the resulting visuals are unchanged. cornerRadius is now recomputed inside updateGrip on every call instead of once at layer configuration, with no observable difference since thickness is constant."
     },
     {
       "id": "PR-TERM-017",
       "title": "The grip bar is painted in the system label colour and repainted whenever the effective appearance changes",
       "source_evidence": [
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:175-184 applyColors and viewDidChangeEffectiveAppearance - the grip's backgroundColor is NSColor.labelColor.cgColor resolved inside effectiveAppearance.performAsCurrentDrawingAppearance"
+        "DroppyCode/UI/Chrome/DragHandle.swift:91-102 applyColors and viewDidChangeEffectiveAppearance - the grip's (and glow's) backgroundColor is NSColor.labelColor.cgColor resolved inside effectiveAppearance.performAsCurrentDrawingAppearance"
       ],
       "preconditions": "The panel is visible.",
       "action": "The window's light or dark appearance changes.",
-      "expected_result": "The grip's colour is recomputed from NSColor.labelColor resolved in the new appearance, so the bar is dark on light and light on dark. A layer colour does not resolve dynamically on its own, which is why the explicit repaint exists.",
+      "expected_result": "The grip's colour is recomputed from NSColor.labelColor resolved in the new appearance, so the bar is dark on light and light on dark. A layer colour does not resolve dynamically on its own, which is why the explicit repaint exists. The same call also colours the (invisible, since Terminal sets no glowInset) glow layer.",
       "side_effects": [],
       "persistence": "None.",
       "failure_cases": [],
@@ -412,14 +423,15 @@
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "Citation only: applyColors and viewDidChangeEffectiveAppearance move from TerminalPanel.swift (B2 :175-184) into the shared UI.Chrome.DragHandle (N8, WIN area) at DragHandle.swift:91-102, which now also colours a glow layer used by other DragHandle call sites (not Terminal). The label-colour behaviour for Terminal's own grip is unchanged."
     },
     {
       "id": "PR-TERM-018",
       "title": "The resize strip answers the first click into an inactive window and never acts as window-drag background",
       "source_evidence": [
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:212 - acceptsFirstMouse returns true",
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:214 - mouseDownCanMoveWindow returns false"
+        "DroppyCode/UI/Chrome/DragHandle.swift:183 - `override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }`",
+        "DroppyCode/UI/Chrome/DragHandle.swift:186 - `override var mouseDownCanMoveWindow: Bool { false }`"
       ],
       "preconditions": "The app's window is not key.",
       "action": "The user clicks and drags the strip in one motion.",
@@ -433,28 +445,32 @@
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "Citation only: acceptsFirstMouse and mouseDownCanMoveWindow move from TerminalPanel.swift (B2 :212, :214) into the shared UI.Chrome.DragHandle (N8, WIN area) at DragHandle.swift:183, :186; both return the same fixed values for every DragHandle, including Terminal's."
     },
     {
       "id": "PR-TERM-019",
-      "title": "Hover on the strip is tracked over its visible rectangle and stays live whether or not the app is active",
+      "title": "Hover on the strip is tracked over its visible rectangle, stays live whether or not the app is active, and is also re-read from the real pointer position on release and on attach",
       "source_evidence": [
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:239-245 updateTrackingAreas - removes the previous area and adds NSTrackingArea with options mouseEnteredAndExited, activeAlways and inVisibleRect",
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:247-255 mouseEntered and mouseExited - set isHovering and animate the grip"
+        "DroppyCode/UI/Chrome/DragHandle.swift:234-245 updateTrackingAreas - removes the previous area and adds NSTrackingArea with options mouseEnteredAndExited, activeAlways and inVisibleRect, only while a grip is configured (Terminal always configures one)",
+        "DroppyCode/UI/Chrome/DragHandle.swift:247-255 mouseEntered and mouseExited - set isHovering and animate the grip",
+        "DroppyCode/UI/Chrome/DragHandle.swift:127-138 viewDidMoveToWindow - when the strip attaches to a window and a grip is configured, refreshHover() then updateGrip(animated: false); also, if taken out of a window mid-drag, clears isDragging and pops dragCursor if one was set",
+        "DroppyCode/UI/Chrome/DragHandle.swift:142-151 refreshHover - isHovering = bounds.contains(the real pointer position), guarded by isActive, a window, and not hidden"
       ],
       "preconditions": "The panel is visible.",
-      "action": "The pointer crosses the strip boundary.",
-      "expected_result": "Entering sets isHovering true and animates the grip in; exiting sets it false and animates it out. Tracking follows the view's visible rectangle, so a clipped strip tracks only its visible part, and is active even when the application is not frontmost. Exactly one tracking area exists at a time.",
+      "action": "The pointer crosses the strip boundary, or the strip is released from a drag, or the strip is attached to a window.",
+      "expected_result": "Entering sets isHovering true and animates the grip in; exiting sets it false and animates it out, exactly as at B2. Tracking follows the view's visible rectangle, so a clipped strip tracks only its visible part, and is active even when the application is not frontmost. Exactly one tracking area exists at a time. Two cases beyond simple enter/exit now also set isHovering, both from the pointer's real current position rather than from the last enter/exit event: once on mouseUp after a drag ends (PR-TERM-015), and once whenever the strip is attached to a window (first appearance, or moved between windows). The 'isHovering is set only by crossing the boundary' model no longer fully holds: these two extra reads keep the grip's shown state honest even when no enter/exit event happened to fire for the pointer's actual location.",
       "side_effects": [],
       "persistence": "None.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "pointerenter and pointerleave. Platform boundary: hover over an inactive window behaves differently on Windows and is not guaranteed.",
-      "verification_method": "interaction test",
+      "windows_path": "pointerenter and pointerleave, plus an explicit hit test against the strip's bounds on release and on attach to a window. Platform boundary: hover over an inactive window behaves differently on Windows and is not guaranteed.",
+      "verification_method": "interaction test covering enter/exit, plus the release-with-pointer-off-strip and attach-while-hovering cases",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "The tracking area and mouseEntered/mouseExited move from TerminalPanel.swift (B2 :239-245, :247-255) into the shared DragHandle.swift (B3 :234-245, :247-255, same relative offsets within the class); the class also adds viewDidMoveToWindow's attach-time refreshHover, which B2's TerminalPanel-local implementation did not have (it is new, shared, N8 behaviour used by Sidebar and Terminal alike)."
     },
     {
       "id": "PR-TERM-020",
@@ -485,8 +501,8 @@
       "id": "PR-TERM-021",
       "title": "A terminal tab shows a terminal glyph and the session title on one line inside a capsule",
       "source_evidence": [
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:268-271 - HStack(spacing: 6) with Image(systemName: \"terminal\").font(.caption) and Text(session.title).lineLimit(1)",
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:297-302 - .font(.callout), .padding(.horizontal, 10), .padding(.vertical, 5), .background in .capsule, .contentShape(.capsule)",
+        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:143-146 - HStack(spacing: 6) with Image(systemName: \"terminal\").font(.caption) and Text(session.title).lineLimit(1)",
+        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:172-177 - .font(.callout), .padding(.horizontal, 10), .padding(.vertical, 5), .background in .capsule, .contentShape(.capsule)",
         "B1:DroppyCode/UI/Common/ChatZoom.swift:54 - `case .footnote, .caption, .caption2: 10` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)",
         "B1:DroppyCode/UI/Common/ChatZoom.swift:52 - `case .callout: 12` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)"
       ],
@@ -510,7 +526,7 @@
       "id": "PR-TERM-022",
       "title": "A tab whose shell has exited grows a restart button that replaces the dead shell in place",
       "source_evidence": [
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:273-283 - the comment 'An exited shell used to be a dead tab that could only be closed', then the restart Button shown only when !session.isRunning, label Image(systemName: \"arrow.clockwise\").font(.caption2.weight(.bold)), .buttonStyle(.plain), .foregroundStyle(Chrome.secondaryText), .help(\"Start a new shell in this tab\"), .accessibilityLabel(Text(\"Restart \\(session.title)\"))",
+        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:148-158 - the comment 'An exited shell used to be a dead tab that could only be closed', then the restart Button shown only when !session.isRunning, label Image(systemName: \"arrow.clockwise\").font(.caption2.weight(.bold)), .buttonStyle(.plain), .foregroundStyle(Chrome.secondaryText), .help(\"Start a new shell in this tab\"), .accessibilityLabel(Text(\"Restart \\(session.title)\"))",
         "DroppyCode/App/Views/Terminal/TerminalStore.swift:139-155 restart - see PR-TERM-056",
         "DroppyCode/UI/Chrome/Chrome.swift:76 and :79 - static let primaryText = Color(nsColor: .labelColor); static let secondaryText = primaryText.opacity(0.7)",
         "B1:DroppyCode/UI/Common/ChatZoom.swift:54 - `case .footnote, .caption, .caption2: 10` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)"
@@ -536,8 +552,8 @@
       "id": "PR-TERM-023",
       "title": "The tab's close cross is present only visually and only hit-testable while the tab is hovered or selected",
       "source_evidence": [
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:284-295 - the close Button with Image(systemName: \"xmark\").font(.caption2.weight(.bold)), .buttonStyle(.plain), .foregroundStyle(Chrome.secondaryText), .opacity(isHovering || isSelected ? 1 : 0), .help(\"Close terminal\"), .accessibilityLabel(Text(\"Close \\(session.title)\")), .allowsHitTesting(isHovering || isSelected)",
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:293-294 - the comment: hidden means unclickable, so a tab that shows no cross takes no tap where its cross would be and selects like the rest of the tab",
+        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:159-170 - the close Button with Image(systemName: \"xmark\").font(.caption2.weight(.bold)), .buttonStyle(.plain), .foregroundStyle(Chrome.secondaryText), .opacity(isHovering || isSelected ? 1 : 0), .help(\"Close terminal\"), .accessibilityLabel(Text(\"Close \\(session.title)\")), .allowsHitTesting(isHovering || isSelected)",
+        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:168-169 - the comment: hidden means unclickable, so a tab that shows no cross takes no tap where its cross would be and selects like the rest of the tab",
         "DroppyCode/UI/Chrome/Chrome.swift:76 and :79 - static let primaryText = Color(nsColor: .labelColor); static let secondaryText = primaryText.opacity(0.7)",
         "B1:DroppyCode/UI/Common/ChatZoom.swift:54 - `case .footnote, .caption, .caption2: 10` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)"
       ],
@@ -562,7 +578,7 @@
       "id": "PR-TERM-024",
       "title": "Tapping anywhere on the tab capsule selects that session",
       "source_evidence": [
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:302-304 - .contentShape(.capsule), .onTapGesture(perform: select), .onHover { isHovering = $0 }",
+        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:177-179 - .contentShape(.capsule), .onTapGesture(perform: select), .onHover { isHovering = $0 }",
         "DroppyCode/App/Views/Terminal/TerminalPanel.swift:27 - select is { terminals.selection[runtime.threadID] = session.id }"
       ],
       "preconditions": "A session exists and is not selected.",
@@ -585,7 +601,7 @@
       "id": "PR-TERM-025",
       "title": "The selected tab is drawn in the primary colour on a faint primary-tinted capsule; unselected tabs are secondary on nothing",
       "source_evidence": [
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:300-301 - .foregroundStyle(isSelected ? .primary : .secondary) and .background(isSelected ? AnyShapeStyle(.primary.opacity(0.08)) : AnyShapeStyle(Color.clear), in: .capsule)"
+        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:175-176 - .foregroundStyle(isSelected ? .primary : .secondary) and .background(isSelected ? AnyShapeStyle(.primary.opacity(0.08)) : AnyShapeStyle(Color.clear), in: .capsule)"
       ],
       "preconditions": "Two or more sessions exist.",
       "action": "The tabs draw.",
@@ -605,7 +621,7 @@
       "id": "PR-TERM-026",
       "title": "A tab whose shell has exited is dimmed to 55 percent opacity as a whole",
       "source_evidence": [
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:305 - .opacity(session.isRunning ? 1 : 0.55)"
+        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:180 - .opacity(session.isRunning ? 1 : 0.55)"
       ],
       "preconditions": "A session's shell has exited.",
       "action": "The tab draws.",
@@ -625,8 +641,8 @@
       "id": "PR-TERM-027",
       "title": "The tab's tooltip and accessibility label say the shell has exited, using different punctuation from each other",
       "source_evidence": [
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:306 - .help(session.isRunning ? session.title : session.title + \" \\u00b7 the shell has exited\")",
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:307-309 - .accessibilityElement(children: .contain), .accessibilityLabel(Text(session.isRunning ? session.title : session.title + \", the shell has exited\")), .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)"
+        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:181 - .help(session.isRunning ? session.title : session.title + \" \\u00b7 the shell has exited\")",
+        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:182-184 - .accessibilityElement(children: .contain), .accessibilityLabel(Text(session.isRunning ? session.title : session.title + \", the shell has exited\")), .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)"
       ],
       "preconditions": "A session exists, running or exited.",
       "action": "The user hovers the tab, or a screen reader reads it.",
@@ -646,9 +662,9 @@
       "id": "PR-TERM-028",
       "title": "Switching tabs moves the one long-lived terminal view into the host container rather than recreating it",
       "source_evidence": [
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:313-315 - the doc comment: hosts a long-lived terminal view, moving it between containers as threads change",
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:367-375 attach(to:) - view.removeFromSuperview(), view.frame = container.bounds, view.autoresizingMask = [.width, .height], container.addSubview(view), session.applyAppearance(isDark:), container.hostedView = view",
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:350-353 updateNSView - re-attaches when session.view.superview is not the container and always updates hostedView"
+        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:188-190 - the doc comment: hosts a long-lived terminal view, moving it between containers as threads change",
+        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:242-250 attach(to:) - view.removeFromSuperview(), view.frame = container.bounds, view.autoresizingMask = [.width, .height], container.addSubview(view), session.applyAppearance(isDark:), container.hostedView = view",
+        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:225-228 updateNSView - re-attaches when session.view.superview is not the container and always updates hostedView"
       ],
       "preconditions": "Two or more sessions exist.",
       "action": "The user selects a different tab, or the thread is switched and switched back.",
@@ -670,7 +686,7 @@
       "id": "PR-TERM-029",
       "title": "The terminal's colours are re-applied on every host update but the session skips redundant applications",
       "source_evidence": [
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:351 - updateNSView calls session.applyAppearance(isDark: isDark) unconditionally",
+        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:226 - updateNSView calls session.applyAppearance(isDark: isDark) unconditionally",
         "DroppyCode/App/Views/Terminal/TerminalStore.swift:43-46 - the comment: setting the colours again clears SwiftTerm's attribute caches and redraws the whole screen, so the host applies them only on a change",
         "DroppyCode/App/Views/Terminal/TerminalStore.swift:47-49 applyAppearance - guard appliedDark != isDark else { return }, then appliedDark = isDark"
       ],
@@ -695,8 +711,8 @@
       "title": "Opening the drawer moves keyboard focus into the terminal exactly once, off the SwiftUI update",
       "source_evidence": [
         "DroppyCode/App/Runtime/ThreadRuntime.swift:239-244 - isTerminalVisible's didSet sets terminalWantsFocus = true only when it goes from false to true; the comment says a thread switched to with its terminal already open leaves the keyboard where it is",
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:354-365 updateNSView - returns unless runtime.terminalWantsFocus, then in a main-actor Task re-checks the flag, requires view.window, clears terminalWantsFocus FIRST and calls window.makeFirstResponder(view)",
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:355-356 - the comment: off the update, which may not write the runtime"
+        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:229-240 updateNSView - returns unless runtime.terminalWantsFocus, then in a main-actor Task re-checks the flag, requires view.window, clears terminalWantsFocus FIRST and calls window.makeFirstResponder(view)",
+        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:230-231 - the comment: off the update, which may not write the runtime"
       ],
       "preconditions": "The drawer is closed.",
       "action": "The user opens the drawer (button, menu, palette or chord).",
@@ -720,8 +736,8 @@
       "id": "PR-TERM-031",
       "title": "Escape inside the terminal closes the drawer only when the shell itself owns the terminal foreground, and is swallowed when it does",
       "source_evidence": [
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:320-322 - the doc comment, exactly: \"Escape in the terminal with the shell at its prompt: the panel closes the way ⌘J closes it. A program in the foreground (vim, claude, less) gets its Escape as ever.\" (upstream's chord; Ctrl+J in the port, OD-0008 B7)",
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:339-346 - NSEvent.addLocalMonitorForEvents(matching: .keyDown) with guards: a live view, event.keyCode == 53, event.modifierFlags.intersection(KeyChord.allowedModifiers).isEmpty, event.window?.firstResponder === view, and TerminalSession.foregroundJobIsTheShell(view.process.shellPid); then onEscapeAtPrompt() and return nil",
+        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:195-197 - the doc comment, exactly: \"Escape in the terminal with the shell at its prompt: the panel closes the way ⌘J closes it. A program in the foreground (vim, claude, less) gets its Escape as ever.\" (upstream's chord; Ctrl+J in the port, OD-0008 B7)",
+        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:214-221 - NSEvent.addLocalMonitorForEvents(matching: .keyDown) with guards: a live view, event.keyCode == 53, event.modifierFlags.intersection(KeyChord.allowedModifiers).isEmpty, event.window?.firstResponder === view, and TerminalSession.foregroundJobIsTheShell(view.process.shellPid); then onEscapeAtPrompt() and return nil",
         "DroppyCode/Core/Models/Shortcuts.swift:6 - KeyChord.allowedModifiers is [.control, .option, .shift, .command]",
         "DroppyCode/App/Views/Terminal/TerminalPanel.swift:59 - the closure passed in is { runtime.isTerminalVisible = false }",
         "porting/port_impacts.md:436 entry 214 - ConPTY has no process groups or tpgid, so this cannot be translated; record an explicit engineering decision and document that bare-Escape-at-prompt parity is approximated"
@@ -749,8 +765,8 @@
       "id": "PR-TERM-032",
       "title": "The Escape monitor is process-wide, installed once per hosted session and removed when the host's coordinator dies",
       "source_evidence": [
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:324-332 Coordinator - holds keyMonitor: Any? and removes it with NSEvent.removeMonitor in deinit",
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:334-347 makeNSView - installs the monitor once when the representable's view is made",
+        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:199-207 Coordinator - holds keyMonitor: Any? and removes it with NSEvent.removeMonitor in deinit",
+        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:209-222 makeNSView - installs the monitor once when the representable's view is made",
         "DroppyCode/App/Views/Terminal/TerminalPanel.swift:60 - the host is keyed .id(selected.id), so a tab change makes a new representable and a new coordinator"
       ],
       "preconditions": "A session is hosted.",
@@ -775,9 +791,9 @@
       "id": "PR-TERM-033",
       "title": "While the window is live-resizing, the hosted terminal's autoresizing is parked and its frame is synced at most once every 50 milliseconds",
       "source_evidence": [
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:378-381 - the doc comment: SwiftTerm re-wraps its buffer on every frame-size change, so a live resize that moved the frame every frame reflowed per frame; while the drag lasts the view's autoresizing is parked and its frame lands at most every beat",
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:402-406 - on NSWindow.willStartLiveResizeNotification (queue: .main), MainActor.assumeIsolated { self?.hostedView?.autoresizingMask = [] }",
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:414-426 resizeSubviews - requires a hosted view and window.inLiveResize, returns if a pendingSync already exists, otherwise schedules a DispatchWorkItem 50 ms out on the main queue that clears pendingSync and calls syncFrame"
+        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:253-256 - the doc comment: SwiftTerm re-wraps its buffer on every frame-size change, so a live resize that moved the frame every frame reflowed per frame; while the drag lasts the view's autoresizing is parked and its frame lands at most every beat",
+        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:277-281 - on NSWindow.willStartLiveResizeNotification (queue: .main), MainActor.assumeIsolated { self?.hostedView?.autoresizingMask = [] }",
+        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:289-301 resizeSubviews - requires a hosted view and window.inLiveResize, returns if a pendingSync already exists, otherwise schedules a DispatchWorkItem 50 ms out on the main queue that clears pendingSync and calls syncFrame"
       ],
       "preconditions": "A terminal is hosted and the user starts a live window resize.",
       "action": "The window is dragged by its edge.",
@@ -790,7 +806,7 @@
         "No hosted view or the window is not live-resizing: nothing is scheduled and the ordinary autoresizing path applies."
       ],
       "cancellation": "The pending beat is cancelled by finishResize and by the container's deinit.",
-      "windows_path": "Throttle the terminal fit/reflow to one call per 50 ms while a window resize is in progress, and stop the element from following the container in the meantime. Platform boundary: Windows has no willStartLiveResize notification; use the window's resize-modal messages or an equivalent in the host layer. OD-0013 (owner ruling): the main window chrome is not accepted until the one-frame live-resize edge strip probe P4 measured is gone (3-5 px of the window's own backdrop without the app layer at the growing edges, clipping for about a frame at the shrinking edges); it is not downgraded to a deviation. That ruling concerns the window edges; this 50 ms terminal throttle is the source's own behaviour (TerminalPanel.swift:378-381, :414-426) and is kept.",
+      "windows_path": "Throttle the terminal fit/reflow to one call per 50 ms while a window resize is in progress, and stop the element from following the container in the meantime. Platform boundary: Windows has no willStartLiveResize notification; use the window's resize-modal messages or an equivalent in the host layer. OD-0013 (owner ruling): the main window chrome is not accepted until the one-frame live-resize edge strip probe P4 measured is gone (3-5 px of the window's own backdrop without the app layer at the growing edges, clipping for about a frame at the shrinking edges); it is not downgraded to a deviation. That ruling concerns the window edges; this 50 ms terminal throttle is the source's own behaviour (TerminalPanel.swift:253-256, :414-426) and is kept.",
       "verification_method": "unit test on the coalescer plus a timing assertion during a scripted resize",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -801,8 +817,8 @@
       "id": "PR-TERM-034",
       "title": "When the live resize ends the terminal's autoresizing is restored and the settled size is applied exactly once",
       "source_evidence": [
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:407-411 - on NSWindow.didEndLiveResizeNotification (queue: .main), MainActor.assumeIsolated { self?.finishResize() }",
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:428-435 finishResize - the doc comment says the settled size lands once with autoresizing back on and the frame replayed through the terminal view so SwiftTerm recomputes its columns and rows a final time; it cancels and clears pendingSync, sets autoresizingMask back to [.width, .height], then calls syncFrame"
+        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:282-286 - on NSWindow.didEndLiveResizeNotification (queue: .main), MainActor.assumeIsolated { self?.finishResize() }",
+        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:303-310 finishResize - the doc comment says the settled size lands once with autoresizing back on and the frame replayed through the terminal view so SwiftTerm recomputes its columns and rows a final time; it cancels and clears pendingSync, sets autoresizingMask back to [.width, .height], then calls syncFrame"
       ],
       "preconditions": "A live resize is in progress.",
       "action": "The user releases the window edge.",
@@ -824,7 +840,7 @@
       "id": "PR-TERM-035",
       "title": "The frame sync is skipped unless the hosted view is still this container's subview and the bounds are non-zero and different",
       "source_evidence": [
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:437-442 syncFrame - guard let hostedView, hostedView.superview === self; then guard bounds.width > 0, bounds.height > 0, hostedView.frame != bounds; only then hostedView.frame = bounds"
+        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:312-317 syncFrame - guard let hostedView, hostedView.superview === self; then guard bounds.width > 0, bounds.height > 0, hostedView.frame != bounds; only then hostedView.frame = bounds"
       ],
       "preconditions": "A sync beat or finishResize fires.",
       "action": "syncFrame runs.",
@@ -848,8 +864,8 @@
       "id": "PR-TERM-036",
       "title": "The host container registers its live-resize observers per window and tears them down when it is destroyed",
       "source_evidence": [
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:396-412 viewDidMoveToWindow - removes every existing observer, empties the array, returns if there is no window, then registers the willStartLiveResize and didEndLiveResize observers on that window with the main queue, each body wrapped in MainActor.assumeIsolated (an isolation assertion; the observers already run on .main)",
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:390-394 - the isolated deinit cancels pendingSync and removes every observer"
+        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:271-287 viewDidMoveToWindow - removes every existing observer, empties the array, returns if there is no window, then registers the willStartLiveResize and didEndLiveResize observers on that window with the main queue, each body wrapped in MainActor.assumeIsolated (an isolation assertion; the observers already run on .main)",
+        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:265-269 - the isolated deinit cancels pendingSync and removes every observer"
       ],
       "preconditions": "The container moves between windows or is destroyed.",
       "action": "viewDidMoveToWindow fires, or the container is deallocated.",
@@ -1352,7 +1368,7 @@
       "id": "PR-TERM-055",
       "title": "Deleting or discarding a thread closes all of its terminals",
       "source_evidence": [
-        "DroppyCode/App/AppModel.swift:1070-1077 discardThreadState - cancels the idle stop, cancels persistence, stops the session, drops the runtime, then calls terminals.closeAll(for: thread.id) and optionally deletes the document"
+        "DroppyCode/App/AppModel.swift:1079-1086 discardThreadState - cancels the idle stop, cancels persistence, stops the session, drops the runtime, then calls terminals.closeAll(for: thread.id) and optionally deletes the document"
       ],
       "preconditions": "A thread with open terminals is deleted or otherwise discarded.",
       "action": "discardThreadState runs.",
@@ -1375,7 +1391,7 @@
       "title": "terminateAll() kills every shell across every thread at shutdown but leaves the dictionaries intact",
       "source_evidence": [
         "DroppyCode/App/Views/Terminal/TerminalStore.swift:171-175 terminateAll() - iterates every list in sessions.values and terminates each session; the dictionaries are not cleared",
-        "DroppyCode/App/AppModel.swift:1318-1326 - at shutdown each runtime's session is stopped, unsaved snapshots are written synchronously, DiskWriter.shared.waitForQueuedWrites() runs, and terminateAll() is called last"
+        "DroppyCode/App/AppModel.swift:1336-1344 - at shutdown each runtime's session is stopped, unsaved snapshots are written synchronously, DiskWriter.shared.waitForQueuedWrites() runs, and terminateAll() is called last"
       ],
       "preconditions": "The app is quitting.",
       "action": "Shutdown runs.",
@@ -1397,7 +1413,7 @@
       "id": "PR-TERM-057",
       "title": "A thread with any open terminal session is never released from memory as idle",
       "source_evidence": [
-        "DroppyCode/App/AppModel.swift:493-499 releaseIdleRuntime - among the guards, terminals.sessions(for: id).isEmpty must hold before the runtime is dropped"
+        "DroppyCode/App/AppModel.swift:502-508 releaseIdleRuntime - among the guards, terminals.sessions(for: id).isEmpty must hold before the runtime is dropped"
       ],
       "preconditions": "A background thread is otherwise idle and its document is saved.",
       "action": "The idle sweep considers releasing the runtime.",
@@ -1460,8 +1476,8 @@
       "id": "PR-TERM-060",
       "title": "Adding a project imports its scripts from droppy-code.json at the project root",
       "source_evidence": [
-        "DroppyCode/App/AppModel.swift:515-523 addProject(at:) - an existing project with the same standardized path is returned unchanged; otherwise a new Project is made and project.scripts = ProjectFile.scripts(at: url) before it is appended and a save is scheduled",
-        "DroppyCode/App/AppModel.swift:1330-1345 ProjectFile.scripts(at:) - reads Data from url.appendingPathComponent(\"droppy-code.json\"), parses it as JSON, takes json[\"scripts\"] as an array, and for each entry requires a string \"name\" and a string \"command\", mapping \"icon\" through symbol(for:) and reading \"runOnWorktreeCreate\" as a bool defaulting to false"
+        "DroppyCode/App/AppModel.swift:524-532 addProject(at:) - an existing project with the same standardized path is returned unchanged; otherwise a new Project is made and project.scripts = ProjectFile.scripts(at: url) before it is appended and a save is scheduled",
+        "DroppyCode/App/AppModel.swift:1348-1363 ProjectFile.scripts(at:) - reads Data from url.appendingPathComponent(\"droppy-code.json\"), parses it as JSON, takes json[\"scripts\"] as an array, and for each entry requires a string \"name\" and a string \"command\", mapping \"icon\" through symbol(for:) and reading \"runOnWorktreeCreate\" as a bool defaulting to false"
       ],
       "preconditions": "A folder is being added as a project for the first time.",
       "action": "The folder is added.",
@@ -1486,7 +1502,7 @@
       "id": "PR-TERM-061",
       "title": "The project file's icon names map to exactly five SF Symbols, with play as the fallback",
       "source_evidence": [
-        "DroppyCode/App/AppModel.swift:1347-1356 symbol(for:) - \"test\" maps to \"checkmark.seal\", \"lint\" to \"wand.and.stars\", \"configure\" to \"gearshape\", \"build\" to \"hammer\", \"debug\" to \"ant\", and every other value including nil to \"play\""
+        "DroppyCode/App/AppModel.swift:1365-1374 symbol(for:) - \"test\" maps to \"checkmark.seal\", \"lint\" to \"wand.and.stars\", \"configure\" to \"gearshape\", \"build\" to \"hammer\", \"debug\" to \"ant\", and every other value including nil to \"play\""
       ],
       "preconditions": "An imported script entry carries an icon field.",
       "action": "The entry is converted.",
@@ -1577,7 +1593,7 @@
       "id": "PR-TERM-065",
       "title": "Running a script opens a new terminal tab named after the script, in the thread's working directory, and shows the drawer",
       "source_evidence": [
-        "DroppyCode/App/AppModel.swift:1094-1098 runScript(_:threadID:) - returns unless the thread and its project resolve; calls terminals.run(script, threadID: threadID, directory: thread.worktreePath ?? project.path); then sets runtime(for: threadID).isTerminalVisible = true",
+        "DroppyCode/App/AppModel.swift:1103-1107 runScript(_:threadID:) - returns unless the thread and its project resolve; calls terminals.run(script, threadID: threadID, directory: thread.worktreePath ?? project.path); then sets runtime(for: threadID).isTerminalVisible = true",
         "DroppyCode/App/Views/Terminal/TerminalStore.swift:127-129 run(_:threadID:directory:) - open(threadID:directory:title: script.name, command: script.command)"
       ],
       "preconditions": "A thread with a project is selected.",
@@ -1607,8 +1623,8 @@
       "id": "PR-TERM-066",
       "title": "Creating a worktree runs every script flagged runOnWorktreeCreate in the new worktree and shows the drawer",
       "source_evidence": [
-        "DroppyCode/App/AppModel.swift:1133-1137 - after the worktree is added and the thread updated: for script in project.scripts where script.runOnWorktreeCreate { terminals.run(script, threadID: threadID, directory: path); runtime(for: threadID).isTerminalVisible = true }",
-        "DroppyCode/App/AppModel.swift:1116-1132 createWorktree(for:) - the surrounding flow, including the git preconditions and the generated path and branch"
+        "DroppyCode/App/AppModel.swift:1142-1146 - after the worktree is added and the thread updated: for script in project.scripts where script.runOnWorktreeCreate { terminals.run(script, threadID: threadID, directory: path); runtime(for: threadID).isTerminalVisible = true }",
+        "DroppyCode/App/AppModel.swift:1125-1141 createWorktree(for:) - the surrounding flow, including the git preconditions and the generated path and branch"
       ],
       "preconditions": "A thread is being given its own git worktree and the project has flagged scripts.",
       "action": "The worktree is created successfully.",
@@ -1633,7 +1649,7 @@
       "id": "PR-TERM-067",
       "title": "The top script is the selected thread's project's first script; its menu item does not exist in the port and the command stays on its chord",
       "source_evidence": [
-        "DroppyCode/App/AppModel.swift:1089-1092 topScript - nil unless a thread is selected and resolves; otherwise project.scripts.first",
+        "DroppyCode/App/AppModel.swift:1098-1101 topScript - nil unless a thread is selected and resolves; otherwise project.scripts.first",
         "DroppyCode/App/AppCommands.swift:89-94 - Button titled model.topScript.map { \"Run \\($0.name)\" } ?? \"Run top script\", action guards on topScript and selectedThreadID then calls model.runScript, with the .runScript keyboard shortcut and .disabled(model.topScript == nil)",
         "DroppyCode/Core/Models/Shortcuts.swift:224 - .runScript default chord is KeyChord(keyCode: 15, modifiers: .command), which is Command-R"
       ],
@@ -1743,7 +1759,7 @@
       "cancellation": "not cancellable",
       "windows_path": "No menu item. The chord handler keeps the menu item's action and its disabled rule (model.selectedThreadID == nil).",
       "verification_method": "interaction test pressing the chord with and without a selected thread, plus an assertion that no menu bar exists",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2007,7 +2023,7 @@
       "source_evidence": [
         "DroppyCode/Core/Support/Shell.swift:36-56 - the @concurrent run(_:_:in:environment:input:timeout:outputLimit:) signature and its setup: executableURL, arguments, currentDirectoryURL only when a directory is given, environment defaulting to LoginEnvironment.current, stdout and stderr Pipes, a stdin Pipe only when input is non-nil, and standardInput set to FileHandle.nullDevice when there is no input",
         "DroppyCode/Core/Support/Shell.swift:4-12 struct ShellResult - status: Int32, stdout: Data, stderr: Data, with succeeded == (status == 0), output and errorOutput decoding UTF-8, and trimmedOutput = output.trimmed",
-        "DroppyCode/Core/Support/Text.swift:132 - var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }, so trimmedOutput still trims whitespace and newlines"
+        "DroppyCode/Core/Support/Text.swift:224 - var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }, so trimmedOutput still trims whitespace and newlines"
       ],
       "preconditions": "An executable URL is known.",
       "action": "A caller awaits Shell.run.",
@@ -2032,7 +2048,7 @@
       "title": "ShellResult.failureMessage prefers trimmed stderr, then trimmed stdout, then a generated sentence naming the exit code",
       "source_evidence": [
         "DroppyCode/Core/Support/Shell.swift:14-19 failureMessage - let error = errorOutput.trimmed; the trimmed errorOutput when non-empty, else trimmedOutput, else \"The command failed with exit code \\(status).\"",
-        "DroppyCode/Core/Support/Text.swift:132 - var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }"
+        "DroppyCode/Core/Support/Text.swift:224 - var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }"
       ],
       "preconditions": "A command has finished.",
       "action": "A caller asks for the failure message.",
@@ -2270,7 +2286,7 @@
       "title": "A shell command is classified as possibly writing files unless every part of it is provably read-only, and an empty command reads",
       "source_evidence": [
         "DroppyCode/Core/Support/Shell.swift:136-140 - the doc comment: the list below is what is known to read; anything else counts as writing, so an edit is never missed",
-        "DroppyCode/Core/Support/Shell.swift:164-172 mayWriteFiles - let command = text.trimmed (whitespace and newlines, DroppyCode/Core/Support/Text.swift:132); an empty command returns false; then the redirection and substitution tests; then every part must pass onlyReads or the answer is true",
+        "DroppyCode/Core/Support/Shell.swift:164-172 mayWriteFiles - let command = text.trimmed (whitespace and newlines, DroppyCode/Core/Support/Text.swift:224); an empty command returns false; then the redirection and substitution tests; then every part must pass onlyReads or the answer is true",
         "porting/port_impacts.md:184 entry 88 - port 52 readers, 25 git readers and 15 excluded keys exactly; anything not in readers makes the whole command a writer, and a chain with one writing part is writing"
       ],
       "preconditions": "A model has produced a shell command, or a provider is deciding whether to auto-approve one.",
@@ -2562,9 +2578,9 @@
       "id": "PR-TERM-099",
       "title": "The write classification decides whether a tool row snapshots the working tree, and whether Command Code auto-approves a shell call",
       "source_evidence": [
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:3341-3348 watchCommand - the comment says a command that cannot write needs no snapshots at all; the guard requires mayWriteFiles(call.title), a repository, and a before-tree, then stores the tree task, clears settledTree and bumps treeEpoch",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:3447 - the same guard on the Hydra command path",
-        "DroppyCode/Services/Providers/CommandCodeSession.swift:708-711 - in .auto runtime mode, the tools \"shell_command\", \"powershell\" and \"monitor_command\" are auto-approved exactly when !mayWriteFiles(input[\"command\"]?.string ?? \"\")"
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:3383-3390 watchCommand - the comment says a command that cannot write needs no snapshots at all; the guard requires mayWriteFiles(call.title), a repository, and a before-tree, then stores the tree task, clears settledTree and bumps treeEpoch",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:3489 - the same guard on the Hydra command path",
+        "DroppyCode/Services/Providers/CommandCodeSession.swift:667-670 - in .auto runtime mode, the tools \"shell_command\", \"powershell\" and \"monitor_command\" are auto-approved exactly when !mayWriteFiles(input[\"command\"]?.string ?? \"\")"
       ],
       "preconditions": "An agent issues a shell tool call.",
       "action": "The classifier answers.",
@@ -2784,7 +2800,7 @@
       "id": "PR-TERM-108",
       "title": "start() installs both read handlers and the termination handler before launching, and tears them down and finishes the stream if the launch throws",
       "source_evidence": [
-        "DroppyCode/Core/Support/StdioProcess.swift:54-87 start() - the stdout handler consumes data or, on empty data, clears itself and calls finishOutput; the stderr handler appends or, on empty data or a dead self, clears itself; the termination handler calls didExit; then try process.run(), and on a throw both handlers are cleared, the continuation is finished and the error is rethrown"
+        "DroppyCode/Core/Support/StdioProcess.swift:55-88 start() - the stdout handler consumes data or, on empty data, clears itself and calls finishOutput; the stderr handler appends or, on empty data or a dead self, clears itself; the termination handler calls didExit; then try process.run(), and on a throw both handlers are cleared, the continuation is finished and the error is rethrown"
       ],
       "preconditions": "A StdioProcess has been constructed.",
       "action": "start() is called and the executable cannot be launched.",
@@ -2808,7 +2824,7 @@
       "id": "PR-TERM-109",
       "title": "send() serializes a message on a private serial queue and frames it as a line or behind a Content-Length header",
       "source_evidence": [
-        "DroppyCode/Core/Support/StdioProcess.swift:89-103 send(_:) - on the writeQueue, the message's data is taken; for .lines the payload is the body plus a single 0x0A; for .contentLength it is \"Content-Length: \\(body.count)\\r\\n\\r\\n\" as UTF-8 followed by the body; the write uses try? and its error is ignored",
+        "DroppyCode/Core/Support/StdioProcess.swift:90-104 send(_:) - on the writeQueue, the message's data is taken; for .lines the payload is the body plus a single 0x0A; for .contentLength it is \"Content-Length: \\(body.count)\\r\\n\\r\\n\" as UTF-8 followed by the body; the write uses try? and its error is ignored",
         "DroppyCode/Core/Support/StdioProcess.swift:21 - the queue is labelled \"droppycode.stdio.write\""
       ],
       "preconditions": "The child is running.",
@@ -2833,8 +2849,8 @@
       "id": "PR-TERM-110",
       "title": "write() sends raw bytes unframed and closeInput() closes the child's stdin, both on the same write queue",
       "source_evidence": [
-        "DroppyCode/Core/Support/StdioProcess.swift:105-111 write(_:) - the comment says this writes raw bytes to the process's stdin, a prompt piped to a one-shot CLI; the write is on the writeQueue with try?",
-        "DroppyCode/Core/Support/StdioProcess.swift:113-117 closeInput() - the comment says it closes stdin for a process that reads its input to the end before it starts; the close is on the writeQueue with try?"
+        "DroppyCode/Core/Support/StdioProcess.swift:106-112 write(_:) - the comment says this writes raw bytes to the process's stdin, a prompt piped to a one-shot CLI; the write is on the writeQueue with try?",
+        "DroppyCode/Core/Support/StdioProcess.swift:114-118 closeInput() - the comment says it closes stdin for a process that reads its input to the end before it starts; the close is on the writeQueue with try?"
       ],
       "preconditions": "The child is running.",
       "action": "A caller pipes a prompt and then closes stdin.",
@@ -2858,7 +2874,7 @@
       "id": "PR-TERM-111",
       "title": "StdioProcess.terminate closes stdin first, then terminates, then kills after three seconds",
       "source_evidence": [
-        "DroppyCode/Core/Support/StdioProcess.swift:119-128 terminate() - the stdin handle is closed on the writeQueue; the method returns early unless the process is running; otherwise process.terminate() and, three seconds later on a global queue, kill(process.processIdentifier, SIGKILL) when it is still running"
+        "DroppyCode/Core/Support/StdioProcess.swift:120-129 terminate() - the stdin handle is closed on the writeQueue; the method returns early unless the process is running; otherwise process.terminate() and, three seconds later on a global queue, kill(process.processIdentifier, SIGKILL) when it is still running"
       ],
       "preconditions": "A child is to be stopped.",
       "action": "terminate() is called.",
@@ -2882,8 +2898,8 @@
       "id": "PR-TERM-112",
       "title": "waitForExit returns the stored status at once when the child has already exited, and otherwise queues a waiter that is resumed exactly once",
       "source_evidence": [
-        "DroppyCode/Core/Support/StdioProcess.swift:130-139 waitForExit() - inside state.withLock, an existing exitStatus is returned; otherwise the continuation is appended to exitWaiters and nil returned; a returned status is resumed outside the lock",
-        "DroppyCode/Core/Support/StdioProcess.swift:167-174 didExit - inside state.withLock it stores the status, takes and clears the waiter list, then resumes every waiter outside the lock"
+        "DroppyCode/Core/Support/StdioProcess.swift:131-140 waitForExit() - inside state.withLock, an existing exitStatus is returned; otherwise the continuation is appended to exitWaiters and nil returned; a returned status is resumed outside the lock",
+        "DroppyCode/Core/Support/StdioProcess.swift:168-175 didExit - inside state.withLock it stores the status, takes and clears the waiter list, then resumes every waiter outside the lock"
       ],
       "preconditions": "A caller wants the child's exit status.",
       "action": "waitForExit is awaited before or after the exit.",
@@ -2903,7 +2919,7 @@
       "id": "PR-TERM-113",
       "title": "Each delivered frame has trailing carriage returns and spaces stripped, and empty or unparseable frames are dropped silently",
       "source_evidence": [
-        "DroppyCode/Core/Support/StdioProcess.swift:141-151 consume and deliver - frames come from the framer inside state.withLock; deliver removes trailing bytes while they are 0x0D or 0x20, then requires a non-empty line and a successful JSONValue.parse before yielding to the stream"
+        "DroppyCode/Core/Support/StdioProcess.swift:142-152 consume and deliver - frames come from the framer inside state.withLock; deliver removes trailing bytes while they are 0x0D or 0x20, then requires a non-empty line and a successful JSONValue.parse before yielding to the stream"
       ],
       "preconditions": "The child is emitting output.",
       "action": "A frame arrives.",
@@ -2925,9 +2941,9 @@
       "id": "PR-TERM-114",
       "title": "The message stream is finished when stdout closes, and again one second after the child exits, because a grandchild can hold stdout open",
       "source_evidence": [
-        "DroppyCode/Core/Support/StdioProcess.swift:153-156 finishOutput - flushes the framer's remainder (taken inside state.withLock) through deliver, then finishes the continuation",
-        "DroppyCode/Core/Support/StdioProcess.swift:176-181 - the comment: a grandchild can inherit stdout and keep it open after the provider exits; one second after the exit, the stdout readabilityHandler is cleared and finishOutput is called",
-        "DroppyCode/Core/Support/StdioProcess.swift:62-64 - an empty read also clears the handler and calls finishOutput"
+        "DroppyCode/Core/Support/StdioProcess.swift:154-157 finishOutput - flushes the framer's remainder (taken inside state.withLock) through deliver, then finishes the continuation",
+        "DroppyCode/Core/Support/StdioProcess.swift:177-182 - the comment: a grandchild can inherit stdout and keep it open after the provider exits; one second after the exit, the stdout readabilityHandler is cleared and finishOutput is called",
+        "DroppyCode/Core/Support/StdioProcess.swift:63-65 - an empty read also clears the handler and calls finishOutput"
       ],
       "preconditions": "The child has exited or closed stdout.",
       "action": "Either path runs.",
@@ -2949,8 +2965,8 @@
       "id": "PR-TERM-115",
       "title": "Standard error is buffered to a bounded tail and exposed as the last 4000 bytes decoded as UTF-8",
       "source_evidence": [
-        "DroppyCode/Core/Support/StdioProcess.swift:49-52 errorTail - the comment says it is the last few kilobytes written to stderr, used when a provider fails; it returns String(decoding: $0.errorBuffer.suffix(4_000), as: UTF8.self) inside state.withLock",
-        "DroppyCode/Core/Support/StdioProcess.swift:158-165 appendError - appends inside state.withLock and, once the buffer exceeds 64,000 bytes, replaces it with its last 16,000 bytes"
+        "DroppyCode/Core/Support/StdioProcess.swift:50-53 errorTail - the comment says it is the last few kilobytes written to stderr, used when a provider fails; it returns String(decoding: $0.errorBuffer.suffix(4_000), as: UTF8.self) inside state.withLock",
+        "DroppyCode/Core/Support/StdioProcess.swift:159-166 appendError - appends inside state.withLock and, once the buffer exceeds 64,000 bytes, replaces it with its last 16,000 bytes"
       ],
       "preconditions": "The child is writing to stderr.",
       "action": "A caller reads errorTail after a failure.",
@@ -2972,8 +2988,8 @@
       "id": "PR-TERM-116",
       "title": "The embedded terminal is the only terminal: the app never hands terminal work to an external terminal application",
       "source_evidence": [
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:1-443, DroppyCode/App/Views/Terminal/TerminalStore.swift:1-176 and DroppyCode/App/Views/Terminal/TerminalFont.swift:1-138 - the whole terminal surface is in-window, built on SwiftTerm's LocalProcessTerminalView; nothing in these files opens an external terminal (TerminalFont.swift only reads other terminals' font settings)",
-        "DroppyCode/App/AppModel.swift:1094-1098 runScript - scripts are run through terminals.run, never through the workspace",
+        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:1-318, DroppyCode/App/Views/Terminal/TerminalStore.swift:1-176 and DroppyCode/App/Views/Terminal/TerminalFont.swift:1-138 - the whole terminal surface is in-window, built on SwiftTerm's LocalProcessTerminalView; nothing in these files opens an external terminal (TerminalFont.swift only reads other terminals' font settings)",
+        "DroppyCode/App/AppModel.swift:1103-1107 runScript - scripts are run through terminals.run, never through the workspace",
         "porting/PORT_CONTRACT.md:171 - do not replace the embedded terminal with an external terminal"
       ],
       "preconditions": "Any terminal or script action.",
@@ -3362,7 +3378,7 @@
         "hover to reveal the close cross"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:258-311",
+        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:133-186",
         "B1:DroppyCode/UI/Common/ChatZoom.swift:52 - `case .callout: 12` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)",
         "B1:DroppyCode/UI/Common/ChatZoom.swift:54 - `case .footnote, .caption, .caption2: 10` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)"
       ],
@@ -3385,7 +3401,7 @@
         "none; clicks fall through to the chip"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:269-270",
+        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:144-145",
         "B1:DroppyCode/UI/Common/ChatZoom.swift:54 - `case .footnote, .caption, .caption2: 10` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)"
       ],
       "notes": "SF Symbol name \"terminal\"; in the port it draws as Lucide \"square-terminal\" (OD-0010, porting/icons/sf-symbols-to-lucide.json).",
@@ -3407,7 +3423,7 @@
         "none; clicks fall through to the chip"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:271",
+        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:146",
         "B1:DroppyCode/UI/Common/ChatZoom.swift:52 - `case .callout: 12` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)"
       ],
       "notes": "The title never follows the shell's OSC title sequence: setTerminalTitle is an empty delegate body (TerminalStore.swift:93).",
@@ -3429,7 +3445,7 @@
         "click: terminates the old session and puts a fresh shell in the same tab position, keeping the title and directory and dropping any startup command"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:273-283",
+        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:148-158",
         "DroppyCode/App/Views/Terminal/TerminalStore.swift:139-155",
         "DroppyCode/UI/Chrome/Chrome.swift:76-79",
         "B1:DroppyCode/UI/Common/ChatZoom.swift:54 - `case .footnote, .caption, .caption2: 10` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)"
@@ -3455,7 +3471,7 @@
         "click: terminates the shell and removes the tab; if it was selected, the selection moves to the LAST remaining tab"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:284-295",
+        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:159-170",
         "DroppyCode/App/Views/Terminal/TerminalStore.swift:157-163",
         "DroppyCode/UI/Chrome/Chrome.swift:76-79",
         "B1:DroppyCode/UI/Common/ChatZoom.swift:54 - `case .footnote, .caption, .caption2: 10` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)"
@@ -3483,7 +3499,7 @@
       ],
       "source_evidence": [
         "DroppyCode/App/Views/Terminal/TerminalPanel.swift:35-43",
-        "DroppyCode/UI/Common/Components.swift:59-99",
+        "DroppyCode/UI/Common/Components.swift:57-97",
         "DroppyCode/UI/Chrome/Chrome.swift:28",
         "B1:DroppyCode/UI/Common/ChatZoom.swift:52 - `case .callout: 12` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)"
       ],
@@ -3542,7 +3558,7 @@
       ],
       "source_evidence": [
         "DroppyCode/App/Views/Terminal/TerminalPanel.swift:58-63",
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:316-376",
+        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:191-251",
         "DroppyCode/App/Views/Terminal/TerminalStore.swift:21-23",
         "DroppyCode/App/Views/Terminal/TerminalStore.swift:47-57",
         "DroppyCode/App/Views/Terminal/TerminalFont.swift:8-16"
@@ -3572,9 +3588,11 @@
       ],
       "source_evidence": [
         "DroppyCode/App/Views/Terminal/TerminalPanel.swift:84-99",
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:114-256"
+        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:113-131 TerminalResizeHandle - the vertical/12-28-2.5/.resizeUpDown DragHandle configuration",
+        "DroppyCode/UI/Chrome/DragHandle.swift:1-267 DragHandleView - the shared cursor rect, press/drag/release and hover mechanism"
       ],
       "notes": "AppKit y increases upward, so the source's positive delta means dragging up. On Windows and in the DOM the sign must be inverted. mouseUp applies one final onChange before onEnd, so the release pixel counts.",
+      "b3_note": "Citation only: the mechanism (:114-256 at B2) moves out of TerminalPanel.swift into the shared UI.Chrome.DragHandle (N8, WIN area); TerminalPanel.swift keeps only the 18-line configuration at :113-131. See PR-TERM-012 through -015, -018 and -019 for the per-behaviour citations into DragHandle.swift.",
       "status": "IMPLEMENTED"
     },
     {
@@ -3595,10 +3613,12 @@
         "none of its own; it is a hover affordance for UI-TERM-011"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:147-153",
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:191-210"
+        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:124 - `DragHandleView.Grip(restLength: 12, shownLength: 28, thickness: 2.5)`",
+        "DroppyCode/UI/Chrome/DragHandle.swift:18-30 Grip struct",
+        "DroppyCode/UI/Chrome/DragHandle.swift:140, 153-181 showsGrip and updateGrip(animated:)"
       ],
-      "notes": "The same affordance as the sidebar's edge grip (the source names SidebarResizeHandleView); porting/extracts/chrome-design-tokens.md:358 confirms SidebarResizeHandleView.Grip.duration is also 0.18.",
+      "notes": "The same affordance as the sidebar's edge grip: both now configure the one shared UI.Chrome.DragHandleView.Grip (the source no longer names a separate SidebarResizeHandleView); porting/extracts/chrome-design-tokens.md:358's duration-0.18 note still holds via DragHandle.swift's Metrics.duration.",
+      "b3_note": "Citation only: the Grip struct and showsGrip/updateGrip move from TerminalPanel.swift (B2 :147-153, :191-210) into the shared UI.Chrome.DragHandle (N8, WIN area); Terminal's own dimensions (12/28/2.5) and visuals are unchanged.",
       "status": "IMPLEMENTED"
     },
     {
@@ -4044,7 +4064,8 @@
         "decision": "OD-0008 C3, B7",
         "upstream": "DroppyCode/App/AppCommands.swift:42-44 - the View group item \"Toggle terminal\" with the ⌘J chord",
         "port": "No menu bar. Every command the source defines stays on its shortcut and in the command palette; text fields keep standard Ctrl+C/V/X/Z/A. Chords render in Windows notation (Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl)."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-TERM-032",
@@ -4065,14 +4086,15 @@
       ],
       "source_evidence": [
         "DroppyCode/App/AppCommands.swift:89-94",
-        "DroppyCode/App/AppModel.swift:1089-1092"
+        "DroppyCode/App/AppModel.swift:1098-1101"
       ],
       "notes": "The upstream title is composed as \"Run \" plus the script name, so a script called \"Release\" gives the item \"Run Release\". DEVIATION (OD-0008 C3): no menu bar in the port, so this title is never shown.",
       "deviation": {
         "decision": "OD-0008 C3, B7",
         "upstream": "DroppyCode/App/AppCommands.swift:89-94 - the menu item titled \"Run <name>\" or \"Run top script\" with the ⌘R chord",
         "port": "No menu bar. Every command the source defines stays on its shortcut and in the command palette; text fields keep standard Ctrl+C/V/X/Z/A. Chords render in Windows notation (Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl)."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-TERM-033",

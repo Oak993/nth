@@ -18,8 +18,20 @@ namespace Marrow.Core.Tests.Port;
 //   HostComponent(bool percentEncoded = true)   url.host(percentEncoded:), the host() the source calls
 //   Path                                        url.path
 //   PathComponents (ImmutableArray<string>)     url.pathComponents (ED-143)
+//   Query, Fragment                             url.query, url.fragment (percentEncoded: true, the default; no base)
+//   FileURLWithPath(string) -> SwiftURL         URL(fileURLWithPath:), not failable
 //   Equals, GetHashCode                         URL is Hashable; equality is textual
 // Every non-ASCII character is written as a \U escape (R-STR-9).
+//
+// B3 52bc792 adds LinkParagraphView.swift:226-245 (MarkdownLinkOpener, ported by lane A29, not here): it needs
+// url.query, url.fragment and URL(fileURLWithPath:), which SwiftURL did not yet expose. Query and Fragment are read
+// from swift-foundation tag swift-6.2-RELEASE, Sources/FoundationEssentials/URL/URL_Swift.swift:875-879 (query),
+// :881-894 (query(percentEncoded:)), :896-898 (fragment), :900-910 (fragment(percentEncoded:)): with no base (this
+// type never has one) both reduce to "the parsed component, percent-encoded as written, or nil". FileURLWithPath is
+// read from the same file's fileURLWithPath initializers (:119-137) and the shared filePath initializer (:143-230),
+// URL.swift:2598-2657 (PathStyle, defaultPathStyle, isAbsolute(standardizing:)) and URLParser.swift:582-619
+// (parse(filePath:isAbsolute:)); it is narrowed to the one shape this port's call site needs, an absolute path
+// (LinkParagraphView.swift:228 guards url.path.hasPrefix("/")).
 public sealed class SwiftURLTests
 {
     private const string EAcute = "\U000000E9"; // U+00E9 LATIN SMALL LETTER E WITH ACUTE
@@ -514,9 +526,126 @@ public sealed class SwiftURLTests
     {
         // An invalid query or fragment is re-encoded whole (URLParser.swift:714-728) with queryAllowed and
         // fragmentAllowed, pchar + "/?" (:1217-1219), so "/" and "?" stay and a space or non-ASCII byte is escaped.
-        Assert.Equal("https://example.com/?next=/a%20b?c=1", SwiftURL.Create("https://example.com/?next=/a b?c=1")?.AbsoluteString);
-        Assert.Equal("https://example.com/x#a%20b/c?d", SwiftURL.Create("https://example.com/x#a b/c?d")?.AbsoluteString);
-        Assert.Equal("https://example.com/?q=caf%C3%A9", SwiftURL.Create("https://example.com/?q=caf" + EAcute)?.AbsoluteString);
+        // Query and Fragment (URL_Swift.swift:875-910) read back the same re-encoded text AbsoluteString carries.
+        var withQuery = SwiftURL.Create("https://example.com/?next=/a b?c=1");
+        Assert.NotNull(withQuery);
+        Assert.Equal("https://example.com/?next=/a%20b?c=1", withQuery.AbsoluteString);
+        Assert.Equal("next=/a%20b?c=1", withQuery.Query);
+        Assert.Null(withQuery.Fragment);
+
+        var withFragment = SwiftURL.Create("https://example.com/x#a b/c?d");
+        Assert.NotNull(withFragment);
+        Assert.Equal("https://example.com/x#a%20b/c?d", withFragment.AbsoluteString);
+        Assert.Null(withFragment.Query);
+        Assert.Equal("a%20b/c?d", withFragment.Fragment);
+
+        var withNonAscii = SwiftURL.Create("https://example.com/?q=caf" + EAcute);
+        Assert.NotNull(withNonAscii);
+        Assert.Equal("https://example.com/?q=caf%C3%A9", withNonAscii.AbsoluteString);
+        Assert.Equal("q=caf%C3%A9", withNonAscii.Query);
+    }
+
+    [Fact]
+    [Trait("Rule", "R-PATH-1")] // LinkParagraphView.swift:227-228 guard url.scheme == nil, url.host == nil, url.query == nil, url.fragment == nil
+    public void Query_and_fragment_are_nil_when_absent()
+    {
+        // The MarkdownLinkOpener guard (lane A29) needs exactly this: a plain absolute path with no scheme, host,
+        // query or fragment. "/Users/me/notes.txt:42" has no scheme (a "/" comes before any ":", URLParser.swift:
+        // 805-816), so the whole string is the path.
+        var plainPath = SwiftURL.Create("/Users/me/notes.txt:42");
+        Assert.NotNull(plainPath);
+        Assert.Null(plainPath.Scheme);
+        Assert.Null(plainPath.Host);
+        Assert.Null(plainPath.Query);
+        Assert.Null(plainPath.Fragment);
+
+        var noQueryOrFragment = SwiftURL.Create("https://example.com/path");
+        Assert.NotNull(noQueryOrFragment);
+        Assert.Null(noQueryOrFragment.Query);
+        Assert.Null(noQueryOrFragment.Fragment);
+    }
+
+    [Fact]
+    [Trait("Rule", "R-PATH-1")] // MarkdownView.swift:743; URL_Swift.swift:875-879, :896-898 (query, fragment default percentEncoded: true, no base)
+    public void Query_and_fragment_are_returned_percent_encoded_as_parsed()
+    {
+        // Reuses the fixture of Path_is_percent_decoded_and_excludes_query_and_fragment: the same text's query and
+        // fragment ranges, read directly instead of only through AbsoluteString.
+        var url = SwiftURL.Create("https://github.com/owner/repo/pull/123?tab=files#top");
+        Assert.NotNull(url);
+        Assert.Equal("tab=files", url.Query);
+        Assert.Equal("top", url.Fragment);
+    }
+
+    [Theory]
+    [Trait("Rule", "R-PATH-1")] // URLParser.swift:842-861: the query and fragment ranges come from the "?" and "#" delimiters alone
+    [InlineData("https://example.com/?#frag", "", "frag")]
+    [InlineData("https://example.com/#frag", null, "frag")]
+    [InlineData("https://example.com/?q=1", "q=1", null)]
+    [InlineData("https://example.com/?q=1#", "q=1", "")]
+    public void Query_and_fragment_split_on_their_delimiters_and_can_be_empty(string text, string? query, string? fragment)
+    {
+        var url = SwiftURL.Create(text);
+        Assert.NotNull(url);
+        Assert.Equal(query, url.Query);
+        Assert.Equal(fragment, url.Fragment);
+    }
+
+    [Fact]
+    [Trait("Rule", "R-PATH-1")] // MarkdownView.swift:743; R-PATH-1 leniency: an already-valid escape is kept, not decoded
+    public void An_already_valid_query_and_fragment_are_kept_percent_encoded_not_decoded()
+    {
+        var url = SwiftURL.Create("https://example.com/?q=a%20b#frag%2Fpart");
+        Assert.NotNull(url);
+        Assert.Equal("q=a%20b", url.Query);
+        Assert.Equal("frag%2Fpart", url.Fragment);
+    }
+
+    [Fact]
+    [Trait("Rule", "R-PATH-1")] // LinkParagraphView.swift:243 NSWorkspace.shared.open(URL(fileURLWithPath: path))
+    public void FileURLWithPath_builds_a_file_scheme_URL_with_no_host_from_an_absolute_path()
+    {
+        // URLParser.swift:583-601 parse(filePath:isAbsolute:): "file://" plus the path, an empty host, no query or
+        // fragment. An empty authority with no user, password or port reads back as a nil Host (URL_Swift.swift:
+        // 448-457, the same rule An_empty_host_is_nil_unless_a_user_password_or_port_is_present already proves).
+        var url = SwiftURL.FileURLWithPath("/Users/me/notes.txt");
+        Assert.Equal("file", url.Scheme);
+        Assert.Null(url.Host);
+        Assert.Null(url.HostComponent());
+        Assert.Equal("/Users/me/notes.txt", url.Path);
+        Assert.Equal("file:///Users/me/notes.txt", url.AbsoluteString);
+    }
+
+    [Fact]
+    [Trait("Rule", "R-PATH-1")] // LinkParagraphView.swift:243; URL_Swift.swift:225 Parser.percentEncode(filePath, component: .path)
+    public void FileURLWithPath_percent_encodes_the_path_and_Path_reads_it_back_decoded()
+    {
+        var url = SwiftURL.FileURLWithPath("/Users/me/My Notes.txt");
+        Assert.Equal("file:///Users/me/My%20Notes.txt", url.AbsoluteString);
+        Assert.Equal("/Users/me/My Notes.txt", url.Path);
+    }
+
+    [Fact]
+    [Trait("Rule", "R-PATH-1")] // URL_Swift.swift:135, :198-200: a path already ending in "/" is a directory with no file-system check
+    public void FileURLWithPath_treats_a_path_that_already_ends_in_a_slash_as_a_directory()
+    {
+        var url = SwiftURL.FileURLWithPath("/Users/me/Documents/");
+        Assert.Equal("file:///Users/me/Documents/", url.AbsoluteString);
+        // :616 the file-system path drops trailing slashes on read back, as every other file URL in this file does.
+        Assert.Equal("/Users/me/Documents", url.Path);
+    }
+
+    [Fact]
+    [Trait("Rule", "R-PATH-1")] // URL_Swift.swift:135, :204-213: no trailing "/" asks the file system, which a made-up path fails
+    public void FileURLWithPath_does_not_add_a_slash_when_the_path_is_not_an_existing_directory()
+    {
+        // A GUID keeps this off any real path on the machine running the test (R-TEST-9): PLATFORM ADAPTATION, the
+        // file-system check is Directory.Exists, never lstat (URL_Swift.swift:1118-1145), so this proves the false
+        // branch only; the true branch (checking a directory that really exists) is UNVERIFIED on Windows, since a
+        // POSIX-shaped path this factory accepts never names a real Windows directory.
+        var url = SwiftURL.FileURLWithPath("/tmp/" + Guid.NewGuid().ToString("N") + "/notes.txt");
+        Assert.False(url.AbsoluteString.EndsWith("/", StringComparison.Ordinal));
+        Assert.False(url.Path.EndsWith("/", StringComparison.Ordinal));
     }
 
     // Oracle O-38: URL(string:) parsing and re-encoding beyond R-PATH-1 (a swift-foundation source reading, not a capture).

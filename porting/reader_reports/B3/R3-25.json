@@ -1,0 +1,120 @@
+{
+ "bundle_id": "R3-25",
+ "reader": "R3-25-reader",
+ "files": [
+  {
+   "path": "DroppyCode/Services/Providers/ProviderRegistry.swift",
+   "sha256": "bb2011e28bbfc9831ef4539148d8eae0f8c41988286e00db82ab8bde16a642f6",
+   "ranges_read": [
+    [
+     1,
+     480
+    ],
+    [
+     481,
+     958
+    ]
+   ],
+   "asset_inspection": null,
+   "purpose": "The @MainActor @Observable ProviderRegistry is the app's single source of truth for every provider's install/sign-in state (ProviderStatus with its summary strings \"Not installed\", \"Signed in as ...\", \"Signed in\", \"Not signed in\", \"Installed · <version>\"), for each provider's model catalog (seeds for Claude, DeepSeek, Meta, Z.ai, Antigravity, Copilot, Command Code and Pi; live catalogs from the CLIs, ACP probes and APIs, cached under providerModelCatalogs with dates under providerModelCatalogDates), for slash-command lists per (provider, directory), plan limits, pay-as-you-go credits and banked-reset spending. It resolves each CLI's executable (custom path, PATH via LoginEnvironment.which, then per-provider fallback directories), builds its environment (PATH prefix, COMMAND_CODE_API_KEY, OpenCode MCP env, GEMINI_CLI_SYSTEM_SETTINGS_PATH), and runs the version/auth probes. New at B3 (1.7.0): it keeps the Claude Code and Codex CLIs current by running their own `update` subcommand at most every 12 hours (or forced after a turn fails with a too-old-CLI error), recorded under the new defaults key providerCLIUpdateDates, and the Claude live catalog now lends its versioned display name (e.g. \"Opus 5.5\") to seed rows other than Default.",
+   "key_symbols": [
+    "struct ProviderStatus (enum Auth { unknown, signedIn(String?), signedOut }, executable, version, auth, isChecking, apiKeyConfigured, isInstalled, summary)",
+    "@MainActor @Observable final class ProviderRegistry",
+    "private(set) var statuses/catalogs/commands/commandErrors/recentCommands/loadingCatalogs/planLimits/loadingLimits/redeemingReset/credits/loadingCredits/isRefreshing/signingIn",
+    "private(set) var updatingCLIs: Set<ProviderKind> (NEW B3 :54)",
+    "@ObservationIgnored private let cliUpdatesKey = \"providerCLIUpdateDates\" (NEW B3 :55)",
+    "private static let cliUpdateInterval: TimeInterval = 12 * 3600 (NEW B3 :474)",
+    "static func updatesOwnCLI(_:) -> Bool (NEW B3 :477-479)",
+    "nonisolated static func needsNewerCLI(_:) -> Bool (NEW B3 :482-490)",
+    "@discardableResult func updateCLIIfDue(_:force:) async -> Bool (NEW B3 :496-522)",
+    "func installedCLIVersion(_:) async -> String? (NEW B3 :525-529)",
+    "private nonisolated static func cliVersion(_:environment:) async -> String? (NEW B3 :531-536)",
+    "private static func mergedClaudeCatalog(_:) (CHANGED B3 :90-109)",
+    "private static func mergedACPCatalog(_:over:)",
+    "private static func isStaleClaudeSeed(_:)",
+    "static let claudeSeed/deepseekSeed/metaSeed/zaiSeed/antigravitySeed/copilotAuto/commandcodeSeed/piSeed",
+    "init(settings:)",
+    "var availableProviders; func countsAsInstalled(_:); func status(_:); func executable(for:); private static func fallbackExecutables(for:); func environment(for:)",
+    "func signIn(_:) async -> String?; func refreshEverything() async; func refreshAll() async; func refresh(_:) async; private func refreshAPIProvider(_:) async",
+    "func models(for:); func model(_:for:); private static func match(_:in:); func defaultModel(for:)",
+    "func loadCatalog(_:force:) async; private static func lacksEffortWalk(_:); private func openCodeCatalog(force:executable:environment:); private static func openCodeModels(_:for:); private func loadClaudeCatalog(executable:environment:); private func loadAPICatalog(_:force:); private func storeCatalogDates()",
+    "func refreshPlanLimits(_:force:); private func drainedForcedRead(_:); func consumeResetCredit(_:_:) async throws; func refreshCredits(_:force:); func invalidateCredits(_:); func invalidatePlanLimits(_:)",
+    "func updateCatalog(_:for:); static func commandKey(_:directory:); func updateCommands(_:for:directory:); func recordCommand(_:for:); func loadCommands(_:directory:force:) async",
+    "private static func version(_:_:) async; private static func auth(_:_:_:) async; private static func devinAccount(from:)"
+   ],
+   "calls_into": [
+    "LoginEnvironment.load/which/current/homeDirectory",
+    "Shell.run (incl. new `<exe> update` in FileManager.default.temporaryDirectory, timeout 300; new `<exe> --version`, timeout 30)",
+    "ShellResult.trimmedOutput (new cliVersion) / output / errorOutput / stdout / succeeded",
+    "TextCleanup.stripANSI",
+    "JSONValue.parse",
+    "ClaudeSession.handshake (models, commands)",
+    "CodexSession.listModels/listCommands/consumeResetCredit/readPlanLimits",
+    "AntigravitySession.listModels/authStatus",
+    "CopilotSession.listModels/authStatus",
+    "CommandCodeAPI.seed/listModels/authStatus/apiKey(environment:)",
+    "PiCLI.listModels/authStatus",
+    "ACPSession.probeModels/orderedEfforts",
+    "DeepSeekAPI.option(for:)/validate/listModels",
+    "MetaAPI.option(for:)/validate/listModels",
+    "ZaiAPI.option(for:)/validate/listModels/planLimits/consumeResetCredit",
+    "PlanLimitsReader.exposesLimits/read",
+    "CreditsReader.exposesCredits/read",
+    "MCPSessionOverrides.opencodeEnvironment",
+    "MCPProviderConfig.geminiSettingsPath",
+    "CaptureRun.isEnabled/defaults",
+    "ProviderSettings.binaryPath(for:)/apiKey(for:)/isEnabled/lastModel(for:)",
+    "UserDefaults.standard (data/dictionary/set)",
+    "Callers new at B3: AppModel.swift:278-282 (background updateCLIIfDue for .claude and .codex after launch catalog loads), ThreadRuntime.swift:2259-2291 (finishTurnUpdatingCLI uses updatesOwnCLI + needsNewerCLI; resendAfterCLIUpdate uses updateCLIIfDue(force: true) + installedCLIVersion)"
+   ],
+   "state_owned": [
+    "statuses: [ProviderKind: ProviderStatus]",
+    "catalogs: [ProviderKind: [ModelOption]]",
+    "commands / commandErrors: [String: ...] keyed by commandKey; recentCommands: [String: [String]]",
+    "commandLoads, commandsFetchedAt (ObservationIgnored)",
+    "loadingCatalogs: Set<ProviderKind>; attemptedCatalogs; openCodeCatalogTask; catalogFetchedAt",
+    "updatingCLIs: Set<ProviderKind> (NEW, observable, private(set); no reader outside this file in B3)",
+    "planLimits, loadingLimits, limitsFetchedAt, forcedLimitReads, redeemingReset",
+    "credits, loadingCredits, creditsFetchedAt",
+    "isRefreshing, signingIn"
+   ],
+   "side_effects": [
+    "Spawns provider CLIs: --version (20 s, status probe), auth/login status probes (20 s), login command (300 s), model listing/handshakes, command listing",
+    "NEW: runs `claude update` / `codex update` (the resolved executable with the single argument `update`) in the system temporary directory with a 300 s timeout, output and errors ignored; this replaces the user's installed CLI in place",
+    "NEW: runs `<exe> --version` (30 s) before and after the update to detect a change; on a change re-runs refresh(provider) and loadCatalog(provider, force: true)",
+    "Network calls through DeepSeekAPI/MetaAPI/ZaiAPI/PlanLimitsReader/CreditsReader",
+    "Reads ~/.grok/auth.json for Grok auth",
+    "Writes UserDefaults: providerModelCatalogs, providerModelCatalogDates, recentSlashCommands, and NEW providerCLIUpdateDates (written after every attempted update, success or not)"
+   ],
+   "platform_assumptions": [
+    "PATH is ':'-separated (environment(for:) :270-274)",
+    "Fallback install dirs are macOS/Homebrew/npm/volta/bun paths (/opt/homebrew/bin, /usr/local/bin, ~/.local/bin, ~/.npm-global/bin, ~/.volta/bin, ~/.bun/bin, gh data dir ~/.local/share/gh/copilot/copilot)",
+    "Capture run fakes an installed provider with /usr/bin/true (:222)",
+    "NEW: Claude Code and Codex are assumed to ship a self-updater invokable headless as `<exe> update`, and the process can overwrite its own installed binary; the rationale comment cites Claude Code 2.1.270 refusing Opus 5.5 with \"version 2.1.280 or newer is required\"",
+    "FileManager.default.temporaryDirectory as a neutral working directory for the handshake and the updater",
+    "UserDefaults property-list dictionary storage for providerCLIUpdateDates ([String: Double] seconds since 1970, keyed by ProviderKind rawValue), unlike providerModelCatalogDates which is JSON Data"
+   ],
+   "persisted_fields": [
+    "UserDefaults providerModelCatalogs: JSON-encoded [String: [ModelOption]] (unchanged)",
+    "UserDefaults providerModelCatalogDates: JSON-encoded [String: Double] seconds since 1970 (unchanged)",
+    "UserDefaults recentSlashCommands: [String: [String]] via CaptureRun.defaults ?? .standard (unchanged)",
+    "UserDefaults providerCLIUpdateDates (NEW B3 :55, :505, :515-516): property-list dictionary [String: Double], key = ProviderKind.rawValue (\"claude\"/\"codex\"), value = Date.now.timeIntervalSince1970 of the last attempted update; read with `as? [String: Double]`, a failing cast reads as empty"
+   ],
+   "ui_elements": [],
+   "feature_notes": [
+    "B2->B3 diff is three pure insertions (+79 lines, nothing removed): 4 lines after B2 :52 (B3 :53-56), 4 lines after B2 :90 (B3 :95-98), 71 lines after B2 :458 (B3 :467-537). Line map: B2 n<=52 -> n; 53<=n<=90 -> n+4; 91<=n<=458 -> n+8; n>=459 -> n+79.",
+    "CHANGED mergedClaudeCatalog (B3 :95-98): for a live row matching a seed id, `if option.id != \"default\", !option.name.isEmpty, option.name != option.id { kept.name = option.name }` runs before the efforts/detail/fastTier/defaultEffort merges. So a live Claude row now renames its seed row (\"Opus\" -> e.g. \"Opus 5.5\"), except the Default row, an empty live name, or a live name equal to its id. The comment says recipes pick the newest family member by name and a seed row named just \"Opus\" lost to the older \"Opus 5\" row. The doc comment at :87-89 still says the live row lends only effort levels, description and fast tier (stale comment upstream). This contradicts PR-PROVREG-138's expected_result (\"A live row's name never replaces the seed's name\").",
+    "NEW state (B3 :53-55): observable `updatingCLIs: Set<ProviderKind>` and the defaults key `providerCLIUpdateDates`. No view reads updatingCLIs anywhere in the B3 checkout (grep over *.swift finds references only in this file); it is published but unread, like signingIn and redeemingReset.",
+    "NEW updatesOwnCLI (B3 :477-479): true for exactly .claude and .codex.",
+    "NEW needsNewerCLI (B3 :482-490, nonisolated static): lowercases the message and returns true if it contains any of \"or newer is required\", \"requires a newer version\", \"claude update\", \"codex update\", \"upgrade codex\", \"update codex\". Used by ThreadRuntime.finishTurnUpdatingCLI to divert a failed turn into update-and-resend.",
+    "NEW updateCLIIfDue(_:force:) (B3 :496-522), exact order: (1) guard updatesOwnCLI, !CaptureRun.isEnabled, settings.binaryPath(for:) empty (a user-set binary is left alone) else false; (2) if updatingCLIs contains the provider: unforced returns false, forced polls every 500 ms until it clears; (3) reads providerCLIUpdateDates; unforced and last attempt < 12*3600 s ago (wall-clock seconds-since-1970 subtraction) returns false; (4) await LoginEnvironment.load(); no executable returns false without writing a date; (5) insert into updatingCLIs, defer remove; (6) before = cliVersion; run `<exe> update` in the temp dir, env = environment(for:), timeout 300, result and throw ignored; (7) write dates[rawValue] = now and persist (so a failed or timed-out update still waits 12 h unless forced); (8) after = cliVersion; nil or equal to before returns false; (9) else await refresh(provider), await loadCatalog(provider, force: true), return true. Note the dates dictionary is read before the awaits and written back whole afterwards, and the in-flight check precedes the LoginEnvironment await, so two unforced callers can both pass the gates; exact parity keeps this ordering.",
+    "NEW installedCLIVersion (B3 :525-529) and cliVersion (B3 :531-536): `<exe> --version`, timeout 30 s (the status probe version() uses 20 s), requires success, returns stdout trimmed of whitespace and newlines (no ANSI strip, no regex, stderr ignored), empty -> nil. The full trimmed text (e.g. a version plus product name) is what before/after compare and what ThreadRuntime shows in its \"is up to date now (<version>)\" notices.",
+    "Unchanged but shifted: everything else (seeds, init cache load, executable/environment resolution, signIn, refresh probes, catalogs, plan limits, credits, reset spending, slash commands, auth probes). signIn/signingIn/redeemingReset still have no reader or caller outside this file at B3, so PR-PROVREG-234/235/236 still hold; the dead guard in refreshPlanLimits (PR-PROVREG-237) is still dead, now at B3 :706 (B2 :627)."
+   ],
+   "unresolved_questions": [
+    "UNRESOLVED (platform): whether `claude update` and `codex update` exist and succeed headless for the Windows installs the port resolves (Claude Code native installer vs npm global; Codex via npm, typically a codex.cmd shim), and whether an update can replace the executable while another session of the same CLI is running (Windows file locking). The source gives no Windows evidence; porting/platform_adaptations.md needs an entry before this is claimed working.",
+    "UNRESOLVED (persistence form): providerCLIUpdateDates is a plist dictionary of Doubles while the neighbouring providerModelCatalogDates is JSON Data; the port's SettingsStore representation for a [String: Double] dictionary must be chosen so the `as? [String: Double]` failing-cast-reads-empty behaviour is preserved (ENGINEERING DECISION for the implementing unit)."
+   ]
+  }
+ ]
+}

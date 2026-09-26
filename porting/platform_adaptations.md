@@ -501,4 +501,158 @@ nor repaired until the owner rules.
   proposal.
 - **Unverified:** whether the event of a write made through a handle still open when the cookie is created arrives
   before the cookie's event within one handle (PR-GIT-076). A Windows verification item for the GIT unit.
+
+## PA-0018 CLI self-update on Windows (`claude update` / `codex update`)
+
+- **Status:** DECIDED 2026-09-26 by owner ruling **OD-0025** ("Test once, then match Mac
+  (Recommended)", option 1 below): parity with B3, after one supervised trial run recorded as evidence
+  before lanes A23, A32 and A33 merge. (Was: UNRESOLVED pending owner decision O1,
+  `E:/Droppy/work/b3/decisions_draft.md` section O1.)
+- **Original (SOURCE FACT, B3 52bc792):** `Services/Providers/ProviderRegistry.swift:467-537`,
+  `updateCLIIfDue`. Claude and Codex only (`updatesOwnCLI`); skipped when the user set a binary path
+  by hand. Runs every 12 hours per provider, gated by the `providerCLIUpdateDates` UserDefaults key,
+  written after every attempt regardless of outcome; a forced call polls every 500 ms for a running
+  update. Runs `<exe> update` in the temp directory with the provider's environment, a 300 second
+  timeout, output ignored. Runs `--version` (30 second timeout) before and after; a version change
+  refreshes the provider and reloads its catalog. `App/AppModel.swift:275-282`: at bootstrap, an
+  un-awaited task runs the Claude update-check and then the Codex one, for whichever is installed.
+  `App/Runtime/ThreadRuntime.swift:2255-2293`: when a turn fails with one of 6 "too old" phrases
+  (`needsNewerCLI`), the app posts an info notice, finishes the turn, forces the update while the
+  refusing session is still running (`releaseSession(stop: true)` runs only after,
+  `ThreadRuntime.swift:2283`), and resends once per CLI version (`resendAfterCLIUpdate`,
+  `ThreadRuntime.swift:2272-2293`). None of this exists in B2; it is new in the B3 delta
+  (R3-25, R3-02, R3-05).
+- **Facts on this workstation (read-only checks, `E:/Droppy/work/b3/evidence_6_1/cli_help.out.txt`):**
+  Claude Code 2.1.281 is a native install at `%USERPROFILE%\.local\bin\claude.exe` and offers
+  `update`/`upgrade`; codex-cli 0.154.0 is a native install at
+  `%LOCALAPPDATA%\Programs\OpenAI\Codex\bin\codex.exe` and offers `update`. These are the CLIs the
+  owner uses for this port.
+- **Why this needs an owner ruling, not an engineering call (contract sections 2, 8, 11, 12; CLAUDE.md
+  "do not modify the owner's installed apps without authorization"):** whether either updater finishes
+  headless (no console, null stdin, no prompt, no window, no UAC) is unknown without running it for
+  real; Windows cannot overwrite a running `.exe`, and the source's forced path runs the update while
+  a session of that CLI is still live; and running the update changes the owner's installed CLI
+  version, which is the specific action CLAUDE.md reserves to the owner.
+- **Options put to the owner (decisions_draft.md O1):** (1) probe once, authorized, then ship parity
+  exactly as the source does; (2) ship parity without a probe, letting a Windows failure surface only
+  as the source's own failure notice (PA is silent on what that notice says; see
+  `engineering_decisions.md` ED-193 for the wording); (3) a named deviation that never runs the
+  updaters, so a "too old" error costs one resend and then shows the notice; (4) a named deviation
+  that updates only when no session of that provider is live. **Recommendation on record: option 1.**
+- **Verification method, once ruled:** if the owner authorizes a probe, one supervised run of the real
+  `claude update` and `codex update` on this workstation, with exit code, output, any window or
+  prompt, and the version before and after all recorded as evidence before lanes A23
+  (`Services.Providers.ProviderRegistry`), A32 (`App.AppModel`) and A33
+  (`App.Runtime.ThreadRuntime`) merge.
+
+## PA-0019 Grab and grabbing cursors for draggable grips (SwiftUI `.pointerStyle(.grabIdle`/`.grabActive)`)
+
+- **Status:** DECIDED, pixel art UNVERIFIED (no reference-runtime capture; OD-0001 rules out a Mac
+  permanently for this port).
+- **Original (SOURCE FACT, B3 52bc792):** B3 deletes every `NSCursor.openHand`/`.closedHand`
+  push/pop pair in the app and replaces each with a stateless SwiftUI `.pointerStyle` modifier:
+  `App/Views/Composer/FollowUpQueueTab.swift:384`
+  `.pointerStyle(isDragged ? .grabActive : .grabIdle)`; `App/Views/Settings/ModelsSettingsPage.swift:184`
+  the same expression; `App/Views/Sidebar/SidebarView.swift:124`
+  `.pointerStyle(drag.id != nil ? .grabActive : nil)`. All three replace `NSCursor.closedHand.push()`
+  at drag-start and `NSCursor.pop()` at drag-end in the same three files (confirmed against the
+  B2->B3 diff for each); FollowUpQueueTab's grip additionally drops its `onHover`/`onDisappear`/
+  `onChange(of: isDragged)` push/pop juggling outright (`upstream_defects.md` entry 53, now retired).
+  A fourth, related site, `App/Views/Chat/TimelineMinimap.swift:211` `.pointerStyle(.link)`, replaces
+  a manual cursor push/pop for the timeline rail's pointing-hand cursor (unit A37) and is recorded
+  here for completeness, though it is a link cursor, not a grab cursor.
+- **Why this is hard on Windows:** `.grabIdle`/`.grabActive` are SwiftUI `PointerStyle` values that
+  resolve to AppKit's `NSCursor.openHand`/`.closedHand` system cursors, an open-hand and a closed-fist
+  glyph. Avalonia's `StandardCursorType` (the port's current stand-in, `Cursor(StandardCursorType.Hand)`
+  at `src/Marrow.App/Views/Composer/FollowUpQueueTab.cs:523`, `:526` - a pre-existing gap the B3_PLAN
+  A38 lane closes) has no open-hand/closed-hand member, only a plain pointing `Hand`; there is no
+  built-in Windows analogue of the macOS grab cursor pair.
+- **Decision (ENGINEERING DECISION, justified):** ship two custom cursor resources (`.cur` files, an
+  open-hand and a closed-hand glyph) and bind them through the same per-control seam the plan already
+  names for this purpose, `src/Marrow.UI/Port/CursorPlatform.cs` (consumed by `UI.Chrome.DragHandle`,
+  N8), so every grip - FollowUpQueueTab, ModelsSettingsPage, SidebarView, and any later `DragHandle`
+  consumer - reads one state (`isDragging`/`drag.id != nil`) and gets the matching cursor, exactly
+  mirroring the three-way `.pointerStyle(dragging ? .grabActive : .grabIdle)` (or `: nil`) expression
+  above. `TimelineMinimap`'s `.pointerStyle(.link)` maps to `StandardCursorType.Hand`, which Avalonia
+  already has, so it needs no custom resource (ENGINEERING DECISION, A37: replace the CursorOwner
+  LIFO stack with a per-control Hand cursor on the rail).
+- **What is NOT extractable from source:** the exact pixel art and hotspot of macOS's system
+  open-hand/closed-hand cursors. This is UNVERIFIED under ED-086 (no reference-runtime capture); the
+  port's `.cur` art is a best-effort visual match to the documented AppKit system cursors, recorded as
+  a visible, tracked approximation rather than a silent one.
+- **Verification method:** a DragHandle test asserting the cursor swaps from open- to closed-hand
+  exactly when `isDragging` (or the drag-id predicate) flips, for each of the three grab sites; a
+  visual comparison against Apple's documented cursor art is deferred to the verification wave.
+
+## PA-0020 Local-file link opening in chat (`MarkdownLinkOpener`)
+
+- **Status:** DECIDED 2026-09-26 by owner ruling **OD-0026** ("Safe parity (Recommended)", option B
+  below: Windows absolute paths take the local-file branch; UNC never opened; directly-runnable types
+  revealed in File Explorer; rule and mechanism ED-204). The generic-opener hardening below (ED-203)
+  is ENGINEERING and applies as well. (Was: UNRESOLVED pending owner decision O4.)
+- **Original (SOURCE FACT, B3 52bc792, new at B3 - R3-52):** `UI/Markdown/LinkParagraphView.swift:226-245`,
+  `enum MarkdownLinkOpener { static func open(_ url: URL) }`. A URL with no scheme, host, query or
+  fragment, whose path starts with `"/"`, opens as a local file: if the full path does not exist but
+  the path with a trailing `":<positive int>"` suffix stripped does exist and is not a directory, the
+  suffix is dropped before opening. Everything else goes to `NSWorkspace.shared.open(url)`. Callers:
+  `LinkParagraphView.swift:92`, `:96`, and `UI/Markdown/LinkPopover.swift:89` ("Open Link").
+- **Why this is hard on Windows (SOURCE FACT plus platform reasoning):** ported literally, a
+  drive-letter link such as `C:/x/a.cs:12` parses with scheme `"C"` (oracle O-38), so it falls through
+  to the default opener; `"a.cs:12"` then reads as an NTFS alternate-data-stream name and fails, and
+  without the `:line` suffix the file opens with no line handling. `"C:\x"` percent-encodes the
+  backslash and fails; `"/C:/x"` fails the local branch outright. None of this is a source behaviour to
+  reproduce - it is what a literal, unmodified port produces on a platform whose absolute paths have a
+  different shape than macOS's.
+- **The owner questions on record (decisions_draft.md O4), UNRESOLVED:** (1) whether a Windows
+  absolute path (`C:\...`, `C:/...`, or the file-URL form `/C:/...`) should take the source's
+  `"/"`-rooted local-file branch, with the same `:line` rule; (2) whether a UNC path
+  (`\\host\share\...`, `file://host/...`) should ever be opened from a chat link, given that doing so
+  sends the user's Windows credentials to a host named by model output; (3) whether a local target of
+  a type Windows runs directly on open (`.exe`, `.com`, `.bat`, `.cmd`, `.vbs`, `.js`, `.wsf`, `.hta`,
+  `.msi`, `.scr`, `.lnk`, `.cpl`, among others) should be launched, as the Mac's `NSWorkspace` launches
+  an app or a `.command`, or shown selected in File Explorer instead. Recorded options and the
+  decisions_draft.md recommendation (B: yes to (1), never to (2), reveal rather than launch for (3))
+  are reproduced in `porting/unknowns.md` UNK-0027; no option is implemented until the owner rules.
+- **ENGINEERING part, in scope regardless of how O4 is answered (contract section 8: NSWorkspace
+  cannot open what these openers currently accept unconditionally):** `Services/Port/Workspace.cs:19-20`
+  (`ShellOpen`, used for a web address, `MCPOAuth.swift:434`) and `UI/Port/ShellWorkspace.cs:13`
+  (`OpenWithDefaultApp`, the local-file/reveal seam for `AttachmentPreview.swift`'s footer) both hand
+  any string straight to `ShellExecuteW`. `ShellExecuteW("calc")` starts a program found on PATH by
+  name, and `ShellExecuteW("//host/share")` opens an SMB connection that sends the user's Windows
+  credentials to that host - neither is possible through `NSWorkspace.shared.open(url)` on the pinned
+  source's own platform, which refuses a relative URL and a scheme-less host outright. **DECISION
+  (ENGINEERING, parity - not a behaviour change on the Mac's own inputs):** both generic openers must
+  refuse a URL/string with no scheme, or with a host but no scheme, before calling `ShellExecuteW`,
+  matching what `NSWorkspace` would refuse. This closes the gap without waiting on O4, because
+  `MarkdownLinkOpener`'s own local-file branch (once O4 is answered) supplies its own explicit,
+  reviewed path to `ShellWorkspace`/`Workspace` rather than a raw, unchecked string.
+- **Verification method:** `WorkspaceTests`/`ShellWorkspaceTests` asserting a scheme-less relative
+  string and a scheme-less two-slash host string are both refused before reaching `ShellExecuteW`;
+  the O4-dependent local-file, UNC and launch-type tests are deferred to the lane that implements the
+  owner's ruling (A29 `UI.Markdown.LinkParagraphView`, `UI.Markdown.LinkPopover`).
+
+## PA-0021 An 8 MiB memory-only `URLCache.shared`
+
+- **Status:** DECIDED (source now states the size and persistence directly; supersedes the "memory
+  only until the owner answers the persistence question" language in ED-118 for `URLCache.shared`
+  specifically - cookies under `ED-118` are unaffected and still open).
+- **Original (SOURCE FACT, B3 52bc792, new at B3 - R3-34):** `App/AppDelegate.swift:10-13`,
+  `applicationDidFinishLaunching`, ahead of every other step in the method:
+  `URLCache.shared = URLCache(memoryCapacity: 8 * 1024 * 1024, diskCapacity: 0)`, with the source's own
+  comment: "Nothing the app fetches is worth keeping on disk (API calls, the MCP proxy's streams, link
+  titles), and the shared cache wrote a SQLite commit for every response: a third of the app's disk
+  writes while a team ran. Memory only." This directly answers part of oracle O-33 (whether
+  `URLCache.shared` answers a `URLSession.shared` GET, `IMPLEMENTING.md` Appendix B): the answer is
+  yes, in memory, capped at exactly 8 MiB, never to disk - by source design, not by an unresolved
+  default.
+- **Windows replacement:** `Marrow.Core.Port.Http`'s `URLCache` port (ED-118) must be constructed with
+  `memoryCapacity: 8 * 1024 * 1024` and `diskCapacity: 0` and installed as the shared cache during app
+  start-up (the C# equivalent of `AppDelegate.applicationDidFinishLaunching`'s first steps, ahead of
+  `MarkdownDelegationCard.render` wiring and `UNUserNotificationCenter` setup, which follow it at B3
+  `:14-15`). The stored-response conditions themselves (GET, status 200-299, from the server, explicit
+  freshness, not no-store) and the freshness clock (`SwiftClock.Provider`) are unchanged from ED-118;
+  only the concrete size and the disk/memory split are now fixed by source rather than parked.
+- **Verification method:** an `Http.cs`/`AppDelegate.cs` test asserting the installed shared cache has
+  `MemoryCapacity == 8 * 1024 * 1024` and `DiskCapacity == 0` immediately after start-up, before any
+  request runs.
 - **Evidence:** probe P8; ED-113 to ED-116; UNK-0011 item 2.

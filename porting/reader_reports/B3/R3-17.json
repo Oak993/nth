@@ -1,0 +1,47 @@
+{
+  "bundle_id": "R3-17",
+  "reader": "R3-17-reader",
+  "files": [
+    {
+      "path": "DroppyCode/Services/MCP/MCPCatalogEntry+Resolve.swift",
+      "sha256": "3561b7c015f8e4398e8c0928509fb3b8080967ddf1a2df27c01ef2c9ef6dbf86",
+      "ranges_read": [[1, 25]],
+      "asset_inspection": null,
+      "purpose": "Services-layer extension on the Core model MCPCatalogEntry that adds resolve(values:), turning a catalog entry plus the user's stored field values into the launchable MCPResolvedServer (id and name copied from the entry). For .stdio it keeps the command verbatim, fills every {key} placeholder in args and env via the Core fill(_:values:) helper and drops env variables whose filled value is empty; for .http it fills the URL and headers and drops empty headers; for .oauth it points url at the app's local proxy route MCPProxy.url(for: id) and keeps the filled real address in oauthUpstream. The doc comment states it is 'Kept out of Core because it needs the proxy' - the file exists only to restore the Core-depends-on-nothing layer rule.",
+      "key_symbols": [
+        "extension MCPCatalogEntry",
+        "func resolve(values: [String: String]) -> MCPResolvedServer",
+        "nested func fill(_ text: String) -> String { self.fill(text, values: values) }",
+        "case .stdio(let command, let args): server.command / server.args = args.map(fill) / server.env = env.mapValues(fill).filter { !$0.value.isEmpty }",
+        "case .http(let url, let headers): server.url = fill(url) / server.headers = headers.mapValues(fill).filter { !$0.value.isEmpty }",
+        "case .oauth(let url): server.url = MCPProxy.url(for: id) / server.oauthUpstream = fill(url)"
+      ],
+      "calls_into": [
+        "MCPCatalogEntry.fill(_:values:) (DroppyCode/Core/Models/MCP.swift:132, B3)",
+        "MCPResolvedServer.init(id:name:) (DroppyCode/Core/Models/MCP.swift:104, B3)",
+        "MCPProxy.url(for:) (DroppyCode/Services/MCP/MCPProxy.swift:37-39, B3) -> \"http://127.0.0.1:\\(port)/mcp/\\(serverID)\"",
+        "Called by MCPStore.enabledServers (MCPStore.swift:46) and MCPStore probe path (MCPStore.swift:313), both B3"
+      ],
+      "state_owned": [],
+      "side_effects": [
+        "None directly; the pure mapping reads MCPProxy.port through MCPProxy.url(for:) for OAuth entries (port loading/picking is MCPProxy's concern)."
+      ],
+      "platform_assumptions": [
+        "None beyond Foundation; the proxy URL is loopback 127.0.0.1 built by MCPProxy."
+      ],
+      "persisted_fields": [],
+      "ui_elements": [],
+      "feature_notes": [
+        "SOURCE FACT: status A, new at B3 (absent from 1fbf81e6; introduced by upstream commit d70cff8fe 'refactor: audit cleanups - five bug fixes, shared MCP and provider code, layer rules restored').",
+        "SOURCE FACT: lines 7-25 are byte-identical to B2 DroppyCode/Core/Models/MCP.swift:152-170 (verified with diff of B2 sed 152,170 against B3 sed 7,25 - identical). The B2 doc comment that sat orphaned at MCP.swift:122-123 is now lines 3-4 here, and line 5 'Kept out of Core because it needs the proxy.' is new. B3 MCP.swift loses the same 19 lines plus that comment and also loses enum MCPPaths (separate bundle).",
+        "SOURCE FACT: no observable behaviour change - it is a pure relocation from Core to Services. Line map B2 MCP.swift -> B3 this file: 152->7, 156-160 (.stdio) -> 11-15, 161-163 (.http) -> 16-18, 164-166 (.oauth) -> 19-21, 169 -> 24 (offset -145).",
+        "SOURCE FACT: callers unchanged in text: MCPStore.swift:46 'return entry.resolve(values: storedValues(for: entry))' and :313 (was :319 at B2).",
+        "Consequence for the port dependency graph: at B2 Core.Models.MCP sat in cycle component 14 with MCPKeychain, MCPOAuth and MCPProxy because Core's resolve called MCPProxy; at B3 the Swift source itself no longer has that Core->Services edge.",
+        "Spec records PR-MCP-041/042/043 cite the B2 location (MCP.swift:152-169, :161-163, :164-166) and must be re-cited here; no record cites the new path yet. PR-MCP-043 also cites MCPProxy.swift:35-37, which at B3 is :37-39 (MCPProxy bundle's concern)."
+      ],
+      "unresolved_questions": [
+        "units.json has no unit for this new Swift file; whether the orchestrator adds a unit (e.g. Services.MCP.MCPCatalogEntry+Resolve -> src/Marrow.Services/MCP/MCPResolver.cs) or folds it as a source citation into an existing unit is an orchestration decision, not a source fact."
+      ]
+    }
+  ]
+}

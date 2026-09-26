@@ -701,7 +701,7 @@
       "title": "Hex colours parse as sRGB with a tolerant scanner: an unparseable string yields black rather than failing",
       "source_evidence": [
         "DroppyCode/UI/Theme/AppTheme.swift:236-247 `extension Color { init(hex: String) }` - `var text = hex.trimmed` (:239), `if text.hasPrefix(\"#\") { text = String(text.dropFirst()) }`, `Scanner(string: text).scanHexInt64(&value)`, red=(value >> 16) & 0xFF / 255, green=(value >> 8) & 0xFF / 255, blue=value & 0xFF / 255, `self.init(.sRGB, red: red, green: green, blue: blue, opacity: 1)`",
-        "DroppyCode/Core/Support/Text.swift:130-132 `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`"
+        "DroppyCode/Core/Support/Text.swift:222-224 `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`"
       ],
       "preconditions": "A hex string is turned into a colour.",
       "action": "Color(hex:) is called with a six-digit string, with or without a leading \"#\", possibly with surrounding whitespace.",
@@ -918,7 +918,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Apply the accent as one inherited value on the root. The single-branch rule is a real bug fix: any Windows implementation that swaps the subtree when the accent becomes non-nil will reset Settings' scroll position on a theme change.",
       "verification_method": "interaction test: scroll Settings to the bottom, change the theme, the scroll position is unchanged",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1021,7 +1021,7 @@
       "title": "At launch the theme is read from \"appTheme\", falling back to the legacy \"appearance\" key and then to System",
       "source_evidence": [
         "DroppyCode/App/AppSettings.swift:137 `static let appearance = \"appearance\"`",
-        "DroppyCode/App/AppSettings.swift:723-728 comment \"The old System/Light/Dark choice maps straight onto the same themes.\" then `let initialTheme = AppTheme(rawValue: defaults.string(forKey: Key.appTheme) ?? \"\") ?? AppTheme(rawValue: defaults.string(forKey: Key.appearance) ?? \"\") ?? .system`, then `theme = initialTheme` and `ThemeManager.current = initialTheme`"
+        "DroppyCode/App/AppSettings.swift:727-732 comment \"The old System/Light/Dark choice maps straight onto the same themes.\" then `let initialTheme = AppTheme(rawValue: defaults.string(forKey: Key.appTheme) ?? \"\") ?? AppTheme(rawValue: defaults.string(forKey: Key.appearance) ?? \"\") ?? .system`, then `theme = initialTheme` and `ThemeManager.current = initialTheme`"
       ],
       "preconditions": "The app is starting and settings are being constructed.",
       "action": "The stored theme is read.",
@@ -1047,9 +1047,9 @@
       "id": "PR-THEME-046",
       "title": "The theme picker lists System alone at the top, then a Dark section of 19 themes and a Light section of 6, in declaration order",
       "source_evidence": [
-        "DroppyCode/App/Views/Settings/SettingsView.swift:1180-1181 doc: \"The theme menu: System on top, then the dark and the light themes in their own sections, each with a swatch of its surface and accent.\"",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:1188-1189 `private static let dark = AppTheme.allCases.filter { $0.scheme == .dark }` and `light = AppTheme.allCases.filter { $0.scheme == .light }`",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:1216-1224 the popover body: `item(.system)`, `PopoverSectionHeader(\"Dark\")`, the dark list, `PopoverSectionHeader(\"Light\")`, the light list"
+        "DroppyCode/App/Views/Settings/SettingsView.swift:1157-1158 doc: \"The theme menu: System on top, then the dark and the light themes in their own sections, each with a swatch of its surface and accent.\"",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:1165-1166 `private static let dark = AppTheme.allCases.filter { $0.scheme == .dark }` and `light = AppTheme.allCases.filter { $0.scheme == .light }`",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:1193-1201 the popover body: `item(.system)`, `PopoverSectionHeader(\"Dark\")`, the dark list, `PopoverSectionHeader(\"Light\")`, the light list"
       ],
       "preconditions": "The theme picker button has been pressed.",
       "action": "The picker popover is built.",
@@ -1071,7 +1071,7 @@
       "id": "PR-THEME-047",
       "title": "Choosing a theme row applies it immediately and marks that row as checked",
       "source_evidence": [
-        "DroppyCode/App/Views/Settings/SettingsView.swift:1227-1231 `PopoverItem(theme.displayName, leading: AnyView(theme.swatch), isChecked: theme == selection) { selection = theme }`"
+        "DroppyCode/App/Views/Settings/SettingsView.swift:1204-1208 `PopoverItem(theme.displayName, leading: AnyView(theme.swatch), isChecked: theme == selection) { selection = theme }`"
       ],
       "preconditions": "The picker popover is open.",
       "action": "The user clicks a theme row.",
@@ -1096,8 +1096,8 @@
       "id": "PR-THEME-048",
       "title": "The theme picker button shows the current theme's swatch and name, and dims its label until hovered or open",
       "source_evidence": [
-        "DroppyCode/App/Views/Settings/SettingsView.swift:1191-1212 the button label: `selection.swatch.frame(width: 14, height: 14)`; `Text(verbatim: selection.displayName).font(.system(size: 12.5, weight: .medium)).lineLimit(1)`; `Image(systemName: \"chevron.down\").font(.system(size: 8, weight: .bold)).foregroundStyle(Chrome.secondaryText)`; HStack spacing 6; `.foregroundStyle(Chrome.primaryText.opacity(isHovering || isPresented ? 1 : 0.92))`; `.padding(.horizontal, Chrome.capsuleHorizontalPadding)`; `.frame(height: Chrome.capsuleContentHeight)`; `.contentShape(Capsule(style: .continuous))`; `.fixedSize()`; `.chromeGlassCapsule()`",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:1213-1215 `.onHover { hovering in withAnimation(Chrome.hover) { isHovering = hovering } }`",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:1168-1189 the button label: `selection.swatch.frame(width: 14, height: 14)`; `Text(verbatim: selection.displayName).font(.system(size: 12.5, weight: .medium)).lineLimit(1)`; `Image(systemName: \"chevron.down\").font(.system(size: 8, weight: .bold)).foregroundStyle(Chrome.secondaryText)`; HStack spacing 6; `.foregroundStyle(Chrome.primaryText.opacity(isHovering || isPresented ? 1 : 0.92))`; `.padding(.horizontal, Chrome.capsuleHorizontalPadding)`; `.frame(height: Chrome.capsuleContentHeight)`; `.contentShape(Capsule(style: .continuous))`; `.fixedSize()`; `.chromeGlassCapsule()`",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:1190-1192 `.onHover { hovering in withAnimation(Chrome.hover) { isHovering = hovering } }`",
         "DroppyCode/UI/Chrome/Chrome.swift:33 capsuleContentHeight = 28, :35 capsuleHorizontalPadding = 12, :98 `static var hover: Animation { .easeOut(duration: 0.1) }`",
         "DroppyCode/UI/Chrome/Chrome.swift:76-79 `static let primaryText = Color(nsColor: .labelColor)` and `static let secondaryText = primaryText.opacity(0.7)`, with the comment \"Primary at 70% clears the 4.5:1 floor on both grounds; `secondaryLabelColor`'s 50% alpha does not.\""
       ],
@@ -1119,7 +1119,7 @@
       "b2_change": "Chevron colour: Chrome.secondaryText `Color(nsColor: .secondaryLabelColor)` (B1 Chrome.swift:77) -> `primaryText.opacity(0.7)` (B2 Chrome.swift:79); the chevron is still `.foregroundStyle(Chrome.secondaryText)` (B2 SettingsView.swift:1203). The Appearance section moved from the General page (B1 SettingsView.swift:301 GeneralSettingsPage, section at :406) to a new Settings page \"Appearance\", third in the sidebar after General and Hydra (B2 SettingsView.swift:5-8 `case general`, `case hydra`, `case appearance`; :22 `case .appearance: \"Appearance\"`; :278 `case .appearance: AppearanceSettingsPage()`; :417-457 AppearanceSettingsPage). Capsule metrics (Chrome.swift:33, :35) and hover (B1 Chrome.swift:96 -> B2 :98) unchanged.",
       "deviation": {
         "decision": "OD-0005",
-        "upstream": "The theme picker button is drawn with `.chromeGlassCapsule()` (DroppyCode/App/Views/Settings/SettingsView.swift:1212), which renders `content.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3)).interactive(), in: shape)` (DroppyCode/UI/Chrome/Chrome.swift:180), macOS Liquid Glass",
+        "upstream": "The theme picker button is drawn with `.chromeGlassCapsule()` (DroppyCode/App/Views/Settings/SettingsView.swift:1189), which renders `content.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3)).interactive(), in: shape)` (DroppyCode/UI/Chrome/Chrome.swift:180), macOS Liquid Glass",
         "port": "Where the window behind the control shows the desktop, an Acrylic-class Windows system material, without lensing, refraction or chromatic fringing; where the app draws its own backdrop (the wallpaper or the solid base), a shader reproduces the source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing"
       }
     },
@@ -1155,7 +1155,7 @@
         "DroppyCode/App/Views/Settings/SettingsView.swift:417-430 `private struct AppearanceSettingsPage` holds `ChromeSection(title: \"Appearance\")` whose first card has the Theme row then this Transparency row",
         "DroppyCode/App/AppSettings.swift:136 `static let backdropOpacity = \"backdropOpacity\"`",
         "DroppyCode/App/AppSettings.swift:293-299 `var backdropOpacity: Double { didSet { defaults.set(backdropOpacity, forKey: Key.backdropOpacity) } }` and `static let defaultBackdropOpacity = 0.5`",
-        "DroppyCode/App/AppSettings.swift:722 `backdropOpacity = defaults.object(forKey: Key.backdropOpacity) as? Double ?? Self.defaultBackdropOpacity`"
+        "DroppyCode/App/AppSettings.swift:726 `backdropOpacity = defaults.object(forKey: Key.backdropOpacity) as? Double ?? Self.defaultBackdropOpacity`"
       ],
       "preconditions": "Settings is open at the Appearance page, whose Appearance section holds this row.",
       "action": "The user drags the transparency slider.",
@@ -1241,7 +1241,7 @@
         "DroppyCode/UI/Theme/Wallpaper.swift:15-17 `@MainActor @Observable final class WallpaperStore { static let shared = WallpaperStore() }`",
         "DroppyCode/UI/Theme/Wallpaper.swift:32-36 `private(set) var image: NSImage?`, `private(set) var isInstalling = false`, `private(set) var lastError: String?`",
         "DroppyCode/UI/Theme/Wallpaper.swift:57 `var hasWallpaper: Bool { image != nil || fileURL != nil }`",
-        "DroppyCode/Services/Store/Storage.swift:35-36 `/// The user's window wallpaper, one file at a time.` `static let wallpaperDirectory: URL = directory(\"wallpaper\")`",
+        "DroppyCode/Core/Support/StoragePaths.swift:14-15 `/// The user's window wallpaper, one file at a time.` `nonisolated static let wallpaperDirectory: URL = directory(\"wallpaper\")`",
         "DroppyCode/App/Views/RootView.swift:64 `.background { WindowBackdrop(opacity: model.settings.backdropOpacity, wallpaper: WallpaperStore.shared.image) }`"
       ],
       "preconditions": "The app is running.",
@@ -1258,7 +1258,8 @@
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "Citation only: wallpaperDirectory moves out of Services.Store.Storage into the new Core.Support.StoragePaths (N2), so UI code (Wallpaper.swift) no longer reaches into a Services type (upstream commit d70cff8fe, 'layer rules restored'). The folder path and its one-file-at-a-time behaviour are unchanged; Storage.swift no longer has a wallpaperDirectory member at all."
     },
     {
       "id": "PR-THEME-054",
@@ -1315,7 +1316,7 @@
       "id": "PR-THEME-056",
       "title": "At start the store reads a clamped softness and renders the stored file only when that file still exists",
       "source_evidence": [
-        "DroppyCode/UI/Theme/Wallpaper.swift:85-95 init: `let stored = defaults.object(forKey: Key.softness) as? Double ?? 0`, `softness = min(1, max(0, stored))`, then, when a non-empty file name is stored, the URL is built under Storage.wallpaperDirectory and `render()` runs only if `FileManager.default.fileExists(atPath: url.path)`"
+        "DroppyCode/UI/Theme/Wallpaper.swift:85-95 init: `let stored = defaults.object(forKey: Key.softness) as? Double ?? 0`, `softness = min(1, max(0, stored))`, then, when a non-empty file name is stored, the URL is built under StoragePaths.wallpaperDirectory and `render()` runs only if `FileManager.default.fileExists(atPath: url.path)`"
       ],
       "preconditions": "The app is starting.",
       "action": "The wallpaper store is created.",
@@ -1335,7 +1336,8 @@
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "Citation only: Storage.wallpaperDirectory is renamed StoragePaths.wallpaperDirectory (PR-THEME-053); the same line (B3 :89) builds the same URL under the same folder."
     },
     {
       "id": "PR-THEME-057",
@@ -1416,7 +1418,7 @@
       "id": "PR-THEME-060",
       "title": "Installing a wallpaper copies the file into the library under a generated name, decodes it, then swaps it in with a spring",
       "source_evidence": [
-        "DroppyCode/UI/Theme/Wallpaper.swift:113-144 install: sets isInstalling true, clears lastError, cancels the pending render, captures the current softness, then in a detached user-initiated task takes security-scoped access, computes `let ext = source.pathExtension.isEmpty ? \"jpg\" : source.pathExtension.lowercased()`, builds `Storage.wallpaperDirectory.appendingPathComponent(\"wallpaper-\\(UUID().uuidString).\\(ext)\")`, creates the directory with intermediates, copies the item, decodes it, and calls finishInstall",
+        "DroppyCode/UI/Theme/Wallpaper.swift:113-144 install: sets isInstalling true, clears lastError, cancels the pending render, captures the current softness, then in a detached user-initiated task takes security-scoped access, computes `let ext = source.pathExtension.isEmpty ? \"jpg\" : source.pathExtension.lowercased()`, builds `StoragePaths.wallpaperDirectory.appendingPathComponent(\"wallpaper-\\(UUID().uuidString).\\(ext)\")`, creates the directory with intermediates, copies the item, decodes it, and calls finishInstall",
         "DroppyCode/UI/Theme/Wallpaper.swift:219-227 finishInstall: removes the previous file, records the new one, persists its last path component, `withAnimation(.spring(duration: 0.45, bounce: 0.2)) { image = picture.image }`, clears isInstalling"
       ],
       "preconditions": "The picked URL passed the picture test.",
@@ -1438,6 +1440,7 @@
       "windows_path": "Platform boundary: there is no security-scoped URL to take and release. The file is read directly. Keep the generated name pattern \"wallpaper-<uuid>.<ext>\" so the folder never accumulates collisions, and keep the delete-previous-on-success order (never delete first).",
       "verification_method": "interaction test: drop a picture, the old file is gone and exactly one file remains; unit: the name pattern and the jpg fallback",
       "status": "IMPLEMENTED",
+      "b3_note": "Citation only: Storage.wallpaperDirectory is renamed StoragePaths.wallpaperDirectory (PR-THEME-053); the same lines (B3 :128, :130) build the same destination under the same folder.",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2028,8 +2031,8 @@
       "source_evidence": [
         "DroppyCode/App/AppSettings.swift:122 `static let chime = \"chimeWhenFinished\"`",
         "DroppyCode/App/AppSettings.swift:205-208 `/// A soft chime plays when a turn finishes, whether or not the thread is in view.` `var chimeWhenFinished: Bool { didSet { defaults.set(chimeWhenFinished, forKey: Key.chime) } }`",
-        "DroppyCode/App/AppSettings.swift:709 `chimeWhenFinished = defaults.object(forKey: Key.chime) as? Bool ?? true`",
-        "DroppyCode/App/AppModel.swift:1206 `if chimed { FinishChime.play() }`",
+        "DroppyCode/App/AppSettings.swift:713 `chimeWhenFinished = defaults.object(forKey: Key.chime) as? Bool ?? true`",
+        "DroppyCode/App/AppModel.swift:1215 `if chimed { FinishChime.play() }`",
         "DroppyCode/App/Views/Settings/SettingsView.swift:358-360 `ChromeRow(title: \"Chime when a turn finishes\", detail: \"A soft chime, whether or not the thread is in view\") { SettingsSwitch(isOn: $settings.chimeWhenFinished) }`"
       ],
       "preconditions": "A turn is finishing.",
@@ -2044,7 +2047,7 @@
         "A stored value that is not a Bool falls back to true."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Same key, same default, same wording. The precise condition that sets `chimed` at AppModel.swift:1206 belongs to the RUNTIME area; this requirement covers the setting, its default and its wording.",
+      "windows_path": "Same key, same default, same wording. The precise condition that sets `chimed` at AppModel.swift:1215 belongs to the RUNTIME area; this requirement covers the setting, its default and its wording.",
       "verification_method": "restart test: the toggle survives; unit: the key and the default",
       "status": "IMPLEMENTED",
       "upstream_defect": null,
@@ -2081,9 +2084,9 @@
       "source_evidence": [
         "DroppyCode/App/AppSettings.swift:126 `static let settleSound = \"settleSound\"`",
         "DroppyCode/App/AppSettings.swift:226-228 `var settleSound: Bool { didSet { defaults.set(settleSound, forKey: Key.settleSound) } }`",
-        "DroppyCode/App/AppSettings.swift:713 `settleSound = defaults.object(forKey: Key.settleSound) as? Bool ?? true`",
-        "DroppyCode/App/AppModel.swift:804 `if sounds, settings.settleSound { SettleChime.play() }`",
-        "DroppyCode/App/Views/Sidebar/SidebarView.swift:1917 `if model.settings.settleSound { SettleChime.play() }`",
+        "DroppyCode/App/AppSettings.swift:717 `settleSound = defaults.object(forKey: Key.settleSound) as? Bool ?? true`",
+        "DroppyCode/App/AppModel.swift:813 `if sounds, settings.settleSound { SettleChime.play() }`",
+        "DroppyCode/App/Views/Sidebar/SidebarView.swift:1916 `if model.settings.settleSound { SettleChime.play() }`",
         "DroppyCode/App/Views/Settings/SettingsView.swift:401-403 `ChromeRow(title: \"Sound when settling\", detail: \"A small note as the thread settles\") { SettingsSwitch(isOn: $settings.settleSound) }`"
       ],
       "preconditions": "A thread settles, either automatically or from the sidebar.",
@@ -2502,7 +2505,7 @@
       "title": "Paragraph lines accumulate until a blank line or another block starts, and a paragraph that trims to nothing is dropped",
       "source_evidence": [
         "DroppyCode/UI/Markdown/MarkdownParser.swift:86-93 flushParagraph: `let text = paragraph.joined(separator: \"\\n\").trimmed`; `if !text.isEmpty { blocks.append(.paragraph(text)); blockLines.append(paragraphStart) }`; `paragraph.removeAll()`",
-        "DroppyCode/Core/Support/Text.swift:130-132 `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`",
+        "DroppyCode/Core/Support/Text.swift:222-224 `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`",
         "DroppyCode/UI/Markdown/MarkdownParser.swift:99-103 a blank line flushes the paragraph",
         "DroppyCode/UI/Markdown/MarkdownParser.swift:179-181 otherwise the raw (untrimmed) line is appended and the paragraph's start line is recorded on the first one"
       ],
@@ -2619,25 +2622,28 @@
     },
     {
       "id": "PR-THEME-108",
-      "title": "A code block whose info string is a delegation info renders as a delegation card, faded and inert while leaving",
+      "title": "A code block whose info string is a delegation info renders through a registered card renderer, faded and inert while leaving, and as plain code before any renderer is registered",
       "source_evidence": [
-        "DroppyCode/UI/Markdown/MarkdownView.swift:324-336 the code case: when the lower-cased info string is a delegation info, `HydraDelegationBlock(json: code, sent: info != \"hydra\")` with `.opacity(info == \"hydra-leaving\" ? 0 : 1)`, `.scaleEffect(info == \"hydra-leaving\" ? 0.98 : 1, anchor: .top)` and `.allowsHitTesting(info != \"hydra-leaving\")`; otherwise a CodeBlock"
+        "DroppyCode/UI/Markdown/MarkdownView.swift:324-336 the code case: when the lower-cased info string is a delegation info AND `MarkdownDelegationCard.render` is non-nil, `delegationRenderer(code, info != \"hydra\")` with `.opacity(info == \"hydra-leaving\" ? 0 : 1)`, `.scaleEffect(info == \"hydra-leaving\" ? 0.98 : 1, anchor: .top)` and `.allowsHitTesting(info != \"hydra-leaving\")`; otherwise (no delegation info, or no renderer registered yet) a CodeBlock",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:505-509 `enum MarkdownDelegationCard { @MainActor static var render: ((String, Bool) -> AnyView)? }` - a process-global hook the App sets at launch, because the card is an App-level view UI cannot name",
+        "DroppyCode/App/AppDelegate.swift:14 - applicationDidFinishLaunching registers MarkdownDelegationCard.render before the main window is shown (LAUNCH area)"
       ],
       "preconditions": "A reply contains a fenced block with one of the three delegation info strings.",
       "action": "The block is rendered.",
-      "expected_result": "The block renders as the delegation card rather than as code, with its body passed as the card's data. The card is marked as sent for the info strings \"hydra-sent\" and \"hydra-leaving\" and as not sent for \"hydra\". For \"hydra-leaving\" the card is drawn at zero opacity, scaled to 0.98 anchored at its top, and takes no clicks, while still occupying its full room.",
+      "expected_result": "Once MarkdownDelegationCard.render has been set (which happens before the main window ever shows, at launch), the block renders through that renderer rather than as code, with its body and a sent flag passed to it. The renderer is marked sent for the info strings \"hydra-sent\" and \"hydra-leaving\" and not sent for \"hydra\". For \"hydra-leaving\" the rendered card is drawn at zero opacity, scaled to 0.98 anchored at its top, and takes no clicks, while still occupying its full room. Before the renderer is registered (there is no observable window for this in the running app, since it is set at launch before any content renders, but the fallback exists in source) the block renders as an ordinary CodeBlock instead of throwing or showing nothing.",
       "side_effects": [],
       "persistence": "not persisted",
       "failure_cases": [
-        "None expressed in source; the card itself is specified by the Hydra area."
+        "MarkdownDelegationCard.render is nil: the block renders as CodeBlock. None expressed in source for the card renderer itself; it is specified by the Hydra area."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "The three info strings are a protocol between the runtime and the renderer; the exact strings are load-bearing and the comparison is on the lower-cased info string.",
-      "verification_method": "unit: the three strings select the card; interaction test: a leaving card holds its room",
-      "status": "IMPLEMENTED",
+      "windows_path": "The three info strings are a protocol between the runtime and the renderer; the exact strings are load-bearing and the comparison is on the lower-cased info string. The port's UI layer likewise cannot name the App-level card type, so it needs the same process-global registration hook, set during startup before the main window is shown; a nil hook must render CodeBlock, matching source, never throw or omit the block.",
+      "verification_method": "unit: the three strings select the card renderer when one is registered; a nil renderer falls back to CodeBlock; interaction test: a leaving card holds its room",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "B3 replaces the direct `HydraDelegationBlock(json:sent:)` call with a registered closure hook, `MarkdownDelegationCard.render` (:505-509), set by AppDelegate at launch (:14, LAUNCH area) rather than constructed inline. This adds a new fallback state: while the hook is nil, the block renders as CodeBlock instead of the delegation card (R3-31 #2, folded into this reclassification per B3_PLAN 6.3; the LAUNCH area records the AppDelegate.swift:14 registration itself)."
     },
     {
       "id": "PR-THEME-109",
@@ -2691,8 +2697,8 @@
       "id": "PR-THEME-111",
       "title": "Unordered list bullets are accent dots at the top level and accent rings one level in",
       "source_evidence": [
-        "DroppyCode/UI/Markdown/MarkdownView.swift:517-533 the bullet branch: a hidden \"•\" glyph keeps the text baseline, overlaid at list depth 0 with `Circle().fill(markerColor).frame(width: 5, height: 5)` and at any deeper depth with `Circle().strokeBorder(markerColor, lineWidth: 1.2).frame(width: 5.5, height: 5.5)`",
-        "DroppyCode/UI/Markdown/MarkdownView.swift:536-538 `private var markerColor: Color { Chrome.accent.opacity(dimmed ? 0.55 : 0.9) }`",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:476-492 the bullet branch: a hidden \"•\" glyph keeps the text baseline, overlaid at list depth 0 with `Circle().fill(markerColor).frame(width: 5, height: 5)` and at any deeper depth with `Circle().strokeBorder(markerColor, lineWidth: 1.2).frame(width: 5.5, height: 5.5)`",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:495-497 `private var markerColor: Color { Chrome.accent.opacity(dimmed ? 0.55 : 0.9) }`",
         "DroppyCode/UI/Markdown/MarkdownView.swift:349-350 nested lists raise the list-depth environment by one"
       ],
       "preconditions": "An unordered list item is rendered.",
@@ -2715,7 +2721,7 @@
       "id": "PR-THEME-112",
       "title": "Ordered list markers are the item's number and a full stop, in monospaced digits at medium weight and the accent colour",
       "source_evidence": [
-        "DroppyCode/UI/Markdown/MarkdownView.swift:512-516 the ordered branch: `Text(\"\\(number).\").monospacedDigit().fontWeight(.medium).foregroundStyle(markerColor)`",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:471-475 the ordered branch: `Text(\"\\(number).\").monospacedDigit().fontWeight(.medium).foregroundStyle(markerColor)`",
         "DroppyCode/UI/Markdown/MarkdownView.swift:341 `marker(ordered: ordered, number: start + index, checked: item.checked)`"
       ],
       "preconditions": "An ordered list item is rendered.",
@@ -2738,7 +2744,7 @@
       "id": "PR-THEME-113",
       "title": "A checkbox item's marker is a filled check circle in the tint when checked and an outline circle in the tertiary colour when not",
       "source_evidence": [
-        "DroppyCode/UI/Markdown/MarkdownView.swift:508-511 `Image(systemName: checked ? \"checkmark.circle.fill\" : \"circle\").foregroundStyle(checked ? AnyShapeStyle(.tint) : AnyShapeStyle(.tertiary)).imageScale(.small)`"
+        "DroppyCode/UI/Markdown/MarkdownView.swift:467-470 `Image(systemName: checked ? \"checkmark.circle.fill\" : \"circle\").foregroundStyle(checked ? AnyShapeStyle(.tint) : AnyShapeStyle(.tertiary)).imageScale(.small)`"
       ],
       "preconditions": "A list item carries a checked state.",
       "action": "Its marker is drawn.",
@@ -2828,10 +2834,10 @@
       "id": "PR-THEME-117",
       "title": "A code block is a rounded panel with a language label, a hover-revealed copy control, and horizontally scrolling monospaced text",
       "source_evidence": [
-        "DroppyCode/UI/Markdown/MarkdownView.swift:1287-1307 the layout: `VStack(alignment: .leading, spacing: 0)`; a header `HStack { Text(language ?? \"code\").font(.chat(.caption)).foregroundStyle(Chrome.secondaryText); Spacer(); CodeBlockCopyButton(text: code, hover: hover) }` with `.padding(.leading, 12)`, `.padding(.trailing, 6)`, `.padding(.top, 6)`; then `ScrollView(.horizontal, showsIndicators: false) { VeiledText(verbatim: visible).font(.chat(.callout, design: .monospaced)).modifier(MarkdownBlockSelection()).fixedSize(horizontal: true, vertical: true).padding(.horizontal, 12).padding(.bottom, 12).padding(.top, 4) }`",
-        "DroppyCode/UI/Markdown/MarkdownView.swift:1319 `.background(.quaternary.opacity(0.45), in: .rect(cornerRadius: 12))`",
-        "DroppyCode/UI/Markdown/MarkdownView.swift:1257-1265 the copy control is `CopyButton(text: text).opacity(hover.isHovering ? 1 : 0)`",
-        "DroppyCode/UI/Markdown/MarkdownView.swift:1320 `.onHover { [weak hoverBox] in hoverBox?.isHovering = $0 }`",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:1214-1234 the layout: `VStack(alignment: .leading, spacing: 0)`; a header `HStack { Text(language ?? \"code\").font(.chat(.caption)).foregroundStyle(Chrome.secondaryText); Spacer(); CodeBlockCopyButton(text: code, hover: hover) }` with `.padding(.leading, 12)`, `.padding(.trailing, 6)`, `.padding(.top, 6)`; then `ScrollView(.horizontal, showsIndicators: false) { VeiledText(verbatim: visible).font(.chat(.callout, design: .monospaced)).modifier(MarkdownBlockSelection()).fixedSize(horizontal: true, vertical: true).padding(.horizontal, 12).padding(.bottom, 12).padding(.top, 4) }`",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:1246 `.background(.quaternary.opacity(0.45), in: .rect(cornerRadius: 12))`",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:1184-1192 the copy control is `CopyButton(text: text).opacity(hover.isHovering ? 1 : 0)`",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:1247 `.onHover { [weak hoverBox] in hoverBox?.isHovering = $0 }`",
         "DroppyCode/UI/Common/ChatFont.swift:3-10 `static func chat(_ style: Font.TextStyle, weight: Font.Weight? = nil, design: Font.Design = .default) -> Font { let resolvedWeight = weight ?? (style == .headline ? .semibold : nil); let font = Font.system(style, design: design); return resolvedWeight.map { font.weight($0) } ?? font }`, documented \"The app-wide zoom scales the window, not the type.\"",
         "DroppyCode/UI/Chrome/Chrome.swift:76-79 `static let primaryText = Color(nsColor: .labelColor)` and `static let secondaryText = primaryText.opacity(0.7)`, with the comment \"Primary at 70% clears the 4.5:1 floor on both grounds; `secondaryLabelColor`'s 50% alpha does not.\""
       ],
@@ -2856,10 +2862,10 @@
       "id": "PR-THEME-118",
       "title": "A code block longer than 120 lines renders its first 120 with a link to show all, counting the lines without splitting the text",
       "source_evidence": [
-        "DroppyCode/UI/Markdown/MarkdownView.swift:1274-1276 `private static let collapsedLineLimit = 120` with the comment that materializing thousands of lines at once is what makes expanding feel laggy",
-        "DroppyCode/UI/Markdown/MarkdownView.swift:1281-1283 `let lineCount = 1 + code.utf8.count { $0 == 0x0A }`; truncated when not showing all and the count exceeds the limit; the visible text is the head of the code",
-        "DroppyCode/UI/Markdown/MarkdownView.swift:1308-1317 `if lineCount > Self.collapsedLineLimit { Button(showsAll ? \"Show less\" : \"Show all \\(lineCount) lines\") { showsAll.toggle() }.buttonStyle(.link).font(.chat(.caption)).foregroundStyle(Chrome.secondaryText).padding(.horizontal, 12).padding(.bottom, 10) }`",
-        "DroppyCode/UI/Markdown/MarkdownView.swift:1323-1335 head(of:lines:) walks the UTF-8 for the 120th line feed and returns the prefix, or the whole text when there are fewer",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:1201-1203 `private static let collapsedLineLimit = 120` with the comment that materializing thousands of lines at once is what makes expanding feel laggy",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:1208-1210 `let lineCount = 1 + code.utf8.count { $0 == 0x0A }`; truncated when not showing all and the count exceeds the limit; the visible text is the head of the code",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:1235-1244 `if lineCount > Self.collapsedLineLimit { Button(showsAll ? \"Show less\" : \"Show all \\(lineCount) lines\") { showsAll.toggle() }.buttonStyle(.link).font(.chat(.caption)).foregroundStyle(Chrome.secondaryText).padding(.horizontal, 12).padding(.bottom, 10) }`",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:1250-1262 head(of:lines:) walks the UTF-8 for the 120th line feed and returns the prefix, or the whole text when there are fewer",
         "DroppyCode/UI/Chrome/Chrome.swift:76-79 `static let primaryText = Color(nsColor: .labelColor)` and `static let secondaryText = primaryText.opacity(0.7)`, with the comment \"Primary at 70% clears the 4.5:1 floor on both grounds; `secondaryLabelColor`'s 50% alpha does not.\""
       ],
       "preconditions": "A code block has more than 120 lines.",
@@ -2883,11 +2889,11 @@
       "id": "PR-THEME-119",
       "title": "A table renders as a horizontally scrolling grid with a semibold header, 30 rows at a time, on a rounded quaternary panel",
       "source_evidence": [
-        "DroppyCode/UI/Markdown/MarkdownView.swift:1344 `private static let collapsedRowLimit = 30`",
-        "DroppyCode/UI/Markdown/MarkdownView.swift:1357-1383 the body: the visible rows are all rows when expanded, otherwise the first 30; a horizontal ScrollView without indicators holds a Grid of alignment leading with horizontalSpacing 18 and verticalSpacing 8; the header row's cells are semibold; body cells are the primary colour at 90 percent opacity, and a row shorter than the header pads with an empty string; the grid carries block selection and 12 points of padding",
-        "DroppyCode/UI/Markdown/MarkdownView.swift:1384-1393 `if !showsAll, rows.count > Self.collapsedRowLimit { Button(\"Show all \\(rows.count) rows\") { showsAll.toggle() }.buttonStyle(.link).font(.chat(.caption)).foregroundStyle(Chrome.secondaryText).padding(.horizontal, 12).padding(.bottom, 10) }`",
-        "DroppyCode/UI/Markdown/MarkdownView.swift:1395 `.background(.quaternary.opacity(0.35), in: .rect(cornerRadius: 12))`",
-        "DroppyCode/UI/Markdown/MarkdownView.swift:1346-1355 cells are built through a shared cache of 1200 entries keyed on the cell's source text",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:1271 `private static let collapsedRowLimit = 30`",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:1284-1310 the body: the visible rows are all rows when expanded, otherwise the first 30; a horizontal ScrollView without indicators holds a Grid of alignment leading with horizontalSpacing 18 and verticalSpacing 8; the header row's cells are semibold; body cells are the primary colour at 90 percent opacity, and a row shorter than the header pads with an empty string; the grid carries block selection and 12 points of padding",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:1311-1320 `if !showsAll, rows.count > Self.collapsedRowLimit { Button(\"Show all \\(rows.count) rows\") { showsAll.toggle() }.buttonStyle(.link).font(.chat(.caption)).foregroundStyle(Chrome.secondaryText).padding(.horizontal, 12).padding(.bottom, 10) }`",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:1322 `.background(.quaternary.opacity(0.35), in: .rect(cornerRadius: 12))`",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:1273-1282 cells are built through a shared cache of 1200 entries keyed on the cell's source text",
         "DroppyCode/UI/Chrome/Chrome.swift:76-79 `static let primaryText = Color(nsColor: .labelColor)` and `static let secondaryText = primaryText.opacity(0.7)`, with the comment \"Primary at 70% clears the 4.5:1 floor on both grounds; `secondaryLabelColor`'s 50% alpha does not.\""
       ],
       "preconditions": "A table block is rendered.",
@@ -2911,7 +2917,7 @@
       "id": "PR-THEME-120",
       "title": "The copy control copies reflowed text, shows a check mark for 1.4 seconds, and carries the tooltip \"Copy\"",
       "source_evidence": [
-        "DroppyCode/UI/Markdown/MarkdownView.swift:1471-1498 CopyButton: `var label = \"Copy\"`; the action is `NSPasteboard.general.clearContents()`, `NSPasteboard.general.setString(ProseReflow.reflowed(text), forType: .string)`, `didCopy = true`, then `Task { [copied = $didCopy] in try? await Task.sleep(for: .seconds(1.4)); copied.wrappedValue = false }`; the label is `Image(systemName: didCopy ? \"checkmark\" : \"doc.on.doc\").contentTransition(.symbolEffect(.replace)).frame(width: 22, height: 22).contentShape(.rect)`; `.buttonStyle(.borderless)`, `.foregroundStyle(Chrome.secondaryText)`, `.help(label)`",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:1398-1425 CopyButton: `var label = \"Copy\"`; the action is `NSPasteboard.general.clearContents()`, `NSPasteboard.general.setString(ProseReflow.reflowed(text), forType: .string)`, `didCopy = true`, then `Task { [copied = $didCopy] in try? await Task.sleep(for: .seconds(1.4)); copied.wrappedValue = false }`; the label is `Image(systemName: didCopy ? \"checkmark\" : \"doc.on.doc\").contentTransition(.symbolEffect(.replace)).frame(width: 22, height: 22).contentShape(.rect)`; `.buttonStyle(.borderless)`, `.foregroundStyle(Chrome.secondaryText)`, `.help(label)`",
         "DroppyCode/UI/Chrome/Chrome.swift:76-79 `static let primaryText = Color(nsColor: .labelColor)` and `static let secondaryText = primaryText.opacity(0.7)`, with the comment \"Primary at 70% clears the 4.5:1 floor on both grounds; `secondaryLabelColor`'s 50% alpha does not.\""
       ],
       "preconditions": "A copy control is on screen.",
@@ -2938,8 +2944,8 @@
       "id": "PR-THEME-121",
       "title": "Copied prose is unwrapped where the model hard-wrapped it, under eight conditions that together exclude anything that could be code",
       "source_evidence": [
-        "DroppyCode/UI/Markdown/MarkdownView.swift:1399-1468 ProseReflow.reflowed: lines are grouped into paragraphs; a fence line starting with ``` toggles the fence state and records the lower-cased info string; blank lines and lines inside a fence flush and pass through; a paragraph is joined with single spaces only when all of: it has at least two lines; the recorded fence language is empty; every line is non-empty after trimming and does not start with whitespace in its raw form; no line starts with one of `#>-*+|`; no line starts with a digit followed by '.' or ')'; every line but the last is at least 45 characters; no line but the last ends with one of `{};:=([\\|` or with \"->\" or \"=>\"; no line contains a double space or a tab; and the joined text contains a full stop, exclamation mark or question mark followed by a space",
-        "DroppyCode/UI/Markdown/MarkdownView.swift:1399-1400 doc: \"Unwraps prose that the model hard-wrapped at a fixed column before the text reaches the pasteboard. Anything that could be code is left untouched.\""
+        "DroppyCode/UI/Markdown/MarkdownView.swift:1326-1395 ProseReflow.reflowed: lines are grouped into paragraphs; a fence line starting with ``` toggles the fence state and records the lower-cased info string; blank lines and lines inside a fence flush and pass through; a paragraph is joined with single spaces only when all of: it has at least two lines; the recorded fence language is empty; every line is non-empty after trimming and does not start with whitespace in its raw form; no line starts with one of `#>-*+|`; no line starts with a digit followed by '.' or ')'; every line but the last is at least 45 characters; no line but the last ends with one of `{};:=([\\|` or with \"->\" or \"=>\"; no line contains a double space or a tab; and the joined text contains a full stop, exclamation mark or question mark followed by a space",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:1326-1327 doc: \"Unwraps prose that the model hard-wrapped at a fixed column before the text reaches the pasteboard. Anything that could be code is left untouched.\""
       ],
       "preconditions": "Text is being put on the clipboard by a copy control or the row menu.",
       "action": "The text is reflowed.",
@@ -2989,14 +2995,14 @@
       "source_evidence": [
         "DroppyCode/UI/Markdown/MarkdownView.swift:105-107 `@MainActor private static var blockCache = RecentCache<String, [MarkdownBlock]>(limit: 800)`",
         "DroppyCode/UI/Markdown/MarkdownView.swift:108-115 the streaming parse slots, `private static let streamingSlots = 48`, with the comment that four slots made twenty heads evict each other's parse on every flush",
-        "DroppyCode/UI/Markdown/MarkdownView.swift:563-568 `RichLink.prettyCache = RecentCache<String, AttributedString>(limit: 1200)` and its own `streamingSlots = 4`",
-        "DroppyCode/UI/Markdown/MarkdownView.swift:1347 `TableBlock.cellCache = RecentCache<String, AttributedString>(limit: 1200)`",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:527-532 `RichLink.prettyCache = RecentCache<String, AttributedString>(limit: 1200)` and `private static let streamingSlots = MarkdownView.streamingSlots`, no longer its own separate constant",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:1274 `TableBlock.cellCache = RecentCache<String, AttributedString>(limit: 1200)`",
         "DroppyCode/UI/Markdown/MarkdownView.swift:123-133 streamingParse: an exact hit by byte count then by value; otherwise the newest slot the text extends; the slot is removed and re-appended, or the oldest is dropped when full",
         "DroppyCode/UI/Markdown/MarkdownView.swift:135-148 blocks(for:): the shared cache first, then a finished streaming parse adopted out of its slot, then a fresh parse; the result is inserted into the shared cache"
       ],
       "preconditions": "Messages are being rendered.",
       "action": "A parse or an inline run is needed.",
-      "expected_result": "Finished messages parse once and are held in a cache of 800 entries keyed on the whole message text. Streaming messages parse through 48 separate slots, so a lead and a whole panel of heads streaming together keep their own parses; the shared cache is never touched by a streaming flush. When a message finishes, its streaming parse is moved out of its slot into the shared cache rather than being re-parsed. Inline pretty strings use a 1200 entry cache with 4 streaming slots of their own, and table cells a separate 1200 entry cache.",
+      "expected_result": "Finished messages parse once and are held in a cache of 800 entries keyed on the whole message text. Streaming messages parse through 48 separate slots, so a lead and a whole panel of heads streaming together keep their own parses; the shared cache is never touched by a streaming flush. When a message finishes, its streaming parse is moved out of its slot into the shared cache rather than being re-parsed. Inline pretty strings use a 1200 entry cache with streaming slots equal to MarkdownView's own streaming slot count (48, not a separate smaller number), and table cells a separate 1200 entry cache.",
       "side_effects": [
         "Memory held for the caches"
       ],
@@ -3005,12 +3011,13 @@
         "Eviction is by recency and loses only work, never content."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "port_impacts.md entry 152: port the exact limits, they are tuned against each other. The mismatch between 48 parse slots and 4 inline slots is deliberate and recorded.",
-      "verification_method": "unit: a finished stream's parse is adopted, not re-parsed; the slot counts",
-      "status": "IMPLEMENTED",
+      "windows_path": "port_impacts.md entry 152: port the exact limits, they are tuned against each other. RichLink's inline streaming slots now equal MarkdownView's block-parse streaming slots (48); do not port them as two independently-tunable numbers.",
+      "verification_method": "unit: a finished stream's parse is adopted, not re-parsed; the slot counts, including that RichLink's cache keeps exactly 48 streaming entries before evicting",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "B3 changes RichLink's streaming slot count from its own hardcoded 4 (B2 :563-568) to `MarkdownView.streamingSlots` (48, B3 :532), removing the deliberate mismatch B2's port_impacts.md entry 152 recorded. Twelve times as many in-flight streaming links are now kept before RichLink starts evicting."
     },
     {
       "id": "PR-THEME-124",
@@ -3068,8 +3075,8 @@
       "id": "PR-THEME-126",
       "title": "Every markdown block is selectable, always, and whole replies are copied through the row menu instead",
       "source_evidence": [
-        "DroppyCode/UI/Markdown/MarkdownView.swift:855-860 `MarkdownBlockSelectionKey.defaultValue = true` with the doc \"On everywhere, replies included: a finished reply's blocks are copyable at all times, one paragraph at a time. Whole replies go to the clipboard through the row menu's Copy message (MessageText).\"",
-        "DroppyCode/UI/Markdown/MarkdownView.swift:889-899 the MarkdownBlockSelection modifier enables text selection when the environment allows it",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:819-824 `MarkdownBlockSelectionKey.defaultValue = true` with the doc \"On everywhere, replies included: a finished reply's blocks are copyable at all times, one paragraph at a time. Whole replies go to the clipboard through the row menu's Copy message (MessageText).\"",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:853-863 the MarkdownBlockSelection modifier enables text selection when the environment allows it",
         "dead_code.md entry 30: `content.textSelection(.disabled)`, the else branch, is dead because the flag has no writers",
         "dead_code.md entry 29: the body of LinkTextView.hitTest past its guard is dead for the same reason"
       ],
@@ -3093,7 +3100,7 @@
       "id": "PR-THEME-127",
       "title": "Inline markup is resolved by an inline-only markdown parse that preserves whitespace and never fails",
       "source_evidence": [
-        "DroppyCode/UI/Markdown/MarkdownView.swift:828-834 baseAttributed: `AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace, failurePolicy: .returnPartiallyParsedIfPossible)`, the parse wrapped in `try?` with a plain-string fallback, and the result passed through the bare-domain autolinker"
+        "DroppyCode/UI/Markdown/MarkdownView.swift:792-798 baseAttributed: `AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace, failurePolicy: .returnPartiallyParsedIfPossible)`, the parse wrapped in `try?` with a plain-string fallback, and the result passed through the bare-domain autolinker"
       ],
       "preconditions": "A block's text is being turned into styled runs.",
       "action": "The inline layer parses it.",
@@ -3115,7 +3122,7 @@
       "id": "PR-THEME-128",
       "title": "Bare domains are recognised by one exact regular expression",
       "source_evidence": [
-        "DroppyCode/UI/Markdown/MarkdownView.swift:750-755 `private static let bareDomainPattern = try? NSRegularExpression(pattern: \"(?<![A-Za-z0-9@._/-])((?:[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?\\\\.)+[A-Za-z]{2,24})(/[^\\\\s<>()]*)?\", options: [.caseInsensitive])` with the doc \"A bare domain as people type it in chat: getdroppy.app, www.droppy.app/pricing?a=1.\"",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:714-719 `private static let bareDomainPattern = try? NSRegularExpression(pattern: \"(?<![A-Za-z0-9@._/-])((?:[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?\\\\.)+[A-Za-z]{2,24})(/[^\\\\s<>()]*)?\", options: [.caseInsensitive])` with the doc \"A bare domain as people type it in chat: getdroppy.app, www.droppy.app/pricing?a=1.\"",
         "E:/Droppy/port/porting/extracts/markdown-link-grammar.md section 2, the regex verbatim"
       ],
       "preconditions": "A non-link, non-code run of text is being scanned.",
@@ -3138,9 +3145,9 @@
       "id": "PR-THEME-129",
       "title": "A bare domain links only when its last label is one of exactly 111 curated top-level domains",
       "source_evidence": [
-        "DroppyCode/UI/Markdown/MarkdownView.swift:757-768 `bareDomainTLDs`, the doc \"TLDs a chat linkifier is sure of. Curated, not every TLD: a file name (MarkdownView.swift, index.html, package.json) has a bare domain's shape.\", and the 111 entries",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:721-732 `bareDomainTLDs`, the doc \"TLDs a chat linkifier is sure of. Curated, not every TLD: a file name (MarkdownView.swift, index.html, package.json) has a bare domain's shape.\", and the 111 entries",
         "E:/Droppy/port/porting/extracts/markdown-link-grammar.md section 3: 111 entries, all distinct, counted three ways",
-        "DroppyCode/UI/Markdown/MarkdownView.swift:810-817 the decision: the match is split at its first slash, the domain part's last dot-separated label is lower-cased, and the match becomes a link only when that label is in the set and \"https://\" plus the match parses as a URL"
+        "DroppyCode/UI/Markdown/MarkdownView.swift:774-781 the decision: the match is split at its first slash, the domain part's last dot-separated label is lower-cased, and the match becomes a link only when that label is in the set and \"https://\" plus the match parses as a URL"
       ],
       "preconditions": "The regex matched a candidate.",
       "action": "The autolinker decides whether to link it.",
@@ -3162,10 +3169,10 @@
       "id": "PR-THEME-130",
       "title": "The autolinker skips runs that are already links or inline code, trims eight trailing punctuation characters, and never goes backwards",
       "source_evidence": [
-        "DroppyCode/UI/Markdown/MarkdownView.swift:774-784 each run: a run that already carries a link, or whose intent contains code, is appended unchanged; so is every run when the pattern is unavailable",
-        "DroppyCode/UI/Markdown/MarkdownView.swift:791-800 the comment that offsets are Characters throughout, and the piece() helper that slices by character offsets",
-        "DroppyCode/UI/Markdown/MarkdownView.swift:794 `let trimSet = \".,;:!?'\\\"\"`",
-        "DroppyCode/UI/Markdown/MarkdownView.swift:801-823 the loop: matches whose start is before the cursor are skipped; trailing characters in the trim set are removed from the match; text before the match is emitted; the match is emitted as a link or as text; the cursor advances to the match's end; the tail after the last match is emitted",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:738-748 each run: a run that already carries a link, or whose intent contains code, is appended unchanged; so is every run when the pattern is unavailable",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:755-764 the comment that offsets are Characters throughout, and the piece() helper that slices by character offsets",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:758 `let trimSet = \".,;:!?'\\\"\"`",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:765-787 the loop: matches whose start is before the cursor are skipped; trailing characters in the trim set are removed from the match; text before the match is emitted; the match is emitted as a link or as text; the cursor advances to the match's end; the tail after the last match is emitted",
         "E:/Droppy/port/porting/extracts/markdown-link-grammar.md gotcha 2: two different trailing-punctuation trim sets, 8 characters here and 10 in isBareDisplay, which must not be unified",
         "E:/Droppy/port/porting/extracts/markdown-link-grammar.md gotcha 4: all offsets are grapheme clusters, not UTF-16 and not bytes"
       ],
@@ -3189,9 +3196,9 @@
       "id": "PR-THEME-131",
       "title": "Every link renders bold, and a link whose display text is just its URL is replaced by a short pretty title",
       "source_evidence": [
-        "DroppyCode/UI/Markdown/MarkdownView.swift:596-621 build(): each run without a link is appended as it is; a link run whose display text is bare has its text replaced by the pretty title and the link re-attached; every link run then has the strongly-emphasized intent inserted into whatever intents it already had, with the comment \"Every link renders bold, whether the author titled it or the URL was bare. Other intent bits (italic, code) are preserved.\"",
-        "DroppyCode/UI/Markdown/MarkdownView.swift:737-748 isBareDisplay(): `var d = display.trimmed`; `if d.hasPrefix(\"<\"), d.hasSuffix(\">\"), d.count >= 2 { d = String(d.dropFirst().dropLast()) }`; `while let last = d.last, \".,;:!?)]}>\".contains(last) { d.removeLast() }`; bare when `d == url.absoluteString`, or when it starts with \"http://\" or \"https://\" and contains no space and no newline",
-        "DroppyCode/Core/Support/Text.swift:130-132 `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:560-585 build(): each run without a link is appended as it is; a link run whose display text is bare has its text replaced by the pretty title and the link re-attached; every link run then has the strongly-emphasized intent inserted into whatever intents it already had, with the comment \"Every link renders bold, whether the author titled it or the URL was bare. Other intent bits (italic, code) are preserved.\"",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:701-712 isBareDisplay(): `var d = display.trimmed`; `if d.hasPrefix(\"<\"), d.hasSuffix(\">\"), d.count >= 2 { d = String(d.dropFirst().dropLast()) }`; `while let last = d.last, \".,;:!?)]}>\".contains(last) { d.removeLast() }`; bare when `d == url.absoluteString`, or when it starts with \"http://\" or \"https://\" and contains no space and no newline",
+        "DroppyCode/Core/Support/Text.swift:222-224 `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`",
         "E:/Droppy/port/porting/extracts/markdown-link-grammar.md gotcha 3: isBareDisplay returns false for a bare domain like getdroppy.app, so prettyTitle applies only to full-URL autolinks, never to the bare-domain autolinks",
         "E:/Droppy/port/porting/extracts/markdown-link-grammar.md gotcha 13: links are never underlined and are always bold"
       ],
@@ -3216,9 +3223,9 @@
       "id": "PR-THEME-132",
       "title": "A bare URL's display title is resolved by a strict cascade: forge reference, then video title, then host and last path segment",
       "source_evidence": [
-        "DroppyCode/UI/Markdown/MarkdownView.swift:666-689 prettyTitle(for:): a forge reference wins; then a cached video title capped at 48; otherwise the host, lower-cased with a leading \"www.\" removed, is combined with the last non-empty path segment after percent decoding; a segment in the nameless set yields the host alone; a segment longer than 24 characters becomes its first 21 plus a horizontal ellipsis; one segment yields \"host/tail\", more than one yields \"host/…/tail\"; a title longer than 40 characters becomes its first 19, a horizontal ellipsis and its last 18; a URL with no host falls back to the compact form",
-        "DroppyCode/UI/Markdown/MarkdownView.swift:691-694 `namelessSegments` = watch, view, index, index.html, index.php, home, default, page",
-        "DroppyCode/UI/Markdown/MarkdownView.swift:696-700 capped(_:at:): a title over the limit becomes its first limit minus 3 characters plus one horizontal ellipsis",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:630-653 prettyTitle(for:): a forge reference wins; then a cached video title capped at 48; otherwise the host, lower-cased with a leading \"www.\" removed, is combined with the last non-empty path segment after percent decoding; a segment in the nameless set yields the host alone; a segment longer than 24 characters becomes its first 21 plus a horizontal ellipsis; one segment yields \"host/tail\", more than one yields \"host/…/tail\"; a title longer than 40 characters becomes its first 19, a horizontal ellipsis and its last 18; a URL with no host falls back to the compact form",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:655-658 `namelessSegments` = watch, view, index, index.html, index.php, home, default, page",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:660-664 capped(_:at:): a title over the limit becomes its first limit minus 3 characters plus one horizontal ellipsis",
         "E:/Droppy/port/porting/extracts/markdown-link-grammar.md gotcha 7: capped at 48 produces 46 characters, not 48"
       ],
       "preconditions": "A link's display text was bare.",
@@ -3241,8 +3248,8 @@
       "id": "PR-THEME-133",
       "title": "Merge request and issue links collapse to a bang or hash reference, on any host, with the id round-tripped through an integer",
       "source_evidence": [
-        "DroppyCode/UI/Markdown/MarkdownView.swift:702-723 forgeReference(for:): when a path segment is exactly \"-\" and two segments follow, \"merge_requests\" yields \"!id\" and \"issues\" yields \"#id\"; otherwise, when the last segment is an integer and the one before it is \"pull\" or \"issues\", the result is \"#id\"",
-        "DroppyCode/UI/Markdown/MarkdownView.swift:702-704 doc: \"!3190 for merge requests, #123 for issues and pull requests. Matches GitLab (/-/merge_requests/, /-/issues/) and GitHub-style (/pull/, /issues/) paths on any host.\"",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:666-687 forgeReference(for:): when a path segment is exactly \"-\" and two segments follow, \"merge_requests\" yields \"!id\" and \"issues\" yields \"#id\"; otherwise, when the last segment is an integer and the one before it is \"pull\" or \"issues\", the result is \"#id\"",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:666-668 doc: \"!3190 for merge requests, #123 for issues and pull requests. Matches GitLab (/-/merge_requests/, /-/issues/) and GitHub-style (/pull/, /issues/) paths on any host.\"",
         "E:/Droppy/port/porting/extracts/markdown-link-grammar.md gotcha 8: the id is round-tripped through an integer, so /pull/007 renders #7"
       ],
       "preconditions": "A bare link's title is being resolved.",
@@ -3345,11 +3352,11 @@
       "id": "PR-THEME-137",
       "title": "Favicons are fetched per host from the host's own /favicon.ico, with a 5 second timeout and no fallback, and only for hosts that could be public",
       "source_evidence": [
-        "DroppyCode/UI/Markdown/MarkdownView.swift:914-939 image(for:): a memory hit returns at once; a host already known to have failed returns nothing; a non-public host is recorded as failed and never requested; concurrent askers share one in-flight task; a successful icon is stored and a failure recorded",
-        "DroppyCode/UI/Markdown/MarkdownView.swift:918-919 comment (stale at B2): \"Icons come from a service on the web, so the host is told to it. Tool output is full of names that belong to this machine and this network; those never leave.\"",
-        "DroppyCode/UI/Markdown/MarkdownView.swift:941-953 iconData(for:), documented \"The icon the host itself serves. Fetching `/favicon.ico` from the host keeps the hosts a reply links to away from a third-party favicon service; a host that serves nothing gets no icon\": `guard let url = URL(string: \"https://\\(host)/favicon.ico\") else { return nil }`; `var request = URLRequest(url: url)`; `request.timeoutInterval = 5`; `guard let (data, response) = try? await URLSession.shared.data(for: request), let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode), NSImage(data: data) != nil else { return nil }`; `return data`",
-        "DroppyCode/UI/Markdown/MarkdownView.swift:1050-1082 isPublic(host:): rejects an empty host and \"localhost\"; rejects anything containing a colon (an IPv6 literal); rejects the suffixes .local, .localhost, .localdomain, .internal, .intranet, .lan, .home, .home.arpa, .test, .invalid and .corp; rejects a host with no dot; and for a host that is exactly four numeric labels in 0...255 rejects 0.x, 10.x, 127.x, 169.254.x, 192.168.x, 172.16-31.x and 100.64-127.x",
-        "DroppyCode/UI/Markdown/MarkdownView.swift:916 `if let hit = memory[key] { return hit }` and :932-937 `if let image { if memory.count >= 300 { memory.removeAll(keepingCapacity: true) }; memory[key] = image } else { failed.insert(key) }`: a success is kept only in `memory`, which is emptied wholesale at 300 entries, while `failed` is never emptied"
+        "DroppyCode/UI/Markdown/MarkdownView.swift:878-903 image(for:): a memory hit returns at once; a host already known to have failed returns nothing; a non-public host is recorded as failed and never requested; concurrent askers share one in-flight task; a successful icon is stored and a failure recorded",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:882-883 comment (stale at B2): \"Icons come from a service on the web, so the host is told to it. Tool output is full of names that belong to this machine and this network; those never leave.\"",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:905-917 iconData(for:), documented \"The icon the host itself serves. Fetching `/favicon.ico` from the host keeps the hosts a reply links to away from a third-party favicon service; a host that serves nothing gets no icon\": `guard let url = URL(string: \"https://\\(host)/favicon.ico\") else { return nil }`; `var request = URLRequest(url: url)`; `request.timeoutInterval = 5`; `guard let (data, response) = try? await URLSession.shared.data(for: request), let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode), NSImage(data: data) != nil else { return nil }`; `return data`",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:1014-1046 isPublic(host:): rejects an empty host and \"localhost\"; rejects anything containing a colon (an IPv6 literal); rejects the suffixes .local, .localhost, .localdomain, .internal, .intranet, .lan, .home, .home.arpa, .test, .invalid and .corp; rejects a host with no dot; and for a host that is exactly four numeric labels in 0...255 rejects 0.x, 10.x, 127.x, 169.254.x, 192.168.x, 172.16-31.x and 100.64-127.x",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:880 `if let hit = memory[key] { return hit }` and :932-937 `if let image { if memory.count >= 300 { memory.removeAll(keepingCapacity: true) }; memory[key] = image } else { failed.insert(key) }`: a success is kept only in `memory`, which is emptied wholesale at 300 entries, while `failed` is never emptied"
       ],
       "preconditions": "A paragraph carries a link whose host has no cached icon.",
       "action": "The icon is fetched.",
@@ -3364,7 +3371,7 @@
         "A host that does not form a valid https URL: no request, and the host is recorded as failed."
       ],
       "cancellation": "Not cancellable; the shared task runs to completion even if every asker went away.",
-      "windows_path": "One network request per public host while its icon stays cached or its failure is recorded, sent from the renderer to the linked host itself; a successful host is requested again after the 300-entry cache is emptied, a failed one never. The public-host test is a privacy control and must be ported rule for rule, including the carrier-grade NAT range and the IPv6 rejection. The source comment at MarkdownView.swift:918-919 still speaks of \"a service on the web\"; the code sends to the host itself.",
+      "windows_path": "One network request per public host while its icon stays cached or its failure is recorded, sent from the renderer to the linked host itself; a successful host is requested again after the 300-entry cache is emptied, a failed one never. The public-host test is a privacy control and must be ported rule for rule, including the carrier-grade NAT range and the IPv6 rejection. The source comment at MarkdownView.swift:882-883 still speaks of \"a service on the web\"; the code sends to the host itself.",
       "verification_method": "contract fixture against a mock HTTPS host: one GET to /favicon.ico with a 5 second timeout, no second request after a 404, a timeout or an undecodable body, and a second request for a successful host once 300 other icons have emptied the cache; unit: the isPublic table, including 100.64.0.1 and a host with a colon",
       "status": "IMPLEMENTED",
       "upstream_defect": null,
@@ -3376,9 +3383,9 @@
       "id": "PR-THEME-138",
       "title": "A fetched icon is capped at 64 pixels, has its white plate flood-filled away, and is stored as a 28 pixel bitmap presented at 14 points",
       "source_evidence": [
-        "DroppyCode/UI/Markdown/MarkdownView.swift:955-975 cleaned(): the icon is scaled so its long side is at most 64, drawn with high interpolation into a 4-channel 8-bit bitmap with alpha, then run through the plate removal",
-        "DroppyCode/UI/Markdown/MarkdownView.swift:977-1048 removeWhitePlate(): pixels are white when alpha is above 200, the darkest channel is at least 236 and the channel spread is at most 20; a flood fill starts from every white pixel on all four borders and spreads to white neighbours; plate pixels become fully transparent; a non-plate pixel adjacent to the plate whose darkest channel is at least 160 is un-premultiplied against white with alpha 1 minus that channel over 255, and made fully transparent when that alpha is 0.02 or less",
-        "DroppyCode/UI/Markdown/MarkdownView.swift:1084-1098 resizedIcon(): the cleaned icon is drawn into a 28 by 28 bitmap with high interpolation and returned as an image whose declared size is 14 by 14"
+        "DroppyCode/UI/Markdown/MarkdownView.swift:919-939 cleaned(): the icon is scaled so its long side is at most 64, drawn with high interpolation into a 4-channel 8-bit bitmap with alpha, then run through the plate removal",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:941-1012 removeWhitePlate(): pixels are white when alpha is above 200, the darkest channel is at least 236 and the channel spread is at most 20; a flood fill starts from every white pixel on all four borders and spreads to white neighbours; plate pixels become fully transparent; a non-plate pixel adjacent to the plate whose darkest channel is at least 160 is un-premultiplied against white with alpha 1 minus that channel over 255, and made fully transparent when that alpha is 0.02 or less",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:1048-1062 resizedIcon(): the cleaned icon is drawn into a 28 by 28 bitmap with high interpolation and returned as an image whose declared size is 14 by 14"
       ],
       "preconditions": "Icon data was fetched.",
       "action": "The icon is prepared for display.",
@@ -3403,8 +3410,8 @@
       "id": "PR-THEME-139",
       "title": "The favicon cache discards every icon at 300 entries and never clears its failure set",
       "source_evidence": [
-        "DroppyCode/UI/Markdown/MarkdownView.swift:932-937 `if let image { if memory.count >= 300 { memory.removeAll(keepingCapacity: true) }; memory[key] = image } else { failed.insert(key) }`",
-        "DroppyCode/UI/Markdown/MarkdownView.swift:909-912 the failed set and the in-flight map",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:896-901 `if let image { if memory.count >= 300 { memory.removeAll(keepingCapacity: true) }; memory[key] = image } else { failed.insert(key) }`",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:873-876 the failed set and the in-flight map",
         "E:/Droppy/port/porting/upstream_defects.md entry 49",
         "E:/Droppy/port/porting/extracts/markdown-link-grammar.md gotcha 10"
       ],
@@ -3500,9 +3507,10 @@
       "id": "PR-THEME-143",
       "title": "In the native attributed path a head mention is a tinted dragon glyph, a space and the bold name, carrying a custom attribute and deliberately not a link",
       "source_evidence": [
-        "DroppyCode/UI/Markdown/LinkParagraphView.swift:179-244 appendProse(): with no mentions the run is appended plainly; otherwise names are matched longest first and word-bounded (the character before and after must be neither a letter nor a number); a match emits an attachment whose image is the tinted dragon at `glyphSize = (base.pointSize * 1.25).rounded()` with bounds `NSRect(x: 0, y: base.descender + 1, width: glyphSize, height: glyphSize)`, then a space in the base font and the text colour, then the name in the bold face in the persona's own colour",
-        "DroppyCode/UI/Markdown/LinkParagraphView.swift:223-230 the comment 'Custom attribute, not .link: linkTextAttributes would recolour the name in the accent. No pointing hand either: a head chip keeps the normal arrow cursor. Its hover popover and its click still work; the hand is what a real link wears.' with `let headAttributes: [NSAttributedString.Key: Any] = [.hydraHead: target.url]` applied over the attachment's whole range",
-        "DroppyCode/UI/Markdown/LinkParagraphView.swift:234-238 the name run `NSAttributedString(string: persona.name, attributes: [.font: bold, .foregroundColor: nsColor(persona), .hydraHead: target.url])`",
+        "DroppyCode/UI/Markdown/LinkParagraphView.swift:179-223 appendProse(): with no mentions the run is appended plainly; otherwise `MentionScanner.matches(in: string, candidates: mentions, name: \\.name)` (:197) finds names longest first and word-bounded (the character before and after must be neither a letter nor a number); a match emits an attachment whose image is the tinted dragon at `glyphSize = (base.pointSize * 1.25).rounded()` with bounds `NSRect(x: 0, y: base.descender + 1, width: glyphSize, height: glyphSize)`, then a space in the base font and the text colour, then the name in the bold face in the persona's own colour",
+        "DroppyCode/UI/Markdown/MentionScanner.swift:1-33 matches(in:candidates:name:) - the shared longest-first, word-bounded scan, sorting candidates by name length descending and testing the character before and after each candidate occurrence with isLetter/isNumber",
+        "DroppyCode/UI/Markdown/LinkParagraphView.swift:203-210 the comment 'Custom attribute, not .link: linkTextAttributes would recolour the name in the accent. No pointing hand either: a head chip keeps the normal arrow cursor. Its hover popover and its click still work; the hand is what a real link wears.' with `let headAttributes: [NSAttributedString.Key: Any] = [.hydraHead: target.url]` applied over the attachment's whole range",
+        "DroppyCode/UI/Markdown/LinkParagraphView.swift:214-218 the name run `NSAttributedString(string: persona.name, attributes: [.font: bold, .foregroundColor: nsColor(persona), .hydraHead: target.url])`",
         "DroppyCode/UI/Markdown/LinkParagraphView.swift:247-249 `extension NSAttributedString.Key { static let hydraHead = NSAttributedString.Key(\"droppycode.hydraHead\") }`",
         "DroppyCode/UI/Markdown/LinkParagraphView.swift:158-177 the dragon image is cached per asset, colour and size and is drawn by filling the persona's colour over the source art with the source-atop operation"
       ],
@@ -3520,14 +3528,16 @@
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "The word-bounded, longest-first matching loop moves out of appendProse into the new shared UI.Markdown.MentionScanner (N10), called at :197 as `MentionScanner.matches(in:candidates:name:)`; MarkdownView.swift's mention scan (PR-THEME-*) uses the same function. The matching rule itself (longest name first; the character before and after must be neither a letter nor a number) is unchanged."
     },
     {
       "id": "PR-THEME-144",
       "title": "Hovering a link paragraph raises the pointing hand over links and shows a head's card over a mention, and clears both on exit",
       "source_evidence": [
-        "DroppyCode/UI/Markdown/MarkdownView.swift:1158-1193 the continuous hover: while active, the hand is pushed when the point is over a link and popped when it leaves, only on change; a head mention under the point whose name, URL and persona all agree shows the head popover anchored to the mention's rect, only when the hovered head changes; anything else hides it; on end the hand is popped and the popover hidden; the same happens on disappear",
-        "DroppyCode/UI/Markdown/ProseRunView.swift:27-59 the prose-run view repeats the same hover handling: `.onContinuousHover(coordinateSpace: .local)` pushing `NSCursor.pointingHand` only when `overLink != hand.wrappedValue`, showing `HydraHeadHoverPopover.shared.show(persona: persona, target: target, relativeTo: rect, of: view)` only when `hoveredHead.wrappedValue != target.threadID`, and on `.ended` and `.onDisappear` popping the hand and calling `HydraHeadHoverPopover.shared.hide()`",
+        "DroppyCode/UI/Markdown/LinkHover.swift:1-51 LinkHoverModifier - the shared continuous hover: while active, the hand is pushed when the point is over a link and popped when it leaves, only on change; a head mention under the point whose name, URL and persona all agree shows the head popover anchored to the mention's rect, only when the hovered head changes; anything else hides it; on end the hand is popped and the popover hidden; the same happens on disappear",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:1119-1120 - `.modifier(LinkHoverModifier(linkView: linkBox, showsHand: $showsHand, hoveredHeadID: $hoveredHeadID, personas: hydraMentionPersonas, targets: targets))`",
+        "DroppyCode/UI/Markdown/ProseRunView.swift:24 - the prose-run view applies the identical `.modifier(LinkHoverModifier(...))`",
         "DroppyCode/UI/Markdown/LinkParagraphView.swift:339-350 the text view keeps no tracking areas and no cursor rects of its own, because rebuilding them every scrolled frame was a per-frame tax; the hover comes from the enclosing view instead",
         "DroppyCode/UI/Markdown/LinkParagraphView.swift:352-357 hasLink(at:) is true only for a real link; a head mention is clickable but keeps the arrow cursor",
         "DroppyCode/UI/Markdown/HydraHeadHoverPopover.swift - the card appears after a 250 millisecond hover delay, is measured at a pinned width of 300 points, and falls back to a height of 78 points"
@@ -3550,34 +3560,39 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation corrected, behaviour unchanged: ProseRunView.swift:248-280 lay beyond the end of the file (245 lines at B1, 244 at B2) -> B2 ProseRunView.swift:27-59, the same hover handler (B1 :28-60; B2 removed only B1 :7 `@Environment(\\.chatZoom) private var zoom`)."
+      "b2_change": "Citation corrected, behaviour unchanged: ProseRunView.swift:248-280 lay beyond the end of the file (245 lines at B1, 244 at B2) -> B2 ProseRunView.swift:27-59, the same hover handler (B1 :28-60; B2 removed only B1 :7 `@Environment(\\.chatZoom) private var zoom`).",
+      "b3_note": "Citation only: the duplicated hover handler that lived separately in MarkdownView.swift (B2 :1158-1193) and ProseRunView.swift (B2 :27-59) is extracted into one shared UI.Markdown.LinkHover (N9), `LinkHoverModifier`; both call sites now just apply `.modifier(LinkHoverModifier(...))` (MarkdownView.swift:1119-1120, ProseRunView.swift:24). The behaviour is unchanged; this closes the B2-era duplication the two prior citations recorded separately."
     },
     {
       "id": "PR-THEME-145",
-      "title": "Clicking a link opens it in the default browser; clicking a head mention opens that head's chat instead",
+      "title": "Clicking a link opens it through MarkdownLinkOpener, which treats a scheme-less absolute path as a local file; clicking a head mention opens that head's chat instead",
       "source_evidence": [
-        "DroppyCode/UI/Markdown/LinkParagraphView.swift:90-100 the delegate's clickedOnLink: a URL value, or a string that parses as one, is opened with the workspace and the click is consumed; anything else is not handled",
+        "DroppyCode/UI/Markdown/LinkParagraphView.swift:90-100 the delegate's clickedOnLink: a URL value, or a string that parses as one, is opened with `MarkdownLinkOpener.open(url)` and the click is consumed; anything else is not handled",
+        "DroppyCode/UI/Markdown/LinkParagraphView.swift:226-245 `enum MarkdownLinkOpener { static func open(_ url: URL) { ... } }` - a URL with no scheme, no host, no query and no fragment, whose path starts with \"/\", opens as a local file URL. When that path does not exist as a file but stripping a trailing `:<positive integer>` leaves an existing non-directory path, the suffix is stripped first (`path[..<colon]`, checked with `fileExists(atPath:isDirectory:)`). Everything else, including any URL with a scheme, goes to `NSWorkspace.shared.open(url)` unchanged",
         "DroppyCode/UI/Markdown/LinkParagraphView.swift:444-451 mouseDown: a head mention under the point calls the open-head handler and the event goes no further; otherwise the normal text behaviour runs",
-        "DroppyCode/UI/Markdown/MarkdownView.swift:1154 the handler passed in opens the head URL through the environment's URL opener"
+        "DroppyCode/UI/Markdown/MarkdownView.swift:1114 the handler passed in opens the head URL through the environment's URL opener",
+        "DroppyCode/UI/Markdown/LinkPopover.swift:89 - the popover's \"Open Link\" item also calls MarkdownLinkOpener.open(url) (PR-THEME-147)"
       ],
       "preconditions": "A paragraph with links or mentions is on screen.",
       "action": "The user clicks a link or a mention.",
-      "expected_result": "A click on a link opens its URL in the system's default handler. A click on a head mention opens that head's chat through the app's own URL handling and does not select text or move the insertion point. A click on prose behaves as a normal text click and starts a selection.",
+      "expected_result": "A click on a link runs it through MarkdownLinkOpener.open. On macOS this only ever matters for a scheme-less absolute path such as \"/Users/me/app/main.swift:12\" (chat-model output can produce these): it opens as a local file, with a trailing \":<positive integer>\" suffix stripped first when the full path does not exist but the stripped path is an existing file (so \"main.swift:12\" opens \"main.swift\"; \":0\" and a negative number are left alone, since they are not \"a positive integer\"). Every other URL, including any with a scheme (http, https, mailto, and so on), goes to the system's default handler unchanged. A click on a head mention opens that head's chat through the app's own URL handling and does not select text or move the insertion point. A click on prose behaves as a normal text click and starts a selection.",
       "side_effects": [
-        "Launches the default browser for an external link",
+        "Opens a local file, or launches the default browser or handler for an external link",
         "Navigates within the app for a head mention"
       ],
       "persistence": "not persisted",
       "failure_cases": [
-        "A link value that is neither a URL nor a parseable string is ignored and the click falls through."
+        "A link value that is neither a URL nor a parseable string is ignored and the click falls through.",
+        "A scheme-less path that does not exist, with or without the suffix stripped: NSWorkspace.shared.open is still tried with the local file URL and fails silently (no error surfaced to the user)"
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Opening an external URL hands it to the Windows shell. Note the head-mention click is intercepted before the text view sees it, which is why it does not disturb the selection.",
-      "verification_method": "interaction test: a mention click does not move the caret",
-      "status": "IMPLEMENTED",
+      "windows_path": "UNRESOLVED pending owner decision O4 (drive-letter and UNC paths, and what a chat link may launch): Windows paths are `C:\\...` or `C:/...`, not `/...`, so a literal port of the \"/\"-rooted check never fires on Windows and every link falls through to the generic opener, where a bare drive-letter string parses with scheme \"C\" and fails against ShellExecuteW. Recommendation B (decisions_draft.md O4): treat Windows absolute paths (`C:\\...`, `C:/...`, the file-URL form `/C:/...`) as the local-file branch with the same `:line` suffix rule; never open a UNC path (`\\\\host\\share`, `file://host/...`) from a chat link, as a named safety deviation; and reveal a locally-runnable file type in File Explorer rather than launching it, also a named safety deviation. The generic opener (ShellExecuteW) must otherwise refuse a relative or scheme-less string it cannot resolve, rather than guessing.",
+      "verification_method": "interaction test: a mention click does not move the caret; unit: /abs/a.swift:12 opens the stripped path, :0 and a negative suffix are kept, a directory-prefixed path is kept, and a scheme/query/fragment URL goes to the default opener",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "B3 introduces MarkdownLinkOpener (LinkParagraphView.swift:226-245), replacing the direct NSWorkspace.shared.open(url) call at the clickedOnLink delegate (:92, :96) and at LinkPopover's \"Open Link\" item (PR-THEME-147). Its Windows behaviour depends on OWNER decision O4, which this record's windows_path names but does not resolve; write the record from the Swift and revisit windows_path once O4 is decided."
     },
     {
       "id": "PR-THEME-146",
@@ -3613,15 +3628,15 @@
       "id": "PR-THEME-147",
       "title": "The link popover is 220 points wide and offers Open Link and Copy Link, with Merge above them on a merge or pull request link",
       "source_evidence": [
-        "DroppyCode/UI/Markdown/LinkPopover.swift:68-97 LinkPopoverContent: `VStack(alignment: .leading, spacing: 0)`; `if let request { PopoverItem(request.title, text: Text(\"\\(Text(\"Merge\").fontWeight(.semibold)) \\(Text(verbatim: request.label))\"), symbol: favicon == nil ? \"arrow.triangle.merge\" : nil, image: favicon) { merge(request) }; PopoverDivider() }`; `PopoverItem(\"Open Link\", symbol: \"safari\") { NSWorkspace.shared.open(url) }`; `PopoverItem(\"Copy Link\", symbol: \"link\") { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(url.absoluteString, forType: .string) }`; `.padding(6)`, `.frame(width: 220, alignment: .leading)`. A request exists only when the chat can merge: `let request = mergeTarget == nil ? nil : MergeRequestLink(url: url)` (:29), and choosing it runs `self?.close()` then `mergeTarget?.merge(request)` (:30-33)",
+        "DroppyCode/UI/Markdown/LinkPopover.swift:68-97 LinkPopoverContent: `VStack(alignment: .leading, spacing: 0)`; `if let request { PopoverItem(request.title, text: Text(\"\\(Text(\"Merge\").fontWeight(.semibold)) \\(Text(verbatim: request.label))\"), symbol: favicon == nil ? \"arrow.triangle.merge\" : nil, image: favicon) { merge(request) }; PopoverDivider() }`; `PopoverItem(\"Open Link\", symbol: \"safari\") { MarkdownLinkOpener.open(url) }`; `PopoverItem(\"Copy Link\", symbol: \"link\") { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(url.absoluteString, forType: .string) }`; `.padding(6)`, `.frame(width: 220, alignment: .leading)`. A request exists only when the chat can merge: `let request = mergeTarget == nil ? nil : MergeRequestLink(url: url)` (:29), and choosing it runs `self?.close()` then `mergeTarget?.merge(request)` (:30-33)",
         "DroppyCode/UI/Markdown/LinkPopover.swift:98-106 the favicon task: `guard request != nil, let host = url.host?.lowercased() else { return }`; `if let cached = FaviconCache.cached(host: host) { favicon = cached } else { favicon = await FaviconCache.image(for: host) }` (the fetch itself is PR-THEME-137)",
         "DroppyCode/UI/Markdown/LinkPopover.swift:4-7 doc: \"The popover a link in the chat opens on a right-click, in place of the system's text menu: the house rows, under the link. A merge or pull request link gets \\\"Merge\\\" first, wearing the forge's favicon; every link gets Open Link and Copy Link. One popover serves every link paragraph; opening it on another link moves it there.\""
       ],
       "preconditions": "The link popover is open.",
       "action": "The user reads it and chooses a row.",
-      "expected_result": "The popover is 220 points wide with 6 points of padding, its rows stacked leading-aligned with no spacing between them. Every link shows a row labelled exactly \"Open Link\" with a compass symbol and a row labelled exactly \"Copy Link\" with a link symbol. A merge or pull request link, in a chat that can merge, shows first a row whose text is the word \"Merge\" in semibold followed by the request's own label, wearing the forge host's favicon (or a merge-arrow symbol until the icon loads), then a divider. Open Link opens the URL in the default browser. Copy Link clears the clipboard and writes the URL's absolute string as plain text. Merge closes the popover and hands the request to the chat.",
+      "expected_result": "The popover is 220 points wide with 6 points of padding, its rows stacked leading-aligned with no spacing between them. Every link shows a row labelled exactly \"Open Link\" with a compass symbol and a row labelled exactly \"Copy Link\" with a link symbol. A merge or pull request link, in a chat that can merge, shows first a row whose text is the word \"Merge\" in semibold followed by the request's own label, wearing the forge host's favicon (or a merge-arrow symbol until the icon loads), then a divider. Open Link runs the URL through MarkdownLinkOpener.open (PR-THEME-145): almost always the default browser, except for the scheme-less absolute local-file case that record specifies. Copy Link clears the clipboard and writes the URL's absolute string as plain text. Merge closes the popover and hands the request to the chat.",
       "side_effects": [
-        "Open Link launches the browser",
+        "Open Link opens a local file or launches the browser, per MarkdownLinkOpener",
         "Copy Link writes the clipboard",
         "Merge closes the popover and starts a merge in the chat",
         "The Merge row may fetch a favicon"
@@ -3631,23 +3646,24 @@
         "Content that measures to a non-positive size falls back to 220 by 110 points."
       ],
       "cancellation": "Dismissing the popover cancels nothing that has started.",
-      "windows_path": "The three row labels are verbatim. The merge behaviour itself belongs to the GIT and HYDRAMERGE areas; this requirement fixes the popover's shape, its labels and its two universal actions.",
-      "verification_method": "interaction test: the row set with and without a merge target; unit: the three exact labels",
+      "windows_path": "The three row labels are verbatim. Open Link's actual opening behaviour follows PR-THEME-145's MarkdownLinkOpener rule (UNRESOLVED pending owner decision O4). The merge behaviour itself belongs to the GIT and HYDRAMERGE areas; this requirement fixes the popover's shape, its labels and its two universal actions.",
+      "verification_method": "interaction test: the row set with and without a merge target; unit: the three exact labels; Open Link's opening behaviour is covered by PR-THEME-145's tests",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation corrected, behaviour unchanged: LinkPopover.swift:180-219, :210-218 and :116-119 lay beyond the end of the file (108 lines at B1 and at B2; the file is byte-identical between them) -> B2 LinkPopover.swift:68-97, :98-106 and :4-7; the doc quote is now verbatim (it puts Merge in quotation marks). At B2 the favicon it fetches comes from the host's own /favicon.ico (PR-THEME-137)."
+      "b2_change": "Citation corrected, behaviour unchanged: LinkPopover.swift:180-219, :210-218 and :116-119 lay beyond the end of the file (108 lines at B1 and at B2; the file is byte-identical between them) -> B2 LinkPopover.swift:68-97, :98-106 and :4-7; the doc quote is now verbatim (it puts Merge in quotation marks). At B2 the favicon it fetches comes from the host's own /favicon.ico (PR-THEME-137).",
+      "b3_note": "B3 changes Open Link's action from NSWorkspace.shared.open(url) to MarkdownLinkOpener.open(url) (LinkPopover.swift:89), the same change as PR-THEME-145's clickedOnLink delegate. Depends on OWNER decision O4 for the Windows path behaviour."
     },
     {
       "id": "PR-THEME-148",
       "title": "A link paragraph's favicon and video work is keyed on its stable hosts and video ids, so a streamed token with no new link starts nothing",
       "source_evidence": [
-        "DroppyCode/UI/Markdown/MarkdownView.swift:649-657 linkAssetKey(): the paragraph's hosts joined with commas, a vertical bar, then its video ids joined with commas; the empty string when there is neither, so a caller's emptiness test still means something",
-        "DroppyCode/UI/Markdown/MarkdownView.swift:623-647 linkHosts() and videoIDs(): first-seen order, each host lower-cased, each id once",
-        "DroppyCode/UI/Markdown/MarkdownView.swift:1194-1198 the task is keyed on that string",
-        "DroppyCode/UI/Markdown/MarkdownView.swift:1223-1237 fetchLinkAssets(): fetches an icon for each host that has none and a title for each video id, and when anything changed invalidates the paragraph's cached pretty string and bumps a revision so the text rebuilds",
-        "DroppyCode/UI/Markdown/MarkdownView.swift:659-664 invalidate(): drops the paragraph's entry from the pretty cache and from the streaming slots"
+        "DroppyCode/UI/Markdown/MarkdownView.swift:613-621 linkAssetKey(): the paragraph's hosts joined with commas, a vertical bar, then its video ids joined with commas; the empty string when there is neither, so a caller's emptiness test still means something",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:587-611 linkHosts() and videoIDs(): first-seen order, each host lower-cased, each id once",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:1121-1125 the task is keyed on that string",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:1150-1164 fetchLinkAssets(): fetches an icon for each host that has none and a title for each video id, and when anything changed invalidates the paragraph's cached pretty string and bumps a revision so the text rebuilds",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:623-628 invalidate(): drops the paragraph's entry from the pretty cache and from the streaming slots"
       ],
       "preconditions": "A link paragraph is on screen.",
       "action": "Tokens arrive that do not add a link.",
@@ -3672,14 +3688,14 @@
       "id": "PR-THEME-149",
       "title": "A prose run renders several blocks as one native text object with explicit paragraph styles, and drops code, tables and rules",
       "source_evidence": [
-        "DroppyCode/UI/Markdown/ProseRunView.swift:125-147 joinedSources() and collect(): paragraph and heading texts, list item texts and their children, and quote children are gathered and joined with newlines; `case .code, .table, .rule: break`",
-        "DroppyCode/UI/Markdown/ProseRunView.swift:149-156 attributed(): every block is appended with `depth: 0, indent: 0, dimmed: dimmed, spacing: 12`",
-        "DroppyCode/UI/Markdown/ProseRunView.swift:159-161 `let base = NSFont.systemFont(ofSize: pointSize)`; `let color = dimmed ? NSColor.labelColor.withAlphaComponent(0.7) : NSColor.labelColor`",
-        "DroppyCode/UI/Markdown/ProseRunView.swift:163-171 a paragraph gets a style with the current indent as both `firstLineHeadIndent` and `headIndent` and `paragraphSpacing = spacing`",
-        "DroppyCode/UI/Markdown/ProseRunView.swift:172-196 a heading is rendered at `(pointSize * 1.35).rounded()` for level 1, `(pointSize * 1.2).rounded()` for level 2, `(pointSize * 1.08).rounded()` for level 3 and `pointSize` otherwise; every run that is neither bold nor monospaced is set to `NSFont.systemFont(ofSize: size, weight: .semibold)`; `paragraphSpacingBefore = level <= 2 ? 6 : 2`, `paragraphSpacing = 12`",
-        "DroppyCode/UI/Markdown/ProseRunView.swift:197-226 a list item's marker is \"☑\" or \"☐\" when checked, `\"\\(start + index).\"` when ordered, `depth == 0 ? \"•\" : \"◦\"` otherwise, followed by \"\\t\"; `headIndent = indent + 18`, `tabStops = [NSTextTab(textAlignment: .left, location: indent + 18)]`, `defaultTabInterval = 18`, `paragraphSpacing = (depth == 0 && index == items.count - 1) ? 12 : 6`; children at `depth + 1`, `indent + 18`, spacing 6",
-        "DroppyCode/UI/Markdown/ProseRunView.swift:227-230 a quote's children are appended at `indent + 14` with `dimmed: true` and `spacing: spacing` (:229), the quote's own caller's spacing",
-        "DroppyCode/UI/Markdown/ProseRunView.swift:236-243 separate(): a \"\\n\" in the base font and colour is inserted before every block after the first",
+        "DroppyCode/UI/Markdown/ProseRunView.swift:90-112 joinedSources() and collect(): paragraph and heading texts, list item texts and their children, and quote children are gathered and joined with newlines; `case .code, .table, .rule: break`",
+        "DroppyCode/UI/Markdown/ProseRunView.swift:114-121 attributed(): every block is appended with `depth: 0, indent: 0, dimmed: dimmed, spacing: 12`",
+        "DroppyCode/UI/Markdown/ProseRunView.swift:124-126 `let base = NSFont.systemFont(ofSize: pointSize)`; `let color = dimmed ? NSColor.labelColor.withAlphaComponent(0.7) : NSColor.labelColor`",
+        "DroppyCode/UI/Markdown/ProseRunView.swift:128-136 a paragraph gets a style with the current indent as both `firstLineHeadIndent` and `headIndent` and `paragraphSpacing = spacing`",
+        "DroppyCode/UI/Markdown/ProseRunView.swift:137-161 a heading is rendered at `(pointSize * 1.35).rounded()` for level 1, `(pointSize * 1.2).rounded()` for level 2, `(pointSize * 1.08).rounded()` for level 3 and `pointSize` otherwise; every run that is neither bold nor monospaced is set to `NSFont.systemFont(ofSize: size, weight: .semibold)`; `paragraphSpacingBefore = level <= 2 ? 6 : 2`, `paragraphSpacing = 12`",
+        "DroppyCode/UI/Markdown/ProseRunView.swift:162-191 a list item's marker is \"☑\" or \"☐\" when checked, `\"\\(start + index).\"` when ordered, `depth == 0 ? \"•\" : \"◦\"` otherwise, followed by \"\\t\"; `headIndent = indent + 18`, `tabStops = [NSTextTab(textAlignment: .left, location: indent + 18)]`, `defaultTabInterval = 18`, `paragraphSpacing = (depth == 0 && index == items.count - 1) ? 12 : 6`; children at `depth + 1`, `indent + 18`, spacing 6",
+        "DroppyCode/UI/Markdown/ProseRunView.swift:192-195 a quote's children are appended at `indent + 14` with `dimmed: true` and `spacing: spacing` (:229), the quote's own caller's spacing",
+        "DroppyCode/UI/Markdown/ProseRunView.swift:201-208 separate(): a \"\\n\" in the base font and colour is inserted before every block after the first",
         "DroppyCode/UI/Markdown/ProseRunView.swift:17 `let scaled = (pointSize * 2).rounded() / 2`, passed as the run's point size (:25)"
       ],
       "preconditions": "A finished message has a run of headings, paragraphs, lists or quotes.",
@@ -3703,9 +3719,9 @@
       "id": "PR-THEME-150",
       "title": "A prose run rebuilds only when its text, size, dimming, revision, mentions or head targets change, and keeps its click handler fresh regardless",
       "source_evidence": [
-        "DroppyCode/UI/Markdown/ProseRunView.swift:91-112 updateNSView: the string is rebuilt only when `coordinator.lastSource != source || coordinator.lastPointSize != pointSize || coordinator.lastDimmed != dimmed || coordinator.lastRevision != revision || coordinator.lastMentions != mentionNames || coordinator.lastHeads != headLinks`; outside that check `view.onOpenHead = onOpenHead` and `view.mergeTarget = context.environment.mergeRequestTarget` always run, under the comment \"Outside the render check: the click handler is the environment's, and a new one must land even on an update that drew nothing.\"",
-        "DroppyCode/UI/Markdown/ProseRunView.swift:82-89 makeNSView sets `view.passesProseThrough = false` and publishes the view to its host (`onHost?(view)`)",
-        "DroppyCode/UI/Markdown/ProseRunView.swift:119-123 dismantleNSView: `view.delegate = nil`, `view.onOpenHead = nil`, `view.mergeTarget = nil`",
+        "DroppyCode/UI/Markdown/ProseRunView.swift:56-77 updateNSView: the string is rebuilt only when `coordinator.lastSource != source || coordinator.lastPointSize != pointSize || coordinator.lastDimmed != dimmed || coordinator.lastRevision != revision || coordinator.lastMentions != mentionNames || coordinator.lastHeads != headLinks`; outside that check `view.onOpenHead = onOpenHead` and `view.mergeTarget = context.environment.mergeRequestTarget` always run, under the comment \"Outside the render check: the click handler is the environment's, and a new one must land even on an update that drew nothing.\"",
+        "DroppyCode/UI/Markdown/ProseRunView.swift:47-54 makeNSView sets `view.passesProseThrough = false` and publishes the view to its host (`onHost?(view)`)",
+        "DroppyCode/UI/Markdown/ProseRunView.swift:84-88 dismantleNSView: `view.delegate = nil`, `view.onOpenHead = nil`, `view.mergeTarget = nil`",
         "E:/Droppy/port/porting/upstream_defects.md entry 55: dismantle does not detach the stream veil, unlike the link paragraph's; latent because the prose-run path never activates the veil"
       ],
       "preconditions": "A prose run is on screen.",
@@ -3729,10 +3745,10 @@
       "id": "PR-THEME-151",
       "title": "A native paragraph publishes first and last baseline guides measured once per point size, so list markers align with its text",
       "source_evidence": [
-        "DroppyCode/UI/Markdown/MarkdownView.swift:1135-1142 the comment: an AppKit view has no text baseline of its own, so a list marker sat on the paragraph's top edge; the first line's baseline is the base font's ascender from the top and the last is one line up from the bottom",
-        "DroppyCode/UI/Markdown/MarkdownView.swift:1156-1157 `.alignmentGuide(.firstTextBaseline) { _ in ascender }` and `.alignmentGuide(.lastTextBaseline) { $0.height - lineHeight + ascender }`",
-        "DroppyCode/UI/Markdown/MarkdownView.swift:1210-1221 metrics(pointSize:): the ceiling of the system font's ascender, and the ceiling of ascender minus descender plus leading, cached per point size",
-        "DroppyCode/UI/Markdown/MarkdownView.swift:1130 `let scaled = (pointSize * 2).rounded() / 2`, so sizes land on half points"
+        "DroppyCode/UI/Markdown/MarkdownView.swift:1098-1105 the comment: an AppKit view has no text baseline of its own, so a list marker sat on the paragraph's top edge; the first line's baseline is the base font's ascender from the top and the last is one line up from the bottom",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:1116-1117 `.alignmentGuide(.firstTextBaseline) { _ in ascender }` and `.alignmentGuide(.lastTextBaseline) { $0.height - lineHeight + ascender }`",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:1137-1148 metrics(pointSize:): the ceiling of the system font's ascender, and the ceiling of ascender minus descender plus leading, cached per point size",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:1094 `let scaled = (pointSize * 2).rounded() / 2`, so sizes land on half points"
       ],
       "preconditions": "A link paragraph is inside a list item or another baseline-aligned stack.",
       "action": "The stack lays out.",
@@ -4227,7 +4243,7 @@
         "DroppyCode/UI/Common/WorkingIndicators.swift:84-86 `/// Draws one still frame with plain shapes instead of hosting a layer view. For image renderers, which cannot capture AppKit views: the archive ghost is rendered this way.` with `var isStill = false`",
         "DroppyCode/UI/Common/WorkingIndicators.swift:101-107 `if isStill { StillSpinnerCells(cells: Self.cells, columns: 2, cellSize: cellSize, tints: GradientSpin.rowTints(accent: Chrome.accentNSColor)) } else { SpinnerCells(...) }`",
         "DroppyCode/UI/Common/WorkingIndicators.swift:112-138 `/// A spinner's cells as plain shapes, frozen at the start of the wave.` with the VStack/HStack of `Rectangle().fill(Color(nsColor: tints[row])).frame(width: cellSize, height: cellSize).opacity(GradientSpin.opacity(phase: -lag))`, both stack spacings `cellSize * 0.8`, and the lag looked up per (row, column) defaulting to 0",
-        "porting/dead_code.md:89 records this variant as NOT dead; its call site is DroppyCode/App/Views/Sidebar/SidebarView.swift:2101 `MiniSpinner(cellSize: 2.4, isStill: true)`, the archive ghost face"
+        "porting/dead_code.md:89 records this variant as NOT dead; its call site is DroppyCode/App/Views/Sidebar/SidebarView.swift:2100 `MiniSpinner(cellSize: 2.4, isStill: true)`, the archive ghost face"
       ],
       "preconditions": "A row is being rendered into a flat image, such as the archive genie ghost.",
       "action": "The mini spinner is asked for its still form.",
@@ -4378,10 +4394,10 @@
       "id": "PR-THEME-177",
       "title": "A head mention in the SwiftUI text path is a real link carrying the head's colour and strong emphasis",
       "source_evidence": [
-        "DroppyCode/UI/Markdown/MarkdownView.swift:489-493 `private func mentionText(_ persona: HydraPersona) -> Text { let size: CGFloat = 16; let glyph = Text(Self.mentionGlyph(persona, size: size)).foregroundColor(persona.color).baselineOffset(Self.mentionGlyphOffset(size: size))`",
-        "DroppyCode/UI/Markdown/MarkdownView.swift:494 the comment `// A link in a Text keeps the colour the attribute sets and opens through the environment.`",
-        "DroppyCode/UI/Markdown/MarkdownView.swift:495-501 `if let target = hydraMentionTargets[persona.name] { var name = AttributedString(persona.name); name.link = target.url; name.foregroundColor = persona.color; name.inlinePresentationIntent = .stronglyEmphasized; return Text(\"\\(glyph) \\(Text(name))\") }`",
-        "DroppyCode/UI/Markdown/MarkdownView.swift:502-503 `let name = Text(verbatim: persona.name).fontWeight(.bold).foregroundColor(persona.color); return Text(\"\\(glyph) \\(name)\")`",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:448-452 `private func mentionText(_ persona: HydraPersona) -> Text { let size: CGFloat = 16; let glyph = Text(Self.mentionGlyph(persona, size: size)).foregroundColor(persona.color).baselineOffset(Self.mentionGlyphOffset(size: size))`",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:453 the comment `// A link in a Text keeps the colour the attribute sets and opens through the environment.`",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:454-460 `if let target = hydraMentionTargets[persona.name] { var name = AttributedString(persona.name); name.link = target.url; name.foregroundColor = persona.color; name.inlinePresentationIntent = .stronglyEmphasized; return Text(\"\\(glyph) \\(Text(name))\") }`",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:461-462 `let name = Text(verbatim: persona.name).fontWeight(.bold).foregroundColor(persona.color); return Text(\"\\(glyph) \\(name)\")`",
         "DroppyCode/UI/Markdown/MarkdownView.swift:385-386 `/// Lifts the 16pt glyph off the baseline onto the surrounding text's x-height.` with `private static func mentionGlyphOffset(size: CGFloat) -> CGFloat { -(size * 0.2) }`",
         "DroppyCode/UI/Markdown/MarkdownView.swift:388-393 `/// The head's dragon as a template image small enough to sit in a Text run. Redrawn once per (asset, size), then kept; tinted like the name.` with the cache keyed `persona.asset + \"@\\(size)\"`"
       ],
@@ -4404,9 +4420,9 @@
       "id": "PR-THEME-178",
       "title": "A head mention with no target renders as bold verbatim text in the persona colour, with no link and no attribute",
       "source_evidence": [
-        "DroppyCode/UI/Markdown/MarkdownView.swift:502-503 `let name = Text(verbatim: persona.name).fontWeight(.bold).foregroundColor(persona.color); return Text(\"\\(glyph) \\(name)\")`",
-        "DroppyCode/UI/Markdown/LinkParagraphView.swift:231-232 the native path's matching no-target branch `out.append(NSAttributedString(attachment: attachment))`",
-        "DroppyCode/UI/Markdown/LinkParagraphView.swift:236-238 the native path's no-target name `out.append(NSAttributedString(string: persona.name, attributes: [.font: bold, .foregroundColor: nsColor(persona)]))`"
+        "DroppyCode/UI/Markdown/MarkdownView.swift:461-462 `let name = Text(verbatim: persona.name).fontWeight(.bold).foregroundColor(persona.color); return Text(\"\\(glyph) \\(name)\")`",
+        "DroppyCode/UI/Markdown/LinkParagraphView.swift:211-212 the native path's matching no-target branch `out.append(NSAttributedString(attachment: attachment))`",
+        "DroppyCode/UI/Markdown/LinkParagraphView.swift:216-218 the native path's no-target name `out.append(NSAttributedString(string: persona.name, attributes: [.font: bold, .foregroundColor: nsColor(persona)]))`"
       ],
       "preconditions": "A paragraph names a head for which the chat holds no target.",
       "action": "The mention is rendered, in either path.",
@@ -4428,9 +4444,9 @@
       "source_evidence": [
         "DroppyCode/UI/Common/ChatFont.swift:3-10 `static func chat(_ style: Font.TextStyle, weight: Font.Weight? = nil, design: Font.Design = .default) -> Font { let resolvedWeight = weight ?? (style == .headline ? .semibold : nil); let font = Font.system(style, design: design); return resolvedWeight.map { font.weight($0) } ?? font }`, documented \"The app-wide zoom scales the window, not the type.\"",
         "DroppyCode/UI/Markdown/MarkdownView.swift:376-383 headingFont: `.chat(.title2, weight: .semibold)`, `.chat(.title3, weight: .semibold)`, `.chat(.headline)`, `.chat(.subheadline, weight: .semibold)`",
-        "DroppyCode/UI/Markdown/MarkdownView.swift:1290 `.font(.chat(.caption))`, :1301 `.font(.chat(.callout, design: .monospaced))`, :1313 and :1389 `.font(.chat(.caption))`",
-        "DroppyCode/UI/Markdown/MarkdownView.swift:1130 and DroppyCode/UI/Markdown/ProseRunView.swift:17 `let scaled = (pointSize * 2).rounded() / 2`",
-        "DroppyCode/UI/Markdown/MarkdownView.swift:490 `let size: CGFloat = 16`",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:1217 `.font(.chat(.caption))`, :1301 `.font(.chat(.callout, design: .monospaced))`, :1313 and :1389 `.font(.chat(.caption))`",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:1094 and DroppyCode/UI/Markdown/ProseRunView.swift:17 `let scaled = (pointSize * 2).rounded() / 2`",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:449 `let size: CGFloat = 16`",
         "DroppyCode/App/Window/WindowManager.swift:173-175 `// The zoom in Settings scales the whole app: every window root and every chat column carries it, so the sidebar, settings and composer move together.` `.modifier(AppZoomModifier(percent: model.settings.appZoom))`",
         "B1 B1:DroppyCode/UI/Common/ChatZoom.swift (the `chatZoom` environment value and `Font.chat(_:weight:design:zoom:)`, which scaled `chatBaseSize(style) * zoom` at any zoom other than 1, :59-70) is deleted at B2 and nothing at B2 reads `chatZoom`"
       ],
@@ -4459,8 +4475,8 @@
         "DroppyCode/UI/Markdown/LinkParagraphView.swift:141-144 the space after a favicon attachment carries `.foregroundColor: textColor`",
         "DroppyCode/UI/Markdown/LinkParagraphView.swift:146-150 a link run carries only `.font` and `.link`, with the comment `// Colour and underline come from the view's linkTextAttributes.`",
         "DroppyCode/UI/Markdown/LinkParagraphView.swift:152 a non-link run goes through `appendProse(string, font: font, color: textColor, ...)`, which sets `.foregroundColor: color` on prose (:183, :195) and on the space after a head glyph (:234)",
-        "DroppyCode/UI/Markdown/LinkParagraphView.swift:236-238 a head name keeps `.foregroundColor: nsColor(persona)`",
-        "DroppyCode/UI/Markdown/ProseRunView.swift:165, :181, :213 prose runs build their lines through `LinkParagraphView.attributed(source:pointSize:dimmed:...)`"
+        "DroppyCode/UI/Markdown/LinkParagraphView.swift:216-218 a head name keeps `.foregroundColor: nsColor(persona)`",
+        "DroppyCode/UI/Markdown/ProseRunView.swift:130, :181, :213 prose runs build their lines through `LinkParagraphView.attributed(source:pointSize:dimmed:...)`"
       ],
       "preconditions": "A native link paragraph (a paragraph with links or head mentions, or a line of a finished prose run) is built with the dimmed flag set, as inside a quote.",
       "action": "Its attributed string is built.",
@@ -4513,7 +4529,7 @@
         "DroppyCode/UI/Chrome/ChromeVisualPicker.swift:37-49 `HStack(alignment: .top, spacing: ChromeVisualTileMetrics.spacing) { ForEach(Array(options.enumerated()), id: \\.offset) { _, option in ChromeVisualTile(title: option.title, isSelected: option.value == selection, width: tileWidth) { withAnimation(Chrome.hover) { selection = option.value } } content: { preview(option.value) } } }`, `.fixedSize()`, `.background { NoWindowDragArea() }`",
         "DroppyCode/UI/Chrome/ChromeVisualPicker.swift:61-74 the tile is `Button(action: action)` in `.buttonStyle(.plain)`, with `.accessibilityLabel(Text(verbatim: title))` and `.accessibilityAddTraits(isSelected ? .isSelected : [])`",
         "DroppyCode/UI/Chrome/Chrome.swift:98 `static var hover: Animation { .easeOut(duration: 0.1) }`",
-        "DroppyCode/UI/Chrome/Chrome.swift:1106-1131 NoWindowDragArea: a press on the control works the control and never moves the window (`override var mouseDownCanMoveWindow: Bool { false }`), while empty chrome around the controls still drags the window",
+        "DroppyCode/UI/Chrome/Chrome.swift:1103-1128 NoWindowDragArea: a press on the control works the control and never moves the window (`override var mouseDownCanMoveWindow: Bool { false }`), while empty chrome around the controls still drags the window",
         "call sites: DroppyCode/App/Views/Settings/SettingsView.swift:328, :345, :396, :433, :439; DroppyCode/App/Views/Settings/HydraSettingsPage.swift:56, :77, :86; DroppyCode/App/Views/RootView.swift:332"
       ],
       "preconditions": "A row shows a visual picker of two or three options.",
@@ -4597,6 +4613,62 @@
         "upstream": "The strip is drawn with `.chromeGlassCapsule()` (DroppyCode/UI/Chrome/ChromeSegmentedPicker.swift:39), which renders `content.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3)).interactive(), in: shape)` (DroppyCode/UI/Chrome/Chrome.swift:180), macOS Liquid Glass",
         "port": "Where the window behind the control shows the desktop, an Acrylic-class Windows system material, without lensing, refraction or chromatic fringing; where the app draws its own backdrop (the wallpaper or the solid base), a shader reproduces the source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing"
       }
+    },
+    {
+      "id": "PR-THEME-185",
+      "title": "MarkdownLinkOpener.open decides between a local file and the system opener from the URL's own shape, independent of any caller",
+      "source_evidence": [
+        "DroppyCode/UI/Markdown/LinkParagraphView.swift:226-245 `enum MarkdownLinkOpener { static func open(_ url: URL) { ... } }`",
+        "DroppyCode/UI/Markdown/LinkParagraphView.swift:228-232 - `guard url.scheme == nil, url.host == nil, url.query == nil, url.fragment == nil, url.path.hasPrefix(\"/\") else { NSWorkspace.shared.open(url); return }`",
+        "DroppyCode/UI/Markdown/LinkParagraphView.swift:234-242 - when the local-file branch is taken: `var path = url.path`; if that path does not exist AND it ends in a colon followed by a positive integer, the substring up to that colon is checked; if IT exists and is not a directory, path is replaced with the stripped substring; either way, `NSWorkspace.shared.open(URL(fileURLWithPath: path))` runs last",
+        "DroppyCode/UI/Markdown/LinkParagraphView.swift:92, :96 - clickedOnLink's two call sites (PR-THEME-145)",
+        "DroppyCode/UI/Markdown/LinkPopover.swift:89 - the popover's Open Link row (PR-THEME-147)"
+      ],
+      "preconditions": "None; a pure function of one URL.",
+      "action": "Any caller opens a markdown link.",
+      "expected_result": "A URL with a scheme, a host, a query or a fragment always goes straight to NSWorkspace.shared.open(url) unchanged: the local-file branch requires ALL FOUR of scheme, host, query and fragment to be absent AND the path to start with \"/\". When that gate passes, the function tries the path as given first; only when a file does not exist at that exact path does it look for a trailing \":<positive integer>\" suffix (found via the LAST colon in the string), and only when the substring before that colon both exists on disk and is not a directory does it use the stripped substring instead. In every other combination (path exists as given; no colon; the colon-prefix does not exist; the colon-prefix is a directory; the suffix is not a positive integer, including \":0\" and a negative number) the original path is used unchanged. The final call is always `NSWorkspace.shared.open(URL(fileURLWithPath: path))` for the local-file branch, which silently does nothing observable to the caller if that file does not exist either.",
+      "side_effects": [
+        "Opens a file with its default application, or hands the URL to the system's default handler"
+      ],
+      "persistence": "None.",
+      "failure_cases": [
+        "A local-file-shaped path where nothing exists at either candidate: NSWorkspace.shared.open is still called and fails silently; no error is surfaced"
+      ],
+      "cancellation": "not cancellable; synchronous",
+      "windows_path": "UNRESOLVED pending OWNER decision O4. On Windows, `/x/a.swift:12` has no drive letter, so it is not how a user or a model would ever write an absolute Windows path; a genuine absolute path (`C:\\...`, `C:/...`) parses with scheme \"C\" and takes the generic-opener branch, which ShellExecuteW cannot resolve correctly. Recommendation B (decisions_draft.md O4): also treat `C:\\...`/`C:/...`/`/C:/...` as the local-file branch with the same `:<line>` stripping rule; never take a UNC path (`\\\\host\\share`, `file://host/...`) down the local-file branch or the generic opener, as a named safety deviation (it would send the user's Windows credentials to a host named in model output); and for a locally runnable file type, reveal it selected in File Explorer rather than launching it, also a named safety deviation.",
+      "verification_method": "unit: a table test over the four gating fields (scheme/host/query/fragment) each individually present; the exists/does-not-exist matrix for the path and its colon-stripped candidate; :0, a negative suffix, a non-numeric suffix and a directory-prefix all left unstripped",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null,
+      "b3_note": "New static helper at B3 (LinkParagraphView.swift:226-245), the routing target of PR-THEME-145 (clickedOnLink) and PR-THEME-147 (the link popover's Open Link row). Given its own atomic id so its decision procedure is testable once, independent of its three call sites. From impacts.json R3-52's new_records_needed, not folded per B3_PLAN 6.3."
+    },
+    {
+      "id": "PR-THEME-186",
+      "title": "A hint-less InlineText decides for itself whether its text has links, so a heading or a user bubble with a host-less local-path or mailto link still gets the native link path",
+      "source_evidence": [
+        "DroppyCode/UI/Markdown/MarkdownView.swift:1095-1096 InlineText.body - `// Local file links have no host, but still need the native link opener.` then `let hasLinkText = hasLinks ?? RichLink.containsLinks(in: source, streaming: streaming)`",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:1085-1089 init(_:hasLinks:hugsContent:) - hasLinks defaults to nil, documented \"Set when the caller already branched on containsLinks, so the check runs once\"",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:303 the heading block case - `InlineText(text)`, passing no hasLinks hint",
+        "DroppyCode/App/Views/Chat/TimelineRows.swift:122 - the user message bubble: `InlineText(parts.body, hugsContent: true)`, also passing no hint",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:697 RichLink.containsLinks(in:streaming:) - PR-THEME-110's already-specified link detector"
+      ],
+      "preconditions": "InlineText is constructed with hasLinks left at its default of nil.",
+      "action": "The view's body is evaluated.",
+      "expected_result": "When a caller has already branched on RichLink.containsLinks itself (the paragraph and list-item block cases, which pass hasLinks: true or hasLinks: RichLink.containsLinks(...) explicitly), that cached answer is used and the check never runs twice. When a caller passes no hint at all, exactly two call sites at B3 (a heading's text, and a user message bubble's body), InlineText runs RichLink.containsLinks itself. Any run of links, including a host-less local-file path or a mailto: link with no visible scheme marker, takes the native LinkParagraphView rendering path (whose MarkdownLinkOpener then opens it, PR-THEME-145); with no links the text renders as the lighter-weight veiled Text path instead.",
+      "side_effects": [],
+      "persistence": "not persisted",
+      "failure_cases": [
+        "None expressed in source; a false negative from containsLinks would render a link as plain text, but that detector is specified separately (PR-THEME-110)."
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "Preserve the nil-coalescing exactly: a hint-less call site must still run the real link check, not default to false. Headings and the user's own message bubble are the two sites that rely on this at B3.",
+      "verification_method": "unit: a heading containing a host-less local-path link builds the LinkParagraphView path, not the veiled-Text path; a user bubble with a mailto link does the same; a hinted call site's explicit value is never overridden",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null,
+      "b3_note": "New at B3 (MarkdownView.swift:1095-1096 is unchanged in line position from B2, but no prior THEME record stated this fallback decision; PR-THEME-110 covers only the paragraph and list-item block's explicit hints). From impacts.json R3-31's new_records_needed #1 (not folded; #2 is folded into PR-THEME-108 per B3_PLAN 6.3, provided the LAUNCH area records AppDelegate.swift:14's registration)."
     }
   ],
   "ui": [
@@ -4639,7 +4711,7 @@
         "click toggles the picker popover, which is presented with its arrow on the bottom edge"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Settings/SettingsView.swift:1182-1225",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:1159-1202",
         "DroppyCode/UI/Chrome/Chrome.swift:33-35",
         "DroppyCode/UI/Chrome/Chrome.swift:98",
         "DroppyCode/UI/Chrome/Chrome.swift:76-79"
@@ -4648,7 +4720,7 @@
       "b2_change": "Chevron colour: Chrome.secondaryText `Color(nsColor: .secondaryLabelColor)` (B1 Chrome.swift:77) -> `primaryText.opacity(0.7)` (B2 Chrome.swift:79). The Appearance section moved from the General page (B1 SettingsView.swift:301 GeneralSettingsPage, section at :406) to a new Settings page \"Appearance\", third in the sidebar after General and Hydra (B2 SettingsView.swift:5-8 `case general`, `case hydra`, `case appearance`; :22 `case .appearance: \"Appearance\"`; :278 `case .appearance: AppearanceSettingsPage()`; :417-457 AppearanceSettingsPage). Capsule tokens (Chrome.swift:33-35) and hover (B1 Chrome.swift:96 -> B2 :98) unchanged; the button is still B2 SettingsView.swift:1182-1225.",
       "deviation": {
         "decision": "OD-0005",
-        "upstream": "The theme picker button is drawn with `.chromeGlassCapsule()` (DroppyCode/App/Views/Settings/SettingsView.swift:1212), which renders `content.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3)).interactive(), in: shape)` (DroppyCode/UI/Chrome/Chrome.swift:180), macOS Liquid Glass",
+        "upstream": "The theme picker button is drawn with `.chromeGlassCapsule()` (DroppyCode/App/Views/Settings/SettingsView.swift:1189), which renders `content.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3)).interactive(), in: shape)` (DroppyCode/UI/Chrome/Chrome.swift:180), macOS Liquid Glass",
         "port": "Where the window behind the control shows the desktop, an Acrylic-class Windows system material, without lensing, refraction or chromatic fringing; where the app draws its own backdrop (the wallpaper or the solid base), a shader reproduces the source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing"
       }
     },
@@ -4670,8 +4742,8 @@
         "click outside to dismiss"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Settings/SettingsView.swift:1216-1224",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:1188-1189",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:1193-1201",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:1165-1166",
         "DroppyCode/UI/Chrome/Popovers.swift:8-12"
       ],
       "notes": "System appears once, above both sections, because its scheme is nil and it matches neither filter. The two lists are derived from the palette table, not hard-coded."
@@ -4692,7 +4764,7 @@
         "not interactive"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Settings/SettingsView.swift:1219"
+        "DroppyCode/App/Views/Settings/SettingsView.swift:1196"
       ],
       "notes": "One word, capital D, no count and no trailing punctuation."
     },
@@ -4712,7 +4784,7 @@
         "not interactive"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Settings/SettingsView.swift:1221"
+        "DroppyCode/App/Views/Settings/SettingsView.swift:1198"
       ],
       "notes": "Sits below the 19 dark rows, above the 6 light rows."
     },
@@ -4733,7 +4805,7 @@
         "click applies the theme at once, with no confirmation"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Settings/SettingsView.swift:1227-1231",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:1204-1208",
         "DroppyCode/UI/Theme/AppTheme.swift:44-73"
       ],
       "notes": "\"Rosé Pine\" carries U+00E9. \"GitHub Dark\" and \"GitHub Light\" carry a capital H. These 26 strings are also the strings a search of Settings matches against."
@@ -5208,7 +5280,7 @@
       "source_evidence": [
         "DroppyCode/App/Views/Settings/SettingsView.swift:358-364",
         "DroppyCode/App/AppSettings.swift:122",
-        "DroppyCode/App/AppSettings.swift:709"
+        "DroppyCode/App/AppSettings.swift:713"
       ],
       "notes": "Detail is the fixed string \"A soft chime, whether or not the thread is in view\". Persisted under the key \"chimeWhenFinished\"."
     },
@@ -5231,7 +5303,7 @@
       "source_evidence": [
         "DroppyCode/App/Views/Settings/SettingsView.swift:401-409",
         "DroppyCode/App/AppSettings.swift:126",
-        "DroppyCode/App/AppSettings.swift:713"
+        "DroppyCode/App/AppSettings.swift:717"
       ],
       "notes": "Detail is the fixed string \"A small note as the thread settles\". Persisted under the key \"settleSound\". A newly connected MCP server plays this chime without consulting this setting."
     },
@@ -5253,7 +5325,7 @@
       "source_evidence": [
         "DroppyCode/UI/Markdown/MarkdownView.swift:302-305",
         "DroppyCode/UI/Markdown/MarkdownView.swift:376-383",
-        "DroppyCode/UI/Markdown/ProseRunView.swift:172-196",
+        "DroppyCode/UI/Markdown/ProseRunView.swift:137-161",
         "DroppyCode/UI/Markdown/ProseRunView.swift:17",
         "DroppyCode/UI/Common/ChatFont.swift:6-10"
       ],
@@ -5277,7 +5349,7 @@
         "not interactive"
       ],
       "source_evidence": [
-        "DroppyCode/UI/Markdown/MarkdownView.swift:517-538"
+        "DroppyCode/UI/Markdown/MarkdownView.swift:476-497"
       ],
       "notes": "In a finished prose run the bullet is instead the character \"•\" at the top level and \"◦\" deeper, in the text colour, not an accent dot. That difference is upstream behaviour.",
       "status": "IMPLEMENTED"
@@ -5298,7 +5370,7 @@
         "not interactive"
       ],
       "source_evidence": [
-        "DroppyCode/UI/Markdown/MarkdownView.swift:512-516"
+        "DroppyCode/UI/Markdown/MarkdownView.swift:471-475"
       ],
       "notes": "Always a full stop, even when the source used a closing bracket.",
       "status": "IMPLEMENTED"
@@ -5321,7 +5393,7 @@
         "not interactive: clicking does nothing"
       ],
       "source_evidence": [
-        "DroppyCode/UI/Markdown/MarkdownView.swift:508-511"
+        "DroppyCode/UI/Markdown/MarkdownView.swift:467-470"
       ],
       "notes": "The checked marker uses the tint at full opacity while bullets use the accent at 0.9, so the two are not the same colour. In a finished prose run these render as the characters \"☑\" and \"☐\" in the text colour instead.",
       "status": "IMPLEMENTED"
@@ -5390,7 +5462,7 @@
         "hover"
       ],
       "source_evidence": [
-        "DroppyCode/UI/Markdown/MarkdownView.swift:1287-1321"
+        "DroppyCode/UI/Markdown/MarkdownView.swift:1214-1248"
       ],
       "notes": "Code never wraps; it scrolls. The hover flag lives outside the block's own state so a pointer move does not re-lay out the text.",
       "b2_change": "Fonts `.chat(.caption, zoom: zoom)` and `.chat(.callout, design: .monospaced, zoom: zoom)` (B1 MarkdownView.swift:1290, :1301) -> `.chat(.caption)` and `.chat(.callout, design: .monospaced)` (B2 :1290, :1301); label colour `.secondary` (B1 :1291) -> Chrome.secondaryText (B2 :1291). Re-cited at the same lines 1287-1321; geometry and panel colours unchanged.",
@@ -5412,7 +5484,7 @@
         "not interactive"
       ],
       "source_evidence": [
-        "DroppyCode/UI/Markdown/MarkdownView.swift:1289-1291"
+        "DroppyCode/UI/Markdown/MarkdownView.swift:1216-1218"
       ],
       "notes": "The fallback is the lower-case word \"code\". The info string is shown as written, not lower-cased, even though the delegation test lower-cases it.",
       "b2_change": "Font `.chat(.caption, zoom: zoom)` (B1 MarkdownView.swift:1290) -> `.chat(.caption)` (B2 :1290); colour `.foregroundStyle(.secondary)` (B1 :1291) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :1291). The \"code\" fallback is unchanged.",
@@ -5437,8 +5509,8 @@
         "hover shows the tooltip \"Copy\""
       ],
       "source_evidence": [
-        "DroppyCode/UI/Markdown/MarkdownView.swift:1257-1265",
-        "DroppyCode/UI/Markdown/MarkdownView.swift:1471-1498"
+        "DroppyCode/UI/Markdown/MarkdownView.swift:1184-1192",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:1398-1425"
       ],
       "notes": "The control keeps its space while invisible, so the header does not reflow on hover. What is copied is the reflowed text, not the raw text.",
       "b2_change": "Colour `.foregroundStyle(.secondary)` (B1 MarkdownView.swift:1496) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :1495); re-cited B1 :1472-1499 -> B2 :1471-1498. Glyphs, 22x22, 1.4 s and the \"Copy\" tooltip unchanged.",
@@ -5461,7 +5533,7 @@
         "click toggles between the first 120 lines and the whole block"
       ],
       "source_evidence": [
-        "DroppyCode/UI/Markdown/MarkdownView.swift:1308-1317"
+        "DroppyCode/UI/Markdown/MarkdownView.swift:1235-1244"
       ],
       "notes": "N is the full line count, which is one plus the number of line feeds. A block of exactly 120 lines shows no button.",
       "b2_change": "Font `.chat(.caption, zoom: zoom)` and colour `.secondary` (B1 MarkdownView.swift:1313-1314) -> `.chat(.caption)` and Chrome.secondaryText (B2 :1313-1314). Strings and the 120 threshold unchanged.",
@@ -5485,7 +5557,7 @@
         "text selection"
       ],
       "source_evidence": [
-        "DroppyCode/UI/Markdown/MarkdownView.swift:1357-1396"
+        "DroppyCode/UI/Markdown/MarkdownView.swift:1284-1323"
       ],
       "notes": "Column alignment from the delimiter row is parsed and discarded; every cell is leading-aligned. A row with fewer cells than the header is padded with empty cells; extra cells in a row are dropped.",
       "b2_change": "Re-cited only: B1 MarkdownView.swift:1358-1397 -> B2 :1357-1396, after B1's `@Environment(\\.chatZoom)` in TableBlock (:1342) was removed. The panel is unchanged.",
@@ -5508,7 +5580,7 @@
         "click expands the table"
       ],
       "source_evidence": [
-        "DroppyCode/UI/Markdown/MarkdownView.swift:1384-1393"
+        "DroppyCode/UI/Markdown/MarkdownView.swift:1311-1320"
       ],
       "notes": "Unlike the code block there is no collapse counterpart. N is the total row count.",
       "b2_change": "Font `.chat(.caption, zoom: zoom)` and colour `.secondary` (B1 MarkdownView.swift:1390-1391) -> `.chat(.caption)` and Chrome.secondaryText (B2 :1389-1390); re-cited B1 :1385-1394 -> B2 :1384-1393. The string and the 30 threshold unchanged.",
@@ -5558,7 +5630,7 @@
       ],
       "source_evidence": [
         "DroppyCode/UI/Markdown/LinkParagraphView.swift:135-145",
-        "DroppyCode/UI/Markdown/MarkdownView.swift:955-1098"
+        "DroppyCode/UI/Markdown/MarkdownView.swift:919-1062"
       ],
       "notes": "Stored as a 28 pixel bitmap declared at 14 points, so it is a two-times asset. Hosts that are private or local never get one and are never requested.",
       "status": "IMPLEMENTED"
@@ -5621,13 +5693,14 @@
         "always present"
       ],
       "interactions": [
-        "click opens the URL in the default browser"
+        "click opens via MarkdownLinkOpener: the default browser for almost every URL, or a local file for a scheme-less absolute path (PR-THEME-145)"
       ],
       "source_evidence": [
-        "DroppyCode/UI/Markdown/LinkPopover.swift:88-90"
+        "DroppyCode/UI/Markdown/LinkPopover.swift:88-90 - `PopoverItem(\"Open Link\", symbol: \"safari\") { MarkdownLinkOpener.open(url) }`"
       ],
       "notes": "Both words capitalised.",
-      "b2_change": "Citation corrected, unchanged: LinkPopover.swift:200-202 lay beyond the end of the file (108 lines at B1 and at B2) -> B2 LinkPopover.swift:88-90."
+      "b2_change": "Citation corrected, unchanged: LinkPopover.swift:200-202 lay beyond the end of the file (108 lines at B1 and at B2) -> B2 LinkPopover.swift:88-90.",
+      "b3_note": "B3 changes the action from NSWorkspace.shared.open(url) to MarkdownLinkOpener.open(url), same line numbers (:89). See PR-THEME-145 (OWNER decision O4 pending for the Windows behaviour)."
     },
     {
       "id": "UI-THEME-045",
@@ -5667,13 +5740,14 @@
         "click opens that head's chat, without moving the text selection"
       ],
       "source_evidence": [
-        "DroppyCode/UI/Markdown/LinkParagraphView.swift:179-244",
+        "DroppyCode/UI/Markdown/LinkParagraphView.swift:179-223",
         "DroppyCode/UI/Markdown/MarkdownView.swift:385-404",
-        "DroppyCode/UI/Markdown/MarkdownView.swift:1170-1182",
-        "DroppyCode/UI/Markdown/MarkdownView.swift:489-493"
+        "DroppyCode/UI/Markdown/LinkHover.swift:26-36 - the shared LinkHoverModifier's head-mention hover block",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:448-452"
       ],
       "notes": "Carries the custom attribute \"droppycode.hydraHead\" rather than a link attribute, precisely so it does not get the accent colour or the pointing hand. Head mention runs never veil while streaming.",
       "b2_change": "Text-path glyph `let size = 16 * zoom` (B1 MarkdownView.swift:491) -> `let size: CGFloat = 16` (B2 :490). The native path and colours are unchanged.",
+      "b3_note": "Citation only: the head-mention hover-card trigger moves from MarkdownView.swift (B2 :1170-1182) into the shared UI.Markdown.LinkHover (N9) at LinkHover.swift:26-36, used identically by MarkdownView and ProseRunView (see PR-THEME-144).",
       "status": "IMPLEMENTED"
     },
     {
@@ -5772,7 +5846,7 @@
         "DroppyCode/UI/Common/WorkingIndicators.swift:81-110",
         "DroppyCode/UI/Common/WorkingIndicators.swift:112-138"
       ],
-      "notes": "Accessibility label exactly \"Working\", applied outside the still/animated branch so both forms carry it. Its still form is the one that appears in the flying archive ghost (SidebarView.swift:2101).",
+      "notes": "Accessibility label exactly \"Working\", applied outside the still/animated branch so both forms carry it. Its still form is the one that appears in the flying archive ghost (SidebarView.swift:2100).",
       "status": "IMPLEMENTED"
     },
     {
@@ -5819,7 +5893,7 @@
       "source_evidence": [
         "DroppyCode/UI/Chrome/ChromeVisualPicker.swift:10-19",
         "DroppyCode/UI/Chrome/ChromeVisualPicker.swift:22-50",
-        "DroppyCode/UI/Chrome/Chrome.swift:1106-1131"
+        "DroppyCode/UI/Chrome/Chrome.swift:1103-1128"
       ],
       "notes": "The caller supplies one symbol per option, for example the Sidebar row's sidebar.left, macwindow.on.rectangle and macwindow (SettingsView.swift:433-435). Dense and regular widths are both 76, so two- and three-option pickers line up. SF Symbols are drawn as their Lucide counterparts from the published symbol-by-symbol table (owner ruling OD-0010).",
       "b2_change": "No B2 change to the row; not covered by any record before.",

@@ -1,0 +1,62 @@
+{
+  "bundle_id": "R3-41",
+  "reader": "R3-41-reader",
+  "files": [
+    {
+      "path": "DroppyCode/Core/Support/StdioProcess.swift",
+      "sha256": "0b2789577aa60a1e7af9fe315956d5f98e054322bdfe646e73925e0c37adedc5",
+      "ranges_read": [[1, 184]],
+      "asset_inspection": null,
+      "purpose": "Status M, one-line churn. StdioProcess is the child-process wrapper that every stdio-framed provider or MCP server is launched through: it owns the Process plus its three Pipes, frames outgoing JSON as newline- or Content-Length-delimited bytes, and republishes parsed incoming JSON on an AsyncStream guarded by a single Mutex<State> (framer, error tail, exit status, exit waiters). The B2->B3 delta is exactly one added line, `var processIdentifier: Int32 { process.processIdentifier }` at :48, inserted immediately after the existing `var isRunning: Bool { process.isRunning }` at :47; every line from the old :48 onward shifts down by one. No other character in the file changed, confirmed by `git diff 1fbf81e6..HEAD -- DroppyCode/Core/Support/StdioProcess.swift` showing a single `+` hunk line and by the file growing from 183 to 184 lines.",
+      "key_symbols": [
+        "final class StdioProcess: @unchecked Sendable (:10)",
+        "let messages: AsyncStream<JSONValue> (:13)",
+        "private struct State { framer, errorBuffer, exitStatus, exitWaiters } (:23-28)",
+        "private let state: Mutex<State> (:30)",
+        "init(executable:arguments:directory:environment:framing:) (:32-45)",
+        "var isRunning: Bool (:47)",
+        "var processIdentifier: Int32 { process.processIdentifier } (:48) -- NEW at B3",
+        "var errorTail: String (:51-53, was :50-52 at B2)",
+        "func start() throws (:55-88, was :54-87)",
+        "func send(_:) (:90-104, was :89-103)",
+        "func write(_:) (:107-112, was :105-111)",
+        "func closeInput() (:115-118, was :113-117)",
+        "func terminate() (:120-129, was :119-128)",
+        "func waitForExit() async -> Int32 (:131-140, was :130-139)",
+        "private func consume(_:) / deliver(_:) (:142-152, was :141-151)",
+        "private func finishOutput() (:154-157, was :153-156)",
+        "private func appendError(_:) (:159-166, was :158-165)",
+        "private func didExit(_:) (:168-183, was :167-182)"
+      ],
+      "calls_into": [
+        "Foundation.Process (executableURL/arguments/currentDirectoryURL/environment/standardInput/standardOutput/standardError, run(), terminate(), terminationHandler, isRunning, processIdentifier)",
+        "Foundation.Pipe (stdin/stdout/stderr) and FileHandle.readabilityHandler",
+        "StdioFramer(framing:).append(_:) / .finish() (Core/Support/StdioFramer.swift)",
+        "JSONValue.parse(_:) and JSONValue.data() (Core/Support/JSONValue.swift)",
+        "Synchronization.Mutex<State>.withLock (Swift Synchronization module)",
+        "Darwin kill(pid, SIGKILL) in terminate()'s 3-second escalation (:127, was :126)"
+      ],
+      "state_owned": [
+        "framer: StdioFramer, errorBuffer: Data, exitStatus: Int32?, exitWaiters: [CheckedContinuation<Int32, Never>] -- all inside State, guarded by the single Mutex<state> (unchanged shape and semantics at B3, only shifted by the new :48 line)"
+      ],
+      "side_effects": [
+        "Spawns and owns a child OS process; writes to its stdin on a private serial writeQueue; reads its stdout/stderr via readabilityHandler callbacks; can SIGTERM then SIGKILL it",
+        "The new processIdentifier accessor itself has no side effect: it is a pure read-through to Process.processIdentifier, same as the pre-existing isRunning accessor"
+      ],
+      "platform_assumptions": [
+        "Foundation.Process / Pipe / FileHandle.readabilityHandler as the process and pipe abstraction",
+        "POSIX kill(pid, SIGKILL) targets the single child pid, not its process group (deliberately asymmetric with Shell.terminate, per PR-TERM-111's note), and processIdentifier now exposes that same pid outward",
+        "AsyncStream<JSONValue> as the delivery primitive; Mutex<State> (Swift Synchronization) as the single lock guarding all shared mutable state"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [],
+      "feature_notes": [
+        "The only behavioural surface added at B3 is a new public accessor, `processIdentifier: Int32`, mirroring the existing `isRunning: Bool` in position, visibility and implementation shape (both are one-line computed properties forwarding straight to the underlying `Process`). Before B3, StdioProcess kept `process` private and exposed no way for a caller to read the child's pid; every existing pid read in the codebase (Shell.swift:115, MCPHub.swift:372, StdioProcess's own terminate() at :127) reads `process.processIdentifier` on a `Process`/`Foundation.Process` value it already holds directly, not through a StdioProcess instance. A whole-tree grep of the B3 app target for `processIdentifier` found no external call site that reads the new `StdioProcess.processIdentifier` -- it is unused within this same commit (d70cff8fe, 'refactor: audit cleanups -- five bug fixes, shared MCP and provider code, layer rules restored'). It is still an observable, source-true addition to the type's public surface and must be carried into the port even though nothing yet calls it: dropping it would violate the no-omission rule, and a future caller (e.g. a diagnostics or provider-inspector view) could rely on it.",
+        "Every other line in the file is byte-identical to B2; all behaviour described by the existing StdioProcess records is unchanged, only their cited line numbers shift by +1 wherever the citation touches line 48 or later (isRunning's own citation, at exactly :47, does not move)."
+      ],
+      "unresolved_questions": [
+        "Nothing in the B2->B3 diff, in AGENT-visible commit d70cff8fe's message, or in this file's own comments explains why processIdentifier was added with no B3 caller yet; UNRESOLVED whether a caller lands in a different R3 bundle from this same commit (worth flagging to the merge agent to re-check once other R3 bundles from d70cff8fe are read)."
+      ]
+    }
+  ]
+}

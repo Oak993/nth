@@ -1,0 +1,66 @@
+{
+ "bundle_id": "R3-35",
+ "reader": "R3-35-reader",
+ "files": [
+  {
+   "path": "DroppyCode/App/Captures/TourCaptures.swift",
+   "sha256": "eca17d2568a1ec4b87b99dd79a978d5afdbfd29de2e78830bf77b056fead3af5",
+   "ranges_read": [
+    [
+     1,
+     313
+    ]
+   ],
+   "asset_inspection": null,
+   "purpose": "TourCaptures is the onboarding-tour screenshot generator invoked only via the launch argument `--tour-captures <folder>` (open -n -W \"Droppy Code.app\" --args --tour-captures <folder>, stated in the file's own header comment at :4-11); it drives a live, isolated instance of the app through roughly thirty staged scenes - the welcome overview, the Hydra hero/pairs/slider/threads/recipes/panels popovers, five 'web-*' marketing stills that reuse WebsiteCaptures' own scene bodies over gradient backdrops, four theme-quadrant stills that tile into one seamless image, one still per AppTheme case, the standalone Tour window, and web-notify/web-slash/web-quote - photographing one PNG per scene through a shared Recorder and Stage, then quits (exit(0)) either when finished or after a ten-minute safety budget. It shares WebsiteCaptures' isolation contract (its own storage folder and UserDefaults suite, courtesy of Core's CaptureRun) and is exercised only by a developer producing marketing/tour imagery, never by a normal user launch; ED-001 already rules that this whole capture subsystem (CaptureRun, WebsiteCaptures, TourCaptures, TourCaptures+Hydra) is not ported to Windows, so this file's own scene-staging logic carries no requirement for the C# port beyond confirming that ruling still holds after the B2->B3 change.",
+   "key_symbols": [
+    "import AppKit; import SwiftUI (1-2)",
+    "@MainActor enum TourCaptures (12-13)",
+    "enum Backdrop: CaseIterable { welcome, hydra, pairs, slider, panels, themes } (14-16)",
+    "static func backdropView(_ backdrop: Backdrop) -> some View (18-35) - picks the BackdropWallpaper alignment per scene",
+    "static func backdropView(_ backdrop: Backdrop, quadrant: (x: Int, y: Int)) -> some View (40-47) - one quarter of a double-size gradient for the theme-quadrant tiling",
+    "static func run(model: AppModel) async (49-247) - the full ~30-scene script, in fixed order, ending in recorder.finish(), a log line and exit(0)",
+    "static func ensurePairs(_ model: AppModel) async (251-267) - creates the two Hydra pairs the pairs/hero scenes stage, once",
+    "private static func siteScene(_:_:_:name:backdrop:size:body:) async (271-286) - stages a gradient-backdrop scene with sidebar hidden before running body()",
+    "private static func capture(_:_:_:name:backdrop:size:body:after:) async -> (293-312) - stages a scene, runs body() to get an optional NSPopover, photographs the window plus popover, closes the popover, runs after()"
+   ],
+   "calls_into": [
+    "Core/Support/CaptureRun.outputDirectory (B3; was WebsiteCaptures.outputDirectory at B2 - the only line that changed)",
+    "WebsiteCaptures.log(_:), .composerThreadID, .freshThreadID, .threadsButtonFrame, .hydraMarkFrame, .editingScene, .diffScene, .paletteScene, .plansScene, .questionScene, .queueScene, .slashScene, .quoteScene",
+    "TourCaptures+Hydra: TourCaptures.hydraScene, .heroScene, .panelsScene, .addHydraMocks(to:storageRoot:repos:now:) (that file's own symbols, not read in this bundle)",
+    "Stage(model:), stage.show(size:), .ensureActive(), .resize(to:), .setBackdrop(_:), .setWindowHidden(_:), .presentPopover(_:width:chipOf:at:), .holdPopover(_:seconds:), .tourCaptureRect / .tourCaptureRect(including:), .popoverFocus(_:), static Stage.tourRect(around:)",
+    "Recorder(output:stage:), .still(_:_:) / .still(_:_:focus:), .finish()",
+    "AppModel: settings (theme, hasSeenHydraIntro, hydraEnabled, hydraPairs, addHydraPair), sidebar (isVisible, toggle(), width), selectedThreadID, providers (loadCatalog(_:), model(_:for:), catalogs, defaultModel(for:)), thread(_:), updateThread(_:_:), enterHydraPair(_:for:)",
+    "ModelList(thread:hasHistory:onChoose:onBack:), EffortSliderCard(modelName:provider:pair:efforts:defaultEffort:supportsFast:effort:fastMode:onTitleTap:onReset:), EffortPairLook(_:registry:resolvedHeadsEffort:), SidebarView(inPopover:dismiss:), HydraCookbookPanel(), HydraIntroPopover(dismiss:)",
+    "TourWindowController.shared.present(pages:) / .close(), Tour.pages",
+    "NSApp.activate(ignoringOtherApps:), BackdropWallpaper(screen:alignment:), NSScreen.main / .screens"
+   ],
+   "state_owned": [
+    "No stored properties of its own; every mutation is a transient stage of AppModel/AppSettings for one scene: sidebar.isVisible via toggle(), selectedThreadID, settings.theme, settings.hasSeenHydraIntro (forced true once at the top of run(), :60), settings.hydraEnabled, settings.hydraPairs (via ensurePairs/addHydraPair and enterHydraPair), and a thread's effort/fastMode (via updateThread)."
+   ],
+   "side_effects": [
+    "Writes PNG stills (one per named scene) and a run.log line per step (through WebsiteCaptures.log/Recorder) under the CaptureRun.outputDirectory folder supplied by the launch argument",
+    "Spawns a detached Task at the top of run() that force-quits the process (exit(0)) after 600 seconds if the run has not already finished, and calls exit(0) itself at the end of a normal run",
+    "Shows and resizes an off-screen-scale Stage window sized per scene (960x600 to 1280x800), and separately presents/closes a real TourWindowController window for the tour-window still",
+    "Calls NSApp.activate(ignoringOtherApps: true) before the tour-window shot"
+   ],
+   "platform_assumptions": [
+    "AppKit-only types throughout: NSScreen, NSSize, NSPopover, NSApp, plus SwiftUI's GeometryReader/Alignment used only for the gradient backdrop math",
+    "A synthetic 'Stage' host window sized in points to produce fixed 16:10 screenshots, and macOS window activation (NSApp.activate) to bring the standalone Tour window forward for its own shot"
+   ],
+   "persisted_fields": [
+    "None directly. Every settings mutation (theme, hasSeenHydraIntro, hydraEnabled, hydraPairs) lands in the capture run's own isolated UserDefaults suite (CaptureRun.defaults / storageRoot), never the real app's defaults, and is discarded with the run's storage folder."
+   ],
+   "ui_elements": [
+    "Scenes staged and photographed, in run() order: tour-welcome (1280x800, sidebar hidden, dark theme, editingScene), tour-hydra and web-hero (delegated to TourCaptures+Hydra), tour-pairs (960x600, ModelList popover, width 330), tour-slider (960x600, EffortSliderCard popover, width 330), tour-threads (960x600, SidebarView popover at the sidebar's own width, anchored at threadsButtonFrame), tour-recipes (960x600, HydraCookbookPanel popover, width 460), tour-panels (delegated), web-diff/web-palette/web-plans/web-question/web-queue (1200x660, via siteScene + WebsiteCaptures scene bodies), web-intro (1200x660, HydraIntroPopover, width 420, anchored at hydraMarkFrame), four tour-theme-<rawValue> quadrant stills for tokyoNight/gruvbox/catppuccinLatte/rosePine (960x600 each quadrant, tiled), one web-theme-<rawValue> still per AppTheme.allCases (960x600), tour-window (the Tour itself via TourWindowController, backdrop alone, main window hidden), web-notify (1280x800, sidebar shown, questionScene), web-slash and web-quote (1280x800, via siteScene)."
+   ],
+   "feature_notes": [
+    "The entire B2->B3 diff for this file is one line, line 50: `guard let output = WebsiteCaptures.outputDirectory else { return }` became `guard let output = CaptureRun.outputDirectory else { return }` (churn 2 in the inventory: 1 line removed, 1 added). No scene, still name, size, popover, theme list, timing constant, or control-flow branch changed.",
+    "This is one call site of a wider refactor in the same commit (d70cff8fe, 'audit cleanups... layer rules restored'): WebsiteCaptures.swift had five passthrough properties removed - nonisolated static var outputDirectory/isTourRun/isEnabled/storageRoot/defaults, each of which was already only `{ CaptureRun.<same name> }` - so every consumer in the App layer (this file, and WebsiteCaptures.swift's own internal call sites) was updated to read Core's CaptureRun directly instead of through an App-layer re-export of it.",
+    "DroppyCode/Core/Support/CaptureRun.swift is byte-identical between B2 (1fbf81e6) and this B3 commit (empty git diff, confirmed): CaptureRun.outputDirectory is still the same cached `static let` that scans CommandLine.arguments for exactly '--website-captures'/'--tour-captures' followed by a path. So CaptureRun.outputDirectory at B3 resolves to exactly the value WebsiteCaptures.outputDirectory always forwarded at B2 - this is a pure identifier-source rename with zero observable behavior difference for TourCaptures.run or any scene it stages.",
+    "This does not disturb the ED-001 ruling (porting/engineering_decisions.md ED-001: 'do not port [the capture subsystem], and do not port the CaptureRun indirection either') or the dead_code.md entries (33, 38, 42, 60) that document the whole Captures subsystem, including this file by name, as shipped-but-unreachable-by-a-user-launch code. The LAUNCH/UPDATE/WIN spec records' verification_method text ('the Windows tree contains no capture-run code... no CaptureRun, WebsiteCaptures or TourCaptures identifier') remains accurate for B3: the identifier used inside the unported Swift file changed, the identifier itself (CaptureRun) was already named in that same Gate-C scan text before this diff."
+   ],
+   "unresolved_questions": []
+  }
+ ]
+}

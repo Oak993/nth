@@ -1,0 +1,153 @@
+{
+ "bundle_id": "R3-16",
+ "reader": "R3-16-reader",
+ "files": [
+  {
+   "path": "DroppyCode/Services/Git/Git.swift",
+   "sha256": "99906625bd2ec9de5b00b7665074065c2d4ab073f128b1e03d729babe44893b6",
+   "ranges_read": [
+    [
+     1,
+     420
+    ],
+    [
+     421,
+     828
+    ]
+   ],
+   "asset_inspection": null,
+   "purpose": "Git.swift is the app's only wrapper around the git command line and the three forge CLIs (glab, gh, tea): every git process is spawned through Git.run with the argv prefix [\"-c\", \"core.quotepath=false\", \"-c\", \"color.ui=false\"], GIT_TERMINAL_PROMPT=0 and GIT_OPTIONAL_LOCKS=0 over LoginEnvironment.current, a 120 s default budget and 300 s at named sites. It owns repository queries (status --porcelain=v2 parsing into GitStatus, branches into GitBranch, remote and forge detection), commit/publish (commitAll, push, pushBranch, createPullRequest, mergePullRequest with GitLab 405 retries), the Hydra landing primitives (captureTree over private GIT_INDEX_FILE indexes, commitWork, compare-and-swap updateRef, dirty/ignored/present path queries, hasOperationInProgress marker checks), checkpoint refs under refs/droppy-code/checkpoints/<thread>/<turn>-<phase> with WorkingTreeWatch-assisted tree capture, revert preview/restore, chunked diff, detached worktrees and three-way patch apply. At B3 (1.7.0) it gains a rebase-onto-remote capture (captureTree(paths:onto:from:)) that builds the team's paths on top of origin's current commit with per-file git merge-file, a force option on pushBranch for Hydra-owned branches, and a recovery path that turns a forge's 'already exists' failure into the URL of the existing request.",
+   "key_symbols": [
+    "struct GitStatus (branch, upstream, ahead, behind, changedFiles) :4-10",
+    "struct GitBranch (name, isCurrent, upstream, id) :12-18",
+    "struct Git: Sendable (let directory: URL; init(_ path:)) :21-26",
+    "private static var executable: URL { LoginEnvironment.git } :28",
+    "func run(_:environment:input:timeout:) -> ShellResult :30-49",
+    "func output(_:) :51-55",
+    "static func check(_:) :57-59",
+    "func isRepository() :63-65",
+    "func repositoryRoot() :67-74",
+    "func hasCommits() :76-78",
+    "func status() -> GitStatus? :80-98",
+    "func branches() -> [GitBranch] :100-111",
+    "func switchBranch(_:) :113-115",
+    "func createBranch(_:) :117-119",
+    "func addWorktree(at:branch:base:) :121-125",
+    "func removeWorktree(at:) :127-129",
+    "func remoteURL() :131-134",
+    "func remoteWebURL() :136-147",
+    "func listFiles() :149-152",
+    "func workingChanges() :156-161",
+    "func commitAll(message:) :163-166",
+    "func push() :168-170",
+    "func createPullRequest(title:body:source:target:) -> URL? :172-200 (B3 adds the existing-request fallback at :193-195)",
+    "static func existingRequestURL(in:web:) -> URL? :202-218 (NEW at B3)",
+    "func forge() -> MergeRequestLink.Forge :220-227",
+    "func mergePullRequest(_:) :229-248",
+    "func defaultBranch() :252-263",
+    "func captureTree(paths:) :265-278",
+    "func captureTree(paths:onto:from:) -> (tree: String, merged: [String: Data])? :280-345 (NEW at B3)",
+    "private func blobData(_:_:) -> Data? :347-351 (NEW at B3)",
+    "private func fileMode(_:_:) -> String? :353-359 (NEW at B3)",
+    "func treeHash(of:) :361-363",
+    "func commitHash(of:) :365-367",
+    "func commitWork(_:parent:message:) :369-374",
+    "func updateRef(_:to:) :376-378",
+    "func updateRef(_:to:expecting:) :380-385",
+    "func pushBranch(_:force:) :387-392 (force parameter NEW at B3)",
+    "func fetch() :394-396",
+    "func isAncestor(_:of:) :398-400",
+    "func changedPaths(from:to:) :402-406",
+    "func dirtyPaths() :408-424",
+    "func ignoredPaths(among:) :426-430",
+    "func trackedPaths(among:) :432-440",
+    "func presentPaths(among:in:) :442-459",
+    "private static func nulSeparated(_:) :461-466",
+    "func hasOperationInProgress() :468-484",
+    "func resetSoft(to:) :486-489",
+    "func resetIndex(paths:) :491-495",
+    "func checkoutPaths(from:_:) :497-501",
+    "func removePaths(_:) :503-506",
+    "func pullFastForward() :508-510",
+    "static func checkpointRef(thread:turn:phase:) :514-516",
+    "func captureCheckpoint(_:) :518-534",
+    "func currentTree() :536-544",
+    "private func captureTree(scratch:paths:) :546-568",
+    "private func watch() -> WorkingTreeWatch? :570-573",
+    "func captureTree() :575-593",
+    "struct GitFileStamp (identifier, modified, size, overrides) :595-610",
+    "static let worktreeIndexPaths: Mutex<[String: (stamp: GitFileStamp, path: String?)]> :612-614",
+    "private func indexPath() :616-643",
+    "private static let diffPathChunk = 400 :645-646",
+    "func diff(from:to:binary:paths:) :648-678",
+    "func previewRestore(base:end:paths:) -> RevertPreview :680-702",
+    "func restore(_:from:) :704-726",
+    "private func blobs(in:at:root:) :728-741",
+    "private func workingBlobs(at:root:) :743-753",
+    "func deleteCheckpoints(thread:) :755-761",
+    "private static let identity :765-768",
+    "func commitTree(_:message:) :770-779",
+    "func addDetachedWorktree(at:commit:) :781-785",
+    "func pruneWorktrees() :787-790",
+    "func apply(_:) -> [String] :792-821",
+    "private extension Substring { func value(after:) } :824-828"
+   ],
+   "calls_into": [
+    "LoginEnvironment.git and LoginEnvironment.current (Core/Support)",
+    "Shell.run(_:_:in:environment:input:timeout:) and Shell.run(tool:_:in:timeout:) (Core/Support/Shell)",
+    "ShellResult (succeeded, output, errorOutput, stdout, trimmedOutput, status, failureMessage) and ShellError",
+    "MergeRequestLink.Forge (.gitlab/.github/.gitea) and MergeRequestLink.number/.forge (Core/Models)",
+    "WorkingTreeWatch.shared(for:gitDirectory:), watch.commit(of:), watch.remember(commit:of:), watch.currentTree(indexPath:_:) (Services/Git/WorkingTreeWatch.swift)",
+    "RevertPreview(files:) and RevertPreview(numstat:) (Services/Git)",
+    "String.trimmed / nilIfEmpty (Core/Support/Text.swift)",
+    "Foundation FileManager (temporaryDirectory, createDirectory, removeItem, copyItem, fileExists, attributesOfItem), Data(contentsOf:), Data.write(to:), URLComponents, URL.appending(path:)",
+    "Synchronization.Mutex, Task.sleep(for:)",
+    "Called at B3 by DroppyCode/App/AppModel+HydraMerge.swift:288 (captureTree(paths:onto:from:)), :348 (pushBranch(branch, force: ownBranch)) and :462 (Git.existingRequestURL(in:web:))"
+   ],
+   "state_owned": [
+    "static worktreeIndexPaths: Mutex<[String: (stamp: GitFileStamp, path: String?)]>, cleared whole at 64 entries (:612-614, :636-641)",
+    "static identity: GIT_AUTHOR_NAME/GIT_COMMITTER_NAME \"Droppy Code\", GIT_AUTHOR_EMAIL/GIT_COMMITTER_EMAIL \"droppy-code@localhost\" (:765-768)",
+    "static diffPathChunk = 400 (:646)",
+    "Per-call scratch: droppy-code-index-<UUID> files (:270, :579), droppy-code-apply-<UUID> file (:804), and at B3 the droppy-code-rebase-<UUID> directory holding index, current, common, other (:291-294, :325-327)"
+   ],
+   "side_effects": [
+    "Spawns git with the fixed -c prefix and GIT_TERMINAL_PROMPT=0 / GIT_OPTIONAL_LOCKS=0; spawns glab, gh or tea through Shell.run(tool:) with timeout 300",
+    "Network: push -u origin HEAD, push -u [--force] origin refs/heads/<n>:refs/heads/<n>, fetch --quiet origin, pull --ff-only --quiet, forge mr/pr create and merge",
+    "B3: pushBranch(force: true) rewrites the remote branch with --force",
+    "B3: captureTree(paths:onto:from:) writes loose blobs into the repository object store with hash-object -w --stdin for every cleanly merged file, even when a later contested path makes the call return nil",
+    "B3: createPullRequest runs one extra `git remote get-url origin` (via remoteWebURL) on every failed forge create before checking for 'already exist'",
+    "Creates and deletes temporary index files and, at B3, a temporary directory under FileManager.default.temporaryDirectory",
+    "Writes refs under refs/droppy-code/checkpoints/ and deletes them in one update-ref --stdin batch",
+    "restore(_:from:) rewrites index and working tree and deletes files the ref lacks; apply(_:) writes patched files into the working tree",
+    "Moves branches (update-ref, reset --soft) and the index (reset, checkout, rm)"
+   ],
+   "platform_assumptions": [
+    "git, glab, gh, tea resolved from the login-shell environment (LoginEnvironment)",
+    "FileManager.temporaryDirectory for scratch indexes and the B3 rebase directory",
+    "hasOperationInProgress joins gitDirectory + \"/\" + marker with a literal slash",
+    "GitFileStamp uses FileAttributeKey.systemFileNumber, modificationDate and size of the .git file",
+    "diff chunks path lists at 400 to stay under the process argument limit",
+    "Data(contentsOf: directory.appendingPathComponent(path)) reads a working file by directory-relative path in captureTree(paths:onto:from:)"
+   ],
+   "persisted_fields": [
+    "No app-store fields. Git-side persistence: refs/droppy-code/checkpoints/<lowercased thread uuid>/<turn>-<phase>; upstream tracking config set by push -u / pushBranch; loose objects written by commit-tree, hash-object -w (B3 merge results) and write-tree"
+   ],
+   "ui_elements": [],
+   "feature_notes": [
+    "B2->B3 diff is three hunks, +107/-2 (B2 723 lines, B3 828). Line mapping for re-citation: B2 1-192 unchanged; B2 193-198 +3; B2 199-258 +21; B2 259-284 +102; B2 285-286 replaced by B3 387-391; B2 287-723 +105.",
+    "NEW createPullRequest fallback (:193-195): after the forge switch and before Self.check(result), `if !result.succeeded, let existing = Self.existingRequestURL(in: result, web: await remoteWebURL()) { return existing }`. A failed create whose output says the request already exists now returns that request's URL instead of throwing; the doc comment says a retried merge then carries on with that request rather than failing on it. remoteWebURL() is awaited on every failure (one extra git remote get-url origin) because it is an argument of the call.",
+    "NEW static existingRequestURL(in:web:) (:202-218), also called from AppModel+HydraMerge.swift:462: text = output + \"\\n\" + errorOutput; nil unless text.lowercased() contains \"already exist\"; then the first #/https://\\S+/# match that parses as a URL is returned (GitHub and Gitea print the address); otherwise the first #/!(\\d+)/# match plus a non-nil web URL: when web.user is non-nil, URLComponents drops user and password (keeping the original when .url is nil), and the result is web.appending(path: \"-/merge_requests/<digits>\") (GitLab names it as !<number>). An unparseable https match falls through to the !<number> branch rather than returning nil.",
+    "NEW captureTree(paths:onto:from:) (:280-345): the team's paths rebuilt on top of `base` (origin/<target>, a descendant of `head`) so a checkout that fell behind does not open a merge request that conflicts on the forge (the doc comment records one finished job opening a conflicted merge request every five minutes). Scratch directory temporaryDirectory/droppy-code-rebase-<UUID> created with intermediates and removed in a defer; GIT_INDEX_FILE = scratch/index; read-tree <base> (checked, 120 s); upstream = set of `diff --name-only --no-renames -z <head> <base>` (renames count as delete+add); clean = paths not upstream-changed, added with add -A --ignore-errors --pathspec-from-file=- --pathspec-file-nul at 300 s when non-empty; contested paths resolved one by one; write-tree (checked); returns (tree, merged).",
+    "Contested-path table (:306-340), comparing byte contents: remote nil and working nil -> skip; remote present and working missing (team deleted) -> nil unless remote == ancestor, then rm --cached --quiet --ignore-unmatch -- <path> in the scratch index (checked); remote nil and working present (remote deleted) -> nil; both present and equal -> skip; both present and ancestor nil (added both sides differently) -> nil; otherwise working/ancestor/remote are written to scratch/current, common, other, `git merge-file --quiet -- current common other` runs with no GIT_INDEX_FILE at 120 s, any non-zero exit -> nil, the merged bytes are stored with hash-object -w --stdin (checked), mode = fileMode(base, path) ?? \"100644\", and update-index --add --cacheinfo \"<mode>,<hash>,<path>\" (checked) puts them into the scratch index; merged[path] = content for the caller to write into the checkout once the work has landed.",
+    "NEW private blobData(_:_:) (:347-351): cat-file blob <commit>:<path>, raw stdout bytes, nil on throw or non-zero exit. NEW private fileMode(_:_:) (:353-359): ls-tree -z <commit> -- <path>, first NUL record, first space-separated field, nil when absent.",
+    "CHANGED pushBranch(_:force:) (:387-392): new `force: Bool = false`; argv [\"push\", \"-u\"] + [\"--force\"] when force + [\"origin\", \"refs/heads/<n>:refs/heads/<n>\"], still 300 s. Doc: force is for a branch Droppy Code owns outright (a Hydra job's) which a retry rebuilds on a newer base, so its open merge request follows along instead of a second one being opened. B3 caller AppModel+HydraMerge.swift:348 passes force: ownBranch. With force false the argv is identical to B2.",
+    "300 s git sites at B3: :169, :274, :302 (new), :391, :395, :509, :553, :564, :589, :663, :671, :784, :812 (13 lines; B2 listed 12); forge sites :181, :186, :191, :237, :238, :239. Ten new git invocation sites at B3 (:295, :298, :302, :317, :332, :335, :338, :342, :349, :355), all at the 120 s default except :302.",
+    "Everything else (run/env prefix, status parsing, checkpoints, WorkingTreeWatch capture, indexPath cache, diff chunking, previewRestore/restore, apply) is byte-identical to B2 and only shifted."
+   ],
+   "unresolved_questions": [
+    "captureTree(paths:onto:from:) mixes path bases: `diff --name-only` prints repository-root-relative names, `cat-file blob <rev>:<path>` is tree-root-relative, `ls-tree <rev> -- <path>` and the add/rm pathspecs are cwd-relative, and the working bytes are read from directory.appendingPathComponent(path). These agree only when the Git value's directory is the repository root; whether the B3 Hydra merge caller (AppModel+HydraMerge.swift:288) can run it from a subdirectory project is for the AppModel+HydraMerge reader to settle (compare upstream defect 84 / BLK-0004 for previewRestore).",
+    "The exact wording glab, gh and tea print when a request already exists is not in the pinned source; the port can only reproduce the source's substring test (\"already exist\", case-insensitive) and the !<number> / https:// extraction. Fixture texts for tests must be labelled as constructed, not observed."
+   ]
+  }
+ ]
+}

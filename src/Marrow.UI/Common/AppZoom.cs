@@ -57,6 +57,14 @@ public sealed record AppZoomModifier(int Percent)
         var scale = (double)AppZoom.Normalized(Percent) / 100;
         content.RenderTransform = new ScaleTransform(scale, scale);
         content.RenderTransformOrigin = new RelativePoint(0, 0, RelativeUnit.Relative);
+        // The body evaluated again for a new percent (the setting changed, WindowManager.swift:175): SwiftUI keeps the
+        // same ZoomLayout and content (structural identity) and only the scale changes, so the content already in a
+        // ZoomLayout keeps it and is never detached and attached again.
+        if (content.Parent is ZoomLayout zoom)
+        {
+            zoom.Scale = scale;
+            return zoom;
+        }
         return new ZoomLayout(scale) { Children = { content } };
     }
 }
@@ -68,11 +76,22 @@ public sealed record AppZoomModifier(int Percent)
 // :29-51
 public sealed class ZoomLayout : Panel
 {
-    private readonly double scale;
+    private double scale;
 
     public ZoomLayout(double scale)
     {
         this.scale = scale;
+    }
+
+    // :30 let scale, set again when AppZoomModifier's body is evaluated for a new percent (:21-26).
+    internal double Scale
+    {
+        get => scale;
+        set
+        {
+            scale = value;
+            InvalidateMeasure();
+        }
     }
 
     // :34-38

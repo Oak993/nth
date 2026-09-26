@@ -1,0 +1,327 @@
+{
+ "bundle_id": "R3-39",
+ "reader": "R3-39-reader",
+ "files": [
+  {
+   "path": "DroppyCode/App/Views/Diff/DiffInspector.swift",
+   "sha256": "d7e2030351854083326d6b5af22a2d9cbcb122e0bdddbc27625e2ee0cdfcb7be",
+   "ranges_read": [
+    [
+     1,
+     692
+    ]
+   ],
+   "asset_inspection": null,
+   "purpose": "Defines the thread's changes view and the AppKit popover that hosts it. DiffInspector is the 640 by 540 content: a header with a turn picker ('All changes' or 'Turn N' over runtime.turnsWithChanges()), a file count and +/- stat, an ellipsis menu with Expand all / Collapse all and an X that clears runtime.isDiffVisible; below it either 'Reading the diff…', the 'No changes yet' empty state, or a lazy list of collapsible DiffFileCard rows, loaded via runtime.parsedDiff after a 180 ms delay unless the diff is cached, merged with the patches of a tapped tool row (focusedFiles) and scrolled to the first focused file. DiffLinesView renders hunks as header/tinted/plain sections, capped at 200 lines behind a 'Show all N lines' button, and DiffPopoverCoordinator drives a semitransient NSPopover from runtime.isDiffVisible / diffOpenRequest with pass-through mouse and Escape monitors and session counters that stop a stale close from clobbering a fresh open.",
+   "key_symbols": [
+    "struct DiffInspector: View { let runtime: ThreadRuntime }",
+    "DiffInspector.loadKey (diffRevision-diffSelection-diffFocusRevision)",
+    "DiffInspector.load() async",
+    "private func focusedFiles(_ edits: [FileEdit], missingFrom files: [DiffFile]) -> [DiffFile]",
+    "private struct DiffFileCard: View, Equatable",
+    "struct DiffLinesView: View, Equatable { let file: DiffFile; var showsLineNumbers = true }",
+    "DiffLinesView.collapsedLineLimit = 200, tintedChunk = 40",
+    "enum DiffLinesView.Section { header, tinted, plain }",
+    "nonisolated static func DiffLinesView.makeSections(file:showsLineNumbers:limit:)",
+    "private struct DiffLineBlock; private func lineBlocks(_:)",
+    "private struct DiffLineRow: View (numberColumnWidth 30, markerColumnWidth 14, blockRounding radius 8)",
+    "@MainActor final class DiffPopoverCoordinator: NSObject, NSPopoverDelegate (width 640, height 540)",
+    "DiffPopoverCoordinator.sync(isVisible:runtime:)",
+    "DiffPopoverCoordinator.reopen(runtime:)",
+    "DiffPopoverCoordinator.setAnchor(_:), setFallbackAnchor(_:), close(), resolvedAnchor(), show()",
+    "DiffPopoverCoordinator.popoverDidClose(_:), handleMouseDown(_:), handleKeyDown(_:), startMonitors(), stopMonitors()"
+   ],
+   "calls_into": [
+    "ThreadRuntime.parsedDiff(selection:), hasCachedDiff(selection:), turnsWithChanges(), clearDiffFocus(), diffFocusEdits, diffRevision, diffFocusRevision, diffSelection, isDiffVisible, diffOpenRequest, diffAnchor, diffAnchorEdge, turns",
+    "DiffParser.parseHunks(_:path:)",
+    "TouchedPaths.matches(_:touched:)",
+    "FileChangeSummary(files:)",
+    "CaptureRun.isEnabled (B3; B2 called the forwarder WebsiteCaptures.isEnabled)",
+    "ShortcutStore.hint(for: .toggleChanges)",
+    "ChromeTextMenu, PopoverItem, ChromeCapsule, ChromeMenuButton, ChromeDivider, ChromeIconButton, DiffStatLabel, Chrome tokens",
+    "NSPopover.setFixedContent(_:size:) (app extension), WeakView",
+    "NSEvent.addLocalMonitorForEvents / removeMonitor"
+   ],
+   "state_owned": [
+    "DiffInspector @State files, summary, isLoading, collapsed, changedTurns, scrollTarget, scrollRequest",
+    "DiffLinesView @State showsAll, sections",
+    "DiffPopoverCoordinator: popover, anchor, fallback, runtime, desiredVisible, monitors, session, pendingSession, shownOn, shownRuntime, seenOpenRequest"
+   ],
+   "side_effects": [
+    "Writes ThreadRuntime.isDiffVisible (X button, sync on thread switch/first appearance, popoverDidClose) and diffSelection via the turn picker, and calls clearDiffFocus()",
+    "Installs and removes app-local NSEvent monitors for left/right mouse down and keyDown while the popover is shown; Escape (keyCode 53) closes and swallows the event, other clicks close and pass through",
+    "Drops the popover's contentViewController on the matching close so the inspector stops observing the runtime"
+   ],
+   "platform_assumptions": [
+    "NSPopover with .semitransient behaviour and animates = true, anchored to an NSView and NSRectEdge",
+    "NSEvent local monitors and the macOS virtual key code 53 for Escape",
+    "SwiftUI GlassEffectContainer, ScrollViewReader, LazyVStack, .textSelection(.enabled)",
+    "Task.detached for parsing a tapped row's patches off the main thread"
+   ],
+   "persisted_fields": [],
+   "ui_elements": [
+    "Turn picker ChromeTextMenu symbol 'plusminus', help 'Choose which changes to show', items 'All changes' and 'Turn N'",
+    "File count text '1 file' / 'N files' and DiffStatLabel",
+    "Ellipsis menu (help 'More') with 'Expand all' and 'Collapse all'",
+    "X button, help 'Hide changes' plus the toggleChanges shortcut hint",
+    "ProgressView 'Reading the diff…'",
+    "ContentUnavailableView 'No changes yet', image doc.text.magnifyingglass, 'Files the agent changes appear here after each turn.'",
+    "DiffFileCard: chevron, change symbol (plus/minus/arrow.right/pencil .circle.fill in green/red/blue/orange), directory+name, stat; 'Binary file' / 'Diff details unavailable'",
+    "DiffLinesView rows at 11.5 pt monospaced with line-number gutters and +/− markers, tinted blocks at 0.12 green/red, 'Show all N lines' capsule"
+   ],
+   "feature_notes": [
+    "B2->B3 churn is 4 lines, two replacements at :557 and :563 with no line shift: `!WebsiteCaptures.isEnabled` became `!CaptureRun.isEnabled` inside DiffPopoverCoordinator.sync (thread-switch branch and first-appearance branch). SOURCE FACT: at B2 WebsiteCaptures.isEnabled was `nonisolated static var isEnabled: Bool { CaptureRun.isEnabled }` (B2 DroppyCode/App/Captures/WebsiteCaptures.swift:26), and B3 deletes that forwarder along with the other read-throughs (outputDirectory, isTourRun, storageRoot, defaults). The condition is therefore identical; no observable change.",
+    "PR-COMPOSER-207 quotes the old `!WebsiteCaptures.isEnabled` text at :552-559 and :560-567, so its evidence strings must be re-quoted (same line numbers). PR-COMPOSER-008 cites :547-571 but quotes none of the changed text; no action. The 61 GIT.json citations of this file are all unshifted.",
+    "porting/dead_code.md entries 34 and 44 name `WebsiteCaptures.isEnabled` at DiffInspector.swift:557/:563; at B3 the symbol is CaptureRun.isEnabled (DroppyCode/Core/Support/CaptureRun.swift:27, `outputDirectory != nil`). The dead-code conclusion stands."
+   ],
+   "unresolved_questions": []
+  },
+  {
+   "path": "DroppyCode/App/Views/RootView.swift",
+   "sha256": "6f07d63c1489ef4a67b631188740cf0e313325fc461b8653d9c94e3d7670a1b5",
+   "ranges_read": [
+    [
+     1,
+     450
+    ]
+   ],
+   "asset_inspection": null,
+   "purpose": "Composes the main window: RootView places the SidebarView column (laid out at sidebar.width and clipped to renderedWidth, zero wide when the sidebar only floats) with its SidebarResizeHandle beside the inset DetailView sheet, overlays FloatingSidebarPanel when the sidebar floats, a leading-edge handle that pulls a hidden sidebar back out, the Genie and row-glide layers and the command palette, accepts dropped folders (each becomes a project, then a new thread in the last) and files (attached to the selected thread's draft), and shows model.alert with an OK button. DetailView hosts ThreadColumns, an NSViewRepresentable that keeps up to eight hidden per-thread ChatView hosting views behind the shown one, prebuilds neighbours and the top six sidebar rows 1.5 s after a switch only while the user has been idle for a second, and retires dropped columns after 500 ms; without a selection it shows WelcomeView (icon, 'Droppy Code', tagline, Add a project, Activity list and Providers sections) or NoThreadView.",
+   "key_symbols": [
+    "struct RootView: View",
+    "RootView.handleDrop(_ urls: [URL]) -> Bool",
+    "extension EnvironmentValues { @Entry var chatColumnIsShown = true }",
+    "struct DetailView: View (prebuilt, hasPrebuiltTopRows, anyInput = CGEventType(rawValue: ~0))",
+    "private struct ThreadColumns: NSViewRepresentable (topRowsBuiltAtLaunch = 6)",
+    "ThreadColumns.Coordinator (keptLimit = 8; show, dropHidden, prebuild, make, root, drop)",
+    "struct WelcomeView: View",
+    "struct ProviderChecklist: View",
+    "private struct ProviderStatusRow: View",
+    "private struct OpenProvidersSettingsButton: View",
+    "struct NoThreadView: View"
+   ],
+   "calls_into": [
+    "AppModel.sidebar (width, renderedWidth, isVisible, holdsTrafficLights, isDragging, noteLaidOutWidth, beginDrag, drag(by:), endDrag, toggle)",
+    "AppModel.settings (sidebarFloats, sidebarOnlyFloats, backdropOpacity, activityThreadStyle)",
+    "AppModel.addProject(at:), newThread(in:), newThread(), selectedThreadID, thread(_:), threads, existingRuntime(for:), runtime(for:), neighbors(of:), sidebarThreads, projects, isCommandPalettePresented, alert, chooseProjectFolder(), providers.status(_:)",
+    "Storage.attach(_:to:) with AttachmentSource.file",
+    "SidebarView, SidebarResizeHandle, FloatingSidebarPanel, WindowBackdrop, WallpaperStore.shared.image, WindowChromeConfigurator, GenieLayer, RowGlideLayer, CommandPalette, ChatView, HostedEnvironment, FrameHostingView, SwitchLatency.note",
+    "CGEventSource.secondsSinceLastEventType(.combinedSessionState, eventType:)",
+    "Workspace.openTerminal(running:), WindowManager.shared.showSettings(), SettingsNavigation.shared.requestedPage",
+    "ShortcutStore.label(for: .newThread)",
+    "ChromeSection, ChromeCard, ChromeRow, ChromeVisualPicker, ChromeRowDivider, ProviderIcon"
+   ],
+   "state_owned": [
+    "RootView @State detailSize",
+    "DetailView @State prebuilt, hasPrebuiltTopRows",
+    "ThreadColumns.Coordinator columns, order, shown, requested, retired, retirement"
+   ],
+   "side_effects": [
+    "Dropping folders adds projects and opens a new thread; dropping files attaches them to the selected thread's draft",
+    "ProviderStatusRow 'Login' opens Terminal running the provider's login command; 'Install' opens provider.installURL; 'Add key' opens Settings on the Providers page",
+    "ThreadColumns adds hidden hosting-view subviews to the pane and removes retired ones 500 ms after the drop"
+   ],
+   "platform_assumptions": [
+    "NSViewRepresentable hosting of per-thread SwiftUI trees in FrameHostingView subviews with autoresizing masks",
+    "CGEventSource idle time (kCGAnyInputEventType) to avoid building under the user's input",
+    "NSApp.applicationIconImage for the welcome icon; .glassProminent / .glass button styles",
+    "SwiftUI .dropDestination(for: URL.self) and FileManager directory checks"
+   ],
+   "persisted_fields": [
+    "settings.activityThreadStyle via the welcome page's Project mark picker",
+    "projects and threads created by a folder drop or Add a project (through AppModel)"
+   ],
+   "ui_elements": [
+    "Sidebar column with trailing SidebarResizeHandle, and a leading-edge handle while the sidebar is hidden",
+    "FloatingSidebarPanel overlay (scale 0.94 + opacity transition)",
+    "Alert titled model.alert.title with message and 'OK'",
+    "WelcomeView: 104 pt app icon, 'Droppy Code' 34 pt semibold, 'The coding app by Droppy. A calm, native home for your coding agents.', 'Add a project' (folder.badge.plus, glassProminent, extraLarge), 'Or drop a folder anywhere in this window.', section 'Activity list' with row 'Project mark', section 'Providers'",
+    "ProviderStatusRow: icon, display name, 'Checking…' or status summary, then spinner / 'Install' / 'Login' / 'Add key' / green checkmark",
+    "OpenProvidersSettingsButton 'Add key', help 'Open Settings > Providers'",
+    "NoThreadView: bubble.left.and.text.bubble.right at 46 pt light, 'Pick a thread or start a new one', 'New thread' (glassProminent, large), New thread chord hint"
+   ],
+   "feature_notes": [
+    "B2->B3 churn is 29 deleted lines, B2 :424-452: `struct CopyCommandButton: View` (command label that copied to NSPasteboard, flipped to 'Copied' for 1.4 s, help 'Copy the sign-in command, then run it in Terminal') and the blank line after it. SOURCE FACT: at B2 nothing referenced CopyCommandButton (git grep at 1fbf81e finds only its declaration at RootView.swift:424), and at B3 no file mentions it. The app's visible behaviour does not change, but the declared component and the records that specified it (PR-WIN-087, UI-WIN-069) are retired.",
+    "Everything after the deletion moves up 29 lines: NoThreadView B2 :453-479 is B3 :424-450. PR-WIN-088, UI-WIN-070, UI-WIN-071 and UI-WIN-072 need re-citing only. Records citing :1-423 (for example PR-WIN-081 at :329-338, PR-WIN-082 at :339-363, the OpenProvidersSettingsButton record at :417) are unshifted.",
+    "Not in this file's diff but visible in it: WelcomeView's Activity list card (:330) and ProviderChecklist's card (:356) call `ChromeCard {` with no argument, and B3 Chrome.swift changes ChromeCard's default from LazyVStack to a plain VStack (lazy only when `lazy: true`). Both cards hold a handful of rows, so no visible difference is expected; the Chrome.swift reader owns that change."
+   ],
+   "unresolved_questions": []
+  },
+  {
+   "path": "DroppyCode/App/Views/Settings/MCPSettingsPage.swift",
+   "sha256": "660f1caa44e965e539029ace138d764a25810048f45604a753ac63d6e116ecbd",
+   "ranges_read": [
+    [
+     1,
+     580
+    ],
+    [
+     581,
+     1141
+    ]
+   ],
+   "asset_inspection": null,
+   "purpose": "The Settings MCP page. It stacks a lead card ('Connected servers lead' with a hover info popover of three facts), a Connected section listing connected catalog servers sorted by name (switch, tool count and version, a menu with Refresh / Show tools / Disconnect), the Custom section of the user's own servers with an Add server row, and one two-column LazyVGrid per MCP category of server cards whose button reads Connect, Sign in, Waiting/Connecting, Fix it, Try again or Sign in again by MCPConnectionState; a newly connected card celebrates for 900 ms with a SettleChime before moving to Connected unless Reduce Motion is on. It also hosts MCPCustomEditor (name, stdio/http kind, command, one-argument-per-line args, URL, environment variables or headers whose values can be locked into the Keychain, save through mcp.saveCustom and saveCustomValues, refresh when an edited server was connected), the hover-or-click info popover with Connects/Needs/Tools/docs link, FlowLayout chips, and MCPIcon.",
+   "key_symbols": [
+    "struct MCPSettingsPage: View { let query: String }",
+    "MCPSettingsPage.columns (two flexible GridItems, spacing 10), connected, visibleSections, matches(_:query:)",
+    "private struct MCPLeadCard: View",
+    "private struct MCPConnectedRow: View",
+    "private struct MCPServerCard: View",
+    "private struct MCPCustomSection: View",
+    "private struct MCPCustomRow: View",
+    "private struct MCPCustomEditor: View (width 380, sectionSpacing 12, outerPadding 16, variableRowHeight 34; height min(560, 450 or 320 + rows x 34))",
+    "MCPCustomEditor.VariableDraft, draft, save()",
+    "private extension View { func mcpFieldSurface() }",
+    "private struct MCPInfoButton: View",
+    "private struct MCPHoverInfoButton<Content: View>: View (open after 220 ms, close after 320 ms)",
+    "private struct MCPInfoPopover: View (width 340)",
+    "private struct FlowChips: View",
+    "private struct FlowLayout: Layout",
+    "struct MCPIcon: View"
+   ],
+   "calls_into": [
+    "AppModel.mcp: state(for:), states, connection(for:), setEnabled(_:for:), refresh(_:), disconnect(_:), connect(_:), customs, deleteCustom(_:), saveCustom(_:replacing:), saveCustomValues(_:for:replacingFieldsOf:), storedValue(server:field:secret:), entry(for:)",
+    "MCPCatalog.entries, MCPCatalog.byCategory, MCPCatalogEntry (name, vendor, summary, id, sampleTools, isOAuth, needsInput, fields, transport, docsURL, asset, isMonochrome, color, fill(_:values:))",
+    "MCPCustomServer (catalogEntry(), makeID(_:), Kind .stdio/.http, Variable)",
+    "MCPKeyPanel.shared.present(entry:model:), MCPSetupPanel.shared.present(entry:guide:model:)",
+    "SettleChime.play()",
+    "ChromeSection, ChromeCard(lazy:), ChromeRowDivider, SettingsSwitch, PopoverMenu, PopoverItem, PopoverDivider, PopoverSectionHeader, PopoverNote, WorkingSpinner, GlassPickerButton, presentedChrome()"
+   ],
+   "state_owned": [
+    "MCPSettingsPage @State celebrating",
+    "MCPConnectedRow @State showMenu, showTools",
+    "MCPServerCard @State successPopped",
+    "MCPCustomSection @State isAdding",
+    "MCPCustomRow @State showMenu, isEditing",
+    "MCPCustomEditor @State name, kind, command, argsText, url, variables, error, savedID; @FocusState isNameFocused",
+    "MCPHoverInfoButton @State isPresented, isOverButton, isOverPopover, settle"
+   ],
+   "side_effects": [
+    "Connect, disconnect, refresh, enable/disable and delete MCP servers through AppModel.mcp",
+    "Custom editor save writes the server to mcp.json and variable values to mcp.json (plain) or the Keychain (locked)",
+    "Plays SettleChime when a server becomes connected (not under Reduce Motion)",
+    "Opens MCPKeyPanel / MCPSetupPanel floating panels; a card entering needsSetup opens the setup panel by itself",
+    "'Read the docs' opens the server's docs URL"
+   ],
+   "platform_assumptions": [
+    "macOS Keychain for locked variable values (strings 'Kept in the Keychain', 'Locked values are kept in the Keychain.', 'The Keychain could not save a value. Keep this editor open and try again.')",
+    "Copy says 'this Mac' ('Servers of your own: a command that runs on this Mac…', 'stdio — a command on this Mac', 'Runs on this Mac through …')",
+    "SwiftUI popovers, .onHover, LazyVGrid, custom Layout, SF Symbols, asset-catalog images for server icons"
+   ],
+   "persisted_fields": [
+    "Custom MCP servers (name, kind, command, args, url, env/headers variable keys and isSecret) via mcp.saveCustom",
+    "Custom variable values via mcp.saveCustomValues (plain to mcp.json, secret to Keychain)",
+    "Per-connection isEnabled via mcp.setEnabled"
+   ],
+   "ui_elements": [
+    "Lead card: checkmark.shield.fill, 'Connected servers lead', info 'About connected servers' with 'Keys stay in your Keychain', 'Disconnect to go back to your own setup', 'Every provider, whatever the model'; body 'Connect a server here and every thread can use it. Anything set up in a terminal or another app stays just as it is.'",
+    "Section 'Connected' in ChromeCard(lazy: true): MCPConnectedRow with 'N tools · version', switch, ellipsis 'Server options' menu 'Refresh', 'Show tools', 'Disconnect'; tools popover '<name> tools' / 'No tools listed yet.'",
+    "Section 'Custom' in ChromeCard(lazy: true): empty-state line, MCPCustomRow rows (menu 'Edit', 'Disconnect', 'Delete'), 'Add server' row",
+    "Category grids of MCPServerCard: name, vendor, two-line summary, sample tools line, failure message, setup guide title, action button, info button; success view 'Connected · N tools'",
+    "Custom editor: header 'New server' / name, 'Custom · stdio|http', fields Name ('My server'), Kind, Command ('npx'), Arguments ('One argument per line; empty lines are dropped.'), URL ('https://…'), Environment / Headers with KEY/value rows, lock and minus buttons, 'Add environment variable' / 'Add header', footer error and 'Add server' / 'Save'",
+    "Info popover: icon, name, 'vendor · category', summary, Connects / Needs rows, Tools chips, 'Change the <label>…', 'Read the docs'",
+    "Footer line 'Connected servers reach every provider when a thread starts: the CLIs at launch, the API models through Droppy Code itself.'"
+   ],
+   "feature_notes": [
+    "B2->B3 churn is 4 lines, two replacements with no line shift: :40 `ChromeCard {` -> `ChromeCard(lazy: true) {` (the Connected card) and :395 `ChromeCard {` -> `ChromeCard(lazy: true) {` (the Custom card). SOURCE FACT: B3 DroppyCode/UI/Chrome/Chrome.swift changes ChromeCard to take `var lazy = false` and build a LazyVStack only when lazy is true, a VStack otherwise, with the comment 'Use lazy only for cards that list a long, uniform, growing collection. Variable-height rows at the visible bottom edge can rebuild without end.' At B2 every ChromeCard was a LazyVStack. So these two call sites opt back into exactly the B2 behaviour; this file's observable behaviour is unchanged.",
+    "UI-MCP-007 states the Connected card is a LazyVStack whose rows are built lazily and cites Chrome.swift:1006-1021 for it; at B3 that laziness rests on the explicit `lazy: true` at :40 plus Chrome.swift's lazy branch, so its evidence needs re-citing. PR-MCP-199, PR-MCP-200, PR-MCP-206 and UI-MCP-001 cite ranges that include :40 or :395 but neither quote those lines nor state laziness; no action. No UI record states the Custom card's laziness (:395); it is unchanged from B2."
+   ],
+   "unresolved_questions": []
+  },
+  {
+   "path": "DroppyCode/App/Views/Sidebar/SidebarView.swift",
+   "sha256": "0ef49296864ce205f77921ff98127af44e791f53b834053e21f75bdd0f24eb8e",
+   "ranges_read": [
+    [
+     1,
+     700
+    ],
+    [
+     701,
+     1400
+    ],
+    [
+     1401,
+     2050
+    ],
+    [
+     2051,
+     2695
+    ]
+   ],
+   "asset_inspection": null,
+   "purpose": "The thread sidebar, shown in the window column or in the Threads popover (inPopover, which closes on selection). It holds the 'Search threads' field with arrow-key result walking, the bell ActivityViewToggle, a lazy list in either the project layout (projects with counts, pinned then open threads, a Settled header that folds settled threads) or the activity layout ('Needs attention', 'Pinned', Today/Yesterday/weekday/date groups, Settled), helper rows with a dotted connector, Hydra head glyph cards (twelve shown, the rest behind a chevron) and folded-helper stubs, then 'Add project' (NSOpenPanel) and 'Settings' with an update dot. One list-wide 4 pt DragGesture reorders open thread rows live among their peers with spring slides and a haptic per swap; rows show hover actions, a settle check, an archive button with a Genie ghost, a fold chevron, rename/delete/archive popovers anchored on the row, and context menus built from snapshots through SidebarMenuRequests. Placement, helper grouping, item and search caches keep re-renders cheap, and MinuteClock ticks relative times once a minute.",
+   "key_symbols": [
+    "struct SidebarView: View { var inPopover = false; var dismiss: (() -> Void)? }",
+    "SidebarView.listSpace = \"sidebar-list\"",
+    "SidebarView.deletePopover / renamePopover / archivePopover(for:on:), confirmDeletion, carryOutConfirmedDeletion",
+    "SidebarView.listItems, projectItems, activityItems, activityThreadItems, helperItems, helpersByParent, orderedHeads, activityGroups, placed, dayTitle, searchList, searchResults, moveSearchSelection",
+    "SidebarView.dragChanged(_:translation:), dragEnded(), peers(of:), slotHeights(for:), DragPeers, slide = spring(0.28, 0.82)",
+    "private struct ArchiveThreadPopover, DeleteThreadPopover, RenameThreadPopover",
+    "private struct SidebarItem { enum Kind: gap, project, header, settledHeader, thread, helper, headCards, helperStub }",
+    "private struct ProjectRow, ProjectPairChoice, ProjectPairMenuItems",
+    "private enum ThreadRowMetrics",
+    "private struct SidebarHelperRow, HeadCardsRow, HelperStubRow, RidesWithDraggedParent, HelperConnector, HelperConnectorShape",
+    "private struct SidebarThreadRow: View, Equatable (settle, reopen, glide, archiveWithGenie, mergeStage(of:))",
+    "private struct ThreadRowFace<Badge: View>, ThreadGhostBadge, SettleCheck, ThreadBadge",
+    "@Observable private final class SidebarMenuRequests",
+    "@MainActor private enum ThreadActions { make, makeContextMenu }",
+    "private struct ActivityViewToggle, ActivityHeader, SettledHeader, ActivityStatus",
+    "private final class FrameHolder, RowHeights, RowFrames, PlacementCache, SidebarItemCache; private struct SidebarSearchResult, ThreadPlacement",
+    "@MainActor @Observable final class MinuteClock",
+    "private struct RelativeTimeLabel"
+   ],
+   "calls_into": [
+    "AppModel: threads, projects, thread(_:), project(_:), threads(in:), selectedThreadID, isSelected(_:), existingRuntime(for:), delete(_:removeWorktree:), rename(_:to:), archive(_:), settle(_:sounds:), settleAnimated, reopenAnimated, moveThread(_:to:placeAfter:), moveInActivity(_:to:placeAfter:among:), updateThread, updateProject, toggleHelpersFold, addProject(at:), newThread(in:workspace:), removeProject, forwardThread, warmDocuments, setHydraPair(_:forProject:), hydraPickerPairs, sidebarRevealThreadID, archiveRequest, finishRequest",
+    "AppSettings: sidebarActivityView, settledCollapsed, activityThreadStyle, hydraAutoHidesIdleHeads, confirmBeforeDeleting, threadFinishAction, settleSound, isProjectActive, setProjectActive, hasProjectActivationOverride, clearProjectActivationOverride",
+    "RowDrag<UUID> (settle(order:heights:fallbackHeight:), visualOffset), RowGlideAnimator.shared, GenieAnimator.shared, SettleChime",
+    "SidebarRow, SidebarIconBadge, SidebarSymbol, SidebarSearchField, RowActionsButton, RowActionMenuButtons, RowAction, RowAccessoryIcon, UpdateAvailableDot, WindowDragArea, PopoverMenu/Item/Note/Divider/SectionHeader, HydraGlyph, MiniSpinner, ProviderIcon, ProjectIconMark, HydraPairSummary",
+    "UpdateChecker.shared.updateAvailable, WindowManager.shared.showSettings(), Workspace.revealInFinder, ShortcutStore.shared.chord(for: .toggleActivityView), RelativeTime.short",
+    "NSOpenPanel, NSHapticFeedbackManager, NSEvent local key monitor"
+   ],
+   "state_owned": [
+    "SidebarView @State search, renaming, renameText, pendingDeletionID, pendingArchiveID, confirmedDeletion, isDeletePopoverShown, menuRequests, drag, rowHeights, listFrame, rowFrames, dragPeers, itemCache, isListScrolling, scrollSettle, placementCache",
+    "Row-level @State: hover and menu flags, SidebarThreadRow isSettling and windowFrame, HeadCardsRow width/hoveredID/showsAllHeads",
+    "MinuteClock.shared.now"
+   ],
+   "side_effects": [
+    "Reorders threads (sortOrder, or activityOrder/activityOrderDay in the activity layout) swap by swap during a drag, with an alignment haptic per swap",
+    "B3: while a row is grabbed the list declares pointer style .grabActive (no longer pushes/pops NSCursor)",
+    "Renames, pins, forwards, settles, reopens, archives and deletes threads; adds, removes, activates/deactivates projects and sets their Hydra pair",
+    "Toggles settings.sidebarActivityView and settings.settledCollapsed; toggles project isExpanded and thread foldsHelpers",
+    "Installs an NSEvent keyDown monitor while the archive question is open (Return/keypad Enter archive, Escape dismisses)",
+    "Launches row-glide and Genie ghost animations; plays SettleChime when settleSound is on"
+   ],
+   "platform_assumptions": [
+    "SwiftUI .pointerStyle(_:) with PointerStyle.grabActive (B3; macOS 15 SwiftUI API)",
+    "NSOpenPanel folder picker, NSHapticFeedbackManager alignment feedback, AppKit context menus via .contextMenu, NSEvent key codes 36/76/53",
+    "Traffic-light clearance strip and WindowDragArea in the window column",
+    "'Reveal in Finder' / 'Reveal worktree in Finder' labels"
+   ],
+   "persisted_fields": [
+    "settings.sidebarActivityView, settings.settledCollapsed, per-project activation override, project hydraPairID, project isExpanded",
+    "thread title, isPinned, sortOrder, activityOrder, activityOrderDay, foldsHelpers, isSettled/settledAt, isArchived (through AppModel)"
+   ],
+   "ui_elements": [
+    "Search field 'Search threads' and bell toggle ('Turn on activity view' / 'Turn off activity view' plus chord; accessibility 'Activity view' On/Off)",
+    "Scrolling thread list (LazyVStack spacing 1, padding top 12 bottom 8), grab-active pointer while dragging (B3)",
+    "Project rows with count, hover ellipsis and plus ('New thread in <name>'), context menu 'New thread', 'New thread in worktree', 'Reveal in Finder', 'Remove project', 'Activate project'/'Deactivate project', 'Follow global setting', submenu 'Start new chats on' with 'The chat's last pair'",
+    "Headers 'Needs attention', 'Pinned', day titles; Settled header with chevron and count",
+    "Thread rows with badge, title, project line or merge stage, relative time or status, archive button 'Archive thread', settle check 'Settle thread'/'Reopen thread', fold chevron 'Show helpers'/'Hide helpers'",
+    "Helper rows, head glyph cards with 'Show all N heads'/'Show fewer heads', folded stub 'N helpers'/'N heads'",
+    "Row menus: 'Rename', 'Pin'/'Unpin', 'Forward to new thread', 'Reveal worktree in Finder', 'Archive', 'Settle'/'Reopen', 'Delete…'",
+    "Popovers: 'Archive “title”?' with Delete and Archive; 'Delete this thread?' with 'Delete thread' and 'Delete thread and worktree'; 'Rename thread' with Cancel and Rename",
+    "Search empty state 'No results' / 'Try a thread title or a project name.'",
+    "Bottom rows 'Add project' and 'Settings' with update dot"
+   ],
+   "feature_notes": [
+    "B2->B3 churn is 3 lines: +1 at B3 :124 `.pointerStyle(drag.id != nil ? .grabActive : nil)` on the list's LazyVStack (after `.coordinateSpace(name: Self.listSpace)`), -1 B2 :775 `NSCursor.closedHand.push()` in dragChanged's first-grab branch, -1 B2 :805 `NSCursor.pop()` in dragEnded. SOURCE FACT: the grabbing cursor is no longer an AppKit cursor-stack push at the grab and pop at release; it is a SwiftUI pointer style that the list declares while `drag.id` is non-nil and withdraws (nil) otherwise. The user still sees a grabbing hand while dragging a row, but the push/pop pairing (and the 'never pop without a push' guard it needed) is gone, and the style belongs to the list view's region rather than the process-wide cursor.",
+    "Line map B2->B3: :1-123 unchanged; :124-774 +1; :775 deleted; :776-804 unchanged; :805 deleted; :806-2696 -1 (B3 has 2695 lines). PR-SIDEBAR-049 (which specifies the push/pop) and UI-SIDEBAR-060 (whose notes say the cursor becomes the closed hand for the drag's whole life, citing :803-812) change behaviour; UI-SIDEBAR-005 (the list, :101-147) gains the pointer-style state; every other record citing a line at or after :124 needs its numbers re-cited only. Records citing SidebarView lines only in non-evidence fields (UI-MCP-046 notes, PR-SETTINGS-034, PR-SETTINGS-117, UI-STORE-002 notes, UI-THEME-050 notes) shift too."
+   ],
+   "unresolved_questions": [
+    "UNRESOLVED: whether SwiftUI keeps the .grabActive pointer style while the pointer leaves the list's LazyVStack during an active drag (B2's NSCursor push held until release wherever the pointer went). The source does not say; only a macOS 15+ runtime check of Droppy Code 1.7.0 would settle it, and the port's Windows scoping of the grabbing cursor depends on it."
+   ]
+  }
+ ]
+}

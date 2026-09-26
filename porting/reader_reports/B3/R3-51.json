@@ -1,0 +1,117 @@
+{
+  "bundle_id": "R3-51",
+  "reader": "R3-51-reader",
+  "files": [
+    {
+      "path": "DroppyCode/UI/Common/AttachmentPreview.swift",
+      "sha256": "1429454d0ae5a22c37d68f194867683c1837501181417282c62c9843b1f257c2",
+      "ranges_read": [[1, 433]],
+      "asset_inspection": null,
+      "purpose": "Shared helpers and views for finding, sizing, thumbnailing and popover-previewing file and video attachments in the chat: PreviewImages resolves an image path out of a tool call's own title/detail text and caches the resolved Attachment value and its formatted file size; FileIcons caches Finder icons by extension with a 64-entry LRU; PreviewVideos and AttachmentPlayBadge/AttachmentVideoThumbnail render video attachments with an off-main-actor AVFoundation thumbnail and a play badge; AttachmentLargePreview is the fixed-size popover body (image, video, text-snippet or icon-and-name branches) shown when a thumbnail is clicked, sized once up front from imageDisplaySize/videoDisplaySize so it never reflows; ToolImagePreview is the full-width preview shown inline atop an expanded read-tool row. This single file is therefore the source of truth for every attachment preview surface in the app (composer thumbnails, the large popover, and the tool-row inline preview).",
+      "key_symbols": [
+        "enum PreviewImages { extensions, isImagePath(_:), resolveToolImagePath(for:workingDirectory:), mentionsImage(_:), search(for:workingDirectory:), attachments, attachment(for:), fileSize(_:) }",
+        "@MainActor enum FileIcons { cache, order, icon(for:), iconKey(for:) }",
+        "enum PreviewVideos { extensions, isVideoPath(_:), thumbnail(for:pointSize:) }",
+        "extension Attachment { var isVideo }",
+        "struct AttachmentPlayBadge: View",
+        "struct AttachmentVideoThumbnail: View",
+        "struct AttachmentLargePreview: View { imageBounds, imageDisplaySize(for:), videoSizes, prefetchVideoSize(for:), videoDisplaySize(for:), textPreview(for:) }",
+        "struct ToolImagePreview: View"
+      ],
+      "calls_into": [
+        "FileManager.default (fileExists, attributesOfItem)",
+        "NSWorkspace.shared (icon(forFile:), activateFileViewerSelecting, open)",
+        "AVURLAsset / AVAssetImageGenerator (video frame + track loading)",
+        "CGImageSourceCreateWithURL / CGImageSourceCopyPropertiesAtIndex (ImageIO header read)",
+        "ThumbnailCache.shared.thumbnail(for:pointSize:)",
+        "RecentCache<String, String?> (resolvedPaths cache)",
+        "UTType(filenameExtension:) for MIME lookup",
+        "size.int64Value.formatted(.byteCount(style: .file)) (Swift's byte-count FormatStyle, new in B3)"
+      ],
+      "state_owned": [
+        "PreviewImages.resolvedPaths: RecentCache<String,String?> limit 600, @MainActor",
+        "PreviewImages.attachments: [String: Attachment], @MainActor, one entry per resolved path",
+        "FileIcons.cache/order: [String:NSImage] + insertion-order array, bounded to 64",
+        "AttachmentLargePreview.videoSizes: [String: CGSize], @MainActor, filled only by prefetchVideoSize"
+      ],
+      "side_effects": [
+        "Disk existence checks (FileManager.fileExists) per resolved candidate path",
+        "Reads image headers via ImageIO and up to 500,000 bytes of a text file for the preview",
+        "Generates a video frame off the main actor via AVAssetImageGenerator",
+        "Opens Finder / the default app via NSWorkspace on button taps"
+      ],
+      "platform_assumptions": [
+        "NSWorkspace, NSImage, AVFoundation/AVAssetImageGenerator, CGImageSource/ImageIO, UTType are all AppKit/macOS-only APIs the Windows port must replace",
+        "@MainActor isolation used for every mutable cache, assumed single-threaded UI actor semantics",
+        "File size formatting now goes through Swift's `IntegerFormatStyle`-family `.formatted(.byteCount(style: .file))` instead of `ByteCountFormatter`"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "AttachmentPlayBadge - 30x30 black-opacity-0.45 circle with a white play.fill glyph, offset x:1, accessibilityHidden",
+        "AttachmentVideoThumbnail - 56pt (default) rounded 12pt continuous, quaternary 0.6 fill, aspect-fill frame, play badge overlay",
+        "AttachmentLargePreview - image/video slot sized to imageSize ?? 480x360, ProgressView until loaded then 0.15s ease-out fade; text branch 440-wide scrollable monospaced caption box; icon+name fallback row; footer with name, PreviewImages.fileSize string, \"Show in Finder\" and \"Open\" link buttons, padded 12, max width 504",
+        "ToolImagePreview - full-width image up to 420pt tall in a 10pt-rounded quaternary-0.45 box with spinner, file name caption plus an \"Open\" link button"
+      ],
+      "feature_notes": [
+        "B2->B3 diff (git diff 1fbf81e...HEAD -- AttachmentPreview.swift) touches exactly one spot: PreviewImages.fileSize. B2 kept a cached `@MainActor private static let sizeFormatter: ByteCountFormatter` (countStyle .file) and called `sizeFormatter.string(fromByteCount:)`; B3 deletes that cached formatter entirely and calls `size.int64Value.formatted(.byteCount(style: .file))` (Swift's structured `ByteCountFormatStyle`, part of the same `.file`-style byte-count family). This removes 7 lines net (440 -> 433 total lines) and shifts every later line in the file by -7 versus B2.",
+        "The B2 code comment 'One formatter: allocating one per size string needlessly repeats the setup' (justifying the cached ByteCountFormatter instance) is deleted along with the formatter itself, since the new FormatStyle call needs no manually-cached instance.",
+        "No other line in the file changed: PreviewImages' extension set, resolveToolImagePath, search, the attachment cache, FileIcons, PreviewVideos, AttachmentPlayBadge, AttachmentVideoThumbnail, AttachmentLargePreview (image/video/text/icon branches, imageDisplaySize, videoDisplaySize, prefetchVideoSize) and ToolImagePreview are byte-identical to B2 apart from the -7 line shift."
+      ],
+      "unresolved_questions": [
+        "Whether `Int.formatted(.byteCount(style: .file))` produces exactly the same output strings as `ByteCountFormatter` with countStyle .file for every magnitude (bytes, KB, MB, GB, zero, negative) on the pinned macOS runtime. The C# port (src/Marrow.Core/Port/SwiftFormatters.cs FileByteCount, lines 254-276) is a line-referenced reimplementation of swift-corelibs-foundation's ByteCountFormatter, not of the newer FormatStyle API, so this needs runtime confirmation on the B3 reference app (which the pinned source itself no longer even uses ByteCountFormatter for this call site) before the port can be trusted as still matching."
+      ]
+    },
+    {
+      "path": "DroppyCode/UI/Common/Components.swift",
+      "sha256": "ae4f24f0faf8008bb55dbefcd5c2681b0d9abdd639e0710b661ef6bab66ee747",
+      "ranges_read": [[1, 166]],
+      "asset_inspection": null,
+      "purpose": "A grab-bag of small, reused UI primitives and platform helpers for the chat chrome: ProviderIcon renders a provider's icon at a given size; RelativeTime formats a Date as a short relative-age string (short) and a TimeInterval as a compact duration string (duration); DiffStatLabel renders the +N/-N diff-stat pair; ChipButtonStyle is the borderless capsule ButtonStyle used inside glass surfaces; and the Workspace enum resolves, launches and reveals the seven bundled/installed code editors plus Finder/Terminal, including writing a temporary shell script so an interactive CLI login gets a real shell. It is one of the most widely depended-on files in the UI layer, cited by CHAT, COMPOSER, GIT, PROVREG, SETTINGS, SIDEBAR, STORE, TERM and USAGE spec records.",
+      "key_symbols": [
+        "struct ProviderIcon: View",
+        "enum RelativeTime { days, short(_:now:), duration(_:) }",
+        "struct DiffStatLabel: View",
+        "struct ChipButtonStyle: ButtonStyle { isActive, ChipBody }",
+        "extension ButtonStyle where Self == ChipButtonStyle { chip, chip(active:) }",
+        "enum Workspace { struct Editor, editors, openTerminal(running:), installedEditors, open(_:with:), icons, icon(for:), finderIcon, revealInFinder(_:) }"
+      ],
+      "calls_into": [
+        "NSWorkspace.shared (urlForApplication, open, icon(forFile:), activateFileViewerSelecting)",
+        "FileManager.default (temporaryDirectory, createDirectory, setAttributes)",
+        "RecentCache<Date,String> (RelativeTime.days)",
+        "Date.formatted(.dateTime...) and, in B3, Duration.seconds(...).formatted(.units(...))"
+      ],
+      "state_owned": [
+        "RelativeTime.days: RecentCache<Date,String> limit 256, @MainActor",
+        "Workspace.icons: [String: NSImage] keyed by bundle id, @MainActor",
+        "Workspace.installedEditors / Workspace.finderIcon: static, computed once per launch"
+      ],
+      "side_effects": [
+        "Writes a temporary .command shell script to disk and chmods it 0o755 (openTerminal)",
+        "Launches external applications and reveals files via NSWorkspace",
+        "Launch Services lookups (urlForApplication) per editor, cached"
+      ],
+      "platform_assumptions": [
+        "Editors are identified purely by macOS bundle identifier (com.microsoft.VSCode, com.apple.Terminal, etc.) resolved through NSWorkspace/Launch Services - the Windows port has no such identity and (per CHAT.json PR-CHAT-181's open_question) no owner ruling yet pins the Windows equivalent (exe path, App Paths registry key, packaged-app family name, etc.)",
+        "openTerminal writes a zsh login script (`#!/bin/zsh -l`) into FileManager.default.temporaryDirectory - Windows needs an equivalent shell bootstrap mechanism",
+        "duration() now depends on Swift's `Duration` value type and its `.formatted(.units(...))` FormatStyle rather than hand-rolled string interpolation"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "ProviderIcon - resizable, aspect-fit, size x size (default 14pt)",
+        "DiffStatLabel - HStack spacing 4, \"+N\" in Chrome.success then \"\u2212N\" (U+2212) in Chrome.danger, caption font with monospaced digits",
+        "ChipButtonStyle - callout font, 1-line, 9pt horizontal / 5pt vertical padding, tint foreground when active else secondary, capsule fill 0.16/0.26 opacity when active (pressed/unpressed) or 0/0.07/0.12 otherwise, 0.12s ease-out hover animation"
+      ],
+      "feature_notes": [
+        "B2->B3 diff (git diff 1fbf81e...HEAD -- Components.swift) touches exactly RelativeTime.duration. B2: `let total = max(0, Int(interval.rounded())); if total < 60 { return \"\\(total)s\" }; if total < 3_600 { return \"\\(total / 60)m \\(total % 60)s\" }; return \"\\(total / 3_600)h \\((total % 3_600) / 60)m\"` (a hand-rolled 3-tier formatter that always clamps negative intervals to 0 and never shows more than two units). B3 replaces the whole body with `Duration.seconds(max(0, Int(interval.rounded()))).formatted(.units(allowed: [.seconds, .minutes, .hours], width: .narrow, maximumUnitCount: 2, fractionalPart: .hide(rounded: .down)))` - a call into Swift's system Duration/UnitsFormatStyle machinery instead of a fixed string template. This removes 2 lines net (168 -> 166 total lines) and shifts every line after the function (old line >=42) by -2 versus B2.",
+        "This is a genuine algorithm swap, not a pure refactor: the exact narrow-width, ICU-driven unit formatting (locale-specific abbreviations, zero-unit dropping/padding behaviour, rounding of the hidden fractional part) is now delegated to Apple's Duration.FormatStyle rather than being fully specified by the three fixed templates the old code hard-coded. Whether the two produce byte-identical strings for every boundary (0s, 59s/60s, 3599s/3600s, and values with a non-zero seconds remainder above one hour) cannot be determined from source alone.",
+        "The already-ported C# RelativeTime.Duration (src/Marrow.UI/Common/Components.cs lines 82-93) still implements the OLD B2 3-tier hand-rolled algorithm verbatim (`{total}s` / `{total/60}m {total%60}s` / `{total/3_600}h {(total%3_600)/60}m`), and the pinned unit test file (tests/Marrow.UI.Tests/Common/ComponentsTests.cs lines 103-141, 5 Duration facts) asserts exactly that old algorithm's outputs (0s, 45s, 1m 30s, 1h 2m, -10s->0s). Both need to be revisited against B3's Duration.FormatStyle-based behaviour.",
+        "The C# tests' Req trait for these five Duration facts cites \"PR-SIDEBAR-074\", but PR-SIDEBAR-074's own source_evidence in porting/spec/SIDEBAR.json actually cites Components.swift:20-35 (RelativeTime.short), not the duration function at :36-41/:37-42; the record that actually documents duration's old three-tier algorithm is CHAT.json's PR-CHAT-116 (and UI-CHAT-035). This mislabeled Req trait should be corrected when the duration behaviour is reclassified."
+      ],
+      "unresolved_questions": [
+        "The exact strings `Duration.seconds(_:).formatted(.units(allowed: [.seconds,.minutes,.hours], width: .narrow, maximumUnitCount: 2, fractionalPart: .hide(rounded: .down)))` produces on the pinned B3 macOS runtime for the boundary values the old algorithm and the existing C# tests care about (0, 45, 90, 3725 seconds, and negative input after clamping to 0) - needed before PR-CHAT-116/UI-CHAT-035 can be re-specified and before Components.cs's Duration() and ComponentsTests.cs can be rewritten to match.",
+        "Whether Apple's narrow Duration.UnitsFormatStyle ever renders all three units (h, m, s) at once for a value like 3725s, given maximumUnitCount: 2 versus the old code's fixed two-unit-above-3600s cap - cannot be confirmed without running the pinned binary or an equivalent Swift snippet."
+      ]
+    }
+  ]
+}

@@ -450,3 +450,44 @@ Both remain open options for the owner alone.
   (b) re-pin now to 52bc79260/1.7.0, which reopens Gate A/B for the 101-file delta before more units are built on the old
   pin; (c) stay pinned but cherry-pick specific named fixes from the delta as engineering decisions, each with its own
   Swift-diff evidence. No action taken until the owner rules; work below continues against the B2 pin.
+
+## UNK-0026 CLI self-update on Windows: whether `claude update` and `codex update` can run headless
+
+- **Status:** RESOLVED 2026-09-26 by OD-0025 (owner: "Test once, then match Mac (Recommended)").
+  Owner question asked 2026-09-26 (B3 decision O1, `E:/Droppy/work/b3/decisions_draft.md`;
+  full source citations and options in `porting/platform_adaptations.md` PA-0018, the wording decision in
+  `porting/engineering_decisions.md` ED-193).
+- **What is new at B3, in one line:** `Services/Providers/ProviderRegistry.swift:467-537` adds a background
+  updater that runs `claude update`/`codex update` every 12 hours and after a "too old" CLI error, none of which
+  exists at B2.
+- **Why it is the owner's call, not engineering's (CLAUDE.md: do not modify the owner's installed apps without
+  authorization; contract sections 2, 8, 11, 12):** finding out whether either updater completes headless, and
+  whether it succeeds while a live session holds that CLI open, requires actually running the real updaters on
+  the owner's workstation, which changes the owner's installed Claude Code and Codex versions.
+- **Options on record (PA-0018):** (1) probe once, authorized, then ship parity exactly as B3 does
+  (recommended); (2) ship parity without a probe; (3) never run the updaters on Windows (named deviation); (4)
+  update only when no session of that provider is live (named deviation).
+- **Blocks:** unit A23 (Services.Providers.ProviderRegistry), A32 (App.AppModel), A33 (App.Runtime.ThreadRuntime).
+
+## UNK-0027 Chat links on Windows: drive-letter paths, UNC paths, and what a link may launch
+
+- **Status:** RESOLVED 2026-09-26 by OD-0026 (owner: "Safe parity (Recommended)"; rule and mechanism ED-204).
+  Owner question asked 2026-09-26 (B3 decision O4, `E:/Droppy/work/b3/decisions_draft.md`;
+  full source citations and options in `porting/platform_adaptations.md` PA-0020; the parity-independent opener
+  hardening is already recorded as ENGINEERING in `porting/engineering_decisions.md` ED-203).
+- **What is new at B3, in one line:** `UI/Markdown/LinkParagraphView.swift:226-245` adds `MarkdownLinkOpener`,
+  which opens a scheme-less, host-less, `"/"`-rooted URL as a local file (with a `:<line>` suffix rule) and hands
+  everything else to `NSWorkspace.shared.open`; ported literally, a Windows drive-letter link parses with the
+  drive letter read as a URL scheme and mostly fails.
+- **The three sub-questions (PA-0020):** (1) should a Windows absolute path (`C:\...`, `C:/...`, `/C:/...`) take
+  the source's local-file branch with the same `:line` rule; (2) should a UNC path
+  (`\\host\share\...`, `file://host/...`) ever be opened, given it sends the user's Windows credentials to a
+  named host; (3) should a directly-runnable local file type (`.exe`, `.bat`, `.cmd`, `.vbs`, `.js`, `.hta`,
+  `.msi`, `.scr`, `.lnk`, `.cpl`, among others) be launched, as NSWorkspace launches an app, or shown selected in
+  File Explorer instead.
+- **Why it is the owner's call (contract section 8: a serious security problem needs a decision; section 11:
+  drive and UNC paths, preserve intent):** options (2) and (3) trade fidelity to the source against sending
+  credentials to, or executing, something a chat model named.
+- **Options on record (PA-0020):** A, parity of intent (yes / open / launch); B, recommended (yes / never open /
+  reveal in File Explorer); C, literal (no Windows-path handling at all).
+- **Blocks:** unit A29 (UI.Markdown.LinkParagraphView) and UI.Markdown.LinkPopover.

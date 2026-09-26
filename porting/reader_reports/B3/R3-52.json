@@ -1,0 +1,223 @@
+{
+ "bundle_id": "R3-52",
+ "reader": "R3-52-reader",
+ "files": [
+  {
+   "path": "DroppyCode/UI/Markdown/LinkParagraphView.swift",
+   "sha256": "ef6c67e05001b7d4f0386bf4760949e9b8e85f18a90ffaccfb9222337019c34e",
+   "ranges_read": [
+    [
+     1,
+     275
+    ],
+    [
+     276,
+     550
+    ]
+   ],
+   "asset_inspection": null,
+   "purpose": "Declares LinkParagraphView, the NSViewRepresentable that renders a markdown paragraph containing links as a selectable, non-editable NSTextView (LinkTextView) so links show the native pointing hand and prose the I-beam, and its static attributed(source:pointSize:dimmed:streaming:mentions:targets:) builder that turns RichLink.prettyAttributed runs into an NSAttributedString with a per-size font cache (base, bold, font-manager italic, monospaced at max(9, pointSize - 1)), 14x14 favicon attachments from FaviconCache.cached(host:), dimmed labelColor at alpha 0.7 and Hydra head mentions (tinted dragon glyph at (pointSize * 1.25).rounded(), a space, the bold name in the persona colour, carrying the custom key \"droppycode.hydraHead\" rather than .link). LinkTextView owns its own NSTextStorage/NSLayoutManager/NSTextContainer, drops every tracking area and cursor rect, does its own link and head-mention hit testing, intercepts right-click/control-click to show LinkPopover and left-click on a head to call onOpenHead, measures height once per width and defers re-measurement during live resize. The file also declares MergeRequestTarget and its environment key, the hydraHead attribute key, and (new at B3) MarkdownLinkOpener, which opens scheme-less absolute-path links as local files, stripping a trailing :line suffix when only the file without it exists.",
+   "key_symbols": [
+    "struct LinkParagraphView: NSViewRepresentable (source, pointSize = 13, dimmed, streaming, revision, mentions: [HydraPersona], targets: [String: HydraMentionTarget], onOpenHead: ((URL) -> Void)?, onHost: ((LinkTextView) -> Void)?)",
+    "LinkParagraphView.makeNSView(context:) / updateNSView(_:context:) / sizeThatFits(_:nsView:context:) / makeCoordinator() / static dismantleNSView(_:coordinator:)",
+    "final class LinkParagraphView.Coordinator: NSObject, NSTextViewDelegate (lastSource, lastPointSize, lastDimmed, lastStreaming, lastRevision, lastVeiled, lastMentions, lastTargets, lastHeads; textView(_:clickedOnLink:at:))",
+    "@MainActor private static var fonts: [CGFloat: (base, bold, italic, mono)]",
+    "@MainActor static func attributed(source:pointSize:dimmed:streaming:mentions:targets:) -> NSAttributedString",
+    "@MainActor private static var dragonCache: [String: NSImage]",
+    "private static func nsColor(_ persona: HydraPersona) -> NSColor",
+    "@MainActor private static func dragonImage(_ persona: HydraPersona, size: CGFloat) -> NSImage",
+    "@MainActor private static func appendProse(_:font:color:base:bold:mentions:targets:into:)",
+    "enum MarkdownLinkOpener { static func open(_ url: URL) } (new at B3, :226-245)",
+    "extension NSAttributedString.Key { static let hydraHead = NSAttributedString.Key(\"droppycode.hydraHead\") }",
+    "struct MergeRequestTarget: Equatable (chatID: UUID, merge: @MainActor (MergeRequestLink) -> Void; == compares chatID only)",
+    "private struct MergeRequestTargetKey: EnvironmentKey; extension EnvironmentValues { var mergeRequestTarget: MergeRequestTarget? }",
+    "final class LinkTextView: NSTextView (mergeTarget, passesProseThrough, onOpenHead, streamVeil: LinkTextVeil, private storage: NSTextStorage, init())",
+    "LinkTextView.updateTrackingAreas() / resetCursorRects() (both emptied)",
+    "LinkTextView.hasLink(at:) / link(at:) / headMention(at:) / headMentionRect(at:) / private linkAndRange(at:)",
+    "LinkTextView.hitTest(_:) / mouseDown(with:) / rightMouseDown(with:) / menu(for:) / private presentLinkPopover(for:)",
+    "LinkTextView.render(_:) / height(forWidth:) / intrinsicContentSize / layout() / viewDidEndLiveResize()"
+   ],
+   "calls_into": [
+    "RichLink.prettyAttributed(_:streaming:)",
+    "FaviconCache.cached(host:)",
+    "MentionScanner.matches(in:candidates:name:) (new at B3, DroppyCode/UI/Markdown/MentionScanner.swift)",
+    "MarkdownLinkOpener.open(_:) (from Coordinator.textView(_:clickedOnLink:at:))",
+    "NSWorkspace.shared.open(_:)",
+    "FileManager.default.fileExists(atPath:) and fileExists(atPath:isDirectory:) (new at B3)",
+    "URL(fileURLWithPath:) (new at B3)",
+    "NSFontManager.shared.convert(_:toHaveTrait: .italicFontMask)",
+    "NSImage(named: persona.asset)",
+    "LinkTextVeil (streamVeil.update(_:active:), streamVeil.detach(_:))",
+    "LinkPopover.shared.show(url:mergeTarget:relativeTo:of:)",
+    "Chrome.accentNSColor",
+    "EnvironmentValues.markdownBlockSelection, markdownVeiled, mergeRequestTarget",
+    "String.trimmed"
+   ],
+   "state_owned": [
+    "Coordinator last-input fields (lastSource, lastPointSize, lastDimmed, lastStreaming, lastRevision, lastVeiled, lastMentions, lastTargets, lastHeads)",
+    "static fonts cache keyed by point size",
+    "static dragonCache keyed by asset + \"@\" + %06X hex + \"@\" + size",
+    "LinkTextView: storage (NSTextStorage), mergeTarget, passesProseThrough, onOpenHead, streamVeil, lastLaidOutWidth, lastMeasuredHeight, measuredWidth, measuredHeight, needsSettleAfterResize"
+   ],
+   "side_effects": [
+    "Clicking a link opens it through MarkdownLinkOpener.open: NSWorkspace.shared.open(url) for any URL with a scheme, host, query or fragment or whose path does not start with \"/\"; otherwise NSWorkspace.shared.open(URL(fileURLWithPath: path)) on the local path (B3 :226-245)",
+    "MarkdownLinkOpener reads the file system (fileExists) to decide whether to strip a trailing \":<line>\"",
+    "A left click on a head mention calls onOpenHead(url) and swallows the event (:444-451)",
+    "A right-click or control-click on a link shows LinkPopover.shared under the link's glyph bounds (:453-471)",
+    "render(_:) resets linkTextAttributes to the accent, no underline, pointing-hand cursor on every call (:485-489)"
+   ],
+   "platform_assumptions": [
+    "AppKit NSTextView with a TextKit 1 NSLayoutManager/NSTextContainer stack owned by the view",
+    "NSWorkspace.shared.open for both web URLs and file URLs (default handler)",
+    "POSIX absolute paths: MarkdownLinkOpener only treats a URL whose path begins with \"/\" as a local file, and a trailing \":<positive Int>\" as a line suffix",
+    "FileManager.fileExists(atPath:isDirectory:) with ObjCBool",
+    "No tracking areas or cursor rects; the enclosing SwiftUI hover (LinkHoverModifier) sets the cursor",
+    "Right-click and control-click routing via rightMouseDown(with:) and menu(for:)"
+   ],
+   "persisted_fields": [],
+   "ui_elements": [
+    "Link paragraph text view: selectable, non-editable, no background, links in Chrome.accentNSColor with underlineStyle 0 and NSCursor.pointingHand",
+    "Favicon attachment 14x14 at y = base.descender + 1 followed by one space before a link",
+    "Head mention chip: tinted dragon glyph at (base.pointSize * 1.25).rounded(), a space, bold persona name in the persona colour; hydraHead attribute when a target exists"
+   ],
+   "feature_notes": [
+    "B2->B3 (commit ff5032673 'Fix opening local file links in chat'): Coordinator.textView(_:clickedOnLink:at:) (:90-100) now calls MarkdownLinkOpener.open(url) at :92 and :96 instead of NSWorkspace.shared.open(url). Observable change: a markdown link whose target is a bare absolute path (no scheme, host, query or fragment, path starting with \"/\") now opens that local file in its default application via a file URL; before B3 it was handed to NSWorkspace as a scheme-less URL.",
+    "New enum MarkdownLinkOpener (:226-245): guard url.scheme == nil, url.host == nil, url.query == nil, url.fragment == nil, url.path.hasPrefix(\"/\") else NSWorkspace.shared.open(url). Otherwise path = url.path; if nothing exists at path, and the text after path's last \":\" parses as an Int > 0, and the part before that colon exists and is not a directory, the \":<line>\" suffix is dropped; then NSWorkspace.shared.open(URL(fileURLWithPath: path)). The line number is discarded, not used to position an editor. Only the last colon is examined, so \"file.swift:12:5\" is not stripped; \":0\" and negative numbers are not stripped; a path that exists as given is opened as is.",
+    "Refactor (commit d70cff8fe): appendProse's inline longest-first, word-bounded scan (B2 :187, :189-190, :199-219, :240-241) is replaced by `for match in MentionScanner.matches(in: string, candidates: mentions, name: \\.name)` (B3 :197-220). Compared line by line with MentionScanner.swift:7-32: same sort predicate (name.count descending), same hasPrefix test, same before/after checks (!isLetter && !isNumber, start/end of string accepted), same advance past the name. No observable change; the emitted runs (flush, attachment, hydraHead attributes, space, name) are unchanged, only shifted up 20 lines (B2 :220-238 -> B3 :200-218).",
+    "Line map B2 -> B3: :1-186 unchanged (content edited in place at :92 and :96); B2 :187 removed; B2 :188 -> :187; B2 :189-190 -> :188; B2 :191-198 -> :189-196; B2 :199-219 -> :197-199; B2 :220-239 -> :200-219; B2 :240-241 -> :220; B2 :242-246 -> :221-225; B3 :226-246 new; B2 :247-550 -> :247-550 unchanged. The file is 550 lines at both baselines.",
+    "Cross-file context (not this bundle): the same commit changed MarkdownView.swift so InlineText takes the LinkParagraphView path when RichLink.containsLinks(in:streaming:) is true rather than only when a link has a host, so host-less local file links now reach this view and its opener."
+   ],
+   "unresolved_questions": [
+    "UNRESOLVED: On Windows, agent-written local paths are drive-letter forms (C:\\..., C:/...) that URL(string:) would parse with a one-letter scheme or reject, so an exact-parity guard (path must start with \"/\" and scheme must be nil) would never treat them as local files. Whether the port should recognise drive-letter paths is a platform-adaptation decision for the owner; nothing in the pinned source covers it.",
+    "UNRESOLVED: What URL(fileURLWithPath:) of a POSIX path such as \"/Users/x/a.swift\" should map to on Windows (for example the current drive's root) is not defined by the source.",
+    "UNRESOLVED: The macOS runtime result of NSWorkspace.shared.open on a file URL that does not exist (silent false or an alert) was not observed; the source ignores the return value."
+   ]
+  },
+  {
+   "path": "DroppyCode/UI/Markdown/LinkPopover.swift",
+   "sha256": "2172d3284c08f97da8003e5412f3bfe3a072cfcadbd405460e5fb5e834c391db",
+   "ranges_read": [
+    [
+     1,
+     108
+    ]
+   ],
+   "asset_inspection": null,
+   "purpose": "Declares LinkPopover, the single shared transient NSPopover that a right-click or control-click on a chat link opens in place of the system text menu, anchored below the link's own glyph rect (preferredEdge .minY in the flipped text view), measured from an NSHostingView with a 220x110 fallback, and closed by Escape through a local keyDown monitor on key code 53 that is removed on close and in popoverDidClose. Its private SwiftUI content, LinkPopoverContent, is a 220-point-wide, 6-point-padded column of house PopoverItem rows: an optional \"Merge <label>\" row (semibold \"Merge\", the forge favicon or the arrow.triangle.merge symbol) plus a divider when the chat supplied a MergeRequestTarget, then \"Open Link\" (safari symbol) and \"Copy Link\" (link symbol, writes url.absoluteString to the general pasteboard). At B3 the Open Link row goes through MarkdownLinkOpener.open(url), so a local absolute-path link opens the file rather than being handed to NSWorkspace as-is.",
+   "key_symbols": [
+    "@MainActor final class LinkPopover: NSObject, NSPopoverDelegate",
+    "static let shared = LinkPopover()",
+    "private let popover = NSPopover(); private var escapeMonitor: Any?",
+    "private lazy var closeBox = PopoverCloseBox { [weak self] in self?.close() }",
+    "private override init() (behavior .transient, animates true, delegate self)",
+    "func show(url: URL, mergeTarget: MergeRequestTarget?, relativeTo rect: NSRect, of view: NSView)",
+    "func close()",
+    "func popoverDidClose(_ notification: Notification)",
+    "private func startEscapeMonitor() / stopEscapeMonitor()",
+    "private struct LinkPopoverContent: View (url: URL, request: MergeRequestLink?, merge: @MainActor (MergeRequestLink) -> Void, @State favicon: NSImage?)"
+   ],
+   "calls_into": [
+    "MarkdownLinkOpener.open(_:) (LinkParagraphView.swift:226-245; new call at B3 :89)",
+    "MergeRequestLink(url:), request.title, request.label",
+    "MergeRequestTarget.merge",
+    "PopoverItem(_:text:symbol:image:action:), PopoverItem(_:symbol:action:), PopoverDivider(), PopoverCloseBox, EnvironmentValues.closePopoverBox",
+    "NSPopover.setFixedContent(_:size:)",
+    "NSHostingView(rootView:).intrinsicContentSize",
+    "FaviconCache.cached(host:), FaviconCache.image(for:)",
+    "NSEvent.addLocalMonitorForEvents(matching: .keyDown), NSEvent.removeMonitor",
+    "NSPasteboard.general.clearContents(), setString(_:forType: .string)"
+   ],
+   "state_owned": [
+    "LinkPopover.shared singleton: popover (NSPopover), escapeMonitor, closeBox",
+    "LinkPopoverContent @State favicon"
+   ],
+   "side_effects": [
+    "Open Link: MarkdownLinkOpener.open(url) (web URL to the default handler; scheme-less absolute path to its local file, :line suffix stripped when applicable)",
+    "Copy Link: clears the general pasteboard and writes url.absoluteString as .string",
+    "Merge: closes the popover, then mergeTarget?.merge(request)",
+    "Installs and removes a local keyDown event monitor while shown",
+    "May fetch a favicon for the Merge row's host"
+   ],
+   "platform_assumptions": [
+    "AppKit NSPopover with .transient behaviour and animation",
+    "Key code 53 is Escape (macOS virtual key code)",
+    "SF Symbols \"arrow.triangle.merge\", \"safari\", \"link\"",
+    "NSPasteboard general pasteboard"
+   ],
+   "persisted_fields": [],
+   "ui_elements": [
+    "Popover body: width 220, padding 6, VStack leading spacing 0; fallback size 220x110",
+    "Merge row: Text(\"Merge\") semibold + request.label verbatim, favicon image or arrow.triangle.merge symbol, followed by PopoverDivider (only with a merge target)",
+    "\"Open Link\" row with the safari symbol",
+    "\"Copy Link\" row with the link symbol"
+   ],
+   "feature_notes": [
+    "B2->B3 (commit ff5032673): the only change is :89, `NSWorkspace.shared.open(url)` -> `MarkdownLinkOpener.open(url)` inside the \"Open Link\" row. Labels, symbols, layout, Merge and Copy Link are unchanged, and no line shifted (108 lines at both baselines).",
+    "Observable effect: choosing Open Link on a scheme-less absolute-path link now opens the local file in its default application (dropping a trailing :<line> when only the file without it exists) instead of handing a scheme-less URL to NSWorkspace; every other link behaves exactly as at B2.",
+    "The row keeps the \"safari\" symbol and the label \"Open Link\" for local file links; no label change accompanies the behaviour change."
+   ],
+   "unresolved_questions": [
+    "UNRESOLVED (shared with LinkParagraphView.swift): whether the Windows port's Open Link should also treat drive-letter paths as local files; exact parity recognises only \"/\"-prefixed, scheme-less URLs."
+   ]
+  },
+  {
+   "path": "DroppyCode/UI/Markdown/ProseRunView.swift",
+   "sha256": "9e9f7f7bb95b1e49da13154089b4586972c4fc5268455e85938a19d30cf3f58f",
+   "ranges_read": [
+    [
+     1,
+     209
+    ]
+   ],
+   "asset_inspection": null,
+   "purpose": "Declares ProseRunView, the SwiftUI view a finished reply uses to render a run of consecutive paragraphs, headings, lists and quotes as one selectable LinkTextView (so selection and links span the whole run), reading point size, dimming, Hydra mention personas and targets and openURL from the environment, rounding the size to half points ((pointSize * 2).rounded() / 2), fetching link assets for the run's joined sources in a task keyed by RichLink.linkAssetKey, and (at B3) attaching the shared LinkHoverModifier for the pointing hand and the Hydra head hover card. Its ProseRunRepresentable builds one NSAttributedString from the blocks, reusing LinkParagraphView.attributed for each line: paragraphs with indent and paragraphSpacing, headings at 1.35/1.2/1.08 times the size with non-bold non-mono runs set semibold and spacing before 6 or 2, list items with \"☑\"/\"☐\", \"n.\" or \"•\"/\"◦\" markers and a tab stop at indent + 18, quotes at indent + 14 forced dimmed, code/table/rule dropped, and a newline between blocks. It shares LinkParagraphView.Coordinator for its rebuild check and keeps onOpenHead and mergeTarget fresh on every update.",
+   "key_symbols": [
+    "struct ProseRunView: View (let blocks: [MarkdownBlock]; @Environment markdownPointSize, markdownDimmed, hydraMentionPersonas, hydraMentionTargets, openURL; @State linkView = WeakView(), showsHand, hoveredHeadID: UUID?, faviconRevision)",
+    "ProseRunView.body (:16-30) with .modifier(LinkHoverModifier(linkView:showsHand:hoveredHeadID:personas:targets:)) at :24",
+    "struct ProseRunRepresentable: NSViewRepresentable (blocks, pointSize = 13, dimmed, revision, mentions, targets, onOpenHead, onHost)",
+    "ProseRunRepresentable.makeCoordinator() -> LinkParagraphView.Coordinator",
+    "ProseRunRepresentable.makeNSView(context:) / updateNSView(_:context:) / sizeThatFits(_:nsView:context:) / static dismantleNSView(_:coordinator:)",
+    "static func joinedSources(_ blocks: [MarkdownBlock]) -> String",
+    "private static func collect(_ blocks: [MarkdownBlock], into parts: inout [String])",
+    "@MainActor static func attributed(blocks:pointSize:dimmed:mentions:targets:) -> NSAttributedString",
+    "@MainActor private static func append(_:depth:indent:dimmed:spacing:pointSize:mentions:targets:to:)",
+    "@MainActor private static func separate(to:font:color:)"
+   ],
+   "calls_into": [
+    "LinkHoverModifier (new at B3, DroppyCode/UI/Markdown/LinkHover.swift:6-51)",
+    "RichLink.linkAssetKey(for:)",
+    "InlineText.fetchLinkAssets(source:streaming:revision:)",
+    "LinkParagraphView.attributed(source:pointSize:dimmed:mentions:targets:)",
+    "LinkParagraphView.Coordinator",
+    "LinkTextView (render, height(forWidth:), onOpenHead, mergeTarget, passesProseThrough)",
+    "EnvironmentValues.openURL (head clicks: onOpenHead: { url in openURL(url) })",
+    "EnvironmentValues.mergeRequestTarget",
+    "WeakView"
+   ],
+   "state_owned": [
+    "ProseRunView @State: linkView (WeakView box of the hosted LinkTextView), showsHand, hoveredHeadID, faviconRevision",
+    "Coordinator last-input fields reused from LinkParagraphView.Coordinator (lastSource, lastPointSize, lastDimmed, lastRevision, lastMentions, lastHeads)"
+   ],
+   "side_effects": [
+    "Starts an async link-asset fetch per distinct linkKey that bumps faviconRevision",
+    "Hover (via LinkHoverModifier) pushes/pops NSCursor.pointingHand and shows/hides HydraHeadHoverPopover.shared",
+    "A head-mention click opens the head URL through the environment's openURL"
+   ],
+   "platform_assumptions": [
+    "SwiftUI NSViewRepresentable hosting an AppKit NSTextView",
+    "SwiftUI onContinuousHover and the NSCursor push/pop stack (now inside LinkHoverModifier)",
+    "NSParagraphStyle indents and NSTextTab tab stops"
+   ],
+   "persisted_fields": [],
+   "ui_elements": [
+    "Prose run: one text object with paragraph spacing 12 (6 for nested items), headings at 1.35/1.2/1.08 x size semibold, list markers \"☑\", \"☐\", \"n.\", \"•\", \"◦\" with a tab at indent + 18, quotes at indent + 14 dimmed"
+   ],
+   "feature_notes": [
+    "B2->B3 (commit d70cff8fe, refactor): the 33-line `.onContinuousHover(coordinateSpace: .local)` handler and `.onDisappear` teardown (B2 :27-59) and the locals `hand`, `hoveredHead`, `personasByName` (B2 :21-23) are replaced by one line, `.modifier(LinkHoverModifier(linkView: linkBox, showsHand: $showsHand, hoveredHeadID: $hoveredHeadID, personas: hydraMentionPersonas, targets: targets))` (B3 :24). Compared with LinkHover.swift:14-50: same hand push/pop only when hasLink(at:) changes, same head card condition (headMentionRect(at:) name present in targets with target.url == url and a persona of that name) shown only when hoveredHeadID changes, same hide when leaving a mention, and the same teardown on .ended and on disappear (pop the hand if shown, clear hoveredHeadID, HydraHeadHoverPopover.shared.hide()). No observable change; personasByName is now built inside the modifier's body.",
+    "Everything from B2 :60 onward moved up 35 lines (244 -> 209 lines): B2 :60-244 -> B3 :25-209; B2 :1-20 -> :1-20, B2 :24-26 -> :21-23. ProseRunRepresentable (:33-209), its rebuild check, joinedSources/collect and attributed/append/separate are textually unchanged.",
+    "The head-click path is unchanged: onOpenHead still routes through the environment openURL (:22), not through MarkdownLinkOpener. Ordinary link clicks in a prose run reach LinkParagraphView.Coordinator (shared via makeCoordinator), so they now go through MarkdownLinkOpener as a consequence of the LinkParagraphView.swift change."
+   ],
+   "unresolved_questions": []
+  }
+ ]
+}

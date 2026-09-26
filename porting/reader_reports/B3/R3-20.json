@@ -1,0 +1,82 @@
+{
+  "bundle_id": "R3-20",
+  "reader": "R3-20-reader",
+  "files": [
+    {
+      "path": "DroppyCode/Services/MCP/MCPProbe.swift",
+      "sha256": "f474b6e561a4ebb1dacb2e7cb3af233cdef872aef0d066e429f61acdbf532770",
+      "ranges_read": [[1, 235]],
+      "asset_inspection": null,
+      "purpose": "Defines MCPProbeError, the eight-case LocalizedError whose errorDescription (:16-48) is the whole user-visible failure vocabulary of an MCP connection test, and the enum MCPProbe that the MCP store uses to test-connect one MCPResolvedServer. probe(_:) (:52-61) dispatches to probeStdio when a command is set, else probeRemote when a URL is set, else throws malformed(\"missing command or URL\"). probeStdio (:83-132) resolves the command on the login PATH, sets a 90 s deadline (240 s when args contain \"mcp-remote\"), launches the server through MCPStdioConnection, runs initialize, notifications/initialized and up to ten tools/list pages, and maps MCPWireError exits and timeouts through exitError (:134-140). probeRemote (:144-203) does the same handshake over streamable HTTP through MCPWire.post with a 30 s timeout, carrying Mcp-Session-Id forward and mapping 401/403/404 from an OAuth upstream to unauthorizedOAuth, the GitLab setup guide (isGitLabMCP :209-212, gitLabServerDisabled :215-233) or unavailable(host:). In B3 the file no longer owns any wire code: the JSON-RPC builders, error-object detection, tools/list paging, the HTTP POST and SSE reader, the child-process handling and the StdioConversation buffer all moved out to the new shared DroppyCode/Services/MCP/MCPWire.swift (MCPWire, MCPStdioConnection over Core StdioProcess), which MCPHub also uses.",
+      "key_symbols": [
+        "enum MCPProbeError: LocalizedError, Sendable (:3-49): commandMissing(String), exited(code: Int32, stderr: String), timedOut, http(status: Int, body: String), unauthorizedOAuth, needsSetup(MCPSetupGuide), unavailable(host: String), malformed(String); var errorDescription: String? (:16-48)",
+        "enum MCPProbe (:51-234)",
+        "@concurrent static func probe(_ server: MCPResolvedServer) async throws -> MCPProbeResult (:52-61)",
+        "private static func checkReply(_ value: JSONValue) throws (:63-67), now via MCPWire.errorMessage(in:)",
+        "private static func firstLine(_ text: String?) -> String? (:69-74)",
+        "private static func toolSummary(from tool: JSONValue) -> MCPToolSummary? (:76-79), NEW in B3, replaces toolSummaries(from:)",
+        "private static func probeStdio(_ server: MCPResolvedServer) async throws -> MCPProbeResult (:83-132)",
+        "nested func nextReply(_ method: String, _ params: JSONValue?) async throws -> JSONValue (:97-114), REWRITTEN in B3 (was nextReply(id:) polling loop)",
+        "private static func exitError(code: Int32?, isOAuth: Bool, stderr: String) -> MCPProbeError (:134-140)",
+        "private static func probeRemote(_ server: MCPResolvedServer, _ urlString: String) async throws -> MCPProbeResult (:144-203)",
+        "nested func post(_ payload: JSONValue, id: Int?) async throws -> JSONValue? (:150-174), now catches MCPHTTPError",
+        "nested func nearest(_ value: JSONValue?) throws -> JSONValue (:176-181)",
+        "static func isGitLabMCP(_ upstream: String) -> Bool (:209-212)",
+        "static func gitLabServerDisabled(upstream: String) -> MCPSetupGuide (:215-233)",
+        "REMOVED in B3: import Synchronization (B2 :2); initializeParams() (B2 :66-72); request(id:method:params:) (B2 :74-82); notification(method:) (B2 :84-86); toolSummaries(from:) (B2 :101-107); terminate(_ process: Process) (B2 :227-236); postJSON(to:headers:sessionID:payload:) (B2 :303-334); firstSSEMessage(_:) (B2 :336-348); private final class StdioConversation: Sendable (B2 :381-430)"
+      ],
+      "calls_into": [
+        "LoginEnvironment.which(_:in:) and LoginEnvironment.current (:85, :91)",
+        "MCPStdioConnection.launch(executable:arguments:environment:) (:94) -> StdioProcess(executable:arguments:directory: homeDirectoryForCurrentUser, environment:) in MCPWire.swift:139-150",
+        "MCPStdioConnection.stop() (:95), .request(_:_:timeout:) (:103), .notify(_:) (:122), .errorTail (:100, :109, :111)",
+        "MCPWire.initializeParams() (:116, :183)",
+        "MCPWire.request(id:method:params:) (:183, :196) and MCPWire.notification(method:) (:190)",
+        "MCPWire.errorMessage(in:) (:64)",
+        "MCPWire.listTools(_:) (:124-126, :195-197)",
+        "MCPWire.post(to:headers:sessionID:payload:id:timeout: 30) (:152)",
+        "MCPHTTPError (status: Int?, body: String) and MCPWireError (.exited(Int32?), .timedOut) from MCPWire.swift",
+        "String.trimmed (Core/Support/Text.swift) (:27, :72)",
+        "String.localizedCaseInsensitiveContains(\"MCP server disabled\") (:157)",
+        "URL(string:) (:145, :169, :210, :217)",
+        "MCPSetupGuide, MCPToolSummary, MCPProbeResult, MCPResolvedServer (Core models)"
+      ],
+      "state_owned": [
+        "No persistent or shared state. Per probe call only: isOAuth and deadline (:88-89), the MCPStdioConnection (:94, stopped by defer :95), and var sessionID: String? in probeRemote (:148, updated at :153 keeping the old value when a response carries none)."
+      ],
+      "side_effects": [
+        "Launches the server command as a child process (via MCPStdioConnection/StdioProcess) with LoginEnvironment.current overlaid by server.env, arguments server.args, working directory the user's home, stdin/stdout/stderr piped.",
+        "Writes newline-framed JSON-RPC (initialize, notifications/initialized, tools/list) to the child's stdin through StdioProcess.send on its serial write queue.",
+        "On every exit path stops the child: StdioProcess.terminate closes stdin, sends terminate if running, and SIGKILLs the single pid after 3 s if still running.",
+        "POSTs initialize (id 1), notifications/initialized (no id) and tools/list pages (all id 2) to the server URL with the resolved headers plus Content-Type: application/json, Accept: application/json, text/event-stream, MCP-Protocol-Version: 2025-06-18 and Mcp-Session-Id when held, timeout 30 s."
+      ],
+      "platform_assumptions": [
+        "LoginEnvironment (macOS login-shell PATH/environment) for command resolution and the child environment.",
+        "The uvx message names Homebrew: \"uvx isn't installed. Run `brew install uv` in Terminal, then try again.\" (:21).",
+        "Foundation Process/Pipe and POSIX signals via StdioProcess.terminate (SIGTERM then kill(pid, SIGKILL) after 3 s, no process group).",
+        "URLSession.shared.bytes(for:) streaming (inside MCPWire.post).",
+        "FileManager.default.homeDirectoryForCurrentUser as the child's cwd (MCPWire.swift:143)."
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "User-visible MCPProbeError messages (:19-46): \"npx isn't installed. Install Node.js from nodejs.org, then try again.\"; \"uvx isn't installed. Run `brew install uv` in Terminal, then try again.\"; \"<name> isn't installed. Install it, then try again.\"; \"The server quit (exit <code>). <last line>\" / \"The server quit (exit <code>).\"; \"The server didn't answer in time.\"; \"That key was refused. Press Try again and paste a new one.\"; \"Nothing answered at that address. Check the address and try again.\"; \"The server answered <status>.\"; \"Sign-in was rejected. Sign in again in your browser.\"; guide.reason; \"<host> didn't answer (404). If the address is right, try again in a few minutes.\"; \"The server sent something unexpected: <detail>\". All unchanged from B2.",
+        "GitLab setup guide strings (:220-232): title \"Turn on GitLab's MCP server\", the reason sentence, four steps (second contains U+203A), pageLabel \"Open my groups\", pageURL origin + \"/dashboard/groups\", note \"GitLab can take a minute to apply the change.\". Unchanged from B2."
+      ],
+      "feature_notes": [
+        "Whole file shifted by -1 line: `import Synchronization` (B2 :2) was removed. MCPProbeError B2 :4-50 -> B3 :3-49 (uvx line B2 :22 -> B3 :21; exited message B2 :25-31 -> :24-30; http text B2 :34-39 -> :33-38); probe B2 :53-62 -> :52-61. Every message string and the GitLab guide are byte-identical to B2.",
+        "The private builders initializeParams/request/notification moved verbatim to MCPWire.swift:9-29 (protocolVersion now the constant MCPWire.protocolVersion = \"2025-06-18\", clientInfo still name \"Droppy Code\" version \"1.0\" at MCPWire.swift:13). No wire change for initialize or the notification.",
+        "checkReply now calls MCPWire.errorMessage(in:) (MCPWire.swift:31-34): same object-only test and same \"unknown error\" fallback. No behaviour change.",
+        "Tool paging moved to MCPWire.listTools (MCPWire.swift:38-51): still at most 10 pages, cursor added only when held, stop on absent/empty nextCursor, missing tools array contributes nothing. The probe now collects raw items and maps them once with toolSummary(from:) (:76-79), dropping nameless tools as before. Same output.",
+        "BEHAVIOUR CHANGE (remote id sequence): every remote tools/list page is now sent as MCPWire.request(id: 2, ...) with id: 2 (:196); B2 incremented 2, 3, 4 ... (B2 :289-294). The stdio probe still numbers 1, 2, 3 ... because MCPStdioConnection keeps its own counter starting at 1 (MCPWire.swift:126, :164-168).",
+        "BEHAVIOUR CHANGE (stdio transport): StdioConversation, the 5 ms polling nextReply(id:) and the private terminate(_:) are gone. The probe uses MCPStdioConnection over Core StdioProcess: each request races a continuation for its id against Task.sleep(remaining deadline) (MCPWire.swift:162-187); replies for other ids are BUFFERED rather than discarded (MCPWire.swift:219-228); ids are matched as RPCID, so a string id such as \"1\" no longer matches (B2 used JSONValue.int, which converts strings), while a double id still does; stdout lines have trailing CR and space bytes stripped and empty lines skipped before parsing, and an unterminated final line is parsed at EOF (StdioProcess.swift:147-157); an exit is reported only when the message stream finishes (stdout EOF, or 1 s after exit when a grandchild holds stdout) via MCPWireError.exited, or immediately when the process is already not running at request time.",
+        "BEHAVIOUR CHANGE (stderr seen by exitError): exitError now receives connection.errorTail = the last 4000 bytes of the stderr buffer (StdioProcess.swift:51-53), not the whole 64000/16000-capped buffer. The \"Unauthorized\"/\"invalid_grant\" OAuth classification only searches those last 4000 bytes, and the exited message's last non-empty line comes from that tail. The 64000 -> 16000 cap itself is unchanged (StdioProcess.swift:159-166).",
+        "BEHAVIOUR CHANGE (child shutdown): defer { connection.stop() } -> StdioProcess.terminate (StdioProcess.swift:120-129): closes stdin first, terminates if running, then after 3 seconds (was 1) kills only the pid with SIGKILL (was the whole process group when the child leads one), on the default global queue instead of .utility.",
+        "BEHAVIOUR CHANGE (HTTP): postJSON and firstSSEMessage were replaced by MCPWire.post (MCPWire.swift:55-103), called with timeout 30. The four headers and their overwrite order are unchanged. A non-2xx body is now the first 2000 BYTES read from the stream, decoded and trimmed (B2: first 2000 characters of the whole decoded body), which is also the text searched for \"MCP server disabled\". An SSE reply is read line by line as it streams and returns at the first data: line that parses as an object whose id .int equals the request's id (B2: any object with an id key, after the whole body arrived); a request with id nil (the notifications/initialized POST) and an SSE content type returns a nil body without reading the stream. A non-HTTPURLResponse becomes MCPHTTPError(status: nil) which probeRemote maps to malformed(\"invalid reply\") (:170-171), same message as B2; any other status maps to http(status:body:) (:172), same as B2.",
+        "The OAuth catches (:155-169) are the B2 logic re-typed onto MCPHTTPError: 403 + \"MCP server disabled\" -> needsSetup(GitLab guide); other 401/403 -> unauthorizedOAuth; 404 -> GitLab setup when isGitLabMCP(upstream) else unavailable(host:) with \"The server\" fallback. No behaviour change beyond the 2000-byte body noted above."
+      ],
+      "unresolved_questions": [
+        "PR-MCP-111's windows_path requires a graceful close then a forced kill of the whole process tree at 1 s (so npx's node grandchild does not leak). Upstream B3 now waits 3 s and kills only the pid (StdioProcess.swift:126-127), and the C# StdioProcess already implements ED-126 for that (TerminationLadder.Stdio: stdin close, CTRL_BREAK, +3 s TerminateProcess on the pid alone, no job). Whether the probe simply inherits ED-126, or keeps a tree kill as a recorded platform adaptation, needs a ruling; the grandchild-leak concern in the record is now contradicted by the source's own choice.",
+        "The C# MCPWire unit (port of the new MCPWire.swift, status A in B3) does not exist yet in units.json or src; MCPProbe.cs cannot be re-cut until it does. Which bundle/unit owns MCPWire and MCPStdioConnection must be fixed so MCPProbe and MCPHub share one implementation, as upstream now does."
+      ]
+    }
+  ]
+}

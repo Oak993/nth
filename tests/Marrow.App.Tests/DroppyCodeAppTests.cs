@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Reflection;
 using Xunit;
 
@@ -91,6 +92,22 @@ public sealed class DroppyCodeAppTests
             copyright);
     }
 
+    [Fact]
+    [Trait("Req", "PR-UPDATE-112")] // project.yml:13-14 (B3 52bc792): MARKETING_VERSION "1.7.0", CURRENT_PROJECT_VERSION "21"
+    public void The_assembly_carries_the_pinned_version_and_build_numbers()
+    {
+        // The source of truth every AppInfo/version-display record cites (PR-UPDATE-112's own source_evidence);
+        // this only proves AssemblyInfo.cs matches it. The About card, the identity pill, the updater's comparison
+        // baseline and the hang-report header each read AppInfo.Current or the bundle directly, and are covered by
+        // their own units, not here.
+        var metadata = typeof(DroppyCodeApp).Assembly
+            .GetCustomAttributes<AssemblyMetadataAttribute>()
+            .ToDictionary(attribute => attribute.Key, attribute => attribute.Value);
+
+        Assert.Equal("1.7.0", metadata["CFBundleShortVersionString"]);
+        Assert.Equal("21", metadata["CFBundleVersion"]);
+    }
+
     // No dedicated test for RunPrologue() itself: it is exactly `HangWatchdog.Start()`, and Start() spawns a real,
     // never-ending background thread that pings MainActor every 0.5s with no stop() (PR-LAUNCH-014's own text says
     // so) - calling it for real inside a test starts a thread that outlives the test and can crash a LATER,
@@ -118,3 +135,8 @@ public sealed class DroppyCodeAppTests
 // Done so far: the six-step prologue (minus the three platform-boundary steps and the two not-ported/inert ones)
 // and the single-instance lock are implemented and tested; the scene's only real effect (constructing WindowManager
 // and showing the main window) is wired to the real, still-throwing callee rather than stubbed out.
+// Boot merge (2026-09-26): both dependencies named above are in impl/b2 (App.AppDelegate, App.Window.WindowManager),
+// and the Boot unit wrote the ED-002 reopen path: a second launch sets Port/ReopenSignal.cs's signal and exits, and the
+// running instance runs AppDelegate.swift:36-39 through Port/AppShell.cs Reopen (tests: Port/ReopenSignalTests.cs,
+// Port/AppShellSecondTests.cs, PR-LAUNCH-072, marked IMPLEMENTED at that merge). PR-LAUNCH-004 and PR-WIN-001 are not
+// re-examined here.

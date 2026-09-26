@@ -1,0 +1,100 @@
+{
+ "bundle_id": "R3-09",
+ "reader": "R3-09-reader",
+ "files": [
+  {
+   "path": "DroppyCode/App/Views/Settings/MCPSetupPanel.swift",
+   "sha256": "b501b1ba871ccdec12bf2bbef89b38f3853f62bb276e75edc01059639a364810",
+   "ranges_read": [
+    [
+     1,
+     212
+    ]
+   ],
+   "asset_inspection": null,
+   "purpose": "MCPSetupPanel.swift holds the singleton floating panel MCPSetupPanel.shared that appears when an MCP server refuses on its own side (the needsSetup state): the first presentation for a server opens the guide's pageURL in the browser, and a re-entry guard keyed on the recorded entry id makes a repeated present for the same server only order the panel front, so a failing re-check never reopens the page or rebuilds the steps. It also defines MCPSetupPanelView, the SwiftUI content: header (MCPIcon 26, entry name, guide title, xmark close), the guide reason, numbered step rows, the guide.pageLabel button, Check again or a Checking spinner, the post-check status line (needsSetup warning or failed message), and a 'Connected · N tools' success view that closes the panel 1.2 s after the server connects. In B3 the class no longer owns its NSPanel, its Escape key monitor or its placement code: it subclasses the new FloatingGuidePanel (FloatingGuidePanel.swift) with width 400 and keeps only presentedEntryID, isPresenting, present(entry:guide:model:), a close() override and fit(height:).",
+   "key_symbols": [
+    "@MainActor final class MCPSetupPanel: FloatingGuidePanel (:6-51)",
+    "static let shared = MCPSetupPanel() (:8)",
+    "private var presentedEntryID: String? (:10)",
+    "private init() { super.init(width: 400) } (:12)",
+    "func isPresenting(_ entry: MCPCatalogEntry) -> Bool (:16-18)",
+    "func present(entry: MCPCatalogEntry, guide: MCPSetupGuide, model: AppModel) (:20-33)",
+    "override func close() (:35-38)",
+    "func fit(height: CGFloat) (:42-50)",
+    "struct MCPSetupPanelView: View (:55-212)",
+    "let entry: MCPCatalogEntry; let guide: MCPSetupGuide; let model: AppModel; let onDone: @MainActor () -> Void (:56-59)",
+    "@Environment(\\.accessibilityReduceMotion) private var reduceMotion (:61)",
+    "@State private var checkedOnce = false (:62)",
+    "@State private var successPopped = false (:63)",
+    "private var state: MCPConnectionState { model.mcp.state(for: entry.id) } (:65)",
+    "var body: some View (:67-144)",
+    "private var header: some View (:146-167)",
+    "private func stepRow(_ number: Int, text: Text, accessory: AnyView? = nil) -> some View (:169-187)",
+    "private var successView: some View (:189-211)"
+   ],
+   "calls_into": [
+    "FloatingGuidePanel.init(width:) (FloatingGuidePanel.swift:12-14) from :12",
+    "FloatingGuidePanel.present(_ content: some View) (FloatingGuidePanel.swift:16-26) from :32",
+    "FloatingGuidePanel.close() (FloatingGuidePanel.swift:28-31) from :37 super.close()",
+    "FloatingGuidePanel.panel (private(set) var, FloatingGuidePanel.swift:8) read at :17, :22, :43",
+    "NSPanel.orderFrontRegardless() (:22), NSPanel.setFrame(_:display:) (:49)",
+    "NSWorkspace.shared.open(URL) (:27, :85)",
+    "URL(string: guide.pageURL) (:26, :84)",
+    "model.mcp.state(for: entry.id) (:65)",
+    "model.mcp.refresh(entry) (:100)",
+    "MCPSetupPanel.shared.fit(height:) from the view's onGeometryChange (:133-135)",
+    "MCPIcon(entry:size: 26) (:148)",
+    "WorkingSpinner(cellSize: 3) (:92)",
+    "WindowDragArea() (:127), WindowBackdrop(opacity: 0.5) (:130)",
+    ".presentedChrome() and .environment(model) (:30-31)",
+    "Chrome.primaryText/secondaryText/warning/danger/accent/success/windowCornerRadius",
+    "Task.sleep(for: .seconds(1.2)) then onDone() (:138-141)",
+    "withAnimation(.spring(duration: 0.5, bounce: 0.4)) (:208)"
+   ],
+   "state_owned": [
+    "MCPSetupPanel.presentedEntryID: String? - id of the entry the panel is up for; set at :25, cleared in close() :36",
+    "inherited from FloatingGuidePanel (no longer declared here since B3): panel: NSPanel?, escapeMonitor: Any?, width = 400",
+    "MCPSetupPanelView @State checkedOnce (set true by Check again, :99) gates the status line (:105)",
+    "MCPSetupPanelView @State successPopped drives the checkmark scale 0.5 -> 1 (:194, :204-210)"
+   ],
+   "side_effects": [
+    "first present for an entry opens guide.pageURL in the default browser (:26-28); the page button opens it again on press (:83-87)",
+    "present(content) (base class) measures the content at 400 wide, sizes the panel to max(height, 100), places it 24 pt in from the main screen's visible top right, installs the Escape key monitor and orders it front without activating (FloatingGuidePanel.swift:16-26)",
+    "re-present for the same visible entry only calls panel.orderFrontRegardless() (:21-24)",
+    "close() clears presentedEntryID then the base removes the Escape monitor and orders the panel out (:35-38, FloatingGuidePanel.swift:28-31)",
+    "fit(height:) resizes the visible panel to max(ceil(height), 100) when it differs by more than 1 pt, holding the top edge (:42-50)",
+    "Check again sets checkedOnce and calls model.mcp.refresh(entry) (:98-101)",
+    "on state.isConnected turning true, sleeps 1.2 s then calls onDone(), which closes the panel (:136-143)"
+   ],
+   "platform_assumptions": [
+    "AppKit: NSPanel (owned by the FloatingGuidePanel base since B3), orderFrontRegardless, setFrame(_:display:) with bottom-left origin arithmetic in fit (frame.origin.y += frame.height - wanted keeps the top edge)",
+    "NSWorkspace.shared.open for the browser page",
+    "Escape (key code 53) via an NSEvent local key-down monitor, now in FloatingGuidePanel.swift:58-70",
+    "SwiftUI onGeometryChange, accessibilityReduceMotion, .buttonStyle(.glass)/.glassProminent, SF Symbols xmark and checkmark.circle.fill"
+   ],
+   "persisted_fields": [],
+   "ui_elements": [
+    "header: MCPIcon size 26, entry.name (.body semibold, primaryText), guide.title (.subheadline, secondaryText), Spacer(minLength: 8), plain xmark button (.subheadline semibold, secondaryText) calling onDone (:146-167)",
+    "reason: Text(verbatim: guide.reason) .callout primaryText, wraps (:73-76)",
+    "steps: VStack spacing 6 of stepRow - 18x18 circle filled accent at 0.18 with the number (.footnote semibold, accent), step text .callout primaryText (:77-81, :169-187)",
+    "Button(guide.pageLabel) .glass (:83-88)",
+    "while connecting: WorkingSpinner(cellSize: 3) + Text(\"Checking\") .subheadline secondaryText (:90-96); otherwise Button(\"Check again\") .glassProminent (:97-103)",
+    "after a check: \"Still off on the server's side. \" + (guide.note ?? \"\") in Chrome.warning when needsSetup; the failed message in Chrome.danger when failed (:105-117)",
+    "success view: checkmark.circle.fill size 34 in Chrome.success scaled 0.5 -> 1 with spring(0.5, bounce 0.4) or instantly under reduce motion; \"Connected · N tools\" .callout medium; min height 120 (:189-211)",
+    "container: padding 18, width 400, WindowDragArea and WindowBackdrop(opacity: 0.5) backgrounds, clipped to RoundedRectangle(cornerRadius: Chrome.windowCornerRadius, style: .continuous) (:120-132)"
+   ],
+   "feature_notes": [
+    "B2->B3 (commit d70cff8fe 'refactor: audit cleanups - five bug fixes, shared MCP and provider code, layer rules restored'): the NSPanel creation (makePanel, B2 :63-86), the Escape monitor (startEscapeMonitor/stopEscapeMonitor, B2 :88-100), the measure/size/place/order-front block of present (B2 :34-42) and the private panel/escapeMonitor properties (B2 :10-11) moved into the new base class FloatingGuidePanel (FloatingGuidePanel.swift, 71 lines). MCPSetupPanel now declares ': FloatingGuidePanel', calls super.init(width: 400) (:12) and present(content) (:32).",
+    "close() became 'override func close()' (:35-38): it clears presentedEntryID and calls super.close(), which stops the Escape monitor and orders the panel out. B2 stopped the monitor before clearing the id; the reorder is not observable (all synchronous on the main actor).",
+    "Escape still resets presentedEntryID: the base monitor calls self.close() (FloatingGuidePanel.swift:62), which dispatches dynamically to this override because FloatingGuidePanel is a non-final class.",
+    "Every constant is unchanged: width 400 (now the base's width), 100-pt height floor, 24-pt top-right inset, same style mask (.nonactivatingPanel, .fullSizeContentView, .titled, .closable), .floating level, [.canJoinAllSpaces, .fullScreenAuxiliary], hidden window buttons, key code 53. No observable behaviour changed.",
+    "MCPSetupPanelView (B2 :103-262) is byte-identical and shifted by -50 lines to B3 :53-212. Line map: B2 1-9 = B3 1-9; B2 10-11 removed; B2 12-13 = B3 10-11; B2 14 -> B3 12 (changed); B2 15-33 = B3 13-31 (-2); B2 34-42 -> B3 32; B2 43-44 = B3 33-34; B2 45-49 -> B3 35-38; B2 50-61 = B3 39-50 (-11); B2 62-100 moved to FloatingGuidePanel.swift 33-70; B2 101-262 = B3 51-212 (-50).",
+    "MCPKeyPanel.swift was refactored onto the same base in the same commit (width 380) and still has no re-entry guard, so the setup/key panel asymmetry recorded by PR-MCP-214 still holds."
+   ],
+   "unresolved_questions": [
+    "Port observation, not a B3 change (ENGINEERING DECISION needed by the merge/unit owner): the C# port src/Marrow.App/Views/Settings/MCPSetupPanel.cs shows the panel with window.Show() and handles Escape through the window's own KeyDown, and has none of the ED-063 WH_CBT non-activation hook that MCPKeyPanel.cs has. PR-MCP-215 (non-activating, ordered front without activating) and PR-MCP-216 (application-wide Escape monitor) are marked IMPLEMENTED, so either the status is wrong for the setup panel or the behaviour lives somewhere not found by grep. Sharing a C# FloatingGuidePanel base, as B3 now does, would resolve this."
+   ]
+  }
+ ]
+}

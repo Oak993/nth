@@ -1,13 +1,17 @@
 using Avalonia;
 using Avalonia.Controls;
+using Marrow.App.Window;
 
 namespace Marrow.App.Port;
 
-// PORT-ONLY: SwiftUI `@Environment(AppModel.self)`, read by a view nested below wherever the root attaches the
-// running model, rather than taken as a constructor parameter (App.Views.Usage.UsageViews's PlanLimitsView and
-// CreditsView are the first callers). Mirrors UI.Port.ViewLifetime.EnvironmentValues' inherited-attached-property
-// pattern for the one other environment key this port carries (accessibilityReduceMotion); this one lives in
-// Marrow.App, not Marrow.UI, because AppModel is an App-layer type and UI must not depend on App (R-FILE layering).
+// PORT-ONLY: SwiftUI `@Environment(AppModel.self)` and `@Environment(WindowLiveResize.self)`, read by a view nested
+// below wherever the root attaches the running model and the window's live-resize object, rather than taken as
+// constructor parameters (App.Views.Usage.UsageViews's PlanLimitsView and CreditsView are the first callers of the
+// model; RootView.swift:122 and the chat views read the live-resize object). HostedEnvironment
+// (App/Window/WindowManager.swift:170-172) attaches both with `.environment(model).environment(liveResize)`. Mirrors
+// UI.Port.ViewLifetime.EnvironmentValues' inherited-attached-property pattern for the one other environment key this
+// port carries (accessibilityReduceMotion); these live in Marrow.App, not Marrow.UI, because AppModel and
+// WindowLiveResize are App-layer types and UI must not depend on App (R-FILE layering).
 public sealed class AppEnvironment
 {
     private AppEnvironment() { }
@@ -20,4 +24,13 @@ public sealed class AppEnvironment
             "No AppModel is attached to this control's visual tree (AppEnvironment.SetAppModel was never called on an ancestor).");
 
     public static void SetAppModel(Control control, AppModel value) => control.SetValue(AppModelProperty, value);
+
+    public static readonly AttachedProperty<WindowLiveResize?> WindowLiveResizeProperty =
+        AvaloniaProperty.RegisterAttached<AppEnvironment, Control, WindowLiveResize?>("WindowLiveResize", null, inherits: true);
+
+    public static WindowLiveResize GetWindowLiveResize(Control control) =>
+        control.GetValue(WindowLiveResizeProperty) ?? throw new System.InvalidOperationException(
+            "No WindowLiveResize is attached to this control's visual tree (AppEnvironment.SetWindowLiveResize was never called on an ancestor).");
+
+    public static void SetWindowLiveResize(Control control, WindowLiveResize value) => control.SetValue(WindowLiveResizeProperty, value);
 }

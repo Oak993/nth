@@ -1,5 +1,5 @@
 {
- "baseline": "1fbf81e61e28a079508a074c01ee1830a9cc23dc",
+ "baseline": "52bc7926097cd622d08d6294e0d8b08a48c7516e",
  "note": "Engineering aid for ordering work; see the docstring of porting/tools/swift_deps.py for its limits.",
  "files": {
   "DroppyCode/App/AppCommands.swift": {
@@ -16,8 +16,8 @@
     "DroppyCode/UI/Chrome/Chrome.swift",
     "DroppyCode/UI/Common/AppZoom.swift"
    ],
-   "component": 101,
-   "level": 10
+   "component": 118,
+   "level": 11
   },
   "DroppyCode/App/AppDelegate.swift": {
    "declares": [
@@ -28,13 +28,16 @@
     "DroppyCode/App/AppUpdater.swift",
     "DroppyCode/App/Captures/WebsiteCaptures.swift",
     "DroppyCode/App/UpdateChecker.swift",
+    "DroppyCode/App/Views/Chat/TimelineRows.swift",
     "DroppyCode/App/Views/Tour/TourPages.swift",
     "DroppyCode/App/Window/WindowManager.swift",
+    "DroppyCode/Core/Support/CaptureRun.swift",
     "DroppyCode/Services/MCP/MCPHub.swift",
-    "DroppyCode/Services/Store/TokenLedger.swift"
+    "DroppyCode/Services/Store/TokenLedger.swift",
+    "DroppyCode/UI/Markdown/MarkdownView.swift"
    ],
-   "component": 102,
-   "level": 10
+   "component": 119,
+   "level": 11
   },
   "DroppyCode/App/AppModel+Hydra.swift": {
    "declares": [
@@ -57,8 +60,8 @@
     "DroppyCode/Services/Providers/ProviderSession.swift",
     "DroppyCode/Services/Store/Storage.swift"
    ],
-   "component": 103,
-   "level": 10
+   "component": 120,
+   "level": 11
   },
   "DroppyCode/App/AppModel+HydraMerge.swift": {
    "declares": [
@@ -81,8 +84,8 @@
     "DroppyCode/Services/Providers/TextGeneration.swift",
     "DroppyCode/Services/Store/Storage.swift"
    ],
-   "component": 104,
-   "level": 10
+   "component": 121,
+   "level": 11
   },
   "DroppyCode/App/AppModel+HydraPairs.swift": {
    "declares": [],
@@ -92,8 +95,8 @@
     "DroppyCode/Core/Models/Library.swift",
     "DroppyCode/Core/Models/Provider.swift"
    ],
-   "component": 105,
-   "level": 10
+   "component": 122,
+   "level": 11
   },
   "DroppyCode/App/AppModel.swift": {
    "declares": [
@@ -103,7 +106,6 @@
    ],
    "depends_on": [
     "DroppyCode/App/AppSettings.swift",
-    "DroppyCode/App/Captures/WebsiteCaptures.swift",
     "DroppyCode/App/Runtime/AutoContinue.swift",
     "DroppyCode/App/Runtime/ThreadRuntime.swift",
     "DroppyCode/App/Views/Terminal/TerminalStore.swift",
@@ -112,6 +114,7 @@
     "DroppyCode/Core/Models/Provider.swift",
     "DroppyCode/Core/Models/ThreadContinuation.swift",
     "DroppyCode/Core/Models/Timeline.swift",
+    "DroppyCode/Core/Support/CaptureRun.swift",
     "DroppyCode/Core/Support/JSONValue.swift",
     "DroppyCode/Core/Support/ObservedValue.swift",
     "DroppyCode/Core/Support/Shell.swift",
@@ -127,8 +130,8 @@
     "DroppyCode/UI/Sound/FinishChime.swift",
     "DroppyCode/UI/Sound/SettleChime.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 117,
+   "level": 10
   },
   "DroppyCode/App/AppSettings.swift": {
    "declares": [
@@ -141,24 +144,21 @@
     "ThreadFinishAction"
    ],
    "depends_on": [
-    "DroppyCode/App/Captures/WebsiteCaptures.swift",
     "DroppyCode/App/Views/Chat/SubagentPanel.swift",
     "DroppyCode/Core/Models/Hydra.swift",
     "DroppyCode/Core/Models/Library.swift",
     "DroppyCode/Core/Models/Provider.swift",
     "DroppyCode/Core/Models/ProviderSettings.swift",
+    "DroppyCode/Core/Support/CaptureRun.swift",
     "DroppyCode/Core/Support/Coding.swift",
     "DroppyCode/Core/Support/Shell.swift",
     "DroppyCode/Core/Support/Text.swift",
-    "DroppyCode/Services/Providers/CommandCodeKeychain.swift",
-    "DroppyCode/Services/Providers/DeepSeekKeychain.swift",
-    "DroppyCode/Services/Providers/MetaKeychain.swift",
-    "DroppyCode/Services/Providers/ZaiKeychain.swift",
+    "DroppyCode/Services/Providers/APIKeychain.swift",
     "DroppyCode/UI/Common/AppZoom.swift",
     "DroppyCode/UI/Theme/AppTheme.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 117,
+   "level": 10
   },
   "DroppyCode/App/AppUpdater.swift": {
    "declares": [
@@ -174,8 +174,8 @@
     "DroppyCode/Core/Support/Shell.swift",
     "DroppyCode/Core/Support/Text.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 99,
+   "level": 5
   },
   "DroppyCode/App/Captures/TourCaptures+Hydra.swift": {
    "declares": [],
@@ -190,8 +190,8 @@
     "DroppyCode/Core/Support/Coding.swift",
     "DroppyCode/Services/Providers/ProviderSession.swift"
    ],
-   "component": 106,
-   "level": 10
+   "component": 123,
+   "level": 11
   },
   "DroppyCode/App/Captures/TourCaptures.swift": {
    "declares": [
@@ -207,11 +207,12 @@
     "DroppyCode/App/Views/Tour/TourPages.swift",
     "DroppyCode/App/Views/Tour/TourWindowController.swift",
     "DroppyCode/Core/Models/Hydra.swift",
+    "DroppyCode/Core/Support/CaptureRun.swift",
     "DroppyCode/UI/Chrome/Popovers.swift",
     "DroppyCode/UI/Theme/AppTheme.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 117,
+   "level": 10
   },
   "DroppyCode/App/Captures/WebsiteCaptures.swift": {
    "declares": [
@@ -239,8 +240,8 @@
     "DroppyCode/UI/Common/AttachmentPreviewPanel.swift",
     "DroppyCode/UI/Theme/AppTheme.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 117,
+   "level": 10
   },
   "DroppyCode/App/DroppyCodeApp.swift": {
    "declares": [
@@ -255,8 +256,8 @@
     "DroppyCode/Core/Support/HangWatchdog.swift",
     "DroppyCode/Core/Support/SwitchLatency.swift"
    ],
-   "component": 109,
-   "level": 11
+   "component": 126,
+   "level": 12
   },
   "DroppyCode/App/HydraCookbook+Resolve.swift": {
    "declares": [],
@@ -267,8 +268,8 @@
     "DroppyCode/Core/Models/Provider.swift",
     "DroppyCode/Services/Providers/ProviderRegistry.swift"
    ],
-   "component": 110,
-   "level": 10
+   "component": 127,
+   "level": 11
   },
   "DroppyCode/App/LegacyMigration.swift": {
    "declares": [
@@ -277,7 +278,7 @@
    "depends_on": [
     "DroppyCode/Core/Support/Text.swift"
    ],
-   "component": 107,
+   "component": 125,
    "level": 2
   },
   "DroppyCode/App/Runtime/AutoContinue.swift": {
@@ -292,8 +293,8 @@
     "DroppyCode/Services/Providers/PlanLimits.swift",
     "DroppyCode/Services/Providers/UsageLimitSignal.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 117,
+   "level": 10
   },
   "DroppyCode/App/Runtime/LimitHandoff.swift": {
    "declares": [
@@ -302,8 +303,8 @@
    "depends_on": [
     "DroppyCode/App/Runtime/ThreadRuntime.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 117,
+   "level": 10
   },
   "DroppyCode/App/Runtime/ThreadRuntime.swift": {
    "declares": [
@@ -356,8 +357,8 @@
     "DroppyCode/UI/Common/RenderBudget.swift",
     "DroppyCode/UI/Markdown/LinkParagraphView.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 117,
+   "level": 10
   },
   "DroppyCode/App/UpdateChecker.swift": {
    "declares": [
@@ -368,12 +369,12 @@
     "UpdateError"
    ],
    "depends_on": [
-    "DroppyCode/App/Captures/WebsiteCaptures.swift",
+    "DroppyCode/Core/Support/CaptureRun.swift",
     "DroppyCode/Core/Support/ISO8601.swift",
     "DroppyCode/Core/Support/Text.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 97,
+   "level": 2
   },
   "DroppyCode/App/Views/Chat/ChatBadge.swift": {
    "declares": [
@@ -388,8 +389,8 @@
     "DroppyCode/UI/Chrome/Popovers.swift",
     "DroppyCode/UI/Common/AttachmentPreviewPanel.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 117,
+   "level": 10
   },
   "DroppyCode/App/Views/Chat/ChatView.swift": {
    "declares": [
@@ -428,6 +429,7 @@
     "DroppyCode/Core/Models/Library.swift",
     "DroppyCode/Core/Models/Provider.swift",
     "DroppyCode/Core/Models/Shortcuts.swift",
+    "DroppyCode/Core/Support/CaptureRun.swift",
     "DroppyCode/Core/Support/Shell.swift",
     "DroppyCode/Core/Support/Text.swift",
     "DroppyCode/Services/Git/Git.swift",
@@ -437,8 +439,8 @@
     "DroppyCode/UI/Common/Components.swift",
     "DroppyCode/UI/Markdown/LinkParagraphView.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 117,
+   "level": 10
   },
   "DroppyCode/App/Views/Chat/HydraButton.swift": {
    "declares": [
@@ -462,6 +464,7 @@
     "DroppyCode/Core/Models/Hydra.swift",
     "DroppyCode/Core/Models/Library.swift",
     "DroppyCode/Core/Models/Provider.swift",
+    "DroppyCode/Core/Support/CaptureRun.swift",
     "DroppyCode/Core/Support/RecentCache.swift",
     "DroppyCode/Services/Providers/ProviderRegistry.swift",
     "DroppyCode/UI/Chrome/Chrome.swift",
@@ -470,8 +473,8 @@
     "DroppyCode/UI/Common/WorkingIndicators.swift",
     "DroppyCode/UI/Theme/AppTheme.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 117,
+   "level": 10
   },
   "DroppyCode/App/Views/Chat/HydraHeadPopovers.swift": {
    "declares": [
@@ -484,12 +487,13 @@
     "DroppyCode/Core/Support/Text.swift",
     "DroppyCode/UI/Chrome/Chrome.swift",
     "DroppyCode/UI/Chrome/Popovers.swift",
+    "DroppyCode/UI/Common/Components.swift",
     "DroppyCode/UI/Common/HydraGlyph.swift",
     "DroppyCode/UI/Markdown/MarkdownParser.swift",
     "DroppyCode/UI/Markdown/MarkdownView.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 90,
+   "level": 7
   },
   "DroppyCode/App/Views/Chat/HydraIntroPopover.swift": {
    "declares": [
@@ -504,8 +508,8 @@
     "DroppyCode/UI/Chrome/Chrome.swift",
     "DroppyCode/UI/Common/HydraGlyph.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 117,
+   "level": 10
   },
   "DroppyCode/App/Views/Chat/HydraMergePopover.swift": {
    "declares": [
@@ -520,8 +524,8 @@
     "DroppyCode/UI/Common/HydraGlyph.swift",
     "DroppyCode/UI/Markdown/MarkdownView.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 91,
+   "level": 7
   },
   "DroppyCode/App/Views/Chat/HydraPanel.swift": {
    "declares": [
@@ -556,8 +560,8 @@
     "DroppyCode/UI/Common/HydraGlyph.swift",
     "DroppyCode/UI/Common/WorkingIndicators.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 117,
+   "level": 10
   },
   "DroppyCode/App/Views/Chat/HydraProgressBar.swift": {
    "declares": [
@@ -582,8 +586,8 @@
     "DroppyCode/UI/Common/MCPGlyph.swift",
     "DroppyCode/UI/Common/RenderBudget.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 117,
+   "level": 10
   },
   "DroppyCode/App/Views/Chat/HydraReportsPopover.swift": {
    "declares": [
@@ -599,43 +603,8 @@
     "DroppyCode/UI/Markdown/MarkdownParser.swift",
     "DroppyCode/UI/Markdown/MarkdownView.swift"
    ],
-   "component": 100,
-   "level": 9
-  },
-  "DroppyCode/App/Views/Chat/HydraRunMetricsView.swift": {
-   "declares": [
-    "HydraRunMetrics",
-    "HydraRunMetricsCard",
-    "HydraRunMetricsReader",
-    "HydraRunMetricsView"
-   ],
-   "depends_on": [
-    "DroppyCode/App/AppModel.swift",
-    "DroppyCode/App/Runtime/ThreadRuntime.swift",
-    "DroppyCode/Core/Models/Hydra.swift",
-    "DroppyCode/Core/Models/Library.swift",
-    "DroppyCode/Core/Models/Provider.swift",
-    "DroppyCode/Core/Models/Timeline.swift",
-    "DroppyCode/UI/Chrome/Chrome.swift",
-    "DroppyCode/UI/Common/Components.swift",
-    "DroppyCode/UI/Common/HydraGlyph.swift",
-    "DroppyCode/UI/Common/WorkingIndicators.swift"
-   ],
-   "component": 111,
-   "level": 10
-  },
-  "DroppyCode/App/Views/Chat/LimitResumeBadge.swift": {
-   "declares": [
-    "LimitResumeBadge"
-   ],
-   "depends_on": [
-    "DroppyCode/App/AppModel.swift",
-    "DroppyCode/App/Views/Chat/TimelineRows.swift",
-    "DroppyCode/Core/Models/Timeline.swift",
-    "DroppyCode/UI/Chrome/Chrome.swift"
-   ],
-   "component": 112,
-   "level": 10
+   "component": 92,
+   "level": 7
   },
   "DroppyCode/App/Views/Chat/MessageEditor.swift": {
    "declares": [
@@ -648,8 +617,8 @@
     "DroppyCode/UI/Chrome/Chrome.swift",
     "DroppyCode/UI/Common/Components.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 117,
+   "level": 10
   },
   "DroppyCode/App/Views/Chat/MessagePopoverMenu.swift": {
    "declares": [
@@ -660,7 +629,7 @@
    "depends_on": [
     "DroppyCode/UI/Chrome/Popovers.swift"
    ],
-   "component": 92,
+   "component": 88,
    "level": 4
   },
   "DroppyCode/App/Views/Chat/NewThreadPrompt.swift": {
@@ -674,8 +643,8 @@
     "DroppyCode/UI/Chrome/Popovers.swift",
     "DroppyCode/UI/Chrome/ProjectIconPicker.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 117,
+   "level": 10
   },
   "DroppyCode/App/Views/Chat/SubagentPanel.swift": {
    "declares": [
@@ -685,7 +654,6 @@
     "PanelDockSide",
     "PanelDocks",
     "PanelDragHandle",
-    "PanelDragHandleView",
     "PanelDragState",
     "PanelPlacement",
     "PanelReserve",
@@ -708,11 +676,12 @@
     "DroppyCode/Core/Models/Library.swift",
     "DroppyCode/Core/Support/Text.swift",
     "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Chrome/DragHandle.swift",
     "DroppyCode/UI/Chrome/Popovers.swift",
     "DroppyCode/UI/Common/WorkingIndicators.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 117,
+   "level": 10
   },
   "DroppyCode/App/Views/Chat/ThreadTimeline.swift": {
    "declares": [
@@ -760,8 +729,8 @@
     "DroppyCode/UI/Common/WorkingIndicators.swift",
     "DroppyCode/UI/Markdown/MarkdownView.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 117,
+   "level": 10
   },
   "DroppyCode/App/Views/Chat/TimelineMinimap.swift": {
    "declares": [
@@ -782,8 +751,8 @@
     "DroppyCode/Core/Support/RecentCache.swift",
     "DroppyCode/UI/Chrome/Chrome.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 117,
+   "level": 10
   },
   "DroppyCode/App/Views/Chat/TimelineRows.swift": {
    "declares": [
@@ -867,8 +836,8 @@
     "DroppyCode/UI/Markdown/MarkdownView.swift",
     "DroppyCode/UI/Markdown/SelectableMessageText.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 117,
+   "level": 10
   },
   "DroppyCode/App/Views/Composer/AttachmentFlight.swift": {
    "declares": [
@@ -879,7 +848,7 @@
     "ScreenFrameReader"
    ],
    "depends_on": [],
-   "component": 40,
+   "component": 79,
    "level": 0
   },
   "DroppyCode/App/Views/Composer/ComposerTextView.swift": {
@@ -895,7 +864,7 @@
     "DroppyCode/UI/Chrome/Chrome.swift",
     "DroppyCode/UI/Chrome/Popovers.swift"
    ],
-   "component": 36,
+   "component": 80,
    "level": 4
   },
   "DroppyCode/App/Views/Composer/ComposerView.swift": {
@@ -955,8 +924,8 @@
     "DroppyCode/UI/Common/AttachmentPreviewPanel.swift",
     "DroppyCode/UI/Common/RenderBudget.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 117,
+   "level": 10
   },
   "DroppyCode/App/Views/Composer/ComposerWorkingDots.swift": {
    "declares": [
@@ -967,7 +936,7 @@
    "depends_on": [
     "DroppyCode/UI/Chrome/Chrome.swift"
    ],
-   "component": 45,
+   "component": 84,
    "level": 4
   },
   "DroppyCode/App/Views/Composer/DownloadsPopover.swift": {
@@ -984,7 +953,7 @@
     "DroppyCode/UI/Chrome/Popovers.swift",
     "DroppyCode/UI/Common/AttachmentPreview.swift"
    ],
-   "component": 41,
+   "component": 81,
    "level": 5
   },
   "DroppyCode/App/Views/Composer/EditorAttachments.swift": {
@@ -997,8 +966,8 @@
     "DroppyCode/Core/Models/Timeline.swift",
     "DroppyCode/UI/Common/AttachmentPreviewPanel.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 117,
+   "level": 10
   },
   "DroppyCode/App/Views/Composer/EffortSlider.swift": {
    "declares": [
@@ -1029,6 +998,7 @@
     "DroppyCode/Core/Models/Hydra.swift",
     "DroppyCode/Core/Models/Library.swift",
     "DroppyCode/Core/Models/Provider.swift",
+    "DroppyCode/Core/Support/CaptureRun.swift",
     "DroppyCode/Services/Providers/ProviderRegistry.swift",
     "DroppyCode/UI/Chrome/Chrome.swift",
     "DroppyCode/UI/Chrome/Popovers.swift",
@@ -1036,8 +1006,8 @@
     "DroppyCode/UI/Common/Components.swift",
     "DroppyCode/UI/Common/HydraGlyph.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 117,
+   "level": 10
   },
   "DroppyCode/App/Views/Composer/FollowUpEditor.swift": {
    "declares": [
@@ -1047,8 +1017,8 @@
     "DroppyCode/App/Runtime/ThreadRuntime.swift",
     "DroppyCode/App/Views/Composer/PromptEditor.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 117,
+   "level": 10
   },
   "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift": {
    "declares": [
@@ -1068,8 +1038,8 @@
     "DroppyCode/UI/Chrome/RowDrag.swift",
     "DroppyCode/UI/Common/AttachmentPreviewPanel.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 117,
+   "level": 10
   },
   "DroppyCode/App/Views/Composer/HydraFusedPairIcon.swift": {
    "declares": [
@@ -1080,8 +1050,8 @@
     "DroppyCode/Core/Models/Provider.swift",
     "DroppyCode/UI/Chrome/Chrome.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 117,
+   "level": 10
   },
   "DroppyCode/App/Views/Composer/PromptEditor.swift": {
    "declares": [
@@ -1099,8 +1069,8 @@
     "DroppyCode/UI/Common/AttachmentPreviewPanel.swift",
     "DroppyCode/UI/Theme/AppTheme.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 117,
+   "level": 10
   },
   "DroppyCode/App/Views/Composer/QuestionTab.swift": {
    "declares": [
@@ -1117,8 +1087,8 @@
     "DroppyCode/UI/Chrome/Chrome.swift",
     "DroppyCode/UI/Chrome/Popovers.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 117,
+   "level": 10
   },
   "DroppyCode/App/Views/Composer/RequestCards.swift": {
    "declares": [
@@ -1129,8 +1099,8 @@
     "DroppyCode/Core/Models/Requests.swift",
     "DroppyCode/UI/Chrome/Chrome.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 117,
+   "level": 10
   },
   "DroppyCode/App/Views/Composer/ThreadChangesTab.swift": {
    "declares": [
@@ -1141,7 +1111,7 @@
     "DroppyCode/UI/Chrome/Chrome.swift",
     "DroppyCode/UI/Common/AttachmentPreviewPanel.swift"
    ],
-   "component": 87,
+   "component": 116,
    "level": 6
   },
   "DroppyCode/App/Views/Diff/DiffInspector.swift": {
@@ -1156,11 +1126,11 @@
     "lineBlocks"
    ],
    "depends_on": [
-    "DroppyCode/App/Captures/WebsiteCaptures.swift",
     "DroppyCode/App/Runtime/ThreadRuntime.swift",
     "DroppyCode/Core/Models/FileChangeSummary.swift",
     "DroppyCode/Core/Models/Shortcuts.swift",
     "DroppyCode/Core/Models/Timeline.swift",
+    "DroppyCode/Core/Support/CaptureRun.swift",
     "DroppyCode/Services/Git/DiffParser.swift",
     "DroppyCode/Services/Git/TouchedPaths.swift",
     "DroppyCode/UI/Chrome/Chrome.swift",
@@ -1168,8 +1138,8 @@
     "DroppyCode/UI/Common/AttachmentPreviewPanel.swift",
     "DroppyCode/UI/Common/Components.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 117,
+   "level": 10
   },
   "DroppyCode/App/Views/Palette/CommandPalette.swift": {
    "declares": [
@@ -1183,12 +1153,11 @@
     "DroppyCode/UI/Chrome/Chrome.swift",
     "DroppyCode/UI/Chrome/ProjectIconPicker.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 117,
+   "level": 10
   },
   "DroppyCode/App/Views/RootView.swift": {
    "declares": [
-    "CopyCommandButton",
     "DetailView",
     "NoThreadView",
     "OpenProvidersSettingsButton",
@@ -1220,8 +1189,8 @@
     "DroppyCode/UI/Common/Genie.swift",
     "DroppyCode/UI/Theme/Wallpaper.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 117,
+   "level": 10
   },
   "DroppyCode/App/Views/Settings/AboutUpdateViews.swift": {
    "declares": [
@@ -1252,7 +1221,15 @@
     "DroppyCode/UI/Markdown/MarkdownView.swift"
    ],
    "component": 100,
-   "level": 9
+   "level": 7
+  },
+  "DroppyCode/App/Views/Settings/FloatingGuidePanel.swift": {
+   "declares": [
+    "FloatingGuidePanel"
+   ],
+   "depends_on": [],
+   "component": 96,
+   "level": 0
   },
   "DroppyCode/App/Views/Settings/HydraCookbookPanel.swift": {
    "declares": [
@@ -1268,8 +1245,8 @@
     "DroppyCode/UI/Chrome/Chrome.swift",
     "DroppyCode/UI/Chrome/HydraPairMark.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 117,
+   "level": 10
   },
   "DroppyCode/App/Views/Settings/HydraSettingsPage.swift": {
    "declares": [
@@ -1298,8 +1275,8 @@
     "DroppyCode/UI/Common/Components.swift",
     "DroppyCode/UI/Common/HydraGlyph.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 117,
+   "level": 10
   },
   "DroppyCode/App/Views/Settings/MCPKeyPanel.swift": {
    "declares": [
@@ -1308,13 +1285,14 @@
    ],
    "depends_on": [
     "DroppyCode/App/AppModel.swift",
+    "DroppyCode/App/Views/Settings/FloatingGuidePanel.swift",
     "DroppyCode/App/Views/Settings/MCPSettingsPage.swift",
     "DroppyCode/Core/Models/MCP.swift",
     "DroppyCode/UI/Chrome/Chrome.swift",
     "DroppyCode/UI/Chrome/Popovers.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 117,
+   "level": 10
   },
   "DroppyCode/App/Views/Settings/MCPSettingsPage.swift": {
    "declares": [
@@ -1346,8 +1324,8 @@
     "DroppyCode/UI/Common/WorkingIndicators.swift",
     "DroppyCode/UI/Sound/SettleChime.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 117,
+   "level": 10
   },
   "DroppyCode/App/Views/Settings/MCPSetupPanel.swift": {
    "declares": [
@@ -1356,17 +1334,19 @@
    ],
    "depends_on": [
     "DroppyCode/App/AppModel.swift",
+    "DroppyCode/App/Views/Settings/FloatingGuidePanel.swift",
     "DroppyCode/App/Views/Settings/MCPSettingsPage.swift",
     "DroppyCode/Core/Models/MCP.swift",
     "DroppyCode/UI/Chrome/Chrome.swift",
     "DroppyCode/UI/Chrome/Popovers.swift",
     "DroppyCode/UI/Common/WorkingIndicators.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 117,
+   "level": 10
   },
   "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift": {
    "declares": [
+    "CollapsibleProviderHeader",
     "ModelsSettingsPage",
     "PinnedModelRow",
     "ProviderModelsSection",
@@ -1383,8 +1363,8 @@
     "DroppyCode/UI/Chrome/RowDrag.swift",
     "DroppyCode/UI/Common/Components.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 117,
+   "level": 10
   },
   "DroppyCode/App/Views/Settings/SettingsScrollTracker.swift": {
    "declares": [
@@ -1393,7 +1373,7 @@
    "depends_on": [
     "DroppyCode/UI/Common/RenderBudget.swift"
    ],
-   "component": 58,
+   "component": 103,
    "level": 4
   },
   "DroppyCode/App/Views/Settings/SettingsView.swift": {
@@ -1452,8 +1432,8 @@
     "DroppyCode/UI/Sound/SettleChime.swift",
     "DroppyCode/UI/Theme/AppTheme.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 117,
+   "level": 10
   },
   "DroppyCode/App/Views/Settings/ShortcutsSettingsPage.swift": {
    "declares": [
@@ -1482,7 +1462,7 @@
     "DroppyCode/UI/Chrome/Chrome.swift",
     "DroppyCode/UI/Chrome/Popovers.swift"
    ],
-   "component": 72,
+   "component": 98,
    "level": 4
   },
   "DroppyCode/App/Views/Settings/TokenActivitySection.swift": {
@@ -1496,7 +1476,7 @@
     "DroppyCode/Services/Store/TokenLedger.swift",
     "DroppyCode/UI/Chrome/Chrome.swift"
    ],
-   "component": 64,
+   "component": 102,
    "level": 5
   },
   "DroppyCode/App/Views/Settings/WallpaperCard.swift": {
@@ -1507,8 +1487,8 @@
     "DroppyCode/UI/Chrome/Chrome.swift",
     "DroppyCode/UI/Theme/Wallpaper.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 113,
+   "level": 4
   },
   "DroppyCode/App/Views/Sidebar/FloatingSidebarPanel.swift": {
    "declares": [
@@ -1521,8 +1501,8 @@
     "DroppyCode/App/Views/Sidebar/SidebarView.swift",
     "DroppyCode/UI/Chrome/Chrome.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 117,
+   "level": 10
   },
   "DroppyCode/App/Views/Sidebar/RowGlide.swift": {
    "declares": [
@@ -1535,7 +1515,7 @@
     "DroppyCode/Core/Support/ObservedValue.swift",
     "DroppyCode/UI/Chrome/Chrome.swift"
    ],
-   "component": 53,
+   "component": 107,
    "level": 4
   },
   "DroppyCode/App/Views/Sidebar/SidebarView.swift": {
@@ -1599,15 +1579,15 @@
     "DroppyCode/UI/Common/WorkingIndicators.swift",
     "DroppyCode/UI/Sound/SettleChime.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 117,
+   "level": 10
   },
   "DroppyCode/App/Views/Terminal/TerminalFont.swift": {
    "declares": [
     "TerminalFont"
    ],
    "depends_on": [],
-   "component": 84,
+   "component": 36,
    "level": 0
   },
   "DroppyCode/App/Views/Terminal/TerminalPanel.swift": {
@@ -1616,7 +1596,6 @@
     "TerminalHostContainer",
     "TerminalPanel",
     "TerminalResizeHandle",
-    "TerminalResizeHandleView",
     "TerminalTab"
    ],
    "depends_on": [
@@ -1624,10 +1603,11 @@
     "DroppyCode/App/Runtime/ThreadRuntime.swift",
     "DroppyCode/App/Views/Terminal/TerminalStore.swift",
     "DroppyCode/Core/Models/Shortcuts.swift",
-    "DroppyCode/UI/Chrome/Chrome.swift"
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Chrome/DragHandle.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 117,
+   "level": 10
   },
   "DroppyCode/App/Views/Terminal/TerminalStore.swift": {
    "declares": [
@@ -1641,7 +1621,7 @@
     "DroppyCode/Core/Support/Shell.swift",
     "DroppyCode/UI/Chrome/Chrome.swift"
    ],
-   "component": 85,
+   "component": 37,
    "level": 4
   },
   "DroppyCode/App/Views/Tour/TourPages.swift": {
@@ -1654,8 +1634,8 @@
     "DroppyCode/App/Views/Tour/TourWindowController.swift",
     "DroppyCode/UI/Theme/AppTheme.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 117,
+   "level": 10
   },
   "DroppyCode/App/Views/Tour/TourView.swift": {
    "declares": [
@@ -1667,7 +1647,7 @@
     "DroppyCode/UI/Chrome/Chrome.swift",
     "DroppyCode/UI/Chrome/Popovers.swift"
    ],
-   "component": 62,
+   "component": 7,
    "level": 4
   },
   "DroppyCode/App/Views/Tour/TourWindowController.swift": {
@@ -1679,7 +1659,7 @@
     "DroppyCode/App/Views/Tour/TourView.swift",
     "DroppyCode/UI/Chrome/Chrome.swift"
    ],
-   "component": 63,
+   "component": 8,
    "level": 5
   },
   "DroppyCode/App/Views/Usage/UsageFloatingPanel.swift": {
@@ -1698,8 +1678,8 @@
     "DroppyCode/UI/Chrome/Chrome.swift",
     "DroppyCode/UI/Common/Components.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 117,
+   "level": 10
   },
   "DroppyCode/App/Views/Usage/UsagePanel.swift": {
    "declares": [
@@ -1715,8 +1695,8 @@
     "DroppyCode/UI/Chrome/Chrome.swift",
     "DroppyCode/UI/Common/Components.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 117,
+   "level": 10
   },
   "DroppyCode/App/Views/Usage/UsageViews.swift": {
    "declares": [
@@ -1736,8 +1716,8 @@
     "DroppyCode/UI/Chrome/Chrome.swift",
     "DroppyCode/UI/Common/Components.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 117,
+   "level": 10
   },
   "DroppyCode/App/Window/ThreadWindow.swift": {
    "declares": [
@@ -1747,7 +1727,7 @@
    "depends_on": [
     "DroppyCode/Core/Models/Shortcuts.swift"
    ],
-   "component": 55,
+   "component": 93,
    "level": 1
   },
   "DroppyCode/App/Window/WindowManager.swift": {
@@ -1769,8 +1749,8 @@
     "DroppyCode/UI/Common/AppZoom.swift",
     "DroppyCode/UI/Theme/AppTheme.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 117,
+   "level": 10
   },
   "DroppyCode/Core/Models/AntiSlopPolicy.swift": {
    "declares": [
@@ -1785,7 +1765,7 @@
     "FileChangeSummary"
    ],
    "depends_on": [],
-   "component": 1,
+   "component": 3,
    "level": 0
   },
   "DroppyCode/Core/Models/Hydra.swift": {
@@ -1825,7 +1805,7 @@
     "DroppyCode/Core/Models/Hydra.swift",
     "DroppyCode/Core/Models/Provider.swift"
    ],
-   "component": 67,
+   "component": 108,
    "level": 2
   },
   "DroppyCode/Core/Models/HydraDelegationStream.swift": {
@@ -1837,7 +1817,7 @@
     "DroppyCode/Core/Support/JSONValue.swift",
     "DroppyCode/Core/Support/Text.swift"
    ],
-   "component": 96,
+   "component": 74,
    "level": 2
   },
   "DroppyCode/Core/Models/Library.swift": {
@@ -1855,7 +1835,7 @@
     "DroppyCode/Core/Support/CaptureRun.swift",
     "DroppyCode/Core/Support/Coding.swift"
    ],
-   "component": 8,
+   "component": 17,
    "level": 2
   },
   "DroppyCode/Core/Models/MCP.swift": {
@@ -1865,7 +1845,6 @@
     "MCPConnection",
     "MCPConnectionState",
     "MCPField",
-    "MCPPaths",
     "MCPProbeResult",
     "MCPResolvedServer",
     "MCPSetupGuide",
@@ -1873,12 +1852,10 @@
     "MCPTransport"
    ],
    "depends_on": [
-    "DroppyCode/Core/Support/Text.swift",
-    "DroppyCode/Services/MCP/MCPProxy.swift",
-    "DroppyCode/Services/Store/Storage.swift"
+    "DroppyCode/Core/Support/Text.swift"
    ],
-   "component": 14,
-   "level": 4
+   "component": 24,
+   "level": 2
   },
   "DroppyCode/Core/Models/MCPCatalog.swift": {
    "declares": [
@@ -1887,8 +1864,8 @@
    "depends_on": [
     "DroppyCode/Core/Models/MCP.swift"
    ],
-   "component": 33,
-   "level": 5
+   "component": 47,
+   "level": 3
   },
   "DroppyCode/Core/Models/MCPCustom.swift": {
    "declares": [
@@ -1899,15 +1876,15 @@
     "DroppyCode/Core/Models/MCP.swift",
     "DroppyCode/Core/Support/Text.swift"
    ],
-   "component": 59,
-   "level": 5
+   "component": 48,
+   "level": 3
   },
   "DroppyCode/Core/Models/MergeRequestLink.swift": {
    "declares": [
     "MergeRequestLink"
    ],
    "depends_on": [],
-   "component": 77,
+   "component": 62,
    "level": 0
   },
   "DroppyCode/Core/Models/Provider.swift": {
@@ -1933,7 +1910,7 @@
    "depends_on": [
     "DroppyCode/Core/Models/Provider.swift"
    ],
-   "component": 23,
+   "component": 34,
    "level": 2
   },
   "DroppyCode/Core/Models/Requests.swift": {
@@ -1942,7 +1919,7 @@
     "QuestionRequest"
    ],
    "depends_on": [],
-   "component": 12,
+   "component": 11,
    "level": 0
   },
   "DroppyCode/Core/Models/Shortcuts.swift": {
@@ -1953,7 +1930,7 @@
     "ShortcutStore"
    ],
    "depends_on": [],
-   "component": 54,
+   "component": 87,
    "level": 0
   },
   "DroppyCode/Core/Models/ThreadContinuation.swift": {
@@ -2015,7 +1992,7 @@
     "CaptureRun"
    ],
    "depends_on": [],
-   "component": 5,
+   "component": 9,
    "level": 0
   },
   "DroppyCode/Core/Support/Coding.swift": {
@@ -2023,7 +2000,7 @@
     "Lenient"
    ],
    "depends_on": [],
-   "component": 0,
+   "component": 1,
    "level": 0
   },
   "DroppyCode/Core/Support/HangWatchdog.swift": {
@@ -2033,7 +2010,7 @@
    "depends_on": [
     "DroppyCode/Core/Support/ISO8601.swift"
    ],
-   "component": 108,
+   "component": 124,
    "level": 1
   },
   "DroppyCode/Core/Support/ISO8601.swift": {
@@ -2041,7 +2018,7 @@
     "ISO8601"
    ],
    "depends_on": [],
-   "component": 6,
+   "component": 22,
    "level": 0
   },
   "DroppyCode/Core/Support/JSONRPC.swift": {
@@ -2055,7 +2032,7 @@
     "DroppyCode/Core/Support/StdioProcess.swift",
     "DroppyCode/Core/Support/Text.swift"
    ],
-   "component": 20,
+   "component": 16,
    "level": 2
   },
   "DroppyCode/Core/Support/JSONValue.swift": {
@@ -2063,7 +2040,7 @@
     "JSONValue"
    ],
    "depends_on": [],
-   "component": 3,
+   "component": 0,
    "level": 0
   },
   "DroppyCode/Core/Support/ObservedValue.swift": {
@@ -2071,7 +2048,15 @@
     "ObservedValue"
    ],
    "depends_on": [],
-   "component": 46,
+   "component": 38,
+   "level": 0
+  },
+  "DroppyCode/Core/Support/PendingReplies.swift": {
+   "declares": [
+    "PendingReplies"
+   ],
+   "depends_on": [],
+   "component": 32,
    "level": 0
   },
   "DroppyCode/Core/Support/RecentCache.swift": {
@@ -2079,7 +2064,7 @@
     "RecentCache"
    ],
    "depends_on": [],
-   "component": 7,
+   "component": 20,
    "level": 0
   },
   "DroppyCode/Core/Support/Shell.swift": {
@@ -2095,7 +2080,7 @@
    "depends_on": [
     "DroppyCode/Core/Support/Text.swift"
    ],
-   "component": 9,
+   "component": 18,
    "level": 2
   },
   "DroppyCode/Core/Support/StdioFramer.swift": {
@@ -2103,7 +2088,7 @@
     "StdioFramer"
    ],
    "depends_on": [],
-   "component": 17,
+   "component": 14,
    "level": 0
   },
   "DroppyCode/Core/Support/StdioProcess.swift": {
@@ -2114,8 +2099,19 @@
     "DroppyCode/Core/Support/JSONValue.swift",
     "DroppyCode/Core/Support/StdioFramer.swift"
    ],
-   "component": 18,
+   "component": 15,
    "level": 1
+  },
+  "DroppyCode/Core/Support/StoragePaths.swift": {
+   "declares": [
+    "StoragePaths"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Support/CaptureRun.swift",
+    "DroppyCode/Core/Support/Text.swift"
+   ],
+   "component": 19,
+   "level": 2
   },
   "DroppyCode/Core/Support/SwitchLatency.swift": {
    "declares": [
@@ -2124,12 +2120,13 @@
    "depends_on": [
     "DroppyCode/Core/Support/Text.swift"
    ],
-   "component": 73,
+   "component": 10,
    "level": 2
   },
   "DroppyCode/Core/Support/Text.swift": {
    "declares": [
     "AppInfo",
+    "DiffOp",
     "SimpleDiff",
     "TextCleanup"
    ],
@@ -2147,7 +2144,7 @@
    "depends_on": [
     "DroppyCode/Core/Support/RecentCache.swift"
    ],
-   "component": 37,
+   "component": 67,
    "level": 1
   },
   "DroppyCode/Services/Git/DiffParser.swift": {
@@ -2158,7 +2155,7 @@
     "DiffParser"
    ],
    "depends_on": [],
-   "component": 88,
+   "component": 85,
    "level": 0
   },
   "DroppyCode/Services/Git/FileChangeSummary+Diff.swift": {
@@ -2167,7 +2164,7 @@
     "DroppyCode/Core/Models/FileChangeSummary.swift",
     "DroppyCode/Services/Git/DiffParser.swift"
    ],
-   "component": 113,
+   "component": 128,
    "level": 1
   },
   "DroppyCode/Services/Git/Git.swift": {
@@ -2183,7 +2180,7 @@
     "DroppyCode/Services/Git/RevertPreview.swift",
     "DroppyCode/Services/Git/WorkingTreeWatch.swift"
    ],
-   "component": 79,
+   "component": 76,
    "level": 3
   },
   "DroppyCode/Services/Git/RevertPreview.swift": {
@@ -2191,7 +2188,7 @@
     "RevertPreview"
    ],
    "depends_on": [],
-   "component": 78,
+   "component": 72,
    "level": 0
   },
   "DroppyCode/Services/Git/TouchedPaths.swift": {
@@ -2202,7 +2199,7 @@
     "DroppyCode/Core/Support/Text.swift",
     "DroppyCode/Services/Git/DiffParser.swift"
    ],
-   "component": 89,
+   "component": 86,
    "level": 2
   },
   "DroppyCode/Services/Git/TurnDiff.swift": {
@@ -2214,7 +2211,7 @@
     "DroppyCode/Services/Git/DiffParser.swift",
     "DroppyCode/Services/Git/TouchedPaths.swift"
    ],
-   "component": 99,
+   "component": 115,
    "level": 3
   },
   "DroppyCode/Services/Git/WorkingTreeWatch.swift": {
@@ -2222,7 +2219,7 @@
     "WorkingTreeWatch"
    ],
    "depends_on": [],
-   "component": 76,
+   "component": 75,
    "level": 0
   },
   "DroppyCode/Services/MCP/MCPBridgeSource.swift": {
@@ -2232,8 +2229,17 @@
    "depends_on": [
     "DroppyCode/Core/Support/Shell.swift"
    ],
-   "component": 26,
+   "component": 60,
    "level": 3
+  },
+  "DroppyCode/Services/MCP/MCPCatalogEntry+Resolve.swift": {
+   "declares": [],
+   "depends_on": [
+    "DroppyCode/Core/Models/MCP.swift",
+    "DroppyCode/Services/MCP/MCPProxy.swift"
+   ],
+   "component": 129,
+   "level": 6
   },
   "DroppyCode/Services/MCP/MCPExternalSync.swift": {
    "declares": [
@@ -2241,14 +2247,14 @@
    ],
    "depends_on": [
     "DroppyCode/Core/Models/MCP.swift",
-    "DroppyCode/Core/Support/Shell.swift"
+    "DroppyCode/Core/Support/Shell.swift",
+    "DroppyCode/Services/MCP/MCPPaths.swift"
    ],
-   "component": 81,
+   "component": 44,
    "level": 5
   },
   "DroppyCode/Services/MCP/MCPHub.swift": {
    "declares": [
-    "HubConversation",
     "MCPClient",
     "MCPHub",
     "MCPHubError",
@@ -2256,12 +2262,13 @@
     "MCPServerSpec"
    ],
    "depends_on": [
-    "DroppyCode/Core/Models/MCP.swift",
     "DroppyCode/Core/Support/JSONValue.swift",
     "DroppyCode/Core/Support/Shell.swift",
-    "DroppyCode/Core/Support/Text.swift"
+    "DroppyCode/Core/Support/StdioProcess.swift",
+    "DroppyCode/Services/MCP/MCPPaths.swift",
+    "DroppyCode/Services/MCP/MCPWire.swift"
    ],
-   "component": 29,
+   "component": 42,
    "level": 5
   },
   "DroppyCode/Services/MCP/MCPKeychain.swift": {
@@ -2271,10 +2278,10 @@
    "depends_on": [
     "DroppyCode/Core/Models/MCP.swift",
     "DroppyCode/Core/Support/CaptureRun.swift",
-    "DroppyCode/Core/Support/Text.swift"
+    "DroppyCode/Services/Providers/APIKeychain.swift"
    ],
-   "component": 14,
-   "level": 4
+   "component": 40,
+   "level": 3
   },
   "DroppyCode/Services/MCP/MCPOAuth.swift": {
    "declares": [
@@ -2291,23 +2298,33 @@
     "DroppyCode/Core/Support/JSONValue.swift",
     "DroppyCode/Services/MCP/MCPKeychain.swift"
    ],
-   "component": 14,
+   "component": 45,
+   "level": 4
+  },
+  "DroppyCode/Services/MCP/MCPPaths.swift": {
+   "declares": [
+    "MCPPaths"
+   ],
+   "depends_on": [
+    "DroppyCode/Services/Store/Storage.swift"
+   ],
+   "component": 25,
    "level": 4
   },
   "DroppyCode/Services/MCP/MCPProbe.swift": {
    "declares": [
     "MCPProbe",
-    "MCPProbeError",
-    "StdioConversation"
+    "MCPProbeError"
    ],
    "depends_on": [
     "DroppyCode/Core/Models/MCP.swift",
     "DroppyCode/Core/Support/JSONValue.swift",
     "DroppyCode/Core/Support/Shell.swift",
-    "DroppyCode/Core/Support/Text.swift"
+    "DroppyCode/Core/Support/Text.swift",
+    "DroppyCode/Services/MCP/MCPWire.swift"
    ],
-   "component": 80,
-   "level": 5
+   "component": 43,
+   "level": 4
   },
   "DroppyCode/Services/MCP/MCPProviderConfig.swift": {
    "declares": [
@@ -2316,9 +2333,10 @@
    "depends_on": [
     "DroppyCode/Core/Models/MCP.swift",
     "DroppyCode/Core/Support/JSONValue.swift",
-    "DroppyCode/Core/Support/Shell.swift"
+    "DroppyCode/Core/Support/Shell.swift",
+    "DroppyCode/Services/MCP/MCPPaths.swift"
    ],
-   "component": 15,
+   "component": 26,
    "level": 5
   },
   "DroppyCode/Services/MCP/MCPProxy.swift": {
@@ -2326,23 +2344,23 @@
     "MCPProxy"
    ],
    "depends_on": [
-    "DroppyCode/Core/Models/MCP.swift",
     "DroppyCode/Core/Support/Text.swift",
-    "DroppyCode/Services/MCP/MCPOAuth.swift"
+    "DroppyCode/Services/MCP/MCPOAuth.swift",
+    "DroppyCode/Services/MCP/MCPPaths.swift"
    ],
-   "component": 14,
-   "level": 4
+   "component": 46,
+   "level": 5
   },
   "DroppyCode/Services/MCP/MCPSessionOverrides.swift": {
    "declares": [
     "MCPSessionOverrides"
    ],
    "depends_on": [
-    "DroppyCode/Core/Models/MCP.swift",
     "DroppyCode/Core/Support/Shell.swift",
+    "DroppyCode/Services/MCP/MCPPaths.swift",
     "DroppyCode/Services/MCP/MCPProviderConfig.swift"
    ],
-   "component": 16,
+   "component": 28,
    "level": 6
   },
   "DroppyCode/Services/MCP/MCPStore.swift": {
@@ -2358,12 +2376,30 @@
     "DroppyCode/Services/MCP/MCPHub.swift",
     "DroppyCode/Services/MCP/MCPKeychain.swift",
     "DroppyCode/Services/MCP/MCPOAuth.swift",
+    "DroppyCode/Services/MCP/MCPPaths.swift",
     "DroppyCode/Services/MCP/MCPProbe.swift",
     "DroppyCode/Services/MCP/MCPProviderConfig.swift",
     "DroppyCode/Services/MCP/MCPProxy.swift"
    ],
-   "component": 82,
+   "component": 49,
    "level": 6
+  },
+  "DroppyCode/Services/MCP/MCPWire.swift": {
+   "declares": [
+    "MCPHTTPError",
+    "MCPHTTPReply",
+    "MCPStdioConnection",
+    "MCPWire",
+    "MCPWireError"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Support/JSONRPC.swift",
+    "DroppyCode/Core/Support/JSONValue.swift",
+    "DroppyCode/Core/Support/StdioProcess.swift",
+    "DroppyCode/Core/Support/Text.swift"
+   ],
+   "component": 41,
+   "level": 3
   },
   "DroppyCode/Services/Providers/ACPSession.swift": {
    "declares": [
@@ -2381,7 +2417,7 @@
     "DroppyCode/Services/MCP/MCPProviderConfig.swift",
     "DroppyCode/Services/Providers/ProviderSession.swift"
    ],
-   "component": 21,
+   "component": 31,
    "level": 6
   },
   "DroppyCode/Services/Providers/APIKeychain.swift": {
@@ -2389,10 +2425,11 @@
     "APIKeychain"
    ],
    "depends_on": [
+    "DroppyCode/Core/Models/Provider.swift",
     "DroppyCode/Core/Support/CaptureRun.swift",
     "DroppyCode/Core/Support/Text.swift"
    ],
-   "component": 47,
+   "component": 39,
    "level": 2
   },
   "DroppyCode/Services/Providers/AntigravitySession.swift": {
@@ -2411,10 +2448,11 @@
     "DroppyCode/Services/Providers/PlanLimits.swift",
     "DroppyCode/Services/Providers/ProviderRegistry.swift",
     "DroppyCode/Services/Providers/ProviderSession.swift",
+    "DroppyCode/Services/Providers/SessionSupport.swift",
     "DroppyCode/Services/Store/TokenLedger.swift"
    ],
-   "component": 25,
-   "level": 7
+   "component": 35,
+   "level": 8
   },
   "DroppyCode/Services/Providers/ClaudeSession.swift": {
    "declares": [
@@ -2428,16 +2466,18 @@
     "DroppyCode/Core/Models/Timeline.swift",
     "DroppyCode/Core/Models/TokenSpend.swift",
     "DroppyCode/Core/Support/JSONValue.swift",
+    "DroppyCode/Core/Support/PendingReplies.swift",
     "DroppyCode/Core/Support/Shell.swift",
     "DroppyCode/Core/Support/StdioProcess.swift",
     "DroppyCode/Core/Support/Text.swift",
     "DroppyCode/Services/MCP/MCPProviderConfig.swift",
+    "DroppyCode/Services/Providers/ACPSession.swift",
     "DroppyCode/Services/Providers/ProviderSession.swift",
     "DroppyCode/Services/Providers/UsageLimitSignal.swift",
     "DroppyCode/Services/Store/TokenLedger.swift"
    ],
-   "component": 24,
-   "level": 6
+   "component": 33,
+   "level": 7
   },
   "DroppyCode/Services/Providers/CodexSession.swift": {
    "declares": [
@@ -2461,8 +2501,8 @@
     "DroppyCode/Services/Providers/UsageLimitSignal.swift",
     "DroppyCode/Services/Store/TokenLedger.swift"
    ],
-   "component": 25,
-   "level": 7
+   "component": 35,
+   "level": 8
   },
   "DroppyCode/Services/Providers/CommandCodeAPI.swift": {
    "declares": [
@@ -2478,25 +2518,14 @@
     "DroppyCode/Services/Providers/ProviderRegistry.swift",
     "DroppyCode/Services/Providers/ProviderSession.swift"
    ],
-   "component": 25,
-   "level": 7
-  },
-  "DroppyCode/Services/Providers/CommandCodeKeychain.swift": {
-   "declares": [
-    "CommandCodeKeychain"
-   ],
-   "depends_on": [
-    "DroppyCode/Services/Providers/APIKeychain.swift"
-   ],
-   "component": 74,
-   "level": 3
+   "component": 35,
+   "level": 8
   },
   "DroppyCode/Services/Providers/CommandCodeSession.swift": {
    "declares": [
     "CommandCodeSession"
    ],
    "depends_on": [
-    "DroppyCode/Core/Models/MCP.swift",
     "DroppyCode/Core/Models/Provider.swift",
     "DroppyCode/Core/Models/Requests.swift",
     "DroppyCode/Core/Models/Timeline.swift",
@@ -2506,12 +2535,15 @@
     "DroppyCode/Core/Support/StdioProcess.swift",
     "DroppyCode/Core/Support/Text.swift",
     "DroppyCode/Services/MCP/MCPBridgeSource.swift",
+    "DroppyCode/Services/MCP/MCPPaths.swift",
+    "DroppyCode/Services/Providers/ACPSession.swift",
     "DroppyCode/Services/Providers/CommandCodeAPI.swift",
     "DroppyCode/Services/Providers/ProviderSession.swift",
+    "DroppyCode/Services/Providers/SessionSupport.swift",
     "DroppyCode/Services/Store/TokenLedger.swift"
    ],
-   "component": 27,
-   "level": 8
+   "component": 61,
+   "level": 9
   },
   "DroppyCode/Services/Providers/CopilotSession.swift": {
    "declares": [
@@ -2535,8 +2567,8 @@
     "DroppyCode/Services/Providers/ProviderSession.swift",
     "DroppyCode/Services/Store/TokenLedger.swift"
    ],
-   "component": 25,
-   "level": 7
+   "component": 35,
+   "level": 8
   },
   "DroppyCode/Services/Providers/DeepSeekAPI.swift": {
    "declares": [
@@ -2546,20 +2578,11 @@
     "DroppyCode/Core/Models/Provider.swift",
     "DroppyCode/Core/Support/JSONValue.swift",
     "DroppyCode/Core/Support/Text.swift",
+    "DroppyCode/Services/Providers/OpenAICompatibleAPI.swift",
     "DroppyCode/Services/Providers/ProviderCredits.swift"
    ],
-   "component": 25,
-   "level": 7
-  },
-  "DroppyCode/Services/Providers/DeepSeekKeychain.swift": {
-   "declares": [
-    "DeepSeekKeychain"
-   ],
-   "depends_on": [
-    "DroppyCode/Services/Providers/APIKeychain.swift"
-   ],
-   "component": 75,
-   "level": 3
+   "component": 35,
+   "level": 8
   },
   "DroppyCode/Services/Providers/DeepSeekSession.swift": {
    "declares": [
@@ -2571,8 +2594,8 @@
     "DroppyCode/Services/Providers/OpenAICompatibleSession.swift",
     "DroppyCode/Services/Providers/ProviderSession.swift"
    ],
-   "component": 32,
-   "level": 8
+   "component": 77,
+   "level": 9
   },
   "DroppyCode/Services/Providers/MetaAPI.swift": {
    "declares": [
@@ -2580,20 +2603,9 @@
    ],
    "depends_on": [
     "DroppyCode/Core/Models/Provider.swift",
-    "DroppyCode/Core/Support/JSONValue.swift",
-    "DroppyCode/Core/Support/Text.swift"
+    "DroppyCode/Services/Providers/OpenAICompatibleAPI.swift"
    ],
-   "component": 22,
-   "level": 2
-  },
-  "DroppyCode/Services/Providers/MetaKeychain.swift": {
-   "declares": [
-    "MetaKeychain"
-   ],
-   "depends_on": [
-    "DroppyCode/Services/Providers/APIKeychain.swift"
-   ],
-   "component": 49,
+   "component": 30,
    "level": 3
   },
   "DroppyCode/Services/Providers/MetaSession.swift": {
@@ -2606,7 +2618,7 @@
     "DroppyCode/Services/Providers/OpenAICompatibleSession.swift",
     "DroppyCode/Services/Providers/ProviderSession.swift"
    ],
-   "component": 98,
+   "component": 59,
    "level": 7
   },
   "DroppyCode/Services/Providers/NativeFileTools.swift": {
@@ -2617,8 +2629,20 @@
     "DroppyCode/Core/Support/Text.swift",
     "DroppyCode/Services/Providers/ProviderSession.swift"
    ],
-   "component": 28,
+   "component": 55,
    "level": 3
+  },
+  "DroppyCode/Services/Providers/OpenAICompatibleAPI.swift": {
+   "declares": [
+    "OpenAICompatibleAPI"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/Provider.swift",
+    "DroppyCode/Core/Support/JSONValue.swift",
+    "DroppyCode/Core/Support/Text.swift"
+   ],
+   "component": 27,
+   "level": 2
   },
   "DroppyCode/Services/Providers/OpenAICompatibleSession.swift": {
    "declares": [
@@ -2640,7 +2664,7 @@
     "DroppyCode/Services/Providers/ProviderSession.swift",
     "DroppyCode/Services/Store/TokenLedger.swift"
    ],
-   "component": 31,
+   "component": 57,
    "level": 6
   },
   "DroppyCode/Services/Providers/PiCLI.swift": {
@@ -2655,8 +2679,8 @@
     "DroppyCode/Services/Providers/ProviderRegistry.swift",
     "DroppyCode/Services/Providers/ProviderSession.swift"
    ],
-   "component": 25,
-   "level": 7
+   "component": 35,
+   "level": 8
   },
   "DroppyCode/Services/Providers/PiPlanLimits.swift": {
    "declares": [
@@ -2667,27 +2691,29 @@
     "DroppyCode/Services/Providers/PiCLI.swift",
     "DroppyCode/Services/Providers/PlanLimits.swift"
    ],
-   "component": 25,
-   "level": 7
+   "component": 35,
+   "level": 8
   },
   "DroppyCode/Services/Providers/PiSession.swift": {
    "declares": [
     "PiSession"
    ],
    "depends_on": [
-    "DroppyCode/Core/Models/MCP.swift",
     "DroppyCode/Core/Models/Provider.swift",
     "DroppyCode/Core/Models/Requests.swift",
     "DroppyCode/Core/Models/Timeline.swift",
     "DroppyCode/Core/Support/JSONValue.swift",
+    "DroppyCode/Core/Support/PendingReplies.swift",
     "DroppyCode/Core/Support/StdioProcess.swift",
     "DroppyCode/Core/Support/Text.swift",
     "DroppyCode/Services/MCP/MCPBridgeSource.swift",
+    "DroppyCode/Services/MCP/MCPPaths.swift",
     "DroppyCode/Services/Providers/PiCLI.swift",
-    "DroppyCode/Services/Providers/ProviderSession.swift"
+    "DroppyCode/Services/Providers/ProviderSession.swift",
+    "DroppyCode/Services/Providers/SessionSupport.swift"
    ],
-   "component": 97,
-   "level": 8
+   "component": 73,
+   "level": 9
   },
   "DroppyCode/Services/Providers/PlanLimits.swift": {
    "declares": [
@@ -2709,8 +2735,8 @@
     "DroppyCode/Services/Providers/PiPlanLimits.swift",
     "DroppyCode/Services/Providers/ZaiAPI.swift"
    ],
-   "component": 25,
-   "level": 7
+   "component": 35,
+   "level": 8
   },
   "DroppyCode/Services/Providers/ProjectGuidance.swift": {
    "declares": [
@@ -2719,7 +2745,7 @@
    "depends_on": [
     "DroppyCode/Core/Support/Text.swift"
    ],
-   "component": 30,
+   "component": 56,
    "level": 2
   },
   "DroppyCode/Services/Providers/ProviderCredits.swift": {
@@ -2732,8 +2758,8 @@
     "DroppyCode/Services/Providers/CommandCodeAPI.swift",
     "DroppyCode/Services/Providers/DeepSeekAPI.swift"
    ],
-   "component": 25,
-   "level": 7
+   "component": 35,
+   "level": 8
   },
   "DroppyCode/Services/Providers/ProviderRegistry.swift": {
    "declares": [
@@ -2762,8 +2788,8 @@
     "DroppyCode/Services/Providers/ProviderCredits.swift",
     "DroppyCode/Services/Providers/ZaiAPI.swift"
    ],
-   "component": 25,
-   "level": 7
+   "component": 35,
+   "level": 8
   },
   "DroppyCode/Services/Providers/ProviderSession.swift": {
    "declares": [
@@ -2772,6 +2798,7 @@
     "ProviderEvent",
     "ProviderSession",
     "SessionConfiguration",
+    "ToolText",
     "ToolTitles",
     "ToolUpdate",
     "TranscriptMessage",
@@ -2783,10 +2810,23 @@
     "DroppyCode/Core/Models/Requests.swift",
     "DroppyCode/Core/Models/Timeline.swift",
     "DroppyCode/Core/Models/TokenSpend.swift",
+    "DroppyCode/Core/Support/JSONValue.swift",
     "DroppyCode/Core/Support/Text.swift"
    ],
-   "component": 13,
+   "component": 12,
    "level": 2
+  },
+  "DroppyCode/Services/Providers/SessionSupport.swift": {
+   "declares": [
+    "EditSnapshots",
+    "StreamedTextTracker"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/Timeline.swift",
+    "DroppyCode/Services/Providers/ProviderSession.swift"
+   ],
+   "component": 29,
+   "level": 3
   },
   "DroppyCode/Services/Providers/TextGeneration.swift": {
    "declares": [
@@ -2796,7 +2836,7 @@
     "DroppyCode/Core/Support/Shell.swift",
     "DroppyCode/Core/Support/Text.swift"
    ],
-   "component": 83,
+   "component": 114,
    "level": 3
   },
   "DroppyCode/Services/Providers/UsageLimitSignal.swift": {
@@ -2804,7 +2844,7 @@
     "UsageLimitSignal"
    ],
    "depends_on": [],
-   "component": 19,
+   "component": 13,
    "level": 0
   },
   "DroppyCode/Services/Providers/ZaiAPI.swift": {
@@ -2815,20 +2855,11 @@
     "DroppyCode/Core/Models/Provider.swift",
     "DroppyCode/Core/Support/JSONValue.swift",
     "DroppyCode/Core/Support/Text.swift",
+    "DroppyCode/Services/Providers/OpenAICompatibleAPI.swift",
     "DroppyCode/Services/Providers/PlanLimits.swift"
    ],
-   "component": 25,
-   "level": 7
-  },
-  "DroppyCode/Services/Providers/ZaiKeychain.swift": {
-   "declares": [
-    "ZaiKeychain"
-   ],
-   "depends_on": [
-    "DroppyCode/Services/Providers/APIKeychain.swift"
-   ],
-   "component": 48,
-   "level": 3
+   "component": 35,
+   "level": 8
   },
   "DroppyCode/Services/Providers/ZaiSession.swift": {
    "declares": [
@@ -2840,8 +2871,8 @@
     "DroppyCode/Services/Providers/ProviderSession.swift",
     "DroppyCode/Services/Providers/ZaiAPI.swift"
    ],
-   "component": 95,
-   "level": 8
+   "component": 58,
+   "level": 9
   },
   "DroppyCode/Services/Store/Storage.swift": {
    "declares": [
@@ -2855,13 +2886,13 @@
    "depends_on": [
     "DroppyCode/Core/Models/Library.swift",
     "DroppyCode/Core/Models/Timeline.swift",
-    "DroppyCode/Core/Support/CaptureRun.swift",
     "DroppyCode/Core/Support/Coding.swift",
     "DroppyCode/Core/Support/RecentCache.swift",
     "DroppyCode/Core/Support/Shell.swift",
+    "DroppyCode/Core/Support/StoragePaths.swift",
     "DroppyCode/Core/Support/Text.swift"
    ],
-   "component": 10,
+   "component": 21,
    "level": 3
   },
   "DroppyCode/Services/Store/TokenLedger.swift": {
@@ -2880,9 +2911,10 @@
     "DroppyCode/Core/Models/TokenSpend.swift",
     "DroppyCode/Core/Support/CaptureRun.swift",
     "DroppyCode/Core/Support/ISO8601.swift",
+    "DroppyCode/Core/Support/JSONValue.swift",
     "DroppyCode/Services/Store/Storage.swift"
    ],
-   "component": 11,
+   "component": 23,
    "level": 4
   },
   "DroppyCode/UI/Chrome/Chrome.swift": {
@@ -2920,15 +2952,14 @@
     "SidebarSymbol",
     "SoftAppearModifier",
     "WindowBackdrop",
-    "WindowDragArea",
-    "WindowDragView"
+    "WindowDragArea"
    ],
    "depends_on": [
     "DroppyCode/UI/Chrome/Popovers.swift",
     "DroppyCode/UI/Common/RenderBudget.swift",
     "DroppyCode/UI/Theme/AppTheme.swift"
    ],
-   "component": 35,
+   "component": 6,
    "level": 3
   },
   "DroppyCode/UI/Chrome/ChromeSegmentedPicker.swift": {
@@ -2940,7 +2971,7 @@
    "depends_on": [
     "DroppyCode/UI/Chrome/Chrome.swift"
    ],
-   "component": 68,
+   "component": 110,
    "level": 4
   },
   "DroppyCode/UI/Chrome/ChromeVisualPicker.swift": {
@@ -2952,8 +2983,17 @@
    "depends_on": [
     "DroppyCode/UI/Chrome/Chrome.swift"
    ],
-   "component": 65,
+   "component": 104,
    "level": 4
+  },
+  "DroppyCode/UI/Chrome/DragHandle.swift": {
+   "declares": [
+    "DragHandle",
+    "DragHandleView"
+   ],
+   "depends_on": [],
+   "component": 50,
+   "level": 0
   },
   "DroppyCode/UI/Chrome/HydraPairMark.swift": {
    "declares": [
@@ -2964,7 +3004,7 @@
     "DroppyCode/UI/Chrome/Chrome.swift",
     "DroppyCode/UI/Common/Components.swift"
    ],
-   "component": 66,
+   "component": 109,
    "level": 5
   },
   "DroppyCode/UI/Chrome/InfoHoverButton.swift": {
@@ -2974,7 +3014,7 @@
    "depends_on": [
     "DroppyCode/UI/Chrome/Chrome.swift"
    ],
-   "component": 69,
+   "component": 111,
    "level": 4
   },
   "DroppyCode/UI/Chrome/Popovers.swift": {
@@ -2995,7 +3035,7 @@
     "DroppyCode/UI/Chrome/Chrome.swift",
     "DroppyCode/UI/Theme/AppTheme.swift"
    ],
-   "component": 35,
+   "component": 6,
    "level": 3
   },
   "DroppyCode/UI/Chrome/ProjectIconPicker.swift": {
@@ -3010,7 +3050,7 @@
     "DroppyCode/UI/Chrome/Chrome.swift",
     "DroppyCode/UI/Chrome/ProjectSymbolCatalogue.swift"
    ],
-   "component": 51,
+   "component": 95,
    "level": 4
   },
   "DroppyCode/UI/Chrome/ProjectSymbolCatalogue.swift": {
@@ -3018,7 +3058,7 @@
     "ProjectSymbolCatalogue"
    ],
    "depends_on": [],
-   "component": 50,
+   "component": 94,
    "level": 0
   },
   "DroppyCode/UI/Chrome/RowDrag.swift": {
@@ -3026,23 +3066,23 @@
     "RowDrag"
    ],
    "depends_on": [],
-   "component": 57,
+   "component": 105,
    "level": 0
   },
   "DroppyCode/UI/Chrome/WindowChrome.swift": {
    "declares": [
     "SidebarLayout",
     "SidebarResizeHandle",
-    "SidebarResizeHandleView",
     "WindowChrome",
     "WindowChromeConfigurator",
     "WindowChromeProbeView"
    ],
    "depends_on": [
     "DroppyCode/Core/Support/CaptureRun.swift",
-    "DroppyCode/UI/Chrome/Chrome.swift"
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Chrome/DragHandle.swift"
    ],
-   "component": 43,
+   "component": 51,
    "level": 4
   },
   "DroppyCode/UI/Common/AppZoom.swift": {
@@ -3052,7 +3092,7 @@
     "ZoomLayout"
    ],
    "depends_on": [],
-   "component": 71,
+   "component": 101,
    "level": 0
   },
   "DroppyCode/UI/Common/AttachmentPreview.swift": {
@@ -3072,7 +3112,7 @@
     "DroppyCode/Core/Support/ThumbnailCache.swift",
     "DroppyCode/UI/Chrome/Chrome.swift"
    ],
-   "component": 38,
+   "component": 68,
    "level": 4
   },
   "DroppyCode/UI/Common/AttachmentPreviewPanel.swift": {
@@ -3088,13 +3128,13 @@
     "DroppyCode/UI/Chrome/Popovers.swift",
     "DroppyCode/UI/Common/AttachmentPreview.swift"
    ],
-   "component": 39,
+   "component": 69,
    "level": 5
   },
   "DroppyCode/UI/Common/ChatFont.swift": {
    "declares": [],
    "depends_on": [],
-   "component": 114,
+   "component": 130,
    "level": 0
   },
   "DroppyCode/UI/Common/Components.swift": {
@@ -3110,7 +3150,7 @@
     "DroppyCode/Core/Support/RecentCache.swift",
     "DroppyCode/UI/Chrome/Chrome.swift"
    ],
-   "component": 56,
+   "component": 78,
    "level": 4
   },
   "DroppyCode/UI/Common/Genie.swift": {
@@ -3122,7 +3162,7 @@
     "MorphView"
    ],
    "depends_on": [],
-   "component": 52,
+   "component": 106,
    "level": 0
   },
   "DroppyCode/UI/Common/HydraGlyph.swift": {
@@ -3138,7 +3178,7 @@
     "DroppyCode/Core/Models/Hydra.swift",
     "DroppyCode/UI/Chrome/Chrome.swift"
    ],
-   "component": 42,
+   "component": 65,
    "level": 4
   },
   "DroppyCode/UI/Common/MCPGlyph.swift": {
@@ -3151,7 +3191,7 @@
     "DroppyCode/UI/Chrome/Chrome.swift",
     "DroppyCode/UI/Common/HydraGlyph.swift"
    ],
-   "component": 86,
+   "component": 83,
    "level": 5
   },
   "DroppyCode/UI/Common/RenderBudget.swift": {
@@ -3162,7 +3202,7 @@
    "depends_on": [
     "DroppyCode/UI/Chrome/Chrome.swift"
    ],
-   "component": 35,
+   "component": 6,
    "level": 3
   },
   "DroppyCode/UI/Common/WorkingIndicators.swift": {
@@ -3180,7 +3220,7 @@
     "DroppyCode/UI/Chrome/Chrome.swift",
     "DroppyCode/UI/Theme/AppTheme.swift"
    ],
-   "component": 44,
+   "component": 82,
    "level": 4
   },
   "DroppyCode/UI/Markdown/HydraHeadHoverPopover.swift": {
@@ -3194,13 +3234,27 @@
     "DroppyCode/UI/Chrome/Popovers.swift",
     "DroppyCode/UI/Common/HydraGlyph.swift"
    ],
-   "component": 93,
+   "component": 66,
    "level": 5
+  },
+  "DroppyCode/UI/Markdown/LinkHover.swift": {
+   "declares": [
+    "LinkHoverModifier"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/Hydra.swift",
+    "DroppyCode/UI/Common/AttachmentPreviewPanel.swift",
+    "DroppyCode/UI/Markdown/HydraHeadHoverPopover.swift",
+    "DroppyCode/UI/Markdown/LinkParagraphView.swift"
+   ],
+   "component": 71,
+   "level": 6
   },
   "DroppyCode/UI/Markdown/LinkParagraphView.swift": {
    "declares": [
     "LinkParagraphView",
     "LinkTextView",
+    "MarkdownLinkOpener",
     "MergeRequestTarget",
     "MergeRequestTargetKey"
    ],
@@ -3212,10 +3266,11 @@
     "DroppyCode/UI/Chrome/Chrome.swift",
     "DroppyCode/UI/Markdown/LinkPopover.swift",
     "DroppyCode/UI/Markdown/MarkdownView.swift",
+    "DroppyCode/UI/Markdown/MentionScanner.swift",
     "DroppyCode/UI/Markdown/StreamVeil.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 71,
+   "level": 6
   },
   "DroppyCode/UI/Markdown/LinkPopover.swift": {
    "declares": [
@@ -3228,8 +3283,8 @@
     "DroppyCode/UI/Markdown/LinkParagraphView.swift",
     "DroppyCode/UI/Markdown/MarkdownView.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 71,
+   "level": 6
   },
   "DroppyCode/UI/Markdown/LinkTitles.swift": {
    "declares": [
@@ -3238,7 +3293,7 @@
    "depends_on": [
     "DroppyCode/Core/Support/Text.swift"
    ],
-   "component": 94,
+   "component": 63,
    "level": 2
   },
   "DroppyCode/UI/Markdown/MarkdownParser.swift": {
@@ -3250,7 +3305,7 @@
    "depends_on": [
     "DroppyCode/Core/Support/Text.swift"
    ],
-   "component": 90,
+   "component": 64,
    "level": 2
   },
   "DroppyCode/UI/Markdown/MarkdownView.swift": {
@@ -3264,6 +3319,7 @@
     "MarkdownBlockSelection",
     "MarkdownBlockSelectionKey",
     "MarkdownBlockView",
+    "MarkdownDelegationCard",
     "MarkdownDimmedKey",
     "MarkdownListDepthKey",
     "MarkdownPointSizeKey",
@@ -3276,21 +3332,29 @@
     "TableBlock"
    ],
    "depends_on": [
-    "DroppyCode/App/Views/Chat/TimelineRows.swift",
     "DroppyCode/Core/Models/Hydra.swift",
     "DroppyCode/Core/Support/RecentCache.swift",
     "DroppyCode/Core/Support/Text.swift",
     "DroppyCode/UI/Chrome/Chrome.swift",
     "DroppyCode/UI/Common/AttachmentPreviewPanel.swift",
-    "DroppyCode/UI/Markdown/HydraHeadHoverPopover.swift",
+    "DroppyCode/UI/Markdown/LinkHover.swift",
     "DroppyCode/UI/Markdown/LinkParagraphView.swift",
     "DroppyCode/UI/Markdown/LinkTitles.swift",
     "DroppyCode/UI/Markdown/MarkdownParser.swift",
+    "DroppyCode/UI/Markdown/MentionScanner.swift",
     "DroppyCode/UI/Markdown/ProseRunView.swift",
     "DroppyCode/UI/Markdown/StreamVeil.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 71,
+   "level": 6
+  },
+  "DroppyCode/UI/Markdown/MentionScanner.swift": {
+   "declares": [
+    "MentionScanner"
+   ],
+   "depends_on": [],
+   "component": 70,
+   "level": 0
   },
   "DroppyCode/UI/Markdown/ProseRunView.swift": {
    "declares": [
@@ -3300,13 +3364,13 @@
    "depends_on": [
     "DroppyCode/Core/Models/Hydra.swift",
     "DroppyCode/UI/Common/AttachmentPreviewPanel.swift",
-    "DroppyCode/UI/Markdown/HydraHeadHoverPopover.swift",
+    "DroppyCode/UI/Markdown/LinkHover.swift",
     "DroppyCode/UI/Markdown/LinkParagraphView.swift",
     "DroppyCode/UI/Markdown/MarkdownParser.swift",
     "DroppyCode/UI/Markdown/MarkdownView.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 71,
+   "level": 6
   },
   "DroppyCode/UI/Markdown/SelectableMessageText.swift": {
    "declares": [
@@ -3315,7 +3379,7 @@
    "depends_on": [
     "DroppyCode/UI/Markdown/MarkdownParser.swift"
    ],
-   "component": 91,
+   "component": 89,
    "level": 3
   },
   "DroppyCode/UI/Markdown/StreamVeil.swift": {
@@ -3332,8 +3396,8 @@
     "DroppyCode/UI/Common/RenderBudget.swift",
     "DroppyCode/UI/Markdown/MarkdownView.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 71,
+   "level": 6
   },
   "DroppyCode/UI/Sound/FinishChime.swift": {
    "declares": [
@@ -3342,7 +3406,7 @@
    "depends_on": [
     "DroppyCode/UI/Sound/ToneSynth.swift"
    ],
-   "component": 70,
+   "component": 54,
    "level": 1
   },
   "DroppyCode/UI/Sound/SettleChime.swift": {
@@ -3352,7 +3416,7 @@
    "depends_on": [
     "DroppyCode/UI/Sound/ToneSynth.swift"
    ],
-   "component": 61,
+   "component": 53,
    "level": 1
   },
   "DroppyCode/UI/Sound/ToneSynth.swift": {
@@ -3360,7 +3424,7 @@
     "ToneSynth"
    ],
    "depends_on": [],
-   "component": 60,
+   "component": 52,
    "level": 0
   },
   "DroppyCode/UI/Theme/AppTheme.swift": {
@@ -3372,7 +3436,7 @@
    "depends_on": [
     "DroppyCode/Core/Support/Text.swift"
    ],
-   "component": 34,
+   "component": 5,
    "level": 2
   },
   "DroppyCode/UI/Theme/ShortcutTint.swift": {
@@ -3381,7 +3445,7 @@
     "DroppyCode/Core/Models/Shortcuts.swift",
     "DroppyCode/UI/Chrome/Chrome.swift"
    ],
-   "component": 115,
+   "component": 131,
    "level": 4
   },
   "DroppyCode/UI/Theme/Wallpaper.swift": {
@@ -3390,11 +3454,11 @@
     "WallpaperStore"
    ],
    "depends_on": [
-    "DroppyCode/App/Captures/WebsiteCaptures.swift",
-    "DroppyCode/Services/Store/Storage.swift"
+    "DroppyCode/Core/Support/CaptureRun.swift",
+    "DroppyCode/Core/Support/StoragePaths.swift"
    ],
-   "component": 100,
-   "level": 9
+   "component": 112,
+   "level": 3
   }
  },
  "components": [
@@ -3411,17 +3475,16 @@
    "level": 1
   },
   {
-   "id": 14,
+   "id": 6,
    "files": [
-    "DroppyCode/Core/Models/MCP.swift",
-    "DroppyCode/Services/MCP/MCPKeychain.swift",
-    "DroppyCode/Services/MCP/MCPOAuth.swift",
-    "DroppyCode/Services/MCP/MCPProxy.swift"
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Chrome/Popovers.swift",
+    "DroppyCode/UI/Common/RenderBudget.swift"
    ],
-   "level": 4
+   "level": 3
   },
   {
-   "id": 25,
+   "id": 35,
    "files": [
     "DroppyCode/Services/Providers/AntigravitySession.swift",
     "DroppyCode/Services/Providers/CodexSession.swift",
@@ -3435,38 +3498,36 @@
     "DroppyCode/Services/Providers/ProviderRegistry.swift",
     "DroppyCode/Services/Providers/ZaiAPI.swift"
    ],
-   "level": 7
+   "level": 8
   },
   {
-   "id": 35,
+   "id": 71,
    "files": [
-    "DroppyCode/UI/Chrome/Chrome.swift",
-    "DroppyCode/UI/Chrome/Popovers.swift",
-    "DroppyCode/UI/Common/RenderBudget.swift"
+    "DroppyCode/UI/Markdown/LinkHover.swift",
+    "DroppyCode/UI/Markdown/LinkParagraphView.swift",
+    "DroppyCode/UI/Markdown/LinkPopover.swift",
+    "DroppyCode/UI/Markdown/MarkdownView.swift",
+    "DroppyCode/UI/Markdown/ProseRunView.swift",
+    "DroppyCode/UI/Markdown/StreamVeil.swift"
    ],
-   "level": 3
+   "level": 6
   },
   {
-   "id": 100,
+   "id": 117,
    "files": [
     "DroppyCode/App/AppModel.swift",
     "DroppyCode/App/AppSettings.swift",
-    "DroppyCode/App/AppUpdater.swift",
     "DroppyCode/App/Captures/TourCaptures.swift",
     "DroppyCode/App/Captures/WebsiteCaptures.swift",
     "DroppyCode/App/Runtime/AutoContinue.swift",
     "DroppyCode/App/Runtime/LimitHandoff.swift",
     "DroppyCode/App/Runtime/ThreadRuntime.swift",
-    "DroppyCode/App/UpdateChecker.swift",
     "DroppyCode/App/Views/Chat/ChatBadge.swift",
     "DroppyCode/App/Views/Chat/ChatView.swift",
     "DroppyCode/App/Views/Chat/HydraButton.swift",
-    "DroppyCode/App/Views/Chat/HydraHeadPopovers.swift",
     "DroppyCode/App/Views/Chat/HydraIntroPopover.swift",
-    "DroppyCode/App/Views/Chat/HydraMergePopover.swift",
     "DroppyCode/App/Views/Chat/HydraPanel.swift",
     "DroppyCode/App/Views/Chat/HydraProgressBar.swift",
-    "DroppyCode/App/Views/Chat/HydraReportsPopover.swift",
     "DroppyCode/App/Views/Chat/MessageEditor.swift",
     "DroppyCode/App/Views/Chat/NewThreadPrompt.swift",
     "DroppyCode/App/Views/Chat/SubagentPanel.swift",
@@ -3485,7 +3546,6 @@
     "DroppyCode/App/Views/Diff/DiffInspector.swift",
     "DroppyCode/App/Views/Palette/CommandPalette.swift",
     "DroppyCode/App/Views/RootView.swift",
-    "DroppyCode/App/Views/Settings/AboutUpdateViews.swift",
     "DroppyCode/App/Views/Settings/HydraCookbookPanel.swift",
     "DroppyCode/App/Views/Settings/HydraSettingsPage.swift",
     "DroppyCode/App/Views/Settings/MCPKeyPanel.swift",
@@ -3493,7 +3553,6 @@
     "DroppyCode/App/Views/Settings/MCPSetupPanel.swift",
     "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift",
     "DroppyCode/App/Views/Settings/SettingsView.swift",
-    "DroppyCode/App/Views/Settings/WallpaperCard.swift",
     "DroppyCode/App/Views/Sidebar/FloatingSidebarPanel.swift",
     "DroppyCode/App/Views/Sidebar/SidebarView.swift",
     "DroppyCode/App/Views/Terminal/TerminalPanel.swift",
@@ -3501,47 +3560,10 @@
     "DroppyCode/App/Views/Usage/UsageFloatingPanel.swift",
     "DroppyCode/App/Views/Usage/UsagePanel.swift",
     "DroppyCode/App/Views/Usage/UsageViews.swift",
-    "DroppyCode/App/Window/WindowManager.swift",
-    "DroppyCode/UI/Markdown/LinkParagraphView.swift",
-    "DroppyCode/UI/Markdown/LinkPopover.swift",
-    "DroppyCode/UI/Markdown/MarkdownView.swift",
-    "DroppyCode/UI/Markdown/ProseRunView.swift",
-    "DroppyCode/UI/Markdown/StreamVeil.swift",
-    "DroppyCode/UI/Theme/Wallpaper.swift"
+    "DroppyCode/App/Window/WindowManager.swift"
    ],
-   "level": 9
+   "level": 10
   }
  ],
- "layer_violations": [
-  {
-   "from": "DroppyCode/Core/Models/MCP.swift",
-   "to": "DroppyCode/Services/MCP/MCPProxy.swift",
-   "from_layer": "Core",
-   "to_layer": "Services"
-  },
-  {
-   "from": "DroppyCode/Core/Models/MCP.swift",
-   "to": "DroppyCode/Services/Store/Storage.swift",
-   "from_layer": "Core",
-   "to_layer": "Services"
-  },
-  {
-   "from": "DroppyCode/UI/Markdown/MarkdownView.swift",
-   "to": "DroppyCode/App/Views/Chat/TimelineRows.swift",
-   "from_layer": "UI",
-   "to_layer": "App"
-  },
-  {
-   "from": "DroppyCode/UI/Theme/Wallpaper.swift",
-   "to": "DroppyCode/App/Captures/WebsiteCaptures.swift",
-   "from_layer": "UI",
-   "to_layer": "App"
-  },
-  {
-   "from": "DroppyCode/UI/Theme/Wallpaper.swift",
-   "to": "DroppyCode/Services/Store/Storage.swift",
-   "from_layer": "UI",
-   "to_layer": "Services"
-  }
- ]
+ "layer_violations": []
 }

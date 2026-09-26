@@ -1,0 +1,59 @@
+{
+ "bundle_id": "R3-33",
+ "reader": "R3-33-reader",
+ "files": [
+  {
+   "path": "CHANGELOG.md",
+   "sha256": "4846c81afcbdb995c2c79e9b5b990bfb5c6603021acb4578696a0885df37cdd3",
+   "ranges_read": [[1, 210], [211, 407]],
+   "asset_inspection": null,
+   "purpose": "The hand-written Keep a Changelog 1.1.0 release history of Droppy Code, newest first, which at B3 runs from an `## [Unreleased]` block (line 7) and `## [1.7.0] - 2026-09-25` (line 12) down to `## [1.0.0] - 2026-09-13` (line 392). Line 5 keeps it the machine-read source for the release tooling: scripts/publish_release.sh takes the section whose heading matches project.yml's MARKETING_VERSION (\"1.7.0\" at B3, project.yml:13) through `scripts/build_changelog.py --section` and publishes it as the GitLab release notes that Settings > About parses into its New features / Bug fixes / Refinements cards, and build_changelog.py builds website/changelog.json from the versioned sections. At B3 it is the only prose account of what 1.7.0 changed for the user (Claude Opus 5.5 and GPT-6 Astra / GPT-5.6 Sol / Terra / Luna, self-updating Claude Code and Codex CLIs, Hydra merges that never wait, eager layout, reduced disk writes, the Appearance pane, the OpenCode Zen/Go split, collapsible model and provider settings) and of the one unreleased change (the ultramarine blue icon).",
+   "key_symbols": [
+    "line 1: '# Changelog'",
+    "line 3: format statement (Keep a Changelog https://keepachangelog.com/en/1.1.0/; 'versions are the release tags without the `v`'), unchanged from B2",
+    "line 5: release-tooling contract paragraph (publish_release.sh, build_changelog.py, `## [Unreleased]` skipped by both scripts, `### Thanks` form '- Name (@gitlab-handle): what they did (!MR).', `python3 scripts/release_credits.py`), unchanged from B2",
+    "line 7: '## [Unreleased]' with only '### Refinements' (line 9) and one bullet (line 10): 'The app icon, the Droppy logo in Settings and the website's icons wear Droppy's new ultramarine blue.'",
+    "line 12: '## [1.7.0] - 2026-09-25' (### New features 14, bullets 15-18; ### Bug fixes 20, bullets 21-26; ### Refinements 28, bullets 29-32; ### Thanks 34, bullets 35-37). No summary paragraph under the heading (1.6.0 and older have one, e.g. line 56).",
+    "line 39: '## [1.6.1] - 2026-09-18' (### New features 41, ### Bug fixes 44, ### Refinements 50); content identical to B2 lines 32-45 (B3 lines 39-52)",
+    "line 54: '## [1.6.0] - 2026-09-18' (summary 56, ### New features 58, ### Bug fixes 64, ### Refinements 69, ### Thanks 74)",
+    "versioned headings below, all shifted +7 from B2: 1.5.6 line 79, 1.5.5 line 89, 1.5.4 line 114, 1.5.3 line 133, 1.5.2 line 161, 1.5.1 line 170, 1.5.0 line 188, 1.4.1 line 205, 1.4.0 line 226, 1.3.1 line 237, 1.3.0 line 247, 1.2.0 line 308, 1.1.1 line 341, 1.1.0 line 357, 1.0.0 line 392",
+    "no '## [1.6.2]' heading exists at B3: the B2 section '## [1.6.2] - 2026-09-18' (B2 line 20) is gone and its entries moved into 1.7.0",
+    "subsection headings used: '### New features', '### Bug fixes', '### Refinements', '### Thanks'; `### Thanks` blocks now under 1.7.0 (line 34) and 1.6.0 (line 74)"
+   ],
+   "calls_into": [
+    "scripts/publish_release.sh (not churned B2->B3): reads MARKETING_VERSION from project.yml and runs `python3 scripts/build_changelog.py --section \"$VERSION\"`; with project.yml:13 MARKETING_VERSION \"1.7.0\" (CURRENT_PROJECT_VERSION \"21\" at line 14), the section it selects is lines 12-37",
+    "scripts/build_changelog.py (not churned B2->B3): --section mode promotes `### ` to `## ` for the GitLab notes; JSON mode skips `## [Unreleased]` (RELEASE_RE requires digits) and emits versioned sections into website/changelog.json",
+    "scripts/release_credits.py (not churned B2->B3): prints the `### Thanks` block; publishing stops until every outside contributor is named (line 5)",
+    "DroppyCode/App/Views/Settings/AboutUpdateViews.swift UpdateReleaseNotesDigest.parseNotes consumes the published GitLab notes (not this file directly); the 1.7.0 section keeps the three recognised headings plus Thanks, which parseNotes drops (spec PR-UPDATE-065)",
+    "website/changelog.json is generated from this file but was NOT regenerated at B3: `git diff 1fbf81e..HEAD --stat -- website/changelog.json` is empty, its generated_at is still 2026-09-18T21:18:49.770425+00:00 and its newest release object is still \"version\": \"1.6.2\" (json line 5), with no 1.7.0 entry"
+   ],
+   "state_owned": [
+    "No runtime state. Owns the canonical wording of every release note that reaches the GitLab release (and through it the in-app About cards) and the website changelog."
+   ],
+   "side_effects": [
+    "None by itself; the app never reads this file. When 1.7.0 is published, the About cards would show 4 New features bullets (lines 15-18), 6 Bug fixes bullets (lines 21-26) and 4 Refinements bullets (lines 29-32); the Thanks bullets (35-37) are dropped by parseNotes."
+   ],
+   "platform_assumptions": [
+    "Describes macOS-only behaviour in user terms: 'a Mac that used them through Droppy Code alone stayed on an old version' (line 16), 'secret fields stored in the Keychain' (line 18), 'The app icon' and 'the Droppy logo in Settings' (line 10).",
+    "Release identity is GitLab (merge request numbers !305 to !402 in lines 35-37) and the publishing tooling is python3 and a POSIX shell script, as at B2."
+   ],
+   "persisted_fields": [],
+   "ui_elements": [
+    "Names UI surfaces changed at 1.7.0 whose implementation lives elsewhere: 'A dedicated Appearance pane with app-wide zoom, sharper text and the terminal's font' (line 32), 'model and provider settings collapse' (line 32), OpenCode Zen and OpenCode Go as separate providers (line 32), Hydra's panel token and timing breakdown (line 17), the custom MCP server settings (line 18), model list entries for Claude Opus 5.5 and GPT-6 Astra, GPT-5.6 Sol, Terra and Luna (line 15), the new ultramarine app icon and Settings logo (line 10)."
+   ],
+   "feature_notes": [
+    "B2->B3 diff (churn 31, one hunk @@ -6,28 +6,35 @@): the B2 Unreleased block (New features, Refinements, Bug fixes; B2 lines 9-18) and the whole B2 '## [1.6.2] - 2026-09-18' section (B2 lines 20-30) are folded into a new '## [1.7.0] - 2026-09-25' section (B3 lines 12-37), and a new Unreleased block (lines 7-10) holds only the icon refinement. Everything from 1.6.1 down is textually unchanged and shifted +7 lines (B2 1.6.1 heading line 32 -> B3 line 39).",
+    "The 1.6.2 version no longer exists as a changelog section. The reference clone has tags v1.6.0, v1.6.1 and v1.7.0 but no v1.6.2, consistent with 1.6.2 never having been tagged; its two bullets (custom MCP servers; Hydra sidebar auto-hide persists and defaults to off) now read as 1.7.0 items (lines 18 and 25), and its Thanks (!358, !305) lead the 1.7.0 Thanks lines 35-36.",
+    "Items that were Unreleased at B2 and ship in 1.7.0: Hydra token/timing panel (line 17), token activity measured vs inherited (line 26), restored previous design and judgment service removed (line 29), incremental delegation parsing and checkout snapshots (line 30), up to four concurrent automatic read tools and bounded root project guidelines (line 31). The B2 Unreleased order quirk (Refinements before Bug fixes) is gone: 1.7.0 runs New features, Bug fixes, Refinements, Thanks.",
+    "New 1.7.0 entries with no B2 counterpart: line 15 Claude Opus 5.5 plus OpenAI GPT-6 Astra, GPT-5.6 Sol, Terra and Luna shown 'as soon as Codex offers them', and Hydra cookbook teams built on them; line 16 the app runs each CLI's own updater (Claude Code and Codex) twice a day and re-sends a message refused for an outdated CLI once the update is in; line 21 Hydra merges: a job finishing while another merges goes right after it, the MR is built on the remote as it is now, one MR per chat that a retry updates instead of a new one every five minutes, self-clearing failures retried quietly within a minute; line 22 Settings cards and chat timeline lay out eagerly (edge-row freeze); line 23 library saved at most every four seconds, long chats save less often while a turn runs, web responses no longer cached on disk; line 24 local file links open again, Codex token spend labelled with the turn's model, Codex lead no longer among Hydra worker events; line 32 Appearance pane with app-wide zoom, sharper text and terminal font, OpenCode Zen and Go as separate providers, collapsible model and provider settings.",
+    "The 1.7.0 Thanks (lines 35-37) credit MRs naming behaviour not otherwise listed in the notes: Antigravity no longer gets Claude's MCP flag (!373), typed Hydra judgments (!374), a held-back delegation block is never silent (!375), shared helpers and the AGPL string (!378), the timeline's lazy window anchor (!381), audit cleanups with five bug fixes (!401), main build fixes (!377). These are pointers for the readers of the Swift files, not requirements in themselves.",
+    "The new Unreleased line 10 (ultramarine icon) comes from commit 280e05d8b 'Icon: Droppy's new ultramarine art-style blue', which also changes DroppyCode/Resources/AppIcon.icon (icon.json and two PNG layers), the droppy-logo imageset, docs/icon.png, docs/droppy-logo.png and website brand assets; that visible change belongs to the asset readers, but it means B3's app icon and Settings logo post-date the 1.7.0 release (commit 249fc5a9e).",
+    "Port impact: the app does not read CHANGELOG.md, no spec record in porting/spec/*.json cites it, and no unit in porting/deps/units.json maps it; the heading grammar the About parser relies on is unchanged, so nothing observable in the C# port changes from this file alone."
+   ],
+   "unresolved_questions": [
+    "website/changelog.json at B3 still ends at 1.6.2 (generated 2026-09-18) although CHANGELOG.md no longer has a 1.6.2 section and does have a 1.7.0 section; whether upstream regenerates it later is unknown. Rerunning build_changelog.py on B3 would drop the 1.6.2 object and add 1.7.0, so the committed website data and its generator input disagree at the pinned commit.",
+    "Thanks line 35 credits 'typed Hydra judgments (!374)' while line 29 says the judgment service integration was removed; `git grep -i judg` at B3 finds no 'judgment' type in DroppyCode (only 'judgement'/'judge' in comments and Copilot's assisted-approval judge). Whether !374's types survived under another name or went with the judgment service is not stated in this file."
+   ]
+  }
+ ]
+}

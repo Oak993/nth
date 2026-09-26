@@ -374,3 +374,30 @@ instruction may change one.
 - **Owner answer, verbatim:** "Move to 1.7.0, check what needs updating and changing and plan accordingly."
 - **Effect:** AM-0003. The pin is B3, commit 52bc7926097cd622d08d6294e0d8b08a48c7516e (1.7.0, build 21), reference
   E:\Droppy\reference\droppy-code-v1.7.0. UNK-0025 is resolved by this ruling.
+
+## OD-0025 Claude Code and Codex update themselves on Windows as on the Mac, after one trial run
+
+- **Asked 2026-09-26** (main Claude, B3 decision O1, `E:/Droppy/work/b3/decisions_draft.md`; UNK-0026, PA-0018): Droppy
+  Code 1.7.0 runs `claude update` and `codex update` in the background at launch (at most every 12 hours per provider)
+  and, when a model says the CLI is too old, updates it and resends the message. Should Marrow do the same? Options:
+  test once, then match Mac (Recommended) / match Mac, no test / never auto-update / only when the CLI is idle.
+- **Owner answer, verbatim:** "Test once, then match Mac (Recommended)".
+- **Effect:** the port reproduces the B3 behaviour exactly (`Services/Providers/ProviderRegistry.swift:467-537`,
+  `App/AppModel.swift:275-282`, `App/Runtime/ThreadRuntime.swift:2255-2293`; wording ED-193). Before the lanes that
+  implement it merge (A23 ProviderRegistry, A32 AppModel, A33 ThreadRuntime), one supervised trial run of the real
+  `claude update` and `codex update` on the owner's PC records exit code, output, any window or prompt, and the version
+  before and after, as evidence (PA-0018 verification method). This ruling authorizes that one trial. UNK-0026 is
+  resolved by it.
+
+## OD-0026 Chat links on Windows: drive-letter paths open locally, network paths never open, program files are revealed
+
+- **Asked 2026-09-26** (main Claude, B3 decision O4; UNK-0027, PA-0020): what may a link in a chat open on Windows?
+  Options: safe parity (Recommended) / full parity / literal source.
+- **Owner answer, verbatim:** "Safe parity (Recommended)".
+- **Effect:** `MarkdownLinkOpener` (`UI/Markdown/LinkParagraphView.swift:226-245`) treats Windows absolute paths
+  (`C:\...`, `C:/...`, and `/C:/...` from a file URL) like the source's "/"-rooted local-file branch, with the same
+  `:<line>` suffix rule (contract section 11, preserve intent). A UNC path (`\host\share\...`, `file://host/...`) is
+  never opened from a chat link (named safety deviation, like OD-0022: it would send the user's Windows credentials to
+  a host that model output named). A local target of a type Windows runs directly is shown selected in File Explorer
+  instead of launched (named safety deviation; the rule and mechanism are ED-204). Lanes: A29
+  (UI.Markdown.LinkParagraphView) and UI.Markdown.LinkPopover. UNK-0027 is resolved by it.

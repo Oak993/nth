@@ -57,13 +57,13 @@
       "title": "Timeouts belong to the call site: 120 s default, 300 s at exactly thirteen git sites and all six forge-CLI sites",
       "source_evidence": [
         "DroppyCode/Services/Git/Git.swift:35 - timeout: TimeInterval = 120 default parameter",
-        "DroppyCode/Services/Git/Git.swift:169,253,286,290,404,448,459,484,558,566,679,707 - the git sites passing timeout: 300",
-        "DroppyCode/Services/Git/Git.swift:181,186,191,216,217,218 - the six forge-CLI sites passing timeout: 300",
+        "DroppyCode/Services/Git/Git.swift:169,274,302,391,395,509,553,564,589,663,671,784,812 - the git sites passing timeout: 300",
+        "DroppyCode/Services/Git/Git.swift:181,186,191,237,238,239 - the six forge-CLI sites passing timeout: 300",
         "porting/extracts/git-command-vectors.md section 2 - 'A timeout belongs to the call site, never to the git subcommand.'"
       ],
       "preconditions": "None.",
       "action": "A git or forge process runs.",
-      "expected_result": "The budget is 120 s unless the call site is one of the enumerated ones, which use 300 s. Specifically: commitAll's add -A and commit -F - run at 120 s; addWorktree runs at 120 s while addDetachedWorktree runs at 300 s; the three-way apply at Git.swift:708 runs at 120 s while the add -A that prepares its index runs at 300 s.",
+      "expected_result": "The budget is 120 s unless the call site is one of the enumerated ones, which use 300 s. Specifically: commitAll's add -A and commit -F - run at 120 s; addWorktree runs at 120 s while addDetachedWorktree runs at 300 s; the three-way apply at Git.swift:813 runs at 120 s while the add -A that prepares its index runs at 300 s. B3 adds a thirteenth 300 s site, captureTree(paths:onto:from:)'s clean add at :302; the rest of that new function (read-tree :295, diff --name-only :298, rm --cached :317, merge-file :332, hash-object :335, update-index :338, write-tree :342, blobData's cat-file :349, fileMode's ls-tree :355) runs at the 120 s default.",
       "side_effects": [
         "A watchdog task per invocation"
       ],
@@ -73,11 +73,12 @@
       ],
       "cancellation": "The watchdog is cancelled when the process ends first.",
       "windows_path": "One watchdog per spawn with the same per-site constants. Do not normalise the budgets.",
-      "verification_method": "unit: a table test asserting the timeout constant of every one of the 72 invocation sites",
-      "status": "IMPLEMENTED",
+      "verification_method": "unit: a table test asserting the timeout constant of every one of the 82 invocation sites (72 at B2 plus the 10 that captureTree(paths:onto:from:) adds)",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "B3 adds captureTree(paths:onto:from:) (Git.swift:289-345), a thirteenth 300 s git site (:302) alongside 9 new 120 s sites; the forge-CLI merge sites shift from B2 :216-218 to B3 :237-239. Re-derive the timeout table test."
     },
     {
       "id": "PR-GIT-004",
@@ -139,7 +140,7 @@
       "id": "PR-GIT-006",
       "title": "failureMessage prefers trimmed stderr, then trimmed stdout, then the exact literal \"The command failed with exit code <n>.\"",
       "source_evidence": [
-        "DroppyCode/Core/Support/Shell.swift:14-19 ShellResult.failureMessage - `let error = errorOutput.trimmed`; `let message = error.isEmpty ? trimmedOutput : error`; `return message.isEmpty ? \"The command failed with exit code \\(status).\" : message`; `trimmedOutput` is `output.trimmed` (:12) and `trimmed` is `trimmingCharacters(in: .whitespacesAndNewlines)` (DroppyCode/Core/Support/Text.swift:132)",
+        "DroppyCode/Core/Support/Shell.swift:14-19 ShellResult.failureMessage - `let error = errorOutput.trimmed`; `let message = error.isEmpty ? trimmedOutput : error`; `return message.isEmpty ? \"The command failed with exit code \\(status).\" : message`; `trimmedOutput` is `output.trimmed` (:12) and `trimmed` is `trimmingCharacters(in: .whitespacesAndNewlines)` (DroppyCode/Core/Support/Text.swift:224)",
         "porting/port_impacts.md entry 218 - 'Real merge-failure text is the forge CLI's stderr or `The command failed with exit code <n>.`'"
       ],
       "preconditions": "A git or forge process exited non-zero.",
@@ -188,7 +189,7 @@
       "id": "PR-GIT-008",
       "title": "repositoryRoot deletes one path component per slash-separated segment of rev-parse --show-prefix and never asks git for the toplevel",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:67-74 repositoryRoot() - `let prefix = try await output([\"rev-parse\", \"--show-prefix\"])`; `for _ in prefix.trimmed.split(separator: \"/\") { root.deleteLastPathComponent() }`; `trimmed` is `trimmingCharacters(in: .whitespacesAndNewlines)` (DroppyCode/Core/Support/Text.swift:132)",
+        "DroppyCode/Services/Git/Git.swift:67-74 repositoryRoot() - `let prefix = try await output([\"rev-parse\", \"--show-prefix\"])`; `for _ in prefix.trimmed.split(separator: \"/\") { root.deleteLastPathComponent() }`; `trimmed` is `trimmingCharacters(in: .whitespacesAndNewlines)` (DroppyCode/Core/Support/Text.swift:224)",
         "porting/upstream_defects.md entry 86 - 'it never asks git directly (--show-toplevel exists) ... Reproduce the component-counting algorithm rather than substituting --show-toplevel'"
       ],
       "preconditions": "The directory is inside a git checkout.",
@@ -238,7 +239,7 @@
       "title": "status() parses status --porcelain=v2 --branch into branch, upstream, ahead, behind and changedFiles",
       "source_evidence": [
         "DroppyCode/Services/Git/Git.swift:80-98 status() - run([\"status\", \"--porcelain=v2\", \"--branch\"]) and the three prefix literals",
-        "DroppyCode/Services/Git/Git.swift:719-722 Substring.value(after:) - the prefix matcher",
+        "DroppyCode/Services/Git/Git.swift:824-827 Substring.value(after:) - the prefix matcher",
         "DroppyCode/Services/Git/Git.swift:4-10 GitStatus - branch, upstream, ahead = 0, behind = 0, changedFiles = 0"
       ],
       "preconditions": "The directory is a git checkout.",
@@ -412,7 +413,7 @@
       "id": "PR-GIT-017",
       "title": "defaultBranch prefers origin/HEAD, then origin/main, then origin/master, and finally the literal \"main\"",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:233-242 defaultBranch() - `if let head = try? await output([\"symbolic-ref\", \"--short\", \"refs/remotes/origin/HEAD\"]).trimmed, !head.isEmpty { return head.hasPrefix(\"origin/\") ? String(head.dropFirst(\"origin/\".count)) : head }`; `for candidate in [\"main\", \"master\"] where (try? await run([\"rev-parse\", \"--verify\", \"--quiet\", \"refs/remotes/origin/\\(candidate)\"]))?.succeeded == true { return candidate }`; `return \"main\"`"
+        "DroppyCode/Services/Git/Git.swift:254-263 defaultBranch() - `if let head = try? await output([\"symbolic-ref\", \"--short\", \"refs/remotes/origin/HEAD\"]).trimmed, !head.isEmpty { return head.hasPrefix(\"origin/\") ? String(head.dropFirst(\"origin/\".count)) : head }`; `for candidate in [\"main\", \"master\"] where (try? await run([\"rev-parse\", \"--verify\", \"--quiet\", \"refs/remotes/origin/\\(candidate)\"]))?.succeeded == true { return candidate }`; `return \"main\"`"
       ],
       "preconditions": "None.",
       "action": "A landing path needs the remote's default branch.",
@@ -436,7 +437,7 @@
       "id": "PR-GIT-018",
       "title": "isAncestor answers from the exit status of merge-base --is-ancestor",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:293-295 isAncestor(_:of:) - (try? await run([\"merge-base\", \"--is-ancestor\", commit, other]))?.succeeded ?? false"
+        "DroppyCode/Services/Git/Git.swift:398-400 isAncestor(_:of:) - (try? await run([\"merge-base\", \"--is-ancestor\", commit, other]))?.succeeded ?? false"
       ],
       "preconditions": "Both commits exist.",
       "action": "A landing path checks whether one commit is reachable from another.",
@@ -460,7 +461,7 @@
       "id": "PR-GIT-019",
       "title": "changedPaths returns NUL-separated names between two commits or trees, unquoted",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:297-301 changedPaths(from:to:) - output([\"diff\", \"--name-only\", \"-z\", from, to]) split on \"\\0\""
+        "DroppyCode/Services/Git/Git.swift:402-406 changedPaths(from:to:) - output([\"diff\", \"--name-only\", \"-z\", from, to]) split on \"\\0\""
       ],
       "preconditions": "Both refs resolve.",
       "action": "A caller asks which paths differ between two trees.",
@@ -484,7 +485,7 @@
       "id": "PR-GIT-020",
       "title": "dirtyPaths consumes porcelain v1 -z records and takes one extra record for a rename or copy",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:303-319 dirtyPaths() - output([\"status\", \"--porcelain=v1\", \"-z\", \"--untracked-files=all\"]), split on \"\\0\" keeping empties, entries with count > 3 contribute dropFirst(3), and a two-character code containing \"R\" or \"C\" consumes one further record as the origin path",
+        "DroppyCode/Services/Git/Git.swift:408-424 dirtyPaths() - output([\"status\", \"--porcelain=v1\", \"-z\", \"--untracked-files=all\"]), split on \"\\0\" keeping empties, entries with count > 3 contribute dropFirst(3), and a two-character code containing \"R\" or \"C\" consumes one further record as the origin path",
         "porting/extracts/git-command-vectors.md section 7.6"
       ],
       "preconditions": "The directory is a git checkout.",
@@ -509,7 +510,7 @@
       "id": "PR-GIT-021",
       "title": "ignoredPaths treats check-ignore's exit status 1 as success and returns the matching subset",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:321-325 ignoredPaths(among:) - guard !paths.isEmpty, run([\"check-ignore\", \"-z\", \"--stdin\"], input: nulSeparated(paths)), result.succeeded || result.status == 1, then split on \"\\0\" discarding empties",
+        "DroppyCode/Services/Git/Git.swift:426-430 ignoredPaths(among:) - guard !paths.isEmpty, run([\"check-ignore\", \"-z\", \"--stdin\"], input: nulSeparated(paths)), result.succeeded || result.status == 1, then split on \"\\0\" discarding empties",
         "porting/extracts/git-command-vectors.md section 7.7"
       ],
       "preconditions": "A non-empty path list.",
@@ -534,8 +535,8 @@
       "id": "PR-GIT-022",
       "title": "presentPaths asks one cat-file --batch-check for every path and pairs answers positionally",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:337-354 presentPaths(among:in:) - stdin is \"<ref>:<path>\" plus a NUL byte per path, argv [\"cat-file\", \"--batch-check=%(objecttype)\", \"-Z\"], answers split on \"\\0\" keeping empties and zipped with paths; a path is present when its answer does not end with \" missing\"",
-        "DroppyCode/Services/Git/Git.swift:333-335 trackedPaths(among:) - presentPaths(among: paths, in: \"HEAD\")",
+        "DroppyCode/Services/Git/Git.swift:442-459 presentPaths(among:in:) - stdin is \"<ref>:<path>\" plus a NUL byte per path, argv [\"cat-file\", \"--batch-check=%(objecttype)\", \"-Z\"], answers split on \"\\0\" keeping empties and zipped with paths; a path is present when its answer does not end with \" missing\"",
+        "DroppyCode/Services/Git/Git.swift:438-440 trackedPaths(among:) - presentPaths(among: paths, in: \"HEAD\")",
         "porting/upstream_defects.md entry 80 - zip truncates silently, so an unanswered tail is reported as absent"
       ],
       "preconditions": "A non-empty path list and a resolvable ref.",
@@ -560,7 +561,7 @@
       "id": "PR-GIT-023",
       "title": "hasOperationInProgress resolves the git directory once and tests exactly six marker files, treating an unreadable directory as busy",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:372-379 hasOperationInProgress() - `guard let gitDirectory = try? await output([\"rev-parse\", \"--path-format=absolute\", \"--git-dir\"]).trimmed, !gitDirectory.isEmpty else { return true }`; `for marker in [\"rebase-merge\", \"rebase-apply\", \"MERGE_HEAD\", \"CHERRY_PICK_HEAD\", \"REVERT_HEAD\", \"BISECT_LOG\"] { if FileManager.default.fileExists(atPath: gitDirectory + \"/\" + marker) { return true } }`; `return false`",
+        "DroppyCode/Services/Git/Git.swift:477-484 hasOperationInProgress() - `guard let gitDirectory = try? await output([\"rev-parse\", \"--path-format=absolute\", \"--git-dir\"]).trimmed, !gitDirectory.isEmpty else { return true }`; `for marker in [\"rebase-merge\", \"rebase-apply\", \"MERGE_HEAD\", \"CHERRY_PICK_HEAD\", \"REVERT_HEAD\", \"BISECT_LOG\"] { if FileManager.default.fileExists(atPath: gitDirectory + \"/\" + marker) { return true } }`; `return false`",
         "porting/extracts/git-command-vectors.md section 7.5 - the six markers in order"
       ],
       "preconditions": "None.",
@@ -585,7 +586,7 @@
       "id": "PR-GIT-024",
       "title": "treeHash resolves a ref's tree with the ^{tree} peel syntax",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:259-261 treeHash(of:) - `try await output([\"rev-parse\", \"\\(ref)^{tree}\"]).trimmed`"
+        "DroppyCode/Services/Git/Git.swift:361-363 treeHash(of:) - `try await output([\"rev-parse\", \"\\(ref)^{tree}\"]).trimmed`"
       ],
       "preconditions": "The ref resolves.",
       "action": "A caller needs a ref's tree object id.",
@@ -609,7 +610,7 @@
       "id": "PR-GIT-025",
       "title": "commitHash resolves a ref, defaulting to HEAD",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:263-265 commitHash(of:) - `func commitHash(of ref: String = \"HEAD\") async throws -> String { try await output([\"rev-parse\", \"--verify\", ref]).trimmed }`"
+        "DroppyCode/Services/Git/Git.swift:365-367 commitHash(of:) - `func commitHash(of ref: String = \"HEAD\") async throws -> String { try await output([\"rev-parse\", \"--verify\", ref]).trimmed }`"
       ],
       "preconditions": "The ref resolves.",
       "action": "A caller needs a commit id.",
@@ -633,7 +634,7 @@
       "id": "PR-GIT-026",
       "title": "indexPath short-circuits to <directory>/.git/index for a plain checkout with no GIT_DIR or GIT_INDEX_FILE override",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:517-524 indexPath() - when .git exists and is a directory and neither GIT_DIR nor GIT_INDEX_FILE is set in LoginEnvironment.current, return dotGit + \"/index\" with no git process"
+        "DroppyCode/Services/Git/Git.swift:622-629 indexPath() - when .git exists and is a directory and neither GIT_DIR nor GIT_INDEX_FILE is set in LoginEnvironment.current, return dotGit + \"/index\" with no git process"
       ],
       "preconditions": "The Git value's directory holds a .git directory.",
       "action": "A snapshot resolves the repository's index file.",
@@ -657,9 +658,9 @@
       "id": "PR-GIT-027",
       "title": "A worktree's index path is resolved by git once and cached against a stamp of its .git file, with the cache wiped whole at 64 entries",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:489-505 GitFileStamp - identifier (systemFileNumber), modified, size, and overrides = (GIT_DIR ?? \"\") + \"\\u{0}\" + (GIT_INDEX_FILE ?? \"\")",
-        "DroppyCode/Services/Git/Git.swift:507-509 worktreeIndexPaths - Mutex<[String: (stamp: GitFileStamp, path: String?)]>",
-        "DroppyCode/Services/Git/Git.swift:525-537 indexPath() - `let stamp = exists ? GitFileStamp(gitFile: dotGit, environment: environment) : nil`; `if let stamp, let cached = Self.worktreeIndexPaths.withLock({ $0[directory.path] }), cached.stamp == stamp { return cached.path }`; `let path = try? await output([\"rev-parse\", \"--path-format=absolute\", \"--git-path\", \"index\"]).trimmed`; `if paths.count >= 64 { paths.removeAll() }`; `paths[directory.path] = (stamp, path)`"
+        "DroppyCode/Services/Git/Git.swift:594-610 GitFileStamp - identifier (systemFileNumber), modified, size, and overrides = (GIT_DIR ?? \"\") + \"\\u{0}\" + (GIT_INDEX_FILE ?? \"\")",
+        "DroppyCode/Services/Git/Git.swift:612-614 worktreeIndexPaths - Mutex<[String: (stamp: GitFileStamp, path: String?)]>",
+        "DroppyCode/Services/Git/Git.swift:630-642 indexPath() - `let stamp = exists ? GitFileStamp(gitFile: dotGit, environment: environment) : nil`; `if let stamp, let cached = Self.worktreeIndexPaths.withLock({ $0[directory.path] }), cached.stamp == stamp { return cached.path }`; `let path = try? await output([\"rev-parse\", \"--path-format=absolute\", \"--git-path\", \"index\"]).trimmed`; `if paths.count >= 64 { paths.removeAll() }`; `paths[directory.path] = (stamp, path)`"
       ],
       "preconditions": "The directory's .git is a file, or an environment override is present, or there is no .git at all.",
       "action": "A snapshot resolves the index path.",
@@ -761,35 +762,37 @@
     },
     {
       "id": "PR-GIT-031",
-      "title": "pushBranch publishes one named branch by explicit refspec at 300 s",
+      "title": "pushBranch(_:force:) publishes one named branch by explicit refspec at 300 s, force-pushing a job's own branch",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:285-287 pushBranch(_:) - run([\"push\", \"-u\", \"origin\", \"refs/heads/\\(name):refs/heads/\\(name)\"], timeout: 300)",
-        "DroppyCode/App/AppModel+HydraMerge.swift:300 - try await git.pushBranch(branch)"
+        "DroppyCode/Services/Git/Git.swift:387-391 pushBranch(_:force:) - run([\"push\", \"-u\"] + (force ? [\"--force\"] : []) + [\"origin\", \"refs/heads/\\(name):refs/heads/\\(name)\"], timeout: 300)",
+        "DroppyCode/App/AppModel+HydraMerge.swift:348 - try await git.pushBranch(branch, force: ownBranch)"
       ],
       "preconditions": "The named local branch exists.",
       "action": "A landing path publishes a branch without moving HEAD.",
-      "expected_result": "argv [\"push\", \"-u\", \"origin\", \"refs/heads/<name>:refs/heads/<name>\"] at 300 s, a single argument carrying the colon. A non-zero exit throws ShellError(failureMessage).",
+      "expected_result": "argv [\"push\", \"-u\"], then \"--force\" only when force is true, then [\"origin\", \"refs/heads/<name>:refs/heads/<name>\"], at 300 s, with the refspec a single argument carrying the colon. force is true only for a Hydra job's own stable branch, so a retry that rebuilds that branch on a newer base still updates the merge request it already opened instead of being rejected as a non-fast-forward push and opening a second one. A non-zero exit throws ShellError(failureMessage).",
       "side_effects": [
         "Network write to origin",
-        "Upstream tracking set for that branch"
+        "Upstream tracking set for that branch",
+        "force true overwrites whatever the remote branch currently points at"
       ],
       "persistence": "Git config gains the tracking pair.",
       "failure_cases": [
         "Rejection throws; the caller reports it"
       ],
       "cancellation": "not cancellable",
-      "windows_path": "The refspec is one argv element; never split it on the colon, which a naive Windows path helper might do.",
-      "verification_method": "contract fixture asserting the single colon-bearing argument",
-      "status": "IMPLEMENTED",
+      "windows_path": "The refspec is one argv element; never split it on the colon, which a naive Windows path helper might do. \"--force\" is inserted after \"-u\" and before \"origin\", never reordered.",
+      "verification_method": "contract fixture asserting the argv with force false (no --force) and with force true (--force after -u)",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "B3 adds a force parameter (default false): AppModel+HydraMerge.swift:348 passes force: ownBranch, so a Hydra job's own branch is force-pushed on every retry while a checkout's shared branch still pushes plain."
     },
     {
       "id": "PR-GIT-032",
       "title": "fetch updates origin quietly at 300 s",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:289-291 fetch() - run([\"fetch\", \"--quiet\", \"origin\"], timeout: 300)"
+        "DroppyCode/Services/Git/Git.swift:394-396 fetch() - run([\"fetch\", \"--quiet\", \"origin\"], timeout: 300)"
       ],
       "preconditions": "An origin remote exists.",
       "action": "A landing path refreshes remote refs.",
@@ -813,8 +816,8 @@
       "id": "PR-GIT-033",
       "title": "pullFastForward refuses to create a merge commit",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:403-405 pullFastForward() - run([\"pull\", \"--ff-only\", \"--quiet\"], timeout: 300)",
-        "DroppyCode/App/AppModel+HydraMerge.swift:352 - on success appends the line \"The project checkout is up to date.\""
+        "DroppyCode/Services/Git/Git.swift:508-510 pullFastForward() - run([\"pull\", \"--ff-only\", \"--quiet\"], timeout: 300)",
+        "DroppyCode/App/AppModel+HydraMerge.swift:399 - on success appends the line \"The project checkout is up to date.\""
       ],
       "preconditions": "The checkout can fast-forward.",
       "action": "A landing path syncs the project checkout after a merge.",
@@ -838,7 +841,7 @@
       "id": "PR-GIT-034",
       "title": "commitWork writes a one-parent commit in the user's own identity with the message on stdin",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:266-272 commitWork(_:parent:message:) - run([\"commit-tree\", tree, \"-p\", parent, \"-F\", \"-\"], input: Data(message.utf8)) with no environment argument",
+        "DroppyCode/Services/Git/Git.swift:368-374 commitWork(_:parent:message:) - run([\"commit-tree\", tree, \"-p\", parent, \"-F\", \"-\"], input: Data(message.utf8)) with no environment argument",
         "porting/port_impacts.md entry 232 (CC1) - 'Do NOT pass an identity on the commit-work path'"
       ],
       "preconditions": "The tree and the parent commit exist.",
@@ -863,8 +866,8 @@
       "id": "PR-GIT-035",
       "title": "commitTree writes a commit of a tree on top of HEAD in the app's own git identity (Marrow, OD-0012 F1), parentless in an empty repository",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:665-674 commitTree(_:message:) - arguments [\"commit-tree\", tree, \"-m\", message] plus [\"-p\", \"HEAD\"] only when await hasCommits(), environment: Self.identity",
-        "DroppyCode/Services/Git/Git.swift:660-663 identity - the four keys"
+        "DroppyCode/Services/Git/Git.swift:770-779 commitTree(_:message:) - arguments [\"commit-tree\", tree, \"-m\", message] plus [\"-p\", \"HEAD\"] only when await hasCommits(), environment: Self.identity",
+        "DroppyCode/Services/Git/Git.swift:765-768 identity - the four keys"
       ],
       "preconditions": "The tree exists.",
       "action": "A worktree copy needs a starting commit that carries the checkout as it stands.",
@@ -885,19 +888,20 @@
       "depends_on_unknown": null,
       "deviation": {
         "decision": "OD-0012 F1",
-        "upstream": "DroppyCode/Services/Git/Git.swift:660-663 identity: GIT_AUTHOR_NAME \"Droppy Code\", GIT_AUTHOR_EMAIL \"droppy-code@localhost\", GIT_COMMITTER_NAME \"Droppy Code\", GIT_COMMITTER_EMAIL \"droppy-code@localhost\"",
+        "upstream": "DroppyCode/Services/Git/Git.swift:765-768 identity: GIT_AUTHOR_NAME \"Droppy Code\", GIT_AUTHOR_EMAIL \"droppy-code@localhost\", GIT_COMMITTER_NAME \"Droppy Code\", GIT_COMMITTER_EMAIL \"droppy-code@localhost\"",
         "port": "GIT_AUTHOR_NAME \"Marrow\", GIT_AUTHOR_EMAIL \"marrow@localhost\", GIT_COMMITTER_NAME \"Marrow\", GIT_COMMITTER_EMAIL \"marrow@localhost\" (the git checkpoint author \"Marrow\" <marrow@localhost>); the vector, the conditional -p HEAD and the 120 s budget are unchanged"
       }
     },
     {
       "id": "PR-GIT-036",
-      "title": "updateRef(_:to:) moves a ref unconditionally",
+      "title": "updateRef(_:to:) moves a ref unconditionally; called on every own-branch Hydra merge",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:274-276 updateRef(_:to:) - run([\"update-ref\", ref, commit])"
+        "DroppyCode/Services/Git/Git.swift:376-378 updateRef(_:to:) - run([\"update-ref\", ref, commit])",
+        "DroppyCode/App/AppModel+HydraMerge.swift:337-339 - ownBranch is true: `try await git.updateRef(\"refs/heads/\\(branch)\", to: prepared.commit)`, rebuilding the job's own stable branch on every retry so it stays a fast-forward of prepared.commit regardless of where it pointed before"
       ],
       "preconditions": "The commit exists.",
       "action": "A caller points a ref at a commit.",
-      "expected_result": "argv [\"update-ref\", <ref>, <commit>] at 120 s, checked; a non-zero exit throws.",
+      "expected_result": "argv [\"update-ref\", <ref>, <commit>] at 120 s, checked; a non-zero exit throws. On a Hydra job's own branch (ownBranch true) this is the call used instead of the compare-and-swap overload (PR-GIT-037), because the branch is rebuilt fresh on every retry and there is nothing to protect it against.",
       "side_effects": [
         "A ref is written in the user's repository"
       ],
@@ -907,18 +911,18 @@
       ],
       "cancellation": "not cancellable",
       "windows_path": "Direct port.",
-      "verification_method": "unit",
-      "status": "NOT_APPLICABLE_WITH_EVIDENCE",
+      "verification_method": "unit asserting the argv, plus a contract fixture that AppModel+HydraMerge calls this overload (not the compare-and-swap one) when ownBranch is true",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "not_applicable": "ED-061: porting/dead_code.md entry 48 - the two-argument updateRef(_:to:) at DroppyCode/Services/Git/Git.swift:274-276 has no caller; the only updateRef call (DroppyCode/App/AppModel+HydraMerge.swift:293; dead_code.md gives its B1 line :248) resolves to the three-argument overload at Git.swift:281 (PR-GIT-037), and captureCheckpoint runs update-ref directly (Git.swift:428, PR-GIT-058). Upstream never executes it, so it is neither implemented nor counted as missing."
+      "b3_note": "No longer dead code at B3. ED-061/dead_code.md entry 48 (NOT_APPLICABLE_WITH_EVIDENCE: no caller at B2) is retired by this reclassification: AppModel+HydraMerge.swift:339 now calls this two-argument overload for a job's own branch on every own-branch merge, while the checkout's shared branch still uses the three-argument compare-and-swap overload at :342 (PR-GIT-037). The overload must actually be implemented, not stubbed."
     },
     {
       "id": "PR-GIT-037",
       "title": "updateRef(_:to:expecting:) is a compare-and-swap whose empty expected value means the ref must not exist",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:278-283 updateRef(_:to:expecting:) - run([\"update-ref\", ref, commit, old ?? \"\"])",
+        "DroppyCode/Services/Git/Git.swift:380-385 updateRef(_:to:expecting:) - run([\"update-ref\", ref, commit, old ?? \"\"])",
         "porting/extracts/git-command-vectors.md section 7.4 - the only compare-and-swap in the file"
       ],
       "preconditions": "The commit exists.",
@@ -943,7 +947,7 @@
       "id": "PR-GIT-038",
       "title": "resetSoft moves the current branch leaving index and working tree untouched",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:381-384 resetSoft(to:) - run([\"reset\", \"--soft\", \"--quiet\", commit])"
+        "DroppyCode/Services/Git/Git.swift:486-489 resetSoft(to:) - run([\"reset\", \"--soft\", \"--quiet\", commit])"
       ],
       "preconditions": "The commit exists.",
       "action": "A landing path rewinds a branch pointer.",
@@ -967,7 +971,7 @@
       "id": "PR-GIT-039",
       "title": "resetIndex restores HEAD's version of named paths into the index only, returning early for an empty list",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:386-390 resetIndex(paths:) - guard !paths.isEmpty else { return }; run([\"reset\", \"--quiet\", \"--pathspec-from-file=-\", \"--pathspec-file-nul\"], input: nulSeparated(paths))"
+        "DroppyCode/Services/Git/Git.swift:491-495 resetIndex(paths:) - guard !paths.isEmpty else { return }; run([\"reset\", \"--quiet\", \"--pathspec-from-file=-\", \"--pathspec-file-nul\"], input: nulSeparated(paths))"
       ],
       "preconditions": "None.",
       "action": "A landing path unstages named paths.",
@@ -991,7 +995,7 @@
       "id": "PR-GIT-040",
       "title": "checkoutPaths puts a ref's version of named paths into index and working tree, passing paths as command-line pathspecs without --literal-pathspecs",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:392-396 checkoutPaths(from:_:) - guard !paths.isEmpty; run([\"checkout\", \"--quiet\", ref, \"--\"] + paths)",
+        "DroppyCode/Services/Git/Git.swift:497-501 checkoutPaths(from:_:) - guard !paths.isEmpty; run([\"checkout\", \"--quiet\", ref, \"--\"] + paths)",
         "porting/upstream_defects.md entry 78 - no --literal-pathspecs here, unlike diff"
       ],
       "preconditions": "The ref resolves.",
@@ -1016,7 +1020,7 @@
       "id": "PR-GIT-041",
       "title": "removePaths deletes named paths through git rm, also without --literal-pathspecs",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:398-401 removePaths(_:) - guard !paths.isEmpty; run([\"rm\", \"--quiet\", \"--\"] + paths)",
+        "DroppyCode/Services/Git/Git.swift:503-506 removePaths(_:) - guard !paths.isEmpty; run([\"rm\", \"--quiet\", \"--\"] + paths)",
         "porting/upstream_defects.md entry 78"
       ],
       "preconditions": "The paths are tracked.",
@@ -1041,7 +1045,7 @@
       "id": "PR-GIT-042",
       "title": "forge() picks GitLab, then GitHub, then falls through to the Gitea family on the lowercased origin URL",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:199-206 forge() - remote lowercased; contains \"gitlab\" -> .gitlab; contains \"github\" -> .github; else .gitea",
+        "DroppyCode/Services/Git/Git.swift:220-227 forge() - remote lowercased; contains \"gitlab\" -> .gitlab; contains \"github\" -> .github; else .gitea",
         "DroppyCode/Core/Models/MergeRequestLink.swift:6-11 Forge - exactly three cases",
         "porting/port_impacts.md entry 226 (G7) - 'an enterprise GitHub at git.acme.com gets driven with tea - upstream behaviour, not a bug to fix'"
       ],
@@ -1065,28 +1069,30 @@
     },
     {
       "id": "PR-GIT-043",
-      "title": "createPullRequest on GitLab runs glab with --yes at index 6, before the optional branch flags",
+      "title": "createPullRequest on GitLab runs glab with --yes at index 6, before the optional branch flags; a non-zero exit falls back to the existing request's URL before throwing",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:176-181 - arguments [\"mr\", \"create\", \"--title\", title, \"--description\", body, \"--yes\"], then [\"--source-branch\", source] when non-nil, then [\"--target-branch\", target] when non-nil; Shell.run(tool: \"glab\", …, timeout: 300)"
+        "DroppyCode/Services/Git/Git.swift:176-181 - arguments [\"mr\", \"create\", \"--title\", title, \"--description\", body, \"--yes\"], then [\"--source-branch\", source] when non-nil, then [\"--target-branch\", target] when non-nil; Shell.run(tool: \"glab\", …, timeout: 300)",
+        "DroppyCode/Services/Git/Git.swift:193-195 - `if !result.succeeded, let existing = Self.existingRequestURL(in: result, web: await remoteWebURL()) { return existing }` runs before `try Self.check(result)` at :196, for every forge"
       ],
       "preconditions": "forge() resolved to GitLab and glab is on PATH.",
       "action": "A pull request is opened.",
-      "expected_result": "The executable name is the literal \"glab\", resolved per call from PATH. argv is exactly [\"mr\", \"create\", \"--title\", <title>, \"--description\", <body>, \"--yes\"] with [\"--source-branch\", <source>] appended when a source is given and [\"--target-branch\", <target>] appended after that when a target is given. No -c prefix is prepended. Timeout 300 s. stdin is the null device.",
+      "expected_result": "The executable name is the literal \"glab\", resolved per call from PATH. argv is exactly [\"mr\", \"create\", \"--title\", <title>, \"--description\", <body>, \"--yes\"] with [\"--source-branch\", <source>] appended when a source is given and [\"--target-branch\", <target>] appended after that when a target is given. No -c prefix is prepended. Timeout 300 s. stdin is the null device. When glab exits non-zero, the call no longer throws immediately: existingRequestURL(in:web:) (PR-GIT-161) is tried first against glab's combined stdout+stderr, and its result is returned as the pull request's URL when it finds one; only when that also returns nil does the non-zero exit throw ShellError(failureMessage) carrying glab's stderr.",
       "side_effects": [
         "Network: a merge request is created on the remote"
       ],
       "persistence": "None locally.",
       "failure_cases": [
         "glab not on PATH throws the literal \"glab was not found on your PATH.\"",
-        "Non-zero exit throws ShellError(failureMessage) carrying glab's stderr"
+        "Non-zero exit whose output does not parse as an existing-request notice throws ShellError(failureMessage) carrying glab's stderr"
       ],
       "cancellation": "not cancellable; only the 300 s budget ends it",
       "windows_path": "Resolve glab against PATH split on \";\" with PATHEXT applied. Do not tidy the flag order: --yes must stay before the optional flags.",
-      "verification_method": "contract fixture asserting the exact ordered vector",
-      "status": "IMPLEMENTED",
+      "verification_method": "contract fixture asserting the exact ordered vector, plus a case where a scripted glab exits non-zero with an \"already exists\" message and the call returns the parsed URL instead of throwing",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "B3 adds the existing-request fallback (Git.swift:193-195, new static existingRequestURL at :205-218, PR-GIT-161): a forge that refuses to open a second request for the same branch no longer fails the operation outright when the retried request can be identified from its own refusal text."
     },
     {
       "id": "PR-GIT-044",
@@ -1142,7 +1148,7 @@
       "id": "PR-GIT-046",
       "title": "The created pull request's URL is the first https match scraped from stdout plus newline plus stderr",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:193-197 - try Self.check(result); let text = result.output + \"\\n\" + result.errorOutput; text.firstMatch(of: #/https://\\S+/#); match.flatMap { URL(string: String($0.output)) }"
+        "DroppyCode/Services/Git/Git.swift:196-200 - try Self.check(result); let text = result.output + \"\\n\" + result.errorOutput; text.firstMatch(of: #/https://\\S+/#); match.flatMap { URL(string: String($0.output)) }"
       ],
       "preconditions": "The forge CLI exited zero.",
       "action": "The app reads back the request's address.",
@@ -1166,11 +1172,11 @@
       "id": "PR-GIT-047",
       "title": "mergePullRequest drives the forge's own CLI with a per-forge merge vector; the GitLab vector squash-merges and removes the source branch",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:216 - `case .gitlab: result = try await Shell.run(tool: \"glab\", [\"mr\", \"merge\", number, \"--yes\", \"--squash\", \"--remove-source-branch\"], in: directory, timeout: 300)`",
-        "DroppyCode/Services/Git/Git.swift:217-218 - `case .github: result = try await Shell.run(tool: \"gh\", [\"pr\", \"merge\", number, \"--merge\"], in: directory, timeout: 300)`; `case .gitea: result = try await Shell.run(tool: \"tea\", [\"pulls\", \"merge\", number], in: directory, timeout: 300)`",
-        "DroppyCode/Services/Git/Git.swift:211 - `let number = String(link.number)`",
-        "DroppyCode/App/AppModel+HydraMerge.swift:312-320 - the only caller: `guard let url = requestURL, let link = MergeRequestLink(url: url) else { ... }`, `advance(.merging)`, `try await git.mergePullRequest(link)`",
-        "DroppyCode/App/AppModel+HydraMerge.swift:372-373 - `/// retried once with `--recover` so its saved options are picked up. Squash and` / `/// source-branch removal are explicit for GitLab team merges.`"
+        "DroppyCode/Services/Git/Git.swift:237 - `case .gitlab: result = try await Shell.run(tool: \"glab\", [\"mr\", \"merge\", number, \"--yes\", \"--squash\", \"--remove-source-branch\"], in: directory, timeout: 300)`",
+        "DroppyCode/Services/Git/Git.swift:238-239 - `case .github: result = try await Shell.run(tool: \"gh\", [\"pr\", \"merge\", number, \"--merge\"], in: directory, timeout: 300)`; `case .gitea: result = try await Shell.run(tool: \"tea\", [\"pulls\", \"merge\", number], in: directory, timeout: 300)`",
+        "DroppyCode/Services/Git/Git.swift:232 - `let number = String(link.number)`",
+        "DroppyCode/App/AppModel+HydraMerge.swift:363-369 - the only caller: `guard let url = requestURL, let link = MergeRequestLink(url: url) else { ... }`, `advance(.merging)`, `try await git.mergePullRequest(link)`",
+        "DroppyCode/App/AppModel+HydraMerge.swift:431-432 - `/// retried once with `--recover` so its saved options are picked up. Squash and` / `/// source-branch removal are explicit for GitLab team merges.`"
       ],
       "preconditions": "The Hydra team merge has opened a merge request and parsed its MergeRequestLink; this is the function's only caller.",
       "action": "The team merge lands the request.",
@@ -1196,7 +1202,7 @@
       "id": "PR-GIT-048",
       "title": "mergePullRequest makes at most six attempts, so at most five retries, only for GitLab, only on a substring match, with 3, 5, 7, 9, 11 and a wasted 13 second backoff",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:213-226 - `for attempt in 0..<6`; `if result.succeeded { return }`; `lastFailure = result.failureMessage`; `let text = (result.output + result.errorOutput).lowercased()`; `guard link.forge == .gitlab, text.contains(\"405\") || text.contains(\"not allowed\") || text.contains(\"checking\") else { break }`; `try? await Task.sleep(for: .seconds(3 + attempt * 2))`; after the loop `throw ShellError(lastFailure)`",
+        "DroppyCode/Services/Git/Git.swift:234-247 - `for attempt in 0..<6`; `if result.succeeded { return }`; `lastFailure = result.failureMessage`; `let text = (result.output + result.errorOutput).lowercased()`; `guard link.forge == .gitlab, text.contains(\"405\") || text.contains(\"not allowed\") || text.contains(\"checking\") else { break }`; `try? await Task.sleep(for: .seconds(3 + attempt * 2))`; after the loop `throw ShellError(lastFailure)`",
         "porting/upstream_defects.md entry 76 - the final 13 s sleep is burned before the loop ends",
         "porting/upstream_defects.md entry 77 - \"405\" matches those digits anywhere"
       ],
@@ -1222,7 +1228,7 @@
       "id": "PR-GIT-049",
       "title": "The merge failure initializer string \"The request could not be merged.\" is unreachable and is not a user-visible string",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:212 - var lastFailure = \"The request could not be merged.\"",
+        "DroppyCode/Services/Git/Git.swift:233 - var lastFailure = \"The request could not be merged.\"",
         "porting/extracts/git-command-vectors.md section 0.2 - proof that every thrown value is a ShellResult.failureMessage",
         "porting/port_impacts.md entry 218 - 'Keep the initializer for source parity if wanted, but exclude it from any localization table, test expectation, or user-visible string inventory.'"
       ],
@@ -1243,7 +1249,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "not_applicable": "ED-061: porting/dead_code.md entry 49 - the initializer \"The request could not be merged.\" (DroppyCode/Services/Git/Git.swift:212) is never thrown: every exit of the six-attempt loop at Git.swift:213-226 first executes lastFailure = result.failureMessage (:221), so the thrown text is always a ShellResult.failureMessage (PR-GIT-048). The literal is excluded from the string inventory."
+      "not_applicable": "ED-061: porting/dead_code.md entry 49 - the initializer \"The request could not be merged.\" (DroppyCode/Services/Git/Git.swift:233) is never thrown: every exit of the six-attempt loop at Git.swift:234-247 first executes lastFailure = result.failureMessage (:221), so the thrown text is always a ShellResult.failureMessage (PR-GIT-048). The literal is excluded from the string inventory."
     },
     {
       "id": "PR-GIT-050",
@@ -1405,7 +1411,7 @@
       "id": "PR-GIT-056",
       "title": "A checkpoint ref name is refs/droppy-code/checkpoints/<lowercased hyphenated thread uuid>/<turn>-<phase>",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:409-411 checkpointRef(thread:turn:phase:) - \"refs/droppy-code/checkpoints/\\(thread.uuidString.lowercased())/\\(turn)-\\(phase)\"",
+        "DroppyCode/Services/Git/Git.swift:514-516 checkpointRef(thread:turn:phase:) - \"refs/droppy-code/checkpoints/\\(thread.uuidString.lowercased())/\\(turn)-\\(phase)\"",
         "porting/port_impacts.md entry 220 (G1) - 'The port MUST keep the namespace byte-identical ... Git refs are case-sensitive on Windows too'"
       ],
       "preconditions": "A thread id and a turn index exist.",
@@ -1430,8 +1436,8 @@
       "id": "PR-GIT-057",
       "title": "There are exactly two phase literals, \"start\" and \"end\"",
       "source_evidence": [
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:1256 - Git.checkpointRef(thread: threadID, turn: turnIndex, phase: \"start\")",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:2351 - Git.checkpointRef(thread: threadID, turn: turn.index, phase: \"end\")",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1255 - Git.checkpointRef(thread: threadID, turn: turnIndex, phase: \"start\")",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2393 - Git.checkpointRef(thread: threadID, turn: turn.index, phase: \"end\")",
         "porting/extracts/git-command-vectors.md section 4.4 - 'That is the complete set: 2 literals, \"start\" and \"end\".'"
       ],
       "preconditions": "None.",
@@ -1456,7 +1462,7 @@
       "id": "PR-GIT-058",
       "title": "captureCheckpoint writes a PARENTLESS commit of the working tree with the message \"Marrow checkpoint\" in the app's own git identity (OD-0012 F1)",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:416-429 captureCheckpoint(_:) - run([\"commit-tree\", tree, \"-m\", \"Droppy Code checkpoint\"], environment: Self.identity) with no -p anywhere, then run([\"update-ref\", ref, commit])",
+        "DroppyCode/Services/Git/Git.swift:521-534 captureCheckpoint(_:) - run([\"commit-tree\", tree, \"-m\", \"Droppy Code checkpoint\"], environment: Self.identity) with no -p anywhere, then run([\"update-ref\", ref, commit])",
         "porting/port_impacts.md entry 233 (CC2) - 'MUST NOT add -p HEAD to the checkpoint commit'"
       ],
       "preconditions": "The directory is a git checkout.",
@@ -1478,7 +1484,7 @@
       "depends_on_unknown": null,
       "deviation": {
         "decision": "OD-0012 F1",
-        "upstream": "DroppyCode/Services/Git/Git.swift:423 run([\"commit-tree\", tree, \"-m\", \"Droppy Code checkpoint\"], environment: Self.identity), with the identity \"Droppy Code\" <droppy-code@localhost> (Git.swift:660-663)",
+        "upstream": "DroppyCode/Services/Git/Git.swift:528 run([\"commit-tree\", tree, \"-m\", \"Droppy Code checkpoint\"], environment: Self.identity), with the identity \"Droppy Code\" <droppy-code@localhost> (Git.swift:765-768)",
         "port": "The message literal is \"Marrow checkpoint\" and the identity is \"Marrow\" <marrow@localhost>; the commit stays parentless and the ref namespace refs/droppy-code/checkpoints/ (PR-GIT-056) is not part of this ruling's named items"
       }
     },
@@ -1486,7 +1492,7 @@
       "id": "PR-GIT-059",
       "title": "A checkpoint of an unchanged tree reuses the commit the watch remembers and costs only the update-ref",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:419-427 - if let known = watch?.commit(of: tree) { commit = known } else { … watch?.remember(commit: commit, of: tree) }",
+        "DroppyCode/Services/Git/Git.swift:524-532 - if let known = watch?.commit(of: tree) { commit = known } else { … watch?.remember(commit: commit, of: tree) }",
         "DroppyCode/Services/Git/WorkingTreeWatch.swift:339-352 commit(of:) and remember(commit:of:) - both require the last snapshot to be exactly that tree"
       ],
       "preconditions": "A checkpoint was already taken of the current tree and nothing was written since.",
@@ -1511,9 +1517,9 @@
       "id": "PR-GIT-060",
       "title": "The start checkpoint runs concurrently with session start-up and sets baseCheckpoint only when it succeeds",
       "source_evidence": [
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:1254-1270 - directory is worktreePath ?? project.path; the detached Task at .userInitiated guards on await git.isRepository() then returns (try? await git.captureCheckpoint(checkpointRef)) != nil",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:1261-1263 - settledTree = nil, latestTree = nil, treeEpoch += 1 before the capture",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:1279-1281 - if await checkpoint.value { updateTurn(turn.id) { $0.baseCheckpoint = checkpointRef } }"
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1253-1269 - directory is worktreePath ?? project.path; the detached Task at .userInitiated guards on await git.isRepository() then returns (try? await git.captureCheckpoint(checkpointRef)) != nil",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1260-1262 - settledTree = nil, latestTree = nil, treeEpoch += 1 before the capture",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1278-1280 - if await checkpoint.value { updateTurn(turn.id) { $0.baseCheckpoint = checkpointRef } }"
       ],
       "preconditions": "A turn is being opened for a thread.",
       "action": "The user sends a message.",
@@ -1539,7 +1545,7 @@
       "id": "PR-GIT-061",
       "title": "The end checkpoint is attempted only when the turn has a base checkpoint, and endCheckpoint is set only on success",
       "source_evidence": [
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:2346-2353 - root is worktreePath ?? project.path; var endCheckpoint: String?; if turn.baseCheckpoint != nil { let ref = Git.checkpointRef(…, phase: \"end\"); if (try? await git.captureCheckpoint(ref)) != nil { endCheckpoint = ref } }"
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2388-2395 - root is worktreePath ?? project.path; var endCheckpoint: String?; if turn.baseCheckpoint != nil { let ref = Git.checkpointRef(…, phase: \"end\"); if (try? await git.captureCheckpoint(ref)) != nil { endCheckpoint = ref } }"
       ],
       "preconditions": "A turn is finishing.",
       "action": "The turn is completed, interrupted or failed.",
@@ -1563,7 +1569,7 @@
       "id": "PR-GIT-062",
       "title": "deleteCheckpoints removes every ref under the thread's prefix through a single update-ref --stdin batch, and reports nothing when it fails",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:650-656 deleteCheckpoints(thread:) - prefix \"refs/droppy-code/checkpoints/\\(uuid lowercased)/\" with a trailing slash; output([\"for-each-ref\", \"--format=%(refname)\", prefix]); commands are \"delete \\(ref)\\n\" per line joined; _ = try? await run([\"update-ref\", \"--stdin\"], input: Data(commands.utf8))",
+        "DroppyCode/Services/Git/Git.swift:755-761 deleteCheckpoints(thread:) - prefix \"refs/droppy-code/checkpoints/\\(uuid lowercased)/\" with a trailing slash; output([\"for-each-ref\", \"--format=%(refname)\", prefix]); commands are \"delete \\(ref)\\n\" per line joined; _ = try? await run([\"update-ref\", \"--stdin\"], input: Data(commands.utf8))",
         "porting/upstream_defects.md entry 85 - the result is discarded, so a failed batch leaves the refs with nothing reported"
       ],
       "preconditions": "A thread is being deleted.",
@@ -1588,7 +1594,7 @@
       "id": "PR-GIT-063",
       "title": "Deleting one thread deletes its checkpoints, and its worktree only when the user chose that or the thread owned its copy",
       "source_evidence": [
-        "DroppyCode/App/AppModel.swift:946-954 delete(_:removeWorktree:) - let git = Git(project.path); let worktree = removeWorktree || thread.hydra?.hasOwnCopy == true ? thread.worktreePath : nil; Task { await git.deleteCheckpoints(thread: id); if let worktree { try? await git.removeWorktree(at: worktree) } }"
+        "DroppyCode/App/AppModel.swift:955-963 delete(_:removeWorktree:) - let git = Git(project.path); let worktree = removeWorktree || thread.hydra?.hasOwnCopy == true ? thread.worktreePath : nil; Task { await git.deleteCheckpoints(thread: id); if let worktree { try? await git.removeWorktree(at: worktree) } }"
       ],
       "preconditions": "A thread belongs to a project.",
       "action": "The user deletes the thread.",
@@ -1612,7 +1618,7 @@
       "id": "PR-GIT-064",
       "title": "Deleting all archived threads deletes their checkpoints and only Hydra-owned copies, one directory at a time",
       "source_evidence": [
-        "DroppyCode/App/AppModel.swift:959-993 deleteArchivedThreads() - 'Worktrees stay on disk, exactly as they do after a single delete.'; cleanup tuples of (project path, thread id, copy) where copy is thread.worktreePath only when hydra?.hasOwnCopy == true; a serial Task loop calling deleteCheckpoints then removeWorktree"
+        "DroppyCode/App/AppModel.swift:968-1002 deleteArchivedThreads() - 'Worktrees stay on disk, exactly as they do after a single delete.'; cleanup tuples of (project path, thread id, copy) where copy is thread.worktreePath only when hydra?.hasOwnCopy == true; a serial Task loop calling deleteCheckpoints then removeWorktree"
       ],
       "preconditions": "At least one archived thread exists.",
       "action": "The user deletes every archived thread.",
@@ -1636,8 +1642,8 @@
       "id": "PR-GIT-065",
       "title": "captureTree() snapshots the whole working tree through a private throwaway index seeded from the real one",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:470-488 captureTree() - index at temporaryDirectory/\"droppy-code-index-<UUID>\", removed in a defer; GIT_INDEX_FILE set to it; the real index is copied in when it exists, else read-tree HEAD when hasCommits(); then add -A -- . at 300 s; then write-tree",
-        "DroppyCode/Services/Git/Git.swift:478 - 'Starting from the real index keeps git's stat cache, so unchanged files are not re-hashed.'"
+        "DroppyCode/Services/Git/Git.swift:575-593 captureTree() - index at temporaryDirectory/\"droppy-code-index-<UUID>\", removed in a defer; GIT_INDEX_FILE set to it; the real index is copied in when it exists, else read-tree HEAD when hasCommits(); then add -A -- . at 300 s; then write-tree",
+        "DroppyCode/Services/Git/Git.swift:583 - 'Starting from the real index keeps git's stat cache, so unchanged files are not re-hashed.'"
       ],
       "preconditions": "The directory is a git checkout.",
       "action": "A snapshot is needed and no watch can vouch for the tree.",
@@ -1662,7 +1668,7 @@
       "id": "PR-GIT-066",
       "title": "captureTree(paths:) builds a tree of HEAD with only named paths taken from the working tree, and passes --ignore-errors",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:244-257 captureTree(paths:) - temporary index droppy-code-index-<UUID> with a defer removal; read-tree HEAD only when hasCommits(); add -A --ignore-errors --pathspec-from-file=- --pathspec-file-nul at 300 s with nulSeparated(paths) on stdin; write-tree",
+        "DroppyCode/Services/Git/Git.swift:265-278 captureTree(paths:) - temporary index droppy-code-index-<UUID> with a defer removal; read-tree HEAD only when hasCommits(); add -A --ignore-errors --pathspec-from-file=- --pathspec-file-nul at 300 s with nulSeparated(paths) on stdin; write-tree",
         "porting/upstream_defects.md entry 79 - this add passes --ignore-errors while the incremental scratch add does not"
       ],
       "preconditions": "A list of paths, usually one thread's touched paths.",
@@ -1688,11 +1694,11 @@
       "id": "PR-GIT-067",
       "title": "The incremental capture walks only the directories the watch saw change and rebuilds the scratch index whole when that fails; a capture that cannot prove it covered the whole tree records no checkpoint",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:441-463 captureTree(scratch:paths:) - GIT_INDEX_FILE is the shared scratch; when paths is non-empty and the scratch file exists and add -A --pathspec-from-file=- --pathspec-file-nul at 300 s succeeds, write-tree and return; otherwise remove the scratch, copy the real index in or read-tree HEAD, add -A -- . at 300 s, write-tree",
+        "DroppyCode/Services/Git/Git.swift:546-568 captureTree(scratch:paths:) - GIT_INDEX_FILE is the shared scratch; when paths is non-empty and the scratch file exists and add -A --pathspec-from-file=- --pathspec-file-nul at 300 s succeeds, write-tree and return; otherwise remove the scratch, copy the real index in or read-tree HEAD, add -A -- . at 300 s, write-tree",
         "porting/port_impacts.md entry 219 (C3) - the two distinct fallbacks",
         "DroppyCode/Services/Git/WorkingTreeWatch.swift:159-170 tearDown() - `try? FileManager.default.removeItem(at: self.scratch)` on the watch's queue, reached from :271 `guard arrived else { tearDown(); return nil }`",
         "DroppyCode/Services/Git/WorkingTreeWatch.swift:191-192 - `if path.hasPrefix(cookiePrefix) { cookie = max(cookie, UInt64(path.dropFirst(cookiePrefixCharacters)) ?? 0)`: any file of that name advances cookieSeen",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:1267-1281 - `return (try? await git.captureCheckpoint(checkpointRef)) != nil` and only `if await checkpoint.value { updateTurn(turn.id) { $0.baseCheckpoint = checkpointRef } }`, so a capture that throws leaves the turn with no base checkpoint; :1805-1807 then throws `ProviderError.failed(\"No file checkpoint is available for this message. You can still keep the file changes.\")`",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1266-1280 - `return (try? await git.captureCheckpoint(checkpointRef)) != nil` and only `if await checkpoint.value { updateTurn(turn.id) { $0.baseCheckpoint = checkpointRef } }`, so a capture that throws leaves the turn with no base checkpoint; :1805-1807 then throws `ProviderError.failed(\"No file checkpoint is available for this message. You can still keep the file changes.\")`",
         "porting/blocked_requirements.json BLK-0003 owner_ruling (OD-0008 A3) - FIX: \"a capture that cannot prove it covered the whole tree records no checkpoint (the existing \\\"No file checkpoint is available for this message.\\\" path) instead of a partial one. Named deviation.\""
       ],
       "preconditions": "A watch exists and handed over its scratch index.",
@@ -1716,7 +1722,7 @@
       "depends_on_unknown": null,
       "deviation": {
         "decision": "OD-0008 A3",
-        "upstream": "DroppyCode/Services/Git/Git.swift:447-451 returns the fast-path tree whenever the pathspec add exits 0, and WorkingTreeWatch.swift:271 with :159-170 can delete the scratch index while that add writes through it, so a tree holding only the walked paths is committed as an ordinary checkpoint (ThreadRuntime.swift:1269) and a later revert deletes files at Git.swift:619 (upstream defect 81, BLK-0003)",
+        "upstream": "DroppyCode/Services/Git/Git.swift:552-556 returns the fast-path tree whenever the pathspec add exits 0, and WorkingTreeWatch.swift:271 with :159-170 can delete the scratch index while that add writes through it, so a tree holding only the walked paths is committed as an ordinary checkpoint (ThreadRuntime.swift:1268) and a later revert deletes files at Git.swift:724 (upstream defect 81, BLK-0003)",
         "port": "Marrow records a checkpoint only from a capture that can prove it covered the whole tree; any other capture throws, the turn has no checkpoint, and revert shows the existing no-checkpoint message"
       },
       "resolved_unknown": "UNK-0013 resolved by OD-0008 (BLK-0003, A3)"
@@ -1725,8 +1731,8 @@
       "id": "PR-GIT-068",
       "title": "currentTree routes through the watch only when both an index path and a watch are available, otherwise it captures fresh",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:431-439 currentTree() - guard let indexPath = await indexPath(), let watch = await watch() else { return try await captureTree() }; then watch.currentTree(indexPath:capture:) whose closure captures with the scratch, or fresh when the scratch is nil",
-        "DroppyCode/Services/Git/Git.swift:465-468 watch() - WorkingTreeWatch.shared(for: directory.path, gitDirectory: the index path's parent directory)",
+        "DroppyCode/Services/Git/Git.swift:536-544 currentTree() - guard let indexPath = await indexPath(), let watch = await watch() else { return try await captureTree() }; then watch.currentTree(indexPath:capture:) whose closure captures with the scratch, or fresh when the scratch is nil",
+        "DroppyCode/Services/Git/Git.swift:570-573 watch() - WorkingTreeWatch.shared(for: directory.path, gitDirectory: the index path's parent directory)",
         "porting/extracts/git-command-vectors.md section 5 - 'everything in WorkingTreeWatch is an optimisation ... captureTree() alone produces the identical tree hash'"
       ],
       "preconditions": "None.",
@@ -1751,9 +1757,9 @@
       "id": "PR-GIT-069",
       "title": "Three distinct stdin path encodings exist and must not be unified",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:356-361 nulSeparated(_:) - a NUL appended after every path, so the payload ends with a NUL",
-        "DroppyCode/Services/Git/Git.swift:607-609 and :615-617 restore(_:from:) - absolute paths joined by \"\\0\" with NO trailing NUL",
-        "DroppyCode/Services/Git/Git.swift:643 workingBlobs(at:root:) - absolute paths joined by \"\\n\" with NO trailing newline",
+        "DroppyCode/Services/Git/Git.swift:461-466 nulSeparated(_:) - a NUL appended after every path, so the payload ends with a NUL",
+        "DroppyCode/Services/Git/Git.swift:712-714 and :615-617 restore(_:from:) - absolute paths joined by \"\\0\" with NO trailing NUL",
+        "DroppyCode/Services/Git/Git.swift:748 workingBlobs(at:root:) - absolute paths joined by \"\\n\" with NO trailing newline",
         "porting/extracts/git-command-vectors.md section 3.1 - 'Reproduce all three encodings exactly.'"
       ],
       "preconditions": "A command takes paths on stdin.",
@@ -1776,29 +1782,31 @@
     },
     {
       "id": "PR-GIT-070",
-      "title": "Temporary index and apply files are named droppy-code-index-<UUID> and droppy-code-apply-<UUID> under the system temporary directory",
+      "title": "Temporary index, rebase and apply scratch are named droppy-code-index-<UUID>, droppy-code-rebase-<UUID> and droppy-code-apply-<UUID> under the system temporary directory",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:249 and :474 - droppy-code-index-<UUID().uuidString>, each removed in a defer at :250 and :475",
-        "DroppyCode/Services/Git/Git.swift:699-700 - droppy-code-apply-<UUID().uuidString>, removed in a defer",
+        "DroppyCode/Services/Git/Git.swift:270 and :579 - droppy-code-index-<UUID().uuidString>, each removed in a defer at :271 and :580",
+        "DroppyCode/Services/Git/Git.swift:291-293 - droppy-code-rebase-<UUID().uuidString>, a directory created with intermediates holding index/current/common/other, removed whole in a defer at :293",
+        "DroppyCode/Services/Git/Git.swift:804-805 - droppy-code-apply-<UUID().uuidString>, removed in a defer",
         "DroppyCode/Services/Git/WorkingTreeWatch.swift:120 - the shared scratch, droppy-code-index-<UUID>, removed only in tearDown"
       ],
       "preconditions": "None.",
       "action": "A private index is needed.",
-      "expected_result": "Three name shapes exist, all under the system temporary directory: droppy-code-index-<UUID> for the two one-shot captures and for the watch's shared scratch, and droppy-code-apply-<UUID> for the three-way apply. The one-shot files are removed in a deferred cleanup on every exit path; the watch's scratch is removed only in its teardown.",
+      "expected_result": "Four name shapes exist, all under the system temporary directory: droppy-code-index-<UUID> for the two one-shot captures and for the watch's shared scratch; droppy-code-rebase-<UUID>, a directory (not a file) that holds an index plus current/common/other blob scratch files for the three-way merge, for captureTree(paths:onto:from:); and droppy-code-apply-<UUID> for the three-way apply. The one-shot file and the rebase directory are removed in a deferred cleanup on every exit path (the directory removed whole, with anything created inside it); the watch's scratch is removed only in its teardown.",
       "side_effects": [
-        "Temporary files"
+        "Temporary files and, for the rebase scratch, a temporary directory"
       ],
       "persistence": "None; these files are not part of the app's store.",
       "failure_cases": [
-        "A crash leaves a droppy-code-index-* file behind; nothing sweeps them"
+        "A crash leaves a droppy-code-index-*, droppy-code-rebase-* or droppy-code-apply-* item behind; nothing sweeps them"
       ],
       "cancellation": "The deferred cleanup runs even when the capture throws.",
-      "windows_path": "Use the Windows temporary directory. The product-name segment stays \"droppy-code\" in these file names, matching the ref namespace decision.",
-      "verification_method": "unit asserting the file is gone after a successful and a failed capture",
-      "status": "IMPLEMENTED",
+      "windows_path": "Use the Windows temporary directory. The product-name segment stays \"droppy-code\" in these file and directory names, matching the ref namespace decision.",
+      "verification_method": "unit asserting the file or directory is gone after a successful and a failed capture, including a captureTree(paths:onto:from:) call",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "B3 adds a fourth scratch shape, the droppy-code-rebase-<UUID> directory (Git.swift:291-293) for captureTree(paths:onto:from:)'s three-way merge scratch (index, current, common, other). The two pre-existing droppy-code-index-<UUID> one-shot sites move from B2 :249/:250 and :474/:475 to B3 :270/:271 and :579/:580; droppy-code-apply-<UUID> moves from B2 :699-700 to B3 :804-805."
     },
     {
       "id": "PR-GIT-071",
@@ -2083,12 +2091,12 @@
         "DroppyCode/Services/Git/WorkingTreeWatch.swift:159-170 tearDown() - stops, invalidates and releases the stream on its own queue, then removes the scratch file",
         "DroppyCode/Services/Git/WorkingTreeWatch.swift:96-107 - the registry-eviction path documents and avoids exactly this hazard",
         "porting/upstream_defects.md entry 81 - the observable effect is a lost checkpoint and, later, the no-checkpoint message",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:1267-1281 - `return (try? await git.captureCheckpoint(checkpointRef)) != nil` and only `if await checkpoint.value { updateTurn(turn.id) { $0.baseCheckpoint = checkpointRef } }`, so a capture that throws leaves the turn with no base checkpoint; :1805-1807 then throws `ProviderError.failed(\"No file checkpoint is available for this message. You can still keep the file changes.\")`",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1266-1280 - `return (try? await git.captureCheckpoint(checkpointRef)) != nil` and only `if await checkpoint.value { updateTurn(turn.id) { $0.baseCheckpoint = checkpointRef } }`, so a capture that throws leaves the turn with no base checkpoint; :1805-1807 then throws `ProviderError.failed(\"No file checkpoint is available for this message. You can still keep the file changes.\")`",
         "porting/blocked_requirements.json BLK-0003 owner_ruling (OD-0008 A3) - FIX: \"a capture that cannot prove it covered the whole tree records no checkpoint (the existing \\\"No file checkpoint is available for this message.\\\" path) instead of a partial one. Named deviation.\""
       ],
       "preconditions": "A cookie event never arrived within one second.",
       "action": "The watch tears itself down.",
-      "expected_result": "The stream is stopped, invalidated and released on its own queue, and the shared scratch index file is deleted, as upstream does (WorkingTreeWatch.swift:159-170, reached from :271 `guard arrived else { tearDown(); return nil }`). Upstream has no guard against a detached capture writing through that same file at that moment. RULED (OD-0008 A3, deviation): such a capture cannot prove it covered the whole tree, so it throws instead of returning a tree; no checkpoint is recorded for that turn and a later revert reports \"No file checkpoint is available for this message. You can still keep the file changes.\" A partial tree is never committed as a checkpoint, so no revert can delete untracked work at Git.swift:619 on the strength of one.",
+      "expected_result": "The stream is stopped, invalidated and released on its own queue, and the shared scratch index file is deleted, as upstream does (WorkingTreeWatch.swift:159-170, reached from :271 `guard arrived else { tearDown(); return nil }`). Upstream has no guard against a detached capture writing through that same file at that moment. RULED (OD-0008 A3, deviation): such a capture cannot prove it covered the whole tree, so it throws instead of returning a tree; no checkpoint is recorded for that turn and a later revert reports \"No file checkpoint is available for this message. You can still keep the file changes.\" A partial tree is never committed as a checkpoint, so no revert can delete untracked work at Git.swift:724 on the strength of one.",
       "side_effects": [
         "The scratch index file is deleted on the watch's queue",
         "A capture racing the teardown fails, so that turn has no checkpoint"
@@ -2106,7 +2114,7 @@
       "depends_on_unknown": null,
       "deviation": {
         "decision": "OD-0008 A3",
-        "upstream": "WorkingTreeWatch.swift:159-170 deletes the scratch index with no guard against a capture writing through it, and Git.swift:447-451 can then return a tree built from an index holding only the walked paths, which ThreadRuntime.swift:1269 commits as the turn's checkpoint (upstream defect 81, BLK-0003)",
+        "upstream": "WorkingTreeWatch.swift:159-170 deletes the scratch index with no guard against a capture writing through it, and Git.swift:552-556 can then return a tree built from an index holding only the walked paths, which ThreadRuntime.swift:1268 commits as the turn's checkpoint (upstream defect 81, BLK-0003)",
         "port": "The teardown is the same, but a capture that raced it throws and records no checkpoint"
       },
       "resolved_unknown": "UNK-0013 resolved by OD-0008 (BLK-0003, A3)"
@@ -2119,7 +2127,7 @@
         "DroppyCode/Services/Git/WorkingTreeWatch.swift:92-93 - shared's fast path returns the registered watch without inspecting its stream",
         "porting/upstream_defects.md entry 82",
         "DroppyCode/Services/Git/WorkingTreeWatch.swift:247 - `guard state.withLock({ $0.stream }) != nil else { return nil }`",
-        "DroppyCode/Services/Git/WorkingTreeWatch.swift:296 - `guard let generation = await settledGeneration() else { return try await capture(nil, nil) }`, and Git.swift:436 `guard let scratch else { return try await captureTree() }`",
+        "DroppyCode/Services/Git/WorkingTreeWatch.swift:296 - `guard let generation = await settledGeneration() else { return try await capture(nil, nil) }`, and Git.swift:541 `guard let scratch else { return try await captureTree() }`",
         "porting/blocked_requirements.json BLK-0003 owner_ruling (OD-0008 A3) - FIX: \"a capture that cannot prove it covered the whole tree records no checkpoint (the existing \\\"No file checkpoint is available for this message.\\\" path) instead of a partial one. Named deviation.\""
       ],
       "preconditions": "A watch was torn down by a cookie timeout.",
@@ -2170,7 +2178,7 @@
       "id": "PR-GIT-080",
       "title": "diff assembles --literal-pathspecs conditionally before the subcommand and -M always",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:547-561 diff(from:to:binary:paths:) - arguments start as [] or [\"--literal-pathspecs\"] depending on paths == nil, then += [\"diff\", \"--no-ext-diff\", \"-M\"], then --binary when asked, then [from, to], then [\"--\"] + paths",
+        "DroppyCode/Services/Git/Git.swift:652-666 diff(from:to:binary:paths:) - arguments start as [] or [\"--literal-pathspecs\"] depending on paths == nil, then += [\"diff\", \"--no-ext-diff\", \"-M\"], then --binary when asked, then [from, to], then [\"--\"] + paths",
         "porting/port_impacts.md entry 222 (G3) - 'Keep --literal-pathspecs conditional on paths != nil and positioned before diff'"
       ],
       "preconditions": "Two refs or trees.",
@@ -2195,8 +2203,8 @@
       "id": "PR-GIT-081",
       "title": "A path list longer than 400 is diffed in chunks of 400 and the outputs are joined with a newline only when needed",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:541 diffPathChunk = 400",
-        "DroppyCode/Services/Git/Git.swift:556-572 - the guard takes the single-call branch unless paths.count > 400; the chunk loop takes min(start + 400, count) per pass at 300 s and inserts \"\\n\" only when the accumulated output is non-empty and does not already end in one",
+        "DroppyCode/Services/Git/Git.swift:646 diffPathChunk = 400",
+        "DroppyCode/Services/Git/Git.swift:661-677 - the guard takes the single-call branch unless paths.count > 400; the chunk loop takes min(start + 400, count) per pass at 300 s and inserts \"\\n\" only when the accumulated output is non-empty and does not already end in one",
         "porting/port_impacts.md entry 222 (G3) - 'Implement > 400, not >= 400'"
       ],
       "preconditions": "A path list was supplied.",
@@ -2221,7 +2229,7 @@
       "id": "PR-GIT-082",
       "title": "diff with a non-nil but empty path list produces a full-tree diff, not an empty one",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:547-561 - there is no empty-paths early return, unlike resetIndex (:388), checkoutPaths (:394), removePaths (:399), restore (:602) and previewRestore (:582)",
+        "DroppyCode/Services/Git/Git.swift:652-666 - there is no empty-paths early return, unlike resetIndex (:388), checkoutPaths (:394), removePaths (:399), restore (:602) and previewRestore (:582)",
         "porting/upstream_defects.md entry 83 - unreachable today because all call sites guard on non-emptiness; 'Reproduce the missing guard.'"
       ],
       "preconditions": "A caller passes an empty but non-nil path array.",
@@ -2592,15 +2600,15 @@
       "id": "PR-GIT-097",
       "title": "previewRestore computes what undoing a thread's changes would touch, with every path relative to the repository root, and marks files changed again since as kept",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:575-597 previewRestore(base:end:paths:) - an empty path list returns an empty preview with no process; end is the caller's tree or a fresh captureTree(paths:); then output([\"diff\", \"--numstat\", \"-z\", \"--no-renames\", \"--no-ext-diff\", base, end, \"--\"] + paths) at 120 s; an empty file list returns early; then repositoryRoot(), blobs(in: end, …) and workingBlobs(…); isKept is left[path] != now[path]",
-        "DroppyCode/Services/Git/Git.swift:586-590 - `var preview = try RevertPreview(numstat: await output([\"diff\", \"--numstat\", \"-z\", \"--no-renames\", \"--no-ext-diff\", base, end, \"--\"] + paths))`; `let root = try await repositoryRoot()`; `let left = try await blobs(in: end, at: preview.files.map(\\.path), root: root)`; `let now = try await workingBlobs(at: preview.files.map(\\.path), root: root)`",
-        "DroppyCode/Services/Git/Git.swift:599-600 - `/// Puts `paths` (repository-relative) back as they are in `ref`, deleting the ones it` / `/// lacks.`",
+        "DroppyCode/Services/Git/Git.swift:680-702 previewRestore(base:end:paths:) - an empty path list returns an empty preview with no process; end is the caller's tree or a fresh captureTree(paths:); then output([\"diff\", \"--numstat\", \"-z\", \"--no-renames\", \"--no-ext-diff\", base, end, \"--\"] + paths) at 120 s; an empty file list returns early; then repositoryRoot(), blobs(in: end, …) and workingBlobs(…); isKept is left[path] != now[path]",
+        "DroppyCode/Services/Git/Git.swift:691-695 - `var preview = try RevertPreview(numstat: await output([\"diff\", \"--numstat\", \"-z\", \"--no-renames\", \"--no-ext-diff\", base, end, \"--\"] + paths))`; `let root = try await repositoryRoot()`; `let left = try await blobs(in: end, at: preview.files.map(\\.path), root: root)`; `let now = try await workingBlobs(at: preview.files.map(\\.path), root: root)`",
+        "DroppyCode/Services/Git/Git.swift:704-705 - `/// Puts `paths` (repository-relative) back as they are in `ref`, deleting the ones it` / `/// lacks.`",
         "DroppyCode/App/Runtime/ThreadRuntime.swift:1810-1812 - `let paths = Set(removed.flatMap { $0.touchedPaths ?? [] }).sorted()`; `previewRestore(base: base, end: end, paths: paths)` on `Git(thread.worktreePath ?? project.path)`",
         "porting/blocked_requirements.json BLK-0004 owner_ruling (OD-0008 A4) - FIX: \"previewRestore derives every path relative to the repository root, so a revert only ever acts on the files the turn touched. Named deviation.\""
       ],
       "preconditions": "A turn with a base checkpoint and a set of touched paths.",
       "action": "The app previews a revert.",
-      "expected_result": "An empty path list returns an empty preview without running anything. The end tree is the turn's end checkpoint when one exists, otherwise a fresh capture of those paths, which then counts as what the thread left. argv [\"diff\", \"--numstat\", \"-z\", \"--no-renames\", \"--no-ext-diff\", <base>, <end>, \"--\"] plus the paths at 120 s; rename detection is off here, unlike the app's other diffs. An empty result returns at once. Otherwise each file's blob in the end tree is compared with the blob the file on disk would hash to now; a difference marks the file kept, meaning something else changed it since and it will be left alone. Other threads' files never appear, because only the given paths are looked at. RULED (OD-0008 A4, deviation): every path the preview carries, and so every path the blob lookups and restore act on, is relative to the repository root whatever the user's diff.relative setting, so the preview names exactly the files the turn touched and a revert acts only on them. Upstream mixes the two bases: the pathspecs go in relative to the Git value's own directory while the blob lookups join each numstat path onto the repository root (Git.swift:588-590), and under diff.relative = true numstat answers relative to that directory (BLK-0004).",
+      "expected_result": "An empty path list returns an empty preview without running anything. The end tree is the turn's end checkpoint when one exists, otherwise a fresh capture of those paths, which then counts as what the thread left. argv [\"diff\", \"--numstat\", \"-z\", \"--no-renames\", \"--no-ext-diff\", <base>, <end>, \"--\"] plus the paths at 120 s; rename detection is off here, unlike the app's other diffs. An empty result returns at once. Otherwise each file's blob in the end tree is compared with the blob the file on disk would hash to now; a difference marks the file kept, meaning something else changed it since and it will be left alone. Other threads' files never appear, because only the given paths are looked at. RULED (OD-0008 A4, deviation): every path the preview carries, and so every path the blob lookups and restore act on, is relative to the repository root whatever the user's diff.relative setting, so the preview names exactly the files the turn touched and a revert acts only on them. Upstream mixes the two bases: the pathspecs go in relative to the Git value's own directory while the blob lookups join each numstat path onto the repository root (Git.swift:693-695), and under diff.relative = true numstat answers relative to that directory (BLK-0004).",
       "side_effects": [
         "Up to four git processes, one of which may be a full path-scoped capture"
       ],
@@ -2618,7 +2626,7 @@
       "depends_on_unknown": null,
       "deviation": {
         "decision": "OD-0008 A4",
-        "upstream": "DroppyCode/Services/Git/Git.swift:586-590 passes directory-relative pathspecs to git diff --numstat and joins the returned paths onto the repository root for blobs, workingBlobs and restore; with diff.relative = true in a subfolder project the returned paths are directory-relative, so a revert acts on same-named files at the repository root (upstream defect 84, BLK-0004)",
+        "upstream": "DroppyCode/Services/Git/Git.swift:691-695 passes directory-relative pathspecs to git diff --numstat and joins the returned paths onto the repository root for blobs, workingBlobs and restore; with diff.relative = true in a subfolder project the returned paths are directory-relative, so a revert acts on same-named files at the repository root (upstream defect 84, BLK-0004)",
         "port": "Every preview path is repository-root-relative regardless of diff.relative, so preview, restore and delete act only on the files the turn touched"
       },
       "resolved_unknown": "UNK-0014 resolved by OD-0008 (BLK-0004, A4)"
@@ -2627,9 +2635,9 @@
       "id": "PR-GIT-098",
       "title": "In a project that is a repository subdirectory, previewRestore's directory-relative pathspecs and repository-root-relative results agree only under git's default diff output",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:575-576 - `/// What undoing a thread's file changes would touch: of `paths` (the files its agent` / `/// changed, relative to this directory), the ones that differ between `base` and `end`,`",
-        "DroppyCode/Services/Git/Git.swift:586-590 - `var preview = try RevertPreview(numstat: await output([\"diff\", \"--numstat\", \"-z\", \"--no-renames\", \"--no-ext-diff\", base, end, \"--\"] + paths))`; `let root = try await repositoryRoot()`; `let left = try await blobs(in: end, at: preview.files.map(\\.path), root: root)`; `let now = try await workingBlobs(at: preview.files.map(\\.path), root: root)`",
-        "DroppyCode/Services/Git/Git.swift:625 - in blobs, `let listing = try await output([\"ls-tree\", \"-r\", \"-z\", \"--full-name\", ref, \"--\"] + paths.map { root.appendingPathComponent($0).path })`, which keys each blob by the full name git prints",
+        "DroppyCode/Services/Git/Git.swift:680-681 - `/// What undoing a thread's file changes would touch: of `paths` (the files its agent` / `/// changed, relative to this directory), the ones that differ between `base` and `end`,`",
+        "DroppyCode/Services/Git/Git.swift:691-695 - `var preview = try RevertPreview(numstat: await output([\"diff\", \"--numstat\", \"-z\", \"--no-renames\", \"--no-ext-diff\", base, end, \"--\"] + paths))`; `let root = try await repositoryRoot()`; `let left = try await blobs(in: end, at: preview.files.map(\\.path), root: root)`; `let now = try await workingBlobs(at: preview.files.map(\\.path), root: root)`",
+        "DroppyCode/Services/Git/Git.swift:730 - in blobs, `let listing = try await output([\"ls-tree\", \"-r\", \"-z\", \"--full-name\", ref, \"--\"] + paths.map { root.appendingPathComponent($0).path })`, which keys each blob by the full name git prints",
         "DroppyCode/App/Runtime/ThreadRuntime.swift:1810-1812 - `let paths = Set(removed.flatMap { $0.touchedPaths ?? [] }).sorted()`; `previewRestore(base: base, end: end, paths: paths)` on `Git(thread.worktreePath ?? project.path)`, so a project added at a repository subdirectory runs the preview from that subdirectory",
         "porting/upstream_defects.md entry 84 - \"previewRestore feeds CWD-relative pathspecs to `git diff --numstat` but consumes the REPO-ROOT-relative paths it returns, joining them onto repositoryRoot(). Self-consistent only because git's default diff output is repo-root-relative; a user with `diff.relative = true` breaks it\"",
         "porting/blocked_requirements.json BLK-0004 owner_ruling (OD-0008 A4) - FIX: \"previewRestore derives every path relative to the repository root, so a revert only ever acts on the files the turn touched. Named deviation.\""
@@ -2653,7 +2661,7 @@
       "depends_on_unknown": "UNK-0011",
       "deviation": {
         "decision": "OD-0008 A4",
-        "upstream": "DroppyCode/Services/Git/Git.swift:586-590 joins numstat's printed paths onto the repository root, which agrees with the directory-relative pathspecs only while git prints repository-root-relative paths; with diff.relative = true in a subdirectory project it acts on other files (upstream defect 84, BLK-0004)",
+        "upstream": "DroppyCode/Services/Git/Git.swift:691-695 joins numstat's printed paths onto the repository root, which agrees with the directory-relative pathspecs only while git prints repository-root-relative paths; with diff.relative = true in a subdirectory project it acts on other files (upstream defect 84, BLK-0004)",
         "port": "Every preview path is repository-root-relative regardless of diff.relative; in the default configuration this matches upstream"
       }
     },
@@ -2710,7 +2718,7 @@
       "id": "PR-GIT-101",
       "title": "restore puts back the paths the ref holds, into the working tree and the index in one checked invocation",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:599-612 restore(_:from:) - /// Puts `paths` (repository-relative) back as they are in `ref`, deleting the ones it /// lacks. Nothing outside `paths` is touched. guard !paths.isEmpty else { return }; let root = try await repositoryRoot(); let present = try await blobs(in: ref, at: paths, root: root); let restored = paths.filter { present[$0] != nil }; if !restored.isEmpty { let result = try await run([\"restore\", \"--source\", ref, \"--worktree\", \"--staged\", \"--pathspec-from-file=-\", \"--pathspec-file-nul\"], input: Data(restored.map { root.appendingPathComponent($0).path }.joined(separator: \"\\0\").utf8)); try Self.check(result) }"
+        "DroppyCode/Services/Git/Git.swift:704-717 restore(_:from:) - /// Puts `paths` (repository-relative) back as they are in `ref`, deleting the ones it /// lacks. Nothing outside `paths` is touched. guard !paths.isEmpty else { return }; let root = try await repositoryRoot(); let present = try await blobs(in: ref, at: paths, root: root); let restored = paths.filter { present[$0] != nil }; if !restored.isEmpty { let result = try await run([\"restore\", \"--source\", ref, \"--worktree\", \"--staged\", \"--pathspec-from-file=-\", \"--pathspec-file-nul\"], input: Data(restored.map { root.appendingPathComponent($0).path }.joined(separator: \"\\0\").utf8)); try Self.check(result) }"
       ],
       "preconditions": "A ref and a list of repository-relative paths.",
       "action": "A revert restores the files.",
@@ -2735,8 +2743,8 @@
       "id": "PR-GIT-158",
       "title": "restore deletes the paths the ref does not hold, quietly from the index and then one by one from disk; only files the turn created reach it",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:613-620 - let created = paths.filter { present[$0] == nil }; if !created.isEmpty { _ = try? await run([\"rm\", \"-q\", \"--cached\", \"--ignore-unmatch\", \"--pathspec-from-file=-\", \"--pathspec-file-nul\"], input: Data(created.map { root.appendingPathComponent($0).path }.joined(separator: \"\\0\").utf8)); for path in created { try? FileManager.default.removeItem(at: root.appendingPathComponent(path)) } }",
-        "DroppyCode/Services/Git/Git.swift:619 - `for path in created { try? FileManager.default.removeItem(at: root.appendingPathComponent(path)) }`",
+        "DroppyCode/Services/Git/Git.swift:718-725 - let created = paths.filter { present[$0] == nil }; if !created.isEmpty { _ = try? await run([\"rm\", \"-q\", \"--cached\", \"--ignore-unmatch\", \"--pathspec-from-file=-\", \"--pathspec-file-nul\"], input: Data(created.map { root.appendingPathComponent($0).path }.joined(separator: \"\\0\").utf8)); for path in created { try? FileManager.default.removeItem(at: root.appendingPathComponent(path)) } }",
+        "DroppyCode/Services/Git/Git.swift:724 - `for path in created { try? FileManager.default.removeItem(at: root.appendingPathComponent(path)) }`",
         "porting/blocked_requirements.json BLK-0004 owner_ruling (OD-0008 A4) - FIX: \"previewRestore derives every path relative to the repository root, so a revert only ever acts on the files the turn touched. Named deviation.\"",
         "porting/blocked_requirements.json BLK-0003 owner_ruling (OD-0008 A3) - FIX: \"a capture that cannot prove it covered the whole tree records no checkpoint (the existing \\\"No file checkpoint is available for this message.\\\" path) instead of a partial one. Named deviation.\"",
         "porting/upstream_defects.md entry 78"
@@ -2761,7 +2769,7 @@
       "depends_on_unknown": null,
       "deviation": {
         "decision": "OD-0008 A4, A3",
-        "upstream": "DroppyCode/Services/Git/Git.swift:613-620 deletes every path the ref lacks; fed by mis-derived paths (Git.swift:586-590, defect 84) or a partial checkpoint (BLK-0003) it deletes files the turn never touched and reports success",
+        "upstream": "DroppyCode/Services/Git/Git.swift:718-725 deletes every path the ref lacks; fed by mis-derived paths (Git.swift:691-695, defect 84) or a partial checkpoint (BLK-0003) it deletes files the turn never touched and reports success",
         "port": "The same deletion, reached only with repository-root-relative paths the turn touched (A4) against a checkpoint proven whole (A3), so only files the turn created are deleted"
       },
       "resolved_unknown": "UNK-0014 resolved by OD-0008 (BLK-0004, A4)"
@@ -2770,7 +2778,7 @@
       "id": "PR-GIT-102",
       "title": "blobs lists a ref's entries by absolute pathspec and keys them by the repository-relative path git prints",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:623-636 blobs(in:at:root:) - output([\"ls-tree\", \"-r\", \"-z\", \"--full-name\", ref, \"--\"] + paths mapped to absolute) at 120 s; entries split on \"\\0\"; each is \"<mode> <type> <hash>\\t<path>\"; the part before the tab is split on \" \" and must yield exactly three fields; the map is keyed by the text after the tab and valued by the third field"
+        "DroppyCode/Services/Git/Git.swift:728-741 blobs(in:at:root:) - output([\"ls-tree\", \"-r\", \"-z\", \"--full-name\", ref, \"--\"] + paths mapped to absolute) at 120 s; entries split on \"\\0\"; each is \"<mode> <type> <hash>\\t<path>\"; the part before the tab is split on \" \" and must yield exactly three fields; the map is keyed by the text after the tab and valued by the third field"
       ],
       "preconditions": "A ref and repository-relative paths.",
       "action": "The app asks which blob each path has in a ref.",
@@ -2794,7 +2802,7 @@
       "id": "PR-GIT-103",
       "title": "workingBlobs hashes the existing files on disk and throws an explicit, user-visible error when the reply count does not match",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:638-648 workingBlobs(at:root:) - only paths that exist on disk are included; an empty set returns an empty map with no process; run([\"hash-object\", \"--stdin-paths\"], input: absolute paths joined by \"\\n\") at 120 s, checked; the output is split on newlines; a count mismatch throws ShellError(\"git hash-object answered for \\(hashes.count) of \\(existing.count) files.\")",
+        "DroppyCode/Services/Git/Git.swift:743-753 workingBlobs(at:root:) - only paths that exist on disk are included; an empty set returns an empty map with no process; run([\"hash-object\", \"--stdin-paths\"], input: absolute paths joined by \"\\n\") at 120 s, checked; the output is split on newlines; a count mismatch throws ShellError(\"git hash-object answered for \\(hashes.count) of \\(existing.count) files.\")",
         "porting/upstream_defects.md entry 80 - this check is the deliberate asymmetry against presentPaths, which does not check"
       ],
       "preconditions": "A list of repository-relative paths.",
@@ -2819,7 +2827,7 @@
       "id": "PR-GIT-104",
       "title": "apply tries a plain apply first and only builds a throwaway index for a three-way merge when that fails",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:687-716 apply(_:) - run([\"apply\", \"--binary\", \"--whitespace=nowarn\", \"-\"], input: patch bytes) at 120 s; on success return an empty list without ever building the scratch index; otherwise a temporary index droppy-code-apply-<UUID> with a deferred removal, seeded from the real index or read-tree HEAD, then add -A -- . at 300 s, then [\"apply\", \"--3way\", \"--binary\", \"--whitespace=nowarn\", \"-\"] at 120 s",
+        "DroppyCode/Services/Git/Git.swift:792-821 apply(_:) - run([\"apply\", \"--binary\", \"--whitespace=nowarn\", \"-\"], input: patch bytes) at 120 s; on success return an empty list without ever building the scratch index; otherwise a temporary index droppy-code-apply-<UUID> with a deferred removal, seeded from the real index or read-tree HEAD, then add -A -- . at 300 s, then [\"apply\", \"--3way\", \"--binary\", \"--whitespace=nowarn\", \"-\"] at 120 s",
         "porting/extracts/git-command-vectors.md section 3 row 72 - the three-way apply runs at the 120 s default while the add that prepares it runs at 300 s"
       ],
       "preconditions": "A patch string.",
@@ -2845,7 +2853,7 @@
       "id": "PR-GIT-105",
       "title": "apply reports conflicted files from stderr lines beginning \"U \" and throws when there are none",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:709-715 - the merged attempt's stderr is split on \"\\n\" and lines beginning with the two characters \"U \" yield the remainder trimmed of whitespace; with no such line the call throws ShellError(merged.failureMessage)"
+        "DroppyCode/Services/Git/Git.swift:814-820 - the merged attempt's stderr is split on \"\\n\" and lines beginning with the two characters \"U \" yield the remainder trimmed of whitespace; with no such line the call throws ShellError(merged.failureMessage)"
       ],
       "preconditions": "The three-way apply exited non-zero.",
       "action": "The result is interpreted.",
@@ -2919,7 +2927,7 @@
       "id": "PR-GIT-108",
       "title": "addDetachedWorktree creates a branchless copy of the checkout at a commit, at 300 s",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:676-680 addDetachedWorktree(at:commit:) - run([\"worktree\", \"add\", \"--detach\", path, commit], timeout: 300), checked",
+        "DroppyCode/Services/Git/Git.swift:781-785 addDetachedWorktree(at:commit:) - run([\"worktree\", \"add\", \"--detach\", path, commit], timeout: 300), checked",
         "DroppyCode/App/AppModel+Hydra.swift:551 - try await git.addDetachedWorktree(at: path, commit: capture.commit)"
       ],
       "preconditions": "A commit exists that carries the checkout as it stands.",
@@ -2944,7 +2952,7 @@
       "id": "PR-GIT-109",
       "title": "pruneWorktrees forgets worktrees whose folders are gone, best-effort and silently",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:682-685 pruneWorktrees() - _ = try? await run([\"worktree\", \"prune\"]) at 120 s, result discarded",
+        "DroppyCode/Services/Git/Git.swift:787-790 pruneWorktrees() - _ = try? await run([\"worktree\", \"prune\"]) at 120 s, result discarded",
         "DroppyCode/App/AppModel+Hydra.swift:1070 - for project in projects where projectsWithCopies.contains(project.id) { await Git(project.path).pruneWorktrees() }"
       ],
       "preconditions": "At least one project had copies.",
@@ -2969,8 +2977,8 @@
       "id": "PR-GIT-110",
       "title": "createWorktree names the folder <project slug>-<8 hex of the thread id> and the branch marrow/<same 8 hex> (OD-0012 F1; upstream droppy-code/), based on the current branch",
       "source_evidence": [
-        "DroppyCode/App/AppModel.swift:1116-1141 createWorktree(for:) - guards on no existing worktree path and a project; requires isRepository and hasCommits; suffix is the first 8 characters of the lowercased thread UUID string; folder is the project name with spaces replaced by \"-\" then lowercased; path is the worktrees directory plus \"<folder>-<suffix>\"; branch is \"droppy-code/\\(suffix)\"; base is await git.status()?.branch",
-        "DroppyCode/Services/Store/Storage.swift:38 and :43-48 - worktreesDirectory is the home directory plus the state directory name plus \"/worktrees\"",
+        "DroppyCode/App/AppModel.swift:1125-1150 createWorktree(for:) - guards on no existing worktree path and a project; requires isRepository and hasCommits; suffix is the first 8 characters of the lowercased thread UUID string; folder is the project name with spaces replaced by \"-\" then lowercased; path is the worktrees directory plus \"<folder>-<suffix>\"; branch is \"droppy-code/\\(suffix)\"; base is await git.status()?.branch",
+        "DroppyCode/Services/Store/Storage.swift:29 and :43-48 - worktreesDirectory is the home directory plus the state directory name plus \"/worktrees\"",
         "DroppyCode/Core/Support/Text.swift:6 - stateDirectoryName is \".droppy-code\", or \".droppy-code-dev\" in development",
         "DroppyCode/App/Views/Chat/ChatView.swift:1357 - the branch menu title is `git.activity ?? git.status?.branch ?? \"Detached\"`, so the worktree branch name is shown; it is also the branch a push and a pull request send to the forge"
       ],
@@ -2995,8 +3003,8 @@
       "depends_on_unknown": null,
       "deviation": {
         "decision": "OD-0012 F1",
-        "upstream": "DroppyCode/App/AppModel.swift:1126 `let branch = \"droppy-code/\\(suffix)\"`, shown as the branch menu title (DroppyCode/App/Views/Chat/ChatView.swift:1357) and sent to the forge when the user pushes or opens a pull request",
-        "port": "The branch is \"marrow/<suffix>\"; the suffix, the folder slug, the base branch, the alerts and the scripts run on worktree creation are unchanged. No source code matches on the branch prefix (AppModel.swift:1126 is its only occurrence), so nothing else changes"
+        "upstream": "DroppyCode/App/AppModel.swift:1135 `let branch = \"droppy-code/\\(suffix)\"`, shown as the branch menu title (DroppyCode/App/Views/Chat/ChatView.swift:1357) and sent to the forge when the user pushes or opens a pull request",
+        "port": "The branch is \"marrow/<suffix>\"; the suffix, the folder slug, the base branch, the alerts and the scripts run on worktree creation are unchanged. No source code matches on the branch prefix (AppModel.swift:1135 is its only occurrence), so nothing else changes"
       }
     },
     {
@@ -3027,10 +3035,10 @@
       "id": "PR-GIT-112",
       "title": "Every git command runs in the thread's worktree when it has one, else the project path",
       "source_evidence": [
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:1254 - let directory = initialThread.worktreePath ?? project.path",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1253 - let directory = initialThread.worktreePath ?? project.path",
         "DroppyCode/App/Runtime/ThreadRuntime.swift:1812 - Git(thread.worktreePath ?? project.path)",
         "DroppyCode/App/Runtime/ThreadRuntime.swift:2016-2017 and :2347-2348 - the same expression",
-        "DroppyCode/App/AppModel.swift:947 and :1118 - Git(project.path) for checkpoint deletion and worktree creation"
+        "DroppyCode/App/AppModel.swift:956 and :1118 - Git(project.path) for checkpoint deletion and worktree creation"
       ],
       "preconditions": "A thread belongs to a project.",
       "action": "Any checkpoint, diff or revert runs.",
@@ -3721,8 +3729,8 @@
       "title": "The popover opens on the control that asked for it: below a tool row, above a review button, and above the tab or composer otherwise",
       "source_evidence": [
         "DroppyCode/App/Views/Diff/DiffInspector.swift:614-625 resolvedAnchor() - the runtime's own anchor and edge when that view is in a window, else the tab's anchor, else the composer fallback, always with the maximum-Y edge",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:362-366 - the anchor is held weakly and the default edge is maxY; 'minY is below (a tool row, as its chevron promises) and maxY is above (a Review button, at the foot of its turn)'",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:383-390 showDiff(on:edge:turn:focusEdits:) - sets the anchor, the edge, the selection, the focus edits, makes the popover visible and bumps the open request"
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:357-361 - the anchor is held weakly and the default edge is maxY; 'minY is below (a tool row, as its chevron promises) and maxY is above (a Review button, at the foot of its turn)'",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:378-385 showDiff(on:edge:turn:focusEdits:) - sets the anchor, the edge, the selection, the focus edits, makes the popover visible and bumps the open request"
       ],
       "preconditions": "An opener asked for the popover.",
       "action": "The anchor is resolved.",
@@ -3746,8 +3754,8 @@
       "id": "PR-GIT-140",
       "title": "The tab, the toolbar button, the shortcut and the palette all open the whole selection and drop any focused file first",
       "source_evidence": [
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:405-412 toggleDiff() - clears the focus, clears the anchor when the popover is not already visible, then toggles visibility",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:392-403 clearDiffFocus() and setDiffFocus(_:) - edits with an empty path are filtered out; the focus revision is bumped only when the set actually changed",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:400-407 toggleDiff() - clears the focus, clears the anchor when the popover is not already visible, then toggles visibility",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:387-398 clearDiffFocus() and setDiffFocus(_:) - edits with an empty path are filtered out; the focus revision is bumped only when the set actually changed",
         "DroppyCode/App/Views/Diff/DiffInspector.swift:34-43 - both selection rows call clearDiffFocus before changing the selection"
       ],
       "preconditions": "The popover may or may not be open.",
@@ -3929,16 +3937,16 @@
       "id": "PR-GIT-147",
       "title": "A turn's touched paths are the agent's own reported edits inside the checkout, plus what the lead's native heads changed",
       "source_evidence": [
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:2354-2361 - each reported edit's path is put through TouchedPaths.relative against the turn's root and only a non-nil result is inserted",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:2362-2370 - the provider's own repository diff is deliberately not part of the record, because it spans every file that changed in the checkout while the turn ran, another chat's work included; the heads' touched paths are then unioned in and cleared",
-        "DroppyCode/Core/Models/Timeline.swift:297-299 - touchedPaths is repository-relative and nil on turns recorded before the field existed",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2396-2403 - each reported edit's path is put through TouchedPaths.relative against the turn's root and only a non-nil result is inserted",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2404-2412 - the provider's own repository diff is deliberately not part of the record, because it spans every file that changed in the checkout while the turn ran, another chat's work included; the heads' touched paths are then unioned in and cleared",
+        "DroppyCode/Core/Models/Timeline.swift:300-302 - touchedPaths is repository-relative and nil on turns recorded before the field existed",
         "DroppyCode/App/Runtime/ThreadRuntime.swift:1924 - `hydraTouched.removeAll()` in revert, so paths pending before a revert never reach the next record",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:2377-2381 - `// (see `hydraCurrentTurnTouchedPaths`). It is cleared in `startTurn`,` / `// `install` and `revert`, not here.` / `hydraCurrentTurnTouchedPaths.formUnion(touched)`",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:622-624 install - `if currentTurnID == nil {` `endDelegationStream()` `hydraCurrentTurnTouchedPaths = []`; :1205 startTurn and :1925 revert - `hydraCurrentTurnTouchedPaths = []`; :3716 rehearseTurn - `hydraCurrentTurnTouchedPaths = Set(touchedPaths)`"
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2419-2423 - `// (see `hydraCurrentTurnTouchedPaths`). It is cleared in `startTurn`,` / `// `install` and `revert`, not here.` / `hydraCurrentTurnTouchedPaths.formUnion(touched)`",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:621-623 install - `if currentTurnID == nil {` `endDelegationStream()` `hydraCurrentTurnTouchedPaths = []`; :1205 startTurn and :1925 revert - `hydraCurrentTurnTouchedPaths = []`; :3716 rehearseTurn - `hydraCurrentTurnTouchedPaths = Set(touchedPaths)`"
       ],
       "preconditions": "A turn is finishing.",
       "action": "The touched-path record is written.",
-      "expected_result": "Every reported edit path is resolved against the turn's working root and kept only when it lies inside the checkout, since a path outside it is no part of the turn and git cannot stage a file it does not hold. The provider's own repository-wide diff is deliberately excluded, because it once caused another chat's file to be merged out under a chat that had changed nothing. The lead's native heads' touched paths are then unioned in, whether they arrived during the turn or between the last finished turn and this one, unless a revert came in between: a revert empties the pending set (PR-GIT-119), so paths reported before it are dropped. The pending set is then cleared. After the record is written, the turn's touched paths are also folded into the in-flight set hydraCurrentTurnTouchedPaths. That set is emptied by startTurn (ThreadRuntime.swift:1205) and by revert (:1925), by install only when no turn is in flight (:622-624, `if currentTurnID == nil { endDelegationStream(); hydraCurrentTurnTouchedPaths = [] }`), and replaced with the rehearsed turn's paths by rehearseTurn (:3716, `hydraCurrentTurnTouchedPaths = Set(touchedPaths)`); the source comment at :2379-2380 names only startTurn, install and revert.",
+      "expected_result": "Every reported edit path is resolved against the turn's working root and kept only when it lies inside the checkout, since a path outside it is no part of the turn and git cannot stage a file it does not hold. The provider's own repository-wide diff is deliberately excluded, because it once caused another chat's file to be merged out under a chat that had changed nothing. The lead's native heads' touched paths are then unioned in, whether they arrived during the turn or between the last finished turn and this one, unless a revert came in between: a revert empties the pending set (PR-GIT-119), so paths reported before it are dropped. The pending set is then cleared. After the record is written, the turn's touched paths are also folded into the in-flight set hydraCurrentTurnTouchedPaths. That set is emptied by startTurn (ThreadRuntime.swift:1204) and by revert (:1925), by install only when no turn is in flight (:622-624, `if currentTurnID == nil { endDelegationStream(); hydraCurrentTurnTouchedPaths = [] }`), and replaced with the rehearsed turn's paths by rehearseTurn (:3716, `hydraCurrentTurnTouchedPaths = Set(touchedPaths)`); the source comment at :2379-2380 names only startTurn, install and revert.",
       "side_effects": [
         "The in-memory set hydraCurrentTurnTouchedPaths gains the turn's touched paths"
       ],
@@ -3959,8 +3967,8 @@
       "id": "PR-GIT-148",
       "title": "The turn record's git fields are decoded field by field with defaults so an older thread still reads",
       "source_evidence": [
-        "DroppyCode/Core/Models/Timeline.swift:283-307 TurnRecord - baseCheckpoint, endCheckpoint, providerDiff, providerAnchor, touchedPaths and hydraMerged",
-        "DroppyCode/Core/Models/Timeline.swift:309-329 - every field is read with an explicit default, 'so a turn stored by an earlier build, which knew nothing of the newest of them, still reads as the turn it was rather than being dropped'"
+        "DroppyCode/Core/Models/Timeline.swift:286-310 TurnRecord - baseCheckpoint, endCheckpoint, providerDiff, providerAnchor, touchedPaths and hydraMerged",
+        "DroppyCode/Core/Models/Timeline.swift:312-332 - every field is read with an explicit default, 'so a turn stored by an earlier build, which knew nothing of the newest of them, still reads as the turn it was rather than being dropped'"
       ],
       "preconditions": "A thread document is being read.",
       "action": "Turn records are decoded.",
@@ -3987,7 +3995,7 @@
         "DroppyCode/Core/Models/Library.swift:135-136 - worktreePath and branch on the thread",
         "DroppyCode/App/AppSettings.swift:144 - the key literal \"commitInstructions\"",
         "DroppyCode/App/AppSettings.swift:305-306 and :730 - the property writes through to the defaults on change and loads with an empty-string default",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:841-857 - `ChromeSection(title: \"Commit message instructions\")` holding `TextEditor(text: $settings.commitInstructions)` and, while it is empty, `Text(\"For example: use conventional commit prefixes\")`"
+        "DroppyCode/App/Views/Settings/SettingsView.swift:818-834 - `ChromeSection(title: \"Commit message instructions\")` holding `TextEditor(text: $settings.commitInstructions)` and, while it is empty, `Text(\"For example: use conventional commit prefixes\")`"
       ],
       "preconditions": "None.",
       "action": "A worktree is created, or commit instructions are typed.",
@@ -4011,7 +4019,7 @@
       "id": "PR-GIT-150",
       "title": "The source control settings page states where worktrees live and which CLIs open pull requests, and reveals the folder",
       "source_evidence": [
-        "DroppyCode/App/Views/Settings/SettingsView.swift:859-869 - the section \"Worktrees and pull requests\"; a row titled \"Worktrees\" whose detail is the worktrees directory path with a \"Reveal\" button; a row titled \"Pull requests\" whose detail is \"Opened with the GitHub CLI (gh) or GitLab CLI (glab) from your PATH.\" and no control"
+        "DroppyCode/App/Views/Settings/SettingsView.swift:836-846 - the section \"Worktrees and pull requests\"; a row titled \"Worktrees\" whose detail is the worktrees directory path with a \"Reveal\" button; a row titled \"Pull requests\" whose detail is \"Opened with the GitHub CLI (gh) or GitLab CLI (glab) from your PATH.\" and no control"
       ],
       "preconditions": "The settings window is open on the source control page.",
       "action": "The user reads or presses Reveal.",
@@ -4085,15 +4093,15 @@
       "id": "PR-GIT-159",
       "title": "The in-app GitLab merge passes --squash to glab",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:216 - `case .gitlab: result = try await Shell.run(tool: \"glab\", [\"mr\", \"merge\", number, \"--yes\", \"--squash\", \"--remove-source-branch\"], in: directory, timeout: 300)`",
-        "DroppyCode/App/AppModel+HydraMerge.swift:372-373 - `/// retried once with `--recover` so its saved options are picked up. Squash and` / `/// source-branch removal are explicit for GitLab team merges.`",
-        "DroppyCode/App/AppModel+HydraMerge.swift:382 - `var arguments = [\"mr\", \"create\", \"--title\", title, \"--description\", body, \"--yes\", \"--squash-before-merge\"]`",
-        "DroppyCode/App/AppModel+HydraMerge.swift:320 - `try await git.mergePullRequest(link)`",
-        "B1 DroppyCode/Services/Git/Git.swift:216 - `case .gitlab: result = try await Shell.run(tool: \"glab\", [\"mr\", \"merge\", number, \"--yes\"], in: directory, timeout: 300)`"
+        "DroppyCode/Services/Git/Git.swift:237 - `case .gitlab: result = try await Shell.run(tool: \"glab\", [\"mr\", \"merge\", number, \"--yes\", \"--squash\", \"--remove-source-branch\"], in: directory, timeout: 300)`",
+        "DroppyCode/App/AppModel+HydraMerge.swift:431-432 - `/// retried once with `--recover` so its saved options are picked up. Squash and` / `/// source-branch removal are explicit for GitLab team merges.`",
+        "DroppyCode/App/AppModel+HydraMerge.swift:441 - `var arguments = [\"mr\", \"create\", \"--title\", title, \"--description\", body, \"--yes\", \"--squash-before-merge\"]`",
+        "DroppyCode/App/AppModel+HydraMerge.swift:369 - `try await git.mergePullRequest(link)`",
+        "B1 DroppyCode/Services/Git/Git.swift:237 - `case .gitlab: result = try await Shell.run(tool: \"glab\", [\"mr\", \"merge\", number, \"--yes\"], in: directory, timeout: 300)`"
       ],
       "preconditions": "The project's origin is a GitLab forge and the Hydra team merge has opened a merge request and parsed its link.",
       "action": "The team merge lands the request through glab.",
-      "expected_result": "glab receives \"--squash\" as the fifth argv element, after \"mr\", \"merge\", <number> and \"--yes\" and before \"--remove-source-branch\", on every attempt of the retry loop. The source's own comment calls this explicit: \"Squash and source-branch removal are explicit for GitLab team merges.\" (AppModel+HydraMerge.swift:372-373); the request the team merge created also carries \"--squash-before-merge\". The source only passes the flag; how GitLab answers it, for example under a project's squash setting, is not established by the source. At B1 the argv was [\"mr\", \"merge\", number, \"--yes\"], with neither \"--squash\" nor \"--remove-source-branch\".",
+      "expected_result": "glab receives \"--squash\" as the fifth argv element, after \"mr\", \"merge\", <number> and \"--yes\" and before \"--remove-source-branch\", on every attempt of the retry loop. The source's own comment calls this explicit: \"Squash and source-branch removal are explicit for GitLab team merges.\" (AppModel+HydraMerge.swift:431-432); the request the team merge created also carries \"--squash-before-merge\". The source only passes the flag; how GitLab answers it, for example under a project's squash setting, is not established by the source. At B1 the argv was [\"mr\", \"merge\", number, \"--yes\"], with neither \"--squash\" nor \"--remove-source-branch\".",
       "side_effects": [
         "Network: glab asks GitLab to merge the request, passing --squash and --remove-source-branch"
       ],
@@ -4113,9 +4121,9 @@
       "id": "PR-GIT-160",
       "title": "The in-app GitLab merge asks GitLab to remove the source branch, while the agent-facing merge prompt still does not",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:216 - `case .gitlab: result = try await Shell.run(tool: \"glab\", [\"mr\", \"merge\", number, \"--yes\", \"--squash\", \"--remove-source-branch\"], in: directory, timeout: 300)`",
-        "DroppyCode/App/AppModel+HydraMerge.swift:372-373 - `/// retried once with `--recover` so its saved options are picked up. Squash and` / `/// source-branch removal are explicit for GitLab team merges.`",
-        "DroppyCode/App/AppModel+HydraMerge.swift:391 - `arguments += [\"--source-branch\", source, \"--target-branch\", target]`: the source branch is the branch the team merge pushed (:300 `try await git.pushBranch(branch)`)",
+        "DroppyCode/Services/Git/Git.swift:237 - `case .gitlab: result = try await Shell.run(tool: \"glab\", [\"mr\", \"merge\", number, \"--yes\", \"--squash\", \"--remove-source-branch\"], in: directory, timeout: 300)`",
+        "DroppyCode/App/AppModel+HydraMerge.swift:431-432 - `/// retried once with `--recover` so its saved options are picked up. Squash and` / `/// source-branch removal are explicit for GitLab team merges.`",
+        "DroppyCode/App/AppModel+HydraMerge.swift:450 - `arguments += [\"--source-branch\", source, \"--target-branch\", target]`: the source branch is the branch the team merge pushed (:300 `try await git.pushBranch(branch)`)",
         "DroppyCode/Core/Models/MergeRequestLink.swift:50 - `\"Use glab from this directory: `glab mr merge \\(number) --yes`. If GitLab answers that the request is still being checked (a 405), wait a few seconds and try again; if it reports conflicts, stop and say so instead of resolving them.\"`"
       ],
       "preconditions": "The project's origin is a GitLab forge and the Hydra team merge has opened a merge request and parsed its link.",
@@ -4135,6 +4143,172 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
+    },
+    {
+      "id": "PR-GIT-161",
+      "title": "createPullRequest falls back to the existing request's URL, for every forge, before throwing on a non-zero exit",
+      "source_evidence": [
+        "DroppyCode/Services/Git/Git.swift:192-196 - `if !result.succeeded, let existing = Self.existingRequestURL(in: result, web: await remoteWebURL()) { return existing }`, then `try Self.check(result)`",
+        "DroppyCode/Services/Git/Git.swift:174-200 createPullRequest(title:body:source:target:) - the fallback runs after the per-forge switch (:176-192) and before the https-URL scrape of a successful result (:197-199)"
+      ],
+      "preconditions": "The forge CLI (glab, gh or tea) has been run and returned a non-zero result.",
+      "action": "createPullRequest's forge CLI call fails.",
+      "expected_result": "remoteWebURL() is awaited (a network-free read of the configured origin remote, not a request), and its result plus the failed ShellResult are passed to the static existingRequestURL(in:web:) (PR-GIT-162). When that returns a non-nil URL, createPullRequest returns it directly and never throws. Only when it returns nil does the non-zero result go to Self.check(result), which throws ShellError(failureMessage). This runs identically for GitLab, GitHub and Gitea.",
+      "side_effects": [
+        "None beyond the already-failed forge CLI call"
+      ],
+      "persistence": "None.",
+      "failure_cases": [
+        "existingRequestURL finds nothing: the original non-zero exit throws exactly as before B3"
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "Direct port; no platform-specific behavior.",
+      "verification_method": "contract fixture: a scripted forge CLI shim exits non-zero with an \"already exists\"-shaped message and the call returns the parsed URL instead of throwing; a shim that exits non-zero with an unrelated message still throws",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null,
+      "b3_note": "New at B3 (Git.swift:192-196). Before B3 any non-zero forge exit threw unconditionally."
+    },
+    {
+      "id": "PR-GIT-162",
+      "title": "existingRequestURL(in:web:) reads a forge's \"request already exists\" refusal and recovers that request's URL",
+      "source_evidence": [
+        "DroppyCode/Services/Git/Git.swift:205-218 static existingRequestURL(in:web:) - `let text = result.output + \"\\n\" + result.errorOutput; guard text.lowercased().contains(\"already exist\") else { return nil }`",
+        "DroppyCode/Services/Git/Git.swift:208-210 - `if let match = text.firstMatch(of: #/https://\\S+/#), let url = URL(string: String(match.output)) { return url }`",
+        "DroppyCode/Services/Git/Git.swift:211-217 - `guard let match = text.firstMatch(of: #/!(\\d+)/#), var web else { return nil }`, then credentials are stripped via URLComponents when web.user is non-nil, and the result is `web.appending(path: \"-/merge_requests/\\(match.1)\")`"
+      ],
+      "preconditions": "None; a pure function of the ShellResult and an optional web URL.",
+      "action": "A forge CLI call that opens a request fails.",
+      "expected_result": "The combined stdout+\"\\n\"+stderr is tested case-insensitively for the substring \"already exist\"; anything else returns nil regardless of exit code content. When that gate passes: first, the first substring matching `https://\\S+` (a plain regex scan, not anchored to the whole text) is parsed as a URL and returned if it parses (this is GitHub's and Gitea's shape, which print the existing request's address). Otherwise, the first substring matching `!(\\d+)` is read as a GitLab request number; if no such match exists, or no web URL was supplied, the function returns nil. Otherwise, when the web URL carries a user component, its user and password are stripped via URLComponents (falling back to the original web URL if that reconstruction fails), and the function returns that URL with path component \"-/merge_requests/<n>\" appended, `<n>` being the captured digits with no leading \"!\".",
+      "side_effects": [
+        "None; pure"
+      ],
+      "persistence": "None.",
+      "failure_cases": [
+        "Text with no \"already exist\" substring: nil",
+        "\"already exist\" present but neither an https URL nor a \"!<n>\" pattern: nil",
+        "A \"!<n>\" match with no web URL argument: nil"
+      ],
+      "cancellation": "not cancellable; pure function",
+      "windows_path": "Direct port of the regex matches and URLComponents credential stripping; SwiftURL.appending(path:) must keep the leading \"-/\" segment of \"-/merge_requests/<n>\" intact.",
+      "verification_method": "unit: table test over (text, web) pairs covering the https-URL case, the GitLab \"!<n>\" case with and without embedded credentials, and the three nil cases",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null,
+      "b3_note": "New static helper at B3 (Git.swift:205-218). Used by createPullRequest (PR-GIT-161) and, per R3-01, by AppModel+HydraMerge's merge-request error handling (B3 AppModel+HydraMerge.swift:460-462, HYDRAMERGE area)."
+    },
+    {
+      "id": "PR-GIT-163",
+      "title": "captureTree(paths:onto:from:) builds a tree of the team's paths rebased onto the remote's current state, in a scratch index",
+      "source_evidence": [
+        "DroppyCode/Services/Git/Git.swift:289-304 captureTree(paths:onto:from:) - a droppy-code-rebase-<UUID> scratch directory (removed whole in a defer), GIT_INDEX_FILE set to scratch/index, `run([\"read-tree\", base], environment:)`",
+        "DroppyCode/Services/Git/Git.swift:298-303 - upstream = the set of paths `git diff --name-only --no-renames -z <head> <base>` names; paths split into clean (not in upstream) and contested (in upstream); clean paths staged with the pathspec-file add at 300 s only when clean is non-empty",
+        "DroppyCode/Services/Git/Git.swift:342-345 - `write-tree`, checked, returns (tree, merged)"
+      ],
+      "preconditions": "head is an ancestor of, or equal to, the checkout's own history; base is the commit to rebase onto (the remote's current target branch tip).",
+      "action": "A Hydra team merge prepares the tree it will push, on top of what the remote has done since the checkout last read it.",
+      "expected_result": "A fresh scratch directory holds a private index at <scratch>/index; the whole directory is removed in a defer regardless of how the function returns. The index starts from base's tree via read-tree. Renames between head and base are treated as a delete plus an add (--no-renames), so a file the remote moved counts as changed. paths not touched between head and base (\"clean\") are staged directly with the same pathspec-file add used by captureTree(paths:) (PR-GIT-005/persisted id), at 300 s, and only when the clean list is non-empty. paths the remote also touched (\"contested\") go through the per-path resolution in PR-GIT-164. The final write-tree yields the tree hash returned as the tuple's first element; the second element is the merged blob contents from PR-GIT-165's three-way merges, keyed by path, for the checkout to write back once the work lands (STORE/HYDRAMERGE area, syncDefaultBranch).",
+      "side_effects": [
+        "A scratch directory and index file under the system temporary directory (removed on return)"
+      ],
+      "persistence": "None; the scratch is temporary and the result is an in-memory tree hash plus blob map.",
+      "failure_cases": [
+        "Any staging or write-tree git invocation failing throws via Self.check",
+        "A contested path that cannot be resolved (PR-GIT-164 cases returning nil, or a failed three-way merge in PR-GIT-165) makes the whole function return nil, not throw"
+      ],
+      "cancellation": "not cancellable at this layer",
+      "windows_path": "Use the Windows temporary directory for the scratch directory; GIT_INDEX_FILE takes a native path. Directory removal must succeed even when a file inside it is still notionally in use by a just-finished git process.",
+      "verification_method": "a CaptureTree onto matrix against a real temporary repository: clean paths only, no contested paths, and each PR-GIT-164 contested case, asserting the final tree contents and that the scratch directory is gone afterward",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null,
+      "b3_note": "New function at B3 (Git.swift:289-345), the core of the team-merge rebase-onto-remote behavior; see HYDRAMERGE's AppModel+HydraMerge.swift reclassifications for its only caller."
+    },
+    {
+      "id": "PR-GIT-164",
+      "title": "captureTree(paths:onto:from:) resolves each contested path by comparing the remote's, the ancestor's and the working tree's content",
+      "source_evidence": [
+        "DroppyCode/Services/Git/Git.swift:305-341 - for each contested path: ancestor = blobData(head, path), remote = blobData(base, path), working = the working-tree file's bytes or nil; a switch on (remote, working)",
+        "DroppyCode/Services/Git/Git.swift:311-313 - (nil, nil): continue (skip; the base already lacks it as the team's history does)",
+        "DroppyCode/Services/Git/Git.swift:314-317 - (remote?, nil): the team deleted it; allowed only when remote == ancestor, staged with `rm --cached --quiet --ignore-unmatch --`; otherwise falls through to the function returning nil",
+        "DroppyCode/Services/Git/Git.swift:318-320 - (nil, working?): the remote deleted a file the team kept or changed; the whole function returns nil",
+        "DroppyCode/Services/Git/Git.swift:321-324 - (remote?, working?): identical content (remote == working) continues (skip); when ancestor is nil (added differently on both sides) the whole function returns nil; otherwise the pair is three-way merged (PR-GIT-165)"
+      ],
+      "preconditions": "Reached only for a path present in the diff between head and base (PR-GIT-163's \"contested\" set).",
+      "action": "captureTree(paths:onto:from:) reaches a path the remote also touched since head.",
+      "expected_result": "Both sides gone (remote nil, working nil): the path is skipped; nothing is staged for it. The team deleted it but the remote kept it (remote non-nil, working nil): allowed only when the remote's content still equals the pre-rebase ancestor's, in which case the deletion is staged with `git rm --cached --quiet --ignore-unmatch -- <path>`; when the remote changed that file since the ancestor, the whole captureTree(paths:onto:from:) call returns nil (no partial tree). The remote deleted a file the team kept or changed (remote nil, working non-nil): the whole call returns nil. Both sides have content: identical content is a no-op; content added independently with no ancestor version returns nil for the whole call; otherwise the three-way merge in PR-GIT-165 runs.",
+      "side_effects": [
+        "A staged removal for the allowed team-delete case"
+      ],
+      "persistence": "None beyond the scratch index PR-GIT-163 owns.",
+      "failure_cases": [
+        "Any of the three nil-returning cases aborts the entire captureTree(paths:onto:from:) call, discarding whatever else it resolved"
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "Direct port of the switch's case order and each branch's git invocation.",
+      "verification_method": "part of the PR-GIT-163 CaptureTree onto matrix: skip, team-delete accepted, team-delete refused, remote-delete, add/add-differently",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null,
+      "b3_note": "New at B3, inside captureTree(paths:onto:from:) (Git.swift:305-341)."
+    },
+    {
+      "id": "PR-GIT-165",
+      "title": "captureTree(paths:onto:from:) three-way merges a path both sides changed, with git merge-file, and stages the result",
+      "source_evidence": [
+        "DroppyCode/Services/Git/Git.swift:325-339 - current/common/other files written into the scratch directory from the working tree, the ancestor blob and the remote blob; `run([\"merge-file\", \"--quiet\", \"--\", current.path, common.path, other.path])` with no GIT_INDEX_FILE environment",
+        "DroppyCode/Services/Git/Git.swift:333-339 - a non-zero merge-file result returns nil for the whole function; on success the merged bytes are read back from current, hashed with `hash-object -w --stdin` (which writes the object even though the call can still later return nil for an unrelated later path), and staged with `update-index --add --cacheinfo \"<mode>,<hash>,<path>\"` where mode is fileMode(base, path) (PR-GIT-166) or \"100644\" when that returns nil"
+      ],
+      "preconditions": "A contested path where both the remote and the working tree have content, the two differ, and an ancestor blob exists (PR-GIT-164's fourth case).",
+      "action": "A path both the team and the remote changed since the shared ancestor is merged.",
+      "expected_result": "The working tree's bytes, the ancestor's blob and the remote's blob are written to three scratch files (current, common, other) inside the same droppy-code-rebase-<UUID> directory. `git merge-file --quiet -- <current> <common> <other>` runs with no GIT_INDEX_FILE override, at the 120 s default timeout; exit 0 means a clean merge was written into current, and anything above 0 makes captureTree(paths:onto:from:) return nil for the whole call. On success, current's bytes are read back, written as a git blob with `hash-object -w --stdin` (checked; this writes the object into the repository's object store even on a path that is later abandoned because some other contested path fails), staged into the scratch index with `update-index --add --cacheinfo <mode>,<hash>,<path>` where mode comes from fileMode(base, path) or defaults to \"100644\", and the merged bytes are recorded in the returned merged dictionary under path.",
+      "side_effects": [
+        "Three scratch files written and left for the scratch directory's defer to remove",
+        "A git blob object is written into the repository's object database even when the overall call later returns nil"
+      ],
+      "persistence": "The written blob persists in the repository's object store (unreachable garbage if the merge is later abandoned) until git gc.",
+      "failure_cases": [
+        "merge-file exits non-zero (conflict markers would be needed): the whole captureTree(paths:onto:from:) call returns nil"
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "merge-file, hash-object and update-index run without the scratch GIT_INDEX_FILE for merge-file specifically (per source), but update-index and hash-object still need the scratch environment. Preserve exactly which calls receive `environment:` and which do not.",
+      "verification_method": "part of the PR-GIT-163 CaptureTree onto matrix: a clean content merge (asserting the staged mode and hash) and a genuine conflict (asserting nil)",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null,
+      "b3_note": "New at B3, inside captureTree(paths:onto:from:) (Git.swift:321-339)."
+    },
+    {
+      "id": "PR-GIT-166",
+      "title": "blobData and fileMode read a single path's content and mode at a commit, or nil",
+      "source_evidence": [
+        "DroppyCode/Services/Git/Git.swift:348-351 private blobData(_:_:) - `run([\"cat-file\", \"blob\", \"\\(commit):\\(path)\"])`; returns result.stdout on success, else nil",
+        "DroppyCode/Services/Git/Git.swift:354-359 private fileMode(_:_:) - `output([\"ls-tree\", \"-z\", commit, \"--\", path])`, takes the first NUL-separated entry, then its first space-separated field, as the mode string; nil when the listing is empty or malformed"
+      ],
+      "preconditions": "None; both take a commit-ish and a repository-relative path.",
+      "action": "captureTree(paths:onto:from:) needs a path's bytes or mode at a specific commit.",
+      "expected_result": "blobData runs `git cat-file blob <commit>:<path>` and returns its raw stdout bytes when the command succeeds, or nil when it fails (the path does not exist at that commit, or the commit does). fileMode runs `git ls-tree -z <commit> -- <path>`, splits the output on NUL, takes the first entry, splits that entry on spaces and takes the first field as the mode (e.g. \"100644\", \"100755\"); it returns nil when the listing is empty, has no NUL-separated entry, or that entry has no space-separated field.",
+      "side_effects": [
+        "None; read-only git invocations"
+      ],
+      "persistence": "None.",
+      "failure_cases": [
+        "A path absent at that commit: nil from both helpers",
+        "cat-file or ls-tree failing for any other reason: nil, not a thrown error"
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "Direct port; both are simple argv builds with no path-separator concerns beyond the existing `<commit>:<path>` colon-joined argument, which stays one argv element exactly as PR-GIT-031's refspec does.",
+      "verification_method": "unit: blobData and fileMode against a fixture repository, for an existing path, a path added later, and a path with mode 100755",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null,
+      "b3_note": "New private helpers at B3 (Git.swift:347-359), used only by captureTree(paths:onto:from:) (PR-GIT-163, PR-GIT-165)."
     }
   ],
   "ui": [
@@ -4295,7 +4469,7 @@
       ],
       "interactions": [],
       "source_evidence": [
-        "DroppyCode/UI/Common/Components.swift:45-56",
+        "DroppyCode/UI/Common/Components.swift:43-54",
         "DroppyCode/UI/Chrome/Chrome.swift:91-93",
         "B1:DroppyCode/UI/Common/ChatZoom.swift:54 - `case .footnote, .caption, .caption2: 10` (ED-059: upstream's table of the size each text style is laid out at)"
       ],
@@ -5085,7 +5259,7 @@
       ],
       "source_evidence": [
         "DroppyCode/App/Views/Chat/ChatView.swift:1375-1379",
-        "DroppyCode/App/AppModel.swift:1116-1141"
+        "DroppyCode/App/AppModel.swift:1125-1150"
       ],
       "notes": "Once the thread has a single turn the row disappears, so a thread's working directory never changes mid-conversation."
     },
@@ -5425,8 +5599,8 @@
         "\"Delete thread and worktree\" also removes the worktree"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Sidebar/SidebarView.swift:966-984",
-        "DroppyCode/App/AppModel.swift:934-957"
+        "DroppyCode/App/Views/Sidebar/SidebarView.swift:965-983",
+        "DroppyCode/App/AppModel.swift:943-966"
       ],
       "notes": "The note is the thread's title in typographic double quotes, then \" and its history will be removed. Files in your project stay as they are.\" The quotes are U+201C and U+201D, not straight quotes. Checkpoints are deleted on both choices."
     },
@@ -5446,7 +5620,7 @@
         "type; every change writes through to the stored setting immediately"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Settings/SettingsView.swift:841-857 - `ChromeSection(title: \"Commit message instructions\") { ChromeCard { ZStack(alignment: .topLeading) { TextEditor(text: $settings.commitInstructions).font(.system(.body)).scrollContentBackground(.hidden).frame(minHeight: 90)`; `if settings.commitInstructions.isEmpty { Text(\"For example: use conventional commit prefixes\").font(.system(.body)).foregroundStyle(Chrome.secondaryText).padding(.horizontal, 5).allowsHitTesting(false) } }` `.padding(12)`",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:818-834 - `ChromeSection(title: \"Commit message instructions\") { ChromeCard { ZStack(alignment: .topLeading) { TextEditor(text: $settings.commitInstructions).font(.system(.body)).scrollContentBackground(.hidden).frame(minHeight: 90)`; `if settings.commitInstructions.isEmpty { Text(\"For example: use conventional commit prefixes\").font(.system(.body)).foregroundStyle(Chrome.secondaryText).padding(.horizontal, 5).allowsHitTesting(false) } }` `.padding(12)`",
         "DroppyCode/App/AppSettings.swift:144",
         "DroppyCode/App/AppSettings.swift:305-306",
         "B1:DroppyCode/UI/Common/ChatZoom.swift:51 - `case .headline, .body: 13` (ED-059: upstream's table of the size each text style is laid out at)"
@@ -5468,13 +5642,13 @@
         "\"Reveal\" opens the worktrees folder in the file browser"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Settings/SettingsView.swift:859-869",
-        "DroppyCode/Services/Store/Storage.swift:38"
+        "DroppyCode/App/Views/Settings/SettingsView.swift:836-846",
+        "DroppyCode/Services/Store/Storage.swift:29"
       ],
       "notes": "First row title \"Worktrees\", detail the resolved worktrees folder path, button \"Reveal\". Second row title \"Pull requests\", detail exactly \"Opened with the GitHub CLI (gh) or GitLab CLI (glab) from your PATH.\" Note the detail omits tea even though the Gitea family is supported by the code. OD-0005: on Windows this glass material follows the owner's glass ruling (Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content).",
       "deviation": {
         "decision": "OD-0005",
-        "upstream": "Reveal `.buttonStyle(.glass)` (DroppyCode/App/Views/Settings/SettingsView.swift:863), macOS Liquid Glass",
+        "upstream": "Reveal `.buttonStyle(.glass)` (DroppyCode/App/Views/Settings/SettingsView.swift:840), macOS Liquid Glass",
         "port": "Acrylic-class Windows system material where the window shows the desktop, without lensing, refraction or chromatic fringing; over the app's own content a shader reproduces the source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing"
       }
     },
@@ -5497,8 +5671,8 @@
         "DroppyCode/App/Views/Chat/ChatView.swift:1499",
         "DroppyCode/App/Views/Chat/ChatView.swift:1521",
         "DroppyCode/App/Views/Chat/ChatView.swift:1645",
-        "DroppyCode/App/AppModel.swift:1120",
-        "DroppyCode/App/AppModel.swift:1139"
+        "DroppyCode/App/AppModel.swift:1129",
+        "DroppyCode/App/AppModel.swift:1148"
       ],
       "notes": "The seven titles in this area are exactly: \"Could not switch branch\", \"Could not create branch\", \"Push failed\", \"Could not open a pull request\", \"Commit failed\", \"Worktree unavailable\" and \"Could not create a worktree\". Every body is the thrown error's description, which for a git failure is the trimmed stderr, else the trimmed stdout, else \"The command failed with exit code <n>.\" The one fixed body is the worktree one: \"New worktrees need a git repository with at least one commit.\""
     }
