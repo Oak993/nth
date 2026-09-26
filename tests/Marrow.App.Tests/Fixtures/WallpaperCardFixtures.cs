@@ -1,3 +1,4 @@
+using System.Reflection;
 using Avalonia;
 using Avalonia.Automation.Peers;
 using Avalonia.Automation.Provider;
@@ -148,10 +149,30 @@ public sealed class WallpaperCardScope : IDisposable
     {
         Window.Close();
         Dispatcher.UIThread.RunJobs();
+        CancelPendingRenders();
         for (var i = overrides.Count - 1; i >= 0; i--) overrides[i].Dispose();
         try { Directory.Delete(baseFolder, recursive: true); }
         catch (IOException) { }
         catch (UnauthorizedAccessException) { }
+    }
+
+    // Test-only cleanup, no Swift twin: WallpaperStore has no public "cancel everything" method (production never
+    // needs one; the real app just exits). A test that installs a picture or drags the softness slider leaves a
+    // renderTask or liveTask (Wallpaper.cs:66,69) running in the background; without this, that task can still be
+    // mid-flight when this scope disposes, and its MainActor.Run(() => ... Image = ToImage(rendered) ...) callback
+    // (Wallpaper.cs:236-242, :273-277) then fires later, after a DIFFERENT concurrently running xUnit collection
+    // has moved the shared Avalonia headless session on - observed crashing the whole test host with "Unable to
+    // locate IPlatformRenderInterface" blamed on unrelated tests (AppUpdaterInstallTests, this class itself) under
+    // the parallel suite. Cancelling both tasks here, the same way UpdateCheckerSecondTests.StopBackgroundChecksForTest
+    // reaches into a field production exposes no stop method for, makes each test own the background work it
+    // started instead of leaving it to finish on its own schedule. This narrows the crash window (SwiftTask.IsCancelled
+    // is checked before Image is ever set) but is cooperative, like every other TaskHandle.Cancel in this tree: it
+    // cannot interrupt a callback already past that check at the moment of disposal.
+    private void CancelPendingRenders()
+    {
+        var type = typeof(WallpaperStore);
+        (type.GetField("renderTask", BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(Store) as TaskHandle)?.Cancel();
+        (type.GetField("liveTask", BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(Store) as TaskHandle)?.Cancel();
     }
 }
 
