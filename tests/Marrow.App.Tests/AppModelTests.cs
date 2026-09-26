@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Text;
 using Marrow.App.Tests.Fixtures;
 using Marrow.Core.Models;
@@ -521,6 +522,59 @@ public sealed class AppModelTests
         Assert.NotEqual(firstSaved, secondSaved); // a second save landed: the stream was not starved
     }
 
+    // Review fix (finding #4, MEDIUM): no test showed that a DIRECT saveLibrary() call (reached from settle,
+    // reopen or delete, not through the scheduler) resets the throttle the same way a scheduled save landing
+    // does. saveLibrary() (App/AppModel.swift:1316-1318) stamps lastLibrarySave unconditionally, whether it
+    // runs at the end of a scheduled wait (:1312) or is called directly (settle :815, reopen :834, delete
+    // :965). This test uses Settle as the direct-save trigger; reopen and delete stamp lastLibrarySave through
+    // the exact same saveLibrary() call and are not re-tested here for that reason.
+    //
+    // A subtlety this test has to route around: settle (like reopen and delete) reaches its trailing direct
+    // saveLibrary() call (:815) only after updateThread (:714-721) has already mutated the thread and called
+    // scheduleSave() itself (its own ordinary path, unconditional on any change). So settle always leaves a
+    // saveTask already pending by the time its direct saveLibrary() call runs. If that pending task's wait
+    // were still the first-ever-save 400 ms floor, the mutation right after Settle would ride that 400 ms
+    // task, not a fresh ~4 s one, which would make this test indistinguishable from an ordinary throttle test
+    // and prove nothing about the direct-save stamp. To isolate what the record actually claims, this test
+    // first lets an ordinary scheduled save land (so lastLibrarySave is already recent when Settle runs);
+    // updateThread's own scheduleSave call inside Settle then computes a ~4 s wait from that recent stamp,
+    // and it is THAT pending task - armed by settle's internal update, timed from settle's direct save - that
+    // the immediately following UpdateProject rides, proving the direct save reset the throttle to ~4 s.
+    [Fact]
+    [Trait("Req", "PR-STORE-015")] // App/AppModel.swift:714-721 (updateThread schedules), :787-807 (Settle saves directly), :1316-1318
+    public void ScheduleSave_soon_after_a_direct_save_settle_reopen_or_delete_waits_nearly_four_seconds_not_the_400_ms_floor()
+    {
+        using var h = new AppModelHarness();
+        var project = AppModelSamples.Project("P", h.NewFolder("p"));
+        var thread = AppModelSamples.Thread(project);
+        h.WriteLibrary([project], [thread]);
+        var model = h.MakeModel();
+
+        // Let one ordinary save land first, so lastLibrarySave is recent (not nil) when Settle runs below.
+        h.Main.OnMain(() => model.UpdateProject(project.Id, p => p with { Name = "Warm" }));
+        h.Main.AdvanceMilliseconds(400);
+        DiskWriter.Shared.WaitForQueuedWrites();
+        Assert.Equal("Warm", Assert.Single(AppModelHarness.LoadedLibrary().Projects).Name);
+
+        // Settle's own updateThread call schedules a save computed from the just-landed lastLibrarySave
+        // (~4 s, not the 400 ms floor); its trailing saveLibrary() call (:815) then writes the settled state
+        // immediately and re-stamps lastLibrarySave, without touching that pending task.
+        h.Main.OnMain(() => model.Settle(thread.Id, sounds: false));
+        DiskWriter.Shared.WaitForQueuedWrites();
+        Assert.True(AppModelHarness.LoadedLibrary().Threads.Single(t => t.Id == thread.Id).IsSettled);
+
+        // A change right after Settle rides that already-pending ~4 s task (scheduleSave is a no-op while one
+        // is pending), not a fresh 400 ms one.
+        h.Main.OnMain(() => model.UpdateProject(project.Id, p => p with { Name = "Renamed" }));
+        h.Main.AdvanceMilliseconds(3800); // ~3.8 s after Settle: short of the ~4 s wait
+        DiskWriter.Shared.WaitForQueuedWrites();
+        Assert.Equal("Warm", Assert.Single(AppModelHarness.LoadedLibrary().Projects).Name); // not written yet
+
+        h.Main.AdvanceMilliseconds(200); // ~4000 ms after Settle's direct save
+        DiskWriter.Shared.WaitForQueuedWrites();
+        Assert.Equal("Renamed", Assert.Single(AppModelHarness.LoadedLibrary().Projects).Name);
+    }
+
     // ===== PR-LAUNCH-053 to PR-LAUNCH-056: saveBeforeQuit =====
 
     [Fact]
@@ -858,10 +912,14 @@ public sealed class AppModelTests
         h.Main.OnMain(() => Assert.NotNull(model.ExistingRuntime(later.Id)));
     }
 
+    // Review fix (finding #3, HIGH): the PR-LAUNCH-085 trait this test used to carry proved nothing about the
+    // record it named. AppModelHarness.PrepareBootstrap gives every CLI provider a missing custom binary path,
+    // so IsInstalled reads false for both claude and codex here regardless of whether step nine's un-awaited
+    // task ever ran, and this test's own assertions (old attachment gone, young one kept) never touch step
+    // nine at all. Trait removed; see the STOP note below for why PR-LAUNCH-085 stays unproven.
     [Fact]
     [Trait("Req", "PR-LAUNCH-045")] // App/AppModel.swift:283-286; Services/Store/Storage.swift:117-148
     [Trait("Req", "PR-STORE-072")] // App/AppModel.swift:274-287
-    [Trait("Req", "PR-LAUNCH-085")] // App/AppModel.swift:275-282 (B3): the new ninth step does not delay this, the tenth
     public void Bootstrap_ends_by_removing_attachment_files_no_thread_names_that_are_older_than_a_day()
     {
         using var h = new AppModelHarness();
@@ -894,12 +952,26 @@ public sealed class AppModelTests
     // Claude nor Codex ever reads as installed in this harness: the ninth step's loop (AppModel.swift:279) skips
     // both without ProviderRegistry.UpdateCLIIfDue (or a real "claude"/"codex" process) ever being reached. That
     // leaves the installed/gated run of UpdateCLIIfDue itself to ProviderRegistryCLIUpdateTests.cs (A23), which
-    // proves its gates and its run under scripted stand-ins; what this test proves at the AppModel layer is the
-    // sequencing the record specifies: step nine starts and finishes (doing nothing, here) without the step ten
-    // sweep - awaited by Bootstrap() - ever being blocked by it, and that step nine never marks a provider as
-    // updating when neither is installed.
+    // proves its gates and its run under scripted stand-ins; what this test proves at the AppModel layer is only
+    // the not-installed path: step nine starts and finishes (doing nothing, here) without the step ten sweep -
+    // awaited by Bootstrap() - ever being blocked by it, and that step nine never marks a provider as updating
+    // when neither is installed. It cannot fail on a wrong or missing step nine, so no PR-LAUNCH-085 trait.
+    //
+    // STOP (review fix, finding #3, HIGH): PR-LAUNCH-085's verification_method calls for proving, from the
+    // installed case, that step nine starts an un-awaited task and that bootstrap's tenth step (the orphan
+    // sweep) begins without waiting for it - i.e. claude's "update" running before codex's, a not-installed
+    // provider being skipped, and Bootstrap() returning while the stand-in's "update" is still blocked. That
+    // needs ProviderRegistry.SetCLIUpdaterExecutableForTesting (ProviderRegistry.cs) to keep the real "claude"/
+    // "codex" executables out of the test process, but that seam is `internal` and Marrow.Services declares
+    // `[assembly: InternalsVisibleTo("Marrow.Services.Tests")]` only - not Marrow.App.Tests (verified: no other
+    // InternalsVisibleTo grant in src/Marrow.Services covers Marrow.App.Tests). Widening that grant, or moving
+    // the seam, is an assembly-boundary change outside this lane's packet. PR-LAUNCH-085 therefore stays
+    // un-IMPLEMENTED (porting/spec/LAUNCH.json already has it as SPECIFIED, not IMPLEMENTED - do not flip it)
+    // until a test reaching that seam exists, in Marrow.Services.Tests or after the boundary is revisited.
+    // No Req trait (it cannot verify PR-LAUNCH-085, per the STOP note above); Rule R-TEST-10 instead, since
+    // what it does verify is that this harness's not-installed path never reaches a real "claude"/"codex".
     [Fact]
-    [Trait("Req", "PR-LAUNCH-085")] // App/AppModel.swift:275-282 (B3, new)
+    [Trait("Rule", "R-TEST-10")]
     public void Bootstrap_reaches_the_orphan_sweep_and_marks_no_provider_updating_when_no_cli_is_installed()
     {
         using var h = new AppModelHarness();
