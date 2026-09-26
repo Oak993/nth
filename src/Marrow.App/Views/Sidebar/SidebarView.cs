@@ -57,15 +57,16 @@ using Marrow.UI.Sound;
 // liveRenameTarget (:882-887, :357); the three `.onChange` handlers this adds to Appear() (:184-202); HelperConnector
 // and HelperConnectorShape in full (:1636-1675); SidebarThreadRow.FinishRequestReceived, Settle, Reopen, Glide and
 // ArchiveWithGenie (:1863-1870, :1904-1953, :1988-1999) as directly testable static pieces, each cited; ThreadActions
-// Make and MakeContextMenu in full (:2193-2312); SidebarHelperRow.TitleWeight, TitleOpacity, TrailingPadding,
-// BackgroundFill, HeadGlyph and BuildTrailingOverlay (:1361-1384) as directly testable static pieces of that row's
-// body. renamePopover (:239-252) stays MARROW_STUB: STOP #6 (SidebarViewTests.cs), RenameThreadPopover's
+// Make and MakeContextMenu in full (:2193-2312); ThreadGhostBadge in full (:2083-2109; it was still MARROW_STUB, but
+// Glide and ArchiveWithGenie need a real badge to carry, not a stub); SidebarHelperRow.TitleWeight, TitleOpacity,
+// TrailingPadding, BackgroundFill, HeadGlyph and BuildTrailingOverlay (:1361-1384) as directly testable static pieces
+// of that row's body. renamePopover (:239-252) stays MARROW_STUB: STOP #6 (SidebarViewTests.cs), RenameThreadPopover's
 // `.textFieldStyle(.roundedBorder)` and `.buttonStyle(.bordered)`/`.buttonStyle(.borderedProminent)` have no Windows
 // chrome or governing decision yet.
 // Still MARROW_STUB and named where they stand: RenameThreadPopover and renamePopover (STOP #6 above); the row
 // views' remaining assembly (SidebarThreadRow's and SidebarHelperRow's own constructors, ThreadRow, HelperItemView),
-// the head-card and stub arms of itemView, ProjectRow, ActivityHeader, SettledHeader and ThreadGhostBadge's own body
-// (parts 5 to 8), and the empty-needle case of the search match (STOP #1 in SidebarViewTests.cs).
+// the head-card and stub arms of itemView, ProjectRow, ActivityHeader and SettledHeader (parts 5 to 8), and the
+// empty-needle case of the search match (STOP #1 in SidebarViewTests.cs).
 // Forms (ED-095): a SwiftUI View is a Decorator whose constructor builds `body`; a ViewModifier is a sealed record
 // with `Control Body(Control content)`; a Shape is a sealed record with `Geometry Path(Rect in)`; a caseless enum is a
 // static class; an enum with associated values is an abstract record (R-ENUM-2), an unlabelled payload named Value; a
