@@ -182,22 +182,43 @@ public sealed class URLError(URLError.Code code) : Exception
 }
 
 /// <summary>
-/// Swift <c>URLCache</c>. The source gives it one value, nil (UpdateChecker.swift:104); the unit keeps the stores
-/// behind it: <c>URLCache.shared</c> for URLSession.shared, and a new memory-only cache for each
-/// <see cref="URLSessionConfiguration.Ephemeral"/> (ED-118 item 4).
+/// Swift <c>URLCache</c>. Before B3, the source gave it one value, nil (UpdateChecker.swift:104); the unit keeps
+/// the stores behind it: <c>URLCache.shared</c> for URLSession.shared, and a new memory-only cache for each
+/// <see cref="URLSessionConfiguration.Ephemeral"/> (ED-118 item 4). B3 52bc792 adds AppDelegate.swift:13
+/// <c>URLCache.shared = URLCache(memoryCapacity: 8 * 1024 * 1024, diskCapacity: 0)</c> at launch, so the
+/// constructor and <see cref="Shared"/>'s setter are now public for App.AppDelegate to call.
 /// UNVERIFIED O-33: a GET answer is stored when its status is 200-299, it came from the server, it carries explicit
 /// freshness (Cache-Control max-age, or Expires) and it is not no-store; it is answered from the store while fresh,
-/// its age measured on SwiftClock; no heuristic freshness and no size cut-off. Memory only (ED-118 item 5).
+/// its age measured on SwiftClock; no heuristic freshness and no size cut-off (ED-118 item 4 parks both numbers
+/// below: they are recorded, never enforced). Memory only (ED-118 item 5); disk capacity 0 needs no extra code,
+/// because this store has never written to disk.
 /// </summary>
 public sealed class URLCache
 {
     private readonly Lock gate = new();
     private readonly Dictionary<string, CachedResponse> entries = new(StringComparer.Ordinal);
 
-    internal URLCache() { }
+    internal URLCache() : this(0, 0) { }
 
-    /// <summary>Swift: <c>URLCache.shared</c>, the cache of URLSession.shared.</summary>
-    internal static URLCache Shared { get; } = new();
+    /// <summary>Swift: <c>URLCache(memoryCapacity:diskCapacity:)</c> (AppDelegate.swift:13, B3 52bc792).</summary>
+    public URLCache(long memoryCapacity, long diskCapacity)
+    {
+        MemoryCapacity = memoryCapacity;
+        DiskCapacity = diskCapacity;
+    }
+
+    /// <summary>Swift: <c>memoryCapacity</c>. Recorded, not enforced (ED-118 item 4, O-33 parks "no size cut-off").</summary>
+    public long MemoryCapacity { get; }
+
+    /// <summary>Swift: <c>diskCapacity</c>. Recorded, not enforced; this store is memory only regardless of its value.</summary>
+    public long DiskCapacity { get; }
+
+    /// <summary>
+    /// Swift: <c>URLCache.shared</c>, the cache of URLSession.shared. A plain settable static var, so
+    /// AppDelegate.swift:13 (B3 52bc792) can replace it at launch, before anything reads
+    /// <see cref="URLSession.Shared"/> or calls <see cref="URLSessionConfiguration.SharedDefault"/>.
+    /// </summary>
+    public static URLCache Shared { get; set; } = new();
 
     /// <summary>The stored answer for a GET of <paramref name="url"/> if it is still fresh at <paramref name="now"/>.</summary>
     internal CachedResponse? Fresh(Uri url, ContinuousInstant now)
