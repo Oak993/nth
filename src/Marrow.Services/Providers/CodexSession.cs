@@ -5,21 +5,21 @@ using Marrow.Core.Support;
 using Marrow.Services.MCP;
 using Marrow.Services.Store;
 
-// Source: DroppyCode/Services/Providers/CodexSession.swift (B2 1fbf81e), :1-1052.
+// Source: DroppyCode/Services/Providers/CodexSession.swift (B3 52bc792), :1-1059.
 //
 // Unit Services.Providers.CodexSession part 1 of 4 (PR-PROVCLI-065 to 088) implements: the executable guard
 // (:66-67), the connect handshake with its fixed "app-server" argv, bare-line framing with no jsonrpc member,
-// the Marrow client identity and its 20 second watchdog (:502-528), start()'s resume/new-thread paths and its
-// deferred close on a failed start (:66-108), requestThread's MCP-server retry (:110-127), send() (:129-160),
-// interrupt() (:162-168), compact() (:170-173), rollback()'s paging/confirm path (:175-222, not the
+// the Marrow client identity and its 20 second watchdog (:505-531), start()'s resume/new-thread paths and its
+// deferred close on a failed start (:66-108), requestThread's MCP-server retry (:110-127), send() (:129-162),
+// interrupt() (:164-170), compact() (:172-175), rollback()'s paging/confirm path (:177-224, not the
 // paginated-thread fork fallback), threadParameters and its Hydra, anti-slop and MCP-config assembly
-// (:224-266) and policySettings' four-mode table (:1040-1051).
+// (:226-268) and policySettings' four-mode table (:1047-1058).
 //
-// forkHistory (:268-301, PR-PROVCLI-089), handleNotification (:532-659, PR-PROVCLI-107/108) and handleRequest
-// (:909-988, PR-PROVCLI-124 to 129) belong to later parts of this unit and are left as stubs here so this part
+// forkHistory (:270-303, PR-PROVCLI-089), handleNotification (:535-662, PR-PROVCLI-107/108) and handleRequest
+// (:916-995, PR-PROVCLI-124 to 129) belong to later parts of this unit and are left as stubs here so this part
 // compiles; nothing this part's own connect() wiring can trigger reaches them (the stand-ins this part's tests
 // drive only ever reply to requests, never send an unsolicited notification or server request). handleClose
-// (:1032-1038, PR-PROVCLI-131) is ported here instead, in part 1, for the same reason ClaudeSession's DidClose
+// (:1039-1045, PR-PROVCLI-131) is ported here instead, in part 1, for the same reason ClaudeSession's DidClose
 // was: Start()'s own connect() wires OnClose to it, and a connection this part opens can close on ANY of its
 // own paths (a failed handshake, a failed thread/start or thread/resume, a watchdog timeout, or simply the
 // stand-in exiting), so a stub here would throw out of this part's own tests, not just a later part's. It only
@@ -28,7 +28,7 @@ using Marrow.Services.Store;
 // question request and was never stopped.
 namespace Marrow.Services.Providers;
 
-// :11-1052. @MainActor final class -> sealed class used only on main (R-ISO-1).
+// :11-1059. @MainActor final class -> sealed class used only on main (R-ISO-1).
 public sealed class CodexSession : ProviderSession
 {
     // :22-26. R-ENUM-2: associated-value enum -> abstract record with nested sealed records. Only the type is
@@ -70,8 +70,8 @@ public sealed class CodexSession : ProviderSession
     private Action<ProviderEvent>? leadSinkField; // :53 backs the lazily created LeadSink below
     private Action<ProviderEvent> LeadSink => leadSinkField ??= e => OnEvent?.Invoke(e); // :53
 
-    // :36-45. U+00B7 MIDDLE DOT, used to join a limit's title with its snapshot name (:420) and a head's
-    // nickname with its role (:690, :699).
+    // :36-45. U+00B7 MIDDLE DOT, used to join a limit's title with its snapshot name (:423) and a head's
+    // nickname with its role (:694, :703).
     private const string Dot = "\U000000B7"; // U+00B7 MIDDLE DOT
 
     // :55-57
@@ -186,7 +186,7 @@ public sealed class CodexSession : ProviderSession
         }
     }
 
-    // :129-160
+    // :129-162
     public async Task Send(TurnInput input)
     {
         if (connection is not { IsClosed: false } connected || threadID is not { } currentThreadID) // :130
@@ -238,7 +238,9 @@ public sealed class CodexSession : ProviderSession
 
         if ((input.Model ?? activeModel) is { } model) // :147
         {
-            parameters["model"] = model;
+            // A turn can switch the thread's model; the spend it reports is this turn's model's. :148
+            activeModel = model; // :149
+            parameters["model"] = model; // :150
             parameters["collaborationMode"] = new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>
             {
                 ["mode"] = input.InteractionMode == InteractionMode.Plan ? "plan" : "default",
@@ -248,58 +250,58 @@ public sealed class CodexSession : ProviderSession
                     ["reasoning_effort"] = JSONValue.Optional(effort),
                     ["developer_instructions"] = new JSONValue.Null(),
                 })),
-            })); // :149-156
+            })); // :151-158
         }
 
-        var result = await connected.Request("turn/start", new JSONValue.Object(new ValueMap<string, JSONValue>(parameters))); // :158
+        var result = await connected.Request("turn/start", new JSONValue.Object(new ValueMap<string, JSONValue>(parameters))); // :160
         if (result["turn"]?["id"]?.JSONValueString is { } id)
         {
-            turnID = id; // :159
+            turnID = id; // :161
         }
     }
 
-    // :162-168
+    // :164-170
     public async Task Interrupt()
     {
-        if (connection is not { } connected || threadID is not { } currentThreadID || turnID is not { } currentTurnID) // :163
+        if (connection is not { } connected || threadID is not { } currentThreadID || turnID is not { } currentTurnID) // :165
         {
             return;
         }
 
-        await SwiftTry.IgnoreAsync(async () => // :164
+        await SwiftTry.IgnoreAsync(async () => // :166
         {
             _ = await connected.Request("turn/interrupt", new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>
             {
-                ["threadId"] = currentThreadID, // :165
-                ["turnId"] = currentTurnID,     // :166
+                ["threadId"] = currentThreadID, // :167
+                ["turnId"] = currentTurnID,     // :168
             })));
         });
     }
 
-    // :170-173
+    // :172-175
     public async Task Compact()
     {
-        if (connection is not { } connected || threadID is not { } currentThreadID) // :171
+        if (connection is not { } connected || threadID is not { } currentThreadID) // :173
         {
             throw new ProviderError(new ProviderError.Case.NotRunning());
         }
 
         _ = await connected.Request("thread/compact/start", new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>
         {
-            ["threadId"] = currentThreadID, // :172
+            ["threadId"] = currentThreadID, // :174
         })));
     }
 
-    // :175-222. Swift: rollback(from:). The paginated-thread fork fallback (:211-213, forkHistory :268-301) is
+    // :177-224. Swift: rollback(from:). The paginated-thread fork fallback (:213-215, forkHistory :270-303) is
     // PR-PROVCLI-089, part 2 of this unit; ForkHistory below is a stub until then.
     public async Task<string?> Rollback(string targetID)
     {
-        if (connection is not { } connected || threadID is not { } currentThreadID) // :176
+        if (connection is not { } connected || threadID is not { } currentThreadID) // :178
         {
             throw new ProviderError(new ProviderError.Case.NotRunning());
         }
 
-        var watchdog = MainActor.Spawn(async () => // :177-180
+        var watchdog = MainActor.Spawn(async () => // :179-182
         {
             await SwiftTask.TrySleep(TimeSpan.FromSeconds(30));
             if (!SwiftTask.IsCancelled)
@@ -309,98 +311,98 @@ public sealed class CodexSession : ProviderSession
         });
         try
         {
-            string? cursor = null; // :182
-            var count = 0;         // :183
-            var found = false;     // :184
-            string? previousID = null; // :185
+            string? cursor = null; // :184
+            var count = 0;         // :185
+            var found = false;     // :186
+            string? previousID = null; // :187
 
-            do // :186
+            do // :188
             {
                 var page = await connected.Request("thread/turns/list", new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>
                 {
-                    ["threadId"] = currentThreadID,       // :188
+                    ["threadId"] = currentThreadID,       // :190
                     ["cursor"] = JSONValue.Optional(cursor),
-                    ["limit"] = 100,                       // :189
+                    ["limit"] = 100,                       // :191
                     ["sortDirection"] = "desc",
                     ["itemsView"] = "notLoaded",
                 })));
 
-                if (page["data"]?.JSONValueArray is not { } turns) // :191
+                if (page["data"]?.JSONValueArray is not { } turns) // :193
                 {
-                    throw new ProviderError(new ProviderError.Case.Failed("Codex did not return its conversation history.")); // :192
+                    throw new ProviderError(new ProviderError.Case.Failed("Codex did not return its conversation history.")); // :194
                 }
 
-                foreach (var turn in turns) // :194
+                foreach (var turn in turns) // :196
                 {
-                    if (turn["id"]?.JSONValueString is not { } id) // :195
+                    if (turn["id"]?.JSONValueString is not { } id) // :197
                     {
                         throw new ProviderError(new ProviderError.Case.Failed("Codex returned a turn without an ID."));
                     }
 
-                    if (found) // :196
+                    if (found) // :198
                     {
                         previousID = id;
                         break;
                     }
 
-                    count++; // :197
-                    if (SwiftString.Equal(id, targetID)) // :198
+                    count++; // :199
+                    if (SwiftString.Equal(id, targetID)) // :200
                     {
                         found = true;
                     }
                 }
 
-                var next = page["nextCursor"]?.JSONValueString; // :200
-                if (next is not null && cursor is not null && SwiftString.Equal(next, cursor)) // :201
+                var next = page["nextCursor"]?.JSONValueString; // :202
+                if (next is not null && cursor is not null && SwiftString.Equal(next, cursor)) // :203
                 {
                     throw new ProviderError(new ProviderError.Case.Failed("Codex could not page its conversation history."));
                 }
 
-                cursor = next; // :202
+                cursor = next; // :204
             }
-            while (cursor is not null && previousID is null); // :203
+            while (cursor is not null && previousID is null); // :205
 
-            if (!found) // :204
+            if (!found) // :206
             {
                 throw new ProviderError(new ProviderError.Case.Failed("Codex could not find the selected turn. The conversation was kept."));
             }
 
-            JSONValue result; // :205
+            JSONValue result; // :207
             try
             {
                 result = await connected.Request("thread/rollback", new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>
                 {
-                    ["threadId"] = currentThreadID, // :208
-                    ["numTurns"] = (long)count,      // :209
+                    ["threadId"] = currentThreadID, // :210
+                    ["numTurns"] = (long)count,      // :211
                 })));
             }
-            catch (RPCError error) when (error.Message.Contains("paginated threads do not support thread/rollback", StringComparison.Ordinal)) // :211
+            catch (RPCError error) when (error.Message.Contains("paginated threads do not support thread/rollback", StringComparison.Ordinal)) // :213
             {
-                return await ForkHistory(targetID, previousID, connected, currentThreadID); // :212
+                return await ForkHistory(targetID, previousID, connected, currentThreadID); // :214
             }
 
             var resultThreadID = result["thread"]?["id"]?.JSONValueString;
             var remainingTurns = result["thread"]?["turns"]?.JSONValueArray;
             var confirmed =
-                resultThreadID is not null && SwiftString.Equal(resultThreadID, currentThreadID) && // :214
-                remainingTurns is not null && // :215
-                !remainingTurns.Any(turn => turn["id"]?.JSONValueString is { } tid && SwiftString.Equal(tid, targetID)) && // :216
-                LastIDEquals(remainingTurns, previousID); // :217
+                resultThreadID is not null && SwiftString.Equal(resultThreadID, currentThreadID) && // :216
+                remainingTurns is not null && // :217
+                !remainingTurns.Any(turn => turn["id"]?.JSONValueString is { } tid && SwiftString.Equal(tid, targetID)) && // :218
+                LastIDEquals(remainingTurns, previousID); // :219
             if (!confirmed)
             {
-                throw new ProviderError(new ProviderError.Case.Failed("Codex did not confirm the requested conversation rollback.")); // :218
+                throw new ProviderError(new ProviderError.Case.Failed("Codex did not confirm the requested conversation rollback.")); // :220
             }
 
-            turnID = null;           // :220
-            return currentThreadID;  // :221
+            turnID = null;           // :222
+            return currentThreadID;  // :223
         }
         finally
         {
-            watchdog.Cancel(); // :181
+            watchdog.Cancel(); // :183
         }
     }
 
-    // Swift optional equality of the last remaining turn's id against previousID (:216-217): both nil is a
+    // Swift optional equality of the last remaining turn's id against previousID (:218-219): both nil is a
     // match, one nil and the other not is never a match.
     private static bool LastIDEquals(IReadOnlyList<JSONValue> turns, string? previousID)
     {
@@ -408,152 +410,152 @@ public sealed class CodexSession : ProviderSession
         return lastID is null ? previousID is null : previousID is not null && SwiftString.Equal(lastID, previousID);
     }
 
-    // :268-301. PR-PROVCLI-089.
+    // :270-303. PR-PROVCLI-089.
     private async Task<string?> ForkHistory(string targetID, string? previousID, JSONRPCConnection connection, string originalID)
     {
-        if (previousID is not { } previous) // :269
+        if (previousID is not { } previous) // :271
         {
             _ = await connection.Request("thread/archive", new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>
             {
-                ["threadId"] = originalID, // :270
+                ["threadId"] = originalID, // :272
             })));
-            threadID = null; // :271
-            turnID = null;    // :272
-            return null;      // :273
+            threadID = null; // :273
+            turnID = null;    // :274
+            return null;      // :275
         }
 
-        var parameters = ThreadParameters; // :275
-        parameters["threadId"] = originalID; // :276
-        parameters["lastTurnId"] = previous;  // :277
-        parameters["excludeTurns"] = true;    // :278
-        var result = await connection.Request("thread/fork", new JSONValue.Object(new ValueMap<string, JSONValue>(parameters))); // :279
-        if (result["thread"]?["id"]?.JSONValueString is not { } id || SwiftString.Equal(id, originalID)) // :280
+        var parameters = ThreadParameters; // :277
+        parameters["threadId"] = originalID; // :278
+        parameters["lastTurnId"] = previous;  // :279
+        parameters["excludeTurns"] = true;    // :280
+        var result = await connection.Request("thread/fork", new JSONValue.Object(new ValueMap<string, JSONValue>(parameters))); // :281
+        if (result["thread"]?["id"]?.JSONValueString is not { } id || SwiftString.Equal(id, originalID)) // :282
         {
-            throw new ProviderError(new ProviderError.Case.Failed("Codex did not create a conversation at the revert point.")); // :281
+            throw new ProviderError(new ProviderError.Case.Failed("Codex did not create a conversation at the revert point.")); // :283
         }
 
-        try // :283-296
+        try // :285-298
         {
             var page = await connection.Request("thread/turns/list", new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>
             {
-                ["threadId"] = id, // :285
+                ["threadId"] = id, // :287
                 ["limit"] = 1,
                 ["sortDirection"] = "desc",
                 ["itemsView"] = "notLoaded",
             })));
-            var turns = page["data"]?.JSONValueArray; // :287
-            var firstID = turns is { Count: > 0 } ? turns[0]["id"]?.JSONValueString : null; // :288
-            if (firstID is null || !SwiftString.Equal(firstID, previous) || SwiftString.Equal(firstID, targetID)) // :288-289
+            var turns = page["data"]?.JSONValueArray; // :289
+            var firstID = turns is { Count: > 0 } ? turns[0]["id"]?.JSONValueString : null; // :290
+            if (firstID is null || !SwiftString.Equal(firstID, previous) || SwiftString.Equal(firstID, targetID)) // :290-291
             {
-                throw new ProviderError(new ProviderError.Case.Failed("Codex did not confirm the reverted conversation history.")); // :290
+                throw new ProviderError(new ProviderError.Case.Failed("Codex did not confirm the reverted conversation history.")); // :292
             }
             _ = await connection.Request("thread/archive", new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>
             {
-                ["threadId"] = originalID, // :292
+                ["threadId"] = originalID, // :294
             })));
         }
-        catch (Exception error) when (SwiftTry.IsThrownError(error)) // :293
+        catch (Exception error) when (SwiftTry.IsThrownError(error)) // :295
         {
-            await SwiftTry.IgnoreAsync(async () => // :294 try?
+            await SwiftTry.IgnoreAsync(async () => // :296 try?
             {
                 _ = await connection.Request("thread/archive", new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>
                 {
                     ["threadId"] = id,
                 })));
             });
-            throw; // :295
+            throw; // :297
         }
 
-        threadID = id;         // :297
-        turnID = null;          // :298
-        activeModel = result["model"]?.JSONValueString ?? activeModel; // :299
-        return id;               // :300
+        threadID = id;         // :299
+        turnID = null;          // :300
+        activeModel = result["model"]?.JSONValueString ?? activeModel; // :301
+        return id;               // :302
     }
 
-    // :224-266
+    // :226-268
     private Dictionary<string, JSONValue> ThreadParameters
     {
         get
         {
-            var policy = PolicySettingsFor(configuration.RuntimeMode); // :225
+            var policy = PolicySettingsFor(configuration.RuntimeMode); // :227
             var parameters = new Dictionary<string, JSONValue>(StringComparer.Ordinal)
             {
-                ["cwd"] = WorkingDirectory,               // :227
-                ["approvalPolicy"] = policy.ApprovalPolicy, // :228
-                ["sandbox"] = policy.Sandbox,               // :229
-                ["approvalsReviewer"] = policy.Reviewer,    // :230
+                ["cwd"] = WorkingDirectory,               // :229
+                ["approvalPolicy"] = policy.ApprovalPolicy, // :230
+                ["sandbox"] = policy.Sandbox,               // :231
+                ["approvalsReviewer"] = policy.Reviewer,    // :232
             };
-            if (configuration.Model is { } model) // :232
+            if (configuration.Model is { } model) // :234
             {
                 parameters["model"] = model;
             }
 
-            var config = new Dictionary<string, JSONValue>(StringComparer.Ordinal); // :233
-            if (configuration.Hydra is { } hydra) // :234
+            var config = new Dictionary<string, JSONValue>(StringComparer.Ordinal); // :235
+            if (configuration.Hydra is { } hydra) // :236
             {
-                if (hydra.RunsNatively) // :235
+                if (hydra.RunsNatively) // :237
                 {
-                    foreach (var pair in HydraPrompts.CodexConfig(hydra)) // :236, hydra wins every collision
+                    foreach (var pair in HydraPrompts.CodexConfig(hydra)) // :238, hydra wins every collision
                     {
                         config[pair.Key] = pair.Value;
                     }
 
-                    parameters["developerInstructions"] = HydraPrompts.Policy(ProviderKind.Codex, hydra); // :237
+                    parameters["developerInstructions"] = HydraPrompts.Policy(ProviderKind.Codex, hydra); // :239
                 }
                 else
                 {
                     config["features"] = new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>
                     {
-                        ["multi_agent"] = false, // :244
+                        ["multi_agent"] = false, // :246
                     }));
-                    parameters["developerInstructions"] = HydraPrompts.FallbackPolicy(hydra); // :245
+                    parameters["developerInstructions"] = HydraPrompts.FallbackPolicy(hydra); // :247
                 }
             }
 
-            if (config.Count > 0) // :248
+            if (config.Count > 0) // :250
             {
                 parameters["config"] = new JSONValue.Object(new ValueMap<string, JSONValue>(config));
             }
 
-            var existingInstructions = parameters.TryGetValue("developerInstructions", out var instructions) // :252
+            var existingInstructions = parameters.TryGetValue("developerInstructions", out var instructions) // :254
                 ? instructions.JSONValueString
                 : null;
             var joined = new List<string>();
             if (existingInstructions is not null) joined.Add(existingInstructions);
             joined.Add(AntiSlopPolicy.Instructions(configuration.AntiSlopEnabled));
-            parameters["developerInstructions"] = string.Join("\n\n", joined); // :253-257
+            parameters["developerInstructions"] = string.Join("\n\n", joined); // :255-259
 
-            if (MCPProviderConfig.CodexOverrides() is { } servers) // :260
+            if (MCPProviderConfig.CodexOverrides() is { } servers) // :262
             {
                 var mergedConfig = parameters.TryGetValue("config", out var currentConfig) && currentConfig.JSONValueObject is { } currentObject
                     ? new Dictionary<string, JSONValue>(currentObject, StringComparer.Ordinal)
-                    : new Dictionary<string, JSONValue>(StringComparer.Ordinal); // :261
-                mergedConfig["mcp_servers"] = servers; // :262
-                parameters["config"] = new JSONValue.Object(new ValueMap<string, JSONValue>(mergedConfig)); // :263
+                    : new Dictionary<string, JSONValue>(StringComparer.Ordinal); // :263
+                mergedConfig["mcp_servers"] = servers; // :264
+                parameters["config"] = new JSONValue.Object(new ValueMap<string, JSONValue>(mergedConfig)); // :265
             }
 
-            return parameters; // :265
+            return parameters; // :267
         }
     }
 
-    // :303-318. PR-PROVCLI-090, 091, 092.
+    // :305-320. PR-PROVCLI-090, 091, 092.
     public void ResolveApproval(string requestID, string optionID)
     {
-        if (!pendingRequests.Remove(requestID, out var pending)) return; // :304
+        if (!pendingRequests.Remove(requestID, out var pending)) return; // :306
         switch (pending)
         {
             case PendingRequest.Decision(var id, var payloads):
                 connection?.Respond(id, new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>
                 {
-                    ["decision"] = payloads.TryGetValue(optionID, out var payload) ? payload : "cancel", // :307
+                    ["decision"] = payloads.TryGetValue(optionID, out var payload) ? payload : "cancel", // :309
                 })));
                 break;
             case PendingRequest.Permissions(var id, var requested):
-                if (optionID == "turn" || optionID == "session") // :309
+                if (optionID == "turn" || optionID == "session") // :311
                 {
                     connection?.Respond(id, new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>
                     {
-                        ["permissions"] = requested, // :310
+                        ["permissions"] = requested, // :312
                         ["scope"] = optionID,
                     })));
                 }
@@ -561,7 +563,7 @@ public sealed class CodexSession : ProviderSession
                 {
                     connection?.Respond(id, new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>
                     {
-                        ["permissions"] = new JSONValue.Object(ValueMap<string, JSONValue>.Empty), // :312
+                        ["permissions"] = new JSONValue.Object(ValueMap<string, JSONValue>.Empty), // :314
                         ["scope"] = "turn",
                     })));
                 }
@@ -569,65 +571,66 @@ public sealed class CodexSession : ProviderSession
             case PendingRequest.Question(var id):
                 connection?.Respond(id, new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>
                 {
-                    ["answers"] = new JSONValue.Object(ValueMap<string, JSONValue>.Empty), // :315
+                    ["answers"] = new JSONValue.Object(ValueMap<string, JSONValue>.Empty), // :317
                 })));
                 break;
             default:
                 throw new UnreachableException();
         }
-        OnEvent?.Invoke(new ProviderEvent.RequestResolved(requestID)); // :317
+        OnEvent?.Invoke(new ProviderEvent.RequestResolved(requestID)); // :319
     }
 
-    // :320-328. PR-PROVCLI-093.
+    // :322-330. PR-PROVCLI-093.
     public void AnswerQuestion(string requestID, ValueMap<string, ValueList<string>> answers)
     {
-        if (!pendingRequests.Remove(requestID, out var pending) || pending is not PendingRequest.Question(var id)) return; // :321
+        if (!pendingRequests.Remove(requestID, out var pending) || pending is not PendingRequest.Question(var id)) return; // :323
         var payload = new Dictionary<string, JSONValue>(StringComparer.Ordinal);
-        foreach (var (questionID, values) in answers) // :323
+        foreach (var (questionID, values) in answers) // :325
         {
             payload[questionID] = new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>
             {
-                ["answers"] = new JSONValue.Array(new ValueList<JSONValue>(values.Select(v => (JSONValue)new JSONValue.String(v)).ToList())), // :324
+                ["answers"] = new JSONValue.Array(new ValueList<JSONValue>(values.Select(v => (JSONValue)new JSONValue.String(v)).ToList())), // :326
             }));
         }
         connection?.Respond(id, new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>
         {
-            ["answers"] = new JSONValue.Object(new ValueMap<string, JSONValue>(payload)), // :326
+            ["answers"] = new JSONValue.Object(new ValueMap<string, JSONValue>(payload)), // :328
         })));
-        OnEvent?.Invoke(new ProviderEvent.RequestResolved(requestID)); // :327
+        OnEvent?.Invoke(new ProviderEvent.RequestResolved(requestID)); // :329
     }
 
-    // :330-333. PR-PROVCLI-094.
+    // :332-335. PR-PROVCLI-094.
     public void Stop()
     {
-        isStopping = true;    // :331
-        connection?.Close();   // :332
+        isStopping = true;    // :333
+        connection?.Close();   // :334
     }
 
-    // :335-341. PR-PROVCLI-095.
+    // :337-344. PR-PROVCLI-095.
     public async Task<bool> StopAgent(string id)
     {
-        if (connection is not { } connected || !headThreads.Contains(id) || !headTurns.TryGetValue(id, out var turn)) return false; // :336
-        try // :337 (try? await connection.request(...)) != nil
+        if (connection is not { } connected || threadID is not { } currentThreadID || SwiftString.Equal(id, currentThreadID) ||
+            !headThreads.Contains(id) || !headTurns.TryGetValue(id, out var turn)) return false; // :338-339
+        try // :340 (try? await connection.request(...)) != nil
         {
             _ = await connected.Request("turn/interrupt", new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>
             {
-                ["threadId"] = id, // :338
-                ["turnId"] = turn, // :339
+                ["threadId"] = id, // :341
+                ["turnId"] = turn, // :342
             })));
-            return true; // :340
+            return true; // :343
         }
         catch (Exception error) when (SwiftTry.IsThrownError(error))
         {
-            return false; // :340
+            return false; // :343
         }
     }
 
-    // :345-353. PR-PROVCLI-096.
+    // :348-356. PR-PROVCLI-096.
     public static async Task<ValueList<SlashCommand>> ListCommands(SwiftURL executable, SwiftURL directory, IReadOnlyDictionary<string, string> environment)
     {
-        var connection = await Connect(executable, directory, environment, _ => { }); // :346
-        var watchdog = MainActor.Spawn(async () => // :347-349
+        var connection = await Connect(executable, directory, environment, _ => { }); // :349
+        var watchdog = MainActor.Spawn(async () => // :350-352
         {
             await SwiftTask.TrySleep(TimeSpan.FromSeconds(20));
             if (!SwiftTask.IsCancelled) connection.Close();
@@ -636,151 +639,151 @@ public sealed class CodexSession : ProviderSession
         {
             var result = await connection.Request("skills/list", new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>
             {
-                ["cwds"] = new JSONValue.Array(new ValueList<JSONValue>([new JSONValue.String(directory.Path)])), // :352
+                ["cwds"] = new JSONValue.Array(new ValueList<JSONValue>([new JSONValue.String(directory.Path)])), // :355
                 ["forceReload"] = true,
             })));
-            return SlashCommand.CodexSkills(result); // :352
+            return SlashCommand.CodexSkills(result); // :355
         }
         finally
         {
-            watchdog.Cancel();  // :351 defer
-            connection.Close(); // :351 defer
+            watchdog.Cancel();  // :354 defer
+            connection.Close(); // :354 defer
         }
     }
 
-    // :355-385. PR-PROVCLI-097.
+    // :358-388. PR-PROVCLI-097.
     public static async Task<ValueList<ModelOption>> ListModels(SwiftURL executable, IReadOnlyDictionary<string, string> environment)
     {
-        var connection = await Connect(executable, DirectoryFileUrl(TemporaryDirectory), environment, _ => { }); // :356-361
+        var connection = await Connect(executable, DirectoryFileUrl(TemporaryDirectory), environment, _ => { }); // :359-364
         try
         {
-            var models = new List<ModelOption>(); // :363
-            JSONValue cursor = new JSONValue.Null(); // :364
-            for (var i = 0; i < 10; i++) // :365
+            var models = new List<ModelOption>(); // :366
+            JSONValue cursor = new JSONValue.Null(); // :367
+            for (var i = 0; i < 10; i++) // :368
             {
                 var parameters = new Dictionary<string, JSONValue>(StringComparer.Ordinal);
-                if (!cursor.IsNull) parameters["cursor"] = cursor; // :367
-                var result = await connection.Request("model/list", new JSONValue.Object(new ValueMap<string, JSONValue>(parameters))); // :368
+                if (!cursor.IsNull) parameters["cursor"] = cursor; // :370
+                var result = await connection.Request("model/list", new JSONValue.Object(new ValueMap<string, JSONValue>(parameters))); // :371
                 foreach (var model in result["data"]?.JSONValueArray ?? [])
                 {
-                    if (model["hidden"]?.JSONValueBool == true) continue; // :369
-                    if (model["id"]?.JSONValueString is not { } id) continue; // :370
+                    if (model["hidden"]?.JSONValueBool == true) continue; // :372
+                    if (model["id"]?.JSONValueString is not { } id) continue; // :373
                     var efforts = (model["supportedReasoningEfforts"]?.JSONValueArray ?? [])
                         .Select(e => e["reasoningEffort"]?.JSONValueString)
-                        .Where(e => e is not null).Select(e => e!).ToList(); // :375
+                        .Where(e => e is not null).Select(e => e!).ToList(); // :378
                     models.Add(new ModelOption(
                         id,
-                        model["displayName"]?.JSONValueString ?? id, // :373
-                        detail: model["description"]?.JSONValueString, // :374
+                        model["displayName"]?.JSONValueString ?? id, // :376
+                        detail: model["description"]?.JSONValueString, // :377
                         efforts: new ValueList<string>(efforts),
-                        defaultEffort: model["defaultReasoningEffort"]?.JSONValueString, // :376
-                        isDefault: model["isDefault"]?.JSONValueBool ?? false, // :377
-                        fastTier: FastTier(model["serviceTiers"]?.JSONValueArray ?? []))); // :378
+                        defaultEffort: model["defaultReasoningEffort"]?.JSONValueString, // :379
+                        isDefault: model["isDefault"]?.JSONValueBool ?? false, // :380
+                        fastTier: FastTier(model["serviceTiers"]?.JSONValueArray ?? []))); // :381
                 }
-                cursor = result["nextCursor"] ?? new JSONValue.Null(); // :381
-                if (cursor.IsNull) break; // :382
+                cursor = result["nextCursor"] ?? new JSONValue.Null(); // :384
+                if (cursor.IsNull) break; // :385
             }
-            return new ValueList<ModelOption>(models); // :384
+            return new ValueList<ModelOption>(models); // :387
         }
         finally
         {
-            connection.Close(); // :362
+            connection.Close(); // :365
         }
     }
 
-    // :493-500. PR-PROVCLI-098.
+    // :496-503. PR-PROVCLI-098.
     private static string? FastTier(IReadOnlyList<JSONValue> tiers)
     {
-        foreach (var tier in tiers) // :495 lazy compactMap.first
+        foreach (var tier in tiers) // :498 lazy compactMap.first
         {
-            if (tier["id"]?.JSONValueString is not { } id) continue; // :496
-            var label = SwiftString.Lowercased($"{id} {tier["name"]?.JSONValueString ?? ""}"); // :497
-            if (label.Contains("fast", StringComparison.Ordinal) || label.Contains("priority", StringComparison.Ordinal)) return id; // :498
+            if (tier["id"]?.JSONValueString is not { } id) continue; // :499
+            var label = SwiftString.Lowercased($"{id} {tier["name"]?.JSONValueString ?? ""}"); // :500
+            if (label.Contains("fast", StringComparison.Ordinal) || label.Contains("priority", StringComparison.Ordinal)) return id; // :501
         }
-        return null; // :499
+        return null; // :502
     }
 
-    // :388-437. PR-PROVCLI-099, 101, 102, 103.
+    // :391-440. PR-PROVCLI-099, 101, 102, 103.
     public static async Task<PlanLimits?> ReadPlanLimits(SwiftURL executable, IReadOnlyDictionary<string, string> environment)
     {
-        var connection = await Connect(executable, DirectoryFileUrl(TemporaryDirectory), environment, _ => { }); // :389-394
+        var connection = await Connect(executable, DirectoryFileUrl(TemporaryDirectory), environment, _ => { }); // :392-397
         try
         {
-            JSONValue result; // :396
+            JSONValue result; // :399
             try
             {
-                result = await connection.Request("account/rateLimits/read"); // :398
+                result = await connection.Request("account/rateLimits/read"); // :401
             }
-            catch (Exception error) when (SwiftTry.IsThrownError(error)) // :399
+            catch (Exception error) when (SwiftTry.IsThrownError(error)) // :402
             {
-                return new PlanLimits { PlanName = null, Windows = ValueList<PlanLimits.Window>.Empty, Problem = PlainProblem(error) }; // :400-404
+                return new PlanLimits { PlanName = null, Windows = ValueList<PlanLimits.Window>.Empty, Problem = PlainProblem(error) }; // :403-407
             }
 
-            var snapshots = new List<JSONValue>(); // :406
-            if (result["rateLimitsByLimitId"]?.JSONValueObject is { Count: > 0 } byID) // :407
+            var snapshots = new List<JSONValue>(); // :409
+            if (result["rateLimitsByLimitId"]?.JSONValueObject is { Count: > 0 } byID) // :410
             {
-                foreach (var key in byID.Keys.OrderBy(k => k, SwiftStringComparer.Instance)) // :408 (R-COLL-1)
+                foreach (var key in byID.Keys.OrderBy(k => k, SwiftStringComparer.Instance)) // :411 (R-COLL-1)
                 {
                     if (byID.TryGetValue(key, out var snapshot)) snapshots.Add(snapshot);
                 }
             }
-            else if (result["rateLimits"] is { IsNull: false } single) // :409-410
+            else if (result["rateLimits"] is { IsNull: false } single) // :412-413
             {
                 snapshots.Add(single);
             }
 
-            string? plan = null; // :412
-            var windows = new List<PlanLimits.Window>(); // :413
-            foreach (var snapshot in snapshots) // :414
+            string? plan = null; // :415
+            var windows = new List<PlanLimits.Window>(); // :416
+            foreach (var snapshot in snapshots) // :417
             {
-                plan ??= snapshot["planType"]?.JSONValueString; // :415
-                var name = snapshots.Count > 1 ? snapshot["limitName"]?.JSONValueString : null; // :416
-                foreach (var key in new[] { "primary", "secondary" }) // :417
+                plan ??= snapshot["planType"]?.JSONValueString; // :418
+                var name = snapshots.Count > 1 ? snapshot["limitName"]?.JSONValueString : null; // :419
+                foreach (var key in new[] { "primary", "secondary" }) // :420
                 {
-                    if (snapshot[key] is not { } window || window["usedPercent"]?.JSONValueDouble is not { } percent) continue; // :418
-                    var title = PlanLimitsReader.WindowTitle(window["windowDurationMins"]?.JSONValueInt); // :419
-                    if (name is { } limitName) title += " " + Dot + " " + limitName; // :420
+                    if (snapshot[key] is not { } window || window["usedPercent"]?.JSONValueDouble is not { } percent) continue; // :421
+                    var title = PlanLimitsReader.WindowTitle(window["windowDurationMins"]?.JSONValueInt); // :422
+                    if (name is { } limitName) title += " " + Dot + " " + limitName; // :423
                     windows.Add(new PlanLimits.Window
                     {
-                        Id = $"{snapshot["limitId"]?.JSONValueString ?? "codex"}-{key}", // :422
-                        Title = title,                                                    // :423
-                        Percent = percent,                                                // :424
-                        ResetsAt = window["resetsAt"]?.JSONValueDouble is { } resets ? SwiftDate.From1970Seconds(resets) : null, // :425
+                        Id = $"{snapshot["limitId"]?.JSONValueString ?? "codex"}-{key}", // :425
+                        Title = title,                                                    // :426
+                        Percent = percent,                                                // :427
+                        ResetsAt = window["resetsAt"]?.JSONValueDouble is { } resets ? SwiftDate.From1970Seconds(resets) : null, // :428
                     });
                 }
             }
 
-            if (windows.Count == 0) // :429
+            if (windows.Count == 0) // :432
             {
                 return new PlanLimits
                 {
-                    PlanName = PlanLimitsReader.CodexPlanName(plan),                          // :431
-                    Windows = ValueList<PlanLimits.Window>.Empty,                              // :432
-                    Problem = "Codex reported no usage windows for this account.",             // :433
+                    PlanName = PlanLimitsReader.CodexPlanName(plan),                          // :434
+                    Windows = ValueList<PlanLimits.Window>.Empty,                              // :435
+                    Problem = "Codex reported no usage windows for this account.",             // :436
                 };
             }
             return new PlanLimits
             {
-                PlanName = PlanLimitsReader.CodexPlanName(plan),                                                          // :436
+                PlanName = PlanLimitsReader.CodexPlanName(plan),                                                          // :439
                 Windows = new ValueList<PlanLimits.Window>(windows),
-                PlanLimitsResetCredits = ParseResetCredits(result["rateLimitResetCredits"] ?? result["rate_limit_reset_credits"]), // :436
+                PlanLimitsResetCredits = ParseResetCredits(result["rateLimitResetCredits"] ?? result["rate_limit_reset_credits"]), // :439
             };
         }
         finally
         {
-            connection.Close(); // :395
+            connection.Close(); // :398
         }
     }
 
-    // :439-445. PR-PROVCLI-100.
+    // :442-448. PR-PROVCLI-100.
     private static string PlainProblem(Exception error)
     {
-        var text = TextCleanup.SingleLine(DescribeError(error), limit: 300); // :440
-        if (text.Contains("token_expired", StringComparison.Ordinal) || text.Contains("401", StringComparison.Ordinal)) // :441
+        var text = TextCleanup.SingleLine(DescribeError(error), limit: 300); // :443
+        if (text.Contains("token_expired", StringComparison.Ordinal) || text.Contains("401", StringComparison.Ordinal)) // :444
         {
-            return "Codex's stored login has expired. Run `codex login` in a terminal, then check again."; // :442
+            return "Codex's stored login has expired. Run `codex login` in a terminal, then check again."; // :445
         }
-        return text.Length == 0 ? "Codex could not be asked for its usage." : text; // :443-444
+        return text.Length == 0 ? "Codex could not be asked for its usage." : text; // :446-447
     }
 
     // ENGINEERING DECISION: `String(describing: error)` for JSONRPC.swift's RPCError (a plain LocalizedError
@@ -791,64 +794,64 @@ public sealed class CodexSession : ProviderSession
         ? $"RPCError(code: {rpc.Code}, message: \"{rpc.Message}\", data: {(rpc.Data is null ? "nil" : rpc.Data.CompactString)})"
         : error.ToString();
 
-    // :447-462. PR-PROVCLI-104.
+    // :450-465. PR-PROVCLI-104.
     private static PlanLimits.ResetCredits? ParseResetCredits(JSONValue? raw)
     {
-        if (raw is null) return null; // :449
-        var count = raw["availableCount"]?.JSONValueInt ?? raw["available_count"]?.JSONValueInt; // :449
+        if (raw is null) return null; // :452
+        var count = raw["availableCount"]?.JSONValueInt ?? raw["available_count"]?.JSONValueInt; // :452
         if (count is not { } value) return null;
         var credits = new List<PlanLimits.ResetCredit>();
-        foreach (var credit in raw["credits"]?.JSONValueArray ?? []) // :450
+        foreach (var credit in raw["credits"]?.JSONValueArray ?? []) // :453
         {
-            if (credit["id"]?.JSONValueString is not { Length: > 0 } id) continue; // :451
-            var status = credit["status"]?.JSONValueString; // :452
-            if (status is not null && status != "available" && status != "unknown") continue; // :453
+            if (credit["id"]?.JSONValueString is not { Length: > 0 } id) continue; // :454
+            var status = credit["status"]?.JSONValueString; // :455
+            if (status is not null && status != "available" && status != "unknown") continue; // :456
             credits.Add(new PlanLimits.ResetCredit
             {
-                Id = id,                                                                       // :455
-                Title = credit["title"]?.JSONValueString,                                       // :456
-                Detail = credit["description"]?.JSONValueString,                                // :457
-                ExpiresAt = ResetDate(credit["expiresAt"] ?? credit["expires_at"]),              // :458
+                Id = id,                                                                       // :458
+                Title = credit["title"]?.JSONValueString,                                       // :459
+                Detail = credit["description"]?.JSONValueString,                                // :460
+                ExpiresAt = ResetDate(credit["expiresAt"] ?? credit["expires_at"]),              // :461
             });
         }
-        return new PlanLimits.ResetCredits { AvailableCount = Math.Max(0L, value), Credits = new ValueList<PlanLimits.ResetCredit>(credits) }; // :461
+        return new PlanLimits.ResetCredits { AvailableCount = Math.Max(0L, value), Credits = new ValueList<PlanLimits.ResetCredit>(credits) }; // :464
     }
 
-    // :464-473. PR-PROVCLI-105.
+    // :467-476. PR-PROVCLI-105.
     private static DateTimeOffset? ResetDate(JSONValue? value)
     {
-        if (value is null) return null; // :466
-        var number = value.JSONValueDouble ?? (value.JSONValueString is { } text1 ? SwiftNumber.ParseDouble(text1) : null); // :467
+        if (value is null) return null; // :469
+        var number = value.JSONValueDouble ?? (value.JSONValueString is { } text1 ? SwiftNumber.ParseDouble(text1) : null); // :470
         if (number is { } n)
         {
-            if (!(n > 0)) return null; // :468
-            return SwiftDate.From1970Seconds(n > 10_000_000_000 ? n / 1_000 : n); // :469
+            if (!(n > 0)) return null; // :471
+            return SwiftDate.From1970Seconds(n > 10_000_000_000 ? n / 1_000 : n); // :472
         }
-        if (value.JSONValueString is not { } text) return null; // :471
-        return ISO8601.Date(text); // :472
+        if (value.JSONValueString is not { } text) return null; // :474
+        return ISO8601.Date(text); // :475
     }
 
-    // :476-491. PR-PROVCLI-106.
+    // :479-494. PR-PROVCLI-106.
     public static async Task<PlanLimits.ResetOutcome> ConsumeResetCredit(SwiftURL executable, IReadOnlyDictionary<string, string> environment, string? creditID)
     {
-        var connection = await Connect(executable, DirectoryFileUrl(TemporaryDirectory), environment, _ => { }); // :477-482
+        var connection = await Connect(executable, DirectoryFileUrl(TemporaryDirectory), environment, _ => { }); // :480-485
         try
         {
             var parameters = new Dictionary<string, JSONValue>(StringComparer.Ordinal)
             {
-                ["idempotencyKey"] = SwiftString.Lowercased(SwiftUUID.UuidString(Guid.NewGuid())), // :484
+                ["idempotencyKey"] = SwiftString.Lowercased(SwiftUUID.UuidString(Guid.NewGuid())), // :487
             };
-            if (creditID is { } id) parameters["creditId"] = id; // :485
-            var result = await connection.Request("account/rateLimitResetCredit/consume", new JSONValue.Object(new ValueMap<string, JSONValue>(parameters))); // :486
-            if (result["outcome"]?.JSONValueString is not { } outcomeText || SwiftEnum<PlanLimits.ResetOutcome>.FromRawValue(outcomeText) is not { } outcome) // :487
+            if (creditID is { } id) parameters["creditId"] = id; // :488
+            var result = await connection.Request("account/rateLimitResetCredit/consume", new JSONValue.Object(new ValueMap<string, JSONValue>(parameters))); // :489
+            if (result["outcome"]?.JSONValueString is not { } outcomeText || SwiftEnum<PlanLimits.ResetOutcome>.FromRawValue(outcomeText) is not { } outcome) // :490
             {
-                throw new ResetCreditError(new ResetCreditError.Case.UnknownOutcome()); // :488
+                throw new ResetCreditError(new ResetCreditError.Case.UnknownOutcome()); // :491
             }
-            return outcome; // :490
+            return outcome; // :493
         }
         finally
         {
-            connection.Close(); // :483
+            connection.Close(); // :486
         }
     }
 
@@ -874,23 +877,23 @@ public sealed class CodexSession : ProviderSession
         return SwiftURL.Create("marrow-directory-path:" + builder) ?? throw SwiftTraps.Fatal("Invalid temporary directory path.");
     }
 
-    // FileManager.default.temporaryDirectory (:358, :391, :479): the Windows user temporary directory, the same
+    // FileManager.default.temporaryDirectory (:361, :394, :482): the Windows user temporary directory, the same
     // mapping PlanLimits.cs's TemporaryDirectory gives it (R-TEST-9: MARROW_PORT_DATA_DIR first).
     private static string TemporaryDirectory =>
         Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR") ?? System.IO.Path.GetTempPath();
 
-    // :502-528
+    // :505-531
     private static async Task<JSONRPCConnection> Connect(
         SwiftURL executable,
         SwiftURL directory,
         IReadOnlyDictionary<string, string> environment,
         Action<JSONRPCConnection> configure)
     {
-        var process = new StdioProcess(executable.Path, ["app-server"], directory.Path, environment); // :508
-        var connection = new JSONRPCConnection(process, sendsVersion: false); // :509
-        configure(connection); // :510
-        connection.Start(); // :511
-        var watchdog = MainActor.Spawn(async () => // :512-516
+        var process = new StdioProcess(executable.Path, ["app-server"], directory.Path, environment); // :511
+        var connection = new JSONRPCConnection(process, sendsVersion: false); // :512
+        configure(connection); // :513
+        connection.Start(); // :514
+        var watchdog = MainActor.Spawn(async () => // :515-519
         {
             await SwiftTask.TrySleep(TimeSpan.FromSeconds(20));
             if (!SwiftTask.IsCancelled)
@@ -902,7 +905,7 @@ public sealed class CodexSession : ProviderSession
         {
             try
             {
-                _ = await connection.Request("initialize", new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue> // :518-521
+                _ = await connection.Request("initialize", new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue> // :521-524
                 {
                     ["clientInfo"] = new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>
                     {
@@ -918,38 +921,38 @@ public sealed class CodexSession : ProviderSession
             }
             catch
             {
-                connection.Close(); // :523
-                throw;              // :524
+                connection.Close(); // :526
+                throw;              // :527
             }
 
-            connection.Notify("initialized"); // :526
-            return connection;                 // :527
+            connection.Notify("initialized"); // :529
+            return connection;                 // :530
         }
         finally
         {
-            watchdog.Cancel(); // :516
+            watchdog.Cancel(); // :519
         }
     }
 
-    // :532-659. PR-PROVCLI-107, 108, 109, 110, 111, 112. itemStarted (:703-725) and itemCompleted (:727-749)
+    // :535-662. PR-PROVCLI-107, 108, 109, 110, 111, 112. itemStarted (:707-729) and itemCompleted (:731-753)
     // belong to a later part of this unit and stay stubbed below; nothing this part's own tests send an
     // "item/started" or "item/completed" notification, so the switch reaches those cases only in a later part.
     private void HandleNotification(string method, JSONValue parameters)
     {
-        if (method == "thread/started") // :533-536
+        if (method == "thread/started") // :536-539
         {
             HeadStarted(parameters["thread"] ?? new JSONValue.Null());
             return;
         }
 
-        Target target = new Target.Lead(); // :538
-        if (parameters["threadId"]?.JSONValueString is { } eventThread && threadID is { } currentThreadID && !SwiftString.Equal(eventThread, currentThreadID)) // :539
+        Target target = new Target.Lead(); // :541
+        if (parameters["threadId"]?.JSONValueString is { } eventThread && threadID is { } currentThreadID && !SwiftString.Equal(eventThread, currentThreadID)) // :542
         {
-            if (!headThreads.Contains(eventThread)) return; // :540
-            target = new Target.Head(eventThread); // :541
+            if (!headThreads.Contains(eventThread)) return; // :543
+            target = new Target.Head(eventThread); // :544
         }
 
-        void Sink(ProviderEvent e) // :543-546
+        void Sink(ProviderEvent e) // :546-549
         {
             switch (target)
             {
@@ -960,228 +963,229 @@ public sealed class CodexSession : ProviderSession
 
         switch (method)
         {
-            case "turn/started": // :548-556
+            case "turn/started": // :551-559
             {
                 var id = parameters["turn"]?["id"]?.JSONValueString;
                 switch (target)
                 {
                     case Target.Lead:
-                        turnID = id; // :552
+                        turnID = id; // :555
                         break;
                     case Target.Head(var head):
-                        if (id is null) headTurns.Remove(head); else headTurns[head] = id; // :554
+                        if (id is null) headTurns.Remove(head); else headTurns[head] = id; // :557
                         break;
                 }
-                Sink(new ProviderEvent.TurnStarted(id)); // :556
+                Sink(new ProviderEvent.TurnStarted(id)); // :559
                 break;
             }
-            case "item/started": // :557-558
+            case "item/started": // :560-561
                 if (parameters["item"] is { } startedItem) ItemStarted(startedItem, target, Sink);
                 break;
-            case "item/completed": // :559-560
+            case "item/completed": // :562-563
                 if (parameters["item"] is { } completedItem) ItemCompleted(completedItem, target, Sink);
                 break;
-            case "item/agentMessage/delta": // :561-564
+            case "item/agentMessage/delta": // :564-567
                 if (parameters["itemId"]?.JSONValueString is { } msgID && parameters["delta"]?.JSONValueString is { } msgDelta)
                 {
                     Sink(new ProviderEvent.MessageDelta(msgID, msgDelta));
                 }
                 break;
             case "item/reasoning/summaryTextDelta":
-            case "item/reasoning/textDelta": // :565-568
+            case "item/reasoning/textDelta": // :568-571
                 if (parameters["itemId"]?.JSONValueString is { } reasoningID && parameters["delta"]?.JSONValueString is { } reasoningDelta)
                 {
                     Sink(new ProviderEvent.ReasoningDelta(reasoningID, reasoningDelta));
                 }
                 break;
-            case "item/reasoning/summaryPartAdded": // :569-572
+            case "item/reasoning/summaryPartAdded": // :572-575
                 if (parameters["itemId"]?.JSONValueString is { } partID && parameters["summaryIndex"]?.JSONValueInt is { } index && index > 0)
                 {
                     Sink(new ProviderEvent.ReasoningDelta(partID, "\n\n"));
                 }
                 break;
-            case "item/commandExecution/outputDelta": // :573-576
+            case "item/commandExecution/outputDelta": // :576-579
                 if (parameters["itemId"]?.JSONValueString is { } outID && parameters["delta"]?.JSONValueString is { } outDelta)
                 {
                     Sink(new ProviderEvent.ToolOutput(outID, outDelta));
                 }
                 break;
-            case "item/plan/delta": // :577-580
+            case "item/plan/delta": // :580-583
                 if (parameters["itemId"]?.JSONValueString is { } planID && parameters["delta"]?.JSONValueString is { } planDelta)
                 {
                     Sink(new ProviderEvent.PlanDelta(planID, planDelta));
                 }
                 break;
-            case "turn/plan/updated": // :581-591. PR-PROVCLI-109.
+            case "turn/plan/updated": // :584-594. PR-PROVCLI-109.
             {
                 var steps = new List<TodoStep>();
                 foreach (var step in parameters["plan"]?.JSONValueArray ?? [])
                 {
-                    if (step["step"]?.JSONValueString is not { } text) continue; // :583
-                    var status = step["status"]?.JSONValueString switch // :585-588
+                    if (step["step"]?.JSONValueString is not { } text) continue; // :586
+                    var status = step["status"]?.JSONValueString switch // :588-591
                     {
                         "completed" => TodoStep.Status.Done,
                         "inProgress" => TodoStep.Status.Active,
                         _ => TodoStep.Status.Pending,
                     };
-                    steps.Add(new TodoStep { Text = text, TodoStepStatus = status }); // :589
+                    steps.Add(new TodoStep { Text = text, TodoStepStatus = status }); // :592
                 }
-                Sink(new ProviderEvent.Todos(new ValueList<TodoStep>(steps))); // :591
+                Sink(new ProviderEvent.Todos(new ValueList<TodoStep>(steps))); // :594
                 break;
             }
-            case "turn/diff/updated": // :592-593
+            case "turn/diff/updated": // :595-596
                 if (parameters["diff"]?.JSONValueString is { } diff) Sink(new ProviderEvent.Diff(diff));
                 break;
-            case "thread/tokenUsage/updated": // :594-626. PR-PROVCLI-110, 111.
+            case "thread/tokenUsage/updated": // :597-629. PR-PROVCLI-110, 111.
                 HandleTokenUsageUpdated(parameters, target);
                 break;
-            case "error": // :627-631. PR-PROVCLI-112.
+            case "error": // :630-634. PR-PROVCLI-112.
                 if (target is Target.Lead && parameters["willRetry"]?.JSONValueBool == true)
                 {
-                    var message = ErrorMessage(parameters["error"]); // :629
+                    var message = ErrorMessage(parameters["error"]); // :632
                     OnEvent?.Invoke(new ProviderEvent.Notice(new Notice
                     {
                         NoticeLevel = Notice.Level.Warning,
-                        Message = message + " Retrying.", // :630
+                        Message = message + " Retrying.", // :633
                     }));
                 }
                 break;
-            case "turn/completed": // :632-650
+            case "turn/completed": // :635-653
                 HandleTurnCompleted(parameters, target);
                 break;
-            case "serverRequest/resolved": // :651-654
+            case "serverRequest/resolved": // :654-657
                 if (parameters["requestId"] is { } raw && RPCID.Create(raw) is { } resolvedID && pendingRequests.Remove(resolvedID.Key))
                 {
                     OnEvent?.Invoke(new ProviderEvent.RequestResolved(resolvedID.Key));
                 }
                 break;
-            case "thread/compacted": // :655-656
+            case "thread/compacted": // :658-659
                 Sink(new ProviderEvent.Notice(new Notice { NoticeLevel = Notice.Level.Info, Message = "Context compacted." }));
                 break;
-            default: // :657-658
+            default: // :660-661
                 break;
         }
     }
 
-    // :594-625. PR-PROVCLI-110, 111.
+    // :597-628. PR-PROVCLI-110, 111.
     private void HandleTokenUsageUpdated(JSONValue parameters, Target target)
     {
-        if (parameters["tokenUsage"] is not { } usage || usage["last"] is not { } last) return; // :595
-        var used = last["totalTokens"]?.JSONValueInt ?? 0; // :596
+        if (parameters["tokenUsage"] is not { } usage || usage["last"] is not { } last) return; // :598
+        var used = last["totalTokens"]?.JSONValueInt ?? 0; // :599
         switch (target)
         {
             case Target.Lead:
-                OnEvent?.Invoke(new ProviderEvent.Usage(new ContextUsage { UsedTokens = used, WindowTokens = usage["modelContextWindow"]?.JSONValueInt })); // :599
-                if (usage["total"]?["totalTokens"]?.JSONValueInt is { } total && total > 0) // :607
+                OnEvent?.Invoke(new ProviderEvent.Usage(new ContextUsage { UsedTokens = used, WindowTokens = usage["modelContextWindow"]?.JSONValueInt })); // :602
+                if (usage["total"]?["totalTokens"]?.JSONValueInt is { } total && total > 0) // :610
                 {
-                    var (next, spend) = spendTracker.Spend(total, Math.Max(0, total - used)); // :608
+                    var (next, spend) = spendTracker.Spend(total, Math.Max(0, total - used)); // :611
                     spendTracker = next;
-                    RecordCodexSpend(spend, threadID, activeModel); // :609
+                    RecordCodexSpend(spend, threadID, activeModel); // :612
                 }
                 else
                 {
-                    RecordCodexSpend(used, threadID, activeModel); // :611
+                    RecordCodexSpend(used, threadID, activeModel); // :614
                 }
                 break;
             case Target.Head(var head):
-                var headTotal = usage["total"]?["totalTokens"]?.JSONValueInt ?? 0; // :615
-                var headModel = headModels.GetValueOrDefault(head); // :616
+                var headTotal = usage["total"]?["totalTokens"]?.JSONValueInt ?? 0; // :618
+                var headModel = headModels.GetValueOrDefault(head); // :619
                 if (headTotal > 0)
                 {
-                    var tracker = headSpend.TryGetValue(head, out var existing) ? existing : new TokenSpendTracker(); // :618
-                    var (next, spend) = tracker.Spend(headTotal, Math.Max(0, headTotal - used)); // :619
-                    headSpend[head] = next; // :620
-                    RecordCodexSpend(spend, head, headModel, head); // :621
+                    var tracker = headSpend.TryGetValue(head, out var existing) ? existing : new TokenSpendTracker(); // :621
+                    var (next, spend) = tracker.Spend(headTotal, Math.Max(0, headTotal - used)); // :622
+                    headSpend[head] = next; // :623
+                    RecordCodexSpend(spend, head, headModel, head); // :624
                 }
                 else
                 {
-                    RecordCodexSpend(used, head, headModel, head); // :623
+                    RecordCodexSpend(used, head, headModel, head); // :626
                 }
-                OnEvent?.Invoke(new ProviderEvent.AgentProgress(head, null, null, headTotal > 0 ? headTotal : used, null)); // :625
+                OnEvent?.Invoke(new ProviderEvent.AgentProgress(head, null, null, headTotal > 0 ? headTotal : used, null)); // :628
                 break;
         }
     }
 
-    // :668-674
+    // :671-677
     private void RecordCodexSpend(long spend, string? rolloutID, string? model, string? agentID = null)
     {
-        if (spend <= 0) return; // :669
-        if (rolloutID is { Length: > 0 }) // :670
+        if (spend <= 0) return; // :672
+        if (rolloutID is { Length: > 0 }) // :673
         {
-            TokenLedger.Shared.Current.RecordCodexSpend(spend, rolloutID); // :671
+            TokenLedger.Shared.Current.RecordCodexSpend(spend, rolloutID); // :674
         }
-        OnEvent?.Invoke(new ProviderEvent.TokenSpend(new TokenSpend(ProviderKind.Codex, spend, model: model, agentID: agentID))); // :673
+        OnEvent?.Invoke(new ProviderEvent.TokenSpend(new TokenSpend(ProviderKind.Codex, spend, model: model, agentID: agentID))); // :676
     }
 
-    // :632-650
+    // :635-653
     private void HandleTurnCompleted(JSONValue parameters, Target target)
     {
-        var turn = parameters["turn"]; // :633
-        var status = turn?["status"]?.JSONValueString switch // :634-638
+        var turn = parameters["turn"]; // :636
+        var status = turn?["status"]?.JSONValueString switch // :637-641
         {
             "interrupted" => TurnStatus.Interrupted,
             "failed" => TurnStatus.Failed,
             _ => TurnStatus.Completed,
         };
-        var error = turn?["error"] is { IsNull: false } errorValue ? ErrorMessage(errorValue) : null; // :639
+        var error = turn?["error"] is { IsNull: false } errorValue ? ErrorMessage(errorValue) : null; // :642
         switch (target)
         {
             case Target.Lead:
-                turnID = null; // :642
-                if (status == TurnStatus.Failed && error is { } errorText && UsageLimitSignal.Matches(errorText)) // :643
+                turnID = null; // :645
+                if (status == TurnStatus.Failed && error is { } errorText && UsageLimitSignal.Matches(errorText)) // :646
                 {
-                    OnEvent?.Invoke(new ProviderEvent.UsageLimit(UsageLimitSignal.ResetTime(errorText))); // :644
+                    OnEvent?.Invoke(new ProviderEvent.UsageLimit(UsageLimitSignal.ResetTime(errorText))); // :647
                 }
-                OnEvent?.Invoke(new ProviderEvent.TurnCompleted(status, error)); // :646
+                OnEvent?.Invoke(new ProviderEvent.TurnCompleted(status, error)); // :649
                 break;
             case Target.Head(var head):
-                headTurns.Remove(head); // :648
-                OnEvent?.Invoke(new ProviderEvent.AgentFinished(head, status, error)); // :649
+                headTurns.Remove(head); // :651
+                OnEvent?.Invoke(new ProviderEvent.AgentFinished(head, status, error)); // :652
                 break;
         }
     }
 
-    // :676-701. Needed by handleNotification's thread/started routing (PR-PROVCLI-107).
+    // :679-705. Needed by handleNotification's thread/started routing (PR-PROVCLI-107).
     private void HeadStarted(JSONValue thread)
     {
-        if (thread["id"]?.JSONValueString is not { } id || threadID is not { } currentThreadID || headThreads.Contains(id)) return; // :678
+        if (thread["id"]?.JSONValueString is not { } id || threadID is not { } currentThreadID ||
+            SwiftString.Equal(id, currentThreadID) || headThreads.Contains(id)) return; // :681-682
         var parent = thread["parentThreadId"]?.JSONValueString;
-        if (parent is null || !SwiftString.Equal(parent, currentThreadID)) // :679
+        if (parent is null || !SwiftString.Equal(parent, currentThreadID)) // :683
         {
-            var nickname = thread["agentNickname"]?.JSONValueString; // :684
+            var nickname = thread["agentNickname"]?.JSONValueString; // :688
             var role = thread["agentRole"]?.JSONValueString;
-            if (nickname is null && role is null) return; // :685
-            Log.Error($"thread/started {id} names parent {parent ?? "none"}, not this lead {currentThreadID}; taken as a head by its agent nickname"); // :686
-            headThreads.Add(id); // :687
-            if (thread["model"]?.JSONValueString is { } headModel1) headModels[id] = headModel1; // :688
-            var preview1 = thread["preview"]?.JSONValueString?.Trimmed() ?? ""; // :689
-            var description1 = DescribeHead(preview1, nickname, role); // :690
+            if (nickname is null && role is null) return; // :689
+            Log.Error($"thread/started {id} names parent {parent ?? "none"}, not this lead {currentThreadID}; taken as a head by its agent nickname"); // :690
+            headThreads.Add(id); // :691
+            if (thread["model"]?.JSONValueString is { } headModel1) headModels[id] = headModel1; // :692
+            var preview1 = thread["preview"]?.JSONValueString?.Trimmed() ?? ""; // :693
+            var description1 = DescribeHead(preview1, nickname, role); // :694
             OnEvent?.Invoke(new ProviderEvent.AgentStarted(new AgentSpawn
             {
                 Id = id,
                 Description = description1,
                 Prompt = preview1.Length > 0 ? preview1 : null,
                 Model = thread["model"]?.JSONValueString,
-            })); // :691
+            })); // :695
             return;
         }
 
-        headThreads.Add(id); // :694
-        if (thread["model"]?.JSONValueString is { } headModel2) headModels[id] = headModel2; // :695
-        var nickname2 = thread["agentNickname"]?.JSONValueString; // :696
-        var role2 = thread["agentRole"]?.JSONValueString; // :697
-        var preview2 = thread["preview"]?.JSONValueString?.Trimmed() ?? ""; // :698
-        var description2 = DescribeHead(preview2, nickname2, role2); // :699
+        headThreads.Add(id); // :698
+        if (thread["model"]?.JSONValueString is { } headModel2) headModels[id] = headModel2; // :699
+        var nickname2 = thread["agentNickname"]?.JSONValueString; // :700
+        var role2 = thread["agentRole"]?.JSONValueString; // :701
+        var preview2 = thread["preview"]?.JSONValueString?.Trimmed() ?? ""; // :702
+        var description2 = DescribeHead(preview2, nickname2, role2); // :703
         OnEvent?.Invoke(new ProviderEvent.AgentStarted(new AgentSpawn
         {
             Id = id,
             Description = description2,
             Prompt = preview2.Length > 0 ? preview2 : null,
             Model = thread["model"]?.JSONValueString,
-        })); // :700
+        })); // :704
     }
 
-    // Shared by both HeadStarted branches (:690, :699): `!preview.isEmpty ? TextCleanup.singleLine(preview, limit:
+    // Shared by both HeadStarted branches (:694, :703): `!preview.isEmpty ? TextCleanup.singleLine(preview, limit:
     // 80) : ([nickname, role].compactMap { $0 }.joined(separator: " · ").nilIfEmpty ?? "Subagent")`.
     private static string DescribeHead(string preview, string? nickname, string? role)
     {
@@ -1193,27 +1197,27 @@ public sealed class CodexSession : ProviderSession
         return joined.Length > 0 ? joined : "Subagent";
     }
 
-    // :703-725. PR-PROVCLI-117.
+    // :707-729. PR-PROVCLI-117.
     private void ItemStarted(JSONValue item, Target target, Action<ProviderEvent> sink)
     {
-        if (item["id"]?.JSONValueString is not { } id) return; // :704
+        if (item["id"]?.JSONValueString is not { } id) return; // :708
         var type = item["type"]?.JSONValueString;
-        if (type is not null && SwiftString.Equal(type, "agentMessage")) // :706-707
+        if (type is not null && SwiftString.Equal(type, "agentMessage")) // :710-711
         {
             sink(new ProviderEvent.MessageDelta(id, item["text"]?.JSONValueString ?? ""));
             return;
         }
-        if (type is not null && SwiftString.Equal(type, "reasoning")) // :708-709
+        if (type is not null && SwiftString.Equal(type, "reasoning")) // :712-713
         {
             sink(new ProviderEvent.ReasoningDelta(id, ""));
             return;
         }
-        if (type is not null && SwiftString.Equal(type, "plan")) // :710-711
+        if (type is not null && SwiftString.Equal(type, "plan")) // :714-715
         {
             sink(new ProviderEvent.PlanDelta(id, item["text"]?.JSONValueString ?? ""));
             return;
         }
-        if (type is not null && SwiftString.Equal(type, "userMessage")) // :712-717
+        if (type is not null && SwiftString.Equal(type, "userMessage")) // :716-721
         {
             if (target is Target.Head(var head) && UserText(item) is { } text)
             {
@@ -1226,59 +1230,60 @@ public sealed class CodexSession : ProviderSession
             }
             return;
         }
-        if (type is not null && (SwiftString.Equal(type, "hookPrompt") || SwiftString.Equal(type, "functionCallOutput") || SwiftString.Equal(type, "contextCompaction"))) // :718-719
+        if (type is not null && (SwiftString.Equal(type, "hookPrompt") || SwiftString.Equal(type, "functionCallOutput") || SwiftString.Equal(type, "contextCompaction"))) // :722-723
         {
             return;
         }
-        if (ToolCallFrom(item) is { } call) sink(new ProviderEvent.ToolStarted(id, call)); // :721-722
-        if (type is not null && SwiftString.Equal(type, "collabAgentToolCall")) DescribeHeads(item); // :723-724
+        if (ToolCallFrom(item) is { } call) sink(new ProviderEvent.ToolStarted(id, call)); // :725-726
+        if (type is not null && SwiftString.Equal(type, "collabAgentToolCall")) DescribeHeads(item); // :727-728
     }
 
-    // :727-749. PR-PROVCLI-118.
+    // :731-753. PR-PROVCLI-118.
     private void ItemCompleted(JSONValue item, Target target, Action<ProviderEvent> sink)
     {
-        if (item["id"]?.JSONValueString is not { } id) return; // :728
+        if (item["id"]?.JSONValueString is not { } id) return; // :732
         var type = item["type"]?.JSONValueString;
-        if (type is not null && SwiftString.Equal(type, "agentMessage")) // :730-731
+        if (type is not null && SwiftString.Equal(type, "agentMessage")) // :734-735
         {
             sink(new ProviderEvent.MessageCompleted(id, item["text"]?.JSONValueString ?? ""));
             return;
         }
-        if (type is not null && SwiftString.Equal(type, "reasoning")) // :732-735
+        if (type is not null && SwiftString.Equal(type, "reasoning")) // :736-739
         {
             var summary = string.Join("\n\n", (item["summary"]?.JSONValueArray ?? []).Select(v => v.JSONValueString).Where(v => v is not null));
             var content = string.Join("\n\n", (item["content"]?.JSONValueArray ?? []).Select(v => v.JSONValueString).Where(v => v is not null));
             sink(new ProviderEvent.ReasoningCompleted(id, summary.Length > 0 ? summary : content));
             return;
         }
-        if (type is not null && SwiftString.Equal(type, "plan")) // :736-737
+        if (type is not null && SwiftString.Equal(type, "plan")) // :740-741
         {
             sink(new ProviderEvent.PlanCompleted(id, item["text"]?.JSONValueString ?? ""));
             return;
         }
         if (type is not null && (SwiftString.Equal(type, "userMessage") || SwiftString.Equal(type, "hookPrompt") ||
-                                  SwiftString.Equal(type, "functionCallOutput") || SwiftString.Equal(type, "contextCompaction"))) // :738-739
+                                  SwiftString.Equal(type, "functionCallOutput") || SwiftString.Equal(type, "contextCompaction"))) // :742-743
         {
             return;
         }
-        if (ToolCallFrom(item) is { } call) // :741-744
+        if (ToolCallFrom(item) is { } call) // :745-748
         {
             sink(new ProviderEvent.ToolStarted(id, call));
             sink(new ProviderEvent.ToolUpdated(id, ToolUpdateFrom(item)));
         }
-        DescribeHeads(item); // :746
+        DescribeHeads(item); // :750
     }
 
-    // :751-774. PR-PROVCLI-119. :775-797. PR-PROVCLI-120.
+    // :755-780. PR-PROVCLI-119. :781-804. PR-PROVCLI-120.
     private void DescribeHeads(JSONValue item)
     {
+        if (threadID is not { } currentThreadID) return; // :760
         var type = item["type"]?.JSONValueString;
-        if (type is not null && SwiftString.Equal(type, "collabAgentToolCall")) // :755
+        if (type is not null && SwiftString.Equal(type, "collabAgentToolCall")) // :761-762
         {
-            if (item["tool"]?.JSONValueString is not { } tool || !SwiftString.Equal(tool, "spawnAgent")) return; // :756
-            var itemModel = item["model"]?.JSONValueString; // :759
-            var itemEffort = item["reasoningEffort"]?.JSONValueString;
-            string? routed = null; // :758-761
+            if (item["tool"]?.JSONValueString is not { } tool || !SwiftString.Equal(tool, "spawnAgent")) return; // :765
+            var itemModel = item["model"]?.JSONValueString; // :769
+            var itemEffort = item["reasoningEffort"]?.JSONValueString; // :770
+            string? routed = null; // :771-774
             if (configuration.Hydra is { } hydra)
             {
                 var matches = HydraPrompts.NativeRoutableProfiles(hydra)
@@ -1288,12 +1293,13 @@ public sealed class CodexSession : ProviderSession
                     .ToList();
                 routed = matches.Count == 1 ? matches[0].Name : null;
             }
-            var prompt = item["prompt"]?.JSONValueString?.Trimmed() ?? ""; // :763
-            foreach (var receiverValue in item["receiverThreadIds"]?.JSONValueArray ?? []) // :764
+            var prompt = item["prompt"]?.JSONValueString?.Trimmed() ?? ""; // :775
+            foreach (var receiverValue in item["receiverThreadIds"]?.JSONValueArray ?? []) // :776
             {
                 if (receiverValue.JSONValueString is not { } receiver) continue;
-                if (!headThreads.Contains(receiver)) headThreads.Add(receiver); // :765
-                OnEvent?.Invoke(new ProviderEvent.AgentStarted(new AgentSpawn // :766-773
+                if (SwiftString.Equal(receiver, currentThreadID)) continue; // :777
+                if (!headThreads.Contains(receiver)) headThreads.Add(receiver); // :778
+                OnEvent?.Invoke(new ProviderEvent.AgentStarted(new AgentSpawn // :779
                 {
                     Id = receiver,
                     ToolUseID = item["id"]?.JSONValueString,
@@ -1305,38 +1311,39 @@ public sealed class CodexSession : ProviderSession
             }
             return;
         }
-        if (type is not null && SwiftString.Equal(type, "subAgentActivity")) // :775
+        if (type is not null && SwiftString.Equal(type, "subAgentActivity")) // :781
         {
-            if (item["agentThreadId"]?.JSONValueString is not { } agentThread) return; // :776
-            if (!headThreads.Contains(agentThread)) // :783
+            if (item["agentThreadId"]?.JSONValueString is not { } agentThread ||
+                SwiftString.Equal(agentThread, currentThreadID)) return; // :782-783
+            if (!headThreads.Contains(agentThread)) // :784
             {
-                headThreads.Add(agentThread); // :787
+                headThreads.Add(agentThread); // :790
                 var lastComponent = item["agentPath"]?.JSONValueString is { } path
                     ? path.Split('/').LastOrDefault()
                     : null;
-                var nickname = lastComponent is { Length: > 0 } ? lastComponent : "Head"; // :790
-                Log.Error($"head {agentThread} adopted from a subAgentActivity note ({nickname}); no thread/started or spawn receiver id preceded it"); // :785
-                OnEvent?.Invoke(new ProviderEvent.AgentStarted(new AgentSpawn // :788-792
+                var nickname = lastComponent is { Length: > 0 } ? lastComponent : "Head"; // :791
+                Log.Error($"head {agentThread} adopted from a subAgentActivity note ({nickname}); no thread/started or spawn receiver id preceded it"); // :792
+                OnEvent?.Invoke(new ProviderEvent.AgentStarted(new AgentSpawn // :793
                 {
                     Id = agentThread,
                     Description = nickname.Replace('_', ' '),
                 }));
             }
-            var kind = item["kind"]?.JSONValueString;
-            if (kind is not null && SwiftString.Equal(kind, "completed")) // :794
+            var kind = item["kind"]?.JSONValueString; // :795
+            if (kind is not null && SwiftString.Equal(kind, "completed")) // :796
             {
-                headTurns.Remove(agentThread);
-                OnEvent?.Invoke(new ProviderEvent.AgentFinished(agentThread, TurnStatus.Completed, null));
+                headTurns.Remove(agentThread); // :797
+                OnEvent?.Invoke(new ProviderEvent.AgentFinished(agentThread, TurnStatus.Completed, null)); // :798
             }
-            else if (kind is not null && SwiftString.Equal(kind, "interrupted")) // :796
+            else if (kind is not null && SwiftString.Equal(kind, "interrupted")) // :799
             {
-                headTurns.Remove(agentThread);
-                OnEvent?.Invoke(new ProviderEvent.AgentFinished(agentThread, TurnStatus.Interrupted, null));
+                headTurns.Remove(agentThread); // :800
+                OnEvent?.Invoke(new ProviderEvent.AgentFinished(agentThread, TurnStatus.Interrupted, null)); // :801
             }
         }
     }
 
-    // :803-810. PR-PROVCLI-133.
+    // :810-817. PR-PROVCLI-133.
     private static string? UserText(JSONValue item)
     {
         var parts = (item["content"]?.JSONValueArray ?? []).Select(part =>
@@ -1344,16 +1351,16 @@ public sealed class CodexSession : ProviderSession
             if (part["text"]?.JSONValueString is { } text) return text;
             return part["type"]?.JSONValueString is { } t && SwiftString.Equal(t, "text") ? part["value"]?.JSONValueString : null;
         }).Where(text => text is not null);
-        var joined = string.Join("\n", parts).Trimmed(); // :808
-        return joined.Length == 0 ? null : joined; // :809
+        var joined = string.Join("\n", parts).Trimmed(); // :815
+        return joined.Length == 0 ? null : joined; // :816
     }
 
-    // :812-864. PR-PROVCLI-121.
+    // :819-871. PR-PROVCLI-121.
     private ToolCall? ToolCallFrom(JSONValue item)
     {
         var type = item["type"]?.JSONValueString;
         if (type is null) return null;
-        if (SwiftString.Equal(type, "commandExecution")) // :813-822
+        if (SwiftString.Equal(type, "commandExecution")) // :820-829
         {
             var command = ToolTitles.UnwrapShell(item["command"]?.JSONValueString ?? "");
             var actions = item["commandActions"]?.JSONValueArray ?? [];
@@ -1369,22 +1376,22 @@ public sealed class CodexSession : ProviderSession
             }
             return new ToolCall { ToolCallKind = ToolCall.Kind.Command, Title = command };
         }
-        if (SwiftString.Equal(type, "fileChange")) // :823-826
+        if (SwiftString.Equal(type, "fileChange")) // :830-833
         {
             var paths = (item["changes"]?.JSONValueArray ?? []).Select(c => c["path"]?.JSONValueString).Where(p => p is not null).ToList();
             var title = paths.Count == 1 ? ToolTitles.RelativePath(paths[0]!, WorkingDirectory) : $"Edit {paths.Count} files";
             return new ToolCall { ToolCallKind = ToolCall.Kind.Edit, Title = title };
         }
-        if (SwiftString.Equal(type, "mcpToolCall")) // :827-833
+        if (SwiftString.Equal(type, "mcpToolCall")) // :834-840
         {
             var server = item["server"]?.JSONValueString ?? "MCP";
             var tool = item["tool"]?.JSONValueString ?? "tool";
             var arguments = item["arguments"]?.CompactString;
             return new ToolCall { ToolCallKind = ToolCall.Kind.Mcp, Title = server + " " + Dot + " " + tool, Detail = arguments == "null" ? null : arguments };
         }
-        if (SwiftString.Equal(type, "dynamicToolCall")) return new ToolCall { ToolCallKind = ToolCall.Kind.Other, Title = item["tool"]?.JSONValueString ?? "Tool" }; // :834
-        if (SwiftString.Equal(type, "webSearch")) return new ToolCall { ToolCallKind = ToolCall.Kind.Web, Title = item["query"]?.JSONValueString ?? "Web search" }; // :835
-        if (SwiftString.Equal(type, "collabAgentToolCall")) // :836-851
+        if (SwiftString.Equal(type, "dynamicToolCall")) return new ToolCall { ToolCallKind = ToolCall.Kind.Other, Title = item["tool"]?.JSONValueString ?? "Tool" }; // :841
+        if (SwiftString.Equal(type, "webSearch")) return new ToolCall { ToolCallKind = ToolCall.Kind.Web, Title = item["query"]?.JSONValueString ?? "Web search" }; // :842
+        if (SwiftString.Equal(type, "collabAgentToolCall")) // :843-858
         {
             var tool = item["tool"]?.JSONValueString;
             var verb = tool switch
@@ -1402,22 +1409,22 @@ public sealed class CodexSession : ProviderSession
                 ? new ToolCall { ToolCallKind = ToolCall.Kind.Agent, Title = verb }
                 : new ToolCall { ToolCallKind = ToolCall.Kind.Agent, Title = brief, Detail = verb };
         }
-        if (SwiftString.Equal(type, "subAgentActivity")) return null; // :852-854
-        if (SwiftString.Equal(type, "imageView")) return new ToolCall { ToolCallKind = ToolCall.Kind.Read, Title = ToolTitles.RelativePath(item["path"]?.JSONValueString ?? "Image", WorkingDirectory) }; // :855-857
-        if (SwiftString.Equal(type, "imageGeneration")) return new ToolCall { ToolCallKind = ToolCall.Kind.Other, Title = item["revisedPrompt"]?.JSONValueString ?? "Generate image" }; // :858-859
-        if (SwiftString.Equal(type, "enteredReviewMode") || SwiftString.Equal(type, "exitedReviewMode")) // :860-862
+        if (SwiftString.Equal(type, "subAgentActivity")) return null; // :859-861
+        if (SwiftString.Equal(type, "imageView")) return new ToolCall { ToolCallKind = ToolCall.Kind.Read, Title = ToolTitles.RelativePath(item["path"]?.JSONValueString ?? "Image", WorkingDirectory) }; // :862-864
+        if (SwiftString.Equal(type, "imageGeneration")) return new ToolCall { ToolCallKind = ToolCall.Kind.Other, Title = item["revisedPrompt"]?.JSONValueString ?? "Generate image" }; // :865-866
+        if (SwiftString.Equal(type, "enteredReviewMode") || SwiftString.Equal(type, "exitedReviewMode")) // :867-869
         {
             return new ToolCall { ToolCallKind = ToolCall.Kind.Other, Title = "Review", Detail = item["review"]?.JSONValueString };
         }
-        return null; // :863
+        return null; // :870
     }
 
-    // :866-897. PR-PROVCLI-122.
+    // :873-904. PR-PROVCLI-122.
     private ToolUpdate ToolUpdateFrom(JSONValue item)
     {
         var type = item["type"]?.JSONValueString;
         var rawStatus = item["status"]?.JSONValueString;
-        if (type is not null && SwiftString.Equal(type, "commandExecution")) // :867-871
+        if (type is not null && SwiftString.Equal(type, "commandExecution")) // :874-878
         {
             var exitCode = item["exitCode"]?.JSONValueInt;
             return new ToolUpdate
@@ -1427,7 +1434,7 @@ public sealed class CodexSession : ProviderSession
                 Status = ToolStatus(rawStatus, exitCode),
             };
         }
-        if (type is not null && SwiftString.Equal(type, "fileChange")) // :872-880
+        if (type is not null && SwiftString.Equal(type, "fileChange")) // :879-887
         {
             var edits = new List<FileEdit>();
             foreach (var change in item["changes"]?.JSONValueArray ?? [])
@@ -1438,7 +1445,7 @@ public sealed class CodexSession : ProviderSession
             }
             return new ToolUpdate { Edits = new ValueList<FileEdit>(edits), Status = ToolStatus(rawStatus, null) };
         }
-        if (type is not null && SwiftString.Equal(type, "mcpToolCall")) // :881-888
+        if (type is not null && SwiftString.Equal(type, "mcpToolCall")) // :888-895
         {
             string? output;
             if (item["error"]?["message"]?.JSONValueString is { } message) output = message;
@@ -1446,31 +1453,31 @@ public sealed class CodexSession : ProviderSession
             return new ToolUpdate { Output = output, Status = ToolStatus(rawStatus, null) };
         }
         if (type is not null && (SwiftString.Equal(type, "webSearch") || SwiftString.Equal(type, "imageView") ||
-                                  SwiftString.Equal(type, "enteredReviewMode") || SwiftString.Equal(type, "exitedReviewMode"))) // :889-892
+                                  SwiftString.Equal(type, "enteredReviewMode") || SwiftString.Equal(type, "exitedReviewMode"))) // :896-899
         {
             return new ToolUpdate { Status = ToolCall.Status.Completed };
         }
-        return new ToolUpdate { Status = ToolStatus(rawStatus, null) }; // :893-896
+        return new ToolUpdate { Status = ToolStatus(rawStatus, null) }; // :900-903
     }
 
-    // :899-908. PR-PROVCLI-123.
+    // :906-915. PR-PROVCLI-123.
     private static ToolCall.Status ToolStatus(string? raw, long? exitCode)
     {
-        if (raw is not null && SwiftString.Equal(raw, "inProgress")) return ToolCall.Status.Running; // :901
-        if (raw is not null && (SwiftString.Equal(raw, "failed") || SwiftString.Equal(raw, "interrupted"))) return ToolCall.Status.Failed; // :902-903
-        if (raw is not null && SwiftString.Equal(raw, "declined")) return ToolCall.Status.Declined; // :904
-        return exitCode is { } code && code != 0 ? ToolCall.Status.Failed : ToolCall.Status.Completed; // :906-907
+        if (raw is not null && SwiftString.Equal(raw, "inProgress")) return ToolCall.Status.Running; // :908
+        if (raw is not null && (SwiftString.Equal(raw, "failed") || SwiftString.Equal(raw, "interrupted"))) return ToolCall.Status.Failed; // :909-910
+        if (raw is not null && SwiftString.Equal(raw, "declined")) return ToolCall.Status.Declined; // :911
+        return exitCode is { } code && code != 0 ? ToolCall.Status.Failed : ToolCall.Status.Completed; // :913-914
     }
 
-    // :922-989. PR-PROVCLI-124, 125, 126, 127, 128, 129.
+    // :929-996. PR-PROVCLI-124, 125, 126, 127, 128, 129.
     private void HandleRequest(RPCID id, string method, JSONValue parameters)
     {
-        if (SwiftString.Equal(method, "item/commandExecution/requestApproval")) // :924
+        if (SwiftString.Equal(method, "item/commandExecution/requestApproval")) // :931
         {
-            var (options, payloads) = DecisionOptions(parameters["availableDecisions"]?.JSONValueArray, command: true); // :925
-            pendingRequests[id.Key] = new PendingRequest.Decision(id, payloads); // :926
-            var command = parameters["command"]?.JSONValueString is { } rawCommand ? ToolTitles.UnwrapShell(rawCommand) : "Command"; // :927
-            var cwd = parameters["cwd"]?.JSONValueString is { } cwdRaw ? ToolTitles.RelativePath(cwdRaw, WorkingDirectory) : null; // :930
+            var (options, payloads) = DecisionOptions(parameters["availableDecisions"]?.JSONValueArray, command: true); // :932
+            pendingRequests[id.Key] = new PendingRequest.Decision(id, payloads); // :933
+            var command = parameters["command"]?.JSONValueString is { } rawCommand ? ToolTitles.UnwrapShell(rawCommand) : "Command"; // :934
+            var cwd = parameters["cwd"]?.JSONValueString is { } cwdRaw ? ToolTitles.RelativePath(cwdRaw, WorkingDirectory) : null; // :937
             OnEvent?.Invoke(new ProviderEvent.Approval(new ApprovalRequest(
                 Id: id.Key,
                 RequestKind: ApprovalRequest.Kind.Command,
@@ -1478,13 +1485,13 @@ public sealed class CodexSession : ProviderSession
                 Options: options,
                 Detail: cwd,
                 Reason: parameters["reason"]?.JSONValueString,
-                ToolItemID: parameters["itemId"]?.JSONValueString))); // :928-936
+                ToolItemID: parameters["itemId"]?.JSONValueString))); // :935-943
             return;
         }
-        if (SwiftString.Equal(method, "item/fileChange/requestApproval")) // :937
+        if (SwiftString.Equal(method, "item/fileChange/requestApproval")) // :944
         {
-            var (options, payloads) = DecisionOptions(null, command: false); // :938
-            pendingRequests[id.Key] = new PendingRequest.Decision(id, payloads); // :939
+            var (options, payloads) = DecisionOptions(null, command: false); // :945
+            pendingRequests[id.Key] = new PendingRequest.Decision(id, payloads); // :946
             OnEvent?.Invoke(new ProviderEvent.Approval(new ApprovalRequest(
                 Id: id.Key,
                 RequestKind: ApprovalRequest.Kind.FileChange,
@@ -1492,13 +1499,13 @@ public sealed class CodexSession : ProviderSession
                 Options: options,
                 Detail: parameters["grantRoot"]?.JSONValueString,
                 Reason: parameters["reason"]?.JSONValueString,
-                ToolItemID: parameters["itemId"]?.JSONValueString))); // :940-948
+                ToolItemID: parameters["itemId"]?.JSONValueString))); // :947-955
             return;
         }
-        if (SwiftString.Equal(method, "item/permissions/requestApproval")) // :949
+        if (SwiftString.Equal(method, "item/permissions/requestApproval")) // :956
         {
-            var requested = parameters["permissions"] ?? new JSONValue.Object(ValueMap<string, JSONValue>.Empty); // :950
-            pendingRequests[id.Key] = new PendingRequest.Permissions(id, requested); // :951
+            var requested = parameters["permissions"] ?? new JSONValue.Object(ValueMap<string, JSONValue>.Empty); // :957
+            pendingRequests[id.Key] = new PendingRequest.Permissions(id, requested); // :958
             OnEvent?.Invoke(new ProviderEvent.Approval(new ApprovalRequest(
                 Id: id.Key,
                 RequestKind: ApprovalRequest.Kind.Permissions,
@@ -1511,15 +1518,15 @@ public sealed class CodexSession : ProviderSession
                 ]),
                 Detail: null,
                 Reason: parameters["reason"]?.JSONValueString,
-                ToolItemID: parameters["itemId"]?.JSONValueString))); // :952-964
+                ToolItemID: parameters["itemId"]?.JSONValueString))); // :959-971
             return;
         }
-        if (SwiftString.Equal(method, "item/tool/requestUserInput")) // :965
+        if (SwiftString.Equal(method, "item/tool/requestUserInput")) // :972
         {
             var questions = new List<QuestionRequest.Question>();
-            foreach (var question in parameters["questions"]?.JSONValueArray ?? []) // :967
+            foreach (var question in parameters["questions"]?.JSONValueArray ?? []) // :974
             {
-                if (question["id"]?.JSONValueString is not { } questionID) continue; // :968
+                if (question["id"]?.JSONValueString is not { } questionID) continue; // :975
                 var choices = new List<QuestionRequest.Choice>();
                 foreach (var option in question["options"]?.JSONValueArray ?? [])
                 {
@@ -1532,30 +1539,30 @@ public sealed class CodexSession : ProviderSession
                     new ValueList<QuestionRequest.Choice>(choices),
                     false,
                     question["isOther"]?.JSONValueBool ?? false,
-                    question["isSecret"]?.JSONValueBool ?? false)); // :969-978
+                    question["isSecret"]?.JSONValueBool ?? false)); // :976-985
             }
-            pendingRequests[id.Key] = new PendingRequest.Question(id); // :979
-            OnEvent?.Invoke(new ProviderEvent.Question(new QuestionRequest(id.Key, new ValueList<QuestionRequest.Question>(questions)))); // :980
+            pendingRequests[id.Key] = new PendingRequest.Question(id); // :986
+            OnEvent?.Invoke(new ProviderEvent.Question(new QuestionRequest(id.Key, new ValueList<QuestionRequest.Question>(questions)))); // :987
             return;
         }
-        if (SwiftString.Equal(method, "mcpServer/elicitation/request")) // :982
+        if (SwiftString.Equal(method, "mcpServer/elicitation/request")) // :989
         {
             connection?.Respond(id, new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>
             {
-                ["action"] = "decline", // :983
+                ["action"] = "decline", // :990
             })));
-            var server = parameters["serverName"]?.JSONValueString ?? "An MCP server"; // :984
+            var server = parameters["serverName"]?.JSONValueString ?? "An MCP server"; // :991
             OnEvent?.Invoke(new ProviderEvent.Notice(new Notice
             {
                 NoticeLevel = Notice.Level.Warning,
-                Message = server + " asked for input, which Marrow cannot show yet.", // :985. DEVIATION OD-0012 F1: upstream "Droppy Code".
+                Message = server + " asked for input, which Marrow cannot show yet.", // :992. DEVIATION OD-0012 F1: upstream "Droppy Code".
             }));
             return;
         }
-        connection?.Respond(id, -32601, $"Marrow does not support {method}."); // :986-988. DEVIATION OD-0012 F1: upstream "Droppy Code".
+        connection?.Respond(id, -32601, $"Marrow does not support {method}."); // :993-995. DEVIATION OD-0012 F1: upstream "Droppy Code".
     }
 
-    // :991-1016. PR-PROVCLI-130.
+    // :998-1023. PR-PROVCLI-130.
     private static (ValueList<ApprovalRequest.Option> Options, ValueMap<string, JSONValue> Payloads) DecisionOptions(
         IReadOnlyList<JSONValue>? available, bool command)
     {
@@ -1563,32 +1570,32 @@ public sealed class CodexSession : ProviderSession
         {
             new JSONValue.String("accept"), new JSONValue.String("acceptForSession"),
             new JSONValue.String("decline"), new JSONValue.String("cancel"),
-        }; // :992
+        }; // :999
         var options = new List<ApprovalRequest.Option>();
         var payloads = new Dictionary<string, JSONValue>(StringComparer.Ordinal);
         foreach (var decision in decisions)
         {
-            if (decision.JSONValueString is { } name) // :994
+            if (decision.JSONValueString is { } name) // :1001
             {
                 ApprovalRequest.Option? option = null;
-                if (SwiftString.Equal(name, "accept")) option = new ApprovalRequest.Option(name, "Approve", ApprovalRequest.Option.Role.Approve); // :1001
-                else if (SwiftString.Equal(name, "acceptForSession")) option = new ApprovalRequest.Option(name, "Approve for session", ApprovalRequest.Option.Role.ApproveAlways); // :1002
-                else if (SwiftString.Equal(name, "decline")) option = new ApprovalRequest.Option(name, "Decline", ApprovalRequest.Option.Role.Decline); // :1003
-                else if (SwiftString.Equal(name, "cancel")) option = new ApprovalRequest.Option(name, "Stop turn", ApprovalRequest.Option.Role.Cancel); // :1004
-                if (option is not null) // :1005-1008
+                if (SwiftString.Equal(name, "accept")) option = new ApprovalRequest.Option(name, "Approve", ApprovalRequest.Option.Role.Approve); // :1008
+                else if (SwiftString.Equal(name, "acceptForSession")) option = new ApprovalRequest.Option(name, "Approve for session", ApprovalRequest.Option.Role.ApproveAlways); // :1009
+                else if (SwiftString.Equal(name, "decline")) option = new ApprovalRequest.Option(name, "Decline", ApprovalRequest.Option.Role.Decline); // :1010
+                else if (SwiftString.Equal(name, "cancel")) option = new ApprovalRequest.Option(name, "Stop turn", ApprovalRequest.Option.Role.Cancel); // :1011
+                if (option is not null) // :1012-1015
                 {
                     options.Add(option);
                     payloads[name] = decision;
                 }
             }
-            else if (command && decision["acceptWithExecpolicyAmendment"] is not null) // :1009-1012
+            else if (command && decision["acceptWithExecpolicyAmendment"] is not null) // :1016-1019
             {
                 options.Add(new ApprovalRequest.Option("amend", "Always allow", ApprovalRequest.Option.Role.ApproveAlways));
                 payloads["amend"] = decision;
             }
         }
 
-        static int Order(ApprovalRequest.Option.Role role) => role switch // :1015
+        static int Order(ApprovalRequest.Option.Role role) => role switch // :1022
         {
             ApprovalRequest.Option.Role.Approve => 0,
             ApprovalRequest.Option.Role.ApproveAlways => 1,
@@ -1596,75 +1603,75 @@ public sealed class CodexSession : ProviderSession
             ApprovalRequest.Option.Role.Cancel => 3,
             _ => 0,
         };
-        var sorted = options.OrderBy(o => Order(o.OptionRole)).ToList(); // :1015 stable sort
+        var sorted = options.OrderBy(o => Order(o.OptionRole)).ToList(); // :1022 stable sort
         return (new ValueList<ApprovalRequest.Option>(sorted), new ValueMap<string, JSONValue>(payloads));
     }
 
-    // :1018-1030. Used by PR-PROVCLI-126.
+    // :1025-1037. Used by PR-PROVCLI-126.
     private static string DescribePermissions(JSONValue permissions)
     {
         var parts = new List<string>();
-        if (permissions["fileSystem"]?["write"]?.JSONValueArray is { Count: > 0 } write) // :1020-1022
+        if (permissions["fileSystem"]?["write"]?.JSONValueArray is { Count: > 0 } write) // :1027-1029
         {
             parts.Add("Write to " + string.Join(", ", write.Select(v => v.JSONValueString).Where(v => v is not null)));
         }
-        if (permissions["fileSystem"]?["read"]?.JSONValueArray is { Count: > 0 } read) // :1023-1025
+        if (permissions["fileSystem"]?["read"]?.JSONValueArray is { Count: > 0 } read) // :1030-1032
         {
             parts.Add("Read " + string.Join(", ", read.Select(v => v.JSONValueString).Where(v => v is not null)));
         }
-        if (permissions["network"]?["enabled"]?.JSONValueBool == true) parts.Add("Network access"); // :1026
-        return parts.Count == 0 ? "Additional permissions" : string.Join(" " + Dot + " ", parts); // :1027-1029
+        if (permissions["network"]?["enabled"]?.JSONValueBool == true) parts.Add("Network access"); // :1033
+        return parts.Count == 0 ? "Additional permissions" : string.Join(" " + Dot + " ", parts); // :1034-1036
     }
 
-    // :1032-1038. Ported in part 1: see the file header note (the connection Start() wires this to can close
+    // :1039-1045. Ported in part 1: see the file header note (the connection Start() wires this to can close
     // on any of part 1's own paths).
     private void HandleClose(string tail)
     {
-        var keys = pendingRequests.Keys.ToArray(); // :1033
-        pendingRequests.Clear();                    // :1034
+        var keys = pendingRequests.Keys.ToArray(); // :1040
+        pendingRequests.Clear();                    // :1041
         foreach (var key in keys)
         {
-            OnEvent?.Invoke(new ProviderEvent.RequestResolved(key)); // :1035
+            OnEvent?.Invoke(new ProviderEvent.RequestResolved(key)); // :1042
         }
 
-        if (!isStopping) // :1037
+        if (!isStopping) // :1044
         {
-            OnEvent?.Invoke(new ProviderEvent.Exited(TextCleanup.LastLines(tail))); // :1038
+            OnEvent?.Invoke(new ProviderEvent.Exited(TextCleanup.LastLines(tail))); // :1045
         }
     }
 
-    // :910-918
+    // :917-925
     public static string ErrorMessage(JSONValue? error)
     {
-        if (error is null) return "Codex reported an error."; // :911
-        var raw = error["message"]?.JSONValueString ?? error.DisplayText; // :912
+        if (error is null) return "Codex reported an error."; // :918
+        var raw = error["message"]?.JSONValueString ?? error.DisplayText; // :919
         if (JSONValue.Parse(raw) is { } nested &&
-            (nested["error"]?["message"]?.JSONValueString ?? nested["message"]?.JSONValueString) is { } message) // :913-914
+            (nested["error"]?["message"]?.JSONValueString ?? nested["message"]?.JSONValueString) is { } message) // :920-921
         {
-            return message; // :915
+            return message; // :922
         }
-        return raw; // :917
+        return raw; // :924
     }
 
-    // :1040-1051
+    // :1047-1058
     private static PolicySettings PolicySettingsFor(RuntimeMode mode) => mode switch
     {
-        RuntimeMode.Supervised => new PolicySettings( // :1041-1043
+        RuntimeMode.Supervised => new PolicySettings( // :1048-1050
             new JSONValue.String("untrusted"),
             new JSONValue.String("read-only"),
             new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue> { ["type"] = "readOnly" })),
             new JSONValue.String("user")),
-        RuntimeMode.AutoAcceptEdits => new PolicySettings( // :1044-1046
+        RuntimeMode.AutoAcceptEdits => new PolicySettings( // :1051-1053
             new JSONValue.String("on-request"),
             new JSONValue.String("workspace-write"),
             new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue> { ["type"] = "workspaceWrite" })),
             new JSONValue.String("user")),
-        RuntimeMode.Auto => new PolicySettings( // :1047-1049
+        RuntimeMode.Auto => new PolicySettings( // :1054-1056
             new JSONValue.String("on-request"),
             new JSONValue.String("workspace-write"),
             new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue> { ["type"] = "workspaceWrite" })),
             new JSONValue.String("auto_review")),
-        RuntimeMode.FullAccess => new PolicySettings( // :1050-1051 approximately (table's fourth row)
+        RuntimeMode.FullAccess => new PolicySettings( // :1057-1058 approximately (table's fourth row)
             new JSONValue.String("never"),
             new JSONValue.String("danger-full-access"),
             new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue> { ["type"] = "dangerFullAccess" })),
