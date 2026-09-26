@@ -1097,3 +1097,34 @@ AutoContinue read only the main window, which would have treated "Settings in fr
 notifications the Mac would suppress. Tests: AppDelegateSecondTests (a non-main window active, only the main window
 active, no lifetime) and the presentation gate agreeing with AppModel.threadNeedsAttention. ENGINEERING DECISION; parity.
 
+ED-207 [TEST] A per-flow observer of Shell.Run, so a test can assert a call site's literal argv and timeout budget
+(lane A9/L2d stop at 4a38922f; PR-GIT-003, PR-GIT-031). SOURCE FACT: every git invocation goes through
+`run(_:environment:input:timeout:)` into `Shell.run` with the site's own budget, 120 s by default
+(`Services/Git/Git.swift:30-49`, B3 52bc792). PR-GIT-003 asks for "a table test asserting the timeout constant of every
+one of the 82 invocation sites" and PR-GIT-031 for "a contract fixture asserting the argv". MEASURED (4a38922f): the stall
+probes in `tests/Marrow.Services.Tests/Fixtures/GitProbeFixtures.cs` (clean filter, diff textconv, post-checkout hook,
+reference-transaction hook) cannot hold open read-tree, diff --name-only, rm --cached, merge-file, hash-object,
+update-index, write-tree, cat-file or ls-tree (captureTree(paths:onto:from:) and its helpers, :294-359), and
+`LoginEnvironment.Git` is resolved once per process, so no test could see a git site's argv. Rejected: (a) a git wrapper
+first on PATH: that once-per-process resolution puts it in front of every git spawn in the whole test process (one more
+process per spawn; TerminationLadder's CTRL_BREAK and TerminateJobObject reach the wrapper first), and it still cannot
+see the budget, so every site would need its own manual-clock stall; (b) GIT_TRACE or trace2: GIT_TRACE is environment
+only, and Git.Run builds its environment from LoginEnvironment.Current, so it needs a process-wide change; trace2 targets
+are read only from the system and global config, never the repository's (git-config(1), Git for Windows 2.54.0);
+neither records the budget. DECISION: `ShellObserver` (`src/Marrow.Core/Port/ShellObserver.cs`, PORT-ONLY). `Shell.Run`
+reports a `ShellInvocation` (executable, a copy of the argv, directory, environment, input, timeout, outputLimit) to the
+observer the calling async flow installed, on entry, before the process starts; the real process runs unchanged, and
+with no observer (the app, every other test) nothing is reported. Tests call `ShellRecording.Start()`
+(`tests/Marrow.Testing/ShellRecording.cs`), which records only its own flow, so test classes still run in parallel
+(R-TEST-5). A site's budget is verified by its recorded constant together with the end-to-end proof that a budget
+passed to Shell.Run becomes the process deadline (GitTests.Run_passes_a_call_sites_own_budget_through_to_the_process,
+ShellTests); the existing stall tests stay. Nothing is replaced, so this is not a stub or a mock. Tests:
+ShellObserverTests (reported on entry with every argument; only the observing flow and the flows it starts; dispose
+restores the previous observer); GitFifthTests.CaptureTreeOnto_runs_its_clean_add_at_300_seconds_and_every_other_git_site_at_the_120_second_default
+(the 13 calls one captureTree(paths:onto:from:) makes, covering all 10 of its sites, blobData's cat-file and fileMode's
+ls-tree included: literal argv, budget, GIT_INDEX_FILE per site, stdin) and PushBranch_without_force_... / PushBranch_with_force_puts_force_after_u_and_before_origin_...
+(PR-GIT-031). Mutation check (b3/shell-recorder): moving "--force" after "origin" and giving write-tree 300 s fails exactly
+those two new tests, while the behavioural PushBranch_with_force_overwrites_a_branch_the_remote_moved_on_without still
+passes. FOLLOW-UP: the rest of PR-GIT-003's table; before this decision the Git test classes held 12 per-site budget tests
+(10 git sites, 2 forge-CLI sites), against 82 git sites and 6 forge-CLI sites. ENGINEERING DECISION (test infrastructure); no product change, not a deviation.
+
