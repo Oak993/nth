@@ -33,7 +33,7 @@ public sealed class LinkHoverTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Decision", "ED-N9-1")] // DroppyCode/UI/Markdown/LinkHover.swift:21-24
+    [Trait("Req", "PR-THEME-144")] // DroppyCode/UI/Markdown/LinkHover.swift:21-24
     public void Moving_over_a_link_sets_the_hand_cursor() => headless.OnUiThread(() =>
     {
         var paragraph = new LinkParagraphView("[link](https://example.com)");
@@ -48,7 +48,7 @@ public sealed class LinkHoverTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Decision", "ED-N9-1")] // DroppyCode/UI/Markdown/LinkHover.swift:22-24: only pushes/pops on change
+    [Trait("Req", "PR-THEME-144")] // DroppyCode/UI/Markdown/LinkHover.swift:22-24: only pushes/pops on change
     public void Moving_over_prose_does_not_show_the_hand_cursor() => headless.OnUiThread(() =>
     {
         var paragraph = new LinkParagraphView("plain prose with no link");
@@ -63,7 +63,7 @@ public sealed class LinkHoverTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Decision", "ED-N9-1")] // no host text view yet: the hover does nothing (:18 guard)
+    [Trait("Req", "PR-THEME-144")] // no host text view yet: the hover does nothing (:18 guard)
     public void With_no_host_text_view_yet_moving_does_nothing() => headless.OnUiThread(() =>
     {
         var paragraph = new Decorator();
@@ -77,7 +77,7 @@ public sealed class LinkHoverTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Decision", "ED-N9-1")] // DroppyCode/UI/Markdown/LinkHover.swift:46-50
+    [Trait("Req", "PR-THEME-144")] // DroppyCode/UI/Markdown/LinkHover.swift:46-50
     public void Ending_hover_after_showing_the_hand_reverts_the_cursor_and_clears_state() => headless.OnUiThread(() =>
     {
         var paragraph = new LinkParagraphView("[link](https://example.com)");
@@ -96,7 +96,7 @@ public sealed class LinkHoverTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Decision", "ED-N9-1")] // ending hover when the hand was never shown leaves the cursor untouched
+    [Trait("Req", "PR-THEME-144")] // ending hover when the hand was never shown leaves the cursor untouched
     public void Ending_hover_without_having_shown_the_hand_leaves_the_cursor_alone() => headless.OnUiThread(() =>
     {
         var paragraph = new Decorator();
@@ -109,13 +109,17 @@ public sealed class LinkHoverTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Decision", "ED-N9-2")] // WINDOWS-ONLY: rendering a mention needs MentionScanner, which needs icu.dll
+    [Trait("Req", "PR-THEME-144")] // WINDOWS-ONLY: rendering a mention needs MentionScanner, which needs icu.dll
     public void Hovering_a_head_mention_with_a_matching_target_and_persona_tracks_it() => headless.OnUiThread(() =>
     {
         var target = new HydraMentionTarget { ThreadID = Guid.NewGuid(), Task = "t", Status = HydraHeadInfo.Status.Running };
         var persona = new HydraPersona("Hank", "dragon-test-asset", 0xFF0000);
         var targets = new Dictionary<string, HydraMentionTarget> { ["Hank"] = target };
-        var paragraph = new LinkParagraphView("Ping Hank now", mentions: [persona], targets: targets);
+        // The mention must be the first thing rendered: unlike "Ping Hank now" (whose "Ping "
+        // prefix occupies real pixel width before the glyph), a leading mention lands at the
+        // paragraph's own origin so (2, 2) is guaranteed to fall inside its hit rect regardless
+        // of font metrics.
+        var paragraph = new LinkParagraphView("Hank now", mentions: [persona], targets: targets);
         var view = (LinkTextView)paragraph.Child!;
         var window = Show(paragraph);
         var state = new LinkHover.HoverState();
@@ -130,7 +134,7 @@ public sealed class LinkHoverTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Decision", "ED-N9-2")] // WINDOWS-ONLY: same rendering dependency as above
+    [Trait("Req", "PR-THEME-144")] // WINDOWS-ONLY: same rendering dependency as above
     public void Moving_away_from_a_tracked_head_mention_clears_it_and_hides_the_popover() => headless.OnUiThread(() =>
     {
         var target = new HydraMentionTarget { ThreadID = Guid.NewGuid(), Task = "t", Status = HydraHeadInfo.Status.Running };
