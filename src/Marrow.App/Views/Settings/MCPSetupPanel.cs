@@ -5,7 +5,6 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
-using Avalonia.Platform;
 using Avalonia.Styling;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
@@ -14,54 +13,46 @@ using Marrow.UI.Common;
 using Marrow.UI.Port;
 using AvaloniaWindow = Avalonia.Controls.Window;
 
-// Source: DroppyCode/App/Views/Settings/MCPSetupPanel.swift (B2 1fbf81e), :1-262.
+// Source: DroppyCode/App/Views/Settings/MCPSetupPanel.swift (B3 52bc7926), :1-51.
 
 namespace Marrow.App.Views.Settings;
 
-/// <summary>:6-101 <c>@MainActor final class MCPSetupPanel</c>: the floating panel shown when a server refuses on its
-/// own side.</summary>
-public sealed class MCPSetupPanel
+/// <summary>:6-51 <c>@MainActor final class MCPSetupPanel: FloatingGuidePanel</c>: the floating panel shown when
+/// a server refuses on its own side: the guide's page opens in the browser as the panel appears, so the steps
+/// sit beside it.</summary>
+public sealed class MCPSetupPanel : FloatingGuidePanel
 {
     // :8 static let shared = MCPSetupPanel()
     public static MCPSetupPanel Shared { get; } = new();
 
-    private AvaloniaWindow? panel; // :10
-    private string? presentedEntryID; // :12
+    private string? presentedEntryID; // :10
 
-    // :14 private init() {}
-    private MCPSetupPanel() { }
+    // :12 private init() { super.init(width: 400) }
+    private MCPSetupPanel() : base(400) { }
 
-    // :18-20 func isPresenting(_ entry: MCPCatalogEntry) -> Bool
+    // :14-18 func isPresenting(_ entry: MCPCatalogEntry) -> Bool
     public bool IsPresenting(MCPCatalogEntry entry) =>
         panel?.IsVisible == true && presentedEntryID == entry.Id;
 
-    // :22-43 func present(entry:guide:model:)
+    // :20-33 func present(entry:guide:model:)
     public void Present(MCPCatalogEntry entry, MCPSetupGuide guide, AppModel model)
     {
         if (IsPresenting(entry))
         {
-            panel!.Topmost = true;
-            panel.Topmost = false;
+            panel?.Show(); // :22 panel?.orderFrontRegardless(); ED-063 (via FloatingGuidePanel.MakePanel's
+                            // ShowActivated = false) means Show() brings the panel front without activating,
+                            // matching MCPKeyPanel and the base class's own Present(_:).
             return;
         }
 
-        presentedEntryID = entry.Id;
-        OpenPage(guide.PageURL);
+        presentedEntryID = entry.Id; // :25
+        OpenPage(guide.PageURL); // :26-28
 
-        var content = new MCPSetupPanelView(entry, guide, model, Close);
-        var window = panel ?? MakePanel();
-        panel = window;
-        window.Content = content;
-        window.Width = 400;
-        content.Measure(new Size(400, double.PositiveInfinity));
-        window.Height = Math.Max(Math.Ceiling(content.DesiredSize.Height), 100);
-        Place(window);
-        window.Show();
-        window.Topmost = true;
-        window.Topmost = false;
+        var content = new MCPSetupPanelView(entry, guide, model, Close); // :29-31
+        Present(content); // :32
     }
 
-    // :28-30, :133-136 Open the guide page in the default browser.
+    // :26-28, :84-86 Open the guide page in the default browser.
     private static void OpenPage(string pageURL)
     {
         if (SwiftURL.Create(pageURL) is not { } url) return;
@@ -70,14 +61,14 @@ public sealed class MCPSetupPanel
         _ = window.Launcher.LaunchUriAsync(new Uri(url.AbsoluteString, UriKind.RelativeOrAbsolute));
     }
 
-    // :45-49 func close()
-    public void Close()
+    // :35-38 override func close()
+    public override void Close()
     {
         presentedEntryID = null;
-        panel?.Hide();
+        base.Close();
     }
 
-    // :53-61 func fit(height: CGFloat)
+    // :42-50 func fit(height: CGFloat)
     public void Fit(double height)
     {
         if (panel?.IsVisible != true) return;
@@ -85,59 +76,21 @@ public sealed class MCPSetupPanel
         if (Math.Abs(panel.Height - wanted) <= 1) return;
         panel.Height = wanted;
     }
-
-    // :63-86 private func makePanel() -> NSPanel
-    private AvaloniaWindow MakePanel()
-    {
-        var window = new AvaloniaWindow
-        {
-            Width = 400,
-            Height = 200,
-            CanResize = false,
-            ShowInTaskbar = false,
-            WindowDecorations = WindowDecorations.None,
-            Topmost = true,
-            Background = Brushes.Transparent,
-            TransparencyLevelHint = [WindowTransparencyLevel.AcrylicBlur],
-        };
-        window.KeyDown += OnKeyDown;
-        return window;
-    }
-
-    // :88-95 private func startEscapeMonitor()
-    private void OnKeyDown(object? sender, KeyEventArgs args)
-    {
-        if (args.Key != Key.Escape) return;
-        Close();
-        args.Handled = true;
-    }
-
-    // :38-40 panel.setFrameOrigin at the main screen's visible top right
-    private static void Place(AvaloniaWindow window)
-    {
-        var screen = window.Screens.Primary;
-        if (screen is null) return;
-        var scaling = window.RenderScaling;
-        var area = screen.WorkingArea;
-        window.Position = new PixelPoint(
-            area.Right - (int)Math.Ceiling((400 + 24) * scaling),
-            area.Y + (int)Math.Ceiling(24 * scaling));
-    }
 }
 
-/// <summary>:105-262 <c>struct MCPSetupPanelView: View</c>: the reason, numbered steps, an open page button with Check
-/// again, and the success view once the server connects.</summary>
+/// <summary>:55-212 <c>struct MCPSetupPanelView: View</c>: the reason, numbered steps, an open page button with
+/// Check again, and the success view once the server connects.</summary>
 public sealed class MCPSetupPanelView : Decorator
 {
-    private readonly MCPCatalogEntry entry; // :106
-    private readonly MCPSetupGuide guide; // :107
-    private readonly AppModel model; // :108
-    private readonly Action onDone; // :109
-    private bool checkedOnce; // :112
-    private bool successPopped; // :113
-    private readonly StackPanel body; // :117-194
+    private readonly MCPCatalogEntry entry; // :56
+    private readonly MCPSetupGuide guide; // :57
+    private readonly AppModel model; // :58
+    private readonly Action onDone; // :59
+    private bool checkedOnce; // :62
+    private bool successPopped; // :63
+    private readonly StackPanel body; // :67-144
 
-    // :106-109 let entry, let guide, let model, let onDone; :117-194 body
+    // :56-59 let entry, let guide, let model, let onDone; :67-144 body
     public MCPSetupPanelView(MCPCatalogEntry entry, MCPSetupGuide guide, AppModel model, Action onDone)
     {
         this.entry = entry;
@@ -158,11 +111,17 @@ public sealed class MCPSetupPanelView : Decorator
         this.Track(() => EnvironmentValues.GetAccessibilityReduceMotion(this), _ => UpdateBody());
     }
 
-    // :117-185 body
+    // :117-185 body. B3/ED-200 forces this: WindowDragArea is no longer a Decorator a caller can wrap content in
+    // (:124-130 `.background { WindowDragArea() }.background { WindowBackdrop(opacity: 0.5) }` - SwiftUI's
+    // background stacks behind the modified view in call order, so content sits above WindowDragArea, which sits
+    // above WindowBackdrop). A Grid gives the same stack bottom to top, the way MCPKeyPanel.cs :108-114 already
+    // layers its own WindowBackdrop/WindowDragArea/content.
     private void PaddingHost(Control content)
     {
-        var drag = new WindowDragArea { Child = content };
-        var backdrop = new WindowBackdrop(0.5) { Child = drag };
+        var layers = new Grid();
+        layers.Children.Add(new WindowBackdrop(0.5));
+        layers.Children.Add(new WindowDragArea());
+        layers.Children.Add(content);
         Child = new Border
         {
             Width = 400,
@@ -170,11 +129,11 @@ public sealed class MCPSetupPanelView : Decorator
             Background = Brushes.Transparent,
             ClipToBounds = true,
             CornerRadius = new CornerRadius(Chrome.WindowCornerRadius),
-            Child = backdrop,
+            Child = layers,
         };
     }
 
-    // :117-194 body
+    // :67-144 body
     private void UpdateBody()
     {
         body.Children.Clear();
@@ -245,7 +204,7 @@ public sealed class MCPSetupPanelView : Decorator
         }
     }
 
-    // :196-217 private var header
+    // :146-167 private var header
     private Control Header()
     {
         var row = new Grid
@@ -291,7 +250,7 @@ public sealed class MCPSetupPanelView : Decorator
         return row;
     }
 
-    // :219-237 private func stepRow(_:text:accessory:)
+    // :169-187 private func stepRow(_:text:accessory:)
     private static Control StepRow(int number, string text)
     {
         var row = new Grid
@@ -327,7 +286,7 @@ public sealed class MCPSetupPanelView : Decorator
         return row;
     }
 
-    // :239-261 private var successView
+    // :189-211 private var successView
     private Control SuccessView(MCPConnectionState state)
     {
         var count = state is MCPConnectionState.Connected connected ? connected.ToolCount : 0;
@@ -387,7 +346,7 @@ public sealed class MCPSetupPanelView : Decorator
         return success;
     }
 
-    // :28-30, :133-136 Open the guide page in the default browser.
+    // :26-28, :84-86 Open the guide page in the default browser.
     private static void OpenGuidePage(string pageURL)
     {
         if (SwiftURL.Create(pageURL) is not { } url) return;
@@ -396,7 +355,7 @@ public sealed class MCPSetupPanelView : Decorator
         _ = window.Launcher.LaunchUriAsync(new Uri(url.AbsoluteString, UriKind.RelativeOrAbsolute));
     }
 
-    // :123-126, :157-165
+    // :150-155, :73-76
     private static TextBlock Label(string text, SwiftFont font, SwiftColor color)
     {
         var label = new TextBlock

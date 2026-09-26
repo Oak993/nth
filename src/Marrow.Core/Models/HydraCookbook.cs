@@ -2,7 +2,7 @@ using Marrow.Core.Port;
 
 namespace Marrow.Core.Models;
 
-// Source: DroppyCode/Core/Models/HydraCookbook.swift (B2 1fbf81e), :1-53.
+// Source: DroppyCode/Core/Models/HydraCookbook.swift (B3 52bc792), :1-55.
 
 // :7-17 `struct HydraPairRecipe: Identifiable, Sendable { struct Side: Sendable { ... } ... }`.
 public sealed record HydraPairRecipe
@@ -30,19 +30,20 @@ public sealed record HydraPairRecipe
     public long? MaxHeads { get; init; } // :24
 }
 
-// :27-52 `enum HydraCookbook`.
+// :27-54 `enum HydraCookbook`.
 public static class HydraCookbook
 {
     // :28-29 "The best pairs, strongest first: cross-model pairs, then one model at two
     // efforts." `static let recipes: [HydraPairRecipe] = [...]`.
-    // :30-39 the ten recipes, transcribed byte for byte.
+    // :30-41 the twelve recipes, transcribed byte for byte. B3 52bc792 renames "Opus 5" to
+    // "Opus 5.5" in five titles (:30-33, :40) and inserts astra-sol and sol-luna at :37-38.
     public static ValueList<HydraPairRecipe> Recipes { get; } = new HydraPairRecipe[]
     {
         // :30
         new()
         {
             Id = "claude-fable-opus",
-            Title = "Fable 5.1 leads Opus 5",
+            Title = "Fable 5.1 leads Opus 5.5",
             Tagline = "The deepest lead over the strongest builders: Fable plans and checks, Opus heads build. Set the thinking effort of each side yourself.",
             Lead = new HydraPairRecipe.Side
             {
@@ -62,7 +63,7 @@ public static class HydraCookbook
         new()
         {
             Id = "claude-opus-gemini-flash",
-            Title = "Opus 5 leads Gemini 3.8 Flash",
+            Title = "Opus 5.5 leads Gemini 3.8 Flash",
             Tagline = "A careful lead and a wide, fast team: Opus writes the briefs, six Gemini Flash heads sprint through them.",
             Lead = new HydraPairRecipe.Side
             {
@@ -82,7 +83,7 @@ public static class HydraCookbook
         new()
         {
             Id = "claude-opus-deepseek",
-            Title = "Opus 5 leads DeepSeek V4.1",
+            Title = "Opus 5.5 leads DeepSeek V4.1",
             Tagline = "Opus keeps the plan tight; DeepSeek V4.1 Flash heads keep the bill small on the routine parts.",
             Lead = new HydraPairRecipe.Side
             {
@@ -102,7 +103,7 @@ public static class HydraCookbook
         new()
         {
             Id = "claude-opus-glm",
-            Title = "Opus 5 leads GLM-5.3 Flash",
+            Title = "Opus 5.5 leads GLM-5.3 Flash",
             Tagline = "Opus keeps the plan tight; GLM-5.3 Flash heads on a Z.ai Coding Plan keep the bill flat.",
             Lead = new HydraPairRecipe.Side
             {
@@ -181,6 +182,46 @@ public static class HydraCookbook
         // :37
         new()
         {
+            Id = "astra-sol",
+            Title = "Astra 6 leads Sol 5.6",
+            Tagline = "Astra plans and reviews; Sol heads take the complex building at medium.",
+            Lead = new HydraPairRecipe.Side
+            {
+                Providers = new ValueList<ProviderKind>(new[] { ProviderKind.Codex, ProviderKind.Commandcode }),
+                Models = new ValueList<string>(new[] { "Astra" }),
+                Effort = "high",
+            },
+            Heads = new HydraPairRecipe.Side
+            {
+                Providers = new ValueList<ProviderKind>(new[] { ProviderKind.Codex, ProviderKind.Commandcode }),
+                Models = new ValueList<string>(new[] { "Sol" }),
+                Effort = "medium",
+            },
+            MaxHeads = null,
+        },
+        // :38
+        new()
+        {
+            Id = "sol-luna",
+            Title = "Sol 5.6 leads Luna 5.6",
+            Tagline = "Sol keeps the plan; quick Luna heads get through the routine parts.",
+            Lead = new HydraPairRecipe.Side
+            {
+                Providers = new ValueList<ProviderKind>(new[] { ProviderKind.Codex, ProviderKind.Commandcode }),
+                Models = new ValueList<string>(new[] { "Sol" }),
+                Effort = "high",
+            },
+            Heads = new HydraPairRecipe.Side
+            {
+                Providers = new ValueList<ProviderKind>(new[] { ProviderKind.Codex, ProviderKind.Commandcode }),
+                Models = new ValueList<string>(new[] { "Luna" }),
+                Effort = "medium",
+            },
+            MaxHeads = null,
+        },
+        // :39
+        new()
+        {
             Id = "astra-astra",
             Title = "Astra 6 high, Astra 6 medium",
             Tagline = "One model, two efforts: Astra thinks hard about the plan and the review, and Astra heads build at a working effort.",
@@ -198,11 +239,11 @@ public static class HydraCookbook
             },
             MaxHeads = null,
         },
-        // :38
+        // :40
         new()
         {
             Id = "claude-opus-opus",
-            Title = "Opus 5 max, Opus 5 medium",
+            Title = "Opus 5.5 max, Opus 5.5 medium",
             Tagline = "Opus thinks as hard as it can where it counts; Opus heads at medium do the building.",
             Lead = new HydraPairRecipe.Side
             {
@@ -218,7 +259,7 @@ public static class HydraCookbook
             },
             MaxHeads = null,
         },
-        // :39
+        // :41
         new()
         {
             Id = "claude-fable-fable",
@@ -240,9 +281,9 @@ public static class HydraCookbook
         },
     };
 
-    // :42 "The effort asked for when the model offers it; nil otherwise, which keeps the
+    // :44 "The effort asked for when the model offers it; nil otherwise, which keeps the
     // default."
-    // :43-46 `static func effort(_ wanted: String?, for option: ModelOption?) -> String? {
+    // :45-48 `static func effort(_ wanted: String?, for option: ModelOption?) -> String? {
     // guard let wanted, let option, option.efforts.contains(wanted) else { return nil };
     // return wanted }`.
     public static string? Effort(string? wanted, ModelOption? option)
@@ -255,8 +296,8 @@ public static class HydraCookbook
         return wanted;
     }
 
-    // :48 "Whether a pair like this one is already set up: the same providers and models."
-    // :49-51 `static func isAdded(_ pair: HydraPair, in pairs: [HydraPair]) -> Bool { pairs
+    // :50 "Whether a pair like this one is already set up: the same providers and models."
+    // :51-53 `static func isAdded(_ pair: HydraPair, in pairs: [HydraPair]) -> Bool { pairs
     // .contains { $0.provider == pair.provider && $0.headsProvider == pair.headsProvider &&
     // $0.orchestratorModel == pair.orchestratorModel && $0.workerModel == pair.workerModel } }`.
     public static bool IsAdded(HydraPair pair, IReadOnlyList<HydraPair> pairs)

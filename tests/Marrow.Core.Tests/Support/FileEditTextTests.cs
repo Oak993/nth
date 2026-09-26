@@ -18,7 +18,7 @@ public sealed class FileEditTextTests
         Assert.Equal(1, edit.Deletions);
     }
 
-    [Fact] // Text.swift:121-124 passes path straight into self.init(path:) without normalizing it.
+    [Fact] // Text.swift:213-216 (B3) passes path straight into self.init(path:) without normalizing it.
     [Trait("Req", "PR-STORE-113")]
     public void Convenience_constructor_never_normalizes_the_path()
     {
@@ -83,7 +83,7 @@ public sealed class FileEditTextTests
     [Trait("Req", "PR-STORE-114")]
     public void Nil_if_empty_returns_null_for_only_the_empty_string() => Assert.Null("".NilIfEmpty());
 
-    [Theory] // Text.swift:130-132: trimmingCharacters(in: .whitespacesAndNewlines), leaving inner text untouched.
+    [Theory] // Text.swift:222-224 (B3): trimmingCharacters(in: .whitespacesAndNewlines), leaving inner text untouched.
     [Trait("Req", "PR-STORE-167")]
     [InlineData("  \t\r\nhello world\n\t ", "hello world")]
     [InlineData("kept  inner  spaces", "kept  inner  spaces")]

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Avalonia;
@@ -14,7 +15,8 @@ using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.UI.Port;
 
-// Source: DroppyCode/UI/Markdown/LinkParagraphView.swift (B2 1fbf81e), :1-550.
+// Source: DroppyCode/UI/Markdown/LinkParagraphView.swift (B3 52bc792), :1-550. Link clicks and mention scanning
+// now go through MarkdownLinkOpener and UI.Markdown.MentionScanner (N10); see each member's own citation.
 
 namespace Marrow.UI.Markdown;
 
@@ -72,20 +74,22 @@ public sealed class LinkParagraphView : Decorator
         public ValueMap<string, HydraMentionTarget> LastTargets { get; set; } = ValueMap<string, HydraMentionTarget>.Empty; // :88
         public ValueMap<string, SwiftURL> LastHeads { get; set; } = ValueMap<string, SwiftURL>.Empty; // :89
 
-        // :90-100 func textView(_ textView: NSTextView, clickedOnLink link: Any, at charIndex: Int) -> Bool
+        // :90-100 func textView(_ textView: NSTextView, clickedOnLink link: Any, at charIndex: Int) -> Bool. B3
+        // :92, :96 route through MarkdownLinkOpener.open rather than the direct NSWorkspace call this pre-dated
+        // (PR-THEME-145; the plain InlineText.OpenUrl hook was a pre-existing divergence).
         public bool TextView(LinkTextView textView, object clickedOnLink, int at)
         {
             _ = textView;
             _ = at;
             if (clickedOnLink is SwiftURL url)
             {
-                InlineText.OpenUrl?.Invoke(url);
+                MarkdownLinkOpener.Open(url);
                 return true;
             }
 
             if (clickedOnLink is string text && SwiftURL.Create(text) is { } parsed)
             {
-                InlineText.OpenUrl?.Invoke(parsed);
+                MarkdownLinkOpener.Open(parsed);
                 return true;
             }
 
@@ -157,6 +161,117 @@ public sealed class LinkParagraphView : Decorator
     // :269 set
     public static void SetMergeRequestTarget(Control control, MergeRequestTarget? value) =>
         control.SetValue(MergeRequestTargetProperty, value);
+}
+
+/// <summary>
+/// :226-245 <c>enum MarkdownLinkOpener</c>. On the source's own platform, a URL with no scheme, host, query or
+/// fragment whose path starts with "/" opens as a local file (stripping a trailing ":&lt;positive int&gt;" line
+/// suffix first, when the full path does not exist but the stripped one does and is not a directory); anything
+/// else goes to <c>NSWorkspace.shared.open</c>. OD-0026 (owner ruling on unknowns.md UNK-0027; PA-0020) extends
+/// this for Windows: a drive-letter path (<c>C:\...</c>, <c>C:/...</c>, or the file-URL form <c>/C:/...</c> or
+/// <c>file:C:/...</c>) takes the same local-file branch, with no query/fragment exemption (review A29: unlike the
+/// source's own POSIX guard, a "?"/"#" here is exactly as attacker-controllable as the rest of a chat-authored
+/// link, and letting it skip the branch would defeat the reason OD-0026's Windows-only shapes exist); a UNC
+/// target (<c>\\host\...</c>, <c>//host/...</c>, <c>/\host\...</c>, <c>file://host/...</c>) is never opened or
+/// revealed (named safety deviation); and a local target of a type Windows runs directly is revealed, selected,
+/// in File Explorer rather than launched (ED-204, another named safety deviation). ED-203 hardens the generic
+/// opener this reaches when neither branch matches (<see cref="ShellWorkspace.OpenWithDefaultApp"/>'s own gate)
+/// against a relative or scheme-less-host string.
+/// </summary>
+public static class MarkdownLinkOpener
+{
+    // :227 static func open(_ url: URL)
+    public static void Open(SwiftURL url)
+    {
+        if (IsUnc(url)) return; // ED-204: never opened or revealed
+
+        if (LocalFilePath(url) is { } rawPath)
+        {
+            var path = ApplyLineSuffixRule(rawPath); // :234-242
+            if (ShellWorkspace.ShouldReveal(path)) ShellWorkspace.RevealInFileExplorer(path); // ED-204
+            else ShellWorkspace.OpenWithDefaultApp(path);
+            return;
+        }
+
+        ShellWorkspace.OpenWithDefaultApp(url.AbsoluteString); // :230, :243 NSWorkspace.shared.open(url)
+    }
+
+    /// <summary>
+    /// :228-229 the source's own gate (no scheme, host, query or fragment; an absolute "/"-rooted path), extended
+    /// by OD-0026 with two Windows-only shapes: a drive-letter path (whose drive letter parses as a one-letter
+    /// <see cref="SwiftURL.Scheme"/>) and the file-URL form of one. Returns the candidate local-file path, or
+    /// null when the URL does not qualify.
+    /// </summary>
+    internal static string? LocalFilePath(SwiftURL url)
+    {
+        if (url.Scheme is null && url.Host is null && url.Query is null && url.Fragment is null
+            && url.Path.Length > 0 && url.Path[0] == '/')
+            return url.Path; // :228-229
+
+        if (url.Scheme is { Length: 1 } drive && IsAsciiLetter(drive[0]))
+        {
+            // review A29: a doubled separator right after the drive letter ("C://Windows/...") is exactly what
+            // Windows treats as "C:/Windows/..." (it collapses a repeated path separator), but RFC 3986 parses
+            // the doubled slash as an authority (a Host) rather than folding it into Path; both shapes must be
+            // recognised, or "C://..." reaches ShellWorkspace.OpenWithDefaultApp raw and skips ShouldReveal.
+            if (url.Host is { Length: > 0 } host && (url.Path.Length == 0 || url.Path[0] == '/'))
+                return drive + ":/" + host + url.Path;
+            if (url.Host is null && url.Path.Length > 0 && (url.Path[0] == '/' || url.Path[0] == '\\'))
+                return drive + ":" + url.Path; // OD-0026: C:\... or C:/...
+        }
+
+        if (url.Scheme is { } scheme && SwiftString.Lowercased(scheme) == "file" && string.IsNullOrEmpty(url.Host))
+        {
+            var path = url.Path;
+            if (path.Length >= 4 && path[0] == '/' && IsAsciiLetter(path[1]) && path[2] == ':'
+                && (path[3] == '/' || path[3] == '\\'))
+                return path[1..]; // OD-0026: /C:/... from file:///C:/...
+            // review A29: "file:C:/..." (no "//" before the drive letter) is the same drive-letter path with one
+            // fewer separator; with no authority to consume, SwiftURL's Path already starts at the drive letter.
+            if (path.Length >= 3 && IsAsciiLetter(path[0]) && path[1] == ':' && (path[2] == '/' || path[2] == '\\'))
+                return path;
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// ED-204: a UNC target is never opened or revealed. <c>\\host\...</c> and <c>file://host/...</c> are the two
+    /// shapes OD-0026 names; review A29 adds the shapes Windows treats identically but RFC 3986 does not parse the
+    /// same way: <c>//host/...</c> (a doubled forward slash, which .NET's own File.Exists/Directory.Exists resolve
+    /// as a UNC path exactly like <c>\\host\...</c>) and a mixed <c>/\host\...</c> or <c>\/host\...</c>, plus the
+    /// <c>file:</c> form of a doubled forward slash (<c>file:////host/...</c>, an empty authority followed by a
+    /// path that still starts with two separators). A drive-letter path that happens to map to a network share is
+    /// not inspected.
+    /// </summary>
+    internal static bool IsUnc(SwiftURL url)
+    {
+        if (url.Scheme is null && HasUncPrefix(url.Path)) return true; // \host\..., //host/..., /\host\...
+        if (url.Scheme is { } scheme && SwiftString.Lowercased(scheme) == "file")
+        {
+            if (!string.IsNullOrEmpty(url.Host)) return true; // file://host/...
+            if (HasUncPrefix(url.Path)) return true; // file:////host/... (an empty authority, then //host/...)
+        }
+        return false;
+    }
+
+    private static bool HasUncPrefix(string path) => path.Length >= 2 && IsSeparator(path[0]) && IsSeparator(path[1]);
+
+    private static bool IsSeparator(char c) => c is '/' or '\\';
+
+    /// <summary>:234-242: a trailing ":&lt;positive integer&gt;" is stripped when the full path does not exist but
+    /// the stripped path does, and is not a directory.</summary>
+    internal static string ApplyLineSuffixRule(string path)
+    {
+        if (File.Exists(path) || Directory.Exists(path)) return path; // :235 fileExists(atPath:)
+        var colon = path.LastIndexOf(':'); // :236 lastIndex(of:)
+        if (colon < 0) return path;
+        if (SwiftNumber.ParseInt(path[(colon + 1)..]) is not { } line || line <= 0) return path; // :237
+        var stripped = path[..colon]; // :238
+        return File.Exists(stripped) ? stripped : path; // :239-241, exists and is not a directory
+    }
+
+    private static bool IsAsciiLetter(char c) => c is >= 'A' and <= 'Z' or >= 'a' and <= 'z';
 }
 
 /// <summary>:253-260 <c>struct MergeRequestTarget: Equatable</c>: what a merge or pull request link in a chat hands
@@ -336,7 +451,7 @@ public sealed class LinkTextView : Decorator
 
         if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed && Link(point) is { } link)
         {
-            InlineText.OpenUrl?.Invoke(link);
+            MarkdownLinkOpener.Open(link); // B3 :337-341 (was InlineText.OpenUrl, a pre-existing divergence)
             e.Handled = true;
         }
     }
@@ -420,52 +535,18 @@ public sealed class LinkTextView : Decorator
             return;
         }
 
-        var sorted = mentions.OrderByDescending(persona => SwiftString.Count(persona.Name)).ToArray();
-        var graphemes = SwiftString.Characters(value).ToArray();
-        var boundaries = new HashSet<int> { 0, value.Length };
-        var offset = 0;
-        foreach (var grapheme in graphemes)
-        {
-            offset += grapheme.Length;
-            boundaries.Add(offset);
-        }
-
-        var cursor = 0;
         var runStart = 0;
-        while (cursor < value.Length)
+        foreach (var match in MentionScanner.Matches(value, mentions, persona => persona.Name)) // :197
         {
-            HydraPersona? match = null;
-            foreach (var persona in sorted)
-            {
-                if (persona.Name.Length == 0 || cursor + persona.Name.Length > value.Length) continue;
-                if (!boundaries.Contains(cursor + persona.Name.Length)) continue;
-                if (!string.Equals(value.Substring(cursor, persona.Name.Length), persona.Name, StringComparison.Ordinal)) continue;
-
-                var beforeOkay = cursor == 0 || !IsWordCharacter(PreviousCharacter(graphemes, boundaries, cursor));
-                var afterOffset = cursor + persona.Name.Length;
-                var afterOkay = afterOffset == value.Length || !IsWordCharacter(NextCharacter(graphemes, boundaries, afterOffset));
-                if (!beforeOkay || !afterOkay) continue;
-                match = persona;
-                break;
-            }
-
-            if (match is null)
-            {
-                cursor = NextBoundary(boundaries, cursor);
-                continue;
-            }
-
-            var personaMatch = match;
-            var start = cursor;
-            var end = start + personaMatch.Name.Length;
-            AddRun(value[runStart..start], font, color, block);
+            var persona = match.Value;
+            AddRun(value[runStart..match.LowerBound], font, color, block);
 
             var glyphSize = SwiftNumber.Rounded(pointSize * 1.25);
             block.Inlines!.Add(new InlineUIContainer
             {
                 Child = new Image
                 {
-                    Source = DragonImageForText(personaMatch, glyphSize),
+                    Source = DragonImageForText(persona, glyphSize),
                     Width = glyphSize,
                     Height = glyphSize,
                 },
@@ -477,20 +558,19 @@ public sealed class LinkTextView : Decorator
 
             var resolvedBold = bold.Resolve();
             var nameLocation = textLength;
-            var nameRun = new Run(personaMatch.Name)
+            var nameRun = new Run(persona.Name)
             {
                 FontSize = bold.PointSize,
                 FontFamily = resolvedBold.FontFamily,
                 FontWeight = resolvedBold.FontWeight,
-                Foreground = PersonaColorForText(personaMatch).Brush(block),
+                Foreground = PersonaColorForText(persona).Brush(block),
             };
             block.Inlines!.Add(nameRun);
-            if (targets.TryGetValue(personaMatch.Name, out var target))
-                heads.Add(new HeadRange(attachmentLocation, personaMatch.Name.Length + 2, nameLocation,
-                    personaMatch.Name.Length, target.Url, personaMatch.Name));
-            textLength += personaMatch.Name.Length;
-            cursor = end;
-            runStart = end;
+            if (targets.TryGetValue(persona.Name, out var target))
+                heads.Add(new HeadRange(attachmentLocation, persona.Name.Length + 2, nameLocation,
+                    persona.Name.Length, target.Url, persona.Name));
+            textLength += persona.Name.Length;
+            runStart = match.UpperBound;
         }
 
         if (runStart < value.Length) AddRun(value[runStart..], font, color, block);
@@ -546,39 +626,6 @@ public sealed class LinkTextView : Decorator
     private static SwiftColor PersonaColorForText(HydraPersona persona) =>
         new((persona.Hex >> 16 & 0xFF) / 255.0, (persona.Hex >> 8 & 0xFF) / 255.0, (persona.Hex & 0xFF) / 255.0);
 
-    private static int NextBoundary(HashSet<int> boundaries, int offset)
-    {
-        foreach (var boundary in boundaries)
-            if (boundary > offset) return boundary;
-        return offset + 1;
-    }
-
-    private static string PreviousCharacter(IReadOnlyList<string> graphemes, HashSet<int> boundaries, int offset)
-    {
-        _ = boundaries;
-        var position = 0;
-        foreach (var grapheme in graphemes)
-        {
-            var next = position + grapheme.Length;
-            if (next >= offset) return next == offset ? grapheme : "";
-            position = next;
-        }
-        return "";
-    }
-
-    private static string NextCharacter(IReadOnlyList<string> graphemes, HashSet<int> boundaries, int offset)
-    {
-        var position = 0;
-        foreach (var grapheme in graphemes)
-        {
-            var next = position + grapheme.Length;
-            if (position == offset) return grapheme;
-            if (position < offset && offset < next) return "";
-            position = next;
-        }
-        return "";
-    }
-
     private void AddRun(string value, SwiftFont font, SwiftColor color, SelectableTextBlock block)
     {
         if (value.Length == 0) return;
@@ -615,9 +662,6 @@ public sealed class LinkTextView : Decorator
             }
         }
     }
-
-    private static bool IsWordCharacter(string value) =>
-        SwiftCharacter.IsLetter(value) || SwiftCharacter.IsNumber(value);
 
     private static (SwiftFont Base, SwiftFont Bold, SwiftFont Italic, SwiftFont Mono) Fonts(double pointSize)
     {
