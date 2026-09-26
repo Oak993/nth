@@ -307,7 +307,7 @@ export async function loadMCPTools() {
     // (windows_path): a bare drive-letter path fails a Node dynamic import.
     public static Uri InstallBridge() => InstallBridge(LocalApplicationData());
 
-    private static string LocalApplicationData() => DevDataRoot.LocalApplicationData(); // ED-211
+    private static string LocalApplicationData() => DevDataRoot.LocalApplicationData(); // ED-212
 
     /// <summary>
     /// <see cref="InstallBridge()"/> with the base directory given explicitly (R-TEST-9: nothing touches the

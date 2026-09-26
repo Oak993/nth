@@ -36,7 +36,7 @@ public static class PiCLI
     private static string SupportDirectoryPath(string localApplicationData) =>
         SwiftPath.AppendingPathComponent(localApplicationData, "Marrow Code/pi");
 
-    private static string LocalApplicationData() => DevDataRoot.LocalApplicationData(); // ED-211
+    private static string LocalApplicationData() => DevDataRoot.LocalApplicationData(); // ED-212
 
     /// <summary>`PI_CODING_AGENT_DIR` when set, else `&lt;home&gt;/.pi/agent`.</summary>
     // :20-27

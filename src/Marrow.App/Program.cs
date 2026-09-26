@@ -32,6 +32,20 @@ public static class Program
     [STAThread]
     public static int Main(string[] args)
     {
+#if DEBUG
+        // ED-212, review fix: a mistyped or since-deleted MARROW_DEV_DATA_ROOT must not silently fall back to the
+        // developer's own real %LOCALAPPDATA%\Marrow Code (DevDataRoot.LocalApplicationData's contract for every
+        // other caller). Checked once, before the single-instance lock, so a misconfigured launch never touches
+        // real data or contends with a real running instance either.
+        if (DevDataRoot.IsMisconfigured)
+        {
+            Console.Error.WriteLine(
+                $"{DevDataRoot.VariableName} is set to \"{Environment.GetEnvironmentVariable(DevDataRoot.VariableName)}\", " +
+                "which is not an existing directory. Fix the path or unset the variable before launching.");
+            return 1;
+        }
+#endif
+
         if (!DroppyCodeApp.TryAcquireSingleInstanceLock(out var singleInstanceLock))
         {
             ReopenSignal.Send(DroppyCodeApp.ReopenSignalName); // ED-002: the running instance runs the reopen path
@@ -42,7 +56,7 @@ public static class Program
 
         // UserDefaults.standard (ED-079, ED-156: %LOCALAPPDATA%\Marrow Code\UserDefaults.json, OD-0008 C7), synchronized
         // on a normal exit (AppShell's afterWillTerminate) and from the unhandled-exception handler.
-        // ED-211: a Debug launch honours MARROW_DEV_DATA_ROOT when it names an existing directory; Release and an
+        // ED-212: a Debug launch honours MARROW_DEV_DATA_ROOT when it names an existing directory; Release and an
         // unset/absent variable resolve exactly the special folder above.
         var localAppData = DevDataRoot.LocalApplicationData();
         var settings = new SettingsStore(SettingsStore.ProductionPath(localAppData));

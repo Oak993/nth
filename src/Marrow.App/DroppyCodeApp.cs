@@ -38,7 +38,7 @@ public static class DroppyCodeApp
     private const string BaseReopenSignalName = "Local\\Marrow.Reopen.Release";
 #endif
 
-    // ED-211: a Debug launch under MARROW_DEV_DATA_ROOT gets its own lock and reopen names, tagged with a hash of
+    // ED-212: a Debug launch under MARROW_DEV_DATA_ROOT gets its own lock and reopen names, tagged with a hash of
     // its dev root, so two dev launches on different roots never contend with each other's single-instance lock or
     // signal each other's reopen. Release, and a Debug launch with no active redirect, keep the literal above
     // unchanged (DevDataRoot.KernelObjectName is the identity when not redirected).

@@ -9,7 +9,7 @@ using Marrow.Testing;
 
 namespace Marrow.Services.Tests.Support;
 
-// Swift: none (port-only, ED-211). Pins that every Marrow.Services production data-folder site
+// Swift: none (port-only, ED-212). Pins that every Marrow.Services production data-folder site
 // (CommandCodeAPI.SupportDirectory/.InstallMod, PiCLI.SupportDirectory, CommandCodeSession.ApprovalDirectoryRoot,
 // MCPBridge.InstallBridge, Storage.StorageLocations.CreateProduction, APIKeychain and MCPKeychain's
 // credential service name) resolves through DevDataRoot rather than the OS special folder or AppInfo.Current.Name
@@ -22,9 +22,15 @@ namespace Marrow.Services.Tests.Support;
 // they are also checked unredirected against the real special folder, without ever calling a directory-creating
 // method on that real path.
 //
-// [Collection]: every test in this class, and only this class, mutates the process-wide MARROW_DEV_DATA_ROOT
-// variable that DevDataRoot itself reads; the collection serializes it against itself so two of its own tests can
-// never interleave (xUnit still runs it in parallel with every other collection in this assembly).
+// [Collection]: every test in this class mutates the process-wide MARROW_DEV_DATA_ROOT variable that DevDataRoot
+// itself reads, or (APIKeychain/MCPKeychain) the AppInfo.Running/SecretStore.Shared ambient overrides that a
+// redirected credential-service test also depends on. Review fix (R-TEST-5): the CollectionDefinition
+// (DevDataRootEnvCollection.cs; R-TEST-2/3 keeps it out of this file) sets DisableParallelization, which serializes
+// this collection against itself AND against every other class in this assembly that joins it
+// (CommandCodeAPITests's own unredirected test now lives here too), closing the race the review reproduced: run
+// alone this class and CommandCodeAPITests/MCPKeychainTests/APIKeychainTests together (no shared collection)
+// failed MCPKeychainTests 8/8 times; both runs after this fix (filter
+// MCPKeychainTests|APIKeychainTests|DevDataRootProductionSitesTests) passed 72/72.
 [Collection("Dev data root env")]
 public sealed class DevDataRootProductionSitesTests
 {
@@ -69,7 +75,11 @@ public sealed class DevDataRootProductionSitesTests
 
     // ---- CommandCodeAPI.SupportDirectory / InstallMod (Providers/CommandCodeAPI.swift:441-446) ----
 
-    [Trait("Decision", "ED-211")]
+    // Redirect-active behavior only exists in a Debug build (DevDataRoot.cs's `#if DEBUG`); WithRedirect's own
+    // Assert.True(DevDataRoot.IsRedirected) would fail every one of these 8 tests unconditionally against a
+    // Release build (reproduced: 8 of 11 Decision=ED-212 failures in Marrow.Services.Tests Release, review fix).
+#if DEBUG
+    [Trait("Decision", "ED-212")]
     [Fact]
     public void CommandCodeAPI_SupportDirectory_moves_under_the_dev_root_when_redirected()
     {
@@ -80,7 +90,7 @@ public sealed class DevDataRootProductionSitesTests
         });
     }
 
-    [Trait("Decision", "ED-211")]
+    [Trait("Decision", "ED-212")]
     [Fact]
     public void CommandCodeAPI_InstallMod_writes_under_the_dev_root_when_redirected()
     {
@@ -91,10 +101,25 @@ public sealed class DevDataRootProductionSitesTests
             Assert.True(File.Exists(Path.Combine(root, "Marrow Code", "CommandCode", "marrow-approvals.ts")));
         });
     }
+#endif
+
+    // Review fix (R-TEST-5): moved here from CommandCodeAPITests, which used to clear MARROW_DEV_DATA_ROOT in its
+    // own scope outside this collection - so it could still interleave with a test here that had it redirected.
+    [Trait("Decision", "ED-212")]
+    [Fact]
+    public void CommandCodeAPI_SupportDirectory_is_the_real_special_folder_when_not_redirected()
+    {
+        WithoutRedirect(() =>
+        {
+            var real = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            Assert.Equal(CommandCodeAPI.SupportDirectoryUnder(real), CommandCodeAPI.SupportDirectory);
+        });
+    }
 
     // ---- PiCLI.SupportDirectory (Providers/PiCLI.swift:14-18) ----
 
-    [Trait("Decision", "ED-211")]
+#if DEBUG
+    [Trait("Decision", "ED-212")]
     [Fact]
     public void PiCLI_SupportDirectory_moves_under_the_dev_root_when_redirected()
     {
@@ -104,8 +129,9 @@ public sealed class DevDataRootProductionSitesTests
             Assert.Equal(PiCLI.SupportDirectoryUnder(root), PiCLI.SupportDirectory);
         });
     }
+#endif
 
-    [Trait("Decision", "ED-211")]
+    [Trait("Decision", "ED-212")]
     [Fact]
     public void PiCLI_SupportDirectory_is_the_real_special_folder_when_not_redirected()
     {
@@ -118,7 +144,8 @@ public sealed class DevDataRootProductionSitesTests
 
     // ---- CommandCodeSession.ApprovalDirectoryRoot (test seam duplicating CommandCodeAPI's own literal) ----
 
-    [Trait("Decision", "ED-211")]
+#if DEBUG
+    [Trait("Decision", "ED-212")]
     [Fact]
     public void CommandCodeSession_ApprovalDirectoryRoot_moves_under_the_dev_root_when_redirected()
     {
@@ -128,8 +155,9 @@ public sealed class DevDataRootProductionSitesTests
             Assert.Equal(Marrow.Core.Port.SwiftPath.AppendingPathComponent(root, "Marrow Code/CommandCode"), CommandCodeSession.ApprovalDirectoryRoot());
         });
     }
+#endif
 
-    [Trait("Decision", "ED-211")]
+    [Trait("Decision", "ED-212")]
     [Fact]
     public void CommandCodeSession_ApprovalDirectoryRoot_is_the_real_special_folder_when_not_redirected()
     {
@@ -142,7 +170,8 @@ public sealed class DevDataRootProductionSitesTests
 
     // ---- MCPBridge.InstallBridge (MCP/MCPBridgeSource.swift:240-251) ----
 
-    [Trait("Decision", "ED-211")]
+#if DEBUG
+    [Trait("Decision", "ED-212")]
     [Fact]
     public void MCPBridgeSource_InstallBridge_writes_under_the_dev_root_when_redirected()
     {
@@ -154,10 +183,12 @@ public sealed class DevDataRootProductionSitesTests
             Assert.True(File.Exists(Path.Combine(root, "Marrow Code", "mcp", "droppy-mcp-bridge.mjs")));
         });
     }
+#endif
 
     // ---- Storage.StorageLocations.CreateProduction (Store/Storage.swift:19-48) ----
 
-    [Trait("Decision", "ED-211")]
+#if DEBUG
+    [Trait("Decision", "ED-212")]
     [Fact]
     public void StorageLocations_CreateProduction_moves_root_and_state_directory_under_the_dev_root_when_redirected()
     {
@@ -173,6 +204,7 @@ public sealed class DevDataRootProductionSitesTests
             Assert.True(Directory.Exists(locations.PatchesDirectory));
         });
     }
+#endif
 
     // ---- APIKeychain / MCPKeychain credential service name (Providers/APIKeychain.swift:45-49/:60-67/:77-81,
     // MCP/MCPKeychain.swift:15/:39/:55): AppInfo.Current.Name goes through DevDataRoot.CredentialService, so two
@@ -183,7 +215,8 @@ public sealed class DevDataRootProductionSitesTests
         AppInfo.Running.Override(AppInfo.Read(
             new Dictionary<string, object?> { ["CFBundleDisplayName"] = name }, isDevelopment: false));
 
-    [Trait("Decision", "ED-211")]
+#if DEBUG
+    [Trait("Decision", "ED-212")]
     [Fact]
     public void APIKeychain_writes_under_a_tagged_service_when_redirected_and_the_plain_service_sees_nothing()
     {
@@ -203,8 +236,9 @@ public sealed class DevDataRootProductionSitesTests
             Assert.Null(APIKeychain.Read("DeepSeek API Key", service: "Marrow Dev"));
         });
     }
+#endif
 
-    [Trait("Decision", "ED-211")]
+    [Trait("Decision", "ED-212")]
     [Fact]
     public void APIKeychain_service_is_the_plain_AppInfo_name_when_not_redirected()
     {
@@ -218,7 +252,8 @@ public sealed class DevDataRootProductionSitesTests
         });
     }
 
-    [Trait("Decision", "ED-211")]
+#if DEBUG
+    [Trait("Decision", "ED-212")]
     [Fact]
     public void MCPKeychain_writes_under_a_tagged_service_when_redirected()
     {
@@ -240,4 +275,36 @@ public sealed class DevDataRootProductionSitesTests
             Assert.Null(backend.Peek(SecretStore.TargetName("Marrow Dev", "MCP example token")));
         });
     }
+#else
+    // Review fix (R-TEST-5 / "no test proves the Release build ignores the variable"): one consolidated Release
+    // check that MARROW_DEV_DATA_ROOT naming an existing directory changes nothing this class otherwise asserts
+    // is redirected in Debug - CommandCodeAPI/PiCLI support directories, CommandCodeSession's approvals root,
+    // StorageLocations' production root, and the APIKeychain/MCPKeychain credential service name.
+    [Trait("Decision", "ED-212")]
+    [Fact]
+    public void Nothing_here_redirects_in_a_release_build()
+    {
+        var root = ScratchRoot("release-inert");
+        var backend = new InMemoryCredentialBackend();
+        using var app = UseApp("Marrow Dev");
+        using var store = SecretStore.Shared.Override(new SecretStore(backend));
+        var previous = Environment.GetEnvironmentVariable(DevDataRoot.VariableName);
+        try
+        {
+            Environment.SetEnvironmentVariable(DevDataRoot.VariableName, root);
+            Assert.False(DevDataRoot.IsRedirected);
+
+            var real = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            Assert.Equal(CommandCodeAPI.SupportDirectoryUnder(real), CommandCodeAPI.SupportDirectory);
+            Assert.Equal(PiCLI.SupportDirectoryUnder(real), PiCLI.SupportDirectory);
+            Assert.Equal(Marrow.Core.Port.SwiftPath.AppendingPathComponent(real, "Marrow Code/CommandCode"), CommandCodeSession.ApprovalDirectoryRoot());
+            Assert.Equal(Path.Combine(real, "Marrow Code"), StorageLocations.CreateProduction().Root);
+            Assert.Equal("Marrow Dev", DevDataRoot.CredentialService("Marrow Dev"));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(DevDataRoot.VariableName, previous);
+        }
+    }
+#endif
 }

@@ -1153,20 +1153,13 @@ public sealed class CommandCodeAPITests
         Assert.Equal("file", directory.Scheme);
         Assert.Contains("/local%20app%20data-", directory.AbsoluteString, StringComparison.Ordinal);
         Assert.EndsWith("/Marrow%20Code/CommandCode/", directory.AbsoluteString, StringComparison.Ordinal);
-        // ED-211: CommandCodeAPI.SupportDirectory now resolves through DevDataRoot.LocalApplicationData(), which
-        // honours MARROW_DEV_DATA_ROOT in a Debug build. Cleared here, in this test's own scope only, so the
-        // assertion holds the real special folder regardless of whatever a developer's shell happens to have set.
-        var previousDevRoot = Environment.GetEnvironmentVariable(DevDataRoot.VariableName);
-        try
-        {
-            Environment.SetEnvironmentVariable(DevDataRoot.VariableName, null);
-            Assert.Equal(CommandCodeAPI.SupportDirectoryUnder(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)), CommandCodeAPI.SupportDirectory);
-        }
-        finally
-        {
-            Environment.SetEnvironmentVariable(DevDataRoot.VariableName, previousDevRoot);
-        }
         Assert.False(Directory.Exists(Path.Combine(localAppData, "Marrow Code")));
+        // The parameterless CommandCodeAPI.SupportDirectory property additionally resolves through
+        // DevDataRoot.LocalApplicationData() (ED-212), which reads the process-wide MARROW_DEV_DATA_ROOT variable in
+        // a Debug build; that case is covered, in the one collection that serializes every test touching that
+        // variable in this assembly, by
+        // DevDataRootProductionSitesTests.CommandCodeAPI_SupportDirectory_is_the_real_special_folder_when_not_redirected
+        // (review fix, R-TEST-5) rather than here.
     }
 
     [Fact]

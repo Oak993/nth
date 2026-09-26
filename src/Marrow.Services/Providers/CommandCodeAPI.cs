@@ -631,7 +631,7 @@ public static partial class CommandCodeAPI
     // is no macOS Library/Application Support fallback (:444, no Windows counterpart).
     public static SwiftURL SupportDirectory => SupportDirectoryUnder(LocalApplicationData());
 
-    private static string LocalApplicationData() => DevDataRoot.LocalApplicationData(); // ED-211
+    private static string LocalApplicationData() => DevDataRoot.LocalApplicationData(); // ED-212
 
     /// <summary>PORT-ONLY test seam: <see cref="SupportDirectory"/> under an explicit OS app-data folder.</summary>
     internal static SwiftURL SupportDirectoryUnder(string localApplicationData) =>

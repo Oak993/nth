@@ -1,4 +1,4 @@
-// PORT-ONLY (ED-211): none of this file has a B3 Swift counterpart. It is a development affordance for a manual
+// PORT-ONLY (ED-212): none of this file has a B3 Swift counterpart. It is a development affordance for a manual
 // Debug launch, so a developer can run the packaged app against a throwaway data folder instead of the real
 // %LOCALAPPDATA%\Marrow Code / %USERPROFILE%\.marrow-dev / Windows Credential Manager (STOP Boot #4,
 // tests/Marrow.App.Tests/AppDelegateThirdTests.cs:305-321). It exists only under #if DEBUG; a Release build never
@@ -9,7 +9,7 @@ using System.Text;
 namespace Marrow.Core.Support;
 
 /// <summary>
-/// The Debug-only MARROW_DEV_DATA_ROOT redirect (ED-211). Every production site that used to resolve
+/// The Debug-only MARROW_DEV_DATA_ROOT redirect (ED-212). Every production site that used to resolve
 /// <c>Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)</c> directly now calls
 /// <see cref="LocalApplicationData"/> instead; a Release build, or a Debug build with the variable unset, empty, or
 /// naming a directory that does not exist, gets the exact same value as before this redirect existed.
@@ -50,6 +50,23 @@ public static class DevDataRoot
     {
         var value = Environment.GetEnvironmentVariable(VariableName);
         return !string.IsNullOrEmpty(value) && Directory.Exists(value) ? value : null;
+    }
+
+    /// <summary>
+    /// Review fix (finding: "a mistyped or missing path at launch silently uses the owner's real data"): true when
+    /// <see cref="VariableName"/> is set to a non-empty value that does not name a directory that exists - a typo,
+    /// or a root that was deleted or renamed after being set. <see cref="LocalApplicationData"/> itself still falls
+    /// back silently in that case (every other caller's contract is unchanged), so Program.Main checks this once,
+    /// before doing anything else, and exits instead of launching against the developer's own real
+    /// %LOCALAPPDATA%\Marrow Code by mistake.
+    /// </summary>
+    public static bool IsMisconfigured
+    {
+        get
+        {
+            var value = Environment.GetEnvironmentVariable(VariableName);
+            return !string.IsNullOrEmpty(value) && !Directory.Exists(value);
+        }
     }
 #endif
 
