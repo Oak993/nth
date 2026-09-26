@@ -4649,7 +4649,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/TimelineRows.swift:1209-1350"
       ],
-      "notes": "The hit shape is pinned to the cell so the fill overflow never covers a neighbour. The anchor view is built only after a hover, because a strip scrolling past should not build views for a tap that never comes."
+      "notes": "The hit shape is pinned to the cell so the fill overflow never covers a neighbour. The anchor view is built only after a hover, because a strip scrolling past should not build views for a tap that never comes.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-010",

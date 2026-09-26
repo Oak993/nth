@@ -13,18 +13,6 @@ namespace Marrow.App.Tests.Views.Composer;
 
 // Source: DroppyCode/App/Views/Composer/FollowUpEditor.swift (B2 1fbf81e), :1-37.
 
-// STOP App.Views.Composer.FollowUpEditor #1
-// Kind: missing dependency
-// Swift: DroppyCode/App/Views/Composer/FollowUpEditor.swift:27-31 (B2 1fbf81e)
-// Requirements: PR-COMPOSER-174, UI-COMPOSER-062
-// What is unclear or missing: the attachment half of "Save writes the text and attachments back". save() passes
-// edit.attachments straight to runtime.updateFollowUp (:29), and FollowUpEditor.cs does the same, but an edit that
-// holds an attachment makes PromptEditor build EditorAttachments, which is still MARROW_STUB on impl/b2 (its
-// constructor throws), so no test can show this editor with an attachment yet.
-// Needed to proceed: unit App.Views.Composer.EditorAttachments.
-// Done so far: the text write-back, the empty-edit disabled state, Cancel and the title are tested; nothing about
-// attachments is claimed verified here.
-
 [Collection("Headless")]
 public sealed class FollowUpEditorTests(HeadlessSession headless)
 {
@@ -118,7 +106,6 @@ public sealed class FollowUpEditorTests(HeadlessSession headless)
     [Trait("Req", "UI-COMPOSER-062")] // App/Views/Composer/FollowUpEditor.swift:21-23, :27-31
     public void Save_writes_the_text_back_to_the_queued_prompt_and_closes()
     {
-        // Text only: the attachment half waits on EditorAttachments (STOP #1 above).
         headless.OnUiThread(() =>
         {
             using var h = RuntimeHarness();
@@ -136,6 +123,31 @@ public sealed class FollowUpEditorTests(HeadlessSession headless)
                 var stored = h.Runtime.FollowUps.Single(prompt => prompt.Id == id);
                 Assert.Equal("hello world", stored.Text);
                 Assert.Empty(stored.Attachments);
+                Close(host);
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-174")] // App/Views/Composer/FollowUpEditor.swift:27-31
+    public void Save_writes_the_attachments_back_with_the_text()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            var attachment = new Attachment { Name = "a.txt", Path = @"C:
+o-such-folder.txt", MimeType = "text/plain" };
+            h.Main.OnMain(() => h.Runtime.EnqueueFollowUp("original text", []));
+            var id = h.Main.OnMain(() => h.Runtime.FollowUps.Single().Id);
+            var edit = h.Main.OnMain(() => new PromptEdit(id, "with a file", new ValueList<Attachment>([attachment])));
+            h.Main.OnMain(() =>
+            {
+                h.Runtime.FollowUpEdit = edit;
+                var host = Build(h.Runtime, edit);
+                ButtonNamed(host, "Save").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                var stored = h.Runtime.FollowUps.Single(prompt => prompt.Id == id);
+                Assert.Equal("with a file", stored.Text);
+                Assert.Equal([attachment], stored.Attachments);
                 Close(host);
             });
         });

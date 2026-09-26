@@ -4,6 +4,7 @@ using Avalonia.Media;
 using Marrow.App.Runtime;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
+using Marrow.Core.Support;
 using Marrow.Services.Git;
 using Marrow.UI.Chrome;
 using Marrow.UI.Common;
@@ -293,28 +294,202 @@ public sealed record UserBubble
 /// <summary>:1209-1233 <c>struct AttachmentStrip: View</c>.</summary>
 public sealed class AttachmentStrip : Decorator
 {
+    // :1212-1214 @State private var preview = AttachmentPreviewSlot(): one preview panel for the strip, so every photo
+    // opens in a single tap no matter how many are attached, and made on the first tap rather than with the row. Read
+    // only by the thumbnails' actions and the anchor, never by the body, so a plain field (R-VIEW-2).
+    private readonly AttachmentPreviewSlot preview = new();
+
     /// <param name="attachments">:1210 <c>let attachments: [Attachment]</c>.</param>
     // :1216-1232 body
-    public AttachmentStrip(ValueList<Attachment> attachments) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:1216");
+    public AttachmentStrip(ValueList<Attachment> attachments)
+    {
+        // :1217-1219 weak/box captures only: hover responders and anchor views must not keep this strip (and its
+        // panel) alive after it scrolls away (PR-CHAT-161).
+        var slot = new WeakReference<AttachmentPreviewSlot>(preview);
+        // :1220-1222 a plain stack hugs the thumbnails, so a trailing-aligned row keeps the photos over the bubble, and
+        // the anchor view fills just the photos. The list is a `let`, so the ForEach (:1223) is built once.
+        var row = new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 6 };
+        foreach (var attachment in attachments) // :1223
+        {
+            var thumbnail = new AttachmentThumbnail(attachment, preview); // :1224
+            ToolTip.SetTip(thumbnail, attachment.Name); // :1225 .help(attachment.name)
+            row.Children.Add(thumbnail);
+        }
+        // :1228-1230 .background { AttachmentAnchorCapture { [weak slot] in slot?.setAnchor($0) } }
+        Child = PlainControls.Background(row, new AttachmentAnchorCapture(view =>
+        {
+            if (slot.TryGetTarget(out var held)) held.SetAnchor(view);
+        }));
+        // :1231 .onDisappear { [weak slot] in slot?.close() }
+        DetachedFromVisualTree += (_, _) =>
+        {
+            if (slot.TryGetTarget(out var held)) held.Close();
+        };
+    }
 }
 
 /// <summary>:1235-1351 <c>struct AttachmentThumbnail: View</c>.</summary>
 public sealed class AttachmentThumbnail : Decorator
 {
+    private readonly Attachment attachment;               // :1236
+    private readonly double size;                          // :1237
+    private readonly AttachmentPreviewSlot? slot;          // :1241
+    private readonly AttachmentPreviewCoordinator? panel;  // :1242
+    private readonly bool anchorless;                      // :1254
+
+    // :1244 @State private var image: CGImage?. Drawn straight into the plate, as AttachmentVideoThumbnail
+    // (UI/Common/AttachmentPreview.cs) draws its frame: the body adds the image once and swaps its source after.
+    private DecodedBitmap? image;
+    private Image? imageView;
+    private readonly Panel plate = new();
+
+    // :1245-1249 @State private var ownAnchor = WeakView(): the thumbnail's own view, handed to the panel on tap so the
+    // arrow lands on the tapped photo rather than the strip's middle.
+    private readonly WeakView ownAnchor = new();
+
+    // :1250 @State private var needsAnchor = false, read by the body (:1335-1339).
+    private sealed class ViewState : MainActorModel
+    {
+        private bool needsAnchor;
+
+        public bool NeedsAnchor { get => Read(needsAnchor); set => Set(ref needsAnchor, value); }
+    }
+
     /// <summary>:1256-1258 <c>init(attachment:size:preview:anchorless:)</c> with a slot; preview has no default, so it
     /// moves before size (ED-095) and callers name their arguments.</summary>
-    public AttachmentThumbnail(Attachment attachment, AttachmentPreviewSlot preview, double size = 56, bool anchorless = false) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:1256");
+    public AttachmentThumbnail(Attachment attachment, AttachmentPreviewSlot preview, double size = 56, bool anchorless = false)
+        : this(attachment, size, preview, null, anchorless) // :1257
+    {
+    }
 
     /// <summary>:1260-1262 <c>init(attachment:size:preview:)</c> with a panel the caller holds; preview moves before
     /// size (ED-095).</summary>
-    public AttachmentThumbnail(Attachment attachment, AttachmentPreviewCoordinator preview, double size = 56) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:1260");
+    public AttachmentThumbnail(Attachment attachment, AttachmentPreviewCoordinator preview, double size = 56)
+        : this(attachment, size, null, preview, false) // :1261
+    {
+    }
 
     // :1264-1272 private init(attachment:size:slot:panel:anchorless:); :1284-1350 body
-    private AttachmentThumbnail(Attachment attachment, double size, AttachmentPreviewSlot? slot, AttachmentPreviewCoordinator? panel, bool anchorless) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:1264");
+    private AttachmentThumbnail(Attachment attachment, double size, AttachmentPreviewSlot? slot, AttachmentPreviewCoordinator? panel, bool anchorless)
+    {
+        this.attachment = attachment;
+        this.size = size;
+        this.slot = slot;
+        this.panel = panel;
+        this.anchorless = anchorless;
+        var state = new ViewState();
+
+        // :1285-1287 the anchor box alone: the hover responder and the anchor view must not keep this row (and its
+        // attachment) alive after it scrolls away (PR-CHAT-161).
+        var anchorBox = ownAnchor;
+
+        Control label;
+        if (attachment.IsImage) // :1291
+        {
+            label = Plate(plate); // :1292-1304
+            // :1270-1271 a photo shown before starts out drawn, so scrolling back to it never fades it in again.
+            if (ThumbnailMemory.ImageFor(attachment.Path, size) is { } known) ShowImage(known, fade: false);
+        }
+        else if (attachment.IsVideo) // :1305
+        {
+            label = new AttachmentVideoThumbnail(attachment, size); // :1306
+        }
+        else // :1307-1323
+        {
+            // :1308-1311 a file fills its chip the way a photo does: the shell icon at the chip's full size on the same
+            // plate, so a text file, a PDF and a folder all read at a glance.
+            var icon = new Image
+            {
+                Source = FileIcons.Icon(attachment.Path), // :1315
+                Stretch = Stretch.Uniform, // :1316-1318 .resizable() .aspectRatio(contentMode: .fit)
+                Margin = new Thickness(size * 0.08), // :1319 .padding(size * 0.08)
+            };
+            RenderOptions.SetBitmapInterpolationMode(icon, Avalonia.Media.Imaging.BitmapInterpolationMode.HighQuality); // :1317
+            var files = new Panel();
+            files.Children.Add(icon);
+            label = Plate(files);
+            Avalonia.Automation.AutomationProperties.SetName(label, attachment.Name); // :1323
+        }
+
+        var button = PlainControls.Button(label, TogglePanel); // :1288-1290, :1326 .buttonStyle(.plain)
+        button.Focusable = false; // :1327 .focusable(false)
+        // :1328-1331 .contentShape(.rect(cornerRadius: 12, style: .continuous)): the plate clips to its 12 point
+        // continuous rectangle (ClipToBounds on a rounded Border), so the fill image's overflow is never hit and a
+        // neighbour's remove badge stays reachable.
+        var host = new Panel();
+        host.Children.Add(button);
+        Child = host;
+
+        // :1332-1334 .onHover: mounting the anchor needs a hover first; a tap always follows one.
+        button.OnHover(hovering =>
+        {
+            if (hovering && !anchorless && !state.NeedsAnchor) state.NeedsAnchor = true;
+        });
+        // :1335-1339 .background { if needsAnchor, !anchorless { AttachmentAnchorCapture { [weak anchorBox] ... } } }
+        host.Track(() => state.NeedsAnchor && !anchorless, mounted =>
+        {
+            if (!mounted || host.Children.Count > 1) return;
+            host.Children.Insert(0, new AttachmentAnchorCapture(view => anchorBox.Value = view));
+        });
+
+        // :1340-1349 .task(id: attachment.path)
+        this.Task(() => attachment.Path, async path =>
+        {
+            if (!attachment.IsImage) return; // :1341
+            if (ThumbnailMemory.ImageFor(path, size) is { } known) // :1342-1345
+            {
+                if (!ReferenceEquals(image, known)) ShowImage(known, fade: false);
+                return;
+            }
+            var thumbnail = await ThumbnailCache.Shared.Current.ThumbnailFor(path, size, fillingSquare: true); // :1346
+            if (thumbnail is null) return;
+            ThumbnailMemory.Store(thumbnail.Image, path, size); // :1347
+            // :1348 withAnimation(.easeOut(duration: 0.15)) { image = thumbnail.image }
+            Transaction.WithAnimation(Marrow.UI.Port.Animation.EaseOut(0.15), () => ShowImage(thumbnail.Image, fade: true));
+        });
+    }
+
+    // :1292-1304 and :1312-1322: the plate, 12 point continuous rounding, .quaternary at 0.6, size by size, clipped.
+    private Border Plate(Panel content)
+    {
+        var border = new Border
+        {
+            Width = size, // :1303, :1321 .frame(width: size, height: size)
+            Height = size,
+            ClipToBounds = true, // :1304, :1322 .clipShape(.rect(cornerRadius: 12, style: .continuous))
+            Child = content,
+        };
+        border.RoundedRectangle(12, RoundedCornerStyle.Continuous); // :1293, :1313
+        // :1294, :1314 .fill(.quaternary.opacity(0.6)). UNVERIFIED OD-0001: SwiftColor.Quaternary has no assigned ED
+        // yet, the same note AttachmentVideoThumbnail carries for the same plate.
+        border.Background = SwiftColor.Quaternary.Opacity(0.6).Brush(border);
+        return border;
+    }
+
+    // :1295-1301 if let image { Image(decorative: image, scale: 2).resizable().interpolation(.high)
+    // .aspectRatio(contentMode: .fill).transition(.opacity) }
+    private void ShowImage(DecodedBitmap next, bool fade)
+    {
+        image = next;
+        if (imageView is { } shown)
+        {
+            shown.Source = next.ToBitmap();
+            return;
+        }
+        var view = new Image { Source = next.ToBitmap(), Stretch = Stretch.UniformToFill };
+        RenderOptions.SetBitmapInterpolationMode(view, Avalonia.Media.Imaging.BitmapInterpolationMode.HighQuality);
+        imageView = view;
+        if (fade) SwiftTransition.Insert(plate, plate.Children.Count, view.Transition(SwiftTransition.Opacity));
+        else plate.Children.Add(view);
+    }
+
+    // :1274-1282 togglePanel(): opens (or closes) the panel for this photo, making one only now if the caller handed
+    // over a slot.
+    private void TogglePanel()
+    {
+        if (slot is { } held) held.Panel.Toggle(attachment, over: ownAnchor.Value); // :1277-1278
+        else panel?.Toggle(attachment, over: ownAnchor.Value); // :1279-1280
+    }
 }
 
 /// <summary>:1353-1413 <c>struct AssistantMessageRow: View</c>.</summary>

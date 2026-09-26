@@ -4148,7 +4148,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Share one strip implementation between the composer and the editor. Note the editor's strip holds an AttachmentPreviewCoordinator directly, while the composer's holds the lazy slot.",
       "verification_method": "capture comparison against the composer strip",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -6243,7 +6243,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Composer/EditorAttachments.swift:3-53"
       ],
-      "notes": "This strip holds an AttachmentPreviewCoordinator directly, while the composer's holds the lazy slot; the behavior is the same."
+      "notes": "This strip holds an AttachmentPreviewCoordinator directly, while the composer's holds the lazy slot; the behavior is the same.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-061",
