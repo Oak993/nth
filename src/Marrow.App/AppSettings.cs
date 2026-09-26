@@ -8,14 +8,21 @@ using Marrow.Core.Support;
 using Marrow.Services.Providers;
 using Marrow.UI.Theme;
 
-// Source: DroppyCode/App/AppSettings.swift (B2 1fbf81e), :1-947. Skeleton (c100 group 1): the four enums' cases
+// Source: DroppyCode/App/AppSettings.swift (B3 52bc792), :1-951. Skeleton (c100 group 1): the four enums' cases
 // (:3-93), the ModelPin and ModelPreference shapes (:96-107), the defaults keys (:117-180), the constants (:115,
 // :182, :299) and every stored property's shape are complete; every didSet, every computed property, the init
-// (:703-786), the Keychain fill (:410-494) and every method are left to the implementing unit. Forms: CGSize is
+// (:707-790), the Keychain fill (:409-498) and every method are left to the implementing unit. Forms: CGSize is
 // Avalonia.Size, CGPoint is Avalonia.Point, CGFloat is double (R-VIEW-11, ED-095); `defaults` is
-// UserDefaults.Standard (WebsiteCaptures.defaults is NOT-PORTED, ED-001); a Swift Int is long (R-NUM-4).
-// The `private var keyFallbacks` tuple (:432-439) and the private helpers store/load (:860-867) are left to the
+// UserDefaults.Standard (CaptureRun.defaults is NOT-PORTED, ED-001; B2 named the same NOT-PORTED indirection
+// WebsiteCaptures.defaults); a Swift Int is long (R-NUM-4).
+// The `private var keyFallbacks` tuple (:432-439) and the private helpers store/load (:864-871) are left to the
 // implementing unit.
+//
+// B3 (impact R3-48 APIKeychain #1, PR-PROVAPI-192, PR-SETTINGS-088/089/272): the four key observers' didSet bodies
+// and the four per-provider readKeys calls now go through one shared storeAPIKeyChange(:483-487)/storedKey(:443-
+// 445) pair over the new Services.Providers.APIKeychain, which takes a ProviderKind instead of an account string;
+// the deleted DeepSeekKeychain/MetaKeychain/ZaiKeychain/CommandCodeKeychain wrapper types are gone from this file's
+// callers. Citation only: the trim, fallback-write, legacy-removal and refusal behaviour is unchanged.
 
 namespace Marrow.App;
 
@@ -298,7 +305,8 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
     // :182
     public const long ModelListLimit = 15;
 
-    // :184. WebsiteCaptures is NOT-PORTED (ED-001): always UserDefaults.Standard.
+    // :184. CaptureRun is NOT-PORTED (ED-001): always UserDefaults.Standard. B2 named this same indirection
+    // WebsiteCaptures.defaults (:184, :708, :869 at B3); the rename carries no behaviour change.
     private readonly ISettingsStore defaults = UserDefaults.Standard.Current;
 
     // :299
@@ -623,50 +631,61 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
     public bool HasProjectActivationOverride(Guid id) =>
         projectActivationOverrides.ContainsKey(SwiftUUID.UuidString(id));
 
-    // :367-373. Named deviation OD-0008 A6, B3; OD-0012 E5 (PR-PROVAPI-008, PR-PROVREG-239): the protected store
-    // is written; a key it refuses is reported (APIKeyRefusal) and never kept in plain text anywhere.
+    // :367-371. Named deviation OD-0008 A6, B3; OD-0012 E5 (PR-PROVAPI-008, PR-PROVREG-239): the protected store
+    // is written; a key it refuses is reported (APIKeyRefusal) and never kept in plain text anywhere. At B3 the
+    // didSet body is one call into the shared StoreAPIKeyChange (:483-487), replacing the deleted DeepSeekKeychain
+    // wrapper (PR-PROVAPI-192).
     public string DeepseekAPIKeyInput
     {
         get => Read(deepseekAPIKeyInput);
-        set => Set(ref deepseekAPIKeyInput, value, oldValue => WriteAPIKeyEdit(ProviderKind.Deepseek, value, oldValue,
-            DeepSeekKeychain.SetAPIKey, Key.DeepseekAPIKey));
+        set => Set(ref deepseekAPIKeyInput, value, oldValue =>
+            StoreAPIKeyChange(value, oldValue, ProviderKind.Deepseek, Key.DeepseekAPIKey));
     }
 
-    // :378-384. PR-PROVAPI-009, PR-PROVREG-239.
+    // :376-380. PR-PROVAPI-009, PR-PROVREG-239. B3: the deleted MetaKeychain wrapper is replaced by the shared
+    // StoreAPIKeyChange.
     public string MetaAPIKeyInput
     {
         get => Read(metaAPIKeyInput);
-        set => Set(ref metaAPIKeyInput, value, oldValue => WriteAPIKeyEdit(ProviderKind.Meta, value, oldValue,
-            MetaKeychain.SetAPIKey, Key.MetaAPIKey));
+        set => Set(ref metaAPIKeyInput, value, oldValue =>
+            StoreAPIKeyChange(value, oldValue, ProviderKind.Meta, Key.MetaAPIKey));
     }
 
-    // :391-397. PR-PROVAPI-010, PR-PROVREG-239.
+    // :387-391. PR-PROVAPI-010, PR-PROVREG-239. B3: the deleted ZaiKeychain wrapper is replaced by the shared
+    // StoreAPIKeyChange.
     public string ZaiAPIKeyInput
     {
         get => Read(zaiAPIKeyInput);
-        set => Set(ref zaiAPIKeyInput, value, oldValue => WriteAPIKeyEdit(ProviderKind.Zai, value, oldValue,
-            ZaiKeychain.SetAPIKey, Key.ZaiAPIKey));
+        set => Set(ref zaiAPIKeyInput, value, oldValue =>
+            StoreAPIKeyChange(value, oldValue, ProviderKind.Zai, Key.ZaiAPIKey));
     }
 
-    // :402-408. PR-PROVREG-239.
+    // :396-400. PR-PROVREG-239. B3: the deleted CommandCodeKeychain wrapper is replaced by the shared
+    // StoreAPIKeyChange.
     public string CommandcodeAPIKeyInput
     {
         get => Read(commandcodeAPIKeyInput);
-        set => Set(ref commandcodeAPIKeyInput, value, oldValue => WriteAPIKeyEdit(ProviderKind.Commandcode, value, oldValue,
-            CommandCodeKeychain.SetAPIKey, Key.CommandcodeAPIKey));
+        set => Set(ref commandcodeAPIKeyInput, value, oldValue =>
+            StoreAPIKeyChange(value, oldValue, ProviderKind.Commandcode, Key.CommandcodeAPIKey));
     }
 
-    // :367-408 shared body: guard !isReadingKeychain, value != oldValue; write the protected store; report or
-    // clear the refusal; the fallback writer keeps only its clearing half (PR-PROVAPI-011).
-    private void WriteAPIKeyEdit(ProviderKind provider, string value, string oldValue, Func<string, bool> setKeychain, string legacyKey)
+    /// <summary>
+    /// One provider key changed: hand it to the protected store and keep a plaintext copy in the defaults only for
+    /// a Mac (upstream) whose Keychain refused it; the port keeps only the clearing half (OD-0008 A6).
+    /// </summary>
+    // :483-487 storeAPIKeyChange(_:from:provider:fallbackKey:), the one shared body every key observer now calls
+    // through, replacing the four separate WriteAPIKeyEdit call sites (each closing over its own deleted *Keychain.
+    // setAPIKey) B2 had. guard !isReadingKeychain, value != oldValue else { return } (:484); APIKeychain.setKey
+    // (:485) now takes the ProviderKind directly (PR-PROVAPI-192) instead of a per-wrapper account string.
+    private void StoreAPIKeyChange(string value, string oldValue, ProviderKind provider, string fallbackKey)
     {
         if (isReadingKeychain || SwiftString.Equal(value, oldValue)) return;
-        var kept = setKeychain(value);
+        var kept = APIKeychain.SetKey(value, provider);
         SetAPIKeyRefusal(provider, !kept);
-        StoreAPIKeyFallback(kept ? "" : value, legacyKey);
+        StoreAPIKeyFallback(kept ? "" : value, fallbackKey);
     }
 
-    // :485-494. Only the clearing half is kept (PR-PROVAPI-011, OD-0008 A6): a non-empty value is never written
+    // :489-498. Only the clearing half is kept (PR-PROVAPI-011, OD-0008 A6): a non-empty value is never written
     // to the settings store; the caller already reported the refusal.
     private void StoreAPIKeyFallback(string value, string key)
     {
@@ -674,21 +693,26 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
         if (trimmed.Length == 0) defaults.RemoveObject(key);
     }
 
-    // :415-423, :425-430, :441-449. One Keychain round trip per key, off the caller's thread.
+    // :433-441 readKeys(fallbacks:). One Keychain round trip per key, off the caller's thread. B3: each call goes
+    // through StoredKeyFor(:443-445), replacing the four deleted per-wrapper ApiKey(fallback:) calls B2 made here.
     private static StoredKeys ReadKeys((string Deepseek, string Meta, string Zai, string Commandcode) fallbacks) => new()
     {
-        Deepseek = ReadStoredKey(DeepSeekKeychain.ApiKey(""), fallbacks.Deepseek),
-        Meta = ReadStoredKey(MetaKeychain.ApiKey(""), fallbacks.Meta),
-        Zai = ReadStoredKey(ZaiKeychain.ApiKey(""), fallbacks.Zai),
-        Commandcode = ReadStoredKey(CommandCodeKeychain.ApiKey(""), fallbacks.Commandcode),
+        Deepseek = StoredKeyFor(ProviderKind.Deepseek, fallbacks.Deepseek),
+        Meta = StoredKeyFor(ProviderKind.Meta, fallbacks.Meta),
+        Zai = StoredKeyFor(ProviderKind.Zai, fallbacks.Zai),
+        Commandcode = StoredKeyFor(ProviderKind.Commandcode, fallbacks.Commandcode),
     };
 
+    // :443-445 storedKey(for:fallback:): APIKeychain.key(for: provider, fallback: "") (named StoredKeyFor rather
+    // than Swift's storedKey to avoid colliding with the nested StoredKey record above; C# has no separate
+    // type/member namespace the way Swift's type and function do).
     // DEVIATION OD-0008 A6: upstream falls back to the plaintext defaults copy (StoredKey.init(keychain:fallback:))
     // when the Keychain is empty; the port never reads that copy, so an account the store does not hold leaves
     // its field empty. `fallback` is kept in the signature only to mirror the Swift shape; it is never read.
-    private static StoredKey ReadStoredKey(string keychain, string fallback)
+    private static StoredKey StoredKeyFor(ProviderKind provider, string fallback)
     {
         _ = fallback;
+        var keychain = APIKeychain.Key(provider, "");
         return new StoredKey { Value = keychain, InKeychain = keychain.Length != 0 };
     }
 
