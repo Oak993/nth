@@ -1,24 +1,87 @@
+using System;
 using System.Linq;
+using Avalonia;
+using Avalonia.Automation;
+using Avalonia.Controls;
+using Avalonia.Headless;
+using Avalonia.Input;
+using Avalonia.Media;
 using Avalonia.Styling;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
+using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Composer;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
+using Marrow.Services.Providers;
+using Marrow.Testing;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
 using Xunit;
 
 namespace Marrow.App.Tests.Views.Composer;
 
-// Source: DroppyCode/App/Views/Composer/EffortSlider.swift (B2 1fbf81e), :6-30, :839-965, :968-1027, :1093-1132,
-// :1338-1346 only. This is a PARTIAL unit merge: ModelCatalog, EffortPalette.Title, EffortBrand and its extension
-// members, EffortPairBrand, TrackLook's computed properties, and TrackEffect.Traits/TraitCache/Random/EdgeFade are
-// implemented and tested here. Every other declared type in this file (ModelEffortButton, ModelEffortPanel,
-// ModelList, HydraPairListRow, ModelListRow, EffortPairLook, EffortSliderCard, FastModeButton, RoundIconButton,
+// Source: DroppyCode/App/Views/Composer/EffortSlider.swift (B2 1fbf81e), :6-30, :492-503, :659-708, :839-965,
+// :968-1027, :1093-1132, :1338-1346 only. This is a PARTIAL unit merge: ModelCatalog, EffortPalette.Title,
+// EffortBrand and its extension members, EffortPairBrand, TrackLook's computed properties,
+// TrackEffect.Traits/TraitCache/Random/EdgeFade, EffortPairLook (this part), FastModeButton (this part) and
+// RoundIconButton (this part) are implemented and tested here. Every other declared type in this file
+// (ModelEffortButton, ModelEffortPanel, ModelList, HydraPairListRow, ModelListRow, EffortSliderCard,
 // EffortSlider itself, and TrackEffect's own body/render methods DrawParticles/DrawStreaks/DrawBolts/DrawSheen/
 // DrawFusion) stays MARROW_STUB - the actual interactive slider, its popover and its drawn effects are real,
-// substantial remaining work for a future pass. See the STOP note at the end of this file for how this was found.
-public sealed class EffortSliderTests
+// substantial remaining work for a future pass. See the STOP notes at the end of this file for how this was found.
+[Collection("Headless")]
+public sealed class EffortSliderTests(HeadlessSession headless)
 {
+    // ---- shared headless helpers (same idioms as AboutUpdateViewsSecondTests.cs / ChromeTests.cs) ----
+
+    private static Avalonia.Controls.Window Show(Control content, double width = 400, double height = 300)
+    {
+        var window = new Avalonia.Controls.Window { Width = width, Height = height, Content = content };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        return window;
+    }
+
+    private static Rect BoundsIn(Control control, Visual ancestor) =>
+        new(control.TranslatePoint(new Point(0, 0), ancestor)!.Value, control.Bounds.Size);
+
+    private static Point Centre(Control control, Avalonia.Controls.Window window)
+    {
+        var bounds = BoundsIn(control, window);
+        return new Point(bounds.X + bounds.Width / 2, bounds.Y + bounds.Height / 2);
+    }
+
+    private static void Click(Avalonia.Controls.Window window, Point at)
+    {
+        window.MouseDown(at, MouseButton.Left, RawInputModifiers.None);
+        window.MouseUp(at, MouseButton.Left, RawInputModifiers.None);
+        Dispatcher.UIThread.RunJobs();
+    }
+
+    private static void Frames(ManualFrameSource frames, int count = 30)
+    {
+        for (var i = 0; i < count; i++)
+        {
+            (SwiftClock.Provider.Current as ManualTimeProvider)?.Advance(TimeSpan.FromMilliseconds(10));
+            frames.Advance(TimeSpan.FromMilliseconds(10));
+            Dispatcher.UIThread.RunJobs();
+        }
+    }
+
+    private static Color Effective(IBrush? brush)
+    {
+        if (brush is null) return Color.FromArgb(0, 0, 0, 0);
+        var solid = Assert.IsAssignableFrom<ISolidColorBrush>(brush);
+        return Color.FromArgb((byte)Math.Round(solid.Color.A * solid.Opacity), solid.Color.R, solid.Color.G, solid.Color.B);
+    }
+
+    private static void AssertColor(Color expected, Color actual)
+    {
+        Assert.Equal((expected.R, expected.G, expected.B), (actual.R, actual.G, actual.B));
+        Assert.InRange((int)actual.A, expected.A - 1, expected.A + 1);
+    }
+
     // SwiftColor is a plain class with no value equality (this file's own skeleton header documents this: "SwiftColor
     // has no value equality... compare them by reference until that is settled"), so two separately-constructed
     // instances with the same RGBA never compare equal via Assert.Equal directly; resolving to Avalonia's own Color
@@ -171,6 +234,185 @@ public sealed class EffortSliderTests
         var entry = new ModelCatalog.Entry(ProviderKind.Codex, option);
         Assert.Equal(ProviderKind.Codex.Id + "/" + option.Id, entry.Id);
     }
+
+    // ---- EffortPairLook, :485-504 ----
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-115")] // EffortSlider.swift:496, :501
+    public void EffortPairLook_caption_names_the_heads_effort_when_the_pair_sets_one()
+    {
+        using var runtime = new TestRuntime();
+        runtime.OnMain(() =>
+        {
+            var registry = new ProviderRegistry(new AppSettings());
+            var pair = new HydraPair(ProviderKind.Codex) { WorkerEffort = "xhigh" };
+            var look = new EffortPairLook(pair, registry, resolvedHeadsEffort: null);
+
+            Assert.Equal("extra high", look.HeadsEffort); // effortTitle("xhigh") = "Extra High", lowercased
+            Assert.Equal("The lead's effort · heads run at extra high effort", look.Caption);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-115")] // EffortSlider.swift:196, :496
+    public void EffortPairLook_falls_back_to_the_resolved_launch_effort_when_the_pair_sets_none()
+    {
+        using var runtime = new TestRuntime();
+        runtime.OnMain(() =>
+        {
+            var registry = new ProviderRegistry(new AppSettings());
+            var pair = new HydraPair(ProviderKind.Codex);
+            var look = new EffortPairLook(pair, registry, resolvedHeadsEffort: "medium");
+
+            Assert.Equal("medium", look.HeadsEffort);
+            Assert.Equal("The lead's effort · heads run at medium effort", look.Caption);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-115")] // EffortSlider.swift:502
+    public void EffortPairLook_caption_says_heads_keep_their_own_when_neither_is_set()
+    {
+        using var runtime = new TestRuntime();
+        runtime.OnMain(() =>
+        {
+            var registry = new ProviderRegistry(new AppSettings());
+            var pair = new HydraPair(ProviderKind.Codex);
+            var look = new EffortPairLook(pair, registry, resolvedHeadsEffort: null);
+
+            Assert.Null(look.HeadsEffort);
+            Assert.Equal("The lead's effort · heads keep their own", look.Caption);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-115")] // EffortSlider.swift:494-495; HydraButton.swift:648-711 HydraPairSummary
+    public void EffortPairLook_title_and_brand_delegate_to_the_established_pair_helpers()
+    {
+        using var runtime = new TestRuntime();
+        runtime.OnMain(() =>
+        {
+            var registry = new ProviderRegistry(new AppSettings());
+            var pair = new HydraPair(ProviderKind.Codex) { Name = "Night shift" };
+            var look = new EffortPairLook(pair, registry, resolvedHeadsEffort: null);
+
+            Assert.Equal("Night shift", look.Title); // HydraPairSummary.Title: pair.CustomName ?? ModelsTitle(...)
+            Assert.Equal(4, look.Brand.Colors.Count); // PR-COMPOSER-130: first four roster persona colours
+        });
+    }
+
+    // ---- RoundIconButton, :685-708 ----
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-120")] // EffortSlider.swift:699 .help(help).accessibilityLabel(Text(help))
+    public void A_round_icon_buttons_help_is_both_its_tooltip_and_its_accessible_name() => headless.OnUiThread(() =>
+    {
+        var control = new RoundIconButton("arrow.counterclockwise", "Reset to default", () => { });
+        var window = Show(control);
+
+        var button = Assert.Single(window.GetVisualDescendants().OfType<Button>());
+        Assert.Equal("Reset to default", ToolTip.GetTip(button));
+        Assert.Equal("Reset to default", AutomationProperties.GetName(button));
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-120")] // EffortSlider.swift:692 RoundIconButton(... action: onReset)
+    public void A_round_icon_button_runs_its_action_once_per_click() => headless.OnUiThread(() =>
+    {
+        using var source = FrameClock.Source.Override(new ManualFrameSource()); // a click also hovers, and the hover animates
+        using var clock = SwiftClock.Provider.Override(new ManualTimeProvider());
+        var runs = 0;
+        var control = new RoundIconButton("arrow.counterclockwise", "Reset to default", () => runs++);
+        var window = Show(control);
+
+        var button = Assert.Single(window.GetVisualDescendants().OfType<Button>());
+        Click(window, Centre(button, window));
+
+        Assert.Equal(1, runs);
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-120")] // EffortSlider.swift:695 Circle().fill(isHovering ? Chrome.overlay(0.1) : Color.clear)
+    public void Hovering_a_round_icon_button_reveals_a_10_percent_plate_and_leaving_clears_it() => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        using var source = FrameClock.Source.Override(frames);
+        using var clock = SwiftClock.Provider.Override(new ManualTimeProvider());
+        var control = new RoundIconButton("arrow.counterclockwise", "Reset to default", () => { });
+        var window = Show(control);
+        var theme = window.ActualThemeVariant;
+        var circle = Assert.Single(window.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Ellipse>());
+
+        AssertColor(Color.FromArgb(0, 0, 0, 0), Effective(circle.Fill));
+
+        window.MouseMove(Centre(control, window), RawInputModifiers.None);
+        Frames(frames);
+        AssertColor(Chrome.Overlay(0.1).Resolve(theme), Effective(circle.Fill));
+
+        window.MouseMove(new Point(390, 290), RawInputModifiers.None);
+        Frames(frames);
+        AssertColor(Color.FromArgb(0, 0, 0, 0), Effective(circle.Fill));
+        window.Close();
+    });
+
+    // ---- FastModeButton, :659-683 ----
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-119")] // EffortSlider.swift:664, :667 bolt vs bolt.fill, secondaryText vs yellow
+    public void A_fast_mode_button_starts_as_a_plain_bolt_in_the_secondary_colour_when_off() => headless.OnUiThread(() =>
+    {
+        var control = new FastModeButton(new ObservableBoolBox().AsBinding());
+        var window = Show(control);
+
+        Assert.Equal("Fast mode", ToolTip.GetTip(Assert.Single(window.GetVisualDescendants().OfType<Button>())));
+        Assert.Equal("Off", AutomationProperties.GetItemStatus(Assert.Single(window.GetVisualDescendants().OfType<Button>())));
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-119")] // EffortSlider.swift:671-672 withAnimation(.spring...) { isOn.toggle() }
+    public void Clicking_a_fast_mode_button_toggles_the_bound_value_and_updates_its_tooltip() => headless.OnUiThread(() =>
+    {
+        using var source = FrameClock.Source.Override(new ManualFrameSource()); // a click also hovers, and the hover animates
+        using var clock = SwiftClock.Provider.Override(new ManualTimeProvider());
+        var box = new ObservableBoolBox();
+        var control = new FastModeButton(box.AsBinding());
+        var window = Show(control);
+
+        var button = Assert.Single(window.GetVisualDescendants().OfType<Button>());
+        Click(window, Centre(button, window));
+
+        Assert.True(box.Value);
+        Assert.Equal("Fast mode is on", ToolTip.GetTip(button)); // :679
+        Assert.Equal("On", AutomationProperties.GetItemStatus(button)); // :681
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-119")] // EffortSlider.swift:680 .accessibilityLabel(Text("Fast mode")), fixed regardless of state
+    public void A_fast_mode_buttons_accessibility_label_is_always_fast_mode() => headless.OnUiThread(() =>
+    {
+        var control = new FastModeButton(new ObservableBoolBox { Value = true }.AsBinding());
+        var window = Show(control);
+
+        Assert.Equal("Fast mode", AutomationProperties.GetName(Assert.Single(window.GetVisualDescendants().OfType<Button>())));
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-119")] // EffortSlider.swift:673 Color.yellow.opacity(0.18) once on
+    public void An_on_fast_mode_button_plates_itself_yellow_regardless_of_hover() => headless.OnUiThread(() =>
+    {
+        var control = new FastModeButton(new ObservableBoolBox { Value = true }.AsBinding());
+        var window = Show(control);
+        var theme = window.ActualThemeVariant;
+        var circle = Assert.Single(window.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Ellipse>());
+
+        AssertColor(SwiftColor.Yellow.Opacity(0.18).Resolve(theme), Effective(circle.Fill));
+        window.Close();
+    });
 }
 
 // STOP App.Views.Composer.EffortSlider #1 (helper Claude, 2026-09-26)
