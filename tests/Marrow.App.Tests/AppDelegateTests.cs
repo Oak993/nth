@@ -740,6 +740,15 @@ public sealed class AppDelegateTests
 // :15 (the Windows toast activation handler, PR-LAUNCH-025), which keep PR-LAUNCH-025, PR-WIN-068 and UI-LAUNCH-001
 // open; :22's boot sequence (OD-0018, ED-103) is STOP Boot #1 in AppDelegateThirdTests.cs.
 
+// App.AppDelegate unit (2026-09-26): :13 CLOSED. Lane 1c landed Core/Port/Http.cs's public
+// `URLCache(memoryCapacity:diskCapacity:)` constructor and settable `URLCache.Shared`, both cited to
+// AppDelegate.swift:13 (B3 52bc792), so O-33's parked size cut-off no longer blocks this one statement (ED-118 still
+// parks the cut-off itself for the store's own Fresh/Store behaviour, unaffected by this write). AppDelegate.cs now
+// runs `URLCache.Shared = new URLCache(8 * 1024 * 1024, 0);` first, tested in AppDelegateThirdTests.cs
+// (Launch_reconfigures_the_shared_URLCache_to_8_MiB_memory_only_before_it_reaches_the_window_manager,
+// PR-LAUNCH-083, PR-LAUNCH-025). :15 (the Windows toast activation handler) stays open; PR-LAUNCH-025, PR-WIN-068 and
+// UI-LAUNCH-001 stay SPECIFIED for that line alone.
+
 // STOP App.AppDelegate #2 (part 1, 2026-09-26; part 2 requirements added 2026-09-26)
 // Kind: missing dependency
 // Swift: DroppyCode/App/AppDelegate.swift:36-39 (B3 52bc792), applicationShouldHandleReopen(_:hasVisibleWindows:),
