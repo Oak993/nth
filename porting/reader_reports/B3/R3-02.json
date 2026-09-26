@@ -1,0 +1,145 @@
+{
+ "bundle_id": "R3-02",
+ "reader": "R3-02-reader",
+ "files": [
+  {
+   "path": "DroppyCode/App/AppModel.swift",
+   "sha256": "b9b3191cbc497384ec9a5ca273f77eba16b15ec2c64219ad39620736e22908b7",
+   "ranges_read": [
+    [
+     1,
+     450
+    ],
+    [
+     451,
+     900
+    ],
+    [
+     901,
+     1374
+    ]
+   ],
+   "asset_inspection": null,
+   "purpose": "The @MainActor @Observable AppModel is the app's single library object: it owns the projects and threads arrays (the source of truth persisted to library.json), mirrors them into per-item ObservedValue cells (projectCells, threadCells, childCells, selectionCells) so a sidebar row, chat header or panel re-renders only when its own item changes, and keeps a ThreadIndex of positions for O(1) lookup. It runs the launch bootstrap (document prefetch, keychain, login environment, Hydra copy sweep and merge resume, the 300 s merge-sweep loop, provider refresh and catalog loads, and from B3 the background CLI self-update task, then the orphaned-attachment sweep), every thread and project mutation (new/forward/move/rename/archive/settle/reopen/delete, helpers and Hydra-head panels, worktree creation, project scripts), idle-runtime release after 600 s, attention handling (notifications, dock badge, unread marks), text-engine selection, and library persistence, which in B3 is a throttled save (400 ms minimum wait, at most one write per 4 s) plus a synchronous quit-time write. The file also holds ProjectFile, which reads project scripts from droppy-code.json and maps their icon names to SF Symbols.",
+   "key_symbols": [
+    "struct AppAlert: Identifiable { id, title, message } (5-9)",
+    "@MainActor @Observable final class AppModel (12-1346)",
+    "let settings: AppSettings; let providers: ProviderRegistry; let mcp: MCPStore; let terminals: TerminalStore; let sidebar: SidebarLayout (15-20)",
+    "@ObservationIgnored private(set) var autoContinue: AutoContinue! (22); var hydraHeadRetries: [UUID: Int] (25)",
+    "private(set) var projects: [Project] didSet sync cells (30-32); private(set) var threads: [ChatThread] didSet with membership check (33-45)",
+    "private struct ThreadIndex { positions, projects; init(_:) } (50-61)",
+    "projectCells / threadCells / childCells / selectionCells (62-71)",
+    "var selectedThreadID: UUID? didSet: selection cells, SwitchLatency.noteSwitch, deferred markRead of thread+children, scheduleIdleSessionStop, warmNeighbors, rememberLastProject (72-98)",
+    "var sidebarRevealThreadID: UUID? (103); var isCommandPalettePresented (105); var alert: AppAlert? (106)",
+    "@ObservationIgnored private var runtimes, idleSessionStops, saveTask (108-110)",
+    "@ObservationIgnored private var lastLibrarySave: ContinuousClock.Instant? (111, NEW in B3)",
+    "@ObservationIgnored private var hydraMergeSweepTask (117); persistenceEnabled = true (118); didRequestNotifications = false (119)",
+    "init() (121-147)",
+    "private static func sync(_:with:) (158-178); private static func write(_:) (181-183); private func syncChildCells() (190-208)",
+    "private func childIDs(of:) (213-218); private func selectionCell(_:) (222-227); func isSelected(_:) (230-232); func children(of:) (236-238)",
+    "func bootstrap() async (240-287)",
+    "func project(_:) (292-294); func thread(_:) (297-299); var selectedThread (301-303); var currentProject (305-313); private func rememberLastProject(_:) (315-318)",
+    "func threads(in:) (323-341); func moveThread(_:to:placeAfter:) -> Bool (346-362); func moveInActivity(_:to:placeAfter:among:) -> Bool (366-380)",
+    "var archivedThreads (382-384); nonisolated static func settledFirst(_:_:) (387-389); var sidebarThreads (393-399)",
+    "func helpers(of:) (405-409); func panelHeads(of:) (414-422); func panelSubagent(of:) (426-428); func toggleHelpersFold(_:) (430-432)",
+    "func runtime(for:) (434-439); func existingRuntime(for:) (441-443); var liveRuntimes (446)",
+    "func warmDocuments(_:) (450-454); private func warmNeighbors(of:) (458-460); func neighbors(of:) (464-472)",
+    "private func scheduleIdleSessionStop(leaving:) (479-497); func releaseIdleRuntime(_:) -> Bool (502-515); var workingDirectory (517-520)",
+    "func addProject(at:) (525-533); func chooseProjectFolder() (535-538); func addProjectsFromPanel() -> Project? (545-556); func updateProject(_:_:) (558-565); func removeProject(_:) (567-576)",
+    "func openThreadOnLaunch() (583-611); func newThread(in:workspace:) (614-629); func forwardThread(_:) async (633-655); private func makeThread(in:carrying:) (659-712)",
+    "func updateThread(_:_:) (714-721); func moveThread(_:toProject:) (729-741); private func updateThreads(_:_:) (743-755)",
+    "func rename(_:to:) (757-764); func archive(_:) (766-781); func unarchive(_:) (783-790); func settle(_:sounds:) (796-816); func reopen(_:) (819-835)",
+    "func settleAnimated(_:sounds:) (838-840); func reopenAnimated(_:) (843-845); func reopenIfSettled(_:) (848-851)",
+    "var finishActionTitle (855-858); var finishActionSymbol (860-863); func finishSelectedThread() (865-882); func settleSelectedThread() (887-898); func askToArchiveSelectedThread() (902-921)",
+    "struct FinishRequest: Equatable (926-930); var finishRequest (932); struct ArchiveRequest: Equatable (936-939); var archiveRequest (941)",
+    "func delete(_:removeWorktree:) (943-966); func deleteArchivedThreads() (970-1002)",
+    "@ObservationIgnored private var sessionsToRelease: Set<UUID> (1008); func subagent(of:) (1012-1014); func insertThread(_:) (1018-1021)",
+    "func spawnSubagent(from:title:prompt:) -> ChatThread? (1030-1060); func closeSubagent(_:) (1064-1077); private func discardThreadState(_:deletingDocument:) (1079-1086); private func selectNeighbor(of:) (1088-1096)",
+    "var topScript (1098-1101); func runScript(_:threadID:) (1103-1107); func selectThread(offset:) (1109-1117); func selectThread(number:) (1119-1123); func createWorktree(for:) async (1125-1150)",
+    "private func isOnScreen(_:) (1158-1165); func threadNeedsAttention(_:) (1167-1178); func turnFinished(_:status:continues:) (1182-1225)",
+    "func markRead(_: UUID) (1227-1231); func markRead(_: [UUID]) (1235-1247); func requestNotificationPermission() (1249-1255); func notify(threadID:title:body:sound:) (1257-1268); func updateDockBadge() (1270-1273)",
+    "func textEngine(preferring:) -> TextGeneration.Engine? (1277-1294)",
+    "func scheduleSave() (1304-1314, rewritten in B3); private func saveLibrary() (1316-1324); func saveBeforeQuit() (1327-1345)",
+    "enum ProjectFile { static func scripts(at:) (1350-1362); static func symbol(for:) (1364-1373) } (1349-1374)"
+   ],
+   "calls_into": [
+    "DroppyCode/Services/Store/Storage.swift: Storage.loadLibrary, libraryURL, threadURL(_:), worktreesDirectory, deleteDocument(_:), deleteDocuments(_:), sweepOrphanedAttachments()",
+    "DiskWriter.shared.encodeAndWrite(_:to:), writeSynchronously(_:to:), waitForQueuedWrites()",
+    "DocumentPrefetch.shared.warm(_:)",
+    "DroppyCode/Services/Providers/ProviderRegistry.swift: refreshAll(), loadCatalog(_:), status(_:).isInstalled/.auth, defaultModel(for:), executable(for:), environment(for:), and NEW in B3 updateCLIIfDue(_:) (ProviderRegistry.swift:497, called for .claude then .codex)",
+    "AppSettings: loadKeychainInBackground(), lastProjectID, lastHydraPairID, hydraEnabled, defaultProvider, defaultRuntimeMode, defaultWorkspaceMode, preference(for:model:), lastEffort(for:), isEnabled(_:), threadFinishAction, settleSound, chimeWhenFinished, notifyWhenFinished, textGeneration",
+    "LoginEnvironment.load()",
+    "DroppyCode/Core/Support/CaptureRun.swift: CaptureRun.isEnabled (B3 call sites 285, 1168, 1250, 1258; B2 went through WebsiteCaptures.isEnabled, a forwarder to the same predicate)",
+    "AutoContinue(app:), autoContinue.turnFinished(_:status:continues:), autoContinue.resumesAt",
+    "ThreadRuntime(threadID:app:), ensureLoaded(), snapshotForPersistence(), installContinuation(_:), saveNow(), cancelPersistence(), stopSession(), interrupt(), send(), enqueueFollowUp(text:attachments:), unsavedSnapshot(), holdsOnlyPersistedState, isRunning, isLoadingHistory, turns, continuation, draft, followUps, isTerminalVisible",
+    "TerminalStore: run(_:threadID:directory:), sessions(for:), closeAll(for:), terminateAll()",
+    "Git(_:): deleteCheckpoints(thread:), removeWorktree(at:), isRepository(), hasCommits(), status()?.branch, addWorktree(at:branch:base:)",
+    "AppModel+Hydra / +HydraMerge / +HydraPairs extensions: sweepHydraCopies(), resumeHydraMerges(), releaseHydraCopy(of:), finishHydraHead(_:status:summary:), hydraHeadTurnFinished(_:status:), runningDroppyHeads(of:), hydraLead(of:for:), hydraPickerPairs, HydraPair.projectPair(_:hydraOn:in:)",
+    "ThreadContinuation.capture(sourceID:title:document:)",
+    "SwitchLatency.noteSwitch(to:), SettleChime.play(), FinishChime.play(), withAnimation(Chrome.settleFlight / Chrome.panelSlide)",
+    "NSOpenPanel, NSApp.isActive, NSApp.requestUserAttention(.informationalRequest), NSApp.dockTile.badgeLabel",
+    "UNUserNotificationCenter.current().requestAuthorization(options:) and add(_:), UNMutableNotificationContent, UNNotificationRequest",
+    "JSONValue.parse(_:) (ProjectFile)"
+   ],
+   "state_owned": [
+    "projects: [Project] and threads: [ChatThread] (persisted library)",
+    "threadIndex (positions and per-project indices) and the four ObservedValue cell dictionaries",
+    "selectedThreadID, sidebarRevealThreadID, isCommandPalettePresented, alert, finishRequest, archiveRequest (observed UI state)",
+    "runtimes: [UUID: ThreadRuntime]; idleSessionStops: [UUID: Task]; sessionsToRelease: Set<UUID>; hydraHeadRetries: [UUID: Int]; autoContinue",
+    "saveTask: Task? (now also the 'save already pending' flag: scheduleSave returns early while it is non-nil)",
+    "lastLibrarySave: ContinuousClock.Instant? (NEW in B3; set by every saveLibrary() call, nil until the first save of the process)",
+    "hydraMergeSweepTask; persistenceEnabled (one-way latch cleared by saveBeforeQuit); didRequestNotifications"
+   ],
+   "side_effects": [
+    "Writes <store root>/library.json asynchronously via DiskWriter (scheduleSave -> saveLibrary; direct saveLibrary on settle, reopen, delete) and synchronously at quit (saveBeforeQuit), plus each runtime's unsaved thread snapshot at quit",
+    "Deletes thread documents (discardThreadState, deleteArchivedThreads), git checkpoints and, for Hydra-head copies or on request, worktrees",
+    "Creates git worktrees at <worktreesDirectory>/<project-name-lowercased-dashed>-<first 8 of uuid> on branch droppy-code/<suffix>, and runs runOnWorktreeCreate project scripts in terminals",
+    "Starts a repeating 300 s Hydra merge sweep task and per-thread 600 s idle-stop tasks",
+    "NEW in B3: bootstrap starts an un-awaited Task that awaits providers.updateCLIIfDue(.claude) then providers.updateCLIIfDue(.codex), each only if that provider reports installed; inside ProviderRegistry that may run the CLI's own 'update' subcommand (at most every 12 h, persisted timestamps) and reload the provider and its catalog when the version changed",
+    "Runs Storage.sweepOrphanedAttachments() last in bootstrap except in a capture run",
+    "Posts user notifications (lazy one-time authorization request), sets the dock badge, requests dock attention (bounce) for threads needing a decision",
+    "Plays SettleChime / FinishChime; shows NSOpenPanel; sets alert for worktree failures"
+   ],
+   "platform_assumptions": [
+    "AppKit: NSOpenPanel (canChooseDirectories, allowsMultipleSelection, prompt/message), NSApp.isActive, NSApp.requestUserAttention(.informationalRequest), NSApp.dockTile.badgeLabel",
+    "UserNotifications: UNUserNotificationCenter authorization with [.alert, .sound, .badge], UNNotificationSound default or nil, userInfo threadID, request identifier = threadID.uuidString",
+    "SwiftUI Observation (@Observable, @ObservationIgnored) and withAnimation driving sidebar motion; the cell design exists to avoid SwiftUI exclusivity traps inside withAnimation",
+    "Swift structured concurrency: Task inherits @MainActor, cancellation via Task.isCancelled, Task.sleep(for:)",
+    "ContinuousClock (monotonic clock) for the B3 library-save throttle",
+    "SF Symbol names: arrow.uturn.backward, checkmark.circle, archivebox (finish action) and checkmark.seal, wand.and.stars, gearshape, hammer, ant, play (ProjectFile)",
+    "POSIX-style project paths (url.standardizedFileURL.path) and git worktrees; claude/codex CLIs that carry their own 'update' subcommand (B3)"
+   ],
+   "persisted_fields": [
+    "library.json: Library.projects and Library.threads (all Project and ChatThread fields the model mutates, including sortOrder, activityOrder, activityOrderDay, isSettled, settledAt, isPinned, isArchived, hasUnread, lastStatus, updatedAt, worktreePath, branch, providerSessionID, providerResumeAt, hydraPairID, hydraEnabled, isInPanel, foldsHelpers, title, hasCustomTitle)",
+    "settings.lastProjectID (cleared when the project is gone or removed)",
+    "Thread documents under threads/ via runtime snapshots at quit; deleted with the thread",
+    "droppy-code.json at a project root is read (scripts[].name, command, icon, runOnWorktreeCreate), never written",
+    "Not persisted by this file: lastLibrarySave and saveTask are process memory only; the 12-hour CLI-update timestamps are persisted by ProviderRegistry, not here"
+   ],
+   "ui_elements": [
+    "NSOpenPanel: prompt \"Add project\", message \"Choose a folder for your agents to work in.\" (550-551)",
+    "Alert \"Worktree unavailable\" / \"New worktrees need a git repository with at least one commit.\" (1129) and \"Could not create a worktree\" / error.localizedDescription (1148)",
+    "Finish command title \"Reopen thread\" or \"<threadFinishAction.title> thread\"; symbol arrow.uturn.backward, checkmark.circle or archivebox (855-863)",
+    "Forwarded thread title prefix \"Continued: \" (645)",
+    "Notification bodies \"Waiting for your decision.\" (1176), \"Finished.\", \"Stopped.\", \"Stopped with an error.\" (1218-1220)",
+    "Dock badge label = unread count of non-archived, non-panel threads, nil at zero (1270-1273)",
+    "ProjectFile icon map test->checkmark.seal, lint->wand.and.stars, configure->gearshape, build->hammer, debug->ant, default play (1364-1373)",
+    "No UI element was added or changed in B3"
+   ],
+   "feature_notes": [
+    "B2->B3 diff (27 insertions, 9 deletions, churn 36; B2 1356 lines -> B3 1374): five changes, zero-context hunks @@-110,0 +111@@, @@-273,0 +275,8@@, @@-276 +285@@, @@-1159 +1168@@, @@-1241 +1250@@, @@-1249 +1258@@, @@-1288,0 +1298,6@@, @@-1290,2 +1305,3@@, @@-1293,3 +1309,4@@, @@-1300,0 +1318@@.",
+    "BEHAVIOUR CHANGE 1, library save throttle (B3 111, 1298-1318): scheduleSave no longer cancels and restarts a 400 ms debounce. B3: 'guard persistenceEnabled, saveTask == nil else { return }' - while a save is pending, further calls do nothing (the pending save picks up every change because saveLibrary reads projects and threads when it fires). The wait is 'max(.milliseconds(400), .seconds(4) - sinceLast)' where sinceLast = ContinuousClock.now - lastLibrarySave, or 60 s when no save has happened yet in this process. The task sleeps, returns if cancelled or self is gone, sets saveTask = nil, then calls saveLibrary(). saveLibrary() now stamps 'lastLibrarySave = .now' after its persistenceEnabled guard, so the direct saves (settle 815, reopen 834, delete 965) also push the next scheduled save out to 4 s after them. Observable result: the first save after a change goes out 400 ms later, library.json is written at most once per 4 s, and a steady stream of changes is still saved (every ~4 s) instead of never. The doc comment (1298-1303) cites the reason: a busy team rewrote the file on every status change, 'over two gigabytes in an hour and a quarter (September 22)'. saveBeforeQuit is unchanged: it still cancels saveTask, nils it and latches persistence off.",
+    "BEHAVIOUR CHANGE 2, CLI self-update at launch (B3 275-282): after the zai catalog load and before the capture guard and orphan-attachment sweep, bootstrap starts 'Task { [providers] in for provider in [ProviderKind.claude, .codex] where providers.status(provider).isInstalled { await providers.updateCLIIfDue(provider) } }'. The task is not awaited, not stored and never cancelled; claude is handled before codex, each installed check made when the loop reaches it. The comment states the reason: the CLIs run headless never update themselves and a model newer than the installed CLI fails outright; 'Their own updaters run here, in the background, at most every twelve hours; a newer version reloads its catalog.' The 12-hour gate, the capture-run guard, the user binary-path exemption, the 'update' child process and the catalog reload all live in ProviderRegistry.updateCLIIfDue (ProviderRegistry.swift:497, read here only at 470-560 for context and owned by another bundle).",
+    "NO BEHAVIOUR CHANGE, capture guard rename: the four guards 'WebsiteCaptures.isEnabled' became 'CaptureRun.isEnabled' (bootstrap 285, threadNeedsAttention 1168, requestNotificationPermission 1250, notify 1258). SOURCE FACT: at B2 WebsiteCaptures.swift:26 was 'nonisolated static var isEnabled: Bool { CaptureRun.isEnabled }', and CaptureRun.swift is unchanged B2->B3 (git diff --stat shows no change), so the predicate is identical; B3 removed the WebsiteCaptures forwarders (see R3-04).",
+    "Everything else in the file is byte-identical to B2 apart from line positions: B2 1-110 unchanged; B2 111-273 -> +1; B2 274-1288 -> +9; B2 1289 -> 1304; B2 1296-1300 -> +17; B2 1301-1356 -> +18.",
+    "Spec impact (119 records cite this file in E:\\Droppy\\wt\\integration\\porting\\spec): 11 records touch the changed hunks; 104 are line shifts only; 4 (PR-LAUNCH-023, PR-LAUNCH-068, UI-LAUNCH-009, PR-SIDEBAR-021) cite only lines 1-110 and need nothing. Reclassify: PR-LAUNCH-038 (bootstrap now has a tenth, un-awaited CLI-update step), PR-LAUNCH-060, PR-STORE-015, PR-LAUNCH-076 (400 ms cancel-and-restart debounce replaced by the 400 ms / 4 s throttle). The rest of the touched set (PR-LAUNCH-045, -053, -067, -071, UI-LAUNCH-005, PR-STORE-013, PR-STORE-072) keep their behaviour but need quote or wording updates beyond line numbers (WebsiteCaptures -> CaptureRun, 'debounce' wording, ranges that now span the inserted update block).",
+    "Pre-existing citation defect found while mapping: PR-SIDEBAR-083 cites 'AppModel.swift:866-882 finishSelectedThread and :884-897 settleSelectedThread', but at B2 (and B1) finishSelectedThread is 856-873 and settleSelectedThread 875-889 (doc comment + body); mechanical +9 shifting would give wrong B3 ranges. Correct B3 ranges: finishSelectedThread 865-882, settleSelectedThread 884-898.",
+    "Port (C#) impact, src/Marrow.App/AppModel.cs in E:\\Droppy\\wt\\integration: (a) ScheduleLibrarySave (currently 'saveTask?.Cancel()' then a 400 ms TrySleep, AppModel.cs ~1266-1281) must become the B3 throttle with a monotonic lastLibrarySave field, an early return while saveTask is non-null, wait = max(400 ms, 4 s - sinceLast) with 60 s default, and saveTask = null before SaveLibrary(); SaveLibrary must stamp lastLibrarySave (placing the stamp relative to the OD-0008 libraryLoadFailed return is an ENGINEERING DECISION; upstream stamps right after the persistenceEnabled guard). (b) Bootstrap() (AppModel.cs ~296-331) must spawn, after the Zai catalog line and before SweepOrphanedAttachments, an un-awaited task that awaits Providers.UpdateCLIIfDue for Claude then Codex when installed; ProviderRegistry.cs has no UpdateCLIIfDue yet (grep of src/ finds none), so this depends on the ProviderRegistry unit. (c) The CaptureRun rename has no port effect: the C# already drops every capture guard (ED-001; 'DEVIATION ED-001: capture guard dropped' at AppModel.cs:330). (d) Line-number comments and the header 'Source: DroppyCode/App/AppModel.swift (B2 1fbf81e), :1-1356' need re-citing to B3; not observable."
+   ],
+   "unresolved_questions": [
+    "UNRESOLVED (for the ProviderRegistry bundle and platform_adaptations, not decidable from this file): whether 'claude update' and 'codex update' behave the same on a Windows install (npm global, standalone installer, or user binary path) as on macOS, and so whether the B3 launch-time self-update step can be a direct port or needs a platform-adaptation entry.",
+    "Spec hygiene: PR-SIDEBAR-083's AppModel ranges were already wrong at B2 (see feature_notes); the refresh should re-derive them from the B3 text, not shift them."
+   ]
+  }
+ ]
+}

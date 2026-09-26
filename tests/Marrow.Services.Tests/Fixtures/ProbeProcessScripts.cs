@@ -95,4 +95,72 @@ public static class ProbeProcessScripts
         return "$filler = 'x' * 70000\n" +
                $"[Console]::Error.Write($filler + \"`n\" + '{escapedFinal}' + \"`n\"); [Console]::Error.Flush(); exit {code}";
     }
+
+    /// <summary>Writes "Unauthorized" to stderr, then more than 4,000 bytes of filler generated inside the script
+    /// itself, then exits with the given code: proves errorTail's last-4,000-byte window (PR-MCP-110, PR-MCP-236)
+    /// no longer carries a marker written before it, even though the full stderr buffer still does.</summary>
+    public static string ExitsWithStaleUnauthorizedMarker(int code)
+    {
+        return "[Console]::Error.Write('Unauthorized' + \"`n\"); [Console]::Error.Flush()\n" +
+               "$filler = 'y' * 4500\n" +
+               $"[Console]::Error.Write($filler); [Console]::Error.Flush(); exit {code}";
+    }
+
+    /// <summary>Answers "initialize" (id 1) with two lines: the id-1 reply itself, and the id-2 tools/list reply
+    /// (never separately requested yet at that point, since the probe only sends tools/list after initialize
+    /// completes). The script has no "tools/list" branch at all, so a real request for id 2 is never answered by
+    /// the script; the probe can only complete it from MCPStdioConnection's buffer. Review finding L3b-2: under the
+    /// old B2 loop (`guard value["id"]?.int == id else { continue }`), the stray id-2 line would be silently
+    /// skipped rather than buffered, the real tools/list request would go unanswered, and Probe would time out.</summary>
+    public static string EchoWithBufferedExtraReply()
+    {
+        var body = new StringBuilder();
+        body.Append("  if ($msg.method -eq 'initialize') {\n");
+        WriteLine(body, "'{\"jsonrpc\":\"2.0\",\"id\":' + $msg.id + ',\"result\":{\"serverInfo\":{\"name\":\"real\",\"version\":\"v1\"}}}'");
+        WriteLine(body, "'{\"jsonrpc\":\"2.0\",\"id\":2,\"result\":{\"tools\":[{\"name\":\"early\"}]}}'");
+        body.Append("  }\n");
+        return ReadLoop.Replace("__BODY__", body.ToString(), StringComparison.Ordinal);
+    }
+
+    /// <summary>Answers initialize normally (LF-terminated), then writes the tools/list reply with NO trailing
+    /// newline before the process exits: the reply can only reach the probe through the child's end-of-stream
+    /// flush (StdioProcess.swift Deliver/FinishOutput), not a 0x0A. Does not use the shared ReadLoop/WriteLine
+    /// helpers, which always append a newline.</summary>
+    public static string EchoThenOmitFinalNewlineBeforeExit() => """
+        $ErrorActionPreference = 'Stop'
+        while ($true) {
+          $line = [Console]::In.ReadLine()
+          if ($null -eq $line) { break }
+          if ($line.Length -eq 0) { continue }
+          $msg = $line | ConvertFrom-Json
+          if ($msg.method -eq 'initialize') {
+            [Console]::Out.Write('{"jsonrpc":"2.0","id":' + $msg.id + ',"result":{"serverInfo":{"name":"n","version":"v"}}}' + "`n")
+            [Console]::Out.Flush()
+          } elseif ($msg.method -eq 'tools/list') {
+            [Console]::Out.Write('{"jsonrpc":"2.0","id":' + $msg.id + ',"result":{"tools":[]}}')
+            [Console]::Out.Flush()
+            exit 0
+          }
+        }
+        """;
+
+    /// <summary>Answers "initialize" with serverInfo.name set to the script's own $PID and serverInfo.version set
+    /// to the pid of a grandchild it spawns (a detached "Start-Sleep 60"), then answers "tools/list" with an empty
+    /// page. ProbeStdio does not expose the MCPStdioConnection it creates, so name/version are the only channel
+    /// MCPProbeResult carries back through which the test can learn either pid (review finding L3b-4). Lets a test
+    /// observe, after Probe returns, that MCPStdioConnection.Stop's ED-126/ED-194 pid-only ladder (:152-154, +3 s
+    /// SIGKILL of the pid alone) ends the probed child but leaves the grandchild running, unlike a job-object tree
+    /// kill.</summary>
+    public static string ReportsOwnPidAndAGrandchildAsServerInfo()
+    {
+        var body = new StringBuilder();
+        body.Append("  if ($msg.method -eq 'initialize') {\n");
+        body.Append("    $g = Start-Process -FilePath powershell.exe -ArgumentList " +
+            "'-NoProfile','-NonInteractive','-Command','Start-Sleep 60' -NoNewWindow -PassThru\n");
+        WriteLine(body, "'{\"jsonrpc\":\"2.0\",\"id\":' + $msg.id + ',\"result\":{\"serverInfo\":{\"name\":\"' + $PID + '\",\"version\":\"' + $g.Id + '\"}}}'");
+        body.Append("  } elseif ($msg.method -eq 'tools/list') {\n");
+        WriteLine(body, "'{\"jsonrpc\":\"2.0\",\"id\":' + $msg.id + ',\"result\":{\"tools\":[]}}'");
+        body.Append("  }\n");
+        return ReadLoop.Replace("__BODY__", body.ToString(), StringComparison.Ordinal);
+    }
 }

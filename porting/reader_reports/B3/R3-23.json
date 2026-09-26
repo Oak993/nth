@@ -1,0 +1,49 @@
+{
+  "bundle_id": "R3-23",
+  "reader": "R3-23-reader",
+  "files": [
+    {
+      "path": "DroppyCode/Services/Providers/OpenAICompatibleAPI.swift",
+      "sha256": "7f2923cc00767081eb19a3a44aa3b896750faf28d6ed0b9dcbe5a8b440195714",
+      "ranges_read": [[1, 35]],
+      "asset_inspection": null,
+      "purpose": "New in B3 (added by upstream commit d70cff8fe, 'refactor: audit cleanups ... shared MCP and provider code'): a caseless `enum OpenAICompatibleAPI` that holds the bearer-auth request builder, the API-key validation probe and the /models catalog fetch that DeepSeekAPI, MetaAPI and ZaiAPI each carried as identical inline copies at B2. bearerRequest(url:key:) (:5-10) builds a URLRequest with timeoutInterval 15, header `Authorization: Bearer <key>` and `Accept: application/json` (no httpMethod set, so GET). validate(modelsURL:key:) (:13-20) trims the key, returns false for an empty key, sends the bearer request through URLSession.shared with try? and returns true only when the response is an HTTPURLResponse with status 200; any transport error or non-HTTP response is false. listModels(modelsURL:key:option:) (:22-34) trims the key, returns [] for an empty key, awaits URLSession.shared.data (transport errors propagate as throws), returns [] unless the status is 200 and JSONValue.parse succeeds, collects json[\"data\"][].id strings, returns [] when there are none, maps them through the caller-supplied `option: (String) -> ModelOption?` closure (compactMap drops nil) and sorts by the tuple (isDefault ? 0 : 1, id) so the default model comes first and the rest are in ascending id order. The doc comment at :3 names its three consumers: DeepSeek, Meta and Z.ai.",
+      "key_symbols": [
+        "enum OpenAICompatibleAPI (:4-35)",
+        "static func bearerRequest(url: URL, key: String) -> URLRequest (:5-10) - URLRequest(url: url, timeoutInterval: 15); setValue(\"Bearer \\(key)\", forHTTPHeaderField: \"Authorization\"); setValue(\"application/json\", forHTTPHeaderField: \"Accept\")",
+        "static func validate(modelsURL: URL, key: String) async -> Bool (:13-20) - `let key = key.trimmed`; empty -> false; `try? await URLSession.shared.data(for:)`; `http.statusCode == 200`",
+        "static func listModels(modelsURL: URL, key: String, option: (String) -> ModelOption?) async throws -> [ModelOption] (:22-34) - empty key -> []; non-200 or unparseable -> []; `(json[\"data\"]?.array ?? []).compactMap { $0[\"id\"]?.string }`; no ids -> []; `ids.compactMap(option).sorted { (lhs.isDefault ? 0 : 1, lhs.id) < (rhs.isDefault ? 0 : 1, rhs.id) }`"
+      ],
+      "calls_into": [
+        "Foundation URLRequest(url:timeoutInterval:), URLRequest.setValue(_:forHTTPHeaderField:)",
+        "URLSession.shared.data(for:) (async)",
+        "HTTPURLResponse.statusCode",
+        "String.trimmed (DroppyCode/Core/Support/Text.swift:224, trimmingCharacters(in: .whitespacesAndNewlines))",
+        "JSONValue.parse(_:), JSONValue subscript, .array, .string (Core/Support JSONValue)",
+        "ModelOption (DroppyCode/Core/Models/Provider.swift:216) .isDefault and .id",
+        "Called by: DeepSeekAPI.swift:14 validate, :18 listModels, :27 bearerRequest (balance); MetaAPI.swift:26 validate, :30 listModels; ZaiAPI.swift:21 validate, :25 listModels, :58 bearerRequest (planLimits)"
+      ],
+      "state_owned": [],
+      "side_effects": [
+        "Network: GET <modelsURL> (validate, listModels) with Authorization Bearer and Accept application/json headers and a 15 second timeout via URLSession.shared",
+        "bearerRequest itself performs no I/O; callers (DeepSeekAPI.balance -> https://api.deepseek.com/user/balance, ZaiAPI.planLimits -> https://api.z.ai/api/monitor/usage/quota/limit) send it"
+      ],
+      "platform_assumptions": [
+        "Foundation URLSession.shared as the HTTP transport (the port maps this through Marrow.Core.Port URLSession/URLRequest, F.HTTP)",
+        "Swift tuple `<` on (Int, String) for ordering, i.e. Swift String ordering for the id tie-break (the port uses SwiftStringComparer.Instance for this at B2)"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [],
+      "feature_notes": [
+        "SOURCE FACT: status A. The whole file is new at B3; `git diff 1fbf81e6 HEAD --stat` shows 35 insertions and nothing else. It is an extraction, not new behaviour: DeepSeekAPI.swift, MetaAPI.swift and ZaiAPI.swift at B2 each held byte-for-byte the same validate(apiKey:) and listModels(apiKey:) bodies (B2 DeepSeekAPI :13-38, MetaAPI :25-50, ZaiAPI :20-45) and the same three-line bearer request construction in DeepSeekAPI.balance (B2 :46-48) and ZaiAPI.planLimits (B2 :77-79). At B3 those callers are one-line delegations (DeepSeekAPI :13-19, MetaAPI :25-31, ZaiAPI :20-26) or use bearerRequest (DeepSeekAPI :27, ZaiAPI :58).",
+        "SOURCE FACT: behaviour is preserved exactly. The trim now happens inside the helper (`let key = key.trimmed`, :14 and :23) on the raw apiKey the callers pass, which is the same trim B2 did in the caller. The per-provider option(for:) mapping is passed in as the `option` closure (Self.option(for:)) instead of being called directly. The timeout (15), both header values, the status-200 rule, the error handling (try? in validate, throwing in listModels), the data[].id parse, the empty-ids early return and the (isDefault ? 0 : 1, id) ordering are unchanged.",
+        "SOURCE FACT: in balance and planLimits the callers still trim and empty-check the key themselves before calling bearerRequest; bearerRequest does not trim. ZaiAPI.resetCredits and consumeResetCredit still build their own bearer requests inline at B3 (not migrated), so they are not consumers of this file.",
+        "Spec impact: no requirement or UI record in porting/spec/*.json cites OpenAICompatibleAPI.swift (grep returns nothing). Eight PROVAPI records describe behaviour whose implementation now lives here and whose DeepSeekAPI/MetaAPI/ZaiAPI citations have moved: PR-PROVAPI-016, -017, -024, -035, -036, -057, -058, -064. Their behaviour is unchanged; they need their line citations restated (and this file added as evidence).",
+        "Port impact: no observable change. The C# port has no OpenAICompatibleAPI unit and units.json has no entry for this Swift file; each of src/Marrow.Services/Providers/DeepSeekAPI.cs, MetaAPI.cs and ZaiAPI.cs still carries its own inline copy keyed to B2 line numbers. One-Swift-file-per-unit parity needs a new unit (Services.Providers.OpenAICompatibleAPI -> src/Marrow.Services/Providers/OpenAICompatibleAPI.cs) with BearerRequest, Validate and ListModels, and the three provider ports rewired to delegate."
+      ],
+      "unresolved_questions": [
+        "UNRESOLVED: MetaAPI.cs and ZaiAPI.cs carry a PORT-ONLY optional `modelsUrl` (and `quotaUrl`) test seam. Whether the new shared C# OpenAICompatibleAPI.Validate/ListModels simply receives the resolved URL from those wrappers (natural, since the Swift helper already takes modelsURL as a parameter) or the seam is removed is an implementation decision for the unit agent; it should be recorded, not assumed."
+      ]
+    }
+  ]
+}

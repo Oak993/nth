@@ -1,0 +1,68 @@
+{
+  "bundle_id": "R3-13",
+  "reader": "R3-13-reader",
+  "files": [
+    {
+      "path": "DroppyCode/Core/Support/PendingReplies.swift",
+      "sha256": "a3f12679cc1ed21e6136aafc321fb23d8ab4998223c530707c9a317eaeb2890e",
+      "ranges_read": [[1, 63]],
+      "asset_inspection": null,
+      "purpose": "New in B3: a @MainActor generic registry, PendingReplies<Value: Sendable>, that parks one CheckedContinuation<Value, Error> per string request id so a stdio provider can await the reply line carrying that id. It factors out the hand-rolled continuation dictionaries that B2 kept separately in ClaudeSession (pendingControl, throwing) and PiSession (pendingResponses, non-throwing with a 30 s timer), and adds two things B2 did not have there: task-cancellation support (withTaskCancellationHandler plus an up-front Task.checkCancellation) and bulk resume (resolveAll/failAll). The doc comment (lines 3-4) states the ordering guarantee: the id is registered before `send` runs, so a fast reply cannot arrive before anyone is waiting.",
+      "key_symbols": [
+        "@MainActor final class PendingReplies<Value: Sendable> (5-6)",
+        "private var continuations: [String: CheckedContinuation<Value, Error>] (7)",
+        "func register(_ id: String, timeout: Duration? = nil, timeoutValue: Value? = nil, send: () -> Void) async throws -> Value (10-36)",
+        "@discardableResult func resolve(_ id: String, _ value: Value) -> Bool (38-43)",
+        "@discardableResult func fail(_ id: String, _ error: Error) -> Bool (45-50)",
+        "func resolveAll(_ value: Value) (52-56)",
+        "func failAll(_ error: Error) (58-62)"
+      ],
+      "calls_into": [
+        "Swift concurrency: withTaskCancellationHandler(operation:onCancel:) (16, 31)",
+        "Task.checkCancellation() (17)",
+        "withCheckedThrowingContinuation (18)",
+        "Task { } unstructured timer task inheriting the main actor (22-29)",
+        "Task.sleep(for:) with try? (23)",
+        "Task { @MainActor [weak self] in ... } in onCancel (32-34)",
+        "CancellationError() (27, 33)",
+        "caller-supplied send closure (14, 20)",
+        "Used by B3 DroppyCode/Services/Providers/ClaudeSession.swift:37,306,338,340,684 (PendingReplies<JSONValue>, no timeout; fail/resolve on control_response; failAll on close)",
+        "Used by B3 DroppyCode/Services/Providers/PiSession.swift:57,266,290,594 (register with timeout .seconds(30), timeoutValue .null; resolve on response; resolveAll(.null) on close)"
+      ],
+      "state_owned": [
+        "continuations: [String: CheckedContinuation<Value, Error>], main-actor isolated, keyed by request id; an entry exists from registration until it is removed by resolve, fail, resolveAll, failAll, the timeout task, or the onCancel task"
+      ],
+      "side_effects": [
+        "register stores the continuation under id (line 19) BEFORE invoking send() (line 20); send is invoked synchronously on the main actor inside the continuation body",
+        "If the calling task is already cancelled on entry, Task.checkCancellation() (line 17) throws CancellationError before anything is registered or sent, so send() never runs",
+        "With a timeout, spawns an unstructured Task (lines 22-29) that sleeps for the duration (try?, so it proceeds even if that timer task were cancelled) and then either resolve(id, timeoutValue) when a timeoutValue was given, or fail(id, CancellationError()) when it was not (doc comment line 9); both are no-ops returning false if the id was already removed",
+        "The timer task captures the PendingReplies instance strongly (self.resolve / self.fail) for the timeout duration",
+        "On task cancellation after registration, onCancel spawns a main-actor Task holding self weakly that removes the id and resumes the continuation by throwing CancellationError (lines 32-34); the removal is asynchronous (hops to the main actor), and a reply that wins the race is delivered normally because removeValue then returns nil",
+        "resolve/fail remove the entry first and resume only if present, returning true when an entry was found and false otherwise (lines 39-50)",
+        "resolveAll/failAll snapshot all waiting continuations, clear the map, then resume each (lines 52-62), so resumption never touches a map being iterated",
+        "Registering an id that is already present overwrites the dictionary slot (line 19) and orphans the earlier continuation, which is never resumed (a leaked CheckedContinuation); both B3 callers use monotonically increasing counters so this is not reached by them"
+      ],
+      "platform_assumptions": [
+        "Swift structured concurrency semantics: withTaskCancellationHandler runs onCancel immediately when the task is already cancelled, and concurrently (on an arbitrary executor) when cancelled later, which is why the handler hops to the main actor",
+        "Unstructured Task { } inherits the main-actor context and task-locals but not the parent's cancellation, so the timeout timer is not cancelled when the awaiting task is",
+        "Duration-based Task.sleep(for:) (continuous clock)"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [],
+      "feature_notes": [
+        "Status A: the file does not exist at B2 (1fbf81e6); git diff B2..HEAD shows 63 insertions, which is the whole file.",
+        "Refactor source: B2 ClaudeSession.swift:37 held `pendingControl: [String: CheckedContinuation<JSONValue, Error>]`, B2 :306-308 used withCheckedThrowingContinuation directly, B2 :337-342 removed-and-resumed on control_response, and B2 :686-690 drained the map on close. B3 replaces all of that with PendingReplies<JSONValue> (B3 :37, :306, :338, :340, :684).",
+        "Refactor source: B2 PiSession.swift:62 held `pendingResponses: [String: CheckedContinuation<JSONValue, Never>]` (non-throwing), B2 :265-273 armed its own 30 s timer that resumed with .null, and B2 :304 resolved by id. B3 PiSession :266 calls `try? await pendingResponses.register(id, timeout: .seconds(30), timeoutValue: .null)` and returns `value ?? .null`; :290 uses the Bool from resolve to fall through to the failed-prompt branch.",
+        "Behaviour change for Claude control requests (ClaudeSession.control): B2 was not cancellable (spec PR-PROVCLI-042 records `cancellation: not cancellable`). B3 throws CancellationError without sending the control_request when the calling task is already cancelled, and throws CancellationError (removing the pending entry) when the task is cancelled while waiting. Claude callers at B3 :219, :224, :246, :266, :296 wrap control in try?, and :160 (initialize) propagates the throw.",
+        "Behaviour change for Pi requests (PiSession.request): B2's only bound was the 30 s timer (PR-PROVCLI-276 `cancellation: The 30 second timer is the only bound.`). In B3 a cancelled caller gets JSON null (CancellationError swallowed by try?, then `?? .null`), and a caller whose task is already cancelled gets JSON null without the request line ever being written. The 30 s timeout still resolves with JSON null, never throwing.",
+        "Behaviour change for Pi close: B3 PiSession.didClose (:594) now calls pendingResponses.resolveAll(.null) FIRST, so every waiting request (get_state, get_commands) returns JSON null immediately on process exit instead of waiting out the 30 s timer as in B2 (B2 didClose :638-653 never touched pendingResponses).",
+        "No behaviour change for the Claude close path in outcome: B2's inline snapshot/clear/resume-throwing loop is now pendingControl.failAll(ProviderError.failed(reason ?? \"Claude exited.\")) with the same order and error.",
+        "Minor lifetime difference: B2 Pi's timer task captured PiSession strongly for 30 s; the B3 timer captures only the PendingReplies instance. Not user-observable.",
+        "No spec record cites this new file; the observable changes above surface through records that cite ClaudeSession.swift and PiSession.swift, which belong to those files' bundles."
+      ],
+      "unresolved_questions": [
+        "Whether any B3 call path actually cancels the task awaiting ClaudeSession.control or PiSession.request (for example a start task cancelled during initialize or get_state) is a question for the ClaudeSession/PiSession/caller bundles; this file only makes cancellation possible."
+      ]
+    }
+  ]
+}

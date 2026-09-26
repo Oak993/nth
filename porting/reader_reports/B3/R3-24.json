@@ -1,0 +1,114 @@
+{
+  "bundle_id": "R3-24",
+  "reader": "R3-24-reader",
+  "files": [
+    {
+      "path": "DroppyCode/Services/Providers/PiSession.swift",
+      "sha256": "d7fd06b2f471dd488dc4809c9b6329f988153fc48d3cb1f5e56e8ed794d4f938",
+      "ranges_read": [[1, 320], [321, 610]],
+      "asset_inspection": null,
+      "purpose": "PiSession is the ProviderSession that drives the Pi coding harness as one long-lived `pi --mode rpc` child per thread, speaking LF-delimited JSONL over stdin/stdout: it launches pi with `--mode rpc -e <extension> --approve|--no-approve [--provider/--model] [--thinking] [--session <file>]`, performs the get_state then get_commands handshake, sends prompt/set_model/set_thinking_level/abort/compact lines, and turns message_start/message_update/message_end/tool_execution_*/agent_end/compaction_*/auto_retry_start/extension_error/extension_ui_request lines into ProviderEvents. It also owns Droppy's own approval gate for Pi: it writes a per-session JSON gate file (runtimeMode, interactionMode, finalReport, systemPrompt \"\") that the installed pi extension reads before each tool call, answers the extension's `droppy-gate ` select requests with \"Allow\" / \"Allow for session\" / \"Deny\" (remembering session grants by kind), and maps confirm/input/editor/select/notify extension UI requests to questions and notices. At B3 its stream-id bookkeeping, write snapshots, request continuations, tool-text extraction and grant keys are delegated to shared helpers (StreamedTextTracker, EditSnapshots, PendingReplies, ToolText, ApprovalRequest.Kind.grantKey) and its close path now releases every pending request with JSON null.",
+      "key_symbols": [
+        "@MainActor final class PiSession: ProviderSession",
+        "var onEvent: ((ProviderEvent) -> Void)?",
+        "private let launchID: String (assigned in init at :61-62 from String(UUID().uuidString.prefix(8)))",
+        "private var stream: StreamedTextTracker (init :63-66, messageID { \"\\(launchID)-m-\\($0)\" }, thinkingID { \"\\(launchID)-t-\\($0)\" })",
+        "private var editSnapshots = EditSnapshots()",
+        "private var pendingResponses = PendingReplies<JSONValue>()",
+        "private var sessionGrants: Set<String>",
+        "private var pendingApprovals: [String: ApprovalRequest]",
+        "private var pendingQuestions: [String: String]",
+        "init(configuration: SessionConfiguration)",
+        "var isRunning: Bool",
+        "func start() async throws -> String",
+        "func send(_ input: TurnInput) async throws",
+        "func interrupt() async",
+        "func compact() async throws",
+        "func stop()",
+        "func stopAgent(_ id: String) async -> Bool",
+        "func resolveApproval(_ requestID: String, optionID: String)",
+        "func answerQuestion(_ requestID: String, answers: [String: [String]])",
+        "private func request(_ fields: [String: JSONValue]) async -> JSONValue",
+        "private func writeGate(finalReport: Bool)",
+        "private func handle(_ message: JSONValue)",
+        "private func handleUpdate(_ message: JSONValue)",
+        "private func handleMessageEnd(_ message: JSONValue)",
+        "private func handleToolStart(_ message: JSONValue)",
+        "private func handleToolEnd(_ message: JSONValue)",
+        "private func editDiff(name: String, args: JSONValue, id: String) -> [FileEdit]?",
+        "private static func unifiedDiff(path: String, old: String, new: String) -> FileEdit",
+        "private func finishTurn()",
+        "private func handleExtensionUI(_ message: JSONValue)",
+        "private func handleSelect(id: String, params: JSONValue)",
+        "private func didClose(status: Int32)"
+      ],
+      "calls_into": [
+        "StdioProcess(executable:arguments:directory:environment:framing: .lines), .start(), .messages, .send(_:), .waitForExit(), .terminate(), .isRunning, .errorTail (Core/Support/StdioProcess.swift)",
+        "PiCLI.installExtension(), PiCLI.supportDirectory, PiCLI.thinkingLevels (Services/Providers/PiCLI.swift)",
+        "MCPBridge.installBridge(), MCPPaths.claudeConfigURL (Services/MCP)",
+        "PendingReplies<JSONValue>.register(_:timeout:timeoutValue:send:), .resolve(_:_:), .resolveAll(_:) (Core/Support/PendingReplies.swift, new at B3)",
+        "StreamedTextTracker.startMessage(), .resetThinking(), .appendMessage(_:), .appendThinking(_:) (default resetsText: true), .endThinking(), .endMessage(), .messageText, .thinkingText, .currentMessageID, .currentThinkingID (Services/Providers/SessionSupport.swift:45-124, new at B3)",
+        "EditSnapshots.capture(_:path:), .text(_:), .discard(_:), .removeAll() (Services/Providers/SessionSupport.swift:4-41, new at B3)",
+        "ToolText.blocks(_:) (Services/Providers/ProviderSession.swift:211-220, new at B3)",
+        "ApprovalRequest.Kind.grantKey (Services/Providers/ProviderSession.swift:221-230, new at B3)",
+        "ToolTitles.unwrapShell, ToolTitles.relativePath, ToolTitles.diffStats",
+        "TextCleanup.lastLines",
+        "JSONValue.parse, .prettyString, .compactString, .data()",
+        "FileManager.default.fileExists / createDirectory / removeItem; Data(contentsOf:) for image attachments"
+      ],
+      "state_owned": [
+        "process: StdioProcess?, readTask: Task<Void, Never>?",
+        "sessionID (the pi session file path, seeded from configuration.resumeID when non-empty)",
+        "started, stopped, turnActive, interruptRequested",
+        "runtimeMode, interactionMode, model, effort",
+        "launchID and stream: StreamedTextTracker (message/thinking counters, current ids, accumulated text)",
+        "contextWindow: Int?",
+        "gateURL: URL?",
+        "pendingApprovals, pendingQuestions, sessionGrants",
+        "toolNames, toolInputs, editSnapshots: EditSnapshots",
+        "turnError, lastReplyText, turnCounter",
+        "pendingResponses: PendingReplies<JSONValue>, requestCounter"
+      ],
+      "side_effects": [
+        "Installs the pi extension via PiCLI.installExtension() and creates <PiCLI.supportDirectory>/gates/",
+        "Writes <gates>/<UUID>.json atomically at start and before every turn; deletes it in stop()",
+        "Spawns `pi` with --mode rpc and environment DROPPY_CODE_PI_GATE, PI_SKIP_VERSION_CHECK=1, optionally DROPPY_CODE_MCP_BRIDGE and DROPPY_CODE_MCP_CONFIG",
+        "Writes JSONL request lines to pi stdin: get_state, get_commands (ids droppy-<n>), set_model, set_thinking_level, prompt (with base64 images), abort, compact, extension_ui_response",
+        "Reads a file (up to 1,000,000 bytes, UTF-8) before a `write` tool runs, via EditSnapshots.capture",
+        "Reads image attachments from disk for the prompt",
+        "Emits ProviderEvents: sessionReady, commands, turnStarted, messageDelta, reasoningDelta, reasoningCompleted, messageCompleted, usage, toolStarted, toolOutput, toolUpdated, planCompleted, turnCompleted, notice, question, approval, requestResolved, exited",
+        "B3: on process close, resolves every pending request continuation with JSON null (didClose :594)"
+      ],
+      "platform_assumptions": [
+        "Session resume id is a filesystem path checked with FileManager.default.fileExists (header comment names ~/.pi/agent)",
+        "unifiedDiff's `path.hasPrefix(\"/\") ? path : path` no-op ternary and a POSIX-looking `--- a/` / `+++ b/` header with the absolute path",
+        "Gate file path passed through the environment as gateURL.path; extension path passed with -e extensionURL.path",
+        "Swift structured-concurrency cancellation now reaches request(_:) through PendingReplies.register (Task.checkCancellation and withTaskCancellationHandler)"
+      ],
+      "persisted_fields": [
+        "The pi session file path (get_state data.sessionFile, else data.sessionId) is returned from start() and emitted in .sessionReady as the thread's resume id",
+        "Gate file JSON keys (transient, per session): runtimeMode, interactionMode, finalReport, systemPrompt (always \"\")"
+      ],
+      "ui_elements": [
+        "Approval options: \"Approve\" (id allow, .approve), \"Approve for session\" (id always, .approveAlways), \"Decline\" (id deny, .decline) at :584-586",
+        "Question header \"Pi\"; confirm choices \"Yes\" / \"No\" (:504, :506); input/editor questions allowsOther true (:517-521); plain select questions (:547)",
+        "Notices: \"Compacting the conversation…\" (info), \"Conversation compacted\" (info), \"Pi is retrying.\" (warning fallback), \"Pi reported an extension error.\" (error fallback), \"Pi sent a notification.\" (notify fallback)",
+        "Exit text: \"Pi exited with status <status>\" plus a newline and the stderr tail (:607)",
+        "Error strings: \"Pi no longer has this conversation; starting a new one.\", \"Pi could not start: <error>\", \"Pi is still on the last turn.\", \"Pi reported an error.\""
+      ],
+      "feature_notes": [
+        "B2->B3 churn 106 lines (654 -> 610 lines), all from upstream commit d70cff8fe 'refactor: audit cleanups — five bug fixes, shared MCP and provider code, layer rules restored'.",
+        "Refactor, no observable change: the seven stream fields (launchID initializer, messageCounter, thinkingCounter, currentMessageID, currentThinkingID, messageText, thinkingText) are replaced by `launchID: String` assigned in init plus `stream: StreamedTextTracker`. Checked against SessionSupport.swift: startMessage()+resetThinking() equals B2's message_start (counter+1, new id, messageText \"\", thinkingText \"\", currentThinkingID nil); appendMessage keeps the buffer when minting a lazy id, as B2 did; appendThinking with default resetsText true empties thinkingText when minting, as B2 did; endThinking/endMessage only nil the ids, as B2 did. Id shapes stay \"<launchID>-m-<n>\" and \"<launchID>-t-<n>\".",
+        "Refactor, no observable change: editSnapshots is now EditSnapshots; capture(id, path:) stores read(path) ?? \"\" with the same fileSize <= 1_000_000 and UTF-8 rule as B2's removed snapshot(_:); editDiff's write branch uses text(id) then discard(id), equal to B2's removeValue(forKey:) ?? \"\".",
+        "Refactor, no observable change: B2's private static text(in:) is replaced by ToolText.blocks (ProviderSession.swift:213-218), same null/string/array handling and \"\\n\" join; B2's private static grantKey(_:) is replaced by ApprovalRequest.Kind.grantKey (ProviderSession.swift:223-229) with the identical mapping command->\"command\", fileChange->\"fileChange\", tool/permissions/plan->\"tool\".",
+        "Behaviour change: request(_:) now uses PendingReplies.register(id, timeout: .seconds(30), timeoutValue: .null) and returns `value ?? .null`. The 30 second JSON-null timeout and the droppy-<n> numbering are unchanged, but register first calls Task.checkCancellation() (a cancelled caller gets .null WITHOUT the request line being written, while requestCounter has already advanced) and installs a cancellation handler (a caller cancelled while waiting resumes at once with .null). B2's withCheckedContinuation ignored cancellation, so the 30 second timer was the only bound.",
+        "Behaviour change (bug fix): didClose(status:) now begins with pendingResponses.resolveAll(.null) (:594), before the stderr tail is taken. A get_state/get_commands (or post-set_model get_state) still pending when pi exits now resolves immediately with JSON null instead of waiting out the 30 second timer; e.g. a pi that dies during the handshake now lets start() finish (empty id, .sessionReady) right after .exited instead of 30 seconds later.",
+        "The response case at :288-294 is rewritten as `if !pendingResponses.resolve(id, message), command == \"prompt\", success == false` - same semantics as B2's removeValue/else-if (resolve returns false only when no continuation was waiting).",
+        "Line shifts: B2 1-37 unchanged; B2 45-61 -> B3 40-56 (-5); B2 66-264 -> B3 67-265 (+1); B2 276-289 -> B3 270-283 (-6); B2 298-316 region -> B3 284-298 (-14..-18); B2 317-349 -> B3 299-331 (-18); B2 369-493 -> B3 340-465 (-29, -28 after :451); B2 513-638 -> B3 468-593 (-45); B2 639-654 -> B3 595-610 (-44). grantKey (B2 :290-296), snapshot (B2 :496-500) and text(in:) (B2 :502-511) are gone from this file."
+      ],
+      "unresolved_questions": [
+        "UNRESOLVED: whether any B3 caller ever cancels the Task running PiSession.start() or send() (ThreadRuntime.swift :1514, :1522, :1583, :1599 call `try await candidate.start()`); if none does, the new cancellation path in request(_:) is unreachable in practice and only the didClose resolveAll change is observable."
+      ]
+    }
+  ]
+}

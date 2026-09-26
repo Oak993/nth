@@ -9,8 +9,11 @@ using Marrow.Services.Tests.Fixtures;
 namespace Marrow.Services.Tests.MCP;
 
 // Tests for src/Marrow.Services/MCP/MCPProviderConfig.cs, the port of DroppyCode/Services/MCP/MCPProviderConfig.swift
-// (B2 1fbf81e), :1-253. Every expectation is transcribed from that file and records PR-MCP-165 to PR-MCP-172, never
+// (B3 52bc792), :1-245. Every expectation is transcribed from that file and records PR-MCP-165 to PR-MCP-172, never
 // from the C# implementation.
+//
+// B3 delta (lane A17, R3-46): connectedIDs (B2 lines 230-236) is deleted, having had no caller; see the note above
+// MCPProviderConfigTests's closing brace for the retired tests.
 //
 // Swift's [String: JSONValue] iteration order is unspecified (R-COLL-2), so a multi-key JSON.Object's own keys are
 // asserted by membership (AssertKeys / the JSONValue indexer), never by comparing a serialized string whose byte
@@ -19,7 +22,7 @@ namespace Marrow.Services.Tests.MCP;
 //
 // ED-177 RESUME: Services.Store.Storage merged (Storage.cs) and Marrow.Services.Models.MCPPaths now builds its
 // locations from Storage.Root, so the file-touching members (WriteAll, AcpServers, CodexOverrides,
-// ClaudeConfigPath/CopilotConfigJSON/GeminiSettingsPath/ConnectedIDs, private ServersPresent) are tested below
+// ClaudeConfigPath/CopilotConfigJSON/GeminiSettingsPath, private ServersPresent) are tested below
 // using StorageScratchFolder (R-TEST-9), never the real %LOCALAPPDATA%\Marrow Code.
 public sealed class MCPProviderConfigTests
 {
@@ -596,20 +599,8 @@ public sealed class MCPProviderConfigTests
         Assert.DoesNotContain("\n", json, StringComparison.Ordinal); // :222 compactString, not pretty-printed
     }
 
-    [Fact]
-    [Trait("Req", "PR-MCP-172")] // :230-236, connectedIDs returns empty when the file is missing
-    public void ConnectedIDs_returns_empty_when_claude_config_missing()
-    {
-        using var storage = new StorageScratchFolder();
-        Assert.Empty(MCPProviderConfig.ConnectedIDs());
-    }
-
-    [Fact]
-    [Trait("Req", "PR-MCP-172")] // :235, connectedIDs returns sorted keys of mcpServers
-    public void ConnectedIDs_returns_sorted_keys_of_mcpServers()
-    {
-        using var storage = new StorageScratchFolder();
-        MCPProviderConfig.WriteAll(new[] { Remote("zebra"), Remote("alpha") });
-        Assert.Equal(new[] { "alpha", "zebra" }, MCPProviderConfig.ConnectedIDs());
-    }
+    // B3 (lane A17, R3-46): connectedIDs (B2 MCPProviderConfig.swift:230-236) is deleted, having had no caller
+    // (its only reader, AntigravitySession.swift:83-84, was itself deleted at B2 - see PR-MCP-175). PR-MCP-172
+    // is reclassified accordingly ("There is no fourth accessor: nothing lists the connected server ids."), so
+    // MCPProviderConfig.ConnectedIDs and its two tests (formerly here, :601-613) go with it.
 }

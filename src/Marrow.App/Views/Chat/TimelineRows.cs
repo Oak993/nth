@@ -10,7 +10,9 @@ using Marrow.UI.Chrome;
 using Marrow.UI.Common;
 using Marrow.UI.Port;
 
-// Source: DroppyCode/App/Views/Chat/TimelineRows.swift (B2 1fbf81e), :1-2859.
+// Source: DroppyCode/App/Views/Chat/TimelineRows.swift (B3 52bc7926), :1-2859. Unchanged since B2 1fbf81e for the
+// members this file touches (ToolPresentation.Label/Verb/Symbol/McpParts, :2189-2233,2242-2250): confirmed via
+// `git diff 1fbf81e61e28a079508a074c01ee1830a9cc23dc HEAD -- DroppyCode/App/Views/Chat/TimelineRows.swift` (empty).
 // SKELETON (cycle c100, group 3). Every member with behaviour throws MARROW_STUB until its unit ports it.
 // Forms (ED-095): a SwiftUI View is a Decorator whose constructor builds `body`; a ViewModifier is a sealed record with
 // `Control Body(Control content)`; a Shape is a record whose Path(in:) returns an Avalonia Geometry; NSView is Control;
@@ -669,24 +671,91 @@ public static class DiffDetailCache
 public static class ToolPresentation
 {
     // :2189-2206 static func label(for:) -> String
-    public static string Label(ToolCall @for) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:2189");
+    // Ported ahead of the rest of this skeleton, for HydraProgressBar's EventsIn (self-contained: only
+    // ToolCall.Kind/Status and SwiftString). Root-word roots per :2192-2200; the two-part join per :2201-2205.
+    public static string Label(ToolCall @for)
+    {
+        var roots = Roots(@for.ToolCallKind); // :2192-2200
+        var subject = @for.Title; // :2201
+        var words = SwiftString.Split(@for.Title, " ", maxSplits: 1); // :2202
+        if (words.Count > 0 && roots.Contains(SwiftString.Lowercased(words[0]))) // :2203
+            subject = words.Count > 1 ? words[1] : ""; // :2204
+        var parts = new List<string>();
+        var verb = Verb(@for);
+        if (verb.Length > 0) parts.Add(verb);
+        if (subject.Length > 0) parts.Add(subject);
+        return string.Join(" ", parts); // :2205
+    }
+
+    // :2192-2200, the switch inside label(for:) that builds `roots`.
+    private static IReadOnlyList<string> Roots(ToolCall.Kind kind) => kind switch
+    {
+        ToolCall.Kind.Command => new[] { "run", "bash", "shell", "exec", "execute", "command" },
+        ToolCall.Kind.Read => new[] { "read", "view", "open", "cat" },
+        ToolCall.Kind.Edit => new[] { "edit", "write", "multiedit", "create", "notebookedit", "apply_patch", "patch" },
+        ToolCall.Kind.Search => new[] { "search", "grep", "glob", "find" },
+        ToolCall.Kind.Web => new[] { "fetch", "webfetch", "websearch", "browse" },
+        ToolCall.Kind.Mcp => new[] { "call" },
+        ToolCall.Kind.Agent => new[] { "delegate", "agent", "task" },
+        ToolCall.Kind.Other => new[] { "use" },
+        _ => throw new InvalidOperationException(),
+    };
 
     // :2208-2220 static func verb(for:) -> String
-    public static string Verb(ToolCall @for) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:2208");
+    // Ported alongside label(for:), which calls it; self-contained (ToolCall.Kind/Status only).
+    public static string Verb(ToolCall @for)
+    {
+        var running = @for.ToolCallStatus == ToolCall.Status.Running; // :2209
+        return @for.ToolCallKind switch // :2210-2219
+        {
+            ToolCall.Kind.Command => running ? "Running" : "Ran",
+            ToolCall.Kind.Read => running ? "Reading" : "Read",
+            ToolCall.Kind.Edit => running ? "Editing" : "Edited",
+            ToolCall.Kind.Search => running ? "Searching" : "Searched",
+            ToolCall.Kind.Web => running ? "Browsing" : "Browsed",
+            ToolCall.Kind.Mcp => running ? "Calling" : "Called",
+            ToolCall.Kind.Agent => running ? "Delegating" : "Delegated",
+            ToolCall.Kind.Other => running ? "Using" : "Used",
+            _ => throw new InvalidOperationException(),
+        };
+    }
 
     // :2222-2233 static func symbol(for:) -> String
-    public static string Symbol(ToolCall.Kind @for) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:2222");
+    // Ported ahead of the rest of this skeleton, for HydraProgressBar's EventsIn (self-contained: only
+    // ToolCall.Kind).
+    public static string Symbol(ToolCall.Kind @for) => @for switch
+    {
+        ToolCall.Kind.Command => "terminal",
+        ToolCall.Kind.Read => "doc.text",
+        ToolCall.Kind.Edit => "pencil",
+        ToolCall.Kind.Search => "magnifyingglass",
+        ToolCall.Kind.Web => "globe",
+        ToolCall.Kind.Mcp => "puzzlepiece.extension",
+        ToolCall.Kind.Agent => "person.2",
+        ToolCall.Kind.Other => "wrench.and.screwdriver",
+        _ => throw new InvalidOperationException(),
+    };
 
     // :2235-2240 static func stats(for:) -> (additions: Int, deletions: Int)?
     public static (int Additions, int Deletions)? Stats(ToolCall @for) =>
         throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:2235");
 
     // :2242-2250 static func mcpParts(_:) -> (entry: MCPCatalogEntry, tool: String)?
-    public static (MCPCatalogEntry Entry, string Tool)? McpParts(ToolCall call) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:2242");
+    // Ported ahead of the rest of this skeleton, for HydraProgressBar's EventsIn (self-contained: ToolCall.Title
+    // plus MCPCatalog.EntryMatching, already ported). " · " is Swift's " · " separator (U+00B7 MIDDLE DOT),
+    // per HydraProgressBar.cs:305's own precedent for the same character.
+    public static (MCPCatalogEntry Entry, string Tool)? McpParts(ToolCall call)
+    {
+        if (call.ToolCallKind != ToolCall.Kind.Mcp) return null; // :2243
+        var separator = call.Title.IndexOf(" \U000000B7 ", StringComparison.Ordinal); // :2244, U+00B7 MIDDLE DOT
+        if (separator < 0) return null;
+        var server = call.Title[..separator].Trimmed(); // :2245
+        var tool = call.Title[(separator + 3)..].Trimmed(); // :2246, " · " is 3 UTF-16 units
+        if (server.Length == 0 || tool.Length == 0) return null; // :2247
+        var entry = MCPCatalog.EntryMatching(server); // :2248
+        if (entry is null) return null;
+        return (entry, tool); // :2249
+    }
 
     // :2252-2254 static func mcpLabel(entry:tool:running:) -> String
     public static string McpLabel(MCPCatalogEntry entry, string tool, bool running) =>

@@ -1,0 +1,51 @@
+{
+  "bundle_id": "R3-14",
+  "reader": "R3-14-reader",
+  "files": [
+    {
+      "path": "DroppyCode/Core/Support/StoragePaths.swift",
+      "sha256": "1c1cf209b9d575544eaabde88bf70468b679b76d32ceeda3f0920b10f7a13321",
+      "ranges_read": [[1, 23]],
+      "asset_inspection": null,
+      "purpose": "New at B3 (added by upstream commit d70cff8fe 'refactor: audit cleanups ... layer rules restored'): a Core-level enum StoragePaths that now owns the app's store root, the wallpaper folder and the create-on-first-use sub-folder helper, which at B2 lived inside Services/Store/Storage.swift. The doc comment (:3) states the reason: these locations are needed by views too, and UI cannot reach the Services type Storage, so the root (:5-12), the wallpaper directory (:14-15) and directory(_:) (:17-22) are lifted into Core; Storage.root now forwards to StoragePaths.root (Storage.swift:19) and Storage's private directory(_:) forwards to StoragePaths.directory(_:) (Storage.swift:45-47), while UI/Theme/Wallpaper.swift reads StoragePaths.wallpaperDirectory (:89, :128, :130) instead of the removed Storage.wallpaperDirectory.",
+      "key_symbols": [
+        "enum StoragePaths (:4)",
+        "nonisolated static let root: URL (:6-12) - lazily initialised closure: 'if let captures = CaptureRun.storageRoot { return captures }' (:7); else FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0] (:8) + appendingPathComponent(AppInfo.name, isDirectory: true) (:9), 'try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)' (:10), return url (:11)",
+        "nonisolated static let wallpaperDirectory: URL = directory(\"wallpaper\") (:15), doc comment 'The user's window wallpaper, one file at a time.' (:14)",
+        "nonisolated static func directory(_ name: String) -> URL (:18-22) - root.appendingPathComponent(name, isDirectory: true), try? createDirectory(withIntermediateDirectories: true), return url; doc comment 'A folder under the root, created on first use.' (:17)"
+      ],
+      "calls_into": [
+        "CaptureRun.storageRoot (DroppyCode/Core/Support/CaptureRun.swift:30, nonisolated static var URL?)",
+        "AppInfo.name (DroppyCode/Core/Support/Text.swift:4, CFBundleDisplayName falling back to \"Droppy Code\")",
+        "FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)",
+        "FileManager.default.createDirectory(at:withIntermediateDirectories:)",
+        "URL.appendingPathComponent(_:isDirectory:)"
+      ],
+      "state_owned": [
+        "StoragePaths.root: process-lifetime cached URL (Swift lazy static let, initialised once on first access)",
+        "StoragePaths.wallpaperDirectory: process-lifetime cached URL, created on first access"
+      ],
+      "side_effects": [
+        "First access of StoragePaths.root outside a capture run creates <Application Support>/<AppInfo.name> with intermediates; creation errors are swallowed by try? and the URL is still returned and cached (:10). In a capture run the capture storage URL is returned as is, with no directory created here (:7).",
+        "Each StoragePaths.directory(name) call appends name under root and creates it with intermediates, swallowing errors (:19-20); it is not itself cached, the callers (wallpaperDirectory :15, Storage.threadsDirectory, Storage.attachmentsDirectory via Storage.directory) cache the result in their own static lets.",
+        "First access of StoragePaths.wallpaperDirectory creates <root>/wallpaper (:15 via :18-22)."
+      ],
+      "platform_assumptions": [
+        "macOS user-domain Application Support directory, index [0] (:8); the port's OD-0008 C7 deviation replaces it with %LOCALAPPDATA%\\Marrow Code.",
+        "Folder name comes from the bundle's CFBundleDisplayName via AppInfo.name (:9).",
+        "Swift 6 concurrency: every member is marked nonisolated (:6, :15, :18) so it can be read from any isolation domain (the DiskWriter queue, detached wallpaper install task, main actor); the members of Storage at B2 carried no such annotation. No observable behaviour follows from the annotation itself."
+      ],
+      "persisted_fields": [],
+      "ui_elements": [],
+      "feature_notes": [
+        "SOURCE FACT: the file is new at B3 (git diff 1fbf81e6..HEAD: 23 insertions, 0 deletions). Its contents are a verbatim move of B2 Storage.swift:19-25 (root), :35-36 (wallpaperDirectory and its doc comment) and :54-58 (directory body), with 'nonisolated' added and directory(_:) widened from private to internal. The B3 Storage.swift now reads 'static let root: URL = StoragePaths.root' (:19) and 'private static func directory(_ name: String) -> URL { StoragePaths.directory(name) }' (:45-47), and has no wallpaperDirectory member any more.",
+        "SOURCE FACT: no observable behaviour changes: same path (capture-run storage, else Application Support/<AppInfo.name>), same create-with-intermediates-and-swallow semantics, same lazy once-per-process caching, same 'wallpaper' sub-folder. The only callers at B3 are Services/Store/Storage.swift:19 and :46 and UI/Theme/Wallpaper.swift:89, :128, :130 (grep of the whole B3 tree).",
+        "SOURCE FACT: the purpose is architectural (upstream commit subject 'layer rules restored'; doc comment :3 'they live in Core because UI can't reach Storage'). B2 Wallpaper.swift reached the Services type Storage from UI, which is why the port's ED-189 moved WallpaperStore to src/Marrow.App/Theme/Wallpaper.cs. At B3 that dependency is gone from the source, so ED-189's stated reason no longer holds.",
+        "Spec impact: no requirement or UI record cites StoragePaths.swift (grep of porting/spec/*.json: 0 hits). Records whose evidence quotes the moved code at its B2 location in Storage.swift (PR-STORE-001, PR-STORE-003, PR-STORE-004, PR-STORE-005, PR-LAUNCH-007, PR-LAUNCH-013, PR-LAUNCH-070, PR-STORE-104, PR-THEME-053) and records that name the symbol Storage.wallpaperDirectory in Wallpaper.swift evidence (PR-SETTINGS-103, PR-THEME-056, PR-THEME-060) need their citations moved to StoragePaths.swift lines; the behaviour they describe is unchanged."
+      ],
+      "unresolved_questions": [
+        "UNRESOLVED: whether the port should mirror the move by adding a Core unit (src/Marrow.Core/Support/StoragePaths.cs) and returning WallpaperStore to Marrow.UI per units.json, or keep the Services-side IStorageLocations seam and record the Core type as a forwarding shim; this is an orchestrator/owner planning decision (it touches ED-189 and the R-LIFE-2 seam in Storage.cs), not a source fact."
+      ]
+    }
+  ]
+}

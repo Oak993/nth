@@ -1,0 +1,185 @@
+{
+ "bundle_id": "R3-50",
+ "reader": "R3-50-reader",
+ "files": [
+  {
+   "path": "DroppyCode/Services/Store/Storage.swift",
+   "sha256": "766d2bffa792fbed41eea2f2083e322a15abd8dc78b275d53f7200e34d300eb4",
+   "ranges_read": [
+    [
+     1,
+     387
+    ]
+   ],
+   "asset_inspection": null,
+   "purpose": "Storage.swift is the Services-layer persistence hub. It names the on-disk layout: library.json, threads/<UUID>.json and attachments/ under the store root (now taken from Core's StoragePaths.root), plus worktrees/ and patches/ under the home state directory <home>/<AppInfo.stateDirectoryName>. It also loads the library, reads, decodes and deletes thread documents, and imports attachments: a file copy, HEIC/HEIF to JPEG at quality 0.88, a pasted image stored as 'Pasted image.png', at most 8 files a message. It sweeps orphaned attachment files older than 24 hours. The same file defines DocumentPrefetch, a Mutex-guarded background decoder with a 12-entry / 16 MiB RecentCache, a 24-request queue and an urgent front-of-queue path. It also defines DiskWriter: one serial 'droppycode.storage.write' queue that coalesces saves per URL, writes atomically through JSONEncoder.storage, logs 'Droppy Code could not save %@: %@' on failure and, new in B3, remembers the byte size of each file's last asynchronous write.",
+   "key_symbols": [
+    "private struct StoredContinuation: Decodable (nested Continuation { attachments: [Attachment]? })",
+    "enum Storage",
+    "static let root: URL = StoragePaths.root",
+    "static let libraryURL: URL = root.appendingPathComponent(\"library.json\")",
+    "static let threadsDirectory: URL = directory(\"threads\")",
+    "static let attachmentsDirectory: URL = directory(\"attachments\")",
+    "static let worktreesDirectory: URL = stateDirectory(\"worktrees\")",
+    "static let patchesDirectory: URL = stateDirectory(\"patches\")",
+    "private static func stateDirectory(_ name: String) -> URL",
+    "static func threadURL(_ id: UUID) -> URL",
+    "private static func directory(_ name: String) -> URL { StoragePaths.directory(name) }",
+    "static func loadLibrary() -> Library",
+    "nonisolated static func decodeDocument(_ id: UUID) -> ThreadDocument?",
+    "nonisolated static func readDocument(_ id: UUID) -> (document: ThreadDocument, cost: Int)?",
+    "static func deleteDocument(_ id: UUID)",
+    "static func deleteDocuments(_ ids: [UUID])",
+    "static func importAttachment(from source: URL) throws -> Attachment",
+    "static func importAttachment(data: Data, name: String, fileExtension: String) throws -> Attachment",
+    "nonisolated static func sweepOrphanedAttachments() async",
+    "static let attachmentLimit = 8",
+    "@MainActor @discardableResult static func attach(_ sources: [AttachmentSource], to attachments: Binding<[Attachment]>) -> Task<Void, Never>?",
+    "static func importSource(_ source: AttachmentSource) -> Attachment?",
+    "private static func transcode(_ source: CGImageSource, to type: UTType) -> Data?",
+    "enum AttachmentSource: Sendable { case file(URL); case image(Data, UTType) }",
+    "enum MimeType { static func of(_ fileExtension: String) -> String }",
+    "final class DocumentPrefetch: Sendable (shared, Request, State, warm(_:urgent:), next(), take(_:), forget(_:))",
+    "final class DiskWriter: Sendable (shared, queue, pending, sizes)",
+    "func lastWrittenSize(of url: URL) -> Int?",
+    "func encodeAndWrite<Value: Encodable & Sendable>(_ value: Value, to url: URL)",
+    "func writeSynchronously<Value: Encodable & Sendable>(_ value: Value, to url: URL)",
+    "func removeSynchronously(_ url: URL) / removeSynchronously(_ urls: [URL])",
+    "func waitForQueuedWrites()",
+    "@discardableResult private static func write(_ value: any Encodable, to url: URL) -> Int?"
+   ],
+   "calls_into": [
+    "StoragePaths.root and StoragePaths.directory(_:) (DroppyCode/Core/Support/StoragePaths.swift:6-12, :18-22; new at B3)",
+    "LoginEnvironment.homeDirectory and AppInfo.stateDirectoryName (stateDirectory, :35-36)",
+    "JSONDecoder.storage / JSONEncoder.storage (Coding.swift)",
+    "ThreadDocument, TimelineItem.isEmptyReasoning and cleanedOfEmDashes (readDocument :68)",
+    "Attachment (url, init(id:name:path:mimeType:))",
+    "RecentCache (DocumentPrefetch.State.ready)",
+    "Mutex (Synchronization) and DispatchQueue",
+    "ImageIO: CGImageSourceCreateWithURL / WithData, CGImageSourceCopyPropertiesAtIndex, CGImageSourceCreateThumbnailAtIndex, CGImageDestinationCreateWithData / AddImage / Finalize",
+    "FileManager (copyItem, createDirectory, contentsOfDirectory, removeItem, fileExists), URL.resourceValues(.contentModificationDateKey)",
+    "Swift Regex literals for attachment names: attachments\\\\?\\/([0-9A-Fa-f-]{36}\\.[A-Za-z0-9]+) and [0-9A-Fa-f-]{36}\\.[A-Za-z0-9]+",
+    "NSLog"
+   ],
+   "state_owned": [
+    "Storage's cached static URLs: root, libraryURL, threadsDirectory, attachmentsDirectory, worktreesDirectory, patchesDirectory",
+    "DocumentPrefetch.state: Mutex<State> with ready RecentCache<UUID, ThreadDocument> (limit 12, cost 16 MiB), pending [UUID: UUID] tokens, queue [Request], worker Task; pendingLimit 24",
+    "DiskWriter.pending: Mutex<[URL: any Encodable & Sendable]>, the newest unsaved snapshot per file",
+    "DiskWriter.sizes: Mutex<[URL: Int]>, the byte count of the last successful encodeAndWrite per file (new at B3)"
+   ],
+   "side_effects": [
+    "Creates <store root>/threads and <store root>/attachments (through StoragePaths.directory) and <home>/<stateDirectoryName>/worktrees and /patches on first access",
+    "Atomic JSON writes of library and thread files on the serial writer queue; NSLog 'Droppy Code could not save %@: %@' when the file write throws",
+    "Deletes thread files synchronously on the writer queue (deleteDocuments)",
+    "Copies or writes attachment files as <UUID>.<ext>, transcodes HEIC/HEIF to JPEG and pasted non-PNG images to PNG",
+    "Removes attachments past the 8-file limit after an async import lands",
+    "The sweep deletes attachment files named <36 hex/dash chars>.<alnum ext> that no thread file references and that were modified more than 24 hours ago"
+   ],
+   "platform_assumptions": [
+    "The store root is Application Support/<AppInfo.name> (or the capture run's root), now resolved in Core StoragePaths",
+    "The home state directory comes from LoginEnvironment.homeDirectory",
+    "ImageIO/UTType does the HEIC decode and the JPEG/PNG encode (kCGImageSourceCreateThumbnailWithTransform applies orientation)",
+    "Atomic replace through Data.write(options: .atomic); GCD serial queue; os NSLog",
+    "Foundation JSONEncoder escapes '/' as '\\/', which the sweep regex tolerates with an optional backslash"
+   ],
+   "persisted_fields": [
+    "<root>/library.json (Library)",
+    "<root>/threads/<UUID uppercase>.json (ThreadDocument)",
+    "<root>/attachments/<UUID>.<ext> (attachment bytes)",
+    "<home>/<stateDirectoryName>/worktrees and /patches directories",
+    "DiskWriter.sizes is in memory only; nothing new is persisted at B3"
+   ],
+   "ui_elements": [],
+   "feature_notes": [
+    "B2->B3: 'static let root' no longer builds the path itself. B2 :19-25 checked CaptureRun.storageRoot, then Application Support/<AppInfo.name>, then createDirectory. B3 :19 is 'static let root: URL = StoragePaths.root', and that exact logic now lives in DroppyCode/Core/Support/StoragePaths.swift:6-12 as a nonisolated static let. Resolution, caching and directory creation are unchanged; only the file that holds them moved.",
+    "B2->B3: 'private static func directory(_:)' (B2 :54-58: root/name plus createDirectory) is now 'StoragePaths.directory(name)' (B3 :45-47, StoragePaths.swift:18-22). The folders created are the same.",
+    "B2->B3: 'static let wallpaperDirectory: URL = directory(\"wallpaper\")' (B2 :35-36) was removed from Storage and is now 'StoragePaths.wallpaperDirectory' (StoragePaths.swift:14-15). Wallpaper.swift :89, :128 and :130 switched from Storage.wallpaperDirectory to StoragePaths.wallpaperDirectory. The StoragePaths doc comment says this is because UI cannot reach Storage (layering). The path <root>/wallpaper and create-on-first-use are unchanged.",
+    "B2->B3 NEW behaviour: DiskWriter keeps 'private let sizes = Mutex<[URL: Int]>([:])' (:333-334) and exposes 'func lastWrittenSize(of url: URL) -> Int?' (:336-338). write(_:to:) is now '@discardableResult ... -> Int?': it returns data.count after a successful atomic write (:381) and nil on an encode failure (:378) or a write failure (:384). Only the encodeAndWrite hop records it: 'if let size = Self.write(value, to: url) { sizes.withLock { $0[url] = size } }' (:349). writeSynchronously (:353-356) discards the result, and removeSynchronously never clears an entry. The doc comment says a caller can space its saves by it. Its B3 caller is ThreadRuntime.swift:3641, which spaces saves during a running turn at min(20, max(5, bytes / 250_000)) seconds.",
+    "Line shifts (B2 -> B3): 1-18 unchanged; 26-33 -> 20-27 (-6); 37-54 -> 28-45 (-9); 58-343 -> 47-332 (-11); 344-353 -> 339-348 (-5); 355-380 -> 350-375 (-5); write() 381-388 -> 376-386 (two 'return' lines inserted). Everything else in the file (sweep, attach, importSource, transcode, MimeType, DocumentPrefetch, delete paths, NSLog text) is textually unchanged.",
+    "The PR-STORE-045 open question still stands at B3: the only DocumentPrefetch.warm caller is AppModel.swift:453 'DocumentPrefetch.shared.warm(cold)' (it was :444 at B2), which uses the default urgent: false, so the urgent branch (:270-273, :278) still never runs."
+   ],
+   "unresolved_questions": [
+    "units.json (baseline 1fbf81e6) has no unit for the new DroppyCode/Core/Support/StoragePaths.swift. It is UNRESOLVED whether the port adds a Marrow.Core StoragePaths class and moves Root / WallpaperDirectory / Directory(name) out of Storage.cs and IStorageLocations, or keeps the B2 structure. Nothing observable depends on the choice, but the Storage.Locations test seam has to cover whichever class owns the root.",
+    "PR-STORE-043 cites 'DroppyCode/Services/Store/Storage.swift:30-32 (RecentCache.contains checks both generations)'. Storage.swift:30-32 was never RecentCache.contains; the text matches DroppyCode/Core/Support/RecentCache.swift:30-32, which B3 did not change. The citation should name RecentCache.swift."
+   ]
+  },
+  {
+   "path": "DroppyCode/Services/Store/TokenLedger.swift",
+   "sha256": "509961b0af6498e9a83fe330db2a1caceb3188926e2d93ee2564e60f305ad080",
+   "ranges_read": [
+    [
+     1,
+     350
+    ],
+    [
+     351,
+     698
+    ]
+   ],
+   "asset_inspection": null,
+   "purpose": "TokenLedger.swift owns the daily AI-token spend behind the Token activity heatmap in Settings, General. TokenSpendTracker turns cumulative provider counters into positive per-event deltas. The @MainActor @Observable TokenLedger singleton merges three sources: legacy v1 per-day totals, live spend saved to token-activity-live-v2.json 2 seconds after the first unsaved record, and a one-time detached scan of Codex rollouts under ~/.codex/sessions and ~/.codex/archived_sessions. The scan tails 131072 bytes of each rollout, subtracts the total inherited on resume by reading up to 8 MiB of the head, and caches per-file fingerprints in token-activity-codex-v3.json, migrating the v2 file and the old 'droppycode.tokenActivity.codexFiles' preference. It reconciles live Codex spend recorded by earlier processes per rollout identity, newest day first. The file also defines TokenActivityMode (Daily/Weekly/Cumulative) and TokenActivityGrid.build, the current-year grid of Sunday-first week columns with fixed English month ticks.",
+   "key_symbols": [
+    "struct TokenSpendTracker { spend(total:before:), seedBaseline(total:) }",
+    "@MainActor @Observable final class TokenLedger (shared, dailyTotals, legacyDaily, uncertainTokensThisYear)",
+    "nonisolated fileprivate static let legacyLiveDefaultsKey = \"droppycode.tokenActivity.liveDaily\"",
+    "private static let defaults: UserDefaults = CaptureRun.defaults ?? .standard",
+    "func record(spend:on:), func record(_ spend: TokenSpend, on:), func record(codexSpend:rolloutID:on:), private func record(spend:codexRollout:on:)",
+    "func flushLiveSpend()",
+    "func refreshIfNeeded() async",
+    "private func mergedTotals() -> [String: Int]",
+    "nonisolated static func dayKey(for date: Date) -> String",
+    "private struct CodexFileFingerprint: Sendable, Codable { mtime, size, tokens, day, identity; init?(dict:path:); static func rolloutIdentity(path:) }",
+    "private enum CodexFingerprintStore { legacyDefaultsKey \"droppycode.tokenActivity.codexFiles\", fileURL token-activity-codex-v3.json, load(), save(_:) }",
+    "private struct LiveSpendState: Codable, Sendable { daily, settledCodex, liveCodex, legacyDaily }",
+    "private enum LiveSpendStateStore { fileURL token-activity-live-v2.json, load(defaults:), save(_:) }",
+    "private enum TokenHistoryScanner { Result, tailBytes = 131_072, historyMonths = 12, scanCodexHistory(cached:liveCutoff:settledLive:), reconcile(_:settledLive:), codexDirectories, headBytes = 8 * 1_048_576, inheritedTotal(at:), tailContribution(at:), eventDate(from:) }",
+    "enum TokenActivityMode: String, Sendable, CaseIterable { daily, weekly, cumulative; title }",
+    "struct TokenActivityGrid { columns, values, maxValue, monthTicks, tomorrow; rows = 7; months = 12; monthNames; static func build(daily:mode:now:) }"
+   ],
+   "calls_into": [
+    "JSONValue.parse(_ data:), JSONValue subscript(key:), .int, .string (DroppyCode/Core/Support/JSONValue.swift:15-20, :68-90); new in the scanner at B3",
+    "ISO8601.date(from:) (Core/Support/ISO8601.swift)",
+    "Storage.root (now StoragePaths.root) for the token-activity-*.json files",
+    "CaptureRun.defaults, UserDefaults.standard",
+    "TokenSpend.totalTokens",
+    "FileManager enumerator, FileHandle (seekToEnd, seek, readToEnd, read(upToCount:)), JSONEncoder/JSONDecoder, KeyedDecodingContainer.value(_:default:)",
+    "Calendar.current / Calendar(identifier: .gregorian)"
+   ],
+   "state_owned": [
+    "TokenLedger.dailyTotals, legacyDaily, state (LiveSpendState), historyDaily, didStartLoad, liveSave Task, launchDate",
+    "LiveSpendState.daily / settledCodex / liveCodex / legacyDaily"
+   ],
+   "side_effects": [
+    "Writes <root>/token-activity-live-v2.json (2-second coalesced save, or immediately from flushLiveSpend)",
+    "Writes <root>/token-activity-codex-v3.json after each scan; deletes token-activity-codex.json whenever it exists; deletes token-activity-codex-v2.json after migrating it; removes the preference key droppycode.tokenActivity.codexFiles after migrating it",
+    "Reads the preference key droppycode.tokenActivity.liveDaily once (only when the v2 live file is absent or undecodable) and leaves it on disk",
+    "Reads Codex rollout files (the tail and up to 8 MiB of the head) off the main actor"
+   ],
+   "platform_assumptions": [
+    "Codex rollouts live under FileManager.default.homeDirectoryForCurrentUser/.codex/sessions and .codex/archived_sessions, named rollout-<timestamp>-<session uuid>.jsonl",
+    "The legacy per-day totals sit in the UserDefaults (preferences plist) suite; CaptureRun.defaults applies in capture runs",
+    "Day keys come from Calendar.current in the local time zone; the grid uses a Gregorian calendar with firstWeekday 1"
+   ],
+   "persisted_fields": [
+    "token-activity-live-v2.json: daily, settledCodex, liveCodex, legacyDaily (each [String: Int], decoded with defaults)",
+    "token-activity-codex-v3.json: [path: {mtime, size, tokens, day, identity}]",
+    "UserDefaults droppycode.tokenActivity.liveDaily (read only), droppycode.tokenActivity.codexFiles (read then removed)"
+   ],
+   "ui_elements": [
+    "TokenActivityMode titles \"Daily\", \"Weekly\", \"Cumulative\" (:586-592)",
+    "Month tick labels Jan..Dec (:616)"
+   ],
+   "feature_notes": [
+    "B2->B3 (:85): 'private static let legacyLiveDefaultsKey' became 'nonisolated fileprivate static let legacyLiveDefaultsKey', and LiveSpendStateStore.load (:367) now reads 'defaults.dictionary(forKey: TokenLedger.legacyLiveDefaultsKey)' instead of repeating the literal \"droppycode.tokenActivity.liveDaily\". The key string and the read are unchanged, so nothing observable changes. Neither line moved.",
+    "B2->B3 (inheritedTotal :521-527, tailContribution :556-563): token_count lines are parsed with 'JSONValue.parse(lineData)', 'event[\"payload\"]?[\"info\"]', 'info[\"total_token_usage\"]?[\"total_tokens\"]?.int', 'info[\"last_token_usage\"]?[\"total_tokens\"]?.int ?? 0' and 'event[\"timestamp\"]?.string'. B2 used 'JSONSerialization.jsonObject ... as? [String: Any]' with '(x as? NSNumber)?.intValue ?? x as? Int'. For the integer totals and string timestamps Codex writes, the results are the same.",
+    "Edge semantics that changed with the JSONValue switch (JSONValue.swift:26-45, :83-90): (a) a total_tokens or last_token_usage.total_tokens given as a JSON string such as \"123\" now parses through Int(String), where B2 rejected it; (b) a JSON boolean no longer converts (B2's 'as? NSNumber' turned true into 1), so a boolean total now skips the line and a boolean last counts as 0; (c) a finite non-integral number truncates toward zero as before; (d) a finite double outside Int's range now reaches Int(Double) and traps, where B2's NSNumber.intValue did not trap; (e) parse now allows fragments, but a non-object line still yields no payload and is skipped.",
+    "Line shifts (B2 -> B3): 1-521 unchanged (only :85 and :367 edited in place); 522-526 -> 522-524; 527 -> 525; 528-533 -> 526; 534-563 -> 527-556 (-7); 564-568 -> 557-559; 569-570 -> 560-561; 571 -> 562; 572-707 -> 563-698 (-9). So TokenActivityMode moves from 589-602 to 580-593 and TokenActivityGrid from 604-707 to 595-698."
+   ],
+   "unresolved_questions": [
+    "UNRESOLVED: nothing in the pinned source shows whether Codex ever writes total_tokens as a string, boolean, non-integral or out-of-range number. The B3 coercion differences affect only those shapes, and the Int(Double) trap case has no guard in the source.",
+    "PR-SETTINGS-137 and UI-SETTINGS-024 cite TokenLedger.swift:626-629 for monthNames. At B2 those lines were a blank line, the build(daily:mode:now:) signature and the first two calendar lines; monthNames was at B2 :623-625 (PR-USAGE-110 cites that correctly). At B3 it is :614-616.",
+    "Pre-existing, not a B2->B3 delta: the C# InheritedTotal (TokenLedger.cs:572-597) decodes the head lossily and splits the whole text. The Swift inheritedTotal (:502-533) parses raw line bytes and only examines lines that end in 0x0A, so a final unterminated line in the 8 MiB head is never parsed and invalid UTF-8 makes JSONSerialization fail. The port can therefore accept a line upstream skips. This is worth an adversarial check when the scanner is re-ported."
+   ]
+  }
+ ]
+}

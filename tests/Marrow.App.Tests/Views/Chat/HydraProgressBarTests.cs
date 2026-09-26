@@ -157,6 +157,142 @@ public sealed class HydraProgressBarTests(HeadlessSession headless)
         });
     }
 
+    [Fact]
+    [Trait("Req", "PR-HYDRA-182")] // App/Views/Chat/TimelineRows.swift:2242-2250
+    public void McpParts_extracts_the_server_and_tool_from_a_middle_dot_title()
+    {
+        var call = new ToolCall
+        {
+            ToolCallKind = ToolCall.Kind.Mcp,
+            Title = "github · list_issues",
+            StartedAt = DateTimeOffset.UnixEpoch,
+        };
+
+        var parts = ToolPresentation.McpParts(call);
+
+        Assert.NotNull(parts);
+        Assert.Equal("github", parts!.Value.Entry.Id);
+        Assert.Equal("GitHub", parts.Value.Entry.Name);
+        Assert.Equal("list_issues", parts.Value.Tool);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-HYDRA-182")] // App/Views/Chat/TimelineRows.swift:2242-2250
+    public void McpParts_returns_null_without_a_middle_dot_separator()
+    {
+        var call = new ToolCall
+        {
+            ToolCallKind = ToolCall.Kind.Mcp,
+            Title = "github list_issues",
+            StartedAt = DateTimeOffset.UnixEpoch,
+        };
+
+        Assert.Null(ToolPresentation.McpParts(call));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-HYDRA-182")] // App/Views/Chat/TimelineRows.swift:2242-2250
+    public void McpParts_returns_null_for_an_empty_server()
+    {
+        var call = new ToolCall
+        {
+            ToolCallKind = ToolCall.Kind.Mcp,
+            Title = " · list_issues",
+            StartedAt = DateTimeOffset.UnixEpoch,
+        };
+
+        Assert.Null(ToolPresentation.McpParts(call));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-HYDRA-182")] // App/Views/Chat/TimelineRows.swift:2242-2250
+    public void McpParts_returns_null_for_an_empty_tool()
+    {
+        var call = new ToolCall
+        {
+            ToolCallKind = ToolCall.Kind.Mcp,
+            Title = "github ·   ",
+            StartedAt = DateTimeOffset.UnixEpoch,
+        };
+
+        Assert.Null(ToolPresentation.McpParts(call));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-HYDRA-182")] // App/Views/Chat/TimelineRows.swift:2242-2250
+    public void McpParts_returns_null_for_a_non_mcp_kind()
+    {
+        var call = new ToolCall
+        {
+            ToolCallKind = ToolCall.Kind.Read,
+            Title = "github · list_issues",
+            StartedAt = DateTimeOffset.UnixEpoch,
+        };
+
+        Assert.Null(ToolPresentation.McpParts(call));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-HYDRA-182")] // App/Views/Chat/TimelineRows.swift:2189-2206
+    public void Label_strips_a_leading_root_word_that_only_restates_the_kind()
+    {
+        var call = new ToolCall
+        {
+            ToolCallKind = ToolCall.Kind.Edit,
+            Title = "Edit file",
+            ToolCallStatus = ToolCall.Status.Completed,
+            StartedAt = DateTimeOffset.UnixEpoch,
+        };
+
+        // Without the root-stripping branch this would read "Edited Edit file".
+        Assert.Equal("Edited file", ToolPresentation.Label(call));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-HYDRA-182")] // App/Views/Chat/TimelineRows.swift:2189-2206
+    public void Label_keeps_the_whole_title_when_it_does_not_start_with_a_root_word()
+    {
+        var call = new ToolCall
+        {
+            ToolCallKind = ToolCall.Kind.Edit,
+            Title = "Update config.json",
+            ToolCallStatus = ToolCall.Status.Completed,
+            StartedAt = DateTimeOffset.UnixEpoch,
+        };
+
+        Assert.Equal("Edited Update config.json", ToolPresentation.Label(call));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-HYDRA-182")] // App/Views/Chat/TimelineRows.swift:2208-2220
+    public void Verb_reflects_running_status_per_kind()
+    {
+        var running = new ToolCall
+        {
+            ToolCallKind = ToolCall.Kind.Command,
+            Title = "Run a command",
+            ToolCallStatus = ToolCall.Status.Running,
+            StartedAt = DateTimeOffset.UnixEpoch,
+        };
+        var completed = running with { ToolCallStatus = ToolCall.Status.Completed };
+
+        Assert.Equal("Running", ToolPresentation.Verb(running));
+        Assert.Equal("Ran", ToolPresentation.Verb(completed));
+    }
+
+    [Theory]
+    [Trait("Req", "PR-HYDRA-182")] // App/Views/Chat/TimelineRows.swift:2222-2233
+    [InlineData(ToolCall.Kind.Command, "terminal")]
+    [InlineData(ToolCall.Kind.Read, "doc.text")]
+    [InlineData(ToolCall.Kind.Edit, "pencil")]
+    [InlineData(ToolCall.Kind.Search, "magnifyingglass")]
+    [InlineData(ToolCall.Kind.Web, "globe")]
+    [InlineData(ToolCall.Kind.Mcp, "puzzlepiece.extension")]
+    [InlineData(ToolCall.Kind.Agent, "person.2")]
+    [InlineData(ToolCall.Kind.Other, "wrench.and.screwdriver")]
+    public void Symbol_returns_the_glyph_name_for_each_kind(ToolCall.Kind kind, string expected) =>
+        Assert.Equal(expected, ToolPresentation.Symbol(kind));
+
     private static IReadOnlyList<string> Texts(Control root) =>
         LogicalQuery.SelfAndDescendants<TextBlock>(root)
             .Select(textBlock => textBlock.Text ?? "")
@@ -190,22 +326,14 @@ public sealed class HydraProgressBarTests(HeadlessSession headless)
             .SetValue(instance, value);
 }
 
-// STOP App.Views.Chat.HydraProgressBar #1 (helper Claude, 2026-09-25)
-// Kind: missing dependency
-// Swift: DroppyCode/App/Views/Chat/HydraProgressBar.swift:43-46,266-275,279-309,312-337,347-353
-// Requirements: UI-HYDRA-027, UI-HYDRA-029 (partial: the tool-kind counts line itself is HydraProgressBar's own
-// code and is correct; only rendering it for a Tool timeline entry is blocked, below)
-// What is unclear or missing: Tool_events_produce_the_ordered_counts_line fails with
-// "MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:2242" from ToolPresentation.McpParts, called through
-// HydraProgressBar's own EventsIn -> StaveCache.Resolve -> Refresh chain for every Tool timeline entry.
-// App.Views.Chat.TimelineRows is an entire not-yet-started skeleton unit (every member throws MARROW_STUB); this
-// packet only owns HydraProgressBar.swift, not TimelineRows.swift.
-// Readings or options: (a) implement ToolPresentation.McpParts here, ahead of TimelineRows's own unit -> guesses at
-// behavior that file, not this one, specifies, and risks diverging from TimelineRows's eventual real port; (b)
-// leave the dependency unmet and the one test failing, documented here -> safe, visible, matches the
-// App.DroppyCodeApp #1 precedent for a cross-unit MARROW_STUB blocker.
-// Needed to proceed: App.Views.Chat.TimelineRows ported (owns ToolPresentation.McpParts and every other member this
-// file's skeleton currently stubs).
-// Done so far: HydraProgressBar.swift itself has 0 MARROW_STUB; SweepBudget, HydraWorkingTitle, HydraElapsedTime,
-// HydraHeadProgress and the reply-events-excluded path are implemented and green. Only the tool-events counts-line
-// test, which exercises a live Tool entry through TimelineRows's still-stubbed McpParts, is blocked.
+// RESOLVED App.Views.Chat.HydraProgressBar #1 (was: STOP #1, helper Claude, 2026-09-25; resolved B3, Claude Sonnet 5,
+// 2026-09-26)
+// Swift: DroppyCode/App/Views/Chat/TimelineRows.swift:2189-2233,2242-2250 (unchanged B2 1fbf81e -> B3 52bc7926).
+// ENGINEERING DECISION: Tool_events_produce_the_ordered_counts_line's blocker was
+// ToolPresentation.McpParts/Label/Verb/Symbol(ToolCall.Kind) in App.Views.Chat.TimelineRows, all still
+// MARROW_STUB. Of TimelineRows's skeleton, only these four are pure, self-contained functions of ToolCall's
+// already-ported Kind/Status/Title plus SwiftString and the already-ported MCPCatalog.EntryMatching, with no
+// dependency on any other still-stubbed TimelineRows member or type; every other member either builds a View or
+// depends on one that does. Ported just those four in TimelineRows.cs (:2189-2233 label/verb/symbol(for kind),
+// :2242-2250 mcpParts), each transcribed from the pinned Swift and cited by line, rather than guessed. The rest of
+// App.Views.Chat.TimelineRows remains an unread, unstarted skeleton; only its unit may port anything more of it.

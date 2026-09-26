@@ -1,0 +1,65 @@
+{
+ "bundle_id": "R3-15",
+ "reader": "R3-15-reader",
+ "files": [
+  {
+   "path": "DroppyCode/Core/Support/Text.swift",
+   "sha256": "8661aacafcb23fc5ed9bf534893617158fc9f4748f13883ac8d762b9395dc2b0",
+   "ranges_read": [
+    [
+     1,
+     225
+    ]
+   ],
+   "asset_inspection": null,
+   "purpose": "Core's grab-bag of text primitives that every layer depends on: AppInfo (display name, dev-build detection from bundle id iordv.droppycode.dev, the home state directory name .droppy-code / .droppy-code-dev, version and build read from the Info dictionary with fallbacks \"Droppy Code\", \"1.0.0\", \"1\"), TextCleanup (ANSI stripping, last-lines and single-line summaries, and the em-dash scrubber applied to all model prose), and the String helpers nilIfEmpty and trimmed. It also owns SimpleDiff, the generator of the unified-diff text and +/- counts stored on every provider-reported FileEdit through the FileEdit(path:old:new:) convenience initializer; at B3 SimpleDiff was rewritten from a single head/tail-trimmed hunk into an exact line diff (Swift stdlib difference(from:)) cut into multiple context-3 hunks with independent old/new start numbers, via a new private DiffOp enum.",
+   "key_symbols": [
+    "enum AppInfo { static let name, isDevelopment, stateDirectoryName, version, build } (:3-9)",
+    "enum TextCleanup (:11-75): static func stripANSI(_:) (:12-14), lastLines(_:count: = 4) -> String? (:17-24), singleLine(_:limit: = 120) (:26-31), withoutEmDashes(_:) (:41-44), private mayContainEmDash(_:) (:50-65), private isEmDash(_:) (:69-74)",
+    "enum SimpleDiff (:77-166): static let diffLimit = 200_000 (:81); NEW private static let contextLines = 3 (:84); static func unified(old:new:) -> FileEdit.Stats (:87-165)",
+    "NEW private enum DiffOp (:169-204): case context(text:old:new:), deletion(text:old:), addition(text:new:); var oldNumber: Int?, newNumber: Int?, isChange: Bool, line: String",
+    "extension FileEdit (:206-217): struct Stats { var diff: String?; var additions: Int; var deletions: Int }; init(path:old:new:)",
+    "extension String (:219-225): var nilIfEmpty: String? (:220); var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) } (:224)"
+   ],
+   "calls_into": [
+    "Foundation Bundle.main.object(forInfoDictionaryKey:) for CFBundleDisplayName, CFBundleShortVersionString, CFBundleVersion; Bundle.main.bundleIdentifier (:4-8)",
+    "Swift Regex String.replacing(#/\\x1B\\[[0-9;?]*[ -/]*[@-~]/#, with: \"\") (:13)",
+    "Swift stdlib BidirectionalCollection.difference(from:) -> CollectionDifference<String> with .remove(offset:) / .insert(offset:) (:107-111), NEW at B3",
+    "String.components(separatedBy: \"\\n\") (:88-89), String.utf8.count (:91)",
+    "FileEdit.init(path:diff:additions:deletions:) memberwise initializer declared in DroppyCode/Core/Models/Timeline.swift (:215)",
+    "trimmingCharacters(in: .whitespaces / .whitespacesAndNewlines) (:20, :29, :224)"
+   ],
+   "state_owned": [
+    "No mutable state. Static constants only: AppInfo.name/isDevelopment/stateDirectoryName/version/build (lazily initialized from the bundle), SimpleDiff.diffLimit = 200_000, SimpleDiff.contextLines = 3 (new at B3)."
+   ],
+   "side_effects": [
+    "None: every function is pure. AppInfo reads the app bundle's Info dictionary on first access."
+   ],
+   "platform_assumptions": [
+    "macOS bundle Info dictionary keys and the bundle identifier iordv.droppycode.dev decide dev vs release (replaced on Windows by assembly metadata and the build channel, per existing deviations on PR-STORE-006/-008/-009, PR-LAUNCH-070, PR-WIN-009).",
+    "Line comparison in SimpleDiff uses Swift String == (canonical equivalence, grapheme-based), both in the over-cap prefix/suffix scan and inside difference(from:).",
+    "The exact hunk text at B3 depends on the Swift standard library's CollectionDifference (Myers) implementation and its tie-breaking, which is outside the pinned repository (see unresolved_questions).",
+    "Line split is on \"\\n\" only, so CR stays inside line content for CRLF text."
+   ],
+   "persisted_fields": [
+    "FileEdit.diff / additions / deletions produced by SimpleDiff.unified via FileEdit(path:old:new:) are stored in the thread document's tool calls (Codable declared in Timeline.swift). B3 changes the diff text format and the counts for newly recorded edits; nothing in this file migrates diffs already stored by B2 builds.",
+    "AppInfo.stateDirectoryName (.droppy-code / .droppy-code-dev) names the on-disk state root used by Storage (unchanged at B3)."
+   ],
+   "ui_elements": [],
+   "feature_notes": [
+    "Lines 1-82 (AppInfo, TextCleanup, the SimpleDiff doc comment and diffLimit) are byte-identical to B2; only SimpleDiff.unified changed and DiffOp was added. B2 lines 83-111 became B3 83-165, B2 112 -> B3 166, B2 113-133 -> B3 205-225 (+92): FileEdit extension B2 114-125 -> B3 206-217, nilIfEmpty B2 128 -> B3 220, trimmed B2 130-132 -> B3 222-224. git diff: one hunk @@ -80,34 +80,126 @@.",
+    "Size guard moved first (B3 :91-103): when old.utf8.count + new.utf8.count > 200_000 the function now runs only the common head/tail scan and returns Stats(diff: nil, additions: newLines.count - prefix - suffix, deletions: oldLines.count - prefix - suffix). The values equal B2's added.count/removed.count, so over-cap results are unchanged, but the four slice constructions that ran before the guard at B2 (upstream defect 47, PR-STORE-111) are gone; only the line split still precedes the guard, because the counts need it.",
+    "Under the cap the counts are now exact: removed/inserted offset sets from newLines.difference(from: oldLines) (:105-112), additions = inserted.count, deletions = removed.count (:164). At B2 every line between the first and last change was counted as both removed and added, so two small edits far apart reported inflated counts; B3 reports only the lines that actually changed. Over-cap edits still use the head/tail approximation, so the two paths count differently.",
+    "No-change result is new: when the difference is empty (texts equal line by line under Swift String ==, including two empty texts) unified returns Stats(diff: nil, additions: 0, deletions: 0) (:113-115). B2 returned a context-only hunk (e.g. \"@@ -1,0 +1,0 @@\" for two empty texts, \"@@ -1,1 +1,1 @@\\n same\" for \"same\"/\"same\"). Downstream at B3: TimelineRows.swift:2128 and DiffInspector.swift:165 show nothing for a nil diff, and ThreadRuntime.swift:3447 (settleCommand, PR-RUNTIME-192) replaces a row's edits with the git-snapshot edits only when every edit's diff is nil, so a provider edit whose old and new sides are equal (e.g. a Claude Edit with neither string, PR-PROVCLI-359) no longer blocks that replacement.",
+    "Hunk assembly (:117-164): both texts are walked together emitting DiffOp lines numbered from 1; at each step a removed old line wins, then an inserted new line, otherwise a context line whose text is taken from the OLD side (:130). Changes whose op indices are at most 2*contextLines+1 = 7 apart (6 or fewer unchanged lines between) share one hunk; otherwise a new hunk starts (:154-162). Each hunk spans 3 context ops before its first and after its last change, clamped to the stream (:143-145), and hunks are joined with \"\\n\" with no file header lines.",
+    "Header format (:146-150): \"@@ -<oldStart>,<oldCount> +<newStart>,<newCount> @@\" where oldStart/newStart are the first old/new line numbers present in the hunk slice, or 0 if the slice holds no line of that side, and oldCount/newCount count ops carrying that side's number. B2 printed one start number (prefix - leading + 1) on both sides; B3's new-side start is independent and is 0 for an empty side (\"\" -> \"a\" is now \"@@ -0,0 +1,1 @@\\n+a\", \"a\" -> \"\" is \"@@ -1,1 +0,0 @@\\n-a\"). The \",count\" is still always printed, including 1.",
+    "Doc comment changed from \"A compact unified hunk between two texts, trimming the unchanged head and tail.\" to \"A compact unified diff between two texts, one hunk per run of changes with context.\" (:86), plus the contextLines comment \"Unchanged lines kept on each side of a change; hunks closer than twice that merge.\" (:83) and the over-cap comment \"Too large for an exact diff, so count by the unchanged head and tail instead.\" (:92).",
+    "Hand trace against the existing C# fixtures (ENGINEERING inference, not run): single-change cases (one-hunk a..h fixture, \"a\\n\"->\"b\\n\", the CRLF fixture, canonical-equivalence context and trailing old-spelling fixtures, FileEditTextTests keep/old/new/more) produce the same text at B3; the (\"\",\"\"), (\"\",\"a\"), (\"a\",\"\") and (\"same\",\"same\") rows change as described above."
+   ],
+   "unresolved_questions": [
+    "The hunk text now depends on which lines Swift's CollectionDifference matches when several minimal edit scripts exist (e.g. old [\"a\",\"a\"] vs new [\"a\"]: removing offset 0 gives \"-a\\n a\", removing offset 1 gives \" a\\n-a\"). That algorithm lives in the Swift standard library of the toolchain that built 1.7.0, not in the pinned tree. Before implementing, the orchestrator needs pinned evidence of it (the stdlib Diffing.swift at the toolchain's tag, or fixtures produced by the macOS reference build), and the C# port must reproduce it rather than use a generic diff library whose tie-breaking differs.",
+    "Cost at B3 (not yet measured): if the stdlib difference is a plain Myers descent that stores its V-array trace, a whole-file Write (old \"\") of N lines under the 200000-byte cap does O(N^2) work and memory. Whether that is observable (UI stall) on the reference build is unmeasured; an output-identical fast path for an empty side would be an ENGINEERING DECISION needing a recorded equivalence proof, not a source fact."
+   ]
+  }
+ ]
+}

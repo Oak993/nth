@@ -9,7 +9,9 @@ using Marrow.Services.Store;
 
 namespace Marrow.Services.Providers;
 
-// Source: DroppyCode/Services/Providers/CommandCodeSession.swift (B2 1fbf81e), :1-... (900 lines).
+// Source: DroppyCode/Services/Providers/CommandCodeSession.swift (B3 52bc792), :1-723. Line citations
+// below that are B2 (1fbf81e) parts 1-3's own history are left as B2 references for that history; every
+// citation this B3 pass touched is re-pinned to the B3 file (:1-723) it now describes.
 //
 // Unit Services.Providers.CommandCodeSession part 1 of 3 (PR-PROVCLI-204 to 227) implemented the
 // launch path: transcriptExists (:115-124), Start (:98-113), Send's argument vector and environment
@@ -30,6 +32,19 @@ namespace Marrow.Services.Providers;
 // mcp__/humanized-fallback cases (:560-618), already implemented as part of part 2's MakeToolCall
 // above; this part adds the tests proving each of those cases against the Swift, plus the
 // UI-PROVCLI-033 (OD-0012 F1 "Marrow" decline wording) coverage on Reply's deny branch (:749-762).
+//
+// B3 lane A24 (Services.Providers.CommandCodeSession: SessionSupport N7, ProviderSession A7) adopted the
+// shared SessionSupport.cs types in place of this file's own copies (re-cites PR-PROVCLI-225/226/227/
+// 229/230, behaviour unchanged): the launch/message/thinking id bookkeeping is now the shared
+// StreamedTextTracker (:43, :78-81), and the write_file-before-snapshot bookkeeping is now the shared
+// EditSnapshots (:47-49). tool_queued's todo_write case now calls the shared
+// ACPSession.ParseTodoItems(input["todos"]) (:348; ACPSession.swift:688-699) instead of this file's own
+// deleted todos(from:), re-citing PR-PROVCLI-243 (SPECIFIED -> IMPLEMENTED): a wider parser (four text
+// keys incl. "step"; "complete"/"inProgress"/"in-progress" added). GrantKey moved to the shared
+// ApprovalRequest.Kind.GrantKey extension (ProviderSession.cs :221-230, lane A7), re-citing
+// PR-PROVCLI-248. FinishEdit now delegates to the shared EditSnapshots.Finish, which also fixes a B2
+// defect: before/after were compared with C# ordinal == instead of the Swift `!=`'s canonical
+// (NFC/NFD) equivalence (SwiftString.Equal).
 public sealed class CommandCodeSession : ProviderSession
 {
     /// <summary>The result line, kept until the process is gone so the turn closes in order. :60-64</summary>
@@ -61,18 +76,16 @@ public sealed class CommandCodeSession : ProviderSession
     private bool isFinalReport;                              // :40
     /// <summary>Namespaces ids per launch, so a resumed thread never streams into an old entry. :41-42</summary>
     private readonly string launchID = SwiftUUID.UuidString(Guid.NewGuid())[..8];
-    private int turnCounter;                                // :43
-    private int messageCounter;                             // :44
-    private int thinkingCounter;                             // :45
-    private string? currentMessageID;                        // :46
-    private string? currentThinkingID;                       // :47
-    private string messageText = "";                         // :48
-    private string thinkingText = "";                         // :49
-    private bool streamedText;                                // :50
-    /// <summary>The model the CLI reported for the run, for the context meter's ceiling. :51-52</summary>
+    /// <summary>Message and thinking ids for the current turn (SessionSupport.cs, shared with Pi and
+    /// Antigravity; B3, re-cites PR-PROVCLI-225/226/227). Built in the constructor, not as a field
+    /// initializer, because its closures capture <see cref="launchID"/>. :43, :78-81</summary>
+    private readonly StreamedTextTracker stream;
+    private int turnCounter;                                // :44
+    /// <summary>The model the CLI reported for the run, for the context meter's ceiling. :45-46</summary>
     private string? activeModel;
-    /// <summary>Files a write_file is about to replace (part 2: tool_queued). :53-56</summary>
-    private readonly Dictionary<string, string> editSnapshots = new(SwiftStringComparer.Instance);
+    /// <summary>Files a write_file is about to replace, snapshotted as the call is queued (SessionSupport.cs,
+    /// shared with Antigravity; B3, re-cites PR-PROVCLI-229/230). :47-49</summary>
+    private readonly EditSnapshots editSnapshots = new();
     private readonly Dictionary<string, string> toolNames = new(SwiftStringComparer.Instance);
     private readonly Dictionary<string, JSONValue> toolInputs = new(SwiftStringComparer.Instance);
 
@@ -95,8 +108,11 @@ public sealed class CommandCodeSession : ProviderSession
     /// 100, short for a long agentic job. :77-79</summary>
     private const int MaxTurns = 400;
 
-    public CommandCodeSession(SessionConfiguration configuration) // :81-88
+    public CommandCodeSession(SessionConfiguration configuration) // :75-88
     {
+        stream = new StreamedTextTracker( // :78-81
+            messageID: n => $"cc-{launchID}-m{n}",
+            thinkingID: n => $"cc-{launchID}-r{n}");
         this.configuration = configuration;
         runtimeMode = configuration.RuntimeMode;
         interactionMode = configuration.InteractionMode;
@@ -173,8 +189,8 @@ public sealed class CommandCodeSession : ProviderSession
         interruptRequested = false; // :136
         runResult = null; // :137
         runError = null; // :138
-        streamedText = false; // :139
-        editSnapshots.Clear(); // :140
+        stream.ResetForTurn(); // :139
+        editSnapshots.RemoveAll(); // :140
         toolNames.Clear(); // :141
         toolInputs.Clear(); // :142
 
@@ -319,7 +335,7 @@ public sealed class CommandCodeSession : ProviderSession
         {
             case "allow":
             case "always":
-                if (optionID == "always") sessionGrants.Add(GrantKey(request.RequestKind)); // :245
+                if (optionID == "always") sessionGrants.Add(request.RequestKind.GrantKey()); // :245
                 Reply(requestID, allow: true); // :246
                 break;
             default:
@@ -382,59 +398,41 @@ public sealed class CommandCodeSession : ProviderSession
                 }
                 break;
             case "message_start": // :293-297
-                messageCounter += 1;
-                currentMessageID = $"cc-{launchID}-m{messageCounter}";
-                messageText = "";
-                streamedText = false;
+                stream.StartMessage();
                 break;
             case "text_delta": // :298-306
             {
                 var delta = @event["delta"]?.JSONValueString;
                 if (string.IsNullOrEmpty(delta)) return;
-                if (currentMessageID is null)
-                {
-                    messageCounter += 1;
-                    currentMessageID = $"cc-{launchID}-m{messageCounter}";
-                }
-                streamedText = true;
-                messageText += delta;
-                OnEvent?.Invoke(new ProviderEvent.MessageDelta(currentMessageID, delta));
+                OnEvent?.Invoke(new ProviderEvent.MessageDelta(stream.AppendMessage(delta), delta));
                 break;
             }
             case "thinking_start": // :307-310
-                thinkingCounter += 1;
-                currentThinkingID = $"cc-{launchID}-r{thinkingCounter}";
-                thinkingText = "";
+                stream.StartThinking();
                 break;
             case "thinking_delta": // :311-318
             {
                 var delta = @event["delta"]?.JSONValueString;
                 if (string.IsNullOrEmpty(delta)) return;
-                if (currentThinkingID is null)
-                {
-                    thinkingCounter += 1;
-                    currentThinkingID = $"cc-{launchID}-r{thinkingCounter}";
-                }
-                thinkingText += delta;
-                OnEvent?.Invoke(new ProviderEvent.ReasoningDelta(currentThinkingID, delta));
+                OnEvent?.Invoke(new ProviderEvent.ReasoningDelta(stream.AppendThinking(delta, resetsText: false), delta));
                 break;
             }
             case "thinking_end": // :319-325
             {
-                if (currentThinkingID is not { } id2) return;
-                var text = @event["text"]?.JSONValueString ?? thinkingText;
+                if (stream.CurrentThinkingID is not { } id2) return;
+                var text = @event["text"]?.JSONValueString ?? stream.ThinkingText;
                 if (text.Trimmed().Length != 0) OnEvent?.Invoke(new ProviderEvent.ReasoningCompleted(id2, text));
-                currentThinkingID = null;
+                stream.EndThinking();
                 break;
             }
             case "message_end": // :326-337
             {
                 var text = ContentText(@event["content"]);
-                if (currentMessageID is { } id3)
+                if (stream.CurrentMessageID is { } id3)
                 {
-                    if (streamedText)
+                    if (stream.StreamedText)
                     {
-                        OnEvent?.Invoke(new ProviderEvent.MessageCompleted(id3, messageText.Length == 0 ? text : messageText));
+                        OnEvent?.Invoke(new ProviderEvent.MessageCompleted(id3, stream.MessageText.Length == 0 ? text : stream.MessageText));
                     }
                     else if (text.Trimmed().Length != 0)
                     {
@@ -442,8 +440,8 @@ public sealed class CommandCodeSession : ProviderSession
                         OnEvent?.Invoke(new ProviderEvent.MessageCompleted(id3, text));
                     }
                 }
-                currentMessageID = null;
-                currentThinkingID = null;
+                stream.EndMessage();
+                stream.EndThinking();
                 break;
             }
             case "model_request_start": // :338-339
@@ -482,14 +480,14 @@ public sealed class CommandCodeSession : ProviderSession
                 toolInputs[callId] = input;
                 if (name == "todo_write")
                 {
-                    OnEvent?.Invoke(new ProviderEvent.Todos(new ValueList<TodoStep>(Todos(input))));
+                    OnEvent?.Invoke(new ProviderEvent.Todos(ACPSession.ParseTodoItems(input["todos"])));
                     return;
                 }
                 if (name == "write_file" && input["file_path"]?.JSONValueString is { } filePath)
                 {
-                    editSnapshots[callId] = Snapshot(filePath) ?? "";
+                    editSnapshots.Capture(callId, filePath);
                 }
-                OnEvent?.Invoke(new ProviderEvent.ToolStarted(callId, MakeToolCall(name, input, editSnapshots.GetValueOrDefault(callId))));
+                OnEvent?.Invoke(new ProviderEvent.ToolStarted(callId, MakeToolCall(name, input, editSnapshots.Text(callId))));
                 // The gate's request may already be on disk by the time the row exists.
                 ScanApprovals();
                 break;
@@ -509,7 +507,7 @@ public sealed class CommandCodeSession : ProviderSession
                 {
                     Status = ToolCall.Status.Completed,
                     Output = text.Length == 0 ? null : text,
-                    Edits = FinishEdit(callId) is { } edits ? new ValueList<FileEdit>(edits) : null,
+                    Edits = FinishEdit(callId),
                 }));
                 break;
             }
@@ -521,7 +519,7 @@ public sealed class CommandCodeSession : ProviderSession
                 {
                     Output = error,
                     Status = ToolCall.Status.Failed,
-                    Edits = FinishEdit(callId) is { } edits ? new ValueList<FileEdit>(edits) : null,
+                    Edits = FinishEdit(callId),
                 }));
                 break;
             }
@@ -530,7 +528,7 @@ public sealed class CommandCodeSession : ProviderSession
             {
                 if (@event["toolCallId"]?.JSONValueString is not { } callId || IsTodoWrite(callId)) return;
                 var reason = @event["hookOutput"]?.JSONValueString ?? @event["denyMessage"]?.JSONValueString ?? "Declined.";
-                editSnapshots.Remove(callId);
+                editSnapshots.Discard(callId);
                 OnEvent?.Invoke(new ProviderEvent.ToolUpdated(callId, new ToolUpdate { Output = reason, Status = ToolCall.Status.Declined }));
                 if (pendingApprovals.Remove(callId)) OnEvent?.Invoke(new ProviderEvent.RequestResolved(callId));
                 break;
@@ -607,8 +605,7 @@ public sealed class CommandCodeSession : ProviderSession
         if (!ReferenceEquals(this.process, process)) return; // :435
         this.process = null; // :436
         turnActive = false; // :437
-        currentMessageID = null; // :438
-        currentThinkingID = null; // :439
+        stream.ResetIDs(); // :438-439
         foreach (var id in pendingApprovals.Keys) OnEvent?.Invoke(new ProviderEvent.RequestResolved(id)); // :440
         pendingApprovals.Clear(); // :441
         ClearApprovalFiles(); // :442
@@ -719,23 +716,9 @@ public sealed class CommandCodeSession : ProviderSession
         return text;
     }
 
-    private static List<TodoStep> Todos(JSONValue input) // :534-544
-    {
-        var result = new List<TodoStep>();
-        foreach (var todo in input["todos"]?.JSONValueArray ?? [])
-        {
-            var text = todo["content"]?.JSONValueString ?? todo["text"]?.JSONValueString ?? todo["title"]?.JSONValueString;
-            if (text is null) continue;
-            var status = todo["status"]?.JSONValueString switch
-            {
-                "completed" or "done" => TodoStep.Status.Done,
-                "in_progress" or "active" => TodoStep.Status.Active,
-                _ => TodoStep.Status.Pending,
-            };
-            result.Add(new TodoStep { Text = text, TodoStepStatus = status });
-        }
-        return result;
-    }
+    // Deleted at B3: todos(from:) is gone from the Swift; tool_queued's todo_write case now calls the
+    // shared ACPSession.ParseTodoItems(input["todos"]) directly (see the "tool_queued" case above,
+    // PR-PROVCLI-243).
 
     // MARK: - Tools (:546)
 
@@ -876,27 +859,14 @@ public sealed class CommandCodeSession : ProviderSession
     }
 
     /// <summary>A finished write as the file before against after, from the snapshot taken as the call was
-    /// queued; nil for anything else, so the row's edits stay as queued. :629-638</summary>
-    private List<FileEdit>? FinishEdit(string id)
+    /// queued; nil for anything else, so the row's edits stay as queued. Delegates to the shared
+    /// EditSnapshots.Finish (SessionSupport.cs), which also fixes the B2 defect where this compared
+    /// before/after with ordinal ==: it now uses SwiftString.Equal's canonical equivalence, matching the
+    /// Swift `!=`. :600-605</summary>
+    private ValueList<FileEdit>? FinishEdit(string id)
     {
-        if (!editSnapshots.Remove(id, out var before) || toolInputs.GetValueOrDefault(id)?["file_path"]?.JSONValueString is not { } path) return null;
-        var relative = ToolTitles.RelativePath(path, WorkingDirectory);
-        var after = Snapshot(path) ?? "";
-        return before == after ? [new FileEdit(relative)] : [new FileEdit(relative, before, after)];
-    }
-
-    /// <summary>Text files up to 1 MB; anything else (binary, huge or missing) reads as nil so a write shows as
-    /// a whole-file addition. :640-646</summary>
-    private static string? Snapshot(string path)
-    {
-        try
-        {
-            var info = new FileInfo(path);
-            if (!info.Exists || info.Length > 1_000_000) return null;
-            return SwiftText.DecodeUtf8OrNil(File.ReadAllBytes(path));
-        }
-        catch (IOException) { return null; }
-        catch (UnauthorizedAccessException) { return null; }
+        if (toolInputs.GetValueOrDefault(id)?["file_path"]?.JSONValueString is not { } path) return null;
+        return editSnapshots.Finish(id, path, WorkingDirectory);
     }
 
     // MARK: - The gate (:648)
@@ -945,7 +915,7 @@ public sealed class CommandCodeSession : ProviderSession
         var name = request["toolName"]?.JSONValueString ?? "";
         var input = request["input"] ?? new JSONValue.Null();
         var approval = MakeApproval(id, name, input);
-        if (AutoApproves(name, input) || sessionGrants.Contains(GrantKey(approval.RequestKind)))
+        if (AutoApproves(name, input) || sessionGrants.Contains(approval.RequestKind.GrantKey()))
         {
             Reply(id, allow: true);
             return;
@@ -978,7 +948,7 @@ public sealed class CommandCodeSession : ProviderSession
 
     private ApprovalRequest MakeApproval(string id, string name, JSONValue input) // :719-739
     {
-        var call = MakeToolCall(name, input, editSnapshots.GetValueOrDefault(id));
+        var call = MakeToolCall(name, input, editSnapshots.Text(id));
         var kind = call.ToolCallKind switch
         {
             ToolCall.Kind.Command => ApprovalRequest.Kind.Command,
@@ -997,13 +967,8 @@ public sealed class CommandCodeSession : ProviderSession
         };
     }
 
-    private static string GrantKey(ApprovalRequest.Kind kind) => kind switch // :741-747
-    {
-        ApprovalRequest.Kind.Command => "command",
-        ApprovalRequest.Kind.FileChange => "fileChange",
-        ApprovalRequest.Kind.Tool or ApprovalRequest.Kind.Permissions or ApprovalRequest.Kind.Plan => "tool",
-        _ => throw new ArgumentOutOfRangeException(nameof(kind)),
-    };
+    // Deleted at B3: grantKey moved out to the shared ApprovalRequest.Kind.GrantKey extension
+    // (ProviderSession.cs :221-230, lane A7), used at ResolveApproval and Decide above.
 
     private void Reply(string id, bool allow) // :749-762
     {

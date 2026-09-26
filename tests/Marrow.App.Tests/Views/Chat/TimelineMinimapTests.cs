@@ -80,8 +80,8 @@ public sealed class TimelineMinimapTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-069")] // App/Views/Chat/TimelineMinimap.swift:84-86,290-296
-    [Trait("Req", "UI-CHAT-004")] // App/Views/Chat/TimelineMinimap.swift:272-296
+    [Trait("Req", "PR-CHAT-069")] // App/Views/Chat/TimelineMinimap.swift:84-86,276-282
+    [Trait("Req", "UI-CHAT-004")] // App/Views/Chat/TimelineMinimap.swift:258-282
     public void Tick_width_uses_grapheme_weight_and_expanded_selected_and_hovered_states()
     {
         headless.OnUiThread(() =>
@@ -108,7 +108,7 @@ public sealed class TimelineMinimapTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-070")] // App/Views/Chat/TimelineMinimap.swift:387-417
+    [Trait("Req", "PR-CHAT-070")] // App/Views/Chat/TimelineMinimap.swift:373-403
     public void Rail_metrics_keep_roomy_spacing_shrink_to_the_floor_and_center_the_stack()
     {
         // Roomy: ticks = 3*2 = 6, gaps = 2; 6 + 2*8 = 22 <= 100, so spacing stays roomy (8) and
@@ -135,7 +135,7 @@ public sealed class TimelineMinimapTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-071")] // App/Views/Chat/TimelineMinimap.swift:426-449
+    [Trait("Req", "PR-CHAT-071")] // App/Views/Chat/TimelineMinimap.swift:412-435
     public void Hit_area_covers_the_tick_stack_but_stays_below_the_chrome_clearance()
     {
         // topInset = 39 (see Rail_metrics_..., same 100/3 metrics), pitch = 10: CenterY(0) = 40, CenterY(2) = 60.
@@ -148,7 +148,7 @@ public sealed class TimelineMinimapTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-072")] // App/Views/Chat/TimelineMinimap.swift:362-379,419-424
+    [Trait("Req", "PR-CHAT-072")] // App/Views/Chat/TimelineMinimap.swift:348-365,405-410
     public void Pointer_y_maps_to_the_nearest_tick_and_clamps_to_both_ends()
     {
         var metrics = Metrics(centeringHeight: 100, count: 3);
@@ -168,9 +168,42 @@ public sealed class TimelineMinimapTests(HeadlessSession headless)
         Assert.Null(Invoke<string?>(metrics, "EntryID", 20.0, Array.Empty<TimelineMinimapEntry>()));
     }
 
+    // Marrow.UI.Port.PointerStyle field: matches ArrangeGrip's own reflection style elsewhere in this test suite.
+    private static Border HitAreaOf(TimelineMinimapRail rail) =>
+        (Border)typeof(TimelineMinimapRail).GetField("hitArea", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .GetValue(rail)!;
+
     [Fact]
-    [Trait("Req", "PR-CHAT-074")] // App/Views/Chat/TimelineMinimap.swift:303-356
-    [Trait("Req", "UI-CHAT-005")] // App/Views/Chat/TimelineMinimap.swift:303-356
+    [Trait("Req", "PR-CHAT-072")] // App/Views/Chat/TimelineMinimap.swift:211
+    [Trait("Req", "UI-CHAT-003")] // App/Views/Chat/TimelineMinimap.swift:201-240
+    [Trait("Decision", "ED-205")]
+    public void The_rail_hit_area_declares_the_link_pointer_style_and_keeps_it_after_the_rail_leaves_the_tree()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var runtime = new TestRuntime();
+
+            var entry = new TimelineMinimapEntry { Id = "one", Title = "one", Snippet = "", Weight = 0.15 };
+            var rail = new TimelineMinimapRail(new[] { entry }, 100, null, (_, _) => { });
+            var linkCursor = Marrow.UI.Port.PointerStyleCursors.Get(Marrow.UI.Port.PointerStyle.Link, 1);
+
+            var hitArea = HitAreaOf(rail);
+            Assert.Same(linkCursor, hitArea.Cursor);
+
+            // B3 deletes ownsCursorPush and this port's matching LIFO CursorOwner stack (the pre-B3 push/pop
+            // ownership bookkeeping): the style is declared once on the control itself, so there is nothing left
+            // for a disappear to release, and nothing for the rail leaving a real visual tree to clear either.
+            var window = new Avalonia.Controls.Window { Content = rail };
+            window.Show();
+            window.Content = null;
+            Assert.Same(linkCursor, hitArea.Cursor);
+            window.Close();
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-074")] // App/Views/Chat/TimelineMinimap.swift:289-342
+    [Trait("Req", "UI-CHAT-005")] // App/Views/Chat/TimelineMinimap.swift:289-342
     public void Preview_card_height_uses_the_source_arithmetic_estimate()
     {
         headless.OnUiThread(() =>
@@ -193,7 +226,7 @@ public sealed class TimelineMinimapTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-075")] // App/Views/Chat/TimelineMinimap.swift:89-129,264-268
+    [Trait("Req", "PR-CHAT-075")] // App/Views/Chat/TimelineMinimap.swift:89-129,250-254
     public void Equal_column_inputs_compare_blocks_tracking_identity_and_center_height()
     {
         headless.OnUiThread(() =>
@@ -214,7 +247,7 @@ public sealed class TimelineMinimapTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-076")] // App/Views/Chat/TimelineMinimap.swift:246-247,284-287
+    [Trait("Req", "PR-CHAT-076")] // App/Views/Chat/TimelineMinimap.swift:238-239,270-273
     public void The_outline_is_named_and_each_tick_is_named_for_its_message()
     {
         headless.OnUiThread(() =>

@@ -8,15 +8,11 @@ using Xunit;
 
 namespace Marrow.UI.Tests.Markdown;
 
-// Source under test: DroppyCode/UI/Markdown/MarkdownView.swift (B2 1fbf81e), :1101-1247 (part 2 of the unit).
-// Covers InlineText.metrics (PR-THEME-151) and InlineText.fetchLinkAssets (PR-THEME-148).
-//
-// UNTESTABLE for now, and why: InlineText's own constructor (:1121-1208) cannot be exercised end to end in
-// either branch: the hasLinkText branch builds LinkParagraphView, and the link-free branch builds VeiledText
-// (segments:) through the new AttributedText overload added in StreamVeil.cs -- both are the sibling
-// LinkParagraphView/StreamVeil units' own MARROW_STUB and throw on construction today. That also makes
-// PR-THEME-144's hover wiring (:1159-1188), which only runs after that constructor returns, unreachable from a
-// test. The two static helpers below do not depend on either sibling and are exercised directly.
+// Source under test: DroppyCode/UI/Markdown/MarkdownView.swift (B3 52bc792), :1101-1218 (part 2 of the unit).
+// Covers InlineText.metrics (PR-THEME-151), InlineText.fetchLinkAssets (PR-THEME-148) and the constructor's
+// hint-less link decision (PR-THEME-186, new at B3). LinkParagraphView and StreamVeil's VeiledText(segments:)
+// have both landed since this note was first written, so the constructor now completes in either branch;
+// PR-THEME-144's hover wiring (now UI.Markdown.LinkHover, N9) is exercised by that unit's own tests.
 [Collection("Headless")]
 public sealed class InlineTextTests(HeadlessSession headless)
 {
@@ -82,4 +78,30 @@ public sealed class InlineTextTests(HeadlessSession headless)
         }, default);
         Assert.Equal(0, revisionValue); // :1236-1237 revision.wrappedValue += 1 only when changed
     }
+
+    // ---- PR-THEME-186: the hint-less hasLinkText decision (:1095-1096, new at B3) ----
+
+    [Fact]
+    [Trait("Req", "PR-THEME-186")] // DroppyCode/UI/Markdown/MarkdownView.swift:1095-1096
+    public void A_hint_less_host_less_local_link_reaches_the_LinkParagraphView_path() => headless.OnUiThread(() =>
+    {
+        var inline = new InlineText("open [file](/Users/me/report.txt) now");
+        Assert.IsType<LinkParagraphView>(inline.Child);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-THEME-186")]
+    public void A_hint_less_paragraph_with_no_links_reaches_the_veiled_text_path() => headless.OnUiThread(() =>
+    {
+        var inline = new InlineText("plain text with no links at all");
+        Assert.IsNotType<LinkParagraphView>(inline.Child);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-THEME-186")] // a hinted call site's explicit value is never overridden
+    public void An_explicit_false_hint_is_never_overridden_even_with_a_link_present() => headless.OnUiThread(() =>
+    {
+        var inline = new InlineText("[a link](https://example.com)", hasLinks: false);
+        Assert.IsNotType<LinkParagraphView>(inline.Child);
+    });
 }

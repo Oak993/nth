@@ -1,0 +1,69 @@
+{
+  "bundle_id": "R3-34",
+  "reader": "R3-34-reader",
+  "files": [
+    {
+      "path": "DroppyCode/App/AppDelegate.swift",
+      "sha256": "eb655bec3fea8387906d437bc1e81ca809b9c5e438d1d5265caad736d06e2d90",
+      "ranges_read": [[1, 93]],
+      "asset_inspection": null,
+      "purpose": "AppDelegate is the NSApplicationDelegate/UNUserNotificationCenterDelegate for the macOS app: it runs the launch prologue in applicationDidFinishLaunching (as of B3: reconfigure the shared URLCache to memory-only, wire the Markdown hydra-delegation-card renderer, register itself as the notification-centre delegate, take its AppModel handle from WindowManager.shared, short-circuit into a capture run if one was requested, show the main window, open the last thread, gate the welcome tour, kick off async bootstrap and background update checks, and handle a post-install relaunch), and it owns the remaining AppKit lifecycle hooks: bringing the main window back on Dock reopen, deferring Quit up to 4 minutes while a Hydra team merge is in flight, running the exactly-three-step termination cleanup (save, flush the token ledger, stop every MCP server), and routing notification presentation/response to the right chat thread or to Settings > About. It is the single seam where AppKit's OS-level app lifecycle meets the rest of the app's state (AppModel, WindowManager, MCPHub, TokenLedger, UpdateChecker/AppUpdater), so every change to it is a change to when and in what order those systems start up and shut down.",
+      "key_symbols": [
+        "final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate",
+        "var model: AppModel?",
+        "func applicationDidFinishLaunching(_ notification: Notification)",
+        "func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool",
+        "func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply",
+        "func applicationWillTerminate(_ notification: Notification)",
+        "nonisolated func userNotificationCenter(_:willPresent:) async -> UNNotificationPresentationOptions",
+        "nonisolated func userNotificationCenter(_:didReceive:) async"
+      ],
+      "calls_into": [
+        "URLCache.shared / URLCache(memoryCapacity:diskCapacity:) (Foundation) - new in B3",
+        "MarkdownDelegationCard.render (DroppyCode/UI/Markdown/MarkdownView.swift:507-509) - new in B3",
+        "HydraDelegationBlock(json:sent:) (DroppyCode/App/Views/Chat/TimelineRows.swift:648) - new in B3",
+        "UNUserNotificationCenter.current()",
+        "WindowManager.shared (DroppyCode/App/Window/WindowManager.swift)",
+        "CaptureRun.isEnabled (DroppyCode/Core/Support/CaptureRun.swift:27) - direct call is new in B3, value unchanged",
+        "WebsiteCaptures.run(model:) (DroppyCode/App/Captures/WebsiteCaptures.swift)",
+        "AppModel.openThreadOnLaunch(), .bootstrap(), .saveBeforeQuit(), .isAnyHydraMergeRunning, .settings.hasSeenTour, .selectedThreadID",
+        "Tour.present(model:)",
+        "UpdateChecker.shared.startBackgroundChecks()",
+        "AppUpdater.shared.consumeRelaunchMarker()",
+        "UpdateInstallProgress.shared.armCelebration()",
+        "TokenLedger.shared.flushLiveSpend()",
+        "MCPHub.terminateAll()"
+      ],
+      "state_owned": [
+        "model: AppModel? - nil until applicationDidFinishLaunching assigns it from WindowManager.shared; every other method reads it optionally"
+      ],
+      "side_effects": [
+        "NEW (B3): reassigns URLCache.shared to a URLCache with memoryCapacity 8 * 1024 * 1024 (8 MiB) and diskCapacity 0, replacing Foundation's default disk-backed shared cache for the whole process",
+        "NEW (B3): sets the static hook MarkdownDelegationCard.render, which every MarkdownView in the process reads thereafter",
+        "Sets UNUserNotificationCenter.current().delegate = self",
+        "Drives WindowManager.shared to show/hide the main window and the Settings window",
+        "Starts a detached Task that sleeps 700ms then presents the Tour (only when settings.hasSeenTour is false)",
+        "Starts UpdateChecker's background timer",
+        "On quit: calls model?.saveBeforeQuit(), TokenLedger.shared.flushLiveSpend(), and MCPHub.terminateAll(), and can hold the app open for up to 4 minutes (250ms polling loop) waiting for a Hydra merge"
+      ],
+      "platform_assumptions": [
+        "NSApplicationDelegate's callback set (applicationDidFinishLaunching, applicationShouldHandleReopen, applicationShouldTerminate, applicationWillTerminate) is AppKit-specific; the Windows port needs its own startup/shutdown hook points with the same ordering guarantees",
+        "UNUserNotificationCenterDelegate and UNNotification/UNNotificationResponse are the macOS UserNotifications framework; the Windows port needs its own notification delegate/callback shape",
+        "NSApp.isActive and NSApp.activate() (used inside the notification handlers) have no Windows equivalent and must be mapped to the port's own 'is the app frontmost' / 'bring to front' primitives",
+        "NSApplication.TerminateReply (.terminateNow / .terminateLater plus sender.reply(toApplicationShouldTerminate:)) is an AppKit-specific asynchronous-quit protocol"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [],
+      "feature_notes": [
+        "NEW (B3): the first two executable statements of applicationDidFinishLaunching (preceded by a 3-line explanatory comment) reconfigure the process-wide URLCache to memory-only: `URLCache.shared = URLCache(memoryCapacity: 8 * 1024 * 1024, diskCapacity: 0)`. The comment states this stops the shared cache from writing a SQLite commit for every cached response (API calls, the MCP proxy's streams, link titles), which the source describes as 'a third of the app's disk writes while a team ran.' This is significant beyond this file: porting/engineering_decisions.md ED-118 (item O-33, F.HTTP's URLCache.shared cache policy) explicitly records the cache size cut-off as PARKED ('no size cut-off') and cache persistence as unresolved ('memory only until the owner answers the persistence question'). This B3 source change is new, concrete SOURCE FACT evidence that answers exactly that parked question with a specific number (8 MiB memory, 0 disk) - it does not by itself amend ED-118, but the port's F.HTTP cache in src/Marrow.Core/Port/Http.cs should be revisited against it.",
+        "NEW (B3): the next statement, `MarkdownDelegationCard.render = { AnyView(HydraDelegationBlock(json: $0, sent: $1)) }`, wires the App-layer HydraDelegationBlock view into the UI-layer MarkdownView's renderer for 'hydra'/'hydra-leaving' fenced code blocks (DroppyCode/UI/Markdown/MarkdownView.swift:324-333, :507-509). This is dependency injection done specifically to respect the source's own layering rule (Core depends on nothing in the app; UI depends only on Core; App depends on everything) since MarkdownView (UI) cannot import HydraDelegationBlock (App) directly. Before this line runs, any such code block would render as a plain CodeBlock. Both MarkdownDelegationCard (as a hook point) and HydraDelegationBlock already have C# counterparts (src/Marrow.UI/Markdown/MarkdownView.cs, src/Marrow.App/Views/Chat/TimelineRows.cs); only the AppDelegate-side wiring statement itself is still unported, because src/Marrow.App/AppDelegate.cs does not exist yet (unit App.AppDelegate is status TODO in porting/deps/units.json).",
+        "REFACTOR, no observable behaviour change: the capture-run gate changed from `if WebsiteCaptures.isEnabled` to `if CaptureRun.isEnabled`. SOURCE FACT: at B2, DroppyCode/App/Captures/WebsiteCaptures.swift:26 already defined `nonisolated static var isEnabled: Bool { CaptureRun.isEnabled }` as a pure passthrough, and that definition is byte-identical in B3 (git diff of CaptureRun.swift and of the isEnabled passthrough line is empty). So the B3 call site simply removes one level of indirection; the underlying condition (CommandLine.arguments carries '--website-captures <dir>' or '--tour-captures <dir>') and its outcome are unchanged. This path is dead code for the port regardless: ED-001 decides the port does not implement the capture subsystem or the CaptureRun indirection (porting/dead_code.md entries 28, 33, 38, 42; spec records PR-WIN-069, PR-UPDATE-091 already mark it not_applicable under ED-061).",
+        "Every other statement, branch, comment and method body in the file (applicationShouldHandleReopen, applicationShouldTerminate, applicationWillTerminate, both userNotificationCenter methods, and the rest of applicationDidFinishLaunching from `UNUserNotificationCenter.current().delegate = self` onward) is byte-for-byte unchanged from B2; only its line number shifted, by +1 from the added `import SwiftUI` and then by a further +5 (net +6 from B2) from the two new statements and their 3-line comment. B2 was 87 lines; B3 is 93 lines (git diff --stat: 7 insertions, 1 deletion, confirming the diff shown is the complete change)."
+      ],
+      "unresolved_questions": [
+        "Whether the owner wants ED-118 / O-33 formally amended to adopt exactly 8 MiB memory / 0 disk as F.HTTP's shared cache bound (this bundle only surfaces the new source evidence; it does not itself rule on it).",
+        "Whether MarkdownDelegationCard's render hook needs any port-side placeholder/no-op behaviour before AppDelegate.cs exists (currently nothing sets it, so the C# MarkdownView would presumably fall through to its CodeBlock-equivalent path for hydra blocks until App.AppDelegate is implemented) - flagged for whoever picks up unit App.AppDelegate, not resolved here."
+      ]
+    }
+  ]
+}

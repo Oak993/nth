@@ -9,7 +9,7 @@ using Marrow.Testing;
 
 namespace Marrow.Services.Tests.Providers;
 
-// Source: DroppyCode/Services/Providers/ClaudeSession.swift (B2 1fbf81e), :1-693.
+// Source: DroppyCode/Services/Providers/ClaudeSession.swift (B3 52bc7926), :1-829.
 //
 // Tests for unit Services.Providers.ClaudeSession part 1 of 4 (PR-PROVCLI-001 to 024): the launch path
 // (start()'s argument vector, the --help option probe, the Hydra argument blocks, the resume/session-id
@@ -152,7 +152,7 @@ public sealed class ClaudeSessionTests
     // ---- PR-PROVCLI-004 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-004")] // ClaudeSession.swift:844-852
+    [Trait("Req", "PR-PROVCLI-004")] // ClaudeSession.swift:820-828
     public void ModeName_maps_runtime_and_interaction_modes_with_plan_tested_first()
     {
         Assert.Equal("default", ClaudeSession.ModeName(RuntimeMode.Supervised, InteractionMode.Build));
@@ -561,7 +561,7 @@ public sealed class ClaudeSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-019")] // ClaudeSession.swift:301-310
+    [Trait("Req", "PR-PROVCLI-019")] // ClaudeSession.swift:301-309
     public void Control_request_id_is_marrow_1_for_the_first_request_deviation_OD_0012_F1()
     {
         using var runtime = new TestRuntime();
@@ -893,7 +893,7 @@ public sealed class ClaudeSessionTests
     // ---- PR-PROVCLI-031 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-031")] // ClaudeSession.swift:312-322
+    [Trait("Req", "PR-PROVCLI-031")] // ClaudeSession.swift:311-321
     public void Send_writes_a_user_message_with_empty_session_id_and_null_parent_tool_use_id_and_starts_the_turn()
     {
         using var runtime = new TestRuntime();
@@ -950,7 +950,7 @@ public sealed class ClaudeSessionTests
 
     [Fact]
     [Trait("Req", "PR-PROVCLI-033")] // ClaudeSession.swift:238-247
-    [Trait("Req", "PR-PROVCLI-034")] // ClaudeSession.swift:324-329 - every tool answer, denial included, wraps as a success control_response
+    [Trait("Req", "PR-PROVCLI-034")] // ClaudeSession.swift:323-328 - every tool answer, denial included, wraps as a success control_response
     public void Interrupt_denies_every_pending_tool_with_the_interrupt_flag_then_sends_interrupt()
     {
         using var runtime = new TestRuntime();
@@ -978,7 +978,7 @@ public sealed class ClaudeSessionTests
     // ---- PR-PROVCLI-035, 036, 037 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-035")] // ClaudeSession.swift:254-262, :838-842
+    [Trait("Req", "PR-PROVCLI-035")] // ClaudeSession.swift:254-262, :814-818
     public void ResolveApproval_allow_sends_updatedInput_and_always_adds_session_scoped_permissions()
     {
         using var runtime = new TestRuntime();
@@ -1106,7 +1106,7 @@ public sealed class ClaudeSessionTests
     // ---- PR-PROVCLI-039 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-039")] // ClaudeSession.swift:289-292, :696
+    [Trait("Req", "PR-PROVCLI-039")] // ClaudeSession.swift:289-292, :690
     public void Stop_sets_isStopping_before_terminating_so_no_exited_event_is_reported()
     {
         using var runtime = new TestRuntime();
@@ -1145,7 +1145,7 @@ public sealed class ClaudeSessionTests
 
     [Fact]
     [Trait("Req", "PR-PROVCLI-040")] // ClaudeSession.swift:294-297, :45
-    [Trait("Req", "PR-PROVCLI-046")] // ClaudeSession.swift:427-447 - registers the head this test then stops
+    [Trait("Req", "PR-PROVCLI-046")] // ClaudeSession.swift:425-445 - registers the head this test then stops
     public void StopAgent_sends_stop_task_keyed_by_the_registered_task_id()
     {
         using var runtime = new TestRuntime();
@@ -1169,8 +1169,8 @@ public sealed class ClaudeSessionTests
     // ---- PR-PROVCLI-041, 042, 043 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-041")] // ClaudeSession.swift:346-349 (control_cancel_request case of the dispatch switch :331-386)
-    [Trait("Req", "PR-PROVCLI-043")] // ClaudeSession.swift:346-349
+    [Trait("Req", "PR-PROVCLI-041")] // ClaudeSession.swift:344-347 (control_cancel_request case of the dispatch switch :330-384)
+    [Trait("Req", "PR-PROVCLI-043")] // ClaudeSession.swift:344-347
     public void Handle_control_cancel_request_removes_the_pending_tool_and_sends_no_reply()
     {
         var events = new List<ProviderEvent>();
@@ -1185,7 +1185,7 @@ public sealed class ClaudeSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-041")] // ClaudeSession.swift:383-384 - an unrecognized type is silently ignored
+    [Trait("Req", "PR-PROVCLI-041")] // ClaudeSession.swift:381-382 - an unrecognized type is silently ignored
     public void Handle_ignores_an_unrecognized_message_type()
     {
         var events = new List<ProviderEvent>();
@@ -1196,8 +1196,8 @@ public sealed class ClaudeSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-041")] // ClaudeSession.swift:375-382 - the rate_limit_event case of the same dispatch switch
-    [Trait("Req", "UI-PROVCLI-029")] // ClaudeSession.swift:380 - Claude's usage-limit warning notice, with the reset-time suffix
+    [Trait("Req", "PR-PROVCLI-041")] // ClaudeSession.swift:373-380 - the rate_limit_event case of the same dispatch switch
+    [Trait("Req", "UI-PROVCLI-029")] // ClaudeSession.swift:378 - Claude's usage-limit warning notice, with the reset-time suffix
     public void Handle_rate_limit_event_emits_a_warning_notice_and_usageLimit_only_when_rejected()
     {
         var events = new List<ProviderEvent>();
@@ -1217,7 +1217,7 @@ public sealed class ClaudeSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-042")] // ClaudeSession.swift:335-343
+    [Trait("Req", "PR-PROVCLI-042")] // ClaudeSession.swift:334-341
     public Task Control_resolves_by_matching_request_id_and_throws_for_an_error_subtype()
     {
         // Start() spawns the readTask via MainActor.Spawn, which needs a pumped loop to deliver the
@@ -1235,7 +1235,7 @@ public sealed class ClaudeSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-042")] // ClaudeSession.swift:340-341 - the fallback message when no error text is given
+    [Trait("Req", "PR-PROVCLI-042")] // ClaudeSession.swift:338-339 - the fallback message when no error text is given
     public Task Control_error_without_a_message_uses_the_verbatim_fallback()
     {
         using var runtime = new TestRuntime();
@@ -1248,10 +1248,77 @@ public sealed class ClaudeSessionTests
         return Task.CompletedTask;
     }
 
+    // ---- PR-PROVCLI-442 (B3, new) ----
+    //
+    // pendingControl (:37) becomes a PendingReplies<JSONValue> (Control, :301-309): the process/hasClosed
+    // guards and controlCounter's advance run unconditionally first, so a cancelled request still uses up its
+    // id; only PendingReplies.Register's own cancellation check (Core/Support/PendingReplies.swift:17,
+    // PendingRepliesTests.cs) decides whether anything is stored or sent.
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-442")] // ClaudeSession.swift:301-309, Core/Support/PendingReplies.swift:17
+    public void Control_cancelled_before_the_send_throws_writes_nothing_and_still_uses_up_that_request_id()
+    {
+        using var runtime = new TestRuntime();
+        using var storage_runtime = new StorageScratchFolder();
+        var script = Script("control-cancel-before-send");
+        var session = new ClaudeSession(Config(script));
+        RunStart(runtime, session); // consumes id marrow-1 for the initialize handshake
+        var linesBeforeCancel = script.MessageCount(1); // call 1 is the session process (call 0 is --help)
+
+        // Cancel before the loop ever runs the task's body: by the time Control() executes, its ambient task
+        // is already cancelled, matching "a caller already cancelled" (not one cancelled mid-flight).
+        var handle = MainActor.SpawnThrowing(() => session.Control(JSONValue.FromDictionaryLiteral(("subtype", "interrupt"))));
+        handle.Cancel();
+        runtime.RunUntilIdle();
+
+        Assert.True(handle.Value.IsFaulted);
+        Assert.IsType<CancellationError>(handle.Value.Exception!.InnerException);
+        Assert.Equal(linesBeforeCancel, script.MessageCount(1)); // no control_request line was ever written
+
+        // controlCounter still advanced past the cancelled call's id (marrow-2): the next request skips it.
+        runtime.Loop.Run(() => session.Control(JSONValue.FromDictionaryLiteral(("subtype", "interrupt"))), TimeSpan.FromSeconds(10));
+        var nextLine = script.CapturedLine(1, linesBeforeCancel);
+        Assert.Contains("\"request_id\":\"marrow-3\"", nextLine, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-442")] // ClaudeSession.swift:301-309, Core/Support/PendingReplies.swift:31-35,:38-43
+    public void Control_cancelled_while_waiting_throws_and_a_later_reply_for_that_id_is_dropped()
+    {
+        using var runtime = new TestRuntime();
+        using var storage_runtime = new StorageScratchFolder();
+        // The stand-in exits right after answering the handshake (its one scripted reply), so nothing can ever
+        // race in a second, real reply for the request this test cancels: the only way that id resolves is
+        // through this test's own cancellation, never the wire.
+        var script = new ClaudeScript("control-cancel-while-waiting");
+        script.SetResponse(MinimalResponse);
+        script.SetExitAfterReply();
+        var session = new ClaudeSession(Config(script));
+        RunStart(runtime, session); // consumes id marrow-1; the stand-in then exits
+
+        var handle = MainActor.SpawnThrowing(() => session.Control(JSONValue.FromDictionaryLiteral(("subtype", "interrupt"))));
+        runtime.RunUntilIdle(); // registers marrow-2 and runs send(); the dead process can never answer it
+        Assert.False(handle.Value.IsCompleted); // still waiting
+
+        handle.Cancel();
+        runtime.RunUntilIdle();
+        Assert.True(handle.Value.IsFaulted);
+        Assert.IsType<CancellationError>(handle.Value.Exception!.InnerException);
+
+        // A control_response for that id, arriving after the removal, finds no waiting entry and is dropped:
+        // no crash, no second resume (which would trap), and the already-faulted task is unchanged.
+        session.Handle(JSONValue.FromDictionaryLiteral(
+            ("type", "control_response"),
+            ("response", JSONValue.FromDictionaryLiteral(("request_id", "marrow-2"), ("response", JSONValue.FromDictionaryLiteral())))));
+        Assert.True(handle.Value.IsFaulted);
+        Assert.IsType<CancellationError>(handle.Value.Exception!.InnerException);
+    }
+
     // ---- PR-PROVCLI-044 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-044")] // ClaudeSession.swift:390-394
+    [Trait("Req", "PR-PROVCLI-044")] // ClaudeSession.swift:388-392
     public void HandleSystem_init_adopts_a_new_session_id_and_emits_sessionReady_only_when_it_differs()
     {
         var events = new List<ProviderEvent>();
@@ -1269,8 +1336,8 @@ public sealed class ClaudeSessionTests
     // ---- PR-PROVCLI-045 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-045")] // ClaudeSession.swift:395-396
-    [Trait("Req", "UI-PROVCLI-028")] // ClaudeSession.swift:396 - Claude's compaction notice, verbatim "Context compacted."
+    [Trait("Req", "PR-PROVCLI-045")] // ClaudeSession.swift:393-394
+    [Trait("Req", "UI-PROVCLI-028")] // ClaudeSession.swift:394 - Claude's compaction notice, verbatim "Context compacted."
     public void HandleSystem_compact_boundary_emits_the_verbatim_info_notice()
     {
         var events = new List<ProviderEvent>();
@@ -1284,7 +1351,7 @@ public sealed class ClaudeSessionTests
     // ---- PR-PROVCLI-046 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-046")] // ClaudeSession.swift:427-447
+    [Trait("Req", "PR-PROVCLI-046")] // ClaudeSession.swift:425-445
     public void HandleSystem_task_started_registers_an_agent_only_when_it_qualifies()
     {
         var events = new List<ProviderEvent>();
@@ -1319,7 +1386,7 @@ public sealed class ClaudeSessionTests
     // ---- PR-PROVCLI-047 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-047")] // ClaudeSession.swift:399-412
+    [Trait("Req", "PR-PROVCLI-047")] // ClaudeSession.swift:397-410
     public void HandleSystem_task_progress_forwards_summary_lastTool_tokens_and_toolCalls_without_touching_the_ledger()
     {
         var events = new List<ProviderEvent>();
@@ -1336,7 +1403,7 @@ public sealed class ClaudeSessionTests
         Assert.Equal("Read", progress.LastTool);
         Assert.Equal(42, progress.Tokens);
         Assert.Equal(3, progress.ToolCalls);
-        Assert.Empty(events.OfType<ProviderEvent.TokenSpend>()); // never added to the ledger, :402-405
+        Assert.Empty(events.OfType<ProviderEvent.TokenSpend>()); // never added to the ledger, :400-403
 
         events.Clear();
         // Unknown task id: nothing.
@@ -1347,7 +1414,7 @@ public sealed class ClaudeSessionTests
     // ---- PR-PROVCLI-048 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-048")] // ClaudeSession.swift:413-421
+    [Trait("Req", "PR-PROVCLI-048")] // ClaudeSession.swift:411-419
     public void HandleSystem_task_notification_maps_status_strings_and_finishes_the_head()
     {
         var events = new List<ProviderEvent>();
@@ -1384,7 +1451,7 @@ public sealed class ClaudeSessionTests
     // ---- PR-PROVCLI-049 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-049")] // ClaudeSession.swift:352-370
+    [Trait("Req", "PR-PROVCLI-049")] // ClaudeSession.swift:350-368
     public void Handle_keeps_independent_stream_state_per_head_and_wraps_head_events_as_agentEvent()
     {
         var events = new List<ProviderEvent>();
@@ -1427,7 +1494,7 @@ public sealed class ClaudeSessionTests
     // ---- PR-PROVCLI-050 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-050")] // ClaudeSession.swift:457-497
+    [Trait("Req", "PR-PROVCLI-050")] // ClaudeSession.swift:455-495
     public void HandleStreamEvent_opens_and_extends_text_thinking_and_tool_blocks_by_index()
     {
         var events = new List<ProviderEvent>();
@@ -1453,7 +1520,7 @@ public sealed class ClaudeSessionTests
         var toolStart = Assert.Single(events.OfType<ProviderEvent.ToolStarted>());
         Assert.Equal("t1", toolStart.Id);
         Assert.Equal(ToolCall.Kind.Command, toolStart.Call.ToolCallKind);
-        Assert.Equal("Shell command", toolStart.Call.Title); // built from an empty input (:478)
+        Assert.Equal("Shell command", toolStart.Call.Title); // built from an empty input (:476)
         events.Clear();
 
         // A tool_use that maps to no row (TodoWrite, PR-PROVCLI-354) emits nothing.
@@ -1483,8 +1550,8 @@ public sealed class ClaudeSessionTests
     // ---- PR-PROVCLI-051 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-051")] // ClaudeSession.swift:499-519
-    [Trait("Req", "UI-PROVCLI-034")] // ClaudeSession.swift:499-519 - the two synthetic placeholders are dropped, not drawn
+    [Trait("Req", "PR-PROVCLI-051")] // ClaudeSession.swift:497-517
+    [Trait("Req", "UI-PROVCLI-034")] // ClaudeSession.swift:497-517 - the two synthetic placeholders are dropped, not drawn
     public void HandleAssistant_drops_synthetic_placeholders_and_surfaces_synthetic_api_errors_as_warnings()
     {
         var events = new List<ProviderEvent>();
@@ -1530,7 +1597,7 @@ public sealed class ClaudeSessionTests
     // ---- PR-PROVCLI-052 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-052")] // ClaudeSession.swift:520-545
+    [Trait("Req", "PR-PROVCLI-052")] // ClaudeSession.swift:518-543
     public void HandleAssistant_completes_blocks_against_opened_stream_ids_and_mints_uuids_when_none_are_open()
     {
         var events = new List<ProviderEvent>();
@@ -1590,7 +1657,7 @@ public sealed class ClaudeSessionTests
     // ---- PR-PROVCLI-053 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-053")] // ClaudeSession.swift:548-562
+    [Trait("Req", "PR-PROVCLI-053")] // ClaudeSession.swift:546-560
     public void HandleToolResults_closes_the_row_hides_five_tools_and_reads_a_decline_from_the_error_text()
     {
         var events = new List<ProviderEvent>();
@@ -1657,7 +1724,7 @@ public sealed class ClaudeSessionTests
     // ---- PR-PROVCLI-054 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-054")] // ClaudeSession.swift:564-573
+    [Trait("Req", "PR-PROVCLI-054")] // ClaudeSession.swift:562-571
     public void HandleResult_before_started_stores_the_joined_errors_as_launchError_and_emits_no_turn_event()
     {
         var events = new List<ProviderEvent>();
@@ -1675,8 +1742,8 @@ public sealed class ClaudeSessionTests
     // ---- PR-PROVCLI-055 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-055")] // ClaudeSession.swift:574-609
-    [Trait("Req", "UI-PROVCLI-030")] // ClaudeSession.swift:604 - Claude's turn-failure fallback, verbatim "Claude stopped before finishing."
+    [Trait("Req", "PR-PROVCLI-055")] // ClaudeSession.swift:572-607
+    [Trait("Req", "UI-PROVCLI-030")] // ClaudeSession.swift:602 - Claude's turn-failure fallback, verbatim "Claude stopped before finishing."
     public async Task HandleResult_after_start_ends_the_turn_with_usage_spend_cleared_state_and_status()
     {
         using var runtime = new TestRuntime();
@@ -1686,7 +1753,7 @@ public sealed class ClaudeSessionTests
         session.MarkStarted();
         session.SeedPendingTool("req-1", "Bash", JSONValue.FromDictionaryLiteral(("command", "ls")));
 
-        // A head's own stream state (:592-595): populate one head and the lead before the result.
+        // A head's own stream state (:590-593): populate one head and the lead before the result.
         session.Handle(JSONValue.FromDictionaryLiteral(
             ("type", "stream_event"), ("parent_tool_use_id", "head-x"),
             ("event", JSONValue.FromDictionaryLiteral(("type", "message_start"), ("message", JSONValue.FromDictionaryLiteral(("id", "keep-me")))))));
@@ -1701,7 +1768,7 @@ public sealed class ClaudeSessionTests
             ("usage", JSONValue.FromDictionaryLiteral(
                 ("input_tokens", 10L), ("output_tokens", 5L), ("cache_read_input_tokens", 2L), ("cache_creation_input_tokens", 1L))))));
 
-        // usage precedes tokenSpend precedes requestResolved (:576-588).
+        // usage precedes tokenSpend precedes requestResolved (:574-586).
         var usageIndex = events.FindIndex(e => e is ProviderEvent.Usage);
         var spendIndex = events.FindIndex(e => e is ProviderEvent.TokenSpend);
         var resolvedIndex = events.FindIndex(e => e is ProviderEvent.RequestResolved);
@@ -1758,7 +1825,7 @@ public sealed class ClaudeSessionTests
     // ---- PR-PROVCLI-056 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-056")] // ClaudeSession.swift:375-382
+    [Trait("Req", "PR-PROVCLI-056")] // ClaudeSession.swift:373-380
     public void Handle_rate_limit_event_reports_a_rejected_limit_as_warning_plus_usageLimit()
     {
         var events = new List<ProviderEvent>();
@@ -1788,7 +1855,7 @@ public sealed class ClaudeSessionTests
     // ---- PR-PROVCLI-057 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-057")] // ClaudeSession.swift:611-619
+    [Trait("Req", "PR-PROVCLI-057")] // ClaudeSession.swift:609-617
     public void HandleControlRequest_refuses_every_subtype_except_can_use_tool_with_the_marrow_error_string()
     {
         using var runtime = new TestRuntime();
@@ -1816,7 +1883,7 @@ public sealed class ClaudeSessionTests
     // ---- PR-PROVCLI-058 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-058")] // ClaudeSession.swift:620-641
+    [Trait("Req", "PR-PROVCLI-058")] // ClaudeSession.swift:618-639
     public void HandleControlRequest_askUserQuestion_builds_a_multi_question_prompt_that_always_allows_a_free_answer()
     {
         var events = new List<ProviderEvent>();
@@ -1847,10 +1914,10 @@ public sealed class ClaudeSessionTests
     // ---- PR-PROVCLI-059 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-059")] // ClaudeSession.swift:642-653
-    [Trait("Req", "UI-PROVCLI-014")] // ClaudeSession.swift:647 - plan approval title, verbatim "Implement this plan"
-    [Trait("Req", "UI-PROVCLI-004")] // ClaudeSession.swift:649 - "Implement plan" button, id "allow", role approve
-    [Trait("Req", "UI-PROVCLI-005")] // ClaudeSession.swift:650 - "Keep planning" button, id "deny", role decline
+    [Trait("Req", "PR-PROVCLI-059")] // ClaudeSession.swift:640-651
+    [Trait("Req", "UI-PROVCLI-014")] // ClaudeSession.swift:645 - plan approval title, verbatim "Implement this plan"
+    [Trait("Req", "UI-PROVCLI-004")] // ClaudeSession.swift:647 - "Implement plan" button, id "allow", role approve
+    [Trait("Req", "UI-PROVCLI-005")] // ClaudeSession.swift:648 - "Keep planning" button, id "deny", role decline
     public void HandleControlRequest_exitPlanMode_emits_plan_then_a_two_option_approval()
     {
         var events = new List<ProviderEvent>();
@@ -1888,10 +1955,10 @@ public sealed class ClaudeSessionTests
     // ---- PR-PROVCLI-060 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-060")] // ClaudeSession.swift:654-677
-    [Trait("Req", "UI-PROVCLI-001")] // ClaudeSession.swift:663 - "Approve" button, id "allow", role approve
-    [Trait("Req", "UI-PROVCLI-002")] // ClaudeSession.swift:664-666 - "Approve for session" button, id "always", conditional on permission_suggestions
-    [Trait("Req", "UI-PROVCLI-003")] // ClaudeSession.swift:667 - "Decline" button, id "deny", role decline
+    [Trait("Req", "PR-PROVCLI-060")] // ClaudeSession.swift:652-675
+    [Trait("Req", "UI-PROVCLI-001")] // ClaudeSession.swift:661 - "Approve" button, id "allow", role approve
+    [Trait("Req", "UI-PROVCLI-002")] // ClaudeSession.swift:662-664 - "Approve for session" button, id "always", conditional on permission_suggestions
+    [Trait("Req", "UI-PROVCLI-003")] // ClaudeSession.swift:665 - "Decline" button, id "deny", role decline
     public void HandleControlRequest_default_tool_builds_an_approval_whose_kind_follows_the_call_with_edits_suppressed()
     {
         var events = new List<ProviderEvent>();
@@ -1948,7 +2015,7 @@ public sealed class ClaudeSessionTests
     // ---- PR-PROVCLI-061 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-061")] // ClaudeSession.swift:680-698
+    [Trait("Req", "PR-PROVCLI-061")] // ClaudeSession.swift:678-692
     public void DidClose_fails_every_waiting_request_clears_prompts_and_reports_exited_only_for_a_started_session()
     {
         using var runtime = new TestRuntime();
@@ -1976,7 +2043,7 @@ public sealed class ClaudeSessionTests
     // ---- PR-PROVCLI-062 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-062")] // ClaudeSession.swift:705-763
+    [Trait("Req", "PR-PROVCLI-062")] // ClaudeSession.swift:699-757
     public void ToolCall_dispatches_by_exact_case_sensitive_name_and_the_default_falls_through_to_other()
     {
         var session = new ClaudeSession(MinimalConfig());
@@ -1984,7 +2051,7 @@ public sealed class ClaudeSessionTests
         // Case sensitive, no normalization: a differently-cased name is unrecognized.
         var lower = session.ToolCall("bash", JSONValue.FromDictionaryLiteral(("command", "ls")))!;
         Assert.Equal(ToolCall.Kind.Other, lower.ToolCallKind);
-        Assert.Equal("bash", lower.Title); // the catch-all default (:761), not Bash's own command title
+        Assert.Equal("bash", lower.Title); // the catch-all default (:755), not Bash's own command title
 
         // withEdits is read only by Write/Edit/MultiEdit; Bash and Read ignore it either way.
         Assert.Empty(session.ToolCall("Bash", JSONValue.FromDictionaryLiteral(("command", "ls")), withEdits: false)!.Edits);
@@ -1994,7 +2061,7 @@ public sealed class ClaudeSessionTests
     // ---- PR-PROVCLI-354 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-354")] // ClaudeSession.swift:709-711
+    [Trait("Req", "PR-PROVCLI-354")] // ClaudeSession.swift:703-705
     public void ToolCall_five_hidden_tools_never_make_a_row()
     {
         var session = new ClaudeSession(MinimalConfig());
@@ -2005,7 +2072,7 @@ public sealed class ClaudeSessionTests
     // ---- PR-PROVCLI-355 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-355")] // ClaudeSession.swift:712-713
+    [Trait("Req", "PR-PROVCLI-355")] // ClaudeSession.swift:706-707
     public void ToolCall_bash_titles_the_row_with_the_command_and_subtitles_with_the_description()
     {
         var session = new ClaudeSession(MinimalConfig());
@@ -2022,7 +2089,7 @@ public sealed class ClaudeSessionTests
     // ---- PR-PROVCLI-356 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-356")] // ClaudeSession.swift:714-715
+    [Trait("Req", "PR-PROVCLI-356")] // ClaudeSession.swift:708-709
     public void ToolCall_six_shell_management_tools_title_the_row_with_the_tool_name_verbatim()
     {
         var session = new ClaudeSession(MinimalConfig());
@@ -2038,7 +2105,7 @@ public sealed class ClaudeSessionTests
     // ---- PR-PROVCLI-357 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-357")] // ClaudeSession.swift:716-717
+    [Trait("Req", "PR-PROVCLI-357")] // ClaudeSession.swift:710-711
     public void ToolCall_read_titles_the_row_with_the_relative_file_path()
     {
         var session = new ClaudeSession(MinimalConfig());
@@ -2055,7 +2122,7 @@ public sealed class ClaudeSessionTests
     // ---- PR-PROVCLI-358 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-358")] // ClaudeSession.swift:718-723
+    [Trait("Req", "PR-PROVCLI-358")] // ClaudeSession.swift:712-717
     public void ToolCall_write_makes_an_edit_row_whose_single_fileEdit_has_an_empty_old_side()
     {
         var session = new ClaudeSession(MinimalConfig());
@@ -2080,7 +2147,7 @@ public sealed class ClaudeSessionTests
     // ---- PR-PROVCLI-359 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-359")] // ClaudeSession.swift:724-729
+    [Trait("Req", "PR-PROVCLI-359")] // ClaudeSession.swift:718-723
     public void ToolCall_edit_makes_an_edit_row_whose_single_fileEdit_takes_both_sides_defaulting_to_empty()
     {
         var session = new ClaudeSession(MinimalConfig());
@@ -2103,7 +2170,7 @@ public sealed class ClaudeSessionTests
     // ---- PR-PROVCLI-360 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-360")] // ClaudeSession.swift:730-737
+    [Trait("Req", "PR-PROVCLI-360")] // ClaudeSession.swift:724-731
     public void ToolCall_multiEdit_makes_one_row_with_one_fileEdit_per_entry_against_the_same_path()
     {
         var session = new ClaudeSession(MinimalConfig());
@@ -2128,7 +2195,7 @@ public sealed class ClaudeSessionTests
     // ---- PR-PROVCLI-361 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-361")] // ClaudeSession.swift:738-739
+    [Trait("Req", "PR-PROVCLI-361")] // ClaudeSession.swift:732-733
     public void ToolCall_notebookEdit_titles_from_notebook_path_and_attaches_no_edits()
     {
         var session = new ClaudeSession(MinimalConfig());
@@ -2146,33 +2213,56 @@ public sealed class ClaudeSessionTests
     }
 
     // ---- PR-PROVCLI-063 ----
+    //
+    // B3: todos(from:) (old ClaudeSession.swift:765-775) was deleted; TodoWrite now goes through the shared
+    // ACPSession.ParseTodoItems (ClaudeSession.swift:534-535). Its own key-order/blank-drop/seven-status
+    // combinatorics are already exhaustively covered where that parser lives
+    // (ACPSessionTests.ParseTodoItems_takes_the_first_of_four_keys_maps_seven_statuses_and_defaults_to_pending,
+    // PR-PROVACP-087, "already B3-correct" per the lane record's b3_note); this test proves ClaudeSession's own
+    // wiring: input["todos"] reaches the shared parser unchanged (so its key fallback order and blank-drop
+    // both show through here too, not just a hard-coded "content"/two-status subset), the result is emitted
+    // as a single .todos event and never as a tool row, and a missing todos array still emits (empty).
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-063")] // ClaudeSession.swift:765-775
-    public void Todos_maps_three_status_strings_and_skips_entries_without_content()
+    [Trait("Req", "PR-PROVCLI-063")] // ClaudeSession.swift:534-535, ACPSession.swift:685-699
+    public void HandleAssistant_TodoWrite_delegates_to_the_shared_parser_key_fallback_blank_drop_included()
     {
-        var todos = JSONValue.FromArrayLiteral(
-            JSONValue.FromDictionaryLiteral(("content", "done one"), ("status", "completed")),
-            JSONValue.FromDictionaryLiteral(("content", "active one"), ("status", "in_progress")),
-            JSONValue.FromDictionaryLiteral(("content", "pending one"), ("status", "something_else")),
-            JSONValue.FromDictionaryLiteral(("content", "no status one")),
-            JSONValue.FromDictionaryLiteral(("status", "completed"))); // no "content": skipped
-        var input = JSONValue.FromDictionaryLiteral(("todos", todos));
-        var steps = ClaudeSession.Todos(input);
-        Assert.Equal(4, steps.Count);
-        Assert.Equal(TodoStep.Status.Done, steps[0].TodoStepStatus);
-        Assert.Equal(TodoStep.Status.Active, steps[1].TodoStepStatus);
-        Assert.Equal(TodoStep.Status.Pending, steps[2].TodoStepStatus);
-        Assert.Equal(TodoStep.Status.Pending, steps[3].TodoStepStatus); // missing status also -> pending
-        Assert.Equal("done one", steps[0].Text);
+        var events = new List<ProviderEvent>();
+        var session = new ClaudeSession(MinimalConfig());
+        var stream = new ClaudeSession.StreamState();
 
-        Assert.Empty(ClaudeSession.Todos(JSONValue.FromDictionaryLiteral())); // a missing todos array yields an empty list
+        var todos = JSONValue.FromArrayLiteral(
+            JSONValue.FromDictionaryLiteral(("content", "from content"), ("status", "completed")),
+            JSONValue.FromDictionaryLiteral(("text", "from text"), ("status", "active")), // content absent: falls back to text
+            JSONValue.FromDictionaryLiteral(("step", "from step")), // content/text absent: falls back to step; no status -> pending
+            JSONValue.FromDictionaryLiteral(("title", "from title")), // content/text/step all absent: falls back to title
+            JSONValue.FromDictionaryLiteral(("content", "   \n"), ("text", "never reached")), // blank content is NOT replaced by a later key: dropped
+            new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>()))); // none of the four keys: dropped
+        var input = JSONValue.FromDictionaryLiteral(("todos", todos));
+        var block = JSONValue.FromDictionaryLiteral(("type", "tool_use"), ("id", "t-todo"), ("name", "TodoWrite"), ("input", input));
+        var message = JSONValue.FromDictionaryLiteral(("message", JSONValue.FromDictionaryLiteral(("id", "m1"), ("content", JSONValue.FromArrayLiteral(block)))));
+        session.HandleAssistant(message, ref stream, events.Add);
+
+        var emitted = Assert.Single(events.OfType<ProviderEvent.Todos>()); // exactly one .todos event
+        Assert.Equal(["from content", "from text", "from step", "from title"], emitted.Value.Select(s => s.Text));
+        Assert.Equal(TodoStep.Status.Done, emitted.Value[0].TodoStepStatus);
+        Assert.Equal(TodoStep.Status.Active, emitted.Value[1].TodoStepStatus);
+        Assert.Equal(TodoStep.Status.Pending, emitted.Value[2].TodoStepStatus); // missing status -> pending
+        Assert.Equal(TodoStep.Status.Pending, emitted.Value[3].TodoStepStatus);
+        Assert.Empty(events.OfType<ProviderEvent.ToolStarted>()); // never a tool row (hiddenResultTools/toolCall both exclude it)
+
+        // A missing todos array still emits, as an empty list.
+        events.Clear();
+        var emptyBlock = JSONValue.FromDictionaryLiteral(("type", "tool_use"), ("id", "t-todo-2"), ("name", "TodoWrite"), ("input", JSONValue.FromDictionaryLiteral()));
+        var emptyMessage = JSONValue.FromDictionaryLiteral(("message", JSONValue.FromDictionaryLiteral(("id", "m2"), ("content", JSONValue.FromArrayLiteral(emptyBlock)))));
+        session.HandleAssistant(emptyMessage, ref stream, events.Add);
+        Assert.Empty(Assert.Single(events.OfType<ProviderEvent.Todos>()).Value);
     }
 
     // ---- PR-PROVCLI-064 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-064")] // ClaudeSession.swift:783-797, :826-836
+    [Trait("Req", "PR-PROVCLI-064")] // ClaudeSession.swift:759-773, :802-812
     public void TurnSpend_sums_four_token_fields_across_iterations_while_contextUsage_reads_the_last_iteration()
     {
         // No usage object: zero spend, no context usage.
@@ -2227,8 +2317,8 @@ public sealed class ClaudeSessionTests
     // ---- PR-PROVCLI-362 to PR-PROVCLI-370, UI-PROVCLI-031 (part 4) ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-362")] // ClaudeSession.swift:740-741
-    [Trait("Req", "UI-PROVCLI-031")] // ClaudeSession.swift:740-741 - Claude's fallback title "Find files"
+    [Trait("Req", "PR-PROVCLI-362")] // ClaudeSession.swift:734-735
+    [Trait("Req", "UI-PROVCLI-031")] // ClaudeSession.swift:734-735 - Claude's fallback title "Find files"
     public void ToolCall_glob_titles_with_the_pattern_and_subtitles_with_the_relative_search_path()
     {
         var session = new ClaudeSession(MinimalConfig());
@@ -2244,8 +2334,8 @@ public sealed class ClaudeSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-363")] // ClaudeSession.swift:742-743
-    [Trait("Req", "UI-PROVCLI-031")] // ClaudeSession.swift:742-743 - Claude's fallback title "Search", one word apart from Glob's "Find files"
+    [Trait("Req", "PR-PROVCLI-363")] // ClaudeSession.swift:736-737
+    [Trait("Req", "UI-PROVCLI-031")] // ClaudeSession.swift:736-737 - Claude's fallback title "Search", one word apart from Glob's "Find files"
     public void ToolCall_grep_titles_with_the_pattern_and_subtitles_with_the_relative_search_path()
     {
         var session = new ClaudeSession(MinimalConfig());
@@ -2260,8 +2350,8 @@ public sealed class ClaudeSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-364")] // ClaudeSession.swift:744-745
-    [Trait("Req", "UI-PROVCLI-031")] // ClaudeSession.swift:744-745 - Claude's fallback title "List files"
+    [Trait("Req", "PR-PROVCLI-364")] // ClaudeSession.swift:738-739
+    [Trait("Req", "UI-PROVCLI-031")] // ClaudeSession.swift:738-739 - Claude's fallback title "List files"
     public void ToolCall_ls_titles_with_the_relative_path_and_has_no_subtitle()
     {
         var session = new ClaudeSession(MinimalConfig());
@@ -2275,8 +2365,8 @@ public sealed class ClaudeSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-365")] // ClaudeSession.swift:746-747
-    [Trait("Req", "UI-PROVCLI-031")] // ClaudeSession.swift:746-747 - Claude's fallback title "Fetch page"
+    [Trait("Req", "PR-PROVCLI-365")] // ClaudeSession.swift:740-741
+    [Trait("Req", "UI-PROVCLI-031")] // ClaudeSession.swift:740-741 - Claude's fallback title "Fetch page"
     public void ToolCall_webFetch_titles_with_the_raw_url_and_has_no_subtitle()
     {
         var session = new ClaudeSession(MinimalConfig());
@@ -2290,8 +2380,8 @@ public sealed class ClaudeSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-366")] // ClaudeSession.swift:748-749
-    [Trait("Req", "UI-PROVCLI-031")] // ClaudeSession.swift:748-749 - Claude's fallback title "Search the web"
+    [Trait("Req", "PR-PROVCLI-366")] // ClaudeSession.swift:742-743
+    [Trait("Req", "UI-PROVCLI-031")] // ClaudeSession.swift:742-743 - Claude's fallback title "Search the web"
     public void ToolCall_webSearch_titles_with_the_query_and_has_no_subtitle()
     {
         var session = new ClaudeSession(MinimalConfig());
@@ -2305,8 +2395,8 @@ public sealed class ClaudeSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-367")] // ClaudeSession.swift:750-751
-    [Trait("Req", "UI-PROVCLI-031")] // ClaudeSession.swift:750-751 - Claude's fallback title "Subagent"
+    [Trait("Req", "PR-PROVCLI-367")] // ClaudeSession.swift:744-745
+    [Trait("Req", "UI-PROVCLI-031")] // ClaudeSession.swift:744-745 - Claude's fallback title "Subagent"
     public void ToolCall_task_and_agent_both_title_with_the_description_and_subtitle_with_the_subagent_type()
     {
         var session = new ClaudeSession(MinimalConfig());
@@ -2324,7 +2414,7 @@ public sealed class ClaudeSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-368")] // ClaudeSession.swift:752-753
+    [Trait("Req", "PR-PROVCLI-368")] // ClaudeSession.swift:746-747
     public void ToolCall_skill_titles_with_Skill_middle_dot_and_the_skill_name_falling_back_to_command_then_empty()
     {
         var session = new ClaudeSession(MinimalConfig());
@@ -2341,7 +2431,7 @@ public sealed class ClaudeSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-369")] // ClaudeSession.swift:754-760
+    [Trait("Req", "PR-PROVCLI-369")] // ClaudeSession.swift:748-754
     public void ToolCall_unrecognized_mcp_prefixed_name_splits_into_server_and_tool_rejoining_extra_underscored_segments()
     {
         var session = new ClaudeSession(MinimalConfig());
@@ -2368,7 +2458,7 @@ public sealed class ClaudeSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-370")] // ClaudeSession.swift:761
+    [Trait("Req", "PR-PROVCLI-370")] // ClaudeSession.swift:755
     public void ToolCall_any_other_unrecognized_name_becomes_an_other_row_titled_with_its_name_verbatim()
     {
         var session = new ClaudeSession(MinimalConfig());
@@ -2382,10 +2472,10 @@ public sealed class ClaudeSessionTests
     // ---- PR-PROVCLI-439 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-439")] // ClaudeSession.swift:799-824, :35,:62,:222-225, :583
+    [Trait("Req", "PR-PROVCLI-439")] // ClaudeSession.swift:775-800, :35,:62,:222-225, :581
     public void HandleResult_turnSpendEvent_carries_the_sessions_own_stored_model()
     {
-        // model starts as configuration.model at init (:35,:62) and HandleResult (:583) passes it through
+        // model starts as configuration.model at init (:35,:62) and HandleResult (:581) passes it through
         // to TurnSpendEvent unchanged, including the literal "default".
         using var storage_runtime = new StorageScratchFolder();
         using var runtime = new TestRuntime();

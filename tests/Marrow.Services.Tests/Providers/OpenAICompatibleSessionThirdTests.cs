@@ -9,8 +9,8 @@ using Xunit;
 
 namespace Marrow.Services.Tests.Providers;
 
-// Source: DroppyCode/Services/Providers/OpenAICompatibleSession.swift (B2 1fbf81e), :699-707,
-// :817-851, :1035-1090, :1098-1330.
+// Source: DroppyCode/Services/Providers/OpenAICompatibleSession.swift (B3 52bc792), :699-707,
+// :817-851, :1035-1088, :1096-1328.
 //
 // Part 3 of 5 (PR-PROVAPI-137 to 161, excluding 148 which does not exist): condensing and
 // trimming history, repairing the tool-call chain, the system prompt (identity, mode lines,
@@ -170,7 +170,7 @@ public sealed class OpenAICompatibleSessionThirdTests
     // ---- PR-PROVAPI-138 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-138")] // OpenAICompatibleSession.swift:77-80, :1098-1116
+    [Trait("Req", "PR-PROVAPI-138")] // OpenAICompatibleSession.swift:77-80, :1096-1114
     public void CondenseHistory_shortens_older_tool_results_once_they_total_more_than_160000_bytes()
     {
         var session = new OpenAICompatibleSessionTestSeam(MakeConfig(), MakeSessionConfiguration());
@@ -192,7 +192,7 @@ public sealed class OpenAICompatibleSessionThirdTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-138")] // OpenAICompatibleSession.swift:1105
+    [Trait("Req", "PR-PROVAPI-138")] // OpenAICompatibleSession.swift:1103
     public void CondenseHistory_does_nothing_when_total_tool_content_is_160000_bytes_or_less()
     {
         var session = new OpenAICompatibleSessionTestSeam(MakeConfig(), MakeSessionConfiguration());
@@ -205,7 +205,7 @@ public sealed class OpenAICompatibleSessionThirdTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-138")] // OpenAICompatibleSession.swift:1108-1109 - a short or already-condensed result is skipped
+    [Trait("Req", "PR-PROVAPI-138")] // OpenAICompatibleSession.swift:1106-1107 - a short or already-condensed result is skipped
     public void CondenseHistory_skips_a_short_result_and_one_already_condensed()
     {
         var session = new OpenAICompatibleSessionTestSeam(MakeConfig(), MakeSessionConfiguration());
@@ -224,7 +224,7 @@ public sealed class OpenAICompatibleSessionThirdTests
     // ---- PR-PROVAPI-139 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-139")] // OpenAICompatibleSession.swift:1247-1260
+    [Trait("Req", "PR-PROVAPI-139")] // OpenAICompatibleSession.swift:1245-1258
     public void TrimHistory_does_nothing_at_60_messages_or_fewer()
     {
         var session = new OpenAICompatibleSessionTestSeam(MakeConfig(), MakeSessionConfiguration());
@@ -238,7 +238,7 @@ public sealed class OpenAICompatibleSessionThirdTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-139")] // OpenAICompatibleSession.swift:1253-1259
+    [Trait("Req", "PR-PROVAPI-139")] // OpenAICompatibleSession.swift:1251-1257
     public void TrimHistory_keeps_the_system_message_the_whole_running_turn_and_earlier_up_to_50()
     {
         var session = new OpenAICompatibleSessionTestSeam(MakeConfig(), MakeSessionConfiguration());
@@ -266,7 +266,7 @@ public sealed class OpenAICompatibleSessionThirdTests
     // ---- PR-PROVAPI-140 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-140")] // OpenAICompatibleSession.swift:1268-1324 - an orphaned tool message is dropped
+    [Trait("Req", "PR-PROVAPI-140")] // OpenAICompatibleSession.swift:1266-1322 - an orphaned tool message is dropped
     public void SanitizeHistory_drops_a_tool_message_whose_assistant_call_is_gone()
     {
         var session = new OpenAICompatibleSessionTestSeam(MakeConfig(), MakeSessionConfiguration());
@@ -285,7 +285,7 @@ public sealed class OpenAICompatibleSessionThirdTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-140")] // OpenAICompatibleSession.swift:1284-1291 - an unanswered call is stripped; an emptied assistant message is dropped
+    [Trait("Req", "PR-PROVAPI-140")] // OpenAICompatibleSession.swift:1282-1289 - an unanswered call is stripped; an emptied assistant message is dropped
     public void SanitizeHistory_strips_an_unanswered_tool_call_and_drops_the_assistant_message_if_left_empty()
     {
         var session = new OpenAICompatibleSessionTestSeam(MakeConfig(), MakeSessionConfiguration());
@@ -313,7 +313,7 @@ public sealed class OpenAICompatibleSessionThirdTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-140")] // OpenAICompatibleSession.swift:1284-1289 - all calls stripped and no text: the assistant message itself is dropped
+    [Trait("Req", "PR-PROVAPI-140")] // OpenAICompatibleSession.swift:1282-1287 - all calls stripped and no text: the assistant message itself is dropped
     public void SanitizeHistory_drops_an_assistant_message_left_with_no_calls_and_no_text()
     {
         var session = new OpenAICompatibleSessionTestSeam(MakeConfig(), MakeSessionConfiguration());
@@ -336,7 +336,7 @@ public sealed class OpenAICompatibleSessionThirdTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-140")] // OpenAICompatibleSession.swift:1300-1309 - a real chain survives untouched
+    [Trait("Req", "PR-PROVAPI-140")] // OpenAICompatibleSession.swift:1298-1307 - a real chain survives untouched
     public void SanitizeHistory_keeps_an_answered_tool_chain_intact()
     {
         var session = new OpenAICompatibleSessionTestSeam(MakeConfig(), MakeSessionConfiguration());
@@ -363,7 +363,7 @@ public sealed class OpenAICompatibleSessionThirdTests
     // ---- PR-PROVAPI-141, 142, 143, 144, 145 ----
 
     [Theory]
-    [Trait("Req", "PR-PROVAPI-141")] // OpenAICompatibleSession.swift:1202 - DEVIATION OD-0012 F1
+    [Trait("Req", "PR-PROVAPI-141")] // OpenAICompatibleSession.swift:1200 - DEVIATION OD-0012 F1
     [InlineData(InteractionMode.Plan, RuntimeMode.FullAccess)]
     [InlineData(InteractionMode.Build, RuntimeMode.Supervised)]
     public void SystemPrompt_identity_line_names_Marrow_the_agent_identity_the_directory_and_Windows(InteractionMode interactionMode, RuntimeMode runtimeMode)
@@ -380,7 +380,7 @@ public sealed class OpenAICompatibleSessionThirdTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-142")] // OpenAICompatibleSession.swift:1179-1180
+    [Trait("Req", "PR-PROVAPI-142")] // OpenAICompatibleSession.swift:1177-1178
     public void SystemPrompt_plan_mode_line_wins_regardless_of_runtime_mode()
     {
         var session = new OpenAICompatibleSessionTestSeam(MakeConfig(), MakeSessionConfiguration(RuntimeMode.FullAccess, InteractionMode.Plan));
@@ -393,7 +393,7 @@ public sealed class OpenAICompatibleSessionThirdTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-143")] // OpenAICompatibleSession.swift:1182 - DEVIATION OD-0012 F1
+    [Trait("Req", "PR-PROVAPI-143")] // OpenAICompatibleSession.swift:1180 - DEVIATION OD-0012 F1
     public void SystemPrompt_supervised_mode_line_names_Marrow()
     {
         var session = new OpenAICompatibleSessionTestSeam(MakeConfig(), MakeSessionConfiguration(RuntimeMode.Supervised, InteractionMode.Build));
@@ -406,7 +406,7 @@ public sealed class OpenAICompatibleSessionThirdTests
     }
 
     [Theory]
-    [Trait("Req", "PR-PROVAPI-144")] // OpenAICompatibleSession.swift:1184 - DEVIATION OD-0012 F1
+    [Trait("Req", "PR-PROVAPI-144")] // OpenAICompatibleSession.swift:1182 - DEVIATION OD-0012 F1
     [InlineData(RuntimeMode.AutoAcceptEdits)]
     [InlineData(RuntimeMode.Auto)]
     public void SystemPrompt_autoAcceptEdits_and_auto_share_one_line_naming_Marrow(RuntimeMode runtimeMode)
@@ -421,7 +421,7 @@ public sealed class OpenAICompatibleSessionThirdTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-145")] // OpenAICompatibleSession.swift:1186
+    [Trait("Req", "PR-PROVAPI-145")] // OpenAICompatibleSession.swift:1184
     public void SystemPrompt_full_access_mode_line_asks_nothing()
     {
         var session = new OpenAICompatibleSessionTestSeam(MakeConfig(), MakeSessionConfiguration(RuntimeMode.FullAccess, InteractionMode.Build));
@@ -434,7 +434,7 @@ public sealed class OpenAICompatibleSessionThirdTests
     // ---- PR-PROVAPI-146 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-146")] // OpenAICompatibleSession.swift:1188-1200 - anti-slop always present, Hydra policy only with a launch
+    [Trait("Req", "PR-PROVAPI-146")] // OpenAICompatibleSession.swift:1186-1198 - anti-slop always present, Hydra policy only with a launch
     public void SystemPrompt_always_carries_the_anti_slop_notice_and_the_Hydra_policy_only_when_launched()
     {
         var withoutHydra = new OpenAICompatibleSessionTestSeam(MakeConfig(), MakeSessionConfiguration(hydra: null, antiSlopEnabled: false));
@@ -455,7 +455,7 @@ public sealed class OpenAICompatibleSessionThirdTests
     // ---- PR-PROVAPI-147 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-147")] // OpenAICompatibleSession.swift:1172-1175 - only index 0 is rebuilt, in place
+    [Trait("Req", "PR-PROVAPI-147")] // OpenAICompatibleSession.swift:1170-1173 - only index 0 is rebuilt, in place
     public async Task RefreshSystemPrompt_rewrites_only_the_first_message_each_turn()
     {
         using var runtime = new TestRuntime();
@@ -476,7 +476,7 @@ public sealed class OpenAICompatibleSessionThirdTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-147")] // OpenAICompatibleSession.swift:1173 - a history not starting with system is left alone entirely
+    [Trait("Req", "PR-PROVAPI-147")] // OpenAICompatibleSession.swift:1171 - a history not starting with system is left alone entirely
     public void RefreshSystemPrompt_does_nothing_when_the_first_message_is_not_system()
     {
         var session = new OpenAICompatibleSessionTestSeam(MakeConfig(), MakeSessionConfiguration());
@@ -491,7 +491,7 @@ public sealed class OpenAICompatibleSessionThirdTests
     // ---- PR-PROVAPI-149, 150, 151 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-149")] // OpenAICompatibleSession.swift:1217-1220 - no usable images: a plain string
+    [Trait("Req", "PR-PROVAPI-149")] // OpenAICompatibleSession.swift:1215-1218 - no usable images: a plain string
     public async Task UserContentValue_with_no_images_is_a_plain_string()
     {
         using var runtime = new TestRuntime();
@@ -508,7 +508,7 @@ public sealed class OpenAICompatibleSessionThirdTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-150")] // OpenAICompatibleSession.swift:1219-1223 - images with a non-vision model: named in the text
+    [Trait("Req", "PR-PROVAPI-150")] // OpenAICompatibleSession.swift:1217-1221 - images with a non-vision model: named in the text
     public async Task UserContentValue_with_images_and_a_non_vision_model_names_them_in_the_text()
     {
         var path = Path.Combine(TempDir(), "a.bmp");
@@ -530,7 +530,7 @@ public sealed class OpenAICompatibleSessionThirdTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-151")] // OpenAICompatibleSession.swift:1224-1229 - a vision model gets a text part then image_url parts, capped at four
+    [Trait("Req", "PR-PROVAPI-151")] // OpenAICompatibleSession.swift:1222-1227 - a vision model gets a text part then image_url parts, capped at four
     public async Task UserContentValue_with_a_vision_model_sends_text_then_up_to_four_image_url_parts()
     {
         var path = Path.Combine(TempDir(), "a.bmp");
@@ -557,7 +557,7 @@ public sealed class OpenAICompatibleSessionThirdTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-151")] // OpenAICompatibleSession.swift:1225-1226 - a downscaled image's data URL carries its own (jpeg) mime type
+    [Trait("Req", "PR-PROVAPI-151")] // OpenAICompatibleSession.swift:1223-1224 - a downscaled image's data URL carries its own (jpeg) mime type
     public async Task UserContentValue_data_URL_mime_type_follows_the_downscaled_image_when_over_2000px()
     {
         var path = Path.Combine(TempDir(), "big.bmp");
@@ -578,7 +578,7 @@ public sealed class OpenAICompatibleSessionThirdTests
     // ---- PR-PROVAPI-152 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-152")] // OpenAICompatibleSession.swift:1236-1245 - reasoning_content present (even empty) only when the provider replays it; tool_calls only when there are any
+    [Trait("Req", "PR-PROVAPI-152")] // OpenAICompatibleSession.swift:1234-1243 - reasoning_content present (even empty) only when the provider replays it; tool_calls only when there are any
     public async Task AssistantTurn_carries_reasoning_content_only_when_configured_and_tool_calls_only_when_present()
     {
         using var runtime = new TestRuntime();
@@ -615,7 +615,7 @@ public sealed class OpenAICompatibleSessionThirdTests
     // ---- PR-PROVAPI-153 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-153")] // OpenAICompatibleSession.swift:1326-1330
+    [Trait("Req", "PR-PROVAPI-153")] // OpenAICompatibleSession.swift:1324-1328
     public void Summary_leaves_short_text_unchanged_and_truncates_long_text_with_the_marker()
     {
         Assert.Equal("short", OpenAICompatibleSession.SummaryForTests("short", 4000));
@@ -626,7 +626,7 @@ public sealed class OpenAICompatibleSessionThirdTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-153")] // OpenAICompatibleSession.swift:1328 - a text whose byte count exceeds the limit but whose character count does not is left whole
+    [Trait("Req", "PR-PROVAPI-153")] // OpenAICompatibleSession.swift:1326 - a text whose byte count exceeds the limit but whose character count does not is left whole
     public void Summary_leaves_text_whole_when_only_its_byte_count_exceeds_the_limit()
     {
         var text = new string('\u00e9', 6); // each is 2 UTF-8 bytes: 6 chars, 12 bytes
@@ -750,7 +750,12 @@ public sealed class OpenAICompatibleSessionThirdTests
     {
         using var runtime = new TestRuntime();
         var session = new OpenAICompatibleSessionTestSeam(MakeConfig(), MakeSessionConfiguration(RuntimeMode.Supervised, InteractionMode.Build)).Wired();
-        var task = session.ApproveIfNeededForTests(toolKind, "do it", "detail text", "item-1");
+        // Started through runtime.OnMain, not called directly on the xUnit test thread: see the comment on
+        // ApproveIfNeeded_resolves_true_on_allow_and_false_on_decline below for why a direct call captures
+        // xUnit's own SynchronizationContext instead of runtime.Loop's, racing ResolveApproval against the
+        // continuation that registers the pending approval. This test hit that same race under the parallel
+        // suite (a recurring provider test-host abort with zero assertion failures, blaming this theory).
+        var task = runtime.OnMain(() => session.ApproveIfNeededForTests(toolKind, "do it", "detail text", "item-1"));
         runtime.Loop.RunUntilIdle();
 
         var request = session.Events.OfType<ProviderEvent.Approval>().Single().Value;
@@ -769,26 +774,28 @@ public sealed class OpenAICompatibleSessionThirdTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-161")] // OpenAICompatibleSession.swift:1078-1089 - approving resolves true, declining resolves false
+    [Trait("Req", "PR-PROVAPI-161")] // OpenAICompatibleSession.swift:1076-1087 - approving resolves true, declining resolves false
     public async Task ApproveIfNeeded_resolves_true_on_allow_and_false_on_decline()
     {
         using var runtime = new TestRuntime();
         var session = new OpenAICompatibleSessionTestSeam(MakeConfig(), MakeSessionConfiguration(RuntimeMode.Supervised, InteractionMode.Build)).Wired();
 
-        // Started through runtime.OnMain (not called directly on the xUnit test thread): ApproveIfNeeded's
-        // first suspension is `await MainActor.Run(...)` (OpenAICompatibleSession.cs:1377), and an await
-        // captures whatever SynchronizationContext.Current is at the call site. Called directly, that is
-        // xUnit's own AsyncTestSyncContext, not runtime.Loop's - so the continuation that registers the
-        // pending approval (:1389, `pendingApprovals[id] = continuation`) resumes on an arbitrary thread
-        // pool thread, racing the very next line here (ResolveApproval) instead of being ordered by
-        // runtime.Loop.RunUntilIdle() as ManualMainLoop's contract requires ("every await in main-actor
-        // code resumes back into the loop", ManualMainLoop.cs:6-9). Losing that race drops ResolveApproval
-        // before the continuation is registered, so nothing ever resumes it and `await allowTask` hangs
-        // forever - reproduced deterministically (5/5 isolated runs) before this fix. Driving the call
-        // through runtime.OnMain runs ApproveIfNeeded's synchronous prefix inside Loop.Pump, where
-        // MainActor.Run's executor.CheckAccess() is true (ManualMainLoop.CheckAccess :29), so it completes
-        // inline (MainActor.cs:94-98) and every await, including the later approval wait, correctly
-        // captures the loop's own SynchronizationContext.
+        // Started through runtime.OnMain, consistent with how this suite drives every async provider
+        // call (ManualMainLoop.cs:6-9: "every await in main-actor code resumes back into the loop").
+        // Before B3 removed the `MainActor.Run` wrapper around the approval event post (:1073),
+        // ApproveIfNeeded's first suspension was that hop, and an await captures whatever
+        // SynchronizationContext.Current is at the call site: called directly (not through
+        // runtime.OnMain), that was xUnit's own AsyncTestSyncContext, not runtime.Loop's - so the
+        // continuation that registers the pending approval (:1080, `pendingApprovals[id] = continuation`)
+        // resumed on an arbitrary thread pool thread, racing the very next line here (ResolveApproval)
+        // instead of being ordered by runtime.Loop.RunUntilIdle(). Losing that race dropped
+        // ResolveApproval before the continuation was registered, so nothing ever resumed it and
+        // `await allowTask` hung forever - reproduced deterministically (5/5 isolated runs) before the
+        // fix that added runtime.OnMain here. B3's direct event post removes that race outright: the
+        // event fires and the continuation registers synchronously, with no suspension in between, so
+        // calling this seam directly would no longer hang either. runtime.OnMain is kept regardless,
+        // since it remains correct and this test's job is the allow/decline outcome, not the dispatch
+        // mechanism.
         var allowTask = runtime.OnMain(() => session.ApproveIfNeededForTests(ToolCall.Kind.Command, "run", null, null));
         var allowId = session.Events.OfType<ProviderEvent.Approval>().Single().Value.Id;
         session.ResolveApproval(allowId, "allow");
@@ -797,13 +804,16 @@ public sealed class OpenAICompatibleSessionThirdTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-161")] // OpenAICompatibleSession.swift:1084-1088 - cancelling the wait resolves false and removes the pending entry
+    [Trait("Req", "PR-PROVAPI-161")] // OpenAICompatibleSession.swift:1082-1086 - cancelling the wait resolves false and removes the pending entry
     public async Task ApproveIfNeeded_interrupting_the_turn_while_a_request_is_pending_resolves_false()
     {
         using var runtime = new TestRuntime();
         var session = new OpenAICompatibleSessionTestSeam(MakeConfig(), MakeSessionConfiguration(RuntimeMode.Supervised, InteractionMode.Build)).Wired();
 
-        var task = session.ApproveIfNeededForTests(ToolCall.Kind.Command, "run", null, null);
+        // Same reason as the theory above and ApproveIfNeeded_resolves_true_on_allow_and_false_on_decline: start
+        // through runtime.OnMain so the approval-registering continuation resumes on runtime.Loop, not on an
+        // arbitrary thread pool thread racing Interrupt() below.
+        var task = runtime.OnMain(() => session.ApproveIfNeededForTests(ToolCall.Kind.Command, "run", null, null));
         runtime.Loop.RunUntilIdle();
         Assert.Single(session.Events.OfType<ProviderEvent.Approval>());
 

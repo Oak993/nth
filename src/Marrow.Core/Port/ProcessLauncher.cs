@@ -282,8 +282,9 @@ public sealed class ProcessLauncher : IProcessControl
     public ProcessPipe? StandardError { get; set; }
 
     /// <summary>
-    /// True (Shell, MCPHub, MCPProbe): the child runs in its own job, and <see cref="KillTree"/> ends the tree. False
-    /// (StdioProcess, ED-047 (b)): no job, so a grandchild survives the kill as on macOS.
+    /// True (Shell, MCPHub, MCPProbe, and StdioProcess since ED-194, the B3 amendment of ED-047 (b) and ED-126): the
+    /// child runs in its own job, with no limits and no KILL_ON_JOB_CLOSE, and <see cref="KillTree"/> ends the tree;
+    /// <see cref="KillProcess"/> never uses the job, so a grandchild still survives it as on macOS. False: no job.
     /// </summary>
     public bool UsesJobObject { get; set; } = true;
 
@@ -487,7 +488,7 @@ public sealed class ProcessLauncher : IProcessControl
         }
     }
 
-    /// <summary>The pid alone (ED-047 (b)): TerminateProcess, no job, so grandchildren survive.</summary>
+    /// <summary>The pid alone (ED-047 (b)): TerminateProcess, never the job (ED-194), so grandchildren survive.</summary>
     public void KillProcess()
     {
         lock (gate)

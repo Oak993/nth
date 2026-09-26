@@ -3,72 +3,75 @@ using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
 
-// Source: DroppyCode/Services/MCP/MCPProbe.swift (B2 1fbf81e), :1-431.
+// Source: DroppyCode/Services/MCP/MCPProbe.swift (B3 52bc7926), :1-234. B3_PLAN.md N5: probeStdio and probeRemote
+// now go through MCPWire.cs and MCPStdioConnection (MCPWire.swift) instead of building requests and driving the
+// child process or the HTTP POST here directly; MCPProbeError, IsGitLabMCP and GitLabServerDisabled are unchanged
+// apart from their citations.
 
 namespace Marrow.Services.MCP;
 
-// :4-50. An error enum keeps its cases as a nested record union (R-ERR-3).
+// :3-49. An error enum keeps its cases as a nested record union (R-ERR-3).
 public sealed class MCPProbeError(MCPProbeError.Case errorCase) : SwiftError
 {
     public abstract record Case
     {
         private Case() { }
-        public sealed record CommandMissing(string Name) : Case;       // :5
-        public sealed record Exited(int Code, string Stderr) : Case;   // :6
-        public sealed record TimedOut : Case;                          // :7
-        public sealed record Http(int Status, string Body) : Case;     // :8
-        public sealed record UnauthorizedOAuth : Case;                 // :9
-        public sealed record NeedsSetup(MCPSetupGuide Guide) : Case;   // :12
-        public sealed record Unavailable(string Host) : Case;          // :14
-        public sealed record Malformed(string Detail) : Case;          // :15
+        public sealed record CommandMissing(string Name) : Case;       // :4
+        public sealed record Exited(int Code, string Stderr) : Case;   // :5
+        public sealed record TimedOut : Case;                          // :6
+        public sealed record Http(int Status, string Body) : Case;     // :7
+        public sealed record UnauthorizedOAuth : Case;                 // :8
+        public sealed record NeedsSetup(MCPSetupGuide Guide) : Case;   // :11
+        public sealed record Unavailable(string Host) : Case;          // :13
+        public sealed record Malformed(string Detail) : Case;          // :14
     }
 
     public Case ErrorCase { get; } = errorCase;
 
-    // :17-49
+    // :16-48
     public override string? ErrorDescription => ErrorCase switch
     {
         Case.CommandMissing(var name) => name switch
         {
-            // :21
+            // :20
             "npx" => "npx isn't installed. Install Node.js from nodejs.org, then try again.",
-            // :22 DEVIATION OD-0008 B5: upstream names `brew install uv`; Windows names winget.
+            // :21 DEVIATION OD-0008 B5: upstream names `brew install uv`; Windows names winget.
             "uvx" => "uvx isn't installed. Run `winget install astral-sh.uv` in Terminal, then try again.",
-            // :23
+            // :22
             _ => $"{name} isn't installed. Install it, then try again.",
         },
-        // :25-31
+        // :24-30
         Case.Exited(var code, var stderr) => LastNonEmptyLine(stderr) is { } last
             ? $"The server quit (exit {code}). {last}"
             : $"The server quit (exit {code}).",
-        // :32-33
+        // :31-32
         Case.TimedOut => "The server didn't answer in time.",
-        // :36
+        // :35
         Case.Http(401 or 403, _) => "That key was refused. Press Try again and paste a new one.",
-        // :37
+        // :36
         Case.Http(404, _) => "Nothing answered at that address. Check the address and try again.",
-        // :38
+        // :37
         Case.Http(var status, _) => $"The server answered {status}.",
-        // :41
+        // :40
         Case.UnauthorizedOAuth => "Sign-in was rejected. Sign in again in your browser.",
-        // :43
+        // :42
         Case.NeedsSetup(var guide) => guide.Reason,
-        // :45
+        // :44
         Case.Unavailable(var host) => $"{host} didn't answer (404). If the address is right, try again in a few minutes.",
-        // :47
+        // :46
         Case.Malformed(var detail) => $"The server sent something unexpected: {detail}",
         _ => throw new UnreachableException(),
     };
 
-    // :26-29
+    // :25-28
     private static string? LastNonEmptyLine(string stderr) =>
         SwiftString.ComponentsSeparatedByNewlines(stderr).Select(line => line.Trimmed()).LastOrDefault(line => line.Length > 0);
 }
 
-// :52-379
+// :51-234
 public static class MCPProbe
 {
-    // :53-62
+    // :52-61
     public static async Task<MCPProbeResult> Probe(MCPResolvedServer server)
     {
         if (server.Command is not null) return await ProbeStdio(server);
@@ -76,43 +79,14 @@ public static class MCPProbe
         throw new MCPProbeError(new MCPProbeError.Case.Malformed("missing command or URL"));
     }
 
-    // MARK: - Shared message builders
-
-    // :66-72. DEVIATION OD-0012 F1: upstream's clientInfo.name is "Droppy Code"; the port sends "Marrow".
-    private static JSONValue InitializeParams() => JSONValue.FromDictionaryLiteral(
-        ("protocolVersion", "2025-06-18"),
-        ("capabilities", new JSONValue.Object(ValueMap<string, JSONValue>.Empty)),
-        ("clientInfo", JSONValue.FromDictionaryLiteral(("name", "Marrow"), ("version", "1.0"))));
-
-    // :74-82
-    private static JSONValue Request(long id, string method, JSONValue? parameters)
-    {
-        var fields = new Dictionary<string, JSONValue>
-        {
-            ["jsonrpc"] = new JSONValue.String("2.0"),
-            ["id"] = new JSONValue.Int(id),
-            ["method"] = new JSONValue.String(method),
-        };
-        if (parameters is { } p) fields["params"] = p;
-        return new JSONValue.Object(new ValueMap<string, JSONValue>(fields, SwiftStringComparer.Instance));
-    }
-
-    // :84-86
-    private static JSONValue Notification(string method) => new JSONValue.Object(new ValueMap<string, JSONValue>(
-        new Dictionary<string, JSONValue>
-        {
-            ["jsonrpc"] = new JSONValue.String("2.0"),
-            ["method"] = new JSONValue.String(method),
-        }, SwiftStringComparer.Instance));
-
-    // :88-92
+    // :63-67
     private static void CheckReply(JSONValue value)
     {
-        if (value["error"] is { } error && error.JSONValueObject is not null)
-            throw new MCPProbeError(new MCPProbeError.Case.Malformed(error["message"]?.JSONValueString ?? "unknown error"));
+        if (MCPWire.ErrorMessage(value) is { } message)
+            throw new MCPProbeError(new MCPProbeError.Case.Malformed(message));
     }
 
-    // :94-98
+    // :69-74
     private static string? FirstLine(string? text)
     {
         if (text is null) return null;
@@ -121,153 +95,94 @@ public static class MCPProbe
         return line.Length == 0 ? null : line;
     }
 
-    // :101-107
-    private static IReadOnlyList<MCPToolSummary> ToolSummaries(JSONValue? result)
+    // :76-79
+    private static MCPToolSummary? ToolSummary(JSONValue tool)
     {
-        if (result?["tools"]?.JSONValueArray is not { } tools) return [];
+        if (tool["name"]?.JSONValueString is not { } name) return null;
+        return new MCPToolSummary(name, FirstLine(tool["description"]?.JSONValueString));
+    }
+
+    private static IReadOnlyList<MCPToolSummary> ToolSummaries(IReadOnlyList<JSONValue> items)
+    {
         var summaries = new List<MCPToolSummary>();
-        foreach (var tool in tools)
+        foreach (var item in items)
         {
-            if (tool["name"]?.JSONValueString is not { } name) continue;
-            summaries.Add(new MCPToolSummary(name, FirstLine(tool["description"]?.JSONValueString)));
+            if (ToolSummary(item) is { } summary) summaries.Add(summary);
         }
         return summaries;
     }
 
     // MARK: - Local servers over stdio
 
-    // :111-217
+    // :83-132
     private static async Task<MCPProbeResult> ProbeStdio(MCPResolvedServer server)
     {
-        // :112-115
+        // :84-87
         var command = server.Command ?? "";
         if (LoginEnvironment.Which(command, LoginEnvironment.Current) is not { } executable)
             throw new MCPProbeError(new MCPProbeError.Case.CommandMissing(command));
-
-        // :116-117
+        // :88
         var isOAuth = server.Args.Any(a => SwiftString.Equal(a, "mcp-remote"));
+        // :89
         var deadline = SwiftDate.AddingTimeInterval(SwiftDate.Now, isOAuth ? 240 : 90);
 
-        // :119-120. ED-128: environment dictionaries are case-insensitive, first spelling, last value.
+        // :91-92. ED-128: environment dictionaries are case-insensitive, first spelling, last value.
         var environment = new Dictionary<string, string>(LoginEnvironment.Current, StringComparer.OrdinalIgnoreCase);
         foreach (var (key, value) in server.Env) environment[key] = value;
 
-        // :122-132
-        var stdinPipe = new ProcessPipe();
-        var stdoutPipe = new ProcessPipe();
-        var stderrPipe = new ProcessPipe();
-        var process = new ProcessLauncher
-        {
-            ExecutableURL = executable,
-            Arguments = server.Args,
-            Environment = environment,
-            CurrentDirectoryURL = LoginEnvironment.HomeDirectory,
-            StandardInput = stdinPipe,
-            StandardOutput = stdoutPipe,
-            StandardError = stderrPipe,
-        };
-
-        // :134-153
-        var conversation = new StdioConversation();
-        stdoutPipe.ReadabilityHandler = data =>
-        {
-            if (data.Length == 0) stdoutPipe.ReadabilityHandler = null;
-            else conversation.AppendStdout(data);
-        };
-        stderrPipe.ReadabilityHandler = data =>
-        {
-            if (data.Length == 0) stderrPipe.ReadabilityHandler = null;
-            else conversation.AppendStderr(data);
-        };
-        process.TerminationHandler = finished => conversation.SetExit(finished.TerminationStatus);
-
-        // :154-161
+        // :94-95. ED-194: termination is MCPStdioConnection.Stop's pid-only ladder (3 s), no job-object kill here.
+        var connection = MCPStdioConnection.Launch(executable, server.Args, environment);
         try
         {
-            process.Run();
-        }
-        catch (Exception error) when (SwiftTry.IsThrownError(error))
-        {
-            stdoutPipe.ReadabilityHandler = null;
-            stderrPipe.ReadabilityHandler = null;
-            Terminate(process);
-            throw;
-        }
-
-        // :162-167
-        try
-        {
-            // :169-173
-            void Send(JSONValue message)
+            // :97-114
+            async Task<JSONValue> NextReply(string method, JSONValue? parameters)
             {
-                var line = message.Data();
-                var withNewline = new byte[line.Length + 1];
-                Array.Copy(line, withNewline, line.Length);
-                withNewline[^1] = 0x0A;
-                SwiftTry.Ignore(() => stdinPipe.Write(withNewline));
-            }
-
-            // :175-191
-            async Task<JSONValue> NextReply(long id)
-            {
-                while (true)
+                // :98-101
+                var remaining = (deadline - SwiftDate.Now).TotalSeconds;
+                if (!(remaining > 0)) throw ExitError(null, isOAuth, connection.ErrorTail);
+                // :102-113
+                try
                 {
-                    foreach (var line in conversation.TakeLines())
+                    var reply = await connection.Request(method, parameters, remaining);
+                    CheckReply(reply);
+                    return reply;
+                }
+                catch (MCPWireError error)
+                {
+                    switch (error.ErrorCase)
                     {
-                        if (JSONValue.Parse(line) is not JSONValue.Object value) continue;
-                        if (value["id"]?.JSONValueInt != id) continue;
-                        CheckReply(value);
-                        return value;
+                        case MCPWireError.Case.Exited(var code):
+                            throw ExitError(code, isOAuth, connection.ErrorTail);
+                        case MCPWireError.Case.TimedOut:
+                            throw ExitError(null, isOAuth, connection.ErrorTail);
+                        default:
+                            throw new UnreachableException();
                     }
-                    if (conversation.ExitCode() is { } code)
-                        throw ExitError(code, isOAuth, conversation.StderrText());
-                    if (!(SwiftDate.Now < deadline))
-                        throw ExitError(null, isOAuth, conversation.StderrText());
-                    await SwiftTask.Sleep(TimeSpan.FromMilliseconds(5));
                 }
             }
 
-            // :193-198
-            Send(Request(1, "initialize", InitializeParams()));
-            var initReply = await NextReply(1);
+            // :116-120
+            var initReply = await NextReply("initialize", MCPWire.InitializeParams());
             var initResult = initReply["result"];
             if (initResult?.JSONValueObject is null) throw new MCPProbeError(new MCPProbeError.Case.Malformed("missing result"));
             var serverName = initResult?["serverInfo"]?["name"]?.JSONValueString;
             var serverVersion = initResult?["serverInfo"]?["version"]?.JSONValueString;
 
-            // :200
-            Send(Notification("notifications/initialized"));
+            // :122
+            connection.Notify("notifications/initialized");
 
-            // :202-215
-            var tools = new List<MCPToolSummary>();
-            string? cursor = null;
-            long nextID = 2;
-            for (var i = 0; i < 10; i++)
-            {
-                var parameters = new Dictionary<string, JSONValue>();
-                if (cursor is { } c) parameters["cursor"] = new JSONValue.String(c);
-                Send(Request(nextID, "tools/list", new JSONValue.Object(new ValueMap<string, JSONValue>(parameters, SwiftStringComparer.Instance))));
-                var reply = await NextReply(nextID);
-                nextID++;
-                var list = reply["result"];
-                tools.AddRange(ToolSummaries(list));
-                if (list?["nextCursor"]?.JSONValueString is not { } next || next.Length == 0) break;
-                cursor = next;
-            }
-            // :216
-            return new MCPProbeResult(serverName, serverVersion, new ValueList<MCPToolSummary>(tools));
+            // :124-131
+            var items = await MCPWire.ListTools(parameters => NextReply("tools/list", parameters));
+            return new MCPProbeResult(serverName, serverVersion, new ValueList<MCPToolSummary>(ToolSummaries(items)));
         }
         finally
         {
-            // :163-166
-            stdoutPipe.ReadabilityHandler = null;
-            stderrPipe.ReadabilityHandler = null;
-            Terminate(process);
-            SwiftTry.Ignore(stdinPipe.CloseWriting);
+            // :95 defer { connection.stop() }
+            connection.Stop();
         }
     }
 
-    // :219-225
+    // :134-140
     private static MCPProbeError ExitError(int? code, bool isOAuth, string stderr)
     {
         if (isOAuth && (stderr.Contains("Unauthorized", StringComparison.Ordinal) || stderr.Contains("invalid_grant", StringComparison.Ordinal)))
@@ -276,52 +191,60 @@ public static class MCPProbe
         return new MCPProbeError(new MCPProbeError.Case.TimedOut());
     }
 
-    // :227-236. Identical to Shell.swift:110-118 and MCPHub.swift:286-295: F.ProcessLauncher's ladder.
-    private static void Terminate(ProcessLauncher process) => TerminationLadder.Shell(process);
-
     // MARK: - Remote servers over streamable HTTP
 
-    // :240-301
+    // :144-203
     private static async Task<MCPProbeResult> ProbeRemote(MCPResolvedServer server, string urlString)
     {
-        // :241-243
+        // :145-147
         if (!Uri.TryCreate(urlString, UriKind.Absolute, out var url))
             throw new MCPProbeError(new MCPProbeError.Case.Malformed("invalid URL"));
+        // :148
         string? sessionID = null;
 
-        // :246-266. DEVIATION OD-0022/ED-152: F.HTTP (Marrow.Core.Port.Http.cs) currently drops only the
-        // Authorization header across an origin-changing redirect (ED-152); it has no per-request mechanism to
-        // drop an arbitrary named header the same way. Extending it is out of this unit's scope (Marrow.Services
-        // only). The headers this probe sends are therefore forwarded to a same-server redirect target exactly
-        // as OD-0022 requires, but are not yet withheld from a cross-server redirect target. Tracked, not silently
-        // dropped: see this unit's report.
-        async Task<JSONValue?> Post(JSONValue payload)
+        // :150-174. OD-0022/ED-152, enforced by ED-209 (B3 batch 4, MCPWire.cs:77-84): MCPWire.Post marks each
+        // of a server's custom headers as origin-bound before sending, so F.HTTP's Redirected drops one across
+        // a redirect that changes scheme, host or port (e.g. X-Api-Key) the same way it drops Authorization,
+        // and keeps it on a same-server redirect. This Post delegates straight to MCPWire.Post with no inline
+        // copy of the header logic, so that marking applies here with no separate fix needed.
+        async Task<JSONValue?> Post(JSONValue payload, int? id)
         {
             try
             {
-                var posted = await PostJSON(url, server.Headers, sessionID, payload);
+                // :152-154
+                var posted = await MCPWire.Post(url, server.Headers, sessionID, payload, id, 30);
                 sessionID = posted.SessionID ?? sessionID;
                 return posted.Body;
             }
-            catch (MCPProbeError e) when (e.ErrorCase is MCPProbeError.Case.Http(401 or 403, var body) && server.OauthUpstream is not null)
+            catch (MCPHTTPError error) when ((error.Status == 401 || error.Status == 403) && server.OauthUpstream is not null)
             {
-                // :252-254
-                if (SwiftString.LocalizedCaseInsensitiveContains(body, "MCP server disabled"))
+                // :156-157
+                var status = error.Status;
+                var body = error.Body;
+                if (status == 403 && SwiftString.LocalizedCaseInsensitiveContains(body, "MCP server disabled"))
                     throw new MCPProbeError(new MCPProbeError.Case.NeedsSetup(GitLabServerDisabled(server.OauthUpstream ?? urlString)));
-                // :255
+                // :160
                 throw new MCPProbeError(new MCPProbeError.Case.UnauthorizedOAuth());
             }
-            catch (MCPProbeError e) when (e.ErrorCase is MCPProbeError.Case.Http(404, _) && server.OauthUpstream is not null)
+            catch (MCPHTTPError error) when (error.Status == 404 && server.OauthUpstream is not null)
             {
-                // :257-264
+                // :162-169. GitLab 19.4 and earlier answer a namespace that does not allow its MCP server with 404
+                // instead of 403 'MCP server disabled'; both statuses share every cause, so a 404 from its MCP
+                // endpoint is the setup case rather than a hiccup on GitLab's side.
                 var upstream = server.OauthUpstream ?? urlString;
                 if (IsGitLabMCP(upstream))
                     throw new MCPProbeError(new MCPProbeError.Case.NeedsSetup(GitLabServerDisabled(upstream)));
                 throw new MCPProbeError(new MCPProbeError.Case.Unavailable(HostOrServer(upstream)));
             }
+            catch (MCPHTTPError error)
+            {
+                // :170-172
+                if (error.Status is not { } status) throw new MCPProbeError(new MCPProbeError.Case.Malformed("invalid reply"));
+                throw new MCPProbeError(new MCPProbeError.Case.Http(status, error.Body));
+            }
         }
 
-        // :268-273
+        // :176-181
         static JSONValue Nearest(JSONValue? value)
         {
             if (value is null) throw new MCPProbeError(new MCPProbeError.Case.Malformed("empty reply"));
@@ -330,17 +253,17 @@ public static class MCPProbe
             return value;
         }
 
-        // :275-279
-        var initReply = Nearest(await Post(Request(1, "initialize", InitializeParams())));
+        // :183-187
+        var initReply = Nearest(await Post(MCPWire.Request(1, "initialize", MCPWire.InitializeParams()), 1));
         var initResult = initReply["result"];
         if (initResult?.JSONValueObject is null) throw new MCPProbeError(new MCPProbeError.Case.Malformed("missing result"));
         var serverName = initResult?["serverInfo"]?["name"]?.JSONValueString;
         var serverVersion = initResult?["serverInfo"]?["version"]?.JSONValueString;
 
-        // :281-285
+        // :189-193
         try
         {
-            _ = await Post(Notification("notifications/initialized"));
+            _ = await Post(MCPWire.Notification("notifications/initialized"), null);
         }
         catch (CancellationError)
         {
@@ -351,84 +274,25 @@ public static class MCPProbe
             // swallowed
         }
 
-        // :287-299
-        var tools = new List<MCPToolSummary>();
-        string? cursor = null;
-        long nextID = 2;
-        for (var i = 0; i < 10; i++)
-        {
-            var parameters = new Dictionary<string, JSONValue>();
-            if (cursor is { } c) parameters["cursor"] = new JSONValue.String(c);
-            var reply = Nearest(await Post(Request(nextID, "tools/list", new JSONValue.Object(new ValueMap<string, JSONValue>(parameters, SwiftStringComparer.Instance)))));
-            nextID++;
-            var list = reply["result"];
-            tools.AddRange(ToolSummaries(list));
-            if (list?["nextCursor"]?.JSONValueString is not { } next || next.Length == 0) break;
-            cursor = next;
-        }
-        // :300
-        return new MCPProbeResult(serverName, serverVersion, new ValueList<MCPToolSummary>(tools));
-    }
-
-    // :303-334
-    private static async Task<(string? SessionID, JSONValue? Body)> PostJSON(
-        Uri url, IReadOnlyDictionary<string, string> headers, string? sessionID, JSONValue payload)
-    {
-        // :309-316
-        var request = new URLRequest(url, timeoutInterval: 30) { HttpMethod = "POST", HttpBody = payload.Data() };
-        foreach (var (field, value) in headers) request = request.SetValue(value, field);
-        request = request.SetValue("application/json", "Content-Type");
-        request = request.SetValue("application/json, text/event-stream", "Accept");
-        request = request.SetValue("2025-06-18", "MCP-Protocol-Version");
-        if (sessionID is { } sid) request = request.SetValue(sid, "Mcp-Session-Id");
-
-        // :318-322
-        var (data, response) = await URLSession.Shared.Data(request);
-        if (response is not HTTPURLResponse http) throw new MCPProbeError(new MCPProbeError.Case.Malformed("invalid reply"));
-        var session = http.Value("Mcp-Session-Id");
-        // :323-327
-        if (http.StatusCode is < 200 or >= 300)
-        {
-            var body = SwiftString.Prefix(SwiftText.DecodeUtf8Repairing(data), 2000).Trimmed();
-            throw new MCPProbeError(new MCPProbeError.Case.Http(http.StatusCode, body));
-        }
-        // :328-333
-        var contentType = http.Value("Content-Type") ?? "";
-        if (contentType.Contains("text/event-stream", StringComparison.Ordinal))
-            return (session, FirstSSEMessage(data));
-        if (data.Length == 0) return (session, null);
-        return (session, JSONValue.Parse(data));
-    }
-
-    // :336-348
-    private static JSONValue? FirstSSEMessage(byte[] data)
-    {
-        var text = SwiftText.DecodeUtf8Repairing(data);
-        foreach (var rawLine in SwiftString.ComponentsSeparatedByNewlines(text))
-        {
-            var trimmedLine = FoundationText.Trim(rawLine);
-            if (!SwiftString.HasPrefix(trimmedLine, "data:")) continue;
-            var payload = FoundationText.Trim(SwiftString.DropFirst(trimmedLine, 5));
-            if (JSONValue.Parse(payload) is not JSONValue.Object value) continue;
-            if (value["id"] is null) continue;
-            return value;
-        }
-        return null;
+        // :195-202. Every tools/list page is sent and matched as id 2, never an incrementing id (B3 change).
+        async Task<JSONValue> Page(JSONValue parameters) => Nearest(await Post(MCPWire.Request(2, "tools/list", parameters), 2));
+        var items = await MCPWire.ListTools(Page);
+        return new MCPProbeResult(serverName, serverVersion, new ValueList<MCPToolSummary>(ToolSummaries(items)));
     }
 
     // MARK: - Setup guides
 
-    // :354-357
+    // :209-212
     public static bool IsGitLabMCP(string upstream)
     {
         if (SwiftURL.Create(upstream) is not { } url) return false;
         return SwiftString.HasSuffix(SwiftString.Lowercased(url.Path), "/api/v4/mcp");
     }
 
-    // :359-378
+    // :215-233
     public static MCPSetupGuide GitLabServerDisabled(string upstream)
     {
-        // :361-364
+        // :216-219
         var origin = SwiftURL.Create(upstream) is { Host: { } host } url
             ? (url.Scheme ?? "https") + "://" + host
             : "https://gitlab.com";
@@ -447,68 +311,7 @@ public static class MCPProbe
             Note: "GitLab can take a minute to apply the change.");
     }
 
-    // :264 URL(string: upstream)?.host ?? "The server"
+    // :169 URL(string: upstream)?.host ?? "The server"
     private static string HostOrServer(string upstream) =>
         SwiftURL.Create(upstream)?.Host is { Length: > 0 } host ? host : "The server";
-}
-
-/// <summary>
-/// :381-430. Lock-guarded buffers fed by the stdio readability handlers: stdout bytes are split on newlines into
-/// complete lines, stderr and the exit status are kept for failure reporting.
-/// </summary>
-file sealed class StdioConversation
-{
-    // :385-390
-    private struct State
-    {
-        public List<byte> Buffer;
-        public List<byte[]> Pending;
-        public List<byte> Stderr;
-        public int? ExitStatus;
-    }
-
-    // :392
-    private readonly Mutex<State> state = new(new State { Buffer = [], Pending = [], Stderr = [] });
-
-    // :394-402
-    public void AppendStdout(byte[] data)
-    {
-        state.WithLock((ref State current) =>
-        {
-            current.Buffer.AddRange(data);
-            int newline;
-            while ((newline = current.Buffer.IndexOf((byte)0x0A)) >= 0)
-            {
-                current.Pending.Add(current.Buffer.Take(newline).ToArray());
-                current.Buffer.RemoveRange(0, newline + 1);
-            }
-        });
-    }
-
-    // :404-409
-    public void AppendStderr(byte[] data)
-    {
-        state.WithLock((ref State current) =>
-        {
-            current.Stderr.AddRange(data);
-            if (current.Stderr.Count > 64_000) current.Stderr = current.Stderr.Skip(current.Stderr.Count - 16_000).ToList();
-        });
-    }
-
-    // :411-413
-    public void SetExit(int status) => state.WithLock((ref State current) => current.ExitStatus = status);
-
-    // :415-421
-    public IReadOnlyList<byte[]> TakeLines() => state.WithLock((ref State current) =>
-    {
-        var lines = current.Pending;
-        current.Pending = [];
-        return (IReadOnlyList<byte[]>)lines;
-    });
-
-    // :423-425
-    public string StderrText() => state.WithLock((ref State current) => SwiftText.DecodeUtf8Repairing(current.Stderr.ToArray()));
-
-    // :427-429
-    public int? ExitCode() => state.WithLock((ref State current) => current.ExitStatus);
 }

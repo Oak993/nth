@@ -772,7 +772,10 @@ as rulings_live/App.AppUpdater.part1.md.
 ED-189 [THEME] UI.Theme.Wallpaper's target moves to src/Marrow.App/Theme/Wallpaper.cs (tests in tests/Marrow.App.Tests),
 applying IMPLEMENTING.md 2.1 / HANDOFF 9 ("WallpaperStore to App": it builds on Storage, a Services type, which UI may not
 use). The c100 skeleton (cloud worker S0) placed it there; units.json still named the UI project. build_run7.js and
-luna_build.mjs carry the retarget (RETARGET) until plan_units.py learns it; the unit merged on impl/b2 at fc16861.
+luna_build.mjs carry the retarget (RETARGET) until plan_units.py learns it; the unit merged on impl/b2 at fc16861. B3
+amendment (2026-09-26): superseded by ED-195. B3 fixes the layering upstream (Core/Support/StoragePaths.swift:14-15;
+Wallpaper.swift:89, :128, :130 use StoragePaths.wallpaperDirectory), so Wallpaper.cs's only Services dependency
+(Storage.WallpaperDirectory) goes away and IMPLEMENTING.md 2.1's reason for this target no longer applies at B3.
 
 ED-190 [TEST] PlanLimitsTests runs in its own non-parallel xUnit collection (tests/Marrow.Services.Tests/Fixtures/
 PlanLimitsProcessCollection.cs), harness only, no expectation changed. Its readClaude dispatch test waits on the Claude
@@ -796,7 +799,10 @@ as rulings_live/App.AppUpdater.part1.md.
 ED-189 [THEME] UI.Theme.Wallpaper's target moves to src/Marrow.App/Theme/Wallpaper.cs (tests in tests/Marrow.App.Tests),
 applying IMPLEMENTING.md 2.1 / HANDOFF 9 ("WallpaperStore to App": it builds on Storage, a Services type, which UI may not
 use). The c100 skeleton (cloud worker S0) placed it there; units.json still named the UI project. build_run7.js and
-luna_build.mjs carry the retarget (RETARGET) until plan_units.py learns it; the unit merged on impl/b2 at fc16861.
+luna_build.mjs carry the retarget (RETARGET) until plan_units.py learns it; the unit merged on impl/b2 at fc16861. B3
+amendment (2026-09-26): superseded by ED-195. B3 fixes the layering upstream (Core/Support/StoragePaths.swift:14-15;
+Wallpaper.swift:89, :128, :130 use StoragePaths.wallpaperDirectory), so Wallpaper.cs's only Services dependency
+(Storage.WallpaperDirectory) goes away and IMPLEMENTING.md 2.1's reason for this target no longer applies at B3.
 
 ED-190 [TEST] PlanLimitsTests runs in its own non-parallel xUnit collection (tests/Marrow.Services.Tests/Fixtures/
 PlanLimitsProcessCollection.cs), harness only, no expectation changed. Its readClaude dispatch test waits on the Claude
@@ -830,3 +836,467 @@ file; $Dest itself is never passed to Start-Process. A new regression test place
 console utility (system32\sort.exe, renamed) at the staged path and confirms, by process discovery, that this
 exact file is what gets launched. ENGINEERING DECISION; a platform-adaptation correction, not a deviation from
 observable Swift behavior (the fixed behavior matches what `open` does on macOS: launch the app, not reveal it).
+
+# Engineering decisions for the B3 baseline move (52bc792, 2026-09-26), batch 0.3 documentation ledger
+
+ED-193 [RUNTIME][UPDATE] The B3 resend-failure notice text (App.Runtime.ThreadRuntime, unit A33), decided from
+existing rulings; no owner question needed. SOURCE FACT: ThreadRuntime.swift:2277 builds
+"\(error)\n\nDroppy Code could not bring \(provider.displayName) up to date. Run `\(command)` in Terminal, then
+send the message again.", where command is "claude update" or "codex update" (:2273) and displayName is "Claude"
+or "Codex" (Core/Models/Provider.swift:23-24); the other three B3 notices (:2262, :2285, :2291) carry no product
+name. DECISION: under OD-0012 F1 ("Droppy Code" -> "Marrow") and OD-0008 B6 (keep "Run `<cmd>` in Terminal"
+verbatim - Windows 11's own app is also called Terminal - and both `claude update` and `codex update` exist on
+this workstation, PA-0018), the port's text is "{error}\n\nMarrow could not bring Claude up to date. Run `claude
+update` in Terminal, then send the message again." and the same with "Codex"/"codex update". This stands under
+every option of owner decision O1 (PA-0018, unknowns.md UNK-0026): even a "never update" deviation still shows
+this exact notice once, since ThreadRuntime posts it before consulting the update policy. The same F1 rule already
+covers the reworded Hydra retry text at A4 ("Marrow retries it by itself"). ENGINEERING DECISION; not itself a
+deviation, since the substitution is already ruled by OD-0012 F1.
+
+ED-194 [MCP][TERM] How B3's MCP hub and probe children are killed at stop and at quit (units A2, A15, A16), and
+the recorded B3 amendment of ED-047 (b) and ED-126. SOURCE FACT: B3 moves both MCPHub and MCPProbe onto
+MCPStdioConnection, i.e. onto StdioProcess (R3-18, R3-20). Stop is StdioProcess.terminate
+(Core/Support/StdioProcess.swift:120-128 at B3, +1 from B2's :119-128 because the new `processIdentifier` member
+at :48 shifts everything after it): close stdin, SIGTERM, then after 3 s SIGKILL of the pid alone - unchanged in
+substance from ED-047 (b)/ED-126. Quit is MCPLiveProcesses.terminateAll (Services/MCP/MCPHub.swift:357-376):
+terminate each, then at once `kill(getpgid(pid) == pid ? -pid : pid, SIGKILL)` - the whole process group when the
+child leads one (oracle O-70: swift-corelibs-foundation Process.swift:953 sets POSIX_SPAWN_SETPGROUP, and its
+commit message states this "matches Darwin's behaviour"). DECISION (option (a) of decisions_draft.md O3): a Job
+Object at spawn for every StdioProcess child, with no limits and no KILL_ON_JOB_CLOSE. Stop stays exactly the
+ED-126 ladder (KillProcess, pid alone, +3 s) - the job is not used there. Quit uses KillTree (TerminateJobObject),
+reproducing MCPLiveProcesses.terminateAll's -pgid SIGKILL through the port's existing ED-047 (a) group-kill
+mapping. A2 (Core.Support.StdioProcess) exposes the new Swift member as `public int ProcessIdentifier =>
+process.ProcessIdentifier;` plus a port-only IProcessControl handle, so MCPLiveProcesses can track and kill each
+child at quit. Records: reclassify PR-MCP-111 to this ladder (stop: ED-126, 3 s, pid only; quit: the job's tree
+kill) and rewrite its verification method, because B3's probe cancel is pid-only after 3 s, not the 1 s tree kill
+PR-MCP-111's windows_path used to describe. B3 AMENDMENT of ED-047 (b) and ED-126 (2026-09-26; neither's own text
+is rewritten): both still correctly describe StdioProcess.terminate's 3-second, pid-only ladder for STOP; for
+QUIT, MCP hub/probe children additionally sit inside a Job Object created at spawn (this ED), so quit-time
+cleanup goes through TerminateJobObject instead of relying on the stop ladder. Oracle O-70 (IMPLEMENTING.md
+Appendix B) tracks the unverified Darwin process-group premise. ENGINEERING DECISION; internal process-lifetime
+management, not a deviation from observable behaviour.
+
+ED-195 [THEME] Wallpaper.cs moves back to src/Marrow.UI/Theme/Wallpaper.cs (namespace Marrow.UI.Theme,
+R-FILE-1), superseding ED-189. SOURCE FACT: B3 fixes the layering upstream that motivated ED-189 -
+Core/Support/StoragePaths.swift:14-15 gives `wallpaperDirectory`, and Wallpaper.swift:89, :128, :130 (renames
+only, R3-53) now read `StoragePaths.wallpaperDirectory` instead of `Storage.wallpaperDirectory` (R3-14 cites
+upstream commit d70cff8fe, "layer rules restored"). Wallpaper.cs's only remaining Services dependency was
+`Storage.WallpaperDirectory` (Wallpaper.cs:9, :150, :183, :187, at B2); with that gone, nothing in Wallpaper.cs
+needs a type outside Marrow.Core/Marrow.UI, so IMPLEMENTING.md 2.1's "WallpaperStore to App" reasoning (UI may
+not depend on Services) no longer applies. DECISION (unit A10, lane 2e): move the file to
+src/Marrow.UI/Theme/Wallpaper.cs and its tests to tests/Marrow.UI.Tests/Theme/WallpaperTests.cs, matching what
+units.json already names as the target. Update the `using` lines in RootView.cs, WallpaperCard.cs and
+WallpaperCardFixtures.cs. `Storage.cs`'s DiskWriter, Root and SubDirectory members delegate to StoragePaths in
+the same lane (re-cite 86 Storage records, 12 StoragePaths records, 5 Wallpaper records; new: 1, DiskWriter's
+last-written size). Nothing observable changes; this is a pure move. ENGINEERING DECISION; not a deviation.
+
+ED-196 [COMPOSER] UI-COMPOSER-052's cursor-leak state (upstream defect 53) is retired at B3; the hover and drag
+states reclassify to grab-idle/grab-active. SOURCE FACT: `App/Views/Composer/FollowUpQueueTab.swift:380-384`
+deletes every `NSCursor.closedHand`/`.openHand` push and pop and replaces the grip's cursor handling outright with
+`.pointerStyle(isDragged ? .grabActive : .grabIdle)`; a repo-wide grep for `NSCursor` in the file at B3 returns no
+hits (upstream_defects.md entry 53, retired above; platform_adaptations.md PA-0019). The state the defect
+described - "a row removed mid-drag with the pointer off the grip leaks one cursor push" - requires an unbalanced
+NSCursor push/pop pair to exist, and none does at B3: there is no stack to leak into. DECISION (decisions_draft.md
+O6): retire the leak state from the parity matrix; reclassify PR-COMPOSER-159, PR-COMPOSER-163 and
+UI-COMPOSER-052 to the `.pointerStyle` expression (unit A38). This rests on the contract's rule that a reproduced
+defect binds to the pinned source: OD-0024/AM-0003 already moved the pin to B3, where the defect's precondition
+is gone, so no separate owner confirmation is required (the rule to reproduce upstream defects never required one
+either). Optional, not decided here: whether a SwiftUI `.pointerStyle` persists while a drag carries the pointer
+off its view is not stated in the source; Avalonia keeps the captured element's cursor
+(PointerOverPreProcessor.cs:162, :246, ED-202), which A38 may record as a further oracle row if it proves
+observable. ENGINEERING DECISION; not a deviation.
+
+ED-197 [CHAT][HYDRA] `Duration.UnitsFormatStyle` narrow output (oracle O-65), a new `SwiftFormatters` helper for
+lane 1b. SOURCE FACT: three B3 sites share one style - `Duration.seconds(...).formatted(.units(allowed:, width:
+.narrow, maximumUnitCount: 2, fractionalPart: .hide(rounded: .down)))` - at Core/Models/Hydra.swift:1420-1423
+(seconds, minutes), App/Views/Chat/HydraPanel.swift:545-551 (the same, behind a `seconds > 0` guard and an " in "
+prefix; read by HydraHeadPopovers.swift:124-126 through `RelativeTime.duration`), and
+UI/Common/Components.swift:37-40 (seconds, minutes, hours). None sets a locale, so `.autoupdatingCurrent` applies
+(swift-foundation `Duration+UnitsFormatStyle.swift:242`, `:266`, byte-identical across swift-6.2 through 6.4).
+DECISION: port `unitsToUse`, `_getSkeletons` and `format` from swift-foundation 6.2's
+`Duration+UnitsFormatStyle.swift` into `SwiftFormatters`, formatting each field through the already-bound
+`unumf_openForSkeletonAndLocale` (SwiftFormatters.cs:1023-1042) with a skeleton ported from
+`ICUNumberFormatter.swift`, and joining fields with the CLDR `listPattern/unit-narrow/2` pattern (through
+`ulistfmt_openForType`, or `ures_*` if the local `icu.dll` exports it; this workstation's `icu.dll` is 72.1.0.4).
+Locale is `SwiftFormatters.CurrentLocale.Current` (O-37); the ICU-version difference across swift-foundation
+6.2/6.3/6.4 is nil here (the source file is unchanged across those tags) and is covered generally by ED-073. This
+is UNVERIFIED under ED-086 (read from source, not a macOS run); oracle row O-65 (IMPLEMENTING.md Appendix B)
+tracks it. Records: reclassify PR-HYDRA-076, PR-HYDRA-180, PR-CHAT-116 (fixing its mislabeled
+PR-SIDEBAR-074 trait), UI-CHAT-035 and PR-HYDRA-214 to these strings; create the R3-40 "duration format" record.
+Rewrite ComponentsTests.cs:103-141, HydraTests' duration cases and HydraPanel's elapsed tests from the table in
+decisions_draft.md E1, not loosened. ENGINEERING DECISION.
+
+ED-198 [COMPOSER][SETTINGS] `ByteCountFormatStyle(.file)` output (oracle O-66) is not the same as the port's
+existing `ByteCountFormatter`-based `FileByteCount`. SOURCE FACT: at B3, `UI/Common/AttachmentPreview.swift:95-98`
+and `App/Views/Composer/DownloadsPopover.swift:68` switch from a B2 `ByteCountFormatter` to
+`.formatted(.byteCount(style: .file))`; `App/Views/Settings/AboutUpdateViews.swift:787` was already
+`ByteCountFormatStyle` at B2. A whole-tree grep for `ByteCountFormatter` at B3 returns zero hits. Reading
+swift-foundation 6.2's `ByteCountFormatStyle.swift` (byte-identical at 6.2/6.3; 6.4 adds doc comments only): zero
+spells out as "Zero kB" (`spellsOutZero` default true, lowercase-b "kB" unit); the unit-choice threshold is
+`absValue < size` against `[999, 999499, ...]`, so 999 bytes already becomes "1 kB"; precision is 0 fraction
+digits for bytes/kB, up to 1 for MB, up to 2 for GB+, with ICU's default half-even rounding (no rounding token in
+the skeleton). This differs from `SwiftFormatters.FileByteCount`'s corelibs `ByteCountFormatter` rule ("Zero KB",
+"999 bytes", "KB", ED-133). DECISION: add `SwiftFormatters.ByteCountFormatStyle(bytes, style, locale)`, ported
+from swift-foundation 6.2 (ICU skeletons plus the RBNF spell-out of zero with beginning-of-sentence
+capitalization), and switch `AttachmentPreview.cs:184-195`, `DownloadsPopover.cs:104` and
+`AboutUpdateViews.cs:1228` to it; `AboutUpdateViews.cs:1228` was already wrong at B2 (a `ByteCountFormatStyle`
+site formatted with the `ByteCountFormatter` rule since B2 - recorded as a pre-existing port defect, fixed here,
+not reproduced, because it was never the pinned source's behaviour at either baseline). `FileByteCount` has no
+Swift twin caller left at B3; mark ED-133 superseded for these three sites (its corelibs reading may still apply
+elsewhere; not audited here). UNVERIFIED under ED-086 past "Zero kB" and "1 kB", which swift-foundation's own test
+suite confirms; oracle row O-66 tracks the rest. Records: reclassify PR-COMPOSER-076; promote PR-COMPOSER-078 from
+re-cite to reclassify (its text changes from "KB" to "kB"); fix PR-UPDATE-077's port-path citation. ENGINEERING
+DECISION.
+
+ED-199 [STORE] `SimpleDiff.unified`'s tie-breaking follows stdlib `CollectionDifference.difference(from:)`
+(oracle O-67); port swift-6.4.0-RELEASE's linear-space Myers. SOURCE FACT: `Core/Support/Text.swift:105-112`
+feeds `newLines.difference(from: oldLines)` into sets of removed/inserted offsets (String `==` is canonical
+equivalence); `difference(from:by:)` in swiftlang/swift `stdlib/public/core/Diffing.swift` is `@available` but not
+`@inlinable`, so the app calls whatever copy ships in the OS's `libswiftCore` - the deployment target is macOS
+26.0 (project.yml:5, :22), so no copy ships in the app itself, and behaviour follows the Mac's OS version, not the
+toolchain that built 1.7.0. swift-6.2-RELEASE runs the greedy Myers (`_myers`, :230-366); swift-6.3-RELEASE and
+swift-6.4.0-RELEASE run `_linearSpaceMyers` (:590-630), switched by commit 80f052e251c6 (PR #83212, 2025-09-19),
+whose message states the new version "returns a set of changes that is the same size as the previous version, the
+specific changes are not guaranteed to be the same." `availability-macros.def` at swift-6.4.0-RELEASE maps
+SwiftStdlib 6.2 to `anyAppleOS 26.0`, 6.3 to `anyAppleOS 26.4`, 6.4 to `anyAppleOS 27.0`: macOS 26.0-26.3 run one
+algorithm, 26.4 and later (and 27) run the other; both give identical add/remove counts (fixed by LCS length) but
+can choose different offsets in tie cases (a `diffsim.js` transliteration over all 14,641 pairs of length-0-to-4
+sequences over {a,b,c} found different offsets in 5,070 of them). DECISION: `Marrow.Core/Port/SwiftDifference.cs`
+ports `_linearSpaceMyers` from swift-6.4.0-RELEASE, with `cmp = SwiftString.Equal`, because it is what current
+macOS versions run (26.4 and later, and 27) and is swift `main`; record the 6.2 greedy behaviour as the
+older-OS variant, not implemented. UNVERIFIED under ED-086 (a transliteration, not a stdlib run); oracle row O-67
+tracks it, and the Windows swift.org toolchain (which compiles the same `Diffing.swift`) can settle the algorithm
+question, though not which one a given macOS build binds to. Tests whose expected text depends on a tie carry
+`[Trait("Oracle","O-67")]`; version-independent fixtures (including the plan's own "a\na"->"a") carry none.
+ENGINEERING DECISION; blocks unit A1.
+
+ED-200 [WIN] `WindowDragGesture()` with `.allowsWindowActivationEvents(true)` (oracle O-68): park on the ED-063
+caption-hit-test region. SOURCE FACT: `UI/Chrome/Chrome.swift:1091-1099` replaces B2's NSView-based
+WindowDragArea/WindowDragView (mouseDown calling `window.performDrag(with:)`, empty mouseUp) with `Color.clear
+.contentShape(.rect).gesture(WindowDragGesture()).allowsWindowActivationEvents(true)`; callers are
+SidebarView.swift:181, SettingsView.swift:193, MCPKeyPanel.swift:53 and MCPSetupPanel.swift:127, all `.background`
+uses with nothing behind the area to receive a click. Apple's WindowDragGesture documentation (macOS 15.0+)
+recommends `allowsWindowActivationEvents` "so that dragging the containing window works even when it's inactive"
+but is silent on whether the move starts on press or after a threshold, on a bare click, and on double-click
+zoom; OD-0001 rules out a Mac run to settle it. DECISION: collapse WindowDragArea and WindowDragView into one
+transparent, full-rect control that keeps the ED-063 caption hit test, with a `BeginMoveDrag` fallback for windows
+where the caption result does not apply. On Windows the system move loop then gives press-and-move dragging, an
+activating click on an inactive window still drags (matching Apple's stated intent), release goes to the system,
+double-click maximizes/restores and right-click shows the system menu - all already measured and accepted under
+ED-063. If oracle O-68 is ever settled and shows macOS does not zoom on double-click, the fix is to swallow
+WM_NCLBUTTONDBLCLK for these regions in the ED-063 hook. FloatingGuidePanel (N11) must check the caption drag
+still works under the WH_CBT activation refusal. Records: reclassify PR-WIN-193 and UI-WIN-005 to
+Chrome.swift:1091-1099; their press-start and double-click lines carry `[Trait("Oracle","O-68")]`. ENGINEERING
+DECISION (parked, not resolved).
+
+ED-201 [MCP] Hex case of `addingPercentEncoding(withAllowedCharacters:)` on Darwin (oracle O-69): uppercase.
+SOURCE FACT: `Services/MCP/MCPOAuth.swift:776` builds the OAuth token-refresh body as
+`formEncode(name)=formEncode(value)` pairs joined by "&"; `:790-793` is
+`value.addingPercentEncoding(withAllowedCharacters: CharacterSet(charactersIn: "A-Za-z0-9-._~"))`, falling back to
+the raw value on nil. `StringProtocol.addingPercentEncoding(withAllowedCharacters:)` is not in swift-foundation
+6.2; on Darwin it reaches the closed-source Foundation overlay and then CF. The open-source twin
+(swift-corelibs-foundation swift-6.2-RELEASE `CFURLComponents_URIParser.c:260-269`,
+`_CFStringCreateByAddingPercentEncodingWithAllowedCharacters`) encodes UTF-8 bytes with `hexchars[] =
+"0123456789ABCDEF"`, and swift-foundation's own URL encoder (`URLParser.swift:963-1001`, `hexToAscii`, the path
+B2's `URLComponents.percentEncodedQuery` took, O-57) is also uppercase; RFC 3986 section 2.1 recommends uppercase.
+DECISION: the port's A12 raw-body fixture uses uppercase escapes (for example "a b+c" -> `a%20b%2Bc`,
+"http://127.0.0.1:53682/callback" -> `http%3A%2F%2F127.0.0.1%3A53682%2Fcallback`, "é" -> `%C3%A9`, "~._-" kept as
+written). UNVERIFIED under ED-086 at very low risk (Darwin CF is closed at this version); oracle row O-69 tracks
+it and may be folded into O-57. The nil fallback is unreachable from a Swift String, which is always valid
+Unicode. ENGINEERING DECISION.
+
+ED-202 [WIN][TERM] Avalonia raises PointerExited on a captured element's chain whenever the hit element is not
+the captured one (oracle-adjacent, not itself an oracle item since it is read from the port's own pinned
+dependency, not from Apple's platform): a DragHandle hover rule (units N8, TerminalPanel, SubagentPanel,
+WindowChrome). SEMANTICS, the port's pinned Avalonia 12.1.2 (byte-identical at 12.1.3),
+`src/Avalonia.Base/Input/PointerOverPreProcessor.cs`: every non-touch pointer move except CancelCapture computes
+the over-element via `GetEffectivePointerOverElement(hit, pointer.Captured)` (:79-89), which returns null when a
+captured element exists and the hit element is not that element (:114-117; the hit element is the deepest enabled
+one, so a hit-testable child of the captured element also counts as "not it"). A null over-element raises
+PointerExited on the old over-element and every ancestor up to the root and sets `CursorElement =
+pointer.Captured` (:130-165, `ClearPointerOver`); returning over the captured element raises PointerEntered back
+down that chain (:190-257, `SetPointerOverToElement`). Every press captures implicitly
+(`MouseDevice.cs:135-146`), so this holds during every press-drag in the app, not only explicit captures. SOURCE
+FACT for comparison: `UI/Chrome/DragHandle.swift:239-245`'s tracking area is
+`[.mouseEnteredAndExited, .activeAlways, .inVisibleRect]` without `.enabledDuringMouseDrag`, so "no exit arrives
+while the button is held; the release decides from the cursor" (:229) - `mouseUp` calls `refreshHover()` (:230),
+which re-reads the real pointer location. Avalonia therefore behaves differently from AppKit here: it reports
+exit and re-entry during a captured drag, where AppKit's tracking area freezes. DECISION: in N8's DragHandleView,
+while `isDragging`, OnPointerEntered/OnPointerExited leave `isHovering` alone; on release and on attach, set hover
+from `Bounds.Contains(pointer position)`, mirroring `refreshHover`. Grip and glow children are
+`IsHitTestVisible = false`. Fix the existing `WindowChrome.cs:679-691`, which toggles `isHovering` on every
+enter/exit, in N8's retarget. Port-wide FYI, not blocking: because of implicit capture, every hover-driven view
+loses and regains hover during any press-drag that crosses it; this belongs on the UI verification list. Tests: a
+headless test pins PointerExited firing under capture when the pointer leaves; a second test checks `isHovering`
+does not change mid-drag and is re-read on release. ENGINEERING DECISION; a DragHandle rule, not a deviation (the
+observable macOS behaviour - hover state settled on release - is preserved; only the intermediate Avalonia events
+during the drag itself are absorbed).
+
+ED-203 [WIN] The generic Windows openers must refuse a relative or scheme-less-host URL before calling
+ShellExecuteW, as parity with what NSWorkspace refuses on the source's own platform (owner decision O4's
+engineering part, unknowns.md UNK-0027; platform_adaptations.md PA-0020). SOURCE FACT:
+`Services/Port/Workspace.cs:19-20` (`ShellOpen`, the web-address seam for `MCPOAuth.swift:434`) and
+`UI/Port/ShellWorkspace.cs:13` (`OpenWithDefaultApp`, the local-file seam for `AttachmentPreview.swift`'s footer
+NSWorkspace calls) both pass any string straight to `ShellExecuteW(IntPtr.Zero, "open", <string>, ...)`.
+`ShellExecuteW("calc")` starts a program found on PATH by name; `ShellExecuteW("//host/share")` opens an SMB
+connection that sends the user's Windows credentials to a host that model output could have named. Neither is
+reachable through `NSWorkspace.shared.open(url)` on macOS, which refuses a relative URL and a scheme-less host
+outright - so unconditionally accepting them on Windows is not parity, it is a platform gap the literal port
+introduces. DECISION: both openers reject, before calling ShellExecuteW, any input that (a) has no URL scheme, or
+(b) has a host component but no scheme (the two-slash-prefixed relative-host form). This changes nothing on the
+Mac's own inputs (an absolute `https://...` or `file://...` URL is unaffected) and applies regardless of how
+owner decision O4's local-file-opening policy itself is answered (unknowns.md UNK-0027), because
+`MarkdownLinkOpener`'s eventual local-file branch supplies its own explicit, reviewed path to these seams rather
+than a raw, unchecked string. Tests: WorkspaceTests/ShellWorkspaceTests assert a bare relative string ("calc") and
+a scheme-less two-slash host string ("//host/share") are both refused before reaching ShellExecuteW. ENGINEERING
+DECISION; parity, not a deviation.
+
+ED-204 [WIN] Which chat-link targets are revealed instead of opened, and how (OD-0026; PA-0020, UNK-0027). SOURCE
+FACT: B3 `UI/Markdown/LinkParagraphView.swift:226-245` opens a local-file link with `NSWorkspace.shared.open(URL(fileURLWithPath:))`
+(:243), which on the Mac launches an app bundle or a `.command` file. OWNER RULING OD-0026: on Windows a local target
+of a type Windows runs directly is shown selected in File Explorer instead. DECISION: the local-file branch reveals
+rather than opens when EITHER (a) shlwapi `AssocIsDangerous(<extension>)` returns TRUE (Windows' own "potentially
+dangerous file type" test, the one its attachment handling uses, so the list follows the user's machine) OR (b) the
+extension, compared case-insensitively, is in the fixed floor list .exe .com .bat .cmd .ps1 .psm1 .vbs .vbe .js .jse
+.wsf .wsh .hta .msi .msp .mst .scr .lnk .url .cpl .pif .reg .msc .scf .inf .appref-ms (the floor holds whatever
+(a) returns on a stock Windows 11, even if a machine's registry says otherwise; .ps1 is included because a user may
+have associated it with PowerShell). A directory is not a program: it opens, as Finder opens a folder. The reveal
+uses the port's existing seam for `NSWorkspace.shared.activateFileViewerSelecting` (`src/Marrow.UI/Port/ShellWorkspace.cs:15-17`,
+`explorer.exe /select,"<path>"`). UNC targets (`\host\...`, `file://host/...`, and a drive-letter path that maps to
+a network share is NOT inspected: only the literal UNC forms are refused) are never opened or revealed from a chat
+link. Tests (lane A29): AssocIsDangerous(".exe") is TRUE and (".txt") FALSE on the test machine (pins the API
+binding); each floor extension reveals; ".txt"/".cs"/".md" open; "C:/x/a.cs:12" opens "C:/x/a.cs" when only it
+exists; a UNC link does nothing. ENGINEERING DECISION implementing OD-0026's named safety deviation.
+
+ED-205 [UI] The grab-idle, grab-active and link pointer styles (PA-0019; lane 1f, `src/Marrow.UI/Port/PointerStyle.cs`).
+SOURCE FACT: at B3 (52bc792) `pointerStyle` occurs exactly four times in DroppyCode: `App/Views/Composer/FollowUpQueueTab.swift:384`
+and `App/Views/Settings/ModelsSettingsPage.swift:184` (`.pointerStyle(isDragged ? .grabActive : .grabIdle)`),
+`App/Views/Sidebar/SidebarView.swift:124` (`.pointerStyle(drag.id != nil ? .grabActive : nil)`) and
+`App/Views/Chat/TimelineMinimap.swift:211` (`.pointerStyle(.link)`). DECISION: `enum PointerStyle { GrabIdle, GrabActive,
+Link }` (exactly those values) and `control.PointerStyle(PointerStyle?)`, which sets the control's Cursor or clears it
+for null; callers re-apply it when their state changes, as SwiftUI re-evaluates the modifier. Link is Avalonia's
+StandardCursorType.Hand. GrabIdle and GrabActive are rendered at run time from the bundled Lucide `hand.svg` and
+`hand-fist.svg` (ISC, `src/Marrow.UI/Assets/Icons/lucide/`) through SvgIcon: a white halo stroke (stroke width + 3
+units) under the icon's black stroke, the 24-unit icon inset 2 units in a 32 x 32 DIP square, rasterized by a
+RenderTargetBitmap at 96 x render scaling (32 px at 100 %, 64 px at 200 %), hotspot at the centre (AppKit's
+openHand/closedHand hotspot is the centre of their image), cached per (style, scale). UNVERIFIED (PA-0019, ED-086):
+the pixel art of macOS's system open/closed-hand cursors is not extractable from source and no Mac capture exists
+(OD-0001); this is a tracked visual approximation. Tests: PointerStyleTests (value set, distinct renders, null clears,
+Link = Hand, centre hotspot, cache identity, and the whole glyph inside the square with a margin and the same
+proportions at 100/125/150/200 %). ENGINEERING DECISION refining PA-0019 (run-time art from existing SVGs rather than
+new .cur files); not a deviation.
+
+ED-206 [APP] `NSApp.isActive` has one port reading: any window of the app is the active window
+(`NSApplication.IsActive`, `src/Marrow.App/Port/ApplicationLifecycle.cs`). SOURCE FACT: B3 reads `NSApp.isActive` at
+`App/AppModel.swift:1172`, `:1186`, `:1259`, `App/AppModel+HydraMerge.swift:924`, `App/Runtime/AutoContinue.swift:152` and
+`App/AppDelegate.swift:70`; on macOS it is true while any window of the application is key or main (the app is
+frontmost), including the Settings window and panels, not only the main window. DECISION: every one of those sites reads
+the single port property, true when any Avalonia window owned by the app's desktop lifetime is active, false with no
+desktop lifetime (headless tests supply the answer). Before the AppDelegate review repair (ed84f4541) AppModel and
+AutoContinue read only the main window, which would have treated "Settings in front" as the app being inactive and posted
+notifications the Mac would suppress. Tests: AppDelegateSecondTests (a non-main window active, only the main window
+active, no lifetime) and the presentation gate agreeing with AppModel.threadNeedsAttention. ENGINEERING DECISION; parity.
+
+ED-207 [TEST] A per-flow observer of Shell.Run, so a test can assert a call site's literal argv and timeout budget
+(lane A9/L2d stop at 4a38922f; PR-GIT-003, PR-GIT-031). SOURCE FACT: every git invocation goes through
+`run(_:environment:input:timeout:)` into `Shell.run` with the site's own budget, 120 s by default
+(`Services/Git/Git.swift:30-49`, B3 52bc792). PR-GIT-003 asks for "a table test asserting the timeout constant of every
+one of the 82 invocation sites" and PR-GIT-031 for "a contract fixture asserting the argv". MEASURED (4a38922f): the stall
+probes in `tests/Marrow.Services.Tests/Fixtures/GitProbeFixtures.cs` (clean filter, diff textconv, post-checkout hook,
+reference-transaction hook) cannot hold open read-tree, diff --name-only, rm --cached, merge-file, hash-object,
+update-index, write-tree, cat-file or ls-tree (captureTree(paths:onto:from:) and its helpers, :294-359), and
+`LoginEnvironment.Git` is resolved once per process, so no test could see a git site's argv. Rejected: (a) a git wrapper
+first on PATH: that once-per-process resolution puts it in front of every git spawn in the whole test process (one more
+process per spawn; TerminationLadder's CTRL_BREAK and TerminateJobObject reach the wrapper first), and it still cannot
+see the budget, so every site would need its own manual-clock stall; (b) GIT_TRACE or trace2: GIT_TRACE is environment
+only, and Git.Run builds its environment from LoginEnvironment.Current, so it needs a process-wide change; trace2 targets
+are read only from the system and global config, never the repository's (git-config(1), Git for Windows 2.54.0);
+neither records the budget. DECISION: `ShellObserver` (`src/Marrow.Core/Port/ShellObserver.cs`, PORT-ONLY). `Shell.Run`
+reports a `ShellInvocation` (executable, a copy of the argv, directory, environment, input, timeout, outputLimit) to the
+observer the calling async flow installed, on entry, before the process starts; the real process runs unchanged, and
+with no observer (the app, every other test) nothing is reported. Tests call `ShellRecording.Start()`
+(`tests/Marrow.Testing/ShellRecording.cs`), which records only its own flow, so test classes still run in parallel
+(R-TEST-5). A site's budget is verified by its recorded constant together with the end-to-end proof that a budget
+passed to Shell.Run becomes the process deadline (GitTests.Run_passes_a_call_sites_own_budget_through_to_the_process,
+ShellTests); the existing stall tests stay. Nothing is replaced, so this is not a stub or a mock. Tests:
+ShellObserverTests (reported on entry with every argument; only the observing flow and the flows it starts; dispose
+restores the previous observer); GitFifthTests.CaptureTreeOnto_runs_its_clean_add_at_300_seconds_and_every_other_git_site_at_the_120_second_default
+(the 13 calls one captureTree(paths:onto:from:) makes, covering all 10 of its sites, blobData's cat-file and fileMode's
+ls-tree included: literal argv, budget, GIT_INDEX_FILE per site, stdin) and PushBranch_without_force_... / PushBranch_with_force_puts_force_after_u_and_before_origin_...
+(PR-GIT-031). Mutation check (b3/shell-recorder): moving "--force" after "origin" and giving write-tree 300 s fails exactly
+those two new tests, while the behavioural PushBranch_with_force_overwrites_a_branch_the_remote_moved_on_without still
+passes. FOLLOW-UP: the rest of PR-GIT-003's table; before this decision the Git test classes held 12 per-site budget tests
+(10 git sites, 2 forge-CLI sites), against 82 git sites and 6 forge-CLI sites. ENGINEERING DECISION (test infrastructure); no product change, not a deviation.
+
+ED-208 [UI] MentionScanner skips an empty candidate name before scanning (B3_PLAN.md section 3, row N10; PR-THEME-143).
+SOURCE FACT: `UI/Markdown/MentionScanner.swift` (B3 52bc792) :7-32's `matches(in:candidates:name:)` advances
+`i = text.index(i, offsetBy: candidateName.count)` on every hit (:16, :24, :26); with an empty `candidateName` that
+advance is zero, and an empty string is a prefix of anything at :15, so a real empty candidate name would leave `i`
+unmoved and the `while i < text.endIndex` loop (:11) would never terminate. B3_PLAN.md's N10 row names this exact
+risk and asks for the ED: "Record an ED that empty names are skipped (the Swift would loop forever on one; roster
+names are never empty)". No roster name this app ever renders is empty. DECISION:
+`src/Marrow.UI/Markdown/MentionScanner.cs`'s `Matches<T>` filters candidates to those whose projected name has
+non-zero length before ordering or scanning (`.Where(candidate => name(candidate).Length > 0)`), so the port cannot
+hang even on an input the B3 Swift source itself has no guard against, because this app's own roster never supplies
+one. Tests: `tests/Marrow.UI.Tests/Markdown/MentionScannerTests.cs`'s
+`An_empty_candidate_name_is_skipped_and_never_hangs` pins it, tagged `[Trait("Decision", "ED-208")]` in place of the
+stand-in `[Trait("Req", "PR-THEME-143")]` the verifying cloud run used for it, since the empty-name guard is not
+itself part of PR-THEME-143 (the mention-scan-extraction record) but a port-only addition this decision records.
+ENGINEERING DECISION; not a deviation (no real input's output changes; the guard only forecloses a hang on an input
+this port never produces).
+
+ED-209 [MCP][NET] A per-header origin-bound mark on `URLRequest`, so F.HTTP's redirect handling can drop one of a
+caller's own header fields on a cross-origin redirect, the same way ED-152 already drops Authorization
+(`src/Marrow.Core/Port/Http.cs`: `URLRequest.MarkOriginBound`/`OriginBoundHeaderFields`, `Hop.OriginBoundFields`,
+`Redirected`). FOUND: lane L3a review finding L3a-1 (HIGH). PR-MCP-188's deviation record already states OD-0022
+("Marrow sends a server's custom headers only to that server: a redirect that changes scheme, host or port drops
+them") and both MCPWire.cs and MCPProbe.cs carried a comment tracking the gap, but neither `MCPHub.swift:343-352`'s
+port (`MCPHub.cs`'s private `Post`) nor F.HTTP itself ever implemented it, and no test exercised a redirect at
+all: `MCPWire.Post` (`MCPWire.swift:66` `for (field, value) in headers { request.setValue(...) }`) put every one of
+a server's custom headers directly on the request with no marking, and `Http.cs`'s `Redirected` (`Http.cs`,
+ED-152) stripped only a literal `Authorization` field on an origin change, so `X-Api-Key` and any other custom
+header rode along to a redirect target the server never configured. DECISION: `URLRequest.MarkOriginBound(field)`
+records a field name (case-insensitive, idempotent) that `Hop.OriginBoundFields` carries through every redirect
+hop; `Redirected` drops it, alongside `Authorization`, the moment scheme, host or port changes, and never restores
+it even if a later hop returns to the original origin (matching Authorization's own one-way rule, UNVERIFIED
+O-29). `MCPWire.Post` (`:90`) now calls `.MarkOriginBound(field)` for every one of its caller-supplied `headers`
+entries (a server's own custom headers), which is the only per-server secret MCPHub's http client ever sends,
+before `Content-Type`, `Accept`, `MCP-Protocol-Version` and `Mcp-Session-Id` are added (those are protocol
+constants, never marked, and travel with every redirect exactly as before). PORT-ONLY: upstream `URLRequest` has
+no such member; like ED-152's own Authorization handling, this is F.HTTP-internal machinery with no Swift source
+line, justified by OD-0022's ruling. `MCPProbe.cs:246-266` carries its own, still-open copy of the same note for
+its own inline `Post` (a different unit, Services.MCP.MCPProbe, out of this lane's scope) and is not touched here.
+Tests: `HttpTests.A_same_origin_redirect_keeps_an_origin_bound_header` and
+`A_redirect_to_another_origin_drops_an_origin_bound_header_but_keeps_an_unmarked_one` (Core, the mechanism
+in isolation, mirroring the existing Authorization pair); `MCPHubTests.Http_client_keeps_the_servers_custom_header_across_a_same_origin_redirect`
+and `Http_client_drops_the_servers_custom_header_across_a_cross_origin_redirect` (through the real hub and two
+LoopbackHttpServer instances, all three of a client's POSTs - initialize, notifications/initialized, the real
+call - each redirecting in turn, since `MCPHub.swift:317,328,335` all post to the same configured URL, never a
+remembered redirect target). ENGINEERING DECISION extending ED-152's mechanism; the resulting behaviour (headers
+dropped across an origin-changing redirect) is OD-0022's owner-ruled deviation, not a new one.
+
+ED-210 [UI] How ProseRunView's single NSAttributedString in a single NSTextView is represented on Avalonia (unit
+UI.Markdown.ProseRunView; PR-THEME-149, PR-THEME-150; the verifier's "mixed paragraph styles" block).
+
+SOURCE FACT: B3 (52bc792) `UI/Markdown/ProseRunView.swift:114-208` builds a whole run of headings, paragraphs, list
+items and quotes as ONE NSMutableAttributedString. Blocks are joined by a "\n" in the base font and colour (:201-208).
+Each block's line carries its own NSMutableParagraphStyle: firstLineHeadIndent, headIndent, paragraphSpacing and
+paragraphSpacingBefore, plus, on a list item, one left NSTextTab at indent + 18 and defaultTabInterval 18 (:131-134,
+:155-159, :180-185). The lines are made from LinkParagraphView.attributed(source:...) pieces (:130, :146, :178;
+LinkParagraphView.swift:110-223): its fonts, favicon and dragon-glyph NSTextAttachments, and .link and .hydraHead
+runs. :71 hands the string to LinkTextView.render (LinkParagraphView.swift:481-496), which is one NSTextView. The run
+therefore has one selection, one character index space for the link, head-mention and popover lookups (:355-428,
+:463-471), and one height (height(forWidth:), :498-507). ProseRunView.swift is the only B3 file that sets a paragraph
+style (NSMutableParagraphStyle occurs at :131, :155 and :180 only). The merged port draws a LinkParagraphView
+paragraph through one Avalonia SelectableTextBlock. Its TextLayout takes a single TextParagraphProperties for all of
+its text, so it has no per-paragraph indent, hanging indent, paragraph spacing or tab stop, and its tab is a
+fixed-width advance rather than a stop.
+
+Rejected: (a) one SelectableTextBlock with line breaks: it loses every per-paragraph indent, the hanging list indent,
+the paragraph spacing and the tab stop. (b) A StackPanel of one text block per paragraph: a drag cannot cross blocks
+and a copy cannot join them, so the run's single selection and single index space are lost, and the run is no longer
+"one text object" (PR-THEME-149 expected_result). (c) Spacer InlineUIContainers or padding characters in one text
+block: they add characters that copy and indices count, and they still cannot hang continuation lines.
+
+DECISION:
+
+(1) Value. A port-only `ParagraphText` (src/Marrow.UI/Port/ParagraphText.cs) is the NSMutableAttributedString subset
+these two files use. It is a UTF-16 string held as ordered runs. Each run has an optional font (SwiftFont), foreground
+colour (SwiftColor), .link (SwiftURL), .hydraHead (SwiftURL), attachment and paragraph style. An attachment holds an
+image and its bounds, and its run is the single character U+FFFC, as NSAttributedString(attachment:) stores it.
+`ParagraphStyle` holds exactly firstLineHeadIndent, headIndent, paragraphSpacing, paragraphSpacingBefore, tabStops
+(left stops in container coordinates) and defaultTabInterval. Its default is NSParagraphStyle.default: 0, 0, 0, 0,
+twelve stops 28 apart, and 0 (platform knowledge, UNVERIFIED under OD-0001). The operations are the ones the Swift
+calls:
+- append a string with attributes, an attachment, or an attributed string;
+- addAttribute over a range, for a paragraph style or a font;
+- enumerateAttribute(.font);
+- the attributes at an index;
+- isEqual.
+
+`LinkParagraphView.Attributed(source:pointSize:dimmed:streaming:mentions:targets:)` is ported to return a
+ParagraphText (LinkParagraphView.swift:110-223). It keeps the fonts cache and places favicon and dragon attachments at
+y = base.descender + 1. NSFont.descender is read from the Inter glyph metrics. `ProseRunRepresentable.Attributed`,
+`Append` and `Separate` are line-for-line ports of :114-208. SwiftFont gains HasBoldTrait (bold or heavier) and
+HasMonoSpaceTrait (monospaced design) for the symbolicTraits test at :150-151. Semibold never reaches that test,
+because the heading line holds only regular, bold, italic and monospaced faces, so whether AppKit treats semibold as
+bold is not modelled. The dimmed and undimmed label colours are a single SwiftColor value each
+(LinkParagraphView.LabelTextColor and DimmedLabelTextColor), so two builds of the same text compare equal.
+
+(2) Layout. A port-only control, `ParagraphTextPresenter` (src/Marrow.UI/Port/ParagraphTextPresenter.cs), is the
+NSTextView and NSLayoutManager half.
+- Paragraphs: it splits the string at NSString's paragraph separators (U+000A, U+000D, CRLF, U+0085, U+2029). A
+paragraph takes the style of its first character (the "\n" that separate() inserts carries none and ends the paragraph
+before it); with no style it uses NSParagraphStyle.default.
+- Lines: it formats one line at a time with Avalonia's TextFormatter.FormatLine. The first line sits at x =
+firstLineHeadIndent with width W - firstLineHeadIndent; every later line sits at x = headIndent with width W -
+headIndent. This matches zero container inset and zero line fragment padding (LinkParagraphView.swift:319).
+- Vertical spacing: paragraphSpacingBefore goes above a paragraph's first line and paragraphSpacing below its last.
+This applies to every paragraph, the first and last included, which is the Swift's literal style and the record's
+wording. Whether TextKit 1 drops the space before the first paragraph, or leaves the last paragraph's space out of
+usedRect, is UNVERIFIED under OD-0001.
+- Line heights are Avalonia's for the fonts on the line, as on the LinkParagraphView path.
+- Tabs: a tab is a drawable run whose width moves the pen to the first tab stop to its right, or failing that to the
+next multiple of defaultTabInterval. Both are in container coordinates, as NSTextTab locations are, which is why :183
+writes indent + 18. The width is measured before the line is formatted. With neither a stop nor an interval, the pen
+does not move (UNVERIFIED).
+- Attachments: an attachment is a drawable run of its bounds, with its bottom bounds.y above the baseline, and the
+presenter draws the image there.
+- Links: a .link run is drawn in linkTextAttributes' colour, Chrome.AccentNSColor, with no underline (:485-489).
+- Height: height(forWidth:) is the laid-out height rounded up and cached per width. The cache is dropped when the
+storage changes (:490-495, :498-507).
+
+(3) The view. `LinkTextView.Render(ParagraphText)` is render(_:) (:481-496):
+- the first call replaces the view's SelectableTextBlock with one presenter;
+- every call sets the link colour;
+- the storage is replaced and the measurement dropped only when the new text is not isEqual to the storage (:490-494);
+- the size is invalidated either way.
+
+The link, head-mention and popover lookups (:355-428, :463-471) run over the storage. A point maps to the character
+whose own glyph box contains it (:367-369, :418-420). A link is the longest effective range of one .link value. A head
+mention is the longest effective range of one .hydraHead value. Its name is that range's text with U+FFFC removed and
+trimmed, or else the text of the next .hydraHead range (:381-412). LinkParagraphView's own paragraph path (RenderText
+and its SelectableTextBlock) is unchanged.
+
+(4) Selection. There is one selection over the whole string:
+- a press places the caret, and a drag or shift-press extends it;
+- two presses select a word and three select a paragraph;
+- Ctrl+C copies the selected substring, separators and U+FFFC included, and Ctrl+A selects all.
+
+The highlight uses SelectableTextBlock's SelectionBrush property, with the same default, painted under the glyphs.
+passesProseThrough is false on this path (:50), so a press on prose selects. Before the presenter's own selection
+handling sees a press (a tunnel handler), a head press opens the head and a link press goes to the delegate first, as
+mouseDown (:444-451) and clickedOnLink do. The word, paragraph and key behaviour follow NSTextView's standard
+behaviour, not B3 source (UNVERIFIED under OD-0001). Like the LinkParagraphView path, this path offers no system text
+menu on a right-click over prose.
+
+(5) Representable lifecycle. ProseRunRepresentable keeps SwiftUI's names:
+- The constructor runs makeCoordinator, then makeNSView (delegate = coordinator, passesProseThrough = false, onHost,
+merge target; :43-54), then a first updateNSView.
+- `Update(...)` stands for SwiftUI handing it new inputs and running updateNSView (:56-77). The string is rebuilt only
+when the joined source, point size, dimming, revision, mention names or head URLs change. The head handler and the
+merge target are set on every call.
+- A change of the inherited merge-request target also runs updateNSView.
+- Leaving the visual tree runs dismantleNSView, which clears the delegate, handler and merge target and does not
+detach the veil (upstream defect 55, :84-88). Coming back makes a new text view and coordinator, as SwiftUI would.
+- sizeThatFits (:79-82) answers only a finite proposed width.
+
+LinkTextView gains Delegate (NSTextView.delegate). A link click asks the delegate first, and opens through
+MarkdownLinkOpener when there is no delegate or it declines. The LinkParagraphView path sets no delegate, so it opens
+links as before. ProseRunView re-reads the environment (:6-9) and faviconRevision (:14) whenever they change, and
+hands the representable the point size rounded to the nearest half point (:17).
+
+Tests: tests/Marrow.UI.Tests/Markdown/ProseRunViewTests.cs, 31 tests, traits PR-THEME-149 and PR-THEME-150. They
+cover:
+- the joined sources;
+- the string and every paragraph style, font and colour the Swift sets;
+- the laid-out x of quoted text (14), and of list text and its continuation lines (18, or 36 nested);
+- the vertical gaps (12, 18, 14, 6, 12), and a level-1 heading's 6 before and 12 after inside the height;
+- one drag selecting across two paragraphs;
+- a link in a later paragraph found under the pointer;
+- the rebuild check and the handlers;
+- make and dismantle.
+
+ENGINEERING DECISION: the representation is a port mechanism, not a deviation. The UNVERIFIED items above wait on a
+macOS capture (OD-0001): the default tab stops, the edges of paragraph spacing, a tab with no stop, and NSTextView's
+word, paragraph and key selection.

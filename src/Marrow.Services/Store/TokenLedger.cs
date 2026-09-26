@@ -1,8 +1,10 @@
-// Source: DroppyCode/Services/Store/TokenLedger.swift (B2 1fbf81e), :1-708.
+// Source: DroppyCode/Services/Store/TokenLedger.swift (B3 52bc792), :1-698. Re-pinned from B2 1fbf81e for AM-0003;
+// inheritedTotal and tailContribution now parse total_token_usage.total_tokens (and last_token_usage.total_tokens)
+// through JSONValue.int instead of a plain Int/NSNumber cast (PR-USAGE-100 b3_note), which shifts every citation
+// at or after B2 :521 by an amount that grows to -9 by B3 :562 and stays -9 through the end of the file.
 using System.Buffers;
 using System.Diagnostics;
 using System.Globalization;
-using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Marrow.Core.Models;
@@ -82,7 +84,8 @@ public sealed class TokenLedger : MainActorModel
         return total;
     });
 
-    // :85 private static let legacyLiveDefaultsKey
+    // :85 nonisolated fileprivate static let legacyLiveDefaultsKey (B3; was plain `private` in B2 — see
+    // TokenLedgerKeys, which already shared this constant across the file before B3 made that literal too).
     private const string LegacyLiveDefaultsKey = "droppycode.tokenActivity.liveDaily";
 
     /// :87. `CaptureRun.defaults` is always nil: WebsiteCaptures and TourCaptures, the only callers that would
@@ -568,7 +571,8 @@ internal static class TokenHistoryScanner
         catch (Exception e) when (SwiftTry.IsThrownError(e)) { return false; }
     }
 
-    /// :498-540. The total the file inherited from the thread it resumed.
+    /// :498-533 (B3; was :498-540 in B2 before inheritedTotal's guard moved to JSONValue, PR-USAGE-100 b3_note).
+    /// The total the file inherited from the thread it resumed.
     private static long InheritedTotal(string url)
     {
         byte[] head;
@@ -586,77 +590,67 @@ internal static class TokenHistoryScanner
             }
         }
         catch (Exception e) when (SwiftTry.IsThrownError(e)) { return 0; }
-        var text = SwiftText.DecodeUtf8Repairing(head); // :560-ish lossy decode, matching the tail's own approach
+        var text = SwiftText.DecodeUtf8Repairing(head); // :553-ish lossy decode, matching the tail's own approach
         foreach (var line in SwiftString.Split(text, "\n"))
         {
             if (!line.Contains("\"token_count\"", StringComparison.Ordinal)) continue; // :521
-            if (TryParseTokenCountLine(line) is not { } evt) continue; // :522-527
-            return Math.Max(0, evt.TotalTokens - evt.LastTokenUsageTotal); // :534
+            if (TryParseTokenCountLine(line) is not { } evt) continue; // :522-525
+            return Math.Max(0, evt.TotalTokens - evt.LastTokenUsageTotal); // :526-527
         }
-        return 0; // :539
+        return 0; // :532
     }
 
-    /// :545-581. The file's own growth, with the event day, or nil when the tail holds no token_count event.
+    /// :538-572 (B3; was :545-581 in B2 before tailContribution's guard moved to JSONValue, PR-USAGE-100 b3_note).
+    /// The file's own growth, with the event day, or nil when the tail holds no token_count event.
     private static (long Tokens, string Day)? TailContribution(string url)
     {
         try
         {
             using var handle = File.OpenRead(url);
-            var fileSize = handle.Length; // :548
-            if (fileSize <= 0) return null; // :549
-            var offset = fileSize > TailBytes ? fileSize - TailBytes : 0; // :550
-            handle.Seek(offset, SeekOrigin.Begin); // :552-555
+            var fileSize = handle.Length; // :541
+            if (fileSize <= 0) return null; // :542
+            var offset = fileSize > TailBytes ? fileSize - TailBytes : 0; // :543
+            handle.Seek(offset, SeekOrigin.Begin); // :545-548
             using var memory = new MemoryStream();
             handle.CopyTo(memory);
-            var data = memory.ToArray(); // :556
-            if (data.Length == 0) return null; // :557
-            var text = SwiftText.DecodeUtf8Repairing(data); // :560, lossy on purpose
-            var lines = SwiftString.Split(text, "\n"); // :561
+            var data = memory.ToArray(); // :549
+            if (data.Length == 0) return null; // :550
+            var text = SwiftText.DecodeUtf8Repairing(data); // :551-553, lossy on purpose
+            var lines = SwiftString.Split(text, "\n"); // :554
             for (var i = lines.Count - 1; i >= 0; i--) // reversed()
             {
                 var line = lines[i];
-                if (!line.Contains("\"token_count\"", StringComparison.Ordinal)) continue; // :562
-                if (TryParseTokenCountLine(line) is not { } evt) continue; // :564-569
+                if (!line.Contains("\"token_count\"", StringComparison.Ordinal)) continue; // :555
+                if (TryParseTokenCountLine(line) is not { } evt) continue; // :556-560
                 string day;
-                if (evt.Timestamp is { } stamp && ISO8601.Date(stamp) is { } date) day = TokenLedger.DayKey(date); // :571-572
-                else day = ""; // :574
-                if (day.Length == 0) continue; // :576
-                var own = evt.TotalTokens - InheritedTotal(url); // :577
-                return (Math.Max(0, own), day); // :577-578
+                if (evt.Timestamp is { } stamp && ISO8601.Date(stamp) is { } date) day = TokenLedger.DayKey(date); // :562-563
+                else day = ""; // :565
+                if (day.Length == 0) continue; // :567
+                var own = evt.TotalTokens - InheritedTotal(url); // :568
+                return (Math.Max(0, own), day); // :569
             }
-            return null; // :580
+            return null; // :571
         }
         catch (Exception e) when (SwiftTry.IsThrownError(e)) { return null; }
     }
 
     private readonly record struct TokenCountEvent(long TotalTokens, long LastTokenUsageTotal, string? Timestamp);
 
-    /// Decodes one candidate line into its total_token_usage.total_tokens, last_token_usage.total_tokens and
-    /// timestamp (:522-527, :564-569). A missing or non-positive total, or a line that fails to parse, yields null.
+    /// Decodes one candidate line into its total_token_usage.total_tokens, last_token_usage.total_tokens (both
+    /// inside inheritedTotal's guard, :522-526, and tailContribution's guard, :556-560) and, for tailContribution
+    /// only, timestamp (:562). PR-USAGE-100 (B3 b3_note): both totals now read through JSONValue.int
+    /// (Core/Support/JSONValue.swift:83-90 / JSONValue.JSONValueInt) instead of an NSNumber/Int cast, so a numeric
+    /// JSON string is accepted, a finite JSON double truncates toward zero (and traps outside Int's range, same as
+    /// upstream), and a JSON boolean, null, array or object is rejected exactly like a missing field. A missing or
+    /// non-positive total, or a line that fails to parse as JSON at all, yields null.
     private static TokenCountEvent? TryParseTokenCountLine(string line)
     {
-        JsonDocument document;
-        try { document = JsonDocument.Parse(Encoding.UTF8.GetBytes(line)); }
-        catch (Exception e) when (SwiftTry.IsThrownError(e)) { return null; }
-        using (document)
-        {
-            var root = document.RootElement;
-            if (root.ValueKind != JsonValueKind.Object) return null;
-            if (!root.TryGetProperty("payload", out var payload) || payload.ValueKind != JsonValueKind.Object) return null;
-            if (!payload.TryGetProperty("info", out var info) || info.ValueKind != JsonValueKind.Object) return null;
-            if (!info.TryGetProperty("total_token_usage", out var total) || total.ValueKind != JsonValueKind.Object) return null;
-            if (!total.TryGetProperty("total_tokens", out var tokensElement) || tokensElement.ValueKind != JsonValueKind.Number
-                || !tokensElement.TryGetInt64(out var tokens) || tokens <= 0) return null;
-            long last = 0;
-            if (info.TryGetProperty("last_token_usage", out var lastUsage) && lastUsage.ValueKind == JsonValueKind.Object
-                && lastUsage.TryGetProperty("total_tokens", out var lastElement) && lastElement.ValueKind == JsonValueKind.Number
-                && lastElement.TryGetInt64(out var lastValue))
-                last = lastValue;
-            string? timestamp = root.TryGetProperty("timestamp", out var timestampElement) && timestampElement.ValueKind == JsonValueKind.String
-                ? timestampElement.GetString()
-                : null;
-            return new TokenCountEvent(tokens, last, timestamp);
-        }
+        if (JSONValue.Parse(line) is not { } eventValue) return null; // :522, :557 JSONValue.parse(lineData)
+        var info = eventValue["payload"]?["info"]; // :523, :558
+        if (info?["total_token_usage"]?["total_tokens"]?.JSONValueInt is not { } tokens || tokens <= 0) return null; // :524-525, :559-560
+        var last = info?["last_token_usage"]?["total_tokens"]?.JSONValueInt ?? 0; // :526
+        var timestamp = eventValue["timestamp"]?.JSONValueString; // :562
+        return new TokenCountEvent(tokens, last, timestamp);
     }
 
     /// Calendar.current.date(byAdding: .month, value:, to:) ?? .distantPast (:412), ED-094.
@@ -672,17 +666,17 @@ internal static class TokenHistoryScanner
     }
 }
 
-/// Which scaling the heatmap colors use. :589-602
+/// Which scaling the heatmap colors use. :580-593
 public enum TokenActivityMode
 {
-    [RawValue("daily")] Daily, // :591
-    [RawValue("weekly")] Weekly, // :592
-    [RawValue("cumulative")] Cumulative, // :593
+    [RawValue("daily")] Daily, // :582
+    [RawValue("weekly")] Weekly, // :583
+    [RawValue("cumulative")] Cumulative, // :584
 }
 
 public static class TokenActivityModeExtensions
 {
-    /// :595-601
+    /// :586-592
     public static string Title(this TokenActivityMode mode) => mode switch
     {
         TokenActivityMode.Daily => "Daily",
@@ -692,73 +686,73 @@ public static class TokenActivityModeExtensions
     };
 }
 
-/// One month tick's label and grid column. :616 `(label: String, column: Int)`.
+/// One month tick's label and grid column. :607 `(label: String, column: Int)`.
 public sealed record MonthTick(string Label, int Column);
 
-/// Contribution grid over the current year. :604-707
+/// Contribution grid over the current year. :595-698
 public sealed record TokenActivityGrid
 {
-    public required ValueList<ValueList<DateOnly?>> Columns { get; init; } // :612
-    public required ValueList<ValueList<long>> Values { get; init; } // :614
-    public required long MaxValue { get; init; } // :615
-    public required ValueList<MonthTick> MonthTicks { get; init; } // :616
-    public required DateOnly Tomorrow { get; init; } // :618
+    public required ValueList<ValueList<DateOnly?>> Columns { get; init; } // :603
+    public required ValueList<ValueList<long>> Values { get; init; } // :605
+    public required long MaxValue { get; init; } // :606
+    public required ValueList<MonthTick> MonthTicks { get; init; } // :607
+    public required DateOnly Tomorrow { get; init; } // :609
 
-    public const int Rows = 7; // :620
-    public const int Months = 12; // :621
+    public const int Rows = 7; // :611
+    public const int Months = 12; // :612
 
-    private static readonly string[] MonthNames = // :625
+    private static readonly string[] MonthNames = // :616
         ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-    /// :627-706. A fixed Gregorian calendar with Sunday as the first weekday (never `.current`'s identifier);
+    /// :618-697. A fixed Gregorian calendar with Sunday as the first weekday (never `.current`'s identifier);
     /// `now`'s own local zone supplies "today". `daily` is looked up by TokenLedger.DayKey, which follows
     /// Calendar.current's identifier (ED-094), so the two can disagree for a non-Gregorian user, exactly as
     /// upstream's own dayKey(for:) inside build(daily:mode:now:) does.
     public static TokenActivityGrid Build(IReadOnlyDictionary<string, long> daily, TokenActivityMode mode, DateTimeOffset? now = null)
     {
         var zone = SwiftFormatters.CurrentTimeZone.Current; // Calendar(identifier: .gregorian)'s own timeZone: local
-        var nowValue = now ?? SwiftDate.Now; // :627
+        var nowValue = now ?? SwiftDate.Now; // :618
         var localNow = TimeZoneInfo.ConvertTime(nowValue, zone).DateTime;
-        var startOfToday = DateOnly.FromDateTime(localNow); // :630
-        var rangeStart = new DateOnly(startOfToday.Year, 1, 1); // :631
-        var rangeEnd = rangeStart.AddYears(1).AddDays(-1); // :632
-        var tomorrow = startOfToday.AddDays(1); // :633
+        var startOfToday = DateOnly.FromDateTime(localNow); // :621
+        var rangeStart = new DateOnly(startOfToday.Year, 1, 1); // :622
+        var rangeEnd = rangeStart.AddYears(1).AddDays(-1); // :623
+        var tomorrow = startOfToday.AddDays(1); // :624
 
-        // :636. Swift weekday: Sunday=1..Saturday=7; firstWeekday=1 (Sunday); (weekday-1+7)%7 == weekday-1, which
+        // :627. Swift weekday: Sunday=1..Saturday=7; firstWeekday=1 (Sunday); (weekday-1+7)%7 == weekday-1, which
         // is exactly .NET's DayOfWeek (Sunday=0..Saturday=6) for rangeStart.
         var leadingGap = (int)rangeStart.DayOfWeek;
-        var gridStart = rangeStart.AddDays(-leadingGap); // :637
+        var gridStart = rangeStart.AddDays(-leadingGap); // :628
 
-        var totalsByDay = new Dictionary<DateOnly, long>(); // :640
-        for (var cursor = rangeStart; cursor <= startOfToday; cursor = cursor.AddDays(1)) // :641-647
+        var totalsByDay = new Dictionary<DateOnly, long>(); // :631
+        for (var cursor = rangeStart; cursor <= startOfToday; cursor = cursor.AddDays(1)) // :632-638
         {
-            var key = TokenLedger.DayKey(LocalMidnight(cursor, zone)); // :643
-            if (daily.TryGetValue(key, out var total)) totalsByDay[cursor] = total; // :644
+            var key = TokenLedger.DayKey(LocalMidnight(cursor, zone)); // :634
+            if (daily.TryGetValue(key, out var total)) totalsByDay[cursor] = total; // :635
         }
 
-        var columns = new List<List<DateOnly?>>(); // :651
-        var day = gridStart; // :652
-        while (true) // :653-662
+        var columns = new List<List<DateOnly?>>(); // :642
+        var day = gridStart; // :643
+        while (true) // :644-653
         {
             var column = new List<DateOnly?>();
             for (var r = 0; r < Rows; r++)
             {
-                column.Add(day < rangeStart || day > rangeEnd ? null : day); // :656
-                day = day.AddDays(1); // :657-658
+                column.Add(day < rangeStart || day > rangeEnd ? null : day); // :647
+                day = day.AddDays(1); // :648-649
             }
-            columns.Add(column); // :660
-            if (day > rangeEnd) break; // :661
+            columns.Add(column); // :651
+            if (day > rangeEnd) break; // :652
         }
 
-        var values = columns.Select(_ => Enumerable.Repeat(0L, Rows).ToList()).ToList(); // :666
+        var values = columns.Select(_ => Enumerable.Repeat(0L, Rows).ToList()).ToList(); // :657
         switch (mode)
         {
-            case TokenActivityMode.Daily: // :668-673
+            case TokenActivityMode.Daily: // :659-664
                 for (var c = 0; c < columns.Count; c++)
                     for (var r = 0; r < Rows; r++)
                         if (columns[c][r] is { } d0) values[c][r] = totalsByDay.GetValueOrDefault(d0, 0);
                 break;
-            case TokenActivityMode.Weekly: // :674-681
+            case TokenActivityMode.Weekly: // :665-672
                 for (var c = 0; c < columns.Count; c++)
                 {
                     long week = 0;
@@ -767,7 +761,7 @@ public sealed record TokenActivityGrid
                     for (var r = 0; r < Rows; r++) values[c][r] = columns[c][r] is null ? 0 : week;
                 }
                 break;
-            case TokenActivityMode.Cumulative: // :682-689
+            case TokenActivityMode.Cumulative: // :673-680
                 long running = 0;
                 for (var c = 0; c < columns.Count; c++)
                     for (var r = 0; r < Rows; r++)
@@ -779,18 +773,18 @@ public sealed record TokenActivityGrid
             default:
                 throw new UnreachableException();
         }
-        var maxValue = values.SelectMany(v => v).DefaultIfEmpty(0).Max(); // :691
+        var maxValue = values.SelectMany(v => v).DefaultIfEmpty(0).Max(); // :682
 
-        var monthTicks = new List<MonthTick>(); // :694
-        for (var offset = 0; offset < Months; offset++) // :695
+        var monthTicks = new List<MonthTick>(); // :685
+        for (var offset = 0; offset < Months; offset++) // :686
         {
-            var monthDate = rangeStart.AddMonths(offset); // :696
-            var monthStart = new DateOnly(monthDate.Year, monthDate.Month, 1); // :697
-            var clamped = monthStart < rangeStart ? rangeStart : monthStart; // :698
-            var daysOut = clamped.DayNumber - gridStart.DayNumber; // :699
-            var column = daysOut / Rows; // :700
-            var label = MonthNames[((monthDate.Month - 1) % 12 + 12) % 12]; // :701
-            if (column < columns.Count) monthTicks.Add(new MonthTick(label, column)); // :702
+            var monthDate = rangeStart.AddMonths(offset); // :687
+            var monthStart = new DateOnly(monthDate.Year, monthDate.Month, 1); // :688
+            var clamped = monthStart < rangeStart ? rangeStart : monthStart; // :689
+            var daysOut = clamped.DayNumber - gridStart.DayNumber; // :690
+            var column = daysOut / Rows; // :691
+            var label = MonthNames[((monthDate.Month - 1) % 12 + 12) % 12]; // :692
+            if (column < columns.Count) monthTicks.Add(new MonthTick(label, column)); // :693
         }
 
         return new TokenActivityGrid
@@ -800,7 +794,7 @@ public sealed record TokenActivityGrid
             MaxValue = maxValue,
             MonthTicks = new ValueList<MonthTick>(monthTicks),
             Tomorrow = tomorrow,
-        }; // :705
+        }; // :696
     }
 
     private static DateTimeOffset LocalMidnight(DateOnly date, TimeZoneInfo zone)

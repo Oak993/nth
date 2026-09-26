@@ -412,7 +412,7 @@
         "PR-HYDRA-249",
         "PR-HYDRA-250",
         "PR-HYDRA-251",
-        "PR-HYDRAMERGE-083"
+        "PR-HYDRA-253"
       ],
       "ui": [],
       "quarantined": [],
@@ -424,6 +424,24 @@
     },
     {
       "id": "T-M2-012",
+      "milestone": "M2",
+      "source": "DroppyCode/Core/Models/Hydra.swift",
+      "target": "src/Marrow.Core/Models/Hydra.cs",
+      "risk": "STANDARD",
+      "requirements": [
+        "PR-HYDRA-254",
+        "PR-HYDRAMERGE-083"
+      ],
+      "ui": [],
+      "quarantined": [],
+      "needs_desktop": false,
+      "kind": "behaviour",
+      "status": "DONE",
+      "assignee": null,
+      "notes": ""
+    },
+    {
+      "id": "T-M2-013",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/Hydra.swift",
       "target": "src/Marrow.Core/Models/Hydra.cs",
@@ -440,7 +458,7 @@
       "notes": ""
     },
     {
-      "id": "T-M2-013",
+      "id": "T-M2-014",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/HydraCookbook.swift",
       "target": "src/Marrow.Core/Models/HydraCookbook.cs",
@@ -466,7 +484,7 @@
       "notes": ""
     },
     {
-      "id": "T-M2-014",
+      "id": "T-M2-015",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/HydraCookbook.swift",
       "target": "src/Marrow.Core/Models/HydraCookbook.cs",
@@ -478,7 +496,9 @@
         "PR-STORE-140",
         "PR-STORE-141",
         "PR-STORE-142",
-        "PR-STORE-143"
+        "PR-STORE-143",
+        "PR-STORE-172",
+        "PR-STORE-173"
       ],
       "ui": [],
       "quarantined": [],
@@ -489,7 +509,7 @@
       "notes": ""
     },
     {
-      "id": "T-M2-015",
+      "id": "T-M2-016",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/HydraCookbook.swift",
       "target": "src/Marrow.Core/Models/HydraCookbook.cs",
@@ -515,7 +535,25 @@
       "notes": ""
     },
     {
-      "id": "T-M2-016",
+      "id": "T-M2-017",
+      "milestone": "M2",
+      "source": "DroppyCode/Core/Models/HydraCookbook.swift",
+      "target": "src/Marrow.Core/Models/HydraCookbook.cs",
+      "risk": "STANDARD",
+      "requirements": [],
+      "ui": [
+        "UI-STORE-020",
+        "UI-STORE-021"
+      ],
+      "quarantined": [],
+      "needs_desktop": false,
+      "kind": "ui",
+      "status": "DONE",
+      "assignee": null,
+      "notes": ""
+    },
+    {
+      "id": "T-M2-018",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/HydraDelegationStream.swift",
       "target": "src/Marrow.Core/Models/HydraDelegationStream.cs",
@@ -537,7 +575,7 @@
       "notes": ""
     },
     {
-      "id": "T-M2-017",
+      "id": "T-M2-019",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/Library.swift",
       "target": "src/Marrow.Core/Models/Library.cs",
@@ -563,7 +601,7 @@
       "notes": ""
     },
     {
-      "id": "T-M2-018",
+      "id": "T-M2-020",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/Library.swift",
       "target": "src/Marrow.Core/Models/Library.cs",
@@ -589,7 +627,7 @@
       "notes": ""
     },
     {
-      "id": "T-M2-019",
+      "id": "T-M2-021",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/Library.swift",
       "target": "src/Marrow.Core/Models/Library.cs",
@@ -615,7 +653,7 @@
       "notes": ""
     },
     {
-      "id": "T-M2-020",
+      "id": "T-M2-022",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/Library.swift",
       "target": "src/Marrow.Core/Models/Library.cs",
@@ -641,7 +679,7 @@
       "notes": ""
     },
     {
-      "id": "T-M2-021",
+      "id": "T-M2-023",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/Library.swift",
       "target": "src/Marrow.Core/Models/Library.cs",
@@ -663,11 +701,11 @@
       "needs_desktop": false,
       "kind": "behaviour",
       "status": "DONE",
-      "assignee": null,
-      "notes": ""
+      "assignee": "codex-direct",
+      "notes": "2026-09-22 TESTS_REVIEW: Read all 263 MCP.swift lines. Latest diff only replaces whitespace trim with Text.swift:132 identical helper. Tests cover PR-MCP-038..047 including ordered fill, host normalization, transport isolation, strict wire schema. Services resolver takes lazy route supplier; proxy lifecycle remains its Services packet. | 2026-09-22 DONE: Director-reviewed PR-MCP-038..047; 99 tests pass, A12 B8 quarantine and protected pass. Latest MCP diff is identical Text.trimmed helper. Added strict connection JSON and Swift collection value semantics after 3 observed failures. Services resolver uses lazy proxy URL supplier (V1); real proxy port persistence and UI/restart integration remain their later packets. Approved tests unchanged."
     },
     {
-      "id": "T-M2-022",
+      "id": "T-M2-024",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/Library.swift",
       "target": "src/Marrow.Core/Models/Library.cs",
@@ -685,7 +723,7 @@
       "notes": ""
     },
     {
-      "id": "T-M2-023",
+      "id": "T-M2-025",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/Library.swift",
       "target": "src/Marrow.Core/Models/Library.cs",
@@ -703,10 +741,10 @@
       "kind": "ui",
       "status": "DONE",
       "assignee": "codex-direct",
-      "notes": "2026-09-22 TESTS_REVIEW: Read all 263 MCP.swift lines. Latest diff only replaces whitespace trim with Text.swift:132 identical helper. Tests cover PR-MCP-038..047 including ordered fill, host normalization, transport isolation, strict wire schema. Services resolver takes lazy route supplier; proxy lifecycle remains its Services packet. | 2026-09-22 DONE: Director-reviewed PR-MCP-038..047; 99 tests pass, A12 B8 quarantine and protected pass. Latest MCP diff is identical Text.trimmed helper. Added strict connection JSON and Swift collection value semantics after 3 observed failures. Services resolver uses lazy proxy URL supplier (V1); real proxy port persistence and UI/restart integration remain their later packets. Approved tests unchanged."
+      "notes": "2026-09-22 TESTS_REVIEW: Frozen PR-MCP-001..010 Expected rows reviewed against all source fields. Fixture covers defaults and order, exact glyph text and hex colors, profile-root adaptation, Bearer-space contract. | 2026-09-22 DONE: PR-MCP-001..010 complete frozen Expected fixtures match all catalog fields; 102 tests pass A12 B8 quarantine protected. No servers contacted/launched. Catalog source identical at latest SHA. Actual connect/probe/secret storage remains Services work. Director reviewed generated C# against source and independent test fixture; tests unchanged."
     },
     {
-      "id": "T-M2-024",
+      "id": "T-M2-026",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/MCP.swift",
       "target": "src/Marrow.Core/Models/MCP.cs",
@@ -715,33 +753,12 @@
         "PR-MCP-038",
         "PR-MCP-039",
         "PR-MCP-040",
-        "PR-MCP-041",
-        "PR-MCP-042",
-        "PR-MCP-043",
         "PR-MCP-044",
         "PR-MCP-045",
         "PR-MCP-046",
-        "PR-MCP-047"
-      ],
-      "ui": [],
-      "quarantined": [],
-      "needs_desktop": false,
-      "kind": "behaviour",
-      "status": "DONE",
-      "assignee": null,
-      "notes": ""
-    },
-    {
-      "id": "T-M2-025",
-      "milestone": "M2",
-      "source": "DroppyCode/Core/Models/MCP.swift",
-      "target": "src/Marrow.Core/Models/MCP.cs",
-      "risk": "STANDARD",
-      "requirements": [
+        "PR-MCP-047",
         "PR-MCP-048",
-        "PR-MCP-084",
-        "PR-MCP-119",
-        "PR-STORE-011"
+        "PR-MCP-119"
       ],
       "ui": [],
       "quarantined": [],
@@ -749,10 +766,10 @@
       "kind": "behaviour",
       "status": "DONE",
       "assignee": "codex-direct",
-      "notes": "2026-09-22 TESTS_REVIEW: Frozen PR-MCP-001..010 Expected rows reviewed against all source fields. Fixture covers defaults and order, exact glyph text and hex colors, profile-root adaptation, Bearer-space contract. | 2026-09-22 DONE: PR-MCP-001..010 complete frozen Expected fixtures match all catalog fields; 102 tests pass A12 B8 quarantine protected. No servers contacted/launched. Catalog source identical at latest SHA. Actual connect/probe/secret storage remains Services work. Director reviewed generated C# against source and independent test fixture; tests unchanged."
+      "notes": "2026-09-22 TESTS_REVIEW: PR-MCP-011..020 complete Expected table independently frozen and reviewed; both new tests red against 10-entry baseline. Exact strings, case, OAuth URLs, fields and env verified against source. | 2026-09-22 DONE: PR-MCP-011..020 complete independent catalog fixtures, Slack literal env behavior. Director diff review passed; approved tests unchanged. 104 tests pass, A12 B8 quarantine protected. Static metadata only; no external connections or messages."
     },
     {
-      "id": "T-M2-026",
+      "id": "T-M2-027",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/MCPCatalog.swift",
       "target": "src/Marrow.Core/Models/MCPCatalog.cs",
@@ -775,10 +792,10 @@
       "kind": "behaviour",
       "status": "DONE",
       "assignee": "codex-direct",
-      "notes": "2026-09-22 TESTS_REVIEW: PR-MCP-011..020 complete Expected table independently frozen and reviewed; both new tests red against 10-entry baseline. Exact strings, case, OAuth URLs, fields and env verified against source. | 2026-09-22 DONE: PR-MCP-011..020 complete independent catalog fixtures, Slack literal env behavior. Director diff review passed; approved tests unchanged. 104 tests pass, A12 B8 quarantine protected. Static metadata only; no external connections or messages."
+      "notes": "2026-09-22 TESTS_REVIEW: Independent complete Expected table for PR-MCP-021..030 and argument/env fixtures reviewed against Swift; two expected failures before entries exist. | 2026-09-22 DONE: PR-MCP-021..030 exact catalog fixtures and synthetic DB argv/env contracts, 106 tests passed. Director reviewed source diff; approved fixtures unchanged. Stripe challenge-parser integration remains OAuth Services packet; no network/process/database actions."
     },
     {
-      "id": "T-M2-027",
+      "id": "T-M2-028",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/MCPCatalog.swift",
       "target": "src/Marrow.Core/Models/MCPCatalog.cs",
@@ -799,12 +816,12 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "DONE",
+      "status": "TODO",
       "assignee": "codex-direct",
-      "notes": "2026-09-22 TESTS_REVIEW: Independent complete Expected table for PR-MCP-021..030 and argument/env fixtures reviewed against Swift; two expected failures before entries exist. | 2026-09-22 DONE: PR-MCP-021..030 exact catalog fixtures and synthetic DB argv/env contracts, 106 tests passed. Director reviewed source diff; approved fixtures unchanged. Stripe challenge-parser integration remains OAuth Services packet; no network/process/database actions."
+      "notes": "2026-09-22 TESTS_REVIEW: Reviewed PR-MCP-031..037 corrected against source. Final three complete fixtures, exact33 IDs/14 OAuth, positive name fallback and negative no-trim cases, seven category memberships. Expected missing-API compile failures observed before implementation. | 2026-09-22 DONE: PR-MCP-031..037: all33 frozen rows, ordered IDs,14 OAuth,exact lookup,normalized name fallback,categories;124 tests pass. Source/spec contradiction fixed before tests. Director diff reviewed,approved tests unchanged. Provider config omission behavior remains later Services integration."
     },
     {
-      "id": "T-M2-028",
+      "id": "T-M2-029",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/MCPCatalog.swift",
       "target": "src/Marrow.Core/Models/MCPCatalog.cs",
@@ -826,11 +843,11 @@
       "needs_desktop": false,
       "kind": "behaviour",
       "status": "DONE",
-      "assignee": "codex-direct",
-      "notes": "2026-09-22 TESTS_REVIEW: Reviewed PR-MCP-031..037 corrected against source. Final three complete fixtures, exact33 IDs/14 OAuth, positive name fallback and negative no-trim cases, seven category memberships. Expected missing-API compile failures observed before implementation. | 2026-09-22 DONE: PR-MCP-031..037: all33 frozen rows, ordered IDs,14 OAuth,exact lookup,normalized name fallback,categories;124 tests pass. Source/spec contradiction fixed before tests. Director diff reviewed,approved tests unchanged. Provider config omission behavior remains later Services integration."
+      "assignee": null,
+      "notes": ""
     },
     {
-      "id": "T-M2-029",
+      "id": "T-M2-030",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/MCPCatalog.swift",
       "target": "src/Marrow.Core/Models/MCPCatalog.cs",
@@ -849,11 +866,11 @@
       "needs_desktop": false,
       "kind": "behaviour",
       "status": "DONE",
-      "assignee": null,
-      "notes": ""
+      "assignee": "codex-direct",
+      "notes": "2026-09-22 TESTS_REVIEW: PR-GIT-052..055 reviewed against all62 Swift lines at both source-identical snapshots.21 cases cover asymmetric matching, first invalid GitLab marker fallback, Int64 limits and three independent exact prompt fixtures. Red build missing type observed. | 2026-09-22 DONE: Director reviewed all matching branches and all prompt characters against Swift. A12 B8 quarantine pass;48 tests none failed/skipped. No forge commands executed. URI boundary uses .NET Uri; macOS runtime comparison remains part of full acceptance."
     },
     {
-      "id": "T-M2-030",
+      "id": "T-M2-031",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/MCPCustom.swift",
       "target": "src/Marrow.Core/Models/MCPCustom.cs",
@@ -875,11 +892,11 @@
       "needs_desktop": false,
       "kind": "behaviour",
       "status": "DONE",
-      "assignee": "codex-direct",
-      "notes": "2026-09-22 TESTS_REVIEW: PR-GIT-052..055 reviewed against all62 Swift lines at both source-identical snapshots.21 cases cover asymmetric matching, first invalid GitLab marker fallback, Int64 limits and three independent exact prompt fixtures. Red build missing type observed. | 2026-09-22 DONE: Director reviewed all matching branches and all prompt characters against Swift. A12 B8 quarantine pass;48 tests none failed/skipped. No forge commands executed. URI boundary uses .NET Uri; macOS runtime comparison remains part of full acceptance."
+      "assignee": null,
+      "notes": ""
     },
     {
-      "id": "T-M2-031",
+      "id": "T-M2-032",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/MergeRequestLink.swift",
       "target": "src/Marrow.Core/Models/MergeRequestLink.cs",
@@ -899,7 +916,7 @@
       "notes": ""
     },
     {
-      "id": "T-M2-032",
+      "id": "T-M2-033",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/Provider.swift",
       "target": "src/Marrow.Core/Models/Provider.cs",
@@ -925,7 +942,7 @@
       "notes": ""
     },
     {
-      "id": "T-M2-033",
+      "id": "T-M2-034",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/Provider.swift",
       "target": "src/Marrow.Core/Models/Provider.cs",
@@ -951,7 +968,7 @@
       "notes": ""
     },
     {
-      "id": "T-M2-034",
+      "id": "T-M2-035",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/Provider.swift",
       "target": "src/Marrow.Core/Models/Provider.cs",
@@ -977,7 +994,7 @@
       "notes": ""
     },
     {
-      "id": "T-M2-035",
+      "id": "T-M2-036",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/Provider.swift",
       "target": "src/Marrow.Core/Models/Provider.cs",
@@ -1003,7 +1020,7 @@
       "notes": ""
     },
     {
-      "id": "T-M2-036",
+      "id": "T-M2-037",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/Provider.swift",
       "target": "src/Marrow.Core/Models/Provider.cs",
@@ -1029,7 +1046,7 @@
       "notes": ""
     },
     {
-      "id": "T-M2-037",
+      "id": "T-M2-038",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/Provider.swift",
       "target": "src/Marrow.Core/Models/Provider.cs",
@@ -1055,7 +1072,7 @@
       "notes": ""
     },
     {
-      "id": "T-M2-038",
+      "id": "T-M2-039",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/Provider.swift",
       "target": "src/Marrow.Core/Models/Provider.cs",
@@ -1081,7 +1098,7 @@
       "notes": ""
     },
     {
-      "id": "T-M2-039",
+      "id": "T-M2-040",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/Provider.swift",
       "target": "src/Marrow.Core/Models/Provider.cs",
@@ -1107,7 +1124,7 @@
       "notes": ""
     },
     {
-      "id": "T-M2-040",
+      "id": "T-M2-041",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/Provider.swift",
       "target": "src/Marrow.Core/Models/Provider.cs",
@@ -1133,7 +1150,7 @@
       "notes": ""
     },
     {
-      "id": "T-M2-041",
+      "id": "T-M2-042",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/Provider.swift",
       "target": "src/Marrow.Core/Models/Provider.cs",
@@ -1156,7 +1173,7 @@
       "notes": ""
     },
     {
-      "id": "T-M2-042",
+      "id": "T-M2-043",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/Provider.swift",
       "target": "src/Marrow.Core/Models/Provider.cs",
@@ -1169,11 +1186,11 @@
       "needs_desktop": false,
       "kind": "ui",
       "status": "DONE",
-      "assignee": null,
-      "notes": ""
+      "assignee": "codex-direct",
+      "notes": "2026-09-22 DONE: 78 tests pass; five exact headlines and symbol identifiers, provider IDs and fields, four role identities, questions and structural equality. Swift Requests.swift unchanged in 417ab7d3. Runtime plan resolution and masked UI belong to later packets; licensed glyphs await UNK-0007. Director diff review passed, approved tests unchanged."
     },
     {
-      "id": "T-M2-043",
+      "id": "T-M2-044",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/ProviderSettings.swift",
       "target": "src/Marrow.Core/Models/ProviderSettings.cs",
@@ -1186,11 +1203,11 @@
       "needs_desktop": false,
       "kind": "behaviour",
       "status": "DONE",
-      "assignee": "codex-direct",
-      "notes": "2026-09-22 DONE: 78 tests pass; five exact headlines and symbol identifiers, provider IDs and fields, four role identities, questions and structural equality. Swift Requests.swift unchanged in 417ab7d3. Runtime plan resolution and masked UI belong to later packets; licensed glyphs await UNK-0007. Director diff review passed, approved tests unchanged."
+      "assignee": null,
+      "notes": ""
     },
     {
-      "id": "T-M2-044",
+      "id": "T-M2-045",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/Requests.swift",
       "target": "src/Marrow.Core/Models/Requests.cs",
@@ -1211,7 +1228,7 @@
       "notes": ""
     },
     {
-      "id": "T-M2-045",
+      "id": "T-M2-046",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/Shortcuts.swift",
       "target": "src/Marrow.Core/Models/Shortcuts.cs",
@@ -1237,7 +1254,7 @@
       "notes": ""
     },
     {
-      "id": "T-M2-046",
+      "id": "T-M2-047",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/Shortcuts.swift",
       "target": "src/Marrow.Core/Models/Shortcuts.cs",
@@ -1263,7 +1280,7 @@
       "notes": ""
     },
     {
-      "id": "T-M2-047",
+      "id": "T-M2-048",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/Shortcuts.swift",
       "target": "src/Marrow.Core/Models/Shortcuts.cs",
@@ -1289,7 +1306,7 @@
       "notes": ""
     },
     {
-      "id": "T-M2-048",
+      "id": "T-M2-049",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/Shortcuts.swift",
       "target": "src/Marrow.Core/Models/Shortcuts.cs",
@@ -1315,7 +1332,7 @@
       "notes": ""
     },
     {
-      "id": "T-M2-049",
+      "id": "T-M2-050",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/Shortcuts.swift",
       "target": "src/Marrow.Core/Models/Shortcuts.cs",
@@ -1341,7 +1358,7 @@
       "notes": ""
     },
     {
-      "id": "T-M2-050",
+      "id": "T-M2-051",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/Shortcuts.swift",
       "target": "src/Marrow.Core/Models/Shortcuts.cs",
@@ -1367,7 +1384,7 @@
       "notes": ""
     },
     {
-      "id": "T-M2-051",
+      "id": "T-M2-052",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/Shortcuts.swift",
       "target": "src/Marrow.Core/Models/Shortcuts.cs",
@@ -1386,7 +1403,7 @@
       "notes": ""
     },
     {
-      "id": "T-M2-052",
+      "id": "T-M2-053",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/Shortcuts.swift",
       "target": "src/Marrow.Core/Models/Shortcuts.cs",
@@ -1404,7 +1421,7 @@
       "notes": ""
     },
     {
-      "id": "T-M2-053",
+      "id": "T-M2-054",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/ThreadContinuation.swift",
       "target": "src/Marrow.Core/Models/ThreadContinuation.cs",
@@ -1423,7 +1440,7 @@
       "notes": ""
     },
     {
-      "id": "T-M2-054",
+      "id": "T-M2-055",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/Timeline.swift",
       "target": "src/Marrow.Core/Models/Timeline.cs",
@@ -1449,7 +1466,7 @@
       "notes": ""
     },
     {
-      "id": "T-M2-055",
+      "id": "T-M2-056",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/Timeline.swift",
       "target": "src/Marrow.Core/Models/Timeline.cs",
@@ -1475,7 +1492,7 @@
       "notes": ""
     },
     {
-      "id": "T-M2-056",
+      "id": "T-M2-057",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/Timeline.swift",
       "target": "src/Marrow.Core/Models/Timeline.cs",
@@ -1483,6 +1500,7 @@
       "requirements": [
         "PR-GIT-148",
         "PR-HYDRAMERGE-081",
+        "PR-HYDRAMERGE-132",
         "PR-RUNTIME-150",
         "PR-USAGE-084",
         "PR-USAGE-085"
@@ -1496,7 +1514,7 @@
       "notes": ""
     },
     {
-      "id": "T-M2-057",
+      "id": "T-M2-058",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/TokenSpend.swift",
       "target": "src/Marrow.Core/Models/TokenSpend.cs",
@@ -1515,7 +1533,7 @@
       "notes": ""
     },
     {
-      "id": "T-M2-058",
+      "id": "T-M2-059",
       "milestone": "M2",
       "source": "DroppyCode/Core/Support/Coding.swift",
       "target": "src/Marrow.Core/Support/Coding.cs",
@@ -1530,11 +1548,11 @@
       "needs_desktop": false,
       "kind": "behaviour",
       "status": "DONE",
-      "assignee": null,
-      "notes": ""
+      "assignee": "codex-direct",
+      "notes": "2026-09-22 TESTS_REVIEW: All34 Swift lines read at both identical snapshots. Tests reviewed for recursive sorted compact JSON, escaped slashes, UTC date seconds, strict invalid dates, lazy missing/null/type fallback and shared immutable options. macOS-produced byte oracle unavailable; full parity remains unverified. | 2026-09-22 DONE: Director final review matched field defaults, shared codec lifetime, sorted compact slash-escaped storage and ISO8601. Added independent integer regression fixtures after checking swift-foundation6.0;4 initially failed then fixed production only.70 tests zero skipped, gates A12 B8 quarantine pass. macOS byte/capture oracle still unavailable."
     },
     {
-      "id": "T-M2-059",
+      "id": "T-M2-060",
       "milestone": "M2",
       "source": "DroppyCode/Core/Support/HangWatchdog.swift",
       "target": "src/Marrow.Core/Support/HangWatchdog.cs",
@@ -1554,11 +1572,11 @@
       "needs_desktop": false,
       "kind": "behaviour",
       "status": "DONE",
-      "assignee": "codex-direct",
-      "notes": "2026-09-22 TESTS_REVIEW: All34 Swift lines read at both identical snapshots. Tests reviewed for recursive sorted compact JSON, escaped slashes, UTC date seconds, strict invalid dates, lazy missing/null/type fallback and shared immutable options. macOS-produced byte oracle unavailable; full parity remains unverified. | 2026-09-22 DONE: Director final review matched field defaults, shared codec lifetime, sorted compact slash-escaped storage and ISO8601. Added independent integer regression fixtures after checking swift-foundation6.0;4 initially failed then fixed production only.70 tests zero skipped, gates A12 B8 quarantine pass. macOS byte/capture oracle still unavailable."
+      "assignee": null,
+      "notes": ""
     },
     {
-      "id": "T-M2-060",
+      "id": "T-M2-061",
       "milestone": "M2",
       "source": "DroppyCode/Core/Support/HangWatchdog.swift",
       "target": "src/Marrow.Core/Support/HangWatchdog.cs",
@@ -1575,7 +1593,7 @@
       "notes": ""
     },
     {
-      "id": "T-M2-061",
+      "id": "T-M2-062",
       "milestone": "M2",
       "source": "DroppyCode/Core/Support/ISO8601.swift",
       "target": "src/Marrow.Core/Support/ISO8601.cs",
@@ -1594,12 +1612,13 @@
       "notes": ""
     },
     {
-      "id": "T-M2-062",
+      "id": "T-M2-063",
       "milestone": "M2",
       "source": "DroppyCode/Core/Support/JSONRPC.swift",
       "target": "src/Marrow.Core/Support/JSONRPC.cs",
       "risk": "HIGH",
       "requirements": [
+        "PR-MCP-233",
         "PR-PROVACP-140",
         "PR-PROVACP-141",
         "PR-PROVACP-142",
@@ -1614,12 +1633,12 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "DONE",
+      "status": "TODO",
       "assignee": null,
       "notes": ""
     },
     {
-      "id": "T-M2-063",
+      "id": "T-M2-064",
       "milestone": "M2",
       "source": "DroppyCode/Core/Support/JSONRPC.swift",
       "target": "src/Marrow.Core/Support/JSONRPC.cs",
@@ -1636,7 +1655,7 @@
       "notes": ""
     },
     {
-      "id": "T-M2-064",
+      "id": "T-M2-065",
       "milestone": "M2",
       "source": "DroppyCode/Core/Support/JSONValue.swift",
       "target": "src/Marrow.Core/Support/JSONValue.cs",
@@ -1660,7 +1679,7 @@
       "notes": ""
     },
     {
-      "id": "T-M2-065",
+      "id": "T-M2-066",
       "milestone": "M2",
       "source": "DroppyCode/Core/Support/ObservedValue.swift",
       "target": "src/Marrow.Core/Support/ObservedValue.cs",
@@ -1673,11 +1692,29 @@
       "needs_desktop": false,
       "kind": "behaviour",
       "status": "DONE",
+      "assignee": "codex-direct",
+      "notes": "2026-09-22 TESTS_REVIEW: Director reviewed PR-STORE-053..058 against all57 source lines; tests cover generation rollover, promotion with original cost, eviction-before-rejection, clamping, replacement and refunds. Swift file unchanged at417ab7d3. Expected red build CS0234 missing Support. | 2026-09-22 DONE: All6 requirements implemented; reviewed source ordering and both cost counters. A12 B8 quarantine pass;27 tests zero failed/skipped. Try/out API preserves missing generic values; caller owns mutable cache and synchronization. Evidence main-T-M2-066-gates-1790045097121.json."
+    },
+    {
+      "id": "T-M2-067",
+      "milestone": "M2",
+      "source": "DroppyCode/Core/Support/PendingReplies.swift",
+      "target": "src/Marrow.Core/Support/PendingReplies.cs",
+      "risk": "STANDARD",
+      "requirements": [
+        "PR-PROVACP-164",
+        "PR-PROVACP-165"
+      ],
+      "ui": [],
+      "quarantined": [],
+      "needs_desktop": false,
+      "kind": "behaviour",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
     {
-      "id": "T-M2-066",
+      "id": "T-M2-068",
       "milestone": "M2",
       "source": "DroppyCode/Core/Support/RecentCache.swift",
       "target": "src/Marrow.Core/Support/RecentCache.cs",
@@ -1695,11 +1732,11 @@
       "needs_desktop": false,
       "kind": "behaviour",
       "status": "DONE",
-      "assignee": "codex-direct",
-      "notes": "2026-09-22 TESTS_REVIEW: Director reviewed PR-STORE-053..058 against all57 source lines; tests cover generation rollover, promotion with original cost, eviction-before-rejection, clamping, replacement and refunds. Swift file unchanged at417ab7d3. Expected red build CS0234 missing Support. | 2026-09-22 DONE: All6 requirements implemented; reviewed source ordering and both cost counters. A12 B8 quarantine pass;27 tests zero failed/skipped. Try/out API preserves missing generic values; caller owns mutable cache and synchronization. Evidence main-T-M2-066-gates-1790045097121.json."
+      "assignee": null,
+      "notes": ""
     },
     {
-      "id": "T-M2-067",
+      "id": "T-M2-069",
       "milestone": "M2",
       "source": "DroppyCode/Core/Support/Shell.swift",
       "target": "src/Marrow.Core/Support/Shell.cs",
@@ -1725,7 +1762,7 @@
       "notes": ""
     },
     {
-      "id": "T-M2-068",
+      "id": "T-M2-070",
       "milestone": "M2",
       "source": "DroppyCode/Core/Support/Shell.swift",
       "target": "src/Marrow.Core/Support/Shell.cs",
@@ -1751,7 +1788,7 @@
       "notes": ""
     },
     {
-      "id": "T-M2-069",
+      "id": "T-M2-071",
       "milestone": "M2",
       "source": "DroppyCode/Core/Support/Shell.swift",
       "target": "src/Marrow.Core/Support/Shell.cs",
@@ -1773,11 +1810,11 @@
       "needs_desktop": false,
       "kind": "behaviour",
       "status": "DONE",
-      "assignee": null,
-      "notes": ""
+      "assignee": "codex-direct",
+      "notes": "2026-09-22 TESTS_REVIEW: Director reviewed fixtures against all 81 Swift lines and PR-PROVACP-149..153; initial run failed CS0246/CS0103 because implementation is absent. Swift split and whitespace semantics cross-checked in primary library source. | 2026-09-22 DONE: 53 source-derived tests pass; solution 188/188; A/B/protected/quarantine and build/test floor pass. Director tests review and separate adversarial diff review only: GLM bypassed by explicit owner instruction. Review found U+200B whitespace mismatch, fixed after separately committed regression. Unchanged source blob in upstream 417ab7d3. No invented user-visible strings/numbers; no macOS runtime oracle."
     },
     {
-      "id": "T-M2-070",
+      "id": "T-M2-072",
       "milestone": "M2",
       "source": "DroppyCode/Core/Support/Shell.swift",
       "target": "src/Marrow.Core/Support/Shell.cs",
@@ -1796,12 +1833,13 @@
       "notes": ""
     },
     {
-      "id": "T-M2-071",
+      "id": "T-M2-073",
       "milestone": "M2",
       "source": "DroppyCode/Core/Support/StdioFramer.swift",
       "target": "src/Marrow.Core/Support/StdioFramer.cs",
       "risk": "HIGH",
       "requirements": [
+        "PR-MCP-112",
         "PR-PROVACP-149",
         "PR-PROVACP-150",
         "PR-PROVACP-151",
@@ -1812,12 +1850,12 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "DONE",
-      "assignee": "codex-direct",
-      "notes": "2026-09-22 TESTS_REVIEW: Director reviewed fixtures against all 81 Swift lines and PR-PROVACP-149..153; initial run failed CS0246/CS0103 because implementation is absent. Swift split and whitespace semantics cross-checked in primary library source. | 2026-09-22 DONE: 53 source-derived tests pass; solution 188/188; A/B/protected/quarantine and build/test floor pass. Director tests review and separate adversarial diff review only: GLM bypassed by explicit owner instruction. Review found U+200B whitespace mismatch, fixed after separately committed regression. Unchanged source blob in upstream 417ab7d3. No invented user-visible strings/numbers; no macOS runtime oracle."
+      "status": "TODO",
+      "assignee": null,
+      "notes": ""
     },
     {
-      "id": "T-M2-072",
+      "id": "T-M2-074",
       "milestone": "M2",
       "source": "DroppyCode/Core/Support/StdioProcess.swift",
       "target": "src/Marrow.Core/Support/StdioProcess.cs",
@@ -1843,7 +1881,7 @@
       "notes": ""
     },
     {
-      "id": "T-M2-073",
+      "id": "T-M2-075",
       "milestone": "M2",
       "source": "DroppyCode/Core/Support/StdioProcess.swift",
       "target": "src/Marrow.Core/Support/StdioProcess.cs",
@@ -1864,11 +1902,30 @@
       "needs_desktop": false,
       "kind": "behaviour",
       "status": "DONE",
-      "assignee": null,
-      "notes": ""
+      "assignee": "codex-direct",
+      "notes": "2026-09-22 TESTS_REVIEW: Reviewed eight pure-helper requirements PR-STORE-105..112 against all 129 Swift lines; AppInfo PR-STORE-008/009 remain pending. Tests independently cover exact hunks, UTF8 cap boundaries, grapheme lengths, ANSI pattern, prescan and throughput. | 2026-09-22 DONE: All ten requirements reviewed against Text.swift 1..129 and project.yml metadata. 47 packet tests plus one MCP regression; solution 236 passing. Preserves UTF8 prescan, graphemes, fixed ANSI pattern semantics, 120/119 ellipsis, 200000 input cap and source diff quirks. AssemblyMetadata adapter uses source keys and Debug/Release build channel; OD-0002 Marrow rename. Existing seven runtime call sites await their own packets. Latest Text.swift adds only trimmed helper, no change to covered logic. Self-review caught Swift regex normalization mismatch; separate failing tests committed before fix."
     },
     {
-      "id": "T-M2-074",
+      "id": "T-M2-076",
+      "milestone": "M2",
+      "source": "DroppyCode/Core/Support/StoragePaths.swift",
+      "target": "src/Marrow.Core/Support/StoragePaths.cs",
+      "risk": "STANDARD",
+      "requirements": [
+        "PR-LAUNCH-070",
+        "PR-STORE-001",
+        "PR-STORE-005"
+      ],
+      "ui": [],
+      "quarantined": [],
+      "needs_desktop": false,
+      "kind": "behaviour",
+      "status": "DONE",
+      "assignee": "codex-direct",
+      "notes": "2026-09-22 TESTS_REVIEW: Reviewed exact Text.swift 114..129 convenience construction and nilIfEmpty, plus unchanged Timeline.swift 170..175 carrier fields. Tests cover source hunk, >200000 cap, no trimming, same-object strings and strict Codable carrier shape. | 2026-09-22 DONE: 15 tests pass; source convenience initializer computes stats once and preserves path; nilIfEmpty preserves all nonempty strings. Minimal FileEdit carrier read from Timeline.swift 170..175, unchanged by latest diff. Exact JSON field keys, strict nonoptional decoding and nil diff omission covered. Director source/diff review; no tests modified after approval. 251 total tests, protected/A/B/quarantine and build floor pass; integration remains unverified."
+    },
+    {
+      "id": "T-M2-077",
       "milestone": "M2",
       "source": "DroppyCode/Core/Support/SwitchLatency.swift",
       "target": "src/Marrow.Core/Support/SwitchLatency.cs",
@@ -1885,7 +1942,7 @@
       "notes": ""
     },
     {
-      "id": "T-M2-075",
+      "id": "T-M2-078",
       "milestone": "M2",
       "source": "DroppyCode/Core/Support/Text.swift",
       "target": "src/Marrow.Core/Support/Text.cs",
@@ -1899,27 +1956,27 @@
         "PR-STORE-108",
         "PR-STORE-109",
         "PR-STORE-110",
-        "PR-STORE-111",
-        "PR-STORE-112"
+        "PR-STORE-112",
+        "PR-STORE-113"
       ],
       "ui": [],
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
       "status": "DONE",
-      "assignee": "codex-direct",
-      "notes": "2026-09-22 TESTS_REVIEW: Reviewed eight pure-helper requirements PR-STORE-105..112 against all 129 Swift lines; AppInfo PR-STORE-008/009 remain pending. Tests independently cover exact hunks, UTF8 cap boundaries, grapheme lengths, ANSI pattern, prescan and throughput. | 2026-09-22 DONE: All ten requirements reviewed against Text.swift 1..129 and project.yml metadata. 47 packet tests plus one MCP regression; solution 236 passing. Preserves UTF8 prescan, graphemes, fixed ANSI pattern semantics, 120/119 ellipsis, 200000 input cap and source diff quirks. AssemblyMetadata adapter uses source keys and Debug/Release build channel; OD-0002 Marrow rename. Existing seven runtime call sites await their own packets. Latest Text.swift adds only trimmed helper, no change to covered logic. Self-review caught Swift regex normalization mismatch; separate failing tests committed before fix."
+      "assignee": null,
+      "notes": ""
     },
     {
-      "id": "T-M2-076",
+      "id": "T-M2-079",
       "milestone": "M2",
       "source": "DroppyCode/Core/Support/Text.swift",
       "target": "src/Marrow.Core/Support/Text.cs",
       "risk": "STANDARD",
       "requirements": [
-        "PR-STORE-113",
         "PR-STORE-114",
         "PR-STORE-167",
+        "PR-STORE-175",
         "PR-UPDATE-112"
       ],
       "ui": [],
@@ -1927,11 +1984,11 @@
       "needs_desktop": false,
       "kind": "behaviour",
       "status": "DONE",
-      "assignee": "codex-direct",
-      "notes": "2026-09-22 TESTS_REVIEW: Reviewed exact Text.swift 114..129 convenience construction and nilIfEmpty, plus unchanged Timeline.swift 170..175 carrier fields. Tests cover source hunk, >200000 cap, no trimming, same-object strings and strict Codable carrier shape. | 2026-09-22 DONE: 15 tests pass; source convenience initializer computes stats once and preserves path; nilIfEmpty preserves all nonempty strings. Minimal FileEdit carrier read from Timeline.swift 170..175, unchanged by latest diff. Exact JSON field keys, strict nonoptional decoding and nil diff omission covered. Director source/diff review; no tests modified after approval. 251 total tests, protected/A/B/quarantine and build floor pass; integration remains unverified."
+      "assignee": null,
+      "notes": ""
     },
     {
-      "id": "T-M2-077",
+      "id": "T-M2-080",
       "milestone": "M2",
       "source": "DroppyCode/Core/Support/ThumbnailCache.swift",
       "target": "src/Marrow.Core/Support/ThumbnailCache.cs",
@@ -1952,7 +2009,7 @@
       "notes": ""
     },
     {
-      "id": "T-M2-078",
+      "id": "T-M2-081",
       "milestone": "M2",
       "source": "DroppyCode/Core/Support/ThumbnailCache.swift",
       "target": "src/Marrow.Core/Support/ThumbnailCache.cs",
@@ -2095,13 +2152,13 @@
         "PR-GIT-033",
         "PR-GIT-034",
         "PR-GIT-035",
+        "PR-GIT-036",
         "PR-GIT-037",
         "PR-GIT-038",
         "PR-GIT-039",
         "PR-GIT-040",
         "PR-GIT-041",
-        "PR-GIT-042",
-        "PR-GIT-043"
+        "PR-GIT-042"
       ],
       "ui": [],
       "quarantined": [],
@@ -2118,6 +2175,7 @@
       "target": "src/Marrow.Services/Git/Git.cs",
       "risk": "HIGH",
       "requirements": [
+        "PR-GIT-043",
         "PR-GIT-044",
         "PR-GIT-045",
         "PR-GIT-046",
@@ -2126,8 +2184,7 @@
         "PR-GIT-050",
         "PR-GIT-056",
         "PR-GIT-058",
-        "PR-GIT-059",
-        "PR-GIT-062"
+        "PR-GIT-059"
       ],
       "ui": [],
       "quarantined": [],
@@ -2144,6 +2201,7 @@
       "target": "src/Marrow.Services/Git/Git.cs",
       "risk": "HIGH",
       "requirements": [
+        "PR-GIT-062",
         "PR-GIT-065",
         "PR-GIT-066",
         "PR-GIT-067",
@@ -2152,8 +2210,7 @@
         "PR-GIT-070",
         "PR-GIT-080",
         "PR-GIT-081",
-        "PR-GIT-082",
-        "PR-GIT-097"
+        "PR-GIT-082"
       ],
       "ui": [],
       "quarantined": [],
@@ -2170,6 +2227,7 @@
       "target": "src/Marrow.Services/Git/Git.cs",
       "risk": "HIGH",
       "requirements": [
+        "PR-GIT-097",
         "PR-GIT-098",
         "PR-GIT-101",
         "PR-GIT-102",
@@ -2178,8 +2236,7 @@
         "PR-GIT-105",
         "PR-GIT-106",
         "PR-GIT-107",
-        "PR-GIT-108",
-        "PR-GIT-109"
+        "PR-GIT-108"
       ],
       "ui": [],
       "quarantined": [],
@@ -2196,9 +2253,16 @@
       "target": "src/Marrow.Services/Git/Git.cs",
       "risk": "HIGH",
       "requirements": [
+        "PR-GIT-109",
         "PR-GIT-158",
         "PR-GIT-159",
-        "PR-GIT-160"
+        "PR-GIT-160",
+        "PR-GIT-161",
+        "PR-GIT-162",
+        "PR-GIT-163",
+        "PR-GIT-164",
+        "PR-GIT-165",
+        "PR-GIT-166"
       ],
       "ui": [],
       "quarantined": [],
@@ -2320,14 +2384,14 @@
       "requirements": [
         "PR-COMPOSER-061",
         "PR-COMPOSER-062",
-        "PR-LAUNCH-070",
-        "PR-STORE-001",
         "PR-STORE-002",
         "PR-STORE-003",
         "PR-STORE-004",
-        "PR-STORE-005",
         "PR-STORE-006",
-        "PR-STORE-007"
+        "PR-STORE-007",
+        "PR-STORE-010",
+        "PR-STORE-012",
+        "PR-STORE-013"
       ],
       "ui": [],
       "quarantined": [],
@@ -2344,16 +2408,16 @@
       "target": "src/Marrow.Services/Store/Storage.cs",
       "risk": "STANDARD",
       "requirements": [
-        "PR-STORE-010",
-        "PR-STORE-012",
-        "PR-STORE-013",
         "PR-STORE-019",
         "PR-STORE-021",
         "PR-STORE-022",
         "PR-STORE-023",
         "PR-STORE-024",
         "PR-STORE-025",
-        "PR-STORE-026"
+        "PR-STORE-026",
+        "PR-STORE-027",
+        "PR-STORE-030",
+        "PR-STORE-031"
       ],
       "ui": [],
       "quarantined": [],
@@ -2370,16 +2434,16 @@
       "target": "src/Marrow.Services/Store/Storage.cs",
       "risk": "STANDARD",
       "requirements": [
-        "PR-STORE-027",
-        "PR-STORE-030",
-        "PR-STORE-031",
         "PR-STORE-032",
         "PR-STORE-033",
         "PR-STORE-035",
         "PR-STORE-036",
         "PR-STORE-037",
         "PR-STORE-038",
-        "PR-STORE-039"
+        "PR-STORE-039",
+        "PR-STORE-040",
+        "PR-STORE-041",
+        "PR-STORE-042"
       ],
       "ui": [],
       "quarantined": [],
@@ -2396,16 +2460,16 @@
       "target": "src/Marrow.Services/Store/Storage.cs",
       "risk": "STANDARD",
       "requirements": [
-        "PR-STORE-040",
-        "PR-STORE-041",
-        "PR-STORE-042",
         "PR-STORE-043",
         "PR-STORE-044",
         "PR-STORE-045",
         "PR-STORE-046",
         "PR-STORE-047",
         "PR-STORE-048",
-        "PR-STORE-049"
+        "PR-STORE-049",
+        "PR-STORE-050",
+        "PR-STORE-059",
+        "PR-STORE-060"
       ],
       "ui": [],
       "quarantined": [],
@@ -2422,16 +2486,16 @@
       "target": "src/Marrow.Services/Store/Storage.cs",
       "risk": "STANDARD",
       "requirements": [
-        "PR-STORE-050",
-        "PR-STORE-059",
-        "PR-STORE-060",
         "PR-STORE-061",
         "PR-STORE-062",
         "PR-STORE-063",
         "PR-STORE-064",
         "PR-STORE-065",
         "PR-STORE-066",
-        "PR-STORE-067"
+        "PR-STORE-067",
+        "PR-STORE-068",
+        "PR-STORE-069",
+        "PR-STORE-070"
       ],
       "ui": [],
       "quarantined": [],
@@ -2448,16 +2512,14 @@
       "target": "src/Marrow.Services/Store/Storage.cs",
       "risk": "STANDARD",
       "requirements": [
-        "PR-STORE-068",
-        "PR-STORE-069",
-        "PR-STORE-070",
         "PR-STORE-071",
         "PR-STORE-073",
         "PR-STORE-074",
         "PR-STORE-075",
         "PR-STORE-076",
         "PR-STORE-077",
-        "PR-STORE-078"
+        "PR-STORE-078",
+        "PR-STORE-174"
       ],
       "ui": [],
       "quarantined": [],
@@ -2580,6 +2642,25 @@
     {
       "id": "T-M4-002",
       "milestone": "M4",
+      "source": "DroppyCode/Services/MCP/MCPCatalogEntry+Resolve.swift",
+      "target": "src/Marrow.Services/MCP/MCPCatalogEntry+Resolve.cs",
+      "risk": "STANDARD",
+      "requirements": [
+        "PR-MCP-041",
+        "PR-MCP-042",
+        "PR-MCP-043"
+      ],
+      "ui": [],
+      "quarantined": [],
+      "needs_desktop": false,
+      "kind": "behaviour",
+      "status": "DONE",
+      "assignee": null,
+      "notes": ""
+    },
+    {
+      "id": "T-M4-003",
+      "milestone": "M4",
       "source": "DroppyCode/Services/MCP/MCPHub.swift",
       "target": "src/Marrow.Services/MCP/MCPHub.cs",
       "risk": "STANDARD",
@@ -2604,7 +2685,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-003",
+      "id": "T-M4-004",
       "milestone": "M4",
       "source": "DroppyCode/Services/MCP/MCPHub.swift",
       "target": "src/Marrow.Services/MCP/MCPHub.cs",
@@ -2618,18 +2699,19 @@
         "PR-MCP-192",
         "PR-MCP-225",
         "PR-MCP-226",
-        "PR-MCP-227"
+        "PR-MCP-227",
+        "PR-MCP-237"
       ],
       "ui": [],
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "DONE",
+      "status": "TODO",
       "assignee": null,
       "notes": ""
     },
     {
-      "id": "T-M4-004",
+      "id": "T-M4-005",
       "milestone": "M4",
       "source": "DroppyCode/Services/MCP/MCPKeychain.swift",
       "target": "src/Marrow.Services/MCP/MCPKeychain.cs",
@@ -2651,7 +2733,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-005",
+      "id": "T-M4-006",
       "milestone": "M4",
       "source": "DroppyCode/Services/MCP/MCPOAuth.swift",
       "target": "src/Marrow.Services/MCP/MCPOAuth.cs",
@@ -2677,7 +2759,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-006",
+      "id": "T-M4-007",
       "milestone": "M4",
       "source": "DroppyCode/Services/MCP/MCPOAuth.swift",
       "target": "src/Marrow.Services/MCP/MCPOAuth.cs",
@@ -2703,7 +2785,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-007",
+      "id": "T-M4-008",
       "milestone": "M4",
       "source": "DroppyCode/Services/MCP/MCPOAuth.swift",
       "target": "src/Marrow.Services/MCP/MCPOAuth.cs",
@@ -2725,22 +2807,14 @@
       "notes": ""
     },
     {
-      "id": "T-M4-008",
+      "id": "T-M4-009",
       "milestone": "M4",
-      "source": "DroppyCode/Services/MCP/MCPProbe.swift",
-      "target": "src/Marrow.Services/MCP/MCPProbe.cs",
+      "source": "DroppyCode/Services/MCP/MCPPaths.swift",
+      "target": "src/Marrow.Services/MCP/MCPPaths.cs",
       "risk": "STANDARD",
       "requirements": [
-        "PR-MCP-100",
-        "PR-MCP-101",
-        "PR-MCP-102",
-        "PR-MCP-103",
-        "PR-MCP-104",
-        "PR-MCP-105",
-        "PR-MCP-106",
-        "PR-MCP-107",
-        "PR-MCP-108",
-        "PR-MCP-109"
+        "PR-MCP-084",
+        "PR-STORE-011"
       ],
       "ui": [],
       "quarantined": [],
@@ -2751,20 +2825,41 @@
       "notes": ""
     },
     {
-      "id": "T-M4-009",
+      "id": "T-M4-010",
       "milestone": "M4",
       "source": "DroppyCode/Services/MCP/MCPProbe.swift",
       "target": "src/Marrow.Services/MCP/MCPProbe.cs",
       "risk": "STANDARD",
       "requirements": [
+        "PR-MCP-100",
+        "PR-MCP-103",
+        "PR-MCP-104",
+        "PR-MCP-105",
+        "PR-MCP-106",
+        "PR-MCP-107",
+        "PR-MCP-108",
+        "PR-MCP-109",
         "PR-MCP-110",
-        "PR-MCP-111",
-        "PR-MCP-112",
-        "PR-MCP-113",
+        "PR-MCP-113"
+      ],
+      "ui": [],
+      "quarantined": [],
+      "needs_desktop": false,
+      "kind": "behaviour",
+      "status": "DONE",
+      "assignee": null,
+      "notes": ""
+    },
+    {
+      "id": "T-M4-011",
+      "milestone": "M4",
+      "source": "DroppyCode/Services/MCP/MCPProbe.swift",
+      "target": "src/Marrow.Services/MCP/MCPProbe.cs",
+      "risk": "STANDARD",
+      "requirements": [
         "PR-MCP-114",
         "PR-MCP-115",
         "PR-MCP-116",
-        "PR-MCP-117",
         "PR-MCP-118",
         "PR-MCP-120"
       ],
@@ -2777,7 +2872,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-010",
+      "id": "T-M4-012",
       "milestone": "M4",
       "source": "DroppyCode/Services/MCP/MCPProviderConfig.swift",
       "target": "src/Marrow.Services/MCP/MCPProviderConfig.cs",
@@ -2801,7 +2896,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-011",
+      "id": "T-M4-013",
       "milestone": "M4",
       "source": "DroppyCode/Services/MCP/MCPProxy.swift",
       "target": "src/Marrow.Services/MCP/MCPProxy.cs",
@@ -2827,7 +2922,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-012",
+      "id": "T-M4-014",
       "milestone": "M4",
       "source": "DroppyCode/Services/MCP/MCPProxy.swift",
       "target": "src/Marrow.Services/MCP/MCPProxy.cs",
@@ -2851,7 +2946,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-013",
+      "id": "T-M4-015",
       "milestone": "M4",
       "source": "DroppyCode/Services/MCP/MCPSessionOverrides.swift",
       "target": "src/Marrow.Services/MCP/MCPSessionOverrides.cs",
@@ -2870,14 +2965,13 @@
       "notes": ""
     },
     {
-      "id": "T-M4-014",
+      "id": "T-M4-016",
       "milestone": "M4",
       "source": "DroppyCode/Services/MCP/MCPStore.swift",
       "target": "src/Marrow.Services/MCP/MCPStore.cs",
       "risk": "STANDARD",
       "requirements": [
         "PR-MCP-049",
-        "PR-MCP-050",
         "PR-MCP-051",
         "PR-MCP-052",
         "PR-MCP-053",
@@ -2885,59 +2979,8 @@
         "PR-MCP-055",
         "PR-MCP-056",
         "PR-MCP-057",
-        "PR-MCP-058"
-      ],
-      "ui": [],
-      "quarantined": [],
-      "needs_desktop": false,
-      "kind": "behaviour",
-      "status": "DONE",
-      "assignee": null,
-      "notes": ""
-    },
-    {
-      "id": "T-M4-015",
-      "milestone": "M4",
-      "source": "DroppyCode/Services/MCP/MCPStore.swift",
-      "target": "src/Marrow.Services/MCP/MCPStore.cs",
-      "risk": "STANDARD",
-      "requirements": [
-        "PR-MCP-059",
-        "PR-MCP-060",
-        "PR-MCP-061",
-        "PR-MCP-062",
-        "PR-MCP-063",
-        "PR-MCP-064",
-        "PR-MCP-065",
-        "PR-MCP-066",
-        "PR-MCP-067",
-        "PR-MCP-068"
-      ],
-      "ui": [],
-      "quarantined": [],
-      "needs_desktop": false,
-      "kind": "behaviour",
-      "status": "DONE",
-      "assignee": null,
-      "notes": ""
-    },
-    {
-      "id": "T-M4-016",
-      "milestone": "M4",
-      "source": "DroppyCode/Services/MCP/MCPStore.swift",
-      "target": "src/Marrow.Services/MCP/MCPStore.cs",
-      "risk": "STANDARD",
-      "requirements": [
-        "PR-MCP-069",
-        "PR-MCP-070",
-        "PR-MCP-071",
-        "PR-MCP-072",
-        "PR-MCP-074",
-        "PR-MCP-075",
-        "PR-MCP-076",
-        "PR-MCP-077",
-        "PR-MCP-078",
-        "PR-MCP-079"
+        "PR-MCP-058",
+        "PR-MCP-059"
       ],
       "ui": [],
       "quarantined": [],
@@ -2954,7 +2997,58 @@
       "target": "src/Marrow.Services/MCP/MCPStore.cs",
       "risk": "STANDARD",
       "requirements": [
-        "PR-MCP-080",
+        "PR-MCP-060",
+        "PR-MCP-061",
+        "PR-MCP-062",
+        "PR-MCP-063",
+        "PR-MCP-064",
+        "PR-MCP-065",
+        "PR-MCP-066",
+        "PR-MCP-067",
+        "PR-MCP-068",
+        "PR-MCP-069"
+      ],
+      "ui": [],
+      "quarantined": [],
+      "needs_desktop": false,
+      "kind": "behaviour",
+      "status": "DONE",
+      "assignee": null,
+      "notes": ""
+    },
+    {
+      "id": "T-M4-018",
+      "milestone": "M4",
+      "source": "DroppyCode/Services/MCP/MCPStore.swift",
+      "target": "src/Marrow.Services/MCP/MCPStore.cs",
+      "risk": "STANDARD",
+      "requirements": [
+        "PR-MCP-070",
+        "PR-MCP-071",
+        "PR-MCP-072",
+        "PR-MCP-074",
+        "PR-MCP-075",
+        "PR-MCP-076",
+        "PR-MCP-077",
+        "PR-MCP-078",
+        "PR-MCP-079",
+        "PR-MCP-080"
+      ],
+      "ui": [],
+      "quarantined": [],
+      "needs_desktop": false,
+      "kind": "behaviour",
+      "status": "DONE",
+      "assignee": null,
+      "notes": ""
+    },
+    {
+      "id": "T-M4-019",
+      "milestone": "M4",
+      "source": "DroppyCode/Services/MCP/MCPStore.swift",
+      "target": "src/Marrow.Services/MCP/MCPStore.cs",
+      "risk": "STANDARD",
+      "requirements": [
         "PR-MCP-081",
         "PR-MCP-082",
         "PR-MCP-083"
@@ -2968,7 +3062,31 @@
       "notes": ""
     },
     {
-      "id": "T-M4-018",
+      "id": "T-M4-020",
+      "milestone": "M4",
+      "source": "DroppyCode/Services/MCP/MCPWire.swift",
+      "target": "src/Marrow.Services/MCP/MCPWire.cs",
+      "risk": "STANDARD",
+      "requirements": [
+        "PR-MCP-101",
+        "PR-MCP-102",
+        "PR-MCP-111",
+        "PR-MCP-117",
+        "PR-MCP-232",
+        "PR-MCP-234",
+        "PR-MCP-235",
+        "PR-MCP-236"
+      ],
+      "ui": [],
+      "quarantined": [],
+      "needs_desktop": false,
+      "kind": "behaviour",
+      "status": "DONE",
+      "assignee": null,
+      "notes": ""
+    },
+    {
+      "id": "T-M4-021",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/ACPSession.swift",
       "target": "src/Marrow.Services/Providers/ACPSession.cs",
@@ -2994,7 +3112,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-019",
+      "id": "T-M4-022",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/ACPSession.swift",
       "target": "src/Marrow.Services/Providers/ACPSession.cs",
@@ -3020,7 +3138,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-020",
+      "id": "T-M4-023",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/ACPSession.swift",
       "target": "src/Marrow.Services/Providers/ACPSession.cs",
@@ -3046,7 +3164,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-021",
+      "id": "T-M4-024",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/ACPSession.swift",
       "target": "src/Marrow.Services/Providers/ACPSession.cs",
@@ -3072,7 +3190,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-022",
+      "id": "T-M4-025",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/ACPSession.swift",
       "target": "src/Marrow.Services/Providers/ACPSession.cs",
@@ -3098,7 +3216,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-023",
+      "id": "T-M4-026",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/ACPSession.swift",
       "target": "src/Marrow.Services/Providers/ACPSession.cs",
@@ -3124,7 +3242,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-024",
+      "id": "T-M4-027",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/ACPSession.swift",
       "target": "src/Marrow.Services/Providers/ACPSession.cs",
@@ -3150,7 +3268,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-025",
+      "id": "T-M4-028",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/ACPSession.swift",
       "target": "src/Marrow.Services/Providers/ACPSession.cs",
@@ -3176,7 +3294,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-026",
+      "id": "T-M4-029",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/ACPSession.swift",
       "target": "src/Marrow.Services/Providers/ACPSession.cs",
@@ -3202,7 +3320,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-027",
+      "id": "T-M4-030",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/ACPSession.swift",
       "target": "src/Marrow.Services/Providers/ACPSession.cs",
@@ -3228,7 +3346,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-028",
+      "id": "T-M4-031",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/ACPSession.swift",
       "target": "src/Marrow.Services/Providers/ACPSession.cs",
@@ -3254,7 +3372,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-029",
+      "id": "T-M4-032",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/ACPSession.swift",
       "target": "src/Marrow.Services/Providers/ACPSession.cs",
@@ -3280,7 +3398,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-030",
+      "id": "T-M4-033",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/ACPSession.swift",
       "target": "src/Marrow.Services/Providers/ACPSession.cs",
@@ -3306,7 +3424,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-031",
+      "id": "T-M4-034",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/ACPSession.swift",
       "target": "src/Marrow.Services/Providers/ACPSession.cs",
@@ -3329,7 +3447,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-032",
+      "id": "T-M4-035",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/ACPSession.swift",
       "target": "src/Marrow.Services/Providers/ACPSession.cs",
@@ -3355,7 +3473,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-033",
+      "id": "T-M4-036",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/ACPSession.swift",
       "target": "src/Marrow.Services/Providers/ACPSession.cs",
@@ -3381,7 +3499,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-034",
+      "id": "T-M4-037",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/ACPSession.swift",
       "target": "src/Marrow.Services/Providers/ACPSession.cs",
@@ -3407,7 +3525,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-035",
+      "id": "T-M4-038",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/ACPSession.swift",
       "target": "src/Marrow.Services/Providers/ACPSession.cs",
@@ -3425,7 +3543,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-036",
+      "id": "T-M4-039",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/APIKeychain.swift",
       "target": "src/Marrow.Services/Providers/APIKeychain.cs",
@@ -3435,7 +3553,12 @@
         "PR-PROVAPI-002",
         "PR-PROVAPI-003",
         "PR-PROVAPI-004",
-        "PR-PROVREG-088"
+        "PR-PROVAPI-005",
+        "PR-PROVAPI-006",
+        "PR-PROVAPI-007",
+        "PR-PROVAPI-192",
+        "PR-PROVREG-088",
+        "PR-SETTINGS-272"
       ],
       "ui": [],
       "quarantined": [],
@@ -3446,7 +3569,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-037",
+      "id": "T-M4-040",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/AntigravitySession.swift",
       "target": "src/Marrow.Services/Providers/AntigravitySession.cs",
@@ -3472,7 +3595,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-038",
+      "id": "T-M4-041",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/AntigravitySession.swift",
       "target": "src/Marrow.Services/Providers/AntigravitySession.cs",
@@ -3498,7 +3621,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-039",
+      "id": "T-M4-042",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/AntigravitySession.swift",
       "target": "src/Marrow.Services/Providers/AntigravitySession.cs",
@@ -3524,7 +3647,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-040",
+      "id": "T-M4-043",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/AntigravitySession.swift",
       "target": "src/Marrow.Services/Providers/AntigravitySession.cs",
@@ -3550,7 +3673,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-041",
+      "id": "T-M4-044",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/AntigravitySession.swift",
       "target": "src/Marrow.Services/Providers/AntigravitySession.cs",
@@ -3576,7 +3699,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-042",
+      "id": "T-M4-045",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/AntigravitySession.swift",
       "target": "src/Marrow.Services/Providers/AntigravitySession.cs",
@@ -3594,7 +3717,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-043",
+      "id": "T-M4-046",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/AntigravitySession.swift",
       "target": "src/Marrow.Services/Providers/AntigravitySession.cs",
@@ -3612,7 +3735,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-044",
+      "id": "T-M4-047",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/ClaudeSession.swift",
       "target": "src/Marrow.Services/Providers/ClaudeSession.cs",
@@ -3638,7 +3761,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-045",
+      "id": "T-M4-048",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/ClaudeSession.swift",
       "target": "src/Marrow.Services/Providers/ClaudeSession.cs",
@@ -3664,7 +3787,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-046",
+      "id": "T-M4-049",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/ClaudeSession.swift",
       "target": "src/Marrow.Services/Providers/ClaudeSession.cs",
@@ -3690,7 +3813,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-047",
+      "id": "T-M4-050",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/ClaudeSession.swift",
       "target": "src/Marrow.Services/Providers/ClaudeSession.cs",
@@ -3716,7 +3839,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-048",
+      "id": "T-M4-051",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/ClaudeSession.swift",
       "target": "src/Marrow.Services/Providers/ClaudeSession.cs",
@@ -3742,7 +3865,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-049",
+      "id": "T-M4-052",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/ClaudeSession.swift",
       "target": "src/Marrow.Services/Providers/ClaudeSession.cs",
@@ -3768,7 +3891,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-050",
+      "id": "T-M4-053",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/ClaudeSession.swift",
       "target": "src/Marrow.Services/Providers/ClaudeSession.cs",
@@ -3794,7 +3917,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-051",
+      "id": "T-M4-054",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/ClaudeSession.swift",
       "target": "src/Marrow.Services/Providers/ClaudeSession.cs",
@@ -3820,25 +3943,26 @@
       "notes": ""
     },
     {
-      "id": "T-M4-052",
+      "id": "T-M4-055",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/ClaudeSession.swift",
       "target": "src/Marrow.Services/Providers/ClaudeSession.cs",
       "risk": "STANDARD",
       "requirements": [
         "PR-PROVCLI-370",
-        "PR-PROVCLI-439"
+        "PR-PROVCLI-439",
+        "PR-PROVCLI-442"
       ],
       "ui": [],
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "DONE",
+      "status": "TODO",
       "assignee": null,
       "notes": ""
     },
     {
-      "id": "T-M4-053",
+      "id": "T-M4-056",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/ClaudeSession.swift",
       "target": "src/Marrow.Services/Providers/ClaudeSession.cs",
@@ -3864,7 +3988,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-054",
+      "id": "T-M4-057",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/ClaudeSession.swift",
       "target": "src/Marrow.Services/Providers/ClaudeSession.cs",
@@ -3882,7 +4006,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-055",
+      "id": "T-M4-058",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/CodexSession.swift",
       "target": "src/Marrow.Services/Providers/CodexSession.cs",
@@ -3908,7 +4032,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-056",
+      "id": "T-M4-059",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/CodexSession.swift",
       "target": "src/Marrow.Services/Providers/CodexSession.cs",
@@ -3934,7 +4058,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-057",
+      "id": "T-M4-060",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/CodexSession.swift",
       "target": "src/Marrow.Services/Providers/CodexSession.cs",
@@ -3960,7 +4084,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-058",
+      "id": "T-M4-061",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/CodexSession.swift",
       "target": "src/Marrow.Services/Providers/CodexSession.cs",
@@ -3986,7 +4110,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-059",
+      "id": "T-M4-062",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/CodexSession.swift",
       "target": "src/Marrow.Services/Providers/CodexSession.cs",
@@ -4012,7 +4136,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-060",
+      "id": "T-M4-063",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/CodexSession.swift",
       "target": "src/Marrow.Services/Providers/CodexSession.cs",
@@ -4038,7 +4162,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-061",
+      "id": "T-M4-064",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/CodexSession.swift",
       "target": "src/Marrow.Services/Providers/CodexSession.cs",
@@ -4064,7 +4188,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-062",
+      "id": "T-M4-065",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/CodexSession.swift",
       "target": "src/Marrow.Services/Providers/CodexSession.cs",
@@ -4081,7 +4205,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-063",
+      "id": "T-M4-066",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/CodexSession.swift",
       "target": "src/Marrow.Services/Providers/CodexSession.cs",
@@ -4104,7 +4228,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-064",
+      "id": "T-M4-067",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/CommandCodeAPI.swift",
       "target": "src/Marrow.Services/Providers/CommandCodeAPI.cs",
@@ -4130,7 +4254,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-065",
+      "id": "T-M4-068",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/CommandCodeAPI.swift",
       "target": "src/Marrow.Services/Providers/CommandCodeAPI.cs",
@@ -4152,7 +4276,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-066",
+      "id": "T-M4-069",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/CommandCodeAPI.swift",
       "target": "src/Marrow.Services/Providers/CommandCodeAPI.cs",
@@ -4170,24 +4294,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-067",
-      "milestone": "M4",
-      "source": "DroppyCode/Services/Providers/CommandCodeKeychain.swift",
-      "target": "src/Marrow.Services/Providers/CommandCodeKeychain.cs",
-      "risk": "HIGH",
-      "requirements": [
-        "PR-SETTINGS-272"
-      ],
-      "ui": [],
-      "quarantined": [],
-      "needs_desktop": false,
-      "kind": "behaviour",
-      "status": "DONE",
-      "assignee": null,
-      "notes": ""
-    },
-    {
-      "id": "T-M4-068",
+      "id": "T-M4-070",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/CommandCodeSession.swift",
       "target": "src/Marrow.Services/Providers/CommandCodeSession.cs",
@@ -4213,7 +4320,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-069",
+      "id": "T-M4-071",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/CommandCodeSession.swift",
       "target": "src/Marrow.Services/Providers/CommandCodeSession.cs",
@@ -4239,7 +4346,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-070",
+      "id": "T-M4-072",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/CommandCodeSession.swift",
       "target": "src/Marrow.Services/Providers/CommandCodeSession.cs",
@@ -4265,7 +4372,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-071",
+      "id": "T-M4-073",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/CommandCodeSession.swift",
       "target": "src/Marrow.Services/Providers/CommandCodeSession.cs",
@@ -4291,7 +4398,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-072",
+      "id": "T-M4-074",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/CommandCodeSession.swift",
       "target": "src/Marrow.Services/Providers/CommandCodeSession.cs",
@@ -4317,7 +4424,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-073",
+      "id": "T-M4-075",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/CommandCodeSession.swift",
       "target": "src/Marrow.Services/Providers/CommandCodeSession.cs",
@@ -4343,7 +4450,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-074",
+      "id": "T-M4-076",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/CommandCodeSession.swift",
       "target": "src/Marrow.Services/Providers/CommandCodeSession.cs",
@@ -4364,7 +4471,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-075",
+      "id": "T-M4-077",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/CommandCodeSession.swift",
       "target": "src/Marrow.Services/Providers/CommandCodeSession.cs",
@@ -4381,7 +4488,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-076",
+      "id": "T-M4-078",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/CopilotSession.swift",
       "target": "src/Marrow.Services/Providers/CopilotSession.cs",
@@ -4407,7 +4514,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-077",
+      "id": "T-M4-079",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/CopilotSession.swift",
       "target": "src/Marrow.Services/Providers/CopilotSession.cs",
@@ -4433,7 +4540,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-078",
+      "id": "T-M4-080",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/CopilotSession.swift",
       "target": "src/Marrow.Services/Providers/CopilotSession.cs",
@@ -4459,7 +4566,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-079",
+      "id": "T-M4-081",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/CopilotSession.swift",
       "target": "src/Marrow.Services/Providers/CopilotSession.cs",
@@ -4485,7 +4592,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-080",
+      "id": "T-M4-082",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/CopilotSession.swift",
       "target": "src/Marrow.Services/Providers/CopilotSession.cs",
@@ -4511,7 +4618,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-081",
+      "id": "T-M4-083",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/CopilotSession.swift",
       "target": "src/Marrow.Services/Providers/CopilotSession.cs",
@@ -4537,7 +4644,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-082",
+      "id": "T-M4-084",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/CopilotSession.swift",
       "target": "src/Marrow.Services/Providers/CopilotSession.cs",
@@ -4563,7 +4670,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-083",
+      "id": "T-M4-085",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/CopilotSession.swift",
       "target": "src/Marrow.Services/Providers/CopilotSession.cs",
@@ -4589,7 +4696,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-084",
+      "id": "T-M4-086",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/CopilotSession.swift",
       "target": "src/Marrow.Services/Providers/CopilotSession.cs",
@@ -4615,7 +4722,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-085",
+      "id": "T-M4-087",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/CopilotSession.swift",
       "target": "src/Marrow.Services/Providers/CopilotSession.cs",
@@ -4632,7 +4739,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-086",
+      "id": "T-M4-088",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/CopilotSession.swift",
       "target": "src/Marrow.Services/Providers/CopilotSession.cs",
@@ -4653,7 +4760,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-087",
+      "id": "T-M4-089",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/DeepSeekAPI.swift",
       "target": "src/Marrow.Services/Providers/DeepSeekAPI.cs",
@@ -4679,7 +4786,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-088",
+      "id": "T-M4-090",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/DeepSeekAPI.swift",
       "target": "src/Marrow.Services/Providers/DeepSeekAPI.cs",
@@ -4696,7 +4803,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-089",
+      "id": "T-M4-091",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/DeepSeekAPI.swift",
       "target": "src/Marrow.Services/Providers/DeepSeekAPI.cs",
@@ -4713,24 +4820,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-090",
-      "milestone": "M4",
-      "source": "DroppyCode/Services/Providers/DeepSeekKeychain.swift",
-      "target": "src/Marrow.Services/Providers/DeepSeekKeychain.cs",
-      "risk": "HIGH",
-      "requirements": [
-        "PR-PROVAPI-005"
-      ],
-      "ui": [],
-      "quarantined": [],
-      "needs_desktop": false,
-      "kind": "behaviour",
-      "status": "DONE",
-      "assignee": null,
-      "notes": ""
-    },
-    {
-      "id": "T-M4-091",
+      "id": "T-M4-092",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/DeepSeekSession.swift",
       "target": "src/Marrow.Services/Providers/DeepSeekSession.cs",
@@ -4754,7 +4844,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-092",
+      "id": "T-M4-093",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/MetaAPI.swift",
       "target": "src/Marrow.Services/Providers/MetaAPI.cs",
@@ -4780,7 +4870,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-093",
+      "id": "T-M4-094",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/MetaAPI.swift",
       "target": "src/Marrow.Services/Providers/MetaAPI.cs",
@@ -4797,7 +4887,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-094",
+      "id": "T-M4-095",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/MetaAPI.swift",
       "target": "src/Marrow.Services/Providers/MetaAPI.cs",
@@ -4809,23 +4899,6 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "DONE",
-      "assignee": null,
-      "notes": ""
-    },
-    {
-      "id": "T-M4-095",
-      "milestone": "M4",
-      "source": "DroppyCode/Services/Providers/MetaKeychain.swift",
-      "target": "src/Marrow.Services/Providers/MetaKeychain.cs",
-      "risk": "HIGH",
-      "requirements": [
-        "PR-PROVAPI-006"
-      ],
-      "ui": [],
-      "quarantined": [],
-      "needs_desktop": false,
-      "kind": "behaviour",
       "status": "DONE",
       "assignee": null,
       "notes": ""
@@ -5685,7 +5758,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "DONE",
+      "status": "TODO",
       "assignee": null,
       "notes": ""
     },
@@ -5711,7 +5784,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "DONE",
+      "status": "TODO",
       "assignee": null,
       "notes": ""
     },
@@ -5806,6 +5879,30 @@
         "PR-PROVREG-246",
         "PR-PROVREG-247",
         "PR-PROVREG-248",
+        "PR-PROVREG-251",
+        "PR-PROVREG-252",
+        "PR-PROVREG-253",
+        "PR-PROVREG-254"
+      ],
+      "ui": [],
+      "quarantined": [],
+      "needs_desktop": false,
+      "kind": "behaviour",
+      "status": "TODO",
+      "assignee": null,
+      "notes": ""
+    },
+    {
+      "id": "T-M4-137",
+      "milestone": "M4",
+      "source": "DroppyCode/Services/Providers/ProviderRegistry.swift",
+      "target": "src/Marrow.Services/Providers/ProviderRegistry.cs",
+      "risk": "STANDARD",
+      "requirements": [
+        "PR-PROVREG-255",
+        "PR-PROVREG-256",
+        "PR-PROVREG-257",
+        "PR-PROVREG-258",
         "PR-USAGE-080",
         "PR-USAGE-081",
         "PR-USAGE-083"
@@ -5814,12 +5911,12 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "DONE",
+      "status": "TODO",
       "assignee": null,
       "notes": ""
     },
     {
-      "id": "T-M4-137",
+      "id": "T-M4-138",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/ProviderRegistry.swift",
       "target": "src/Marrow.Services/Providers/ProviderRegistry.cs",
@@ -5836,7 +5933,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-138",
+      "id": "T-M4-139",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/ProviderSession.swift",
       "target": "src/Marrow.Services/Providers/ProviderSession.cs",
@@ -5862,7 +5959,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-139",
+      "id": "T-M4-140",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/ProviderSession.swift",
       "target": "src/Marrow.Services/Providers/ProviderSession.cs",
@@ -5883,7 +5980,25 @@
       "notes": ""
     },
     {
-      "id": "T-M4-140",
+      "id": "T-M4-141",
+      "milestone": "M4",
+      "source": "DroppyCode/Services/Providers/SessionSupport.swift",
+      "target": "src/Marrow.Services/Providers/SessionSupport.cs",
+      "risk": "STANDARD",
+      "requirements": [
+        "PR-PROVCLI-443",
+        "PR-PROVCLI-444"
+      ],
+      "ui": [],
+      "quarantined": [],
+      "needs_desktop": false,
+      "kind": "behaviour",
+      "status": "DONE",
+      "assignee": null,
+      "notes": ""
+    },
+    {
+      "id": "T-M4-142",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/TextGeneration.swift",
       "target": "src/Marrow.Services/Providers/TextGeneration.cs",
@@ -5904,7 +6019,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-141",
+      "id": "T-M4-143",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/UsageLimitSignal.swift",
       "target": "src/Marrow.Services/Providers/UsageLimitSignal.cs",
@@ -5924,7 +6039,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-142",
+      "id": "T-M4-144",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/ZaiAPI.swift",
       "target": "src/Marrow.Services/Providers/ZaiAPI.cs",
@@ -5950,7 +6065,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-143",
+      "id": "T-M4-145",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/ZaiAPI.swift",
       "target": "src/Marrow.Services/Providers/ZaiAPI.cs",
@@ -5973,7 +6088,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-144",
+      "id": "T-M4-146",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/ZaiAPI.swift",
       "target": "src/Marrow.Services/Providers/ZaiAPI.cs",
@@ -5990,24 +6105,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-145",
-      "milestone": "M4",
-      "source": "DroppyCode/Services/Providers/ZaiKeychain.swift",
-      "target": "src/Marrow.Services/Providers/ZaiKeychain.cs",
-      "risk": "HIGH",
-      "requirements": [
-        "PR-PROVAPI-007"
-      ],
-      "ui": [],
-      "quarantined": [],
-      "needs_desktop": false,
-      "kind": "behaviour",
-      "status": "DONE",
-      "assignee": null,
-      "notes": ""
-    },
-    {
-      "id": "T-M4-146",
+      "id": "T-M4-147",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/ZaiSession.swift",
       "target": "src/Marrow.Services/Providers/ZaiSession.cs",
@@ -6033,7 +6131,7 @@
       "notes": ""
     },
     {
-      "id": "T-M4-147",
+      "id": "T-M4-148",
       "milestone": "M4",
       "source": "DroppyCode/Services/Providers/ZaiSession.swift",
       "target": "src/Marrow.Services/Providers/ZaiSession.cs",
@@ -6328,6 +6426,51 @@
     {
       "id": "T-M5-013",
       "milestone": "M5",
+      "source": "DroppyCode/UI/Chrome/DragHandle.swift",
+      "target": "src/Marrow.UI/Chrome/DragHandle.cs",
+      "risk": "STANDARD",
+      "requirements": [
+        "PR-TERM-015",
+        "PR-TERM-017",
+        "PR-TERM-018",
+        "PR-TERM-019",
+        "PR-WIN-052",
+        "PR-WIN-053",
+        "PR-WIN-054",
+        "PR-WIN-055",
+        "PR-WIN-056",
+        "PR-WIN-057"
+      ],
+      "ui": [],
+      "quarantined": [],
+      "needs_desktop": false,
+      "kind": "behaviour",
+      "status": "DONE",
+      "assignee": null,
+      "notes": ""
+    },
+    {
+      "id": "T-M5-014",
+      "milestone": "M5",
+      "source": "DroppyCode/UI/Chrome/DragHandle.swift",
+      "target": "src/Marrow.UI/Chrome/DragHandle.cs",
+      "risk": "STANDARD",
+      "requirements": [
+        "PR-WIN-232",
+        "PR-WIN-233",
+        "PR-WIN-234"
+      ],
+      "ui": [],
+      "quarantined": [],
+      "needs_desktop": false,
+      "kind": "behaviour",
+      "status": "DONE",
+      "assignee": null,
+      "notes": ""
+    },
+    {
+      "id": "T-M5-015",
+      "milestone": "M5",
       "source": "DroppyCode/UI/Chrome/HydraPairMark.swift",
       "target": "src/Marrow.UI/Chrome/HydraPairMark.cs",
       "risk": "STANDARD",
@@ -6343,7 +6486,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-014",
+      "id": "T-M5-016",
       "milestone": "M5",
       "source": "DroppyCode/UI/Chrome/HydraPairMark.swift",
       "target": "src/Marrow.UI/Chrome/HydraPairMark.cs",
@@ -6360,7 +6503,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-015",
+      "id": "T-M5-017",
       "milestone": "M5",
       "source": "DroppyCode/UI/Chrome/Popovers.swift",
       "target": "src/Marrow.UI/Chrome/Popovers.cs",
@@ -6380,7 +6523,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-016",
+      "id": "T-M5-018",
       "milestone": "M5",
       "source": "DroppyCode/UI/Chrome/Popovers.swift",
       "target": "src/Marrow.UI/Chrome/Popovers.cs",
@@ -6399,7 +6542,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-017",
+      "id": "T-M5-019",
       "milestone": "M5",
       "source": "DroppyCode/UI/Chrome/ProjectIconPicker.swift",
       "target": "src/Marrow.UI/Chrome/ProjectIconPicker.cs",
@@ -6419,7 +6562,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-018",
+      "id": "T-M5-020",
       "milestone": "M5",
       "source": "DroppyCode/UI/Chrome/ProjectIconPicker.swift",
       "target": "src/Marrow.UI/Chrome/ProjectIconPicker.cs",
@@ -6441,7 +6584,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-019",
+      "id": "T-M5-021",
       "milestone": "M5",
       "source": "DroppyCode/UI/Chrome/ProjectSymbolCatalogue.swift",
       "target": "src/Marrow.UI/Chrome/ProjectSymbolCatalogue.cs",
@@ -6458,7 +6601,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-020",
+      "id": "T-M5-022",
       "milestone": "M5",
       "source": "DroppyCode/UI/Chrome/ProjectSymbolCatalogue.swift",
       "target": "src/Marrow.UI/Chrome/ProjectSymbolCatalogue.cs",
@@ -6475,7 +6618,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-021",
+      "id": "T-M5-023",
       "milestone": "M5",
       "source": "DroppyCode/UI/Chrome/RowDrag.swift",
       "target": "src/Marrow.UI/Chrome/RowDrag.cs",
@@ -6492,7 +6635,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-022",
+      "id": "T-M5-024",
       "milestone": "M5",
       "source": "DroppyCode/UI/Chrome/WindowChrome.swift",
       "target": "src/Marrow.UI/Chrome/WindowChrome.cs",
@@ -6518,7 +6661,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-023",
+      "id": "T-M5-025",
       "milestone": "M5",
       "source": "DroppyCode/UI/Chrome/WindowChrome.swift",
       "target": "src/Marrow.UI/Chrome/WindowChrome.cs",
@@ -6544,7 +6687,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-024",
+      "id": "T-M5-026",
       "milestone": "M5",
       "source": "DroppyCode/UI/Chrome/WindowChrome.swift",
       "target": "src/Marrow.UI/Chrome/WindowChrome.cs",
@@ -6570,29 +6713,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-025",
-      "milestone": "M5",
-      "source": "DroppyCode/UI/Chrome/WindowChrome.swift",
-      "target": "src/Marrow.UI/Chrome/WindowChrome.cs",
-      "risk": "HIGH",
-      "requirements": [
-        "PR-WIN-052",
-        "PR-WIN-053",
-        "PR-WIN-054",
-        "PR-WIN-055",
-        "PR-WIN-056",
-        "PR-WIN-057"
-      ],
-      "ui": [],
-      "quarantined": [],
-      "needs_desktop": false,
-      "kind": "behaviour",
-      "status": "DONE",
-      "assignee": null,
-      "notes": ""
-    },
-    {
-      "id": "T-M5-026",
+      "id": "T-M5-027",
       "milestone": "M5",
       "source": "DroppyCode/UI/Chrome/WindowChrome.swift",
       "target": "src/Marrow.UI/Chrome/WindowChrome.cs",
@@ -6612,7 +6733,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-027",
+      "id": "T-M5-028",
       "milestone": "M5",
       "source": "DroppyCode/UI/Common/AppZoom.swift",
       "target": "src/Marrow.UI/Common/AppZoom.cs",
@@ -6633,7 +6754,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-028",
+      "id": "T-M5-029",
       "milestone": "M5",
       "source": "DroppyCode/UI/Common/AppZoom.swift",
       "target": "src/Marrow.UI/Common/AppZoom.cs",
@@ -6650,7 +6771,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-029",
+      "id": "T-M5-030",
       "milestone": "M5",
       "source": "DroppyCode/UI/Common/AttachmentPreview.swift",
       "target": "src/Marrow.UI/Common/AttachmentPreview.cs",
@@ -6671,12 +6792,12 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "DONE",
+      "status": "TODO",
       "assignee": null,
       "notes": ""
     },
     {
-      "id": "T-M5-030",
+      "id": "T-M5-031",
       "milestone": "M5",
       "source": "DroppyCode/UI/Common/AttachmentPreview.swift",
       "target": "src/Marrow.UI/Common/AttachmentPreview.cs",
@@ -6695,7 +6816,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-031",
+      "id": "T-M5-032",
       "milestone": "M5",
       "source": "DroppyCode/UI/Common/AttachmentPreview.swift",
       "target": "src/Marrow.UI/Common/AttachmentPreview.cs",
@@ -6717,7 +6838,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-032",
+      "id": "T-M5-033",
       "milestone": "M5",
       "source": "DroppyCode/UI/Common/AttachmentPreviewPanel.swift",
       "target": "src/Marrow.UI/Common/AttachmentPreviewPanel.cs",
@@ -6737,7 +6858,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-033",
+      "id": "T-M5-034",
       "milestone": "M5",
       "source": "DroppyCode/UI/Common/ChatFont.swift",
       "target": "src/Marrow.UI/Common/ChatFont.cs",
@@ -6755,7 +6876,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-034",
+      "id": "T-M5-035",
       "milestone": "M5",
       "source": "DroppyCode/UI/Common/ChatFont.swift",
       "target": "src/Marrow.UI/Common/ChatFont.cs",
@@ -6772,7 +6893,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-035",
+      "id": "T-M5-036",
       "milestone": "M5",
       "source": "DroppyCode/UI/Common/Components.swift",
       "target": "src/Marrow.UI/Common/Components.cs",
@@ -6792,7 +6913,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-036",
+      "id": "T-M5-037",
       "milestone": "M5",
       "source": "DroppyCode/UI/Common/Components.swift",
       "target": "src/Marrow.UI/Common/Components.cs",
@@ -6809,7 +6930,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-037",
+      "id": "T-M5-038",
       "milestone": "M5",
       "source": "DroppyCode/UI/Common/Genie.swift",
       "target": "src/Marrow.UI/Common/Genie.cs",
@@ -6830,7 +6951,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-038",
+      "id": "T-M5-039",
       "milestone": "M5",
       "source": "DroppyCode/UI/Common/Genie.swift",
       "target": "src/Marrow.UI/Common/Genie.cs",
@@ -6847,7 +6968,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-039",
+      "id": "T-M5-040",
       "milestone": "M5",
       "source": "DroppyCode/UI/Common/HydraGlyph.swift",
       "target": "src/Marrow.UI/Common/HydraGlyph.cs",
@@ -6866,7 +6987,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-040",
+      "id": "T-M5-041",
       "milestone": "M5",
       "source": "DroppyCode/UI/Common/HydraGlyph.swift",
       "target": "src/Marrow.UI/Common/HydraGlyph.cs",
@@ -6884,7 +7005,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-041",
+      "id": "T-M5-042",
       "milestone": "M5",
       "source": "DroppyCode/UI/Common/RenderBudget.swift",
       "target": "src/Marrow.UI/Common/RenderBudget.cs",
@@ -6909,7 +7030,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-042",
+      "id": "T-M5-043",
       "milestone": "M5",
       "source": "DroppyCode/UI/Common/WorkingIndicators.swift",
       "target": "src/Marrow.UI/Common/WorkingIndicators.cs",
@@ -6935,7 +7056,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-043",
+      "id": "T-M5-044",
       "milestone": "M5",
       "source": "DroppyCode/UI/Common/WorkingIndicators.swift",
       "target": "src/Marrow.UI/Common/WorkingIndicators.cs",
@@ -6952,7 +7073,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-044",
+      "id": "T-M5-045",
       "milestone": "M5",
       "source": "DroppyCode/UI/Common/WorkingIndicators.swift",
       "target": "src/Marrow.UI/Common/WorkingIndicators.cs",
@@ -6970,7 +7091,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-045",
+      "id": "T-M5-046",
       "milestone": "M5",
       "source": "DroppyCode/UI/Markdown/HydraHeadHoverPopover.swift",
       "target": "src/Marrow.UI/Markdown/HydraHeadHoverPopover.cs",
@@ -6987,7 +7108,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-046",
+      "id": "T-M5-047",
       "milestone": "M5",
       "source": "DroppyCode/UI/Markdown/HydraHeadHoverPopover.swift",
       "target": "src/Marrow.UI/Markdown/HydraHeadHoverPopover.cs",
@@ -7004,7 +7125,24 @@
       "notes": ""
     },
     {
-      "id": "T-M5-047",
+      "id": "T-M5-048",
+      "milestone": "M5",
+      "source": "DroppyCode/UI/Markdown/LinkHover.swift",
+      "target": "src/Marrow.UI/Markdown/LinkHover.cs",
+      "risk": "STANDARD",
+      "requirements": [
+        "PR-THEME-144"
+      ],
+      "ui": [],
+      "quarantined": [],
+      "needs_desktop": false,
+      "kind": "behaviour",
+      "status": "DONE",
+      "assignee": null,
+      "notes": ""
+    },
+    {
+      "id": "T-M5-049",
       "milestone": "M5",
       "source": "DroppyCode/UI/Markdown/LinkParagraphView.swift",
       "target": "src/Marrow.UI/Markdown/LinkParagraphView.cs",
@@ -7017,7 +7155,8 @@
         "PR-THEME-145",
         "PR-THEME-146",
         "PR-THEME-152",
-        "PR-THEME-180"
+        "PR-THEME-180",
+        "PR-THEME-185"
       ],
       "ui": [],
       "quarantined": [],
@@ -7028,7 +7167,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-048",
+      "id": "T-M5-050",
       "milestone": "M5",
       "source": "DroppyCode/UI/Markdown/LinkParagraphView.swift",
       "target": "src/Marrow.UI/Markdown/LinkParagraphView.cs",
@@ -7047,7 +7186,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-049",
+      "id": "T-M5-051",
       "milestone": "M5",
       "source": "DroppyCode/UI/Markdown/LinkPopover.swift",
       "target": "src/Marrow.UI/Markdown/LinkPopover.cs",
@@ -7059,12 +7198,12 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
     {
-      "id": "T-M5-050",
+      "id": "T-M5-052",
       "milestone": "M5",
       "source": "DroppyCode/UI/Markdown/LinkPopover.swift",
       "target": "src/Marrow.UI/Markdown/LinkPopover.cs",
@@ -7084,7 +7223,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-051",
+      "id": "T-M5-053",
       "milestone": "M5",
       "source": "DroppyCode/UI/Markdown/LinkTitles.swift",
       "target": "src/Marrow.UI/Markdown/LinkTitles.cs",
@@ -7103,7 +7242,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-052",
+      "id": "T-M5-054",
       "milestone": "M5",
       "source": "DroppyCode/UI/Markdown/MarkdownParser.swift",
       "target": "src/Marrow.UI/Markdown/MarkdownParser.cs",
@@ -7129,7 +7268,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-053",
+      "id": "T-M5-055",
       "milestone": "M5",
       "source": "DroppyCode/UI/Markdown/MarkdownParser.swift",
       "target": "src/Marrow.UI/Markdown/MarkdownParser.cs",
@@ -7151,7 +7290,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-054",
+      "id": "T-M5-056",
       "milestone": "M5",
       "source": "DroppyCode/UI/Markdown/MarkdownView.swift",
       "target": "src/Marrow.UI/Markdown/MarkdownView.cs",
@@ -7177,7 +7316,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-055",
+      "id": "T-M5-057",
       "milestone": "M5",
       "source": "DroppyCode/UI/Markdown/MarkdownView.swift",
       "target": "src/Marrow.UI/Markdown/MarkdownView.cs",
@@ -7203,7 +7342,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-056",
+      "id": "T-M5-058",
       "milestone": "M5",
       "source": "DroppyCode/UI/Markdown/MarkdownView.swift",
       "target": "src/Marrow.UI/Markdown/MarkdownView.cs",
@@ -7229,18 +7368,18 @@
       "notes": ""
     },
     {
-      "id": "T-M5-057",
+      "id": "T-M5-059",
       "milestone": "M5",
       "source": "DroppyCode/UI/Markdown/MarkdownView.swift",
       "target": "src/Marrow.UI/Markdown/MarkdownView.cs",
       "risk": "STANDARD",
       "requirements": [
         "PR-THEME-139",
-        "PR-THEME-144",
         "PR-THEME-148",
         "PR-THEME-151",
         "PR-THEME-177",
-        "PR-THEME-178"
+        "PR-THEME-178",
+        "PR-THEME-186"
       ],
       "ui": [],
       "quarantined": [],
@@ -7251,7 +7390,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-058",
+      "id": "T-M5-060",
       "milestone": "M5",
       "source": "DroppyCode/UI/Markdown/MarkdownView.swift",
       "target": "src/Marrow.UI/Markdown/MarkdownView.cs",
@@ -7277,7 +7416,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-059",
+      "id": "T-M5-061",
       "milestone": "M5",
       "source": "DroppyCode/UI/Markdown/MarkdownView.swift",
       "target": "src/Marrow.UI/Markdown/MarkdownView.cs",
@@ -7295,7 +7434,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-060",
+      "id": "T-M5-062",
       "milestone": "M5",
       "source": "DroppyCode/UI/Markdown/ProseRunView.swift",
       "target": "src/Marrow.UI/Markdown/ProseRunView.cs",
@@ -7308,12 +7447,12 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
     {
-      "id": "T-M5-061",
+      "id": "T-M5-063",
       "milestone": "M5",
       "source": "DroppyCode/UI/Markdown/SelectableMessageText.swift",
       "target": "src/Marrow.UI/Markdown/SelectableMessageText.cs",
@@ -7331,7 +7470,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-062",
+      "id": "T-M5-064",
       "milestone": "M5",
       "source": "DroppyCode/UI/Markdown/StreamVeil.swift",
       "target": "src/Marrow.UI/Markdown/StreamVeil.cs",
@@ -7351,12 +7490,12 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
     {
-      "id": "T-M5-063",
+      "id": "T-M5-065",
       "milestone": "M5",
       "source": "DroppyCode/UI/Markdown/StreamVeil.swift",
       "target": "src/Marrow.UI/Markdown/StreamVeil.cs",
@@ -7373,7 +7512,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-064",
+      "id": "T-M5-066",
       "milestone": "M5",
       "source": "DroppyCode/UI/Sound/FinishChime.swift",
       "target": "src/Marrow.UI/Sound/FinishChime.cs",
@@ -7390,7 +7529,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-065",
+      "id": "T-M5-067",
       "milestone": "M5",
       "source": "DroppyCode/UI/Sound/SettleChime.swift",
       "target": "src/Marrow.UI/Sound/SettleChime.cs",
@@ -7407,7 +7546,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-066",
+      "id": "T-M5-068",
       "milestone": "M5",
       "source": "DroppyCode/UI/Sound/ToneSynth.swift",
       "target": "src/Marrow.UI/Sound/ToneSynth.cs",
@@ -7426,7 +7565,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-067",
+      "id": "T-M5-069",
       "milestone": "M5",
       "source": "DroppyCode/UI/Theme/AppTheme.swift",
       "target": "src/Marrow.UI/Theme/AppTheme.cs",
@@ -7452,7 +7591,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-068",
+      "id": "T-M5-070",
       "milestone": "M5",
       "source": "DroppyCode/UI/Theme/AppTheme.swift",
       "target": "src/Marrow.UI/Theme/AppTheme.cs",
@@ -7478,7 +7617,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-069",
+      "id": "T-M5-071",
       "milestone": "M5",
       "source": "DroppyCode/UI/Theme/AppTheme.swift",
       "target": "src/Marrow.UI/Theme/AppTheme.cs",
@@ -7504,7 +7643,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-070",
+      "id": "T-M5-072",
       "milestone": "M5",
       "source": "DroppyCode/UI/Theme/AppTheme.swift",
       "target": "src/Marrow.UI/Theme/AppTheme.cs",
@@ -7527,7 +7666,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-071",
+      "id": "T-M5-073",
       "milestone": "M5",
       "source": "DroppyCode/UI/Theme/AppTheme.swift",
       "target": "src/Marrow.UI/Theme/AppTheme.cs",
@@ -7544,7 +7683,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-072",
+      "id": "T-M5-074",
       "milestone": "M5",
       "source": "DroppyCode/UI/Theme/ShortcutTint.swift",
       "target": "src/Marrow.UI/Theme/ShortcutTint.cs",
@@ -7561,7 +7700,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-073",
+      "id": "T-M5-075",
       "milestone": "M5",
       "source": "DroppyCode/UI/Theme/ShortcutTint.swift",
       "target": "src/Marrow.UI/Theme/ShortcutTint.cs",
@@ -7578,7 +7717,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-074",
+      "id": "T-M5-076",
       "milestone": "M5",
       "source": "DroppyCode/UI/Theme/Wallpaper.swift",
       "target": "src/Marrow.UI/Theme/Wallpaper.cs",
@@ -7604,7 +7743,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-075",
+      "id": "T-M5-077",
       "milestone": "M5",
       "source": "DroppyCode/UI/Theme/Wallpaper.swift",
       "target": "src/Marrow.UI/Theme/Wallpaper.cs",
@@ -7827,14 +7966,14 @@
       "requirements": [
         "PR-LAUNCH-025",
         "PR-LAUNCH-026",
+        "PR-LAUNCH-027",
         "PR-LAUNCH-028",
         "PR-LAUNCH-029",
         "PR-LAUNCH-037",
         "PR-LAUNCH-038",
         "PR-LAUNCH-046",
         "PR-LAUNCH-047",
-        "PR-LAUNCH-048",
-        "PR-LAUNCH-049"
+        "PR-LAUNCH-048"
       ],
       "ui": [],
       "quarantined": [],
@@ -7851,6 +7990,7 @@
       "target": "src/Marrow.App/AppDelegate.cs",
       "risk": "STANDARD",
       "requirements": [
+        "PR-LAUNCH-049",
         "PR-LAUNCH-050",
         "PR-LAUNCH-051",
         "PR-LAUNCH-057",
@@ -7859,8 +7999,7 @@
         "PR-LAUNCH-063",
         "PR-LAUNCH-064",
         "PR-LAUNCH-065",
-        "PR-LAUNCH-071",
-        "PR-LAUNCH-074"
+        "PR-LAUNCH-071"
       ],
       "ui": [],
       "quarantined": [],
@@ -7877,16 +8016,16 @@
       "target": "src/Marrow.App/AppDelegate.cs",
       "risk": "STANDARD",
       "requirements": [
+        "PR-LAUNCH-074",
         "PR-LAUNCH-075",
+        "PR-LAUNCH-083",
+        "PR-LAUNCH-084",
         "PR-UPDATE-024",
         "PR-UPDATE-025",
         "PR-UPDATE-059",
         "PR-UPDATE-090",
         "PR-WIN-068",
-        "PR-WIN-070",
-        "PR-WIN-071",
-        "PR-WIN-072",
-        "PR-WIN-073"
+        "PR-WIN-070"
       ],
       "ui": [],
       "quarantined": [],
@@ -7903,6 +8042,9 @@
       "target": "src/Marrow.App/AppDelegate.cs",
       "risk": "STANDARD",
       "requirements": [
+        "PR-WIN-071",
+        "PR-WIN-072",
+        "PR-WIN-073",
         "PR-WIN-074",
         "PR-WIN-075",
         "PR-WIN-076"
@@ -8105,7 +8247,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "DONE",
+      "status": "TODO",
       "assignee": null,
       "notes": ""
     },
@@ -8131,7 +8273,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "DONE",
+      "status": "TODO",
       "assignee": null,
       "notes": ""
     },
@@ -8157,7 +8299,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "DONE",
+      "status": "TODO",
       "assignee": null,
       "notes": ""
     },
@@ -8183,7 +8325,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "DONE",
+      "status": "TODO",
       "assignee": null,
       "notes": ""
     },
@@ -8209,7 +8351,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "DONE",
+      "status": "TODO",
       "assignee": null,
       "notes": ""
     },
@@ -8235,7 +8377,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "DONE",
+      "status": "TODO",
       "assignee": null,
       "notes": ""
     },
@@ -8261,7 +8403,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "DONE",
+      "status": "TODO",
       "assignee": null,
       "notes": ""
     },
@@ -8281,13 +8423,13 @@
         "PR-HYDRAMERGE-109",
         "PR-HYDRAMERGE-110",
         "PR-HYDRAMERGE-111",
-        "PR-HYDRAMERGE-112"
+        "PR-HYDRAMERGE-113"
       ],
       "ui": [],
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "DONE",
+      "status": "TODO",
       "assignee": null,
       "notes": ""
     },
@@ -8298,21 +8440,22 @@
       "target": "src/Marrow.App/AppModel+HydraMerge.cs",
       "risk": "HIGH",
       "requirements": [
-        "PR-HYDRAMERGE-113",
-        "PR-HYDRAMERGE-114",
-        "PR-HYDRAMERGE-115",
         "PR-HYDRAMERGE-116",
         "PR-HYDRAMERGE-117",
         "PR-HYDRAMERGE-118",
         "PR-HYDRAMERGE-119",
         "PR-HYDRAMERGE-120",
-        "PR-HYDRAMERGE-121"
+        "PR-HYDRAMERGE-121",
+        "PR-HYDRAMERGE-122",
+        "PR-HYDRAMERGE-123",
+        "PR-HYDRAMERGE-124",
+        "PR-HYDRAMERGE-125"
       ],
       "ui": [],
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "DONE",
+      "status": "TODO",
       "assignee": null,
       "notes": ""
     },
@@ -8322,14 +8465,34 @@
       "source": "DroppyCode/App/AppModel+HydraMerge.swift",
       "target": "src/Marrow.App/AppModel+HydraMerge.cs",
       "risk": "HIGH",
+      "requirements": [
+        "PR-HYDRAMERGE-126",
+        "PR-HYDRAMERGE-127",
+        "PR-HYDRAMERGE-128",
+        "PR-HYDRAMERGE-129",
+        "PR-HYDRAMERGE-130",
+        "PR-HYDRAMERGE-131"
+      ],
+      "ui": [],
+      "quarantined": [],
+      "needs_desktop": false,
+      "kind": "behaviour",
+      "status": "TODO",
+      "assignee": null,
+      "notes": ""
+    },
+    {
+      "id": "T-M6-030",
+      "milestone": "M6",
+      "source": "DroppyCode/App/AppModel+HydraMerge.swift",
+      "target": "src/Marrow.App/AppModel+HydraMerge.cs",
+      "risk": "HIGH",
       "requirements": [],
       "ui": [
-        "UI-CHAT-083",
         "UI-CHAT-084",
         "UI-HYDRAMERGE-032",
         "UI-HYDRAMERGE-033",
         "UI-HYDRAMERGE-034",
-        "UI-HYDRAMERGE-035",
         "UI-HYDRAMERGE-036"
       ],
       "quarantined": [],
@@ -8340,7 +8503,7 @@
       "notes": ""
     },
     {
-      "id": "T-M6-030",
+      "id": "T-M6-031",
       "milestone": "M6",
       "source": "DroppyCode/App/AppModel+HydraPairs.swift",
       "target": "src/Marrow.App/AppModel+HydraPairs.cs",
@@ -8364,7 +8527,7 @@
       "notes": ""
     },
     {
-      "id": "T-M6-031",
+      "id": "T-M6-032",
       "milestone": "M6",
       "source": "DroppyCode/App/AppModel.swift",
       "target": "src/Marrow.App/AppModel.cs",
@@ -8390,7 +8553,7 @@
       "notes": ""
     },
     {
-      "id": "T-M6-032",
+      "id": "T-M6-033",
       "milestone": "M6",
       "source": "DroppyCode/App/AppModel.swift",
       "target": "src/Marrow.App/AppModel.cs",
@@ -8416,7 +8579,7 @@
       "notes": ""
     },
     {
-      "id": "T-M6-033",
+      "id": "T-M6-034",
       "milestone": "M6",
       "source": "DroppyCode/App/AppModel.swift",
       "target": "src/Marrow.App/AppModel.cs",
@@ -8442,7 +8605,7 @@
       "notes": ""
     },
     {
-      "id": "T-M6-034",
+      "id": "T-M6-035",
       "milestone": "M6",
       "source": "DroppyCode/App/AppModel.swift",
       "target": "src/Marrow.App/AppModel.cs",
@@ -8453,43 +8616,17 @@
         "PR-LAUNCH-078",
         "PR-LAUNCH-081",
         "PR-LAUNCH-082",
+        "PR-LAUNCH-085",
         "PR-SIDEBAR-027",
         "PR-SIDEBAR-059",
         "PR-SIDEBAR-060",
-        "PR-SIDEBAR-080",
-        "PR-SIDEBAR-082"
+        "PR-SIDEBAR-080"
       ],
       "ui": [],
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "DONE",
-      "assignee": null,
-      "notes": ""
-    },
-    {
-      "id": "T-M6-035",
-      "milestone": "M6",
-      "source": "DroppyCode/App/AppModel.swift",
-      "target": "src/Marrow.App/AppModel.cs",
-      "risk": "STANDARD",
-      "requirements": [
-        "PR-SIDEBAR-085",
-        "PR-SIDEBAR-090",
-        "PR-SIDEBAR-092",
-        "PR-SIDEBAR-112",
-        "PR-SIDEBAR-131",
-        "PR-STORE-015",
-        "PR-STORE-016",
-        "PR-STORE-029",
-        "PR-STORE-034",
-        "PR-STORE-051"
-      ],
-      "ui": [],
-      "quarantined": [],
-      "needs_desktop": false,
-      "kind": "behaviour",
-      "status": "DONE",
+      "status": "TODO",
       "assignee": null,
       "notes": ""
     },
@@ -8500,22 +8637,22 @@
       "target": "src/Marrow.App/AppModel.cs",
       "risk": "STANDARD",
       "requirements": [
-        "PR-STORE-072",
-        "PR-STORE-085",
-        "PR-STORE-101",
-        "PR-STORE-102",
-        "PR-STORE-171",
-        "PR-TERM-055",
-        "PR-TERM-057",
-        "PR-TERM-060",
-        "PR-TERM-061",
-        "PR-TERM-065"
+        "PR-SIDEBAR-082",
+        "PR-SIDEBAR-085",
+        "PR-SIDEBAR-090",
+        "PR-SIDEBAR-092",
+        "PR-SIDEBAR-112",
+        "PR-SIDEBAR-131",
+        "PR-STORE-015",
+        "PR-STORE-016",
+        "PR-STORE-029",
+        "PR-STORE-034"
       ],
       "ui": [],
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "DONE",
+      "status": "TODO",
       "assignee": null,
       "notes": ""
     },
@@ -8526,6 +8663,33 @@
       "target": "src/Marrow.App/AppModel.cs",
       "risk": "STANDARD",
       "requirements": [
+        "PR-STORE-051",
+        "PR-STORE-072",
+        "PR-STORE-085",
+        "PR-STORE-101",
+        "PR-STORE-102",
+        "PR-STORE-171",
+        "PR-TERM-055",
+        "PR-TERM-057",
+        "PR-TERM-060",
+        "PR-TERM-061"
+      ],
+      "ui": [],
+      "quarantined": [],
+      "needs_desktop": false,
+      "kind": "behaviour",
+      "status": "DONE",
+      "assignee": null,
+      "notes": ""
+    },
+    {
+      "id": "T-M6-038",
+      "milestone": "M6",
+      "source": "DroppyCode/App/AppModel.swift",
+      "target": "src/Marrow.App/AppModel.cs",
+      "risk": "STANDARD",
+      "requirements": [
+        "PR-TERM-065",
         "PR-TERM-066",
         "PR-TERM-067"
       ],
@@ -8538,7 +8702,7 @@
       "notes": ""
     },
     {
-      "id": "T-M6-038",
+      "id": "T-M6-039",
       "milestone": "M6",
       "source": "DroppyCode/App/AppModel.swift",
       "target": "src/Marrow.App/AppModel.cs",
@@ -8556,7 +8720,7 @@
       "notes": ""
     },
     {
-      "id": "T-M6-039",
+      "id": "T-M6-040",
       "milestone": "M6",
       "source": "DroppyCode/App/AppSettings.swift",
       "target": "src/Marrow.App/AppSettings.cs",
@@ -8582,7 +8746,7 @@
       "notes": ""
     },
     {
-      "id": "T-M6-040",
+      "id": "T-M6-041",
       "milestone": "M6",
       "source": "DroppyCode/App/AppSettings.swift",
       "target": "src/Marrow.App/AppSettings.cs",
@@ -8608,7 +8772,7 @@
       "notes": ""
     },
     {
-      "id": "T-M6-041",
+      "id": "T-M6-042",
       "milestone": "M6",
       "source": "DroppyCode/App/AppSettings.swift",
       "target": "src/Marrow.App/AppSettings.cs",
@@ -8634,7 +8798,7 @@
       "notes": ""
     },
     {
-      "id": "T-M6-042",
+      "id": "T-M6-043",
       "milestone": "M6",
       "source": "DroppyCode/App/AppSettings.swift",
       "target": "src/Marrow.App/AppSettings.cs",
@@ -8660,7 +8824,7 @@
       "notes": ""
     },
     {
-      "id": "T-M6-043",
+      "id": "T-M6-044",
       "milestone": "M6",
       "source": "DroppyCode/App/AppSettings.swift",
       "target": "src/Marrow.App/AppSettings.cs",
@@ -8686,7 +8850,7 @@
       "notes": ""
     },
     {
-      "id": "T-M6-044",
+      "id": "T-M6-045",
       "milestone": "M6",
       "source": "DroppyCode/App/AppSettings.swift",
       "target": "src/Marrow.App/AppSettings.cs",
@@ -8712,7 +8876,7 @@
       "notes": ""
     },
     {
-      "id": "T-M6-045",
+      "id": "T-M6-046",
       "milestone": "M6",
       "source": "DroppyCode/App/AppSettings.swift",
       "target": "src/Marrow.App/AppSettings.cs",
@@ -8738,7 +8902,7 @@
       "notes": ""
     },
     {
-      "id": "T-M6-046",
+      "id": "T-M6-047",
       "milestone": "M6",
       "source": "DroppyCode/App/AppSettings.swift",
       "target": "src/Marrow.App/AppSettings.cs",
@@ -8764,7 +8928,7 @@
       "notes": ""
     },
     {
-      "id": "T-M6-047",
+      "id": "T-M6-048",
       "milestone": "M6",
       "source": "DroppyCode/App/AppSettings.swift",
       "target": "src/Marrow.App/AppSettings.cs",
@@ -8790,7 +8954,7 @@
       "notes": ""
     },
     {
-      "id": "T-M6-048",
+      "id": "T-M6-049",
       "milestone": "M6",
       "source": "DroppyCode/App/AppSettings.swift",
       "target": "src/Marrow.App/AppSettings.cs",
@@ -8816,7 +8980,7 @@
       "notes": ""
     },
     {
-      "id": "T-M6-049",
+      "id": "T-M6-050",
       "milestone": "M6",
       "source": "DroppyCode/App/AppSettings.swift",
       "target": "src/Marrow.App/AppSettings.cs",
@@ -8837,7 +9001,7 @@
       "notes": ""
     },
     {
-      "id": "T-M6-050",
+      "id": "T-M6-051",
       "milestone": "M6",
       "source": "DroppyCode/App/DroppyCodeApp.swift",
       "target": "src/Marrow.App/DroppyCodeApp.cs",
@@ -8858,12 +9022,12 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
     {
-      "id": "T-M6-051",
+      "id": "T-M6-052",
       "milestone": "M6",
       "source": "DroppyCode/App/DroppyCodeApp.swift",
       "target": "src/Marrow.App/DroppyCodeApp.cs",
@@ -8882,7 +9046,7 @@
       "notes": ""
     },
     {
-      "id": "T-M6-052",
+      "id": "T-M6-053",
       "milestone": "M6",
       "source": "DroppyCode/App/DroppyCodeApp.swift",
       "target": "src/Marrow.App/DroppyCodeApp.cs",
@@ -8899,7 +9063,7 @@
       "notes": ""
     },
     {
-      "id": "T-M6-053",
+      "id": "T-M6-054",
       "milestone": "M6",
       "source": "DroppyCode/App/HydraCookbook+Resolve.swift",
       "target": "src/Marrow.App/HydraCookbook+Resolve.cs",
@@ -8917,7 +9081,7 @@
       "notes": ""
     },
     {
-      "id": "T-M6-054",
+      "id": "T-M6-055",
       "milestone": "M6",
       "source": "DroppyCode/App/Runtime/AutoContinue.swift",
       "target": "src/Marrow.App/Runtime/AutoContinue.cs",
@@ -8943,7 +9107,7 @@
       "notes": ""
     },
     {
-      "id": "T-M6-055",
+      "id": "T-M6-056",
       "milestone": "M6",
       "source": "DroppyCode/App/Runtime/AutoContinue.swift",
       "target": "src/Marrow.App/Runtime/AutoContinue.cs",
@@ -8962,7 +9126,7 @@
       "notes": ""
     },
     {
-      "id": "T-M6-056",
+      "id": "T-M6-057",
       "milestone": "M6",
       "source": "DroppyCode/App/Runtime/AutoContinue.swift",
       "target": "src/Marrow.App/Runtime/AutoContinue.cs",
@@ -8980,7 +9144,7 @@
       "notes": ""
     },
     {
-      "id": "T-M6-057",
+      "id": "T-M6-058",
       "milestone": "M6",
       "source": "DroppyCode/App/Runtime/ThreadRuntime.swift",
       "target": "src/Marrow.App/Runtime/ThreadRuntime.cs",
@@ -9006,7 +9170,7 @@
       "notes": ""
     },
     {
-      "id": "T-M6-058",
+      "id": "T-M6-059",
       "milestone": "M6",
       "source": "DroppyCode/App/Runtime/ThreadRuntime.swift",
       "target": "src/Marrow.App/Runtime/ThreadRuntime.cs",
@@ -9032,7 +9196,7 @@
       "notes": ""
     },
     {
-      "id": "T-M6-059",
+      "id": "T-M6-060",
       "milestone": "M6",
       "source": "DroppyCode/App/Runtime/ThreadRuntime.swift",
       "target": "src/Marrow.App/Runtime/ThreadRuntime.cs",
@@ -9058,7 +9222,7 @@
       "notes": ""
     },
     {
-      "id": "T-M6-060",
+      "id": "T-M6-061",
       "milestone": "M6",
       "source": "DroppyCode/App/Runtime/ThreadRuntime.swift",
       "target": "src/Marrow.App/Runtime/ThreadRuntime.cs",
@@ -9084,7 +9248,7 @@
       "notes": ""
     },
     {
-      "id": "T-M6-061",
+      "id": "T-M6-062",
       "milestone": "M6",
       "source": "DroppyCode/App/Runtime/ThreadRuntime.swift",
       "target": "src/Marrow.App/Runtime/ThreadRuntime.cs",
@@ -9110,7 +9274,7 @@
       "notes": ""
     },
     {
-      "id": "T-M6-062",
+      "id": "T-M6-063",
       "milestone": "M6",
       "source": "DroppyCode/App/Runtime/ThreadRuntime.swift",
       "target": "src/Marrow.App/Runtime/ThreadRuntime.cs",
@@ -9136,7 +9300,7 @@
       "notes": ""
     },
     {
-      "id": "T-M6-063",
+      "id": "T-M6-064",
       "milestone": "M6",
       "source": "DroppyCode/App/Runtime/ThreadRuntime.swift",
       "target": "src/Marrow.App/Runtime/ThreadRuntime.cs",
@@ -9162,7 +9326,7 @@
       "notes": ""
     },
     {
-      "id": "T-M6-064",
+      "id": "T-M6-065",
       "milestone": "M6",
       "source": "DroppyCode/App/Runtime/ThreadRuntime.swift",
       "target": "src/Marrow.App/Runtime/ThreadRuntime.cs",
@@ -9188,7 +9352,7 @@
       "notes": ""
     },
     {
-      "id": "T-M6-065",
+      "id": "T-M6-066",
       "milestone": "M6",
       "source": "DroppyCode/App/Runtime/ThreadRuntime.swift",
       "target": "src/Marrow.App/Runtime/ThreadRuntime.cs",
@@ -9209,12 +9373,12 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "DONE",
+      "status": "TODO",
       "assignee": null,
       "notes": ""
     },
     {
-      "id": "T-M6-066",
+      "id": "T-M6-067",
       "milestone": "M6",
       "source": "DroppyCode/App/Runtime/ThreadRuntime.swift",
       "target": "src/Marrow.App/Runtime/ThreadRuntime.cs",
@@ -9240,7 +9404,7 @@
       "notes": ""
     },
     {
-      "id": "T-M6-067",
+      "id": "T-M6-068",
       "milestone": "M6",
       "source": "DroppyCode/App/Runtime/ThreadRuntime.swift",
       "target": "src/Marrow.App/Runtime/ThreadRuntime.cs",
@@ -9266,7 +9430,7 @@
       "notes": ""
     },
     {
-      "id": "T-M6-068",
+      "id": "T-M6-069",
       "milestone": "M6",
       "source": "DroppyCode/App/Runtime/ThreadRuntime.swift",
       "target": "src/Marrow.App/Runtime/ThreadRuntime.cs",
@@ -9287,12 +9451,12 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "DONE",
+      "status": "TODO",
       "assignee": null,
       "notes": ""
     },
     {
-      "id": "T-M6-069",
+      "id": "T-M6-070",
       "milestone": "M6",
       "source": "DroppyCode/App/Runtime/ThreadRuntime.swift",
       "target": "src/Marrow.App/Runtime/ThreadRuntime.cs",
@@ -9318,7 +9482,7 @@
       "notes": ""
     },
     {
-      "id": "T-M6-070",
+      "id": "T-M6-071",
       "milestone": "M6",
       "source": "DroppyCode/App/Runtime/ThreadRuntime.swift",
       "target": "src/Marrow.App/Runtime/ThreadRuntime.cs",
@@ -9344,7 +9508,7 @@
       "notes": ""
     },
     {
-      "id": "T-M6-071",
+      "id": "T-M6-072",
       "milestone": "M6",
       "source": "DroppyCode/App/Runtime/ThreadRuntime.swift",
       "target": "src/Marrow.App/Runtime/ThreadRuntime.cs",
@@ -9370,7 +9534,7 @@
       "notes": ""
     },
     {
-      "id": "T-M6-072",
+      "id": "T-M6-073",
       "milestone": "M6",
       "source": "DroppyCode/App/Runtime/ThreadRuntime.swift",
       "target": "src/Marrow.App/Runtime/ThreadRuntime.cs",
@@ -9396,7 +9560,7 @@
       "notes": ""
     },
     {
-      "id": "T-M6-073",
+      "id": "T-M6-074",
       "milestone": "M6",
       "source": "DroppyCode/App/Runtime/ThreadRuntime.swift",
       "target": "src/Marrow.App/Runtime/ThreadRuntime.cs",
@@ -9417,12 +9581,12 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "DONE",
+      "status": "TODO",
       "assignee": null,
       "notes": ""
     },
     {
-      "id": "T-M6-074",
+      "id": "T-M6-075",
       "milestone": "M6",
       "source": "DroppyCode/App/Runtime/ThreadRuntime.swift",
       "target": "src/Marrow.App/Runtime/ThreadRuntime.cs",
@@ -9448,7 +9612,7 @@
       "notes": ""
     },
     {
-      "id": "T-M6-075",
+      "id": "T-M6-076",
       "milestone": "M6",
       "source": "DroppyCode/App/Runtime/ThreadRuntime.swift",
       "target": "src/Marrow.App/Runtime/ThreadRuntime.cs",
@@ -9474,7 +9638,7 @@
       "notes": ""
     },
     {
-      "id": "T-M6-076",
+      "id": "T-M6-077",
       "milestone": "M6",
       "source": "DroppyCode/App/Runtime/ThreadRuntime.swift",
       "target": "src/Marrow.App/Runtime/ThreadRuntime.cs",
@@ -9500,7 +9664,7 @@
       "notes": ""
     },
     {
-      "id": "T-M6-077",
+      "id": "T-M6-078",
       "milestone": "M6",
       "source": "DroppyCode/App/Runtime/ThreadRuntime.swift",
       "target": "src/Marrow.App/Runtime/ThreadRuntime.cs",
@@ -9526,7 +9690,7 @@
       "notes": ""
     },
     {
-      "id": "T-M6-078",
+      "id": "T-M6-079",
       "milestone": "M6",
       "source": "DroppyCode/App/Runtime/ThreadRuntime.swift",
       "target": "src/Marrow.App/Runtime/ThreadRuntime.cs",
@@ -9552,7 +9716,7 @@
       "notes": ""
     },
     {
-      "id": "T-M6-079",
+      "id": "T-M6-080",
       "milestone": "M6",
       "source": "DroppyCode/App/Runtime/ThreadRuntime.swift",
       "target": "src/Marrow.App/Runtime/ThreadRuntime.cs",
@@ -9578,7 +9742,7 @@
       "notes": ""
     },
     {
-      "id": "T-M6-080",
+      "id": "T-M6-081",
       "milestone": "M6",
       "source": "DroppyCode/App/Runtime/ThreadRuntime.swift",
       "target": "src/Marrow.App/Runtime/ThreadRuntime.cs",
@@ -9604,7 +9768,7 @@
       "notes": ""
     },
     {
-      "id": "T-M6-081",
+      "id": "T-M6-082",
       "milestone": "M6",
       "source": "DroppyCode/App/Runtime/ThreadRuntime.swift",
       "target": "src/Marrow.App/Runtime/ThreadRuntime.cs",
@@ -9625,12 +9789,12 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "DONE",
+      "status": "TODO",
       "assignee": null,
       "notes": ""
     },
     {
-      "id": "T-M6-082",
+      "id": "T-M6-083",
       "milestone": "M6",
       "source": "DroppyCode/App/Runtime/ThreadRuntime.swift",
       "target": "src/Marrow.App/Runtime/ThreadRuntime.cs",
@@ -9642,26 +9806,28 @@
         "PR-RUNTIME-260",
         "PR-RUNTIME-261",
         "PR-RUNTIME-262",
+        "PR-RUNTIME-265",
+        "PR-RUNTIME-266",
         "PR-STORE-028",
-        "PR-STORE-052",
-        "PR-TERM-020",
-        "PR-TERM-030"
+        "PR-STORE-052"
       ],
       "ui": [],
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "DONE",
+      "status": "TODO",
       "assignee": null,
       "notes": ""
     },
     {
-      "id": "T-M6-083",
+      "id": "T-M6-084",
       "milestone": "M6",
       "source": "DroppyCode/App/Runtime/ThreadRuntime.swift",
       "target": "src/Marrow.App/Runtime/ThreadRuntime.cs",
       "risk": "HIGH",
       "requirements": [
+        "PR-TERM-020",
+        "PR-TERM-030",
         "PR-TERM-099",
         "PR-USAGE-082"
       ],
@@ -9674,7 +9840,7 @@
       "notes": ""
     },
     {
-      "id": "T-M6-084",
+      "id": "T-M6-085",
       "milestone": "M6",
       "source": "DroppyCode/App/Runtime/ThreadRuntime.swift",
       "target": "src/Marrow.App/Runtime/ThreadRuntime.cs",
@@ -9700,7 +9866,7 @@
       "notes": ""
     },
     {
-      "id": "T-M6-085",
+      "id": "T-M6-086",
       "milestone": "M6",
       "source": "DroppyCode/App/Runtime/ThreadRuntime.swift",
       "target": "src/Marrow.App/Runtime/ThreadRuntime.cs",
@@ -9726,7 +9892,7 @@
       "notes": ""
     },
     {
-      "id": "T-M6-086",
+      "id": "T-M6-087",
       "milestone": "M6",
       "source": "DroppyCode/App/Runtime/ThreadRuntime.swift",
       "target": "src/Marrow.App/Runtime/ThreadRuntime.cs",
@@ -9739,17 +9905,37 @@
         "UI-RUNTIME-035",
         "UI-RUNTIME-036",
         "UI-RUNTIME-037",
-        "UI-RUNTIME-038"
+        "UI-RUNTIME-038",
+        "UI-RUNTIME-039",
+        "UI-RUNTIME-040",
+        "UI-RUNTIME-041"
       ],
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "DONE",
+      "status": "TODO",
       "assignee": null,
       "notes": ""
     },
     {
-      "id": "T-M6-087",
+      "id": "T-M6-088",
+      "milestone": "M6",
+      "source": "DroppyCode/App/Runtime/ThreadRuntime.swift",
+      "target": "src/Marrow.App/Runtime/ThreadRuntime.cs",
+      "risk": "HIGH",
+      "requirements": [],
+      "ui": [
+        "UI-RUNTIME-042"
+      ],
+      "quarantined": [],
+      "needs_desktop": false,
+      "kind": "ui",
+      "status": "TODO",
+      "assignee": null,
+      "notes": ""
+    },
+    {
+      "id": "T-M6-089",
       "milestone": "M6",
       "source": "DroppyCode/App/Window/ThreadWindow.swift",
       "target": "src/Marrow.App/Window/ThreadWindow.cs",
@@ -9770,7 +9956,7 @@
       "notes": ""
     },
     {
-      "id": "T-M6-088",
+      "id": "T-M6-090",
       "milestone": "M6",
       "source": "DroppyCode/App/Window/WindowManager.swift",
       "target": "src/Marrow.App/Window/WindowManager.cs",
@@ -9796,7 +9982,7 @@
       "notes": ""
     },
     {
-      "id": "T-M6-089",
+      "id": "T-M6-091",
       "milestone": "M6",
       "source": "DroppyCode/App/Window/WindowManager.swift",
       "target": "src/Marrow.App/Window/WindowManager.cs",
@@ -9822,7 +10008,7 @@
       "notes": ""
     },
     {
-      "id": "T-M6-090",
+      "id": "T-M6-092",
       "milestone": "M6",
       "source": "DroppyCode/App/Window/WindowManager.swift",
       "target": "src/Marrow.App/Window/WindowManager.cs",
@@ -9837,12 +10023,12 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
     {
-      "id": "T-M6-091",
+      "id": "T-M6-093",
       "milestone": "M6",
       "source": "DroppyCode/App/Window/WindowManager.swift",
       "target": "src/Marrow.App/Window/WindowManager.cs",
@@ -9859,13 +10045,12 @@
       "notes": ""
     },
     {
-      "id": "T-M6-092",
+      "id": "T-M6-094",
       "milestone": "M6",
       "source": "misc",
       "target": null,
       "risk": "STANDARD",
       "requirements": [
-        "PR-COMPOSER-160",
         "PR-GIT-051",
         "PR-HYDRA-071"
       ],
@@ -9892,7 +10077,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -9909,7 +10094,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -10255,7 +10440,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -10276,7 +10461,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -10597,7 +10782,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -12444,7 +12629,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -12467,7 +12652,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -12735,7 +12920,6 @@
         "PR-WIN-084",
         "PR-WIN-085",
         "PR-WIN-086",
-        "PR-WIN-087",
         "PR-WIN-088"
       ],
       "ui": [],
@@ -12783,7 +12967,6 @@
         "UI-WIN-066",
         "UI-WIN-067",
         "UI-WIN-068",
-        "UI-WIN-069",
         "UI-WIN-070",
         "UI-WIN-071",
         "UI-WIN-072",
@@ -12887,7 +13070,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -12965,6 +13148,23 @@
     {
       "id": "T-M7-134",
       "milestone": "M7",
+      "source": "DroppyCode/App/Views/Settings/FloatingGuidePanel.swift",
+      "target": "src/Marrow.App/Views/Settings/FloatingGuidePanel.cs",
+      "risk": "STANDARD",
+      "requirements": [
+        "PR-MCP-216"
+      ],
+      "ui": [],
+      "quarantined": [],
+      "needs_desktop": false,
+      "kind": "behaviour",
+      "status": "DONE",
+      "assignee": null,
+      "notes": ""
+    },
+    {
+      "id": "T-M7-135",
+      "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/HydraCookbookPanel.swift",
       "target": "src/Marrow.App/Views/Settings/HydraCookbookPanel.cs",
       "risk": "STANDARD",
@@ -12981,7 +13181,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-135",
+      "id": "T-M7-136",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/HydraCookbookPanel.swift",
       "target": "src/Marrow.App/Views/Settings/HydraCookbookPanel.cs",
@@ -12998,7 +13198,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-136",
+      "id": "T-M7-137",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/HydraSettingsPage.swift",
       "target": "src/Marrow.App/Views/Settings/HydraSettingsPage.cs",
@@ -13024,7 +13224,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-137",
+      "id": "T-M7-138",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/HydraSettingsPage.swift",
       "target": "src/Marrow.App/Views/Settings/HydraSettingsPage.cs",
@@ -13050,7 +13250,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-138",
+      "id": "T-M7-139",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/HydraSettingsPage.swift",
       "target": "src/Marrow.App/Views/Settings/HydraSettingsPage.cs",
@@ -13076,7 +13276,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-139",
+      "id": "T-M7-140",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/HydraSettingsPage.swift",
       "target": "src/Marrow.App/Views/Settings/HydraSettingsPage.cs",
@@ -13093,7 +13293,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-140",
+      "id": "T-M7-141",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/HydraSettingsPage.swift",
       "target": "src/Marrow.App/Views/Settings/HydraSettingsPage.cs",
@@ -13117,7 +13317,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-141",
+      "id": "T-M7-142",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/MCPKeyPanel.swift",
       "target": "src/Marrow.App/Views/Settings/MCPKeyPanel.cs",
@@ -13125,7 +13325,6 @@
       "requirements": [
         "PR-MCP-214",
         "PR-MCP-215",
-        "PR-MCP-216",
         "PR-MCP-217",
         "PR-MCP-218",
         "PR-MCP-219"
@@ -13139,7 +13338,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-142",
+      "id": "T-M7-143",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/MCPKeyPanel.swift",
       "target": "src/Marrow.App/Views/Settings/MCPKeyPanel.cs",
@@ -13163,7 +13362,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-143",
+      "id": "T-M7-144",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/MCPSettingsPage.swift",
       "target": "src/Marrow.App/Views/Settings/MCPSettingsPage.cs",
@@ -13189,7 +13388,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-144",
+      "id": "T-M7-145",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/MCPSettingsPage.swift",
       "target": "src/Marrow.App/Views/Settings/MCPSettingsPage.cs",
@@ -13215,7 +13414,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-145",
+      "id": "T-M7-146",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/MCPSettingsPage.swift",
       "target": "src/Marrow.App/Views/Settings/MCPSettingsPage.cs",
@@ -13232,7 +13431,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-146",
+      "id": "T-M7-147",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/MCPSettingsPage.swift",
       "target": "src/Marrow.App/Views/Settings/MCPSettingsPage.cs",
@@ -13258,7 +13457,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-147",
+      "id": "T-M7-148",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/MCPSettingsPage.swift",
       "target": "src/Marrow.App/Views/Settings/MCPSettingsPage.cs",
@@ -13284,7 +13483,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-148",
+      "id": "T-M7-149",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/MCPSettingsPage.swift",
       "target": "src/Marrow.App/Views/Settings/MCPSettingsPage.cs",
@@ -13310,7 +13509,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-149",
+      "id": "T-M7-150",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/MCPSettingsPage.swift",
       "target": "src/Marrow.App/Views/Settings/MCPSettingsPage.cs",
@@ -13336,7 +13535,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-150",
+      "id": "T-M7-151",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/MCPSettingsPage.swift",
       "target": "src/Marrow.App/Views/Settings/MCPSettingsPage.cs",
@@ -13362,7 +13561,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-151",
+      "id": "T-M7-152",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/MCPSettingsPage.swift",
       "target": "src/Marrow.App/Views/Settings/MCPSettingsPage.cs",
@@ -13388,7 +13587,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-152",
+      "id": "T-M7-153",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/MCPSettingsPage.swift",
       "target": "src/Marrow.App/Views/Settings/MCPSettingsPage.cs",
@@ -13414,7 +13613,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-153",
+      "id": "T-M7-154",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/MCPSettingsPage.swift",
       "target": "src/Marrow.App/Views/Settings/MCPSettingsPage.cs",
@@ -13435,7 +13634,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-154",
+      "id": "T-M7-155",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/MCPSetupPanel.swift",
       "target": "src/Marrow.App/Views/Settings/MCPSetupPanel.cs",
@@ -13455,7 +13654,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-155",
+      "id": "T-M7-156",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/MCPSetupPanel.swift",
       "target": "src/Marrow.App/Views/Settings/MCPSetupPanel.cs",
@@ -13481,7 +13680,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-156",
+      "id": "T-M7-157",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/MCPSetupPanel.swift",
       "target": "src/Marrow.App/Views/Settings/MCPSetupPanel.cs",
@@ -13498,7 +13697,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-157",
+      "id": "T-M7-158",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift",
       "target": "src/Marrow.App/Views/Settings/ModelsSettingsPage.cs",
@@ -13524,7 +13723,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-158",
+      "id": "T-M7-159",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift",
       "target": "src/Marrow.App/Views/Settings/ModelsSettingsPage.cs",
@@ -13547,7 +13746,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-159",
+      "id": "T-M7-160",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift",
       "target": "src/Marrow.App/Views/Settings/ModelsSettingsPage.cs",
@@ -13570,7 +13769,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-160",
+      "id": "T-M7-161",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/SettingsScrollTracker.swift",
       "target": "src/Marrow.App/Views/Settings/SettingsScrollTracker.cs",
@@ -13587,7 +13786,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-161",
+      "id": "T-M7-162",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/SettingsView.swift",
       "target": "src/Marrow.App/Views/Settings/SettingsView.cs",
@@ -13613,7 +13812,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-162",
+      "id": "T-M7-163",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/SettingsView.swift",
       "target": "src/Marrow.App/Views/Settings/SettingsView.cs",
@@ -13639,7 +13838,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-163",
+      "id": "T-M7-164",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/SettingsView.swift",
       "target": "src/Marrow.App/Views/Settings/SettingsView.cs",
@@ -13665,7 +13864,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-164",
+      "id": "T-M7-165",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/SettingsView.swift",
       "target": "src/Marrow.App/Views/Settings/SettingsView.cs",
@@ -13691,7 +13890,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-165",
+      "id": "T-M7-166",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/SettingsView.swift",
       "target": "src/Marrow.App/Views/Settings/SettingsView.cs",
@@ -13717,7 +13916,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-166",
+      "id": "T-M7-167",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/SettingsView.swift",
       "target": "src/Marrow.App/Views/Settings/SettingsView.cs",
@@ -13743,7 +13942,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-167",
+      "id": "T-M7-168",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/SettingsView.swift",
       "target": "src/Marrow.App/Views/Settings/SettingsView.cs",
@@ -13769,7 +13968,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-168",
+      "id": "T-M7-169",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/SettingsView.swift",
       "target": "src/Marrow.App/Views/Settings/SettingsView.cs",
@@ -13795,7 +13994,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-169",
+      "id": "T-M7-170",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/SettingsView.swift",
       "target": "src/Marrow.App/Views/Settings/SettingsView.cs",
@@ -13821,7 +14020,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-170",
+      "id": "T-M7-171",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/SettingsView.swift",
       "target": "src/Marrow.App/Views/Settings/SettingsView.cs",
@@ -13844,7 +14043,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-171",
+      "id": "T-M7-172",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/SettingsView.swift",
       "target": "src/Marrow.App/Views/Settings/SettingsView.cs",
@@ -13870,7 +14069,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-172",
+      "id": "T-M7-173",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/SettingsView.swift",
       "target": "src/Marrow.App/Views/Settings/SettingsView.cs",
@@ -13896,7 +14095,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-173",
+      "id": "T-M7-174",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/SettingsView.swift",
       "target": "src/Marrow.App/Views/Settings/SettingsView.cs",
@@ -13922,7 +14121,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-174",
+      "id": "T-M7-175",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/SettingsView.swift",
       "target": "src/Marrow.App/Views/Settings/SettingsView.cs",
@@ -13948,7 +14147,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-175",
+      "id": "T-M7-176",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/SettingsView.swift",
       "target": "src/Marrow.App/Views/Settings/SettingsView.cs",
@@ -13974,7 +14173,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-176",
+      "id": "T-M7-177",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/SettingsView.swift",
       "target": "src/Marrow.App/Views/Settings/SettingsView.cs",
@@ -14000,7 +14199,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-177",
+      "id": "T-M7-178",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/SettingsView.swift",
       "target": "src/Marrow.App/Views/Settings/SettingsView.cs",
@@ -14026,7 +14225,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-178",
+      "id": "T-M7-179",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/SettingsView.swift",
       "target": "src/Marrow.App/Views/Settings/SettingsView.cs",
@@ -14052,7 +14251,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-179",
+      "id": "T-M7-180",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/SettingsView.swift",
       "target": "src/Marrow.App/Views/Settings/SettingsView.cs",
@@ -14078,7 +14277,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-180",
+      "id": "T-M7-181",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/SettingsView.swift",
       "target": "src/Marrow.App/Views/Settings/SettingsView.cs",
@@ -14104,7 +14303,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-181",
+      "id": "T-M7-182",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/SettingsView.swift",
       "target": "src/Marrow.App/Views/Settings/SettingsView.cs",
@@ -14128,7 +14327,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-182",
+      "id": "T-M7-183",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/ShortcutsSettingsPage.swift",
       "target": "src/Marrow.App/Views/Settings/ShortcutsSettingsPage.cs",
@@ -14154,7 +14353,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-183",
+      "id": "T-M7-184",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/ShortcutsSettingsPage.swift",
       "target": "src/Marrow.App/Views/Settings/ShortcutsSettingsPage.cs",
@@ -14176,7 +14375,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-184",
+      "id": "T-M7-185",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/TokenActivitySection.swift",
       "target": "src/Marrow.App/Views/Settings/TokenActivitySection.cs",
@@ -14201,7 +14400,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-185",
+      "id": "T-M7-186",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/TokenActivitySection.swift",
       "target": "src/Marrow.App/Views/Settings/TokenActivitySection.cs",
@@ -14223,7 +14422,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-186",
+      "id": "T-M7-187",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/WallpaperCard.swift",
       "target": "src/Marrow.App/Views/Settings/WallpaperCard.cs",
@@ -14249,7 +14448,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-187",
+      "id": "T-M7-188",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/WallpaperCard.swift",
       "target": "src/Marrow.App/Views/Settings/WallpaperCard.cs",
@@ -14271,7 +14470,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-188",
+      "id": "T-M7-189",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/WallpaperCard.swift",
       "target": "src/Marrow.App/Views/Settings/WallpaperCard.cs",
@@ -14297,7 +14496,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-189",
+      "id": "T-M7-190",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Settings/WallpaperCard.swift",
       "target": "src/Marrow.App/Views/Settings/WallpaperCard.cs",
@@ -14319,7 +14518,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-190",
+      "id": "T-M7-191",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Sidebar/FloatingSidebarPanel.swift",
       "target": "src/Marrow.App/Views/Sidebar/FloatingSidebarPanel.cs",
@@ -14342,7 +14541,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-191",
+      "id": "T-M7-192",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Sidebar/FloatingSidebarPanel.swift",
       "target": "src/Marrow.App/Views/Sidebar/FloatingSidebarPanel.cs",
@@ -14363,7 +14562,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-192",
+      "id": "T-M7-193",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Sidebar/RowGlide.swift",
       "target": "src/Marrow.App/Views/Sidebar/RowGlide.cs",
@@ -14386,7 +14585,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-193",
+      "id": "T-M7-194",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Sidebar/RowGlide.swift",
       "target": "src/Marrow.App/Views/Sidebar/RowGlide.cs",
@@ -14404,7 +14603,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-194",
+      "id": "T-M7-195",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Sidebar/SidebarView.swift",
       "target": "src/Marrow.App/Views/Sidebar/SidebarView.cs",
@@ -14430,7 +14629,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-195",
+      "id": "T-M7-196",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Sidebar/SidebarView.swift",
       "target": "src/Marrow.App/Views/Sidebar/SidebarView.cs",
@@ -14456,7 +14655,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-196",
+      "id": "T-M7-197",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Sidebar/SidebarView.swift",
       "target": "src/Marrow.App/Views/Sidebar/SidebarView.cs",
@@ -14482,7 +14681,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-197",
+      "id": "T-M7-198",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Sidebar/SidebarView.swift",
       "target": "src/Marrow.App/Views/Sidebar/SidebarView.cs",
@@ -14508,7 +14707,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-198",
+      "id": "T-M7-199",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Sidebar/SidebarView.swift",
       "target": "src/Marrow.App/Views/Sidebar/SidebarView.cs",
@@ -14534,7 +14733,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-199",
+      "id": "T-M7-200",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Sidebar/SidebarView.swift",
       "target": "src/Marrow.App/Views/Sidebar/SidebarView.cs",
@@ -14560,7 +14759,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-200",
+      "id": "T-M7-201",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Sidebar/SidebarView.swift",
       "target": "src/Marrow.App/Views/Sidebar/SidebarView.cs",
@@ -14586,7 +14785,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-201",
+      "id": "T-M7-202",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Sidebar/SidebarView.swift",
       "target": "src/Marrow.App/Views/Sidebar/SidebarView.cs",
@@ -14612,7 +14811,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-202",
+      "id": "T-M7-203",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Sidebar/SidebarView.swift",
       "target": "src/Marrow.App/Views/Sidebar/SidebarView.cs",
@@ -14638,7 +14837,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-203",
+      "id": "T-M7-204",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Sidebar/SidebarView.swift",
       "target": "src/Marrow.App/Views/Sidebar/SidebarView.cs",
@@ -14664,7 +14863,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-204",
+      "id": "T-M7-205",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Sidebar/SidebarView.swift",
       "target": "src/Marrow.App/Views/Sidebar/SidebarView.cs",
@@ -14690,7 +14889,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-205",
+      "id": "T-M7-206",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Sidebar/SidebarView.swift",
       "target": "src/Marrow.App/Views/Sidebar/SidebarView.cs",
@@ -14716,7 +14915,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-206",
+      "id": "T-M7-207",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Sidebar/SidebarView.swift",
       "target": "src/Marrow.App/Views/Sidebar/SidebarView.cs",
@@ -14737,7 +14936,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-207",
+      "id": "T-M7-208",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Sidebar/SidebarView.swift",
       "target": "src/Marrow.App/Views/Sidebar/SidebarView.cs",
@@ -14763,7 +14962,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-208",
+      "id": "T-M7-209",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Sidebar/SidebarView.swift",
       "target": "src/Marrow.App/Views/Sidebar/SidebarView.cs",
@@ -14789,7 +14988,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-209",
+      "id": "T-M7-210",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Sidebar/SidebarView.swift",
       "target": "src/Marrow.App/Views/Sidebar/SidebarView.cs",
@@ -14815,7 +15014,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-210",
+      "id": "T-M7-211",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Sidebar/SidebarView.swift",
       "target": "src/Marrow.App/Views/Sidebar/SidebarView.cs",
@@ -14841,7 +15040,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-211",
+      "id": "T-M7-212",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Sidebar/SidebarView.swift",
       "target": "src/Marrow.App/Views/Sidebar/SidebarView.cs",
@@ -14862,7 +15061,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-212",
+      "id": "T-M7-213",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Terminal/TerminalFont.swift",
       "target": "src/Marrow.App/Views/Terminal/TerminalFont.cs",
@@ -14888,7 +15087,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-213",
+      "id": "T-M7-214",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Terminal/TerminalPanel.swift",
       "target": "src/Marrow.App/Views/Terminal/TerminalPanel.cs",
@@ -14914,7 +15113,7 @@
       "notes": ""
     },
     {
-      "id": "T-M7-214",
+      "id": "T-M7-215",
       "milestone": "M7",
       "source": "DroppyCode/App/Views/Terminal/TerminalPanel.swift",
       "target": "src/Marrow.App/Views/Terminal/TerminalPanel.cs",
@@ -14922,40 +15121,14 @@
       "requirements": [
         "PR-TERM-013",
         "PR-TERM-014",
-        "PR-TERM-015",
         "PR-TERM-016",
-        "PR-TERM-017",
-        "PR-TERM-018",
-        "PR-TERM-019",
         "PR-TERM-021",
         "PR-TERM-022",
-        "PR-TERM-023"
-      ],
-      "ui": [],
-      "quarantined": [],
-      "needs_desktop": false,
-      "kind": "behaviour",
-      "status": "TODO",
-      "assignee": null,
-      "notes": ""
-    },
-    {
-      "id": "T-M7-215",
-      "milestone": "M7",
-      "source": "DroppyCode/App/Views/Terminal/TerminalPanel.swift",
-      "target": "src/Marrow.App/Views/Terminal/TerminalPanel.cs",
-      "risk": "HIGH",
-      "requirements": [
+        "PR-TERM-023",
         "PR-TERM-024",
         "PR-TERM-025",
         "PR-TERM-026",
-        "PR-TERM-027",
-        "PR-TERM-028",
-        "PR-TERM-029",
-        "PR-TERM-031",
-        "PR-TERM-032",
-        "PR-TERM-033",
-        "PR-TERM-034"
+        "PR-TERM-027"
       ],
       "ui": [],
       "quarantined": [],
@@ -14972,6 +15145,12 @@
       "target": "src/Marrow.App/Views/Terminal/TerminalPanel.cs",
       "risk": "HIGH",
       "requirements": [
+        "PR-TERM-028",
+        "PR-TERM-029",
+        "PR-TERM-031",
+        "PR-TERM-032",
+        "PR-TERM-033",
+        "PR-TERM-034",
         "PR-TERM-035",
         "PR-TERM-036",
         "PR-TERM-116"
@@ -15253,7 +15432,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -15779,7 +15958,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-076",
+      "id": "T-M5-078",
       "milestone": "M5",
       "source": "DroppyCode/UI/Common/MCPGlyph.swift",
       "target": "src/Marrow.UI/Common/MCPGlyph.cs",
@@ -15796,7 +15975,7 @@
       "notes": ""
     },
     {
-      "id": "T-M5-077",
+      "id": "T-M5-079",
       "milestone": "M5",
       "source": "DroppyCode/UI/Chrome/InfoHoverButton.swift",
       "target": "src/Marrow.UI/Chrome/InfoHoverButton.cs",

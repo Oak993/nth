@@ -1,0 +1,100 @@
+{
+  "bundle_id": "R3-12",
+  "reader": "R3-12-reader",
+  "files": [
+    {
+      "path": "DroppyCode/App/Views/Terminal/TerminalPanel.swift",
+      "sha256": "dc8090eb0357eee1542baea809acfe7b7272c6b72c355c99cef728015a775c98",
+      "ranges_read": [[1, 160], [161, 318]],
+      "asset_inspection": null,
+      "purpose": "The thread's bottom terminal drawer: TerminalPanel (4-111) draws the 38-point tab row (a horizontally scrolling strip of TerminalTab chips, the plus 'New terminal' chip and the chevron.down 'Hide terminal' chip), then either the selected session's TerminalHost or the 'No shell open in this thread' empty state with a glass 'New shell' button, at the height dragHeight ?? model.settings.terminalHeight, on a top-rounded near-black/near-white sheet, and calls terminals.ensureTerminal on appear. An 8-point overlay strip at the top edge (TerminalResizeHandle, 113-131) resizes the drawer with a 140...760 clamp applied only during the drag and commits to settings on release. The same file keeps the AppKit bridge for the terminal itself: TerminalHost (188-251) re-parents the long-lived SwiftTerm view, re-applies appearance, hands first-responder focus once off the SwiftUI update, and installs a local keyDown monitor that closes the drawer on a bare Escape when the shell owns the foreground; TerminalHostContainer (253-318) parks autoresizing during a window live resize and syncs the terminal frame at most every 50 ms, then once at the end. At B3 the file no longer carries its own AppKit resize strip: TerminalResizeHandle became a SwiftUI View that configures the new shared DragHandle (DroppyCode/UI/Chrome/DragHandle.swift) instead of the B2 NSViewRepresentable plus TerminalResizeHandleView NSView.",
+      "key_symbols": [
+        "struct TerminalPanel: View (4-111)",
+        "@State private var dragOrigin: Double? (10)",
+        "@State private var dragHeight: Double? (13)",
+        "var body: some View (15-110)",
+        "private struct TerminalResizeHandle: View (114-131) - let onBegin: () -> Void (115), let onChange: (CGFloat) -> Void (118), let onEnd: () -> Void (119), var body = DragHandle(axis: .vertical, grip: DragHandleView.Grip(restLength: 12, shownLength: 28, thickness: 2.5), cursor: .resizeUpDown, onBegin: onBegin, onChange: { onChange($0.height) }, onEnd: onEnd) (121-130)",
+        "private struct TerminalTab: View (133-186) - session, isSelected, select, restart, close, @State isHovering (140)",
+        "struct TerminalHost: NSViewRepresentable (191-251)",
+        "final class TerminalHost.Coordinator { var keyMonitor: Any? } with deinit NSEvent.removeMonitor (199-205)",
+        "func makeCoordinator() -> Coordinator (207)",
+        "func makeNSView(context:) -> NSView (209-223)",
+        "func updateNSView(_:context:) (225-240)",
+        "private func attach(to:) (242-250)",
+        "final class TerminalHostContainer: NSView (257-318)",
+        "weak var hostedView: NSView? (259)",
+        "private var pendingSync: DispatchWorkItem? (261)",
+        "private var resizeObservers: [NSObjectProtocol] (263)",
+        "isolated deinit (266-269)",
+        "override func viewDidMoveToWindow() (271-287)",
+        "override func resizeSubviews(withOldSize:) (289-301)",
+        "private func finishResize() (305-310)",
+        "private func syncFrame() (312-317)"
+      ],
+      "calls_into": [
+        "AppModel via @Environment: model.terminals, model.settings.terminalHeight (5, 16, 80, 86, 88, 92)",
+        "TerminalStore: sessions(for:), selected(for:), selection[threadID] =, restart(_:), close(_:), open(threadID:directory:), ensureTerminal(threadID:directory:) (17-18, 27-29, 36, 72, 109)",
+        "ThreadRuntime: threadID, isTerminalVisible, isTerminalResizing, terminalWantsFocus (27, 46, 59, 86, 95, 232-237)",
+        "ShortcutStore.hint(for: .toggleTerminal) (52)",
+        "Chrome.iconFont, Chrome.secondaryText, Chrome.sheetCornerRadius; ButtonStyle .chip and .glass (39, 41, 49, 51, 70, 74, 103-104, 155, 164)",
+        "NEW at B3: DragHandle (NSViewRepresentable) and DragHandleView.Grip from DroppyCode/UI/Chrome/DragHandle.swift:18-30, 270-304 (122-129); axis .vertical makes DragHandleView.travel report CGSize(width: 0, height: point.y - pressOrigin.y) (DragHandle.swift:263)",
+        "TerminalSession: view, title, isRunning, applyAppearance(isDark:), foregroundJobIsTheShell(_:), view.process.shellPid (146, 149, 212, 218, 226, 243, 248)",
+        "KeyChord.allowedModifiers (216)",
+        "AppKit: NSEvent.addLocalMonitorForEvents(matching: .keyDown) / removeMonitor (203, 214), NSWindow.makeFirstResponder (238), NSWindow.willStartLiveResizeNotification / didEndLiveResizeNotification (278, 283), NotificationCenter (268, 273, 276), window.inLiveResize (291)",
+        "DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(50)) (300)"
+      ],
+      "state_owned": [
+        "TerminalPanel @State dragOrigin: Double? - the persisted height captured on press (10, 86, 88, 94)",
+        "TerminalPanel @State dragHeight: Double? - the live, clamped drag height; settings take it on release (13, 80, 89, 92-93)",
+        "TerminalTab @State isHovering (140, 179)",
+        "TerminalHost.Coordinator.keyMonitor (200)",
+        "TerminalHostContainer.hostedView (weak), pendingSync, resizeObservers (259-263)",
+        "At B3 the resize strip's own state (press origin, hover, dragging, grip/glow layers, tracking area) lives in DragHandleView (DragHandle.swift:63-69), no longer in this file"
+      ],
+      "side_effects": [
+        "Release of the resize strip writes model.settings.terminalHeight once (92), which persists to user defaults key terminalHeight",
+        "runtime.isTerminalResizing set true on press and false on release (86, 95)",
+        "runtime.isTerminalVisible = false from the chevron chip (46) and from Escape-at-prompt (59, 219)",
+        "terminals.ensureTerminal on appear can spawn a shell process (109)",
+        "Installs a process-local keyDown monitor per hosted session; returns nil to swallow the Escape it handles (214-221)",
+        "Moves keyboard focus into the terminal once via window.makeFirstResponder in a main-actor Task (235-239)",
+        "Registers and removes NotificationCenter observers for the window's live-resize start/end (271-287, 266-269)"
+      ],
+      "platform_assumptions": [
+        "AppKit y runs upward: TerminalResizeHandle forwards DragHandle's .vertical travel height, positive upward, which grows the drawer (116-118, 127)",
+        "NSCursor.resizeUpDown via a cursor rect in DragHandleView.resetCursorRects (125; DragHandle.swift:188-192)",
+        "keyCode 53 is Escape (215)",
+        "SwiftTerm LocalProcessTerminalView re-wraps on every frame change, which TerminalHostContainer coalesces (253-256)",
+        "NSWindow live-resize notifications and inLiveResize (278, 283, 291)",
+        "macOS Liquid Glass .buttonStyle(.glass) for 'New shell' (74)"
+      ],
+      "persisted_fields": [
+        "settings.terminalHeight (user defaults key terminalHeight, Double), written on resize release only (92)"
+      ],
+      "ui_elements": [
+        "Tab row HStack(spacing: 6), .padding(.horizontal, 10), .frame(height: 38) (20, 55-56)",
+        "Horizontal ScrollView without indicators holding HStack(spacing: 4) of TerminalTab (21-34)",
+        "Plus chip: Image(systemName: \"plus\"), .help(\"New terminal\"), accessibility \"New terminal\" (35-43)",
+        "Chevron chip: Image(systemName: \"chevron.down\"), .help(\"Hide terminal\" + ShortcutStore.hint(for: .toggleTerminal)), accessibility \"Hide terminal\" (45-53)",
+        "Hosted terminal with .padding(.leading, 12), .padding(.trailing, 6), .padding(.bottom, 6), keyed .id(selected.id) (59-63)",
+        "Empty state: Text(\"No shell open in this thread\") .font(.system(.body)) in Chrome.secondaryText, Button(\"New shell\") .buttonStyle(.glass) .controlSize(.small), VStack(spacing: 10) (67-77)",
+        "Resize strip overlay, .overlay(alignment: .top), .frame(height: 8) (84-99), now drawn by DragHandle with axis .vertical, grip rest 12 / shown 28 / thickness 2.5 (alpha default 0.6), cursor .resizeUpDown (122-129)",
+        "Sheet background UnevenRoundedRectangle(topLeadingRadius/topTrailingRadius: Chrome.sheetCornerRadius, .continuous) filled Color(white: 0.08) dark / Color(white: 0.985) light (101-108)",
+        "TerminalTab capsule: Image(systemName: \"terminal\") .font(.caption), title .lineLimit(1), restart Image(systemName: \"arrow.clockwise\") only when !isRunning with .help(\"Start a new shell in this tab\") and label \"Restart <title>\", close Image(systemName: \"xmark\") .help(\"Close terminal\") label \"Close <title>\" visible and hit-testable only on hover or selection; .font(.callout), padding 10/5, selected .primary on .primary.opacity(0.08) capsule; .opacity(0.55) when exited; tooltip \"<title> · the shell has exited\", accessibility \"<title>, the shell has exited\" (143-184)"
+      ],
+      "feature_notes": [
+        "B2->B3 (commit d70cff8fe 'refactor: audit cleanups'): the only change in this file is diff hunk B2 108-257 -> B3 108-132. B2 lines 1-110 are byte-identical at B3 1-110 (verified with diff --strip-trailing-cr); the blank B2 line 111 was deleted; B2 112-113 are B3 111-112; B2 114-256 (the NSViewRepresentable TerminalResizeHandle plus 'final class TerminalResizeHandleView: NSView', 143 lines) became B3 113-131; B2 258-443 are byte-identical at B3 133-318 (a uniform -125 shift). File length 443 -> 318.",
+        "SOURCE FACT: B3 TerminalResizeHandle (114-131) is now a SwiftUI View whose body is DragHandle(axis: .vertical, grip: DragHandleView.Grip(restLength: 12, shownLength: 28, thickness: 2.5), cursor: .resizeUpDown, onBegin: onBegin, onChange: { onChange($0.height) }, onEnd: onEnd). Unset DragHandle parameters take their defaults (DragHandle.swift:270-280): dragCursor nil, slop 0, isActive true, onDoubleClick nil; Grip defaults (DragHandle.swift:18-30): alpha 0.6, glowInset nil, refreshesHoverOnLayout false. The TerminalPanel callbacks at 86-96 (onBegin/onChange clamp 140...760/onEnd commit) are unchanged.",
+        "SOURCE FACT, unchanged behaviour carried by the shared view (compared line by line against B2 TerminalResizeHandleView at B2 114-256): grip geometry (centred bar 2.5 thick, corner radius thickness/2, 12 rest / 28 shown, opacity 0 / 0.6; DragHandle.swift:159-173), 0.18 s ease-out animation for hover/drag and disabled actions otherwise (DragHandle.swift:58-61, 160-166), labelColor resolved in the effective appearance and repainted on appearance change (DragHandle.swift:91-102), acceptsFirstMouse true and mouseDownCanMoveWindow false (183, 186), cursor rect over bounds (188-192), press records the window location, sets dragging, animates the grip and calls onBegin (198-208 with slop 0), drag reports point.y - pressOrigin.y (210-220, 263), a single tracking area with mouseEnteredAndExited/activeAlways/inVisibleRect (234-245), enter/exit set hover and animate (247-255), layout updates the grip with animations disabled (116-125, refreshesHoverOnLayout false). The added glow layer stays at opacity 0 because glowInset is nil (174-179).",
+        "SOURCE FACT, behaviour changed for the terminal strip (inherited from the B2 sidebar handle, B2 WindowChrome.swift SidebarResizeHandleView): (1) mouseUp (DragHandle.swift:222-232) now clears isDragging, calls onChange with the release travel, calls onEnd, and only then re-reads hover from the pointer's actual position (refreshHover, 142-151: window.mouseLocationOutsideOfEventStream converted to the view, bounds.contains) and animates the grip; B2 (B2 TerminalPanel.swift:232-237) called onChange, cleared isDragging, animated the grip from the tracked isHovering flag, then called onEnd. Upstream's comment at DragHandle.swift:229 says no exit arrives while the button is held, so after a drag that ends with the pointer off the strip B3 hides the grip at release where B2 kept it shown from a stale hover flag. The final-delta-before-onEnd order that PR-TERM-015 relies on is preserved. (2) mouseUp now returns early unless a drag is in progress (223). (3) viewDidMoveToWindow (127-138), which B2's terminal strip did not override, now reads the pointer's actual position when the strip enters a window and applies the grip without animation, so a drawer that appears under a resting pointer shows the grip at once; and if the strip leaves its window mid-drag, isDragging is cleared (no cursor pop, dragCursor is nil) and onEnd is not called. (4) isActive and hitTest(_:) (49-56, 194-196) exist but are always active for the terminal strip; clickCount == 2 calls onDoubleClick, which is nil here (200).",
+        "Everything from TerminalTab to the end of the file (TerminalTab, TerminalHost, TerminalHostContainer) is textually unchanged; every spec citation into B2 258-443 only needs its line numbers lowered by 125.",
+        "Port consequence: the terminal's resize strip and the sidebar edge are one shared control upstream at B3; units.json has no unit for DroppyCode/UI/Chrome/DragHandle.swift yet, and App.Views.Terminal.TerminalPanel should gain a dependency on it."
+      ],
+      "unresolved_questions": [
+        "UNRESOLVED: whether, at B2, AppKit would have delivered the missed mouseExited on the first mouse move after the release (which would bound the stale-hover window to 'until the pointer next moves'). Upstream's own comment (DragHandle.swift:229, and B2 WindowChrome.swift SidebarResizeHandleView.mouseUp) only states that no exit arrives while the button is held. The B3 behaviour itself (hover decided from the cursor at release) is a source fact either way.",
+        "UNRESOLVED: whether an Avalonia pointer capture released on PointerReleased raises PointerExited for a pointer that left the strip during the drag; the port must not rely on it and should read the pointer position at release instead, as B3 does.",
+        "Observation for the DragHandle.swift bundle, not this file: when the strip leaves its window mid-drag (for example the drawer toggled closed while the button is held), B3 clears the handle's drag state without calling onEnd, so TerminalPanel's onEnd never resets runtime.isTerminalResizing; whether that leaves isTerminalResizing true at runtime depends on ThreadRuntime/ChatView code outside this file."
+      ]
+    }
+  ]
+}

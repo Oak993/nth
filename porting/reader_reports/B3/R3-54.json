@@ -1,0 +1,47 @@
+{
+  "bundle_id": "R3-54",
+  "reader": "R3-54-reader",
+  "files": [
+    {
+      "path": "project.yml",
+      "sha256": "e4d8cda1f1db16006c4c62873f27895115140d282e694cbfe1d5780ad0753aba",
+      "ranges_read": [[1, 59]],
+      "asset_inspection": null,
+      "purpose": "project.yml is the XcodeGen project specification that generates DroppyCode.xcodeproj: it declares the app name (DroppyCode), the bundle-id prefix (iordv), the macOS 26.0 deployment target, the pinned SwiftTerm package dependency (exactVersion 1.20.0), shared build settings (MARKETING_VERSION, CURRENT_PROJECT_VERSION, ARCHS/EXCLUDED_ARCHS, SWIFT_VERSION, SWIFT_APPROACHABLE_CONCURRENCY, DEVELOPMENT_TEAM), and the single application target's sources (the DroppyCode synced folder plus LICENSE, THIRD_PARTY_NOTICES.md and TRADEMARK.md bundled as resources) and per-config overrides for Debug (\"Droppy Code Dev\", iordv.droppycode.dev) and Release (manual signing, Developer ID Application). At B3 its only substantive change from B2 is the version bump this bundle exists to verify: MARKETING_VERSION moves from \"1.6.2\" to \"1.7.0\" and CURRENT_PROJECT_VERSION moves from \"20\" to \"21\", which is the source of truth every AppInfo/version-display record in the spec ultimately cites.",
+      "key_symbols": [
+        "name: DroppyCode",
+        "options.bundleIdPrefix: iordv",
+        "options.deploymentTarget.macOS: \"26.0\"",
+        "packages.SwiftTerm.url / exactVersion: 1.20.0",
+        "settings.base.MARKETING_VERSION: \"1.7.0\"",
+        "settings.base.CURRENT_PROJECT_VERSION: \"21\"",
+        "settings.base.ARCHS: arm64 / EXCLUDED_ARCHS: x86_64",
+        "settings.base.SWIFT_VERSION: \"6.0\" / SWIFT_APPROACHABLE_CONCURRENCY: YES",
+        "settings.base.DEVELOPMENT_TEAM: NARHG44L48",
+        "targets.DroppyCode.type: application / platform: macOS",
+        "targets.DroppyCode.sources (DroppyCode syncedFolder; LICENSE, THIRD_PARTY_NOTICES.md, TRADEMARK.md as resources)",
+        "targets.DroppyCode.settings.base.PRODUCT_BUNDLE_IDENTIFIER: iordv.droppycode",
+        "targets.DroppyCode.settings.base.INFOPLIST_KEY_CFBundleDisplayName: \"Droppy Code\"",
+        "targets.DroppyCode.settings.base.INFOPLIST_KEY_NSHumanReadableCopyright",
+        "targets.DroppyCode.settings.configs.Debug (PRODUCT_NAME \"Droppy Code Dev\", bundle id iordv.droppycode.dev)",
+        "targets.DroppyCode.settings.configs.Release (CODE_SIGN_STYLE Manual, CODE_SIGN_IDENTITY Developer ID Application)"
+      ],
+      "calls_into": [],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Consumed by the xcodegen build tool to generate DroppyCode.xcodeproj; not read at app runtime itself",
+        "macOS 26.0 deployment target (options.deploymentTarget.macOS and MACOSX_DEPLOYMENT_TARGET)",
+        "arm64-only build (ARCHS: arm64, EXCLUDED_ARCHS: x86_64)"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [],
+      "feature_notes": [
+        "git diff 1fbf81e61e28a079508a074c01ee1830a9cc23dc HEAD -- project.yml touches exactly the 4 lines the bundle's churn count predicts: '-    MARKETING_VERSION: \"1.6.2\"' / '+    MARKETING_VERSION: \"1.7.0\"' and '-    CURRENT_PROJECT_VERSION: \"20\"' / '+    CURRENT_PROJECT_VERSION: \"21\"'; both stay at lines 13-14 in B3 since it is a like-for-like replacement with no net line-count change, so every other cited line number in the file is unshifted.",
+        "PR-UPDATE-112 (area UPDATE) cites project.yml:13-14 and quotes the literal old strings \"1.6.2\" and \"20\" in its title, source_evidence and expected_result (the About card's 'Version 1.6.2 (20)', the identity pill 'v1.6.2', the updater's comparison baseline, and the hang-report header). Those literals are now stale: B3's project.yml declares \"1.7.0\" and \"21\", so the record's asserted observable output must be reclassified, not merely re-cited at shifted lines.",
+        "PR-STORE-017 cites project.yml:4-5 (the macOS 26.0 deploymentTarget, used to justify which Foundation JSONEncoder ships) and PR-PROVCLI-207's deviation.upstream cites project.yml:44 (INFOPLIST_KEY_CFBundleDisplayName \"Droppy Code\", used to justify AppInfo.name upstream). PR-UPDATE-113 cites project.yml:46 (the copyright string). All three lines fall outside the touched 13-14 range and are byte-identical and unshifted in B3, so none of these three records need an entry."
+      ],
+      "unresolved_questions": []
+    }
+  ]
+}
