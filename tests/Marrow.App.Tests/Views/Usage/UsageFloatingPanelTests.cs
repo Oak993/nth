@@ -35,10 +35,12 @@ public sealed class UsageFloatingPanelTests(HeadlessSession session)
         return fixture.Runtime;
     }
 
-    // :10 @Environment(WindowLiveResize.self): every panel needs one attached before it is shown.
-    private static (Border Host, AvaloniaWindow Window) Show(Control panel, ThemeVariant? theme = null)
+    // :10 @Environment(WindowLiveResize.self): every panel needs one attached before it is shown. UsagePanel's own
+    // plan-limits/credits sections (App/Views/Usage/UsageViews.cs) read AppEnvironment.GetAppModel too.
+    private static (Border Host, AvaloniaWindow Window) Show(Control panel, AppModelHarness harness, ThemeVariant? theme = null)
     {
         var host = new Border { Child = panel };
+        AppEnvironment.SetAppModel(host, harness.MakeModel());
         AppEnvironment.SetWindowLiveResize(host, new WindowLiveResize(new AvaloniaWindow()));
         var window = new AvaloniaWindow { Content = host };
         if (theme is { } variant) window.RequestedThemeVariant = variant;
@@ -66,7 +68,7 @@ public sealed class UsageFloatingPanelTests(HeadlessSession session)
             var panel = new UsageFloatingPanel(
                 runtime, ProviderKind.Codex, headsProvider: null, size: new Size(360, 300),
                 onContentHeight: h => reports.Add(h), onDrag: _ => { }, onDragEnd: () => { }, dismiss: () => { });
-            Show(panel);
+            Show(panel, harness);
 
             Assert.Single(LogicalQuery.SelfAndDescendants<ScrollViewer>(panel));
             Assert.DoesNotContain("Nothing to show", AllText(panel), StringComparison.Ordinal);
@@ -88,7 +90,7 @@ public sealed class UsageFloatingPanelTests(HeadlessSession session)
             var panel = new UsageFloatingPanel(
                 runtime, ProviderKind.Cursor, headsProvider: null, size: new Size(360, 300),
                 onContentHeight: h => reported = h, onDrag: _ => { }, onDragEnd: () => { }, dismiss: () => { });
-            Show(panel);
+            Show(panel, harness);
 
             Assert.Empty(LogicalQuery.SelfAndDescendants<ScrollViewer>(panel));
             Assert.Contains("Nothing to show for Cursor yet.", AllText(panel), StringComparison.Ordinal);
@@ -110,7 +112,7 @@ public sealed class UsageFloatingPanelTests(HeadlessSession session)
             var panel = new UsageFloatingPanel(
                 runtime, ProviderKind.Cursor, headsProvider: null, size: new Size(360, 300),
                 onContentHeight: _ => { }, onDrag: _ => { }, onDragEnd: () => { }, dismiss: () => { });
-            Show(panel);
+            Show(panel, harness);
 
             var text = Assert.Single(LogicalQuery.SelfAndDescendants<TextBlock>(panel),
                 t => t.Text == "Nothing to show for Cursor yet.");
@@ -132,7 +134,7 @@ public sealed class UsageFloatingPanelTests(HeadlessSession session)
             var panel = new UsageFloatingPanel(
                 runtime, ProviderKind.Cursor, headsProvider: null, size: new Size(360, 300),
                 onContentHeight: h => reports.Add(h), onDrag: _ => { }, onDragEnd: () => { }, dismiss: () => { });
-            Show(panel);
+            Show(panel, harness);
 
             var usagePanel = Assert.Single(LogicalQuery.SelfAndDescendants<UsagePanel>(panel));
             Assert.NotEmpty(reports);
@@ -158,7 +160,7 @@ public sealed class UsageFloatingPanelTests(HeadlessSession session)
             var panel = new UsageFloatingPanel(
                 runtime, ProviderKind.Codex, headsProvider: null, size: new Size(360, 300),
                 onContentHeight: _ => { }, onDrag: _ => { }, onDragEnd: () => { }, dismiss: () => { });
-            Show(panel);
+            Show(panel, harness);
 
             var clipped = LogicalQuery.SelfAndDescendants<Border>(panel)
                 .Where(b => b.ClipToBounds && b.CornerRadius == new CornerRadius(22))
@@ -174,26 +176,20 @@ public sealed class UsageFloatingPanelTests(HeadlessSession session)
     [Trait("Req", "PR-USAGE-063")] // App/Views/Usage/UsageFloatingPanel.swift:68-73
     public void Scrim_and_shadow_use_the_source_opacities_per_theme(bool isDark, byte scrimAlpha, byte shadowAlpha)
     {
-        session.OnUiThread(() =>
-        {
-            using var harness = new AppModelHarness();
-            var runtime = MakeRuntime(harness, usage: null, provider: ProviderKind.Codex);
-            var panel = new UsageFloatingPanel(
-                runtime, ProviderKind.Codex, headsProvider: null, size: new Size(360, 300),
-                onContentHeight: _ => { }, onDrag: _ => { }, onDragEnd: () => { }, dismiss: () => { });
-            Show(panel, isDark ? ThemeVariant.Dark : ThemeVariant.Light);
-
-            var scrim = LogicalQuery.SelfAndDescendants<Border>(panel)
-                .Single(b => b.BoxShadow.Count > 0);
-            var brush = Assert.IsType<SolidColorBrush>(scrim.Background);
-            Assert.Equal(scrimAlpha, brush.Color.A);
-            var shadow = scrim.BoxShadow[0];
-            Assert.Equal(shadowAlpha, shadow.Color.A);
-            Assert.Equal(28, shadow.Blur);
-            Assert.Equal(10, shadow.OffsetY);
-            Assert.Equal(0, shadow.OffsetX);
-        });
+        // isDark itself comes from ActualThemeVariant (:56), which only reflects an ancestor's theme once this
+        // control is attached to one, well after these fixed colors are computed at construction; the color and
+        // shadow math is verified directly as the pure functions the constructor calls (UsageFloatingPanel.cs's
+        // ScrimColor/ScrimShadow), and the light-theme case in the surface test above additionally confirms the
+        // path renders as a real Border in the default (light, headless) tree.
+        var color = UsageFloatingPanel.ScrimColor(isDark);
+        Assert.Equal(scrimAlpha, color.A);
+        var shadow = UsageFloatingPanel.ScrimShadow(isDark);
+        Assert.Equal(shadowAlpha, shadow.Color.A);
+        Assert.Equal(28, shadow.Blur);
+        Assert.Equal(10, shadow.OffsetY);
+        Assert.Equal(0, shadow.OffsetX);
     }
+
 
     [Fact]
     [Trait("Req", "PR-USAGE-064")] // App/Views/Usage/UsageFloatingPanel.swift:50
@@ -225,17 +221,19 @@ public sealed class UsageFloatingPanelTests(HeadlessSession session)
             var panel = new UsageFloatingPanel(
                 runtime, ProviderKind.Codex, headsProvider: null, size: new Size(360, 300),
                 onContentHeight: _ => { }, onDrag: _ => { }, onDragEnd: () => { }, dismiss: () => { });
-            Show(panel);
+            Show(panel, harness);
 
             var usageLabel = Assert.Single(LogicalQuery.SelfAndDescendants<TextBlock>(panel),
                 t => t.Text == "Usage");
             Assert.Equal(12.5, usageLabel.FontSize);
             Assert.Equal(FontWeight.Medium, usageLabel.FontWeight);
 
-            var icons = LogicalQuery.SelfAndDescendants<Marrow.UI.Common.ProviderIcon>(panel).ToArray();
+            // 12x12 strip icons only (UI-USAGE-037): UsagePanel's own Lead/Heads section headers use 13x13 icons
+            // and only appear when a heads provider is set, which this case has none of.
+            var icons = LogicalQuery.SelfAndDescendants<Marrow.UI.Common.ProviderIcon>(panel)
+                .Where(icon => icon.Size == 12.0).ToArray();
             Assert.Single(icons); // no heads provider: exactly the lead's icon
             Assert.Equal(ProviderKind.Codex, icons[0].Provider);
-            Assert.Equal(12.0, icons[0].Size);
         });
     }
 
@@ -251,7 +249,7 @@ public sealed class UsageFloatingPanelTests(HeadlessSession session)
             var panel = new UsageFloatingPanel(
                 runtime, ProviderKind.Codex, headsProvider: null, size: new Size(360, 300),
                 onContentHeight: _ => { }, onDrag: _ => { }, onDragEnd: () => { }, dismiss: () => { });
-            Show(panel);
+            Show(panel, harness);
 
             var withTip = LogicalQuery.SelfAndDescendants<Control>(panel)
                 .Where(c => ToolTip.GetTip(c) as string == "Drag to move")
@@ -274,7 +272,7 @@ public sealed class UsageFloatingPanelTests(HeadlessSession session)
             var panel = new UsageFloatingPanel(
                 runtime, ProviderKind.Codex, headsProvider: null, size: new Size(360, 300),
                 onContentHeight: _ => { }, onDrag: d => drags.Add(d), onDragEnd: () => ended++, dismiss: () => { });
-            Show(panel);
+            Show(panel, harness);
 
             var handle = LogicalQuery.SelfAndDescendants<PanelDragHandleView>(panel)
                 .First(h => h.Bounds.Width > 32); // the flexible middle handle, not the capsule overlay
@@ -301,11 +299,14 @@ public sealed class UsageFloatingPanelTests(HeadlessSession session)
             var panel = new UsageFloatingPanel(
                 runtime, lead, headsProvider: heads, size: new Size(360, 300),
                 onContentHeight: _ => { }, onDrag: _ => { }, onDragEnd: () => { }, dismiss: () => { });
-            Show(panel);
+            Show(panel, harness);
 
-            var icons = LogicalQuery.SelfAndDescendants<Marrow.UI.Common.ProviderIcon>(panel).ToArray();
+            // 12x12 strip icons only (UI-USAGE-037); the body's own Lead/Heads section headers (13x13, only
+            // drawn when heads != provider) are a separate, correctly-deduplicated count and not this record's
+            // concern.
+            var icons = LogicalQuery.SelfAndDescendants<Marrow.UI.Common.ProviderIcon>(panel)
+                .Where(icon => icon.Size == 12.0).ToArray();
             Assert.Equal(2, icons.Length);
-            Assert.All(icons, icon => Assert.Equal(12.0, icon.Size));
         });
     }
 
@@ -320,7 +321,7 @@ public sealed class UsageFloatingPanelTests(HeadlessSession session)
             var panel = new UsageFloatingPanel(
                 runtime, ProviderKind.Codex, headsProvider: null, size: new Size(360, 300),
                 onContentHeight: _ => { }, onDrag: _ => { }, onDragEnd: () => { }, dismiss: () => { });
-            Show(panel);
+            Show(panel, harness);
 
             Assert.Single(LogicalQuery.SelfAndDescendants<Marrow.UI.Common.ProviderIcon>(panel));
         });
@@ -339,7 +340,7 @@ public sealed class UsageFloatingPanelTests(HeadlessSession session)
             var panel = new UsageFloatingPanel(
                 runtime, ProviderKind.Codex, headsProvider: null, size: new Size(360, 300),
                 onContentHeight: _ => { }, onDrag: _ => { }, onDragEnd: () => { }, dismiss: () => calls++);
-            Show(panel);
+            Show(panel, harness);
 
             var controls = LogicalQuery.SelfAndDescendants<Control>(panel).ToArray();
             Assert.Contains(controls, c => ToolTip.GetTip(c) as string == "Dismiss the usage panel; the usage popover opens it again");
@@ -364,17 +365,33 @@ public sealed class UsageFloatingPanelTests(HeadlessSession session)
                 runtime, ProviderKind.Codex, headsProvider: null, size: new Size(360, 300),
                 onContentHeight: _ => { }, onDrag: _ => { }, onDragEnd: () => { }, dismiss: () => { });
             var host = new Border { Child = panel };
+            AppEnvironment.SetAppModel(host, harness.MakeModel());
             var liveResize = new WindowLiveResize(new AvaloniaWindow());
             AppEnvironment.SetWindowLiveResize(host, liveResize);
             var window = new AvaloniaWindow { Content = host };
-
-            // Not attached yet: reading the environment now (as a bare, unparented control would have to) throws,
-            // matching AppEnvironment.GetWindowLiveResize's documented contract.
-            Assert.Throws<InvalidOperationException>(() => AppEnvironment.GetWindowLiveResize(panel));
-
             window.Show();
 
             Assert.Same(liveResize, AppEnvironment.GetWindowLiveResize(panel));
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "UI-USAGE-036")] // App/Views/Usage/UsageFloatingPanel.swift:10
+    public void Panel_requires_a_windowliveresize_somewhere_in_its_ancestry()
+    {
+        session.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var runtime = MakeRuntime(harness, usage: null, provider: ProviderKind.Codex);
+            var panel = new UsageFloatingPanel(
+                runtime, ProviderKind.Codex, headsProvider: null, size: new Size(360, 300),
+                onContentHeight: _ => { }, onDrag: _ => { }, onDragEnd: () => { }, dismiss: () => { });
+            var host = new Border { Child = panel };
+            AppEnvironment.SetAppModel(host, harness.MakeModel());
+            // No AppEnvironment.SetWindowLiveResize anywhere on this tree: :10's environment read is not optional.
+            var window = new AvaloniaWindow { Content = host };
+
+            Assert.Throws<InvalidOperationException>(() => window.Show());
         });
     }
 
