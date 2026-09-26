@@ -56,7 +56,7 @@ public sealed class MCPSetupPanelTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-220")] // App/Views/Settings/MCPSetupPanel.swift:18-20
+    [Trait("Req", "PR-MCP-220")] // App/Views/Settings/MCPSetupPanel.swift:16-18
     public void IsPresenting_is_false_when_the_panel_is_not_visible()
     {
         headless.OnUiThread(() =>
@@ -68,7 +68,7 @@ public sealed class MCPSetupPanelTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-220")] // App/Views/Settings/MCPSetupPanel.swift:45-49
+    [Trait("Req", "PR-MCP-220")] // App/Views/Settings/MCPSetupPanel.swift:35-38
     public void Close_clears_the_recorded_entry_id_so_a_later_present_reopens_the_guide_page()
     {
         headless.OnUiThread(() =>
@@ -85,7 +85,7 @@ public sealed class MCPSetupPanelTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-221")] // App/Views/Settings/MCPSetupPanel.swift:53-61
+    [Trait("Req", "PR-MCP-221")] // App/Views/Settings/MCPSetupPanel.swift:42-50
     public void Fit_does_nothing_when_the_panel_is_not_visible()
     {
         headless.OnUiThread(() =>
@@ -102,7 +102,7 @@ public sealed class MCPSetupPanelTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-222")] // App/Views/Settings/MCPSetupPanel.swift:117-166
+    [Trait("Req", "PR-MCP-222")] // App/Views/Settings/MCPSetupPanel.swift:72-104
     public void The_view_shows_the_reason_the_numbered_steps_and_the_open_page_button_before_any_check()
     {
         headless.OnUiThread(() =>
@@ -124,7 +124,7 @@ public sealed class MCPSetupPanelTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-222")] // App/Views/Settings/MCPSetupPanel.swift:155-160
+    [Trait("Req", "PR-MCP-222")] // App/Views/Settings/MCPSetupPanel.swift:106-110
     public void Once_checked_a_repeat_needs_setup_state_shows_the_still_off_status_line_with_the_guides_note()
     {
         headless.OnUiThread(() =>
@@ -146,7 +146,7 @@ public sealed class MCPSetupPanelTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-222")] // App/Views/Settings/MCPSetupPanel.swift:155-160
+    [Trait("Req", "PR-MCP-222")] // App/Views/Settings/MCPSetupPanel.swift:106-110
     public void Before_any_check_a_needs_setup_state_does_not_show_the_still_off_status_line()
     {
         headless.OnUiThread(() =>
@@ -163,7 +163,7 @@ public sealed class MCPSetupPanelTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-222")] // App/Views/Settings/MCPSetupPanel.swift:161-166
+    [Trait("Req", "PR-MCP-222")] // App/Views/Settings/MCPSetupPanel.swift:111-115
     public void A_failed_state_after_a_check_shows_its_message_verbatim()
     {
         headless.OnUiThread(() =>
@@ -184,7 +184,7 @@ public sealed class MCPSetupPanelTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-223")] // App/Views/Settings/MCPSetupPanel.swift:239-251
+    [Trait("Req", "PR-MCP-223")] // App/Views/Settings/MCPSetupPanel.swift:189-211
     public void A_connected_state_replaces_the_body_with_the_success_view_reading_the_tool_count()
     {
         headless.OnUiThread(() =>
