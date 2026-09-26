@@ -3,14 +3,18 @@ using Marrow.Core.Port;
 
 namespace Marrow.Core.Support;
 
-// Source: DroppyCode/Core/Support/StdioProcess.swift (B2 1fbf81e), :1-183.
+// Source: DroppyCode/Core/Support/StdioProcess.swift (B3 52bc7926), :1-184.
 public sealed class StdioProcess
 {
     private readonly object gate = new();
     private readonly StdioFramer framer;
     private readonly StdioFramer.Framing framing;
     private readonly AsyncStream<JSONValue>.Continuation continuation;
-    private readonly ProcessLauncher process = new() { UsesJobObject = false };
+    // ED-194 (B3 amendment of ED-047 (b) and ED-126): every StdioProcess child now gets a Job Object at spawn, with
+    // no limits and no KILL_ON_JOB_CLOSE (ProcessLauncher.Spawn calls CreateJobObjectW alone, never
+    // SetInformationJobObject), so ProcessControl.KillTree() can end the tree at quit. Stop still goes through
+    // Terminate()/KillProcess() below, the unchanged ED-126 ladder: the job is never used there.
+    private readonly ProcessLauncher process = new() { UsesJobObject = true };
     private readonly ProcessPipe stdin = new();
     private readonly ProcessPipe stdout = new();
     private readonly ProcessPipe stderr = new();
@@ -40,7 +44,14 @@ public sealed class StdioProcess
     // :47
     public bool IsRunning => process.IsRunning;
 
-    // :49-52
+    // :48 (B3, R3-41, ED-194)
+    public int ProcessIdentifier => process.ProcessIdentifier;
+
+    // PORT-ONLY (ED-194): no Swift member. The launcher as an IProcessControl handle, so a caller such as
+    // MCPLiveProcesses (A15) can track this child and KillTree() it at quit; never used by Terminate() below.
+    public IProcessControl ProcessControl => process;
+
+    // :50-53 (B3)
     public string ErrorTail
     {
         get
@@ -53,7 +64,7 @@ public sealed class StdioProcess
         }
     }
 
-    // :54-87
+    // :55-88 (B3)
     public void Start()
     {
         var weak = new WeakReference<StdioProcess>(this);
@@ -99,7 +110,7 @@ public sealed class StdioProcess
         }
     }
 
-    // :89-103
+    // :90-104 (B3)
     public void Send(JSONValue message)
     {
         writeQueue.Async(() =>
@@ -125,7 +136,7 @@ public sealed class StdioProcess
         });
     }
 
-    // :105-111
+    // :106-112 (B3)
     public void Write(byte[] data) => writeQueue.Async(() =>
     {
         try { stdin.Write(data); }
@@ -133,17 +144,17 @@ public sealed class StdioProcess
         catch (ObjectDisposedException) { }
     });
 
-    // :113-117
+    // :114-118 (B3)
     public void CloseInput() => writeQueue.Async(() =>
     {
         try { stdin.CloseWriting(); }
         catch (IOException) { }
     });
 
-    // :119-128. ED-126 supplies the Windows CTRL_BREAK and pid-only force kill.
+    // :120-129 (B3). ED-126 supplies the Windows CTRL_BREAK and pid-only force kill.
     public void Terminate() => TerminationLadder.Stdio(process, CloseInput);
 
-    // :131-139
+    // :132-140 (B3)
     public Task<int> WaitForExit()
     {
         lock (gate)
@@ -155,7 +166,7 @@ public sealed class StdioProcess
         }
     }
 
-    // :141-144
+    // :142-145 (B3)
     private void Consume(byte[] data)
     {
         IReadOnlyList<byte[]> frames;
@@ -163,7 +174,7 @@ public sealed class StdioProcess
         foreach (var frame in frames) Deliver(frame);
     }
 
-    // :146-151
+    // :147-152 (B3)
     private void Deliver(byte[] frame)
     {
         var count = frame.Length;
@@ -173,7 +184,7 @@ public sealed class StdioProcess
         if (message is not null) continuation.Yield(message);
     }
 
-    // :153-156
+    // :154-157 (B3)
     private void FinishOutput()
     {
         byte[]? remainder;
@@ -182,7 +193,7 @@ public sealed class StdioProcess
         continuation.Finish();
     }
 
-    // :158-165
+    // :159-166 (B3)
     private void AppendError(byte[] data)
     {
         lock (gate)
@@ -192,7 +203,7 @@ public sealed class StdioProcess
         }
     }
 
-    // :167-182
+    // :168-183 (B3)
     private void DidExit(int status)
     {
         TaskCompletionSource<int>[] waiters;

@@ -55,6 +55,46 @@ public sealed class ShellWorkspaceTests
         ShellWorkspace.OpenWithDefaultApp("calc");
     }
 
+    // ---- review A29 findings 1, 4, 6: the gate's rooted-path and drive-letter cases ----
+
+    [Fact]
+    [Trait("Decision", "ED-203")] // finding 1: a drive-relative path resolves against whatever the process's
+                                  // current directory on that drive happens to be, exactly the relative reference
+                                  // NSWorkspace.shared.open refuses on the source's own platform
+    public void A_drive_relative_string_is_refused()
+    {
+        Assert.False(ShellWorkspace.ShouldAttemptShellExecute("C:tool.exe"));
+        Assert.False(ShellWorkspace.ShouldAttemptShellExecute("C:../tool.exe"));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-203")] // finding 1: RFC 3986 parses the doubled slash as an authority, but this is the
+                                  // same absolute drive-letter path MarkdownLinkOpener.LocalFilePath reconstructs
+    public void A_doubled_slash_drive_letter_string_is_accepted()
+    {
+        Assert.True(ShellWorkspace.ShouldAttemptShellExecute("C://Windows/System32/calc.exe"));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-203")] // finding 4: MarkdownLinkOpener's own local-file branch hands this seam a bare
+                                  // "/"-rooted path (the source's own POSIX shape) with no scheme at all; refusing
+                                  // it here as "relative" broke opening such a link on Windows
+    public void A_rooted_scheme_less_path_is_accepted()
+    {
+        Assert.True(ShellWorkspace.ShouldAttemptShellExecute("/abs/a.swift:12"));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-203")] // finding 6: a UNC path from a trusted caller (AttachmentPreview, DownloadsPopover)
+                                  // is not the credential-leak shape ED-203 exists to stop - MarkdownLinkOpener.IsUnc
+                                  // already refuses a UNC target from an unreviewed chat link before it ever reaches
+                                  // this seam, so a UNC string arriving here (e.g. a redirected Downloads folder) is
+                                  // exactly what NSWorkspace.shared.open opens on the source's own platform
+    public void A_unc_path_from_a_trusted_caller_is_accepted()
+    {
+        Assert.True(ShellWorkspace.ShouldAttemptShellExecute(@"\\server\share\Downloads"));
+    }
+
     // ---- ED-204: extension floor list ----
 
     [Fact]
@@ -165,5 +205,38 @@ public sealed class ShellWorkspaceTests
         {
             ShellWorkspace.IsDangerousFileType = previous;
         }
+    }
+
+    // ---- review A29 finding 3: the extension must be read off the name Windows will actually resolve to ----
+
+    [Theory]
+    [Trait("Decision", "ED-204")]
+    [InlineData("tool.exe", "tool.exe")] // unchanged: nothing to canonicalize
+    [InlineData("tool.exe ", "tool.exe")] // CreateFileW drops a trailing space
+    [InlineData("tool.exe.", "tool.exe")] // and a trailing dot
+    [InlineData("tool.exe  .. ", "tool.exe")] // repeated, in either order
+    [InlineData("tool.exe::$DATA", "tool.exe")] // the unnamed data stream of the same file
+    [InlineData("tool.exe::$data", "tool.exe")] // case-insensitive
+    public void CanonicalFileName_resolves_to_the_name_Windows_would_actually_open(string literal, string expected)
+    {
+        Assert.Equal(expected, ShellWorkspace.CanonicalFileName(literal));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-204")] // a trailing "%20" (decoded to a space) must not hide a dangerous extension:
+                                  // ExtensionOf(".exe path with a trailing space") is ".exe ", which matches
+                                  // neither the floor list nor, presumably, the real AssocIsDangerous
+    public void A_trailing_space_does_not_hide_a_dangerous_extension()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "marrow-shellworkspace-" + Guid.NewGuid() + ".exe");
+        Assert.True(ShellWorkspace.ShouldReveal(path + " "));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-204")] // an NTFS alternate-data-stream suffix addresses the same underlying file
+    public void An_alternate_data_stream_suffix_does_not_hide_a_dangerous_extension()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "marrow-shellworkspace-" + Guid.NewGuid() + ".exe");
+        Assert.True(ShellWorkspace.ShouldReveal(path + "::$DATA"));
     }
 }

@@ -16,7 +16,7 @@ using Xunit;
 
 namespace Marrow.App.Tests.Views.Settings;
 
-// Source: DroppyCode/App/Views/Settings/MCPKeyPanel.swift (B2 1fbf81e), :79-251.
+// Source: DroppyCode/App/Views/Settings/MCPKeyPanel.swift (B3 52bc7926), :24-195.
 [Collection("Headless")]
 public sealed class MCPKeyPanelTests(HeadlessSession headless)
 {
@@ -75,7 +75,7 @@ public sealed class MCPKeyPanelTests(HeadlessSession headless)
                 .Any(image => image.SymbolName == symbol));
 
     [Fact]
-    [Trait("Req", "PR-MCP-217")] // App/Views/Settings/MCPKeyPanel.swift:145-161
+    [Trait("Req", "PR-MCP-217")] // App/Views/Settings/MCPKeyPanel.swift:89-105
     public void Key_page_and_non_key_page_entries_show_their_exact_numbered_steps()
     {
         headless.OnUiThread(() =>
@@ -109,7 +109,7 @@ public sealed class MCPKeyPanelTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-217")] // App/Views/Settings/MCPKeyPanel.swift:152,157
+    [Trait("Req", "PR-MCP-217")] // App/Views/Settings/MCPKeyPanel.swift:96,101
     public void Step_text_uses_the_key_and_value_fallbacks_when_there_are_no_fields()
     {
         headless.OnUiThread(() =>
@@ -131,7 +131,7 @@ public sealed class MCPKeyPanelTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "UI-MCP-074")] // App/Views/Settings/MCPKeyPanel.swift:147-151
+    [Trait("Req", "UI-MCP-074")] // App/Views/Settings/MCPKeyPanel.swift:91-95
     public void The_reopen_key_page_link_is_shown_only_for_a_parseable_nonempty_url()
     {
         headless.OnUiThread(() =>
@@ -158,7 +158,7 @@ public sealed class MCPKeyPanelTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "UI-MCP-071")] // App/Views/Settings/MCPKeyPanel.swift:122-143
+    [Trait("Req", "UI-MCP-071")] // App/Views/Settings/MCPKeyPanel.swift:66-87
     public void The_header_shows_the_entry_name_and_the_literal_connect_subtitle_for_oauth()
     {
         headless.OnUiThread(() =>
@@ -181,7 +181,7 @@ public sealed class MCPKeyPanelTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "UI-MCP-072")] // App/Views/Settings/MCPKeyPanel.swift:134-141
+    [Trait("Req", "UI-MCP-072")] // App/Views/Settings/MCPKeyPanel.swift:78-85
     public void The_xmark_button_calls_on_done_without_submitting()
     {
         headless.OnUiThread(() =>
@@ -202,7 +202,7 @@ public sealed class MCPKeyPanelTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "UI-MCP-073")] // App/Views/Settings/MCPKeyPanel.swift:163-180
+    [Trait("Req", "UI-MCP-073")] // App/Views/Settings/MCPKeyPanel.swift:107-124
     [Trait("Decision", "ED-059")]
     public void Numbered_steps_use_the_upstream_footnote_and_callout_sizes()
     {
@@ -224,7 +224,7 @@ public sealed class MCPKeyPanelTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-218")] // App/Views/Settings/MCPKeyPanel.swift:182-224
+    [Trait("Req", "PR-MCP-218")] // App/Views/Settings/MCPKeyPanel.swift:126-168
     public void Fields_render_in_entry_order_with_a_folder_symbol_only_for_path_fields()
     {
         headless.OnUiThread(() =>
@@ -262,7 +262,7 @@ public sealed class MCPKeyPanelTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-218")] // App/Views/Settings/MCPKeyPanel.swift:184-222
+    [Trait("Req", "PR-MCP-218")] // App/Views/Settings/MCPKeyPanel.swift:128-166
     [Trait("Decision", "ED-059")]
     public void Field_labels_use_subheadline_and_nonempty_help_is_rendered()
     {
@@ -288,7 +288,7 @@ public sealed class MCPKeyPanelTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "UI-MCP-075")] // App/Views/Settings/MCPKeyPanel.swift:184-222
+    [Trait("Req", "UI-MCP-075")] // App/Views/Settings/MCPKeyPanel.swift:128-166
     [Trait("Decision", "ED-059")]
     public void Field_label_and_control_fonts_use_their_source_text_styles()
     {
@@ -312,7 +312,7 @@ public sealed class MCPKeyPanelTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "UI-MCP-076")] // App/Views/Settings/MCPKeyPanel.swift:201-210
+    [Trait("Req", "UI-MCP-076")] // App/Views/Settings/MCPKeyPanel.swift:145-154
     [Trait("Decision", "ED-059")]
     public void The_path_picker_symbol_uses_callout_size_and_is_absent_for_other_kinds()
     {
@@ -336,7 +336,7 @@ public sealed class MCPKeyPanelTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-219")] // App/Views/Settings/MCPKeyPanel.swift:94-101
+    [Trait("Req", "PR-MCP-219")] // App/Views/Settings/MCPKeyPanel.swift:38-45
     public void The_save_button_label_matches_oauth_and_non_oauth_entries()
     {
         headless.OnUiThread(() =>
@@ -358,7 +358,7 @@ public sealed class MCPKeyPanelTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "UI-MCP-077")] // App/Views/Settings/MCPKeyPanel.swift:94-101
+    [Trait("Req", "UI-MCP-077")] // App/Views/Settings/MCPKeyPanel.swift:38-45
     public void The_save_button_is_disabled_when_a_required_field_is_empty()
     {
         headless.OnUiThread(() =>
@@ -388,7 +388,7 @@ public sealed class MCPKeyPanelTests(HeadlessSession headless)
     // theme (HeadlessFixtures.cs), the same root cause already documented for ToggleSwitch elsewhere this session.
 
     [Fact]
-    [Trait("Req", "UI-MCP-070")] // App/Views/Settings/MCPKeyPanel.swift:103-114
+    [Trait("Req", "UI-MCP-070")] // App/Views/Settings/MCPKeyPanel.swift:47-58
     [Trait("Decision", "ED-063")]
     public void The_key_panel_content_has_a_drag_area_and_a_half_opacity_backdrop()
     {

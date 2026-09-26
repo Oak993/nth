@@ -471,7 +471,7 @@ public sealed class MCPProxyTests : IDisposable
 
     // ---- PR-MCP-134 ----
 
-    [Trait("Req", "PR-MCP-134")] // DroppyCode/Services/MCP/MCPProxy.swift:372-387, chunked, one chunk per byte
+    [Trait("Req", "PR-MCP-134")] // DroppyCode/Services/MCP/MCPProxy.swift:379-389, chunked, one chunk per line
     [Fact]
     public async Task An_event_stream_response_is_relayed_as_chunked_with_content_preserved()
     {
@@ -487,6 +487,183 @@ public sealed class MCPProxyTests : IDisposable
         Assert.Equal("chunked", headers["Transfer-Encoding"]);
         Assert.Equal("close", headers["Connection"]);
         Assert.Equal("data: hi\n\n", Encoding.UTF8.GetString(Dechunk(body)));
+    }
+
+    [Trait("Req", "PR-MCP-134")] // DroppyCode/Services/MCP/MCPProxy.swift:379-389, 413-418, exact chunk-boundary bytes
+    [Fact]
+    public async Task Event_stream_chunk_boundaries_land_exactly_at_each_newline_with_lowercase_hex_sizes()
+    {
+        var id = NewID();
+        await using var upstream = new FakeUpstreamServer
+        {
+            Handler = _ => new FakeResponse(200, [("Content-Type", "text/event-stream")], [],
+                SseChunks: ["data: hi\n\n"]),
+        };
+        Proxy.Register(id, upstream.BaseUrl, new Dictionary<string, string>(), usesOAuth: false);
+        var (status, _, body) = await SendRawAsync($"GET /mcp/{id} HTTP/1.1\r\n\r\n");
+        Assert.Equal(200, status);
+        // "data: hi\n\n" splits at each 0x0A: "data: hi\n" (9 bytes) then "\n" (1 byte), each its own chunk, then
+        // the "0\r\n\r\n" terminator - the exact example DroppyCode/Services/MCP/MCPProxy.swift:379-389 produces.
+        Assert.Equal("9\r\ndata: hi\n\r\n1\r\n\n\r\n0\r\n\r\n", Encoding.UTF8.GetString(body));
+    }
+
+    [Trait("Req", "PR-MCP-134")] // DroppyCode/Services/MCP/MCPProxy.swift:387-389, a clean end still flushes a non-newline-terminated remainder
+    [Fact]
+    public async Task Event_stream_payload_without_a_trailing_newline_still_gets_one_final_chunk()
+    {
+        var id = NewID();
+        await using var upstream = new FakeUpstreamServer
+        {
+            Handler = _ => new FakeResponse(200, [("Content-Type", "text/event-stream")], [],
+                SseChunks: ["data: bye"]), // no trailing 0x0A anywhere in the payload
+        };
+        Proxy.Register(id, upstream.BaseUrl, new Dictionary<string, string>(), usesOAuth: false);
+        var (status, _, body) = await SendRawAsync($"GET /mcp/{id} HTTP/1.1\r\n\r\n");
+        Assert.Equal(200, status);
+        Assert.Equal("9\r\ndata: bye\r\n0\r\n\r\n", Encoding.UTF8.GetString(body));
+    }
+
+    [Trait("Req", "PR-MCP-134")] // DroppyCode/Services/MCP/MCPProxy.swift:390-392, a stream error drops the unsent remainder, no error frame, terminator still sent
+    [Fact]
+    public async Task An_upstream_stream_error_mid_line_drops_the_unsent_remainder_but_still_sends_the_terminator()
+    {
+        var id = NewID();
+        await using var upstream = new FakeUpstreamServer
+        {
+            // A declared Content-Length far beyond what is actually written, then the connection closes: the
+            // client's read throws partway through the unterminated tail, simulating the upstream stream error
+            // DroppyCode/Services/MCP/MCPProxy.swift:390-391 (the empty `catch {}`) silently absorbs.
+            Handler = _ => new FakeResponse(200,
+                [("Content-Type", "text/event-stream"), ("Content-Length", "1000")], [],
+                SseChunks: ["data: hi\n", "no newline here so this tail is never flushed"]),
+        };
+        Proxy.Register(id, upstream.BaseUrl, new Dictionary<string, string>(), usesOAuth: false);
+        var (status, headers, body) = await SendRawAsync($"GET /mcp/{id} HTTP/1.1\r\n\r\n");
+        Assert.Equal(200, status);
+        Assert.Equal("chunked", headers["Transfer-Encoding"]);
+        // Only the complete first line went out as a chunk; the unterminated tail is dropped, but the
+        // terminating "0\r\n\r\n" chunk is still sent (:392).
+        Assert.Equal("9\r\ndata: hi\n\r\n0\r\n\r\n", Encoding.UTF8.GetString(body));
+    }
+
+    // ---- send(_:_:)'s never-throws contract (R-NET-2), predates B3, reviewed alongside this lane's WriteBackAsync rewrite ----
+
+    // DroppyCode/Services/MCP/MCPProxy.swift:420-426 send(_:_:) is declared non-throwing
+    // (CheckedContinuation<Void, Never>) and its completion's error is discarded, so a failed local write to a
+    // client that already disconnected is always silent - at every call site in WriteBackAsync, including the
+    // status-head write and the terminating "0\r\n\r\n" write this lane's SSE per-line rewrite left unguarded.
+    // No PR-MCP record cites :420-426 directly (it is unchanged from B2 apart from citation renumbering), so
+    // this names R-NET-2 (reproducing Network.framework behavior exactly) rather than a Req id.
+    [Trait("Rule", "R-NET-2")]
+    [Fact]
+    public async Task SendAsync_never_throws_once_the_local_connection_is_already_closed()
+    {
+        using var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        var port = ((IPEndPoint)listener.LocalEndpoint!).Port;
+        using var client = new TcpClient();
+        await client.ConnectAsync(IPAddress.Loopback, port);
+        using var accepted = await listener.AcceptTcpClientAsync();
+        var stream = accepted.GetStream();
+        accepted.Close(); // the proxy's own end is already gone, as it would be relaying to a disconnected
+                           // client; :420-426 says the next write must be swallowed, never thrown
+        var thrown = await Record.ExceptionAsync(() => MCPProxy.SendAsyncForTests(stream, "hello"u8.ToArray()));
+        Assert.Null(thrown);
+    }
+
+    // ---- PR-MCP-124, PR-MCP-125 (Logger, not standard output; ED-163) ----
+
+    [Trait("Req", "PR-MCP-125")] // DroppyCode/Services/MCP/MCPProxy.swift:7, 116: Self.log.info("listening on <port>")
+    [Fact]
+    public void Listening_is_logged_through_Logger_at_info_level_in_the_mcp_proxy_category()
+    {
+        // Start() (idempotent) already ran once, for the whole fixture, inside its own Logger.Sink.Override
+        // scope (MCPProxySingletonFixture): the "listening on <port>" line landed in fixture.LoggedLines then,
+        // not on standard output, and stays there for the life of the fixture.
+        Assert.Contains(fixture.LoggedLines, line => line.Channel == "iordv.marrow/mcp-proxy" && line.Message == $"listening on {fixture.Port}");
+    }
+
+    // PR-MCP-124's own evidence is the listener's async .failed state at MCPProxy.swift:113-132 (Self.log.error
+    // at :118, then repickPort). :305's Self.log.error("request to '<id>' failed: ...") is a different code path
+    // entirely - sendUpstream's caller catch at :302-307 - which is PR-MCP-131's own source_evidence. Retagged
+    // from PR-MCP-124 (which this test never exercised: an unparseable upstream URL never reaches Listen() at
+    // all) to PR-MCP-131, which it already duplicates/extends alongside An_unparseable_upstream_URL_answers_502
+    // below.
+    [Trait("Req", "PR-MCP-131")] // DroppyCode/Services/MCP/MCPProxy.swift:305: Self.log.error("request to '<id>' failed: <desc>")
+    [Fact]
+    public async Task An_upstream_request_failure_is_logged_through_Logger_at_error_level_not_standard_output()
+    {
+        var id = NewID();
+        Proxy.Register(id, "not a url", new Dictionary<string, string>(), usesOAuth: false); // not a valid absolute URL, forces SendUpstreamAsync to throw
+        var (status, _, _) = await SendRawAsync($"GET /mcp/{id} HTTP/1.1\r\n\r\n");
+        Assert.Equal(502, status);
+        var deadline = DateTime.UtcNow.AddSeconds(5);
+        var foundAny = false;
+        (string Message, string Channel) found = default;
+        while (!foundAny && DateTime.UtcNow < deadline)
+        {
+            foreach (var line in fixture.LoggedLines)
+            {
+                if (!line.Message.StartsWith($"request to '{id}' failed: ", StringComparison.Ordinal)) continue;
+                found = line;
+                foundAny = true;
+                break;
+            }
+            if (!foundAny) await Task.Delay(10);
+        }
+        Assert.True(foundAny, "expected a Logger line for the failed upstream request");
+        Assert.Equal("iordv.marrow/mcp-proxy", found.Channel);
+    }
+
+    // A genuine PR-MCP-124 test: Listen()'s bind-failure path (MCPProxy.swift:107-132). MCPProxySingletonFixture's
+    // own MCPProxy.Shared.Current is already listening on fixture.Port, so a second, isolated instance
+    // (CreateForTests) trying to bind that exact port collides the same way the record's windows_path describes
+    // ("the same collision arises when two builds share %LOCALAPPDATA%\<AppName>\mcp\proxy-port"): TcpListener.Start
+    // has no SO_REUSEADDR-equivalent set, so the bind fails synchronously (folded into the sync catch per this
+    // file's header ENGINEERING DECISION note, playing Swift's async ".failed" branch). RepickPort (:30-35) is
+    // static and process-wide, so it is rewound in `finally` - otherwise MCPProxy.Port and MCPProxy.Url would stop
+    // matching fixture.Port for the rest of the collection (see Url_includes_the_current_port).
+    [Trait("Req", "PR-MCP-124")] // DroppyCode/Services/MCP/MCPProxy.swift:107-132
+    [Fact]
+    public void A_listener_that_fails_to_bind_repicks_once_and_logs_the_failure_through_Logger()
+    {
+        var originalPort = MCPProxy.Port;
+        var logged = new List<(string Message, string Channel)>();
+        var proxy = MCPProxy.CreateForTests();
+        // RepickPort's own write goes through PortFile -> MCPPaths.Directory -> Storage.Root, which the fixture's
+        // StorageScratchFolder bound only for its own constructor flow (and the proxy's background accept-loop
+        // task descended from it), never for this test method's own flow (R-TEST-9): a fresh, local scratch
+        // folder here is all RepickPort's disk write needs, and it is unrelated to fixture.Port's own identity.
+        using var storage = new StorageScratchFolder();
+        try
+        {
+            using (Logger.Sink.Override((message, channel) => logged.Add((message, channel))))
+            {
+                proxy.Start(); // :86-94 -> Listen(originalPort, canRepick: true); originalPort is already bound
+            }
+            // :118 Self.log.error("listener on <port> failed: <error>") - the error text is platform-specific
+            // (matching Swift's own \(error) interpolation, whose exact text is not a source fact either), so
+            // only the fixed prefix and channel are asserted, as the retagged PR-MCP-131 test above already does
+            // for its own Logger.error line.
+            Assert.Contains(logged, line =>
+                line.Channel == "iordv.marrow/mcp-proxy" &&
+                line.Message.StartsWith($"listener on {originalPort} failed: ", StringComparison.Ordinal));
+
+            // :124-125 canRepick -> repickPort() picks a fresh port, once, and listen() is retried with
+            // canRepick: false. The retry lands on a genuinely free port, so it succeeds and logs :116's info line.
+            var repickedPort = MCPProxy.Port;
+            Assert.NotEqual(originalPort, repickedPort);
+            Assert.Contains(logged, line => line.Channel == "iordv.marrow/mcp-proxy" && line.Message == $"listening on {repickedPort}");
+
+            using var probe = new TcpClient();
+            probe.Connect(IPAddress.Loopback, repickedPort); // the repicked listener is actually accepting
+            Assert.True(probe.Connected);
+        }
+        finally
+        {
+            proxy.Stop(); // :139-152
+            MCPProxy.ResetPortForTests(originalPort); // rewind the static port state RepickPort mutated
+        }
     }
 
     // ---- PR-MCP-135 ----

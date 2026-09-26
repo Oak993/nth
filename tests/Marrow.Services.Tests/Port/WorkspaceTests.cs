@@ -26,10 +26,14 @@ public sealed class WorkspaceTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-203")] // WINDOWS-ONLY: the accepted path reaches the real ShellExecuteW (shell32.dll)
-    public void An_absolute_url_with_a_scheme_reaches_shellexecute()
+    [Trait("Decision", "ED-203")] // review A29 finding 5: was `Workspace.Open.Current(url)`, which called the real
+                                  // ShellExecuteW with no override and opened the user's default browser on every
+                                  // test run (R-TEST-10: no test launches a real shell action). The gate is now its
+                                  // own seam (Workspace.ShouldAttemptShellExecute), asserted directly, with nothing
+                                  // downstream of it invoked.
+    public void An_absolute_url_with_a_scheme_passes_the_gate_before_shellexecute()
     {
         var url = SwiftURL.Create("https://example.com")!;
-        Workspace.Open.Current(url);
+        Assert.True(Workspace.ShouldAttemptShellExecute(url));
     }
 }

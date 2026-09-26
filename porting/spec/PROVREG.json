@@ -2194,7 +2194,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Windows Credential Manager (OD-0008 B3): one credential per account under the one service name the port uses in place of AppInfo.name, keeping the one-container-many-accounts partitioning and the four account strings verbatim, because MCP secrets share the container and are distinguished only by account string. A write updates the existing credential and creates one only when none exists; a refused write leaves the old credential and stores nothing else (PR-PROVREG-239, OD-0008 A6).",
       "verification_method": "restart test on each of the four accounts plus a contract fixture on the account strings",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "deviation": {
@@ -5849,7 +5849,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The port's secret store over Windows Credential Manager (OD-0008 B3), with no fallback writer of any kind. The clearing half (remove the legacy settings value after a successful store) is kept.",
       "verification_method": "unit with a refusing secret store asserting that no settings, file or registry write contains the key and that the line \"Credential Manager did not accept this key, so it was not saved.\" is shown under the key field; plus a unit asserting the legacy settings value is removed after a successful write and after clearing",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "NEW, not in upstream_defects.md: upstream writes a provider API key to UserDefaults in plain text whenever the Keychain refuses the write (AppSettings.swift:486 in storeAPIKeyChange, which every key's didSet calls at :369, :378, :389 and :398, through storeAPIKeyFallback at :489-498). Both copies are trimmed (APIKeychain.swift:39, AppSettings.swift:492), correcting an earlier claim in this record that the mirror was untrimmed.",
       "depends_on_unknown": null,
       "blocked_by": null,

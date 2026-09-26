@@ -6,7 +6,7 @@ using Marrow.Testing;
 
 namespace Marrow.Services.Tests.Providers;
 
-// Source: DroppyCode/Services/Providers/MetaAPI.swift (B2 1fbf81e), :1-90.
+// Source: DroppyCode/Services/Providers/MetaAPI.swift (B3 52bc7926), :1-70.
 //
 // Every network-touching test runs against LoopbackHttpServer on 127.0.0.1 (R-TEST-10), reached through the
 // PORT-ONLY modelsUrl override MetaAPI.Validate/ListModels accept for tests only (production always uses the real
@@ -40,7 +40,7 @@ public sealed class MetaAPITests
     // ---- PR-PROVAPI-035: validate ---------------------------------------------------------------------------
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-035")] // Services/Providers/MetaAPI.swift:25-27
+    [Trait("Req", "PR-PROVAPI-035")] // Services/Providers/OpenAICompatibleAPI.swift:14-15 (via MetaAPI.swift:25)
     public async Task Validate_returns_false_with_no_request_for_an_empty_key()
     {
         using var runtime = new TestRuntime();
@@ -53,7 +53,7 @@ public sealed class MetaAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-035")] // Services/Providers/MetaAPI.swift:26 (.trimmed)
+    [Trait("Req", "PR-PROVAPI-035")] // Services/Providers/OpenAICompatibleAPI.swift:14 (.trimmed)
     public async Task Validate_returns_false_with_no_request_for_a_whitespace_only_key()
     {
         using var runtime = new TestRuntime();
@@ -66,7 +66,7 @@ public sealed class MetaAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-035")] // Services/Providers/MetaAPI.swift:28-31
+    [Trait("Req", "PR-PROVAPI-035")] // Services/Providers/OpenAICompatibleAPI.swift:5-10,16 (bearerRequest, via MetaAPI.swift:26)
     public async Task Validate_sends_a_GET_with_bearer_auth_a_json_accept_header_and_a_15_second_timeout()
     {
         using var runtime = new TestRuntime();
@@ -85,7 +85,7 @@ public sealed class MetaAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-035")] // Services/Providers/MetaAPI.swift:33
+    [Trait("Req", "PR-PROVAPI-035")] // Services/Providers/OpenAICompatibleAPI.swift:19
     public async Task Validate_is_false_for_a_non_200_status()
     {
         using var runtime = new TestRuntime();
@@ -99,7 +99,7 @@ public sealed class MetaAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-035")] // Services/Providers/MetaAPI.swift:31-32 (try?)
+    [Trait("Req", "PR-PROVAPI-035")] // Services/Providers/OpenAICompatibleAPI.swift:17 (try?)
     public async Task Validate_is_false_on_a_transport_error()
     {
         using var runtime = new TestRuntime();
@@ -112,7 +112,7 @@ public sealed class MetaAPITests
     // ---- PR-PROVAPI-036: listModels parses data[].id and sorts the default first --------------------------
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-036")] // Services/Providers/MetaAPI.swift:37-38
+    [Trait("Req", "PR-PROVAPI-036")] // Services/Providers/OpenAICompatibleAPI.swift:23-24 (via MetaAPI.swift:29)
     public async Task ListModels_returns_empty_with_no_request_for_an_empty_key()
     {
         using var runtime = new TestRuntime();
@@ -125,7 +125,7 @@ public sealed class MetaAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-036")] // Services/Providers/MetaAPI.swift:43-44
+    [Trait("Req", "PR-PROVAPI-036")] // Services/Providers/OpenAICompatibleAPI.swift:27-28
     public async Task ListModels_returns_empty_for_a_non_200_status()
     {
         using var runtime = new TestRuntime();
@@ -139,7 +139,7 @@ public sealed class MetaAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-036")] // Services/Providers/MetaAPI.swift:44 (JSONValue.parse(data))
+    [Trait("Req", "PR-PROVAPI-036")] // Services/Providers/OpenAICompatibleAPI.swift:28 (JSONValue.parse(data))
     public async Task ListModels_returns_empty_for_an_unparseable_body()
     {
         using var runtime = new TestRuntime();
@@ -153,7 +153,7 @@ public sealed class MetaAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-036")] // Services/Providers/MetaAPI.swift:45-46
+    [Trait("Req", "PR-PROVAPI-036")] // Services/Providers/OpenAICompatibleAPI.swift:29-30
     public async Task ListModels_returns_empty_when_the_data_array_has_no_ids()
     {
         using var runtime = new TestRuntime();
@@ -167,7 +167,7 @@ public sealed class MetaAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-036")] // Services/Providers/MetaAPI.swift:45-49
+    [Trait("Req", "PR-PROVAPI-036")] // Services/Providers/OpenAICompatibleAPI.swift:29-33
     public async Task ListModels_drops_unrecognized_non_Spark_ids_and_sorts_the_default_first_then_ascending_id()
     {
         using var runtime = new TestRuntime();
@@ -197,7 +197,7 @@ public sealed class MetaAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-036")] // Services/Providers/MetaAPI.swift:39-41
+    [Trait("Req", "PR-PROVAPI-036")] // Services/Providers/OpenAICompatibleAPI.swift:5-10,25 (bearerRequest, via MetaAPI.swift:29)
     public async Task ListModels_sends_the_same_bearer_and_accept_headers_as_validate()
     {
         using var runtime = new TestRuntime();
@@ -217,14 +217,14 @@ public sealed class MetaAPITests
     // ---- PR-PROVAPI-037: only muse-spark-1.3 offers "max" ---------------------------------------------------
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-037")] // Services/Providers/MetaAPI.swift:55-60
+    [Trait("Req", "PR-PROVAPI-037")] // Services/Providers/MetaAPI.swift:36-41
     public void Efforts_for_muse_spark_1_3_are_exactly_the_six_including_max()
     {
         Assert.Equal(["minimal", "low", "medium", "high", "xhigh", "max"], MetaAPI.Efforts("muse-spark-1.3"));
     }
 
     [Theory]
-    [Trait("Req", "PR-PROVAPI-037")] // Services/Providers/MetaAPI.swift:58-60
+    [Trait("Req", "PR-PROVAPI-037")] // Services/Providers/MetaAPI.swift:39-41
     [InlineData("muse-spark-1.3-contributor")]
     [InlineData("muse-spark-1.2")]
     [InlineData("muse-spark-1.2-contributor")]
@@ -238,7 +238,7 @@ public sealed class MetaAPITests
     // ---- PR-PROVAPI-038 to 042: the five Spark model rows ----------------------------------------------------
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-038")] // Services/Providers/MetaAPI.swift:65-66
+    [Trait("Req", "PR-PROVAPI-038")] // Services/Providers/MetaAPI.swift:46-47
     public void Option_for_muse_spark_1_3_is_the_default_row_with_six_efforts()
     {
         var option = MetaAPI.Option("muse-spark-1.3");
@@ -253,7 +253,7 @@ public sealed class MetaAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-039")] // Services/Providers/MetaAPI.swift:67-68
+    [Trait("Req", "PR-PROVAPI-039")] // Services/Providers/MetaAPI.swift:48-49
     public void Option_for_muse_spark_1_3_contributor_has_five_efforts_and_is_not_default()
     {
         var option = MetaAPI.Option("muse-spark-1.3-contributor");
@@ -268,7 +268,7 @@ public sealed class MetaAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-040")] // Services/Providers/MetaAPI.swift:69-70
+    [Trait("Req", "PR-PROVAPI-040")] // Services/Providers/MetaAPI.swift:50-51
     public void Option_for_muse_spark_1_2()
     {
         var option = MetaAPI.Option("muse-spark-1.2");
@@ -282,7 +282,7 @@ public sealed class MetaAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-041")] // Services/Providers/MetaAPI.swift:71-72
+    [Trait("Req", "PR-PROVAPI-041")] // Services/Providers/MetaAPI.swift:52-53
     public void Option_for_muse_spark_1_2_contributor()
     {
         var option = MetaAPI.Option("muse-spark-1.2-contributor");
@@ -296,7 +296,7 @@ public sealed class MetaAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-042")] // Services/Providers/MetaAPI.swift:73-74
+    [Trait("Req", "PR-PROVAPI-042")] // Services/Providers/MetaAPI.swift:54-55
     public void Option_for_muse_spark_1_1()
     {
         var option = MetaAPI.Option("muse-spark-1.1");
@@ -312,7 +312,7 @@ public sealed class MetaAPITests
     // ---- PR-PROVAPI-043: only ids prefixed muse-spark are offered ------------------------------------------
 
     [Theory]
-    [Trait("Req", "PR-PROVAPI-043")] // Services/Providers/MetaAPI.swift:76-79
+    [Trait("Req", "PR-PROVAPI-043")] // Services/Providers/MetaAPI.swift:57-60
     [InlineData("muse-image-1.0")]
     [InlineData("muse-voice-transcribe-1.0")]
     [InlineData("gpt-4")]
@@ -322,7 +322,7 @@ public sealed class MetaAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-043")] // Services/Providers/MetaAPI.swift:75-81
+    [Trait("Req", "PR-PROVAPI-043")] // Services/Providers/MetaAPI.swift:56-62
     public void Option_for_a_future_Spark_checkpoint_is_named_by_its_raw_id_with_no_detail_and_five_efforts()
     {
         var option = MetaAPI.Option("muse-spark-2.0");
@@ -337,7 +337,7 @@ public sealed class MetaAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-043")] // Services/Providers/MetaAPI.swift:79 (id.lowercased().hasPrefix)
+    [Trait("Req", "PR-PROVAPI-043")] // Services/Providers/MetaAPI.swift:60 (id.lowercased().hasPrefix)
     public void Option_prefix_test_is_case_insensitive()
     {
         var option = MetaAPI.Option("MUSE-SPARK-2.0");
@@ -350,21 +350,21 @@ public sealed class MetaAPITests
     // ---- PR-PROVAPI-044: vision model test, nil/empty is true -----------------------------------------------
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-044")] // Services/Providers/MetaAPI.swift:86
+    [Trait("Req", "PR-PROVAPI-044")] // Services/Providers/MetaAPI.swift:67
     public void IsVisionModel_is_true_for_a_null_id()
     {
         Assert.True(MetaAPI.IsVisionModel(null));
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-044")] // Services/Providers/MetaAPI.swift:86
+    [Trait("Req", "PR-PROVAPI-044")] // Services/Providers/MetaAPI.swift:67
     public void IsVisionModel_is_true_for_an_empty_id()
     {
         Assert.True(MetaAPI.IsVisionModel(""));
     }
 
     [Theory]
-    [Trait("Req", "PR-PROVAPI-044")] // Services/Providers/MetaAPI.swift:87
+    [Trait("Req", "PR-PROVAPI-044")] // Services/Providers/MetaAPI.swift:68
     [InlineData("muse-spark-1.3")]
     [InlineData("muse-spark-1.3-contributor")]
     [InlineData("MUSE-SPARK-1.3")]
@@ -374,7 +374,7 @@ public sealed class MetaAPITests
     }
 
     [Theory]
-    [Trait("Req", "PR-PROVAPI-044")] // Services/Providers/MetaAPI.swift:87
+    [Trait("Req", "PR-PROVAPI-044")] // Services/Providers/MetaAPI.swift:68
     [InlineData("muse-image-1.0")]
     [InlineData("gpt-4")]
     public void IsVisionModel_is_false_for_a_non_Spark_id(string id)
@@ -385,7 +385,7 @@ public sealed class MetaAPITests
     // ---- UI-PROVAPI-027: the model picker's rows end to end --------------------------------------------------
 
     [Fact]
-    [Trait("Req", "UI-PROVAPI-027")] // Services/Providers/MetaAPI.swift:55-81
+    [Trait("Req", "UI-PROVAPI-027")] // Services/Providers/MetaAPI.swift:36-62
     public async Task The_model_picker_rows_match_the_seeded_catalog_in_seed_order_when_the_endpoint_lists_only_those_five()
     {
         using var runtime = new TestRuntime();

@@ -4,8 +4,8 @@ using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
 
-// Source: DroppyCode/Services/Providers/CommandCodeAPI.swift (B2 1fbf81e), :1-458. Not ported yet: the approvalMod
-// literal (:372-437), left as its skeleton stub because the Windows form of its orphan predicate at :428 is not
+// Source: DroppyCode/Services/Providers/CommandCodeAPI.swift (B3 52bc7926), :1-460. Not ported yet: the approvalMod
+// literal (:374-439), left as its skeleton stub because the Windows form of its orphan predicate at :430 is not
 // specified (PR-PROVCLI-254 open_question against ED-021; STOP #1 of this unit), and Character.isUppercase for a
 // non-ASCII Character at :204, which no Core/Port helper provides (STOP #2 of this unit).
 //
@@ -17,7 +17,7 @@ using Marrow.Core.Support;
 
 namespace Marrow.Services.Providers;
 
-// :12-458
+// :12-460
 public static partial class CommandCodeAPI
 {
     public static readonly Uri BaseURL = new("https://api.commandcode.ai");      // :13
@@ -467,7 +467,7 @@ public static partial class CommandCodeAPI
         var table = Table<string[]>( // :289-308
         [
             ("claude-sonnet-5", full), ("claude-sonnet-4-6", full), ("claude-fable-5-1", full), ("claude-fable-5", full),
-            ("claude-opus-5", full), ("claude-opus-4-8", full), ("claude-opus-4-7", full),
+            ("claude-opus-5-5", full), ("claude-opus-5", full), ("claude-opus-4-8", full), ("claude-opus-4-7", full),
             ("gpt-6-astra", full), ("gpt-5.6-sol", full), ("gpt-5.6-terra", full), ("gpt-5.6-luna", full),
             ("gpt-5.5", toXHigh), ("gpt-5.4", toXHigh), ("gpt-5.3-codex", toXHigh), ("gpt-5.4-mini", toHigh),
             ("deepseek/deepseek-v4-pro", highMax), ("deepseek/deepseek-v4-flash", highMax),
@@ -497,7 +497,7 @@ public static partial class CommandCodeAPI
         var table = Table<long>( // :315-341
         [
             ("claude-sonnet-5", 1_000_000), ("claude-sonnet-4-6", 1_000_000), ("claude-fable-5-1", 1_000_000), ("claude-fable-5", 1_000_000),
-            ("claude-opus-5", 1_000_000), ("claude-opus-4-8", 1_000_000), ("claude-opus-4-7", 1_000_000), ("claude-haiku-4-5", 200_000),
+            ("claude-opus-5-5", 1_000_000), ("claude-opus-5", 1_000_000), ("claude-opus-4-8", 1_000_000), ("claude-opus-4-7", 1_000_000), ("claude-haiku-4-5", 200_000),
             ("claude-haiku-4-5-20251001", 200_000),
             ("gpt-6-astra", 1_050_000), ("gpt-5.6-sol", 1_050_000), ("gpt-5.6-terra", 1_050_000), ("gpt-5.6-luna", 1_050_000),
             ("gpt-5.5", 400_000), ("gpt-5.4", 400_000), ("gpt-5.3-codex", 400_000), ("gpt-5.4-mini", 400_000),
@@ -534,27 +534,29 @@ public static partial class CommandCodeAPI
         return null;
     }
 
-    // :347-359. The separators are U+00B7 MIDDLE DOT with a space on each side; the ampersands are literal.
+    // :347-361. The separators are U+00B7 MIDDLE DOT with a space on each side; the ampersands are literal.
     public static ValueList<ModelOption> Seed { get; } = new(
     [
         new ModelOption("claude-sonnet-5", "Claude Sonnet 5", detail: "Anthropic \U000000B7 best combo of speed & intelligence", efforts: Efforts("claude-sonnet-5"), isDefault: true), // :350
         new ModelOption("claude-fable-5-1", "Claude Fable 5.1", detail: "Anthropic \U000000B7 most capable for demanding reasoning & long-horizon agents", efforts: Efforts("claude-fable-5-1")), // :351
-        new ModelOption("claude-opus-5", "Claude Opus 5", detail: "Anthropic \U000000B7 most intelligent Opus for agents and coding", efforts: Efforts("claude-opus-5")), // :352
-        new ModelOption("gpt-6-astra", "GPT-6 Astra", detail: "OpenAI \U000000B7 most capable OpenAI model for demanding reasoning & agents", efforts: Efforts("gpt-6-astra")), // :353
-        new ModelOption("gpt-5.6-sol", "GPT-5.6 Sol", detail: "OpenAI \U000000B7 latest frontier model for general complex work", efforts: Efforts("gpt-5.6-sol")), // :354
-        new ModelOption("google/gemini-3.8-flash", "Gemini 3.8 Flash", detail: "Google \U000000B7 newest Gemini Flash, improved core reasoning", efforts: Efforts("google/gemini-3.8-flash")), // :355
-        new ModelOption("deepseek/deepseek-v4-flash", "DeepSeek V4 Flash", detail: "Open Source \U000000B7 fast hybrid-attention reasoning", efforts: Efforts("deepseek/deepseek-v4-flash")), // :356
-        new ModelOption("moonshotai/kimi-k3", "Kimi K3", detail: "Open Source \U000000B7 long-horizon coding & knowledge work with 1M context", efforts: Efforts("moonshotai/kimi-k3")), // :357
-        new ModelOption("zai-org/glm-5.3", "GLM 5.3", detail: "Open Source \U000000B7 frontier coding with emergent cyber capabilities", efforts: Efforts("zai-org/glm-5.3")), // :358
+        new ModelOption("claude-opus-5-5", "Claude Opus 5.5", detail: "Anthropic \U000000B7 the newest Opus, for everyday complex work and coding", efforts: Efforts("claude-opus-5-5")), // :352
+        new ModelOption("claude-opus-5", "Claude Opus 5", detail: "Anthropic \U000000B7 most intelligent Opus for agents and coding", efforts: Efforts("claude-opus-5")), // :353
+        new ModelOption("gpt-6-astra", "GPT-6 Astra", detail: "OpenAI \U000000B7 most capable OpenAI model for demanding reasoning & agents", efforts: Efforts("gpt-6-astra")), // :354
+        new ModelOption("gpt-5.6-sol", "GPT-5.6 Sol", detail: "OpenAI \U000000B7 latest frontier model for general complex work", efforts: Efforts("gpt-5.6-sol")), // :355
+        new ModelOption("gpt-5.6-luna", "GPT-5.6 Luna", detail: "OpenAI \U000000B7 fast and efficient model", efforts: Efforts("gpt-5.6-luna")), // :356
+        new ModelOption("google/gemini-3.8-flash", "Gemini 3.8 Flash", detail: "Google \U000000B7 newest Gemini Flash, improved core reasoning", efforts: Efforts("google/gemini-3.8-flash")), // :357
+        new ModelOption("deepseek/deepseek-v4-flash", "DeepSeek V4 Flash", detail: "Open Source \U000000B7 fast hybrid-attention reasoning", efforts: Efforts("deepseek/deepseek-v4-flash")), // :358
+        new ModelOption("moonshotai/kimi-k3", "Kimi K3", detail: "Open Source \U000000B7 long-horizon coding & knowledge work with 1M context", efforts: Efforts("moonshotai/kimi-k3")), // :359
+        new ModelOption("zai-org/glm-5.3", "GLM 5.3", detail: "Open Source \U000000B7 frontier coding with emergent cyber capabilities", efforts: Efforts("zai-org/glm-5.3")), // :360
     ]);
 
-    // MARK: - The approval mod (:361)
+    // MARK: - The approval mod (:363)
 
-    // :363-437. A static let string (R-STR-9), the Swift raw string literal as it evaluates (four-space indentation
+    // :365-439. A static let string (R-STR-9), the Swift raw string literal as it evaluates (four-space indentation
     // of the closing delimiter stripped, no final newline). PR-PROVCLI-254's open_question on the orphan predicate at
-    // :428 is settled by ED-021 (engineering_decisions.md:91 Q57): replace the POSIX-only `process.ppid === 1` with
+    // :430 is settled by ED-021 (engineering_decisions.md:91 Q57): replace the POSIX-only `process.ppid === 1` with
     // the Windows-correct signal-0 liveness probe of the same parent, keeping the 6-hour cap, the unlink and the
-    // `block: true` verbatim. Carries the OD-0012 F1 wordings of :422 and :430 ('The user declined this in Marrow.',
+    // `block: true` verbatim. Carries the OD-0012 F1 wordings of :424 and :432 ('The user declined this in Marrow.',
     // 'Marrow did not answer.').
     public static string ApprovalMod =>
         """
@@ -624,9 +626,9 @@ public static partial class CommandCodeAPI
         }
         """;
 
-    // :439-444. DEVIATION OD-0008 C7: Application Support is %LOCALAPPDATA% and AppInfo.name is the port's data
+    // :441-446. DEVIATION OD-0008 C7: Application Support is %LOCALAPPDATA% and AppInfo.name is the port's data
     // identity "Marrow Code", so the directory is %LOCALAPPDATA%\Marrow Code\CommandCode (PR-PROVCLI-207, ED-023). There
-    // is no macOS Library/Application Support fallback (:442, no Windows counterpart).
+    // is no macOS Library/Application Support fallback (:444, no Windows counterpart).
     public static SwiftURL SupportDirectory => SupportDirectoryUnder(LocalApplicationData());
 
     private static string LocalApplicationData() => Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
@@ -635,31 +637,31 @@ public static partial class CommandCodeAPI
     internal static SwiftURL SupportDirectoryUnder(string localApplicationData) =>
         FileURL(SupportDirectoryPath(localApplicationData), isDirectory: true);
 
-    // :443 base.appendingPathComponent("\(AppInfo.name)/CommandCode", isDirectory: true)
+    // :445 base.appendingPathComponent("\(AppInfo.name)/CommandCode", isDirectory: true)
     private static string SupportDirectoryPath(string localApplicationData) =>
         SwiftPath.AppendingPathComponent(localApplicationData, "Marrow Code/CommandCode");
 
-    // :446-457
+    // :448-459
     public static SwiftURL InstallMod() => InstallMod(LocalApplicationData());
 
     /// <summary>PORT-ONLY test seam: <see cref="InstallMod()"/> under an explicit OS app-data folder.</summary>
     internal static SwiftURL InstallMod(string localApplicationData)
     {
-        // :449-450 createDirectory(at:withIntermediateDirectories: true); a failure propagates.
+        // :451-452 createDirectory(at:withIntermediateDirectories: true); a failure propagates.
         var directory = SupportDirectoryPath(localApplicationData);
         Directory.CreateDirectory(directory);
-        // :451. DEVIATION OD-0012 F1: "marrow-approvals.ts" (upstream "droppy-code-approvals.ts").
+        // :453. DEVIATION OD-0012 F1: "marrow-approvals.ts" (upstream "droppy-code-approvals.ts").
         var file = SwiftPath.AppendingPathComponent(directory, "marrow-approvals.ts");
-        // :452
+        // :454
         var data = Encoding.UTF8.GetBytes(ApprovalMod);
-        // :453-455. Written atomically only when the bytes on disk differ; (try? Data(contentsOf:)) is nil for a
+        // :455-457. Written atomically only when the bytes on disk differ; (try? Data(contentsOf:)) is nil for a
         // missing or unreadable file, which is never equal. The CLI may be reading the file (port_impacts.md 22).
         var existing = SwiftTry.Optional(() => File.ReadAllBytes(file));
         if (existing is null || !existing.AsSpan().SequenceEqual(data))
         {
             FileOps.WriteAtomic(file, data);
         }
-        // :456
+        // :458
         return FileURL(file, isDirectory: false);
     }
 

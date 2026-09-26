@@ -42,32 +42,37 @@ public static class MentionScanner
             offset += grapheme.Length;
             boundaries.Add(offset);
         }
+        var boundaryArray = boundaries.ToArray(); // sorted ascending; every element is a grapheme-cluster boundary
 
         var cursor = 0; // :10 i = text.startIndex
         while (cursor < text.Length) // :11
         {
             var found = false;
             T hit = default!;
+            var hitEnd = 0;
             foreach (var candidate in ordered) // :13
             {
                 var candidateName = name(candidate); // :14
-                var after = cursor + candidateName.Length;
-                if (after > text.Length || !boundaries.Contains(after)) continue; // :15 hasPrefix, grapheme-aligned
-                if (string.CompareOrdinal(text, cursor, candidateName, 0, candidateName.Length) != 0) continue; // :15
+                // :15 text[i...].hasPrefix(candidateName): whole Characters, compared canonically (R-STR-2), not a
+                // UTF-16 ordinal compare — U+0301-combining and precomposed forms of the same letter must match.
+                if (!SwiftString.HasPrefix(text[cursor..], candidateName)) continue;
+                // :16 text.index(i, offsetBy: candidateName.count, limitedBy: text.endIndex) ?? text.endIndex: advance
+                // by candidateName's Character count, not its UTF-16 length, and clamp at text's end.
+                var after = AdvanceGraphemes(boundaryArray, cursor, SwiftString.Count(candidateName));
 
                 var beforeOk = cursor == 0 || !IsWordCharacter(PreviousCharacter(graphemes, cursor)); // :17-18
                 var afterOk = after == text.Length || !IsWordCharacter(NextCharacter(graphemes, after)); // :19-20
                 if (!beforeOk || !afterOk) continue;
                 hit = candidate; // :21
+                hitEnd = after; // :24 text.index(i, offsetBy: name(hit).count) is the same grapheme advance as `after`
                 found = true;
                 break;
             }
 
             if (found)
             {
-                var end = cursor + name(hit).Length; // :24
-                results.Add((cursor, end, hit)); // :25
-                cursor = end; // :26
+                results.Add((cursor, hitEnd, hit)); // :25
+                cursor = hitEnd; // :26
             }
             else
             {
@@ -86,6 +91,15 @@ public static class MentionScanner
         foreach (var boundary in boundaries)
             if (boundary > offset) return boundary;
         return offset + 1;
+    }
+
+    // :16 text.index(_:offsetBy:limitedBy:) ?? text.endIndex: step `count` grapheme-cluster boundaries forward
+    // from `cursor` (itself always a boundary), clamped to text.Length when that would run past the end.
+    private static int AdvanceGraphemes(int[] boundaryArray, int cursor, int count)
+    {
+        var index = Array.BinarySearch(boundaryArray, cursor);
+        var target = index + count;
+        return target < boundaryArray.Length ? boundaryArray[target] : boundaryArray[^1];
     }
 
     // :18 text[text.index(before: i)], stepping back one grapheme
