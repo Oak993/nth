@@ -12,11 +12,18 @@ namespace Marrow.Services.Tests.Store;
 public sealed class StorageTests
 {
     // ---- PR-LAUNCH-070 / PR-STORE-001 / PR-STORE-002 ----
-    // PR-STORE-001, -003, -004 and -005's own creation-and-caching behaviour is now proved directly against
-    // Core.Support.StoragePaths (Marrow.Core.Tests/Support/StoragePathsTests.cs, N2 in
-    // porting/work/b3/B3_PLAN.md section 3: root, wallpaperDirectory and directory(_:) moved out of this
-    // file's B2 :19-25, :35-36 and :54-58). These four tests stay here proving Storage's own public
-    // properties still resolve correctly once the move routes them through it.
+    // PR-STORE-001 and -005's own creation behaviour is proved directly against Core.Support.StoragePaths
+    // (Marrow.Core.Tests/Support/StoragePathsTests.cs, N2 in porting/work/b3/B3_PLAN.md section 3: root,
+    // wallpaperDirectory and directory(_:) moved out of this file's B2 :19-25, :35-36 and :54-58) - but that
+    // helper's own directory(_:) (StoragePaths.swift :18-22 / StoragePaths.cs Directory) is deliberately never
+    // cached there (StoragePathsTests.Directory_CreatesTheNamedFolderUnderRootAndIsNeverCached proves it).
+    // PR-STORE-003/-004's caching comes from Storage.swift's own `static let threadsDirectory` / `static let
+    // attachmentsDirectory` (:23-27) wrapping that uncached call exactly once for the process's life ("a stat
+    // plus mkdir per call was pure waste"), so StorageLocations.ThreadsDirectory/.AttachmentsDirectory must
+    // cache it themselves (mirroring WorktreesDirectory/PatchesDirectory below) - proved by
+    // ThreadsDirectory_IsCachedAndNotRecreatedOnSubsequentAccess and its Attachments twin further down.
+    // These properties stay here proving Storage's own public properties still resolve correctly once the
+    // move routes them through Core.Support.StoragePaths.
 
     [Fact]
     [Trait("Req", "PR-STORE-001")] // Storage.swift:19 (B3, delegates to StoragePaths.root); moved implementation StoragePaths.swift:6-12
@@ -52,6 +59,19 @@ public sealed class StorageTests
     }
 
     [Fact]
+    [Trait("Req", "PR-STORE-003")] // Storage.swift:23-25 comment: "a stat plus mkdir per call was pure waste".
+    public void ThreadsDirectory_IsCachedAndNotRecreatedOnSubsequentAccess()
+    {
+        using var scratch = new StorageScratchFolder();
+        var first = Storage.ThreadsDirectory;
+        Assert.True(Directory.Exists(first));
+
+        Directory.Delete(first); // prove the second access returns the cached value, not a fresh stat/mkdir
+        Assert.Equal(first, Storage.ThreadsDirectory);
+        Assert.False(Directory.Exists(first));
+    }
+
+    [Fact]
     [Trait("Req", "PR-STORE-004")] // Storage.swift:27 (B3); moved implementation StoragePaths.swift:18-22
     public void AttachmentsDirectory_IsCreatedUnderTheRoot()
     {
@@ -59,6 +79,19 @@ public sealed class StorageTests
         var directory = Storage.AttachmentsDirectory;
         Assert.Equal(Path.Combine(scratch.Root, "attachments"), directory);
         Assert.True(Directory.Exists(directory));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-STORE-004")] // Storage.swift:27 static let: cached the same way as threadsDirectory (:25).
+    public void AttachmentsDirectory_IsCachedAndNotRecreatedOnSubsequentAccess()
+    {
+        using var scratch = new StorageScratchFolder();
+        var first = Storage.AttachmentsDirectory;
+        Assert.True(Directory.Exists(first));
+
+        Directory.Delete(first); // prove the second access returns the cached value, not a fresh stat/mkdir
+        Assert.Equal(first, Storage.AttachmentsDirectory);
+        Assert.False(Directory.Exists(first));
     }
 
     [Fact]

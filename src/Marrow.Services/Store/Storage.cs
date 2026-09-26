@@ -71,12 +71,21 @@ public sealed class StorageLocations : IStorageLocations
     // StorageLocations.Create/.CreateProduction and every existing test fixture that calls them keep their
     // exact signature; ENGINEERING DECISION, reported for the ledger to record.
     private readonly StoragePathsLocations paths;
+    private readonly Lazy<string> threadsDirectory;
+    private readonly Lazy<string> attachmentsDirectory;
     private readonly Lazy<string> worktreesDirectory;
     private readonly Lazy<string> patchesDirectory;
 
     private StorageLocations(Func<string> root, Func<string> homeDirectory, bool isDevelopment)
     {
         paths = StoragePathsLocations.Create(root); // :19 static let root: URL = StoragePaths.root
+
+        // :23-27. static let threadsDirectory / attachmentsDirectory: the underlying StoragePaths.Directory(_:)
+        // helper is deliberately uncached (Core/Support/StoragePaths.cs), but Storage's own `static let` around
+        // it in the Swift source runs that call exactly once and keeps the URL for the process's life ("a stat
+        // plus mkdir per call was pure waste", :24). CreateOnce reproduces that one-time evaluation here.
+        threadsDirectory = CreateOnce(() => paths.Directory("threads")); // :25
+        attachmentsDirectory = CreateOnce(() => paths.Directory("attachments")); // :27
 
         // :34-39 stateDirectory(_:). DEVIATION OD-0012 F1: the folder name shown in Settings and handed to git is
         // ".marrow" / ".marrow-dev", not upstream AppInfo.stateDirectoryName (".droppy-code" / ".droppy-code-dev",
@@ -100,8 +109,8 @@ public sealed class StorageLocations : IStorageLocations
 
     public string Root => paths.Root; // :19
     public string LibraryURL => SwiftPath.AppendingPathComponent(Root, "library.json"); // :21, no side effect
-    public string ThreadsDirectory => paths.Directory("threads"); // :25, via directory(_:) (now Core.Support.StoragePaths)
-    public string AttachmentsDirectory => paths.Directory("attachments"); // :27
+    public string ThreadsDirectory => threadsDirectory.Value; // :25, via directory(_:) (now Core.Support.StoragePaths)
+    public string AttachmentsDirectory => attachmentsDirectory.Value; // :27
     // Removed from Storage.swift in B3 (moved to StoragePaths.swift :15); kept here until lane A10 (ED-195/O5)
     // updates UI.Theme.Wallpaper to read Core.Support.StoragePaths.WallpaperDirectory directly and retires this.
     public string WallpaperDirectory => paths.WallpaperDirectory;
