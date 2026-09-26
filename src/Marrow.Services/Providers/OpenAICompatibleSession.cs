@@ -7,7 +7,7 @@ using Marrow.Services.MCP;
 
 namespace Marrow.Services.Providers;
 
-// Source: DroppyCode/Services/Providers/OpenAICompatibleSession.swift (B2 1fbf81e), :1-1337.
+// Source: DroppyCode/Services/Providers/OpenAICompatibleSession.swift (B3 52bc792), :1-1335.
 //
 // Unit Services.Providers.OpenAICompatibleSession part 1 of 5 (PR-PROVAPI-089 to 112) implements
 // lifecycle (Start, Send, IsRunning, ApiKey), turn orchestration (PerformTurn's round loop, the
@@ -17,11 +17,11 @@ namespace Marrow.Services.Providers;
 // FriendlyError fallback (:804-806). It also carries the self-contained history and message
 // helpers those flows call directly and that do not depend on network code: TrimHistory,
 // CondenseHistory, SanitizeHistory, AssistantTurn, UserContentValue, (Refresh)SystemPrompt,
-// RequiresApproval, ReadOnlyKind, Stop, Compact and NextID (:230-486, :1046-1057, :1098-1332).
+// RequiresApproval, ReadOnlyKind, Stop, Compact and NextID (:230-486, :1046-1057, :1096-1330).
 //
 // The request payload, SSE streaming and its transport-retry ladder (:506-800), provider-specific
 // error mapping beyond the base FriendlyError, the six built-in tool bodies and MCP dispatch
-// (:894-1035) and approvals (:1058-1097) are not cited here: their Swift lines are not in this
+// (:894-1035) and approvals (:1058-1095) are not cited here: their Swift lines are not in this
 // part's packet and their records are not in PR-PROVAPI-089..112. They land in later parts of
 // this unit. StreamOneRound and ExecuteTool are exposed as protected virtual seams so this part's
 // orchestration is testable against controlled round/tool results ahead of those parts landing;
@@ -159,9 +159,9 @@ public class OpenAICompatibleSession : ProviderSession
     internal Task<string> ExecuteToolForTests(PendingToolCall tool) => ExecuteTool(tool);
 
     // Test-only seam (InternalsVisibleTo Marrow.Services.Tests, PR-PROVAPI-113, PR-PROVAPI-114):
-    // registers a pending approval continuation exactly as ApproveIfNeeded does at :1082, without
-    // going through MainActor.Run's event post, so ResolveApproval and Stop's decline-all sweep are
-    // testable in isolation.
+    // registers a pending approval continuation exactly as ApproveIfNeeded does at :1080, without
+    // the surrounding approval-kind mapping and event emission, so ResolveApproval and Stop's
+    // decline-all sweep are testable in isolation.
     internal Task<bool> RegisterPendingApprovalForTests(string id) =>
         CheckedContinuation<bool>.With(continuation => pendingApprovals[id] = continuation);
 
@@ -1353,7 +1353,7 @@ public class OpenAICompatibleSession : ProviderSession
         };
     }
 
-    // :1058-1089. PR-PROVAPI-161. An interrupted turn declines whatever is still asking, before
+    // :1058-1087. PR-PROVAPI-161. An interrupted turn declines whatever is still asking, before
     // anything else. Cancelling the wait (the caller's task cancelled while the dialog is open)
     // resumes the continuation with false and removes it from pendingApprovals, mirroring the
     // Swift's withTaskCancellationHandler onCancel hop back to the main actor.
@@ -1374,28 +1374,25 @@ public class OpenAICompatibleSession : ProviderSession
             new ApprovalRequest.Option("always", "Approve for turn", ApprovalRequest.Option.Role.ApproveAlways), // :1070
             new ApprovalRequest.Option("decline", "Decline", ApprovalRequest.Option.Role.Decline),         // :1071
         ]);
-        await MainActor.Run(() => // :1073-1075
-        {
-            OnEvent?.Invoke(new ProviderEvent.Approval(new ApprovalRequest(id, approvalKind, title, options, Detail: detail, ToolItemID: toolItemID)));
-        });
-        return await SwiftTask.WithCancellationHandler( // :1076-1083
+        OnEvent?.Invoke(new ProviderEvent.Approval(new ApprovalRequest(id, approvalKind, title, options, Detail: detail, ToolItemID: toolItemID))); // :1073
+        return await SwiftTask.WithCancellationHandler( // :1074-1081
             () => CheckedContinuation<bool>.With(continuation =>
             {
-                if (SwiftTask.IsCancelled || interrupted) // :1078-1081
+                if (SwiftTask.IsCancelled || interrupted) // :1076-1079
                 {
                     continuation.Resume(false);
                     return;
                 }
-                pendingApprovals[id] = continuation; // :1082
+                pendingApprovals[id] = continuation; // :1080
             }),
-            () => MainActor.Spawn(async () => // :1084-1087
+            () => MainActor.Spawn(async () => // :1082-1085
             {
                 if (pendingApprovals.Remove(id, out var continuation)) continuation.Resume(false);
                 await Task.CompletedTask;
             }));
     }
 
-    // :1098-1117. Self-contained; no missing dependency.
+    // :1096-1115. Self-contained; no missing dependency.
     private const long CondenseHistoryAt = 160_000;
     private const long CondenseHistoryTo = 100_000;
     private const int CondenseKeepsRecent = 10;
@@ -1405,35 +1402,35 @@ public class OpenAICompatibleSession : ProviderSession
 
     private void CondenseHistory()
     {
-        var toolIndices = new List<int>(); // :1099
-        var total = 0L;                     // :1100
-        for (var index = 0; index < messages.Count; index++) // :1101
+        var toolIndices = new List<int>(); // :1097
+        var total = 0L;                     // :1098
+        for (var index = 0; index < messages.Count; index++) // :1099
         {
             if (messages[index]["role"]?.JSONValueString != "tool") continue;
             toolIndices.Add(index);
             total += SwiftString.Utf8Count(messages[index]["content"]?.JSONValueString ?? "");
         }
-        if (total <= CondenseHistoryAt) return; // :1105
-        foreach (var index in toolIndices.Take(Math.Max(0, toolIndices.Count - CondenseKeepsRecent))) // :1106
+        if (total <= CondenseHistoryAt) return; // :1103
+        foreach (var index in toolIndices.Take(Math.Max(0, toolIndices.Count - CondenseKeepsRecent))) // :1104
         {
-            if (total <= CondenseHistoryTo) break; // :1107
+            if (total <= CondenseHistoryTo) break; // :1105
             if (messages[index] is not JSONValue.Object { Value: { } fields } ||
                 fields.TryGetValue("content", out var contentValue) is not true ||
                 contentValue is not JSONValue.String { Value: { } content } ||
                 SwiftString.Utf8Count(content) <= 1_200 ||
-                content.Contains(CondensedMarker, StringComparison.Ordinal)) // :1108-1109
+                content.Contains(CondensedMarker, StringComparison.Ordinal)) // :1106-1107
             {
                 continue;
             }
-            var kept = SwiftString.Prefix(content, 400); // :1110
-            var condensed = $"{kept}\n{CondensedMarker} ({SwiftString.Utf8Count(content)} bytes); call the tool again if you need it]"; // :1111
-            var updated = new Dictionary<string, JSONValue>(fields) { ["content"] = condensed }; // :1112
-            messages[index] = new JSONValue.Object(new ValueMap<string, JSONValue>(updated, SwiftStringComparer.Instance)); // :1113
-            total -= SwiftString.Utf8Count(content) - SwiftString.Utf8Count(condensed); // :1114
+            var kept = SwiftString.Prefix(content, 400); // :1108
+            var condensed = $"{kept}\n{CondensedMarker} ({SwiftString.Utf8Count(content)} bytes); call the tool again if you need it]"; // :1109
+            var updated = new Dictionary<string, JSONValue>(fields) { ["content"] = condensed }; // :1110
+            messages[index] = new JSONValue.Object(new ValueMap<string, JSONValue>(updated, SwiftStringComparer.Instance)); // :1111
+            total -= SwiftString.Utf8Count(content) - SwiftString.Utf8Count(condensed); // :1112
         }
     }
 
-    // :1118-1152. PR-PROVAPI-173, PR-PROVAPI-174. DEVIATION OD-0008 C5 / ED-028 (2): upstream :1136
+    // :1116-1150. PR-PROVAPI-173, PR-PROVAPI-174. DEVIATION OD-0008 C5 / ED-028 (2): upstream :1134
     // launches /usr/bin/grep (`-R -n -I --exclude-dir=... -E|-F -- <pattern> <target>`); there is no
     // grep on Windows, so the search walks the file tree in process instead of spawning one, never
     // through findstr. It keeps the same four excluded directory names, the same fixed-string-versus-
@@ -1445,30 +1442,30 @@ public class OpenAICompatibleSession : ProviderSession
     // other file tools already apply); matched lines are reported as "<path relative to the project
     // root>:<line>:<text>", the same path shape every other tool already shows the model, since the
     // record's own evidence for a byte-exact grep path was never testable on this platform anyway.
-    private static readonly string[] SearchExcludedDirectories = [".git", "node_modules", ".build", "build"]; // :1137
+    private static readonly string[] SearchExcludedDirectories = [".git", "node_modules", ".build", "build"]; // :1135
 
     private async Task<string> SearchText(string pattern, string path, bool regex)
     {
-        var trimmed = pattern.Trimmed(); // :1119
-        if (trimmed.Length == 0) return "Error: a search pattern is required."; // :1120
+        var trimmed = pattern.Trimmed(); // :1117
+        if (trimmed.Length == 0) return "Error: a search pattern is required."; // :1118
         string target;
-        if (path.Trimmed().Length == 0) // :1127
+        if (path.Trimmed().Length == 0) // :1125
         {
-            target = WorkingDirectory; // :1128
+            target = WorkingDirectory; // :1126
         }
         else
         {
             try
             {
-                target = fileTools.ResolveURL(path); // :1131
+                target = fileTools.ResolveURL(path); // :1129
             }
-            catch (Exception error) when (SwiftTry.IsThrownError(error)) // :1132
+            catch (Exception error) when (SwiftTry.IsThrownError(error)) // :1130
             {
-                return $"Error: {SwiftErrors.LocalizedDescription(error)}"; // :1133
+                return $"Error: {SwiftErrors.LocalizedDescription(error)}"; // :1131
             }
         }
         Regex? compiled = null;
-        if (regex) // :1138
+        if (regex) // :1136
         {
             try
             {
@@ -1476,24 +1473,24 @@ public class OpenAICompatibleSession : ProviderSession
             }
             catch (ArgumentException)
             {
-                return "Search failed."; // :1145, an invalid pattern is a grep launch failure's counterpart.
+                return "Search failed."; // :1143, an invalid pattern is a grep launch failure's counterpart.
             }
         }
-        bool Matches(string line) => compiled is { } expression ? expression.IsMatch(line) : line.Contains(trimmed, StringComparison.Ordinal); // :1138
+        bool Matches(string line) => compiled is { } expression ? expression.IsMatch(line) : line.Contains(trimmed, StringComparison.Ordinal); // :1136
         List<string> matches;
         try
         {
-            matches = SearchWalk(target, Matches); // :1136-1143
+            matches = SearchWalk(target, Matches); // :1134-1141
         }
         catch (Exception error) when (SwiftTry.IsThrownError(error))
         {
-            return "Search failed."; // :1144-1145
+            return "Search failed."; // :1142-1143
         }
-        if (matches.Count == 0) return "(no matches)"; // :1147-1148
-        var limited = matches.Take(120); // :1150
+        if (matches.Count == 0) return "(no matches)"; // :1145-1146
+        var limited = matches.Take(120); // :1148
         // U+2026 HORIZONTAL ELLIPSIS.
         return matches.Count > 120
-            ? string.Join("\n", limited) + $"\n\U00002026({matches.Count} matches, truncated)" // :1151
+            ? string.Join("\n", limited) + $"\n\U00002026({matches.Count} matches, truncated)" // :1149
             : string.Join("\n", matches);
     }
 
@@ -1508,7 +1505,7 @@ public class OpenAICompatibleSession : ProviderSession
         if (!Directory.Exists(target)) return results;
         var stack = new Stack<string>();
         stack.Push(target);
-        while (stack.Count > 0) // :1136 -R
+        while (stack.Count > 0) // :1134 -R
         {
             SwiftTask.CheckCancellation();
             var directory = stack.Pop();
@@ -1525,7 +1522,7 @@ public class OpenAICompatibleSession : ProviderSession
             {
                 if (Directory.Exists(entry))
                 {
-                    if (SearchExcludedDirectories.Contains(SwiftPath.LastPathComponent(entry))) continue; // :1137
+                    if (SearchExcludedDirectories.Contains(SwiftPath.LastPathComponent(entry))) continue; // :1135
                     stack.Push(entry);
                     continue;
                 }
@@ -1546,17 +1543,17 @@ public class OpenAICompatibleSession : ProviderSession
         {
             return;
         }
-        var text = SwiftText.DecodeUtf8OrNil(bytes); // :1137 -I, see the block comment above.
+        var text = SwiftText.DecodeUtf8OrNil(bytes); // :1135 -I, see the block comment above.
         if (text is null) return;
-        var relative = ToolTitles.RelativePath(filePath, WorkingDirectory); // :1141 the path shown to the model.
-        var lines = SwiftString.Split(text, "\n", omittingEmptySubsequences: false); // :1149
-        for (var index = 0; index < lines.Count; index++) // :1142 -n
+        var relative = ToolTitles.RelativePath(filePath, WorkingDirectory); // :1139 the path shown to the model.
+        var lines = SwiftString.Split(text, "\n", omittingEmptySubsequences: false); // :1147
+        for (var index = 0; index < lines.Count; index++) // :1140 -n
         {
             if (matches(lines[index])) results.Add($"{relative}:{index + 1}:{lines[index]}");
         }
     }
 
-    // :1154-1165. PR-PROVAPI-175. DEVIATION OD-0008 C5: upstream :1157 spawns "/bin/zsh -lc
+    // :1152-1163. PR-PROVAPI-175. DEVIATION OD-0008 C5: upstream :1155 spawns "/bin/zsh -lc
     // <trimmed>"; there is no zsh on Windows, so the trimmed command runs as the -Command argument
     // of PowerShell 7 when it is on PATH, otherwise Windows PowerShell (WindowsShellForCommands.Resolve
     // below), with -NoProfile -NonInteractive (ED-028 (1)). The 120 second timeout, the 24000 byte
@@ -1564,67 +1561,67 @@ public class OpenAICompatibleSession : ProviderSession
     // written.
     private async Task<(string Output, int ExitCode)> RunCommand(string command)
     {
-        var trimmed = command.Trimmed(); // :1155
-        if (trimmed.Length == 0) return ("Error: a command is required.", 1); // :1156
-        var shell = WindowsShellForCommands.Resolve(); // :1157 DEVIATION OD-0008 C5
+        var trimmed = command.Trimmed(); // :1153
+        if (trimmed.Length == 0) return ("Error: a command is required.", 1); // :1154
+        var shell = WindowsShellForCommands.Resolve(); // :1155 DEVIATION OD-0008 C5
         async Task<ShellResult?> Attempt() => await Shell.Run(
-            shell, ["-NoProfile", "-NonInteractive", "-Command", trimmed], WorkingDirectory, LoginEnvironment.Current, timeout: 120, outputLimit: 24_000); // :1159
+            shell, ["-NoProfile", "-NonInteractive", "-Command", trimmed], WorkingDirectory, LoginEnvironment.Current, timeout: 120, outputLimit: 24_000); // :1157
         var result = await SwiftTry.OptionalAsync(Attempt);
-        if (result is null) return ("The command could not start.", 1); // :1160-1161
-        var output = (result.Output + (result.ErrorOutput.Length == 0 ? "" : "\n" + result.ErrorOutput)).Trimmed(); // :1162
-        if (SwiftString.Utf8Count(output) > 24_000) // :1163
+        if (result is null) return ("The command could not start.", 1); // :1158-1159
+        var output = (result.Output + (result.ErrorOutput.Length == 0 ? "" : "\n" + result.ErrorOutput)).Trimmed(); // :1160
+        if (SwiftString.Utf8Count(output) > 24_000) // :1161
         {
             // U+2026 HORIZONTAL ELLIPSIS.
             output = "\U00002026" + SwiftString.Suffix(output, 24_000);
         }
-        return (output, result.Status); // :1164
+        return (output, result.Status); // :1162
     }
 
     // MARK: - Messages
 
-    // :1172-1176. Rebuilds the system prompt in place so the current project guidelines are the
+    // :1170-1174. Rebuilds the system prompt in place so the current project guidelines are the
     // ones the model sees. Only the system message is touched; the higher-priority policy inside
     // it is rebuilt identically.
     private void RefreshSystemPrompt()
     {
-        if (messages.Count == 0 || messages[0]["role"]?.JSONValueString != "system") return; // :1173
-        messages[0] = JSONValue.FromDictionaryLiteral(("role", "system"), ("content", SystemPrompt())); // :1174
+        if (messages.Count == 0 || messages[0]["role"]?.JSONValueString != "system") return; // :1171
+        messages[0] = JSONValue.FromDictionaryLiteral(("role", "system"), ("content", SystemPrompt())); // :1172
     }
 
-    // :1177-1216
+    // :1175-1214
     private string SystemPrompt()
     {
-        var modeLine = (interactionMode, runtimeMode) switch // :1178
+        var modeLine = (interactionMode, runtimeMode) switch // :1176
         {
             (InteractionMode.Plan, _) =>
-                "You are in PLAN mode: research the project, then write a clear step-by-step plan. Do not edit files or run commands that change anything; reads, lists and searches are fine.", // :1180 PR-PROVAPI-142
-            // DEVIATION OD-0012 F1 (PR-PROVAPI-143): upstream :1182 reads
+                "You are in PLAN mode: research the project, then write a clear step-by-step plan. Do not edit files or run commands that change anything; reads, lists and searches are fine.", // :1178 PR-PROVAPI-142
+            // DEVIATION OD-0012 F1 (PR-PROVAPI-143): upstream :1180 reads
             // `"...the user approves each one in Droppy Code."`; the product name becomes Marrow.
             (InteractionMode.Build, RuntimeMode.Supervised) =>
-                "You are in BUILD mode with supervised permissions: use tools freely but the user approves each one in Marrow.", // :1182
-            // DEVIATION OD-0012 F1 (PR-PROVAPI-144): upstream :1184 reads
+                "You are in BUILD mode with supervised permissions: use tools freely but the user approves each one in Marrow.", // :1180
+            // DEVIATION OD-0012 F1 (PR-PROVAPI-144): upstream :1182 reads
             // `"...the user approves shell commands in Droppy Code."`; the product name becomes Marrow.
             (InteractionMode.Build, RuntimeMode.AutoAcceptEdits) or (InteractionMode.Build, RuntimeMode.Auto) =>
-                "You are in BUILD mode: read and edit files freely; the user approves shell commands in Marrow.", // :1184
+                "You are in BUILD mode: read and edit files freely; the user approves shell commands in Marrow.", // :1182
             (InteractionMode.Build, RuntimeMode.FullAccess) =>
-                "You are in BUILD mode with full access: use tools freely without asking.", // :1186 PR-PROVAPI-145
+                "You are in BUILD mode with full access: use tools freely without asking.", // :1184 PR-PROVAPI-145
             _ => throw new UnreachableException(),
         };
         // The optional Hydra policy and the anti-slop guidance go in once each. The off notice
-        // goes out too, so a resumed thread cannot keep earlier guidance alive. :1190-1196
+        // goes out too, so a resumed thread cannot keep earlier guidance alive. :1188-1194
         var policy = string.Join("\n\n", new[]
         {
             Configuration.Hydra is { } hydra ? HydraPrompts.FallbackPolicy(hydra) : null,
             AntiSlopPolicy.Instructions(Configuration.AntiSlopEnabled),
         }.Where(value => value is not null));
         // The project's own root guidelines come last, so the policy above stays higher
-        // priority. They are re-read here only when the files changed. :1197-1199
+        // priority. They are re-read here only when the files changed. :1195-1197
         var appendedPolicy = string.Join("\n\n", new[]
         {
             policy.Length == 0 ? null : policy,
             guidance.SystemPromptBlock(),
         }.Where(value => value is not null));
-        // DEVIATION OD-0012 F1 (PR-PROVAPI-141): upstream :1202 reads
+        // DEVIATION OD-0012 F1 (PR-PROVAPI-141): upstream :1200 reads
         // `"You are Droppy Code's \(config.agentIdentity(currentModel)), working inside \(workingDirectory) on macOS."`;
         // the product name becomes Marrow and the platform word becomes Windows.
         return
@@ -1638,29 +1635,29 @@ public class OpenAICompatibleSession : ProviderSession
             "  line, however long, so a copied reply keeps its full line length wherever it is pasted.\n" +
             "  Lines inside a fenced code block keep their own breaks.\n" +
             "- If a tool result shows the user declined an action, do not retry it: ask how to proceed.\n" +
-            $"- Today's date is {FoundationISO8601.Format(SwiftDate.Now)}.\n\n{appendedPolicy}"; // :1213-1215
+            $"- Today's date is {FoundationISO8601.Format(SwiftDate.Now)}.\n\n{appendedPolicy}"; // :1211-1213
     }
 
-    // :1217-1235
+    // :1215-1233
     private async Task<JSONValue> UserContentValue(string text, IReadOnlyList<Attachment> images)
     {
-        var usable = images.Where(image => image.IsImage).Take(4).ToList(); // :1218
-        if (usable.Count == 0 || !OpenAICompatibleSessionConfig.IsVisionModel(currentModel)) // :1219
+        var usable = images.Where(image => image.IsImage).Take(4).ToList(); // :1216
+        if (usable.Count == 0 || !OpenAICompatibleSessionConfig.IsVisionModel(currentModel)) // :1217
         {
-            if (usable.Count == 0) return text; // :1220
-            var names = string.Join(", ", usable.Select(image => image.Name)); // :1221
-            return $"{text}\n\n[Attached images (model cannot see them): {names}]"; // :1222
+            if (usable.Count == 0) return text; // :1218
+            var names = string.Join(", ", usable.Select(image => image.Name)); // :1219
+            return $"{text}\n\n[Attached images (model cannot see them): {names}]"; // :1220
         }
-        var parts = new List<JSONValue> { JSONValue.FromDictionaryLiteral(("type", "text"), ("text", text)) }; // :1224
-        foreach (var (image, base64) in await Attachment.Base64Images(usable)) // :1225
+        var parts = new List<JSONValue> { JSONValue.FromDictionaryLiteral(("type", "text"), ("text", text)) }; // :1222
+        foreach (var (image, base64) in await Attachment.Base64Images(usable)) // :1223
         {
-            var url = $"data:{image.MimeType};base64,{base64}"; // :1226
-            parts.Add(JSONValue.FromDictionaryLiteral(("type", "image_url"), ("image_url", JSONValue.FromDictionaryLiteral(("url", url))))); // :1227-1228
+            var url = $"data:{image.MimeType};base64,{base64}"; // :1224
+            parts.Add(JSONValue.FromDictionaryLiteral(("type", "image_url"), ("image_url", JSONValue.FromDictionaryLiteral(("url", url))))); // :1225-1226
         }
-        return JSONValue.FromArrayLiteral([.. parts]); // :1229
+        return JSONValue.FromArrayLiteral([.. parts]); // :1227
     }
 
-    // :1236-1246. DeepSeek's thinking mode rejects the follow-up request with "The
+    // :1234-1244. DeepSeek's thinking mode rejects the follow-up request with "The
     // `reasoning_content` in the thinking mode must be passed back to the API" unless every
     // tool-call message carries it (an empty string is accepted); where reasoning is not
     // replayed, the field is left off entirely.
@@ -1670,49 +1667,49 @@ public class OpenAICompatibleSession : ProviderSession
         {
             ["role"] = "assistant",
             ["content"] = content,
-        }; // :1237
-        if (OpenAICompatibleSessionConfig.ReplaysReasoning) message["reasoning_content"] = reasoning; // :1238
-        if (toolCalls.Count > 0) // :1239
+        }; // :1235
+        if (OpenAICompatibleSessionConfig.ReplaysReasoning) message["reasoning_content"] = reasoning; // :1236
+        if (toolCalls.Count > 0) // :1237
         {
             message["tool_calls"] = JSONValue.FromArrayLiteral([.. toolCalls.Select(tool => JSONValue.FromDictionaryLiteral(
                 ("id", tool.Id),
                 ("type", "function"),
-                ("function", JSONValue.FromDictionaryLiteral(("name", tool.Name), ("arguments", tool.Arguments)))))]); // :1240-1245
+                ("function", JSONValue.FromDictionaryLiteral(("name", tool.Name), ("arguments", tool.Arguments)))))]); // :1238-1243
         }
         return new JSONValue.Object(new ValueMap<string, JSONValue>(message, SwiftStringComparer.Instance));
     }
 
-    // :1247-1258. System prompt plus roughly the last 40 exchanges; each exchange is user +
+    // :1245-1256. System prompt plus roughly the last 40 exchanges; each exchange is user +
     // assistant + tool messages, so cap the raw message count. The running turn is never cut: a
     // blind suffix dropped its user message once the turn passed 50 messages, leaving the model
     // tool results with no task, so it stopped and asked what to do.
     private void TrimHistory()
     {
-        if (messages.Count <= 60) return; // :1253
-        var system = messages.Count > 0 ? messages[0] : null; // :1254
-        var body = messages.Skip(1).ToList(); // :1255
-        var turnStart = body.FindLastIndex(message => message["role"]?.JSONValueString == "user"); // :1256
+        if (messages.Count <= 60) return; // :1251
+        var system = messages.Count > 0 ? messages[0] : null; // :1252
+        var body = messages.Skip(1).ToList(); // :1253
+        var turnStart = body.FindLastIndex(message => message["role"]?.JSONValueString == "user"); // :1254
         if (turnStart < 0) turnStart = body.Count;
-        var current = body.Skip(turnStart).ToList(); // :1257
+        var current = body.Skip(turnStart).ToList(); // :1255
         var earlierAll = body.Take(turnStart).ToList();
-        var earlier = earlierAll.Skip(Math.Max(0, earlierAll.Count - Math.Max(0, 50 - current.Count))).ToList(); // :1258
-        messages = (system is not null ? new List<JSONValue> { system } : []).Concat(earlier).Concat(current).ToList(); // :1259
+        var earlier = earlierAll.Skip(Math.Max(0, earlierAll.Count - Math.Max(0, 50 - current.Count))).ToList(); // :1256
+        messages = (system is not null ? new List<JSONValue> { system } : []).Concat(earlier).Concat(current).ToList(); // :1257
     }
 
-    // :1268-1320. Repairs tool-call chains after trimming, compaction or interruption. These
+    // :1266-1318. Repairs tool-call chains after trimming, compaction or interruption. These
     // APIs reject any history where a `tool` message has no preceding `assistant` message with a
     // matching `tool_calls` id (and vice versa). Once such an orphan exists, every later request
     // fails identically, so no retry can heal it - this drops orphaned tool messages and strips
     // tool calls that lost their answers, keeping the history sendable.
     private void SanitizeHistory()
     {
-        var clean = new List<JSONValue>(messages.Count); // :1270
-        var open = new List<(int Index, HashSet<string> Ids)>(); // :1273
+        var clean = new List<JSONValue>(messages.Count); // :1268
+        var open = new List<(int Index, HashSet<string> Ids)>(); // :1271
 
         void CloseOpen()
         {
             // Calls that can never be answered now must go. Applied last-index-first so removals
-            // never shift pending indices. :1275-1277
+            // never shift pending indices. :1273-1275
             foreach (var entry in open.OrderByDescending(item => item.Index))
             {
                 if (clean[entry.Index] is not JSONValue.Object { Value: { } values } ||
@@ -1722,79 +1719,79 @@ public class OpenAICompatibleSession : ProviderSession
                     continue;
                 }
                 var kept = calls.Where(call =>
-                    call["id"]?.JSONValueString is { Length: > 0 } id && !entry.Ids.Contains(id)).ToList(); // :1281-1284
+                    call["id"]?.JSONValueString is { Length: > 0 } id && !entry.Ids.Contains(id)).ToList(); // :1279-1282
                 var fields = new Dictionary<string, JSONValue>(values);
-                if (kept.Count == 0) // :1285
+                if (kept.Count == 0) // :1283
                 {
-                    fields.Remove("tool_calls"); // :1286
-                    var content = (fields.TryGetValue("content", out var contentValue) ? contentValue.JSONValueString : null)?.Trimmed() ?? ""; // :1287
-                    if (content.Length == 0) // :1288
+                    fields.Remove("tool_calls"); // :1284
+                    var content = (fields.TryGetValue("content", out var contentValue) ? contentValue.JSONValueString : null)?.Trimmed() ?? ""; // :1285
+                    if (content.Length == 0) // :1286
                     {
-                        clean.RemoveAt(entry.Index); // :1289
+                        clean.RemoveAt(entry.Index); // :1287
                     }
                     else
                     {
-                        clean[entry.Index] = new JSONValue.Object(new ValueMap<string, JSONValue>(fields, SwiftStringComparer.Instance)); // :1291
+                        clean[entry.Index] = new JSONValue.Object(new ValueMap<string, JSONValue>(fields, SwiftStringComparer.Instance)); // :1289
                     }
                 }
                 else
                 {
-                    fields["tool_calls"] = JSONValue.FromArrayLiteral([.. kept]); // :1294
-                    clean[entry.Index] = new JSONValue.Object(new ValueMap<string, JSONValue>(fields, SwiftStringComparer.Instance)); // :1295
+                    fields["tool_calls"] = JSONValue.FromArrayLiteral([.. kept]); // :1292
+                    clean[entry.Index] = new JSONValue.Object(new ValueMap<string, JSONValue>(fields, SwiftStringComparer.Instance)); // :1293
                 }
             }
-            open.Clear(); // :1297
+            open.Clear(); // :1295
         }
 
-        foreach (var message in messages) // :1299
+        foreach (var message in messages) // :1297
         {
-            var role = message["role"]?.JSONValueString ?? ""; // :1300
-            if (role == "tool") // :1301
+            var role = message["role"]?.JSONValueString ?? ""; // :1298
+            if (role == "tool") // :1299
             {
-                var id = message["tool_call_id"]?.JSONValueString ?? ""; // :1302
-                var slot = open.FindIndex(entry => entry.Ids.Contains(id)); // :1303
-                if (slot >= 0) // :1304
+                var id = message["tool_call_id"]?.JSONValueString ?? ""; // :1300
+                var slot = open.FindIndex(entry => entry.Ids.Contains(id)); // :1301
+                if (slot >= 0) // :1302
                 {
-                    clean.Add(message);            // :1305
-                    open[slot].Ids.Remove(id);      // :1306
-                    if (open[slot].Ids.Count == 0) open.RemoveAt(slot); // :1307
+                    clean.Add(message);            // :1303
+                    open[slot].Ids.Remove(id);      // :1304
+                    if (open[slot].Ids.Count == 0) open.RemoveAt(slot); // :1305
                 }
-                // else: orphaned by a trim/compact cut - drop it. :1308
-                continue; // :1309
+                // else: orphaned by a trim/compact cut - drop it. :1306
+                continue; // :1307
             }
             if (role == "assistant" &&
-                message["tool_calls"]?.JSONValueArray is { Count: > 0 } assistantCalls) // :1310
+                message["tool_calls"]?.JSONValueArray is { Count: > 0 } assistantCalls) // :1308
             {
-                CloseOpen();     // :1311
-                clean.Add(message); // :1312
+                CloseOpen();     // :1309
+                clean.Add(message); // :1310
                 var ids = new HashSet<string>(assistantCalls
                     .Select(call => call["id"]?.JSONValueString)
-                    .Where(id => !string.IsNullOrEmpty(id))!); // :1313
-                if (ids.Count > 0) open.Add((clean.Count - 1, ids)); // :1314
-                continue; // :1315
+                    .Where(id => !string.IsNullOrEmpty(id))!); // :1311
+                if (ids.Count > 0) open.Add((clean.Count - 1, ids)); // :1312
+                continue; // :1313
             }
-            CloseOpen();       // :1317
-            clean.Add(message); // :1318
+            CloseOpen();       // :1315
+            clean.Add(message); // :1316
         }
-        CloseOpen();    // :1320
-        messages = clean; // :1321
+        CloseOpen();    // :1318
+        messages = clean; // :1319
     }
 
-    // :1326-1330. PR-PROVAPI-153. Truncates timeline-shown tool output; the string returned to
+    // :1324-1328. PR-PROVAPI-153. Truncates timeline-shown tool output; the string returned to
     // the model (executeTool's own return values, a later part of this unit) is never truncated
     // by this helper. Bytes bound characters, so a short text (measured in bytes) skips the
     // grapheme count.
     private static string Summary(string text, int limit)
     {
-        if (SwiftString.Utf8Count(text) <= limit || SwiftString.Count(text) <= limit) return text; // :1328
-        return $"{SwiftString.Prefix(text, limit)}\n\U00002026(truncated)"; // :1329 U+2026 HORIZONTAL ELLIPSIS
+        if (SwiftString.Utf8Count(text) <= limit || SwiftString.Count(text) <= limit) return text; // :1326
+        return $"{SwiftString.Prefix(text, limit)}\n\U00002026(truncated)"; // :1327 U+2026 HORIZONTAL ELLIPSIS
     }
 
-    // :1332-1335
+    // :1330-1333
     private string NextID(string prefix)
     {
-        counter += 1; // :1333
-        return $"{prefix}-{counter}-{SwiftString.Prefix(SwiftUUID.UuidString(Guid.NewGuid()), 8)}"; // :1334
+        counter += 1; // :1331
+        return $"{prefix}-{counter}-{SwiftString.Prefix(SwiftUUID.UuidString(Guid.NewGuid()), 8)}"; // :1332
     }
 
     // :72. Runaway guard only (see the block comment at :67-71 in the Swift source, quoted at
@@ -1807,7 +1804,7 @@ public class OpenAICompatibleSession : ProviderSession
 
 /// <summary>
 /// PORT-ONLY: no Swift twin. DEVIATION OD-0008 C5, resolving UNK-0005 (PR-PROVAPI-175's windows_path):
-/// DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1157's <c>/bin/zsh -lc &lt;command&gt;</c>
+/// DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1155's <c>/bin/zsh -lc &lt;command&gt;</c>
 /// has no Windows equivalent, so run_command's shell is PowerShell 7 when it is on the login PATH,
 /// otherwise Windows PowerShell, matching the same resolution App/Views/Terminal/Port/TerminalHost.cs's
 /// WindowsShell makes for the terminal (PR-TERM-039); Services cannot reference that App type

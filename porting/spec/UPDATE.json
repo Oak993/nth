@@ -2837,7 +2837,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The Windows build carries the same two values, 1.7.0 and 21, in its own version metadata, and the port's AppInfo readers return them. Where the port's build declares them is an ENGINEERING DECISION not yet made; no port build metadata exists to cite.",
       "verification_method": "unit test that the built app's version and build readers return \"1.7.0\" and \"21\", plus a capture of the About card showing \"Version 1.7.0 (21)\"",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,

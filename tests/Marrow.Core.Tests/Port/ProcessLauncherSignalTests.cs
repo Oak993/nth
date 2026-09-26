@@ -12,13 +12,14 @@ namespace Marrow.Core.Tests.Port;
 // (CREATE_NO_WINDOW), and sent the event from a separate helper process that attached to the child's console
 // (FreeConsole, AttachConsole(child), GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, child), FreeConsole); its runner
 // never gave up its own console (deviation 4: "AttachConsole is process-wide state"), and the helper's guard bit
-// showed the event never reached the helper. This test holds the same for the launcher, for both ladder shapes
-// (ED-047 (a) with a job, (b) without): the test host registers handlers for CTRL_BREAK_EVENT (PosixSignal.SIGQUIT
-// on Windows) and CTRL_C_EVENT (SIGINT), cancelling them so a wrong event cannot end the run, and they must never
-// fire; the host's console window handle must be unchanged. Registering the handlers is a process-wide change, so
-// the test runs in the non-parallel "Process signals" collection (R-TEST-5). Limit: when the test host has no
-// console at all, a GenerateConsoleCtrlEvent sent wrongly from the host fails silently and is not seen here; the
-// Ctrl+Break tests in ProcessLauncherSpawnTests still require the child's own handler to run.
+// showed the event never reached the helper. This test holds the same for the launcher, for a child with a job and
+// one without (ED-047 (a) and (b); since ED-194 the StdioProcess child is in a job too, which Terminate never
+// uses): the test host registers handlers for CTRL_BREAK_EVENT (PosixSignal.SIGQUIT on Windows) and CTRL_C_EVENT
+// (SIGINT), cancelling them so a wrong event cannot end the run, and they must never fire; the host's console
+// window handle must be unchanged. Registering the handlers is a process-wide change, so the test runs in the
+// non-parallel "Process signals" collection (R-TEST-5). Limit: when the test host has no console at all, a
+// GenerateConsoleCtrlEvent sent wrongly from the host fails silently and is not seen here; the Ctrl+Break tests in
+// ProcessLauncherSpawnTests still require the child's own handler to run.
 [Collection("Process signals")]
 public sealed class ProcessLauncherSignalTests
 {

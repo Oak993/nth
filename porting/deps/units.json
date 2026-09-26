@@ -860,21 +860,13 @@
    "deps": [],
    "intra_deps": [],
    "records_total": 2,
-   "records_todo": [
-    "PR-PROVACP-164",
-    "PR-PROVACP-165"
-   ],
-   "parts": [
-    [
-     "PR-PROVACP-164",
-     "PR-PROVACP-165"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M2-067"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Core.Support.RecentCache",
@@ -1026,28 +1018,14 @@
    ],
    "intra_deps": [],
    "records_total": 13,
-   "records_todo": [
-    "PR-TERM-015",
-    "PR-TERM-019",
-    "PR-WIN-232",
-    "PR-WIN-233",
-    "PR-WIN-234"
-   ],
-   "parts": [
-    [
-     "PR-TERM-015",
-     "PR-TERM-019",
-     "PR-WIN-232",
-     "PR-WIN-233",
-     "PR-WIN-234"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M5-013",
     "T-M5-014"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "UI.Chrome.ProjectSymbolCatalogue",
@@ -1246,24 +1224,8 @@
     "Core.Support.Text"
    ],
    "records_total": 93,
-   "records_todo": [
-    "PR-HYDRA-036",
-    "PR-HYDRA-066",
-    "PR-HYDRA-076",
-    "PR-HYDRA-253",
-    "PR-HYDRA-254",
-    "PR-HYDRAMERGE-083"
-   ],
-   "parts": [
-    [
-     "PR-HYDRA-036",
-     "PR-HYDRA-066",
-     "PR-HYDRA-076",
-     "PR-HYDRA-253",
-     "PR-HYDRA-254",
-     "PR-HYDRAMERGE-083"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M2-003",
     "T-M2-004",
@@ -1278,7 +1240,7 @@
     "T-M2-013"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Core.Models.Provider",
@@ -1381,25 +1343,15 @@
     "Core.Support.Text"
    ],
    "records_total": 26,
-   "records_todo": [
-    "PR-CHAT-018",
-    "PR-HYDRAMERGE-081",
-    "PR-HYDRAMERGE-132"
-   ],
-   "parts": [
-    [
-     "PR-CHAT-018",
-     "PR-HYDRAMERGE-081",
-     "PR-HYDRAMERGE-132"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M2-055",
     "T-M2-056",
     "T-M2-057"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Core.Models.TokenSpend",
@@ -1502,24 +1454,14 @@
     "Core.Models.Timeline"
    ],
    "records_total": 14,
-   "records_todo": [
-    "PR-STORE-112",
-    "PR-STORE-175",
-    "PR-UPDATE-112"
-   ],
-   "parts": [
-    [
-     "PR-STORE-112",
-     "PR-STORE-175",
-     "PR-UPDATE-112"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M2-078",
     "T-M2-079"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Core.Support.ThumbnailCache",
@@ -1683,66 +1625,8 @@
    ],
    "intra_deps": [],
    "records_total": 31,
-   "records_todo": [
-    "PR-HYDRA-152",
-    "PR-HYDRA-153",
-    "PR-STORE-132",
-    "PR-STORE-133",
-    "PR-STORE-134",
-    "PR-STORE-135",
-    "PR-STORE-136",
-    "PR-STORE-137",
-    "PR-STORE-138",
-    "PR-STORE-139",
-    "PR-STORE-140",
-    "PR-STORE-141",
-    "PR-STORE-172",
-    "PR-STORE-173",
-    "UI-STORE-010",
-    "UI-STORE-011",
-    "UI-STORE-012",
-    "UI-STORE-013",
-    "UI-STORE-014",
-    "UI-STORE-015",
-    "UI-STORE-016",
-    "UI-STORE-017",
-    "UI-STORE-018",
-    "UI-STORE-019",
-    "UI-STORE-020",
-    "UI-STORE-021"
-   ],
-   "parts": [
-    [
-     "PR-HYDRA-152",
-     "PR-HYDRA-153",
-     "PR-STORE-132",
-     "PR-STORE-133",
-     "PR-STORE-134",
-     "PR-STORE-135",
-     "PR-STORE-136",
-     "PR-STORE-137",
-     "PR-STORE-138",
-     "PR-STORE-139",
-     "PR-STORE-140",
-     "PR-STORE-141",
-     "PR-STORE-172",
-     "PR-STORE-173",
-     "UI-STORE-010",
-     "UI-STORE-011",
-     "UI-STORE-012",
-     "UI-STORE-013",
-     "UI-STORE-014",
-     "UI-STORE-015",
-     "UI-STORE-016",
-     "UI-STORE-017",
-     "UI-STORE-018",
-     "UI-STORE-019"
-    ],
-    [
-     "UI-STORE-020",
-     "UI-STORE-021"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M2-014",
     "T-M2-015",
@@ -1750,7 +1634,7 @@
     "T-M2-017"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Core.Models.HydraDelegationStream",
@@ -2000,25 +1884,13 @@
    ],
    "intra_deps": [],
    "records_total": 10,
-   "records_todo": [
-    "PR-PROVAPI-001",
-    "PR-PROVAPI-003",
-    "PR-PROVAPI-192",
-    "PR-PROVREG-088"
-   ],
-   "parts": [
-    [
-     "PR-PROVAPI-001",
-     "PR-PROVAPI-003",
-     "PR-PROVAPI-192",
-     "PR-PROVREG-088"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-039"
    ],
    "risk": "HIGH",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.Providers.OpenAICompatibleAPI",
@@ -2252,34 +2124,8 @@
    ],
    "intra_deps": [],
    "records_total": 80,
-   "records_todo": [
-    "PR-GIT-003",
-    "PR-GIT-031",
-    "PR-GIT-036",
-    "PR-GIT-043",
-    "PR-GIT-070",
-    "PR-GIT-161",
-    "PR-GIT-162",
-    "PR-GIT-163",
-    "PR-GIT-164",
-    "PR-GIT-165",
-    "PR-GIT-166"
-   ],
-   "parts": [
-    [
-     "PR-GIT-003",
-     "PR-GIT-031",
-     "PR-GIT-036",
-     "PR-GIT-043",
-     "PR-GIT-070",
-     "PR-GIT-161",
-     "PR-GIT-162",
-     "PR-GIT-163",
-     "PR-GIT-164",
-     "PR-GIT-165",
-     "PR-GIT-166"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M3-003",
     "T-M3-004",
@@ -2291,7 +2137,7 @@
     "T-M3-010"
    ],
    "risk": "HIGH",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.Git.TurnDiff",
@@ -2580,18 +2426,8 @@
     "UI.Common.RenderBudget"
    ],
    "records_total": 73,
-   "records_todo": [
-    "PR-WIN-193",
-    "PR-WIN-202",
-    "UI-WIN-005"
-   ],
-   "parts": [
-    [
-     "PR-WIN-193",
-     "PR-WIN-202",
-     "UI-WIN-005"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M5-001",
     "T-M5-002",
@@ -2603,7 +2439,7 @@
     "T-M5-008"
    ],
    "risk": "HIGH",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "UI.Chrome.Popovers",
@@ -2976,21 +2812,15 @@
    ],
    "intra_deps": [],
    "records_total": 26,
-   "records_todo": [
-    "PR-MCP-159"
-   ],
-   "parts": [
-    [
-     "PR-MCP-159"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-006",
     "T-M4-007",
     "T-M4-008"
    ],
    "risk": "HIGH",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.MCP.MCPPaths",
@@ -3079,21 +2909,15 @@
    ],
    "intra_deps": [],
    "records_total": 23,
-   "records_todo": [
-    "PR-USAGE-100"
-   ],
-   "parts": [
-    [
-     "PR-USAGE-100"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M3-023",
     "T-M3-024",
     "T-M3-025"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "UI.Chrome.ChromeSegmentedPicker",
@@ -3601,19 +3425,13 @@
    ],
    "intra_deps": [],
    "records_total": 8,
-   "records_todo": [
-    "PR-MCP-172"
-   ],
-   "parts": [
-    [
-     "PR-MCP-172"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-012"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.MCP.MCPProxy",
@@ -3637,26 +3455,14 @@
    ],
    "intra_deps": [],
    "records_total": 18,
-   "records_todo": [
-    "PR-MCP-124",
-    "PR-MCP-125",
-    "PR-MCP-131",
-    "PR-MCP-134"
-   ],
-   "parts": [
-    [
-     "PR-MCP-124",
-     "PR-MCP-125",
-     "PR-MCP-131",
-     "PR-MCP-134"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-013",
     "T-M4-014"
    ],
    "risk": "HIGH",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "UI.Chrome.HydraPairMark",
@@ -4049,22 +3855,14 @@
     "UI.Markdown.StreamVeil"
    ],
    "records_total": 12,
-   "records_todo": [
-    "PR-THEME-145",
-    "PR-THEME-185"
-   ],
-   "parts": [
-    [
-     "PR-THEME-145",
-     "PR-THEME-185"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M5-049",
     "T-M5-050"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "UI.Markdown.LinkPopover",
@@ -4397,14 +4195,8 @@
    ],
    "intra_deps": [],
    "records_total": 26,
-   "records_todo": [
-    "PR-HYDRA-199"
-   ],
-   "parts": [
-    [
-     "PR-HYDRA-199"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M7-032",
     "T-M7-033",
@@ -4412,7 +4204,7 @@
     "T-M7-035"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "App.Views.Settings.AboutUpdateViews",
@@ -4748,22 +4540,8 @@
     "Services.Providers.PlanLimits"
    ],
    "records_total": 78,
-   "records_todo": [
-    "PR-PROVCLI-095",
-    "PR-PROVCLI-110",
-    "PR-PROVCLI-116",
-    "PR-PROVCLI-119",
-    "PR-PROVCLI-120"
-   ],
-   "parts": [
-    [
-     "PR-PROVCLI-095",
-     "PR-PROVCLI-110",
-     "PR-PROVCLI-116",
-     "PR-PROVCLI-119",
-     "PR-PROVCLI-120"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-058",
     "T-M4-059",
@@ -4776,7 +4554,7 @@
     "T-M4-066"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.Providers.CommandCodeAPI",
@@ -4817,27 +4595,15 @@
     "Services.Providers.ProviderRegistry"
    ],
    "records_total": 18,
-   "records_todo": [
-    "PR-PROVCLI-263",
-    "PR-PROVCLI-264",
-    "PR-PROVCLI-265",
-    "UI-PROVCLI-019"
-   ],
-   "parts": [
-    [
-     "PR-PROVCLI-263",
-     "PR-PROVCLI-264",
-     "PR-PROVCLI-265",
-     "UI-PROVCLI-019"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-067",
     "T-M4-068",
     "T-M4-069"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.Providers.CopilotSession",
@@ -5623,14 +5389,8 @@
     "App.Views.Chat.SubagentPanel"
    ],
    "records_total": 105,
-   "records_todo": [
-    "PR-PROVREG-239"
-   ],
-   "parts": [
-    [
-     "PR-PROVREG-239"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M6-040",
     "T-M6-041",
@@ -5645,7 +5405,7 @@
     "T-M6-050"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "App.Runtime.AutoContinue",
@@ -6574,14 +6334,8 @@
     "App.Window.WindowManager"
    ],
    "records_total": 30,
-   "records_todo": [
-    "PR-HYDRA-180"
-   ],
-   "parts": [
-    [
-     "PR-HYDRA-180"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M7-025",
     "T-M7-026",
@@ -6589,7 +6343,7 @@
     "T-M7-028"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "App.Views.Chat.HydraProgressBar",
@@ -7311,21 +7065,15 @@
     "App.Window.WindowManager"
    ],
    "records_total": 13,
-   "records_todo": [
-    "PR-CHAT-072"
-   ],
-   "parts": [
-    [
-     "PR-CHAT-072"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M7-054",
     "T-M7-055",
     "T-M7-056"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "App.Views.Chat.TimelineRows",
@@ -8492,25 +8240,15 @@
     "App.Views.Composer.PromptEditor"
    ],
    "records_total": 28,
-   "records_todo": [
-    "PR-COMPOSER-159",
-    "PR-COMPOSER-163",
-    "UI-COMPOSER-052"
-   ],
-   "parts": [
-    [
-     "PR-COMPOSER-159",
-     "PR-COMPOSER-163",
-     "UI-COMPOSER-052"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M7-101",
     "T-M7-102",
     "T-M7-103"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "App.Views.Composer.HydraFusedPairIcon",

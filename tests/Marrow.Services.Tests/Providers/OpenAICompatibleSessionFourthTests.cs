@@ -9,8 +9,8 @@ using Xunit;
 
 namespace Marrow.Services.Tests.Providers;
 
-// Source: DroppyCode/Services/Providers/OpenAICompatibleSession.swift (B2 1fbf81e), :894-1035,
-// :1118-1165.
+// Source: DroppyCode/Services/Providers/OpenAICompatibleSession.swift (B3 52bc792), :894-1035,
+// :1116-1163.
 //
 // Part 4 of 5 (PR-PROVAPI-162 to 175, UI-PROVAPI-011 to 020): the six built-in tool bodies and MCP
 // dispatch inside ExecuteTool, and the native replacements for grep and the login shell. This part's
@@ -270,7 +270,7 @@ public sealed class OpenAICompatibleSessionFourthTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-173")] // OpenAICompatibleSession.swift:1136-1146
+    [Trait("Req", "PR-PROVAPI-173")] // OpenAICompatibleSession.swift:1134-1144
     public async Task Search_text_excludes_the_four_named_directories_and_honours_the_regex_switch()
     {
         using var folder = new ScratchFolder();
@@ -290,7 +290,7 @@ public sealed class OpenAICompatibleSessionFourthTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-173")] // OpenAICompatibleSession.swift:1122-1133
+    [Trait("Req", "PR-PROVAPI-173")] // OpenAICompatibleSession.swift:1120-1131
     public async Task Search_text_refuses_a_path_that_climbs_out_of_the_project()
     {
         using var outsideRoot = new ScratchFolder();
@@ -301,7 +301,7 @@ public sealed class OpenAICompatibleSessionFourthTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-174")] // OpenAICompatibleSession.swift:1149-1151
+    [Trait("Req", "PR-PROVAPI-174")] // OpenAICompatibleSession.swift:1147-1149
     public async Task Search_text_caps_results_at_120_lines_with_a_truncation_count()
     {
         using var folder = new ScratchFolder();

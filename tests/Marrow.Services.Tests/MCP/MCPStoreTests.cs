@@ -10,9 +10,12 @@ using Marrow.Testing;
 
 namespace Marrow.Services.Tests.MCP;
 
-// Tests for src/Marrow.Services/MCP/MCPStore.cs, the port of DroppyCode/Services/MCP/MCPStore.swift (B2 1fbf81e),
-// :1-357, and records PR-MCP-049 to PR-MCP-072 (part 1 of Services.MCP.MCPStore; part 2 covers load/save,
+// Tests for src/Marrow.Services/MCP/MCPStore.cs, the port of DroppyCode/Services/MCP/MCPStore.swift (B3 52bc792),
+// :1-351, and records PR-MCP-049 to PR-MCP-072 (part 1 of Services.MCP.MCPStore; part 2 covers load/save,
 // deleteCustom, storedValue and saveCustomValues, PR-MCP-073 and up, and the byte-level persistence format).
+//
+// B3 delta (lane A17, R3-47): allEntries (B2 lines 51-56) is deleted, having had no caller (PR-MCP-050 retired);
+// every citation at or after B2 line 57 shifts -6.
 //
 // StartProbe's spawned task (MainActor.Spawn inside Connect/Refresh) is a real Task queued on the test's manual
 // main loop. RunOneStep below drains exactly ONE queued item, so a test that only needs Connect/Refresh's
@@ -32,7 +35,7 @@ namespace Marrow.Services.Tests.MCP;
 //    thrown only for a live GitLab probe (MCPProbe.GitLabServerDisabled), the same TLS-loopback gap as above.
 //
 // [Collection(MCPProxyCollection.Name)]: every MCPStore construction here (MCPStoreHarness/MCPStoreDirectHarness)
-// runs MCPStore.ctor -> ExportAll -> MCPProxy.Shared.Current.ReplaceAll (MCPStore.cs:38-39,334), which rewrites
+// runs MCPStore.ctor -> ExportAll -> MCPProxy.Shared.Current.ReplaceAll (MCPStore.cs:41-42,332), which rewrites
 // the WHOLE route table of the same process-wide MCPProxy.Shared singleton MCPProxyTests drives (R-TEST-9's own
 // note). Before this class joined that collection, the two ran in xUnit's default parallel collections and
 // MEASURED interference: filtering both classes together and running 5 times reproduced cross-test failures in
@@ -72,31 +75,17 @@ public sealed class MCPStoreTests
     /// save/saveCustoms) itself writes (Encoding.UTF8.GetBytes never emits one).
     private static void WriteNoBom(string path, string text) => File.WriteAllBytes(path, Encoding.UTF8.GetBytes(text));
 
-    // ===== PR-MCP-050: allEntries =====
-
-    [Fact]
-    [Trait("Req", "PR-MCP-050")] // DroppyCode/Services/MCP/MCPStore.swift:53-55
-    public void AllEntries_lists_customs_before_the_catalog_in_creation_order()
-    {
-        using var harness = new MCPStoreHarness();
-        harness.Runtime.OnMain(() =>
-        {
-            var store = new MCPStore();
-            var first = StdioCustom("Zeta Tool");
-            var second = StdioCustom("Alpha Tool");
-            Assert.Null(store.SaveCustom(first));
-            Assert.Null(store.SaveCustom(second));
-            var ids = store.AllEntries.Select(e => e.Id).ToList();
-            var catalogIds = MCPCatalog.Entries.Select(e => e.Id).ToList();
-            // Customs first, in creation order (Zeta before Alpha, not alphabetical), then the catalog in its order.
-            Assert.Equal(new[] { first.Id, second.Id }.Concat(catalogIds), ids);
-        });
-    }
+    // ===== PR-MCP-050: allEntries (RETIRED at B3) =====
+    //
+    // B3 (lane A17, R3-47): allEntries (B2 MCPStore.swift, lines 51-56) is deleted, having had no caller (git
+    // grep found only the definition at B2 line 53). PR-MCP-050 is retired accordingly, so MCPStore.AllEntries
+    // and this section's former test, AllEntries_lists_customs_before_the_catalog_in_creation_order, go with it.
+    // The custom-first lookup itself survives only in Entry(for:) (PR-MCP-051, below).
 
     // ===== PR-MCP-051: entry(for:) =====
 
     [Fact]
-    [Trait("Req", "PR-MCP-051")] // :58-60
+    [Trait("Req", "PR-MCP-051")] // :52-54
     public void Entry_prefers_a_custom_over_the_catalog_and_falls_back_to_the_catalog_then_nil()
     {
         using var harness = new MCPStoreHarness();
@@ -114,7 +103,7 @@ public sealed class MCPStoreTests
     // ===== PR-MCP-052: value(for:of:) =====
 
     [Fact]
-    [Trait("Req", "PR-MCP-052")] // :63-71
+    [Trait("Req", "PR-MCP-052")] // :57-65
     public void Value_prefers_draft_then_secret_store_or_connection_by_kind_then_default()
     {
         using var harness = new MCPStoreHarness();
@@ -148,7 +137,7 @@ public sealed class MCPStoreTests
     // ===== PR-MCP-055: storedValues overlays the store's secrets on the connection's plaintext values =====
 
     [Fact]
-    [Trait("Req", "PR-MCP-055")] // :293-301
+    [Trait("Req", "PR-MCP-055")] // :287-295
     public async Task EnabledServers_resolves_a_secret_field_from_the_store_overlaid_on_the_connection_values()
     {
         using var harness = new MCPStoreDirectHarness();
@@ -168,7 +157,7 @@ public sealed class MCPStoreTests
 
         Assert.True(store.State(entry.Id) is MCPConnectionState.Connected);
         var resolved = store.EnabledServers.Single(s => s.Id == entry.Id);
-        // storedValues (:293-301) overlays the secret store's "apiKey" onto the connection's plain "mode":
+        // storedValues (:287-295) overlays the secret store's "apiKey" onto the connection's plain "mode":
         // both reach the resolved server's env, proving the merge, not just one source or the other.
         Assert.Equal("secret-value", resolved.Env["apiKey"]);
         Assert.Equal("plain-value", resolved.Env["mode"]);
@@ -178,7 +167,7 @@ public sealed class MCPStoreTests
     // ===== PR-MCP-053: setDraft =====
 
     [Fact]
-    [Trait("Req", "PR-MCP-053")] // :73-75
+    [Trait("Req", "PR-MCP-053")] // :67-69
     public void SetDraft_records_a_per_entry_per_field_draft_that_value_then_returns()
     {
         using var harness = new MCPStoreHarness();
@@ -198,7 +187,7 @@ public sealed class MCPStoreTests
     // ===== PR-MCP-054: canConnect =====
 
     [Fact]
-    [Trait("Req", "PR-MCP-054")] // :78-80
+    [Trait("Req", "PR-MCP-054")] // :72-74
     public void CanConnect_is_true_only_once_every_required_field_has_a_value()
     {
         using var harness = new MCPStoreHarness();
@@ -217,7 +206,7 @@ public sealed class MCPStoreTests
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-054")] // :78-80, "Optional fields are ignored entirely"
+    [Trait("Req", "PR-MCP-054")] // :72-74, "Optional fields are ignored entirely"
     public void CanConnect_ignores_optional_fields_and_is_true_with_none_required()
     {
         using var harness = new MCPStoreHarness();
@@ -232,8 +221,8 @@ public sealed class MCPStoreTests
     // ===== PR-MCP-056/059/060: connect's synchronous contract =====
 
     [Fact]
-    [Trait("Req", "PR-MCP-056")] // :86-89
-    [Trait("Req", "PR-MCP-060")] // :113-117
+    [Trait("Req", "PR-MCP-056")] // :80-83
+    [Trait("Req", "PR-MCP-060")] // :107-111
     public void Connect_marks_enabled_saves_the_connection_sets_connecting_and_clears_the_draft()
     {
         using var harness = new MCPStoreHarness();
@@ -246,15 +235,15 @@ public sealed class MCPStoreTests
         RunOneStep(harness.Runtime, () =>
         {
             store.Connect(entry);
-            Assert.True(store.State(entry.Id) is MCPConnectionState.Connecting); // :116, observed before the probe runs
-            Assert.True(store.Connection(entry.Id)!.IsEnabled); // :89
+            Assert.True(store.State(entry.Id) is MCPConnectionState.Connecting); // :110, observed before the probe runs
+            Assert.True(store.Connection(entry.Id)!.IsEnabled); // :83
         });
-        // exportAll is NOT reached synchronously by connect (:113-117 has no exportAll call), only save().
+        // exportAll is NOT reached synchronously by connect (:107-111 has no exportAll call), only save().
         Assert.True(File.Exists(MCPPaths.ConnectionsURL));
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-059")] // :103-112
+    [Trait("Req", "PR-MCP-059")] // :97-106
     public void Connect_commits_drafted_fields_secrets_to_the_store_plain_ones_to_the_connection()
     {
         using var harness = new MCPStoreHarness();
@@ -281,7 +270,7 @@ public sealed class MCPStoreTests
     // ===== PR-MCP-057: OAuth address change signs out first =====
 
     [Fact]
-    [Trait("Req", "PR-MCP-057")] // :90-96
+    [Trait("Req", "PR-MCP-057")] // :84-90
     public void Connect_signs_out_an_oauth_server_when_the_draft_changes_its_filled_address()
     {
         using var harness = new MCPStoreHarness();
@@ -302,7 +291,7 @@ public sealed class MCPStoreTests
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-057")] // :90-96, the no-op side: an unchanged address signs out nothing
+    [Trait("Req", "PR-MCP-057")] // :84-90, the no-op side: an unchanged address signs out nothing
     public void Connect_does_not_sign_out_an_oauth_server_when_the_draft_does_not_change_its_address()
     {
         using var harness = new MCPStoreHarness();
@@ -323,7 +312,7 @@ public sealed class MCPStoreTests
     // ===== PR-MCP-058: retrying a failed OAuth server signs out =====
 
     [Fact]
-    [Trait("Req", "PR-MCP-058")] // :99-102, the state guard: only a .failed entry is signed out on this branch
+    [Trait("Req", "PR-MCP-058")] // :93-96, the state guard: only a .failed entry is signed out on this branch
     public void Connect_does_not_sign_out_an_oauth_server_whose_state_is_not_failed()
     {
         using var harness = new MCPStoreHarness();
@@ -344,7 +333,7 @@ public sealed class MCPStoreTests
     // ===== PR-MCP-061: disconnect =====
 
     [Fact]
-    [Trait("Req", "PR-MCP-061")] // :120-134
+    [Trait("Req", "PR-MCP-061")] // :114-128
     public void Disconnect_forgets_the_connection_state_and_draft_and_deletes_the_stored_fields()
     {
         using var harness = new MCPStoreHarness();
@@ -375,7 +364,7 @@ public sealed class MCPStoreTests
     // ===== PR-MCP-062: refresh =====
 
     [Fact]
-    [Trait("Req", "PR-MCP-062")] // :136-141
+    [Trait("Req", "PR-MCP-062")] // :130-135
     public void Refresh_sets_connecting_without_reading_or_clearing_drafts_or_saving_immediately()
     {
         using var harness = new MCPStoreHarness();
@@ -390,7 +379,7 @@ public sealed class MCPStoreTests
             store.SetDraft("leftover-draft", field, entry);
             store.Refresh(entry);
             Assert.True(store.State(entry.Id) is MCPConnectionState.Connecting);
-            // Refresh does not touch drafts at all (:137-141 reads and writes none).
+            // Refresh does not touch drafts at all (:131-135 reads and writes none).
             Assert.Equal("leftover-draft", store.Drafts[entry.Id][field.Key]);
         });
     }
@@ -398,7 +387,7 @@ public sealed class MCPStoreTests
     // ===== PR-MCP-063: setEnabled =====
 
     [Fact]
-    [Trait("Req", "PR-MCP-063")] // :143-149, the no-connection guard
+    [Trait("Req", "PR-MCP-063")] // :137-143, the no-connection guard
     public void SetEnabled_does_nothing_without_a_connection_row()
     {
         using var harness = new MCPStoreHarness();
@@ -406,12 +395,12 @@ public sealed class MCPStoreTests
         var custom = StdioCustom("Guard Tool");
         harness.Runtime.OnMain(() => Assert.Null(store.SaveCustom(custom)));
         var entry = harness.Runtime.OnMain(() => store.Entry(custom.Id)!);
-        harness.Runtime.OnMain(() => store.SetEnabled(false, entry)); // :144 guard var connection = connections[id] else return
+        harness.Runtime.OnMain(() => store.SetEnabled(false, entry)); // :138 guard var connection = connections[id] else return
         Assert.False(File.Exists(MCPPaths.ConnectionsURL));
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-063")] // :143-149, the flip-save-export path
+    [Trait("Req", "PR-MCP-063")] // :137-143, the flip-save-export path
     public void SetEnabled_flips_the_switch_and_saves_once_a_connection_exists()
     {
         using var harness = new MCPStoreHarness();
@@ -445,7 +434,7 @@ public sealed class MCPStoreTests
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-064")] // :334-343
+    [Trait("Req", "PR-MCP-064")] // :328-337
     public async Task A_successful_probe_writes_connectedAt_version_and_tools_and_marks_connected()
     {
         using var harness = new MCPStoreDirectHarness();
@@ -469,7 +458,7 @@ public sealed class MCPStoreTests
     // ===== PR-MCP-067: a cancelled probe changes nothing =====
 
     [Fact]
-    [Trait("Req", "PR-MCP-067")] // :344, empty CancellationError body
+    [Trait("Req", "PR-MCP-067")] // :338, empty CancellationError body
     public void A_probe_cancelled_by_disconnect_before_it_runs_leaves_no_state_once_the_loop_drains()
     {
         using var harness = new MCPStoreHarness();
@@ -491,7 +480,7 @@ public sealed class MCPStoreTests
     // ===== PR-MCP-069: any other probe error becomes .failed with the error's own message =====
 
     [Fact]
-    [Trait("Req", "PR-MCP-069")] // :350-353
+    [Trait("Req", "PR-MCP-069")] // :344-347
     public void A_command_missing_probe_error_becomes_failed_with_its_own_message()
     {
         using var harness = new MCPStoreHarness();
@@ -508,7 +497,7 @@ public sealed class MCPStoreTests
             var state = store.State(entry.Id);
             var failed = Assert.IsType<MCPConnectionState.Failed>(state);
             Assert.False(string.IsNullOrEmpty(failed.Message));
-            // Nothing is saved or exported on this path (:350-353): the connection row is untouched (never connected).
+            // Nothing is saved or exported on this path (:344-347): the connection row is untouched (never connected).
             Assert.Null(store.Connection(entry.Id)!.ConnectedAt);
         });
     }
@@ -516,7 +505,7 @@ public sealed class MCPStoreTests
     // ===== PR-MCP-070/071: saveCustom validates, mints the id once, and inserts/replaces in place =====
 
     [Fact]
-    [Trait("Req", "PR-MCP-070")] // :156-166
+    [Trait("Req", "PR-MCP-070")] // :150-160
     public void SaveCustom_trims_the_name_mints_the_id_once_and_validates_against_taken_ids()
     {
         using var harness = new MCPStoreHarness();
@@ -526,7 +515,7 @@ public sealed class MCPStoreTests
             var created = StdioCustom("  Spaced Name  ");
             Assert.Null(store.SaveCustom(created));
             var saved = store.Customs.Single();
-            Assert.Equal("Spaced Name", saved.Name); // :162 trimmed
+            Assert.Equal("Spaced Name", saved.Name); // :156 trimmed
             Assert.Equal(MCPCustomServer.MakeID("  Spaced Name  "), saved.Id); // minted once, from the raw name
 
             // A rename (replacing: same id) never changes the id.
@@ -536,7 +525,7 @@ public sealed class MCPStoreTests
             Assert.Equal("Totally Different Name", store.Customs.Single().Name);
 
             // A new custom whose name mints the SAME id as an existing one is rejected, nothing written. The
-            // renamed entry above still carries the ORIGINAL id (minted once, :165, never moved by a rename),
+            // renamed entry above still carries the ORIGINAL id (minted once, :159, never moved by a rename),
             // so the collision is with "Spaced Name", not with the entry's current name.
             var colliding = StdioCustom("Spaced Name");
             var error = store.SaveCustom(colliding);
@@ -546,7 +535,7 @@ public sealed class MCPStoreTests
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-070")] // :166, the empty-name validation error, one representative failure case
+    [Trait("Req", "PR-MCP-070")] // :160, the empty-name validation error, one representative failure case
     public void SaveCustom_rejects_an_empty_name()
     {
         using var harness = new MCPStoreHarness();
@@ -560,7 +549,7 @@ public sealed class MCPStoreTests
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-071")] // :167-175
+    [Trait("Req", "PR-MCP-071")] // :161-169
     public void SaveCustom_replaces_in_place_keeping_creation_order()
     {
         using var harness = new MCPStoreHarness();
@@ -584,7 +573,7 @@ public sealed class MCPStoreTests
     // ===== PR-MCP-072: saving an edit to a connected custom server drops its connection =====
 
     [Fact]
-    [Trait("Req", "PR-MCP-072")] // :176-189
+    [Trait("Req", "PR-MCP-072")] // :170-183
     public async Task SaveCustom_clears_connectedAt_version_and_tools_and_sets_notConnected_for_a_connected_edit()
     {
         using var harness = new MCPStoreDirectHarness();
@@ -600,11 +589,11 @@ public sealed class MCPStoreTests
 
         var edited = custom with { Args = new ValueList<string>(custom.Args.Append("-extra")) };
         Assert.Null(store.SaveCustom(edited, replacing: custom.Id));
-        Assert.True(store.State(custom.Id) is MCPConnectionState.NotConnected); // :185
+        Assert.True(store.State(custom.Id) is MCPConnectionState.NotConnected); // :179
         var connection = store.Connection(custom.Id)!;
-        Assert.Null(connection.ConnectedAt); // :181
-        Assert.Null(connection.ServerVersion); // :182
-        Assert.Empty(connection.Tools); // :183
+        Assert.Null(connection.ConnectedAt); // :175
+        Assert.Null(connection.ServerVersion); // :176
+        Assert.Empty(connection.Tools); // :177
         // enabledServers (and so every provider config) excludes it immediately: connectedAt is nil (PR-MCP-049).
         Assert.DoesNotContain(entry.Id, store.EnabledServers.Select(s => s.Id));
     }
@@ -649,7 +638,7 @@ public sealed class MCPStoreTests
     // ===== PR-MCP-074: storedValue =====
 
     [Fact]
-    [Trait("Req", "PR-MCP-074")] // :203-206
+    [Trait("Req", "PR-MCP-074")] // :197-200
     public void StoredValue_reads_the_store_for_secret_fields_and_the_connection_for_plain_ones()
     {
         using var harness = new MCPStoreHarness();
@@ -661,25 +650,25 @@ public sealed class MCPStoreTests
             var entry = store.Entry(custom.Id)!;
 
             // Nothing stored yet in either store: both read nil.
-            Assert.Null(store.StoredValue(entry.Id, "apiKey", secret: true)); // :204
-            Assert.Null(store.StoredValue(entry.Id, "mode", secret: false)); // :205, no connection row yet
+            Assert.Null(store.StoredValue(entry.Id, "apiKey", secret: true)); // :198
+            Assert.Null(store.StoredValue(entry.Id, "mode", secret: false)); // :199, no connection row yet
 
             MCPKeychain.Set("secret-in-store", entry.Id, "apiKey");
-            Assert.Equal("secret-in-store", store.StoredValue(entry.Id, "apiKey", secret: true)); // :204
+            Assert.Equal("secret-in-store", store.StoredValue(entry.Id, "apiKey", secret: true)); // :198
 
             // A plain field reads the connection, never the store, even when the store holds a value for that key
             // (no cross-store fallback, per the record).
             MCPKeychain.Set("should-not-be-read", entry.Id, "mode");
-            Assert.Null(store.StoredValue(entry.Id, "mode", secret: false)); // :205, still no connection row
+            Assert.Null(store.StoredValue(entry.Id, "mode", secret: false)); // :199, still no connection row
             Assert.True(store.SaveCustomValues([("mode", "plain-in-connection", false)], entry.Id, entry));
-            Assert.Equal("plain-in-connection", store.StoredValue(entry.Id, "mode", secret: false)); // :205
+            Assert.Equal("plain-in-connection", store.StoredValue(entry.Id, "mode", secret: false)); // :199
         });
     }
 
     // ===== PR-MCP-075: saveCustomValues writes secrets first, abandoning the save on the first failure =====
 
     [Fact]
-    [Trait("Req", "PR-MCP-075")] // :216-218
+    [Trait("Req", "PR-MCP-075")] // :210-212
     public void SaveCustomValues_writes_secrets_first_and_stops_at_the_first_failure_keeping_earlier_writes()
     {
         using var harness = new MCPStoreHarness();
@@ -697,17 +686,17 @@ public sealed class MCPStoreTests
                 [("first", "value-one", true), ("second", "value-two", true)],
                 entry.Id, replacingFieldsOf: entry);
 
-            Assert.False(ok); // :217, the first refused write returns false immediately
+            Assert.False(ok); // :211, the first refused write returns false immediately
             Assert.Equal("value-one", MCPKeychain.Value(entry.Id, "first")); // already written, stays written
             Assert.Null(MCPKeychain.Value(entry.Id, "second")); // refused, never written
-            Assert.Null(store.Connection(entry.Id)); // :219-240 never reached: the connection is left untouched
+            Assert.Null(store.Connection(entry.Id)); // :213-234 never reached: the connection is left untouched
         });
     }
 
     // ===== PR-MCP-076: saveCustomValues deletes the stored secrets of fields the edit no longer declares =====
 
     [Fact]
-    [Trait("Req", "PR-MCP-076")] // :219-225
+    [Trait("Req", "PR-MCP-076")] // :213-219
     public void SaveCustomValues_deletes_the_stored_secret_of_a_field_the_edit_no_longer_declares()
     {
         using var harness = new MCPStoreHarness();
@@ -718,11 +707,11 @@ public sealed class MCPStoreTests
             Assert.Null(store.SaveCustom(custom));
             var oldEntry = store.Entry(custom.Id)!;
             Assert.True(store.SaveCustomValues(
-                [("apiKey", "s", true), ("mode", "m", false)], custom.Id, replacingFieldsOf: null)); // :225 oldEntry nil: no deletions
+                [("apiKey", "s", true), ("mode", "m", false)], custom.Id, replacingFieldsOf: null)); // :219 oldEntry nil: no deletions
             Assert.Equal("s", MCPKeychain.Value(custom.Id, "apiKey"));
             Assert.Equal("m", store.Connection(custom.Id)!.Values["mode"]);
 
-            // The edit no longer declares "apiKey": kept = {"mode"}, so its stored secret is deleted (:222-224).
+            // The edit no longer declares "apiKey": kept = {"mode"}, so its stored secret is deleted (:216-218).
             Assert.True(store.SaveCustomValues(
                 [("mode", "m2", false)], custom.Id, replacingFieldsOf: oldEntry));
 
@@ -735,7 +724,7 @@ public sealed class MCPStoreTests
     // ===== PR-MCP-077: a variable that changed lock state moves stores, leaving no stale copy =====
 
     [Fact]
-    [Trait("Req", "PR-MCP-077")] // :226-234
+    [Trait("Req", "PR-MCP-077")] // :220-228
     public void SaveCustomValues_moves_a_variable_between_stores_when_its_lock_state_changes()
     {
         using var harness = new MCPStoreHarness();
@@ -751,17 +740,17 @@ public sealed class MCPStoreTests
             Assert.Equal("plain-value", store.Connection(entry.Id)!.Values["token"]);
             Assert.Null(MCPKeychain.Value(entry.Id, "token"));
 
-            // Locked on: the value moves to the store and the plaintext copy is removed (:229).
+            // Locked on: the value moves to the store and the plaintext copy is removed (:223).
             Assert.True(store.SaveCustomValues([("token", "plain-value", true)], entry.Id, replacingFieldsOf: entry));
             Assert.Equal("plain-value", MCPKeychain.Value(entry.Id, "token"));
             Assert.False(store.Connection(entry.Id)!.Values.ContainsKey("token"));
 
-            // Locked off again: the value moves back and the store's copy is removed (:231-232).
+            // Locked off again: the value moves back and the store's copy is removed (:225-226).
             Assert.True(store.SaveCustomValues([("token", "back-to-plain", false)], entry.Id, replacingFieldsOf: entry));
             Assert.Equal("back-to-plain", store.Connection(entry.Id)!.Values["token"]);
             Assert.Null(MCPKeychain.Value(entry.Id, "token"));
 
-            // An empty value clears the field (:231, "nil clears it").
+            // An empty value clears the field (:225, "nil clears it").
             Assert.True(store.SaveCustomValues([("token", "", false)], entry.Id, replacingFieldsOf: entry));
             Assert.False(store.Connection(entry.Id)!.Values.ContainsKey("token"));
         });
@@ -770,7 +759,7 @@ public sealed class MCPStoreTests
     // ===== PR-MCP-078: no connection row for a new server whose values are all empty =====
 
     [Fact]
-    [Trait("Req", "PR-MCP-078")] // :235-240
+    [Trait("Req", "PR-MCP-078")] // :229-234
     public void SaveCustomValues_creates_no_connection_row_for_a_new_server_whose_values_are_all_empty()
     {
         using var harness = new MCPStoreHarness();
@@ -782,8 +771,8 @@ public sealed class MCPStoreTests
             var entry = store.Entry(custom.Id)!;
 
             var ok = store.SaveCustomValues([("token", "", false)], entry.Id, replacingFieldsOf: entry);
-            Assert.True(ok); // :240, the function still returns true
-            Assert.Null(store.Connection(entry.Id)); // :236, no row created
+            Assert.True(ok); // :234, the function still returns true
+            Assert.Null(store.Connection(entry.Id)); // :230, no row created
         });
         Assert.False(File.Exists(MCPPaths.ConnectionsURL)); // and so no write happened
 
@@ -798,7 +787,7 @@ public sealed class MCPStoreTests
             Assert.True(store.SaveCustomValues([("token", "now-filled", false)], entry.Id, replacingFieldsOf: entry));
             Assert.NotNull(store.Connection(entry.Id)); // a row now exists
 
-            // Once a row exists, a later all-empty save keeps writing it (:236, "connections[id] != nil").
+            // Once a row exists, a later all-empty save keeps writing it (:230, "connections[id] != nil").
             Assert.True(store.SaveCustomValues([("token", "", false)], entry.Id, replacingFieldsOf: entry));
             Assert.NotNull(store.Connection(entry.Id));
         });
@@ -807,7 +796,7 @@ public sealed class MCPStoreTests
     // ===== PR-MCP-079: load reads custom-mcp.json first, then mcp.json, restoring connected states =====
 
     [Fact]
-    [Trait("Req", "PR-MCP-079")] // :245-260
+    [Trait("Req", "PR-MCP-079")] // :239-254
     public void Load_reads_customs_then_connections_and_restores_connected_state_from_connectedAt()
     {
         using var harness = new MCPStoreDirectHarness();
@@ -821,23 +810,23 @@ public sealed class MCPStoreTests
 
         var store = new MCPStore(); // :22-23 init calls load() first
 
-        Assert.Equal("Restored Tool", Assert.Single(store.Customs).Name); // :246-248
+        Assert.Equal("Restored Tool", Assert.Single(store.Customs).Name); // :240-242
         var state = store.State("restored-tool");
-        var connected = Assert.IsType<MCPConnectionState.Connected>(state); // :256-257
+        var connected = Assert.IsType<MCPConnectionState.Connected>(state); // :250-251
         Assert.Equal(1, connected.ToolCount); // from connection.tools.count
         Assert.Equal("9.9", store.Connection("restored-tool")!.ServerVersion);
         Assert.NotNull(store.Connection("restored-tool")!.ConnectedAt);
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-079")] // :245-260, the two read/decode failure branches
+    [Trait("Req", "PR-MCP-079")] // :239-254, the two read/decode failure branches
     public void Load_leaves_customs_and_connections_empty_on_a_malformed_file_without_throwing()
     {
         using var harness = new MCPStoreDirectHarness();
         Directory.CreateDirectory(Path.GetDirectoryName(MCPPaths.CustomsURL)!);
-        WriteNoBom(MCPPaths.CustomsURL, "not json"); // :247 decode fails, customs stays empty
+        WriteNoBom(MCPPaths.CustomsURL, "not json"); // :241 decode fails, customs stays empty
         WriteNoBom(MCPPaths.ConnectionsURL,
-            "[{\"catalogID\":\"x\",\"connectedAt\":\"not-a-date\",\"isEnabled\":true,\"serverVersion\":null,\"tools\":[],\"values\":{}}]"); // :253 iso8601 decode fails, connections stays empty
+            "[{\"catalogID\":\"x\",\"connectedAt\":\"not-a-date\",\"isEnabled\":true,\"serverVersion\":null,\"tools\":[],\"values\":{}}]"); // :247 iso8601 decode fails, connections stays empty
 
         var store = new MCPStore(); // must not throw
 
@@ -849,7 +838,7 @@ public sealed class MCPStoreTests
     // ===== PR-MCP-080: save writes mcp.json pretty-printed, sorted keys, ISO-8601 dates, sorted by id =====
 
     [Fact]
-    [Trait("Req", "PR-MCP-080")] // :262-269
+    [Trait("Req", "PR-MCP-080")] // :256-263
     public void Save_writes_mcp_json_pretty_printed_sorted_keys_and_sorted_by_catalogID()
     {
         using var harness = new MCPStoreHarness();
@@ -890,14 +879,14 @@ public sealed class MCPStoreTests
             "    }\n" +
             "  }\n" +
             "]";
-        // "custom-alpha" sorts before "custom-zeta" though Zeta was written first (:266, sorted by catalogID).
+        // "custom-alpha" sorts before "custom-zeta" though Zeta was written first (:260, sorted by catalogID).
         Assert.Equal(expected, File.ReadAllText(MCPPaths.ConnectionsURL));
     }
 
     // ===== PR-MCP-081: saveCustoms writes custom-mcp.json pretty-printed, sorted keys, no date strategy, list order =====
 
     [Fact]
-    [Trait("Req", "PR-MCP-081")] // :271-276
+    [Trait("Req", "PR-MCP-081")] // :265-270
     public void SaveCustoms_writes_custom_mcp_json_pretty_printed_with_sorted_keys_and_no_date_strategy()
     {
         using var harness = new MCPStoreHarness();
@@ -931,7 +920,7 @@ public sealed class MCPStoreTests
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-081")] // :273, "The payload is the customs array in list order, not sorted"
+    [Trait("Req", "PR-MCP-081")] // :267, "The payload is the customs array in list order, not sorted"
     public void SaveCustoms_writes_customs_in_creation_order_not_sorted_by_id()
     {
         using var harness = new MCPStoreHarness();
@@ -952,11 +941,11 @@ public sealed class MCPStoreTests
     // ===== PR-MCP-082: exportAll rewrites the provider configs from enabledServers, in order after every mutation =====
 
     [Fact]
-    [Trait("Req", "PR-MCP-082")] // :279-290
+    [Trait("Req", "PR-MCP-082")] // :273-284
     public async Task ExportAll_writes_the_provider_configs_when_a_server_is_enabled_and_clears_them_when_none_are()
     {
         using var harness = new MCPStoreDirectHarness();
-        var store = new MCPStore(); // :279-290 not reached with any server yet: enabledServers is empty at construction
+        var store = new MCPStore(); // :273-284 not reached with any server yet: enabledServers is empty at construction
         Assert.False(File.Exists(MCPPaths.ClaudeConfigURL));
 
         var custom = StdioCustom("Export Tool", command: ProbeProcessScripts.PowerShell,
@@ -967,14 +956,14 @@ public sealed class MCPStoreTests
         store.Connect(entry);
         await WaitWhileConnecting(store, entry.Id);
         Assert.True(store.State(entry.Id) is MCPConnectionState.Connected);
-        // A successful probe calls exportAll (:343): the enabled, connected server is now in claude.json (:286).
+        // A successful probe calls exportAll (:337): the enabled, connected server is now in claude.json (:280).
         // The write itself lands a moment after the state flips (both on the probe's own continuation, but observed
         // from this thread through the file system), so poll rather than assert the instant WaitWhileConnecting returns.
         await WaitForFile(MCPPaths.ClaudeConfigURL, exists: true);
         Assert.Contains(entry.Id, File.ReadAllText(MCPPaths.ClaudeConfigURL), StringComparison.Ordinal);
 
-        store.Disconnect(entry); // :133 also calls exportAll, with enabledServers empty again
-        await WaitForFile(MCPPaths.ClaudeConfigURL, exists: false); // :149-153 WriteAll removes every provider file when empty
+        store.Disconnect(entry); // :127 also calls exportAll, with enabledServers empty again
+        await WaitForFile(MCPPaths.ClaudeConfigURL, exists: false); // MCPProviderConfig.swift:149-153 WriteAll removes every provider file when empty (unchanged at B3)
     }
 
     private static async Task WaitForFile(string path, bool exists, TimeSpan? timeout = null)

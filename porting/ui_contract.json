@@ -3315,7 +3315,7 @@
       "notes": "The tooltip's separator is U+00B7. Sideways travel plays no part in the reorder.",
       "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:381 `.font(.system(size: 11, weight: .medium))` -> B2 :381 `.font(.system(.subheadline, weight: .medium))`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059).",
       "b3_note": "B3 deletes the NSCursor.openHand.push()/.pop() hover pair and replaces it with `.pointerStyle(isDragged ? .grabActive : .grabIdle)` (:384), a state-driven cursor with no push/pop to leak. The former 'row removed mid-drag leaks one cursor push' state (upstream defect 53) is dropped from this record's states, since it reproduced a cursor-stack mechanism the pinned source no longer has (decisions_draft.md O6): FollowUpQueueTab.swift has no NSCursor call at the B3 pin (52bc7926), so no leak can occur. See PR-COMPOSER-160 (RETIRED) for the matching PR-level record. The grip cursor today is a constant Hand, a pre-existing gap (6.2) that must be closed with real grab-idle/grab-active .cur resources.",
-      "status": "SPECIFIED"
+      "status": "IMPLEMENTED"
     },
     {
       "area": "COMPOSER",
@@ -12725,7 +12725,7 @@
         "DroppyCode/Services/Providers/CommandCodeAPI.swift:347-361"
       ],
       "notes": "The separators are U+00B7 with a space on each side, the ampersands are literal, and \"1M\" is that exact casing. This seed doubles as an equality sentinel for the registry, so any drift silently changes when the live catalog is fetched.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "At 1.7.0 the seed list gains \"Claude Opus 5.5\" / \"Anthropic · the newest Opus, for everyday complex work and coding\" (CommandCodeAPI.swift:352) and \"GPT-5.6 Luna\" / \"OpenAI · fast and efficient model\" (:356), eleven rows in all."
     },
     {
@@ -19247,7 +19247,7 @@
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 1 of 12",
       "role": "row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "The table grows from 10 to 12 rows (see PR-STORE-132's b3_note). This row's text changes from \"Opus 5\" to \"Opus 5.5\"; its position (1) and cite line (:30) are unchanged."
     },
     {
@@ -19272,7 +19272,7 @@
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 2 of 12",
       "role": "row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "The table grows from 10 to 12 rows (see PR-STORE-132's b3_note). This row's text changes from \"Opus 5\" to \"Opus 5.5\"; its position (2) and cite line (:31) are unchanged."
     },
     {
@@ -19297,7 +19297,7 @@
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 3 of 12",
       "role": "row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "The table grows from 10 to 12 rows (see PR-STORE-132's b3_note). This row's text changes from \"Opus 5\" to \"Opus 5.5\"; its position (3) and cite line (:32) are unchanged."
     },
     {
@@ -19322,7 +19322,7 @@
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 4 of 12",
       "role": "row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "The table grows from 10 to 12 rows (see PR-STORE-132's b3_note). This row's text changes from \"Opus 5\" to \"Opus 5.5\"; its position (4) and cite line (:33) are unchanged."
     },
     {
@@ -19347,7 +19347,7 @@
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 5 of 12",
       "role": "row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "The table grows from 10 to 12 rows (see PR-STORE-132's b3_note). This row's text is unchanged; only the stated count changes."
     },
     {
@@ -19372,7 +19372,7 @@
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 6 of 12",
       "role": "row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "The table grows from 10 to 12 rows (see PR-STORE-132's b3_note). This row's text is unchanged; only the stated count changes."
     },
     {
@@ -19397,7 +19397,7 @@
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 7 of 12",
       "role": "row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "The table grows from 10 to 12 rows (see PR-STORE-132's b3_note). This row's text is unchanged; only the stated count changes."
     },
     {
@@ -19422,7 +19422,7 @@
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 10 of 12",
       "role": "row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "Two new rows (astra-sol, sol-luna) are inserted at positions 8 and 9, pushing this row from position 8 to position 10. Cite line moves :37 -> :39 (already re-cited)."
     },
     {
@@ -19447,7 +19447,7 @@
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 11 of 12",
       "role": "row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "Two new rows (astra-sol, sol-luna) are inserted at positions 8 and 9, pushing this row from position 9 to position 11. Its text also changes from \"Opus 5\" to \"Opus 5.5\". Cite line moves :38 -> :40."
     },
     {
@@ -19472,7 +19472,7 @@
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 12 of 12",
       "role": "row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "Two new rows (astra-sol, sol-luna) are inserted at positions 8 and 9, pushing this row from position 10 to position 12. Cite line moves :39 -> :41 (already re-cited)."
     },
     {
@@ -19497,7 +19497,7 @@
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 8 of 12",
       "role": "row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "New row added in B3; see PR-STORE-172."
     },
     {
@@ -19522,7 +19522,7 @@
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 9 of 12",
       "role": "row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "New row added in B3; see PR-STORE-173."
     },
     {
@@ -24450,7 +24450,7 @@
         "DroppyCode/UI/Chrome/WindowChrome.swift:139-150"
       ],
       "b3_note": "B3 replaces WindowDragView's mouseDown/performDrag/empty-mouseUp (B2 :1085-1102) with `Color.clear.contentShape(.rect).gesture(WindowDragGesture()).allowsWindowActivationEvents(true)` (B3 :1091-1099); NoWindowDragView (the no-drag marker) is unchanged apart from its citation moving from B2 :1104-1140 to B3 :1101-1137. The former 'press begins a move, release is swallowed' states are no longer backed by any Swift code the port can point to; they were an implementation detail of the deleted NSView, not a documented property of WindowDragGesture.",
-      "status": "SPECIFIED"
+      "status": "IMPLEMENTED"
     },
     {
       "area": "WIN",
