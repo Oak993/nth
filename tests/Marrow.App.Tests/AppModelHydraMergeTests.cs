@@ -1300,9 +1300,11 @@ public void Reported_paths_drop_empty_and_build_output_and_keep_inside_paths_rel
     // UNRESOLVED: PR-HYDRAMERGE-077 and PR-HYDRAMERGE-078 need a controlled sibling-claim fixture, including tracked/deleted paths and an injected git cat-file stream failure. The supplied fixtures do not expose the required git-command seam.
     // UNRESOLVED: PR-HYDRAMERGE-085 needs a safe, controllable application-foreground/notification seam; the supplied material does not identify one.
     // UNRESOLVED: PR-HYDRAMERGE-111 needs a controllable in-flight Hydra landing and a way to change readiness while it is awaited; the supplied fixtures do not expose either.
-    // UNRESOLVED: PR-HYDRAMERGE-112 and PR-HYDRAMERGE-117 need representative competing leads, head landing records, and controllable runtime readiness to exercise blocking and ranked-out claims. The packet does not provide enough model construction details to build those states safely.
+    // UNRESOLVED: PR-HYDRAMERGE-117 needs representative competing leads, head landing records, and controllable runtime readiness to exercise ranked-out claims. The packet does not provide enough model construction details to build those states safely.
+    // (PR-HYDRAMERGE-112, the cross-group hold join this comment used to pair -117 with, is RETIRED at B3: AppModel+HydraMerge.swift no longer joins or checks a held map at all, so it needs no fixture and is not listed here -- A34 S4.)
     // UNRESOLVED: PR-HYDRAMERGE-116 needs a controlled tree-capture/claim-change seam to verify the post-snapshot checks without relying on timing or external processes.
-    // UNRESOLVED: UI-CHAT-083, UI-CHAT-084, UI-HYDRAMERGE-035, and UI-HYDRAMERGE-036 need the actual timeline View/Control test harness to verify pill rendering and interactions.
+    // UNRESOLVED: UI-CHAT-084 and UI-HYDRAMERGE-036 need the actual timeline View/Control test harness to verify pill rendering and interactions.
+    // (UI-CHAT-083 and UI-HYDRAMERGE-035, the hold-note and hold-pill entries this comment used to include, are RETIRED at B3: recordHydraHold and heldDetail are deleted, so no hold note or pill is ever produced and neither needs a fixture -- A34 S4.)
     // UNRESOLVED: UI-HYDRAMERGE-032 needs the platform notification test seam to verify notification delivery and targeting.
     // UNRESOLVED: UI-HYDRAMERGE-033 needs the platform badge test seam to verify taskbar badge updates.
     // UNRESOLVED: UI-HYDRAMERGE-034 needs a known DiffFile construction fixture and a forge-body assertion seam; neither is supplied here.
