@@ -4472,6 +4472,47 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         });
     });
 
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-115")] // App/Views/Sidebar/SidebarView.swift:1603, :1605-1606 (REVIEW FIX, part 5)
+    public void Clicking_the_stub_rows_empty_trailing_region_past_the_label_still_unfolds_the_helpers() => headless.OnUiThread(() =>
+    {
+        // :1603 .frame(maxWidth: .infinity, alignment: .leading) is on the labelled HStack itself, before :1605-1606's
+        // .background and .contentShape, so the hover fill and hit area cover the row's whole remaining width, not
+        // just the label's own text. Click(button) above (and PR-SIDEBAR-115's own synthetic click) bypasses hit-
+        // testing entirely; this uses a real pointer click far past where the chevron/label content ends, in a
+        // window wide enough that the gap cannot be closed by the label's own text (REVIEW FIX: a horizontally
+        // oriented StackPanel arranges every child at its own DesiredSize along the stack axis --
+        // HorizontalAlignment.Stretch on a stacked child is a no-op there -- so `shape` sat at only its own content
+        // width instead of the row's remaining width; fixed with a Grid Auto,* column, this file's own established
+        // idiom for a fixed leading column plus a flexible trailing one, at ThreadRowFace's `row`, :2022).
+        using var frames = FrameClock.Source.Override(new ManualFrameSource()); // a real pointer move fires .onHover (:1611-1613)
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var helperA = NewThread(project, "Helper A", 1) with { ParentThreadID = parent.Id };
+        var model = Model(harness, [project], [parent, helperA]);
+        harness.Main.OnMain(() =>
+        {
+            var unfolded = false;
+            var row = (Control)Activator.CreateInstance(Private("HelperStubRow"), parent, new[] { helperA }, (Action)(() => unfolded = true))!;
+            var host = new Border();
+            AppEnvironment.SetAppModel(host, model);
+            host.Child = row;
+            // :1584 connectorWidth is 28; a 400pt window leaves 372pt of remaining width, far past any plausible
+            // chevron+label content width, so a click near the far trailing edge only lands on live content if the
+            // row's remaining width was actually handed to `shape`.
+            var window = new AvaloniaWindow { Content = host, Width = 400, Height = 100 };
+            window.Show();
+            window.UpdateLayout();
+            var button = LogicalQuery.SelfAndDescendants<Button>(row).Single();
+            var point = At(button, 350, 50, window);
+            window.MouseDown(point, MouseButton.Left);
+            window.MouseUp(point, MouseButton.Left);
+            Assert.True(unfolded);
+            window.Close();
+        });
+    });
+
     // ---- PR-SIDEBAR-116: the thread row's fold chevron, 46 pt from the trailing edge ----
 
     [Fact]

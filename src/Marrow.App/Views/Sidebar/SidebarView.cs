@@ -1905,7 +1905,15 @@ internal sealed class HelperStubRow : Decorator
         var fill = new AnimatedColor(shape);
         shape.Background = fill.Brush;
 
-        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 0, Children = { connector, shape } }; // :1581 HStack(spacing: 0)
+        // :1581 HStack(spacing: 0). A horizontal StackPanel arranges every child at its own DesiredSize along the
+        // stack axis (HorizontalAlignment.Stretch is a no-op there), so shape's :1603 frame(maxWidth: .infinity)
+        // would not actually reach the row's remaining width; Grid Auto,* is this file's own idiom for a fixed
+        // leading column plus a flexible trailing one (ThreadRowFace, :2022, ThreadRowFace's `row`; REVIEW FIX).
+        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*") };
+        Grid.SetColumn(connector, 0);
+        Grid.SetColumn(shape, 1);
+        row.Children.Add(connector);
+        row.Children.Add(shape);
         shape.VerticalAlignment = VerticalAlignment.Stretch;
 
         var button = PlainControls.Button(row, action); // :1582 Button(action: action)
