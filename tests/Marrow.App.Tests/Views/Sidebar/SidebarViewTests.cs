@@ -4235,7 +4235,16 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             Assert.Equal("arrowshape.turn.up.right", forward.Symbol);
             forward.Action(); // :2211 Task { await model.forwardThread(thread.id) }
         });
-        harness.Main.Loop.Run(() => Task.Delay(1), AppModelHarness.Bound); // lets the spawned async forward finish
+        // Fixed a race (was about 1 in 4 failures): AppModel.ForwardThread (AppModel.cs:722-742) awaits
+        // sourceRuntime.EnsureLoaded() and newRuntime.InstallContinuation(continuation), each a real, variable-
+        // duration async hop off this loop (I/O-bound), not a single microtask. A fixed `Task.Delay(1)` pumped
+        // through the loop (the prior code here) only guarantees the loop pumps for at least ~1 ms; it does not
+        // guarantee the forward's own await chain has completed by the time that delay task resolves, so under
+        // load the assertion below could run before Threads.Appending(forwarded) (AppModel.cs:734). Poll the real
+        // completion condition instead, the same pattern RootViewTests.cs already uses for its own spawned async
+        // work (e.g. A_mixed_drop_... via harness.Main.Loop.RunUntil): wait for the observable effect of
+        // ForwardThread itself, not for an arbitrary duration to elapse.
+        harness.Main.Loop.RunUntil(() => model.Threads.Count == 2, AppModelHarness.Bound); // lets the spawned async forward finish
         harness.Main.OnMain(() => Assert.Equal(2, model.Threads.Count)); // the forward has landed
     });
 
