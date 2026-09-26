@@ -42,9 +42,12 @@ public sealed class ApprovalCard : Decorator
     }
 
     // :9-15 HStack(spacing: 8) { Image(systemName: request.symbol).foregroundStyle(Chrome.warning); Text(request.headline)
-    // .font(.headline); Spacer() }. ENGINEERING DECISION: a bare trailing Spacer() with nothing after it is the one
-    // shared idiom this codebase already uses for "leading content, expand to fill" (App/Views/Tour/TourView.cs:251,
-    // App/Views/RootView.cs:346, UI/Markdown/MarkdownView.cs:1775): a Grid whose last column is "*".
+    // .font(.headline); Spacer() }. ENGINEERING DECISION, standalone (no precedent elsewhere in this codebase pins it):
+    // a bare trailing Spacer() with nothing after it is a Grid whose last column is "*" and holds no child, so it
+    // absorbs the remaining width and pushes the leading content (icon, headline) to the row's leading edge.
+    // (App/Views/Tour/TourView.cs:251, App/Views/RootView.cs:346 and UI/Markdown/MarkdownView.cs:1775 are a
+    // different idiom: a *middle* "*" column separates leading content from *trailing* content in the Auto column
+    // after it -- not this bare-trailing-spacer case.)
     private static Control Header(ApprovalRequest request)
     {
         var row = new Grid

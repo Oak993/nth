@@ -99,7 +99,32 @@ public sealed class RequestCardsTests(HeadlessSession headless)
                 var headline = LogicalQuery.SelfAndDescendants<TextBlock>(host)
                     .First(block => block.Text == "Run this command?"); // :12, Requests.swift Headline for .command
                 Assert.Equal(13, headline.FontSize); // :13 .font(.headline), ED-059
-                Assert.Equal(FontWeight.Bold, headline.FontWeight); // ED-186: plain .headline is bold, not chat-semibold
+
+                Close(host);
+            });
+        });
+    }
+
+    // R-TEST-6: an expectation resting on open oracle item O-64 cannot also carry PR-COMPOSER-183 / UI-RUNTIME-005 /
+    // UI-COMPOSER-063's Req traits, so the headline's weight is pinned here, apart from the structural facts above.
+    // Mirrors TourViewTests.The_empty_state_titles_plain_headline_stays_bold.
+    [Fact]
+    [Trait("Decision", "ED-186")]
+    [Trait("Oracle", "O-64")]
+    public void The_headers_plain_headline_stays_bold()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            h.Main.OnMain(() => h.Runtime.Rehearse(new ProviderEvent.Approval(Sample(kind: ApprovalRequest.Kind.Command))));
+            var request = h.Main.OnMain(() => h.Runtime.Approvals.Single());
+            h.Main.OnMain(() =>
+            {
+                var host = Build(request, h.Runtime);
+
+                var headline = LogicalQuery.SelfAndDescendants<TextBlock>(host)
+                    .First(block => block.Text == "Run this command?"); // :12, Requests.swift Headline for .command
+                Assert.Equal(FontWeight.Bold, headline.FontWeight); // ED-186: plain .headline is bold, not chat-semibold; O-64 unresolved
 
                 Close(host);
             });
