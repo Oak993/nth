@@ -1,50 +1,91 @@
+using Marrow.Core.Models;
 using Marrow.Core.Support;
 using Marrow.Services.Port;
 
 namespace Marrow.Services.Providers;
 
-// Source: DroppyCode/Services/Providers/APIKeychain.swift (B2 1fbf81e), :1-66.
-// Line 14 (`guard !CaptureRun.isEnabled else { return "" }`) is not ported: CaptureRun is not ported (ED-001) and the
+// Source: DroppyCode/Services/Providers/APIKeychain.swift (B3 52bc792), :1-84.
+// Line 12 (`guard !CaptureRun.isEnabled else { return "" }`) is not ported: CaptureRun is not ported (ED-001) and the
 // guard is dead-code register entry 44 (porting/dead_code.md), excluded by ED-061; in every reachable launch it is
 // false, so the live path below is the whole behaviour.
 //
-// DEVIATION OD-0008 B3: the SecItem calls on kSecClassGenericPassword (:29-33, :43-49, :59-63) go to Windows
+// DEVIATION OD-0008 B3: the SecItem calls on kSecClassGenericPassword (:45-49, :60-67, :77-81) go to Windows
 // Credential Manager through the secret store (src/Marrow.Services/Port/SecretStore.cs, ED-093, ED-120), one generic
 // credential per account string under the one service name the port uses in place of AppInfo.name (AppInfo.Current
-// .Name). kSecAttrAccessibleWhenUnlocked (:37) has no Windows analogue (port_impacts.md entry 262).
-// OD-0008 A6: a refused add returns false and nothing else is written here.
+// .Name). kSecAttrAccessibleWhenUnlocked (:55) has no Windows analogue (port_impacts.md entry 262).
+// OD-0008 A6: SetKey stores through SecretStore.SetUpdating (update in place, add only on ItemNotFound; PR-PROVAPI-
+// 003), not SetReplacing (delete then add); a refused write keeps the previously stored key and nothing else is
+// written anywhere (AppSettings.cs's StoreAPIKeyChange keeps only the clearing half of the legacy fallback).
+//
+// NEW at B3 (impact R3-48 APIKeychain #1, PR-PROVAPI-192): the per-provider DeepSeekKeychain, MetaKeychain,
+// ZaiKeychain and CommandCodeKeychain wrapper files are deleted; their account strings move verbatim into the
+// private Account(ProviderKind) table below, and Key/SetKey now take a ProviderKind instead of a caller-supplied
+// account string.
 
 /// <summary>
-/// One Keychain implementation for every native provider's API key (:4-9): the accounts live in one service
+/// One Keychain implementation for every native provider's API key (:4-5): the accounts live in one service
 /// (AppInfo.name), one item per provider.
 /// </summary>
-// Public because the tests live in a separate assembly; upstream callers are the four provider helpers in Services
-// (DeepSeekKeychain.swift:9, :14; MetaKeychain.swift:9, :14; ZaiKeychain.swift:9, :14; CommandCodeKeychain.swift:11, :16).
+// Public because the tests live in a separate assembly; the caller is App.AppSettings (AppSettings.cs).
 public static class APIKeychain
 {
-    /// <summary>The stored key for an account, or <paramref name="fallback"/> when nothing is stored.</summary>
-    // :13-17
-    public static string Key(string @for, string fallback)
+    /// <summary>
+    /// The stored key for a provider, or <paramref name="fallback"/> when the provider has no account (PR-PROVAPI-
+    /// 192) or nothing is stored for it.
+    /// </summary>
+    // :7-15
+    public static string Key(ProviderKind @for, string fallback)
     {
-        // :14 not ported (dead_code.md entry 44, ED-001, ED-061).
-        // :15
-        if (Read(@for) is { } keychain && keychain.Length != 0) return keychain;
-        // :16
+        // :11
+        if (Account(@for) is not { } account) return fallback;
+        // :12 not ported (dead_code.md entry 44, ED-001, ED-061).
+        // :13
+        if (Read(account) is { } keychain && keychain.Length != 0) return keychain;
+        // :14
         return fallback;
     }
 
     /// <summary>
-    /// Stores the key, or removes it for an empty one. Returns whether the Keychain took it, so the caller knows
-    /// whether a fallback copy is still needed.
+    /// Stores the key for a provider, or removes it for an empty one. Returns false without writing, deleting or
+    /// trimming anything when the provider has no account (PR-PROVAPI-192).
     /// </summary>
-    // :21-40. SetReplacing is the transcription of this body over the secret store: trim (:23, Text.swift:132); an
-    // empty trimmed value deletes (:24-27, :58-65) and returns true; otherwise the UTF-8 bytes (:28) replace the item
-    // by delete (:34) then add (:35-38), returning whether the add succeeded (:39).
-    public static bool SetKey(string key, string account) =>
-        SecretStore.Shared.Current.SetReplacing(AppInfo.Current.Name, account, key);
+    // :17-23. Swift: @discardableResult, which has no C# counterpart; callers may ignore the result.
+    public static bool SetKey(string key, ProviderKind @for)
+    {
+        // :21
+        if (Account(@for) is not { } account) return false;
+        // :22
+        return Set(key, account);
+    }
 
-    // :42-56. SecItemCopyMatching with kSecReturnData and kSecMatchLimitOne (:43-51); nil unless the status is
-    // success, the bytes decode as UTF-8 (:52-53) and the trimmed value is not empty (:54); the trimmed value (:55).
-    private static string? Read(string account) =>
-        SecretStore.Shared.Current.Read(AppInfo.Current.Name, account);
+    /// <summary>The accounts older builds stored keys under; changing one loses that key.</summary>
+    // :25-34
+    private static string? Account(ProviderKind provider) => provider switch
+    {
+        ProviderKind.Deepseek => "DeepSeek API Key",        // :28
+        ProviderKind.Meta => "Meta API Key",                // :29
+        ProviderKind.Zai => "Z.ai API Key",                 // :30
+        ProviderKind.Commandcode => "Command Code API Key", // :31
+        _ => null,                                          // :32
+    };
+
+    /// <summary>Stores the value, or removes it for an empty one.</summary>
+    // :36-58. SetUpdating is the transcription of this body over the secret store: trim (Text.swift:132); an empty
+    // trimmed value deletes (:39-43) and returns true; otherwise the UTF-8 bytes (:44) update the item in place
+    // (:50-52), and only when no item exists (errSecItemNotFound, :52) is one added (:53-57).
+    public static bool Set(string key, string account, string? service = null) =>
+        SecretStore.Shared.Current.SetUpdating(service ?? AppInfo.Current.Name, account, key);
+
+    /// <summary>
+    /// SecItemCopyMatching with kSecReturnData and kSecMatchLimitOne; nil unless the status is success, the bytes
+    /// decode as UTF-8 and the trimmed value is not empty; otherwise the trimmed value.
+    /// </summary>
+    // :60-74
+    public static string? Read(string account, string? service = null) =>
+        SecretStore.Shared.Current.Read(service ?? AppInfo.Current.Name, account);
+
+    /// <summary>SecItemDelete; the status is ignored, as upstream ignores it.</summary>
+    // :76-83
+    public static void Delete(string account, string? service = null) =>
+        SecretStore.Shared.Current.Delete(service ?? AppInfo.Current.Name, account);
 }

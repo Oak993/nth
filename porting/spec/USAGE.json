@@ -2536,7 +2536,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same byte budgets and the same two-pass read. The head scan must stop at the first qualifying line, not read the whole file. The .NET port's equivalent int-parsing helper must accept a numeric JSON string, reject a JSON boolean, and either replicate the trap on an out-of-range double or flag the difference explicitly rather than silently clamping it.",
       "verification_method": "contract fixture over a synthetic rollout with an inherited total and a later growth, plus fixtures for a total_tokens given as a numeric JSON string (accepted) and as a JSON boolean (rejected, line skipped)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,

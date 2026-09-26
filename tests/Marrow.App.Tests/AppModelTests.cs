@@ -598,7 +598,9 @@ public sealed class AppModelTests
     public void Bootstrap_reads_the_stored_keys_after_construction_and_drops_the_plaintext_copy()
     {
         using var h = new AppModelHarness();
-        Assert.True(CommandCodeKeychain.SetAPIKey("cc-test-key")); // held by the in-memory Credential Manager
+        // held by the in-memory Credential Manager; B3: the deleted CommandCodeKeychain wrapper is replaced by
+        // APIKeychain.SetKey(key, ProviderKind), keyed by ProviderKind.Commandcode (PR-PROVAPI-192).
+        Assert.True(APIKeychain.SetKey("cc-test-key", ProviderKind.Commandcode));
         h.Defaults.Set("commandcodeAPIKey", "cc-test-key");        // the plaintext copy earlier builds kept
         var model = h.MakeModel();
         h.PrepareBootstrap(model);

@@ -72,7 +72,8 @@ public sealed class SecretStoreTests
     [Trait("Decision", "ED-093")]
     public void The_target_name_is_service_colon_account_colon_16_lowercase_hex_digits_of_SHA256_of_the_account()
     {
-        // SHA-256 of the UTF-8 bytes of "DeepSeek API Key" (DeepSeekKeychain.swift:6), computed outside .NET with
+        // SHA-256 of the UTF-8 bytes of "DeepSeek API Key" (B3: Services/Providers/APIKeychain.swift:28, the account
+        // table that replaced the deleted DeepSeekKeychain.swift:6), computed outside .NET with
         // sha256sum: e4d41a2f217aad94642496c93fcc5573b1c9243964872818d802b543ea226a1b.
         Assert.Equal("Marrow:DeepSeek API Key:e4d41a2f217aad94", SecretStore.TargetName("Marrow", "DeepSeek API Key"));
     }
@@ -166,7 +167,8 @@ public sealed class SecretStoreTests
     [Trait("Rule", "R-SEC-1")]
     public void The_four_provider_accounts_and_an_MCP_account_are_kept_apart_under_one_service()
     {
-        // DeepSeekKeychain.swift:6, MetaKeychain.swift:6, ZaiKeychain.swift:6, CommandCodeKeychain.swift:8, and
+        // B3: Services/Providers/APIKeychain.swift:28-31 (the account table that replaced the deleted
+        // DeepSeekKeychain.swift:6, MetaKeychain.swift:6, ZaiKeychain.swift:6 and CommandCodeKeychain.swift:8), and
         // MCPKeychain.swift:8 ("MCP " + server + " " + field): one service, items told apart by account.
         var store = NewStore();
         string[] accounts = ["DeepSeek API Key", "Meta API Key", "Z.ai API Key", "Command Code API Key", "MCP notes API_TOKEN"];

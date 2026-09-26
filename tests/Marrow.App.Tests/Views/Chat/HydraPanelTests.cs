@@ -5,6 +5,7 @@ using Avalonia.Interactivity;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Chat;
 using Marrow.Core.Models;
+using Marrow.Core.Port;
 using Marrow.Testing;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
@@ -104,6 +105,32 @@ public sealed class HydraPanelTests
         Assert.Equal("Done \U000000B7 1 step \U000000B7 changed nothing", HydraStatusText.Footer(completedWithStepsAndEmptyLanding));
         Assert.Equal("Failed \U000000B7 Could not finish", HydraStatusText.Footer(failedWithSummary));
         Assert.Equal("Stopped", HydraStatusText.Footer(stopped));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-HYDRA-180")] // App/Views/Chat/HydraPanel.swift:545-551
+    [Trait("Decision", "ED-197")]
+    public void Elapsed_uses_the_narrow_duration_style_and_drops_a_zero_minutes_remainder()
+    {
+        using var locale = SwiftFormatters.CurrentLocale.Override("en_US");
+
+        var start = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        var completed = new HydraHeadInfo(0, "", default, default) with
+        {
+            HydraHeadInfoStatus = HydraHeadInfo.Status.Completed,
+            StartedAt = start,
+            FinishedAt = start.AddSeconds(60),
+        };
+        var oddSeconds = completed with { FinishedAt = start.AddSeconds(61) };
+        var underOneSecond = completed with { FinishedAt = start.AddMilliseconds(999) };
+        var noFinish = completed with { FinishedAt = null };
+
+        // 60s -> "1m", not the pre-B3 hand-built "1m 0s": SwiftFormatters.DurationUnits drops the zero unit
+        // (SwiftFormattersSecondTests.Hydra_and_HydraPanel_allow_seconds_and_minutes(60L, "1m")).
+        Assert.Equal("Done in 1m", HydraStatusText.Footer(completed));
+        Assert.Equal("Done in 1m 1s", HydraStatusText.Footer(oddSeconds));
+        Assert.Equal("Done", HydraStatusText.Footer(underOneSecond));
+        Assert.Equal("Done", HydraStatusText.Footer(noFinish));
     }
 
     [Fact]

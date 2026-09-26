@@ -8,14 +8,21 @@ using Marrow.Core.Support;
 using Marrow.Services.Providers;
 using Marrow.UI.Theme;
 
-// Source: DroppyCode/App/AppSettings.swift (B2 1fbf81e), :1-947. Skeleton (c100 group 1): the four enums' cases
+// Source: DroppyCode/App/AppSettings.swift (B3 52bc792), :1-951. Skeleton (c100 group 1): the four enums' cases
 // (:3-93), the ModelPin and ModelPreference shapes (:96-107), the defaults keys (:117-180), the constants (:115,
 // :182, :299) and every stored property's shape are complete; every didSet, every computed property, the init
-// (:703-786), the Keychain fill (:410-494) and every method are left to the implementing unit. Forms: CGSize is
+// (:707-790), the Keychain fill (:402-498) and every method are left to the implementing unit. Forms: CGSize is
 // Avalonia.Size, CGPoint is Avalonia.Point, CGFloat is double (R-VIEW-11, ED-095); `defaults` is
-// UserDefaults.Standard (WebsiteCaptures.defaults is NOT-PORTED, ED-001); a Swift Int is long (R-NUM-4).
-// The `private var keyFallbacks` tuple (:432-439) and the private helpers store/load (:860-867) are left to the
+// UserDefaults.Standard (CaptureRun.defaults is NOT-PORTED, ED-001; B2 named the same NOT-PORTED indirection
+// WebsiteCaptures.defaults); a Swift Int is long (R-NUM-4).
+// The `private var keyFallbacks` tuple (:424-431) and the private helpers store/load (:864-871) are left to the
 // implementing unit.
+//
+// B3 (impact R3-48 APIKeychain #1, PR-PROVAPI-192, PR-SETTINGS-088/089/272): the four key observers' didSet bodies
+// and the four per-provider readKeys calls now go through one shared storeAPIKeyChange(:483-487)/storedKey(:443-
+// 445) pair over the new Services.Providers.APIKeychain, which takes a ProviderKind instead of an account string;
+// the deleted DeepSeekKeychain/MetaKeychain/ZaiKeychain/CommandCodeKeychain wrapper types are gone from this file's
+// callers. Citation only: the trim, fallback-write, legacy-removal and refusal behaviour is unchanged.
 
 namespace Marrow.App;
 
@@ -298,32 +305,33 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
     // :182
     public const long ModelListLimit = 15;
 
-    // :184. WebsiteCaptures is NOT-PORTED (ED-001): always UserDefaults.Standard.
+    // :184. CaptureRun is NOT-PORTED (ED-001): always UserDefaults.Standard. B2 named this same indirection
+    // WebsiteCaptures.defaults (:184, :708, :869 at B3); the rename carries no behaviour change.
     private readonly ISettingsStore defaults = UserDefaults.Standard.Current;
 
     // :299
     public const double DefaultBackdropOpacity = 0.5;
 
-    // :415-423
+    // :407-415
     private sealed record StoredKey
     {
-        public required string Value { get; init; }    // :416
-        public required bool InKeychain { get; init; } // :417
+        public required string Value { get; init; }    // :408
+        public required bool InKeychain { get; init; } // :409
     }
 
-    // :425-430
+    // :417-422
     private sealed record StoredKeys
     {
-        public required StoredKey Deepseek { get; init; }    // :426
-        public required StoredKey Meta { get; init; }        // :427
-        public required StoredKey Zai { get; init; }         // :428
-        public required StoredKey Commandcode { get; init; } // :429
+        public required StoredKey Deepseek { get; init; }    // :418
+        public required StoredKey Meta { get; init; }        // :419
+        public required StoredKey Zai { get; init; }         // :420
+        public required StoredKey Commandcode { get; init; } // :421
     }
 
     // OD-0012 E5: the one line shown under a key field whose key the protected store refused.
     private const string CredentialRefusalLine = "Credential Manager did not accept this key, so it was not saved.";
 
-    // :409-410
+    // :402-403
     private bool didReadKeychain;
     private bool isReadingKeychain;
 
@@ -623,50 +631,61 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
     public bool HasProjectActivationOverride(Guid id) =>
         projectActivationOverrides.ContainsKey(SwiftUUID.UuidString(id));
 
-    // :367-373. Named deviation OD-0008 A6, B3; OD-0012 E5 (PR-PROVAPI-008, PR-PROVREG-239): the protected store
-    // is written; a key it refuses is reported (APIKeyRefusal) and never kept in plain text anywhere.
+    // :367-371. Named deviation OD-0008 A6, B3; OD-0012 E5 (PR-PROVAPI-008, PR-PROVREG-239): the protected store
+    // is written; a key it refuses is reported (APIKeyRefusal) and never kept in plain text anywhere. At B3 the
+    // didSet body is one call into the shared StoreAPIKeyChange (:483-487), replacing the deleted DeepSeekKeychain
+    // wrapper (PR-PROVAPI-192).
     public string DeepseekAPIKeyInput
     {
         get => Read(deepseekAPIKeyInput);
-        set => Set(ref deepseekAPIKeyInput, value, oldValue => WriteAPIKeyEdit(ProviderKind.Deepseek, value, oldValue,
-            DeepSeekKeychain.SetAPIKey, Key.DeepseekAPIKey));
+        set => Set(ref deepseekAPIKeyInput, value, oldValue =>
+            StoreAPIKeyChange(value, oldValue, ProviderKind.Deepseek, Key.DeepseekAPIKey));
     }
 
-    // :378-384. PR-PROVAPI-009, PR-PROVREG-239.
+    // :376-380. PR-PROVAPI-009, PR-PROVREG-239. B3: the deleted MetaKeychain wrapper is replaced by the shared
+    // StoreAPIKeyChange.
     public string MetaAPIKeyInput
     {
         get => Read(metaAPIKeyInput);
-        set => Set(ref metaAPIKeyInput, value, oldValue => WriteAPIKeyEdit(ProviderKind.Meta, value, oldValue,
-            MetaKeychain.SetAPIKey, Key.MetaAPIKey));
+        set => Set(ref metaAPIKeyInput, value, oldValue =>
+            StoreAPIKeyChange(value, oldValue, ProviderKind.Meta, Key.MetaAPIKey));
     }
 
-    // :391-397. PR-PROVAPI-010, PR-PROVREG-239.
+    // :387-391. PR-PROVAPI-010, PR-PROVREG-239. B3: the deleted ZaiKeychain wrapper is replaced by the shared
+    // StoreAPIKeyChange.
     public string ZaiAPIKeyInput
     {
         get => Read(zaiAPIKeyInput);
-        set => Set(ref zaiAPIKeyInput, value, oldValue => WriteAPIKeyEdit(ProviderKind.Zai, value, oldValue,
-            ZaiKeychain.SetAPIKey, Key.ZaiAPIKey));
+        set => Set(ref zaiAPIKeyInput, value, oldValue =>
+            StoreAPIKeyChange(value, oldValue, ProviderKind.Zai, Key.ZaiAPIKey));
     }
 
-    // :402-408. PR-PROVREG-239.
+    // :396-400. PR-PROVREG-239. B3: the deleted CommandCodeKeychain wrapper is replaced by the shared
+    // StoreAPIKeyChange.
     public string CommandcodeAPIKeyInput
     {
         get => Read(commandcodeAPIKeyInput);
-        set => Set(ref commandcodeAPIKeyInput, value, oldValue => WriteAPIKeyEdit(ProviderKind.Commandcode, value, oldValue,
-            CommandCodeKeychain.SetAPIKey, Key.CommandcodeAPIKey));
+        set => Set(ref commandcodeAPIKeyInput, value, oldValue =>
+            StoreAPIKeyChange(value, oldValue, ProviderKind.Commandcode, Key.CommandcodeAPIKey));
     }
 
-    // :367-408 shared body: guard !isReadingKeychain, value != oldValue; write the protected store; report or
-    // clear the refusal; the fallback writer keeps only its clearing half (PR-PROVAPI-011).
-    private void WriteAPIKeyEdit(ProviderKind provider, string value, string oldValue, Func<string, bool> setKeychain, string legacyKey)
+    /// <summary>
+    /// One provider key changed: hand it to the protected store and keep a plaintext copy in the defaults only for
+    /// a Mac (upstream) whose Keychain refused it; the port keeps only the clearing half (OD-0008 A6).
+    /// </summary>
+    // :483-487 storeAPIKeyChange(_:from:provider:fallbackKey:), the one shared body every key observer now calls
+    // through, replacing the four separate WriteAPIKeyEdit call sites (each closing over its own deleted *Keychain.
+    // setAPIKey) B2 had. guard !isReadingKeychain, value != oldValue else { return } (:484); APIKeychain.setKey
+    // (:485) now takes the ProviderKind directly (PR-PROVAPI-192) instead of a per-wrapper account string.
+    private void StoreAPIKeyChange(string value, string oldValue, ProviderKind provider, string fallbackKey)
     {
         if (isReadingKeychain || SwiftString.Equal(value, oldValue)) return;
-        var kept = setKeychain(value);
+        var kept = APIKeychain.SetKey(value, provider);
         SetAPIKeyRefusal(provider, !kept);
-        StoreAPIKeyFallback(kept ? "" : value, legacyKey);
+        StoreAPIKeyFallback(kept ? "" : value, fallbackKey);
     }
 
-    // :485-494. Only the clearing half is kept (PR-PROVAPI-011, OD-0008 A6): a non-empty value is never written
+    // :489-498. Only the clearing half is kept (PR-PROVAPI-011, OD-0008 A6): a non-empty value is never written
     // to the settings store; the caller already reported the refusal.
     private void StoreAPIKeyFallback(string value, string key)
     {
@@ -674,39 +693,44 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
         if (trimmed.Length == 0) defaults.RemoveObject(key);
     }
 
-    // :415-423, :425-430, :441-449. One Keychain round trip per key, off the caller's thread.
+    // :433-441 readKeys(fallbacks:). One Keychain round trip per key, off the caller's thread. B3: each call goes
+    // through StoredKeyFor(:443-445), replacing the four deleted per-wrapper ApiKey(fallback:) calls B2 made here.
     private static StoredKeys ReadKeys((string Deepseek, string Meta, string Zai, string Commandcode) fallbacks) => new()
     {
-        Deepseek = ReadStoredKey(DeepSeekKeychain.ApiKey(""), fallbacks.Deepseek),
-        Meta = ReadStoredKey(MetaKeychain.ApiKey(""), fallbacks.Meta),
-        Zai = ReadStoredKey(ZaiKeychain.ApiKey(""), fallbacks.Zai),
-        Commandcode = ReadStoredKey(CommandCodeKeychain.ApiKey(""), fallbacks.Commandcode),
+        Deepseek = StoredKeyFor(ProviderKind.Deepseek, fallbacks.Deepseek),
+        Meta = StoredKeyFor(ProviderKind.Meta, fallbacks.Meta),
+        Zai = StoredKeyFor(ProviderKind.Zai, fallbacks.Zai),
+        Commandcode = StoredKeyFor(ProviderKind.Commandcode, fallbacks.Commandcode),
     };
 
+    // :443-445 storedKey(for:fallback:): APIKeychain.key(for: provider, fallback: "") (named StoredKeyFor rather
+    // than Swift's storedKey to avoid colliding with the nested StoredKey record above; C# has no separate
+    // type/member namespace the way Swift's type and function do).
     // DEVIATION OD-0008 A6: upstream falls back to the plaintext defaults copy (StoredKey.init(keychain:fallback:))
     // when the Keychain is empty; the port never reads that copy, so an account the store does not hold leaves
     // its field empty. `fallback` is kept in the signature only to mirror the Swift shape; it is never read.
-    private static StoredKey ReadStoredKey(string keychain, string fallback)
+    private static StoredKey StoredKeyFor(ProviderKind provider, string fallback)
     {
         _ = fallback;
+        var keychain = APIKeychain.Key(provider, "");
         return new StoredKey { Value = keychain, InKeychain = keychain.Length != 0 };
     }
 
-    // :432-439
+    // :424-431
     private (string Deepseek, string Meta, string Zai, string Commandcode) KeyFallbacks => (
         defaults.String(Key.DeepseekAPIKey) ?? "",
         defaults.String(Key.MetaAPIKey) ?? "",
         defaults.String(Key.ZaiAPIKey) ?? "",
         defaults.String(Key.CommandcodeAPIKey) ?? "");
 
-    // :454-457
+    // :450-453
     private void ReadKeychainIfNeeded()
     {
         if (didReadKeychain) return;
         FillKeys(ReadKeys(KeyFallbacks));
     }
 
-    // :461-466
+    // :457-462
     public async Task LoadKeychainInBackground()
     {
         if (didReadKeychain) return;
@@ -715,7 +739,7 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
         FillKeys(keys);
     }
 
-    // :468-483
+    // :464-479
     private void FillKeys(StoredKeys keys)
     {
         if (didReadKeychain) return;
@@ -732,28 +756,28 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
         if (keys.Commandcode.InKeychain) defaults.RemoveObject(Key.CommandcodeAPIKey);
     }
 
-    // :496-498. Keys are ProviderKind raw values.
+    // :500-502. Keys are ProviderKind raw values.
     public ValueMap<string, string> BinaryPaths
     {
         get => Read(binaryPaths);
         private set => Set(ref binaryPaths, value, _ => defaults.Set(Key.BinaryPaths, ToObjectMap(value)));
     }
 
-    // :500-502
+    // :504-506
     public ValueList<string> DisabledProviders
     {
         get => Read(disabledProviders);
         private set => Set(ref disabledProviders, value, _ => defaults.Set(Key.DisabledProviders, value.ToList<object>()));
     }
 
-    // :504-506
+    // :508-510
     public ValueMap<string, string> LastModels
     {
         get => Read(lastModels);
         private set => Set(ref lastModels, value, _ => defaults.Set(Key.Models, ToObjectMap(value)));
     }
 
-    // :508-510
+    // :512-514
     public ValueMap<string, string> LastEfforts
     {
         get => Read(lastEfforts);
@@ -763,21 +787,21 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
     private static Dictionary<string, object> ToObjectMap(ValueMap<string, string> map) =>
         map.ToDictionary(pair => pair.Key, object (pair) => pair.Value);
 
-    // :515-517
+    // :519-521
     public Guid? LastHydraPairID
     {
         get => Read(lastHydraPairID);
         set => Set(ref lastHydraPairID, value, _ => defaults.Set(Key.LastHydraPair, value is { } id ? SwiftUUID.UuidString(id) : null));
     }
 
-    // :519-521
+    // :523-525
     public ValueList<ModelPin> ModelList
     {
         get => Read(modelList);
         private set => Set(ref modelList, value, _ => StoreArray(value, Key.ModelList, ModelPinConverter.WriteMembers));
     }
 
-    // :523-525. Keys are ModelPin ids.
+    // :527-529. Keys are ModelPin ids.
     public ValueMap<string, ModelPreference> ModelPreferences
     {
         get => Read(modelPreferences);
@@ -787,7 +811,7 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
 
     private static readonly JsonSerializerOptions DefaultJsonOptions = new();
 
-    // :860-862. `try? JSONEncoder().encode(value)` -> compact bytes, unsorted keys (SwiftJsonStyle.PlainEncoder).
+    // :864-866. `try? JSONEncoder().encode(value)` -> compact bytes, unsorted keys (SwiftJsonStyle.PlainEncoder).
     private void StoreArray<T>(IReadOnlyList<T> items, string key, Action<Utf8JsonWriter, T> writeMembers)
     {
         using var stream = new MemoryStream();
@@ -823,7 +847,7 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
         defaults.Set(key, SwiftJson.Write(document.RootElement, SwiftJsonStyle.PlainEncoder));
     }
 
-    // :864-867. `try? JSONDecoder().decode(...)`: any failure (including no stored data) is nil.
+    // :868-871. `try? JSONDecoder().decode(...)`: any failure (including no stored data) is nil.
     private static ValueList<T>? LoadArray<T>(ISettingsStore store, string key, Func<JsonElement, T> decode)
     {
         var data = store.Data(key);
@@ -851,7 +875,7 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
         catch (JsonException) { return null; }
     }
 
-    // :785. `Self.load([Lenient<HydraPair>].self, forKey:)?.compactMap(\.value) ?? []`: a pair that fails to
+    // :789. `Self.load([Lenient<HydraPair>].self, forKey:)?.compactMap(\.value) ?? []`: a pair that fails to
     // decode is dropped, the surviving ones keep their order (PR-HYDRA-029).
     private static ValueList<HydraPair> LoadHydraPairsLenient(ISettingsStore store, string key)
     {
@@ -872,56 +896,56 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
         catch (JsonException) { return ValueList<HydraPair>.Empty; }
     }
 
-    // :529-531
+    // :533-535
     public bool HydraEnabled
     {
         get => Read(hydraEnabled);
         set => Set(ref hydraEnabled, value, _ => defaults.Set(Key.HydraEnabled, value));
     }
 
-    // :536-538
+    // :540-542
     public bool HydraDefaultEnabled
     {
         get => Read(hydraDefaultEnabled);
         set => Set(ref hydraDefaultEnabled, value, _ => defaults.Set(Key.HydraDefaultEnabled, value));
     }
 
-    // :540-542
+    // :544-546
     public bool HasSeenTour
     {
         get => Read(hasSeenTour);
         set => Set(ref hasSeenTour, value, _ => defaults.Set(Key.HasSeenTour, value));
     }
 
-    // :545-547
+    // :549-551
     public bool HasSeenHydraIntro
     {
         get => Read(hasSeenHydraIntro);
         set => Set(ref hasSeenHydraIntro, value, _ => defaults.Set(Key.HasSeenHydraIntro, value));
     }
 
-    // :551-553
+    // :555-557
     public bool HydraQueueHeads
     {
         get => Read(hydraQueueHeads);
         set => Set(ref hydraQueueHeads, value, _ => defaults.Set(Key.HydraQueueHeads, value));
     }
 
-    // :558-560
+    // :562-564
     public bool HydraAlwaysHeads
     {
         get => Read(hydraAlwaysHeads);
         set => Set(ref hydraAlwaysHeads, value, _ => defaults.Set(Key.HydraAlwaysHeads, value));
     }
 
-    // :565-567
+    // :569-571
     public bool HydraIsolateHeads
     {
         get => Read(hydraIsolateHeads);
         set => Set(ref hydraIsolateHeads, value, _ => defaults.Set(Key.HydraIsolateHeads, value));
     }
 
-    // :571-579
+    // :575-583
     public long? HydraMaxHeads
     {
         get => Read(hydraMaxHeads);
@@ -932,77 +956,77 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
         });
     }
 
-    // :583-585
+    // :587-589
     public bool HydraAutoMerge
     {
         get => Read(hydraAutoMerge);
         set => Set(ref hydraAutoMerge, value, _ => defaults.Set(Key.HydraAutoMerge, value));
     }
 
-    // :589-591
+    // :593-595
     public bool HydraReviewHeads
     {
         get => Read(hydraReviewHeads);
         set => Set(ref hydraReviewHeads, value, _ => defaults.Set(Key.HydraReviewHeads, value));
     }
 
-    // :595-597
+    // :599-601
     public bool HydraAutoClearFinished
     {
         get => Read(hydraAutoClearFinished);
         set => Set(ref hydraAutoClearFinished, value, _ => defaults.Set(Key.HydraAutoClearFinished, value));
     }
 
-    // :602-604
+    // :606-608
     public bool HydraAutoHidesIdleHeads
     {
         get => Read(hydraAutoHidesIdleHeads);
         set => Set(ref hydraAutoHidesIdleHeads, value, _ => defaults.Set(Key.HydraAutoHidesIdleHeads, value));
     }
 
-    // :609-611
+    // :613-615
     public bool HydraShowsHeadDetails
     {
         get => Read(hydraShowsHeadDetails);
         set => Set(ref hydraShowsHeadDetails, value, _ => defaults.Set(Key.HydraShowsHeadDetails, value));
     }
 
-    // :615-617
+    // :619-621
     public bool HydraAutoPopsHeads
     {
         get => Read(hydraAutoPopsHeads);
         set => Set(ref hydraAutoPopsHeads, value, _ => defaults.Set(Key.HydraAutoPopsHeads, value));
     }
 
-    // :623-625
+    // :627-629
     public bool HydraTempersHeadEffort
     {
         get => Read(hydraTempersHeadEffort);
         set => Set(ref hydraTempersHeadEffort, value, _ => defaults.Set(Key.HydraTempersHeadEffort, value));
     }
 
-    // :631-633
+    // :635-637
     public bool ShowsUsagePanel
     {
         get => Read(showsUsagePanel);
         set => Set(ref showsUsagePanel, value, _ => defaults.Set(Key.ShowsUsagePanel, value));
     }
 
-    // :637-639
+    // :641-643
     public bool SidebarFloats
     {
         get => Read(sidebarFloats);
         set => Set(ref sidebarFloats, value, _ => defaults.Set(Key.SidebarFloats, value));
     }
 
-    // :643-645
+    // :647-649
     public bool SidebarOnlyFloats
     {
         get => Read(sidebarOnlyFloats);
         set => Set(ref sidebarOnlyFloats, value, _ => defaults.Set(Key.SidebarOnlyFloats, value));
     }
 
-    // :648-657. A computed get/set over the two switches above.
+    // :652-661. A computed get/set over the two switches above.
     public SidebarMode SidebarMode
     {
         get
@@ -1017,7 +1041,7 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
         }
     }
 
-    // :660-668
+    // :664-672
     public Point? SidebarPanelOrigin
     {
         get => Read(sidebarPanelOrigin);
@@ -1028,7 +1052,7 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
         });
     }
 
-    // :671-679
+    // :675-683
     public Size? SidebarPanelSize
     {
         get => Read(sidebarPanelSize);
@@ -1039,14 +1063,14 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
         });
     }
 
-    // :683-685
+    // :687-689
     public PanelDockCorner UsagePanelDock
     {
         get => Read(usagePanelDock);
         set => Set(ref usagePanelDock, value, _ => defaults.Set(Key.UsagePanelDock, SwiftEnum<PanelDockCorner>.RawValue(value)));
     }
 
-    // :688-696
+    // :692-700
     public double? UsagePanelHeight
     {
         get => Read(usagePanelHeight);
@@ -1057,7 +1081,7 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
         });
     }
 
-    // :699-701
+    // :703-705
     public ValueList<HydraPair> HydraPairs
     {
         get => Read(hydraPairs);
@@ -1065,7 +1089,7 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
             defaults.Set(Key.HydraPairs, SwiftJson.Write(JsonSerializer.SerializeToElement(value, DefaultJsonOptions), SwiftJsonStyle.PlainEncoder)));
     }
 
-    // :703-786. Constructors assign backing fields directly: no didSet runs, nothing is written back (R-OBS-1).
+    // :707-790. Constructors assign backing fields directly: no didSet runs, nothing is written back (R-OBS-1).
     public AppSettings()
     {
         defaultProvider = SwiftEnum<ProviderKind>.FromRawValue(defaults.String(Key.DefaultProvider) ?? "") ?? ProviderKind.Codex;
@@ -1086,7 +1110,7 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
         activityThreadStyle = SwiftEnum<ActivityThreadStyle>.FromRawValue(defaults.String(Key.ActivityThreadStyle) ?? "") ?? ActivityThreadStyle.Icon;
         settledCollapsed = Plist.AsBool(defaults.Object(Key.SettledCollapsed)) ?? true;
         backdropOpacity = Plist.AsDouble(defaults.Object(Key.BackdropOpacity)) ?? DefaultBackdropOpacity;
-        // :725-729. The old System/Light/Dark choice maps straight onto the same themes.
+        // :729-733. The old System/Light/Dark choice maps straight onto the same themes.
         var initialTheme = SwiftEnum<AppTheme>.FromRawValue(defaults.String(Key.AppTheme) ?? "")
             ?? SwiftEnum<AppTheme>.FromRawValue(defaults.String(Key.Appearance) ?? "")
             ?? Marrow.UI.Theme.AppTheme.System;
@@ -1099,7 +1123,7 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
         lastProjectID = defaults.String(Key.LastProjectID) is { } storedProjectID ? SwiftUUID.Parse(storedProjectID) : null;
         projectsEnabled = Plist.AsBool(defaults.Object(Key.ProjectsEnabled)) ?? true;
         projectActivationOverrides = LoadObject(defaults, Key.ProjectActivationOverrides, SwiftDecoding.ReadBool) ?? ValueMap<string, bool>.Empty;
-        // :740-744. Read from the Keychain later (LoadKeychainInBackground), not before the first frame.
+        // :744-748. Read from the Keychain later (LoadKeychainInBackground), not before the first frame.
         deepseekAPIKeyInput = "";
         metaAPIKeyInput = "";
         zaiAPIKeyInput = "";
@@ -1153,10 +1177,10 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
 
     // MARK: - Hydra pairs
 
-    // :790-792
+    // :794-796
     public void AddHydraPair(HydraPair pair) => HydraPairs = hydraPairs.Appending(pair);
 
-    // :794-801. An (inout HydraPair) -> Void closure is a Func returning the changed copy (R-VAL-1).
+    // :798-805. An (inout HydraPair) -> Void closure is a Func returning the changed copy (R-VAL-1).
     public void UpdateHydraPair(Guid id, Func<HydraPair, HydraPair> change)
     {
         var index = hydraPairs.ToList().FindIndex(p => p.Id == id);
@@ -1167,10 +1191,10 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
         HydraPairs = hydraPairs.SetItem(index, pair);
     }
 
-    // :803-805
+    // :807-809
     public void RemoveHydraPair(Guid id) => HydraPairs = new ValueList<HydraPair>(hydraPairs.Where(p => p.Id != id));
 
-    // :807-810. Swift: hydraPair(_:).
+    // :811-814. Swift: hydraPair(_:).
     public HydraPair? HydraPair(Guid? id)
     {
         if (id is not { } wanted) return null;
@@ -1178,7 +1202,7 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
         return null;
     }
 
-    // :814-819. Swift: hydraPair(for:model:).
+    // :818-823. Swift: hydraPair(for:model:).
     public HydraPair? HydraPair(ProviderKind provider, string? model)
     {
         var candidates = hydraPairs.Where(p => p.Provider == provider).ToList();
@@ -1192,20 +1216,20 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
 
     // MARK: - Model picker
 
-    // :823-825
+    // :827-829
     public bool IsInModelList(ModelPin pin) => modelList.Contains(pin);
 
-    // :827-830
+    // :831-834
     public void AddToModelList(ModelPin pin)
     {
         if (modelList.Contains(pin) || modelList.Count >= ModelListLimit) return;
         ModelList = modelList.Appending(pin);
     }
 
-    // :832-834
+    // :836-838
     public void RemoveFromModelList(ModelPin pin) => ModelList = new ValueList<ModelPin>(modelList.Where(p => p != pin));
 
-    // :837-848. Swift: moveModel(_:to:placeAfter:), @discardableResult.
+    // :841-852. Swift: moveModel(_:to:placeAfter:), @discardableResult.
     public bool MoveModel(ModelPin pin, ModelPin to, bool placeAfter)
     {
         if (pin == to) return false;
@@ -1223,7 +1247,7 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
         return true;
     }
 
-    // :850-853. Swift: preference(for:model:).
+    // :854-857. Swift: preference(for:model:).
     public ModelPreference Preference(ProviderKind provider, string? model)
     {
         if (model is not { } wanted) return new ModelPreference();
@@ -1231,7 +1255,7 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
         return modelPreferences.TryGetValue(key, out var preference) ? preference : new ModelPreference();
     }
 
-    // :855-858. Swift: setPreference(_:for:model:).
+    // :859-862. Swift: setPreference(_:for:model:).
     public void SetPreference(ModelPreference preference, ProviderKind provider, string model)
     {
         var key = new ModelPin(provider, model).Id;
@@ -1240,11 +1264,11 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
             : modelPreferences.Mutating(map => map[key] = preference);
     }
 
-    // :869-871. Swift: binaryPath(for:).
+    // :873-875. Swift: binaryPath(for:).
     public string BinaryPath(ProviderKind provider) =>
         binaryPaths.TryGetValue(SwiftEnum<ProviderKind>.RawValue(provider), out var path) ? path : "";
 
-    // :873-876. Swift: setBinaryPath(_:for:).
+    // :877-880. Swift: setBinaryPath(_:for:).
     public void SetBinaryPath(string path, ProviderKind provider)
     {
         var trimmed = FoundationText.Trim(path, includeNewlines: true);
@@ -1254,10 +1278,10 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
             : binaryPaths.Mutating(map => map[key] = trimmed);
     }
 
-    // :878-880. Swift: isEnabled(_:).
+    // :882-884. Swift: isEnabled(_:).
     public bool IsEnabled(ProviderKind provider) => !disabledProviders.Contains(SwiftEnum<ProviderKind>.RawValue(provider));
 
-    // :882-885. Swift: setEnabled(_:for:).
+    // :886-889. Swift: setEnabled(_:for:).
     public void SetEnabled(bool enabled, ProviderKind provider)
     {
         var raw = SwiftEnum<ProviderKind>.RawValue(provider);
@@ -1266,13 +1290,13 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
         DisabledProviders = new ValueList<string>(list);
     }
 
-    // :887-889. Swift: lastModel(for:).
+    // :891-893. Swift: lastModel(for:).
     public string? LastModel(ProviderKind provider) => lastModels.GetValueOrDefault(SwiftEnum<ProviderKind>.RawValue(provider));
 
-    // :891-893. Swift: lastEffort(for:).
+    // :895-897. Swift: lastEffort(for:).
     public string? LastEffort(ProviderKind provider) => lastEfforts.GetValueOrDefault(SwiftEnum<ProviderKind>.RawValue(provider));
 
-    // :895-898. Swift: remember(model:effort:for:).
+    // :899-902. Swift: remember(model:effort:for:).
     public void Remember(string? model, string? effort, ProviderKind provider)
     {
         var raw = SwiftEnum<ProviderKind>.RawValue(provider);
@@ -1280,7 +1304,7 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
         LastEfforts = effort is { } e ? lastEfforts.Mutating(map => map[raw] = e) : lastEfforts.Mutating(map => map.Remove(raw));
     }
 
-    // :904-916. Swift: apiKey(for:); the ProviderSettings requirement.
+    // :908-920. Swift: apiKey(for:); the ProviderSettings requirement.
     public string ApiKey(ProviderKind provider)
     {
         ReadKeychainIfNeeded();
@@ -1297,10 +1321,10 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
         return FoundationText.Trim(LoginEnvironment.Current.GetValueOrDefault(envVar) ?? "", includeNewlines: true);
     }
 
-    // :918-920. Swift: hasAPIKey(for:).
+    // :922-924. Swift: hasAPIKey(for:).
     public bool HasAPIKey(ProviderKind provider) => ApiKey(provider).Length != 0;
 
-    // :923-932. Swift: apiKeyInput(for:).
+    // :927-936. Swift: apiKeyInput(for:).
     public string ApiKeyInput(ProviderKind provider)
     {
         ReadKeychainIfNeeded();
@@ -1314,7 +1338,7 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
         };
     }
 
-    // :934-943. Swift: setAPIKeyInput(_:for:).
+    // :938-947. Swift: setAPIKeyInput(_:for:).
     public void SetAPIKeyInput(string value, ProviderKind provider)
     {
         ReadKeychainIfNeeded();

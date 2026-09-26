@@ -3,7 +3,7 @@ using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
 
-// Source: DroppyCode/Services/Providers/ZaiAPI.swift (B2 1fbf81e), :1-224.
+// Source: DroppyCode/Services/Providers/ZaiAPI.swift (B3 52bc7926), :1-207.
 //
 // Minimal OpenAI-compatible HTTP client for api.z.ai (GLM Coding Plan). Chat streaming itself lives in
 // ZaiSession (not part of this unit); this covers the lightweight calls (key validation, model catalog, plan
@@ -17,7 +17,7 @@ using Marrow.Core.Support;
 
 namespace Marrow.Services.Providers;
 
-// :6-224
+// :6-207
 public static class ZaiAPI
 {
     public static readonly Uri BaseURL = new("https://api.z.ai/api/coding/paas/v4");                  // :7
@@ -35,129 +35,94 @@ public static class ZaiAPI
     public const int MaxOutputTokens = 128_000;
 
     /// <summary>True when the key lists models successfully.</summary>
-    // :20-29
-    public static async Task<bool> Validate(string apiKey, Uri? modelsUrl = null)
-    {
-        var key = apiKey.Trimmed(); // :21
-        if (key.Length == 0) return false; // :22
-        var request = new URLRequest(modelsUrl ?? ModelsURL, timeoutInterval: 15); // :23
-        request = request.SetValue("Bearer " + key, forHTTPHeaderField: "Authorization"); // :24
-        request = request.SetValue("application/json", forHTTPHeaderField: "Accept"); // :25
-        // :26-27
-        var result = await SwiftTry.OptionalValueAsync(() => URLSession.Shared.Data(request));
-        if (result is not { } exchange || exchange.Response is not HTTPURLResponse http) return false;
-        return http.StatusCode == 200; // :28
-    }
+    // :20-22
+    public static async Task<bool> Validate(string apiKey, Uri? modelsUrl = null) =>
+        // :21
+        await OpenAICompatibleAPI.Validate(modelsUrl ?? ModelsURL, apiKey);
 
-    // :31-45
-    public static async Task<ValueList<ModelOption>> ListModels(string apiKey, Uri? modelsUrl = null)
-    {
-        var key = apiKey.Trimmed(); // :32
-        if (key.Length == 0) return ValueList<ModelOption>.Empty; // :33
-        var request = new URLRequest(modelsUrl ?? ModelsURL, timeoutInterval: 15); // :34
-        request = request.SetValue("Bearer " + key, forHTTPHeaderField: "Authorization"); // :35
-        request = request.SetValue("application/json", forHTTPHeaderField: "Accept"); // :36
-        var (data, response) = await URLSession.Shared.Data(request); // :37
-        if (response is not HTTPURLResponse http || http.StatusCode != 200 || JSONValue.Parse(data) is not { } json) // :38-39
-        {
-            return ValueList<ModelOption>.Empty;
-        }
-        var ids = new List<string>(); // :40
-        foreach (var item in json["data"]?.JSONValueArray ?? [])
-        {
-            if (item["id"]?.JSONValueString is { } id) ids.Add(id);
-        }
-        if (ids.Count == 0) return ValueList<ModelOption>.Empty; // :41
-        var options = new List<ModelOption>(); // :42-44
-        foreach (var id in ids)
-        {
-            if (Option(id) is { } option) options.Add(option);
-        }
-        return new ValueList<ModelOption>(options
-            .OrderBy(o => o.IsDefault ? 0 : 1)
-            .ThenBy(o => o.Id, SwiftStringComparer.Instance));
-    }
+    // :24-26
+    public static async Task<ValueList<ModelOption>> ListModels(string apiKey, Uri? modelsUrl = null) =>
+        // :25
+        await OpenAICompatibleAPI.ListModels(modelsUrl ?? ModelsURL, apiKey, Option);
 
     /// <summary>
     /// Only the two 5.3 Coding Plan models are offered. Older GLM ids are routed to 5.3 by Z.ai, so they are
     /// not offered.
     /// </summary>
-    // :49-64
+    // :30-45
     public static ModelOption? Option(string id)
     {
         switch (id)
         {
-            case "glm-5.3": // :51-52
+            case "glm-5.3": // :32-33
                 return new ModelOption(id: id, name: "GLM-5.3",
                     detail: "Best reasoning and coding \U000000B7 1M context", // U+00B7 MIDDLE DOT
                     efforts: ZaiEfforts, defaultEffort: "max", isDefault: true);
-            case "glm-5.3-flash": // :53-54
+            case "glm-5.3-flash": // :34-35
                 return new ModelOption(id: id, name: "GLM-5.3 Flash",
                     detail: "Fast, reads images \U000000B7 1M context", // U+00B7 MIDDLE DOT
                     efforts: ZaiEfforts, defaultEffort: "max");
             default:
-                // :56-60. GLM-5.3-FlashX is on the account's model list but not in the Coding Plan
+                // :37-41. GLM-5.3-FlashX is on the account's model list but not in the Coding Plan
                 // ("GLM-5.3-FlashX is not yet available on the plan", docs.z.ai/guides/vlm/glm-5.3-flash), so
                 // every request for it is turned down with 1311 before a single credit is spent. It is never
                 // offered, or a pair can be pointed at a model that cannot answer.
                 if (!SwiftString.HasPrefix(id, "glm-5.3") ||
-                    SwiftString.Lowercased(id).Contains("flashx", StringComparison.Ordinal)) // :61
+                    SwiftString.Lowercased(id).Contains("flashx", StringComparison.Ordinal)) // :42
                 {
                     return null;
                 }
-                return new ModelOption(id: id, name: id, efforts: ZaiEfforts, defaultEffort: "max"); // :62
+                return new ModelOption(id: id, name: id, efforts: ZaiEfforts, defaultEffort: "max"); // :43
         }
     }
 
     /// <summary>Only Flash accepts images; the full model returns an error for them.</summary>
-    // :67-70
+    // :48-51
     public static bool IsVisionModel(string? id)
     {
-        if (id is not { } value) return false; // :68
-        return value.Contains("flash", StringComparison.Ordinal) || value.EndsWith("v", StringComparison.Ordinal); // :69
+        if (id is not { } value) return false; // :49
+        return value.Contains("flash", StringComparison.Ordinal) || value.EndsWith("v", StringComparison.Ordinal); // :50
     }
 
     /// <summary>
     /// The Coding Plan's rolling windows from the monitor quota endpoint. Nil when the key is missing, rejected
     /// or the API is unreachable.
     /// </summary>
-    // :74-87
+    // :55-66
     public static async Task<PlanLimits?> PlanLimits(string apiKey, Uri? quotaUrl = null, Uri? resetListUrl = null)
     {
-        var key = apiKey.Trimmed(); // :75
-        if (key.Length == 0) return null; // :76
-        var request = new URLRequest(quotaUrl ?? QuotaURL, timeoutInterval: 15); // :77
-        request = request.SetValue("Bearer " + key, forHTTPHeaderField: "Authorization"); // :78
-        request = request.SetValue("application/json", forHTTPHeaderField: "Accept"); // :79
-        // :80-82
+        var key = apiKey.Trimmed(); // :56
+        if (key.Length == 0) return null; // :57
+        var request = OpenAICompatibleAPI.BearerRequest(quotaUrl ?? QuotaURL, key); // :58
+        // :59-61
         var result = await SwiftTry.OptionalValueAsync(() => URLSession.Shared.Data(request));
         if (result is not { } exchange || exchange.Response is not HTTPURLResponse http || http.StatusCode != 200 ||
             JSONValue.Parse(exchange.Data) is not { } json)
         {
             return null;
         }
-        if (json["code"]?.JSONValueInt != 200 && json["success"]?.JSONValueBool != true) return null; // :83
-        if (Limits(json) is not { } limits) return null; // :84
-        return limits with { PlanLimitsResetCredits = await ResetCredits(key, resetListUrl) }; // :85-86
+        if (json["code"]?.JSONValueInt != 200 && json["success"]?.JSONValueBool != true) return null; // :62
+        if (Limits(json) is not { } limits) return null; // :63
+        return limits with { PlanLimitsResetCredits = await ResetCredits(key, resetListUrl) }; // :64-65
     }
 
-    // :89-151
+    // :68-130
     public static PlanLimits? Limits(JSONValue json)
     {
-        // :90
+        // :69
         var planName = PlanLimitsReader.PlanName(json["data"]?["level"]?.JSONValueString) is { } level
             ? "Coding Plan " + level
             : null;
-        var entries = json["data"]?["limits"]?.JSONValueArray ?? []; // :91
-        var windows = new List<PlanLimits.Window>(); // :92
-        var creditIndex = 0; // :93
-        var toolsIndex = 0; // :94
-        foreach (var entry in entries) // :95
+        var entries = json["data"]?["limits"]?.JSONValueArray ?? []; // :70
+        var windows = new List<PlanLimits.Window>(); // :71
+        var creditIndex = 0; // :72
+        var toolsIndex = 0; // :73
+        foreach (var entry in entries) // :74
         {
-            var type = entry["type"]?.JSONValueString ?? ""; // :96
-            var usage = entry["usage"]?.JSONValueDouble ?? 0; // :97
-            var current = entry["currentValue"]?.JSONValueDouble ?? 0; // :98
-            double percent; // :99-106
+            var type = entry["type"]?.JSONValueString ?? ""; // :75
+            var usage = entry["usage"]?.JSONValueDouble ?? 0; // :76
+            var current = entry["currentValue"]?.JSONValueDouble ?? 0; // :77
+            double percent; // :78-85
             if (entry["percentage"]?.JSONValueDouble is { } reported)
             {
                 percent = reported;
@@ -170,18 +135,18 @@ public static class ZaiAPI
             {
                 percent = 0;
             }
-            percent = Math.Min(Math.Max(percent, 0), 100); // :107
-            var resetsAt = entry["nextResetTime"]?.JSONValueDouble is { } ms // :108
+            percent = Math.Min(Math.Max(percent, 0), 100); // :86
+            var resetsAt = entry["nextResetTime"]?.JSONValueDouble is { } ms // :87
                 ? SwiftDate.From1970Seconds(ms / 1_000)
                 : (DateTimeOffset?)null;
-            switch (type) // :109
+            switch (type) // :88
             {
-                case "CREDIT_LIMIT": // :110
+                case "CREDIT_LIMIT": // :89
                 case "TOKENS_LIMIT":
                 {
-                    var unit = entry["unit"]?.JSONValueInt; // :111
-                    var number = entry["number"]?.JSONValueDouble ?? 0; // :112
-                    long? minutes = unit switch // :113-119
+                    var unit = entry["unit"]?.JSONValueInt; // :90
+                    var number = entry["number"]?.JSONValueDouble ?? 0; // :91
+                    long? minutes = unit switch // :92-98
                     {
                         3 => number > 0 ? SwiftNumber.TruncatingToInt(number * 60) : null,
                         4 => number > 0 ? SwiftNumber.TruncatingToInt(number * 1_440) : null,
@@ -189,7 +154,7 @@ public static class ZaiAPI
                         5 => number > 0 ? SwiftNumber.TruncatingToInt(number * 43_200) : null,
                         _ => null,
                     };
-                    string title; // :120-127
+                    string title; // :99-106
                     if (minutes is { } minutesValue)
                     {
                         title = PlanLimitsReader.WindowTitle(minutesValue);
@@ -202,7 +167,7 @@ public static class ZaiAPI
                     {
                         title = "Weekly";
                     }
-                    windows.Add(new PlanLimits.Window // :128-134
+                    windows.Add(new PlanLimits.Window // :107-113
                     {
                         Id = "credit-" + creditIndex.ToString(CultureInfo.InvariantCulture),
                         Title = title,
@@ -210,11 +175,11 @@ public static class ZaiAPI
                         ResetsAt = resetsAt,
                         Detail = FormatCount(current) + " of " + FormatCount(usage) + " credits",
                     });
-                    creditIndex += 1; // :135
+                    creditIndex += 1; // :114
                     break;
                 }
-                case "TIME_LIMIT": // :136
-                    windows.Add(new PlanLimits.Window // :137-143
+                case "TIME_LIMIT": // :115
+                    windows.Add(new PlanLimits.Window // :116-122
                     {
                         Id = "tools-" + toolsIndex.ToString(CultureInfo.InvariantCulture),
                         Title = "Monthly \U000000B7 MCP tools", // U+00B7 MIDDLE DOT
@@ -222,27 +187,27 @@ public static class ZaiAPI
                         ResetsAt = resetsAt,
                         Detail = FormatCount(current) + " of " + FormatCount(usage) + " calls",
                     });
-                    toolsIndex += 1; // :144
+                    toolsIndex += 1; // :123
                     break;
-                default: // :145-146
+                default: // :124-125
                     continue;
             }
         }
-        if (windows.Count == 0) return null; // :149
-        return new PlanLimits { PlanName = planName, Windows = new ValueList<PlanLimits.Window>(windows) }; // :150
+        if (windows.Count == 0) return null; // :128
+        return new PlanLimits { PlanName = planName, Windows = new ValueList<PlanLimits.Window>(windows) }; // :129
     }
 
     /// <summary>
     /// The reset cards the account holds, one row per card: the 5-hour ones first, then the weekly ones. Nil
     /// when the list cannot be read, so the section stays hidden.
     /// </summary>
-    // :155-176
+    // :134-155
     public static async Task<PlanLimits.ResetCredits?> ResetCredits(string apiKey, Uri? resetListUrl = null)
     {
-        var request = new URLRequest(resetListUrl ?? ResetListURL, timeoutInterval: 15); // :156
-        request = request.SetValue("Bearer " + apiKey, forHTTPHeaderField: "Authorization"); // :157
-        request = request.SetValue("application/json", forHTTPHeaderField: "Accept"); // :158
-        // :159-162
+        var request = new URLRequest(resetListUrl ?? ResetListURL, timeoutInterval: 15); // :135
+        request = request.SetValue("Bearer " + apiKey, forHTTPHeaderField: "Authorization"); // :136
+        request = request.SetValue("application/json", forHTTPHeaderField: "Accept"); // :137
+        // :138-141
         var result = await SwiftTry.OptionalValueAsync(() => URLSession.Shared.Data(request));
         if (result is not { } exchange || exchange.Response is not HTTPURLResponse http || http.StatusCode != 200 ||
             JSONValue.Parse(exchange.Data) is not { } json || json["code"]?.JSONValueInt != 200 ||
@@ -250,22 +215,22 @@ public static class ZaiAPI
         {
             return null;
         }
-        var credits = new List<PlanLimits.ResetCredit>(); // :163
-        // :164-174
+        var credits = new List<PlanLimits.ResetCredit>(); // :142
+        // :143-153
         foreach (var (key, type, title) in new[]
                  {
                      ("fiveHourResets", "FIVE_HOUR", "Resets the 5-hour limit"),
                      ("weekResets", "WEEK", "Resets the weekly limit"),
                  })
         {
-            foreach (var card in payload[key]?.JSONValueArray ?? []) // :165
+            foreach (var card in payload[key]?.JSONValueArray ?? []) // :144
             {
-                // :166
+                // :145
                 if (card["available"]?.JSONValueBool == false || card["recordId"]?.JSONValueInt is not { } record)
                 {
                     continue;
                 }
-                credits.Add(new PlanLimits.ResetCredit // :167-172
+                credits.Add(new PlanLimits.ResetCredit // :146-151
                 {
                     Id = type + ":" + record.ToString(CultureInfo.InvariantCulture),
                     Title = title,
@@ -274,57 +239,60 @@ public static class ZaiAPI
                 });
             }
         }
-        return new PlanLimits.ResetCredits { AvailableCount = credits.Count, Credits = new ValueList<PlanLimits.ResetCredit>(credits) }; // :175
+        return new PlanLimits.ResetCredits { AvailableCount = credits.Count, Credits = new ValueList<PlanLimits.ResetCredit>(credits) }; // :154
     }
 
     /// <summary>Spends one card. The id is the <c>type:recordId</c> pair <see cref="ResetCredits"/> built.</summary>
-    // :179-202
+    // :158-181
     public static async Task<PlanLimits.ResetOutcome> ConsumeResetCredit(string apiKey, string creditID, Uri? resetUseUrl = null)
     {
-        var parts = creditID.Split(':', 2); // :180
-        if (parts.Length != 2 || SwiftNumber.ParseInt(parts[1]) is not { } record) // :181
+        var parts = creditID.Split(':', 2); // :159
+        if (parts.Length != 2 || SwiftNumber.ParseInt(parts[1]) is not { } record) // :160
         {
             throw new ResetCreditError(new ResetCreditError.Case.UnknownOutcome());
         }
-        var request = new URLRequest(resetUseUrl ?? ResetUseURL, timeoutInterval: 20) { HttpMethod = "POST" }; // :182-183
-        request = request.SetValue("Bearer " + apiKey, forHTTPHeaderField: "Authorization"); // :184
-        request = request.SetValue("application/json", forHTTPHeaderField: "Content-Type"); // :185
-        request = request.SetValue("application/json", forHTTPHeaderField: "Accept"); // :186
-        var body = JSONValue.FromDictionaryLiteral( // :187-192
+        var request = new URLRequest(resetUseUrl ?? ResetUseURL, timeoutInterval: 20) { HttpMethod = "POST" }; // :161-162
+        request = request.SetValue("Bearer " + apiKey, forHTTPHeaderField: "Authorization"); // :163
+        request = request.SetValue("application/json", forHTTPHeaderField: "Content-Type"); // :164
+        request = request.SetValue("application/json", forHTTPHeaderField: "Accept"); // :165
+        var body = JSONValue.FromDictionaryLiteral( // :166-171
             ("targetType", "PERSONAL"),
             ("resetType", parts[0]),
             ("recordId", record),
             ("requestId", SwiftString.Lowercased(SwiftUUID.UuidString(Guid.NewGuid()))));
-        request = request with { HttpBody = body.Data() }; // :193
-        var (data, _) = await URLSession.Shared.Data(request); // :194
-        if (JSONValue.Parse(data) is not { } json) throw new ResetCreditError(new ResetCreditError.Case.UnknownOutcome()); // :195
-        if (json["code"]?.JSONValueInt != 200 || json["success"]?.JSONValueBool != true) // :196
+        request = request with { HttpBody = body.Data() }; // :172
+        var (data, _) = await URLSession.Shared.Data(request); // :173
+        if (JSONValue.Parse(data) is not { } json) throw new ResetCreditError(new ResetCreditError.Case.UnknownOutcome()); // :174
+        if (json["code"]?.JSONValueInt != 200 || json["success"]?.JSONValueBool != true) // :175
         {
-            // :197
+            // :176
             throw new ResetCreditError(new ResetCreditError.Case.Rejected(json["msg"]?.JSONValueString ?? "Z.ai declined the reset."));
         }
-        // :199-200. The meters lag the reset by a moment; the dashboard waits the same two seconds.
+        // :178-179. The meters lag the reset by a moment; the dashboard waits the same two seconds.
         _ = await SwiftTask.TrySleep(SwiftTask.Seconds(2));
         // Marrow.Services.Providers.PlanLimits (the type): "PlanLimits" alone here would resolve to the
         // PlanLimits method above (CS0119), since member lookup inside this class prefers the method group.
-        return Marrow.Services.Providers.PlanLimits.ResetOutcome.Reset; // :201
+        return Marrow.Services.Providers.PlanLimits.ResetOutcome.Reset; // :180
     }
 
     /// <summary>Z.ai writes its card expiries as naive <c>yyyy-MM-dd HH:mm:ss</c> in the operator's zone.</summary>
-    // :204-211
+    // :183-194. B3 moves the DateFormatter construction into a cached static (:188-194) so it is built once, not
+    // on every call; the C# port never built a formatter object per call (TryParseExact and TimeZoneInfo need no
+    // such cache), so this restructuring has no C# counterpart and no observable difference (A8.md 2.A: "Zai
+    // caches resetDateFormatter. Nothing observable changes.").
     private static DateTimeOffset? ResetDate(string text)
     {
-        // :206-209
+        // :190-192 (locale/time-zone/format, folded into the call below at :185/:193)
         if (!DateTime.TryParseExact(text, "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed))
         {
             return null;
         }
         var zone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Shanghai");
         var utc = TimeZoneInfo.ConvertTimeToUtc(DateTime.SpecifyKind(parsed, DateTimeKind.Unspecified), zone);
-        return new DateTimeOffset(utc, TimeSpan.Zero); // :210
+        return new DateTimeOffset(utc, TimeSpan.Zero); // :185, :193
     }
 
-    // :213-223. NumberFormatter with locale en_US, decimal style and maximumFractionDigits 0 (R-FMT-1).
+    // :196-206. NumberFormatter with locale en_US, decimal style and maximumFractionDigits 0 (R-FMT-1).
     private static string FormatCount(double value) =>
-        SwiftFormat.DecimalNoFraction(value, CultureInfo.GetCultureInfo("en-US")); // :214-222
+        SwiftFormat.DecimalNoFraction(value, CultureInfo.GetCultureInfo("en-US")); // :197-205
 }

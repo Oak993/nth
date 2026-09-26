@@ -4,7 +4,9 @@ using Marrow.Core.Port;
 using Marrow.Core.Support;
 using Marrow.Services.Models;
 
-// Source: DroppyCode/Services/MCP/MCPProviderConfig.swift (B2 1fbf81e), :1-253.
+// Source: DroppyCode/Services/MCP/MCPProviderConfig.swift (B3 52bc792), :1-245. B3 delta (lane A17, R3-46):
+// connectedIDs (B2 lines 230-236) is deleted, having had no caller (PR-MCP-172 reclassified: there is no
+// fourth accessor); every citation at or after B2 line 238 shifts -8.
 //
 // ED-177 RESUME: Services.Store.Storage merged, so Marrow.Services.Models.MCPPaths (src/Marrow.Services/Models/MCP.cs)
 // now builds its paths from Storage.Root instead of throwing. This part completes WriteAll, AcpServers,
@@ -311,35 +313,25 @@ public static class MCPProviderConfig
         return GeminiSettingsURL; // :227
     }
 
-    // :230-236. PR-MCP-172.
-    public static ValueList<string> ConnectedIDs() // :230
-    {
-        var data = SwiftTry.Optional(() => File.ReadAllBytes(MCPPaths.ClaudeConfigURL)); // :231
-        var parsed = data is null ? null : JSONValue.Parse(data); // :232
-        var mcpServers = parsed?["mcpServers"]?.JSONValueObject; // :233
-        if (mcpServers is null || mcpServers.Count == 0) return ValueList<string>.Empty; // :233-234
-        return new ValueList<string>(mcpServers.Keys.OrderBy(k => k, SwiftStringComparer.Instance)); // :235
-    }
-
-    // :238. private static let geminiSettingsURL. ENGINEERING DECISION: like MCPPaths.Directory (MCP.cs, ED-177),
+    // :230. private static let geminiSettingsURL. ENGINEERING DECISION: like MCPPaths.Directory (MCP.cs, ED-177),
     // Storage.Root is an Ambient scoped per async flow, so a process-wide cached field here would freeze on
     // whichever test's root won the race to evaluate it first. Recomputed on every access instead.
-    private static string GeminiSettingsURL => SwiftPath.AppendingPathComponent(MCPPaths.Directory, "gemini-settings.json"); // :238
+    private static string GeminiSettingsURL => SwiftPath.AppendingPathComponent(MCPPaths.Directory, "gemini-settings.json"); // :230
 
-    // :240-243. Creates the parent directory then writes pretty-printed JSON atomically; both are try? in Swift.
-    private static void Write(JSONValue value, string url) // :240
+    // :232-235. Creates the parent directory then writes pretty-printed JSON atomically; both are try? in Swift.
+    private static void Write(JSONValue value, string url) // :232
     {
-        SwiftTry.Ignore(() => Directory.CreateDirectory(Path.GetDirectoryName(url) ?? url)); // :241
-        SwiftTry.Ignore(() => FileOps.WriteAtomic(url, value.Data(pretty: true))); // :242
+        SwiftTry.Ignore(() => Directory.CreateDirectory(Path.GetDirectoryName(url) ?? url)); // :233
+        SwiftTry.Ignore(() => FileOps.WriteAtomic(url, value.Data(pretty: true))); // :234
     }
 
-    // :245-251. True only when the file reads, parses, and the named key holds a non-empty object.
-    private static bool ServersPresent(string url, string key) // :245
+    // :237-243. True only when the file reads, parses, and the named key holds a non-empty object.
+    private static bool ServersPresent(string url, string key) // :237
     {
-        var data = SwiftTry.Optional(() => File.ReadAllBytes(url)); // :246
-        var parsed = data is null ? null : JSONValue.Parse(data); // :247
-        var @object = parsed?[key]?.JSONValueObject; // :248
-        return @object is not null && @object.Count > 0; // :248-249
+        var data = SwiftTry.Optional(() => File.ReadAllBytes(url)); // :238
+        var parsed = data is null ? null : JSONValue.Parse(data); // :239
+        var @object = parsed?[key]?.JSONValueObject; // :240
+        return @object is not null && @object.Count > 0; // :240-241
     }
 
     private static JSONValue ObjectOf(IEnumerable<KeyValuePair<string, JSONValue>> pairs) =>

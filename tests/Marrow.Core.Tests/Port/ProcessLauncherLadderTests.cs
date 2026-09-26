@@ -38,6 +38,10 @@ namespace Marrow.Core.Tests.Port;
 // 3 s wait) stands. The fake here cannot tell a graceful Terminate from a forceful one (its Terminate is one call);
 // ProcessLauncherSpawnTests and ProcessLauncherSignalTests can.
 //
+// ED-194 (the B3 amendment of ED-047 (b) and ED-126): the StdioProcess child now sits in a Job Object from spawn (no
+// limits, no KILL_ON_JOB_CLOSE), but this Stdio ladder never uses it, so "with no job" above means the kill never goes
+// through the job: it stays TerminateProcess on the pid alone. Only quit (MCPLiveProcesses) uses the job, via KillTree.
+//
 // The surface these tests assume, in namespace Marrow.Core.Port:
 //   interface IProcessControl { bool IsRunning { get; } void Terminate(); void KillTree(); void KillProcess(); }
 //       (ProcessLauncher implements it; FakeProcessControl in Fixtures/ProcessSamples.cs stands in here)
@@ -149,7 +153,8 @@ public sealed class ProcessLauncherLadderTests
         Assert.Equal(["closeInput", "isRunning", "terminate"], process.Calls);
         runtime.Advance(TimeSpan.FromMilliseconds(1));
         Assert.True(process.WaitFor("killProcess", 1, PoolWait));
-        // StdioProcess.swift:126: kill(pid, SIGKILL), no group (ED-047 (b): TerminateProcess, no job, grandchildren live).
+        // StdioProcess.swift:126: kill(pid, SIGKILL), no group (ED-047 (b): TerminateProcess, never the job, even
+        // since ED-194 put the child in one; grandchildren live).
         Assert.Equal(["closeInput", "isRunning", "terminate", "isRunning", "killProcess"], process.Calls);
         Assert.Equal(0, process.Count("killTree"));
     }
