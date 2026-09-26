@@ -168,7 +168,9 @@ public sealed class ThreadRuntimePart12Tests
     }
 
     [Fact]
-    [Trait("Req", "UI-RUNTIME-035")] // App/Runtime/ThreadRuntime.swift:2206-2208
+    [Trait("Req", "UI-RUNTIME-035")] // App/Runtime/ThreadRuntime.swift:2206-2211 (B3): unaffected when the error
+    // does not match ProviderRegistry.NeedsNewerCLI. See ThreadRuntimeCLIUpdateTests for the B3 CLI-update
+    // routing (PR-RUNTIME-102/265, UI-RUNTIME-039/040/041/042).
     public void Turn_completion_keeps_a_provider_error_unwrapped_and_omits_a_nil_error()
     {
         using var h = new ThreadRuntimePart12Harness();
@@ -184,7 +186,8 @@ public sealed class ThreadRuntimePart12Tests
     }
 
     [Fact]
-    [Trait("Req", "UI-RUNTIME-036")] // App/Runtime/ThreadRuntime.swift:2221-2224
+    [Trait("Req", "UI-RUNTIME-036")] // App/Runtime/ThreadRuntime.swift:2221-2229 (B3): unaffected for a nil exit
+    // error. See ThreadRuntimeCLIUpdateTests for the B3 CLI-update routing (PR-RUNTIME-103/265, UI-RUNTIME-039).
     public void Unexpected_exit_during_a_turn_uses_the_provider_display_name()
     {
         using var h = new ThreadRuntimePart12Harness(ProviderKind.Claude);
