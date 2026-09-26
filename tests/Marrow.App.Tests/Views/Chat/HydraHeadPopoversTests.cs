@@ -330,7 +330,7 @@ public sealed class HydraHeadPopoversTests(HeadlessSession headless)
         // output on the reference runtime): this asserts the composition (base word, " · ", the shared
         // duration) against RelativeTime.Duration itself rather than a literal string, so it holds however that
         // shared helper's own open item settles.
-        Assert.Equal(baseText + " · " + RelativeTime.Duration(finishedAt - startedAt), HydraHeadReportPopover.Caption(head));
+        Assert.Equal(baseText + " \U000000B7 " + RelativeTime.Duration(finishedAt - startedAt), HydraHeadReportPopover.Caption(head));
     }
 
     [Fact]
