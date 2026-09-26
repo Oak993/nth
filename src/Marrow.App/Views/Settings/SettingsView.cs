@@ -375,7 +375,7 @@ internal sealed class AppearanceSettingsPage : Decorator
             open.Track(() => settings.SidebarMode, mode => { open.IsEnabled = mode != SidebarMode.PanelOnly; open.Opacity = mode == SidebarMode.PanelOnly ? 0.5 : 1; }); // :449-450
             var rows = new StackPanel();
             foreach (var row in new Control[] { theme, new ChromeRow("Transparency", () => new BackdropOpacitySlider(new Binding<double>(() => settings.BackdropOpacity, value => settings.BackdropOpacity = value)), "How much shows through the window"), sidebar, activity, open }) { if (rows.Children.Count > 0) rows.Children.Add(new ChromeRowDivider()); rows.Children.Add(row); }
-            host.Child = new ChromeSection("Appearance", () => new StackPanel { Spacing = Chrome.SectionSpacing, Children = { new ChromeCard(() => rows), new WallpaperCard(), new AppZoomCard(new Binding<long>(() => settings.AppZoom, value => settings.AppZoom = value)) } }); // :452-454
+            host.Child = new ChromeSection("Appearance", () => new StackPanel { Spacing = Chrome.SectionHeaderSpacing, Children = { new ChromeCard(() => rows), new WallpaperCard(), new AppZoomCard(new Binding<long>(() => settings.AppZoom, value => settings.AppZoom = value)) } }); // :452-454
         });
     }
 }
@@ -392,6 +392,34 @@ internal static class SettingsRowDetails
     }
 }
 
+// PORT-ONLY mapping of animatable scalar view properties to the existing Swift animation/frame clocks.
+internal sealed class SettingsScalarAnimation
+{
+    private readonly Action<double> apply;
+    private IFrameSource? frames;
+    private Action<TimeSpan>? pending;
+    public double Value { get; private set; }
+    public SettingsScalarAnimation(Control owner, double initial, Action<double> apply)
+    {
+        Value = initial; this.apply = apply; owner.DetachedFromVisualTree += (_, _) => Stop();
+    }
+    public void Set(double target, Animation? animation)
+    {
+        Stop(); var from = Value;
+        if (animation is null || from == target) { Value = target; apply(target); return; }
+        var start = SwiftClock.Now; frames = FrameClock.Source.Current;
+        Action<TimeSpan>? tick = null;
+        tick = _ =>
+        {
+            var elapsed = (SwiftClock.Now - start).TotalSeconds; var finished = elapsed >= animation.Duration;
+            Value = finished ? target : from + (target - from) * animation.Progress(elapsed); apply(Value);
+            if (finished) pending = null; else frames.RequestFrame(tick!);
+        };
+        pending = tick; apply(from); frames.RequestFrame(tick);
+    }
+    private void Stop() { if (pending is not null) frames?.CancelFrame(pending); pending = null; frames = null; }
+}
+
 /// <summary>:462-517 <c>private struct AppZoomCard: View</c>: the app-wide zoom.</summary>
 internal sealed class AppZoomCard : Decorator
 {
@@ -404,12 +432,13 @@ internal sealed class AppZoomCard : Decorator
             var button = PlainControls.Button(SwiftImage.SystemName(symbol).Font(SwiftFont.System(11, SwiftFont.Weight.Medium)).ForegroundStyle(Chrome.SecondaryText), action); button.Width = 22; button.Height = 22; ToolTip.SetTip(button, help); return button;
         }
         var smaller = Command("textformat.size.smaller", "Zoom out", () => percent.Value = AppZoom.Next((int)percent.Value, increasing: false)); // :475-483
-        var label = new TextBlock { MinWidth = 46, TextAlignment = TextAlignment.Center, Foreground = Chrome.SecondaryText.Brush(this) }.Font(SwiftFont.System(11, SwiftFont.Weight.Medium, design: SwiftFont.Design.Monospaced)); // :485-490
+        var label = new TextBlock { MinWidth = 46, TextAlignment = TextAlignment.Center, Foreground = Chrome.PrimaryText.Brush(this) }.Font(SwiftFont.System(11, SwiftFont.Weight.Medium).MonospacedDigit()); // :483-486
         var larger = Command("textformat.size.larger", "Zoom in", () => percent.Value = AppZoom.Next((int)percent.Value, increasing: true)); // :491-499
         var reset = Command("arrow.counterclockwise", "Back to the stock size", () => percent.Value = 100); // :501-510
         controls.Children.Add(smaller); controls.Children.Add(label); controls.Children.Add(larger); controls.Children.Add(reset);
         var row = new ChromeRow("Zoom", () => controls); Child = new ChromeCard(() => row);
-        this.Track(() => AppZoom.Normalized((int)percent.Value), value => { label.Text = value + "%"; SettingsRowDetails.Update(row, value == 100 ? "The stock size" : value + "% of the stock size"); smaller.IsEnabled = value > AppZoom.Levels[0]; larger.IsEnabled = value < AppZoom.Levels[^1]; reset.IsEnabled = value != 100; reset.Opacity = value == 100 ? 0 : 1; }); // :467-516
+        var primed = false; var fade = new SettingsScalarAnimation(reset, 0, value => reset.Opacity = Math.Clamp(value, 0, 1));
+        this.Track(() => AppZoom.Normalized((int)percent.Value), value => { label.Text = value + "%"; SettingsRowDetails.Update(row, value == 100 ? "The stock size" : value + "% of the stock size"); smaller.IsEnabled = value > AppZoom.Levels[0]; larger.IsEnabled = value < AppZoom.Levels[^1]; reset.IsEnabled = value != 100; fade.Set(value == 100 ? 0 : 1, primed ? Animation.Snappy(0.2) : null); primed = true; }); // :467-516
     }
 }
 
@@ -420,14 +449,18 @@ internal sealed class BackdropOpacitySlider : Decorator
     public BackdropOpacitySlider(Binding<double> value)
     {
         var slider = new Slider { Minimum = 0, Maximum = 1, Width = 140, Value = value.Value }; // :535-537
-        slider.PropertyChanged += (_, change) => { if (change.Property == Slider.ValueProperty && value.Value != slider.Value) value.Value = slider.Value; };
-        slider.Track(() => value.Value, v => slider.Value = v);
+        var updatingSlider = false;
+        var thumb = new SettingsScalarAnimation(slider, value.Value, v => { updatingSlider = true; try { slider.Value = v; } finally { updatingSlider = false; } });
+        slider.PropertyChanged += (_, change) => { if (!updatingSlider && change.Property == Slider.ValueProperty && value.Value != slider.Value) value.Value = slider.Value; };
+        slider.Track(() => value.Value, v => thumb.Set(v, Transaction.Current));
         var clear = SwiftImage.SystemName("circle.dotted").Font(SwiftFont.System(11)).ForegroundStyle(Chrome.SecondaryText); ToolTip.SetTip(clear, "Clear");
         var solid = SwiftImage.SystemName("circle.fill").Font(SwiftFont.System(11)).ForegroundStyle(Chrome.SecondaryText); ToolTip.SetTip(solid, "Solid");
         var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { clear, slider, solid } }; // :528-539
         var reset = PlainControls.Button(SwiftImage.SystemName("arrow.counterclockwise").Font(SwiftFont.System(11, SwiftFont.Weight.Medium)).ForegroundStyle(Chrome.SecondaryText), () => Transaction.WithAnimation(Animation.Snappy(0.2), () => value.Value = 0.5));
         reset.Width = 22; reset.Height = 22; reset.HorizontalAlignment = HorizontalAlignment.Left; reset.VerticalAlignment = VerticalAlignment.Center; reset.RenderTransform = new TranslateTransform(-28, 0); ToolTip.SetTip(reset, "Back to the stock look"); // :540-557
-        reset.Track(() => Math.Abs(value.Value - 0.5) >= 0.005, offStock => reset.IsVisible = offStock); // :524,558-562
+        var primed = false; var shown = false;
+        var fade = new SettingsScalarAnimation(reset, 0, v => { var opacity = Math.Clamp(v, 0, 1); reset.Opacity = opacity; reset.RenderTransform = new TranslateTransform(-28 + 6 * (1 - opacity), 0); if (opacity == 0 && !shown) reset.IsVisible = false; });
+        reset.Track(() => Math.Abs(value.Value - 0.5) >= 0.005, offStock => { shown = offStock; reset.IsEnabled = offStock; if (offStock) reset.IsVisible = true; fade.Set(offStock ? 1 : 0, primed ? Animation.Snappy(0.2) : null); primed = true; }); // :524,558-562
         Child = new Panel { Children = { row, reset } }; AutomationProperties.SetName(this, "Window transparency"); // :563
     }
 }

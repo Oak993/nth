@@ -96,10 +96,10 @@ public sealed class SettingsViewTests(HeadlessSession headless)
         var decrease = buttons.Single(x => Equals(ToolTip.GetTip(x), "Zoom out")); var increase = buttons.Single(x => Equals(ToolTip.GetTip(x), "Zoom in")); var reset = buttons.Single(x => Equals(ToolTip.GetTip(x), "Back to the stock size"));
         Assert.False(reset.IsEnabled); Assert.Equal(0, reset.Opacity); Assert.True(reset.IsVisible); Click(decrease); Sync(); Assert.Equal(90, model.Settings.AppZoom); Click(decrease); Sync(); Assert.Equal(75, model.Settings.AppZoom); Assert.False(decrease.IsEnabled);
         foreach (var level in new[] { 90, 100, 110, 125, 150, 175, 200 }) { Click(increase); Sync(); Assert.Equal(level, model.Settings.AppZoom); Assert.Equal((long)level, h.Defaults.Object("appZoom")); }
-        Assert.False(increase.IsEnabled); Assert.True(reset.IsEnabled); Assert.Equal(1, reset.Opacity); Assert.Contains("200% of the stock size", Text(zoom));
+        AdvanceFrames(h, 201); Assert.False(increase.IsEnabled); Assert.True(reset.IsEnabled); Assert.Equal(1, reset.Opacity); Assert.Contains("200% of the stock size", Text(zoom));
         var value = Nodes<TextBlock>(zoom).Single(x => x.MinWidth == 46); Assert.Equal(11, value.FontSize); Assert.Equal(Avalonia.Media.FontWeight.Medium, value.FontWeight); Assert.Contains(value.FontFeatures!, f => f.Tag == "tnum" && f.Value == 1);
         Assert.Equal(SwiftFont.System(11, SwiftFont.Weight.Medium).Resolve().FontFamily, value.FontFamily); Assert.Equal(Chrome.PrimaryText.Resolve(value.ActualThemeVariant), Assert.IsType<Avalonia.Media.SolidColorBrush>(value.Foreground).Color);
-        Click(reset); Sync(); Assert.Equal(100, model.Settings.AppZoom); Assert.Contains("The stock size", Text(zoom)); Assert.False(reset.IsEnabled); Assert.Equal(0, reset.Opacity);
+        Click(reset); Sync(); Assert.Equal(100, model.Settings.AppZoom); Assert.Contains("The stock size", Text(zoom)); Assert.False(reset.IsEnabled); AdvanceFrames(h, 201); Assert.Equal(0, reset.Opacity);
     });
 
     [Fact]
