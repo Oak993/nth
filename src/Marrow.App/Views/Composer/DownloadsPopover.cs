@@ -148,6 +148,10 @@ public sealed class RecentDownloads : MainActorModel
             if (SwiftTask.IsCancelled) continue; // :45 guard !Task.isCancelled
             try
             {
+                // :41 .skipsHiddenFiles combines the Windows hidden attribute with a leading dot, since neither
+                // alone is what .skipsHiddenFiles means on macOS (same convention as NativeFileTools.IsHiddenEntry
+                // and TokenLedger's own .skipsHiddenFiles call site).
+                if (SwiftPath.LastPathComponent(path).StartsWith('.')) continue; // :41 .skipsHiddenFiles
                 var attributes = File.GetAttributes(path); // :46 url.resourceValues(forKeys:)
                 if (attributes.HasFlag(FileAttributes.Hidden)) continue; // :41 .skipsHiddenFiles
                 if (attributes.HasFlag(FileAttributes.Directory)) continue; // :47 values.isDirectory == false

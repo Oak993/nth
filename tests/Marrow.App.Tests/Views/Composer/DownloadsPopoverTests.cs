@@ -36,6 +36,27 @@ public sealed class DownloadsPopoverTests
     }
 
     [Fact]
+    [Trait("Req", "PR-COMPOSER-078")] // DownloadsPopover.swift:38-42 .skipsHiddenFiles: a leading dot alone hides
+    // an entry on macOS (FileManager's documented .skipsHiddenFiles semantics), independent of any Windows
+    // attribute. Exercised separately from the Windows-Hidden-attribute case above so neither check can mask
+    // a gap in the other (a dot-prefixed file freshly created on Windows carries no Hidden attribute by default).
+    public void Load_drops_a_dot_prefixed_file_that_has_no_windows_hidden_attribute()
+    {
+        using var folder = new ScratchDownloads();
+        var visible = folder.File("visible.txt", new DateTime(2024, 6, 1, 0, 0, 0, DateTimeKind.Utc));
+        var dotfile = folder.File(".dotfile.txt", new DateTime(2024, 12, 1, 0, 0, 0, DateTimeKind.Utc));
+        Assert.False(File.GetAttributes(dotfile).HasFlag(FileAttributes.Hidden)); // sanity: no Windows Hidden bit
+
+        using var directed = Directed(folder.Path);
+        var downloads = new RecentDownloads();
+        using var runtime = new TestRuntime();
+        runtime.Loop.Run(() => downloads.Load());
+
+        Assert.True(downloads.IsLoaded);
+        Assert.Equal(new[] { "visible.txt" }, downloads.Items.Select(item => item.Name));
+    }
+
+    [Fact]
     [Trait("Req", "PR-COMPOSER-078")] // DownloadsPopover.swift:18-19 limit = 15, :50-51 sorted then prefix(limit)
     public void Load_keeps_only_the_15_most_recently_modified_files()
     {
