@@ -1251,7 +1251,9 @@ public sealed class ComposerViewTests(HeadlessSession headless)
 
     private static ShortcutStore FreshStore() => (ShortcutStore)Activator.CreateInstance(typeof(ShortcutStore), nonPublic: true)!;
 
-    private static string Whoami() => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "whoami.exe");
+    // ED-211: use an offline CLI under the allowed scratch root; never use a system-installed executable.
+    private static string FailingCommandCLI() =>
+        ProviderProbeStandIns.CopyFor("composer-command-discovery-failure").SetExitCode(1).ExecutablePath;
 
     private static Attachment Fake(int index) => new()
     {
@@ -1989,7 +1991,7 @@ public sealed class ComposerViewTests(HeadlessSession headless)
             using var h = new ThreadRuntimePart12Harness(ProviderKind.Claude);
             Loaded(h, h.Runtime);
             var directory = h.Store.NewFolder("failing");
-            h.Main.OnMain(() => h.App.Settings.SetBinaryPath(Whoami(), ProviderKind.Claude));
+            h.Main.OnMain(() => h.App.Settings.SetBinaryPath(FailingCommandCLI(), ProviderKind.Claude));
             var view = Pill(h, h.Runtime, directory);
             h.Main.Loop.Run(() => view.LoadCommands(), AppModelHarness.Bound);
             var key = ProviderRegistry.CommandKey(ProviderKind.Claude, directory);
@@ -2025,7 +2027,7 @@ public sealed class ComposerViewTests(HeadlessSession headless)
             Loaded(h, h.Runtime);
             var directory = h.Store.NewFolder("failing-files");
             Touch(directory, "main.swift");
-            h.Main.OnMain(() => h.App.Settings.SetBinaryPath(Whoami(), ProviderKind.Claude));
+            h.Main.OnMain(() => h.App.Settings.SetBinaryPath(FailingCommandCLI(), ProviderKind.Claude));
             var view = Pill(h, h.Runtime, directory);
             h.Main.Loop.Run(() => view.LoadCommands(), AppModelHarness.Bound);
             Assert.NotEmpty(h.App.Providers.CommandErrors);
@@ -2051,7 +2053,7 @@ public sealed class ComposerViewTests(HeadlessSession headless)
             using var h = new ThreadRuntimePart12Harness(ProviderKind.Claude);
             Loaded(h, h.Runtime);
             var directory = h.Store.NewFolder("keyed");
-            h.Main.OnMain(() => h.App.Settings.SetBinaryPath(Whoami(), ProviderKind.Claude));
+            h.Main.OnMain(() => h.App.Settings.SetBinaryPath(FailingCommandCLI(), ProviderKind.Claude));
             var view = Pill(h, h.Runtime, directory);
             h.Main.Loop.Run(() => view.LoadCommands(), AppModelHarness.Bound);
             Assert.Equal([ProviderRegistry.CommandKey(ProviderKind.Claude, directory)], h.App.Providers.CommandErrors.Keys.ToArray());
@@ -2068,7 +2070,7 @@ public sealed class ComposerViewTests(HeadlessSession headless)
             System.Threading.Tasks.Task.Run(() => Marrow.Core.Support.LoginEnvironment.Load()).GetAwaiter().GetResult();
             using var h = new ThreadRuntimePart12Harness(ProviderKind.Claude);
             Loaded(h, h.Runtime);
-            h.Main.OnMain(() => h.App.Settings.SetBinaryPath(Whoami(), ProviderKind.Claude));
+            h.Main.OnMain(() => h.App.Settings.SetBinaryPath(FailingCommandCLI(), ProviderKind.Claude));
             var view = Pill(h, h.Runtime, workingDirectory: null);
             h.Main.Loop.Run(() => view.LoadCommands(), AppModelHarness.Bound);
             Assert.Empty(h.App.Providers.CommandErrors);
@@ -3157,7 +3159,7 @@ public sealed class ComposerViewTests(HeadlessSession headless)
         headless.OnUiThread(()=>
         {
             System.Threading.Tasks.Task.Run(()=>Marrow.Core.Support.LoginEnvironment.Load()).GetAwaiter().GetResult(); using var h=new ThreadRuntimePart12Harness(ProviderKind.Claude); Loaded(h,h.Runtime); var directory=h.Store.NewFolder("fresh-retry");
-            h.Main.OnMain(()=>{ h.App.Settings.SetBinaryPath(Whoami(),ProviderKind.Claude); h.App.Providers.UpdateCommands(new ValueList<SlashCommand>([new(){Name="cached",Detail="Cached command"}]),ProviderKind.Claude,directory); }); var view=Pill(h,h.Runtime,directory);
+            h.Main.OnMain(()=>{ h.App.Settings.SetBinaryPath(FailingCommandCLI(),ProviderKind.Claude); h.App.Providers.UpdateCommands(new ValueList<SlashCommand>([new(){Name="cached",Detail="Cached command"}]),ProviderKind.Claude,directory); }); var view=Pill(h,h.Runtime,directory);
             h.Main.Loop.Run(()=>view.LoadCommands(force:true),AppModelHarness.Bound); Assert.NotEmpty(h.App.Providers.CommandErrors); h.Main.OnMain(()=>Type(view,"/")); Until(h,null,()=>view.Suggestions.IsVisible); var menu=h.Main.OnMain(()=>view.SuggestionMenu());
             var loads=typeof(ProviderRegistry).GetField("commandLoads",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic)!;
             h.Main.OnMain(()=>Click(One<Button>(One<PopoverItem>(menu)))); Until(h,null,()=>((System.Collections.IDictionary)loads.GetValue(h.App.Providers)!).Count>0); Until(h,null,()=>((System.Collections.IDictionary)loads.GetValue(h.App.Providers)!).Count==0);
