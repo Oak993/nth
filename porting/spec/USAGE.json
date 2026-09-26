@@ -1948,7 +1948,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "CHANGED. The views moved: B1 DroppyCode/App/Views/Settings/SettingsView.swift:670-675 (`PlanLimitsView(provider: provider)` at :671, `CreditsView(provider: provider)` at :674) -> B2 SettingsView.swift:679-684 (:703 and :706), still guarded by exposesLimits and exposesCredits inside `if showsUsage` (B2 :699). New at B2: each provider section is collapsible. B1 SettingsView.swift:606-607 `ForEach(ProviderKind.allCases) { provider in ProviderSettingsSection(provider: provider)` kept every section open -> B2 :604-611 lists configured (signed-in) providers first and expands a section by default only when `configured(provider)`, and :671 wraps the card in `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, so a collapsed section hides these views. The refresh calls at B2 :800-801 still run from `.onChange(of: showsUsage, initial: true)` (:795) whatever the expansion. The section header itself belongs to the settings area."
+      "b2_change": "CHANGED. The views moved: B1 DroppyCode/App/Views/Settings/SettingsView.swift:670-675 (`PlanLimitsView(provider: provider)` at :671, `CreditsView(provider: provider)` at :674) -> B2 SettingsView.swift:702-707 (:703 and :706), still guarded by exposesLimits and exposesCredits inside `if showsUsage` (B2 :699). New at B2: each provider section is collapsible. B1 SettingsView.swift:606-607 `ForEach(ProviderKind.allCases) { provider in ProviderSettingsSection(provider: provider)` kept every section open -> B2 :604-611 lists configured (signed-in) providers first and expands a section by default only when `configured(provider)`, and :671 wraps the card in `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, so a collapsed section hides these views. The refresh calls at B2 :800-801 still run from `.onChange(of: showsUsage, initial: true)` (:795) whatever the expansion. The section header itself belongs to the settings area."
     },
     {
       "id": "PR-USAGE-078",
@@ -2362,7 +2362,7 @@
         "DroppyCode/Services/Store/TokenLedger.swift:330-351 private struct LiveSpendState: Codable, Sendable { var daily: [String: Int]; var settledCodex: [String: Int]; var liveCodex: [String: Int]; var legacyDaily: [String: Int] } with an init(from:) defaulting each to an empty map",
         "DroppyCode/Services/Store/TokenLedger.swift:354-357 private static var fileURL: URL { Storage.root.appendingPathComponent(\"token-activity-live-v2.json\") }",
         "DroppyCode/Services/Store/TokenLedger.swift:379-382 static func save(_ state:) { guard let data = try? JSONEncoder().encode(state) else { return }; try? data.write(to: fileURL, options: .atomic) }",
-        "DroppyCode/Services/Store/Storage.swift:19-25 static let root - Application Support directory plus the app name"
+        "DroppyCode/Core/Support/StoragePaths.swift:6-12 - nonisolated static let root: URL - Application Support directory plus the app name (Storage.root forwards to it, Storage.swift:19)"
       ],
       "preconditions": "Live spend has been recorded.",
       "action": "The state is saved.",
@@ -2380,7 +2380,8 @@
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "The root closure cited here moved from Services/Store/Storage.swift into Core/Support/StoragePaths.swift (see PR-STORE-001); Storage.root now only forwards to it. Storage location and behaviour for token-activity-live-v2.json are unchanged."
     },
     {
       "id": "PR-USAGE-095",
@@ -2455,7 +2456,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "At B1 nothing called record(codexSpend:rolloutID:) (B1 DroppyCode/Services/Providers/CodexSession.swift:611, :610, :619, :621 called record(spend:)), so liveCodex stayed empty and this roll-forward did nothing. B2 CodexSession.swift:674 `TokenLedger.shared.record(codexSpend: spend, rolloutID: rolloutID)` fills it. The roll-forward itself, TokenLedger.swift:369-376, is unchanged."
+      "b2_change": "At B1 nothing called record(codexSpend:rolloutID:) (B1 DroppyCode/Services/Providers/CodexSession.swift:608, :610, :619, :621 called record(spend:)), so liveCodex stayed empty and this roll-forward did nothing. B2 CodexSession.swift:671 `TokenLedger.shared.record(codexSpend: spend, rolloutID: rolloutID)` fills it. The roll-forward itself, TokenLedger.swift:369-376, is unchanged."
     },
     {
       "id": "PR-USAGE-098",
@@ -2512,30 +2513,34 @@
     },
     {
       "id": "PR-USAGE-100",
-      "title": "Each rollout contributes its own growth: the last token_count total less the total it inherited on resume",
+      "title": "Each rollout contributes its own growth, its total parsed leniently through JSONValue.int: numeric strings accepted, booleans rejected, out-of-range doubles trap",
       "source_evidence": [
-        "DroppyCode/Services/Store/TokenLedger.swift:538-572 tailContribution(at:) - seeks to the last 131072 bytes, decodes lines in reverse looking for a line containing \"token_count\", requires payload.info.total_token_usage.total_tokens greater than zero, takes the day from the event's timestamp, and returns (max(0, tokens - inheritedTotal(at: url)), day); a line whose timestamp is missing or unparsable is skipped",
-        "DroppyCode/Services/Store/TokenLedger.swift:498-533 inheritedTotal(at:) - reads up to 8388608 bytes from the head in 524288 byte chunks, scanning line by line for the first token_count event, and returns max(0, total_token_usage.total_tokens - last_token_usage.total_tokens), or 0 when none is found",
+        "DroppyCode/Services/Store/TokenLedger.swift:538-572 tailContribution(at:) - seeks to the last 131072 bytes, decodes lines in reverse looking for a line containing \"token_count\", requires info[\"total_token_usage\"]?[\"total_tokens\"]?.int greater than zero, takes the day from the event's timestamp, and returns (max(0, tokens - inheritedTotal(at: url)), day); a line whose timestamp is missing or unparsable is skipped",
+        "DroppyCode/Services/Store/TokenLedger.swift:498-533 inheritedTotal(at:) - reads up to 8388608 bytes from the head in 524288 byte chunks, scanning line by line for the first token_count event, and returns max(0, total - last), or 0 when none is found; both totals read through JSONValue.int",
+        "DroppyCode/Core/Support/JSONValue.swift:83-90 var int: Int? - .int(value): value; .double(value): value.isFinite ? Int(value) : nil; .string(value): Int(value); default: nil",
         "DroppyCode/Services/Store/TokenLedger.swift:551-553 comment - Lossy on purpose: one stray byte must not throw away the whole tail when the token_count line itself is intact"
       ],
       "preconditions": "A rollout file is being read.",
       "action": "Its contribution is computed.",
-      "expected_result": "The tail of at most 131072 bytes is decoded lossily as UTF-8 and scanned from the last line backwards for the first line containing the literal \"token_count\" that parses into an object with payload.info.total_token_usage.total_tokens greater than zero and a parsable timestamp. From that total the file's inherited history is subtracted: the head of at most 8388608 bytes is scanned forward for the first such line and its total less its last_token_usage.total_tokens, floored at zero, is the inherited amount. The result is the file's own growth, floored at zero, attributed to the day of the tail event. A file with no qualifying line contributes nothing.",
+      "expected_result": "The tail of at most 131072 bytes is decoded lossily as UTF-8 and scanned from the last line backwards for the first line containing the literal \"token_count\" that parses into an object whose payload.info.total_token_usage.total_tokens, read through JSONValue.int, is greater than zero, and whose timestamp is parsable. JSONValue.int accepts a JSON integer as itself, a JSON string by Int(string) parsing (so a numeric-string total like \"12345\" is accepted), and a JSON double by Int(value) when the double is finite (which traps at runtime for a double outside Int's range); a JSON boolean, null, array or object gives nil and the line is skipped as unparsable, same as before. From the tail's total, the file's inherited history is subtracted: the head of at most 8388608 bytes is scanned forward for the first such line and its total less its last_token_usage.total_tokens (also read through JSONValue.int, defaulting to 0 when absent or unparsable), floored at zero, is the inherited amount. The result is the file's own growth, floored at zero, attributed to the day of the tail event. A file with no qualifying line contributes nothing. For an ordinary integer total, behaviour is identical to a plain integer decode.",
       "side_effects": [
         "Opens and reads two regions of each changed file."
       ],
       "persistence": "The computed tokens and day are stored in the file's fingerprint.",
       "failure_cases": [
         "An unreadable file, a zero-length file or a failed seek yields no contribution rather than an error.",
-        "A resumed thread's later file therefore counts only what it added, never the history it replayed."
+        "A resumed thread's later file therefore counts only what it added, never the history it replayed.",
+        "A total_tokens value that is a JSON boolean is rejected (JSONValue.int returns nil for it), same as a missing field.",
+        "A total_tokens value that is a JSON double outside the range Int can represent traps the process (Int(value) on an out-of-range finite Double), rather than being rejected as unparsable; this is upstream behaviour, reproduced."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Same byte budgets and the same two-pass read. The head scan must stop at the first qualifying line, not read the whole file.",
-      "verification_method": "contract fixture over a synthetic rollout with an inherited total and a later growth",
-      "status": "IMPLEMENTED",
+      "windows_path": "Same byte budgets and the same two-pass read. The head scan must stop at the first qualifying line, not read the whole file. The .NET port's equivalent int-parsing helper must accept a numeric JSON string, reject a JSON boolean, and either replicate the trap on an out-of-range double or flag the difference explicitly rather than silently clamping it.",
+      "verification_method": "contract fixture over a synthetic rollout with an inherited total and a later growth, plus fixtures for a total_tokens given as a numeric JSON string (accepted) and as a JSON boolean (rejected, line skipped)",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "The token_count total is now read through JSONValue.int instead of a plain Int decode: a numeric-string total is now accepted, a boolean total is rejected (as before), and a double outside Int's range still traps. Behaviour for an ordinary integer total, the byte budgets and the two-pass read are unchanged. Lines :545-581 -> :538-572, :498-540 -> :498-533, :558-560 -> :551-553 (already re-cited)."
     },
     {
       "id": "PR-USAGE-101",
@@ -2583,7 +2588,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "At B1 no caller populated liveCodex (B1 DroppyCode/Services/Providers/CodexSession.swift:611, :610, :619, :621 called record(spend:)), so settledLive was empty and every file's growth was kept whole. B2 CodexSession.swift:674 `TokenLedger.shared.record(codexSpend: spend, rolloutID: rolloutID)` gives settledCodex real content after the next launch, so the subtraction now applies. reconcile at TokenLedger.swift:468-488 is unchanged."
+      "b2_change": "At B1 no caller populated liveCodex (B1 DroppyCode/Services/Providers/CodexSession.swift:608, :610, :619, :621 called record(spend:)), so settledLive was empty and every file's growth was kept whole. B2 CodexSession.swift:671 `TokenLedger.shared.record(codexSpend: spend, rolloutID: rolloutID)` gives settledCodex real content after the next launch, so the subtraction now applies. reconcile at TokenLedger.swift:468-488 is unchanged."
     },
     {
       "id": "PR-USAGE-103",
@@ -2664,7 +2669,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": "UNK-0003",
-      "b2_change": "MOVED. B1 DroppyCode/Services/Store/TokenLedger.swift:574-586 built two ISO8601DateFormatter instances per call (`fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]`, then `plain.formatOptions = [.withInternetDateTime]`) with the comment at :583-587 -> B2 TokenLedger.swift:574-577 `ISO8601.date(from: stamp)`, delegating to the new DroppyCode/Core/Support/ISO8601.swift:19-21 `(try? fractional.parse(text)) ?? (try? plain.parse(text))` over Date.ISO8601FormatStyle values (:10, :13). Order and outcome are the same: fractional first, then whole-second, nil otherwise, and the empty-day skip at :576 is unchanged. Whether Date.ISO8601FormatStyle accepts exactly the strings ISO8601DateFormatter accepted is UNKNOWN: Swift was not run, and there is no macOS runtime (UNK-0003)."
+      "b2_change": "MOVED. B1 DroppyCode/Services/Store/TokenLedger.swift:583-595 built two ISO8601DateFormatter instances per call (`fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]`, then `plain.formatOptions = [.withInternetDateTime]`) with the comment at :583-587 -> B2 TokenLedger.swift:583-586 `ISO8601.date(from: stamp)`, delegating to the new DroppyCode/Core/Support/ISO8601.swift:19-21 `(try? fractional.parse(text)) ?? (try? plain.parse(text))` over Date.ISO8601FormatStyle values (:10, :13). Order and outcome are the same: fractional first, then whole-second, nil otherwise, and the empty-day skip at :576 is unchanged. Whether Date.ISO8601FormatStyle accepts exactly the strings ISO8601DateFormatter accepted is UNKNOWN: Swift was not run, and there is no macOS runtime (UNK-0003)."
     },
     {
       "id": "PR-USAGE-106",
@@ -2697,7 +2702,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 DroppyCode/Services/Providers/CodexSession.swift:611 `if spend > 0 { TokenLedger.shared.record(spend: spend) }` and :610 `TokenLedger.shared.record(spend: used)` (lead), :619 and :621 the same for heads -> B2 CodexSession.swift:612 `recordCodexSpend(spend, rolloutID: threadID, model: activeModel)`, :611 `recordCodexSpend(used, rolloutID: threadID, model: activeModel)`, :621 `recordCodexSpend(spend, rolloutID: head, model: headModel, agentID: head)`, :623 `recordCodexSpend(used, rolloutID: head, model: headModel, agentID: head)`, and :671 `TokenLedger.shared.record(codexSpend: spend, rolloutID: rolloutID)`. The B1 record's premise (no caller of record(codexSpend:), a provenance path with no producer, and a directive not to wire it) no longer holds: upstream wires it at B2. Claude is unchanged in amount: B1 ClaudeSession.swift:572 `if spend > 0 { TokenLedger.shared.record(spend: spend) }` -> B2 :583-586 `if let spend = Self.turnSpendEvent(message, model: model) { TokenLedger.shared.record(spend: spend.totalTokens); onEvent?(.tokenSpend(spend)) }`. Status DISCOVERED -> SPECIFIED: the owner question the B1 record raised is answered by the source."
+      "b2_change": "B1 DroppyCode/Services/Providers/CodexSession.swift:608 `if spend > 0 { TokenLedger.shared.record(spend: spend) }` and :610 `TokenLedger.shared.record(spend: used)` (lead), :619 and :621 the same for heads -> B2 CodexSession.swift:609 `recordCodexSpend(spend, rolloutID: threadID, model: activeModel)`, :611 `recordCodexSpend(used, rolloutID: threadID, model: activeModel)`, :621 `recordCodexSpend(spend, rolloutID: head, model: headModel, agentID: head)`, :623 `recordCodexSpend(used, rolloutID: head, model: headModel, agentID: head)`, and :671 `TokenLedger.shared.record(codexSpend: spend, rolloutID: rolloutID)`. The B1 record's premise (no caller of record(codexSpend:), a provenance path with no producer, and a directive not to wire it) no longer holds: upstream wires it at B2. Claude is unchanged in amount: B1 ClaudeSession.swift:574 `if spend > 0 { TokenLedger.shared.record(spend: spend) }` -> B2 :583-586 `if let spend = Self.turnSpendEvent(message, model: model) { TokenLedger.shared.record(spend: spend.totalTokens); onEvent?(.tokenSpend(spend)) }`. Status DISCOVERED -> SPECIFIED: the owner question the B1 record raised is answered by the source."
     },
     {
       "id": "PR-USAGE-107",
@@ -2721,7 +2726,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "No behaviour change. Flagged citation re-checked at B2: DroppyCode/App/Views/Settings/TokenActivitySection.swift:61-85 still renders one chip per TokenActivityMode case with Text(verbatim: option.title), and TokenLedger.swift:580-593 still declares daily, weekly and cumulative with the titles Daily, Weekly and Cumulative. The only B2 edit inside the range is :77 `.font(.system(size: 13, weight: mode == option ? .medium : .regular))` -> `.font(.system(.body, weight: mode == option ? .medium : .regular))`, which UI-USAGE-045 specifies."
+      "b2_change": "No behaviour change. Flagged citation re-checked at B2: DroppyCode/App/Views/Settings/TokenActivitySection.swift:61-85 still renders one chip per TokenActivityMode case with Text(verbatim: option.title), and TokenLedger.swift:589-602 still declares daily, weekly and cumulative with the titles Daily, Weekly and Cumulative. The only B2 edit inside the range is :77 `.font(.system(size: 13, weight: mode == option ? .medium : .regular))` -> `.font(.system(.body, weight: mode == option ? .medium : .regular))`, which UI-USAGE-045 specifies."
     },
     {
       "id": "PR-USAGE-108",
@@ -3862,7 +3867,7 @@
       ],
       "source_evidence": [
         "DroppyCode/App/Views/Settings/SettingsView.swift:378",
-        "DroppyCode/App/AppSettings.swift:635-637, :770"
+        "DroppyCode/App/AppSettings.swift:635-637, :774"
       ],
       "notes": "The same setting is written by the popover's pop-out button and by the panel's close button, so all three stay in sync."
     },

@@ -9,7 +9,7 @@
         "DroppyCode/Services/Providers/ProviderSession.swift:99-104 - the doc comment \"Tokens newly consumed by one request or turn, with the identity behind them. Distinct from `usage`, which is context occupancy: an event here is spend, and a head's spend carries its `agentID`; the turn keeps each report for run metrics.\" then case tokenSpend(TokenSpend)",
         "DroppyCode/Core/Models/TokenSpend.swift:15-22 struct TokenSpend: Codable, Hashable, Sendable { var provider: ProviderKind; var totalTokens: Int; var inputTokens: Int? = nil; var outputTokens: Int? = nil; var cachedInputTokens: Int? = nil; var model: String? = nil; var agentID: String? = nil }",
         "Emitters at 1fbf81e: DroppyCode/Services/Providers/AntigravitySession.swift:300, ClaudeSession.swift:583 onEvent?(.tokenSpend(spend)), CodexSession.swift:676 onEvent?(.tokenSpend(TokenSpend(provider: .codex, totalTokens: spend, model: model, agentID: agentID))), CommandCodeSession.swift:334, CopilotSession.swift:551, OpenAICompatibleSession.swift:494",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:2172 and :2228 - the two case .tokenSpend(let spend) arms that consume it (PR-RUNTIME-251, PR-RUNTIME-252)"
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2172 and :2230 - the two case .tokenSpend(let spend) arms that consume it (PR-RUNTIME-251, PR-RUNTIME-252)"
       ],
       "preconditions": "A provider adapter is constructing an event to hand to the runtime.",
       "action": "The adapter emits one of the normalized event cases.",
@@ -27,7 +27,7 @@
       "blocked_by": null,
       "depends_on_unknown": null,
       "open_question": null,
-      "b2_change": "B1 ProviderSession.swift:82-118 declared 30 cases with no tokenSpend while AntigravitySession.swift:297, CommandCodeSession.swift:334, CopilotSession.swift:554 and OpenAICompatibleSession.swift:494 already emitted .tokenSpend (at B2 the Antigravity and Copilot emitters sit at :311 and :551), so the pinned checkout did not compile (the old upstream_defect and open_question). B2 ProviderSession.swift:99-104 adds case tokenSpend(TokenSpend) after usage, giving 31 cases; ClaudeSession.swift:583 and CodexSession.swift:676 now emit it too, and ThreadRuntime.swift:2172 and :2228 consume it. The source settles the open question, so status DISCOVERED -> SPECIFIED and upstream_defect and open_question are cleared."
+      "b2_change": "B1 ProviderSession.swift:82-118 declared 30 cases with no tokenSpend while AntigravitySession.swift:308, CommandCodeSession.swift:350, CopilotSession.swift:554 and OpenAICompatibleSession.swift:494 already emitted .tokenSpend (at B2 the Antigravity and Copilot emitters sit at :311 and :551), so the pinned checkout did not compile (the old upstream_defect and open_question). B2 ProviderSession.swift:99-104 adds case tokenSpend(TokenSpend) after usage, giving 31 cases; ClaudeSession.swift:585 and CodexSession.swift:673 now emit it too, and ThreadRuntime.swift:2172 and :2228 consume it. The source settles the open question, so status DISCOVERED -> SPECIFIED and upstream_defect and open_question are cleared."
     },
     {
       "id": "PR-RUNTIME-002",
@@ -1246,7 +1246,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 ThreadRuntime.swift:1185-1189 `hydraStream = nil; if hydraHeads == nil { hydraDelegationRounds = 0; hydraRefusedBlocks = 0 }`, with maxRefusedBlocks = 3 at B1 :2664. B2 ThreadRuntime.swift:1203-1207 calls endDelegationStream() (which also clears delegationParser), empties hydraCurrentTurnTouchedPaths and calls hydraBudget.beginTurn(userAuthored: hydraHeads == nil) (Hydra.swift:577-581). The refusal cap moved to HydraDelegationBudget.maxRefusals = 3 (Hydra.swift:616). Same reset rule, new home."
+      "b2_change": "B1 ThreadRuntime.swift:1186-1190 `hydraStream = nil; if hydraHeads == nil { hydraDelegationRounds = 0; hydraRefusedBlocks = 0 }`, with maxRefusedBlocks = 3 at B1 :2664. B2 ThreadRuntime.swift:1204-1208 calls endDelegationStream() (which also clears delegationParser), empties hydraCurrentTurnTouchedPaths and calls hydraBudget.beginTurn(userAuthored: hydraHeads == nil) (Hydra.swift:577-581). The refusal cap moved to HydraDelegationBudget.maxRefusals = 3 (Hydra.swift:616). Same reset rule, new home."
     },
     {
       "id": "PR-RUNTIME-057",
@@ -1543,7 +1543,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 ThreadRuntime.swift:1270-1284 computed `let canDelegate = hydraDelegationRounds < HydraPrompts.maxDelegationRounds` (B1 :1275). B2 ThreadRuntime.swift:1300-1314 computes `let canDelegate = hydraBudget.canDelegate` (:1305), which is `rounds < HydraPrompts.maxDelegationRounds` (Hydra.swift:571). The selection logic is unchanged; re-cited."
+      "b2_change": "B1 ThreadRuntime.swift:1271-1285 computed `let canDelegate = hydraDelegationRounds < HydraPrompts.maxDelegationRounds` (B1 :1275). B2 ThreadRuntime.swift:1301-1315 computes `let canDelegate = hydraBudget.canDelegate` (:1305), which is `rounds < HydraPrompts.maxDelegationRounds` (Hydra.swift:571). The selection logic is unchanged; re-cited."
     },
     {
       "id": "PR-RUNTIME-070",
@@ -1554,7 +1554,7 @@
       ],
       "preconditions": "Hydra is on and this turn is not a heads report.",
       "action": "The delegation request is prepended.",
-      "expected_result": "It goes on outside the four prefixes of PR-RUNTIME-069, so it is the outermost of the Hydra prompt builders. Three layers can still be put in front of it afterwards: the anti-slop policy (ThreadRuntime.swift:1323-1333), a forwarded continuation (:1339-1344, PR-RUNTIME-072) and a waiting dropped-block notice (:1345-1350, PR-RUNTIME-259). An automatic report turn never gets it, keeping its round limit and review-only instructions.",
+      "expected_result": "It goes on outside the four prefixes of PR-RUNTIME-069, so it is the outermost of the Hydra prompt builders. Three layers can still be put in front of it afterwards: the anti-slop policy (ThreadRuntime.swift:1323-1333), a forwarded continuation (:1338-1343, PR-RUNTIME-072) and a waiting dropped-block notice (:1344-1349, PR-RUNTIME-259). An automatic report turn never gets it, keeping its round limit and review-only instructions.",
       "side_effects": [],
       "persistence": "Not persisted.",
       "failure_cases": [],
@@ -1565,7 +1565,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1: the delegation request was described as the outermost Hydra layer. B2 ThreadRuntime.swift:1344-1349 adds `if let notice = hydraBudget.takeDropNotice() { prompt = notice + prompt }` just before the send, so a pending drop notice now goes in front of it. The request code itself is unchanged (B2 :1316-1321)."
+      "b2_change": "B1: the delegation request was described as the outermost Hydra layer. B2 ThreadRuntime.swift:1345-1350 adds `if let notice = hydraBudget.takeDropNotice() { prompt = notice + prompt }` just before the send, so a pending drop notice now goes in front of it. The request code itself is unchanged (B2 :1316-1321)."
     },
     {
       "id": "PR-RUNTIME-071",
@@ -1607,7 +1607,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1: the continuation was the outermost layer of the whole prompt. B2 ThreadRuntime.swift:1344-1349 puts hydraBudget.takeDropNotice() in front of it when a dropped-block notice is waiting. Continuation injection itself is unchanged (B2 :1335-1344)."
+      "b2_change": "B1: the continuation was the outermost layer of the whole prompt. B2 ThreadRuntime.swift:1345-1350 puts hydraBudget.takeDropNotice() in front of it when a dropped-block notice is waiting. Continuation injection itself is unchanged (B2 :1335-1344)."
     },
     {
       "id": "PR-RUNTIME-073",
@@ -1680,7 +1680,7 @@
       "title": "A slash command that was sent is recorded for the provider's recency ranking",
       "source_evidence": [
         "DroppyCode/App/Runtime/ThreadRuntime.swift:1375 - if let command { app.providers.recordCommand(command.name, for: thread.provider) }",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:1160 and :1165 - the two local commands record \"plan\" and \"compact\" the same way"
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1160 and :1164 - the two local commands record \"plan\" and \"compact\" the same way"
       ],
       "preconditions": "The send succeeded and a command was resolved.",
       "action": "recordCommand runs.",
@@ -1700,13 +1700,13 @@
     },
     {
       "id": "PR-RUNTIME-077",
-      "title": "Any throw during a turn's start becomes an error notice and fails the turn, but only if it is still current",
+      "title": "Any throw during a turn's start becomes an error notice and fails the turn, unless the CLI-update path takes it, but only if the turn is still current",
       "source_evidence": [
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:1376-1381 - catch { guard currentTurnID == turn.id else { return }; appendNotice(.error, error.localizedDescription); await finishTurn(status: .failed, turnID: turn.id) }"
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1376-1381 - } catch { guard currentTurnID == turn.id else { return }; if finishTurnUpdatingCLI(error.localizedDescription, status: .failed, turnID: turn.id) { return }; appendNotice(.error, error.localizedDescription); await finishTurn(status: .failed, turnID: turn.id) }"
       ],
       "preconditions": "ensureSession, the command load or the send threw.",
       "action": "The catch runs.",
-      "expected_result": "A turn that is no longer current is left entirely alone: no notice and no finish, because something else already closed it. Otherwise an error-level notice carrying the error's localizedDescription verbatim is appended under this turn, and finishTurn closes it with status .failed. The notice is appended before the finish, so it lands inside the turn.",
+      "expected_result": "A turn that is no longer current is left entirely alone: no notice and no finish, because something else already closed it. Otherwise the thrown error's localizedDescription is offered to finishTurnUpdatingCLI first; for Claude or Codex, an error matching ProviderRegistry.needsNewerCLI is taken there instead (an .info notice, finishTurn(.failed) and the CLI-update-and-resend path; see PR-RUNTIME-265/266), and this catch does nothing further. Otherwise an error-level notice carrying the error's localizedDescription verbatim is appended under this turn, and finishTurn closes it with status .failed. The notice is appended before the finish, so it lands inside the turn.",
       "side_effects": [
         "Notice row appended; the full finishTurn sequence runs."
       ],
@@ -1715,10 +1715,11 @@
       "cancellation": "A CancellationError thrown by ensureSession takes this same path and produces a notice with that error's description.",
       "windows_path": "Do not wrap or reformat the error text; PR-RUNTIME-012 relies on it passing through.",
       "verification_method": "integration test",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "B3 inserts a finishTurnUpdatingCLI(error.localizedDescription, status: .failed, turnID: turn.id) check between the currentTurnID guard and the error notice (ThreadRuntime.swift:1378). For Claude or Codex, an error matching ProviderRegistry.needsNewerCLI no longer becomes a plain error notice plus a failed finish; it becomes an .info notice, finishTurn(.failed), and the CLI update and resend path. See PR-RUNTIME-265 and PR-RUNTIME-266."
     },
     {
       "id": "PR-RUNTIME-078",
@@ -1732,7 +1733,7 @@
       ],
       "preconditions": "An event has passed the epoch guard, or a caller is rehearsing one.",
       "action": "handle(_:) runs.",
-      "expected_result": "Every one of the 31 cases is handled explicitly and there is no default arm. .tokenSpend appears in two arms. A Swift switch runs the first case whose pattern matches, so the arm at :2172-2176 handles every .tokenSpend and the arm at :2228-2237 is never reached (PR-RUNTIME-252). The only two ways in are a live session's handler and the public rehearse(_:), which the website captures, the head-rehearsal path and AutoContinue's notice all use; both go through identical code.",
+      "expected_result": "Every one of the 31 cases is handled explicitly and there is no default arm. .tokenSpend appears in two arms. A Swift switch runs the first case whose pattern matches, so the arm at :2172-2176 handles every .tokenSpend and the arm at :2230-2239 is never reached (PR-RUNTIME-252). The only two ways in are a live session's handler and the public rehearse(_:), which the website captures, the head-rehearsal path and AutoContinue's notice all use; both go through identical code.",
       "side_effects": [],
       "persistence": "Per case.",
       "failure_cases": [],
@@ -1836,7 +1837,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 completeMessage (ThreadRuntime.swift:3138-3156) called scanStreamedDelegations(entryID: id, turnID: turnID) at B1 :3111. B2 :3206-3224 passes text: message.text (:3221) with isDelta false, so the completed text is read by a fresh parser (PR-RUNTIME-226). The finalize rules this record states are unchanged; re-cited."
+      "b2_change": "B1 completeMessage (ThreadRuntime.swift:3096-3114) called scanStreamedDelegations(entryID: id, turnID: turnID) at B1 :3111. B2 :3206-3224 passes text: message.text (:3221) with isDelta false, so the completed text is read by a fresh parser (PR-RUNTIME-226). The finalize rules this record states are unchanged; re-cited."
     },
     {
       "id": "PR-RUNTIME-083",
@@ -2271,13 +2272,13 @@
     },
     {
       "id": "PR-RUNTIME-102",
-      "title": ".turnCompleted flushes, files any error notice inside the turn, then closes the turn",
+      "title": ".turnCompleted flushes, offers a non-nil error to the CLI-update path, and otherwise files it as a notice before closing the turn",
       "source_evidence": [
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:2206-2211 - flushDeltas(); if let error { appendNotice(.error, error) }; let turnID = currentTurnID; Task { await finishTurn(status: status, turnID: turnID) }"
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2206-2211 - flushDeltas(); let turnID = currentTurnID; if let error, finishTurnUpdatingCLI(error, status: status, turnID: turnID) { break }; if let error { appendNotice(.error, error) }; Task { await finishTurn(status: status, turnID: turnID) }"
       ],
       "preconditions": "A provider says its turn ended.",
       "action": "The event is handled.",
-      "expected_result": "Deltas flush first. The error string, when present, is appended verbatim as an error-level notice BEFORE the turn closes, so it is filed under that turn through turnIDForNewRows. The turn id is captured synchronously and finishTurn is scheduled asynchronously with it, so a completion followed by an exit finalizes exactly once through the finishingTurnID claim (PR-RUNTIME-110).",
+      "expected_result": "Deltas flush first, and the turn id is captured synchronously before either branch. When there is an error, it is offered to finishTurnUpdatingCLI first; for Claude or Codex, an error matching ProviderRegistry.needsNewerCLI is taken there (an .info notice inside the turn, finishTurn(.failed) and the CLI-update-and-resend path; see PR-RUNTIME-265/266), and the case exits immediately with no further notice and no direct finishTurn call here. Otherwise - no error, or an error the CLI-update path does not take - the error string, when present, is appended verbatim as an error-level notice BEFORE the turn closes, so it is filed under that turn through turnIDForNewRows, and finishTurn is scheduled asynchronously with the captured turn id, so a completion followed by an exit finalizes exactly once through the finishingTurnID claim (PR-RUNTIME-110).",
       "side_effects": [
         "Possibly a notice row; the full finishTurn sequence."
       ],
@@ -2286,20 +2287,21 @@
       "cancellation": "not cancellable",
       "windows_path": "Capture the turn id before the async hop; reading currentTurnID inside the task would race the next turn.",
       "verification_method": "integration test",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "B3 captures the turn id before the notice (not after) and offers a non-nil error to finishTurnUpdatingCLI(error, status:, turnID:) first (ThreadRuntime.swift:2209). If taken, the arm exits with no error notice and no direct finishTurn call; the CLI-update path finishes the turn and resends instead. Otherwise behaviour is as before, with the notice still filed inside the turn."
     },
     {
       "id": "PR-RUNTIME-103",
-      "title": ".exited releases the session without stopping it, clears pending requests, ends native heads and fails the turn",
+      "title": ".exited releases the session without stopping it, clears pending requests, ends native heads, and offers a non-nil error to the CLI-update path before failing the turn",
       "source_evidence": [
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:2212-2229 - flushDeltas(); if isStartingSession { break }; releaseSession(stop: false); approvals.removeAll(); questions.removeAll(); stopNativeHeads(); if currentTurnID != nil { let name = thread?.provider.displayName ?? \"The agent\"; appendNotice(.error, error ?? \"\\(name) stopped unexpectedly.\"); let turnID = currentTurnID; Task { await finishTurn(status: .failed, turnID: turnID) } }"
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2212-2229 - flushDeltas(); if isStartingSession { break }; releaseSession(stop: false); approvals.removeAll(); questions.removeAll(); stopNativeHeads(); if currentTurnID != nil { let name = thread?.provider.displayName ?? \"The agent\"; let turnID = currentTurnID; if let error, finishTurnUpdatingCLI(error, status: .failed, turnID: turnID) { break }; appendNotice(.error, error ?? \"\\(name) stopped unexpectedly.\"); Task { await finishTurn(status: .failed, turnID: turnID) } }"
       ],
       "preconditions": "A session's process or connection ended.",
       "action": "The event is handled.",
-      "expected_result": "Deltas flush. If a CLI session is still inside start(), the case breaks immediately and nothing else happens, because start() throwing reports it instead. Otherwise the session is released WITHOUT stopping it, since the process is already gone; approvals and questions are emptied; native heads are finished as interrupted. When a turn is running, an error notice is appended carrying the provider's own error text when it has one, and otherwise the literal built from the provider display name, or the literal \"The agent\" when no thread is resolvable, followed by \" stopped unexpectedly.\" The turn is then failed.",
+      "expected_result": "Deltas flush. If a CLI session is still inside start(), the case breaks immediately and nothing else happens, because start() throwing reports it instead. Otherwise the session is released WITHOUT stopping it, since the process is already gone; approvals and questions are emptied; native heads are finished as interrupted. When a turn is running, a non-nil error is first offered to finishTurnUpdatingCLI(error, status: .failed, turnID:); for Claude or Codex, an error matching ProviderRegistry.needsNewerCLI is taken there (an .info notice, finishTurn(.failed) and the CLI-update-and-resend path; see PR-RUNTIME-265/266), and the raw exit error is never posted. Otherwise an error notice is appended carrying the provider's own error text when it has one, and otherwise the literal built from the provider display name, or the literal \"The agent\" when no thread is resolvable, followed by \" stopped unexpectedly.\" The turn is then failed.",
       "side_effects": [
         "Session detached; head threads finished; notice row; the full finishTurn sequence."
       ],
@@ -2310,16 +2312,17 @@
       "cancellation": "not cancellable",
       "windows_path": "releaseSession(stop: false) is deliberate: on Windows a second termination attempt on an exited process is a no-op, but the flag also keeps the runtime from waiting on a handle that is already closed.",
       "verification_method": "integration test - exit with and without an error string, with and without a running turn",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "B3 offers a non-nil exit error to finishTurnUpdatingCLI(error, status: .failed, turnID:) (ThreadRuntime.swift:2226) before posting it. If taken, the raw exit error is not shown and the turn is finished and resent by the CLI-update path instead. Release without stop, clearing requests, stopping native heads and the nil-error \"stopped unexpectedly.\" text are unchanged."
     },
     {
       "id": "PR-RUNTIME-104",
       "title": ".agentStarted adopts a known head's new description or spawns a new head, idempotently by spawn id",
       "source_evidence": [
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:2240-2241 then :2536-2561 hydraAgentStarted - guard let app, let thread, app.hydraIsOn(thread) else { return }; known head: let named = !spawn.description.isEmpty && spawn.description != \"Subagent\"; when named and the task changed, info.task = spawn.description and head.title = persona name, a space, U+00B7 MIDDLE DOT, a space, and TextCleanup.singleLine(spawn.description, limit: 60); if info.toolUseID == nil { info.toolUseID = spawn.toolUseID }; if let toolUseID = spawn.toolUseID { hydraToolHeads[toolUseID] = headID }; if let prompt = spawn.prompt, let headRuntime = app.existingRuntime(for: headID), !headRuntime.hasSentPrompts { headRuntime.rehearseBrief(prompt) }; unknown: guard let head = app.spawnNativeHead(from: threadID, spawn: spawn) else { return }; hydraNativeHeads[spawn.id] = head.id; if let pending = pendingNativeSpend.removeValue(forKey: spawn.id) { for spend in pending { app.runtime(for: head.id).recordTokenSpend(spend) } }; if let toolUseID = spawn.toolUseID { hydraToolHeads[toolUseID] = head.id }"
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2240-2241 then :2578-2603 hydraAgentStarted - guard let app, let thread, app.hydraIsOn(thread) else { return }; known head: let named = !spawn.description.isEmpty && spawn.description != \"Subagent\"; when named and the task changed, info.task = spawn.description and head.title = persona name, a space, U+00B7 MIDDLE DOT, a space, and TextCleanup.singleLine(spawn.description, limit: 60); if info.toolUseID == nil { info.toolUseID = spawn.toolUseID }; if let toolUseID = spawn.toolUseID { hydraToolHeads[toolUseID] = headID }; if let prompt = spawn.prompt, let headRuntime = app.existingRuntime(for: headID), !headRuntime.hasSentPrompts { headRuntime.rehearseBrief(prompt) }; unknown: guard let head = app.spawnNativeHead(from: threadID, spawn: spawn) else { return }; hydraNativeHeads[spawn.id] = head.id; if let pending = pendingNativeSpend.removeValue(forKey: spawn.id) { for spend in pending { app.runtime(for: head.id).recordTokenSpend(spend) } }; if let toolUseID = spawn.toolUseID { hydraToolHeads[toolUseID] = head.id }"
       ],
       "preconditions": "Hydra is on for this thread and a provider announces a head.",
       "action": "The event is handled.",
@@ -2338,13 +2341,13 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 ThreadRuntime.swift:2513-2515 registered the new head and then mapped its toolUseID; B2 :2557-2559 adds the pendingNativeSpend flush between them. The quote and expected_result now include it and point to PR-RUNTIME-252, which shows the flush never finds anything."
+      "b2_change": "B1 ThreadRuntime.swift:2471-2473 registered the new head and then mapped its toolUseID; B2 :2557-2559 adds the pendingNativeSpend flush between them. The quote and expected_result now include it and point to PR-RUNTIME-252, which shows the flush never finds anything."
     },
     {
       "id": "PR-RUNTIME-105",
       "title": ".agentEvent recovers a late announcement, then routes ten named cases and drops six",
       "source_evidence": [
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:2242-2243 then :2564-2600 hydraAgentEvent - if hydraNativeHeads[agentID] == nil, let entry = entryIndex[agentID], case .tool(let call) = entry.item.content, call.kind == .agent { hydraAgentStarted(AgentSpawn(id: agentID, taskID: nil, toolUseID: agentID, description: call.title, prompt: nil, model: nil, isBackground: false)) }; guard let headID = hydraNativeHeads[agentID], let headRuntime = app.existingRuntime(for: headID) else { return }; .turnStarted rehearses a turn on a head that is not running and sets its record to running with finishedAt nil, and does NOT rehearse the event; .turnCompleted calls hydraAgentFinished with the status and a nil summary, dropping the error payload; .toolStarted increments hydraToolCalls, sets hydraActivity to ToolPresentation.label(for: call), stamps hydraLastEventAt, calls noteHydraEdits(call.edits), starts watchHydraCommand under the key agentID + \"-\" + toolID for a command tool, then rehearses; .toolUpdated notes any edits, settles the hydra command when a non-running status arrives, then rehearses; .usage, .sessionReady, .models, .commands, .title, .assistantMessageID all break; default rehearses",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2242-2243 then :2606-2642 hydraAgentEvent - if hydraNativeHeads[agentID] == nil, let entry = entryIndex[agentID], case .tool(let call) = entry.item.content, call.kind == .agent { hydraAgentStarted(AgentSpawn(id: agentID, taskID: nil, toolUseID: agentID, description: call.title, prompt: nil, model: nil, isBackground: false)) }; guard let headID = hydraNativeHeads[agentID], let headRuntime = app.existingRuntime(for: headID) else { return }; .turnStarted rehearses a turn on a head that is not running and sets its record to running with finishedAt nil, and does NOT rehearse the event; .turnCompleted calls hydraAgentFinished with the status and a nil summary, dropping the error payload; .toolStarted increments hydraToolCalls, sets hydraActivity to ToolPresentation.label(for: call), stamps hydraLastEventAt, calls noteHydraEdits(call.edits), starts watchHydraCommand under the key agentID + \"-\" + toolID for a command tool, then rehearses; .toolUpdated notes any edits, settles the hydra command when a non-running status arrives, then rehearses; .usage, .sessionReady, .models, .commands, .title, .assistantMessageID all break; default rehearses",
         "DroppyCode/App/Runtime/ThreadRuntime.swift:3477-3482 noteHydraEdits - guard !edits.isEmpty, let root = workingRoot else { return }; let paths = edits.compactMap { TouchedPaths.relative($0.path, root: root) }; hydraTouched.formUnion(paths); hydraCurrentTurnTouchedPaths.formUnion(paths)"
       ],
       "preconditions": "An event arrives from inside a head's transcript.",
@@ -2365,14 +2368,13 @@
       "blocked_by": null,
       "depends_on_unknown": null,
       "open_question": "A nested .approval or .question is rehearsed onto a head runtime that owns no ProviderSession, so resolve and answer call into nil and the request can be shown and dismissed locally but never answered back to the provider. Likewise a nested .exited runs releaseSession on a session-less head runtime and fails that head's rehearsed turn. Recorded as an upstream consequence of the default arm; no source evidence shows it was intended.",
-      "b2_change": "The hydraAgentEvent code is unchanged (B2 ThreadRuntime.swift:2606-2642). ProviderEvent now has 31 cases (ProviderSession.swift:104 adds tokenSpend), so the default arm rehearses twenty-one cases, not twenty, including .tokenSpend. noteHydraEdits (B2 :3435-3440) now also adds the paths to hydraCurrentTurnTouchedPaths."
+      "b2_change": "The hydraAgentEvent code is unchanged (B2 ThreadRuntime.swift:2564-2600). ProviderEvent now has 31 cases (ProviderSession.swift:104 adds tokenSpend), so the default arm rehearses twenty-one cases, not twenty, including .tokenSpend. noteHydraEdits (B2 :3435-3440) now also adds the paths to hydraCurrentTurnTouchedPaths."
     },
     {
       "id": "PR-RUNTIME-106",
       "title": ".agentProgress assigns the head's live counters, preferring a non-empty summary over the last tool",
       "source_evidence": [
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:2244-2249 - guard let headID = hydraNativeHeads[agentID], let headRuntime = app?.runtime(for: headID) else { break }; if let summary, !summary.isEmpty { headRuntime.hydraActivity = summary } else if let lastTool { headRuntime.hydraActivity = lastTool }; if let tokens { headRuntime.hydraTokens = tokens }; if let toolCalls { headRuntime.hydraToolCalls = toolCalls }; headRuntime.hydraLastEventAt = .now",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:345-352 hydraLiveInfo - which takes max, unlike this arm"
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2244-2249 - guard let headID = hydraNativeHeads[agentID], let headRuntime = app?.runtime(for: headID) else { break }; if let summary, !summary.isEmpty { headRuntime.hydraActivity = summary } else if let lastTool { headRuntime.hydraActivity = lastTool }; if let tokens { headRuntime.hydraTokens = tokens }; if let toolCalls { headRuntime.hydraToolCalls = toolCalls }; headRuntime.hydraLastEventAt = .now"
       ],
       "preconditions": "A provider reports progress on a running head.",
       "action": "The event is handled.",
@@ -2388,13 +2390,14 @@
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "The comparison this record drew against hydraLiveInfo (formerly ThreadRuntime.swift:345-352) no longer applies: B3 deletes that function entirely (it had no caller at B2 either - see PR-RUNTIME-253). This arm's own assignment semantics (plain assignment, not maxima) are unchanged."
     },
     {
       "id": "PR-RUNTIME-107",
       "title": ".agentFinished finishes the head and closes its rehearsed turn, without forgetting the agent id",
       "source_evidence": [
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:2250-2251 then :2604-2610 hydraAgentFinished - guard let app, let headID = hydraNativeHeads[agentID] else { return }; app.finishHydraHead(headID, status: status, summary: summary); if let headRuntime = app.existingRuntime(for: headID), headRuntime.isRunning { headRuntime.rehearse(.turnCompleted(status: status, error: nil)) }"
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2250-2251 then :2646-2652 hydraAgentFinished - guard let app, let headID = hydraNativeHeads[agentID] else { return }; app.finishHydraHead(headID, status: status, summary: summary); if let headRuntime = app.existingRuntime(for: headID), headRuntime.isRunning { headRuntime.rehearse(.turnCompleted(status: status, error: nil)) }"
       ],
       "preconditions": "A provider says a head finished.",
       "action": "The event is handled.",
@@ -3267,7 +3270,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 ThreadRuntime.swift:3115-3136 collected streamedRows as [String] with a !streamedRows.contains(id) de-dupe and called scanStreamedDelegations(entryID: id, turnID: turnID), which re-read the whole row. B2 :3179-3204 collects [(id, delta)] with no de-dupe and calls scanStreamedDelegations(entryID: row.id, turnID: turnID, text: row.delta, isDelta: true), feeding only the flushed delta to the persistent HydraDelegationStreamParser (field delegationParser, :305). The cancel, empty-guard, heard and plan rules are unchanged."
+      "b2_change": "B1 ThreadRuntime.swift:3073-3094 collected streamedRows as [String] with a !streamedRows.contains(id) de-dupe and called scanStreamedDelegations(entryID: id, turnID: turnID), which re-read the whole row. B2 :3179-3204 collects [(id, delta)] with no de-dupe and calls scanStreamedDelegations(entryID: row.id, turnID: turnID, text: row.delta, isDelta: true), feeding only the flushed delta to the persistent HydraDelegationStreamParser (field delegationParser, :305). The cancel, empty-guard, heard and plan rules are unchanged."
     },
     {
       "id": "PR-RUNTIME-146",
@@ -3397,7 +3400,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 ThreadRuntime.swift:3190-3192 went noteToolMayWrite(call.kind); var call = call; call.edits = Self.capped(call.edits). B2 :3259 inserts recordCurrentTurnEdits(call.edits) before the cap, so the edits are no longer capped before anything else; the quote, expected_result and side_effects now say so."
+      "b2_change": "B1 ThreadRuntime.swift:3148-3150 went noteToolMayWrite(call.kind); var call = call; call.edits = Self.capped(call.edits). B2 :3259 inserts recordCurrentTurnEdits(call.edits) before the cap, so the edits are no longer capped before anything else; the quote, expected_result and side_effects now say so."
     },
     {
       "id": "PR-RUNTIME-152",
@@ -3422,7 +3425,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 ThreadRuntime.swift:3232 opened applyToolUpdate with noteToolMayWrite(update.kind); B2 :3301 puts if let edits = update.edits { recordCurrentTurnEdits(edits) } before it. The quote, expected_result and side_effects now include that step."
+      "b2_change": "B1 ThreadRuntime.swift:3190 opened applyToolUpdate with noteToolMayWrite(update.kind); B2 :3301 puts if let edits = update.edits { recordCurrentTurnEdits(edits) } before it. The quote, expected_result and side_effects now include that step."
     },
     {
       "id": "PR-RUNTIME-153",
@@ -3537,26 +3540,27 @@
     },
     {
       "id": "PR-RUNTIME-158",
-      "title": "Saves are debounced at 800 milliseconds when idle and coalesced into one every 5 seconds while a turn runs",
+      "title": "Saves are debounced at 800 milliseconds when idle and coalesced while a turn runs at an interval that grows with the thread file's size, from 5 to 20 seconds",
       "source_evidence": [
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:3623-3648 - guard persistenceEnabled else { return }; guard phase != .idle else { saveTask?.cancel(); saveTask = Task { try? await Task.sleep(for: .milliseconds(800)); guard !Task.isCancelled else { return }; self?.saveNow() }; return }; guard saveTask == nil else { return }; saveTask = Task { try? await Task.sleep(for: .seconds(5)); guard !Task.isCancelled else { return }; self?.saveNow() }",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:3592-3595 - the comment: every save rewrites the whole thread file, which runs to megabytes"
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:3623-3648 scheduleSave() - guard persistenceEnabled else { return }; guard phase != .idle else { saveTask?.cancel(); saveTask = Task { sleep 800 ms; guard !Task.isCancelled else { return }; self?.saveNow() }; return }; guard saveTask == nil else { return }; let bytes = DiskWriter.shared.lastWrittenSize(of: Storage.threadURL(threadID)) ?? 0; let seconds = min(20, max(5, Double(bytes) / 250_000)); saveTask = Task { sleep seconds; guard !Task.isCancelled else { return }; self?.saveNow() }",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:3634-3639 - the comment: every save rewrites the whole thread file, which runs to megabytes; no chat rewrites more than about 250 KB a second however big it grows: five seconds up to a megabyte, twenty for five megabytes and more"
       ],
       "preconditions": "Anything that changes the document schedules a save.",
       "action": "scheduleSave() runs.",
-      "expected_result": "With persistence disabled nothing happens. When idle the pending task is cancelled and re-armed 800 milliseconds out, so a burst of edits writes once at the end. While a turn runs the first call arms a 5-second task and every later call short-circuits on saveTask being non-nil, so a turn streaming hundreds of events shares one save every five seconds. The five-second bound is what a crash costs.",
+      "expected_result": "With persistence disabled nothing happens. When idle the pending task is cancelled and re-armed 800 milliseconds out, so a burst of edits writes once at the end. While a turn runs the first call arms a task whose delay is min(20, max(5, lastWrittenSize/250_000)) seconds - lastWrittenSize being DiskWriter.shared.lastWrittenSize(of: Storage.threadURL(threadID)), or 0 for a file never written - and every later call short-circuits on saveTask being non-nil, so a turn streaming hundreds of events shares one save every 5 to 20 seconds depending on how large the thread file already is. A thread under about 1.25 MB uses the 5-second floor; one at or above 5 MB uses the 20-second ceiling; between them the interval rises linearly with size.",
       "side_effects": [
         "A timer task."
       ],
       "persistence": "Leads to a full document write.",
       "failure_cases": [],
       "cancellation": "The task is cancelled by saveNow and by cancelPersistence.",
-      "windows_path": "800 milliseconds and 5 seconds are exact. The two policies are different by design; do not unify them.",
-      "verification_method": "unit with an injected clock",
-      "status": "IMPLEMENTED",
+      "windows_path": "The 800 millisecond idle debounce, and the running-turn interval formula min(20, max(5, bytes/250_000)) read from DiskWriter's last recorded write size for this thread's file, are exact. The two policies remain different by design; do not unify them, and do not hard-code the old fixed 5 seconds.",
+      "verification_method": "unit with an injected clock and a stubbed DiskWriter.lastWrittenSize: 0 bytes gives 5 s, 1,250,000 bytes gives 5 s (at the floor), 2,500,000 bytes gives 10 s, 5,000,000+ bytes gives 20 s (at the ceiling)",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "The running-turn coalescing delay is no longer a fixed 5 seconds. It is now min(20, max(5, lastWrittenSize/250_000)) seconds, read from the new DiskWriter.lastWrittenSize(of:) (see the new PR-STORE record). The idle 800 ms debounce is unchanged. Evidence range unchanged at :3623-3648; the comment moves to :3634-3639."
     },
     {
       "id": "PR-RUNTIME-159",
@@ -3587,7 +3591,7 @@
       "source_evidence": [
         "DroppyCode/App/Runtime/ThreadRuntime.swift:3696-3706 snapshotForPersistence - flushDeltas(scheduleSave: false); var document = ThreadDocument(threadID: threadID); document.items = entries.map(\\.item); document.turns = turns; document.usage = usage; document.continuation = continuation; document.followUps = followUps; document.hydraMerges = hydraMerges",
         "DroppyCode/App/Runtime/ThreadRuntime.swift:2172-2176 - case .tokenSpend(let spend): if let currentTurnID { updateTurn(currentTurnID) { $0.tokenSpends = ($0.tokenSpends ?? []) + [spend] }; saveRevision += 1 }",
-        "DroppyCode/Core/Models/Timeline.swift:306 var tokenSpends: [TokenSpend]? and :326 tokenSpends = container.value(.tokenSpends, default: nil)"
+        "DroppyCode/Core/Models/Timeline.swift:306 var tokenSpends: [TokenSpend]? and :329 tokenSpends = container.value(.tokenSpends, default: nil)"
       ],
       "preconditions": "A save or a quit snapshot is being taken.",
       "action": "snapshotForPersistence() runs.",
@@ -3629,7 +3633,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 install(_:) had none of these steps. B2 ThreadRuntime.swift:558-560 sets hydraTokens for a Droppy-run head from the loaded tokenSpends, and :622-630 resets or rebuilds the current turn's touched paths and ends a stale delegation stream. The listed normalizations are otherwise unchanged."
+      "b2_change": "B1 install(_:) had none of these steps. B2 ThreadRuntime.swift:559-561 sets hydraTokens for a Droppy-run head from the loaded tokenSpends, and :622-630 resets or rebuilds the current turn's touched paths and ends a stale delegation stream. The listed normalizations are otherwise unchanged."
     },
     {
       "id": "PR-RUNTIME-162",
@@ -4007,7 +4011,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "The flagged range ThreadContinuation.swift:40-116 keeps its lines at B2. The one changed line, :46, went from `message.text.trimmingCharacters(in: .whitespacesAndNewlines)` to `message.text.trimmed`, and String.trimmed is defined as `trimmingCharacters(in: .whitespacesAndNewlines)` (Core/Support/Text.swift:224). Behaviour unchanged; re-cited."
+      "b2_change": "The flagged range ThreadContinuation.swift:40-116 keeps its lines at B2. The one changed line, :46, went from `message.text.trimmingCharacters(in: .whitespacesAndNewlines)` to `message.text.trimmed`, and String.trimmed is defined as `trimmingCharacters(in: .whitespacesAndNewlines)` (Core/Support/Text.swift:132). Behaviour unchanged; re-cited."
     },
     {
       "id": "PR-RUNTIME-178",
@@ -4257,7 +4261,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 ThreadRuntime.swift:1145 `case \"/compact\" where thread?.provider == .codex || thread?.provider == .copilot || thread?.provider == .deepseek || thread?.provider == .meta || thread?.provider == .zai || thread?.provider == .pi:` (six providers). B2 :1164 `case \"/compact\" where thread?.provider.supportsCompact == true:`, and supportsCompact (Provider.swift:149-154) adds Claude, making seven."
+      "b2_change": "B1 ThreadRuntime.swift:1146 `case \"/compact\" where thread?.provider == .codex || thread?.provider == .copilot || thread?.provider == .deepseek || thread?.provider == .meta || thread?.provider == .zai || thread?.provider == .pi:` (six providers). B2 :1164 `case \"/compact\" where thread?.provider.supportsCompact == true:`, and supportsCompact (Provider.swift:149-154) adds Claude, making seven."
     },
     {
       "id": "PR-RUNTIME-189",
@@ -4357,7 +4361,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 ThreadRuntime.swift:3336-3337 wrote call.edits = edits and then the row; B2 :3407 adds if entry.turnID == currentTurnID { recordCurrentTurnEdits(edits) } between them. The quote, expected_result and side_effects now include that step."
+      "b2_change": "B1 ThreadRuntime.swift:3294-3295 wrote call.edits = edits and then the row; B2 :3407 adds if entry.turnID == currentTurnID { recordCurrentTurnEdits(edits) } between them. The quote, expected_result and side_effects now include that step."
     },
     {
       "id": "PR-RUNTIME-193",
@@ -4382,7 +4386,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 settleHydraCommand (ThreadRuntime.swift:3378-3391) ended with `hydraTouched.formUnion(paths.filter { !$0.isEmpty && !TouchedPaths.isBuildOutput($0) })` (B1 :3347). B2 :3465-3467 binds `let writes = ...` and adds it to both hydraTouched and hydraCurrentTurnTouchedPaths."
+      "b2_change": "B1 settleHydraCommand (ThreadRuntime.swift:3336-3349) ended with `hydraTouched.formUnion(paths.filter { !$0.isEmpty && !TouchedPaths.isBuildOutput($0) })` (B1 :3347). B2 :3465-3467 binds `let writes = ...` and adds it to both hydraTouched and hydraCurrentTurnTouchedPaths."
     },
     {
       "id": "PR-RUNTIME-194",
@@ -4725,7 +4729,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 ThreadRuntime.swift:2720-2733 cleared the stream with `hydraStream = nil` (B1 :2682). B2 :2760-2771 calls endDelegationStream() (:2763), which also sets delegationParser to nil. The rest of the branch is unchanged."
+      "b2_change": "B1 ThreadRuntime.swift:2678-2691 cleared the stream with `hydraStream = nil` (B1 :2682). B2 :2760-2771 calls endDelegationStream() (:2763), which also sets delegationParser to nil. The rest of the branch is unchanged."
     },
     {
       "id": "PR-RUNTIME-209",
@@ -4769,7 +4773,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 ThreadRuntime.swift:2734 `{ hydraStream = nil }`; B2 :2773 `{ endDelegationStream() }`, which also clears delegationParser."
+      "b2_change": "B1 ThreadRuntime.swift:2692 `{ hydraStream = nil }`; B2 :2773 `{ endDelegationStream() }`, which also clears delegationParser."
     },
     {
       "id": "PR-RUNTIME-211",
@@ -4884,7 +4888,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 ThreadRuntime.swift:2764 `scanStreamedDelegations(entryID: hydraStream?.entryID ?? entry.id, turnID: turnID)`, which re-read the text of whichever entry entryID named. B2 :2805 adds `text: message.text`, the resolved row's text, read by a fresh parser (isDelta defaults to false)."
+      "b2_change": "B1 ThreadRuntime.swift:2722 `scanStreamedDelegations(entryID: hydraStream?.entryID ?? entry.id, turnID: turnID)`, which re-read the text of whichever entry entryID named. B2 :2805 adds `text: message.text`, the resolved row's text, read by a fresh parser (isDelta defaults to false)."
     },
     {
       "id": "PR-RUNTIME-216",
@@ -4937,7 +4941,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Behaviour unchanged, state moved. B1 ThreadRuntime.swift:2778 gated on `hydraDelegationRounds < HydraPrompts.maxDelegationRounds`; B2 :2819 gates on `hydraBudget.canDelegate` (Hydra.swift:571). The queued tuples gain queuedAt: Date.now (B2 :2822)."
+      "b2_change": "Behaviour unchanged, state moved. B1 ThreadRuntime.swift:2736 gated on `hydraDelegationRounds < HydraPrompts.maxDelegationRounds`; B2 :2819 gates on `hydraBudget.canDelegate` (Hydra.swift:571). The queued tuples gain queuedAt: Date.now (B2 :2822)."
     },
     {
       "id": "PR-RUNTIME-218",
@@ -5056,7 +5060,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "The round-cap test moved: B1 ThreadRuntime.swift:2820 `guard hydraDelegationRounds < HydraPrompts.maxDelegationRounds else {` is B2 :2861 `guard hydraBudget.canDelegate else {` (Hydra.swift:571). heldBackMessage (Hydra.swift:1070-1075) and the dropped-note string (B2 :2866) are unchanged."
+      "b2_change": "The round-cap test moved: B1 ThreadRuntime.swift:2778 `guard hydraDelegationRounds < HydraPrompts.maxDelegationRounds else {` is B2 :2861 `guard hydraBudget.canDelegate else {` (Hydra.swift:571). heldBackMessage (Hydra.swift:1066-1071) and the dropped-note string (B2 :2866) are unchanged."
     },
     {
       "id": "PR-RUNTIME-223",
@@ -5081,7 +5085,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 ThreadRuntime.swift:2827-2837 did `hydraDelegationRounds += 1` and queued (delegation, batchID) tuples. B2 :2868-2878 calls hydraBudget.chargeRound() (Hydra.swift:584-586) and queues (delegation, batchID, queuedAt: Date.now). Same order and same ceiling."
+      "b2_change": "B1 ThreadRuntime.swift:2785-2795 did `hydraDelegationRounds += 1` and queued (delegation, batchID) tuples. B2 :2868-2878 calls hydraBudget.chargeRound() (Hydra.swift:584-586) and queues (delegation, batchID, queuedAt: Date.now). Same order and same ceiling."
     },
     {
       "id": "PR-RUNTIME-224",
@@ -5153,7 +5157,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 ThreadRuntime.swift:2896-2904 gated on `let entry = entryIndex[entryID], entry.turnID == turnID, case .assistant(let message) = entry.item.content` before the launch check, and read the block with `HydraPrompts.streamedDelegations(in: message.text)`. B2 :2943-2959 checks the launch first, drops the assistant-message gate, and reads the block through HydraDelegationStreamParser.ingest(text), reusing the parser across delta flushes. The pinned-stream gate and the fresh-list cap are unchanged."
+      "b2_change": "B1 ThreadRuntime.swift:2854-2862 gated on `let entry = entryIndex[entryID], entry.turnID == turnID, case .assistant(let message) = entry.item.content` before the launch check, and read the block with `HydraPrompts.streamedDelegations(in: message.text)`. B2 :2943-2959 checks the launch first, drops the assistant-message gate, and reads the block through HydraDelegationStreamParser.ingest(text), reusing the parser across delta flushes. The pinned-stream gate and the fresh-list cap are unchanged."
     },
     {
       "id": "PR-RUNTIME-227",
@@ -5181,7 +5185,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 ThreadRuntime.swift:2905 `guard hydraDelegationRounds < HydraPrompts.maxDelegationRounds else { return }` gated every read. B2 :2960 `guard hydraStream != nil || hydraBudget.canDelegate else { return }` gates only the first read, when no stream exists. The round is charged with hydraBudget.chargeRound() (:2965) and queued tuples gain queuedAt: Date.now (:2970)."
+      "b2_change": "B1 ThreadRuntime.swift:2863 `guard hydraDelegationRounds < HydraPrompts.maxDelegationRounds else { return }` gated every read. B2 :2960 `guard hydraStream != nil || hydraBudget.canDelegate else { return }` gates only the first read, when no stream exists. The round is charged with hydraBudget.chargeRound() (:2965) and queued tuples gain queuedAt: Date.now (:2970)."
     },
     {
       "id": "PR-RUNTIME-228",
@@ -5262,7 +5266,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 ThreadRuntime.swift:2883 `guard hydraRefusedBlocks < Self.maxRefusedBlocks else {` with maxRefusedBlocks = 3 at B1 :2660-2664. B2 :2925 `guard hydraBudget.refuse(message) else {` with HydraDelegationBudget.maxRefusals = 3 (Hydra.swift:616). Cap and note text are unchanged, but on the cap branch refuse() now calls noteDropped(message) (Hydra.swift:591-605), so the refusal also reaches the lead on its next turn instead of being dropped in silence."
+      "b2_change": "B1 ThreadRuntime.swift:2841 `guard hydraRefusedBlocks < Self.maxRefusedBlocks else {` with maxRefusedBlocks = 3 at B1 :2660-2664. B2 :2925 `guard hydraBudget.refuse(message) else {` with HydraDelegationBudget.maxRefusals = 3 (Hydra.swift:616). Cap and note text are unchanged, but on the cap branch refuse() now calls noteDropped(message) (Hydra.swift:591-605), so the refusal also reaches the lead on its next turn instead of being dropped in silence."
     },
     {
       "id": "PR-RUNTIME-231",
@@ -5288,7 +5292,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Under the cap the behaviour is unchanged; the counter moved. B1 ThreadRuntime.swift:2883 and :2845 used `hydraRefusedBlocks < Self.maxRefusedBlocks` and `hydraRefusedBlocks += 1`. B2 :2925 calls hydraBudget.refuse(message) (Hydra.swift:591-598, refusals at :563, maxRefusals = 3 at :616). The message texts are unchanged (unreadableBlockMessage moved from Hydra.swift:1122-1132 to :1207-1213; heldBackMessage at :1066-1071)."
+      "b2_change": "Under the cap the behaviour is unchanged; the counter moved. B1 ThreadRuntime.swift:2841 and :2845 used `hydraRefusedBlocks < Self.maxRefusedBlocks` and `hydraRefusedBlocks += 1`. B2 :2925 calls hydraBudget.refuse(message) (Hydra.swift:591-598, refusals at :563, maxRefusals = 3 at :616). The message texts are unchanged (unreadableBlockMessage moved from Hydra.swift:1118-1128 to :1207-1213; heldBackMessage at :1066-1071)."
     },
     {
       "id": "PR-RUNTIME-232",
@@ -5319,7 +5323,7 @@
       "id": "PR-RUNTIME-233",
       "title": "spawnWaitingHeads drains the queue in order while the pair has room, pinning each head to the name the lead asked for",
       "source_evidence": [
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:3025-3049 spawnWaitingHeads - the doc comment \"Sends out delegated tasks still waiting, as far as the pair's cap allows; without a pair, or an uncapped one, all of them\"; guard let app, let thread, !hydraWaiting.isEmpty else { return }; let launch = launch ?? app.hydraLaunch(for: thread); then the once-per-job heads-fallback note at :2988-2993 (PR-RUNTIME-232); while !hydraWaiting.isEmpty, launch?.hasRoom(running: app.runningDroppyHeads(of: threadID)) ?? true { let next = hydraWaiting.removeFirst(); let delegation = next.delegation; let preferredIndex = delegation.name.flatMap(HydraRoster.index(named:)); guard let head = app.spawnDroppyHead(from: threadID, task: delegation.task, origin: .delegated, batchID: next.batchID, preferredIndex: preferredIndex, project: delegation.project, profile: delegation.profile, brief: { persona, workplace in HydraPrompts.delegatedHeadPrompt(persona: persona, delegation: delegation, workplace: workplace) }) else { continue }; app.updateHydraHead(head.id) { $0.queuedAt = next.queuedAt }; hydraBatches[next.batchID, default: HydraBatch(pending: [])].pending.insert(head.id) }",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:3025-3049 spawnWaitingHeads - the doc comment \"Sends out delegated tasks still waiting, as far as the pair's cap allows; without a pair, or an uncapped one, all of them\"; guard let app, let thread, !hydraWaiting.isEmpty else { return }; let launch = launch ?? app.hydraLaunch(for: thread); then the once-per-job heads-fallback note at :3030-3035 (PR-RUNTIME-232); while !hydraWaiting.isEmpty, launch?.hasRoom(running: app.runningDroppyHeads(of: threadID)) ?? true { let next = hydraWaiting.removeFirst(); let delegation = next.delegation; let preferredIndex = delegation.name.flatMap(HydraRoster.index(named:)); guard let head = app.spawnDroppyHead(from: threadID, task: delegation.task, origin: .delegated, batchID: next.batchID, preferredIndex: preferredIndex, project: delegation.project, profile: delegation.profile, brief: { persona, workplace in HydraPrompts.delegatedHeadPrompt(persona: persona, delegation: delegation, workplace: workplace) }) else { continue }; app.updateHydraHead(head.id) { $0.queuedAt = next.queuedAt }; hydraBatches[next.batchID, default: HydraBatch(pending: [])].pending.insert(head.id) }",
         "DroppyCode/App/Runtime/ThreadRuntime.swift:3039-3041 the comment \"The lead's announced name is authoritative: resolving it here pins the spawned head to exactly that roster name. Unknown or already-taken names resolve to nil and the head goes out next in order, as before\""
       ],
       "preconditions": "Tasks are waiting in hydraWaiting.",
@@ -5336,10 +5340,10 @@
       "windows_path": "The ?? true on the room test is the no-pair case and must be preserved. The silent drop on a failed spawn is upstream behaviour; reproduce it rather than adding a note, and see the new-defect note filed against this line.",
       "verification_method": "integration - a cap of two with four waiting tasks sends two and leaves two, in block order",
       "status": "IMPLEMENTED",
-      "upstream_defect": "NEW, not in upstream_defects.md: ThreadRuntime.swift:3037 removes the task from hydraWaiting BEFORE the spawn, and :3003 `guard let head = app.spawnDroppyHead(...) else { continue }` then drops it with no note, no retry and no record. Its batch settles without it (PR-RUNTIME-202), so the lead reports as though the block finished. upstream_defects.md entry 32 covers a different line of the same loop (:2994, the uncapped sweep when hydraLaunch is nil) and does not cover this. REPRODUCE, DO NOT FIX.",
+      "upstream_defect": "NEW, not in upstream_defects.md: ThreadRuntime.swift:3037 removes the task from hydraWaiting BEFORE the spawn, and :3045 `guard let head = app.spawnDroppyHead(...) else { continue }` then drops it with no note, no retry and no record. Its batch settles without it (PR-RUNTIME-202), so the lead reports as though the block finished. upstream_defects.md entry 32 covers a different line of the same loop (:3036, the uncapped sweep when hydraLaunch is nil) and does not cover this. REPRODUCE, DO NOT FIX.",
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 ThreadRuntime.swift:2938-2941 inserted the head into its batch straight after a successful spawn; B2 :3004 adds app.updateHydraHead(head.id) { $0.queuedAt = next.queuedAt } between the spawn and the batch insert (PR-RUNTIME-258). The quote, expected_result and side_effects now include that step, and the quote marks where the fallback note of PR-RUNTIME-232 sits."
+      "b2_change": "B1 ThreadRuntime.swift:2896-2899 inserted the head into its batch straight after a successful spawn; B2 :3004 adds app.updateHydraHead(head.id) { $0.queuedAt = next.queuedAt } between the spawn and the batch insert (PR-RUNTIME-258). The quote, expected_result and side_effects now include that step, and the quote marks where the fallback note of PR-RUNTIME-232 sits."
     },
     {
       "id": "PR-RUNTIME-234",
@@ -5363,7 +5367,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "The report construction is unchanged (B2 ThreadRuntime.swift:2712-2716). New at B2 :1217-1228: startTurn sets the head record's startedAt to now on every turn after the first of a Droppy-run head, so elapsed is measured from the latest turn start rather than from head creation."
+      "b2_change": "The report construction is unchanged (B2 ThreadRuntime.swift:2670-2674). New at B2 :1217-1228: startTurn sets the head record's startedAt to now on every turn after the first of a Droppy-run head, so elapsed is measured from the latest turn start rather than from head creation."
     },
     {
       "id": "PR-RUNTIME-235",
@@ -5724,7 +5728,7 @@
       "source_evidence": [
         "DroppyCode/App/Runtime/ThreadRuntime.swift:2172-2176 - case .tokenSpend(let spend): if let currentTurnID { updateTurn(currentTurnID) { $0.tokenSpends = ($0.tokenSpends ?? []) + [spend] }; saveRevision += 1 }",
         "DroppyCode/Core/Models/Timeline.swift:306 var tokenSpends: [TokenSpend]?",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:2437-2443 - finishTurn appends the .turnEnd row, sets phase = .idle and turnStartedAt = nil, then calls saveNow() (:2400) before settleForegroundHeads(after: status) and the rest of the function"
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2437-2443 - finishTurn appends the .turnEnd row, sets phase = .idle and turnStartedAt = nil, then calls saveNow() (:2442) before settleForegroundHeads(after: status) and the rest of the function"
       ],
       "preconditions": "A provider, or a rehearsal onto a head runtime, delivers .tokenSpend(spend).",
       "action": "handle(_:) runs its first .tokenSpend arm.",
@@ -5765,7 +5769,7 @@
       "windows_path": "Reproduce the observable result: spend is handled only as PR-RUNTIME-251 says. Do not route spend to head runtimes, buffer it by agent, merge it or add it to hydraTokens from the event. This rests on reading the source under Swift switch semantics; the Swift build was not compiled here (UNVERIFIED).",
       "verification_method": "unit - a .tokenSpend carrying an agentID on a lead with a native head appends one unmerged entry to the lead's current turn and leaves the head runtime and hydraTokens unchanged",
       "status": "IMPLEMENTED",
-      "upstream_defect": "Duplicate .tokenSpend arm in handle(_:) (ThreadRuntime.swift:2172 and :2228): the later arm, recordTokenSpend and pendingNativeSpend are dead. From reading the source only; nothing was compiled.",
+      "upstream_defect": "Duplicate .tokenSpend arm in handle(_:) (ThreadRuntime.swift:2172 and :2230): the later arm, recordTokenSpend and pendingNativeSpend are dead. From reading the source only; nothing was compiled.",
       "blocked_by": null,
       "depends_on_unknown": null
     },
@@ -5773,12 +5777,11 @@
       "id": "PR-RUNTIME-253",
       "title": "Loading a Droppy-run head's history sets its token count from the stored spends",
       "source_evidence": [
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:556-560 - install(_:): turns = document.turns + turns; if thread?.hydra?.kind == .droppy { hydraTokens = turns.flatMap { $0.tokenSpends ?? [] }.reduce(0) { $0 + $1.totalTokens } }",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:345-351 hydraLiveInfo - guard stored.status == .running else { return stored }; ...; info.tokens = max(info.tokens, hydraTokens)"
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:556-560 - install(_:): turns = document.turns + turns; if thread?.hydra?.kind == .droppy { hydraTokens = turns.flatMap { $0.tokenSpends ?? [] }.reduce(0) { $0 + $1.totalTokens } }"
       ],
       "preconditions": "A thread document is installed into a runtime whose thread is a Droppy-run head.",
       "action": "install(_:) runs.",
-      "expected_result": "Right after the stored turns are merged in front of any in-memory turns, hydraTokens is replaced by the sum of totalTokens over every TokenSpend of every turn; a turn with nil tokenSpends counts 0. A thread that is not a Droppy-run head (a lead, a native head, a plain chat) leaves hydraTokens as it was. While the head is running, its live record shows max(stored tokens, hydraTokens).",
+      "expected_result": "Right after the stored turns are merged in front of any in-memory turns, hydraTokens is replaced by the sum of totalTokens over every TokenSpend of every turn; a turn with nil tokenSpends counts 0. A thread that is not a Droppy-run head (a lead, a native head, a plain chat) leaves hydraTokens as it was.",
       "side_effects": [
         "hydraTokens replaced."
       ],
@@ -5787,10 +5790,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Sum totalTokens only; the optional input, output and cached counts are not added.",
       "verification_method": "unit - install a Droppy-run head document with two turns holding spends of 100 and 250 tokens and assert hydraTokens is 350; the same document on a lead leaves hydraTokens unchanged",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "B3 deletes hydraLiveInfo (formerly ThreadRuntime.swift:345-351) entirely; the record's earlier last sentence, describing its max(stored tokens, hydraTokens) live-display behaviour, described a function with no caller even at B2 (git grep 1fbf81e finds none), so the clause was never observable and is struck along with its evidence citation."
     },
     {
       "id": "PR-RUNTIME-254",
@@ -5931,7 +5935,7 @@
         "DroppyCode/Core/Models/Hydra.swift:606-610 takeDropNotice() - defer { dropNotice = nil }; return dropNotice",
         "DroppyCode/Core/Models/Hydra.swift:1086-1092 droppedBlockNotice(_:) - \"[Hydra] \" + message + \"\\n\\n---\\n\\n\"; the comment says it opens with [Hydra], which the policy tells the lead is Droppy Code speaking, not the user",
         "DroppyCode/App/Runtime/ThreadRuntime.swift:1187 - the user row is built from text, not from the prompt",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:297 @ObservationIgnored private var hydraBudget = HydraDelegationBudget(); :3633-3640 holdsOnlyPersistedState, with no hydraBudget term; DroppyCode/App/AppModel.swift:502-515 releaseIdleRuntime - runtime.holdsOnlyPersistedState ... runtimes[id] = nil; :425-429 runtime(for:) - let runtime = ThreadRuntime(threadID: id, app: self)"
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:297 @ObservationIgnored private var hydraBudget = HydraDelegationBudget(); :3679-3686 holdsOnlyPersistedState, with no hydraBudget term; DroppyCode/App/AppModel.swift:502-515 releaseIdleRuntime - runtime.holdsOnlyPersistedState ... runtimes[id] = nil; :434-438 runtime(for:) - let runtime = ThreadRuntime(threadID: id, app: self)"
       ],
       "preconditions": "A drop notice is waiting in the delegation budget (PR-RUNTIME-230, PR-RUNTIME-260) and a turn reaches its send.",
       "action": "startTurn builds the prompt and is about to call session.send.",
@@ -5939,7 +5943,7 @@
       "side_effects": [
         "The budget's drop notice is cleared."
       ],
-      "persistence": "None; in-memory in the runtime's hydraBudget (ThreadRuntime.swift:297). A relaunch loses a waiting notice, and so does releasing the idle runtime: holdsOnlyPersistedState (:3633-3640, PR-RUNTIME-164) has no hydraBudget term, AppModel.releaseIdleRuntime sets runtimes[id] = nil (AppModel.swift:513), and runtime(for:) builds a new ThreadRuntime (AppModel.swift:434-438) whose hydraBudget is a fresh HydraDelegationBudget() (from reading the source; not run).",
+      "persistence": "None; in-memory in the runtime's hydraBudget (ThreadRuntime.swift:297). A relaunch loses a waiting notice, and so does releasing the idle runtime: holdsOnlyPersistedState (:3679-3686, PR-RUNTIME-164) has no hydraBudget term, AppModel.releaseIdleRuntime sets runtimes[id] = nil (AppModel.swift:513), and runtime(for:) builds a new ThreadRuntime (AppModel.swift:434-438) whose hydraBudget is a fresh HydraDelegationBudget() (from reading the source; not run).",
       "failure_cases": [
         "A send that throws after the notice was taken loses the notice.",
         "An idle lead whose runtime is released while a notice waits loses the notice; the rebuilt runtime starts with an empty budget."
@@ -5983,7 +5987,7 @@
         "DroppyCode/App/Runtime/ThreadRuntime.swift:302-305 - the comment \"The reader holding that block's place between flushes (see `HydraDelegationStreamParser`). Reset wherever `hydraStream` is, so the next block is read by a parser that starts where the block does.\"; @ObservationIgnored private var delegationParser: HydraDelegationStreamParser?",
         "DroppyCode/App/Runtime/ThreadRuntime.swift:2986-2996 - guard let app, let thread, let launch = app.hydraLaunch(for: thread), entryIndex[entryID]?.turnID == turnID else { return }; if let hydraStream, hydraStream.entryID != entryID || hydraStream.turnID != turnID { return }; var parser: HydraDelegationStreamParser; if isDelta, let existing = delegationParser, existing.entryID == entryID, existing.turnID == turnID { parser = existing } else { parser = HydraDelegationStreamParser(turnID: turnID, entryID: entryID) }; parser.ingest(text); delegationParser = parser",
         "DroppyCode/App/Runtime/ThreadRuntime.swift:3020-3023 endDelegationStream() - hydraStream = nil; delegationParser = nil",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:1203 startTurn, :623 install with no current turn, :2763 and :2773 dropDelegationBlock - the four calls of endDelegationStream()",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1203 startTurn, :622 install with no current turn, :2805 and :2815 dropDelegationBlock - the four calls of endDelegationStream()",
         "DroppyCode/App/Runtime/ThreadRuntime.swift:2851 spawnDelegatedHeads, streamed branch - hydraStream = nil"
       ],
       "preconditions": "A reply streams message deltas while Hydra is on.",
@@ -6005,7 +6009,7 @@
       "title": "isReadyForHydraMerge is true only for a lead fully at rest",
       "source_evidence": [
         "DroppyCode/App/Runtime/ThreadRuntime.swift:2525-2532 - the comment \"An idle provider may still have a report or a user message waiting to run. Those continuations must finish before its files take part in a merge.\"; var isReadyForHydraMerge: Bool { phase == .idle && !isLoadingHistory && !isReverting && pendingSend == nil && turns.last?.status == .completed && !hasWorkingHeads && hydraPendingReports.isEmpty && hydraBatches.isEmpty && hydraWaiting.isEmpty && !hydraFlushScheduled }",
-        "DroppyCode/App/AppModel+HydraMerge.swift:61, :87, :104, :249 and :681 - the merge paths that check runtime.isReadyForHydraMerge"
+        "DroppyCode/App/AppModel+HydraMerge.swift:61, :82, :100, :117, :304 and :737 - the merge paths that check runtime.isReadyForHydraMerge"
       ],
       "preconditions": "A Hydra merge path asks whether a runtime may take part.",
       "action": "isReadyForHydraMerge is read.",
@@ -6026,8 +6030,8 @@
       "title": "The usage-limit hand-off text (LimitHandoff) is unreachable in the pinned build and is not implemented",
       "source_evidence": [
         "DroppyCode/App/Runtime/LimitHandoff.swift:6-78 enum LimitHandoff - @MainActor static func text(for runtime: ThreadRuntime, title: String) -> String, and private static func flatten(_:) at :75-77",
-        "DroppyCode/App/Runtime/AutoContinue.swift:78-85 handOff(_:) - guard let app, let thread = app.thread(threadID), let runtime = app.existingRuntime(for: threadID) else { return }; let text = LimitHandoff.text(for: runtime, title: thread.title); cancel(threadID); ...; app.runtime(for: made.id).draft.text = text",
-        "DroppyCode/App/Views/Chat/LimitResumeBadge.swift:30 - Button { model.autoContinue.handOff(threadID) }, the only call of handOff; git grep at 1fbf81e finds LimitResumeBadge only at its own declaration, LimitResumeBadge.swift:5",
+        "DroppyCode/App/Runtime/AutoContinue.swift:78-85 handOff(_:) - guard let app, let thread = app.thread(threadID), let runtime = app.existingRuntime(for: threadID) else { return }; let text = LimitHandoff.text(for: runtime, title: thread.title); cancel(threadID); guard let project = app.project(thread.projectID), let made = app.newThread(in: project) else { return }; outcomes[threadID] = .handedOff(made.id); app.runtime(for: made.id).draft.text = text",
+        "At B3, DroppyCode/App/Views/Chat/LimitResumeBadge.swift no longer exists in the tree at all (see PR-CHAT-011); a repo-wide search finds zero call sites of \".handOff(\" anywhere in DroppyCode, so AutoContinue.handOff is now uncalled by any file, not merely by an uninstantiated view. At B2 (git grep 1fbf81e) LimitResumeBadge.swift:30 was its only call, and the view itself was declared unreachable at LimitResumeBadge.swift:5",
         "porting/dead_code.md entries 21 and 22 (LimitResumeBadge, AutoContinue.cancel and handOff)"
       ],
       "preconditions": "A chat stopped on its provider's usage limit.",
@@ -6043,7 +6047,8 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "not_applicable": "ED-061: porting/dead_code.md entries 21 (LimitResumeBadge.swift, never instantiated) and 22 (AutoContinue.cancel and handOff, called only from that view); LimitHandoff.text has no other caller, so the pinned build never produces the hand-off text."
+      "not_applicable": "ED-061: porting/dead_code.md entries 21 (LimitResumeBadge.swift, never instantiated) and 22 (AutoContinue.cancel and handOff, called only from that view); LimitHandoff.text has no other caller, so the pinned build never produces the hand-off text.",
+      "b3_note": "LimitResumeBadge.swift is deleted outright in B3 (its content did not move elsewhere; see the CHAT area's PR-CHAT-011). AutoContinue.handOff and LimitHandoff.text are unaffected in content or line numbers, but now have literally zero call sites in the tree, which strengthens rather than changes this record's NOT_APPLICABLE_WITH_EVIDENCE conclusion."
     },
     {
       "id": "PR-RUNTIME-264",
@@ -6066,6 +6071,67 @@
       "blocked_by": null,
       "depends_on_unknown": null,
       "spec_fix": "Narrowed by the ruling on STOP Core.Models.FileChangeSummary #1 (2026-09-23): the turn-end-row round trip and the nil cases moved to PR-CHAT-012; finishTurn, install's nil marker and storeLegacyChanges are PR-RUNTIME-121, -161 and -200; this record keeps FileChangeSummary.swift:3-15."
+    },
+    {
+      "id": "PR-RUNTIME-265",
+      "preconditions": "A turn is failing with an error string, from startTurn's catch, .turnCompleted or .exited.",
+      "action": "finishTurnUpdatingCLI(_:status:turnID:) is consulted before the caller posts its own error notice.",
+      "expected_result": "Returns false immediately unless all three hold: turnID is non-nil, the thread's provider passes ProviderRegistry.updatesOwnCLI (true only for Claude and Codex), and ProviderRegistry.needsNewerCLI matches the error text. When all three hold, it appends an .info notice inside the turn - 'This model needs a newer <provider.displayName>. Updating it, then sending your message again.' (see UI-RUNTIME-039) - so the resend's revert takes the notice away with the rest of the failed attempt, starts an un-awaited Task that awaits finishTurn(status:turnID:) and then resendAfterCLIUpdate(turnID, provider:, error:), and returns true. Its three callers (the startTurn catch at :1378, .turnCompleted at :2209 and .exited at :2226) each treat true as 'handled, do nothing further.'",
+      "side_effects": [
+        "On a match: appends an .info notice inside the failing turn, then asynchronously finishes the turn and starts the CLI-update-and-resend sequence (PR-RUNTIME-266)"
+      ],
+      "persistence": "The .info notice, when appended, is part of the turn's persisted timeline until the resend's revert removes it.",
+      "failure_cases": [
+        "Any provider other than Claude or Codex, a nil turnID, or an error that does not match ProviderRegistry.needsNewerCLI: returns false and does nothing, leaving the caller to post its own notice and finish the turn as before."
+      ],
+      "cancellation": "Not cancellable directly; the Task it starts is not stored or cancelled by this function.",
+      "windows_path": "Direct port: the same three-condition gate (provider updates its own CLI, error text matches the six needs-newer-CLI substrings, turn id present), the same in-turn info notice text, and the same finish-then-resend sequencing.",
+      "verification_method": "unit: a Claude/Codex error matching needsNewerCLI returns true, appends the info notice and eventually calls resendAfterCLIUpdate; any other provider, or a non-matching error, returns false with no notice appended",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null,
+      "title": "finishTurnUpdatingCLI decides whether a failure is a 'CLI too old' failure and, if so, takes over ending the turn",
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2255-2270 private func finishTurnUpdatingCLI(_ error: String, status: TurnStatus, turnID: UUID?) -> Bool - guard let turnID, let provider = thread?.provider, ProviderRegistry.updatesOwnCLI(provider), ProviderRegistry.needsNewerCLI(error) else { return false }; appendNotice(.info, \"This model needs a newer \\(provider.displayName). Updating it, then sending your message again.\"); Task { [weak self] in guard let self else { return }; await finishTurn(status: status, turnID: turnID); await resendAfterCLIUpdate(turnID, provider: provider, error: error) }; return true",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1378 - consulted from the startTurn catch",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2209 - consulted from .turnCompleted",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2226 - consulted from .exited",
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:476-479 updatesOwnCLI - true for exactly .claude and .codex",
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:481-490 needsNewerCLI - matches six lowercase substrings case-insensitively"
+      ],
+      "b3_note": "New in B3. See impacts.json bundle R3-05 (ThreadRuntime.swift) new_records_needed, proposal #1."
+    },
+    {
+      "id": "PR-RUNTIME-266",
+      "preconditions": "finishTurnUpdatingCLI has just finished the turn and started this as an un-awaited follow-up.",
+      "action": "resendAfterCLIUpdate(_:provider:error:) runs.",
+      "expected_result": "Forces the CLI's own updater via app.providers.updateCLIIfDue(provider, force: true), then reads app.providers.installedCLIVersion(provider). If the version cannot be read, or equals a version already resent at for this provider in cliResendVersions, an error notice with no turn is appended: '<error>\\n\\nDroppy Code could not bring <provider.displayName> up to date. Run `<command>` in Terminal, then send the message again.' (`claude update` or `codex update`; see UI-RUNTIME-040), and the function returns. Otherwise cliResendVersions[provider] is set to the new version (recording that a resend at this version has been tried, so at most one resend per CLI version per runtime), the session is released with stop: true so the next send launches the new binary, and, only when the runtime is idle, the turn and its user entry still exist and the message is not from Hydra, the failed turn's own user message is resent through resend(turnID, text:, attachments:, restoreFiles: false). Any other state (not idle, turn or user entry gone, or a Hydra-authored message) instead appends an error notice with no turn: '<error>\\n\\n<provider.displayName> is up to date now (<version>). Send the message again.' (see UI-RUNTIME-041). If the resend call itself throws, the notice is: '<provider.displayName> is up to date now (<version>), but the message could not be sent again: <error.localizedDescription> Send it again.' (see UI-RUNTIME-042).",
+      "side_effects": [
+        "Forces a CLI update check (bypassing the normal 12-hour interval)",
+        "Releases and re-launches the provider session (stop: true)",
+        "Records the resent-at version in cliResendVersions for this runtime",
+        "May resend the failed turn's user message as a new turn"
+      ],
+      "persistence": "cliResendVersions is held on the runtime, not persisted to disk.",
+      "failure_cases": [
+        "installedCLIVersion returns nil, or returns the same version already recorded in cliResendVersions for this provider: 'could not bring ... up to date' notice, no resend attempted.",
+        "The runtime is not idle, the turn or its userItemID entry no longer exists, or the entry's message is from Hydra: 'is up to date now ... Send the message again.' notice, no resend attempted.",
+        "resend(_:text:attachments:restoreFiles:) throws (for example from its own guards, or Codex's 'no Codex turn ID' refusal): 'is up to date now ..., but the message could not be sent again: <error>' notice."
+      ],
+      "cancellation": "Not cancellable; runs to completion once started by finishTurnUpdatingCLI.",
+      "windows_path": "Direct port: force the CLI updater, compare installed version against the per-runtime, per-provider cliResendVersions guard (at most one resend per CLI version per runtime), release-with-stop before resending, and the three exact notice texts for the three failure branches. `claude update` / `codex update` remain the commands named in the first notice; OD-0002 and OD-0012 F1 govern the app name in the notice text.",
+      "verification_method": "unit with a stubbed providers registry: (a) update succeeds with a new version and the runtime is idle with the turn intact - resend is called; (b) installedCLIVersion returns the same version twice - the 'could not bring up to date' notice on the second call, no second resend attempt; (c) the runtime is busy when the update finishes - the 'up to date now, send again' notice; (d) resend throws - the 'up to date now, but could not be sent again' notice",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null,
+      "title": "resendAfterCLIUpdate forces the CLI's own updater, then resends the failed message once per CLI version or reports why it could not",
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2272-2293 private func resendAfterCLIUpdate(_ turnID: UUID, provider: ProviderKind, error: String) async - the command literal, updateCLIIfDue(provider, force: true), installedCLIVersion(provider), the cliResendVersions guard, releaseSession(stop: true), the phase/turn/userItemID/isFromHydra guard, and the do/catch around resend(turnID, text:, attachments:, restoreFiles: false)",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:472-475 - cliResendVersions: [ProviderKind: String] declared on the runtime, not persisted"
+      ],
+      "b3_note": "New in B3. See impacts.json bundle R3-05 (ThreadRuntime.swift) new_records_needed, proposal #2."
     }
   ],
   "ui": [
@@ -6074,7 +6140,7 @@
       "screen": "Chat timeline",
       "element": "Info-level notice row, appended by appendNotice for Notice.Level.info",
       "role": "row",
-      "exact_text": "The message is whatever the source appended. The info-level messages this area produces are exactly: \"Nothing to compact yet.\", \"Compacting context.\", and the usage-limit wait line \"Usage limit reached. Continuing automatically at <time>.\"",
+      "exact_text": "The message is whatever the source appended. The info-level messages this area produces are exactly: \"Nothing to compact yet.\", \"Compacting context.\", the usage-limit wait line \"Usage limit reached. Continuing automatically at <time>.\", and the CLI-update notice \"This model needs a newer <provider display name>. Updating it, then sending your message again.\"",
       "geometry": "HStack alignment .firstTextBaseline, spacing 8. For .info all four paddings are 0: leading 0, trailing 0, vertical 0. frame maxWidth .infinity, alignment .leading. Background .clear, in a rounded rect of corner radius TimelineMetrics.pillRadius = 18 (drawn but invisible).",
       "typography": "font .chat(.callout) on the whole HStack; no weight override. Font.chat(.callout) is Font.system(.callout) with no chat zoom. The port's text face is Inter (OD-0009) at the source's text style; where its wrap points differ from the macOS face's, that is the named OD-0009 deviation. Size (ED-059): .callout is 12 pt in Inter (OD-0009), from upstream's text-style table (B1:DroppyCode/UI/Common/ChatZoom.swift:52), fixed per style and scaled only by the app zoom (UI/Common/AppZoom.swift); visual size parity is UNVERIFIED under OD-0001.",
       "colors": "Icon foregroundStyle .secondary; text foregroundStyle .secondary for .info. Background .clear.",
@@ -6091,7 +6157,9 @@
         "DroppyCode/UI/Common/ChatFont.swift:4-10 - the comment \"The app-wide zoom scales the window, not the type.\"; static func chat(_ style: Font.TextStyle, weight: Font.Weight? = nil, design: Font.Design = .default) -> Font { let resolvedWeight = weight ?? (style == .headline ? .semibold : nil); let font = Font.system(style, design: design); return resolvedWeight.map { font.weight($0) } ?? font }"
       ],
       "notes": "An info notice is deliberately unpilled: zero padding and a clear background, so it reads as a quiet aside rather than a card. Only warning and error get the pill. The icon is SF Symbol \"info.circle\"; icons follow OD-0010 (SF Symbols map to Lucide through the published symbol-by-symbol table, one for one).",
-      "b2_change": "B1 TimelineRows.swift:2413 `.font(.chat(.callout, zoom: zoom))` read @Environment(\\.chatZoom); B2 TimelineRows.swift:2397 `.font(.chat(.callout))`, and Font.chat (UI/Common/ChatFont.swift:6-10) takes no zoom. NoticeRow moved from B1 :2400 to B2 :2385. Geometry and colours are unchanged. Owner rulings applied in this refresh: the icon follows OD-0010 (Lucide) in place of the open UNK-0007, and the face follows OD-0009 (Inter)."
+      "b2_change": "B1 TimelineRows.swift:2413 `.font(.chat(.callout, zoom: zoom))` read @Environment(\\.chatZoom); B2 TimelineRows.swift:2397 `.font(.chat(.callout))`, and Font.chat (UI/Common/ChatFont.swift:6-10) takes no zoom. NoticeRow moved from B1 :2400 to B2 :2385. Geometry and colours are unchanged. Owner rulings applied in this refresh: the icon follows OD-0010 (Lucide) in place of the open UNK-0007, and the face follows OD-0009 (Inter).",
+      "status": "SPECIFIED",
+      "b3_note": "B3 adds a fourth info-level message, appended by finishTurnUpdatingCLI at ThreadRuntime.swift:2263 when a Claude or Codex error matches ProviderRegistry.needsNewerCLI (see PR-RUNTIME-265 and UI-RUNTIME-039). The row chrome itself (padding, colours, unpilled presentation) is unchanged. Found during B3 re-verification of this area's bundle (impacts.json R3-05); not itself listed in recite_flags or impacts.json's records_affected, but the same source change both name."
     },
     {
       "id": "UI-RUNTIME-002",
@@ -6121,7 +6189,7 @@
       "screen": "Chat timeline",
       "element": "Error-level notice row (the row chrome; each message has its own record)",
       "role": "row",
-      "exact_text": "This record owns the ROW. The five error messages this area produces each have their own record: UI-RUNTIME-034 (a ProviderError), UI-RUNTIME-035 (a provider turn error), UI-RUNTIME-036 (the agent stopped unexpectedly), UI-RUNTIME-037 (the stopped message was kept) and UI-RUNTIME-038 (files could not be restored after a revert).",
+      "exact_text": "This record owns the ROW. The error-level messages this area produces each have their own record: UI-RUNTIME-034 (a ProviderError), UI-RUNTIME-035 (a provider turn error), UI-RUNTIME-036 (the agent stopped unexpectedly), UI-RUNTIME-037 (the stopped message was kept), UI-RUNTIME-038 (files could not be restored after a revert), UI-RUNTIME-040 (could not bring the CLI up to date), UI-RUNTIME-041 (up to date now, send again) and UI-RUNTIME-042 (up to date now, but the resend failed). A ninth message, UI-RUNTIME-039, is an .info-level notice (owned by UI-RUNTIME-001's row chrome, not this one), not an error.",
       "geometry": "Identical to the warning row: spacing 8, padding leading 12, trailing 14, vertical 8, corner radius 18, frame maxWidth .infinity alignment .leading.",
       "typography": "font .chat(.callout), with no chat zoom. The port's text face is Inter (OD-0009) at the source's text style; where its wrap points differ from the macOS face's, that is the named OD-0009 deviation. Size (ED-059): .callout is 12 pt in Inter (OD-0009), from upstream's text-style table (B1:DroppyCode/UI/Common/ChatZoom.swift:52), fixed per style and scaled only by the app zoom (UI/Common/AppZoom.swift); visual size parity is UNVERIFIED under OD-0001.",
       "colors": "Icon foregroundStyle Chrome.danger; text foregroundStyle .primary; background Chrome.danger.opacity(0.1). Chrome.danger is the theme's own failure colour rather than the system red.",
@@ -6133,11 +6201,13 @@
       ],
       "source_evidence": [
         "DroppyCode/App/Views/Chat/TimelineRows.swift:2385-2431",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:715, :1379, :1911, :2208, :2224",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:715, :1379, :1911, :2210, :2227, :2319, :2327, :2333",
         "DroppyCode/UI/Common/ChatFont.swift:4-10 - the comment \"The app-wide zoom scales the window, not the type.\"; static func chat(_ style: Font.TextStyle, weight: Font.Weight? = nil, design: Font.Design = .default) -> Font { let resolvedWeight = weight ?? (style == .headline ? .semibold : nil); let font = Font.system(style, design: design); return resolvedWeight.map { font.weight($0) } ?? font }"
       ],
       "notes": "Icon is SF Symbol \"exclamationmark.octagon\"; icons follow OD-0010 (SF Symbols map to Lucide through the published symbol-by-symbol table, one for one). Only .info differs in padding and background; warning and error are geometrically identical and differ only in colour and glyph.",
-      "b2_change": "B1 TimelineRows.swift:2413 `.font(.chat(.callout, zoom: zoom))` read @Environment(\\.chatZoom); B2 TimelineRows.swift:2397 `.font(.chat(.callout))`, and Font.chat (UI/Common/ChatFont.swift:6-10) takes no zoom. NoticeRow moved from B1 :2400 to B2 :2385. Geometry and colours are unchanged. Owner rulings applied in this refresh: the icon follows OD-0010 (Lucide) and the face follows OD-0009 (Inter)."
+      "b2_change": "B1 TimelineRows.swift:2413 `.font(.chat(.callout, zoom: zoom))` read @Environment(\\.chatZoom); B2 TimelineRows.swift:2397 `.font(.chat(.callout))`, and Font.chat (UI/Common/ChatFont.swift:6-10) takes no zoom. NoticeRow moved from B1 :2400 to B2 :2385. Geometry and colours are unchanged. Owner rulings applied in this refresh: the icon follows OD-0010 (Lucide) and the face follows OD-0009 (Inter).",
+      "b3_note": "The row chrome itself is unchanged. Cites move: :716 -> :715 (already applied), :1379 and :1911 stay, :2208 -> :2210, :2224 -> :2227. B3 adds three new error notices, at :2277 (could not bring the CLI up to date), :2285 (up to date now, send again) and :2291 (up to date now, could not be sent again), plus one .info notice at :2263 (owned by UI-RUNTIME-001, not this record). The messages previously at :1379, :2208 and :2224 (now :1379, :2210 and :2227) are suppressed for Claude or Codex when the CLI-update path takes the error instead; see UI-RUNTIME-035/036 and UI-RUNTIME-039 through UI-RUNTIME-042. The record's old claim of exactly five error messages is retired in favour of the explicit list above (eight, plus one info-level message owned elsewhere).",
+      "status": "SPECIFIED"
     },
     {
       "id": "UI-RUNTIME-004",
@@ -6272,7 +6342,7 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:10-14"
       ],
       "notes": "The row is created only when the first delta carries text, so a provider that opens a text block with an empty delta leaves no blank reply row. The row id is the provider's own id, which is how later completions and delegation scans address it.",
-      "b2_change": "completeMessage moved from B1 ThreadRuntime.swift:3138-3156 to B2 :3206-3224; its only change is that the delegation scan now passes text: message.text (:3221). The row this record states is unchanged; re-cited.",
+      "b2_change": "completeMessage moved from B1 ThreadRuntime.swift:3096-3114 to B2 :3206-3224; its only change is that the delegation scan now passes text: message.text (:3221). The row this record states is unchanged; re-cited.",
       "status": "IMPLEMENTED"
     },
     {
@@ -6384,14 +6454,14 @@
       "source_evidence": [
         "DroppyCode/App/Runtime/ThreadRuntime.swift:3056-3060 appendHydraNote",
         "DroppyCode/App/Runtime/ThreadRuntime.swift:2801-2826 dropDelegationBlock",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:2870-2875 and :2879-2885 the two \"Not every task went out\" sites",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2870-2875 and :2921-2927 the two \"Not every task went out\" sites",
         "DroppyCode/App/Runtime/ThreadRuntime.swift:2898 the empty-block note",
         "DroppyCode/App/Runtime/ThreadRuntime.swift:2968 the dropped-block note",
         "DroppyCode/App/Runtime/ThreadRuntime.swift:3032-3034 the fallback note",
         "DroppyCode/App/Runtime/ThreadRuntime.swift:1915-1919 - revert keeps rows with a nil turnID"
       ],
       "notes": "An empty hydraHeads array, not nil, is what marks a user row as a Hydra note. Passing an explicit id lets the note take over the identity the timeline is already drawing for the merging pill, so the pill morphs rather than being replaced.",
-      "b2_change": "dropDelegationBlock moved from B1 ThreadRuntime.swift:2720-2743 to B2 :2759-2784. Its note texts are unchanged; it now also ends the parser with the stream and, on the second branch, queues a drop notice for the lead (PR-RUNTIME-260), neither of which is visible in the row. Re-cited.",
+      "b2_change": "dropDelegationBlock moved from B1 ThreadRuntime.swift:2678-2701 to B2 :2759-2784. Its note texts are unchanged; it now also ends the parser with the stream and, on the second branch, queues a drop notice for the lead (PR-RUNTIME-260), neither of which is visible in the row. Re-cited.",
       "status": "IMPLEMENTED"
     },
     {
@@ -6455,7 +6525,7 @@
       "source_evidence": [
         "DroppyCode/App/Runtime/ThreadRuntime.swift:1157-1162 handleLocalCommand",
         "DroppyCode/App/Runtime/ThreadRuntime.swift:102-135 DraftCommand and ComposerDraft.outgoingText",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:747, :966, :1132, :2476 - the four call sites"
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:747, :965, :1131, :2518 - the four call sites"
       ],
       "notes": "It looks like a provider slash command but never leaves the app. A port that forwarded it would put the thread in plan mode AND send a stray command to the provider.",
       "status": "IMPLEMENTED"
@@ -6481,7 +6551,7 @@
         "DroppyCode/App/Runtime/ThreadRuntime.swift:1738-1757 compact"
       ],
       "notes": "The seven-provider set is exact. On any other provider the user sees no notice at all, because the text goes to the provider instead.",
-      "b2_change": "B1 ThreadRuntime.swift:1145 listed six providers (Codex, Copilot, DeepSeek, Meta, Z.ai, Pi). B2 :1164 uses supportsCompact (Provider.swift:149-154), which adds Claude, so Claude now also shows \"Compacting context.\" and \"Nothing to compact yet.\" compact() itself is unchanged (B2 :1738-1757).",
+      "b2_change": "B1 ThreadRuntime.swift:1146 listed six providers (Codex, Copilot, DeepSeek, Meta, Z.ai, Pi). B2 :1164 uses supportsCompact (Provider.swift:149-154), which adds Claude, so Claude now also shows \"Compacting context.\" and \"Nothing to compact yet.\" compact() itself is unchanged (B2 :1738-1757).",
       "status": "IMPLEMENTED"
     },
     {
@@ -6504,7 +6574,7 @@
         "DroppyCode/App/Runtime/ThreadRuntime.swift:2802-2813 dropDelegationBlock, streamed branch"
       ],
       "notes": "Specified by PR-RUNTIME-209. Split out of UI-RUNTIME-014, which named this string only in prose. The semicolon before \"the rest\" is part of the string.",
-      "b2_change": "The streamed branch moved from B1 ThreadRuntime.swift:2720-2733 to B2 :2760-2771; the note string at B2 :2770 is unchanged. Re-cited.",
+      "b2_change": "The streamed branch moved from B1 ThreadRuntime.swift:2678-2691 to B2 :2760-2771; the note string at B2 :2770 is unchanged. Re-cited.",
       "status": "IMPLEMENTED"
     },
     {
@@ -6837,7 +6907,7 @@
       "screen": "Chat timeline",
       "element": "Error notice: a provider turn error",
       "role": "row",
-      "exact_text": "The provider's own error text, carried by .turnCompleted(status:error:) and shown with no wrapper of Droppy Code's own.",
+      "exact_text": "The provider's own error text, carried by .turnCompleted(status:error:) and shown with no wrapper of Droppy Code's own, UNLESS the error is for Claude or Codex and matches ProviderRegistry.needsNewerCLI, in which case the CLI-update info notice (UI-RUNTIME-039) is shown instead and this row does not appear for that error.",
       "geometry": "The warning/error notice pill recorded in UI-RUNTIME-002 and UI-RUNTIME-003: HStack alignment .firstTextBaseline spacing 8, padding leading 12, trailing 14, vertical 8, frame maxWidth .infinity alignment .leading, continuous rounded rect of corner radius 18.",
       "typography": "font .chat(.callout), with no chat zoom. The port's text face is Inter (OD-0009) at the source's text style; where its wrap points differ from the macOS face's, that is the named OD-0009 deviation. Size (ED-059): .callout is 12 pt in Inter (OD-0009), from upstream's text-style table (B1:DroppyCode/UI/Common/ChatZoom.swift:52), fixed per style and scaled only by the app zoom (UI/Common/AppZoom.swift); visual size parity is UNVERIFIED under OD-0001.",
       "colors": "Icon foregroundStyle Chrome.danger; text foregroundStyle .primary; background Chrome.danger.opacity(0.1).",
@@ -6848,18 +6918,19 @@
         "Text selection and copy only."
       ],
       "source_evidence": [
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:2206-2208 - case .turnCompleted(let status, let error): flushDeltas(); if let error { appendNotice(.error, error) }"
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2206-2210 - case .turnCompleted(let status, let error): flushDeltas(); let turnID = currentTurnID; if let error, finishTurnUpdatingCLI(error, status: status, turnID: turnID) { break }; if let error { appendNotice(.error, error) }"
       ],
-      "notes": "Split out of UI-RUNTIME-003. A nil error appends nothing, so a failed turn can end with no notice row at all.",
+      "notes": "Split out of UI-RUNTIME-003. A nil error appends nothing, so a failed turn can end with no notice row at all. A non-nil error the CLI-update path takes also appends nothing here; see UI-RUNTIME-039 through UI-RUNTIME-042.",
       "b2_change": "Typography restated from the notice row: B1 TimelineRows.swift:2413 `.font(.chat(.callout, zoom: zoom))`; B2 :2397 `.font(.chat(.callout))`, and Font.chat takes no zoom (UI/Common/ChatFont.swift:6-10). Text, geometry and colours unchanged. Owner rulings applied in this refresh: the face follows OD-0009 (Inter).",
-      "status": "IMPLEMENTED"
+      "status": "SPECIFIED",
+      "b3_note": "B3 :2206-2211 (evidence range moves from :2206-2208 to :2206-2210). For Claude or Codex, a .turnCompleted error that ProviderRegistry.needsNewerCLI matches is no longer shown as this unwrapped error row; the .info notice UI-RUNTIME-039 replaces it, and this row returns later, for a failure of the update or the resend, as one of UI-RUNTIME-040/041/042."
     },
     {
       "id": "UI-RUNTIME-036",
       "screen": "Chat timeline",
       "element": "Error notice: the agent stopped unexpectedly",
       "role": "row",
-      "exact_text": "Exactly: \"<provider display name> stopped unexpectedly.\" with the fallback name \"The agent\" when the thread does not resolve, giving \"The agent stopped unexpectedly.\" This text is used only when the exit carried no error of its own; an exit error is shown instead, unwrapped.",
+      "exact_text": "Exactly: \"<provider display name> stopped unexpectedly.\" with the fallback name \"The agent\" when the thread does not resolve, giving \"The agent stopped unexpectedly.\" This text is used only when the exit carried no error of its own, or when its error is not one the CLI-update path takes; an exit error the CLI-update path does not take is shown instead, unwrapped (UI-RUNTIME-035's exit case). For Claude or Codex, an exit error matching ProviderRegistry.needsNewerCLI is taken by the CLI-update path instead and neither this text nor the raw error appears here.",
       "geometry": "The warning/error notice pill recorded in UI-RUNTIME-002 and UI-RUNTIME-003: HStack alignment .firstTextBaseline spacing 8, padding leading 12, trailing 14, vertical 8, frame maxWidth .infinity alignment .leading, continuous rounded rect of corner radius 18.",
       "typography": "font .chat(.callout), with no chat zoom. The port's text face is Inter (OD-0009) at the source's text style; where its wrap points differ from the macOS face's, that is the named OD-0009 deviation. Size (ED-059): .callout is 12 pt in Inter (OD-0009), from upstream's text-style table (B1:DroppyCode/UI/Common/ChatZoom.swift:52), fixed per style and scaled only by the app zoom (UI/Common/AppZoom.swift); visual size parity is UNVERIFIED under OD-0001.",
       "colors": "Icon foregroundStyle Chrome.danger; text foregroundStyle .primary; background Chrome.danger.opacity(0.1).",
@@ -6870,11 +6941,12 @@
         "Text selection and copy only."
       ],
       "source_evidence": [
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:2221-2224 - stopNativeHeads(); if currentTurnID != nil { let name = thread?.provider.displayName ?? \"The agent\"; appendNotice(.error, error ?? \"\\(name) stopped unexpectedly.\") }"
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2221-2229 - stopNativeHeads(); if currentTurnID != nil { let name = thread?.provider.displayName ?? \"The agent\"; let turnID = currentTurnID; if let error, finishTurnUpdatingCLI(error, status: .failed, turnID: turnID) { break }; appendNotice(.error, error ?? \"\\(name) stopped unexpectedly.\") }"
       ],
-      "notes": "Split out of UI-RUNTIME-003. Appended only while a turn is in flight; an exit with no current turn is silent.",
+      "notes": "Split out of UI-RUNTIME-003. Appended only while a turn is in flight; an exit with no current turn is silent. A non-nil error the CLI-update path takes also appends nothing here; see UI-RUNTIME-039 through UI-RUNTIME-042.",
       "b2_change": "Typography restated from the notice row: B1 TimelineRows.swift:2413 `.font(.chat(.callout, zoom: zoom))`; B2 :2397 `.font(.chat(.callout))`, and Font.chat takes no zoom (UI/Common/ChatFont.swift:6-10). Text, geometry and colours unchanged. Owner rulings applied in this refresh: the face follows OD-0009 (Inter).",
-      "status": "IMPLEMENTED"
+      "status": "SPECIFIED",
+      "b3_note": "B3 :2221-2229 (evidence range moves from :2221-2224). \"An exit error is shown instead, unwrapped\" no longer holds for Claude or Codex when the error matches ProviderRegistry.needsNewerCLI: the CLI-update path takes it (:2226) and posts the .info notice UI-RUNTIME-039 instead. The nil-error \"stopped unexpectedly.\" text is unchanged, now at :2227."
     },
     {
       "id": "UI-RUNTIME-037",
@@ -6920,6 +6992,94 @@
       "notes": "Split out of UI-RUNTIME-003. The string is built at :1875 and appended at :1891, and the same value decides revert's return at :1895.",
       "b2_change": "Typography restated from the notice row: B1 TimelineRows.swift:2413 `.font(.chat(.callout, zoom: zoom))`; B2 :2397 `.font(.chat(.callout))`, and Font.chat takes no zoom (UI/Common/ChatFont.swift:6-10). Text, geometry and colours unchanged. Owner rulings applied in this refresh: the face follows OD-0009 (Inter).",
       "status": "IMPLEMENTED"
+    },
+    {
+      "id": "UI-RUNTIME-039",
+      "screen": "Chat timeline",
+      "element": "Info notice: the CLI is being updated before a resend",
+      "role": "row",
+      "exact_text": "This model needs a newer <provider display name>. Updating it, then sending your message again.",
+      "geometry": "The unpilled info row recorded in UI-RUNTIME-001: HStack alignment .firstTextBaseline spacing 8, all four paddings 0, frame maxWidth .infinity alignment .leading, background .clear in a rounded rect of corner radius 18 (drawn but invisible).",
+      "typography": "font .chat(.callout), with no chat zoom. The port's text face is Inter (OD-0009) at the source's text style; where its wrap points differ from the macOS face's, that is the named OD-0009 deviation. Size (ED-059): .callout is 12 pt in Inter (OD-0009), from upstream's text-style table (B1:DroppyCode/UI/Common/ChatZoom.swift:52), fixed per style and scaled only by the app zoom (UI/Common/AppZoom.swift); visual size parity is UNVERIFIED under OD-0001.",
+      "colors": "Icon foregroundStyle .secondary; text foregroundStyle .secondary. Background .clear.",
+      "states": [
+        "No interactive states. Text selectable."
+      ],
+      "interactions": [
+        "Text selection and copy only."
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2263 - appendNotice(.info, \"This model needs a newer \\(provider.displayName). Updating it, then sending your message again.\")"
+      ],
+      "notes": "Filed inside the failing turn by finishTurnUpdatingCLI (PR-RUNTIME-265), only for Claude or Codex when the error matches ProviderRegistry.needsNewerCLI. Removed along with the rest of the failed attempt if the resend's revert runs.",
+      "status": "SPECIFIED",
+      "b3_note": "New in B3; part of the CLI-update-and-resend path (PR-RUNTIME-265/266). Also updates UI-RUNTIME-001's 'exactly three info messages' claim to four."
+    },
+    {
+      "id": "UI-RUNTIME-040",
+      "screen": "Chat timeline",
+      "element": "Error notice: the CLI could not be brought up to date",
+      "role": "row",
+      "exact_text": "<error>\n\nDroppy Code could not bring <provider display name> up to date. Run `<claude update|codex update>` in Terminal, then send the message again.",
+      "geometry": "The warning/error notice pill recorded in UI-RUNTIME-002 and UI-RUNTIME-003: HStack alignment .firstTextBaseline spacing 8, padding leading 12, trailing 14, vertical 8, frame maxWidth .infinity alignment .leading, continuous rounded rect of corner radius 18.",
+      "typography": "font .chat(.callout), with no chat zoom. The port's text face is Inter (OD-0009) at the source's text style; where its wrap points differ from the macOS face's, that is the named OD-0009 deviation. Size (ED-059): .callout is 12 pt in Inter (OD-0009), from upstream's text-style table (B1:DroppyCode/UI/Common/ChatZoom.swift:52), fixed per style and scaled only by the app zoom (UI/Common/AppZoom.swift); visual size parity is UNVERIFIED under OD-0001.",
+      "colors": "Icon foregroundStyle Chrome.danger; text foregroundStyle .primary; background Chrome.danger.opacity(0.1).",
+      "states": [
+        "No interactive states. Text selectable."
+      ],
+      "interactions": [
+        "Text selection and copy only."
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2276-2278 - guard let version = await app.providers.installedCLIVersion(provider), cliResendVersions[provider] != version else { appendNotice(.error, \"\\(error)\\n\\nDroppy Code could not bring \\(provider.displayName) up to date. Run `\\(command)` in Terminal, then send the message again.\"); return }"
+      ],
+      "notes": "Has no turn of its own (appended outside any turn). Shown when the version cannot be read after the forced update, or equals the version already resent at. `claude update` for Claude, `codex update` for Codex. The app name and the 'in Terminal' wording are governed by OD-0002/OD-0012 F1, matching the sibling UI-RUNTIME rows.",
+      "status": "SPECIFIED",
+      "b3_note": "New in B3; part of the CLI-update-and-resend path (PR-RUNTIME-266)."
+    },
+    {
+      "id": "UI-RUNTIME-041",
+      "screen": "Chat timeline",
+      "element": "Error notice: the CLI is up to date, send the message again",
+      "role": "row",
+      "exact_text": "<error>\n\n<provider display name> is up to date now (<version>). Send the message again.",
+      "geometry": "The warning/error notice pill recorded in UI-RUNTIME-002 and UI-RUNTIME-003: HStack alignment .firstTextBaseline spacing 8, padding leading 12, trailing 14, vertical 8, frame maxWidth .infinity alignment .leading, continuous rounded rect of corner radius 18.",
+      "typography": "font .chat(.callout), with no chat zoom. The port's text face is Inter (OD-0009) at the source's text style; where its wrap points differ from the macOS face's, that is the named OD-0009 deviation. Size (ED-059): .callout is 12 pt in Inter (OD-0009), from upstream's text-style table (B1:DroppyCode/UI/Common/ChatZoom.swift:52), fixed per style and scaled only by the app zoom (UI/Common/AppZoom.swift); visual size parity is UNVERIFIED under OD-0001.",
+      "colors": "Icon foregroundStyle Chrome.danger; text foregroundStyle .primary; background Chrome.danger.opacity(0.1).",
+      "states": [
+        "No interactive states. Text selectable."
+      ],
+      "interactions": [
+        "Text selection and copy only."
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2283-2287 - guard phase == .idle, let turn = turns.first(where: { $0.id == turnID }), let itemID = turn.userItemID, let entry = entryIndex[itemID], case .user(let message) = entry.item.content, !message.isFromHydra else { appendNotice(.error, \"\\(error)\\n\\n\\(provider.displayName) is up to date now (\\(version)). Send the message again.\"); return }"
+      ],
+      "notes": "Has no turn of its own. Shown when the runtime is not idle, the turn or its user entry is gone, or the message is from Hydra, after the CLI update itself succeeded.",
+      "status": "SPECIFIED",
+      "b3_note": "New in B3; part of the CLI-update-and-resend path (PR-RUNTIME-266)."
+    },
+    {
+      "id": "UI-RUNTIME-042",
+      "screen": "Chat timeline",
+      "element": "Error notice: the CLI is up to date, but the resend failed",
+      "role": "row",
+      "exact_text": "<provider display name> is up to date now (<version>), but the message could not be sent again: <error.localizedDescription> Send it again.",
+      "geometry": "The warning/error notice pill recorded in UI-RUNTIME-002 and UI-RUNTIME-003: HStack alignment .firstTextBaseline spacing 8, padding leading 12, trailing 14, vertical 8, frame maxWidth .infinity alignment .leading, continuous rounded rect of corner radius 18.",
+      "typography": "font .chat(.callout), with no chat zoom. The port's text face is Inter (OD-0009) at the source's text style; where its wrap points differ from the macOS face's, that is the named OD-0009 deviation. Size (ED-059): .callout is 12 pt in Inter (OD-0009), from upstream's text-style table (B1:DroppyCode/UI/Common/ChatZoom.swift:52), fixed per style and scaled only by the app zoom (UI/Common/AppZoom.swift); visual size parity is UNVERIFIED under OD-0001.",
+      "colors": "Icon foregroundStyle Chrome.danger; text foregroundStyle .primary; background Chrome.danger.opacity(0.1).",
+      "states": [
+        "No interactive states. Text selectable."
+      ],
+      "interactions": [
+        "Text selection and copy only."
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2288-2292 - do { try await resend(turnID, text: message.text, attachments: message.attachments, restoreFiles: false) } catch { appendNotice(.error, \"\\(provider.displayName) is up to date now (\\(version)), but the message could not be sent again: \\(error.localizedDescription) Send it again.\") }"
+      ],
+      "notes": "Has no turn of its own. Shown when resend(_:text:attachments:restoreFiles:) throws, for example from its own guards or Codex's 'no Codex turn ID' refusal.",
+      "status": "SPECIFIED",
+      "b3_note": "New in B3; part of the CLI-update-and-resend path (PR-RUNTIME-266)."
     }
   ]
 }
