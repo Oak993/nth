@@ -2,12 +2,17 @@ using System.Reflection;
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Headless;
+using Avalonia.Input;
 using Avalonia.LogicalTree;
+using Avalonia.Threading;
 using Marrow.App.Views.Chat;
 using Marrow.App.Tests.Fixtures;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Testing;
+using Marrow.UI.Chrome;
+using Marrow.UI.Port;
 using Xunit;
 
 namespace Marrow.App.Tests.Views.Chat;
@@ -337,6 +342,90 @@ public sealed class SubagentPanelTests(HeadlessSession headless)
                 .Where(control => control.Width == 300)
                 .ToArray();
             Assert.NotEmpty(width);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-HYDRA-227")] // App/Views/Chat/SubagentPanel.swift:640-666
+    public void Drag_handle_wraps_the_shared_free_axis_handle_with_2_point_slop()
+    {
+        headless.OnUiThread(() =>
+        {
+            var handle = new PanelDragHandle(_ => { }, () => { });
+
+            var view = Assert.IsType<DragHandleView>(handle.Child);
+            Assert.Equal(DragHandleView.Axis.Free, view.HandleAxis);
+            Assert.Equal(2d, view.Slop);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-HYDRA-227")] // App/Views/Chat/SubagentPanel.swift:640-666, UI/Chrome/DragHandle.swift:257-266
+    public void Drag_handle_reports_downward_travel_as_positive_fixing_the_6_2_defect()
+    {
+        headless.OnUiThread(() =>
+        {
+            Size? travel = null;
+            var ended = false;
+            var handle = new PanelDragHandle(size => travel = size, () => ended = true)
+            {
+                Width = 300,
+                Height = 50
+            };
+            var window = new Avalonia.Controls.Window { Content = handle, Width = 400, Height = 300 };
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            Dispatcher.UIThread.RunJobs();
+
+            window.MouseDown(new Point(50, 20), MouseButton.Left, RawInputModifiers.None);
+            Dispatcher.UIThread.RunJobs();
+            window.MouseMove(new Point(110, 95), RawInputModifiers.None); // right 60, down 75
+            Dispatcher.UIThread.RunJobs();
+
+            // 6.2: this file's own B2 Travel (:908-913, deleted at B3) computed pressOrigin.Y - point.Y here -
+            // the .vertical rule, not .free's - because it tracked the press itself instead of using the
+            // shared DragHandleView (UI/Chrome/DragHandle.swift:257-266), whose Axis.Free reports
+            // point.Y - pressOrigin.Y in Avalonia's already-y-down window space (matching the panel's own
+            // offset, which also runs down), unlike AppKit's y-up window space that the deleted code assumed.
+            Assert.Equal(new Size(60, 75), travel);
+
+            window.MouseUp(new Point(110, 95), MouseButton.Left, RawInputModifiers.None);
+            Dispatcher.UIThread.RunJobs();
+            Assert.True(ended);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-HYDRA-227")] // App/Views/Chat/SubagentPanel.swift:651-652
+    public void Drag_handle_defaults_to_the_open_and_closed_hand_cursors()
+    {
+        headless.OnUiThread(() =>
+        {
+            var handle = new PanelDragHandle(_ => { }, () => { }) { Width = 40, Height = 40 };
+            var window = new Avalonia.Controls.Window { Content = handle, Width = 100, Height = 100 };
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var view = Assert.IsType<DragHandleView>(handle.Child);
+            var scale = TopLevel.GetTopLevel(view)?.RenderScaling ?? 1;
+            Assert.Same(PointerStyleCursors.Get(PointerStyle.GrabIdle, scale), view.HandleCursor);
+            Assert.Same(PointerStyleCursors.Get(PointerStyle.GrabActive, scale), view.DragCursor);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-HYDRA-227")] // App/Views/Chat/SubagentPanel.swift:650-652,780-786
+    public void Drag_handle_passes_a_grips_resize_cursor_through_unchanged_for_both_roles()
+    {
+        headless.OnUiThread(() =>
+        {
+            var resizeCursor = new Cursor(StandardCursorType.SizeWestEast);
+            var handle = new PanelDragHandle(_ => { }, () => { }, resizeCursor, resizeCursor);
+
+            var view = Assert.IsType<DragHandleView>(handle.Child);
+            Assert.Same(resizeCursor, view.HandleCursor);
+            Assert.Same(resizeCursor, view.DragCursor);
         });
     }
 }
