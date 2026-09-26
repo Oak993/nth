@@ -37,6 +37,7 @@ public sealed class ThreadTimelineTests(HeadlessSession headless)
     {
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
         using var h = new AppModelHarness(); using var actor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance); var model = new Marrow.App.AppModel(); var id = Guid.NewGuid(); DiskWriter.Shared.WriteSynchronously(new ThreadDocument(id), Storage.ThreadURL(id)); DocumentPrefetch.Shared.Warm([id], urgent: true)!.Completion.GetAwaiter().GetResult(); var runtime = new ThreadRuntime(id, model); var chrome = new ChromeScrollModel(); var state = new TimelineScrollState(); var view = new ThreadTimeline(runtime, chrome, state, "Project", null, false, 480); var host = new Border(); AppEnvironment.SetAppModel(host, model); host.Child = view; var window = new Avalonia.Controls.Window { Content = host, Width = 960, Height = 480 };
+        AppEnvironment.SetWindowLiveResize(host, new Marrow.App.Window.WindowLiveResize(window));
         try { window.Show(); window.UpdateLayout(); check(view, runtime, chrome, state, h); } finally { window.Close(); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); }
     });
 
@@ -277,8 +278,9 @@ public sealed class ThreadTimelineTests(HeadlessSession headless)
     // Missing: Avalonia's visible/active/minimized window events do not report a visible window fully covered by another app.
     // Needed: the Windows window-layer occlusion signal. Identity-scoped activation/visibility bumps are ported; no invented occlusion state.
     // STOP App.Views.Chat.ThreadTimeline #4
-    // Kind: dependency. Swift: ThreadTimeline.swift:393-397. Record: PR-CHAT-128 (badge rendering only).
-    // Missing: external QuestionBadgeRow constructor is MARROW_STUB. Needed: TimelineRows implementation; question arrival/identity logic remains owned.
+    // Kind: dependency. Swift: ThreadTimeline.swift:211-217. Record: PR-CHAT-156 (per-timeline mention click only).
+    // Missing: MarkdownView has a global OpenUrl callback, not an inherited per-timeline open-URL action.
+    // Needed: the UI-layer inherited link hook; mention personas/targets are supplied without replacing a global callback.
 
     // STOP App.Views.Chat.ThreadTimeline #1
     // Kind: dependency. Swift: ThreadTimeline.swift:104-107,186-197,1886-1934,2049-2065.
