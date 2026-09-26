@@ -2844,26 +2844,14 @@
    ],
    "intra_deps": [],
    "records_total": 15,
-   "records_todo": [
-    "PR-MCP-109",
-    "PR-MCP-110",
-    "PR-MCP-113",
-    "PR-MCP-116"
-   ],
-   "parts": [
-    [
-     "PR-MCP-109",
-     "PR-MCP-110",
-     "PR-MCP-113",
-     "PR-MCP-116"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-010",
     "T-M4-011"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.Store.TokenLedger",
@@ -3361,18 +3349,10 @@
    "intra_deps": [],
    "records_total": 20,
    "records_todo": [
-    "PR-MCP-185",
-    "PR-MCP-186",
-    "PR-MCP-188",
-    "PR-MCP-190",
     "PR-MCP-237"
    ],
    "parts": [
     [
-     "PR-MCP-185",
-     "PR-MCP-186",
-     "PR-MCP-188",
-     "PR-MCP-190",
      "PR-MCP-237"
     ]
    ],
@@ -4301,12 +4281,10 @@
    "intra_deps": [],
    "records_total": 95,
    "records_todo": [
-    "PR-PROVCLI-063",
     "PR-PROVCLI-442"
    ],
    "parts": [
     [
-     "PR-PROVCLI-063",
      "PR-PROVCLI-442"
     ]
    ],
@@ -4982,14 +4960,8 @@
    ],
    "intra_deps": [],
    "records_total": 66,
-   "records_todo": [
-    "PR-PROVCLI-243"
-   ],
-   "parts": [
-    [
-     "PR-PROVCLI-243"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-070",
     "T-M4-071",
@@ -5001,7 +4973,7 @@
     "T-M4-077"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.Providers.DeepSeekSession",
@@ -5057,18 +5029,12 @@
    "intra_deps": [],
    "records_total": 36,
    "records_todo": [
-    "PR-PROVCLI-275",
-    "PR-PROVCLI-276",
-    "PR-PROVCLI-299",
     "UI-PROVCLI-010",
     "UI-PROVCLI-011",
     "UI-PROVCLI-012"
    ],
    "parts": [
     [
-     "PR-PROVCLI-275",
-     "PR-PROVCLI-276",
-     "PR-PROVCLI-299",
      "UI-PROVCLI-010",
      "UI-PROVCLI-011",
      "UI-PROVCLI-012"
