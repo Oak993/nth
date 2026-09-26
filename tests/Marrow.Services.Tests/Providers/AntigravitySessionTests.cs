@@ -85,6 +85,11 @@ public sealed class AntigravitySessionTests
 
     private static T Field<T>(AntigravitySession session, string name) => (T)typeof(AntigravitySession).GetField(name, Instance)!.GetValue(session)!;
 
+    /// <summary>B3 (unit N7): editSnapshots is now the shared SessionSupport.EditSnapshots, so its private map is one
+    /// reflection level deeper than the field itself (SessionSupport.cs "contents").</summary>
+    private static Dictionary<string, string> Snapshots(AntigravitySession session) =>
+        (Dictionary<string, string>)typeof(EditSnapshots).GetField("contents", Instance)!.GetValue(Field<EditSnapshots>(session, "editSnapshots"))!;
+
     private static void SetField(AntigravitySession session, string name, object? value) =>
         typeof(AntigravitySession).GetField(name, Instance)!.SetValue(session, value);
 
@@ -715,7 +720,7 @@ public sealed class AntigravitySessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-332")] // Services/Providers/AntigravitySession.swift:228-235,269-273
+    [Trait("Req", "PR-PROVCLI-332")] // AntigravitySession.swift:228-235,232 (B3); SessionSupport.swift:9-11,36-40 (B3)
     public void An_active_edit_step_snapshots_its_file_opens_the_row_once_and_returns()
     {
         using var runtime = new TestRuntime();
@@ -733,12 +738,12 @@ public sealed class AntigravitySessionTests
         Assert.Equal(ToolCall.Kind.Edit, started.Call.ToolCallKind);
         Assert.Equal("b.txt", started.Call.Title);
         Assert.Equal([new FileEdit("b.txt")], started.Call.Edits);
-        Assert.Equal("before\n", Field<Dictionary<string, string>>(session, "editSnapshots")[id]);
+        Assert.Equal("before\n", Snapshots(session)[id]);
         Assert.Contains(id, Field<HashSet<string>>(session, "startedTools"));
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-332")] // Services/Providers/AntigravitySession.swift:231-232,269-273
+    [Trait("Req", "PR-PROVCLI-332")] // AntigravitySession.swift:231-232 (B3); SessionSupport.swift:9-11,36-40 (B3)
     public void A_snapshot_of_a_missing_or_oversized_file_is_the_empty_string_and_a_non_active_edit_takes_none()
     {
         using var runtime = new TestRuntime();
@@ -756,7 +761,7 @@ public sealed class AntigravitySessionTests
         Handle(runtime, session, Step(3, "ACTIVE", exact));
         Handle(runtime, session, Step(4, "PENDING", exact));
         var launch = LaunchID(session);
-        var snapshots = Field<Dictionary<string, string>>(session, "editSnapshots");
+        var snapshots = Snapshots(session);
         Assert.Equal("", snapshots[$"agy-{launch}-tool-1"]);
         Assert.Equal("", snapshots[$"agy-{launch}-tool-2"]);
         Assert.Equal(new string('b', 1_000_000), snapshots[$"agy-{launch}-tool-3"]);
@@ -791,7 +796,7 @@ public sealed class AntigravitySessionTests
     private static string JsonString(string text) => new JSONValue.String(text).CompactString;
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-333")] // Services/Providers/AntigravitySession.swift:239-242,275-281
+    [Trait("Req", "PR-PROVCLI-333")] // Services/Providers/AntigravitySession.swift:239-242,266-270 (B3)
     public void An_error_state_or_a_done_step_with_an_error_fails_the_row_or_declines_it_on_permission_wording()
     {
         using var runtime = new TestRuntime();
@@ -846,7 +851,7 @@ public sealed class AntigravitySessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-333")] // Services/Providers/AntigravitySession.swift:246,259-265
+    [Trait("Req", "PR-PROVCLI-333")] // AntigravitySession.swift:246,259-262 (B3); SessionSupport.swift:27-33 (B3)
     public void A_finished_edit_carries_the_before_and_after_diff_or_a_path_only_edit_when_nothing_changed()
     {
         using var runtime = new TestRuntime();
@@ -917,7 +922,7 @@ public sealed class AntigravitySessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-334")] // Services/Providers/AntigravitySession.swift:294-296
+    [Trait("Req", "PR-PROVCLI-334")] // Services/Providers/AntigravitySession.swift:283-285 (B3)
     public void A_result_ends_the_turn_and_clears_the_snapshots_and_the_started_tools_first()
     {
         using var runtime = new TestRuntime();
@@ -929,7 +934,7 @@ public sealed class AntigravitySessionTests
         Handle(runtime, session, ToolStep(1, "ACTIVE", "write_to_file", "{\"TargetFile\":" + JsonString(file) + "}"));
         Handle(runtime, session, Result("\"status\":\"SUCCESS\""));
         Assert.False(Field<bool>(session, "turnActive"));
-        Assert.Empty(Field<Dictionary<string, string>>(session, "editSnapshots"));
+        Assert.Empty(Snapshots(session));
         Assert.Empty(Field<HashSet<string>>(session, "startedTools"));
     }
 
