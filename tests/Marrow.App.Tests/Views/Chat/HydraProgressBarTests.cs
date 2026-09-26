@@ -157,6 +157,142 @@ public sealed class HydraProgressBarTests(HeadlessSession headless)
         });
     }
 
+    [Fact]
+    [Trait("Req", "PR-HYDRA-182")] // App/Views/Chat/TimelineRows.swift:2242-2250
+    public void McpParts_extracts_the_server_and_tool_from_a_middle_dot_title()
+    {
+        var call = new ToolCall
+        {
+            ToolCallKind = ToolCall.Kind.Mcp,
+            Title = "github · list_issues",
+            StartedAt = DateTimeOffset.UnixEpoch,
+        };
+
+        var parts = ToolPresentation.McpParts(call);
+
+        Assert.NotNull(parts);
+        Assert.Equal("github", parts!.Value.Entry.Id);
+        Assert.Equal("GitHub", parts.Value.Entry.Name);
+        Assert.Equal("list_issues", parts.Value.Tool);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-HYDRA-182")] // App/Views/Chat/TimelineRows.swift:2242-2250
+    public void McpParts_returns_null_without_a_middle_dot_separator()
+    {
+        var call = new ToolCall
+        {
+            ToolCallKind = ToolCall.Kind.Mcp,
+            Title = "github list_issues",
+            StartedAt = DateTimeOffset.UnixEpoch,
+        };
+
+        Assert.Null(ToolPresentation.McpParts(call));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-HYDRA-182")] // App/Views/Chat/TimelineRows.swift:2242-2250
+    public void McpParts_returns_null_for_an_empty_server()
+    {
+        var call = new ToolCall
+        {
+            ToolCallKind = ToolCall.Kind.Mcp,
+            Title = " · list_issues",
+            StartedAt = DateTimeOffset.UnixEpoch,
+        };
+
+        Assert.Null(ToolPresentation.McpParts(call));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-HYDRA-182")] // App/Views/Chat/TimelineRows.swift:2242-2250
+    public void McpParts_returns_null_for_an_empty_tool()
+    {
+        var call = new ToolCall
+        {
+            ToolCallKind = ToolCall.Kind.Mcp,
+            Title = "github ·   ",
+            StartedAt = DateTimeOffset.UnixEpoch,
+        };
+
+        Assert.Null(ToolPresentation.McpParts(call));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-HYDRA-182")] // App/Views/Chat/TimelineRows.swift:2242-2250
+    public void McpParts_returns_null_for_a_non_mcp_kind()
+    {
+        var call = new ToolCall
+        {
+            ToolCallKind = ToolCall.Kind.Read,
+            Title = "github · list_issues",
+            StartedAt = DateTimeOffset.UnixEpoch,
+        };
+
+        Assert.Null(ToolPresentation.McpParts(call));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-HYDRA-182")] // App/Views/Chat/TimelineRows.swift:2189-2206
+    public void Label_strips_a_leading_root_word_that_only_restates_the_kind()
+    {
+        var call = new ToolCall
+        {
+            ToolCallKind = ToolCall.Kind.Edit,
+            Title = "Edit file",
+            ToolCallStatus = ToolCall.Status.Completed,
+            StartedAt = DateTimeOffset.UnixEpoch,
+        };
+
+        // Without the root-stripping branch this would read "Edited Edit file".
+        Assert.Equal("Edited file", ToolPresentation.Label(call));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-HYDRA-182")] // App/Views/Chat/TimelineRows.swift:2189-2206
+    public void Label_keeps_the_whole_title_when_it_does_not_start_with_a_root_word()
+    {
+        var call = new ToolCall
+        {
+            ToolCallKind = ToolCall.Kind.Edit,
+            Title = "Update config.json",
+            ToolCallStatus = ToolCall.Status.Completed,
+            StartedAt = DateTimeOffset.UnixEpoch,
+        };
+
+        Assert.Equal("Edited Update config.json", ToolPresentation.Label(call));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-HYDRA-182")] // App/Views/Chat/TimelineRows.swift:2208-2220
+    public void Verb_reflects_running_status_per_kind()
+    {
+        var running = new ToolCall
+        {
+            ToolCallKind = ToolCall.Kind.Command,
+            Title = "Run a command",
+            ToolCallStatus = ToolCall.Status.Running,
+            StartedAt = DateTimeOffset.UnixEpoch,
+        };
+        var completed = running with { ToolCallStatus = ToolCall.Status.Completed };
+
+        Assert.Equal("Running", ToolPresentation.Verb(running));
+        Assert.Equal("Ran", ToolPresentation.Verb(completed));
+    }
+
+    [Theory]
+    [Trait("Req", "PR-HYDRA-182")] // App/Views/Chat/TimelineRows.swift:2222-2233
+    [InlineData(ToolCall.Kind.Command, "terminal")]
+    [InlineData(ToolCall.Kind.Read, "doc.text")]
+    [InlineData(ToolCall.Kind.Edit, "pencil")]
+    [InlineData(ToolCall.Kind.Search, "magnifyingglass")]
+    [InlineData(ToolCall.Kind.Web, "globe")]
+    [InlineData(ToolCall.Kind.Mcp, "puzzlepiece.extension")]
+    [InlineData(ToolCall.Kind.Agent, "person.2")]
+    [InlineData(ToolCall.Kind.Other, "wrench.and.screwdriver")]
+    public void Symbol_returns_the_glyph_name_for_each_kind(ToolCall.Kind kind, string expected) =>
+        Assert.Equal(expected, ToolPresentation.Symbol(kind));
+
     private static IReadOnlyList<string> Texts(Control root) =>
         LogicalQuery.SelfAndDescendants<TextBlock>(root)
             .Select(textBlock => textBlock.Text ?? "")
