@@ -5,6 +5,8 @@ using System.Collections.Immutable;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Automation;
+using Avalonia.Automation.Peers;
+using Avalonia.Automation.Provider;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Layout;
@@ -1323,6 +1325,24 @@ internal sealed class ModelEffortSlot : Decorator
 /// <summary>:692-773 <c>private struct ContextMeter: View</c>.</summary>
 internal sealed class ContextMeter : Decorator
 {
+    // :733-736 Swift's accessibility value is independent of the button's label and help.
+    private sealed class ContextButton : Button
+    {
+        public string SpokenValue { get; set; } = "";
+        public ContextButton(Control label, Action action)
+        {
+            Template = PlainControls.Button(label, action).Template;
+            Content = label;
+            Click += (_, _) => action();
+        }
+        protected override AutomationPeer OnCreateAutomationPeer() => new ContextPeer(this);
+    }
+    private sealed class ContextPeer(ContextButton owner) : ButtonAutomationPeer(owner), IValueProvider
+    {
+        public string Value => owner.SpokenValue;
+        public bool IsReadOnly => true;
+        public void SetValue(string? value) => throw new InvalidOperationException("The context value is read-only.");
+    }
     // :702 @State isPresented
     private sealed class ViewState : MainActorModel
     {
@@ -1333,7 +1353,7 @@ internal sealed class ContextMeter : Decorator
     // :698-700 the view's inputs; :704-762 body
     public ContextMeter(ThreadRuntime runtime, ProviderKind provider, ProviderKind? headsProvider)
     {
-        Button? button = null;
+        ContextButton? button = null;
         Popup? popup = null;
         var presented = false;
         this.Track(() => (Usage: runtime.Usage, Model: AppEnvironment.GetAppModel(this),
@@ -1364,7 +1384,7 @@ internal sealed class ContextMeter : Decorator
             ring.Children.Add(track); ring.Children.Add(arc);
             if (button is null)
             {
-                button = PlainControls.Button(ring, () => state.IsPresented = !state.IsPresented); // :714-715
+                button = new ContextButton(ring, () => state.IsPresented = !state.IsPresented); // :714-715
                 button.Focusable = false; // :731
                 button.Padding = new Thickness(6, 5); // :726-728 rectangular hit area
                 popup = new Popup { PlacementTarget = button, Placement = PlacementMode.Bottom, IsLightDismissEnabled = true }; // :737
@@ -1375,7 +1395,8 @@ internal sealed class ContextMeter : Decorator
             var sentence = fraction is { } value ? ((long)(value * 100)).ToString(System.Globalization.CultureInfo.InvariantCulture) + "% of the context window used" : "";
             ToolTip.SetTip(button, fraction is not null ? sentence : input.Credits ? "Remaining credits" : "Usage limits"); // :732,764-767
             AutomationProperties.SetName(button, fraction is not null ? "Context window" : input.Credits ? "Remaining credits" : "Usage limits"); // :733,769-772
-            AutomationProperties.SetHelpText(button, sentence); // :736 spoken value, exposed via Avalonia help text
+            button.SpokenValue = sentence; // :734-736, including the explicit empty value without a fraction
+            AutomationProperties.SetHelpText(button, sentence);
             // :757 The same panel reads the latest usage, including the pair's distinct heads provider.
             if (state.IsPresented && popup is not null) popup.Child = Content(input.Usage, input.Model);
         });
@@ -1672,8 +1693,10 @@ internal sealed class DraftAttachments : Decorator
         cells = new ForEach<Attachment, Guid>(row, attachment => attachment.Id, MakeCell, (control, attachment) =>
         {
             if (shown.TryGetValue(attachment.Id, out var old) && old == attachment) return;
-            ((AttachmentArrival)control).Children.Clear();
-            ((AttachmentArrival)control).Children.Add(Cell(attachment));
+            var arrival = (AttachmentArrival)control;
+            // :1001-1002 Keep the reader behind the surviving cell; refresh only its content and arrival input.
+            arrival.Children[1] = Cell(attachment);
+            arrival.Update(!drawn.Contains(attachment.Id));
             shown[attachment.Id] = attachment;
         });
         cells.Apply(attachments); // :1001
