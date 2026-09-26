@@ -295,6 +295,11 @@ public sealed class AttachmentPreviewSlot
         }
     }
 
+    // :260-261 `let anchor = WeakView()`: the view the panel anchors to, captured while the row is under the pointer.
+    // Module-internal in Swift and read by App/Views/Chat/TimelineRows.swift:1691 and :1694, another layer here
+    // (R-NAME-6), so public.
+    public WeakView Anchor => anchor;
+
     // :274-277 setAnchor(_:).
     public void SetAnchor(Control view)
     {
