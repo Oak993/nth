@@ -3280,7 +3280,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port of the provider set and the running condition.",
       "verification_method": "interaction test across a Claude thread, a Gemini-class thread and a running thread",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
