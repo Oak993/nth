@@ -11,21 +11,22 @@ namespace Marrow.Services.Tests.Providers;
 // moved verbatim out of the Pi, Command Code and Antigravity sessions; those files keep their own copies until
 // their own lanes switch them over to this shared one (lane L2b covers only the new file).
 //
-// PR-PROVCLI-442 and PR-PROVCLI-443 are PROPOSED new records for this unit (EditSnapshots and
-// StreamedTextTracker respectively): parity_matrix.json's highest PR-PROVCLI id at B3 wave 1 is 441, and no
-// existing record names this shared type directly (only the three sessions' own inlined copies, which their own
-// lanes reclassify onto these ids when they switch over). They are cited here as REQ ids per req_verify's
-// UNBOUND status pending the orchestrator registering them in the ledger.
+// PR-PROVCLI-444 and PR-PROVCLI-443 are PROPOSED new records for this unit (EditSnapshots and
+// StreamedTextTracker respectively): confirmed free against this worktree's own porting/parity_matrix.json
+// (impl/b2), whose highest existing PR-PROVCLI id is 442 (an unrelated B3-wave-1 record about Claude control
+// request cancellation - not this file). No existing record names this shared type directly (only the three
+// sessions' own inlined copies, which their own lanes reclassify onto these ids when they switch over). They are
+// cited here as REQ ids per req_verify's UNBOUND status pending the orchestrator registering them in the ledger.
 public sealed class SessionSupportTests
 {
     // No BOM: EditSnapshots.Read decodes with SwiftText.DecodeUtf8OrNil, which keeps a BOM byte sequence as a
     // literal U+FEFF in the resulting string (SwiftNumber.cs:228), unlike plain `Encoding.UTF8`'s writer default.
     private static readonly Encoding Utf8NoBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
 
-    // ---- PR-PROVCLI-442 (proposed): EditSnapshots ----
+    // ---- PR-PROVCLI-444 (proposed): EditSnapshots ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-442")] // SessionSupport.swift:9-11, :27-33
+    [Trait("Req", "PR-PROVCLI-444")] // SessionSupport.swift:9-11, :27-33
     public void Capture_then_finish_with_no_change_returns_a_single_edit_with_no_diff()
     {
         using var scratch = new ScratchFolder();
@@ -43,7 +44,7 @@ public sealed class SessionSupportTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-442")] // SessionSupport.swift:27-33: the before/after edit when the text changed
+    [Trait("Req", "PR-PROVCLI-444")] // SessionSupport.swift:27-33: the before/after edit when the text changed
     public void Capture_then_finish_with_a_change_returns_the_before_and_after_text()
     {
         using var scratch = new ScratchFolder();
@@ -61,7 +62,7 @@ public sealed class SessionSupportTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-442")] // SessionSupport.swift:28: nothing was captured for this id
+    [Trait("Req", "PR-PROVCLI-444")] // SessionSupport.swift:28: nothing was captured for this id
     public void Finish_returns_null_for_an_id_nothing_was_captured_for()
     {
         var snapshots = new EditSnapshots();
@@ -69,7 +70,7 @@ public sealed class SessionSupportTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-442")] // SessionSupport.swift:29: the edit's path is relative to root
+    [Trait("Req", "PR-PROVCLI-444")] // SessionSupport.swift:29: the edit's path is relative to root
     public void Finish_reports_a_path_relative_to_the_given_root()
     {
         using var scratch = new ScratchFolder();
@@ -89,7 +90,7 @@ public sealed class SessionSupportTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-442")] // SessionSupport.swift:9-11: a missing file reads as empty
+    [Trait("Req", "PR-PROVCLI-444")] // SessionSupport.swift:9-11: a missing file reads as empty
     public void Capture_of_a_missing_file_reads_as_empty_so_a_write_shows_as_a_whole_file_addition()
     {
         using var scratch = new ScratchFolder();
@@ -105,7 +106,7 @@ public sealed class SessionSupportTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-442")] // SessionSupport.swift:38: text files up to 1 MB; a huge one reads as empty
+    [Trait("Req", "PR-PROVCLI-444")] // SessionSupport.swift:38: text files up to 1 MB; a huge one reads as empty
     public void Capture_of_a_file_over_1MB_reads_as_empty()
     {
         using var scratch = new ScratchFolder();
@@ -118,7 +119,7 @@ public sealed class SessionSupportTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-442")] // SessionSupport.swift:13-15
+    [Trait("Req", "PR-PROVCLI-444")] // SessionSupport.swift:13-15
     public void Discard_removes_a_snapshot_without_finishing_it()
     {
         using var scratch = new ScratchFolder();
@@ -134,7 +135,7 @@ public sealed class SessionSupportTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-442")] // SessionSupport.swift:17-19
+    [Trait("Req", "PR-PROVCLI-444")] // SessionSupport.swift:17-19
     public void RemoveAll_clears_every_snapshot()
     {
         using var scratch = new ScratchFolder();
@@ -153,7 +154,7 @@ public sealed class SessionSupportTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-442")] // SessionSupport.swift:21-23
+    [Trait("Req", "PR-PROVCLI-444")] // SessionSupport.swift:21-23
     public void Text_returns_the_captured_text_or_empty_string_when_nothing_was_captured()
     {
         using var scratch = new ScratchFolder();
@@ -167,7 +168,7 @@ public sealed class SessionSupportTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-442")] // SessionSupport.swift:31: DEVIATION-guarding - Finish compares canonically
+    [Trait("Req", "PR-PROVCLI-444")] // SessionSupport.swift:31: DEVIATION-guarding - Finish compares canonically
     // (SwiftString.Equal), not with ordinal `==`, so two canonically-equivalent but ordinally-different strings
     // (precomposed vs decomposed "e" with an acute accent) still count as "no change".
     public void Finish_compares_before_and_after_with_Swift_canonical_string_equality_not_ordinal()
