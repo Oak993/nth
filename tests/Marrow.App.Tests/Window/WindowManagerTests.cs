@@ -1153,6 +1153,10 @@ public sealed class WindowManagerTests(HeadlessSession headless)
 // window's close and starts the termination sequence.
 // Done so far: (a) is implemented and tested for the Settings window; nothing is written for the main-window quit.
 
+// Boot unit (2026-09-26): CLOSED. WindowManager.MainWindowClose is the seam the application shell (Port/AppShell.cs)
+// sets; a close asked of the main window runs the terminate handshake instead of ordering it out (tested in
+// Port/AppShellSecondTests.cs); every other window still hides as :98 has it.
+
 // STOP App.Window.WindowManager #3 (build agent, 2026-09-26)
 // Kind: untestable
 // Swift: DroppyCode/App/Window/WindowManager.swift:101 `WindowChrome.configure(window)` (B3 52bc792)
