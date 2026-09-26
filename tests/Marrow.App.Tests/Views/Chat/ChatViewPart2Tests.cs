@@ -151,13 +151,13 @@ public sealed class ChatViewPart2Tests(HeadlessSession headless)
             {
                 var thread = MakeThread(harness, model);
                 var git = new GitStatusModel();
-                var row = Show(new ChatChromeRow(model, model.Runtime(thread.Id), new ChromeScrollModel(), "T", null, harness.Scratch, git));
+                var row = new ChatChromeRow(model, model.Runtime(thread.Id), new ChromeScrollModel(), "T", null, harness.Scratch, git);
 
                 // OD-0008 B7: the default chord renders in Windows notation, "Terminal (Ctrl+J)".
                 Assert.Equal("Terminal (Ctrl+J)", ToolTip.GetTip(ButtonWithTip(row, "Terminal (Ctrl+J)")));
 
                 ShortcutStore.Shared.Current.Set(null, AppShortcut.ToggleTerminal);
-                var clearedRow = Show(new ChatChromeRow(model, model.Runtime(thread.Id), new ChromeScrollModel(), "T", null, harness.Scratch, git));
+                var clearedRow = new ChatChromeRow(model, model.Runtime(thread.Id), new ChromeScrollModel(), "T", null, harness.Scratch, git);
                 Assert.Equal("Terminal", ToolTip.GetTip(ButtonWithTip(clearedRow, "Terminal")));
             });
         });

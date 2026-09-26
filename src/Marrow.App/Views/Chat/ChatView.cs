@@ -25,7 +25,7 @@ using Marrow.UI.Port;
 
 namespace Marrow.App.Views.Chat;
 
-// Source: DroppyCode/App/Views/Chat/ChatView.swift (B2 1fbf81e), :1-1730.
+// Source: DroppyCode/App/Views/Chat/ChatView.swift (B3 52bc792), :1-1731.
 // Skeleton (c100 group 2): every type the file declares, private and nested ones included, the views' inputs, the
 // records' shapes and the members the other cycle files use. Every view body and every member with behaviour is left to
 // the implementing unit (MARROW_STUB), as are ChatView's private members (:48-65, :326-710), PanelScene's private
@@ -98,52 +98,69 @@ internal sealed record HydraPresence
 /// <summary>:713-720, :737-771 <c>private struct ReserveSlide: ViewModifier</c>.</summary>
 internal sealed record ReserveSlide(PanelReserve Reserve, bool Slides, bool AnimatesWidth = false)
 {
-    private readonly TranslateTransform transform = new();
-    private double offset; // :745 @State private var offset: CGFloat = 0
-    private PanelReserve? previous;
+    // :745 @State persists across copies of this modifier at the same view identity.
+    private sealed class SlideState
+    {
+        public readonly TranslateTransform Transform = new();
+        public double Offset;
+        public PanelReserve? Previous;
+        public ChatFrameAnimation? Animation;
+    }
 
-    /// <summary>For tests: the current glide offset (:756's <c>offset(x:)</c>).</summary>
-    internal double Offset => offset;
+    private readonly SlideState state = new();
+    internal double Offset => state.Offset;
 
-    // :747-770 func body(content:). The caller must reuse the same ReserveSlide instance across reserve changes
-    // for the glide to track correctly, matching how @State persists across body re-evaluations by view identity.
+    // :747-770. Padding snaps for the conversation, glides for the composer; offset glides only for the conversation.
     public Control Body(Control content)
     {
-        if (previous is { } old && old != Reserve) // :757 onChange(of: reserve)
+        if (state.Animation is null)
         {
-            var shift = ((Reserve.Leading - Reserve.Trailing) - (old.Leading - old.Trailing)) / 2; // :760
+            state.Animation = new ChatFrameAnimation(content);
+            state.Animation.AttachLifetime();
+        }
+        var margin = new Thickness(Reserve.Leading, 0, Reserve.Trailing, 0);
+        var changed = state.Previous is { } old && old != Reserve;
+        ChatView.SetReserveSlideLeading(content, Reserve.Leading); // :749
+        content.RenderTransform = state.Transform; // :756
+        void OffsetTo(double value)
+        {
+            state.Offset = value;
+            state.Transform.X = value;
+            ChatView.SetReserveSlideOffset(content, value); // :750, per animation frame.
+        }
+        if (changed)
+        {
+            state.Animation.Stop();
+            var previous = state.Previous!;
+            var shift = ((Reserve.Leading - Reserve.Trailing) - (previous.Leading - previous.Trailing)) / 2; // :760
             if (Slides && !AnimatesWidth && shift != 0) // :761
             {
-                offset -= shift; // :762-767 an immediate, unanimated snap: "start from where it was"
-                transform.X = offset;
-                // :768 withAnimation(Chrome.panelSlide) { offset = 0 }. UNVERIFIED: settles at the animation's
-                // duration rather than interpolating every frame in between (no Thickness/transform animation
-                // primitive exists in this tree yet; only AnimatedColor does, Marrow.UI/Port/PlainControls.cs:185).
-                var duration = TimeSpan.FromSeconds(Chrome.PanelSlide.Duration);
-                MainActor.Spawn(async () =>
-                {
-                    await SwiftTask.TrySleep(duration);
-                    offset = 0;
-                    transform.X = 0;
-                });
+                content.Margin = margin; // :751-752: one layout at the final width.
+                var from = state.Offset - shift; // :766
+                state.Animation.Start(Chrome.PanelSlide, progress => OffsetTo(from * (1 - progress))); // :768
             }
             else
             {
-                offset = 0; // :762 guard slides, !animatesWidth, shift != 0 else { offset = 0 }
-                transform.X = 0;
+                OffsetTo(0); // :762
+                if (Slides && AnimatesWidth) // :754
+                {
+                    var from = content.Margin;
+                    state.Animation.Start(Chrome.PanelSlide, progress => content.Margin = new Thickness(
+                        from.Left + (margin.Left - from.Left) * progress, 0,
+                        from.Right + (margin.Right - from.Right) * progress, 0));
+                }
+                else content.Margin = margin;
             }
         }
-        previous = Reserve;
-
-        ChatView.SetReserveSlideLeading(content, Reserve.Leading); // :749
-        ChatView.SetReserveSlideOffset(content, offset); // :750
-        content.Margin = new Thickness(Reserve.Leading, 0, Reserve.Trailing, 0); // :751-752 one discrete step,
-        // never an intermediate width: the source's own point of this modifier (PR-CHAT-158).
-        content.RenderTransform = transform; // :756
+        else if (state.Previous is null)
+        {
+            content.Margin = margin; // :719-720: first measurement does not glide.
+            OffsetTo(0);
+        }
+        state.Previous = Reserve;
         return content;
     }
 }
-
 /// <summary>:773-808 <c>@MainActor private struct PanelMembers</c>: which threads sit in the chat's floating panels.</summary>
 internal sealed record PanelMembers
 {
@@ -499,9 +516,12 @@ internal sealed class ChatChromeRow : Decorator
         _ = scrollChrome;
         var host = new Panel();
         Child = host;
+        var titleView = new ChatChromeTitle(model, runtime, title); // :1194-1196 title state survives other row changes.
+        StackPanel? titleParent = null;
 
         void Build()
         {
+            titleParent?.Children.Remove(titleView);
             host.Children.Clear();
             var sidebarVisible = model.Sidebar.HoldsTrafficLights; // :1119
             var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, VerticalAlignment = VerticalAlignment.Center }; // :1124
@@ -527,9 +547,8 @@ internal sealed class ChatChromeRow : Decorator
             {
                 row.Children.Add(new BranchMenu(model, runtime, directory, git)); // :1145
             }
-            row.Children.Add(new ChatChromeTitle(model, runtime, title)); // :1147-1151. Rebuilt (not animated) on
-            // every title change because Build() runs again; the source disables crossfade explicitly (:1151),
-            // and a freshly constructed control never crossfades with its predecessor.
+            row.Children.Add(titleView); // :1147-1151: no title animation; its popover state is retained.
+            titleParent = row;
 
             var trailing = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 }; // :1152
             trailing.Children.Add(new ChromeCapsule(() =>
@@ -583,7 +602,7 @@ internal sealed class ChatChromeRow : Decorator
         // :1165-1170 the terminal and changes buttons read runtime.isTerminalVisible/isDiffVisible directly inside
         // the SwiftUI body, so a toggle re-renders the whole row there; tracked here too so isActive (PR-TERM-072)
         // stays live rather than frozen at the value captured when this row was last built.
-        this.Track(() => (model.Sidebar.HoldsTrafficLights, model.Thread(runtime.ThreadID), git.IsRepository, git.Activity, git.Status, git.Branches, git.RemoteURL, runtime.IsTerminalVisible, runtime.IsDiffVisible), _ => Build());
+        this.Track(() => (model.Sidebar.HoldsTrafficLights, model.Settings.SidebarFloats, model.Settings.SidebarOnlyFloats, model.Settings.HydraEnabled, model.Thread(runtime.ThreadID), git.IsRepository, git.Activity, git.Status, git.Branches, git.RemoteURL, runtime.IsTerminalVisible, runtime.IsDiffVisible, ShortcutStore.Hint(AppShortcut.NewThread), ShortcutStore.Hint(AppShortcut.ToggleTerminal), ShortcutStore.Hint(AppShortcut.ToggleChanges)), _ => Build());
         Build();
     }
 }
