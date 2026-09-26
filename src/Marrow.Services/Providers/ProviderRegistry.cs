@@ -850,11 +850,14 @@ public sealed partial class ProviderRegistry : MainActorModel
     private static readonly TimeSpan CliUpdateInterval = TimeSpan.FromHours(12);
 
     // :476-479. Swift: updatesOwnCLI(_:). The providers whose CLI carries its own updater (`claude update`,
-    // `codex update`).
-    internal static bool UpdatesOwnCLI(ProviderKind provider) => provider == ProviderKind.Claude || provider == ProviderKind.Codex;
+    // `codex update`). Review fix (finding #4, MEDIUM): public per R-NAME-6, not internal - the Swift caller
+    // (ThreadRuntime.swift:2260) is App/Runtime/ThreadRuntime.cs, a different assembly (Marrow.App), which
+    // Marrow.Services grants no InternalsVisibleTo to (only Marrow.Services.Tests).
+    public static bool UpdatesOwnCLI(ProviderKind provider) => provider == ProviderKind.Claude || provider == ProviderKind.Codex;
 
-    // :482-490. Swift: needsNewerCLI(_:). nonisolated: no MainActor state is touched.
-    internal static bool NeedsNewerCLI(string message)
+    // :482-490. Swift: needsNewerCLI(_:). nonisolated: no MainActor state is touched. Review fix (finding #4,
+    // MEDIUM): public per R-NAME-6, matching UpdatesOwnCLI above - ThreadRuntime.swift:2261 calls this too.
+    public static bool NeedsNewerCLI(string message)
     {
         var text = SwiftString.Lowercased(message);
         return text.Contains("or newer is required", StringComparison.Ordinal)
@@ -908,7 +911,20 @@ public sealed partial class ProviderRegistry : MainActorModel
             && SwiftDate.Seconds1970(SwiftDate.Now) - last < CliUpdateInterval.TotalSeconds) return false; // :506-507
         await LoginEnvironment.Load(); // :508
         if (Executable(provider) is not { } executable) return false; // :509
+        // Review fix (finding #3, MEDIUM): PR-PROVREG-257's side effect is "Observation change notifications
+        // on insert and remove". The field is still written directly, not through the UpdatingCLIs property
+        // (Set), because this whole file's async members (statuses, catalogs, loadingCatalogs, isRefreshing,
+        // signingIn - every mutation this class's async Task methods make) already bypass Set the same way,
+        // and Set's CheckIsolation would trap every test in this file that calls an async member directly
+        // without pumping it through a ManualMainLoop (none of them do; see e.g. ProviderRegistryRefreshTests
+        // calling Refresh directly). Making only this one field go through Set would require rebuilding the
+        // main-loop plumbing for every test that reaches this method - a file-wide architecture change, not
+        // a one-field fix - so instead Notify is called directly (it is protected, reachable from this
+        // subclass, and does not itself check isolation), which satisfies the specified side effect without
+        // that blast radius. The file-wide gap (no property, no Notify, for every other observed field this
+        // class's async methods touch) is the pre-existing separate defect the review flagged.
         updatingCLIs = updatingCLIs.Mutating(s => s.Add(provider)); // :510
+        Notify(nameof(UpdatingCLIs));
         try
         {
             var environment = Environment(provider); // :512
@@ -926,6 +942,7 @@ public sealed partial class ProviderRegistry : MainActorModel
         finally
         {
             updatingCLIs = updatingCLIs.Mutating(s => s.Remove(provider)); // :511 defer
+            Notify(nameof(UpdatingCLIs));
         }
     }
 

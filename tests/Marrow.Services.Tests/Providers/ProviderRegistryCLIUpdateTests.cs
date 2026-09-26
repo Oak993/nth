@@ -18,13 +18,16 @@ namespace Marrow.Services.Tests.Providers;
 // (PR-PROVREG-258).
 //
 // R-TEST-10 / the lane brief for A23: this file never launches a real "claude" or "codex" binary and never
-// runs a real "update". Every test that needs UpdateCLIIfDue/InstalledCLIVersion to resolve an executable
-// for ProviderKind.Claude or ProviderKind.Codex uses ProviderRegistry.SetCLIUpdaterExecutableForTesting to
-// point Executable(for:) at the offline ProviderProbeStandIn (tests/fixtures/provider-probe-cli), never at
-// LoginEnvironment.Which's real PATH search: Claude and Codex's ExecutableName is the real CLI name, and
-// this machine may have the real CLI installed. UpdateCLIIfDue's own gates (UpdatesOwnCLI, the custom binary
-// path check, the 12-hour date check) are proven first with no executable at all, so those never even reach
-// the seam.
+// runs a real "update". EVERY call to UpdateCLIIfDue/InstalledCLIVersion in this file, without exception,
+// runs under either ExecutableSeam (points Executable(for:) at the offline ProviderProbeStandIn,
+// tests/fixtures/provider-probe-cli) or NoExecutableSeam (points it at nothing), never bare: Claude and
+// Codex's ExecutableName is the real CLI name, and this machine may have (and by a prior version of this
+// same seam, once did: see 96f7f157's commit message) the real CLI installed on PATH, which
+// LoginEnvironment.Which's real search would then reach. This applies even to UpdateCLIIfDue's own gates
+// (UpdatesOwnCLI, the custom binary path check, the 12-hour date check), which the production code proves
+// return early before Executable(for:) is ever consulted (:498, :500-501, :506-507) - the seam around them
+// is defense in depth, so a regression in one of those gates traps on NoExecutableSeam's own guarantee
+// instead of silently reaching this machine's real PATH.
 public sealed class ProviderRegistryCLIUpdateTests
 {
     private static string TempDir()
@@ -133,6 +136,10 @@ public sealed class ProviderRegistryCLIUpdateTests
         using var runtime = new TestRuntime();
         var settings = new FakeProviderSettings();
         var registry = MakeRegistry(runtime, settings);
+        // Review fix (finding #2, HIGH): wrapped in NoExecutableSeam even though UpdatesOwnCLI(Cursor) is
+        // proven false and should return before Executable(for:) is ever consulted - if that gate regressed,
+        // Cursor's own ExecutableName could resolve the real Cursor CLI on this machine's PATH.
+        using var seam = NoExecutableSeam();
         var calls = new List<ShellInvocation>();
         using (ShellObserver.Observe(calls.Add))
         {
@@ -150,6 +157,10 @@ public sealed class ProviderRegistryCLIUpdateTests
         var settings = new FakeProviderSettings();
         settings.Paths[ProviderKind.Claude] = TempDir() + "/my-own-claude-build.exe"; // a hand-set custom build
         var registry = MakeRegistry(runtime, settings);
+        // Review fix (finding #2, HIGH, applied here too though not one of the cited lines): the custom-path
+        // gate (:498) is proven to return before Executable(for:) is reached, but a regression there would
+        // let Claude's real ExecutableName fall through to this machine's real PATH the same way.
+        using var seam = NoExecutableSeam();
         var calls = new List<ShellInvocation>();
         using (ShellObserver.Observe(calls.Add))
         {
@@ -170,6 +181,10 @@ public sealed class ProviderRegistryCLIUpdateTests
         {
             ["claude"] = SwiftDate.Seconds1970(SwiftDate.Now) - 11 * 3600d, // 11 hours ago: under the 12-hour gate
         });
+        // Review fix (finding #2, HIGH): wrapped in NoExecutableSeam - the 12-hour date gate (:506-507) is
+        // proven to return before Executable(for:) is reached, but a regression there would fall through to
+        // this machine's real PATH the same way.
+        using var seam = NoExecutableSeam();
         var calls = new List<ShellInvocation>();
         using (ShellObserver.Observe(calls.Add))
         {
@@ -263,9 +278,14 @@ public sealed class ProviderRegistryCLIUpdateTests
         using var runtime = new TestRuntime();
         var settings = new FakeProviderSettings();
         var registry = MakeRegistry(runtime, settings);
-        // The update call itself fails (nonzero exit): both --version reads still succeed and report the
-        // same text, so a failing update still counts as an attempt.
+        // The update call itself fails (nonzero exit, via SetUpdateExitCode - the review fix for finding #6:
+        // previously exit.txt was shared by every call, so nothing here actually failed): both --version
+        // reads still succeed (exit.txt stays 0) and report the same text, so a failing update still counts
+        // as an attempt. Swift discards the update call's result unconditionally (`_ = try? await Shell.run`,
+        // :514), so production takes the exact same path whether the update succeeded or failed; this proves
+        // that discarding, not merely a same-version comparison the pre-fix version already exercised.
         var script = ProviderProbeStandIns.CopyFor("failing-update").SetStdout("1.0.0\n").SetExitCode(0);
+        script.SetUpdateExitCode(1);
         using var seam = ExecutableSeam(ProviderKind.Claude, script);
 
         var result = await registry.UpdateCLIIfDue(ProviderKind.Claude, force: true);
@@ -273,6 +293,30 @@ public sealed class ProviderRegistryCLIUpdateTests
         Assert.False(result);
         var dates = (IReadOnlyDictionary<string, object>)runtime.Defaults.Object("providerCLIUpdateDates")!;
         Assert.Equal(SwiftDate.Seconds1970(SwiftDate.Now), Assert.IsType<double>(dates["claude"]));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVREG-255")] // ProviderRegistry.swift:505, Swift's `as? [String: Double]` per-entry semantics
+    public async Task update_cli_if_due_treats_one_unparseable_entry_as_no_dates_at_all_even_when_the_rest_parse()
+    {
+        using var runtime = new TestRuntime();
+        var settings = new FakeProviderSettings();
+        var registry = MakeRegistry(runtime, settings);
+        // A well-typed dictionary whose "claude" entry is fresh (would normally gate an unforced call) but
+        // whose "codex" entry is a string, not a number: Swift's `as? [String: Double]` fails for the WHOLE
+        // dictionary when any one value cannot bridge to Double, not just that entry (ReadCliUpdateDates'
+        // own comment), so "claude" must read as due too, not gated by its own fresh timestamp.
+        runtime.Defaults.Set("providerCLIUpdateDates", new Dictionary<string, object>
+        {
+            ["claude"] = SwiftDate.Seconds1970(SwiftDate.Now), // fresh: would gate an unforced call on its own
+            ["codex"] = "x", // unparseable: invalidates the whole dictionary
+        });
+        var script = ProviderProbeStandIns.CopyFor("malformed-entry").SetStdout("1.0.0\n").SetExitCode(0);
+        using var seam = ExecutableSeam(ProviderKind.Claude, script);
+
+        await registry.UpdateCLIIfDue(ProviderKind.Claude); // unforced: only runs because the dates read as empty
+
+        Assert.Equal(3, script.RecordedCalls().Count); // it ran, so claude's own fresh entry did not gate it
     }
 
     // ---- Persisted attempt dates (PR-PROVREG-255) -------------------------------------------------------
@@ -366,6 +410,28 @@ public sealed class ProviderRegistryCLIUpdateTests
         // Refresh(provider) and LoadCatalog(provider, force: true) both ran (:519-520): Refresh assigns a
         // fresh status from the same seam-resolved executable, reporting the post-update version.
         Assert.Equal("2.0.0", registry.Status(ProviderKind.Claude).Version);
+
+        // Review fix (finding #5, MEDIUM): the assertion above is also produced by Refresh alone (LoadCatalog
+        // deleted, or run before Refresh, still passes it), so it does not by itself prove LoadCatalog ran, or
+        // that it ran after Refresh. Assert the full call sequence instead: UpdateCLIIfDue's own --version /
+        // update / --version (:513-517), then Refresh(Claude)'s --version and "auth status" probes (:375-376,
+        // both against the already-updated executable, so both report "2.0.0"), then LoadCatalog's
+        // LoadClaudeCatalog -> ClaudeSession.Handshake, whose bare process invocation (the stand-in speaks no
+        // stream-json) is exactly the documented control-request argv (ClaudeSession.cs:270-274). The
+        // handshake fails to find its response in a non-JSON stream and is swallowed the same way every other
+        // catalog probe's failure is (SwiftTry.OptionalAsync), so it changes nothing else this test checks.
+        var calls = script.RecordedCalls();
+        Assert.Equal(6, calls.Count);
+        Assert.Equal(["--version"], calls[0]); // UpdateCLIIfDue's "before" read
+        Assert.Equal(["update"], calls[1]);
+        Assert.Equal(["--version"], calls[2]); // UpdateCLIIfDue's "after" read: :517-518 sees the change
+        Assert.Equal(["--version"], calls[3]); // Refresh(Claude): :375
+        Assert.Equal(["auth", "status"], calls[4]); // Refresh(Claude): :376
+        Assert.Equal(
+            ["-p", "--input-format", "stream-json", "--output-format", "stream-json", "--verbose",
+                "--no-session-persistence", "--setting-sources", "user,project,local"],
+            calls[5]); // LoadCatalog(force: true) -> LoadClaudeCatalog -> ClaudeSession.Handshake
+        Assert.Empty(registry.UpdatingCLIs); // :511 defer removed it after the true return too
     }
 
     [Fact]
@@ -416,6 +482,31 @@ public sealed class ProviderRegistryCLIUpdateTests
         Assert.False(registry.UpdatingCLIs.Contains(ProviderKind.Claude)); // removed on return, unchanged-version path
     }
 
+    // Review fix (finding #3, MEDIUM): PR-PROVREG-257's side_effects is "Observation change notifications on
+    // insert and remove". Before this fix, updatingCLIs was mutated as a bare backing field with no Notify
+    // call at all, so this test would have failed (zero notifications) against the reviewed commit.
+    [Fact]
+    [Trait("Req", "PR-PROVREG-257")]
+    public async Task updating_c_l_is_notifies_on_both_the_insert_and_the_remove()
+    {
+        using var runtime = new TestRuntime();
+        var settings = new FakeProviderSettings();
+        var registry = MakeRegistry(runtime, settings);
+        var script = ProviderProbeStandIns.CopyFor("notify").SetStdout("1.0.0\n").SetExitCode(0);
+        using var seam = ExecutableSeam(ProviderKind.Claude, script);
+
+        var notifications = new List<string>();
+        registry.PropertyChanged += (_, e) => { if (e.PropertyName is { } name) notifications.Add(name); };
+
+        await registry.UpdateCLIIfDue(ProviderKind.Claude, force: true);
+
+        // At least one notification for the insert and one for the remove: other properties this same call
+        // touches (Statuses is untouched here - Refresh never runs on the unchanged-version path) may also
+        // notify, so this counts occurrences of "UpdatingCLIs" rather than asserting the list exactly.
+        Assert.True(notifications.Count(n => n == nameof(ProviderRegistry.UpdatingCLIs)) >= 2,
+            "expected at least one notification for the insert and one for the remove, got: " + string.Join(", ", notifications));
+    }
+
     [Fact]
     [Trait("Req", "PR-PROVREG-257")] // ProviderRegistry.swift:509-511
     public async Task updating_c_l_is_is_never_inserted_when_a_gate_returns_early()
@@ -423,7 +514,13 @@ public sealed class ProviderRegistryCLIUpdateTests
         using var runtime = new TestRuntime();
         var settings = new FakeProviderSettings();
         var registry = MakeRegistry(runtime, settings);
-        Assert.False(await registry.UpdateCLIIfDue(ProviderKind.Cursor)); // wrong provider
+        // Review fix (finding #2, HIGH): the Cursor call is also wrapped now, matching every other call in
+        // this file - UpdatesOwnCLI(Cursor) is proven false elsewhere, but a regression here would otherwise
+        // reach the real Cursor CLI on this machine's PATH with no seam standing in the way.
+        using (NoExecutableSeam())
+        {
+            Assert.False(await registry.UpdateCLIIfDue(ProviderKind.Cursor)); // wrong provider
+        }
         Assert.Empty(registry.UpdatingCLIs);
         using (NoExecutableSeam())
         {

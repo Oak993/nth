@@ -98,6 +98,15 @@ public sealed class ProviderProbeScript(string executablePath, string folder)
         return this;
     }
 
+    /// <summary>The exit code for the "update" call only (ProviderProbeStandIn.cs's update-exit.txt): the
+    /// --version calls before and after it keep reporting SetExitCode's code. Lets a test make the update
+    /// call itself fail while both version reads still succeed and report the same text.</summary>
+    public ProviderProbeScript SetUpdateExitCode(int code)
+    {
+        File.WriteAllText(Path.Combine(Folder, "update-exit.txt"), code.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        return this;
+    }
+
     /// <summary>Makes the run sleep sleepMs before doing anything else, and mark markerPath present while it does.</summary>
     public ProviderProbeScript SetConcurrencyProbe(string markerPath, int sleepMs)
     {
