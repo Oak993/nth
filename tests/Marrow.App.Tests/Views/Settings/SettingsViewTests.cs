@@ -73,6 +73,25 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     private static ChromeRow Row(Control view, string title) => Nodes<ChromeRow>(view).Single(row => Text(row).FirstOrDefault() == title);
 
     [Fact]
+    [Trait("Req", "UI-THEME-002")] // App/Views/Settings/SettingsView.swift:1159-1202
+    public void Theme_picker_holds_its_intrinsic_size_and_hover_animates_label_not_chevron() => WithView(() => new ThemePickerButton(Binding<AppTheme>.Constant(AppTheme.System)), (view, _, h) =>
+    {
+        Assert.Equal(28, view.Bounds.Height); Assert.True(view.Bounds.Width < 200); var label = Nodes<TextBlock>(view).Single(); var chevron = Assert.Single(Nodes<SwiftImage>(view)); var before = Assert.IsType<Avalonia.Media.SolidColorBrush>(label.Foreground).Color; var arrow = chevron.Foreground; var button = Assert.Single(Nodes<Button>(view)); button.RaiseEvent(new PointerEventArgs(InputElement.PointerEnteredEvent, button, new Avalonia.Input.Pointer(77, PointerType.Mouse, true), button, default, 0, default, default)); Sync();
+        AdvanceFrames(h, 50); var halfway = Assert.IsType<Avalonia.Media.SolidColorBrush>(label.Foreground).Color; Assert.True(halfway.A > before.A); AdvanceFrames(h, 51); Assert.Equal(Chrome.PrimaryText.Resolve(label.ActualThemeVariant), Assert.IsType<Avalonia.Media.SolidColorBrush>(label.Foreground).Color); Assert.Same(arrow, chevron.Foreground);
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SETTINGS-075")] // App/Views/Settings/SettingsView.swift:27,44,148-157
+    [Trait("Req", "UI-SETTINGS-076")] // App/Views/Settings/SettingsView.swift:28,45,148-157
+    [Trait("Req", "UI-SETTINGS-077")] // App/Views/Settings/SettingsView.swift:29,46,148-157
+    [Trait("Req", "UI-SETTINGS-078")] // App/Views/Settings/SettingsView.swift:22,37,148-157
+    public void Remaining_sidebar_symbols_keep_source_sizes_order_and_selection() => WithSettings((view, _, _) =>
+    {
+        var rows = Nodes<SidebarRow>(view); Assert.Equal("Appearance", Text(rows[2]).Single()); foreach (var (title, symbol) in new[] { ("Source control", "arrow.triangle.branch"), ("Shortcuts", "command"), ("Archive", "archivebox"), ("Appearance", "paintpalette") }) { var row = rows.Single(row => Text(row).Contains(title)); var image = Assert.Single(Nodes<SwiftImage>(row)); Assert.Equal(symbol, image.SymbolName); Assert.Equal(14, image.Width); Assert.Equal(14, image.Height); Assert.Empty(Nodes<UpdateAvailableDot>(row)); }
+        Click(Button(rows.Single(row => Text(row).Contains("Source control")), "Source control")); Sync(); Assert.Single(Nodes<SourceControlSettingsPage>(view));
+    });
+
+    [Fact]
     [Trait("Req", "UI-SETTINGS-015")] // App/Views/Settings/SettingsView.swift:344-348
     [Trait("Req", "UI-SETTINGS-065")] // App/Views/Settings/SettingsView.swift:395-399,432-442
     public void Owned_visual_pickers_keep_option_order_symbols_and_uniform_stage_and_caption_metrics()
@@ -197,6 +216,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "UI-SETTINGS-005")] // App/Views/Settings/SettingsView.swift:159-163; App/Views/Settings/AboutUpdateViews.swift:527-535
+    [Trait("Req", "UI-UPDATE-011")] // App/Views/Settings/SettingsView.swift:159-163
     public void About_update_dot_is_conditionally_attached_to_the_icon_with_the_source_circle_and_offset() => WithSettings((view, _, _) =>
     {
         Assert.Empty(Nodes<UpdateAvailableDot>(view)); var checker = UpdateChecker.Shared; typeof(UpdateChecker).GetProperty("Update")!.SetValue(checker, new AvailableUpdate { Version = "999.0.0", Tag = "v999.0.0", DownloadURL = SwiftURL.Create("https://fixture.invalid/download")!, PageURL = SwiftURL.Create("https://fixture.invalid/release")!, Notes = "" }); Sync();
@@ -338,6 +358,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SETTINGS-268")] // App/Views/Settings/SettingsView.swift:462-517
+    [Trait("Req", "UI-SETTINGS-079")] // App/Views/Settings/SettingsView.swift:460-517
     public void Zoom_buttons_step_all_eight_levels_and_reset_keeps_its_slot_with_primary_tabular_digits() => WithView(() => new AppearanceSettingsPage(), (view, model, h) =>
     {
         var zoom = Row(view, "Zoom"); var buttons = Nodes<Button>(zoom); Assert.Equal(3, buttons.Length); foreach (var button in buttons) { Assert.Equal(22, button.Width); Assert.Equal(22, button.Height); }
@@ -359,6 +380,11 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     [Trait("Req", "PR-THEME-048")] // App/Views/Settings/SettingsView.swift:1168-1192
     [Trait("Req", "PR-THEME-049")] // App/Views/Settings/SettingsView.swift:424-426
     [Trait("Req", "UI-SETTINGS-017")] // App/Views/Settings/SettingsView.swift:1157-1209
+    [Trait("Req", "UI-THEME-001")] // App/Views/Settings/SettingsView.swift:422-426
+    [Trait("Req", "UI-THEME-003")] // App/Views/Settings/SettingsView.swift:1193-1201
+    [Trait("Req", "UI-THEME-004")] // App/Views/Settings/SettingsView.swift:1196
+    [Trait("Req", "UI-THEME-005")] // App/Views/Settings/SettingsView.swift:1198
+    [Trait("Req", "UI-THEME-006")] // App/Views/Settings/SettingsView.swift:1204-1208
     public void Theme_capsule_has_source_metrics_and_menu_checks_the_selected_theme_and_updates_Nord_detail() => WithView(() => new AppearanceSettingsPage(), (view, model, _) =>
     {
         var picker = Assert.Single(Nodes<ThemePickerButton>(view)); var label = Assert.Single(Nodes<StackPanel>(picker), stack => stack.Height == 28); Assert.Equal(6, label.Spacing); Assert.Equal(new Thickness(12, 0), label.Margin);
@@ -374,6 +400,11 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     [Trait("Req", "PR-THEME-051")] // App/Views/Settings/SettingsView.swift:524,540-562
     [Trait("Req", "PR-THEME-052")] // App/Views/Settings/SettingsView.swift:563
     [Trait("Req", "UI-SETTINGS-018")] // App/Views/Settings/SettingsView.swift:519-563
+    [Trait("Req", "UI-THEME-008")] // App/Views/Settings/SettingsView.swift:427-430
+    [Trait("Req", "UI-THEME-009")] // App/Views/Settings/SettingsView.swift:532-534
+    [Trait("Req", "UI-THEME-010")] // App/Views/Settings/SettingsView.swift:528-531
+    [Trait("Req", "UI-THEME-011")] // App/Views/Settings/SettingsView.swift:535-538
+    [Trait("Req", "UI-THEME-012")] // App/Views/Settings/SettingsView.swift:524,543-560
     public void Transparency_reset_fades_and_offsets_over_200ms_without_consuming_layout_width() => WithView(() => new AppearanceSettingsPage(), (view, model, h) =>
     {
         var control = Assert.Single(Nodes<BackdropOpacitySlider>(view)); var reset = Assert.Single(Nodes<Button>(control)); var slider = Assert.Single(Nodes<Slider>(control));
@@ -406,6 +437,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     [Trait("Req", "PR-UPDATE-081")] // App/Views/Settings/SettingsView.swift:968-983
     [Trait("Req", "PR-UPDATE-082")] // App/Views/Settings/SettingsView.swift:968-1004
     [Trait("Req", "PR-UPDATE-084")] // App/Views/Settings/SettingsView.swift:991-1002
+    [Trait("Req", "UI-UPDATE-019")] // App/Views/Settings/SettingsView.swift:968-983
     public void About_accessory_is_conditional_and_app_header_uses_source_fonts_version_and_insets() => WithSettings((view, _, _) =>
     {
         SettingsNavigation.Shared.RequestedPage = SettingsPage.About; Sync(); Assert.Single(Nodes<AboutUpdateChromeAccessory>(view)); var about = Assert.Single(Nodes<AboutSettingsPage>(view));
@@ -418,6 +450,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     [Fact]
     [Trait("Req", "PR-UPDATE-083")] // App/Views/Settings/SettingsView.swift:985-987
     [Trait("Req", "UI-SETTINGS-070")] // App/Views/Settings/SettingsView.swift:985-987
+    [Trait("Req", "UI-UPDATE-020")] // App/Views/Settings/SettingsView.swift:985-987
     public void About_Show_replays_all_eight_tour_pages_even_when_the_tour_was_already_seen() => WithView(() => new AboutSettingsPage(), (view, model, _) =>
     {
         model.Settings.HasSeenTour = true; Sync(); try { Click(Button(Row(((StackPanel)((AboutSettingsPage)view).Child!).Children[1], "Welcome tour"), "Show")); Sync(); var window = Field<Avalonia.Controls.Window>(Marrow.App.Views.Tour.TourWindowController.Shared, "window"); Assert.True(window.IsVisible); Assert.Equal(8, Marrow.App.Views.Tour.Tour.Pages.Count); }
@@ -451,6 +484,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SETTINGS-123")] // App/Views/Settings/SettingsView.swift:401-409
+    [Trait("Req", "UI-THEME-027")] // App/Views/Settings/SettingsView.swift:401-409
     public void Settle_preview_only_plays_on_enable_and_archive_disables_the_whole_row_without_changing_value() => WithView(() => new GeneralSettingsPage(), (view, model, _) =>
     {
         var sound = new SettingsViewSoundRecorder(); using var output = SoundOutput.Current.Override(sound);
@@ -580,6 +614,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     [Trait("Req", "PR-SETTINGS-239")] // App/Views/Settings/SettingsView.swift:985-987
     [Trait("Req", "PR-SETTINGS-248")] // App/Views/Settings/SettingsView.swift:946-963,1060-1121
     [Trait("Req", "UI-SETTINGS-072")] // App/Views/Settings/SettingsView.swift:950-960,1104-1121
+    [Trait("Req", "UI-UPDATE-023")] // App/Views/Settings/SettingsView.swift:991-995
     public void About_keeps_the_empty_update_slot_and_truthful_product_and_attribution_content() => WithView(() => new AboutSettingsPage(), (view, _, _) =>
     {
         var stack = Assert.IsType<StackPanel>(Assert.IsType<AboutSettingsPage>(view).Child); Assert.Equal(20, stack.Spacing); Assert.Equal(3, stack.Children.Count); Assert.IsType<AboutSoftwareUpdateSection>(stack.Children[0]);
@@ -715,6 +750,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SETTINGS-116")] // App/Views/Settings/SettingsView.swift:361-364
+    [Trait("Req", "UI-THEME-026")] // App/Views/Settings/SettingsView.swift:358-364
     public void Finish_chime_previews_only_off_to_on_including_external_changes() => WithView(() => new GeneralSettingsPage(), (_, model, _) =>
     {
         var sound = new SettingsViewSoundRecorder(); using var output = SoundOutput.Current.Override(sound);
@@ -902,6 +938,8 @@ public sealed class SettingsViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-GIT-150")] // App/Views/Settings/SettingsView.swift:836-846
+    [Trait("Req", "UI-STORE-001")] // App/Views/Settings/SettingsView.swift:836-842
+    [Trait("Req", "UI-STORE-002")] // App/Views/Settings/SettingsView.swift:839-840
     public void Worktree_section_shows_resolved_path_reveal_and_exact_pull_request_detail() => WithView(() => new SourceControlSettingsPage(), (view, _, _) =>
     {
         Assert.Contains("Worktrees and pull requests", Text(view)); Assert.Contains(Storage.WorktreesDirectory, Text(view));
