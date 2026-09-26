@@ -2614,8 +2614,37 @@ public sealed class ComposerViewTests(HeadlessSession headless)
             Close(h, window);
         });
     }
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-056")] // App/Views/Composer/ComposerView.swift:1125
+    public void B3_shared_file_indexes_evict_the_oldest_two_entry_generation()
+    {
+        using var store = IndexStore();
+        var a = store.NewFolder("cache-a"); var b = store.NewFolder("cache-b"); var c = store.NewFolder("cache-c");
+        Touch(a, "old.txt"); Touch(b, "b.txt"); Touch(c, "c.txt");
+        Prepared(store, a); Prepared(store, b); Prepared(store, c);
+        // Core/Support/RecentCache.swift:47-54: limit 2 is per generation; the fifth insert discards the oldest.
+        var d = store.NewFolder("cache-d"); var e = store.NewFolder("cache-e");
+        Touch(d, "d.txt"); Touch(e, "e.txt");
+        Prepared(store, d); Prepared(store, e);
+        Touch(a, "new.txt");
+        Assert.Equal(["new.txt"], Search(store, Prepared(store, a), "new"));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-058")] // App/Views/Composer/ComposerView.swift:1219-1232
+    public void B3_non_ASCII_substring_search_matches_canonically_equal_Characters()
+    {
+        using var store = IndexStore();
+        var directory = store.NewFolder("canonical");
+        Touch(directory, "a cafe\u0301.txt");
+        Assert.Equal(["a cafe\u0301.txt"], Search(store, Prepared(store, directory), "f\u00e9"));
+        var ranked = store.NewFolder("canonical-ranked");
+        Touch(ranked, "a cafe\u0301.txt", "f0\u00e9.txt");
+        Assert.Equal(["a cafe\u0301.txt", "f0\u00e9.txt"], Search(store, Prepared(store, ranked), "f\u00e9"));
+    }
 }
 
+// STOP #1 and #2 below are historical, resolved in B3 part 1 after impl/b2 supplied their dependencies.
 // STOP App.Views.Composer.ComposerView #1
 // Kind: missing dependency
 // Swift: DroppyCode/App/Views/Composer/ComposerView.swift:604 (B3 52bc792)
