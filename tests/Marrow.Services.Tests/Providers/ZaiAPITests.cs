@@ -6,7 +6,7 @@ using Marrow.Testing;
 
 namespace Marrow.Services.Tests.Providers;
 
-// Source: DroppyCode/Services/Providers/ZaiAPI.swift (B2 1fbf81e), :1-224.
+// Source: DroppyCode/Services/Providers/ZaiAPI.swift (B3 52bc7926), :1-207.
 //
 // Every network-touching test runs against LoopbackHttpServer on 127.0.0.1 (R-TEST-10), reached through the
 // PORT-ONLY url-override parameters ZaiAPI's networked members accept for tests only (production always uses
@@ -46,7 +46,7 @@ public sealed class ZaiAPITests
     // ---- PR-PROVAPI-057: validate ---------------------------------------------------------------------------
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-057")] // Services/Providers/ZaiAPI.swift:21-22
+    [Trait("Req", "PR-PROVAPI-057")] // Services/Providers/OpenAICompatibleAPI.swift:14-15 (via ZaiAPI.swift:21)
     public async Task Validate_returns_false_with_no_request_for_an_empty_key()
     {
         using var runtime = new TestRuntime();
@@ -59,7 +59,7 @@ public sealed class ZaiAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-057")] // Services/Providers/ZaiAPI.swift:21 (.trimmed)
+    [Trait("Req", "PR-PROVAPI-057")] // Services/Providers/OpenAICompatibleAPI.swift:14 (.trimmed)
     public async Task Validate_returns_false_with_no_request_for_a_whitespace_only_key()
     {
         using var runtime = new TestRuntime();
@@ -72,7 +72,7 @@ public sealed class ZaiAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-057")] // Services/Providers/ZaiAPI.swift:23-25
+    [Trait("Req", "PR-PROVAPI-057")] // Services/Providers/OpenAICompatibleAPI.swift:5-10,16 (bearerRequest, via ZaiAPI.swift:21)
     public async Task Validate_sends_a_GET_with_bearer_auth_and_a_json_accept_header()
     {
         using var runtime = new TestRuntime();
@@ -91,7 +91,7 @@ public sealed class ZaiAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-057")] // Services/Providers/ZaiAPI.swift:28
+    [Trait("Req", "PR-PROVAPI-057")] // Services/Providers/OpenAICompatibleAPI.swift:19
     public async Task Validate_is_false_for_a_non_200_status()
     {
         using var runtime = new TestRuntime();
@@ -105,7 +105,7 @@ public sealed class ZaiAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-057")] // Services/Providers/ZaiAPI.swift:26-27 (try?)
+    [Trait("Req", "PR-PROVAPI-057")] // Services/Providers/OpenAICompatibleAPI.swift:17 (try?)
     public async Task Validate_is_false_on_a_transport_error()
     {
         using var runtime = new TestRuntime();
@@ -118,7 +118,7 @@ public sealed class ZaiAPITests
     // ---- PR-PROVAPI-058: listModels parses data[].id and sorts the default first -------------------------
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-058")] // Services/Providers/ZaiAPI.swift:32-33
+    [Trait("Req", "PR-PROVAPI-058")] // Services/Providers/OpenAICompatibleAPI.swift:23-24 (via ZaiAPI.swift:24)
     public async Task ListModels_returns_empty_with_no_request_for_an_empty_key()
     {
         using var runtime = new TestRuntime();
@@ -131,7 +131,7 @@ public sealed class ZaiAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-058")] // Services/Providers/ZaiAPI.swift:38-39
+    [Trait("Req", "PR-PROVAPI-058")] // Services/Providers/OpenAICompatibleAPI.swift:27-28
     public async Task ListModels_returns_empty_for_a_non_200_status()
     {
         using var runtime = new TestRuntime();
@@ -145,7 +145,7 @@ public sealed class ZaiAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-058")] // Services/Providers/ZaiAPI.swift:39 (JSONValue.parse(data))
+    [Trait("Req", "PR-PROVAPI-058")] // Services/Providers/OpenAICompatibleAPI.swift:28 (JSONValue.parse(data))
     public async Task ListModels_returns_empty_for_an_unparseable_body()
     {
         using var runtime = new TestRuntime();
@@ -159,7 +159,7 @@ public sealed class ZaiAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-058")] // Services/Providers/ZaiAPI.swift:40-41
+    [Trait("Req", "PR-PROVAPI-058")] // Services/Providers/OpenAICompatibleAPI.swift:29-30
     public async Task ListModels_returns_empty_when_the_data_array_has_no_ids()
     {
         using var runtime = new TestRuntime();
@@ -173,7 +173,7 @@ public sealed class ZaiAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-058")] // Services/Providers/ZaiAPI.swift:40-44
+    [Trait("Req", "PR-PROVAPI-058")] // Services/Providers/OpenAICompatibleAPI.swift:29-33
     public async Task ListModels_drops_ineligible_ids_and_sorts_the_default_first_then_ascending_id()
     {
         using var runtime = new TestRuntime();
@@ -198,7 +198,7 @@ public sealed class ZaiAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-058")] // Services/Providers/ZaiAPI.swift:34-36
+    [Trait("Req", "PR-PROVAPI-058")] // Services/Providers/OpenAICompatibleAPI.swift:5-10,25 (bearerRequest, via ZaiAPI.swift:24)
     public async Task ListModels_sends_the_same_bearer_and_accept_headers_as_validate()
     {
         using var runtime = new TestRuntime();
@@ -218,7 +218,7 @@ public sealed class ZaiAPITests
     // ---- PR-PROVAPI-059: glm-5.3 row ----------------------------------------------------------------------
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-059")] // Services/Providers/ZaiAPI.swift:51-52,14
+    [Trait("Req", "PR-PROVAPI-059")] // Services/Providers/ZaiAPI.swift:32-33,14
     public void Option_for_glm_5_3_is_the_default_row_with_max_effort_and_the_three_efforts()
     {
         var option = ZaiAPI.Option("glm-5.3");
@@ -235,7 +235,7 @@ public sealed class ZaiAPITests
     // ---- PR-PROVAPI-060: glm-5.3-flash row -----------------------------------------------------------------
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-060")] // Services/Providers/ZaiAPI.swift:53-54
+    [Trait("Req", "PR-PROVAPI-060")] // Services/Providers/ZaiAPI.swift:34-35
     public void Option_for_glm_5_3_flash_has_max_effort_and_is_not_default()
     {
         var option = ZaiAPI.Option("glm-5.3-flash");
@@ -252,14 +252,14 @@ public sealed class ZaiAPITests
     // ---- PR-PROVAPI-061: only glm-5.3-prefixed ids, never FlashX -------------------------------------------
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-061")] // Services/Providers/ZaiAPI.swift:61
+    [Trait("Req", "PR-PROVAPI-061")] // Services/Providers/ZaiAPI.swift:42
     public void Option_is_null_for_glm_5_3_flashx()
     {
         Assert.Null(ZaiAPI.Option("glm-5.3-flashx"));
     }
 
     [Theory]
-    [Trait("Req", "PR-PROVAPI-061")] // Services/Providers/ZaiAPI.swift:61 (lowercased().contains)
+    [Trait("Req", "PR-PROVAPI-061")] // Services/Providers/ZaiAPI.swift:42 (lowercased().contains)
     [InlineData("glm-5.3-FLASHX")]
     [InlineData("glm-5.3-FlashX")]
     [InlineData("glm-5.3-something-flashx-else")]
@@ -269,7 +269,7 @@ public sealed class ZaiAPITests
     }
 
     [Theory]
-    [Trait("Req", "PR-PROVAPI-061")] // Services/Providers/ZaiAPI.swift:61 (hasPrefix, case sensitive)
+    [Trait("Req", "PR-PROVAPI-061")] // Services/Providers/ZaiAPI.swift:42 (hasPrefix, case sensitive)
     [InlineData("glm-4.6")]
     [InlineData("glm-5")]
     [InlineData("GLM-5.3")]
@@ -280,7 +280,7 @@ public sealed class ZaiAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-061")] // Services/Providers/ZaiAPI.swift:62
+    [Trait("Req", "PR-PROVAPI-061")] // Services/Providers/ZaiAPI.swift:43
     public void Option_for_a_qualifying_unknown_id_is_named_by_its_own_id_with_max_effort()
     {
         var option = ZaiAPI.Option("glm-5.3-turbo");
@@ -297,7 +297,7 @@ public sealed class ZaiAPITests
     // ---- PR-PROVAPI-062: vision model test -------------------------------------------------------------------
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-062")] // Services/Providers/ZaiAPI.swift:68
+    [Trait("Req", "PR-PROVAPI-062")] // Services/Providers/ZaiAPI.swift:49
     public void IsVisionModel_is_false_for_a_null_id()
     {
         Assert.False(ZaiAPI.IsVisionModel(null));
@@ -339,7 +339,7 @@ public sealed class ZaiAPITests
     // ---- PR-PROVAPI-064: planLimits sequencing -------------------------------------------------------------
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-064")] // Services/Providers/ZaiAPI.swift:75-76
+    [Trait("Req", "PR-PROVAPI-064")] // Services/Providers/ZaiAPI.swift:56-57
     public async Task PlanLimits_returns_nil_with_no_request_for_an_empty_key()
     {
         using var runtime = new TestRuntime();
@@ -352,7 +352,7 @@ public sealed class ZaiAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-064")] // Services/Providers/ZaiAPI.swift:77-79
+    [Trait("Req", "PR-PROVAPI-064")] // Services/Providers/ZaiAPI.swift:58; OpenAICompatibleAPI.swift:5-10
     public async Task PlanLimits_sends_a_GET_to_the_quota_endpoint_with_bearer_auth_and_json_accept()
     {
         using var runtime = new TestRuntime();
@@ -371,7 +371,7 @@ public sealed class ZaiAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-064")] // Services/Providers/ZaiAPI.swift:83
+    [Trait("Req", "PR-PROVAPI-064")] // Services/Providers/ZaiAPI.swift:62
     public async Task PlanLimits_is_nil_when_code_is_not_200_and_success_is_not_true()
     {
         using var runtime = new TestRuntime();
@@ -388,7 +388,7 @@ public sealed class ZaiAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-064")] // Services/Providers/ZaiAPI.swift:84
+    [Trait("Req", "PR-PROVAPI-064")] // Services/Providers/ZaiAPI.swift:63
     public async Task PlanLimits_is_nil_when_no_windows_are_produced()
     {
         using var runtime = new TestRuntime();
@@ -405,7 +405,7 @@ public sealed class ZaiAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-064")] // Services/Providers/ZaiAPI.swift:85-86
+    [Trait("Req", "PR-PROVAPI-064")] // Services/Providers/ZaiAPI.swift:64-65
     public async Task PlanLimits_fetches_reset_cards_only_after_the_quota_call_succeeds_and_attaches_them()
     {
         using var runtime = new TestRuntime();
@@ -439,7 +439,7 @@ public sealed class ZaiAPITests
     // ---- PR-PROVAPI-065: plan name prefix ------------------------------------------------------------------
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-065")] // Services/Providers/ZaiAPI.swift:90
+    [Trait("Req", "PR-PROVAPI-065")] // Services/Providers/ZaiAPI.swift:69
     public void Limits_plan_name_is_Coding_Plan_space_then_the_reader_rendering_of_the_level()
     {
         var json = JSONValue.Parse("{\"data\":{\"level\":\"pro\",\"limits\":[{\"type\":\"CREDIT_LIMIT\",\"usage\":10,\"currentValue\":1}]}}")!;
@@ -451,7 +451,7 @@ public sealed class ZaiAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-065")] // Services/Providers/ZaiAPI.swift:90 (level missing)
+    [Trait("Req", "PR-PROVAPI-065")] // Services/Providers/ZaiAPI.swift:69 (level missing)
     public void Limits_plan_name_is_null_when_level_is_missing()
     {
         var json = JSONValue.Parse("{\"data\":{\"limits\":[{\"type\":\"CREDIT_LIMIT\",\"usage\":10,\"currentValue\":1}]}}")!;
@@ -465,7 +465,7 @@ public sealed class ZaiAPITests
     // ---- PR-PROVAPI-066: credit/token windows, percent computation and clamp --------------------------------
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-066")] // Services/Providers/ZaiAPI.swift:99-107
+    [Trait("Req", "PR-PROVAPI-066")] // Services/Providers/ZaiAPI.swift:78-86
     public void Limits_uses_the_reported_percentage_when_present()
     {
         var json = JSONValue.Parse(
@@ -477,7 +477,7 @@ public sealed class ZaiAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-066")] // Services/Providers/ZaiAPI.swift:102-103
+    [Trait("Req", "PR-PROVAPI-066")] // Services/Providers/ZaiAPI.swift:81-82
     public void Limits_computes_the_percent_from_current_over_usage_when_not_reported()
     {
         var json = JSONValue.Parse(
@@ -489,7 +489,7 @@ public sealed class ZaiAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-066")] // Services/Providers/ZaiAPI.swift:104-105
+    [Trait("Req", "PR-PROVAPI-066")] // Services/Providers/ZaiAPI.swift:83-84
     public void Limits_percent_is_zero_when_usage_is_zero_and_not_reported()
     {
         var json = JSONValue.Parse(
@@ -501,7 +501,7 @@ public sealed class ZaiAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-066")] // Services/Providers/ZaiAPI.swift:107
+    [Trait("Req", "PR-PROVAPI-066")] // Services/Providers/ZaiAPI.swift:86
     public void Limits_percent_is_clamped_to_0_and_100()
     {
         var below = JSONValue.Parse(
@@ -514,7 +514,7 @@ public sealed class ZaiAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-066")] // Services/Providers/ZaiAPI.swift:108
+    [Trait("Req", "PR-PROVAPI-066")] // Services/Providers/ZaiAPI.swift:87
     public void Limits_resetsAt_is_nextResetTime_milliseconds_converted_to_seconds()
     {
         var json = JSONValue.Parse(
@@ -526,7 +526,7 @@ public sealed class ZaiAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-066")] // Services/Providers/ZaiAPI.swift:108 (missing)
+    [Trait("Req", "PR-PROVAPI-066")] // Services/Providers/ZaiAPI.swift:87 (missing)
     public void Limits_resetsAt_is_null_when_nextResetTime_is_missing()
     {
         var json = JSONValue.Parse(
@@ -536,7 +536,7 @@ public sealed class ZaiAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-066")] // Services/Providers/ZaiAPI.swift:128-134
+    [Trait("Req", "PR-PROVAPI-066")] // Services/Providers/ZaiAPI.swift:107-113
     public void Limits_credit_window_ids_are_credit_0_credit_1_in_list_order_with_the_formatted_detail()
     {
         var json = JSONValue.Parse(
@@ -556,7 +556,7 @@ public sealed class ZaiAPITests
     // ---- PR-PROVAPI-067: window title from a unit code ------------------------------------------------------
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-067")] // Services/Providers/ZaiAPI.swift:113-114
+    [Trait("Req", "PR-PROVAPI-067")] // Services/Providers/ZaiAPI.swift:92-93
     public void Limits_unit_3_hours_multiplies_number_by_60_minutes()
     {
         var json = JSONValue.Parse(
@@ -567,7 +567,7 @@ public sealed class ZaiAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-067")] // Services/Providers/ZaiAPI.swift:115
+    [Trait("Req", "PR-PROVAPI-067")] // Services/Providers/ZaiAPI.swift:94
     public void Limits_unit_4_days_multiplies_number_by_1440_minutes()
     {
         var json = JSONValue.Parse(
@@ -577,7 +577,7 @@ public sealed class ZaiAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-067")] // Services/Providers/ZaiAPI.swift:116
+    [Trait("Req", "PR-PROVAPI-067")] // Services/Providers/ZaiAPI.swift:95
     public void Limits_unit_6_weeks_multiplies_number_by_10080_minutes()
     {
         var json = JSONValue.Parse(
@@ -587,7 +587,7 @@ public sealed class ZaiAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-067")] // Services/Providers/ZaiAPI.swift:117
+    [Trait("Req", "PR-PROVAPI-067")] // Services/Providers/ZaiAPI.swift:96
     public void Limits_unit_5_months_multiplies_number_by_43200_minutes()
     {
         var json = JSONValue.Parse(
@@ -597,7 +597,7 @@ public sealed class ZaiAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-067")] // Services/Providers/ZaiAPI.swift:113-118 (number not above zero)
+    [Trait("Req", "PR-PROVAPI-067")] // Services/Providers/ZaiAPI.swift:92-97 (number not above zero)
     public void Limits_a_non_positive_number_leaves_minutes_nil_even_with_a_known_unit()
     {
         var json = JSONValue.Parse(
@@ -607,7 +607,7 @@ public sealed class ZaiAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-067")] // Services/Providers/ZaiAPI.swift:123-127
+    [Trait("Req", "PR-PROVAPI-067")] // Services/Providers/ZaiAPI.swift:102-106
     public void Limits_falls_back_to_5_hour_limit_for_the_first_credit_window_and_Weekly_for_later_ones_with_an_unknown_unit()
     {
         var json = JSONValue.Parse(
@@ -625,7 +625,7 @@ public sealed class ZaiAPITests
     // ---- PR-PROVAPI-068: TIME_LIMIT becomes an MCP tools window ----------------------------------------------
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-068")] // Services/Providers/ZaiAPI.swift:137-144
+    [Trait("Req", "PR-PROVAPI-068")] // Services/Providers/ZaiAPI.swift:116-123
     public void Limits_TIME_LIMIT_entries_become_tools_windows_with_the_fixed_title_and_detail()
     {
         var json = JSONValue.Parse(
@@ -644,7 +644,7 @@ public sealed class ZaiAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-068")] // Services/Providers/ZaiAPI.swift:145-146
+    [Trait("Req", "PR-PROVAPI-068")] // Services/Providers/ZaiAPI.swift:124-125
     public void Limits_skips_entries_of_any_other_type()
     {
         var json = JSONValue.Parse(
@@ -662,7 +662,7 @@ public sealed class ZaiAPITests
     // ---- PR-PROVAPI-069: US grouped counts, no fraction digits ---------------------------------------------
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-069")] // Services/Providers/ZaiAPI.swift:213-223
+    [Trait("Req", "PR-PROVAPI-069")] // Services/Providers/ZaiAPI.swift:196-206
     public void Limits_formats_counts_with_US_thousands_grouping_and_no_decimals()
     {
         var json = JSONValue.Parse(
@@ -674,7 +674,7 @@ public sealed class ZaiAPITests
     // ---- PR-PROVAPI-070: reset cards, order and skip rules ---------------------------------------------------
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-070")] // Services/Providers/ZaiAPI.swift:159-162
+    [Trait("Req", "PR-PROVAPI-070")] // Services/Providers/ZaiAPI.swift:138-141
     public async Task ResetCredits_is_nil_on_a_non_200_status()
     {
         using var runtime = new TestRuntime();
@@ -688,7 +688,7 @@ public sealed class ZaiAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-070")] // Services/Providers/ZaiAPI.swift:161 (code != 200)
+    [Trait("Req", "PR-PROVAPI-070")] // Services/Providers/ZaiAPI.swift:140 (code != 200)
     public async Task ResetCredits_is_nil_when_code_is_not_200()
     {
         using var runtime = new TestRuntime();
@@ -702,7 +702,7 @@ public sealed class ZaiAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-070")] // Services/Providers/ZaiAPI.swift:164-174
+    [Trait("Req", "PR-PROVAPI-070")] // Services/Providers/ZaiAPI.swift:143-153
     public async Task ResetCredits_lists_all_five_hour_cards_first_then_all_weekly_cards()
     {
         using var runtime = new TestRuntime();
@@ -725,7 +725,7 @@ public sealed class ZaiAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-070")] // Services/Providers/ZaiAPI.swift:166 (available == false is skipped)
+    [Trait("Req", "PR-PROVAPI-070")] // Services/Providers/ZaiAPI.swift:145 (available == false is skipped)
     public async Task ResetCredits_skips_a_card_whose_available_field_is_exactly_false()
     {
         using var runtime = new TestRuntime();
@@ -746,7 +746,7 @@ public sealed class ZaiAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-070")] // Services/Providers/ZaiAPI.swift:166 (missing available field is kept)
+    [Trait("Req", "PR-PROVAPI-070")] // Services/Providers/ZaiAPI.swift:145 (missing available field is kept)
     public async Task ResetCredits_keeps_a_card_whose_available_field_is_missing_rather_than_false()
     {
         using var runtime = new TestRuntime();
@@ -765,7 +765,7 @@ public sealed class ZaiAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-070")] // Services/Providers/ZaiAPI.swift:166 (missing recordId is skipped)
+    [Trait("Req", "PR-PROVAPI-070")] // Services/Providers/ZaiAPI.swift:145 (missing recordId is skipped)
     public async Task ResetCredits_skips_a_card_with_no_recordId()
     {
         using var runtime = new TestRuntime();
@@ -786,7 +786,7 @@ public sealed class ZaiAPITests
     // ---- PR-PROVAPI-071: consumeResetCredit -------------------------------------------------------------
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-071")] // Services/Providers/ZaiAPI.swift:180-181
+    [Trait("Req", "PR-PROVAPI-071")] // Services/Providers/ZaiAPI.swift:159-160
     public async Task ConsumeResetCredit_throws_unknownOutcome_for_a_malformed_credit_id()
     {
         using var runtime = new TestRuntime();
@@ -796,7 +796,7 @@ public sealed class ZaiAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-071")] // Services/Providers/ZaiAPI.swift:181 (Int(parts[1]))
+    [Trait("Req", "PR-PROVAPI-071")] // Services/Providers/ZaiAPI.swift:160 (Int(parts[1]))
     public async Task ConsumeResetCredit_throws_unknownOutcome_when_the_record_part_is_not_an_integer()
     {
         using var runtime = new TestRuntime();
@@ -806,7 +806,7 @@ public sealed class ZaiAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-071")] // Services/Providers/ZaiAPI.swift:182-192
+    [Trait("Req", "PR-PROVAPI-071")] // Services/Providers/ZaiAPI.swift:161-171
     public async Task ConsumeResetCredit_posts_the_four_body_fields_with_a_lowercased_UUID_requestId()
     {
         using var runtime = new TestRuntime();
@@ -836,7 +836,7 @@ public sealed class ZaiAPITests
     /// <summary>
     /// The HTTP round trip above completes over a real loopback socket, on the .NET thread pool's own
     /// schedule, so the moment <see cref="ZaiAPI.ConsumeResetCredit"/> reaches its <c>try? await
-    /// Task.sleep(for: .seconds(2))</c> (:199-200) and arms a timer on the manual clock cannot be pinned to a
+    /// Task.sleep(for: .seconds(2))</c> (:178-179) and arms a timer on the manual clock cannot be pinned to a
     /// single poll: advancing the virtual clock before that timer exists does nothing for it. This alternates
     /// a short real wait (to let the pending continuation actually run) with a virtual advance, so whenever
     /// the settle timer does get armed, the very next iteration's advance reaches and fires it.
@@ -851,7 +851,7 @@ public sealed class ZaiAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-071")] // Services/Providers/ZaiAPI.swift:195
+    [Trait("Req", "PR-PROVAPI-071")] // Services/Providers/ZaiAPI.swift:174
     public async Task ConsumeResetCredit_throws_unknownOutcome_for_an_unparseable_response()
     {
         using var runtime = new TestRuntime();
@@ -866,7 +866,7 @@ public sealed class ZaiAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-071")] // Services/Providers/ZaiAPI.swift:196-197
+    [Trait("Req", "PR-PROVAPI-071")] // Services/Providers/ZaiAPI.swift:175-176
     public async Task ConsumeResetCredit_throws_rejected_carrying_the_msg_field()
     {
         using var runtime = new TestRuntime();
@@ -883,7 +883,7 @@ public sealed class ZaiAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-071")] // Services/Providers/ZaiAPI.swift:197 (msg absent)
+    [Trait("Req", "PR-PROVAPI-071")] // Services/Providers/ZaiAPI.swift:176 (msg absent)
     public async Task ConsumeResetCredit_rejected_falls_back_to_the_pinned_default_message_when_msg_is_absent()
     {
         using var runtime = new TestRuntime();
@@ -899,7 +899,7 @@ public sealed class ZaiAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-071")] // Services/Providers/ZaiAPI.swift:199-201 (the two second settle delay)
+    [Trait("Req", "PR-PROVAPI-071")] // Services/Providers/ZaiAPI.swift:178-180 (the two second settle delay)
     public async Task ConsumeResetCredit_does_not_complete_until_the_two_second_delay_elapses()
     {
         using var runtime = new TestRuntime();
@@ -923,7 +923,7 @@ public sealed class ZaiAPITests
     // ---- PR-PROVAPI-072: card expiry parsed as naive Shanghai local time ------------------------------------
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-072")] // Services/Providers/ZaiAPI.swift:206-210
+    [Trait("Req", "PR-PROVAPI-072")] // Services/Providers/ZaiAPI.swift:183-194 (resetDate/resetDateFormatter)
     public async Task ResetCredits_expiresAt_parses_the_pattern_in_Asia_Shanghai_local_time()
     {
         using var runtime = new TestRuntime();
@@ -942,7 +942,7 @@ public sealed class ZaiAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVAPI-072")] // Services/Providers/ZaiAPI.swift:210 (unparseable)
+    [Trait("Req", "PR-PROVAPI-072")] // Services/Providers/ZaiAPI.swift:183-194 (unparseable; resetDate/resetDateFormatter)
     public async Task ResetCredits_expiresAt_is_null_for_an_unparseable_string()
     {
         using var runtime = new TestRuntime();
@@ -962,7 +962,7 @@ public sealed class ZaiAPITests
     // ---- UI-PROVAPI-028: the model picker's rows end to end --------------------------------------------------
 
     [Fact]
-    [Trait("Req", "UI-PROVAPI-028")] // Services/Providers/ZaiAPI.swift:14,49-63; ProviderRegistry.swift:130
+    [Trait("Req", "UI-PROVAPI-028")] // Services/Providers/ZaiAPI.swift:14,30-45; ProviderRegistry.swift:130
     public async Task The_model_picker_shows_GLM_5_3_first_then_GLM_5_3_Flash_both_with_max_preselected()
     {
         using var runtime = new TestRuntime();
