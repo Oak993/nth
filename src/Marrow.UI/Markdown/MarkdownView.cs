@@ -22,7 +22,9 @@ using Marrow.UI.Chrome;
 using Marrow.UI.Common;
 using Marrow.UI.Port;
 
-// Source: DroppyCode/UI/Markdown/MarkdownView.swift (B2 1fbf81e), :1-1498.
+// Source: DroppyCode/UI/Markdown/MarkdownView.swift (B3 52bc792), :1-1425. Link clicks, mention scanning and the
+// continuous hover now go through UI.Markdown.MarkdownLinkOpener, MentionScanner (N10) and LinkHover (N9); see
+// each member's own citation.
 // Skeleton (c100 group 5): every type the file declares, the views' inputs, the constants and data tables, the
 // environment values and the members the other cycle files use. Every member with behaviour is left to the
 // implementing unit (MARROW_STUB).
@@ -37,7 +39,9 @@ using Marrow.UI.Port;
 // the private EnvironmentKey structs (:542-544, :840-864) hold the defaults.
 // Layering (IMPLEMENTING 2.1, HANDOFF section 9): the `hydra` fenced block renders HydraDelegationBlock
 // (App/Views/Chat/TimelineRows.swift:648), an App view Marrow.UI cannot name, so MarkdownBlockView reaches it through
-// the hook MarkdownBlockView.HydraDelegationBlock that the App layer sets at start-up.
+// the hook MarkdownDelegationCard.Render (:501-504) that the App layer sets at start-up; B3 renamed this hook from
+// MarkdownBlockView.HydraDelegationBlock to its own enum, matching the source, and made "no renderer registered
+// yet" fall back to CodeBlock instead of throwing (PR-THEME-108).
 // Not declared yet (read only by the bodies that the implementing unit writes): the views' @State/@Environment
 // storage, the private static caches (blockCache :107, streamingParses :111, glyphCache :406, metricsBySize :1212),
 // FaviconCache's private tables (:903, :911-912) and RichLink's bareDomainPattern (:753-755).
@@ -65,7 +69,7 @@ public sealed class MarkdownView : Decorator
 {
     public const int WarmCandidateLimit = 96; // :11
 
-    private const int StreamingSlots = 48; // :115
+    internal const int StreamingSlots = 48; // :115 nonisolated fileprivate at B3, so RichLink (:811) can read it
 
     /// <param name="text">:10 <c>let text: String</c>.</param>
     public string Text { get; }
@@ -495,14 +499,6 @@ public sealed class MarkdownView : Decorator
 /// <summary>:278-539 <c>struct MarkdownBlockView: View, Equatable</c>.</summary>
 public sealed class MarkdownBlockView : Decorator
 {
-    /// <summary>The App hook for a delegation block (layering, see the header): builds
-    /// <c>HydraDelegationBlock(json:sent:)</c> (:330).</summary>
-    public delegate Control HydraDelegationBlockFactory(string json, bool sent);
-
-    /// <summary>Set once by the App layer at start-up (HANDOFF section 9); MarkdownBlockView calls it where the Swift
-    /// names HydraDelegationBlock (:330).</summary>
-    public static HydraDelegationBlockFactory? HydraDelegationBlock { get; set; }
-
     /// <param name="block">:279 <c>let block: MarkdownBlock</c>.</param>
     /// <param name="settled">:284 <c>var settled = false</c>.</param>
     public MarkdownBlock Block { get; }
@@ -555,11 +551,12 @@ public sealed class MarkdownBlockView : Decorator
             case MarkdownBlock.Code code: // :321-333
             {
                 var info = code.Language is { } language ? SwiftString.Lowercased(language) : null;
-                if (info is not null && MarkdownView.IsDelegationInfo(info)) // :323-329
+                // B3 :323-329: the renderer-registered check moves inline (`let delegationRenderer = ...`), and
+                // falling through to CodeBlock now also covers "no renderer registered yet" (PR-THEME-108),
+                // rather than throwing.
+                if (info is not null && MarkdownView.IsDelegationInfo(info) && MarkdownDelegationCard.Render is { } delegationRenderer)
                 {
-                    if (HydraDelegationBlock is not { } factory)
-                        throw new InvalidOperationException("MarkdownBlockView.HydraDelegationBlock was not set by the App layer.");
-                    var card = factory(code.CodeText, info != "hydra"); // :326
+                    var card = delegationRenderer(code.CodeText, info != "hydra"); // :326
                     var leaving = info == "hydra-leaving";
                     card.Opacity = leaving ? 0 : 1; // :327
                     card.RenderTransform = new ScaleTransform(leaving ? 0.98 : 1, leaving ? 0.98 : 1); // :328 anchor: .top
@@ -567,7 +564,7 @@ public sealed class MarkdownBlockView : Decorator
                     card.IsHitTestVisible = !leaving; // :329
                     return card;
                 }
-                return new CodeBlock(code.Language, code.CodeText); // :331
+                return new CodeBlock(code.Language, code.CodeText); // :331, and B3's new no-renderer-yet fallback
             }
             case MarkdownBlock.List list: // :334-353
             {
@@ -681,54 +678,61 @@ public sealed class MarkdownBlockView : Decorator
         return MentionRanges(@in, [.. targets.Keys]).Count > 0; // :413
     }
 
-    // :418-441 nonisolated static func mentionRanges(in text: String, names: [String]) -> [Range<String.Index>].
-    // Word-bounded (a hit's neighbour, if any, is never a letter or digit), longest-name-first, so a name that is
-    // a prefix of a longer one never shadows it (:419 sorted by count descending).
-    public static ValueList<(int LowerBound, int UpperBound)> MentionRanges(string @in, IReadOnlyList<string> names)
-    {
-        var text = @in;
-        var ordered = names.OrderByDescending(n => n.Length).ToList(); // :419
-        var results = new List<(int, int)>();
-        var i = 0;
-        while (i < text.Length) // :421-437
-        {
-            string? hit = null;
-            foreach (var name in ordered) // :423
-            {
-                if (name.Length == 0 || i + name.Length > text.Length) continue;
-                if (string.CompareOrdinal(text, i, name, 0, name.Length) != 0) continue; // :423 hasPrefix
-                var after = i + name.Length;
-                var beforeOk = i == 0 || !IsMentionBoundaryChar(text[i - 1]); // :426-427
-                var afterOk = after == text.Length || !IsMentionBoundaryChar(text[after]); // :428-429
-                if (!beforeOk || !afterOk) continue;
-                hit = name; // :430
-                break;
-            }
-            if (hit is { } matched) // :432-435
-            {
-                results.Add((i, i + matched.Length));
-                i += matched.Length;
-            }
-            else i++; // :436
-        }
-        return new ValueList<(int, int)>(results);
-    }
+    // :418-419 nonisolated static func mentionRanges(in text: String, names: [String]) -> [Range<String.Index>].
+    // B3 moves the word-bounded, longest-name-first scan into the shared UI.Markdown.MentionScanner (N10); the
+    // UTF-16 IsMentionBoundaryChar this file's own copy needed is dropped along with it.
+    public static ValueList<(int LowerBound, int UpperBound)> MentionRanges(string @in, IReadOnlyList<string> names) =>
+        new(MentionScanner.Matches(@in, names, name => name).Select(m => (m.LowerBound, m.UpperBound)).ToList());
 
-    // :427, :429 `!c.isLetter && !c.isNumber`. .NET char.IsLetter/IsDigit are UTF-16 code-unit checks, not
-    // Swift's grapheme-cluster Character.isLetter/isNumber; an ENGINEERING DECISION, UNVERIFIED under OD-0001 for
-    // any name adjacent to a combining mark or surrogate pair, consistent with this file's other index-based
-    // scans (autolinkedBareDomains, above).
-    private static bool IsMentionBoundaryChar(char c) => char.IsLetter(c) || char.IsDigit(c);
-
-    // :442-487 private func mentionSegments(in text: String) -> [VeiledText.Segment]?. The empty-personas guard
-    // (:446) is this part's own PR-THEME-110 routing; building the matched/prose segments (:447-486) waits on
-    // VeiledText.Segment's own .prose case (StreamVeil.cs; not declared until the AttributedString decision
-    // lands, see this file's header), so that half stays MARROW_STUB.
+    // :421-446 private func mentionSegments(in text: String) -> [VeiledText.Segment]?. The empty-personas guard
+    // (:424) is this part's own PR-THEME-110 routing. B3 :425 moves the matching loop into MentionScanner too;
+    // building the matched/prose segments now completes, since VeiledText.Segment.Prose landed with the sibling
+    // StreamVeil unit.
     private ValueList<VeiledText.Segment>? MentionSegments(string @in)
     {
-        var personas = MarkdownView.GetHydraMentionPersonas(this); // :446
+        var personas = MarkdownView.GetHydraMentionPersonas(this); // :424
         if (personas.Count == 0) return null;
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Markdown/MarkdownView.swift:447");
+
+        var streaming = MarkdownView.GetMarkdownStreaming(this);
+        var pretty = RichLink.PrettyAttributed(@in, streaming); // :422
+        var chars = pretty.PlainText; // :423
+        var matches = MentionScanner.Matches(chars, personas, persona => persona.Name); // :425
+        if (matches.Count == 0) return null; // :426
+
+        var segments = new List<VeiledText.Segment>();
+        var cursor = 0;
+        foreach (var match in matches) // :435
+        {
+            if (cursor < match.LowerBound) // :436-437
+                segments.Add(new VeiledText.Segment.Prose(SlicePretty(pretty, cursor, match.LowerBound)));
+            segments.Add(new VeiledText.Segment.Fixed(MentionText(match.Value))); // :439
+            cursor = match.UpperBound; // :440
+        }
+        if (cursor < chars.Length) // :442-443
+            segments.Add(new VeiledText.Segment.Prose(SlicePretty(pretty, cursor, chars.Length)));
+
+        return new ValueList<VeiledText.Segment>(segments); // :445
+    }
+
+    // :427-431 the local prettyRange(_:) helper: pretty[lo..<hi] in the C# port's run-based AttributedText, where
+    // Foundation's AttributedString.Index range has no equivalent - split each run at the plain-text offsets it
+    // spans, keeping every run's own attributes.
+    private static AttributedText SlicePretty(AttributedText pretty, int lowerBound, int upperBound)
+    {
+        var slices = new List<AttributedRun>();
+        var offset = 0;
+        foreach (var run in pretty.Runs)
+        {
+            var runStart = offset;
+            var runEnd = offset + run.Text.Length;
+            offset = runEnd;
+            if (runEnd <= lowerBound || runStart >= upperBound) continue;
+            var sliceStart = Math.Max(lowerBound, runStart) - runStart;
+            var sliceEnd = Math.Min(upperBound, runEnd) - runStart;
+            if (sliceStart == sliceEnd) continue;
+            slices.Add(run with { Text = run.Text[sliceStart..sliceEnd] });
+        }
+        return new AttributedText(slices);
     }
 
     // :489-504 private func mentionText(_ persona: HydraPersona) -> Text. PR-THEME-177/178.
@@ -799,6 +803,22 @@ public sealed class MarkdownBlockView : Decorator
     private SwiftColor MarkerColor => Chrome.Chrome.Accent.Opacity(MarkdownView.GetMarkdownDimmed(this) ? 0.55 : 0.9);
 }
 
+/// <summary>
+/// :501-504 <c>enum MarkdownDelegationCard { @MainActor static var render: ((String, Bool) -&gt; AnyView)? }</c>
+/// (B3, replacing the direct <c>HydraDelegationBlock(json:sent:)</c> call this port's C# had named the same
+/// way). Draws a <c>hydra</c> delegation block; the card is an App-level view UI cannot name (layering, see the
+/// file header), so the App layer registers this hook at launch. Until it is set, the block reads as code
+/// (PR-THEME-108's new fallback).
+/// </summary>
+public static class MarkdownDelegationCard
+{
+    /// <summary>:326 <c>delegationRenderer(code, info != "hydra")</c>.</summary>
+    public delegate Control RenderDelegate(string json, bool sent);
+
+    /// <summary>:502 <c>static var render</c>. Set once by the App layer at start-up (HANDOFF section 9).</summary>
+    public static RenderDelegate? Render { get; set; }
+}
+
 /// <summary>:542-544 <c>private struct MarkdownListDepthKey: EnvironmentKey</c>.</summary>
 file static class MarkdownListDepthKey
 {
@@ -808,7 +828,9 @@ file static class MarkdownListDepthKey
 /// <summary>:562-835 <c>enum RichLink</c>: pretty link titles plus favicons for chat markdown.</summary>
 public static partial class RichLink
 {
-    private const int StreamingSlots = 4; // :568
+    // :568 private static let streamingSlots = MarkdownView.streamingSlots (PR-THEME-123: no longer its own
+    // independently-tunable 4; twelve times as many in-flight streaming links are kept before evicting).
+    private const int StreamingSlots = MarkdownView.StreamingSlots;
 
     // :563 @MainActor private static var prettyCache = RecentCache<String, AttributedString>(limit: 1200).
     // PR-THEME-123.
@@ -1542,7 +1564,7 @@ public static class FaviconCache
 public sealed class InlineText : Decorator
 {
     /// <summary>The App hook for <c>@Environment(\.openURL)</c> (:1110): set once by the App layer at start-up,
-    /// the same pattern as MarkdownBlockView.HydraDelegationBlock (layering, see the file header). There is no
+    /// the same pattern as MarkdownDelegationCard.Render (layering, see the file header). There is no
     /// port-wide openURL environment yet; this unit adds the one call site MarkdownView.swift needs (:1148).</summary>
     public static Action<SwiftURL>? OpenUrl { get; set; }
 
@@ -1571,8 +1593,10 @@ public sealed class InlineText : Decorator
         var targets = MarkdownView.GetHydraMentionTargets(this); // :1112
 
         var scaled = SwiftNumber.Rounded(pointSize * 2) / 2; // :1130
-        var hosts = RichLink.LinkHosts(source, streaming); // :1132: hosts key the favicon work (PR-THEME-148)
-        var hasLinkText = hasLinks ?? hosts.Count > 0; // :1133
+        // B3 :1095-1096: local file links have no host, but still need the native link opener, so a hint-less
+        // call site (a heading, or the user's own message bubble) checks ContainsLinks itself rather than
+        // whether any host was found (PR-THEME-186).
+        var hasLinkText = hasLinks ?? RichLink.ContainsLinks(source, streaming);
         Control child;
         if (hasLinkText) // :1134-1191
         {
@@ -1591,51 +1615,9 @@ public sealed class InlineText : Decorator
                 onHost: view => hostTextView = view); // :1148 { [weak linkBox] view in linkBox?.value = view }
             linkView.HorizontalAlignment = hugsContent ? HorizontalAlignment.Left : HorizontalAlignment.Stretch; // :1149
             // :1159-1188 the continuous hover: pushes/pops the pointing hand over a link, shows/hides the head
-            // hover card over a mention, only on change (PR-THEME-144). Avalonia has no onContinuousHover
-            // primitive; PointerMoved/PointerExited stand in for it (ENGINEERING DECISION), matching the
-            // sibling ProseRunView.swift's identical handler (:27-59).
-            var showsHand = false;
-            Guid? hoveredHeadID = null;
-            linkView.PointerMoved += (_, e) =>
-            {
-                if (hostTextView is not { } view) return; // :1163 guard let view = ... as? LinkTextView
-                var point = e.GetPosition(linkView);
-                var overLink = view.HasLink(point); // :1164
-                if (overLink != showsHand) // :1165
-                {
-                    showsHand = overLink;
-                    linkView.Cursor = overLink // :1166 NSCursor.pointingHand.push() / .pop()
-                        ? new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand)
-                        : Avalonia.Input.Cursor.Default;
-                }
-                var mention = view.HeadMentionRect(point); // :1168
-                if (mention is { } m && targets.TryGetValue(m.Name, out var target) && target.Url == m.Url // :1168-1169
-                    && personas.FirstOrDefault(p => p.Name == m.Name) is { } persona) // :1170
-                {
-                    if (hoveredHeadID != target.ThreadID) // :1171
-                    {
-                        hoveredHeadID = target.ThreadID;
-                        HydraHeadHoverPopover.Instance.Show(persona, target, m.Rect, linkView); // :1172-1173
-                    }
-                }
-                else if (hoveredHeadID is not null) // :1175-1178
-                {
-                    hoveredHeadID = null;
-                    HydraHeadHoverPopover.Instance.Hide();
-                }
-            };
-            linkView.PointerExited += (_, _) => // :1179-1183 case .ended
-            {
-                if (showsHand) { linkView.Cursor = Avalonia.Input.Cursor.Default; showsHand = false; }
-                hoveredHeadID = null;
-                HydraHeadHoverPopover.Instance.Hide();
-            };
-            linkView.DetachedFromVisualTree += (_, _) => // :1184-1187 .onDisappear
-            {
-                if (showsHand) { linkView.Cursor = Avalonia.Input.Cursor.Default; showsHand = false; }
-                hoveredHeadID = null;
-                HydraHeadHoverPopover.Instance.Hide();
-            };
+            // hover card over a mention, only on change (PR-THEME-144). B3 :1159-1160 moves this into the shared
+            // UI.Markdown.LinkHover (N9), also used identically by ProseRunView.swift:27-59.
+            LinkHover.Attach(linkView, () => hostTextView, personas, targets);
             // :1189-1191 .task(id: hostKey): stable hosts and video ids key the work (PR-THEME-148), so a
             // streamed token with no new link leaves it alone.
             var hostKey = RichLink.LinkAssetKey(source, streaming);

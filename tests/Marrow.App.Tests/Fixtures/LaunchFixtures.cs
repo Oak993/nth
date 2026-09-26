@@ -17,14 +17,14 @@ namespace Marrow.App.Tests.Fixtures;
 /// flow, whose two windows host stand-ins (RootView and SettingsView are still MARROW_STUB); a fresh UpdateChecker on the
 /// empty feed (OD-0012 I1, no network) and a fresh UpdateInstallProgress; AppInfo pinned to 1.7.0 (not a development
 /// build, so UpdateChecker.startBackgroundChecks does start); the tour and the bootstrap replaced by recorders on the
-/// delegate, and MarkdownBlockView's process-wide delegation-block hook put back afterwards.
+/// delegate, and MarkdownDelegationCard's process-wide delegation-block hook put back afterwards.
 /// </summary>
 public sealed class LaunchHarness : IDisposable
 {
     public const string RunningVersion = "1.7.0";
 
     private readonly List<IDisposable> scopes = [];
-    private readonly MarkdownBlockView.HydraDelegationBlockFactory? savedDelegationBlock;
+    private readonly MarkdownDelegationCard.RenderDelegate? savedDelegationBlock;
 
     public LaunchHarness(Action<AppModelHarness>? prepare = null)
     {
@@ -37,14 +37,14 @@ public sealed class LaunchHarness : IDisposable
         scopes.Add(UpdateChecker.OverrideShared(Checker));
         Progress = UpdateInstallProgressFixtures.NewProgress();
         scopes.Add(UpdateInstallProgress.Running.Override(Progress));
-        savedDelegationBlock = MarkdownBlockView.HydraDelegationBlock;
-        MarkdownBlockView.HydraDelegationBlock = null;
+        savedDelegationBlock = MarkdownDelegationCard.Render;
+        MarkdownDelegationCard.Render = null;
 
         Manager.MainContent = () =>
         {
             Events.Add("main window built");
             SelectedWhenMainWindowBuilt = Manager.Model.SelectedThreadID;
-            DelegationBlockWhenMainWindowBuilt = MarkdownBlockView.HydraDelegationBlock;
+            DelegationBlockWhenMainWindowBuilt = MarkdownDelegationCard.Render;
             return MainContent;
         };
         Manager.SettingsContent = () =>
@@ -87,7 +87,7 @@ public sealed class LaunchHarness : IDisposable
 
     public Guid? SelectedWhenMainWindowBuilt { get; private set; }
 
-    public MarkdownBlockView.HydraDelegationBlockFactory? DelegationBlockWhenMainWindowBuilt { get; private set; }
+    public MarkdownDelegationCard.RenderDelegate? DelegationBlockWhenMainWindowBuilt { get; private set; }
 
     /// <summary>The window a hosted stand-in sits in, by its logical parents.</summary>
     public static Avalonia.Controls.Window? WindowOf(Control content)
@@ -99,7 +99,7 @@ public sealed class LaunchHarness : IDisposable
 
     public void Dispose()
     {
-        MarkdownBlockView.HydraDelegationBlock = savedDelegationBlock;
+        MarkdownDelegationCard.Render = savedDelegationBlock;
         for (var index = scopes.Count - 1; index >= 0; index--) scopes[index].Dispose();
         Harness.Dispose();
     }

@@ -17,17 +17,14 @@ using Marrow.UI.Tests.Fixtures;
 
 namespace Marrow.UI.Tests.Markdown;
 
-// Source under test: DroppyCode/UI/Markdown/MarkdownView.swift (B2 1fbf81e). This part (part 1 of the unit)
+// Source under test: DroppyCode/UI/Markdown/MarkdownView.swift (B3 52bc792). This part (part 1 of the unit)
 // covers PR-THEME-105 to 129 except 122. Covers MarkdownBlockView.body (:300-374), its Equatable (:295-298),
-// the marker (:506-538), MentionRanges/MentionsTarget/MentionSegments' empty-environment guard, TableBlock's
-// body (:1338-1397) and CopyButton's body (:1471-1498).
+// the marker (:506-538), MentionRanges/MentionsTarget/MentionSegments (both now through UI.Markdown.MentionScanner,
+// N10), TableBlock's body (:1338-1397) and CopyButton's body (:1471-1498).
 //
-// UNTESTABLE for now, and why: the paragraph case's InlineText branches (:308-320) and the .code delegation-card
-// branch's HydraDelegationBlock factory all construct types this unit's sibling units still leave MARROW_STUB
-// (InlineText's own render path is part 2's PR-THEME-151; StreamVeil/ProseRunView/LinkParagraphView are a
-// separate unit each) — every one of them throws NotImplementedException on construction today. Where a branch
-// is reachable only through one of those stubs, the test below proves the *routing* reached it (a distinct
-// exception citing that stub's own Swift line) rather than the rendered content, and says so.
+// UNTESTABLE for now, and why: ProseRunView is still a separate, MARROW_STUB sibling unit, so the InlineText
+// branches reachable only through it are not exercised here. LinkParagraphView, StreamVeil and MentionSegments
+// have all landed since this note was first written and no longer throw on construction.
 [Collection("Headless")]
 public sealed class MarkdownBlockViewBodyTests(HeadlessSession headless)
 {
@@ -135,6 +132,24 @@ public sealed class MarkdownBlockViewBodyTests(HeadlessSession headless)
         var view = RuleView();
         var method = typeof(MarkdownBlockView).GetMethod("MentionSegments", BindingFlags.NonPublic | BindingFlags.Instance)!;
         Assert.Null(method.Invoke(view, ["no mentions here"]));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-THEME-110")] // DroppyCode/UI/Markdown/MarkdownView.swift:421-445, via UI.Markdown.MentionScanner
+    // (N10): now that VeiledText.Segment.Prose has landed, this builds real segments instead of MARROW_STUB.
+    public void MentionSegments_builds_prose_and_fixed_segments_around_a_matched_persona() => headless.OnUiThread(() =>
+    {
+        var view = RuleView();
+        MarkdownView.SetHydraMentionPersonas(view, new ValueList<HydraPersona>([new HydraPersona("Hank", "dragon-test-asset", 0xFF0000)]));
+        var method = typeof(MarkdownBlockView).GetMethod("MentionSegments", BindingFlags.NonPublic | BindingFlags.Instance)!;
+
+        var result = (ValueList<VeiledText.Segment>?)method.Invoke(view, ["Ping Hank now"]);
+
+        Assert.NotNull(result);
+        Assert.Collection(result!,
+            prose => Assert.IsType<VeiledText.Segment.Prose>(prose),
+            fixed_ => Assert.IsType<VeiledText.Segment.Fixed>(fixed_),
+            prose => Assert.IsType<VeiledText.Segment.Prose>(prose));
     });
 
     [Fact]
@@ -399,5 +414,95 @@ public sealed class MarkdownBlockViewBodyTests(HeadlessSession headless)
         var icon = Assert.IsType<SwiftImage>(content.Content);
         Assert.Equal("checkmark", icon.SymbolName); // :1488
         window.Close();
+    });
+
+    // ---- PR-THEME-108: the delegation card renderer hook (:323-329, :501-504) ----
+
+    [Fact]
+    [Trait("Req", "PR-THEME-108")] // DroppyCode/UI/Markdown/MarkdownView.swift:331: no renderer registered yet
+    public void A_delegation_block_with_no_renderer_registered_falls_back_to_CodeBlock() => headless.OnUiThread(() =>
+    {
+        var previous = MarkdownDelegationCard.Render;
+        MarkdownDelegationCard.Render = null;
+        try
+        {
+            var view = new MarkdownBlockView(new MarkdownBlock.Code("hydra", "{}"));
+            Assert.IsType<CodeBlock>(view.Child);
+        }
+        finally
+        {
+            MarkdownDelegationCard.Render = previous;
+        }
+    });
+
+    [Theory]
+    [Trait("Req", "PR-THEME-108")] // DroppyCode/UI/Markdown/MarkdownView.swift:324-326: sent is true except for "hydra"
+    [InlineData("hydra", false)]
+    [InlineData("hydra-sent", true)]
+    [InlineData("hydra-leaving", true)]
+    public void A_registered_renderer_is_called_with_the_body_and_the_right_sent_flag(string info, bool expectedSent) => headless.OnUiThread(() =>
+    {
+        var previous = MarkdownDelegationCard.Render;
+        string? capturedJson = null;
+        bool? capturedSent = null;
+        MarkdownDelegationCard.Render = (json, sent) =>
+        {
+            capturedJson = json;
+            capturedSent = sent;
+            return new Border();
+        };
+        try
+        {
+            var view = new MarkdownBlockView(new MarkdownBlock.Code(info, "{\"x\":1}"));
+            Assert.IsType<Border>(view.Child);
+            Assert.Equal("{\"x\":1}", capturedJson);
+            Assert.Equal(expectedSent, capturedSent);
+        }
+        finally
+        {
+            MarkdownDelegationCard.Render = previous;
+        }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-THEME-108")] // DroppyCode/UI/Markdown/MarkdownView.swift:327-329: fades, shrinks and stops
+    // taking clicks while still occupying its room
+    public void A_leaving_card_fades_scales_down_and_stops_taking_clicks() => headless.OnUiThread(() =>
+    {
+        var previous = MarkdownDelegationCard.Render;
+        MarkdownDelegationCard.Render = (_, _) => new Border();
+        try
+        {
+            var view = new MarkdownBlockView(new MarkdownBlock.Code("hydra-leaving", "{}"));
+            var card = Assert.IsType<Border>(view.Child);
+            Assert.Equal(0, card.Opacity);
+            Assert.False(card.IsHitTestVisible);
+            var scale = Assert.IsType<ScaleTransform>(card.RenderTransform);
+            Assert.Equal(0.98, scale.ScaleX);
+            Assert.Equal(0.98, scale.ScaleY);
+        }
+        finally
+        {
+            MarkdownDelegationCard.Render = previous;
+        }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-THEME-108")] // a non-leaving card is fully opaque, full-size and clickable
+    public void A_non_leaving_card_is_fully_opaque_and_clickable() => headless.OnUiThread(() =>
+    {
+        var previous = MarkdownDelegationCard.Render;
+        MarkdownDelegationCard.Render = (_, _) => new Border();
+        try
+        {
+            var view = new MarkdownBlockView(new MarkdownBlock.Code("hydra-sent", "{}"));
+            var card = Assert.IsType<Border>(view.Child);
+            Assert.Equal(1, card.Opacity);
+            Assert.True(card.IsHitTestVisible);
+        }
+        finally
+        {
+            MarkdownDelegationCard.Render = previous;
+        }
     });
 }
