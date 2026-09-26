@@ -4,7 +4,7 @@ using Marrow.Core.Support;
 
 namespace Marrow.Core.Models;
 
-// Timeline.swift:170-175, with the convenience initializer from Text.swift:121-125.
+// Timeline.swift:170-175, with the convenience initializer from Text.swift:213-216 (B3).
 [JsonConverter(typeof(FileEditConverter))]
 public sealed record FileEdit(string Path, string? Diff = null, long Additions = 0, long Deletions = 0)
 {
