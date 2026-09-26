@@ -5625,6 +5625,46 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "UI-SIDEBAR-033")] // App/Views/Sidebar/SidebarView.swift:1359-1364 Text(...).lineLimit(1).truncationMode(.tail)
+    public void A_helper_rows_long_title_measures_bounded_by_the_row_instead_of_at_its_full_width() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var longTitle = new string('W', 200); // wide glyph, repeated far past what this 200 pt host (Hosted) can show
+        var helper = NewThread(project, longTitle, 1) with { ParentThreadID = parent.Id };
+        var model = Model(harness, [project], [parent, helper]);
+        harness.Main.OnMain(() =>
+        {
+            var requests = Activator.CreateInstance(Private("SidebarMenuRequests"))!;
+            var row = (Control)Activator.CreateInstance(Private("SidebarHelperRow"),
+                helper, false, requests, (Action)(() => { }), (Action)(() => { }), (Action)(() => { }))!;
+            var host = Hosted(model, row);
+            WindowOf(host).UpdateLayout();
+
+            var grid = Assert.IsType<Grid>(Get(row, "Child"));
+            var overlayHost = Assert.IsType<Panel>(grid.Children[1]);
+            var selectButton = Assert.IsType<Button>(overlayHost.Children[0]);
+            var title = LogicalQuery.SelfAndDescendants<TextBlock>(selectButton).Single(t => t.Text == longTitle);
+            Assert.Equal(1, title.MaxLines); // :1359 lineLimit(1)
+            Assert.Equal(TextTrimming.CharacterEllipsis, title.TextTrimming); // :1360 truncationMode(.tail)
+
+            // REVIEW FIX: a horizontal StackPanel measures its stacking-axis children at infinite width no matter
+            // what bounded width it itself received, so this title never actually got a constrained measure width
+            // to trim against and always measured at its full, untruncated natural width. A sibling TextBlock built
+            // the same way but never placed under any width constraint gives that untruncated reference width; the
+            // row's own title must measure well under it once :1350's HStack is a Grid's star column instead.
+            var unclipped = new TextBlock { Text = longTitle, MaxLines = 1 };
+            SwiftFont.System(SwiftFont.TextStyle.Callout, weight: SwiftFont.Weight.Regular).Apply(unclipped);
+            unclipped.Measure(Size.Infinity);
+
+            Assert.True(unclipped.DesiredSize.Width > 400); // sanity: the fixture is far wider than this host
+            Assert.True(title.DesiredSize.Width < unclipped.DesiredSize.Width / 2); // actually bounded by the row
+            WindowOf(host).Close();
+        });
+    });
+
+    [Fact]
     [Trait("Req", "UI-SIDEBAR-036")] // App/Views/Sidebar/SidebarView.swift:1427-1548
     [Trait("Req", "UI-SIDEBAR-037")] // App/Views/Sidebar/SidebarView.swift:1472-1507
     [Trait("Req", "PR-SIDEBAR-121")] // App/Views/Sidebar/SidebarView.swift:1472-1507 (B2 id, same site; the right-click
@@ -5716,7 +5756,12 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "UI-SIDEBAR-038")] // App/Views/Sidebar/SidebarView.swift:1514-1526
-    public void The_head_cards_chevron_toggles_all_heads_with_the_right_glyph_and_tooltip_and_snappy_animation() => headless.OnUiThread(() =>
+    // Named for what it actually proves (button count, chevron glyph and tooltip after the toggle): the snappy
+    // height animation itself is proven separately, below, by
+    // A_head_cards_row_count_change_animates_the_cards_and_connectors_height_with_snappy_0_18 (REVIEW FIX: this
+    // test's old name claimed "and_snappy_animation" with no assertion of the kind -- a synchronous Click() and an
+    // immediate post-click assertion pass identically whether or not any animation exists).
+    public void The_head_cards_chevron_toggles_all_heads_with_the_right_glyph_and_tooltip() => headless.OnUiThread(() =>
     {
         using var harness = new AppModelHarness();
         var project = NewProject(harness, "Alpha");
@@ -5755,6 +5800,77 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             var expandedGlyph = LogicalQuery.SelfAndDescendants<SwiftImage>(expandedChevron).Single();
             Assert.Equal("chevron.up", expandedGlyph.SymbolName); // :1516
             Assert.Equal("Show fewer heads", ToolTip.GetTip(expandedChevron)); // :1526
+            window.Close();
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-036")] // App/Views/Sidebar/SidebarView.swift:1535 .animation(.snappy(duration: 0.18), value: cardRows)
+    [Trait("Req", "UI-SIDEBAR-038")] // App/Views/Sidebar/SidebarView.swift:1515-1516 withAnimation(.snappy(duration: 0.18)) { showsAllHeads.toggle() }
+    public void A_head_cards_row_count_change_animates_the_cards_and_connectors_height_with_snappy_0_18() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        // Fifteen heads, all Hydra: capped stays true either way (15 > 12), but the visible count the chevron
+        // toggles between (12 collapsed, 15 expanded) chunks into a different number of glyph rows at this host's
+        // own 200 pt width (Hosted), so cardRows (:1461) -- and so HeadCardHeight (:1305-1311) -- actually changes.
+        var heads = Enumerable.Range(0, 15).Select(i => HeadHelper(project, parent.Id, i, i + 1)).ToList();
+        var model = Model(harness, [project], heads.Prepend(parent).ToList());
+        var perRow = HeadCardsRow.PerRow(200); // :1451, this host's own width
+        long RowsFor(long visibleCount) => (visibleCount + perRow - 1) / perRow; // :1546 stride(by: perRow), ceiling
+        var collapsedRows = RowsFor(Math.Min(heads.Count, 12)) + 1; // :1443 prefix(12); :1461 capped adds the chevron row
+        var expandedRows = RowsFor(heads.Count) + 1; // :1443 showsAllHeads -> every head
+        Assert.NotEqual(collapsedRows, expandedRows); // the fixture must actually change row count, or this proves nothing
+        var before = ThreadRowMetrics.HeadCardHeight(collapsedRows);
+        var after = ThreadRowMetrics.HeadCardHeight(expandedRows);
+        AvaloniaWindow window = null!;
+        Control card = null!;
+        Grid CardGrid() => Assert.IsType<Grid>(Get(card, "Child"));
+        Button ChevronOf() => LogicalQuery.SelfAndDescendants<Button>(card)
+            .Single(b => LogicalQuery.SelfAndDescendants<SwiftImage>(b).Any(i => i.SymbolName?.StartsWith("chevron", StringComparison.Ordinal) == true));
+        harness.Main.OnMain(() =>
+        {
+            var requests = Activator.CreateInstance(Private("SidebarMenuRequests"))!;
+            card = (Control)Activator.CreateInstance(Private("HeadCardsRow"),
+                parent, heads, requests, (Action)(() => { }))!;
+            card.VerticalAlignment = VerticalAlignment.Top; // the card's own measured height, not the host's full stretch
+            var host = Hosted(model, card);
+            window = WindowOf(host);
+            window.UpdateLayout(); // lets the real-width Track update (posted by outer.SizeChanged) run to idle here,
+            // in its own OnMain, rather than still be pending -- and so coalesced with the chevron's own posted
+            // update below -- when Click() runs, which would lose the chevron's own captured transaction (ViewSupport.cs
+            // Tracked<T>.Schedule's `pendingAnimation ??= Transaction.Current` keeps whichever pass claims it first).
+        });
+        harness.Main.OnMain(() =>
+        {
+            var grid = CardGrid();
+            Assert.Equal(before, grid.Children[0].Height); // :1439 the connector, collapsed
+            Assert.Equal(before, grid.Children[1].Height); // :1518 the card, collapsed
+
+            Click(ChevronOf()); // :1515-1516, withAnimation(.snappy(duration: 0.18)); OnMain pumps the manual loop to
+            // idle on return, which is what runs Tracked<T>'s MainActor.Post(Update) after the click's mutation (the
+            // sibling chevron test's own comment), scheduling this AnimatedDouble's first frame without firing it.
+        });
+        // REVIEW FIX: before this fix, Rebuild assigned Height directly, so by the time this OnMain call returns,
+        // both heights would already read `after` -- with not one frame of the manual clock advanced. A real
+        // animation cannot have reached its target yet: nothing has driven a single tick.
+        harness.Main.OnMain(() =>
+        {
+            var grid = CardGrid();
+            Assert.Equal(before, grid.Children[0].Height); // still mid-flight: no frame has ticked
+            Assert.Equal(before, grid.Children[1].Height);
+        });
+        for (var i = 0; i < 30; i++) { harness.Main.Advance(TimeSpan.FromMilliseconds(16)); manual.Advance(TimeSpan.FromMilliseconds(16)); } // 480 ms, past the spring's own settling duration
+        harness.Main.OnMain(() =>
+        {
+            var grid = CardGrid();
+            Assert.Equal(after, grid.Children[0].Height); // :1541 Chrome.panelSlide would also cover the connector if
+            // the head set itself had changed; here only cardRows did, so it rides the chevron's own ambient snappy
+            // transaction (Transaction.Current at the moment Tracked<T>.Schedule captured it) to the same value.
+            Assert.Equal(after, grid.Children[1].Height); // :1535
             window.Close();
         });
     });

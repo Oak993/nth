@@ -2022,15 +2022,23 @@ internal sealed class SidebarHelperRow : Decorator
             Height = ThreadRowMetrics.HelperHeight,
         };
 
-        var title = new TextBlock { MaxLines = 1, TextTrimming = TextTrimming.CharacterEllipsis }; // :1359-1362
-        Control? glyph = null;
-        var leading = new StackPanel // :1350 HStack(spacing: 6) { [glyph]; title; Spacer(minLength: 4) }
+        // :1359-1364 Text(...).lineLimit(1).truncationMode(.tail) then Spacer(minLength: 4), inside HStack(spacing: 6).
+        // A horizontal StackPanel measures its own children at infinite width along the stack axis regardless of
+        // what bounded width the StackPanel itself received (the same defect HelperStubRow's own leading HStack
+        // hit, :2437-2440), so TextTrimming never actually engaged here; a Grid's star column, ThreadRowFace's own
+        // idiom for a bounded trailing measure width (:2969, :3014), replaces it. The Spacer(minLength: 4) is
+        // reproduced as a trailing margin on the title itself, the same substitution ThreadRowFace already makes
+        // for its own title column (:3013 texts.Margin). REVIEW FIX.
+        var title = new TextBlock
         {
-            Orientation = Orientation.Horizontal,
-            Spacing = 6,
-            VerticalAlignment = VerticalAlignment.Center,
-            Children = { title, new Border { MinWidth = 4 } }, // :1364 Spacer(minLength: 4)
+            MaxLines = 1,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            Margin = new Thickness(0, 0, 4, 0), // :1364 Spacer(minLength: 4)
         };
+        Control? glyph = null;
+        var leading = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*"), VerticalAlignment = VerticalAlignment.Center }; // :1350 HStack(spacing: 6) { [glyph]; title; Spacer(minLength: 4) }
+        Grid.SetColumn(title, 1);
+        leading.Children.Add(title);
 
         var shape = new Border // :1370 shape.fill(...); .contentShape(shape)
         {
@@ -2069,7 +2077,9 @@ internal sealed class SidebarHelperRow : Decorator
             {
                 if (glyph is not null) leading.Children.Remove(glyph);
                 glyph = head;
-                leading.Children.Insert(0, glyph);
+                glyph.Margin = new Thickness(0, 0, 6, 0); // :1350 HStack(spacing: 6), the gap before the title
+                Grid.SetColumn(glyph, 0);
+                leading.Children.Add(glyph);
             }
             else if (glyph is not null)
             {
@@ -2205,6 +2215,58 @@ internal sealed class HeadCardsRow : Decorator
         }
     }
 
+    // PORT-ONLY, same frame-tick idiom as AnimatedScale above and PlainControls.AnimatedColor (UI/Port/PlainControls.cs:186),
+    // here adapted to a plain double sink for the card's and connector's own height (:1535
+    // .animation(.snappy(duration: 0.18), value: cardRows) and :1541 .animation(Chrome.panelSlide, value:
+    // heads.map(\.id)), neither of which was wired to anything but a bare property assignment before this fix).
+    // REVIEW FIX.
+    private sealed class AnimatedDouble(Action<double> apply)
+    {
+        private double current;
+        private bool primed;
+        private IFrameSource? source;
+        private Action<TimeSpan>? pending;
+
+        public void Set(double to, Animation? animation)
+        {
+            Stop();
+            if (!primed || animation is null || current == to)
+            {
+                primed = true;
+                current = to;
+                apply(current);
+                return;
+            }
+            var from = current;
+            var start = SwiftClock.Now;
+            var span = TimeSpan.FromSeconds(animation.Duration);
+            var frames = FrameClock.Source.Current;
+            Action<TimeSpan>? tick = null;
+            tick = _ =>
+            {
+                var now = SwiftClock.Now;
+                // ED-117 (2): a span S from instant s is complete at a frame when (now - since) + 1 ms >= S (in
+                // ticks), matching FrameClock.IsComplete (UI/Port/FrameClock.cs, internal to Marrow.UI, so restated
+                // here rather than called across the assembly boundary).
+                var complete = (now - start).Ticks + TimeSpan.TicksPerMillisecond >= span.Ticks;
+                var value = complete ? to : from + (to - from) * animation.Progress((now - start).TotalSeconds);
+                current = value;
+                apply(value);
+                if (complete) pending = null;
+                else frames.RequestFrame(tick!);
+            };
+            source = frames;
+            pending = tick;
+            frames.RequestFrame(tick);
+        }
+
+        private void Stop()
+        {
+            if (pending is { } frame) source?.CancelFrame(frame);
+            pending = null;
+        }
+    }
+
     // :1440-1542 body. Part 7: OrderedHeads, model.SelectedThreadID/IsSelected/WarmDocuments and
     // ThreadActions.MakeContextMenu (this file's own dependencies) are all in the tree, so every piece except the
     // right-click .contextMenu (:1490-1500) is assembled below. The context menu is left out for the same
@@ -2215,6 +2277,9 @@ internal sealed class HeadCardsRow : Decorator
     {
         var state = new ViewState();
         var connector = new HelperConnector(true, onFold); // :1436-1437, endsHere: true
+        var connectorHeight = new AnimatedDouble(v => connector.Height = v); // :1439, :1541
+        long? previousCardRows = null; // :1535 .animation(.snappy(duration: 0.18), value: cardRows)
+        ValueList<Guid>? previousHeadIDs = null; // :1541 .animation(Chrome.panelSlide, value: heads.map(\.id))
 
         var rows = new StackPanel { Orientation = Orientation.Vertical, Spacing = ThreadRowMetrics.HeadRowGap }; // :1465
         var card = new Border // :1516-1521
@@ -2225,6 +2290,7 @@ internal sealed class HeadCardsRow : Decorator
             Child = rows,
         }.RoundedRectangle(Chrome.RowCornerRadius, RoundedCornerStyle.Continuous); // :1519-1521 background + clipShape
         card.Background = Chrome.Overlay(0.04).Brush(card); // :1520
+        var cardHeightAnimated = new AnimatedDouble(v => card.Height = v); // :1518, :1535
 
         var outer = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*") }; // :1440 HStack(spacing: 0)
         Grid.SetColumn(connector, 0);
@@ -2243,8 +2309,21 @@ internal sealed class HeadCardsRow : Decorator
             var cardRows = CardRows(chunked.Count, capped); // :1461
             var cardHeight = ThreadRowMetrics.HeadCardHeight(cardRows); // :1305-1311
 
-            connector.Height = cardHeight; // :1439
-            card.Height = cardHeight; // :1518
+            // :1535 .animation(.snappy(duration: 0.18), value: cardRows) is attached to the card's own VStack, the
+            // innermost modifier covering the card's height specifically; a bare row-count change (no ambient
+            // transaction, e.g. a width-driven reflow) still animates the card with it. :1541
+            // .animation(Chrome.panelSlide, value: heads.map(\.id)) wraps the outer HStack (connector and card
+            // together), so a head-set change animates the connector too even when no explicit transaction is
+            // active; otherwise the connector rides whatever ambient transaction is already current (an explicit
+            // withAnimation elsewhere, e.g. the chevron's own snappy(duration: 0.18), or none). REVIEW FIX: both
+            // heights were a bare property assignment before this, with no animation at all.
+            var headIDs = new ValueList<Guid>(heads.Select(head => head.Id).ToList()); // :1541 heads.map(\.id)
+            var headIDsChanged = previousHeadIDs is not null && !previousHeadIDs.Equals(headIDs);
+            var cardRowsChanged = previousCardRows is not null && previousCardRows.Value != cardRows;
+            connectorHeight.Set(cardHeight, headIDsChanged ? Chrome.PanelSlide : Transaction.Current); // :1439, :1541
+            cardHeightAnimated.Set(cardHeight, cardRowsChanged ? Animation.Snappy(duration: 0.18) : Transaction.Current); // :1518, :1535
+            previousHeadIDs = headIDs;
+            previousCardRows = cardRows;
 
             rows.Children.Clear();
             foreach (var line in chunked)
