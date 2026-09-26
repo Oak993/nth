@@ -121,6 +121,35 @@ namespace Marrow.App.Tests.Views.Sidebar;
 // opposite answers; (c) Foundation's `range(of:)` without options -> its own rules.
 // Needed to proceed: the same oracle item or decision STOP #1 needs.
 // Done so far: no test asserts either reading for combining marks; part 1's matcher is unchanged.
+//
+// STOP App.Views.Sidebar.SidebarView #8 (opened part 8, the unit's last part)
+// Kind: missing dependency
+// Swift: DroppyCode/App/Views/Sidebar/SidebarView.swift:870-897 threadRow(_:projectName:projectIcon:hasHelpers:isDragged:);
+// :1716-1872 SidebarThreadRow's own init and body (B3 52bc792)
+// Requirements: UI-SIDEBAR-060 (the dragged-row lift; part 8, tagged on the tests below); PR-SIDEBAR-134,
+// PR-SIDEBAR-135 (windowFrame's frame report at :1820-1833 and glide(_:) at :1933-1978, both members of this same
+// still-unwritten constructor's body). Part 5's STOP #7 named these two under SidebarThreadRow's own remaining
+// collaborators; part 7's narrowing of STOP #7 (below) dropped them without marking either resolved, so they had no
+// currently-open STOP naming them until this one.
+// What is unclear or missing: nothing about the behaviour itself. Every collaborator SidebarThreadRow's own
+// constructor needs is already in the tree and proven directly by its own test above (Settle, Reopen,
+// ArchiveWithGenie, FinishRequestReceived, ThreadActions.Make/MakeContextMenu, RowGlideAnimator, HelperConnector,
+// ThreadRowFace, SettleCheck, ThreadBadge, BuildFoldOverlay, RowEquals, ApplyDraggedLift and the other part-3-to-5
+// static pieces). What is missing is the wiring: SidebarView.ThreadRow (:706-707) and SidebarThreadRow's own public
+// constructor (:2692-2702) both still `throw new NotImplementedException("MARROW_STUB ... (STOP #8)")`, so
+// windowFrame and glide(_:), which only run from inside that constructor's body, are unwritten with it. Because
+// Lifted's `row(isDragged)` call (:735) is that same ThreadRow, no SidebarView anywhere -- in this file or in the
+// running app -- can attach a real `.thread` SidebarItem without throwing, so UI-SIDEBAR-060 is provable only at the
+// seam level: the tests above that carry its trait drive the list's own drag state machine (DragChanged/DragEnded,
+// the pointer style) with a synthetic row builder, or call SidebarThreadRow.ApplyDraggedLift directly by reflection
+// on a synthetic Border, never through an assembled row, so the lift's on-screen manifestation on an actual dragged
+// thread row is unproven. This part (8 of 8) closes the unit's own part sequence without writing that assembly.
+// Readings or options: none; this is unwritten work, not an ambiguity or a decision the owner needs to make.
+// Needed to proceed: a follow-up unit to assemble SidebarThreadRow's own constructor and ThreadRow from the pieces
+// already proven above; this unit has no further parts to do it in.
+// Done so far: UI-SIDEBAR-060 and every PR-id record it restates are proven at the seam level (part 8 and earlier);
+// nothing claims the row's own constructor, ThreadRow, PR-SIDEBAR-134/135, or the lift end to end on a real row, and
+// no test in this file builds one.
 
 [Collection("Headless")]
 public sealed class SidebarViewTests(HeadlessSession headless)
@@ -5985,6 +6014,14 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     // above, and the lift's fill/shadow colors and the dot's own geometry/color were added to two of them (part 8).
     // The one piece no earlier part captured is the release spring dragEnded sets up once the drag clears; proven
     // below.
+    //
+    // UI-SIDEBAR-060 itself -- here and in every test above its trait was added to -- is proven only at the seam
+    // level: SidebarView.ThreadRow and SidebarThreadRow's own public constructor still throw MARROW_STUB (STOP #8,
+    // this file's own header), so no test builds an actual on-screen thread row to carry this lift; the pointer-
+    // style/neighbour-slide tests drive the list's drag state machine with a synthetic row builder, and the scale/
+    // fill/shadow tests below call ApplyDraggedLift directly by reflection on a synthetic Border. This part (8 of 8,
+    // the unit's last) closes without wiring that assembly, so the record's end-to-end, on-screen proof waits on a
+    // follow-up unit (STOP #8).
 
     // ---- UI-SIDEBAR-060: the release spring dragEnded's write runs inside ----
 

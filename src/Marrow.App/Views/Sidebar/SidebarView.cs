@@ -704,7 +704,7 @@ public sealed class SidebarView : Decorator
     // :870-897 threadRow(_:projectName:projectIcon:hasHelpers:isDragged:), the popovers around SidebarThreadRow (parts 3
     // and 4).
     private Control ThreadRow(ChatThread thread, string? projectName, ProjectIcon? projectIcon, bool hasHelpers, bool isDragged = false) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:870");
+        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:870 (STOP #8)");
 
     // MARK: Rows
 
@@ -2699,7 +2699,7 @@ internal sealed class SidebarThreadRow : Decorator
         bool isDragged = false,
         FrameHolder? listFrame = null,
         Action? onToggleFold = null) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1716");
+        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1716 (STOP #8)");
 
     // :1874-1877 private static func fill(isSelected: Bool, isHovering: Bool) -> Double. PR-SIDEBAR-063.
     internal static double Fill(bool isSelected, bool isHovering)
