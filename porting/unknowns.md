@@ -432,7 +432,7 @@ Both remain open options for the owner alone.
 
 - **Status:** RESOLVED 2026-09-22 by OD-0008. Raised 2026-09-20 with the quarantine entry BLK-0012 in porting/blocked_requirements.json, which holds the evidence, the harm and the ruling; recorded here so every unknown a record names has an entry.
 
-## UNK-0023 Upstream has moved past the pinned baseline (B2, 1.6.2) to 1.7.0
+## UNK-0025 Upstream has moved past the pinned baseline (B2, 1.6.2) to 1.7.0
 
 - **Status:** OPEN, raised 2026-09-26 by Claude. Owner decision needed; not blocking - implementation continues on the
   frozen B2 pin per OD-0006/AM-0002 until the owner rules.
