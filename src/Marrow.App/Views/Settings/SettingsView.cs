@@ -17,6 +17,11 @@ using Marrow.UI.Sound;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
 using Marrow.UI.Theme;
+using Marrow.Core.Support;
+using Marrow.UI.Markdown;
+using Avalonia.Media.Imaging;
+using Avalonia.Platform;
+using System.IO;
 
 namespace Marrow.App.Views.Settings;
 
@@ -354,24 +359,77 @@ internal sealed class GeneralSettingsPage : Decorator
 internal sealed class AppearanceSettingsPage : Decorator
 {
     // :420-457 body
-    public AppearanceSettingsPage() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Settings/SettingsView.swift:420");
+    public AppearanceSettingsPage()
+    {
+        var host = new Border(); Child = host;
+        this.Track(() => AppEnvironment.GetAppModel(this), model =>
+        {
+            var settings = model.Settings;
+            var theme = new ChromeRow("Theme", () => new ThemePickerButton(new Binding<AppTheme>(() => settings.Theme, value => settings.Theme = value))); // :424-426
+            theme.Track(() => settings.Theme, value => SettingsRowDetails.Update(theme, value.Detail()));
+            var sidebar = new ChromeRow("Sidebar", () => new ChromeVisualPicker<SidebarMode, Control>(SwiftEnum<SidebarMode>.AllCases.Select(mode => (mode, mode.Title)).ToArray(), new Binding<SidebarMode>(() => settings.SidebarMode, value => settings.SidebarMode = value), mode => SwiftImage.SystemName(mode == SidebarMode.Column ? "sidebar.left" : mode == SidebarMode.Floating ? "macwindow.on.rectangle" : "macwindow"))); // :432-436
+            sidebar.Track(() => settings.SidebarMode, value => SettingsRowDetails.Update(sidebar, value.Detail));
+            var activity = new ChromeRow("Activity list", () => new ChromeVisualPicker<ActivityThreadStyle, Control>(SwiftEnum<ActivityThreadStyle>.AllCases.Select(style => (style, style.Title)).ToArray(), new Binding<ActivityThreadStyle>(() => settings.ActivityThreadStyle, value => settings.ActivityThreadStyle = value), style => SwiftImage.SystemName(style == ActivityThreadStyle.Icon ? "list.bullet" : "text.alignleft"))); // :438-442
+            activity.Track(() => settings.ActivityThreadStyle, value => SettingsRowDetails.Update(activity, value.Detail));
+            var open = new ChromeRow("Open the sidebar at launch", () => new SettingsSwitch(new Binding<bool>(() => model.Sidebar.StartsOpen, value => model.Sidebar.StartsOpen = value)), "Collapsed otherwise; the list button in the toolbar shows and hides it any time"); // :444-448
+            open.Track(() => settings.SidebarMode, mode => { open.IsEnabled = mode != SidebarMode.PanelOnly; open.Opacity = mode == SidebarMode.PanelOnly ? 0.5 : 1; }); // :449-450
+            var rows = new StackPanel();
+            foreach (var row in new Control[] { theme, new ChromeRow("Transparency", () => new BackdropOpacitySlider(new Binding<double>(() => settings.BackdropOpacity, value => settings.BackdropOpacity = value)), "How much shows through the window"), sidebar, activity, open }) { if (rows.Children.Count > 0) rows.Children.Add(new ChromeRowDivider()); rows.Children.Add(row); }
+            host.Child = new ChromeSection("Appearance", () => new StackPanel { Spacing = Chrome.SectionSpacing, Children = { new ChromeCard(() => rows), new WallpaperCard(), new AppZoomCard(new Binding<long>(() => settings.AppZoom, value => settings.AppZoom = value)) } }); // :452-454
+        });
+    }
+}
+
+// Updates a ChromeRow's own detail slot without replacing its editing control or popover.
+internal static class SettingsRowDetails
+{
+    public static void Update(ChromeRow row, string? detail)
+    {
+        var labels = (StackPanel)((Grid)((Border)row.Child!).Child!).Children[0];
+        if (string.IsNullOrEmpty(detail)) { if (labels.Children.Count > 1) labels.Children.RemoveAt(1); return; }
+        if (labels.Children.Count > 1) ((TextBlock)labels.Children[1]).Text = detail;
+        else labels.Children.Add(new TextBlock { Text = detail, TextWrapping = TextWrapping.Wrap, Foreground = Chrome.SecondaryText.Brush(row) }.Font(SwiftFont.System(11)));
+    }
 }
 
 /// <summary>:462-517 <c>private struct AppZoomCard: View</c>: the app-wide zoom.</summary>
 internal sealed class AppZoomCard : Decorator
 {
     // :463 @Binding var percent: Int; :467-516 body
-    public AppZoomCard(Binding<long> percent) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Settings/SettingsView.swift:467");
+    public AppZoomCard(Binding<long> percent)
+    {
+        var controls = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        Button Command(string symbol, string help, Action action)
+        {
+            var button = PlainControls.Button(SwiftImage.SystemName(symbol).Font(SwiftFont.System(11, SwiftFont.Weight.Medium)).ForegroundStyle(Chrome.SecondaryText), action); button.Width = 22; button.Height = 22; ToolTip.SetTip(button, help); return button;
+        }
+        var smaller = Command("textformat.size.smaller", "Zoom out", () => percent.Value = AppZoom.Next((int)percent.Value, increasing: false)); // :475-483
+        var label = new TextBlock { MinWidth = 46, TextAlignment = TextAlignment.Center, Foreground = Chrome.SecondaryText.Brush(this) }.Font(SwiftFont.System(11, SwiftFont.Weight.Medium, design: SwiftFont.Design.Monospaced)); // :485-490
+        var larger = Command("textformat.size.larger", "Zoom in", () => percent.Value = AppZoom.Next((int)percent.Value, increasing: true)); // :491-499
+        var reset = Command("arrow.counterclockwise", "Back to the stock size", () => percent.Value = 100); // :501-510
+        controls.Children.Add(smaller); controls.Children.Add(label); controls.Children.Add(larger); controls.Children.Add(reset);
+        var row = new ChromeRow("Zoom", () => controls); Child = new ChromeCard(() => row);
+        this.Track(() => AppZoom.Normalized((int)percent.Value), value => { label.Text = value + "%"; SettingsRowDetails.Update(row, value == 100 ? "The stock size" : value + "% of the stock size"); smaller.IsEnabled = value > AppZoom.Levels[0]; larger.IsEnabled = value < AppZoom.Levels[^1]; reset.IsEnabled = value != 100; reset.Opacity = value == 100 ? 0 : 1; }); // :467-516
+    }
 }
 
 /// <summary>:521-564 <c>private struct BackdropOpacitySlider: View</c>.</summary>
 internal sealed class BackdropOpacitySlider : Decorator
 {
     // :522 @Binding var value: Double; :526-563 body
-    public BackdropOpacitySlider(Binding<double> value) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Settings/SettingsView.swift:526");
+    public BackdropOpacitySlider(Binding<double> value)
+    {
+        var slider = new Slider { Minimum = 0, Maximum = 1, Width = 140, Value = value.Value }; // :535-537
+        slider.PropertyChanged += (_, change) => { if (change.Property == Slider.ValueProperty && value.Value != slider.Value) value.Value = slider.Value; };
+        slider.Track(() => value.Value, v => slider.Value = v);
+        var clear = SwiftImage.SystemName("circle.dotted").Font(SwiftFont.System(11)).ForegroundStyle(Chrome.SecondaryText); ToolTip.SetTip(clear, "Clear");
+        var solid = SwiftImage.SystemName("circle.fill").Font(SwiftFont.System(11)).ForegroundStyle(Chrome.SecondaryText); ToolTip.SetTip(solid, "Solid");
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { clear, slider, solid } }; // :528-539
+        var reset = PlainControls.Button(SwiftImage.SystemName("arrow.counterclockwise").Font(SwiftFont.System(11, SwiftFont.Weight.Medium)).ForegroundStyle(Chrome.SecondaryText), () => Transaction.WithAnimation(Animation.Snappy(0.2), () => value.Value = 0.5));
+        reset.Width = 22; reset.Height = 22; reset.HorizontalAlignment = HorizontalAlignment.Left; reset.VerticalAlignment = VerticalAlignment.Center; reset.RenderTransform = new TranslateTransform(-28, 0); ToolTip.SetTip(reset, "Back to the stock look"); // :540-557
+        reset.Track(() => Math.Abs(value.Value - 0.5) >= 0.005, offStock => reset.IsVisible = offStock); // :524,558-562
+        Child = new Panel { Children = { row, reset } }; AutomationProperties.SetName(this, "Window transparency"); // :563
+    }
 }
 
 /// <summary>:566-580 <c>private struct ProvidersRefreshButton: View</c>.</summary>
@@ -448,13 +506,13 @@ internal sealed class ProviderSettingsSection : Decorator
             cardRows.Children.Add(statusRow);
             var usage = new StackPanel { Spacing = 14, Margin = new Thickness(16, 12) }; // :676-687
             var usageSlot = new StackPanel(); cardRows.Children.Add(usageSlot);
-            statusRow.Track(() => model.Providers.Status(provider), status =>
+            statusRow.Track(() => { _ = model.Providers.Statuses; return model.Providers.Status(provider); }, status =>
             {
                 labels.Children.Clear(); labels.Children.Add(new TextBlock { Text = status.IsChecking ? "Checking\u2026" : status.Summary }.Font(SwiftFont.System(13))); // :655-656
                 var detailText = !provider.IsAPIKeyBased && status.Version is { } version ? "Version " + version : provider.IsAPIKeyBased && status.ApiKeyConfigured && provider.ApiHost is { } host ? "Native API \u00b7 " + host : null; // :657-664
                 if (detailText is not null) labels.Children.Add(new TextBlock { Text = detailText, Foreground = Chrome.SecondaryText.Brush(this) }.Font(SwiftFont.System(11)));
             });
-            bool ShowsUsage() { var status = model.Providers.Status(provider); return (PlanLimitsReader.ExposesLimits(provider) || CreditsReader.ExposesCredits(provider)) && status.IsInstalled && status.ProviderStatusAuth is not ProviderStatus.Auth.SignedOut; } // :629-634
+            bool ShowsUsage() { _ = model.Providers.Statuses; var status = model.Providers.Status(provider); return (PlanLimitsReader.ExposesLimits(provider) || CreditsReader.ExposesCredits(provider)) && status.IsInstalled && status.ProviderStatusAuth is not ProviderStatus.Auth.SignedOut; } // :629-634
             usageSlot.Track(ShowsUsage, shows =>
             {
                 usageSlot.Children.Clear();
@@ -488,10 +546,10 @@ internal sealed class ProviderSettingsSection : Decorator
                 cardRows.Children.Add(new ChromeRowDivider());
                 var field = PlainControls.TextField(provider.ExecutableName, new Binding<string>(() => state.BinaryPath, value => { state.BinaryPath = value; if (!SwiftString.Equal(value, model.Settings.BinaryPath(provider))) model.Settings.SetBinaryPath(value, provider); })); // :732-735,780-783
                 field.Width = 200; SwiftFont.System(12, design: SwiftFont.Design.Monospaced).Apply(field);
-                var row = new ChromeRow("Binary path", () => field, model.Providers.Status(provider).Executable?.Path); cardRows.Children.Add(row); // :732-736
+                var row = new ChromeRow("Binary path", () => field); row.Track(() => { _ = model.Providers.Statuses; return model.Providers.Status(provider).Executable?.Path; }, value => SettingsRowDetails.Update(row, value)); cardRows.Children.Add(row); // :732-736
             }
             var installSlot = new StackPanel(); cardRows.Children.Add(installSlot);
-            installSlot.Track(() => model.Providers.Status(provider), status =>
+            installSlot.Track(() => { _ = model.Providers.Statuses; return model.Providers.Status(provider); }, status =>
             {
                 installSlot.Children.Clear();
                 if (provider.IsAPIKeyBased && !status.IsInstalled) { installSlot.Children.Add(new ChromeRowDivider()); installSlot.Children.Add(new ChromeRow("Get a key", () => Link("Get a " + provider.DisplayName + " key", provider.InstallURL), provider.DisplayName + " needs an API key. Nothing to install.")); } // :719-727
@@ -529,7 +587,7 @@ internal sealed class SourceControlSettingsPage : Decorator
         {
             var settings = model.Settings;
             sections.Children.Add(new ChromeSection("Text generation", () => new ChromeCard(() => new ChromeRow("Thread titles and commit messages", () =>
-                new GlassPickerButton<TextGenerationChoice>(SwiftEnum<TextGenerationChoice>.AllCases.Select(choice => (choice, choice.Title)).ToArray(), new Binding<TextGenerationChoice>(() => settings.TextGeneration, value => settings.TextGeneration = value)),
+                new GlassPickerButton<TextGenerationChoice>(SwiftEnum<TextGenerationChoice>.AllCases.Select(choice => (choice, choice.Title)).ToArray(), new Binding<TextGenerationChoice>(() => settings.TextGeneration, value => settings.TextGeneration = value), asset: choice => choice == TextGenerationChoice.Claude ? "claude" : choice == TextGenerationChoice.Codex ? "codex" : null),
                 "Automatic uses the thread's own provider. Claude uses Haiku, Codex your default model.")))); // :808-816
             var editor = PlainControls.TextField("", new Binding<string>(() => settings.CommitInstructions, value => settings.CommitInstructions = value)); editor.AcceptsReturn = true; editor.MinHeight = 90; SwiftFont.System(SwiftFont.TextStyle.Body).Apply(editor); // :821-824
             var placeholder = new TextBlock { Text = "For example: use conventional commit prefixes", Margin = new Thickness(5, 0), Foreground = Chrome.SecondaryText.Brush(this), IsHitTestVisible = false }.Font(SwiftFont.System(SwiftFont.TextStyle.Body)); // :825-830
@@ -548,53 +606,168 @@ internal sealed class SourceControlSettingsPage : Decorator
 /// <summary>:877-909 <c>private struct ArchiveDeleteAllButton: View</c>.</summary>
 internal sealed class ArchiveDeleteAllButton : Decorator
 {
+    private readonly PresentedState state = new(); // :855
     // :881-908 body
-    public ArchiveDeleteAllButton() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Settings/SettingsView.swift:881");
+    public ArchiveDeleteAllButton()
+    {
+        var capsule = new ChromeTextButton("trash", "Delete all", "Delete every archived thread", () =>
+        {
+            var model = AppEnvironment.GetAppModel(this); if (model.Settings.ConfirmBeforeDeleting) state.IsPresented = true; else model.DeleteArchivedThreads();
+        }, isDestructive: true);
+        var popup = PlainControls.Popover(capsule, new Binding<bool>(() => state.IsPresented, value => state.IsPresented = value), () =>
+        {
+            var model = AppEnvironment.GetAppModel(this); var count = model.ArchivedThreads.Count;
+            var content = new PopoverMenu(() => new StackPanel { Children =
+            {
+                new PopoverSectionHeader(count == 1 ? "Delete the archived thread?" : "Delete all archived threads?"),
+                new PopoverNote(count == 1 ? "Its history will be removed. Files in your project stay as they are." : $"The histories of all {count} threads will be removed. Files in your projects stay as they are."),
+                new PopoverDivider(), new PopoverItem(count == 1 ? "Delete thread" : $"Delete {count} threads", () => model.DeleteArchivedThreads(), symbol: "trash", isDestructive: true),
+            } }); Popovers.SetClosePopover(content, () => state.IsPresented = false); return content;
+        }); Child = new Panel { Children = { capsule, popup } };
+        capsule.Track(() => AppEnvironment.GetAppModel(this).ArchivedThreads.Count > 0, enabled => capsule.IsEnabled = enabled); // :857-885
+    }
+}
+
+// Source-shaped @State used by the popovers declared in this unit.
+internal sealed class PresentedState : MainActorModel
+{
+    private bool isPresented, isHovering;
+    public bool IsPresented { get => Read(isPresented); set => Set(ref isPresented, value); }
+    public bool IsHovering { get => Read(isHovering); set => Set(ref isHovering, value); }
 }
 
 /// <summary>:912-959 <c>private struct ArchiveSettingsPage: View</c>.</summary>
 internal sealed class ArchiveSettingsPage : Decorator
 {
+    private ChatThread? pendingDeletion; // :893-894
+    private Avalonia.Controls.Window? confirmation;
     // :919-958 body
-    public ArchiveSettingsPage() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Settings/SettingsView.swift:919");
+    public ArchiveSettingsPage()
+    {
+        var rows = new StackPanel(); Child = new ChromeCard(() => rows); // :896
+        var entries = new ForEach<ChatThread, Guid>(rows, thread => thread.Id, MakeRow, (row, thread) =>
+        {
+            var labels = (StackPanel)((Grid)((Border)((ChromeRow)row).Child!).Child!).Children[0]; ((TextBlock)labels.Children[0]).Text = thread.Title;
+            SettingsRowDetails.Update((ChromeRow)row, AppEnvironment.GetAppModel(this).Project(thread.ProjectID)?.Name);
+        });
+        this.Track(() => AppEnvironment.GetAppModel(this).ArchivedThreads, threads =>
+        {
+            entries.Apply(threads); var items = rows.Children.OfType<ChromeRow>().ToArray(); rows.Children.Clear();
+            for (var i = 0; i < items.Length; i++) { if (i > 0) rows.Children.Add(new ChromeRowDivider()); rows.Children.Add(items[i]); }
+        });
+        DetachedFromVisualTree += (_, _) => confirmation?.Close();
+    }
+    // :898-918
+    private Control MakeRow(ChatThread thread)
+    {
+        var model = AppEnvironment.GetAppModel(this);
+        var restore = PlainControls.Button(new TextBlock { Text = "Restore" }.Font(SwiftFont.System(12)), () => model.Unarchive(thread.Id));
+        var delete = PlainControls.Button(new TextBlock { Text = "Delete", Foreground = Chrome.Danger.Brush(this) }.Font(SwiftFont.System(12)), () =>
+        {
+            if (!model.Settings.ConfirmBeforeDeleting) { model.Delete(thread.Id); return; }
+            pendingDeletion = thread; PresentConfirmation();
+        });
+        return new ChromeRow(thread.Title, () => new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { restore.ChromeGlassCapsule(), delete.ChromeGlassCapsule() } }, model.Project(thread.ProjectID)?.Name);
+    }
+    // :920-934. Avalonia has no SwiftUI confirmationDialog; a shared owner-centred modal supplies its
+    // question, message, destructive action and close cancellation, with native auto-sized geometry.
+    private void PresentConfirmation()
+    {
+        if (confirmation is not null) { confirmation.Title = pendingDeletion is { } current ? $"Delete \"{current.Title}\"?" : "Delete the archived thread?"; return; }
+        var question = pendingDeletion is { } thread ? $"Delete \"{thread.Title}\"?" : "Delete the archived thread?";
+        var confirm = PlainControls.Button(new TextBlock { Text = "Delete thread", Foreground = Chrome.Danger.Brush(this) }, () => { if (pendingDeletion is { } pending) AppEnvironment.GetAppModel(this).Delete(pending.Id); confirmation?.Close(); });
+        var dialog = new Avalonia.Controls.Window { Title = question, CanResize = false, SizeToContent = SizeToContent.WidthAndHeight, WindowStartupLocation = WindowStartupLocation.CenterOwner, Content = new StackPanel { Children = { new TextBlock { Text = "Its history will be removed. Files in your project stay as they are." }, confirm } } };
+        confirmation = dialog; dialog.Closed += (_, _) => { pendingDeletion = null; confirmation = null; };
+        if (TopLevel.GetTopLevel(this) is Avalonia.Controls.Window owner) _ = dialog.ShowDialog(owner); else dialog.Show();
+    }
 }
 
 /// <summary>:961-1028 <c>private struct AboutSettingsPage: View</c>.</summary>
 internal sealed class AboutSettingsPage : Decorator
 {
     // :965-989 body
-    public AboutSettingsPage() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Settings/SettingsView.swift:965");
+    public AboutSettingsPage()
+    {
+        var card = new ChromeCard(AppCard);
+        var credits = new ChromeSection("Credits", () => new ChromeCard(() => new StackPanel { Children =
+        {
+            new MadeByDroppyRow(SwiftURL.Create("https://getdroppy.app")!), new ChromeRowDivider(),
+            new ChromeRow("Working indicators", () => new CreditLink("zeronsh/zeron", SwiftURL.Create("https://github.com/zeronsh/zeron")!), "Ported from Zeron by Wing, MIT License."), new ChromeRowDivider(),
+            // STOP #4: terminal credit remains unwritten until the Windows component is identified (OD-0012 H).
+            new ChromeRow("Welcome tour", () => new CreditLink("rampatra/TourKit", SwiftURL.Create("https://github.com/rampatra/TourKit")!), "Ported from TourKit by Ram Patra, MIT License."), new ChromeRowDivider(), new LicensesRow(),
+        } }));
+        Child = new StackPanel { Spacing = Chrome.SectionSpacing, Children = { new AboutSoftwareUpdateSection(), card, credits } }; // :942-965 UPSTREAM DEFECT: empty update slot still reserves the gap.
+    }
+    // :968-1005
+    private Control AppCard()
+    {
+        var icon = new Image { Source = new Bitmap(AssetLoader.Open(new Uri("avares://Marrow.App/Assets/icon.png"))), Width = 56, Height = 56 };
+        var labels = new StackPanel { Spacing = 3, Children = { new TextBlock { Text = "Marrow" }.Font(SwiftFont.System(15, SwiftFont.Weight.Semibold)), new TextBlock { Text = $"Version {AppInfo.Current.Version} ({AppInfo.Current.Build})", Foreground = Chrome.SecondaryText.Brush(this) }.Font(SwiftFont.System(12)) } };
+        return new StackPanel { Children =
+        {
+            new StackPanel { Orientation = Orientation.Horizontal, Spacing = 14, Margin = new Thickness(16), Children = { icon, labels } }, new ChromeRowDivider(),
+            new ChromeRow("Welcome tour", () => PlainControls.Button(new TextBlock { Text = "Show" }, () => Marrow.App.Views.Tour.Tour.Present(AppEnvironment.GetAppModel(this))).ChromeGlassCapsule(), "The slideshow from the first launch: Hydra, the effort slider, panels and themes."), new ChromeRowDivider(), new AboutUpdateCheckRow(), new ChromeRowDivider(),
+            new TextBlock { Text = "A native home for your coding agents, built in C# with Avalonia.", Margin = new Thickness(16, 11, 10, 11), TextWrapping = TextWrapping.Wrap }.Font(SwiftFont.System(13)),
+            // STOP #4: the terminal-dependent licence sentence is deliberately not fabricated.
+        } };
+    }
 }
 
 /// <summary>:1032-1080 <c>private struct LicensesRow: View</c>: the license, notices and trademark policy.</summary>
 internal sealed class LicensesRow : Decorator
 {
     // :1041-1067 body
-    public LicensesRow() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Settings/SettingsView.swift:1041");
+    private static readonly (string Title, string Resource)[] files = [("Marrow", "LICENSE"), ("Third-party notices", "THIRD_PARTY_NOTICES"), ("Trademarks", "TRADEMARK")]; // :1013-1017
+    private static readonly Lazy<Dictionary<string, string>> texts = new(() => files.ToDictionary(file => file.Resource, file => Read(file.Resource))); // :1046-1056
+    public LicensesRow()
+    {
+        var state = new PresentedState(); var button = PlainControls.Button(new TextBlock { Text = "Show" }, () => state.IsPresented = true);
+        var popup = PlainControls.Popover(button, new Binding<bool>(() => state.IsPresented, value => state.IsPresented = value), () =>
+        {
+            var stack = new StackPanel { Spacing = 18, Margin = new Thickness(18) };
+            foreach (var file in files)
+            {
+                var markdown = new MarkdownView(Text(file.Resource)); MarkdownView.SetMarkdownPointSize(markdown, 12); Avalonia.Controls.Documents.TextElement.SetForeground(markdown, Chrome.SecondaryText.Brush(this));
+                stack.Children.Add(new StackPanel { Spacing = 8, Children = { new TextBlock { Text = file.Title }.Font(SwiftFont.System(13, SwiftFont.Weight.Semibold)), markdown } });
+            }
+            return new ScrollViewer { Width = 480, Height = 440, Content = stack, HorizontalContentAlignment = HorizontalAlignment.Left };
+        });
+        Child = new ChromeRow("Licenses", () => new Panel { Children = { button.ChromeGlassCapsule(), popup } }, "AGPL-3.0 with attribution terms, and the notices for what the app builds on."); // :1019-1042
+    }
 
     // :1077-1079 private static func text(of:) -> String
-    private static string Text(string of) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Settings/SettingsView.swift:1077");
+    private static string Text(string of) => texts.Value[of]; // :1055
+    private static string Read(string resource)
+    {
+        try { return File.ReadAllText(Path.Combine(AppContext.BaseDirectory, resource == "LICENSE" ? resource : resource + ".md")); }
+        catch (IOException) { return $"The {resource} file is missing from this copy of the app."; }
+        catch (UnauthorizedAccessException) { return $"The {resource} file is missing from this copy of the app."; }
+    }
 }
 
 /// <summary>:1083-1125 <c>private struct MadeByDroppyRow: View</c>.</summary>
 internal sealed class MadeByDroppyRow : Decorator
 {
     // :1084 let url: URL; :1087-1124 body
-    public MadeByDroppyRow(SwiftURL url) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Settings/SettingsView.swift:1087");
+    public MadeByDroppyRow(SwiftURL url)
+    {
+        var logo = SwiftImage.Named("droppy-logo").Resizable().AspectRatio(ContentMode.Fit); logo.Width = 40; logo.Height = 40; AutomationProperties.SetAccessibilityView(logo, AccessibilityView.Raw); // :1070-1073
+        var labels = new StackPanel { Spacing = 2, Children = { new TextBlock { Text = "Made by Droppy", Foreground = Chrome.PrimaryText.Brush(this) }.Font(SwiftFont.System(13, SwiftFont.Weight.Semibold)), new TextBlock { Text = "Based on Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app", Foreground = Chrome.SecondaryText.Brush(this), TextWrapping = TextWrapping.Wrap }.Font(SwiftFont.System(11)) } }; // :1074-1080 OD-0012 F3
+        var trailing = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Opacity = 0.9, Children = { new TextBlock { Text = "getdroppy.app", Foreground = Chrome.Accent.Brush(this) }.Font(SwiftFont.System(12, SwiftFont.Weight.Medium)), SwiftImage.SystemName("arrow.up.right").Font(SwiftFont.System(10, SwiftFont.Weight.Semibold)).ForegroundStyle(Chrome.Accent) } };
+        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto"), ColumnSpacing = 12, Margin = new Thickness(16, 12, Chrome.RowControlTrailingPadding + 4, 12) }; Grid.SetColumn(labels, 1); Grid.SetColumn(trailing, 2); row.Children.Add(logo); row.Children.Add(labels); row.Children.Add(trailing);
+        var button = PlainControls.Button(row, () => Marrow.Services.Port.Workspace.Open.Current(url)); button.OnHover(hovering => trailing.Opacity = hovering ? 1 : 0.9); ToolTip.SetTip(button, "Open getdroppy.app"); AutomationProperties.SetName(button, "Made by Droppy. Open getdroppy.app"); Child = button; // :1081-1101
+    }
 }
 
 /// <summary>:1127-1144 <c>private struct CreditLink: View</c>.</summary>
 internal sealed class CreditLink : Decorator
 {
     // :1128-1129 let title, let url; :1131-1143 body
-    public CreditLink(string title, SwiftURL url) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Settings/SettingsView.swift:1131");
+    public CreditLink(string title, SwiftURL url)
+    {
+        var label = new TextBlock { Text = title, Foreground = Chrome.Accent.Brush(this) }.Font(SwiftFont.System(12, SwiftFont.Weight.Medium));
+        var button = PlainControls.Button(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Children = { label, SwiftImage.SystemName("arrow.up.right").Font(SwiftFont.System(10, SwiftFont.Weight.Semibold)).ForegroundStyle(Chrome.Accent) } }, () => Marrow.Services.Port.Workspace.Open.Current(url)); ToolTip.SetTip(button, url.AbsoluteString); Child = button; // :1107-1120
+    }
 }
 
 /// <summary>:1148-1178 <c>private struct ProjectMarksRow: View</c>: the per-project marks behind one button.</summary>
@@ -634,6 +807,26 @@ internal sealed class ProjectMarksRow : Decorator
 internal sealed class ThemePickerButton : Decorator
 {
     // :1183 @Binding var selection: AppTheme; :1191-1225 body
-    public ThemePickerButton(Binding<AppTheme> selection) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Settings/SettingsView.swift:1191");
+    public ThemePickerButton(Binding<AppTheme> selection)
+    {
+        var state = new PresentedState(); var label = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Height = Chrome.CapsuleContentHeight, Margin = new Thickness(Chrome.CapsuleHorizontalPadding, 0) };
+        void Update()
+        {
+            var theme = selection.Value; label.Children.Clear(); var swatch = theme.Swatch(); swatch.Width = 14; swatch.Height = 14; label.Children.Add(swatch); label.Children.Add(new TextBlock { Text = theme.DisplayName(), MaxLines = 1 }.Font(SwiftFont.System(12.5, SwiftFont.Weight.Medium))); label.Children.Add(SwiftImage.SystemName("chevron.down").Font(SwiftFont.System(8, SwiftFont.Weight.Bold)).ForegroundStyle(Chrome.SecondaryText));
+        }
+        var button = PlainControls.Button(label, () => state.IsPresented = !state.IsPresented);
+        var foreground = new AnimatedColor(label); Avalonia.Controls.Documents.TextElement.SetForeground(label, foreground.Brush);
+        label.Track(() => state.IsHovering || state.IsPresented, full => foreground.Set(Chrome.PrimaryText.Opacity(full ? 1 : 0.92), Transaction.Current)); // :1188
+        button.OnHover(value => Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = value));
+        var popup = PlainControls.Popover(button, new Binding<bool>(() => state.IsPresented, value => state.IsPresented = value), () =>
+        {
+            var items = new StackPanel();
+            Control Item(AppTheme theme) => new PopoverItem(theme.DisplayName(), () => { selection.Value = theme; Update(); }, leading: theme.Swatch(), isChecked: theme == selection.Value);
+            items.Children.Add(Item(AppTheme.System));
+            foreach (var scheme in new[] { ("Dark", Avalonia.Styling.ThemeVariant.Dark), ("Light", Avalonia.Styling.ThemeVariant.Light) }) { items.Children.Add(new PopoverSectionHeader(scheme.Item1)); foreach (var theme in SwiftEnum<AppTheme>.AllCases.Where(theme => theme.Scheme() == scheme.Item2)) items.Children.Add(Item(theme)); }
+            var menu = new PopoverMenu(() => items); Popovers.SetClosePopover(menu, () => state.IsPresented = false); return menu;
+        });
+        Child = new Panel { Children = { button.ChromeGlassCapsule(), popup } }; this.Track(() => selection.Value, _ => Update());
+        AttachedToVisualTree += (_, _) => ThemeManager.DidChange += Update; DetachedFromVisualTree += (_, _) => ThemeManager.DidChange -= Update; // :1171-1208
+    }
 }

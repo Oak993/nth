@@ -35,7 +35,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     // Needed: the upstream unit's terminal launcher. The login row can be ported; its action cannot be verified.
     private static T Field<T>(object obj, string name) => (T)obj.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(obj)!;
     private static T[] Nodes<T>(Control root) where T : class => LogicalQuery.SelfAndDescendants<T>(root).ToArray();
-    private static string[] Text(Control root) => Nodes<TextBlock>(root).Select(x => x.Text ?? "").ToArray();
+    private static string[] Text(Control root) => Nodes<TextBlock>(root).Select(x => x is MiddleTruncatingText middle ? middle.FullText : x.Text ?? "").ToArray();
     private static Button Button(Control root, string label) => Nodes<Button>(root).First(x => Text(x).Contains(label) || AutomationProperties.GetName(x) == label);
     private static void Click(Button button) => button.RaiseEvent(new RoutedEventArgs(Avalonia.Controls.Button.ClickEvent));
     private static void Drain(Avalonia.Controls.Window window) { for (var i = 0; i < 5; i++) { window.UpdateLayout(); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); } }
@@ -217,7 +217,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
         Assert.Contains("Based on Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app", Text(view));
         Assert.Contains("The slideshow from the first launch: Hydra, the effort slider, panels and themes.", Text(view));
         Assert.Equal(56, Assert.Single(Nodes<Image>(stack.Children[1])).Width);
-        var droppy = Assert.Single(Nodes<MadeByDroppyRow>(view)); var mark = Assert.Single(Nodes<SwiftImage>(droppy)); Assert.Equal("droppy-logo", mark.AssetName); Assert.Equal(40, mark.Width);
+        var droppy = Assert.Single(Nodes<MadeByDroppyRow>(view)); var mark = Assert.Single(Nodes<SwiftImage>(droppy), image => image.AssetName is not null); Assert.Equal("droppy-logo", mark.AssetName); Assert.Equal(40, mark.Width); Assert.Single(Nodes<SwiftImage>(droppy), image => image.SymbolName == "arrow.up.right");
     });
 
     [Fact]
