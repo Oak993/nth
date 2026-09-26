@@ -615,7 +615,7 @@ internal sealed class ProviderSettingsSection : Decorator
                 if (provider.IsAPIKeyBased && !status.IsInstalled) { installSlot.Children.Add(new ChromeRowDivider()); installSlot.Children.Add(new ChromeRow("Get a key", () => Link("Get a " + provider.DisplayName + " key", provider.InstallURL), provider.DisplayName + " needs an API key. Nothing to install.")); } // :719-727
                 if (provider.IsAPIKeyBased) return;
                 if (!status.IsInstalled) { installSlot.Children.Add(new ChromeRowDivider()); installSlot.Children.Add(new ChromeRow("Install", () => Link("Get " + provider.DisplayName, provider.InstallURL), provider.DisplayName + " was not found on your PATH.")); } // :738-745
-                else if (status.ProviderStatusAuth is not ProviderStatus.Auth.SignedIn && !status.IsChecking) { installSlot.Children.Add(new ChromeRowDivider()); installSlot.Children.Add(new ChromeRow("Sign in", () => PlainControls.Button(new TextBlock { Text = "Login", Height = Chrome.RowButtonLabelHeight }, () => Workspace.OpenTerminal(provider.LoginCommand)), "Click here to login again.")); } // :638-641,747-756
+                else if (status.ProviderStatusAuth is not ProviderStatus.Auth.SignedIn && !status.IsChecking) { installSlot.Children.Add(new ChromeRowDivider()); installSlot.Children.Add(new ChromeRow("Sign in", () => PlainControls.Button(new TextBlock { Text = "Login", Height = Chrome.RowButtonLabelHeight }, () => Workspace.OpenTerminal(provider.LoginCommand)).ChromeGlassCapsule(), "Click here to login again.")); } // :638-641,747-756
             });
         });
     }
@@ -669,13 +669,22 @@ internal sealed class SourceControlSettingsPage : Decorator
             sections.Children.Add(new ChromeSection("Text generation", () => new ChromeCard(() => new ChromeRow("Thread titles and commit messages", () =>
                 new GlassPickerButton<TextGenerationChoice>(SwiftEnum<TextGenerationChoice>.AllCases.Select(choice => (choice, choice.Title)).ToArray(), new Binding<TextGenerationChoice>(() => settings.TextGeneration, value => settings.TextGeneration = value), asset: choice => choice == TextGenerationChoice.Claude ? "claude" : choice == TextGenerationChoice.Codex ? "codex" : null),
                 "Automatic uses the thread's own provider. Claude uses Haiku, Codex your default model.")))); // :808-816
-            var editor = PlainControls.TextField("", new Binding<string>(() => settings.CommitInstructions, value => settings.CommitInstructions = value)); editor.AcceptsReturn = true; editor.MinHeight = 90; SwiftFont.System(SwiftFont.TextStyle.Body).Apply(editor); // :821-824
+            var editor = PlainControls.TextField("", new Binding<string>(() => settings.CommitInstructions, value => settings.CommitInstructions = value)); editor.AcceptsReturn = true; editor.TextWrapping = TextWrapping.Wrap; editor.MinHeight = 90; SwiftFont.System(SwiftFont.TextStyle.Body).Apply(editor); // :821-824
+            editor.Template = new FuncControlTemplate<TextBox>((owner, scope) => new ScrollViewer // :821-824. Plain transparent multiline editor, with its native caret/selection and scrolling.
+            {
+                Name = "PART_ScrollViewer", HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled, VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Hidden,
+                Content = new TextPresenter
+                {
+                    Name = "PART_TextPresenter", [!TextPresenter.TextProperty] = owner[!TextBox.TextProperty], [!TextPresenter.TextWrappingProperty] = owner[!TextBox.TextWrappingProperty],
+                    [!TextPresenter.CaretIndexProperty] = owner[!TextBox.CaretIndexProperty], [!TextPresenter.SelectionStartProperty] = owner[!TextBox.SelectionStartProperty], [!TextPresenter.SelectionEndProperty] = owner[!TextBox.SelectionEndProperty],
+                }.RegisterInNameScope(scope),
+            }.RegisterInNameScope(scope));
             var placeholder = new TextBlock { Text = "For example: use conventional commit prefixes", Margin = new Thickness(5, 0), Foreground = Chrome.SecondaryText.Brush(this), IsHitTestVisible = false }.Font(SwiftFont.System(SwiftFont.TextStyle.Body)); // :825-830
             placeholder.Track(() => settings.CommitInstructions.Length == 0, value => placeholder.IsVisible = value);
             sections.Children.Add(new ChromeSection("Commit message instructions", () => new ChromeCard(() => new Border { Padding = new Thickness(12), Child = new Panel { Children = { editor, placeholder } } }))); // :818-834
             sections.Children.Add(new ChromeSection("Worktrees and pull requests", () => new ChromeCard(() => new StackPanel { Children =
             {
-                new ChromeRow("Worktrees", () => PlainControls.Button(new TextBlock { Text = "Reveal" }, () => Workspace.RevealInFileExplorer(Storage.WorktreesDirectory)), Storage.WorktreesDirectory), // :838-840
+                new ChromeRow("Worktrees", () => PlainControls.Button(new TextBlock { Text = "Reveal" }, () => Workspace.RevealInFileExplorer(Storage.WorktreesDirectory)).ChromeGlassCapsule(), Storage.WorktreesDirectory), // :838-840
                 new ChromeRowDivider(), // :842
                 new ChromeRow("Pull requests", () => new Border(), "Opened with the GitHub CLI (gh) or GitLab CLI (glab) from your PATH."), // :843-845
             } })));
