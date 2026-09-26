@@ -1,0 +1,123 @@
+{
+  "bundle_id": "R3-11",
+  "reader": "R3-11-reader",
+  "files": [
+    {
+      "path": "DroppyCode/App/Views/Settings/SettingsView.swift",
+      "sha256": "2fa3b58f147283dba7e7e8b215834a0c20c9db53312fe6a129818b9c5b89a85f",
+      "ranges_read": [
+        [
+          1,
+          420
+        ],
+        [
+          421,
+          840
+        ],
+        [
+          841,
+          1209
+        ]
+      ],
+      "asset_inspection": null,
+      "purpose": "The Settings window's root view and most of its pages. SettingsView (91-294) lays out a 780x580 window with a 212-point sidebar whose search field filters the ten SettingsPage cases by title and keywords, and a detail sheet whose top chrome row carries per-page capsules (model search, MCP server search, providers refresh, archive Delete all, About update accessory). An empty Archive shows a lone 44-pt \"archivebox\" symbol in place of the page. The file also declares the SettingsPage enum (title, SF Symbol, tint, keywords per page), the SettingsNavigation singleton that lets the update notification and the post-install relaunch open About, and the private page views: General, Appearance with AppZoomCard and BackdropOpacitySlider, Providers (one collapsible section per provider with status, usage, API key, binary path, install and sign-in rows), Source control, Archive, and About (credits, a licenses popover, a Made by Droppy row). The helpers are ProjectMarksRow and ThemePickerButton. In B3 the provider section's disclosure header is delegated to the shared CollapsibleProviderHeader.",
+      "key_symbols": [
+        "enum SettingsPage: String, CaseIterable, Identifiable (4-80): general, hydra, appearance, providers, mcp, models, sourceControl, shortcuts, archive, about; id, title, symbol, tint, keywords",
+        "@MainActor @Observable final class SettingsNavigation (84-89): static let shared; var requestedPage: SettingsPage?",
+        "struct SettingsView: View (91-294): visiblePages, body, sidebar, detail, pageScroll, pageHasChromeControls, pageContent, static travel(_:)",
+        "struct SettingsSwitch: View (296-305)",
+        "private struct GeneralSettingsPage (307-413)",
+        "private struct AppearanceSettingsPage (417-458)",
+        "private struct AppZoomCard (462-517)",
+        "private struct BackdropOpacitySlider (521-564): isOffStock",
+        "private struct ProvidersRefreshButton (566-580)",
+        "private struct ProvidersSettingsPage (585-615): @State providerExpansion: [ProviderKind: Bool]",
+        "private struct ProviderSettingsSection (617-801): showsUsage, showsSignIn, body; header at 647 is CollapsibleProviderHeader(provider:isExpanded:subject: \"provider settings\")",
+        "private struct SourceControlSettingsPage (803-849)",
+        "private struct ArchiveDeleteAllButton (854-886)",
+        "private struct ArchiveSettingsPage (889-936): @State pendingDeletion: ChatThread?; ChromeCard(lazy: true) at 898",
+        "private struct AboutSettingsPage (938-1005): static droppyURL, appCard",
+        "private struct LicensesRow (1009-1057): static files, static texts, static text(of:)",
+        "private struct MadeByDroppyRow (1060-1102)",
+        "private struct CreditLink (1104-1121)",
+        "private struct ProjectMarksRow (1125-1155): icon(for:)",
+        "private struct ThemePickerButton (1159-1209): static dark, static light, item(_:)"
+      ],
+      "calls_into": [
+        "CollapsibleProviderHeader (B3 ModelsSettingsPage.swift:415-448), called at 647 with subject \"provider settings\"",
+        "ChromeCard(lazy:) (B3 Chrome.swift ChromeCard, lazy defaults to false); ChromeCard(lazy: true) at 898",
+        "ChromeSection, ChromeRow, ChromeRowDivider, ChromeRevealLayout, ChromeCapsule, ChromeIconButton, ChromeTextButton, ChromeSearchField, ChromeCompactTitle, PaneTopVeil, ChromeVisualPicker, GlassPickerButton, chromeGlassCapsule, detailSheet, presentedChrome",
+        "PopoverMenu, PopoverSectionHeader, PopoverNote, PopoverDivider, PopoverItem",
+        "SidebarSearchField, SidebarRow, SidebarIconBadge, SidebarSymbol, HydraMarkImage, UpdateAvailableDot, WindowBackdrop, WindowChromeConfigurator, WindowDragArea",
+        "SettingsScrollTracker (note/coast/end/isFrozen), ChromeScrollModel.update(travel:)",
+        "TokenActivitySection, WallpaperCard, MCPSettingsPage(query:), ModelsSettingsPage(query:), HydraSettingsPage, ShortcutsSettingsPage",
+        "AboutSoftwareUpdateSection, AboutUpdateCheckRow, AboutUpdateChromeAccessory, UpdateChecker.shared.updateAvailable",
+        "PlanLimitsReader.exposesLimits, CreditsReader.exposesCredits, PlanLimitsView, CreditsView",
+        "model.providers: status, isRefreshing, refreshEverything, refresh, loadCatalog(force:), refreshPlanLimits, refreshCredits",
+        "model.settings: isEnabled/setEnabled, binaryPath(for:)/setBinaryPath, apiKeyInput(for:)/setAPIKeyInput, confirmBeforeDeleting",
+        "model.archivedThreads, deleteArchivedThreads, delete, unarchive, project(_:), projects, updateProject",
+        "Workspace.openTerminal(running:), Workspace.revealInFinder, Storage.worktreesDirectory",
+        "FinishChime.play, SettleChime.play, Tour.present(model:)",
+        "AppZoom.normalized/next/levels, AppSettings.defaultBackdropOpacity",
+        "MarkdownView (markdownPointSize 12), Bundle.main.url(forResource:withExtension:)",
+        "ProviderIcon, ProjectIconButton, AppTheme.swatch/displayName/scheme"
+      ],
+      "state_owned": [
+        "SettingsView: @State page = .general, search, modelSearch, mcpSearch, scrollChrome, scrollTracker",
+        "SettingsNavigation.shared.requestedPage (read once, then cleared)",
+        "ProvidersSettingsPage: @State providerExpansion [ProviderKind: Bool] (per page lifetime)",
+        "ProviderSettingsSection: @State binaryPath, apiKey, showsAPIKey, keyCheck: Task<Void, Never>?",
+        "ArchiveDeleteAllButton: @State isConfirming",
+        "ArchiveSettingsPage: @State pendingDeletion: ChatThread?",
+        "LicensesRow: @State isPresented; static texts read from the bundle once",
+        "MadeByDroppyRow: @State isHovering",
+        "ProjectMarksRow: @State isPresented",
+        "ThemePickerButton: @State isPresented, isHovering"
+      ],
+      "side_effects": [
+        "Writes AppSettings through bindings on every toggle and picker",
+        "Plays FinishChime when \"Chime when a turn finishes\" is switched on, SettleChime when \"Sound when settling\" is switched on",
+        "API key edits are saved via setAPIKeyInput, which the detail text says is stored in the Keychain, then after a 600 ms debounce the section runs providers.refresh and loadCatalog(force: true)",
+        "Binary path edits are saved via setBinaryPath",
+        "showsUsage turning true triggers refreshPlanLimits and refreshCredits (the registry throttles them to one read a minute)",
+        "Login opens a Terminal running provider.loginCommand; Reveal opens the worktrees directory in Finder",
+        "Restore unarchives; Delete and Delete all remove thread histories (with confirmation when confirmBeforeDeleting)",
+        "Links open getdroppy.app, credit repos, and provider install and key URLs",
+        "Reads LICENSE, THIRD_PARTY_NOTICES.md and TRADEMARK.md from the app bundle"
+      ],
+      "platform_assumptions": [
+        "AppKit: NSApp.applicationIconImage for the About card icon",
+        "SF Symbols names throughout (gear, paintpalette, cpu, puzzlepiece.extension, archivebox, chevron.right, eye/eye.slash, textformat.size.smaller/larger and others)",
+        "macOS Keychain wording in the API key detail strings; Finder reveal; Terminal login",
+        "SwiftUI .glass button style (Liquid Glass), ScrollGeometry/onScrollPhaseChange, traffic-light geometry for the sidebar top spacer",
+        "Copy says \"Droppy Code is a coding app by Droppy for Mac.\""
+      ],
+      "persisted_fields": [
+        "AppSettings: defaultRuntimeMode, defaultWorkspaceMode, showReasoning, antiSlopEnabled, showsWorkingCard, recentDownloadsPicker, notifyWhenFinished, chimeWhenFinished, confirmBeforeDeleting, autoContinueAfterLimit, showsUsagePanel, projectsEnabled, threadFinishAction, settleSound",
+        "AppSettings: theme, backdropOpacity, sidebarMode, activityThreadStyle, appZoom, textGeneration, commitInstructions",
+        "AppSettings per provider: enabled (setEnabled), binary path, API key input (Keychain)",
+        "model.sidebar.startsOpen",
+        "Project.icon via model.updateProject"
+      ],
+      "ui_elements": [
+        "Sidebar: search field, ten page rows (Hydra row uses HydraMarkImage), About update dot, \"No results\" / \"Try a setting or a provider name.\"",
+        "Chrome row capsules: \"Search models\", \"Search servers\", providers refresh (\"Checking providers…\" / \"Check providers again\"), \"Delete all\", About update accessory",
+        "Empty archive: 44-pt light \"archivebox\" symbol, accessibility label \"No archived threads\"",
+        "General: sections \"New threads\", \"Conversation\", \"Projects\", \"Finished threads\" with the rows and detail strings at 315-411",
+        "Appearance: Theme, Transparency, Sidebar, Activity list, \"Open the sidebar at launch\", WallpaperCard, Zoom card (\"Zoom out\", \"Zoom in\", \"Back to the stock size\")",
+        "Provider section: CollapsibleProviderHeader (help \"Show the provider settings\" / \"Hide the provider settings\"), status row (\"Checking…\", \"Version <v>\", \"Native API · <host>\"), usage block, API key row with eye toggle, \"Get a key\", \"Binary path\", \"Install\", \"Sign in\" / \"Click here to login again.\" / \"Login\"",
+        "Source control: \"Text generation\", \"Commit message instructions\" (placeholder \"For example: use conventional commit prefixes\"), \"Worktrees and pull requests\" with Reveal",
+        "Archive: rows with Restore and Delete, confirmation dialog \"Delete \"<title>\"?\" / \"Delete thread\"; Delete all popover with singular and plural strings",
+        "About: app card (\"Droppy Code\", \"Version <v> (<build>)\", Welcome tour Show, update check row, description, license line), Credits section (Made by Droppy, Working indicators, Terminal, Welcome tour, Licenses popover 480x440)",
+        "ThemePickerButton popover: System, \"Dark\" section, \"Light\" section with swatches"
+      ],
+      "feature_notes": [
+        "B2->B3 is 2 insertions and 25 deletions in two hunks (churn 27). Mechanically verified: B2 :1-646 equals B3 :1-646, and B2 :671-1232 equals B3 :648-1209 apart from the card line, so every B2 cite at or after :671 moves up by exactly 23 and B2 :647-670 collapse onto B3 :647.",
+        "Hunk 1 (ProviderSettingsSection body, B2 :647-670 -> B3 :647). The 24-line inline disclosure Button is replaced by CollapsibleProviderHeader(provider: provider, isExpanded: $isExpanded, subject: \"provider settings\"). The struct is new in B3 at ModelsSettingsPage.swift:415-448 and is shared with the Models page (subject \"model list\", ModelsSettingsPage.swift:326). Its modifiers match the removed B2 code one for one, and its interpolated strings give the same B2 text: help \"Hide the provider settings\" / \"Show the provider settings\", accessibility hint \"Shows or hides the provider settings\", accessibility value \"Expanded\" / \"Collapsed\", label provider.displayName, isHeader trait. Nothing a user can see changes; it is a refactor.",
+        "Hunk 2 (ArchiveSettingsPage, B2 :921 -> B3 :898): `ChromeCard {` became `ChromeCard(lazy: true) {`. In B3, Chrome.swift's ChromeCard went from an unconditional LazyVStack to an eager VStack by default with an opt-in `lazy` flag (\"Use lazy only for cards that list a long, uniform, growing collection.\"). This line keeps the archived-thread list lazy exactly as in B2. Every other ChromeCard in this file becomes eager in B3 through the Chrome.swift change, not through this file: the General, Appearance, AppZoomCard, per-provider, Source control and About cards.",
+        "No strings, settings keys, defaults, pages, keywords, controls or actions were added, removed or reworded in this file between B2 and B3."
+      ],
+      "unresolved_questions": []
+    }
+  ]
+}

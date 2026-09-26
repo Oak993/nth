@@ -1,0 +1,110 @@
+{
+ "bundle_id": "R3-01",
+ "reader": "R3-01-reader",
+ "files": [
+  {
+   "path": "DroppyCode/App/AppModel+HydraMerge.swift",
+   "sha256": "801237073a6ceee82d23c8653a8da0f6dc4f6b9c03b9505fea04b1756c4687b0",
+   "ranges_read": [
+    [
+     1,
+     480
+    ],
+    [
+     481,
+     948
+    ]
+   ],
+   "asset_inspection": null,
+   "purpose": "This AppModel extension is the Hydra auto-merge coordinator: when \"Merge when the team is done\" (settings.hydraAutoMerge) is on, it lands a finished lead's job and its heads' files as a commit built from a scratch-index snapshot, on a stable per-chat hydra/<slug>-<6 chars of the lead id> branch (or on the checkout's current non-default branch), pushes it (force-pushed when it is the chat's own branch), opens a merge request through glab/gh/tea and merges it, then brings the checkout up to date without ever changing branch. It also decides which files are the job's (turn touched paths, head landings and head/lead tool edits, plus a checkout sweep since the first turn's checkpoint, minus other chats' reserved or blocking claims unless this job edited the file itself), splits the job per sidebar project, serialises merges app-wide (a job that finishes while another merges now waits in a 400 ms poll instead of being skipped), retries self-clearing failures quietly a minute later, and reports outcomes as HydraMergeRecord entries plus Hydra notes in the lead's timeline. At B3 the whole 'held' mechanism (a job waiting on another chat's files) is gone.",
+   "key_symbols": [
+    "struct HydraMergeHead { name, index, task, files } (11-18)",
+    "private enum HydraProjectMerge { merged, alreadyOnMain, failed, deferred } (20-28; deferred is new at B3)",
+    "typealias HydraWork = (paths, turnIDs, headIDs, outside, heads) (31-33; the B2 'held: [String: String]' member is removed)",
+    "var isAnyHydraMergeRunning: Bool (35-36)",
+    "private static var hydraMergeWindow: TimeInterval { 3 * 24 * 3600 } (38-42)",
+    "func resumeHydraMerges() async (44-75)",
+    "func autoMergeHydraWork(of leadID: UUID) async (77-187)",
+    "private static func isScratchPath(_ path: String) -> Bool (189-210)",
+    "private func mergeHydraProject(of:lead:project:checkout:work:runtime:several:) async -> HydraProjectMerge (212-409), with nested stage/title/advance and the new fail(_:_:label:url:retryable:) (222-237)",
+    "private func scheduleHydraMergeRetry(of leadID: UUID) (411-423, new)",
+    "private func hydraCreateMergeRequest(git:title:body:source:target:) async throws -> URL? (425-483)",
+    "private func hydraGitLabAuthFailure(in directory: URL) async -> String? (485-494)",
+    "private static func isGitLabAuthFailure(_:) (496-501), mentionsRecoverFile(_:) (503-506), hydraMergeRequestURL(from:) (508-513)",
+    "private func hydraWork(of:runtime:checkout:git:projectID:leadCheckout:leadProjectID:sweepsCheckout:) async -> HydraWork (515-670)",
+    "private func siblingOwnedPaths(in:projectID:excluding:) -> (reserved: [String: String], blocking: [String: String]) (672-728)",
+    "private func hydraIsFinishedIdleEligible(_:) (730-740), hydraHasPendingLanding(_:) (742-750), hydraRanksAfter(_:_:) (752-757), canStillMerge(_:) (759-771)",
+    "private func syncDefaultBranch(_:from:target:ownPaths:merged:) async -> Bool (773-818; merged parameter new)",
+    "private func commitMessage(for:files:patch:directory:) async -> String (820-841)",
+    "private func mergeRequestBody(for:files:through:runtime:) -> String (843-869)",
+    "private static func hydraBranchName(for:) -> String (871-882)",
+    "private nonisolated static func pathsWithConflictMarkers(_:in:) async -> [String] (884-900)",
+    "private func recordHydraSettlement(leadID:runtime:) (902-906)",
+    "private static func filesLine(_:) -> String (908-912)",
+    "private func note(_:_:_:) (914-930)",
+    "private enum HydraMergeRequestError: LocalizedError { gitLabAuth(host:branch:detail:), creationFailed(String) } (933-948)",
+    "REMOVED at B3: private func recordHydraHold(_:leadID:runtime:) and private static func heldDetail(_:) (B2 835-851)"
+   ],
+   "calls_into": [
+    "DroppyCode/Services/Git/Git.swift: Git(checkout) and isRepository, hasCommits, remoteURL, hasOperationInProgress, status, defaultBranch, commitHash(), commitHash(of: \"origin/<target>\") (new use), fetch (new use in the prepare loop), isAncestor, captureTree(paths:), captureTree(paths:onto:from:) -> (tree, merged)? (new, Git.swift:289), captureTree(), treeHash(of: parent), diff(from:to:), commitWork(_:parent:message:), updateRef(_:to:) (two-argument overload, now called at :339; dead code at B2), updateRef(_:to:expecting:), resetIndex(paths:), pushBranch(_:force:) (force parameter new, Git.swift:390), createPullRequest, mergePullRequest, forge, remoteWebURL, changedPaths(from:to:), ignoredPaths(among:), trackedPaths(among:), dirtyPaths, presentPaths(among:in:), resetSoft(to:), checkoutPaths(from:_:), removePaths(_:), pullFastForward, static Git.existingRequestURL(in:web:) (new, Git.swift:205), git.directory",
+    "DroppyCode/Core/Support Shell.run(tool: \"glab\", ...) and ShellResult (succeeded, output, errorOutput, failureMessage); LoginEnvironment.which(\"glab\"), LoginEnvironment.homeDirectory",
+    "DroppyCode/Services/Git: DiffParser.parse (detached utility task), TouchedPaths.relative(_:root:), TouchedPaths.isBuildOutput(_:)",
+    "Services/Providers TextGeneration.commitMessage(summary:patch:instructions:engine:directory:) via AppModel.textEngine(preferring:)",
+    "Services/Store: Storage.decodeDocument(_:) (detached), Storage.worktreesDirectory",
+    "Core models: HydraMergeRecord (now written with retryable:), HydraMergeStage (.gathering/.committing/.describing/.pushing/.opening/.merging/.syncing and .words), HydraRoster.persona(at:), MergeRequestLink(url:) and .label, ChatThread.untitled, TextCleanup.singleLine(_:limit:), String.trimmed",
+    "ThreadRuntime: ensureLoaded, isReadyForHydraMerge, isHydraMerging, isHydraMergeQueued (new), hasHydraMergeRetryPending (new), hydraMergeStartedAt, hydraMergeNoteID, hydraMergeStage, hydraMergeStep, hydraLanding, hydraUnmergedTurns, hydraMerges, recordHydraMerge, markHydraMerged, appendHydraNote(_:id:), noteDiffChanged, entries, turns, phase",
+    "AppModel (other extensions): runtime(for:), existingRuntime(for:), liveRuntimes, thread(_:), project(_:), projects, threads, hydraIsOn(_:), hydraTeam(of:), updateHydraHead(_:_:), updateThread(_:_:), updateDockBadge(), notify(threadID:title:body:), hydraUnmergedFileCount(of:), selectedThreadID, settings (hydraAutoMerge, commitInstructions, notifyWhenFinished)",
+    "AppKit NSApp.isActive (note)"
+   ],
+   "state_owned": [
+    "No stored properties of its own; the static hydraMergeWindow constant (3 days) bounds both the resume sweep and how long a quiet lead's claims live.",
+    "Drives ThreadRuntime merge state it does not declare: isHydraMerging, hydraMergeStartedAt, hydraMergeNoteID, hydraMergeStage, hydraMergeStep (set at 101-105 and cleared by the defer at 106-112), isHydraMergeQueued (set while waiting for another merge, 89-90, new), hasHydraMergeRetryPending (one 60 s retry per chat, 415-420, new).",
+    "Local per-run state: prepared (head, commit, message, files, merged) and described (patch, message) inside the three-try prepare loop (273-328)."
+   ],
+   "side_effects": [
+    "git writes in the user's checkout(s): scratch-index write-tree, commit-tree, update-ref of refs/heads/<branch> (unconditional for the chat's own hydra branch, compare-and-swap against HEAD for the checkout's own branch), reset of the index for the team's paths, git fetch origin, git push -u [--force] origin refs/heads/<b>:refs/heads/<b>, and after a merge reset --soft to origin/<target>, index reset, checkout of paths, git rm of paths",
+    "Writes three-way-merged file contents into the working tree atomically (Data.write(options: .atomic)) in syncDefaultBranch for files that still hold what was merged from (809-813, new)",
+    "Network: git fetch/push; forge CLI glab mr create/auth status (and --recover retry), gh or tea via Git.createPullRequest, merge via Git.mergePullRequest",
+    "Appends HydraMergeRecord entries (merged, failed with retryable true/nil, stray, settled) and Hydra notes to the lead thread; marks turns hydraMerged and heads mergedAt; sets hasUnread, updates the Dock badge and posts a notification when the chat is not on screen and notifyWhenFinished is on",
+    "Schedules unstructured Tasks: a 400 ms polling wait while another merge runs (91-94), a 60 s quiet retry (417-422), and a resume sweep after a successful run (174)"
+   ],
+   "platform_assumptions": [
+    "AppKit NSApp.isActive decides whether a note also marks unread/badges/notifies (924)",
+    "Unix path conventions: absoluteness by leading \"/\" or \"~\" or \"://\" (564, 605), scratch roots /tmp, /private/tmp, /var/folders, /private/var/folders, ~/Library, NSTemporaryDirectory(), and the /private symlink spelling (197-209)",
+    "External CLIs git, glab (and gh/tea through Git) resolved on the login PATH; GITLAB_TOKEN named in the gitLabAuth message",
+    "Dock badge (updateDockBadge) and user notifications"
+   ],
+   "persisted_fields": [
+    "HydraMergeRecord in the thread document's hydraMerges: at, outcome (merged/failed/stray/settled are written; held is no longer written at B3 but still decodes), project, label, url, files, detail, and the new retryable (true on self-clearing failures, nil otherwise; declared at Timeline.swift:283)",
+    "HydraHeadInfo.mergedAt set on every head of the job when a run completes (179) or is spent (156)",
+    "TurnRecord.hydraMerged via runtime.markHydraMerged on every unmerged turn of the job (154, 177)",
+    "ChatThread.hasUnread via updateThread (925)"
+   ],
+   "ui_elements": [
+    "Merge stage words through HydraMergeStage.words, project-prefixed \"<project>: \" when several projects merge (222-225)",
+    "Note titles: \"Hydra merged <label>\"; \"Hydra did not merge: no remote.\"; \"Hydra did not merge: conflict markers in a file.\" / \"... in N files.\"; \"Hydra did not merge: `<target>` changed the same lines.\" (new); \"Hydra did not merge: the checkout kept moving.\" (new); \"Hydra pushed <branch> but could not open a merge request.\"; \"Hydra opened <label> but could not merge it.\"; \"Hydra could not merge the team's work.\"; \"Hydra did not merge: the team's files are outside every project.\"; \"Hydra left a file outside every project.\" / \"Hydra left N files outside every project.\"; \"Hydra has no files left to merge.\" (removed: \"Hydra did not merge: a rebase or merge is underway.\", \"Hydra did not merge: the checkout moved while it worked.\", \"Hydra is waiting for another chat's files.\")",
+    "New or changed note bodies: conflict markers \"... Resolve them and the merge goes out by itself.\" (259); same-lines conflict \"The remote changed a file|files the team changed too, in the same places. The work is in the checkout: bring `<target>` in (`git pull`), settle the overlap, and the merge goes out by itself.\" (290); \"Commits kept landing on `<branch>` while the team's work was prepared. The work is in the checkout and goes out on the next try.\" (330); \"<error>\\n\\nThe work is in the checkout and on `<branch>`; the next try opens the request.\" (359, 361); \"The forge did not say where the request is. The next try opens it again.\" (365); \"<url>\\n\\n<error>\\n\\nThe next try brings the request up to date with `<target>` and merges it.\" (371); \"<error>\\n\\nThe work is in the checkout; the next try sends it again.\" (407)",
+    "Success note body: URL, blank, \"<N files> (+a −d) landed on `<target>` from `<branch>`.\", optional Heads list, sync line \"The checkout is up to date.\" / \"The checkout was left as it was: ...\" / \"The project checkout is up to date.\" (374-401)",
+    "Merge request on the forge: title = first line of the commit message limited to 72; description opening \"Opened by Droppy Code once its Hydra team finished.\" with ## Heads, ## The lead's summary, ## Files (843-869)",
+    "gitLabAuth error text \"GitLab refused the login (401 Unauthorized) for <host>: ...\" (943)"
+   ],
+   "feature_notes": [
+    "B2->B3 diff: 194 insertions, 139 deletions (churn 333), B2 893 lines -> B3 948. Hunks @@-22,14 +22,15@@, -76,12 +77,24, -132,18 +145,6, -167,7 +168,10, -209,23 +213,39, -235,41 +255,11, -277,51 +267,108, -342,7 +389,7, -357,9 +404,21, -398,6 +457,9, -471,6 +533,10, -506,6 +572,7, -520,6 +587,7, -534,11 +602,11, -575,16 +643,15, -597,20 +664,9, -719,9 +775,18, -741,6 +806,11, -798,13 +868,16, -832,24 +905,6.",
+    "HOLD REMOVED: the cross-group hold check (B2 135-146), the post-snapshot claim re-check (B2 250-259), recordHydraHold and heldDetail (B2 835-851), the HydraWork.held member and the claimed-based turn/head filtering (B2 600-613) are all deleted. A blocking sibling claim now only removes that file from this merge, and only when this job's own tools or heads did not write it (ownEdits, 646-654). Every unmerged turn and every counted head of the job is settled by a completed run (667-669). Timeline.swift:271-272 confirms .held is no longer written and stays only so older records decode; the '.held' test at 157 now fires only for such legacy records.",
+    "QUEUEING: autoMergeHydraWork first checks setting, thread, Hydra on, runtime present, not merging, not already queued, ready (80-82). If any merge is running it sets isHydraMergeQueued, polls isAnyHydraMergeRunning every 400 ms (returning on cancellation), clears the flag in a defer, then re-reads every guard (98-100). B2 returned immediately and relied on the next resume sweep.",
+    "After a run whose outcomes contain neither .failed nor .deferred, a Task schedules resumeHydraMerges() (172-174); AppModel is @MainActor, so it runs only after this function has marked the work and cleared its flags.",
+    "NEW OUTCOME .deferred (25-27): a checkout mid-rebase/merge now schedules a quiet retry and returns .deferred with no record and no note (244-249; B2 recorded and posted 'a rebase or merge is underway'); losing readiness after the capture returns .deferred (304; B2 returned .failed). The caller returns before marking on .deferred just as on .failed (171).",
+    "fail() helper (226-237): detail = title(headline) + \": \" + body for every project-pass failure; retryable failures schedule a 60 s retry (scheduleHydraMergeRetry, 411-423, one pending per chat via hasHydraMergeRetryPending); a failure whose detail equals the last record's (outcome .failed) returns .failed with no new record and no note; a retryable failure posts its note only when the two records before it are both retryable failures (suffix(2) checked before recording), so a first or second quiet failure is recorded without a note, and because identical details are de-duplicated before recording, a retryable failure that repeats the same text is never announced. Records carry retryable: true for retryable failures and nil otherwise.",
+    "PREPARE LOOP (271-331): up to three tries. On the chat's own branch it fetches origin and, when origin/<target> moved past HEAD, builds the tree on the remote with captureTree(paths:onto:from:); nil (overlapping changes) fails non-retryably with 'Hydra did not merge: `<target>` changed the same lines.'; the rebased tree's three-way results (merged) are later written into the checkout by syncDefaultBranch. alreadyOnMain now compares with the parent's tree (remote or HEAD). The diff and commit parent are the parent, the commit message is reused when the patch is unchanged, and a HEAD that moved after commitWork restarts the loop instead of failing; after three tries 'Hydra did not merge: the checkout kept moving.' (retryable).",
+    "Own branch: hydraBranchName's suffix is now the first six characters of lead.id.uuidString lowercased (880), so every try reuses one branch per chat; the ref is moved with the two-argument updateRef (unconditional, 339) and pushed with pushBranch(branch, force: true) (348), so a retry updates the open request. Non-own branch keeps updateRef(expecting: head) + resetIndex (342-345) and a non-forced push.",
+    "Merge request failures: HydraMergeRequestError.gitLabAuth -> non-retryable, body = its localizedDescription only (356-358); any other creation error -> retryable with the new 'next try opens the request' body (359-362); a nil URL or unparseable link -> retryable with 'The forge did not say where the request is. The next try opens it again.' (363-366); a failed merge -> retryable with 'The next try brings the request up to date with `<target>` and merges it.' (368-372). The generic catch now goes through fail(), so its record detail is project-prefixed and ends with the retry sentence (406-407), resolving the B2 record/note prefix asymmetry.",
+    "hydraCreateMergeRequest: after the first failed glab mr create, Git.existingRequestURL(in:web:) returns the already-open request for the branch (the text must contain 'already exist'; an https URL or a GitLab !<n> reference) before the auth and --recover handling (460-462).",
+    "hydraWork gains an 'edited' list (536-539) fed by head landing files (575), head timeline tool edits (590) and the lead's own tool edits (600-611, refactored with no change to 'reported'); ownEdits are these made relative to the checkout (653).",
+    "syncDefaultBranch(merged:) (778-818): before anything, reads the working copy of every three-way-merged file (any unreadable -> return false); after reset --soft, index reset, checkout and removal, writes each merged content atomically only where the working file still equals what was read.",
+    "Unchanged at B3 apart from line shifts: resumeHydraMerges, isScratchPath, the glab wrapper's auth pre-check/401 retry/--recover, siblingOwnedPaths and its ordering helpers, canStillMerge, commitMessage, mergeRequestBody, pathsWithConflictMarkers, recordHydraSettlement, filesLine, note, HydraMergeRequestError texts.",
+    "C# port observation (pre-existing, not B3): src/Marrow.App/AppModel+HydraMerge.cs:165 posts \"Hydra left files outside every project.\" without the count, while the Swift source (B2 179, B3 183) interpolates \"\\(stray.count) files\"."
+   ],
+   "unresolved_questions": []
+  }
+ ]
+}

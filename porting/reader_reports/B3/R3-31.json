@@ -1,0 +1,129 @@
+{
+ "bundle_id": "R3-31",
+ "reader": "R3-31-reader",
+ "files": [
+  {
+   "path": "DroppyCode/UI/Markdown/MarkdownView.swift",
+   "sha256": "3c7757be4a5f9ea62ff29ec733fe505bf37b8eb0223933e9b808f4e7a50ae038",
+   "ranges_read": [
+    [
+     1,
+     500
+    ],
+    [
+     501,
+     1000
+    ],
+    [
+     1001,
+     1425
+    ]
+   ],
+   "asset_inspection": null,
+   "purpose": "MarkdownView.swift is the chat's markdown renderer and most of its inline machinery. MarkdownView parses a message into blocks through a bounded cache (800 finished texts) and 48 streaming slots that re-parse only the block being extended, warms finished messages off the main thread, and draws a finished reply as ProseRunView runs plus standalone blocks and a streaming reply block by block with the settled/streaming flags. MarkdownBlockView draws each block: headings, paragraphs routed between the native link paragraph and veiled text by links, head mentions, list depth and streaming, the lead's `hydra` delegation card, code, list markers, quotes, tables and rules. RichLink builds pretty link titles, bare-domain autolinks and favicon/video asset keys. FaviconCache fetches /favicon.ico only for public hosts and strips white plates. InlineText picks the AppKit link paragraph or a veiled Text. CodeBlock collapses at 120 lines, TableBlock at 30 rows, and CopyButton copies through ProseReflow. At B3 the file stops naming the App-layer HydraDelegationBlock. The card now comes through the MarkdownDelegationCard.render hook that AppDelegate sets at launch. Mention scanning moves to MentionScanner and link hover moves to LinkHoverModifier. InlineText now sends any link, including a host-less local file link, to the native paragraph, and RichLink's streaming slots rise from 4 to 48.",
+   "key_symbols": [
+    "enum MarkdownSegment { prose([MarkdownBlock]), block(MarkdownBlock) } (4-7)",
+    "struct MarkdownView: View, Equatable (9-276); static let warmCandidateLimit = 96 (11); var isStreaming (16); nonisolated static func == (21-23)",
+    "static func segments(_:) -> [MarkdownSegment] (25-45)",
+    "private static func transition(for:) -> AnyTransition (51-56); static func isDelegationInfo(_:) \"hydra\" | \"hydra-sent\" | \"hydra-leaving\" (59-61)",
+    "var body (63-103)",
+    "@MainActor private static var blockCache = RecentCache<String, [MarkdownBlock]>(limit: 800) (107); streamingParses (111)",
+    "nonisolated fileprivate static let streamingSlots = 48 (115; B2 was `private static let`)",
+    "static func streamingParse(for:) (123-133); static func blocks(for:streaming:) (135-148); private static func extends(_:to:) 64-byte probes (154-167)",
+    "private static func fenceMarker(in:) (170-176); approximateSourceLength(_:) (180-199)",
+    "static func warm(_:) async throws (204-219); warmTexts(_:) 262_144-byte / 1_048_576-byte / 24-text limits (221-235); @concurrent parseWarm(_:) (237-255); inlineSources(of:into:) (257-275)",
+    "struct MarkdownBlockView: View, Equatable (278-498); var settled (284); == (295-298); body (300-374)",
+    "private func headingFont(_:) title2/title3/headline/subheadline (376-383)",
+    "mentionGlyphOffset(size:) -(size*0.2) (386); static func mentionGlyph(_:size:) (390-404); glyphCache (406)",
+    "private func mentionsTarget(in:) (411-414)",
+    "nonisolated static func mentionRanges(in:names:) -> [Range<String.Index>] = MentionScanner.matches(in:candidates:name:).map(\\.range) (418-420; B3 body)",
+    "private func mentionSegments(in:) -> [VeiledText.Segment]? using MentionScanner.matches(in: chars, candidates: hydraMentionPersonas, name: \\.name) (421-446)",
+    "private func mentionText(_:) -> Text, 16 pt glyph, link/colour/stronglyEmphasized name (448-463)",
+    "private func marker(ordered:number:checked:) (465-493); markerColor Chrome.accent.opacity(dimmed ? 0.55 : 0.9) (495-497)",
+    "private struct MarkdownListDepthKey (501-503)",
+    "enum MarkdownDelegationCard { @MainActor static var render: ((String, Bool) -> AnyView)? } (505-509, new at B3)",
+    "extension EnvironmentValues { @Entry hydraMentionPersonas; @Entry hydraMentionTargets; markdownListDepth } (511-519)",
+    "enum RichLink (526-799): prettyCache limit 1200 (527); streamingPretty (531); private static let streamingSlots = MarkdownView.streamingSlots (532; B2 was 4)",
+    "RichLink.prettyAttributed(_:streaming:) (534-552); warm(_:with:) (555-558); nonisolated build(_:) (560-585)",
+    "RichLink.linkHosts(for:streaming:) (587-598); videoIDs(for:streaming:) (601-611); linkAssetKey(for:streaming:) (615-621); invalidate(_:) (624-628)",
+    "RichLink.prettyTitle(for:) (634-653); namelessSegments (656-658); capped(_:at:) (661-664); forgeReference(for:) (669-687); compactFallback(_:) (691-694)",
+    "RichLink.containsLinks(in:streaming:) (696-699); isBareDisplay(_:url:) (701-712)",
+    "RichLink.bareDomainPattern NSRegularExpression (717-719); bareDomainTLDs (723-732); autolinkedBareDomains(_:) (736-790); baseAttributed(_:) .inlineOnlyPreservingWhitespace (792-798)",
+    "MarkdownPointSizeKey default 13 (804-806); MarkdownDimmedKey (810-812); MarkdownStreamingKey (815-817); MarkdownBlockSelectionKey default true (822-824); MarkdownProseRunsKey default true (826-828); EnvironmentValues accessors (830-851)",
+    "struct MarkdownBlockSelection: ViewModifier (854-863)",
+    "@MainActor enum FaviconCache (865-1063): memory, cached(host:), failed, inFlight, image(for:) (878-903), iconData(for:) (909-917), cleaned(_:) (919-939), removeWhitePlate(in:) (941-1012), privateSuffixes (1015-1018), isPublic(host:) (1023-1046), resizedIcon(_:) (1048-1062)",
+    "struct InlineText: View (1065-1170); init(_:hasLinks:hugsContent:) (1085-1089); body (1091-1135) with `let hasLinkText = hasLinks ?? RichLink.containsLinks(in: source, streaming: streaming)` (1096) and `.modifier(LinkHoverModifier(...))` (1120)",
+    "InlineText.metricsBySize / metrics(pointSize:) (1139-1148); static func fetchLinkAssets(source:streaming:revision:) (1153-1164); static func attributed(_:streaming:) (1166-1169)",
+    "@Observable private final class BlockHover (1176-1180); private struct CodeBlockCopyButton (1184-1192)",
+    "struct CodeBlock (1194-1263): collapsedLineLimit = 120 (1203); \"Show less\" / \"Show all \\(lineCount) lines\" (1236); head(of:lines:) (1251-1262)",
+    "struct TableBlock (1265-1324): collapsedRowLimit = 30 (1271); cellCache limit 1200 (1274); \"Show all \\(rows.count) rows\" (1312)",
+    "enum ProseReflow { static func reflowed(_:) } (1328-1396)",
+    "struct CopyButton (1398-1425): label \"Copy\", 1.4 s check mark, symbols checkmark / doc.on.doc"
+   ],
+   "calls_into": [
+    "MarkdownParser.parse(_:) and parse(_:extending:) (129, 144, 243)",
+    "RecentCache (107, 527, 1274)",
+    "ProseRunView (76); VeiledText (317, 1130, 1227); AnyTransition.softAppear (53, 55)",
+    "MarkdownDelegationCard.render, set by DroppyCode/App/AppDelegate.swift:14 to AnyView(HydraDelegationBlock(json:sent:)) (327-330)",
+    "MentionScanner.matches(in:candidates:name:) in DroppyCode/UI/Markdown/MentionScanner.swift:7-32 (419, 425)",
+    "LinkParagraphView(source:pointSize:dimmed:streaming:revision:mentions:targets:onOpenHead:onHost:) (1114)",
+    "LinkHoverModifier(linkView:showsHand:hoveredHeadID:personas:targets:) in DroppyCode/UI/Markdown/LinkHover.swift:6-51, which calls LinkTextView.hasLink(at:), headMentionRect(at:), NSCursor push/pop and HydraHeadHoverPopover.shared.show/hide (1120)",
+    "LinkTitles.videoID(for:), LinkTitles.cached(for:), LinkTitles.title(forVideo:) (607, 636, 1161)",
+    "FaviconCache.image(for:) / cached(host:) from fetchLinkAssets (1156-1157)",
+    "URLSession.shared.data(for:) for https://<host>/favicon.ico (910-913)",
+    "NSPasteboard.general.clearContents / setString (1406-1407)",
+    "Chrome.accent, Chrome.secondaryText (364, 496, 1218, 1241, 1317, 1422); Font.chat (378-381, 1217, 1228, 1240, 1316)",
+    "NSImage(named: persona.asset) for mention glyphs (395); NSFont.systemFont(ofSize:) (1144)",
+    "String.trimmed (702)"
+   ],
+   "state_owned": [
+    "MarkdownView.blockCache: RecentCache limit 800 (107)",
+    "MarkdownView.streamingParses: up to streamingSlots = 48 (111, 115)",
+    "MarkdownBlockView.glyphCache keyed asset@size (406)",
+    "MarkdownDelegationCard.render: process-global renderer closure, nil until the App sets it (508)",
+    "RichLink.prettyCache: RecentCache limit 1200 (527)",
+    "RichLink.streamingPretty: up to MarkdownView.streamingSlots = 48 at B3, 4 at B2 (531-532)",
+    "FaviconCache.memory (cleared whole at 300), failed, inFlight (867, 875-876)",
+    "InlineText.metricsBySize (1139)",
+    "TableBlock.cellCache: RecentCache limit 1200 (1274)",
+    "View state: InlineText faviconRevision / linkView / showsHand / hoveredHeadID (1077-1083); CodeBlock hover / showsAll (1198-1199); TableBlock showsAll (1269); CopyButton didCopy (1402)"
+   ],
+   "side_effects": [
+    "HTTPS GET https://<host>/favicon.ico with a 5 second timeout, only for hosts isPublic(host:) accepts (909-917, 884-887)",
+    "Clears the general pasteboard and writes ProseReflow.reflowed(text) (1406-1407)",
+    "Cursor push/pop and the head hover popover show/hide, now through LinkHoverModifier (1120)",
+    "Opens a head's chat URL through the environment openURL (1114)"
+   ],
+   "platform_assumptions": [
+    "AppKit NSImage / NSBitmapImageRep / NSGraphicsContext for favicon clean-up and resizing (919-1062) and for mention glyphs (395-401)",
+    "NSFont.systemFont ascender/descender/leading for baseline guides (1144-1145)",
+    "NSPasteboard (1406-1407)",
+    "Foundation AttributedString(markdown:options:) with .inlineOnlyPreservingWhitespace and .returnPartiallyParsedIfPossible (793-797)",
+    "NSRegularExpression with lookbehind, which Swift Regex does not support (715-719)",
+    "SwiftUI textSelection, onHover, Grid, symbolEffect content transition; SF Symbols checkmark.circle.fill, circle, checkmark, doc.on.doc"
+   ],
+   "persisted_fields": [],
+   "ui_elements": [
+    "Heading block (302-305, 376-383)",
+    "Paragraph via InlineText / VeiledText with head mention chips (306-323, 448-463)",
+    "Delegation card host with hydra-leaving fade (opacity 0, scale 0.98 anchored top, no hit testing) (327-333)",
+    "Code block panel: language label (default \"code\"), hover-revealed copy control, horizontally scrolling monospaced text, \"Show all N lines\" / \"Show less\" link button (1194-1248)",
+    "List markers: check circle, ordered number with a full stop, accent dot or ring (465-497)",
+    "Quote: 3 pt quaternary capsule, secondary text (354-365)",
+    "Rule: 1 pt quaternary line (368-372)",
+    "Table panel with semibold header and \"Show all N rows\" (1284-1323)",
+    "Copy button, tooltip \"Copy\" (1398-1425)",
+    "Link favicon 14 pt (1048-1062)"
+   ],
+   "feature_notes": [
+    "B3 327-333 and 505-509 (commit d70cff8fe 'layer rules restored'): MarkdownBlockView no longer names HydraDelegationBlock, an App view. The code case now needs a registered renderer (`let delegationRenderer = MarkdownDelegationCard.render`) and calls `delegationRenderer(code, info != \"hydra\")`. AppDelegate.applicationDidFinishLaunching sets the hook (AppDelegate.swift:14) before any window is shown. New source branch: when render is nil, a hydra, hydra-sent or hydra-leaving block falls through to CodeBlock. The comment says \"until then the block reads as code\". transition(for:) (51-56) still gives such a block the asymmetric transition. The opacity, scale and hit-testing of the leaving card are unchanged.",
+    "B3 418-420, 425, 439: the two inline word-bounded, longest-first scans (B2 419-441 in mentionRanges and B2 446-466 in mentionSegments) are replaced by MentionScanner.matches(in:candidates:name:). I compared them with MentionScanner.swift:7-32. The sort key (name length descending), the before/after `!isLetter && !isNumber` tests and the advance-by-name-length are the same. The only difference is that the tuples now use `value` for `persona`. No observable change.",
+    "B3 1118-1120: B2's inline `.onContinuousHover` / `.onDisappear` block (B2 1157-1193) is now `.modifier(LinkHoverModifier(...))` (LinkHover.swift:6-51), which ProseRunView.swift:24 also uses. I compared them branch by branch. The pointing hand is pushed or popped only when it changes. The head card shows only when the name, URL and persona agree and the threadID changes, and hides otherwise. End and disappear both pop the hand and hide the card. No observable change.",
+    "B3 1095-1096 (commit ff5032673 'Fix opening local file links in chat'): InlineText's own decision when the caller passes no hint changed. B2 used `hasLinks ?? !RichLink.linkHosts(...).isEmpty`; B3 uses `hasLinks ?? RichLink.containsLinks(in:streaming:)`. Text whose only links have no host now takes the native LinkParagraphView path instead of VeiledText. Examples are a local path link like `[a](/Users/me/x.swift:12)` and a mailto: link. On the native path, LinkParagraphView.swift's new MarkdownLinkOpener opens the file. Only hint-less callers are affected: headings (303) and the user bubble `InlineText(parts.body, hugsContent: true)` (TimelineRows.swift:122). Paragraphs (312-322) and list items (343) already pass a containsLinks-derived hint.",
+    "B3 532 with 115: RichLink.streamingSlots goes from 4 to MarkdownView.streamingSlots (48). MarkdownView.streamingSlots becomes `nonisolated fileprivate` so that RichLink can read it. The comment at 528-530 already promised 'As many slots as MarkdownView keeps parses'; at B2 the value 4 contradicted it. Up to 48 streaming paragraphs now keep their built pretty strings between flushes.",
+    "Line shift (checked with a line-by-line diff of B2 against B3): B2 1-415 are unchanged in place. B2 416-469 are rewritten. B2 470-545 move up 41 and B2 546-549 move up 35. After the blank line removed from the EnvironmentValues extension (B2 550), lines move up 36. After B2 1133 they move up 37, and after B2 1193 they move up 73 (B2 has 1498 lines, B3 has 1425)."
+   ],
+   "unresolved_questions": []
+  }
+ ]
+}

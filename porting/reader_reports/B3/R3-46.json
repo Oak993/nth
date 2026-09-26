@@ -1,0 +1,348 @@
+{
+  "bundle_id": "R3-46",
+  "reader": "R3-46-reader",
+  "files": [
+    {
+      "path": "DroppyCode/Services/MCP/MCPBridgeSource.swift",
+      "sha256": "a33b53ff2af4f30a3843af151eabe9052559e470c207936390261cc9ace24020",
+      "ranges_read": [
+        [
+          1,
+          252
+        ]
+      ],
+      "asset_inspection": null,
+      "purpose": "Status M, one changed line. MCPBridge holds, as one Swift raw-string literal (:12-235), the plain ESM JavaScript bridge (Node 18+, no npm dependencies) that the Pi extension and the Command Code mod dynamic-import and call loadMCPTools() on; the bridge reads the server map from the JSON file named by DROPPY_CODE_MCP_CONFIG, connects each stdio or HTTP server sequentially under a 15000 ms cap, lists tools with cursor paging and wraps each as {server, name, description, inputSchema, call}. installBridge() (:240-251) writes that text to <Application Support>/<AppInfo.name>/MCP/droppy-mcp-bridge.mjs, rewriting it only when the bytes differ. The B2->B3 delta is :16 only: the literal `const PROTOCOL_VERSION = \"2025-06-18\";` became `const PROTOCOL_VERSION = \"\\#(MCPWire.protocolVersion)\";`, a raw-string interpolation of the new shared constant MCPWire.protocolVersion, which is \"2025-06-18\" (MCPWire.swift:7), so the emitted .mjs text is byte-identical to B2's.",
+      "key_symbols": [
+        "enum MCPBridge (:11)",
+        "static let mcpBridgeSource: String = #\"\"\"...\"\"\"# (:12-235)",
+        "static func installBridge() throws -> URL (:240-251)",
+        "JS const PROTOCOL_VERSION = \"\\#(MCPWire.protocolVersion)\" (:16)",
+        "JS const CONNECT_TIMEOUT_MS = 15000 (:17)",
+        "JS function configServers() (:19-29)",
+        "JS function errorText(error) (:31-33)",
+        "JS function contentText(content) (:35-38)",
+        "JS function describe(entry, fallback) (:40-43)",
+        "JS function schemaOf(entry) (:45-48)",
+        "JS function withTimeout(promise) (:50-56)",
+        "JS function wrapTools(server, entries, callTool) (:58-74)",
+        "JS function connectStdio(server, entry) (:76-152)",
+        "JS async function postMessage(url, headers, payload, sessionId) (:154-179)",
+        "JS function connectRemote(server, entry) (:181-216)",
+        "JS export async function loadMCPTools() (:218-234)"
+      ],
+      "calls_into": [
+        "MCPWire.protocolVersion (interpolated into the JS text at :16; defined MCPWire.swift:7 as \"2025-06-18\")",
+        "FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask) (:241)",
+        "LoginEnvironment.homeDirectory (:242, fallback base Library/Application Support)",
+        "AppInfo.name (:243)",
+        "FileManager.default.createDirectory(at:withIntermediateDirectories:) (:244)",
+        "Data(contentsOf:) and Data.write(to:options: .atomic) (:247-248)",
+        "JS: node:fs readFileSync (:23), node:child_process spawn (:80), global fetch (:157)"
+      ],
+      "state_owned": [
+        "none in Swift (static text only)",
+        "JS per-connection closures: id counter, pending Map, line buffer, settled flag (stdio, :88-91); sessionId and id counter (remote, :185-186)"
+      ],
+      "side_effects": [
+        "installBridge creates <Application Support>/<AppInfo.name>/MCP and atomically writes droppy-mcp-bridge.mjs only when its bytes differ (:244-249)",
+        "the JS bridge spawns one child per stdio server with stdio [pipe, pipe, ignore] and never kills it (:80-83)",
+        "the JS bridge POSTs JSON-RPC to each HTTP server with Accept application/json, text/event-stream and a lowercase mcp-session-id header (:155-157)",
+        "console.error lines \"droppy mcp: could not read config: <msg>\" (:26) and \"droppy mcp: skipping <server>: <msg>\" (:230)"
+      ],
+      "platform_assumptions": [
+        "macOS Application Support directory with ~/Library/Application Support fallback (:241-242)",
+        "a Node 18+ runtime that supports ESM, fetch and child_process (doc comment :7)",
+        "stdio JSON-RPC framed as newline-delimited JSON (:102-117, :122)"
+      ],
+      "persisted_fields": [
+        "file <Application Support>/<AppInfo.name>/MCP/droppy-mcp-bridge.mjs (:243-245)",
+        "reads environment variable DROPPY_CODE_MCP_CONFIG naming {\"mcpServers\": {...}} (:21)"
+      ],
+      "ui_elements": [],
+      "feature_notes": [
+        "B2->B3: only :16 changed. The JS constant now comes from `\\#(MCPWire.protocolVersion)` inside the #\"\"\"...\"\"\"# raw literal; MCPWire.protocolVersion is `nonisolated static let protocolVersion = \"2025-06-18\"` (MCPWire.swift:7), so the generated droppy-mcp-bridge.mjs is byte-identical to B2's and installBridge's changed-bytes check does not rewrite an existing B2 file. No line numbers shifted (252 lines at both pins).",
+        "Observable behaviour unchanged: the bridge still sends protocolVersion \"2025-06-18\" with clientInfo {name: \"Droppy Code\"} and no version (:138, :203).",
+        "The protocol version is now a single upstream constant shared with MCPHub/MCPProbe via MCPWire; a future bump would change the bridge text too."
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Services/MCP/MCPKeychain.swift",
+      "sha256": "48a2e74d328cc8951da724fd62b478246be6760665baf324fd4517d0fe20a01f",
+      "ranges_read": [
+        [
+          1,
+          32
+        ]
+      ],
+      "asset_inspection": null,
+      "purpose": "Status M, refactor. MCPKeychain is the secret store for MCP server fields and OAuth blobs: every value lives as a Keychain generic password under service AppInfo.name and account \"MCP <server> <field>\" (:6-8), so mcp.json keeps only non-secret values. At B3 its own SecItem code (B2 :13-58) is gone and value/set/delete are one-line delegations to the shared APIKeychain.read(_:), APIKeychain.set(_:account:) and APIKeychain.delete(_:) (:12, :18, :22), whose default service is AppInfo.name (APIKeychain.swift:38, :60, :76); value keeps its own capture-run guard (:11), and deleteAll(server:) still walks the entry's declared fields (:27-31). The file shrank from 68 to 32 lines and dropped `import Security`.",
+      "key_symbols": [
+        "enum MCPKeychain (:5)",
+        "private static func account(server: String, field: String) -> String { \"MCP \" + server + \" \" + field } (:6-8)",
+        "static func value(server: String, field: String) -> String? (:10-13)",
+        "@discardableResult static func set(_ value: String, server: String, field: String) -> Bool (:16-19)",
+        "static func delete(server: String, field: String) (:21-23)",
+        "static func deleteAll(server entry: MCPCatalogEntry) (:27-31)"
+      ],
+      "calls_into": [
+        "CaptureRun.isEnabled (:11)",
+        "APIKeychain.read(_:service:) with default service AppInfo.name (:12; APIKeychain.swift:60-74)",
+        "APIKeychain.set(_:account:service:) with default service AppInfo.name (:18; APIKeychain.swift:36-58)",
+        "APIKeychain.delete(_:service:) with default service AppInfo.name (:22; APIKeychain.swift:76-83)",
+        "MCPCatalogEntry.fields and .id (:28-29)"
+      ],
+      "state_owned": [],
+      "side_effects": [
+        "Keychain reads, updates, adds and deletes of generic-password items, now performed inside APIKeychain",
+        "an empty or whitespace-only value deletes the item and reports true (APIKeychain.swift:39-43)",
+        "delete discards the SecItemDelete status (APIKeychain.swift:82)"
+      ],
+      "platform_assumptions": [
+        "macOS Keychain generic passwords (kSecClassGenericPassword) with kSecAttrAccessibleWhenUnlocked on add (APIKeychain.swift:46, :55)"
+      ],
+      "persisted_fields": [
+        "Keychain item service AppInfo.name, account \"MCP <server id> <field key>\" (catalog/custom secret fields)",
+        "Keychain items \"MCP <id> oauth\" and \"MCP <id> oauth-client\" written through this type by MCPOAuth"
+      ],
+      "ui_elements": [],
+      "feature_notes": [
+        "B2->B3: the three SecItem bodies were replaced by delegation to APIKeychain (the 42-line churn). Comparing B2 MCPKeychain :11-59 with B3 APIKeychain.swift:36-83 line by line: same service (AppInfo.name default), same account string, same trim-then-empty-deletes-and-returns-true, same SecItemUpdate-then-SecItemAdd-on-errSecItemNotFound with kSecAttrAccessibleWhenUnlocked, same read query (kSecReturnData, kSecMatchLimitOne) returning the trimmed value or nil when blank, same discarded delete status. No observable behaviour change.",
+        "The capture-run guard stays only on value (:11); set and delete had no guard at B2 either.",
+        "Every line after :1 shifted (import Security removed, bodies collapsed): account B2 :7-9 -> :6-8, value B2 :11-26 -> :10-13, set B2 :28-50 -> :15-19, delete B2 :52-59 -> :21-23, deleteAll B2 :61-67 -> :25-31. The Keychain attribute lines that ~45 records' OD-0008 B3 deviation quote as 'MCPKeychain.swift:4-16 ... :15 kSecAttrService ... :16 kSecAttrAccount' now live in APIKeychain.swift (:45-49 set query, :61-67 read query, :77-81 delete query).",
+        "The doc comment (:3-4) still says 'Stores MCP secret field values in the macOS Keychain'."
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Services/MCP/MCPOAuth.swift",
+      "sha256": "dbd39055456708ea2766602e4ae47edc5dd122b2f490277a6fcd2ee8b53f7f55",
+      "ranges_read": [
+        [
+          1,
+          470
+        ],
+        [
+          471,
+          933
+        ]
+      ],
+      "asset_inspection": null,
+      "purpose": "Status M. MCPOAuth implements the whole OAuth 2.1 + PKCE sign-in for remote MCP servers: protected-resource discovery from the 401 WWW-Authenticate challenge or two well-known paths, authorization-server metadata at up to four candidate URLs, dynamic client registration as \"Droppy Code\", a loopback callback listener on 127.0.0.1:<any>/callback with a 300 s timeout and branded HTML pages, the code exchange, and refresh with a per-server single-flight gate, storing sessions under Keychain field \"oauth\" and clients under \"oauth-client\". The B2->B3 change is in postForm (:768-788): the application/x-www-form-urlencoded body is no longer URLComponents.percentEncodedQuery over URLQueryItems but `name=value` pairs joined by '&' where both name and value go through the new private formEncode(_:) (:790-793), which percent-encodes every character outside A-Z a-z 0-9 - . _ ~.",
+      "key_symbols": [
+        "enum MCPOAuthError: LocalizedError, Sendable with 11 cases and errorDescription (:7-46)",
+        "private struct AuthServerMetadata (:48-55)",
+        "private struct RegisteredClient (:57-60)",
+        "private actor OAuthRefreshGate, token(for:refresh:) (:62-74)",
+        "private struct CallbackResult (:76-80)",
+        "private final class CallbackState (:82-100)",
+        "private final class CallbackWait (:102-126)",
+        "enum MCPOAuth (:128)",
+        "refreshGate, callbackTimeout: TimeInterval = 300 (:129-130)",
+        "static func signIn(serverID:serverName:url:) (:134-160)",
+        "static func accessToken(serverID:) (:164-183)",
+        "static func isSignedIn(serverID:) (:185-187)",
+        "static func signOut(serverID:) (:189-192)",
+        "static func refreshIfNeeded(serverID:) (:194-196)",
+        "private static func discover(url:) (:200-248)",
+        "private static func protectedResourceMetadataURL(baseURL:) (:250-283)",
+        "resourceMetadataURL(from:), challengeParameter(_:in:), challengeScopes(from:) (:285-309)",
+        "private static func fetchAuthorizationServerMetadata(issuer:resource:resourceScopes:) (:311-352)",
+        "private static func clientRegistration(serverID:metadata:redirectURI:) (:356-400)",
+        "private static func runCallbackServer(serverName:expectedState:onReady:) (:404-459)",
+        "private static func receiveRequest(...) (:461-496)",
+        "private static func handleRequest(...) (:498-562)",
+        "private static func sendHTML(_:status:statusText:on:done:) (:564-570)",
+        "private static func authorizationURL(metadata:clientID:redirectURI:state:challenge:) (:574-599)",
+        "private static func exchangeCode(...) (:601-640)",
+        "private static func performRefresh(serverID:stored:refreshToken:) (:642-680)",
+        "private static func storeSession(...) (:682-713)",
+        "private static func fetchJSON(url:) (:717-742)",
+        "private static func post(url:body:) (:744-766)",
+        "private static func postForm(url:fields:) (:768-788)",
+        "private static func formEncode(_ value: String) -> String (:790-793, new at B3)",
+        "private static func oauthErrorMessage(data:) (:795-801)",
+        "private static func origin(of:) (:803-815)",
+        "randomToken(byteCount:), pkceChallenge(for:), base64url(_:) (:819-837)",
+        "static func successPage(serverName:), static func failurePage(serverName:message:) (:841-855)",
+        "private static func page(headTitle:heading:message:) (:857-916)",
+        "private static func escapeHTML(_:) (:918-932)"
+      ],
+      "calls_into": [
+        "MCPKeychain.value/set/delete for fields \"oauth\" and \"oauth-client\" (:165, :186, :190-191, :357, :397, :712)",
+        "URLSession.shared.data(for:) (:255, :727, :756, :778)",
+        "NWListener / NWConnection on 127.0.0.1 port .any (:409-458, :470, :569)",
+        "NSWorkspace.shared.open(url) on the main actor (:434)",
+        "CryptoKit SHA256.hash (:828)",
+        "JSONValue.parse, JSONSerialization.data(withJSONObject:options: [.sortedKeys]) (:394, :709)",
+        "String.addingPercentEncoding(withAllowedCharacters:) with CharacterSet(charactersIn: \"A-Za-z0-9-._~\" literal) (:791-792)"
+      ],
+      "state_owned": [
+        "OAuthRefreshGate.flights: [String: Task<String, Error>] keyed by server id (:63)",
+        "CallbackState Mutex(State{redirectURI, client}) (:83-88)",
+        "CallbackWait finished Mutex<Bool> guarding one continuation resume (:103-121)"
+      ],
+      "side_effects": [
+        "HTTP GET to the MCP server URL and well-known metadata URLs; JSON POST for client registration; form POST to the token endpoint",
+        "a loopback TCP listener for the browser callback, cancelled on finish, cancel or the 300 s timeout (:452-458)",
+        "opens the authorization URL in the default browser (:434)",
+        "writes Keychain items \"MCP <id> oauth\" and \"MCP <id> oauth-client\"; signOut deletes both (:189-192)"
+      ],
+      "platform_assumptions": [
+        "Network.framework NWListener with requiredLocalEndpoint 127.0.0.1:any (:409-410)",
+        "AppKit NSWorkspace to open the browser (:1, :434)",
+        "Foundation addingPercentEncoding semantics for formEncode (:792)"
+      ],
+      "persisted_fields": [
+        "Keychain \"MCP <id> oauth\": sorted-keys JSON {access_token, token_endpoint, client_id, refresh_token?, expires_at? (Unix seconds), client_secret?, resource?} (:692-712)",
+        "Keychain \"MCP <id> oauth-client\": sorted-keys JSON {client_id, issuer, client_secret?} (:390-397)"
+      ],
+      "ui_elements": [
+        "browser callback page: <title> \"Signed in to <server>\" / \"Sign-in didn't finish \\u2014 <server>\", h1 heading, p message, wordmark \"Droppy Code\", inline 56x56 SVG logo, background #0B0B0F, text #F5F5F7, card 420px radius 22px, self-close after 1500 ms (:841-916)",
+        "success message \"You can close this tab and head back to Droppy Code.\" (:845)"
+      ],
+      "feature_notes": [
+        "B2->B3 behaviour change in postForm: B2 set `components.queryItems = fields.map { URLQueryItem(...) }` and sent `components.percentEncodedQuery ?? \"\"` (B2 :772-773, :778), i.e. URLComponents query encoding, which leaves characters such as '+', '/', ':' and '?' unescaped. B3 sends `fields.map { \"\\(formEncode($0.0))=\\(formEncode($0.1))\" }.joined(separator: \"&\")` (:776) with formEncode allowing only A-Z a-z 0-9 - . _ ~ (:790-793). Wire effect: a '+' in a code, refresh token, client secret or verifier is now sent as %2B (a form decoder no longer turns it into a space), and redirect_uri/resource URLs now arrive as e.g. http%3A%2F%2F127.0.0.1%3A<port>%2Fcallback. Field order is unchanged. It affects both exchangeCode (:622) and performRefresh (:661).",
+        "formEncode falls back to the unencoded value when addingPercentEncoding returns nil (:792).",
+        "Line shifts: :1-771 unchanged; B2 :774-791 -> :772-789 (-2); B2 :792 onward -> +3 (oauthErrorMessage B2 :792-798 -> :795-801, origin B2 :800-812 -> :803-815, PKCE helpers B2 :816-834 -> :819-837, success/failure pages B2 :838-852 -> :841-855, page B2 :854-913 -> :857-916, logo line B2 :904 -> :907, wordmark B2 :907 -> :910, self-close script B2 :909 -> :912, escapeHTML B2 :915-929 -> :918-932).",
+        "No change to discovery, registration, callback server, token storage, error texts or the HTML pages."
+      ],
+      "unresolved_questions": [
+        "Exact hex case of formEncode's escapes is Foundation runtime behaviour (addingPercentEncoding is expected to emit uppercase hex such as %2F); the pinned source does not state it and it was not observed on a reference macOS runtime in this read. The port fixture should pin whatever the reference produces."
+      ]
+    },
+    {
+      "path": "DroppyCode/Services/MCP/MCPProviderConfig.swift",
+      "sha256": "9772c48257fb2f6e3bab581b2cb5dc1d4bac892623fcdc502d1a65043f69f4e2",
+      "ranges_read": [
+        [
+          1,
+          244
+        ]
+      ],
+      "asset_inspection": null,
+      "purpose": "Status M, one dead function removed. MCPProviderConfig translates the resolved MCP servers into each CLI provider's own config dialect and writes them to MCPPaths: claude.json (mcpServers, type http/url/headers or command/args/env), codex.json (mcp_servers, http_headers), copilot.json (type http/local with a tools [\"*\"] wildcard) and gemini-settings.json (httpUrl), and it rebuilds the ACP mcpServers array from claude.json (HTTP direct or via npx mcp-remote). It also derives the Codex per-session override that disables the user's own ~/.codex/config.toml servers by plain name, and exposes the claudeConfigPath/copilotConfigJSON/geminiSettingsPath accessors that return nil unless the file holds a non-empty server object. B3 deletes connectedIDs() (B2 :230-236), which had no caller at B2.",
+      "key_symbols": [
+        "enum MCPProviderConfig (:3)",
+        "static func claude(_ servers: [MCPResolvedServer]) -> JSONValue (:4-28)",
+        "static func codex(_:) -> JSONValue (:30-51)",
+        "static func copilot(_:) -> JSONValue (:53-75)",
+        "static func acpServers(allowsHTTP: Bool) -> JSONValue (:77-124)",
+        "static func gemini(_:) -> JSONValue (:126-146)",
+        "static func writeAll(_:) (:148-159)",
+        "static func codexUserServerNames() -> [String] (:163-197)",
+        "static func codexOverrides() -> JSONValue? (:199-210)",
+        "static func claudeConfigPath() -> String? (:212-215)",
+        "static func copilotConfigJSON() -> String? (:217-223)",
+        "static func geminiSettingsPath() -> String? (:225-228)",
+        "private static let geminiSettingsURL (:230)",
+        "private static func write(_:to:) (:232-235)",
+        "private static func serversPresent(in:key:) -> Bool (:237-243)"
+      ],
+      "calls_into": [
+        "MCPPaths.claudeConfigURL, codexConfigURL, copilotConfigURL, directory (:78, :150, :155-157, :200, :213, :218, :230)",
+        "JSONValue.parse, JSONValue.data(pretty:), JSONValue.compactString (:79, :222, :234)",
+        "LoginEnvironment.homeDirectory for ~/.codex/config.toml (:164)",
+        "FileManager.default.removeItem / createDirectory, Data.write(options: .atomic) (:151, :233-234)"
+      ],
+      "state_owned": [],
+      "side_effects": [
+        "writeAll deletes the four provider config files when no server is enabled, else writes all four pretty-printed (:148-159)",
+        "reads claude.json, codex.json, copilot.json, gemini-settings.json and ~/.codex/config.toml (never writes the user's file)"
+      ],
+      "platform_assumptions": [
+        "npx and mcp-remote on PATH for ACP agents without HTTP MCP (:99-107)",
+        "~/.codex/config.toml at the login home directory (:164)"
+      ],
+      "persisted_fields": [
+        "MCPPaths.claudeConfigURL {\"mcpServers\": ...}",
+        "MCPPaths.codexConfigURL {\"mcp_servers\": ...}",
+        "MCPPaths.copilotConfigURL {\"mcpServers\": ...}",
+        "MCPPaths.directory/gemini-settings.json {\"mcpServers\": ...} (:230)"
+      ],
+      "ui_elements": [],
+      "feature_notes": [
+        "B2->B3: `static func connectedIDs() -> [String]` (B2 :230-236: sorted keys of claude.json's mcpServers, or []) and the blank line after it were deleted. At B2 it already had no caller (git grep at 1fbf81e found only the definition; its one B1 caller, Antigravity's --allowed-mcp-server-names, was removed at B2), so no session behaviour changes.",
+        "Line shifts: :1-229 unchanged; B2 :238 geminiSettingsURL -> :230, B2 :240-243 write -> :232-235, B2 :245-251 serversPresent -> :237-243.",
+        "The remaining accessors (claudeConfigPath, copilotConfigJSON, geminiSettingsPath) and all four writers are unchanged."
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Services/MCP/MCPProxy.swift",
+      "sha256": "396051edcf230e2db4711107585ac7d2a6fe635a4a29252fe359112f957bf85f",
+      "ranges_read": [
+        [
+          1,
+          477
+        ]
+      ],
+      "asset_inspection": null,
+      "purpose": "Status M. MCPProxy is the loopback HTTP relay at http://127.0.0.1:<port>/mcp/<server id> that providers are pointed at for OAuth servers: it persists its port in mcp/proxy-port (kernel-picked, repicked once on a bind failure), parses a request head up to 65536 bytes and a Content-Length body up to 32 MiB, forwards five client headers plus the route's headers and a fresh bearer token upstream with a 3600 s timeout, replays once on an upstream 401, and writes back Content-Type, Mcp-Session-Id and Cache-Control. B3 changes two things: the four print(...) diagnostics became os Logger calls (subsystem \"iordv.droppycode\", category \"mcp-proxy\", :7) without the \"MCPProxy: \" prefix, and the text/event-stream relay now buffers bytes and emits one hex-sized chunk per line (at each '\\n', plus a final remainder) through the new chunk(_:) helper instead of one 1-byte chunk per byte.",
+      "key_symbols": [
+        "final class MCPProxy: @unchecked Sendable (:6)",
+        "private static let log = Logger(subsystem: \"iordv.droppycode\", category: \"mcp-proxy\") (:7, new at B3)",
+        "static let shared (:8)",
+        "static var port: UInt16 (:14)",
+        "private static let portBox = Mutex<UInt16>(loadPort()) (:16)",
+        "private static let portFile = MCPPaths.directory/proxy-port (:17)",
+        "private static func loadPort() (:19-27)",
+        "private static func repickPort() (:30-35)",
+        "static func url(for:) -> \"http://127.0.0.1:<port>/mcp/<id>\" (:37-39)",
+        "private struct Route {upstream, headers, usesOAuth} (:41-45)",
+        "private struct ConnectionBox (:47-49)",
+        "headLimit 65_536, bodyLimit 32 MiB, divider CRLFCRLF (:51-53)",
+        "private struct State {routes, listener, connections, running} (:57-62)",
+        "func register/unregister/replaceAll (:68-84)",
+        "func start() (:86-94)",
+        "private func listen(on:canRepick:) (:101-137)",
+        "func stop() (:139-152)",
+        "private static func pickFreePort() (:157-173)",
+        "accept/forget (:175-183)",
+        "readHead (:185-212), parseHead (:214-230), handleExchange (:232-252), readBody (:254-276)",
+        "routeRequest (:278-309)",
+        "sendUpstream (:311-359)",
+        "writeBack (:361-411)",
+        "private static func chunk(_ payload: Data) -> Data (:413-418, new at B3)",
+        "send (:420-426), respond (:428-439), statusHead (:441-448), reasonPhrase (:450-467), jsonError (:469-476)"
+      ],
+      "calls_into": [
+        "OSLog Logger.error / Logger.info (:108, :116, :118, :305)",
+        "MCPOAuth.accessToken(serverID:) (:336, :349)",
+        "URLSession.shared.bytes(for:) (:346, :351)",
+        "NWListener / NWConnection (Network.framework) (:101-137, :175-212, :420-439)",
+        "Darwin.socket/bind/getsockname for pickFreePort (:157-173)",
+        "MCPPaths.directory (:17)"
+      ],
+      "state_owned": [
+        "portBox: Mutex<UInt16> (:16)",
+        "state: Mutex<State> {routes: [String: Route], listener: NWListener?, connections: [ObjectIdentifier: NWConnection], running: Bool} (:57-64)"
+      ],
+      "side_effects": [
+        "writes the chosen port to mcp/proxy-port (:25, :33)",
+        "opens a loopback-only TCP listener on 127.0.0.1 (:103-106)",
+        "one upstream HTTP request per relayed exchange, with a bearer token for OAuth routes",
+        "unified-log entries (new at B3): error \"could not listen on <port>\" (:108), info \"listening on <port>\" (:116), error \"listener on <port> failed: <error>\" (:118), error \"request to '<id>' failed: <localizedDescription>\" (:305)"
+      ],
+      "platform_assumptions": [
+        "Network.framework NWListener/NWConnection with requiredInterfaceType .loopback and allowLocalEndpointReuse (:103-106)",
+        "BSD sockets via Darwin for the free-port probe, fallback 48123 (:157-173)",
+        "Apple unified logging (OSLog Logger) for diagnostics (:3, :7)"
+      ],
+      "persisted_fields": [
+        "file MCPPaths.directory/proxy-port holding the decimal port (:17, :20-25, :33)"
+      ],
+      "ui_elements": [],
+      "feature_notes": [
+        "B2->B3 logging: `import OSLog` (:3) and `private static let log = Logger(subsystem: \"iordv.droppycode\", category: \"mcp-proxy\")` (:7) were added; print(\"MCPProxy: could not listen on \\(port)\") -> Self.log.error(\"could not listen on \\(port)\") (:108); print(\"MCPProxy: listening on \\(port)\") -> Self.log.info(\"listening on \\(port)\") (:116); print(\"MCPProxy: listener on \\(port) failed: \\(error)\") -> Self.log.error(\"listener on \\(port) failed: \\(error)\") (:118); print(\"MCPProxy: request to '\\(serverID)' failed: ...\") -> Self.log.error(\"request to '\\(serverID)' failed: \\(error.localizedDescription)\") (:305). Nothing goes to standard output any more; the lines lose the \"MCPProxy: \" prefix and gain a level (error/info) and a category.",
+        "B2->B3 SSE relay (:378-389): B2 sent `\"1\\r\\n\" + byte + \"\\r\\n\"` per byte. B3 appends each byte to `buffer`; when the byte is '\\n' it sends Self.chunk(buffer) and clears the buffer; after the loop ends normally a non-empty remainder is sent as one more chunk. chunk(_:) frames `String(payload.count, radix: 16) + \"\\r\\n\" + payload + \"\\r\\n\"` (:413-418), so sizes are lowercase hex. A stream error still ends the relay silently (:390-391) but now DISCARDS any buffered partial line, because the remainder flush (:387-389) is inside the do block; the terminating \"0\\r\\n\\r\\n\" is still sent (:392). A partial line (no '\\n' yet) is held until its newline or the end of the stream.",
+        "B2->B3 non-SSE relay: `payload.reserveCapacity(Int(response.expectedContentLength))` when expectedContentLength > 0 (:397-399); a capacity hint only, still a per-byte append loop, no observable change.",
+        "Line shifts: +2 from B2 :6 (after the two added lines) through B2 :376; +7 from B2 :382 to :389; +10 from B2 :390 to :402; +17 from B2 :403 to the end (send B2 :403-409 -> :420-426, respond B2 :411-422 -> :428-439, statusHead B2 :424-431 -> :441-448, reasonPhrase B2 :433-450 -> :450-467, jsonError B2 :452-459 -> :469-476)."
+      ],
+      "unresolved_questions": [
+        "OSLog applies its default privacy to interpolated values (the pinned source sets no privacy: modifiers); under Apple's documented default, non-numeric interpolations such as serverID, error and error.localizedDescription would show as <private> outside a debugger, while the UInt16 port stays visible. This is Apple runtime behaviour, not stated in the pinned source, and was not observed on a reference runtime; ED-163's port Logger writes messages verbatim, so whether the Windows log should redact anything needs a ruling or an explicit note under ED-163."
+      ]
+    }
+  ]
+}

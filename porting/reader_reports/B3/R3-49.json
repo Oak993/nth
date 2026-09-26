@@ -1,0 +1,314 @@
+{
+ "bundle_id": "R3-49",
+ "reader": "R3-49-reader",
+ "files": [
+  {
+   "path": "DroppyCode/Services/Providers/DeepSeekAPI.swift",
+   "sha256": "99ce635288809370f3700a73dcc093bb4e882ffb8bf51a1cd7af6325396dbb42",
+   "ranges_read": [[1, 78]],
+   "asset_inspection": null,
+   "purpose": "enum DeepSeekAPI is the non-streaming HTTP client for api.deepseek.com that the provider registry and the usage panel call; chat streaming lives in DeepSeekSession. It holds the four endpoint URLs (base https://api.deepseek.com, /chat/completions, /models, /user/balance), key validation, the model catalog fetch, the prepaid-balance read and its parsing into ProviderCredits (string amounts, first balance_infos entry only, is_available defaulting to true). It also owns DeepSeek's static model knowledge: efforts [low, high, max], the 1,048,576-token context window, option(for:) (deepseek-v4-pro 'V4 Pro' default, deepseek-flash 'V4.1 Flash', four retired ids hidden, any other id passed through under its own id) and isVisionModel for the three Flash ids. At B3 validate and listModels are one-line delegations to the new shared OpenAICompatibleAPI, and balance builds its request with OpenAICompatibleAPI.bearerRequest.",
+   "key_symbols": [
+    "enum DeepSeekAPI",
+    "static let baseURL = URL(string: \"https://api.deepseek.com\")!",
+    "static let chatURL = URL(string: \"https://api.deepseek.com/chat/completions\")!",
+    "static let modelsURL = URL(string: \"https://api.deepseek.com/models\")!",
+    "static let balanceURL = URL(string: \"https://api.deepseek.com/user/balance\")!",
+    "static func validate(apiKey: String) async -> Bool",
+    "static func listModels(apiKey: String) async throws -> [ModelOption]",
+    "static func balance(apiKey: String) async -> ProviderCredits?",
+    "static func credits(from json: JSONValue) -> ProviderCredits?",
+    "static let deepseekEfforts = [\"low\", \"high\", \"max\"]",
+    "static let contextWindow = 1_048_576",
+    "static func option(for id: String) -> ModelOption?",
+    "static func isVisionModel(_ id: String?) -> Bool"
+   ],
+   "calls_into": [
+    "OpenAICompatibleAPI.validate(modelsURL:key:) (new B3 file DroppyCode/Services/Providers/OpenAICompatibleAPI.swift:13-20)",
+    "OpenAICompatibleAPI.listModels(modelsURL:key:option:) (OpenAICompatibleAPI.swift:22-34), passing Self.option(for:)",
+    "OpenAICompatibleAPI.bearerRequest(url:key:) (OpenAICompatibleAPI.swift:5-10)",
+    "URLSession.shared.data(for:)",
+    "JSONValue.parse",
+    "String.trimmed",
+    "ProviderCredits.init(total:currency:toppedUp:granted:isUsable:)",
+    "ModelOption.init"
+   ],
+   "state_owned": [],
+   "side_effects": [
+    "HTTPS GET https://api.deepseek.com/models with Authorization 'Bearer <trimmed key>' and Accept application/json, 15 s timeout (validate and listModels, through OpenAICompatibleAPI)",
+    "HTTPS GET https://api.deepseek.com/user/balance with the same headers and 15 s timeout (balance)"
+   ],
+   "platform_assumptions": [
+    "Foundation URLSession/URLRequest networking only; nothing macOS-specific"
+   ],
+   "persisted_fields": [],
+   "ui_elements": [
+    "Model picker rows from option(for:): 'V4 Pro' / 'Best reasoning and coding quality' (isDefault), 'V4.1 Flash' / 'Newest, fast, reads images', any other id shown under its own id"
+   ],
+   "feature_notes": [
+    "B2 :13-22 validate(apiKey:) (trim, empty key false, URLRequest(url: modelsURL, timeoutInterval: 15), Authorization Bearer, Accept application/json, true only on HTTP 200) became B3 :13-15 `await OpenAICompatibleAPI.validate(modelsURL: modelsURL, key: apiKey)`. OpenAICompatibleAPI.swift:13-20 does the same trim, the same empty-key false, builds the same request through bearerRequest (:5-10, timeout 15, the same two headers) and returns http.statusCode == 200. No observable change.",
+    "B2 :24-38 listModels(apiKey:) became B3 :17-19 `try await OpenAICompatibleAPI.listModels(modelsURL: modelsURL, key: apiKey, option: Self.option(for:))`. OpenAICompatibleAPI.swift:22-34 keeps every step: trimmed empty key gives [], the same request, non-200 or unparseable body gives [], data[].id extraction, empty ids gives [], compactMap through option(for:) and the same sort (isDefault first, then id). Transport errors still propagate, since the helper is `async throws` and uses `try await`. No observable change.",
+    "B2 :46-48 (the three-line inline URLRequest in balance) became B3 :27 `let request = OpenAICompatibleAPI.bearerRequest(url: balanceURL, key: key)`. The URL, the 15 s timeout and the headers are the same, and the key is still trimmed first (:25-26). No observable change.",
+    "Line shifts: lines after B2 :21 move by -7, after B2 :37 by -19, and after B2 :48 by -21. So credits(from:) B2 :55-68 is B3 :34-47, contextWindow B2 :72-73 is B3 :51-52, deepseekEfforts B2 :70 is B3 :49, option(for:) B2 :79-92 is B3 :58-71, and isVisionModel B2 :96-98 is B3 :75-77. The model rows, retired ids, vision ids and balance parsing are unchanged."
+   ],
+   "unresolved_questions": []
+  },
+  {
+   "path": "DroppyCode/Services/Providers/MetaAPI.swift",
+   "sha256": "e92ac382af17894be51323db11f9428b7c35dc7997143ee7a2a3017586d5668c",
+   "ranges_read": [[1, 70]],
+   "asset_inspection": null,
+   "purpose": "enum MetaAPI is the lightweight client for Meta's OpenAI-compatible Muse Spark API at https://api.meta.ai/v1, used by the registry for key validation and the model catalog, while MetaSession does the chat streaming over /v1/chat/completions (the header comment explains why the Responses API is not used). It fixes the base, chat and models URLs, the 1,048,576-token context window and 131,072 max output tokens, and the per-model effort ladder: only muse-spark-1.3 gets 'max' (probed 2026-09-13); every other model gets minimal..xhigh. It also defines the five named Spark catalog rows with their detail strings, a muse-spark prefix rule that drops non-chat models such as muse-image-1.0 and muse-voice-transcribe-1.0, and treats every Spark model, and a nil or empty id, as vision-capable. At B3 validate and listModels delegate to the new OpenAICompatibleAPI.",
+   "key_symbols": [
+    "enum MetaAPI",
+    "static let baseURL = URL(string: \"https://api.meta.ai/v1\")!",
+    "static let chatURL = URL(string: \"https://api.meta.ai/v1/chat/completions\")!",
+    "static let modelsURL = URL(string: \"https://api.meta.ai/v1/models\")!",
+    "static let contextWindow = 1_048_576",
+    "static let maxOutputTokens = 131_072",
+    "static func validate(apiKey: String) async -> Bool",
+    "static func listModels(apiKey: String) async throws -> [ModelOption]",
+    "static let maxEfforts = [\"minimal\", \"low\", \"medium\", \"high\", \"xhigh\", \"max\"]",
+    "static let standardEfforts = [\"minimal\", \"low\", \"medium\", \"high\", \"xhigh\"]",
+    "static func efforts(for id: String) -> [String]",
+    "static func option(for id: String) -> ModelOption?",
+    "static func isVisionModel(_ id: String?) -> Bool"
+   ],
+   "calls_into": [
+    "OpenAICompatibleAPI.validate(modelsURL:key:) (OpenAICompatibleAPI.swift:13-20)",
+    "OpenAICompatibleAPI.listModels(modelsURL:key:option:) (OpenAICompatibleAPI.swift:22-34), passing Self.option(for:)",
+    "ModelOption.init"
+   ],
+   "state_owned": [],
+   "side_effects": [
+    "HTTPS GET https://api.meta.ai/v1/models with Authorization 'Bearer <trimmed key>' and Accept application/json, 15 s timeout (validate and listModels, through OpenAICompatibleAPI)"
+   ],
+   "platform_assumptions": [
+    "Foundation URLSession networking only, through OpenAICompatibleAPI; nothing macOS-specific"
+   ],
+   "persisted_fields": [],
+   "ui_elements": [
+    "Model picker rows: 'Spark 1.3' / 'Latest Muse Spark · best agentic coding · 1M context' (isDefault), 'Spark 1.3 Contributor' / 'Cheaper 1.3 · Meta may train on your chats · no max effort', 'Spark 1.2' / 'Previous checkpoint · Standard tier · 1M context', 'Spark 1.2 Contributor' / 'Cheaper 1.2 · Meta may train on your chats', 'Spark 1.1' / 'Original checkpoint · Standard tier · 1M context'; any other muse-spark* id is shown under its own id"
+   ],
+   "feature_notes": [
+    "B2 :25-34 validate(apiKey:) became B3 :25-27 `await OpenAICompatibleAPI.validate(modelsURL: modelsURL, key: apiKey)`. The helper has the same trim and empty-key rule, the same 15 s request with Bearer and Accept headers, and the same HTTP 200 test. No observable change.",
+    "B2 :36-50 listModels(apiKey:) became B3 :29-31 `try await OpenAICompatibleAPI.listModels(modelsURL: modelsURL, key: apiKey, option: Self.option(for:))`. The id extraction, the filter through option(for:) (which drops non-Spark ids) and the sort (default first, then id) are identical. No observable change.",
+    "Line shifts: lines after B2 :33 move by -7 and after B2 :49 by -19. So the effort lists B2 :52-60 are B3 :33-41, option(for:) B2 :62-82 is B3 :43-63, and isVisionModel B2 :84-88 is B3 :65-69. The model rows, detail strings, efforts and vision rule are unchanged."
+   ],
+   "unresolved_questions": []
+  },
+  {
+   "path": "DroppyCode/Services/Providers/OpenAICompatibleSession.swift",
+   "sha256": "d035efb7f23405b5d6063964425028cc33aaebf69aff2e529b9a4ee136e56d37",
+   "ranges_read": [[1, 450], [451, 900], [901, 1334]],
+   "asset_inspection": null,
+   "purpose": "OpenAICompatibleSession is the one @MainActor ProviderSession implementation behind the DeepSeek, Meta and Z.ai native API providers. Subclasses supply a Config (kind, title, agentIdentity, defaultModel, chatURL, contextWindow, maxOutputTokens, replaysReasoning, isVisionModel) and override applyProviderPayload, reasoningEffort(for:model:) and friendlyError. It runs the whole agent loop: the system prompt (mode line, Hydra fallback policy, anti-slop policy, project AGENTS.md/CLAUDE.md guidance, today's ISO date), SSE streaming through a detached drain and a 30 ms StreamCoalescer actor, two transport retries at 1 s and 2 s for networkConnectionLost, timedOut and cannotConnectToHost, and the six built-in tools (read_file, list_files, search_text, write_file, edit_file, run_command) plus MCPHub tools. It also runs up to four concurrent approval-free reads, raises approvals with 'Approve' / 'Approve for turn' / 'Decline', and keeps the plan-mode block ahead of approve-for-turn. It applies the Hydra head wrap-up, pacing and final-report budget, condenses history (160,000 bytes down to 100,000, keeping the last 10 results whole), trims it above 60 messages, repairs tool-call chains, and stops a turn at a 200-round ceiling.",
+   "key_symbols": [
+    "@MainActor class OpenAICompatibleSession: ProviderSession",
+    "struct Config { kind, title, agentIdentity, defaultModel, chatURL, contextWindow, maxOutputTokens, replaysReasoning, isVisionModel }",
+    "private static let maxRoundsPerTurn = 200",
+    "private static let condenseHistoryAt = 160_000 / condenseHistoryTo = 100_000 / condenseKeepsRecent = 10 / condensedMarker = \"…[Droppy Code condensed this output\"",
+    "private static let maxTransportRetries = 2 / transportRetryDelays = [.seconds(1), .seconds(2)]",
+    "private static func isTransientTransportFailure(_:) -> Bool",
+    "private struct StreamRound / ReportedTokenUsage / PendingToolCall / StreamAttemptFailure",
+    "private enum StreamChunk",
+    "private actor StreamCoalescer",
+    "init(config:configuration:)",
+    "func start() async throws -> String",
+    "func send(_ input: TurnInput) async throws",
+    "private func performTurn(_:) async throws",
+    "func interrupt() async",
+    "func resolveApproval(_:optionID:)",
+    "func answerQuestion(_:answers:)",
+    "func compact() async throws",
+    "func stop()",
+    "private func reportUsage(_:)",
+    "private func streamOneRound(model:effort:withTools:) async throws -> StreamRound",
+    "private func terminalTransportMessage(_:) -> String",
+    "private func requestPayload(model:effort:withTools:)",
+    "func applyProviderPayload(_:model:effort:withTools:)",
+    "func reasoningEffort(for:model:) -> String?",
+    "@concurrent private nonisolated static func encode(_:) async -> Data",
+    "private func performStream(payload:) async throws -> StreamRound",
+    "private nonisolated static func drainSSE(bytes:into:contextWindow:) async throws",
+    "private func errorMessage(fromBody:statusCode:) -> String",
+    "func friendlyError(_:statusCode:) -> String",
+    "private static let toolDefinitions: [JSONValue]",
+    "private static let maxConcurrentReads = 4",
+    "private static func readOnlyKind(for:) -> ToolCall.Kind?",
+    "private func executeReadBatch(_:) async -> [String]",
+    "private func executeTool(_:) async -> String",
+    "private func requiresApproval(kind:) -> Bool",
+    "private func approveIfNeeded(kind:title:detail:toolItemID:) async -> Bool",
+    "private func condenseHistory()",
+    "private func searchText(pattern:path:regex:) async -> String",
+    "private func runCommand(_:) async -> (output: String, exitCode: Int32)",
+    "private func refreshSystemPrompt() / systemPrompt() -> String",
+    "private func userContentValue(text:images:) async -> JSONValue",
+    "private func assistantTurn(content:reasoning:toolCalls:) -> JSONValue",
+    "private func trimHistory() / sanitizeHistory()",
+    "private func summary(_:limit:) -> String",
+    "private func nextID(_:) -> String"
+   ],
+   "calls_into": [
+    "NativeFileTools (readFile, listFiles, writeFile, editFile, displayPath, resolveURL)",
+    "ProjectGuidance.systemPromptBlock()",
+    "MCPHub.shared.tools(), MCPHub.shared.call(_:arguments:), MCPHub.parse(callName:)",
+    "TokenLedger.shared.record(spend:)",
+    "HydraBudget (pacingTools, maxTools, maxSeconds, wrapUpTools, wrapUpSeconds, finalNote, wrapUpNote, pacingNote)",
+    "HydraPrompts.fallbackPolicy, HydraPrompts.streamedDelegations(in:)",
+    "AntiSlopPolicy.instructions(enabled:)",
+    "Attachment.base64Images",
+    "Shell.run with LoginEnvironment.current",
+    "ToolTitles.unwrapShell",
+    "URLSession.shared.bytes(for:)",
+    "ISO8601.string(from:)"
+   ],
+   "state_owned": [
+    "messages: [JSONValue] (in-memory chat history)",
+    "sessionID, runtimeMode, interactionMode, currentModel, counter",
+    "interrupted, isStopping, approveAllRemaining",
+    "sendTask, roundTask, sseDrain",
+    "pendingApprovals: [String: CheckedContinuation<Bool, Never>]",
+    "mcpTools, didLoadMCPTools",
+    "guidance: ProjectGuidance"
+   ],
+   "side_effects": [
+    "HTTPS POST to config.chatURL with stream true, Bearer auth and a 300 s timeout, once per round and again on a transport retry",
+    "Runs /usr/bin/grep -R -n -I with the exclude-dirs, -E or -F, and --, with a 30 s timeout and a 64,000-byte output limit (search_text)",
+    "Runs /bin/zsh -lc <command> in the project root with a 120 s timeout and a 24,000-byte output cap (run_command)",
+    "Reads, lists, writes and edits project files through NativeFileTools",
+    "Calls MCP tools through MCPHub",
+    "Records token spend in TokenLedger.shared",
+    "Emits ProviderEvent values (turnStarted, messageDelta/Completed, reasoningDelta/Completed, toolStarted/Updated, approval, requestResolved, usage, tokenSpend, notice, planCompleted, turnCompleted)"
+   ],
+   "platform_assumptions": [
+    "/usr/bin/grep and /bin/zsh -lc as executables",
+    "The system prompt says 'working inside <dir> on macOS'",
+    "LoginEnvironment.current for child-process environment",
+    "POSIX working-directory paths (lastPathComponent for the list_files root title)"
+   ],
+   "persisted_fields": [],
+   "ui_elements": [
+    "Approval options id 'allow' titled 'Approve' (role approve), 'always' titled 'Approve for turn' (approveAlways), 'decline' titled 'Decline' (decline)",
+    "Notices: 'Nothing to compact yet.', 'Context compacted.', '<title> paused after 200 rounds of tool calls in one turn. Say “continue” to pick up where it left off.', '<title> lost the connection while answering. That reply was cut off, and this response is restarting.'",
+    "Error strings: '<title> rejected the API key. Check it in Settings → Providers → <title>.', '<title> could not reach the network after 3 attempts. Check the connection, then try again.'",
+    "Tool row outputs: 'The user declined this action.', 'Unknown tool.', 'Wrote <path> (<n> bytes).', 'Edited <path>.'"
+   ],
+   "feature_notes": [
+    "The only B2->B3 hunk (B2 :1073-1075 -> B3 :1073) is in approveIfNeeded. `await MainActor.run { self.onEvent?(.approval(ApprovalRequest(id: id, kind: approvalKind, title: title, detail: detail, options: options, toolItemID: toolItemID))) }` became a direct `onEvent?(.approval(ApprovalRequest(...)))`. The class is @MainActor, so the call was already main-actor isolated and the hop was redundant. The approval id (nextID(\"approval\")), the kind mapping (command/fileChange/tool), the three options, the interrupted-first decline (:1060), the continuation registration (:1074-1081) and the cancellation decline (:1082-1086) are all unchanged. No observable change.",
+    "Every line after B2 :1075 moves by -2, which covers condenseHistory, searchText, runCommand, the system prompt, userContentValue, assistantTurn, trimHistory, sanitizeHistory, summary and nextID. B3 is 1334 lines, B2 was 1336.",
+    "All other behaviour matches B2: the 200-round ceiling, the transport-retry ladder, SSE usage parsing (prompt/completion/total plus cached-token fallbacks), concurrent reads, plan-mode blocking and history condensing, trimming and repair."
+   ],
+   "unresolved_questions": []
+  },
+  {
+   "path": "DroppyCode/Services/Providers/ProviderSession.swift",
+   "sha256": "83872e1d86e538286e13225faf7ec1efbe1910e74b15d8b9edfdffaeb1ee584f",
+   "ranges_read": [[1, 230]],
+   "asset_inspection": null,
+   "purpose": "ProviderSession.swift is the provider-neutral contract every CLI, ACP and API adapter implements. It defines TurnInput (one turn's request), SessionConfiguration (launch settings, including apiKey, hydra, transcript replay, isHydraHead and antiSlopEnabled), TranscriptMessage, AgentSpawn, the 31-case ProviderEvent stream normalized into a thread, and ToolUpdate. It also defines the @MainActor ProviderSession protocol (onEvent, isRunning, start, send, interrupt, resolveApproval, answerQuestion, compact, stop, stopAgent with a default of false), ProviderError with its user-facing messages, and the ToolTitles helpers (unwrapShell, relativePath, diffStats). At B3 it also hosts two helpers taken out of individual sessions: ToolText.blocks, which reads the text of a string or content-block array, and ApprovalRequest.Kind.grantKey, the key an 'approve for session' grant is stored under.",
+   "key_symbols": [
+    "struct TurnInput",
+    "struct SessionConfiguration",
+    "struct TranscriptMessage { enum Role { user, assistant } }",
+    "struct AgentSpawn",
+    "enum ProviderEvent",
+    "struct ToolUpdate",
+    "@MainActor protocol ProviderSession",
+    "extension ProviderSession { func stopAgent(_ id: String) async -> Bool { false } }",
+    "enum ProviderError: LocalizedError { notInstalled, notRunning, failed }",
+    "enum ToolTitles { unwrapShell(_:), relativePath(_:to:), diffStats(_:) }",
+    "enum ToolText { static func blocks(_ value: JSONValue?) -> String }",
+    "extension ApprovalRequest.Kind { var grantKey: String }"
+   ],
+   "calls_into": [
+    "JSONValue (isNull, string, array, subscript) in ToolText.blocks",
+    "ProviderKind.isAPIKeyBased / displayName / loginCommand in ProviderError.errorDescription"
+   ],
+   "state_owned": [],
+   "side_effects": [],
+   "platform_assumptions": [
+    "ToolTitles.unwrapShell strips the POSIX wrappers '/bin/zsh -lc ', '/bin/bash -lc ', 'bash -lc ', 'zsh -lc ', '/bin/sh -c ', 'sh -c '",
+    "ToolTitles.relativePath assumes '/' as the path separator"
+   ],
+   "persisted_fields": [],
+   "ui_elements": [
+    "ProviderError strings: '<name> needs an API key. Add one in Settings → Providers → <name>.', '<name> is not installed. Install it and sign in with `<loginCommand>`.', 'The agent session is not running.'"
+   ],
+   "feature_notes": [
+    "B3 adds enum ToolText at :211-219. blocks(_:) returns \"\" for nil or JSON null, the string itself for a string value, and for an array the \"text\" string of each element that has one, joined with \"\\n\". Anything else gives \"\". It replaces ClaudeSession's private resultText(_:), used for tool_result content (now called as ToolText.blocks at B3 ClaudeSession.swift:553), and PiSession's private text(in:) (now B3 PiSession.swift:307 and :425). Compared against both B2 bodies in the git diff: same result for every input, so no observable change.",
+    "B3 adds extension ApprovalRequest.Kind at :221-230. grantKey maps .command to \"command\", .fileChange to \"fileChange\", and .tool, .permissions and .plan to \"tool\". It replaces the identical private static grantKey(_:) functions removed from CommandCodeSession (now used at B3 :245 and :646) and PiSession (now used at B3 :233). No observable change.",
+    "Lines 1-209 are unchanged, and all 30 spec records that cite this file cite lines up to 209, so none is affected. The records describing the relocated helpers cite the old private copies: PR-PROVCLI-053 (ClaudeSession.swift:777-781 resultText), PR-PROVCLI-248 (CommandCodeSession.swift:741-747 grantKey) and PR-PROVCLI-285 (PiSession.swift:290-296 grantKey). They need re-citing to ProviderSession.swift:211-219 and :221-230 when those files' bundles are processed."
+   ],
+   "unresolved_questions": [
+    "Decide whether the two new shared declarations (ToolText.blocks :211-219 and ApprovalRequest.Kind.grantKey :221-230) get their own RUNTIME-area records, matching the one record per ToolTitles helper (PR-RUNTIME-013..015), or are covered only by re-citing PR-PROVCLI-053, PR-PROVCLI-248 and PR-PROVCLI-285. The behaviour is relocated, not new."
+   ]
+  },
+  {
+   "path": "DroppyCode/Services/Providers/ZaiAPI.swift",
+   "sha256": "8c014fa45b6efe9d8ce1d2715511d9fffb8ac8a0f745ec9d9f29ec03590616f0",
+   "ranges_read": [[1, 207]],
+   "asset_inspection": null,
+   "purpose": "enum ZaiAPI is the lightweight client for Z.ai's GLM Coding Plan (https://api.z.ai/api/coding/paas/v4), used for key validation, the model catalog and the Coding Plan usage features; ZaiSession does the chat streaming. It offers only glm-5.3 ids, never GLM-5.3-FlashX, with efforts [low, high, max] defaulting to max, a 1,000,000-token context and 128,000 max output tokens, and treats ids containing 'flash' or ending in 'v' as vision models. Plan limits come from the monitor quota endpoint as CREDIT_LIMIT/TOKENS_LIMIT windows titled from unit codes, plus a 'Monthly · MCP tools' TIME_LIMIT window. It also reads reset cards from customer-package-reset/list and spends one through customer-package-reset/use followed by a two-second wait. Card expiries are parsed as naive Asia/Shanghai 'yyyy-MM-dd HH:mm:ss', and counts are formatted with en_US grouping. At B3 validate and listModels delegate to OpenAICompatibleAPI, planLimits builds its request with OpenAICompatibleAPI.bearerRequest, and the reset-date DateFormatter is cached in a static.",
+   "key_symbols": [
+    "enum ZaiAPI",
+    "static let baseURL = URL(string: \"https://api.z.ai/api/coding/paas/v4\")!",
+    "static let chatURL / modelsURL (baseURL.appendingPathComponent)",
+    "static let quotaURL = URL(string: \"https://api.z.ai/api/monitor/usage/quota/limit\")!",
+    "static let resetListURL = URL(string: \"https://api.z.ai/api/biz/customer-package-reset/list?targetType=PERSONAL\")!",
+    "static let resetUseURL = URL(string: \"https://api.z.ai/api/biz/customer-package-reset/use\")!",
+    "static let zaiEfforts = [\"low\", \"high\", \"max\"]",
+    "static let contextWindow = 1_000_000",
+    "static let maxOutputTokens = 128_000",
+    "static func validate(apiKey: String) async -> Bool",
+    "static func listModels(apiKey: String) async throws -> [ModelOption]",
+    "static func option(for id: String) -> ModelOption?",
+    "static func isVisionModel(_ id: String?) -> Bool",
+    "static func planLimits(apiKey: String) async -> PlanLimits?",
+    "static func limits(from json: JSONValue) -> PlanLimits?",
+    "static func resetCredits(apiKey: String) async -> PlanLimits.ResetCredits?",
+    "static func consumeResetCredit(apiKey: String, creditID: String) async throws -> PlanLimits.ResetOutcome",
+    "private static func resetDate(_ text: String) -> Date?",
+    "private static let resetDateFormatter: DateFormatter",
+    "private static let countFormatter: NumberFormatter",
+    "private static func formatCount(_ value: Double) -> String"
+   ],
+   "calls_into": [
+    "OpenAICompatibleAPI.validate(modelsURL:key:), OpenAICompatibleAPI.listModels(modelsURL:key:option:), OpenAICompatibleAPI.bearerRequest(url:key:)",
+    "URLSession.shared.data(for:)",
+    "JSONValue.parse, JSONValue.data()",
+    "PlanLimitsReader.planName(_:), PlanLimitsReader.windowTitle(minutes:)",
+    "PlanLimits / PlanLimits.Window / PlanLimits.ResetCredit / PlanLimits.ResetCredits / PlanLimits.ResetOutcome",
+    "ResetCreditError.unknownOutcome / .rejected",
+    "Task.sleep(for: .seconds(2))"
+   ],
+   "state_owned": [
+    "private static let resetDateFormatter (new at B3: a shared DateFormatter with en_US_POSIX, Asia/Shanghai, yyyy-MM-dd HH:mm:ss)",
+    "private static let countFormatter (en_US, decimal, maximumFractionDigits 0)"
+   ],
+   "side_effects": [
+    "HTTPS GET <baseURL>/models with Bearer and Accept application/json, 15 s timeout (validate and listModels, through OpenAICompatibleAPI)",
+    "HTTPS GET https://api.z.ai/api/monitor/usage/quota/limit with a 15 s timeout (planLimits), then GET customer-package-reset/list?targetType=PERSONAL with a 15 s timeout (resetCredits)",
+    "HTTPS POST customer-package-reset/use with JSON {targetType: PERSONAL, resetType, recordId, requestId: lowercased UUID} and a 20 s timeout, then a two-second sleep (consumeResetCredit)"
+   ],
+   "platform_assumptions": [
+    "Foundation DateFormatter with TimeZone(identifier: \"Asia/Shanghai\") and NumberFormatter with Locale en_US; no macOS-only API"
+   ],
+   "persisted_fields": [],
+   "ui_elements": [
+    "Model rows 'GLM-5.3' / 'Best reasoning and coding · 1M context' (isDefault) and 'GLM-5.3 Flash' / 'Fast, reads images · 1M context'",
+    "Plan name 'Coding Plan <level>'; window titles from PlanLimitsReader.windowTitle, falling back to '5-hour limit' then 'Weekly'; window detail '<current> of <usage> credits'; 'Monthly · MCP tools' with '<current> of <usage> calls'",
+    "Reset card titles 'Resets the 5-hour limit' and 'Resets the weekly limit'; the rejection fallback 'Z.ai declined the reset.'"
+   ],
+   "feature_notes": [
+    "B2 :20-29 validate(apiKey:) became B3 :20-22, and B2 :31-45 listModels(apiKey:) became B3 :24-26. Both delegate to OpenAICompatibleAPI with the same trim, request, 200 test, id extraction, option(for:) filter and default-first sort. No observable change.",
+    "B2 :77-79 (the inline quota request in planLimits) became B3 :58 `let request = OpenAICompatibleAPI.bearerRequest(url: quotaURL, key: key)`. The URL, 15 s timeout, headers and trimmed key are the same. No observable change.",
+    "B2 :205-211 resetDate built a new DateFormatter on every call. B3 :184-186 calls `resetDateFormatter.date(from: text)`, and :188-194 declares that formatter once as `private static let` with the same locale en_US_POSIX, time zone Asia/Shanghai and format yyyy-MM-dd HH:mm:ss. Parsing results are unchanged; only the allocation is shared.",
+    "resetCredits (B3 :134-155) and consumeResetCredit (B3 :158-181) still build their URLRequests inline (15 s and 20 s timeouts) and are unchanged. resetCredits still sends the apiKey exactly as passed; planLimits passes the trimmed key.",
+    "Line shifts: lines after B2 :28 move by -7, after B2 :44 by -19, after B2 :79 by -21, and after the formatter insertion by -17. So limits(from:) B2 :89-151 is B3 :68-130, resetCredits B2 :155-176 is B3 :134-155, consumeResetCredit B2 :179-202 is B3 :158-181, and countFormatter/formatCount B2 :213-223 is B3 :196-206."
+   ],
+   "unresolved_questions": []
+  }
+ ]
+}

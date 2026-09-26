@@ -1,0 +1,106 @@
+{
+ "bundle_id": "R3-27",
+ "reader": "R3-27-reader",
+ "files": [
+  {
+   "path": "DroppyCode/UI/Chrome/Chrome.swift",
+   "sha256": "0c5eec1af7b3964b79318435e9f883b9566d2e725452f44c18fdb25d0f033b1a",
+   "ranges_read": [[1, 400], [401, 800], [801, 1137]],
+   "asset_inspection": null,
+   "purpose": "Chrome.swift is the shared design-system file of the UI layer: `enum Chrome` holds every window, chrome-row, sidebar and card token (windowCornerRadius 26, sheetInset 0, sheetCornerRadius 16, traffic-light metrics 14/9/18/16, iconFont .callout semibold, capsuleContentHeight 28, veilHeight 72, titleStart/EndOffset 10/44, progressQuantum 0.04, rowHeight 28, cardCornerRadius 16, sectionSpacing 20, rowButtonLabelHeight 16), the colour tokens (primaryText = labelColor, secondaryText = primaryText at 0.7, accent/accentNSColor/success/warning/danger/glassTint from ThemeManager.spec) and the motion tokens (hover easeOut 0.1, panelSlide spring 0.32/0.9 or easeOut 0.18 under Reduce Motion, glideSpring 0.6/0.86, settleFlight). It also defines the reusable SwiftUI building blocks every screen composes: glass capsule/circle surfaces (flat panel fill when isOnGlassPanel), the detail sheet, WindowBackdrop with its scrim formula and wallpaper branch, ChromeRevealLayout, the chrome capsule/icon/menu/circle/text buttons, the scroll-morph ChromeScrollModel + PaneTopVeil + ChromeCompactTitle, sidebar symbols/rows/search field, ChromeSearchField (200 wide), GlassPickerButton, softAppear/settleGlide transitions, the settings ChromeCard/ChromeSection/ChromeRow/ChromeRowDivider, and the window-drag (WindowDragArea) and no-drag (NoWindowDragArea/NoWindowDragView) hit regions.",
+   "key_symbols": [
+    "enum Chrome",
+    "Chrome.overlay(_:)",
+    "Chrome.primaryText / secondaryText / accent / accentNSColor / success / warning / danger / glassTint",
+    "Chrome.hover / panelSlide / glideSpring / settleFlight",
+    "extension View { chromeGlassCapsule(), chromeGlassFieldCapsule(), chromeGlassCircle(), detailSheet() }",
+    "private struct ChromeGlassSurface: ViewModifier",
+    "private struct DetailSheetModifier: ViewModifier",
+    "struct WindowBackdrop: View (static func scrim(for:isDark:))",
+    "struct ChromeQuietButtonStyle: ButtonStyle",
+    "struct ChromeRevealLayout: Layout",
+    "struct ChromeCapsule<Content>",
+    "struct ChromeDivider",
+    "struct ChromeIconLabel",
+    "struct ChromeIconButton",
+    "struct ChromeMenuButton<Content>",
+    "struct ChromeCircleButton",
+    "struct ChromeCircleMenu<Content>",
+    "struct ChromeTextMenu<Content>",
+    "struct ChromeTextButton",
+    "@MainActor @Observable final class ChromeScrollModel (update(travel:))",
+    "struct PaneTopVeil",
+    "struct ChromeCompactTitle",
+    "struct SidebarSymbol",
+    "struct SidebarIconBadge<Glyph>",
+    "struct SidebarRow<Icon, Accessory>",
+    "struct RowAccessoryIcon",
+    "struct SidebarSearchField",
+    "struct ChromeSearchField (static let width = 200)",
+    "struct GlassPickerButton<Value: Hashable>",
+    "struct SoftAppearModifier",
+    "AnyTransition.softAppear / Animation.softAppear (.smooth(duration: 0.32))",
+    "private struct SettleGlideModifier: ViewModifier, Animatable",
+    "AnyTransition.settleGlide",
+    "struct ChromeCard<Content> (var lazy = false, B3 :1006-1027)",
+    "struct ChromeSection<Content> (B3 :1029-1053)",
+    "struct ChromeRow<Control> (B3 :1055-1080)",
+    "struct ChromeRowDivider (B3 :1082-1087)",
+    "struct WindowDragArea: View (B3 :1092-1099, WindowDragGesture)",
+    "struct NoWindowDragArea: NSViewRepresentable (B3 :1111-1117)",
+    "final class NoWindowDragView: NSView (B3 :1119-1137)"
+   ],
+   "calls_into": [
+    "ThemeManager.spec (DroppyCode/UI/Theme/AppTheme.swift:233) for accent, success, warning, danger, surface",
+    "Chrome.panelControlFill(isDark:hovered:) and the isOnGlassPanel environment entry (DroppyCode/UI/Common/RenderBudget.swift:86, :93)",
+    "PopoverMenu and PopoverItem (DroppyCode/UI/Chrome/Popovers.swift:95, :190)",
+    "NSWorkspace.shared.accessibilityDisplayShouldReduceMotion (panelSlide, settleFlight, SettleGlideModifier)",
+    "SwiftUI glassEffect(.regular.tint(...).interactive(), in:) / glassEffect(in:)",
+    "SwiftUI WindowDragGesture() and .allowsWindowActivationEvents(true) (new at B3 in WindowDragArea)",
+    "AppKit NSView mouse event forwarding to superview (NoWindowDragView)"
+   ],
+   "state_owned": [
+    "ChromeScrollModel.progress (quantized scroll progress, written only on change)",
+    "@State isHovered in ChromeGlassSurface; @State isHovering in ChromeIconButton, ChromeMenuButton, ChromeCircleButton, ChromeCircleMenu, ChromeTextMenu, ChromeTextButton, SidebarRow, GlassPickerButton",
+    "@State isPresented (popover open) in ChromeMenuButton, ChromeCircleMenu, ChromeTextMenu, GlassPickerButton"
+   ],
+   "side_effects": [
+    "WindowDragArea moves the window through SwiftUI's WindowDragGesture (B3); at B2 it called window.performDrag(with:) on mouseDown",
+    "NoWindowDragView refuses window drag (mouseDownCanMoveWindow false) and forwards mouseDown/Dragged/Up and rightMouseDown/Up to its superview",
+    "SidebarSearchField / ChromeSearchField clear their bound text on Escape (onExitCommand) and on the clear button",
+    "GlassPickerButton writes the chosen value into its selection binding"
+   ],
+   "platform_assumptions": [
+    "AppKit: NSColor.labelColor/controlAccentColor, NSImage wallpaper, NSWorkspace reduce-motion flag, NSViewRepresentable/NSView for NoWindowDragArea",
+    "macOS 26 Liquid Glass (glassEffect) for capsules, circles and the window backdrop",
+    "SwiftUI macOS window APIs WindowDragGesture and allowsWindowActivationEvents (B3 WindowDragArea)",
+    "Title-bar hit testing where AppKit moves the window for any view that allows it (NoWindowDragArea doc comment, WindowChrome.titlebarHeight)"
+   ],
+   "persisted_fields": [],
+   "ui_elements": [
+    "Window backdrop (glass/solid/wallpaper, 26pt continuous corner, 0.12 glass tint overlay, 0.14 hairline)",
+    "Detail sheet background (black 0.22 / white 0.3 plus glass tint 0.22 / 0.16)",
+    "Chrome capsule, chrome divider (1x14 at 0.22), icon button, menu button, circle button, circle menu, text menu (chevron.down), text button (destructive red on hover)",
+    "Pane top veil (72pt gradient) and compact title (.title3 semibold)",
+    "Sidebar symbol, icon badge, sidebar row (28pt, 7pt corner, selected 0.12 / hover 0.06), row accessory icon",
+    "Sidebar search field ('Search' prompt, 'Clear search', 30pt capsule at 0.07)",
+    "Chrome search field (200 wide glass field capsule, 'Search', 'Clear search')",
+    "Glass picker button with popover rows",
+    "Chrome card (16pt continuous fill at 0.03), chrome section header (.body semibold, secondaryText), chrome row (title .body, detail .subheadline), chrome row divider (inset 16)",
+    "Window drag region and no-drag region (draw nothing)"
+   ],
+   "feature_notes": [
+    "B2->B3 change 1 (upstream 02da39027 'Lay out settings cards and the chat timeline eagerly so an edge row cannot freeze the app'): ChromeCard gains `var lazy = false` (B3 :1007-1009, doc comment 'Use lazy only for cards that list a long, uniform, growing collection. Variable-height rows at the visible bottom edge can rebuild without end.'). The body is now `Group { if lazy { LazyVStack(alignment: .leading, spacing: 0) { content } } else { VStack(alignment: .leading, spacing: 0) { content } } }` (B3 :1014-1020); B2 :1012 was an unconditional LazyVStack. The B2 comment 'Rows are built as they scroll into view ... a long page costs neither every row up front nor a mask per card while scrolling' is replaced by 'The card uses a filled shape instead of a clip, avoiding a mask while scrolling.' (B3 :1013). Frame, 16pt continuous RoundedRectangle and Chrome.overlay(0.03) fill are unchanged (B3 :1021-1025). SOURCE FACT: at B3 only three call sites pass lazy: true: MCPSettingsPage.swift:40 (Connected), MCPSettingsPage.swift:395 (Custom) and SettingsView.swift:898 (ArchiveSettingsPage); every other ChromeCard (Providers sections, About/update cards, Hydra, Shortcuts, Appearance/wallpaper, welcome) is now eagerly laid out.",
+    "B2->B3 change 2 (upstream d70cff8fe 'refactor: audit cleanups ... layer rules restored'): WindowDragArea is no longer an NSViewRepresentable wrapping `final class WindowDragView: NSView` (B2 :1086-1102: acceptsFirstMouse true, mouseDown -> window?.performDrag(with: event), empty mouseUp). At B3 :1092-1099 it is a pure SwiftUI View: `Color.clear.contentShape(.rect).gesture(WindowDragGesture()).allowsWindowActivationEvents(true)`. WindowDragView is deleted. The doc comment 'Lets a stretch of chrome move the window, the way the sidebar does in Droppy.' is kept (B3 :1091). Users at B3: SidebarView.swift:181 (background, not in popover), SettingsView.swift:193 (background), MCPKeyPanel.swift:53, MCPSetupPanel.swift:127.",
+    "Line map B2->B3: lines 1-1006 identical and unshifted; B2 1007-1009 -> B3 1010-1012 (+3); B2 1010-1014 replaced by B3 1013-1020; B2 1015-1082 -> B3 1021-1088 (+6; ChromeSection 1023-1047 -> 1029-1053, ChromeRow 1049-1074 -> 1055-1080, ChromeRowDivider 1076-1081 -> 1082-1087); B2 1083-1085 -> B3 1089-1091 (+6); B2 1086-1102 replaced by B3 1092-1099; B2 1103-1140 -> B3 1100-1137 (-3; NoWindowDragArea doc+struct 1104-1120 -> 1101-1117, NoWindowDragView 1122-1140 -> 1119-1137). B2 had 1140 lines, B3 has 1137.",
+    "Unchanged at B3 (verified by the diff having exactly two hunks): every token in enum Chrome, all surfaces, WindowBackdrop, controls, scroll morph, sidebar pieces, search fields, GlassPickerButton, transitions, ChromeSection, ChromeRow, ChromeRowDivider, NoWindowDragArea and NoWindowDragView.",
+    "Port consequence for ChromeCard: the C# ChromeCard (src/Marrow.UI/Chrome/Chrome.cs:1558-1574) is already an eager StackPanel with a comment saying the lazy LazyVStack could not be reproduced; B3's default (lazy false, eager VStack) now matches it, but the port must add the `lazy` parameter (default false) so the three B3 lazy call sites can opt in, and must decide how lazy: true is honoured given ChromeCard takes a single Func<Control>.",
+    "Port consequence for WindowDragArea: the C# WindowDragArea/WindowDragView pair (Chrome.cs:1664-1706) mirrors B2's NSViewRepresentable + NSView; B3 has no WindowDragView, so the twin must become a single transparent full-rect hit-testing control whose drag moves the window and which accepts the window-activating click."
+   ],
+   "unresolved_questions": [
+    "UNRESOLVED: exact runtime semantics of SwiftUI WindowDragGesture versus B2's performDrag(with:) on mouseDown: whether the move starts on press or only after drag motion is recognised, whether a plain click (no motion) or the release is still swallowed, and whether a double-click on the region zooms the window. No macOS runtime is available (OD-0001); the source itself states none of these. PR-WIN-193 and UI-WIN-005 currently assert 'press immediately begins a window move' and 'release is swallowed', which were B2 code facts and are no longer evidenced by B3 code.",
+    "UNRESOLVED (port engineering): how ChromeCard(lazy: true) is realised on Avalonia when content is a single builder closure; the existing C# comment records that no lazy-stack primitive is used. Needs an ENGINEERING DECISION recorded in the spec (eager with a recorded deviation, or a virtualising host for the three lazy call sites)."
+   ]
+  }
+ ]
+}

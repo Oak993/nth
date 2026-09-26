@@ -58,6 +58,14 @@ def strip(src):
                     i += 1
             out.append(' ')
             continue
+        # An extended regex literal (#/.../#, ##/.../##): its body may hold "//" or braces, which are not code.
+        m = re.match(r'(#+)/', src[i:])
+        if m:
+            j = src.find('/' + m.group(1), i + len(m.group(0)))
+            if j >= 0:
+                out.append('""')
+                i = j + 1 + len(m.group(1))
+                continue
         m = re.match(r'(#*)("""|")', src[i:])
         if m:
             hashes, quote = m.group(1), m.group(2)

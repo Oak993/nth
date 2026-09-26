@@ -3,7 +3,8 @@ using Marrow.Core.Port;
 
 namespace Marrow.Core.Tests.Port;
 
-// ED-163: os_log's Logger(subsystem:category:) on Windows.
+// ED-163: os_log's Logger(subsystem:category:) on Windows. B3 52bc792 adds an Info level: MCPProxy.swift:116
+// Self.log.info("listening on \(port)"), ported by lane A13 (MCPProxy), not here.
 public sealed class LoggerTests
 {
     [Fact]
@@ -21,6 +22,21 @@ public sealed class LoggerTests
         {
             ("Main thread unresponsive for 4.0s, sampling", "iordv.marrow/hang"),
             ("", "iordv.marrow/codex"),
+        }, lines.ToArray());
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-163")] // MCPProxy.swift:116 (B3 52bc792) Self.log.info("listening on \(port)")
+    public void Info_hands_the_verbatim_message_and_the_subsystem_slash_category_channel_to_the_sink()
+    {
+        var lines = new List<(string Message, string Channel)>();
+        using (Logger.Sink.Override((message, channel) => lines.Add((message, channel))))
+        {
+            new Logger(Logger.Subsystem, "mcp-proxy").Info("listening on 51423");
+        }
+        Assert.Equal(new (string, string)[]
+        {
+            ("listening on 51423", "iordv.marrow/mcp-proxy"),
         }, lines.ToArray());
     }
 

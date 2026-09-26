@@ -1176,9 +1176,9 @@ public sealed partial class AppModel : MainActorModel
         thread.Id == SelectedThreadID
         || thread.ParentThreadID == SelectedThreadID && thread.IsInPanel && !thread.IsArchived && !thread.IsSettled;
 
-    private static bool IsApplicationActive() =>
-        Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
-        && desktop.MainWindow?.IsActive == true;
+    // NSApp.isActive (AppModel.swift:1163, :1177, :1250, AppModel+HydraMerge.swift:869): the port's one reading of it,
+    // shared with AppDelegate.swift's presentation gate (Port/ApplicationLifecycle.cs NSApplication.IsActive).
+    private static bool IsApplicationActive() => Marrow.App.Port.NSApplication.IsActive.Current();
 
     // AppModel.swift:1218-1222. Swift: markRead(_: UUID).
     public void MarkRead(Guid id) // AppModel.swift:1218-1222

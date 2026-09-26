@@ -1,0 +1,348 @@
+{
+  "bundle_id": "R3-38",
+  "reader": "R3-38-reader",
+  "files": [
+    {
+      "path": "DroppyCode/App/Views/Chat/ThreadTimeline.swift",
+      "sha256": "21d2fc91cbb79a9fd4e9b4a7ea9fb21814b38dbcdd5f1ad2c59ec16e8b43ba31",
+      "ranges_read": [
+        [
+          1,
+          700
+        ],
+        [
+          701,
+          1400
+        ],
+        [
+          1401,
+          2100
+        ],
+        [
+          2101,
+          2326
+        ]
+      ],
+      "asset_inspection": null,
+      "purpose": "The conversation timeline's root view: an eagerly-materialized, window-bounded scroll stack of DisplayBlock rows (turns, plain groups, the working indicator, Hydra merge/heads-working pills) plus the leading TimelineMinimapColumn rail, driving every auto-scroll and viewport-repair rule for a chat (bottom pinning, history paging, the jump button, blank-viewport recovery after the app returns to the front). It also declares DisplayBlock/TimelineGroup/TimelineMeta/TimelineBlockCache, the per-turn grouping and caching machinery every row in the file is built from.",
+      "key_symbols": [
+        "ThreadTimeline",
+        "TimelineScrollTracking",
+        "FrontMonitor",
+        "ScrollMetrics",
+        "TimelineGroup",
+        "HeadPills",
+        "DisplayBlock",
+        "DisplayBlock.Built",
+        "TimelineBlockCache",
+        "TimelineBlockCache.Key",
+        "TimelineWindow",
+        "TimelineMeta",
+        "RowContext",
+        "DisplayBlockView",
+        "TurnRunningBlock",
+        "TurnGroupCache",
+        "TurnRow",
+        "TimelineGroupView",
+        "WorkingIndicator",
+        "ThinkingStep",
+        "TimelineScrollState",
+        "TimelineRevealBox",
+        "WorkingBlockView",
+        "ScrollFreeze",
+        "ScrollViewProbe"
+      ],
+      "calls_into": [
+        "AppModel (helpers(of:), children(of:), settings.showReasoning, sidebar.isSliding/slideDelta)",
+        "ThreadRuntime (entries, isRunning, turns, questions, isHydraMerging, hydraMergeNoteID, autoStartedTurnToken, isLoadingHistory)",
+        "TimelineMinimapColumn (the leading rail)",
+        "NewThreadPrompt, QuestionBadgeRow, HydraHeadsWorkingRow, HydraMergeRow",
+        "MarkdownView.warm (off-main-thread markdown pre-parse)",
+        "ScrollActivity.shared (cross-timeline scroll-activity reporting)",
+        "WindowChrome.titlebarHeight, Chrome.contentTopInset/panelSlide"
+      ],
+      "state_owned": [
+        "tracking: TimelineScrollTracking (@State) - every scroll-driven fact (pin state, drift, viewport-refresh/repair requests, nudge phase, active-block id) kept off view state on purpose",
+        "position: ScrollPosition, viewportHeight/paneWidth/paneWidthAtSlideStart (@State)",
+        "anchorsBottomOnGrowth / historyLoadPending / windowStartID / seenAutoStartedTurnToken / stackGeneration (@State)",
+        "revealBox: TimelineRevealBox (@State), blockCache: TimelineBlockCache (per-thread, static-cached, not @State)"
+      ],
+      "side_effects": [
+        "DispatchQueue.main.async-deferred scrollPosition writes from inside the onScrollGeometryChange/onChange handlers (guards against an uncapped AppKit display-cycle re-entrant loop, per the file's own comment)",
+        "Task.sleep-based staged window loading on thread open (.task(id: runtime.threadID), 250ms then loadEarlier)",
+        "TimelineScrollTracking's own Tasks: settleWatch, phaseWatch, blankWatch, armViewportRefresh's burst-limited refresh Task",
+        "FrontMonitor.shared: NotificationCenter observers for didBecomeActive/didResignActive/didChangeOcclusionState, bumping a revision the timeline's onChange re-checks its own layout against",
+        "ScrollActivity.shared.setScrolling reporting so other timelines/UI can tell this one is actively scrolling"
+      ],
+      "platform_assumptions": [
+        "NSScrollView / NSClipView direct manipulation for the 1-point 'nudge' that tells the lazy-ish stack where the viewport moved (beginNudge/restoreNudge via ScrollViewProbe, an NSViewRepresentable probe)",
+        "CACurrentMediaTime for all scroll-timing math (settle/phase/blank watches)",
+        "NSApp.isActive / NSWindow.occlusionState for FrontMonitor's app-visible/window-uncovered detection",
+        "SwiftUI ScrollPhase/ScrollGeometry/onScrollPhaseChange/onScrollGeometryChange/defaultScrollAnchor, with no declared port type yet (per the C# skeleton's own NEEDS DECISION note)"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "The eager (not lazy) row stack inside a ScrollView, one row per DisplayBlock plus trailing question badges",
+        "'Show N earlier messages' pill above the window, auto-loading a page near the top",
+        "TimelineMinimapColumn rail (only when showsMinimap and more than one user message)",
+        "WorkingIndicator: the running-turn badge/card with elapsed time, chevron-expand for thinking + live steps",
+        "Bottom sentinel view driving TimelineScrollState.showsJumpButton"
+      ],
+      "feature_notes": [
+        "B2->B3's substantive change: the row stack's container changed from `LazyVStack` to a plain `VStack` (B3 lines 384-388, replacing B2's single `LazyVStack(...)` line), with a new comment explaining why -- rows of varying height at the visible edge sent a lazy stack pinned to the bottom into a placement loop that never returned to the run loop, causing release hangs of 16 seconds to 20 minutes. Because an eager stack has no ceiling of its own, B3 adds a companion cap: a new `TimelineWindow.eagerLimit = 96` constant (B3 lines 1805-1811, inserted after `page = 24`) and a new clause inside `.onChange(of: lastEntryID)` (B3 lines 702-706, inserted right after the existing arrival guard) that drops the window back to the newest `TimelineWindow.initial` (24) blocks whenever the eagerly-rendered `visible` count exceeds 96 while the reader is following the conversation's end. Net effect: the timeline no longer virtualizes rows at all: every block in the current window is always fully materialized, and the window itself is kept bounded by actively evicting older blocks (back to 24) once it grows past 96, rather than by lazy on-screen instantiation. This is an internal reliability fix (the B2 hang) with an observable side effect for the port: any implementation must not rely on a virtualizing/recycling list control for this specific stack (that would reintroduce the exact placement-loop risk B3 documents fixing), and must reproduce the 96-block eviction-while-pinned behaviour, which the pinned B2 baseline never had.",
+        "Two spec records (porting/spec/CHAT.json) sit exactly inside the touched ranges and need more than a line-number recite: PR-CHAT-045 ('The lazy window opens at three blocks...') cites B2 TimelineWindow.swift:1795-1799 as the whole enum body (firstPaint/initial/page + closing brace); in B3 that same content is unshifted-content-but-interleaved (the enum now also holds eagerLimit before its closing brace), and neither PR-CHAT-045 nor PR-CHAT-192 (which cites the same enum) documents the new eviction behaviour at all. PR-CHAT-132 ('A new row at the end brings a reader who was at the end down to it...') cites B2 :685-703 as the whole onChange(of: lastEntryID) handler; B3 inserts the new eagerLimit-eviction clause in the middle of that exact handler, so the requirement's evidence range now spans genuinely new logic its expected_result text never mentions.",
+        "UI-CHAT-001 (the timeline's 'list' UI record) cites B2 :359-425, which spans the LazyVStack->VStack line (B2 :384); its stated geometry/typography/states describe layout only, never virtualization, so the swap does not falsify anything it asserts -- a pure line-shift recite is sufficient there.",
+        "Every other requirement/UI citation into this file that falls at or after B2 line 384 shifts by a mechanical amount (+4 for B2 385-698, +9 for B2 699-1798, +12 for B2 1799-2314, confirmed against the B2 total line count of 2314 cited verbatim in CHAT.json:238's own B1->B2 note and matching this B3 file's measured 2326 lines); PR-CHAT-128, PR-CHAT-135, PR-CHAT-044, PR-CHAT-192 and UI-CHAT-060 (checked individually) fall in these shift zones without their described behaviour changing.",
+        "The C# skeleton at src/Marrow.App/Views/Chat/ThreadTimeline.cs is unimplemented (every member throws MARROW_STUB; unit status TODO in porting/deps/units.json) and its per-member '// :NNN-MMM' citations still point at B2 line numbers throughout, so nothing already-built needs correcting, but the eventual implementation must build the eager+96-cap window behaviour described above rather than the plain lazy/virtualized list the B2-era skeleton comments (and the retired LazyVStack) would suggest, and the skeleton's citation comments need re-basing onto the B3 line numbers computed above when the unit is picked up."
+      ],
+      "unresolved_questions": [
+        "Whether a new parity_matrix requirement should be filed for the eagerLimit=96 eviction-while-pinned behaviour (distinct from PR-CHAT-045's initial-window sizing), or whether it is folded into PR-CHAT-045/PR-CHAT-132 as an amendment -- this is an owner/spec-refresh decision, not a reading question.",
+        "Whether Avalonia's virtualizing panel (if one was ever planned for this stack) must be avoided entirely per the B2 hang B3 documents, or whether a virtualizing control without SwiftUI's specific placement-loop defect would be acceptable -- needs an explicit engineering decision when App.Views.Chat.ThreadTimeline is implemented."
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/Chat/TimelineMinimap.swift",
+      "sha256": "446e851117e02e5dc82831792cf7216fe23ef50573dd9d579f53ff7e360e141e",
+      "ranges_read": [
+        [
+          1,
+          436
+        ]
+      ],
+      "asset_inspection": null,
+      "purpose": "The conversation-outline rail beside the chat column: builds one TimelineMinimapEntry per user-sent message (title, snippet, weight), caches them per block id, and renders them as a slim vertical tick rail (TimelineMinimapRail) that previews a hover card, lights the tick the reader is on, and scrubs or glides the timeline to a tapped/dragged tick via MinimapRailMetrics' pure y-to-index geometry.",
+      "key_symbols": [
+        "TimelineMinimapEntry",
+        "TimelineMinimap",
+        "TimelineMinimapColumn",
+        "MinimapOutlineBlock",
+        "MinimapSelection",
+        "TimelineMinimapRail",
+        "MinimapRailMetrics",
+        "RailHitArea"
+      ],
+      "calls_into": [
+        "DisplayBlock (entry(for:), hasUserMessage)",
+        "TimelineScrollTracking (activeBlockID, read-only)",
+        "RecentCache (title/snippet caching, limit 400)",
+        "Chrome.accent/cardCornerRadius",
+        "WindowLiveResize (mid-resize freeze of rebuilding the outline)"
+      ],
+      "state_owned": [
+        "TimelineMinimap.entryCache: RecentCache<String, TimelineMinimapEntry> (static, limit 400)",
+        "TimelineMinimapColumn.lastEntries (@State, held during a live resize)",
+        "TimelineMinimapRail.hoveredID / isPressing (@State)"
+      ],
+      "side_effects": [],
+      "platform_assumptions": [
+        "SwiftUI .pointerStyle(.link) for the rail's hover cursor (B3; see feature_notes)",
+        "onContinuousHover for pointer tracking inside the rail's hit rect",
+        "NSHapticFeedbackManager-free in this file (haptics live in the drag/reorder files, not here)"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "TimelineMinimapRail: one 2pt-tall tick per user message, 10-26pt wide by weight, 0.25/0.4 opacity at rest/expanded, the active tick in the theme accent",
+        "Hover preview card: 300pt wide glass card, title + up to 3 snippet lines, offset to track the hovered tick and clamped inside the rail",
+        "Scrub gesture: zero-minimum-distance drag tracks 1:1 (animated: false per tick), release glides (animated: true)"
+      ],
+      "feature_notes": [
+        "B2->B3 removes the rail's entire manual NSCursor push/pop bookkeeping and replaces it with the declarative `.pointerStyle(.link)` modifier. Deleted: the `ownsCursorPush` @State flag, the `if !ownsCursorPush { NSCursor.pointingHand.push(); ownsCursorPush = true }` guard inside onContinuousHover's `.active` case, the `releaseCursor()` private method, its call from onContinuousHover's `.ended` case, and its call from a now-deleted `.onDisappear { releaseCursor() }` on the GeometryReader. Added: a single `.pointerStyle(.link)` modifier on the same Color.clear hit-area view. The end-user-visible outcome (a pointing-hand cursor while hovering the rail, restored to the system default off it, including on a disappear-while-hovering) is very likely unchanged, since `.pointerStyle` is documented to scope itself to the view's own hover lifetime; but the *mechanism* the spec explicitly encodes as testable behaviour is gone.",
+        "Two spec records are built directly around the retired push/pop mechanism and need reclassification, not just a line recite. PR-CHAT-072 ('Hovering the rail previews a tick...', status IMPLEMENTED) cites B2 :214-229 as 'pushes a pointing-hand cursor on first entry ... pops the cursor', lists a side_effect of 'A pointing-hand cursor is pushed ... and popped exactly once', a failure_case of 'A disappear while hovering pops the pushed cursor exactly once, guarded by an ownership flag', and a windows_path of 'Windows has no NSCursor push/pop stack: model it as an explicit LIFO cursor-owner stack and mirror each push and pop site one for one (port_impacts.md 310)'. None of that push/pop machinery exists in B3 any more. UI-CHAT-003 (the rail's UI record) likewise states in its interactions/notes that hover 'pushes a pointing-hand cursor' which 'must be popped exactly once, including on a disappear while hovering'.",
+        "The already-built C# port (src/Marrow.App/Views/Chat/TimelineMinimap.cs, unit status DONE) implements PR-CHAT-072's B2-era windows_path literally: a private `CursorOwner` record, a static `List<CursorOwner> CursorOwners` LIFO stack, `PushCursor`/`ReleaseCursor`/`ApplyCursorOwners` methods, and a code comment at line 462 reading ':214-227. Windows cursor ownership mirrors each push and pop through this explicit LIFO stack.' That comment's own justification (mirroring B2's push/pop sites) no longer matches the pinned source: B3 has no push/pop sites left to mirror, only a single scoped modifier. The LIFO stack may still produce the same visible cursor today, but it is now solving a problem (safe nesting of multiple imperative pushes/pops) the source itself no longer has."
+      ],
+      "unresolved_questions": [
+        "Whether TimelineMinimap.cs's CursorOwner/LIFO-stack mechanism should be simplified to a plain scoped-cursor toggle (matching B3's .pointerStyle semantics more directly) now that the B2 push/pop hazard it was built to mirror is gone, or left as-is because it still produces the same visible result -- an engineering-decision question, not a reading one.",
+        "Whether PR-CHAT-072 and UI-CHAT-003's evidence/side_effects/failure_cases/windows_path text should be rewritten to cite `.pointerStyle(.link)` instead of the retired NSCursor push/pop description; the underlying user-visible claim (pointing-hand cursor while hovering, normal cursor otherwise) appears unchanged and is not itself in question."
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/Composer/DownloadsPopover.swift",
+      "sha256": "88aa9ce4fe83d572264c89fff767c75bfbc149feff0117ed138bac7a4cead072",
+      "ranges_read": [
+        [
+          1,
+          237
+        ]
+      ],
+      "asset_inspection": null,
+      "purpose": "The composer's attach-button popover for recently downloaded files: scans ~/Downloads off the main thread for the 15 most recently modified non-directory entries, generates square-filling thumbnails for image extensions via ThumbnailCache, and renders them as a fixed-height (self-sizing up to 700pt) popover list with a Finder link and a Choose Files fallback.",
+      "key_symbols": [
+        "RecentDownload",
+        "RecentDownloads",
+        "DownloadsPopover",
+        "DownloadRow"
+      ],
+      "calls_into": [
+        "FileManager.default (contentsOfDirectory, resourceValues)",
+        "ThumbnailCache.shared.thumbnail(for:pointSize:fillingSquare:)",
+        "AttachmentDrops.shared.arm (flight animation on pick)",
+        "FileIcons.icon(for:)",
+        "PopoverMenu/PopoverSectionHeader/PopoverDivider/PopoverItem/PopoverNote",
+        "NSWorkspace.shared.open (Show in Finder)"
+      ],
+      "state_owned": [
+        "RecentDownloads.items / thumbnails / isLoaded (@Observable, private(set))",
+        "DownloadsPopover.downloads: RecentDownloads (@State)",
+        "DownloadRow.isHovering / previewFrame (@State)"
+      ],
+      "side_effects": [
+        "Task.detached directory scan (userInitiated priority), cancellable and cancellation-propagated",
+        "withTaskGroup thumbnail generation, published incrementally into `thumbnails`"
+      ],
+      "platform_assumptions": [
+        "FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask)",
+        "Int64.formatted(.byteCount(style: .file)) for the size string (B3; see feature_notes)",
+        "NSImage/CGImage for the thumbnail and file-icon preview"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Popover list: one DownloadRow per recent download (28x28 thumbnail or file icon, name, size), 'No downloads yet.' empty note, or a centered ProgressView while loading",
+        "'Show in Finder' and 'Choose Files...' footer items below a divider"
+      ],
+      "feature_notes": [
+        "B2->B3 removes the static `sizeFormatter: ByteCountFormatter` (countStyle .file) property and its call site `Self.sizeFormatter.string(fromByteCount: Int64(size))`, replacing the one call site with `Int64(size).formatted(.byteCount(style: .file))` -- Swift's newer FormatStyle API in place of the older ByteCountFormatter class, same countStyle. No other line in the file changed. This is a pure API-surface swap with no stated change in rounding, unit thresholds or locale behaviour on Apple's own side; the observable file-size string (e.g. '1.2 MB') is expected to be identical, though this report has not independently verified byte-for-byte string parity between the two APIs across edge values (0 bytes, exactly 1 unit boundary, very large files).",
+        "PR-COMPOSER-078 ('The Downloads popover lists the 15 most recently modified...') cites B2 :39-96 for `load()`, which spans the removed 6-line static-formatter block; its expected_result only says 'the formatted size when it is above zero' and never names ByteCountFormatter, so this needs only a line-range recite (39-96 in B2 becomes a shorter span in B3, since 6 lines were deleted with no insertion), not a behaviour reclassification.",
+        "The already-built C# port (src/Marrow.App/Views/Composer/DownloadsPopover.cs, unit status DONE) already calls a shared `SwiftFormatters.FileByteCount(size, SwiftFormatters.CurrentLocale.Current)` helper rather than reimplementing ByteCountFormatter inline, so this file's diff requires no code change in the port; the open question is whether that shared helper (part of the F.ICUFormatters unit, a dependency of this unit) was itself validated against ByteCountFormatter's exact output or against `.formatted(.byteCount(style:))`'s, which only matters if the two Apple APIs ever diverge."
+      ],
+      "unresolved_questions": [
+        "Confirm F.ICUFormatters' FileByteCount output matches `Int64(_:).formatted(.byteCount(style: .file))` (the new B3 call), not only the retired `ByteCountFormatter(countStyle: .file)` it may have been validated against originally -- not checked in this reading pass."
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/Composer/EffortSlider.swift",
+      "sha256": "de5e74d6c869b21a0f2260b5a180690258f243ec77d3c5632f40d3f80f7519a1",
+      "ranges_read": [
+        [
+          1,
+          700
+        ],
+        [
+          701,
+          1347
+        ]
+      ],
+      "asset_inspection": null,
+      "purpose": "The composer's model/effort chip and its popover: ModelCatalog resolves the selectable model list from settings or every ready provider; ModelEffortButton renders the chip (provider icon or Hydra fused-pair mark, model name, effort label, fast-mode bolt) and opens ModelEffortPanel, which hosts either EffortSliderCard (the animated effort dial) or ModelList (the model/pair picker). The back half of the file is EffortBrand/EffortPairBrand/TrackLook's per-provider colour tables and TrackEffect's Canvas-drawn particle/streak/lightning/fusion animations that skin the slider's track.",
+      "key_symbols": [
+        "ModelCatalog",
+        "ModelCatalog.Entry",
+        "ModelEffortButton",
+        "ModelEffortPanel",
+        "ModelList",
+        "HydraPairListRow",
+        "ModelListRow",
+        "EffortPairLook",
+        "EffortSliderCard",
+        "FastModeButton",
+        "RoundIconButton",
+        "EffortSlider",
+        "EffortPalette",
+        "EffortBrand",
+        "EffortPairBrand",
+        "TrackLook",
+        "TrackLook.Kind",
+        "TrackEffect",
+        "TrackEffect.Particle",
+        "TrackEffect.Streak",
+        "TrackEffect.Traits",
+        "TrackEffect.TraitCache"
+      ],
+      "calls_into": [
+        "AppModel (providers, hydraIsOn/hydraPair/hydraHeadsProvider/enterHydraPair/leaveHydraPair/updateThread/existingRuntime/settings)",
+        "ProviderRegistry.model/models/availableProviders/loadCatalog",
+        "HydraFusedPairIcon, HydraPairSummary, HydraRoster.personas, HydraMarkImage",
+        "CaptureRun.isEnabled and WebsiteCaptures.modelChipAnchor/modelChipFrames (capture-tooling only; see feature_notes)",
+        "NSHapticFeedbackManager (slider drag alignment haptic)"
+      ],
+      "state_owned": [
+        "ModelEffortButton: isPresented / naturalWidth / lockedWidth (@State)",
+        "ModelEffortPanel: showsModels (@State)",
+        "ModelList/HydraPairListRow/ModelListRow: isHovering (@State)",
+        "EffortSliderCard: isTitleHovering (@State); EffortSlider: dragX (@State)",
+        "TrackEffect: startedAt / traits: TraitCache (@State), the per-fill-width particle/streak trait cache"
+      ],
+      "side_effects": [
+        "`.task(id: thread.provider)` loads the provider's model catalog on demand",
+        "NSHapticFeedbackManager.defaultPerformer.perform(.alignment) on each slider-stop crossing",
+        "Under CaptureRun.isEnabled only: publishes the chip's anchor/frame to WebsiteCaptures for the marketing screenshot tool"
+      ],
+      "platform_assumptions": [
+        "GraphicsContext/Canvas + TimelineView(.animation) for the track's particle/streak/lightning/fusion effects, paced 30fps or 60fps and paused via accessibilityReduceMotion or FrontMonitor.shared.isVisible",
+        "glassEffect(.regular...) for the slider knob's Liquid Glass lens",
+        "NSHapticFeedbackManager for alignment feedback"
+      ],
+      "persisted_fields": [
+        "model.settings.modelList (read), preference(for:model:)/remember(model:effort:for:)/defaultProvider (written on choice)"
+      ],
+      "ui_elements": [
+        "ModelEffortButton chip: icon or fused-pair mark, model name, effort label, fast-mode bolt, chevron",
+        "EffortSliderCard: fast-mode toggle, reset button, animated title, model/pair name line, the EffortSlider dial, pair-caption line",
+        "EffortSlider: thick capsule track with per-level dot stops and a glass knob that snaps to the nearest stop on drag",
+        "ModelList / HydraPairListRow / ModelListRow: back button, optional Pairs section, model rows with provider icon/detail/checkmark"
+      ],
+      "feature_notes": [
+        "B2->B3's only change in this file: ModelEffortButton's two capture-tooling guards (registering the chip's anchor and on-screen frame for the marketing website-captures tool) are rewritten from `WebsiteCaptures.isEnabled` to `CaptureRun.isEnabled` (B3 lines 128 and 135, both single-line, no line-count shift). The right-hand side of the second guard (`WebsiteCaptures.modelChipFrames[thread.id] = frame`) is untouched -- only the flag read moved.",
+        "This is a pure internal refactor with zero observable effect and zero port scope impact. porting/dead_code.md entry 28 establishes that WebsiteCaptures.isEnabled already forwarded to CaptureRun.isEnabled in B2, and entry 33 rules generically that 'everything reachable only from WebsiteCaptures/TourCaptures - gated on WebsiteCaptures.isEnabled ... The port does not need this subsystem.' No requirement or UI record in porting/spec/*.json cites EffortSlider.swift's WebsiteCaptures/CaptureRun call sites specifically (checked directly: no COMPOSER.json record's source_evidence mentions WebsiteCaptures or CaptureRun in this file), consistent with the whole guarded block already being out of the port's scope under that blanket ruling.",
+        "The C# skeleton at src/Marrow.App/Views/Composer/EffortSlider.cs is unimplemented (ModelEffortButton's constructor throws MARROW_STUB; unit status TODO), so there is nothing already built to correct; when it is implemented, the `if CaptureRun.isEnabled ...` background block should simply be omitted (per ED-061/dead-code precedent for the identical DiffInspector.swift pattern already ruled on in dead_code.md entry 34), never translated."
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift",
+      "sha256": "6e1effc7c9c9a870ea24ba9daa7e3fc8362bf8040d7eecd868e81ed3006bfd30",
+      "ranges_read": [
+        [
+          1,
+          533
+        ]
+      ],
+      "asset_inspection": null,
+      "purpose": "The queued-follow-up tab that rises from the top of the composer box: a foldable list of stacked follow-up prompts, each reorderable and pairable (bundle-able) by dragging its grip, with per-row send/edit/delete buttons, a capped-height scroll past 7 rows, and a local left-mouse-up monitor that ends a drag the SwiftUI gesture itself never reports (e.g. released outside the window).",
+      "key_symbols": [
+        "FollowUpQueueTab",
+        "FollowUpQueueTab.RowHeightReporter",
+        "FollowUpRow",
+        "QueueIconButton"
+      ],
+      "calls_into": [
+        "ThreadRuntime (followUps, followUpsCollapsed, followUpEdit, moveFollowUp/unbundleFollowUp/bundleFollowUp/sendFollowUpNow/removeFollowUp)",
+        "RowDrag<UUID> (the shared grab/settle/pair-band reorder math)",
+        "AttachmentPreviewSlot / AttachmentThumbnail",
+        "PromptEditorPopover<FollowUpEditor>",
+        "NSEvent.addLocalMonitorForEvents(matching: .leftMouseUp)",
+        "NSHapticFeedbackManager (.alignment / .levelChange)"
+      ],
+      "state_owned": [
+        "FollowUpQueueTab: drag: RowDrag<UUID>, mouseUpMonitor: Any?, rowHeights: [UUID: CGFloat], pairTarget: UUID?, listHeight: CGFloat (all @State)",
+        "FollowUpRow: preview: AttachmentPreviewSlot, editor: PromptEditorPopover<FollowUpEditor>, isHoveringGrip: Bool, isGrabbing: Bool (@GestureState)"
+      ],
+      "side_effects": [
+        "Adds/removes a local NSEvent left-mouse-up monitor keyed to drag.id's lifetime, torn down on disappear too",
+        "NSHapticFeedbackManager haptics on swap/pair/unpair/bundle",
+        "runtime.moveFollowUp/bundleFollowUp/unbundleFollowUp/removeFollowUp mutate the queue's persisted order/bundling"
+      ],
+      "platform_assumptions": [
+        "SwiftUI .pointerStyle(isDragged ? .grabActive : .grabIdle) for the grip's drag cursor (B3; see feature_notes)",
+        "NSEvent local monitor for a mouse-up the DragGesture itself can miss (released outside the window)",
+        "NSHapticFeedbackManager.defaultPerformer for reorder/pair/unpair feedback"
+      ],
+      "persisted_fields": [
+        "runtime.followUps order and each prompt's bundleID (via moveFollowUp/bundleFollowUp/unbundleFollowUp)"
+      ],
+      "ui_elements": [
+        "Title row: chevron-arrow icon, '<N> follow-up(s) queued' text, fold/unfold chevron",
+        "Per-row: position number or link glyph, drag grip, attachment thumbnails, prompt text or attachment-only label, send/edit/delete icon buttons",
+        "Drag visuals: lifted capsule with shadow (dragged), accent-tinted capsule with border (pair target), 14pt indent while pairing"
+      ],
+      "feature_notes": [
+        "B2->B3 removes every manual NSCursor push/pop call in this file and replaces the grip's cursor entirely with a declarative `.pointerStyle(isDragged ? .grabActive : .grabIdle)` modifier. Deleted: `NSCursor.closedHand.push()` at the start of dragChanged when a new drag begins, `NSCursor.pop()` at the top of dragEnded, and the grip's whole 13-line onHover/onDisappear/onChange(of: isDragged) block that pushed NSCursor.openHand on hover (guarded by `!isDragged`), popped it on hover-end, popped it again on disappear if still hovering, and popped it a third way if isDragged went false while not hovering ('the hover's open hand is still pushed with no leave to pop it'). Added: `.onHover { hovering in isHoveringGrip = hovering }` (icon-brightening only, cursor removed) plus the single `.pointerStyle(...)` modifier. As with TimelineMinimap.swift, the end-user cursor outcome (open/relaxed hand while hovering the grip, closed/grabbing hand while dragging) is very likely preserved by the new API's named grabIdle/grabActive styles, but every one of the old push/pop edge cases the code hand-rolled -- including a documented leak -- no longer has code to leak.",
+        "Three spec records (porting/spec/COMPOSER.json) are built directly around the retired mechanism. PR-COMPOSER-159 ('The grip is a 28 by 22 hit area that shows a grab cursor...', status IMPLEMENTED) cites B2 :380-410 quoting the literal `NSCursor.openHand.push()`/`.pop()` calls, lists side_effects 'Pushes and pops a cursor', and its windows_path reads 'An explicit LIFO cursor-owner stack mirroring each push and pop site (port_impacts X8(a))'. PR-COMPOSER-163 ('Releasing over a pair target bundles the rows...') cites B2 :285-298 for dragEnded and explicitly says in its own expected_result 'the held row settles back into its slot on a spring ... and the cursor is popped' -- describing the now-deleted `NSCursor.pop()` call. UI-COMPOSER-052 (the grip's UI record) lists states 'hover pushes the open-hand cursor', 'dragging pushes the closed-hand cursor', and, most significantly, 'a row removed mid-drag with the pointer off the grip leaks one cursor push (upstream defect 53)' -- a documented B2 bug. Since B3's `.pointerStyle` is scoped to the view and has no manual stack to leak, this specific defect-53 leak scenario appears to no longer reproduce upstream, which is a candidate for retire_behaviour_removed pending owner confirmation (exact-parity porting normally means replicating even upstream bugs, but only bugs the pinned source still has).",
+        "The already-built C# port (src/Marrow.App/Views/Composer/FollowUpQueueTab.cs, unit status DONE) does not implement either the B2 or the B3 cursor distinction at all: the grip's `Cursor` is set once to a plain `new Cursor(StandardCursorType.Hand)` and never changed between hover and drag (checked directly: no cursor-changing code exists in OnPointerPressed/OnPointerMoved/OnPointerReleased/EndPointerDrag). This is a pre-existing gap versus B2's open-hand/closed-hand distinction, not something newly introduced by this diff, but it means the port currently matches neither B2's nor B3's cursor behaviour, and PR-COMPOSER-159's already-'IMPLEMENTED' status is not actually backed by matching cursor code in this file."
+      ],
+      "unresolved_questions": [
+        "Whether UI-COMPOSER-052's 'upstream defect 53' cursor-leak state should be marked retired now that B3's pointerStyle mechanism has no push/pop to leak, or whether the defect needs independent confirmation against the compiled B3 app before retiring a documented-bug requirement -- an owner decision, not a reading question.",
+        "Whether FollowUpQueueTab.cs's single static Hand cursor is an accepted, already-ruled-on simplification (an ED/OD this report did not locate) or an outstanding gap that should be filed as its own defect against the DONE unit -- not resolved by this reading pass."
+      ]
+    }
+  ]
+}

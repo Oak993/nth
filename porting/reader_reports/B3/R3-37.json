@@ -1,0 +1,192 @@
+{
+  "bundle_id": "R3-37",
+  "reader": "R3-37-reader",
+  "files": [
+    {
+      "path": "DroppyCode/App/Views/Chat/ChatView.swift",
+      "sha256": "e7bba4d453a571460f49d24e31f2b238eb56714ecbd750a32d6a5249cbd0a6ef",
+      "ranges_read": [[1, 450], [451, 900], [901, 1350], [1351, 1730]],
+      "asset_inspection": null,
+      "purpose": "The chat screen's root view and its floating-panel layout engine: lays out the timeline, composer and up to five kinds of floating panels (subagent, Hydra team, popped-out head, auto-popped heads, usage) around the conversation column, computing docking, stacking, reserve padding and slide animations for each. It also hosts the sticky glass chrome row (thread list/new-thread/Hydra/permission/branch buttons, the thread title with its rename popover, and the open-in/scripts/git-actions and terminal/changes capsules) plus the commit and project-scripts editor sheets reached from that row.",
+      "key_symbols": ["ChatView", "PanelScene", "PanelScene.Geometry", "PanelMembers", "PanelUsage", "HydraPresence", "ReserveSlide", "ChatChromeRow", "ChatChromeTitle", "ThreadsButton", "GitStatusModel", "PermissionMenu", "BranchMenu", "OpenInMenu", "ScriptsMenu", "GitActionsMenu", "CommitSheet", "ScriptsEditor", "JumpToLatestButton"],
+      "calls_into": [
+        "AppModel (thread/project/panelHeads/panelSubagent/hydraPair/hydraHeadsProvider/spawnSubagent/closeSubagent/dismissHydraHeads/runScript/rename/createWorktree/updateProject/textEngine/runtime(for:))",
+        "ThreadRuntime and WindowLiveResize environment objects",
+        "Git (isRepository/status/branches/remoteWebURL/switchBranch/createBranch/push/createPullRequest/commitAll/workingChanges)",
+        "TextGeneration.commitMessage",
+        "ThreadTimeline, ComposerArea, TerminalPanel, SubagentPanel, HydraPanel",
+        "SubagentPanelLayout / PanelDocks / PanelDockCorner",
+        "CaptureRun.isEnabled and WebsiteCaptures.hydraPanelFrames/threadsButtonFrame (capture-tooling only)"
+      ],
+      "state_owned": [
+        "GitStatusModel: a per-directory, cross-chat git status/branch/remote-URL cache with a 30s freshness window",
+        "ChromeScrollModel, TimelineScrollState",
+        "columnHeight / paneSize / composerAreaHeight geometry measurements",
+        "subagentDrag / hydraDrag / poppedDrag / usageDrag / autoDrag PanelDragState, plus autoDrags: [UUID: PanelDragState]",
+        "panelResize: PanelResizeState (live grip-resize size and usage-panel height)",
+        "hydraShownSince / hydraLingers / hydraLingerTask (the Hydra panel's post-heads linger timer)",
+        "sceneThreadID"
+      ],
+      "side_effects": [
+        "Spawns async Tasks: git refresh on directory or diffRevision change, and the Hydra-linger delay task",
+        "NSPasteboard writes (copy thread title, copy directory path)",
+        "NSWorkspace.shared.open for Finder, installed editors and the repository URL",
+        "Presents sheets (CommitSheet, ScriptsEditor) and alerts (rename thread, new branch)",
+        "Calls into AppModel for thread/subagent/Hydra lifecycle and project script mutation",
+        "Under a capture-tool launch flag only, publishes this view's on-screen frames to WebsiteCaptures"
+      ],
+      "platform_assumptions": [
+        "NSPasteboard.general for copy actions",
+        "NSWorkspace.shared.open for Finder/editor/URL launches",
+        "GlassEffectContainer / .chromeGlassCircle / .glassEffect for the chrome row and floating panels' Liquid Glass rendering",
+        ".popover / .sheet / .alert as native AppKit-backed presentations",
+        "Traffic-light clearance padding (Chrome.trafficLightsWidth) tied to macOS window chrome when the sidebar does not hold the window buttons"
+      ],
+      "persisted_fields": [
+        "model.settings.panelSize, model.settings.usagePanelHeight, model.settings.usagePanelDock",
+        "runtime.subagentPanelDock / hydraPanelDock / hydraPoppedPanelDock / hydraAutoPanelDocks",
+        "runtime.panelStackOrder, runtime.isTerminalVisible, runtime.isHydraPanelHidden",
+        "runtime.hydraSelectedHeadID / hydraPoppedHeadID",
+        "project.scripts (via ScriptsEditor save), thread title (via rename)"
+      ],
+      "ui_elements": [
+        "Chrome row: Threads button, New-thread button, HydraButton, PermissionMenu, BranchMenu, ChatChromeTitle (with copy/rename popover), Open-in capsule (Finder/editors/copy path), Scripts capsule, Git-actions capsule (commit/push/PR/open repo), Terminal and Changes toggle capsule",
+        "Jump-to-latest floating button",
+        "Five floating panel kinds (subagent, Hydra team, popped head, auto-popped heads, usage) each with a drag handle and resize grips",
+        "CommitSheet (message editor, write-for-me, push-after-commit toggle)",
+        "ScriptsEditor sheet (per-script name/command/run-on-worktree-create rows)"
+      ],
+      "feature_notes": [
+        "B2->B3 replaces two internal `WebsiteCaptures.isEnabled` reads (HydraCaptureFrame's body guard at B3 line 408, and ThreadsButton's capture-still hook at B3 line 1262) with `CaptureRun.isEnabled` directly. WebsiteCaptures.isEnabled already forwarded to CaptureRun.isEnabled in B2 (confirmed by diffing App/Captures/WebsiteCaptures.swift, which drops its own isEnabled/outputDirectory/storageRoot/defaults wrapper properties and points every call site at CaptureRun.* directly instead), so this is a pure internal refactor with no observable effect. The port already excludes the whole capture subsystem (spec record PR-CHAT-174, decision ED-001), so port scope is unaffected."
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/App/Views/Chat/HydraButton.swift",
+      "sha256": "32182bb75d1305413928ee4dabd0c5b0ffbfb7cf6f9b53287f458b166c9c0619",
+      "ranges_read": [[1, 400], [401, 711]],
+      "asset_inspection": null,
+      "purpose": "The chat's Hydra mark button in the chrome row: shows whether the team is on for this thread, animates a rotating multi-colour charge ring plus a breathing glow while any head is at work, badges the sending/working head count, and opens or explains the floating team panel. A large part of the file is HydraChargeLayerView, a hand-built Core Animation layer view that drives the ring-turn and glow-breathe animations off the render server (rather than as SwiftUI animations) so a working team costs the main thread nothing.",
+      "key_symbols": ["HydraButton", "HydraSwitchPopover", "HydraRightTap", "HydraRightTapHost", "HydraIdlePopover", "HydraMarkView", "HydraCharge", "HydraChargeMotion", "HydraChargeLayerView", "HydraSendWorkingBadge", "HydraPairSummary"],
+      "calls_into": [
+        "AppModel.hydraIsOn/panelHeads/hydraPair/setHydra/settings",
+        "ThreadRuntime.isRunning/entries/isHydraPanelHidden",
+        "HydraPrompts.hasDelegationBlock/hasDelegationOpener",
+        "ModelOption.effortTitle, ProviderRegistry.model/defaultModel",
+        "HydraRoster.personas, ThemeManager.didChange notification",
+        "NSEvent local event monitor for right-click/control-click detection"
+      ],
+      "state_owned": [
+        "isHovering / isExplaining / isSending / isHydraSwitchShown / isIntroShown (@State)",
+        "HydraButton.delegationChecks and .streamingScans: static, per-timeline-row caches (RecentCache limit 32, dictionary capped at 64) memoizing whether a finished or streaming reply holds a delegation block",
+        "HydraChargeLayerView's CAGradientLayer pair (glow, ring) and their installed CABasicAnimations, kept on a shared clock origin so re-installing them never changes phase"
+      ],
+      "side_effects": [
+        "Installs/removes an NSEvent local monitor per button instance for secondary clicks, torn down on window change or deinit",
+        "Starts a 0.9s Task to clear the 'sending' pulse after heads go out",
+        "Registers for NSApplication.didBecomeActiveNotification, NSWindow.didChangeOcclusionStateNotification and ThemeManager.didChange to reinstall or recolour the Core Animation layers",
+        "Writes model.settings.hasSeenHydraIntro and calls model.setHydra(_:for:)"
+      ],
+      "platform_assumptions": [
+        "NSEvent.addLocalMonitorForEvents for secondary-click detection, since a SwiftUI Button in front claims every left-click hit",
+        "CALayer/CAGradientLayer/CAShapeLayer driven directly with explicit CABasicAnimations for render-server-side, main-thread-free animation",
+        "NSWorkspace.shared.accessibilityDisplayShouldReduceMotion gates the still vs. moving charge",
+        ".chromeGlassCircle() / .popover for the button's glass chrome and its three popovers"
+      ],
+      "persisted_fields": ["model.settings.hasSeenHydraIntro", "per-thread Hydra on/off (via model.setHydra)", "model.settings.hydraEnabled (global switch, read only)"],
+      "ui_elements": [
+        "The 18x18 dragon-head mark, dim at rest and full opacity on hover or when on",
+        "The rotating ring + breathing glow charge (HydraCharge) and its top-trailing working/sending count badge",
+        "HydraIdlePopover (290pt explainer when Hydra is on but nothing is out)",
+        "HydraSwitchPopover (per-chat Hydra on/off menu, right-click)",
+        "HydraIntroPopover (first-run explainer, opened from here but defined in a separate file)"
+      ],
+      "feature_notes": [
+        "B2->B3's only change is the same internal rename seen in ChatView.swift: the geometry-change guard that reports the mark's on-screen frame to the website-captures tool now reads `CaptureRun.isEnabled` instead of `WebsiteCaptures.isEnabled` (line 96). Both were equivalent in B2, so there is no observable behaviour change, and no spec record's cited line range (the closest HYDRA.json citations sit at :89-92, immediately before this edit) overlaps it."
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/App/Views/Chat/HydraHeadPopovers.swift",
+      "sha256": "c8c80de1102fe2a1ba8b03d39460cb144e6d2f92bd550da306ffc8776620156d",
+      "ranges_read": [[1, 170]],
+      "asset_inspection": null,
+      "purpose": "Three small header-plus-scroll popovers used off a Hydra head's pill or brief: a shared header row (glyph, name with status caption, task, trailing accessory), a finished head's markdown report popover (opened from its pill, with a copy button), and the lead's brief-to-a-head popover (opened from the brief itself, also with a copy button). Both content popovers lay out every markdown block eagerly inside a fixed-width PopoverScroll so the popover opens at its final size instead of growing after it appears.",
+      "key_symbols": ["HydraPopoverHeader", "HydraHeadReportPopover", "HydraBriefPopover"],
+      "calls_into": ["MarkdownView.blocks(for:)", "MarkdownBlockView", "CopyButton", "PopoverScroll", "HydraGlyph", "HydraNameText", "RelativeTime.duration (new call introduced in B3)"],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": ["SwiftUI .popover sizing (the eager block layout inside PopoverScroll exists specifically so the popover does not visibly grow after opening)", "textSelection(.enabled) for native text selection in the report/brief body"],
+      "persisted_fields": [],
+      "ui_elements": [
+        "HydraPopoverHeader: 28pt glyph, name+status caption row, optional 3-line task, trailing accessory slot",
+        "HydraHeadReportPopover: 460pt wide, header over a divider, 'No report yet.' placeholder or markdown blocks scrolling to a 460pt max height",
+        "HydraBriefPopover: 520pt wide, same layout with no placeholder branch (a brief always has text)"
+      ],
+      "feature_notes": [
+        "B2->B3 replaces HydraHeadReportPopover.duration(from:to:)'s own hand-rolled three-tier formatter (seconds clamped at zero; \"Ns\" under a minute, \"M min\" under an hour, \"H h M min\" beyond) with a call to the shared `RelativeTime.duration(_:)` helper (UI/Common/Components.swift). That helper's exact format is already established elsewhere in this same spec/port as \"Ns\" / \"Mm Ss\" / \"Hh Mm\" (porting/spec/CHAT.json's record for Components.swift:36-41, and the already-ported Marrow.UI.Common.RelativeTime.Duration in src/Marrow.UI/Common/Components.cs) -- a different string shape from the retired algorithm for the middle and top tiers: \"7 min\" becomes \"7m 0s\", and \"2 h 14 min\" becomes \"2h 14m\". This is a genuine, user-visible change to the head-report popover's 'Finished/Failed/Stopped · <duration>' caption. The C# port of this file (src/Marrow.App/Views/Chat/HydraHeadPopovers.cs) is an unimplemented skeleton -- its Duration() stub still throws NotImplementedException and its file-header comment still pins 'B2 1fbf81e' -- so nothing already-built needs correcting, but the eventual implementation must call the existing RelativeTime.Duration equivalent rather than reproduce the retired three-tier scheme, and the file-header source pin needs updating to the B3 commit when the unit is picked up."
+      ],
+      "unresolved_questions": [
+        "Confirm the exact narrow-width Duration.formatted() output against the compiled B3 reference app (or an authoritative description of Apple's UnitsFormatStyle narrow width) before finalizing PR-HYDRA-214's expected_result strings; this report relies on the already-established RelativeTime.duration precedent recorded elsewhere in the spec/port rather than an independent runtime check of this exact call site."
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/Chat/HydraPanel.swift",
+      "sha256": "08bbe26313bb31bff4138cd2e1dc63dc545cec4419fca3e60e27910f1e0db0b2",
+      "ranges_read": [[1, 300], [301, 552]],
+      "asset_inspection": null,
+      "purpose": "The floating 'team' glass panel: a single head's live conversation (or, in compact mode, its progress bar) on stage in the middle, a draggable top strip that counts the heads and opens a popover to switch stage or stop one, buttons to pop the on-stage head out into its own panel or dismiss the whole panel, and a finish 'wave' overlay that holds a just-finished head on stage for a fixed hold time before another can take over. The back half of the file supplies the presentation logic and exact wording the strip, footer and popover rows all read from: HydraStatusText's three text registers and HydraLiveInfo's live-overlay rule.",
+      "key_symbols": ["HydraPanel", "StageHold", "StageMark", "HydraHeadsButton", "HydraSpokesMark", "HydraHeadRow", "HydraStopButton", "HydraHeadTranscript", "HydraHeadFooter", "HydraLiveInfo", "HydraStatusText"],
+      "calls_into": ["ThreadTimeline / ComposerArea (a Droppy-run head's own chat box)", "HydraGlyph / HydraNameText / ProviderIcon / MiniSpinner / DotFieldSweep", "AppModel.stopHydraHead/stopAllHydraHeads/clearFinishedHydraHeads/existingRuntime(for:)/runtime(for:)", "TextCleanup.singleLine", "Chrome.panelSlide / Chrome.panelControlFill"],
+      "state_owned": [
+        "hold: StageHold? (@State) -- the finished-head wave timer, keyed by (head id, startedAt)",
+        "HydraHeadsButton.isPresented / isHovering",
+        "HydraHeadRow.isHovering",
+        "HydraHeadTranscript's own scrollChrome / scrollState"
+      ],
+      "side_effects": [
+        "A `.task(id: hold)` sleeps HydraPanel.finishHold (2.0s) then clears the hold with an animation",
+        "HydraStopButton and the popover's 'Stop all heads'/'Clear finished heads' items call into AppModel to stop or clear heads"
+      ],
+      "platform_assumptions": [
+        ".glassEffect(.regular, in: shape) plus a separate filled-and-shadowed backing shape for the panel's Liquid Glass look (the file documents this split as deliberate: one shadow on a plain fill rather than re-blurring the glass on every streamed token)",
+        "DotFieldSweep as a Core-Animation-driven 'done' wave tinted with the finished head's persona colour"
+      ],
+      "persisted_fields": ["reads runtime.hydraSelectedHeadID / hydraWaitingCount and model.settings.hydraShowsHeadDetails; no fields owned here (dock/stack-order state lives in ChatView/ThreadRuntime)"],
+      "ui_elements": [
+        "The panel itself (22pt corner radius, size handed in by PanelScene)",
+        "Its top strip: head-count capsule (HydraHeadsButton), the on-stage name/status/provider/elapsed-time capsule that also drags the panel, pop-out and dismiss circle buttons",
+        "The heads popover: per-head rows with a stop button while running, 'Stop all heads' and 'Clear finished heads' items",
+        "The native-head footer: spinner or outcome glyph, status text, step count"
+      ],
+      "feature_notes": [
+        "B2->B3 has one functional change: HydraStatusText.elapsed(_:) now builds its ' in <duration>' clause with `Duration.seconds(seconds).formatted(.units(allowed: [.seconds, .minutes], width: .narrow, maximumUnitCount: 2, fractionalPart: .hide(rounded: .down)))` instead of the retired `seconds < 60 ? \" in Ns\" : \" in Mm Ss\"` string interpolation. Because this allowed-unit set omits .hours (unlike the sibling RelativeTime.duration, which includes hours and is already an established source fact elsewhere in this spec/port as 'Ns'/'Mm Ss'/'Hh Mm'), the narrow-width formatter restricted to seconds+minutes very likely still renders exactly 'Ns' below a minute and 'Mm Ss' at or above with no hour rollover for any duration -- i.e. the same string shape the retired code already produced. The already-built C# port (src/Marrow.App/Views/Chat/HydraPanel.cs:801-808 Elapsed()) still implements the retired manual formula and, on that reading, would already match B3's new output by coincidence; this needs positive confirmation rather than being assumed. Two doc-comment edits in this file (the file-level intro at :5-11 and the HydraLiveInfo comment now at :475-477) are wording-only and touch no code path; PR-HYDRA-179's source_evidence quotes the old, longer comment prose verbatim, which is now stale text describing the same, unchanged HydraLiveInfo.shown function."
+      ],
+      "unresolved_questions": [
+        "Verify the exact `Duration.formatted(.units(allowed: [.seconds, .minutes], width: .narrow, maximumUnitCount: 2, fractionalPart: .hide(rounded: .down)))` output against the compiled B3 app before closing PR-HYDRA-180; this report infers 'Ns'/'Mm Ss' by analogy with the sibling RelativeTime.duration precedent rather than an independent runtime check of this exact call."
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/Chat/HydraReportsPopover.swift",
+      "sha256": "f695d8339dc4e6091d470c08d153a09e362aa0ae0ac84b3cd888dc34342e910b",
+      "ranges_read": [[1, 330], [331, 655]],
+      "asset_inspection": null,
+      "purpose": "Parses a Hydra lead's markdown report-batch message into a structured digest (an optional intro paragraph plus one entry per head with its name/task/outcome/effort/landing/body, dropping the lead's own closing instructions from the last head's body) and renders it as a native-feeling popover: a combined header with overlapping glyphs and totals for several heads, or a head-carrying single header for one head, then one card per head with its landing (files landed / not-landed / nothing changed / unfinished) and its markdown report, collapsed to name+task+landing for multi-head batches until tapped open.",
+      "key_symbols": ["HydraReportDigest", "HydraReportDigest.parse/isHeadHeader/parseHeader/landingPrefix/parseLanding/parseFiles/matchFile/withoutLeadInstructions", "HydraReportDigest.Outcome", "HydraReportDigest.Landing", "HydraReportDigest.Head", "HydraReportDigest.LandedFile", "HydraReportsPopover", "HydraReportsPopover.header/singleHeader/headCard/nameRow/landingRows/fileRows/filePathText/reportBody"],
+      "calls_into": ["MarkdownView.blocks(for:)/warm", "MarkdownBlockView", "HydraGlyph", "HydraRoster.index(named:)/persona(named:)/persona(at:)", "PopoverScroll"],
+      "state_owned": ["expanded: Set<String> (which multi-head cards are open)", "blocks: [String: [MarkdownBlock]] (populated eagerly in init for a single head, warmed off-thread for the rest via .task(id: text))"],
+      "side_effects": ["`.task(id: text)` calls MarkdownView.warm(...) off the main thread to pre-parse markdown for heads not yet shown"],
+      "platform_assumptions": ["PopoverScroll's eager whole-content layout (again, so the popover opens at its final size)", "Regex-based line parsing (wholeMatch, range(of:options:.regularExpression)) over the lead's own generated text, Unicode-minus-sign (U+2212) aware for the \"+A −D\" file suffix"],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Multi-head header: up to 9 overlapping 22pt glyphs plus a '+N' overflow badge, title, totals line, optional 'still at work' sentence",
+        "Single-head header: 24pt glyph with outcome seal, name, outcome+effort caption, files line, task, optional 'still at work' sentence",
+        "Per-head cards: collapsible name row with chevron, task, landing rows/file rows, and the report body, 'No report.' placeholder, or a warming spinner"
+      ],
+      "feature_notes": [
+        "B2->B3 adds \"ultra\" to parseHeader's fixed set of recognised effort words (now low/medium/high/xhigh/max/ultra/minimal/fast/default -- nine words instead of eight). \"Ultra\" is a genuine reasoning-effort tier elsewhere in this same B3 tree (ModelOption.effortTitle in Core/Models/Provider.swift capitalises any word it does not special-case, including \"ultra\"), so a head's header ending in e.g. '(Ultra)' is now correctly peeled off into head.effort and shown as the outcome caption's effort suffix; in B2 the same group fell through as non-meta and stayed stuck in the visible task text instead. PR-HYDRA-199 (status IMPLEMENTED) documents exactly the retired eight-word set, and its already-built C# port (src/Marrow.App/Views/Chat/HydraReportsPopover.cs:147, the `isEffortWord` pattern match) reproduces that same eight-word set verbatim -- so both the spec record and the shipped port code are now one word short of B3 and must add \"ultra\"."
+      ],
+      "unresolved_questions": []
+    }
+  ]
+}
