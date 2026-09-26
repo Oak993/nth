@@ -11,6 +11,9 @@ using Marrow.App;
 using Marrow.App.Port;
 using Marrow.App.Window;
 using Avalonia.Automation;
+using Avalonia.Automation.Peers;
+using Avalonia.Automation.Provider;
+using Marrow.App.Views.Usage;
 using Marrow.App.Runtime;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Composer;
@@ -22,6 +25,7 @@ using Marrow.Services.Store;
 using Marrow.UI.Chrome;
 using Marrow.UI.Common;
 using Marrow.UI.Port;
+using Marrow.UI.Theme;
 using Xunit;
 using AvaloniaWindow = Avalonia.Controls.Window;
 
@@ -159,6 +163,7 @@ public sealed class ComposerViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-001")] // App/Views/Composer/ComposerView.swift:52-55
+    [Trait("Req", "UI-COMPOSER-001")] // App/Views/Composer/ComposerView.swift:23-55
     public void The_area_caps_its_content_at_820_wide_20_points_in_from_each_side_14_up_from_the_bottom_and_centred()
     {
         headless.OnUiThread(() =>
@@ -392,6 +397,7 @@ public sealed class ComposerViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-006")] // App/Views/Composer/ComposerView.swift:28-31
+    [Trait("Req", "UI-COMPOSER-001")] // App/Views/Composer/ComposerView.swift:28-31
     public void The_pill_overlaps_the_tab_by_14_points_through_negative_stack_spacing_and_draws_above_it()
     {
         headless.OnUiThread(() =>
@@ -523,6 +529,7 @@ public sealed class ComposerViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-011")] // App/Views/Composer/ComposerView.swift:145-178
+    [Trait("Req", "UI-COMPOSER-002")] // App/Views/Composer/ComposerView.swift:145-178
     public void The_pill_pads_its_row_14_leading_8_trailing_8_top_and_bottom_and_the_text_column_4_more_above_and_below()
     {
         headless.OnUiThread(() =>
@@ -565,6 +572,7 @@ public sealed class ComposerViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-012")] // App/Views/Composer/ComposerView.swift:1293-1307
+    [Trait("Req", "UI-COMPOSER-002")] // App/Views/Composer/ComposerView.swift:1293-1307
     public void In_the_main_chat_the_pill_is_regular_glass_in_a_22_point_continuous_rounded_rectangle_and_is_not_clipped()
     {
         headless.OnUiThread(() =>
@@ -1868,6 +1876,7 @@ public sealed class ComposerViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-048")] // App/Views/Composer/ComposerView.swift:190-196, :244
+    [Trait("Req", "UI-COMPOSER-019")] // App/Views/Composer/ComposerView.swift:244
     public void The_file_list_is_shown_in_the_panel_under_the_header_Files()
     {
         headless.OnUiThread(() =>
@@ -1892,6 +1901,7 @@ public sealed class ComposerViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-048")] // App/Views/Composer/ComposerView.swift:244
+    [Trait("Req", "UI-COMPOSER-019")] // App/Views/Composer/ComposerView.swift:244
     public void The_command_list_is_headed_Commands_middle_dot_Recently_used_first()
     {
         headless.OnUiThread(() =>
@@ -1969,6 +1979,7 @@ public sealed class ComposerViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-050")] // App/Views/Composer/ComposerView.swift:245-248
+    [Trait("Req", "UI-COMPOSER-021")] // App/Views/Composer/ComposerView.swift:245-246
     public void A_failed_command_load_shows_its_description_then_a_Retry_loading_commands_row_with_the_arrow_clockwise_symbol()
     {
         headless.OnUiThread(() =>
@@ -2198,6 +2209,7 @@ public sealed class ComposerViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-055")] // App/Views/Composer/ComposerView.swift:1088-1091
+    [Trait("Req", "UI-COMPOSER-020")] // App/Views/Composer/ComposerView.swift:1069-1099
     public void The_highlighted_row_is_filled_with_the_overlay_at_a_tenth_and_the_others_are_clear()
     {
         headless.OnUiThread(() =>
@@ -2460,6 +2472,7 @@ public sealed class ComposerViewTests(HeadlessSession headless)
     [InlineData(8, true, "The image was left out: a message holds 8 attachments")]
     [InlineData(8, false, "One file was left out: a message holds 8 attachments")]
     [Trait("Req", "PR-COMPOSER-059")] // App/Views/Composer/ComposerView.swift:511-517
+    [Trait("Req", "UI-COMPOSER-004")] // App/Views/Composer/ComposerView.swift:511-517
     public void One_source_left_out_is_named_as_a_file_or_as_the_pasted_image(int held, bool pasted, string notice)
     {
         headless.OnUiThread(() =>
@@ -2648,6 +2661,7 @@ public sealed class ComposerViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-060")] // App/Views/Composer/ComposerView.swift:219-225
+    [Trait("Req", "UI-COMPOSER-004")] // App/Views/Composer/ComposerView.swift:219-225,576-583
     public void B3_attachment_notice_uses_a_five_second_string_key_and_equal_notices_do_not_restart_it()
     {
         headless.OnUiThread(() =>
@@ -2689,6 +2703,8 @@ public sealed class ComposerViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-067")] // App/Views/Composer/ComposerView.swift:990-1023
+    [Trait("Req", "UI-COMPOSER-009")] // App/Views/Composer/ComposerView.swift:1000-1023
+    [Trait("Req", "UI-COMPOSER-010")] // App/Views/Composer/ComposerView.swift:1005-1016
     public void B3_attachment_strip_has_48_point_thumbnails_2_top_8_trailing_and_named_remove_badges()
     {
         headless.OnUiThread(() =>
@@ -2733,6 +2749,7 @@ public sealed class ComposerViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-077")] // App/Views/Composer/ComposerView.swift:627-646
+    [Trait("Req", "UI-COMPOSER-011")] // App/Views/Composer/ComposerView.swift:627-637
     public void B3_attach_action_uses_the_setting_and_never_takes_focus()
     {
         headless.OnUiThread(() =>
@@ -2753,6 +2770,8 @@ public sealed class ComposerViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-086")] // App/Views/Composer/ComposerView.swift:882-906
+    [Trait("Req", "UI-COMPOSER-005")] // App/Views/Composer/ComposerView.swift:882-906
+    [Trait("Req", "UI-COMPOSER-006")] // App/Views/Composer/ComposerView.swift:890-902
     public void B3_command_chip_has_verbatim_name_detail_symbol_and_removes_only_the_command()
     {
         headless.OnUiThread(() =>
@@ -2771,6 +2790,8 @@ public sealed class ComposerViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-087")] // App/Views/Composer/ComposerView.swift:908-935
+    [Trait("Req", "UI-COMPOSER-007")] // App/Views/Composer/ComposerView.swift:908-935
+    [Trait("Req", "UI-COMPOSER-008")] // App/Views/Composer/ComposerView.swift:919-931
     public void B3_quote_chip_shows_excerpt_one_line_capped_at_260_and_removes_by_id()
     {
         headless.OnUiThread(() =>
@@ -2799,6 +2820,7 @@ public sealed class ComposerViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-089")] // App/Views/Composer/ComposerView.swift:963-969
+    [Trait("Req", "UI-COMPOSER-005")] // App/Views/Composer/ComposerView.swift:963-969
     public void B3_chip_capsule_uses_9_7_5_padding_and_12_percent_primary_fill()
     {
         headless.OnUiThread(() => { using var h = RuntimeHarness(); h.Main.OnMain(() => { var chrome = Assert.IsType<Border>(new ChipChrome().Body(new TextBlock())); Assert.Equal(new Thickness(9,5,7,5), chrome.Padding); Assert.Equal(RoundedCornerStyle.Continuous, SwiftShapes.GetCornerStyle(chrome)); Assert.Equal(Chrome.Overlay(0.12).Resolve(chrome.ActualThemeVariant), Assert.IsAssignableFrom<ISolidColorBrush>(chrome.Background).Color); }); });
@@ -2836,6 +2858,7 @@ public sealed class ComposerViewTests(HeadlessSession headless)
     [Fact]
     [Trait("Req", "PR-COMPOSER-092")] // App/Views/Composer/ComposerView.swift:718-731
     [Trait("Req", "PR-USAGE-002")] // App/Views/Composer/ComposerView.swift:718-731
+    [Trait("Req", "UI-COMPOSER-013")] // App/Views/Composer/ComposerView.swift:718-731
     public void B3_context_ring_is_15_square_with_25_strokes_round_cap_and_6_5_hit_padding()
     {
         headless.OnUiThread(() =>
@@ -2859,6 +2882,8 @@ public sealed class ComposerViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-094")] // App/Views/Composer/ComposerView.swift:737-759
+    [Trait("Req", "PR-USAGE-008")] // App/Views/Composer/ComposerView.swift:748-753
+    [Trait("Req", "UI-COMPOSER-015")] // App/Views/Composer/ComposerView.swift:748-753
     public void B3_ring_popover_header_popout_hides_ring_and_enables_floating_usage()
     {
         headless.OnUiThread(() =>
@@ -2881,6 +2906,7 @@ public sealed class ComposerViewTests(HeadlessSession headless)
     [Fact]
     [Trait("Req", "PR-COMPOSER-096")] // App/Views/Composer/ComposerView.swift:825-841
     [Trait("Req", "PR-COMPOSER-100")] // App/Views/Composer/ComposerView.swift:843
+    [Trait("Req", "UI-COMPOSER-016")] // App/Views/Composer/ComposerView.swift:825-843
     public void B3_send_is_28_circle_4_leading_and_disabled_until_draft_then_named_Send_to_a_head()
     {
         headless.OnUiThread(() =>
@@ -2936,6 +2962,96 @@ public sealed class ComposerViewTests(HeadlessSession headless)
     public void B3_Escape_closes_terminal_before_diff_without_terminating_shells()
     {
         headless.OnUiThread(() => { using var h=RuntimeHarness(); var view=Pill(h,h.Runtime); h.Main.OnMain(() => { h.Runtime.IsTerminalVisible=true; h.Runtime.IsDiffVisible=true; Assert.True(Press(view,Key.Escape)); Assert.False(h.Runtime.IsTerminalVisible); Assert.True(h.Runtime.IsDiffVisible); }); });
+    }
+
+    [Theory]
+    [InlineData(850, false)]
+    [InlineData(851, true)]
+    [Trait("Req", "PR-USAGE-003")] // App/Views/Composer/ComposerView.swift:721-722
+    public void B3_context_warning_threshold_is_strict_and_uses_the_ambient_tint(int used, bool warns)
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h=RuntimeHarness();
+            h.Main.OnMain(() => h.Runtime.Rehearse(new ProviderEvent.Usage(new ContextUsage { UsedTokens=used,WindowTokens=1000 })));
+            var meter=h.Main.OnMain(() => new ContextMeter(h.Runtime,ProviderKind.Codex,null));
+            var window=h.Main.OnMain(() => { Popovers.SetTint(meter, SwiftColor.White); return Show(meter,h.App,200); }); Pump(h,window);
+            h.Main.OnMain(() => { var arc=One<Avalonia.Controls.Shapes.Path>(meter); Assert.Equal((warns ? Chrome.Warning : SwiftColor.White).Resolve(arc.ActualThemeVariant), Assert.IsAssignableFrom<ISolidColorBrush>(arc.Stroke).Color); }); Close(h,window);
+        });
+    }
+
+    [Theory]
+    [InlineData(ProviderKind.Codex,859,false,"Context window","85% of the context window used","85% of the context window used")]
+    [InlineData(ProviderKind.Codex,999,false,"Context window","99% of the context window used","99% of the context window used")]
+    [InlineData(ProviderKind.Codex,-1,false,"Usage limits","Usage limits","")]
+    [InlineData(ProviderKind.Deepseek,-1,true,"Remaining credits","Remaining credits","")]
+    [Trait("Req", "PR-USAGE-004")] // App/Views/Composer/ComposerView.swift:732,764-767
+    [Trait("Req", "PR-USAGE-005")] // App/Views/Composer/ComposerView.swift:733-736,769-772
+    public void B3_context_accessibility_keeps_label_and_read_only_value_separate(ProviderKind provider,int used,bool credits,string label,string tip,string value)
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h=RuntimeHarness();
+            h.Main.OnMain(() => { if(credits) h.App.Settings.SetAPIKeyInput("fixture-only",provider); if(used>=0) h.Runtime.Rehearse(new ProviderEvent.Usage(new ContextUsage { UsedTokens=used,WindowTokens=1000 })); });
+            var meter=h.Main.OnMain(() => new ContextMeter(h.Runtime,provider,null)); var window=h.Main.OnMain(() => Show(meter,h.App,200)); Pump(h,window);
+            h.Main.OnMain(() => { var button=One<Button>(meter); Assert.Equal(label,AutomationProperties.GetName(button)); Assert.Equal(tip,ToolTip.GetTip(button)); var peer=ControlAutomationPeer.CreatePeerForElement(button); var reading=Assert.IsAssignableFrom<IValueProvider>(peer); Assert.True(reading.IsReadOnly); Assert.Equal(value,reading.Value); Assert.Throws<InvalidOperationException>(()=>reading.SetValue("other")); Assert.IsAssignableFrom<IInvokeProvider>(peer); }); Close(h,window);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-USAGE-006")] // App/Views/Composer/ComposerView.swift:714-716,737,759
+    [Trait("Req", "PR-USAGE-007")] // App/Views/Composer/ComposerView.swift:738-756
+    [Trait("Req", "PR-USAGE-009")] // App/Views/Composer/ComposerView.swift:757; App/Views/Usage/UsagePanel.swift:19-24,68-70
+    [Trait("Req", "UI-COMPOSER-014")] // App/Views/Composer/ComposerView.swift:743-757
+    public void B3_usage_popover_toggles_and_preserves_header_geometry_and_fixed_panel_width()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h=RuntimeHarness(); var presenter=new RecordingPresenter(); using var ps=Presentation.Presenter.Override(presenter);
+            var meter=h.Main.OnMain(()=>new ContextMeter(h.Runtime,ProviderKind.Codex,null)); var window=h.Main.OnMain(()=>Show(meter,h.App,200)); Pump(h,window);
+            h.Main.OnMain(()=>Click(One<Button>(meter))); Pump(h,window);
+            h.Main.OnMain(()=>
+            {
+                var popup=presenter.Calls[^1].Popup; Assert.True(presenter.Calls[^1].Presented); Assert.Equal(Avalonia.Controls.PlacementMode.Bottom,popup.Placement);
+                var title=LogicalQuery.SelfAndDescendants<TextBlock>(popup.Child!).Single(t=>t.Text=="Usage"); Assert.Equal(12,title.FontSize); Assert.Equal(FontWeight.SemiBold,title.FontWeight); Assert.Equal(Chrome.SecondaryText.Resolve(title.ActualThemeVariant),Assert.IsAssignableFrom<ISolidColorBrush>(title.Foreground).Color);
+                var header=Assert.IsType<Grid>(title.GetLogicalParent()); Assert.Equal(new Thickness(16,10,16,0),header.Margin); Assert.Equal(8,header.ColumnDefinitions[1].MinWidth);
+                var panel=One<UsagePanel>(popup.Child!); var frame=Assert.IsType<Border>(panel.Child); Assert.Equal(360,frame.Width); Assert.Equal(new Thickness(16),frame.Padding);
+                Assert.True(Popovers.GetIsCapsuleButtonBorderShape(popup.Child!)); Assert.Equal(ThemeManager.Spec.Accent,Popovers.GetTint(popup.Child!)); Click(One<Button>(meter));
+            }); Pump(h,window); Assert.False(presenter.Calls[^1].Presented); Close(h,window);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "UI-COMPOSER-005")] // App/Views/Composer/ComposerView.swift:883-906,939,963-969
+    [Trait("Req", "UI-COMPOSER-006")] // App/Views/Composer/ComposerView.swift:890-902
+    [Trait("Req", "UI-COMPOSER-007")] // App/Views/Composer/ComposerView.swift:909-935; App/Runtime/ThreadRuntime.swift:54-64
+    [Trait("Req", "UI-COMPOSER-008")] // App/Views/Composer/ComposerView.swift:919-931
+    public void B3_chip_fonts_and_remove_labels_follow_each_text_style_and_quote_excerpt_is_72_Characters()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h=RuntimeHarness(); var text=new string('a',73); h.Main.OnMain(()=>h.Runtime.Draft=new ComposerDraft { Command=new DraftCommand { Name="review",Detail="Full detail",IsBuiltIn=false },Quotes=new ValueList<ReplyQuote>([new(){Text="\n  "+text+"\nignored"}]) });
+            var chips=h.Main.OnMain(()=>new DraftChips(h.Runtime)); var window=h.Main.OnMain(()=>Show(chips,h.App,500)); Pump(h,window);
+            h.Main.OnMain(()=>
+            {
+                var titles=LogicalQuery.SelfAndDescendants<TextBlock>(chips).ToArray(); Assert.Equal(["/review",new string('a',72)+"…"],titles.Select(t=>t.Text)); Assert.All(titles,t=>Assert.Equal(11,t.FontSize)); Assert.Equal(FontWeight.Medium,titles[0].FontWeight); Assert.Equal(FontWeight.Normal,titles[1].FontWeight);
+                foreach(var title in titles) { var row=Assert.IsType<StackPanel>(title.GetLogicalParent()); Assert.Equal(5,row.Spacing); Assert.Equal(Chrome.PrimaryText.Opacity(0.9).Resolve(title.ActualThemeVariant),Assert.IsAssignableFrom<ISolidColorBrush>(title.Foreground).Color); var glyph=Assert.IsType<SwiftImage>(row.Children[0]); var font=glyph.GetValue(SwiftImage.FontProperty)!.Resolve(); Assert.Equal(10,font.FontSize); Assert.Equal(FontWeight.SemiBold,font.FontWeight); }
+                foreach(var label in new[]{"Remove command","Remove quote"}) { var button=Named(chips,label); Assert.False(button.Focusable); Assert.Equal(label,ToolTip.GetTip(button)); var glyph=One<SwiftImage>(button); Assert.Equal("xmark",glyph.SymbolName); Assert.Equal(10,glyph.GetValue(SwiftImage.FontProperty)!.Resolve().FontSize); Assert.Equal(FontWeight.Bold,glyph.GetValue(SwiftImage.FontProperty)!.Resolve().FontWeight); }
+            }); Close(h,window);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-067")] // App/Views/Composer/ComposerView.swift:1001-1023
+    public void B3_surviving_attachment_keeps_its_frame_reader_when_its_metadata_changes()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h=RuntimeHarness(); var file=Fake(1); h.Main.OnMain(()=>h.Runtime.Draft=new ComposerDraft { Attachments=new ValueList<Attachment>([file]) });
+            var strip=h.Main.OnMain(()=>new DraftAttachments(h.Runtime)); var window=h.Main.OnMain(()=>Show(strip,h.App,300)); Pump(h,window); var arrival=One<AttachmentArrival>(strip); var reader=One<ScreenFrameReader>(arrival);
+            h.Main.OnMain(()=>h.Runtime.Draft=h.Runtime.Draft with { Attachments=new ValueList<Attachment>([file with {Name="renamed.txt"}]) }); Pump(h,window);
+            Assert.Same(arrival,One<AttachmentArrival>(strip)); Assert.Same(reader,One<ScreenFrameReader>(arrival)); Assert.Equal("Remove renamed.txt",AutomationProperties.GetName(Named(strip,"Remove renamed.txt"))); Close(h,window);
+        });
     }
 }
 
