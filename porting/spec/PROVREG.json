@@ -625,7 +625,7 @@
       "title": "Command Code executable name is cmd, which collides with the Windows command interpreter",
       "source_evidence": [
         "DroppyCode/Core/Models/Provider.swift:54 executableName - case .commandcode returns \"cmd\"",
-        "DroppyCode/Services/Providers/ProviderRegistry.swift:246-259 fallbackExecutables for commandcode - the comment at :239-240 names \"cmd\" as the documented alias and \"command-code\" and \"commandcode\" as the package's own names",
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:246-259 fallbackExecutables for commandcode - the comment at :247-248 names \"cmd\" as the documented alias and \"command-code\" and \"commandcode\" as the package's own names",
         "E:/Droppy/port/porting/platform_adaptations.md PA-0016 - \"Status: DECIDED, with probe evidence from this machine. Resolves UNK-0006\""
       ],
       "preconditions": "Provider is not API-key based.",
@@ -675,7 +675,7 @@
       "source_evidence": [
         "DroppyCode/Core/Models/Provider.swift:64 loginCommand - case .codex returns \"codex login\"",
         "DroppyCode/App/Views/Settings/SettingsView.swift:751 `Workspace.openTerminal(running: provider.loginCommand)` - the Login button of the Sign in row",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` and :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)` - the card holding this row is collapsed, disabled and not hit-testable unless the provider is signed in or its header was clicked during the page's lifetime"
+        "DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` and :763-766 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)` - the card holding this row is collapsed, disabled and not hit-testable unless the provider is signed in or its header was clicked during the page's lifetime"
       ],
       "preconditions": "Codex is installed and not signed in. Its section is expanded: the Sign in row appears only when the provider is not signed in (SettingsView.swift:638-641), and with no header click such a section is collapsed, so the user first clicks the section header (UI-PROVREG-045).",
       "action": "The user clicks the Codex section header to expand it (UI-PROVREG-045), then clicks Login in that section, or in the plan-limits problem note.",
@@ -694,14 +694,14 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-648 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded."
+      "b2_change": "B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-671 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded."
     },
     {
       "id": "PR-PROVREG-029",
       "title": "Claude login command is claude auth login",
       "source_evidence": [
         "DroppyCode/Core/Models/Provider.swift:65 loginCommand - case .claude returns \"claude auth login\"",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` and :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)` - the card holding this row is collapsed, disabled and not hit-testable unless the provider is signed in or its header was clicked during the page's lifetime"
+        "DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` and :763-766 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)` - the card holding this row is collapsed, disabled and not hit-testable unless the provider is signed in or its header was clicked during the page's lifetime"
       ],
       "preconditions": "Claude is installed and not signed in. Its section is expanded: the Sign in row appears only when the provider is not signed in (SettingsView.swift:638-641), and with no header click such a section is collapsed, so the user first clicks the section header (UI-PROVREG-045).",
       "action": "The user clicks the Claude section header to expand it (UI-PROVREG-045), then clicks Login in that section.",
@@ -720,14 +720,14 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-648 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded."
+      "b2_change": "B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-671 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded."
     },
     {
       "id": "PR-PROVREG-030",
       "title": "Cursor login command is cursor-agent login",
       "source_evidence": [
         "DroppyCode/Core/Models/Provider.swift:66 loginCommand - case .cursor returns \"cursor-agent login\"",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` and :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)` - the card holding this row is collapsed, disabled and not hit-testable unless the provider is signed in or its header was clicked during the page's lifetime"
+        "DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` and :763-766 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)` - the card holding this row is collapsed, disabled and not hit-testable unless the provider is signed in or its header was clicked during the page's lifetime"
       ],
       "preconditions": "Cursor is installed and not signed in. Its section is expanded: the Sign in row appears only when the provider is not signed in (SettingsView.swift:638-641), and with no header click such a section is collapsed, so the user first clicks the section header (UI-PROVREG-045).",
       "action": "The user clicks the Cursor section header to expand it (UI-PROVREG-045), then clicks Login in that section.",
@@ -746,14 +746,14 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-648 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded."
+      "b2_change": "B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-671 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded."
     },
     {
       "id": "PR-PROVREG-031",
       "title": "OpenCode Zen login command is opencode auth login",
       "source_evidence": [
         "DroppyCode/Core/Models/Provider.swift:67 loginCommand - case .opencode returns \"opencode auth login\"",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` and :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)` - the card holding this row is collapsed, disabled and not hit-testable unless the provider is signed in or its header was clicked during the page's lifetime"
+        "DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` and :763-766 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)` - the card holding this row is collapsed, disabled and not hit-testable unless the provider is signed in or its header was clicked during the page's lifetime"
       ],
       "preconditions": "OpenCode Zen is installed and not signed in. Its section is expanded: the Sign in row appears only when the provider is not signed in (SettingsView.swift:638-641), and with no header click such a section is collapsed, so the user first clicks the section header (UI-PROVREG-045).",
       "action": "The user clicks the OpenCode Zen section header to expand it (UI-PROVREG-045), then clicks Login in that section.",
@@ -772,14 +772,14 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "The command is unchanged (B1 Provider.swift:63 -> B2 :67 `case .opencode: \"opencode auth login\"`), but the section is now titled \"OpenCode Zen\" (B1 Provider.swift:25 \"OpenCode\" -> B2 :26 \"OpenCode Zen\"), and OpenCode Go runs the same command (B2 :68). B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-648 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded."
+      "b2_change": "The command is unchanged (B1 Provider.swift:63 -> B2 :67 `case .opencode: \"opencode auth login\"`), but the section is now titled \"OpenCode Zen\" (B1 Provider.swift:25 \"OpenCode\" -> B2 :26 \"OpenCode Zen\"), and OpenCode Go runs the same command (B2 :68). B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-671 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded."
     },
     {
       "id": "PR-PROVREG-032",
       "title": "Grok login command is grok login",
       "source_evidence": [
         "DroppyCode/Core/Models/Provider.swift:69 loginCommand - case .grok returns \"grok login\"",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` and :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)` - the card holding this row is collapsed, disabled and not hit-testable unless the provider is signed in or its header was clicked during the page's lifetime"
+        "DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` and :763-766 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)` - the card holding this row is collapsed, disabled and not hit-testable unless the provider is signed in or its header was clicked during the page's lifetime"
       ],
       "preconditions": "Grok is installed and not signed in. Its section is expanded: the Sign in row appears only when the provider is not signed in (SettingsView.swift:638-641), and with no header click such a section is collapsed, so the user first clicks the section header (UI-PROVREG-045).",
       "action": "The user clicks the Grok section header to expand it (UI-PROVREG-045), then clicks Login in that section.",
@@ -798,7 +798,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-648 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded."
+      "b2_change": "B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-671 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded."
     },
     {
       "id": "PR-PROVREG-033",
@@ -875,7 +875,7 @@
       "title": "Devin login command is devin auth login",
       "source_evidence": [
         "DroppyCode/Core/Models/Provider.swift:73 loginCommand - case .devin returns \"devin auth login\"",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` and :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)` - the card holding this row is collapsed, disabled and not hit-testable unless the provider is signed in or its header was clicked during the page's lifetime"
+        "DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` and :763-766 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)` - the card holding this row is collapsed, disabled and not hit-testable unless the provider is signed in or its header was clicked during the page's lifetime"
       ],
       "preconditions": "Devin is installed and not signed in. Its section is expanded: the Sign in row appears only when the provider is not signed in (SettingsView.swift:638-641), and with no header click such a section is collapsed, so the user first clicks the section header (UI-PROVREG-045).",
       "action": "The user clicks the Devin section header to expand it (UI-PROVREG-045), then clicks Login in that section.",
@@ -894,7 +894,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-648 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded."
+      "b2_change": "B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-671 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded."
     },
     {
       "id": "PR-PROVREG-037",
@@ -902,7 +902,7 @@
       "source_evidence": [
         "DroppyCode/Core/Models/Provider.swift:74 loginCommand - case .antigravity returns \"agy\"",
         "DroppyCode/Services/Providers/ProviderRegistry.swift:305 signIn - the login command is split on whitespace and dropFirst() is taken as the arguments, so agy yields an empty argument list",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` and :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)` - the card holding this row is collapsed, disabled and not hit-testable unless the provider is signed in or its header was clicked during the page's lifetime"
+        "DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` and :763-766 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)` - the card holding this row is collapsed, disabled and not hit-testable unless the provider is signed in or its header was clicked during the page's lifetime"
       ],
       "preconditions": "Antigravity is installed and not signed in. Its section is expanded: the Sign in row appears only when the provider is not signed in (SettingsView.swift:638-641), and with no header click such a section is collapsed, so the user first clicks the section header (UI-PROVREG-045).",
       "action": "The user clicks the Antigravity section header to expand it (UI-PROVREG-045), then clicks Login in that section.",
@@ -921,14 +921,14 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-648 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded."
+      "b2_change": "B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-671 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded."
     },
     {
       "id": "PR-PROVREG-038",
       "title": "Copilot login command is copilot login",
       "source_evidence": [
         "DroppyCode/Core/Models/Provider.swift:75 loginCommand - case .copilot returns \"copilot login\"",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` and :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)` - the card holding this row is collapsed, disabled and not hit-testable unless the provider is signed in or its header was clicked during the page's lifetime"
+        "DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` and :763-766 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)` - the card holding this row is collapsed, disabled and not hit-testable unless the provider is signed in or its header was clicked during the page's lifetime"
       ],
       "preconditions": "Copilot is installed and not signed in. Its section is expanded: the Sign in row appears only when the provider is not signed in (SettingsView.swift:638-641), and with no header click such a section is collapsed, so the user first clicks the section header (UI-PROVREG-045).",
       "action": "The user clicks the Copilot section header to expand it (UI-PROVREG-045), then clicks Login in that section.",
@@ -947,7 +947,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-648 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded."
+      "b2_change": "B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-671 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded."
     },
     {
       "id": "PR-PROVREG-039",
@@ -955,7 +955,7 @@
       "source_evidence": [
         "DroppyCode/Core/Models/Provider.swift:76 loginCommand - case .commandcode returns \"cmd login\"",
         "DroppyCode/App/Views/Settings/SettingsView.swift:695 `: \"Instead of `\\(provider.loginCommand)`: a Studio key from \\(provider.apiKeySource ?? \"the provider dashboard\"), stored in your Keychain and handed to the CLI.\"` - the optional API key row detail embeds the login command inside backticks",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` and :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)` - the card holding this row is collapsed, disabled and not hit-testable unless the provider is signed in or its header was clicked during the page's lifetime"
+        "DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` and :763-766 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)` - the card holding this row is collapsed, disabled and not hit-testable unless the provider is signed in or its header was clicked during the page's lifetime"
       ],
       "preconditions": "Command Code is installed and not signed in. Its section is expanded: the Sign in row appears only when the provider is not signed in (SettingsView.swift:638-641), and with no header click such a section is collapsed, so the user first clicks the section header (UI-PROVREG-045).",
       "action": "The user clicks the Command Code section header to expand it (UI-PROVREG-045), then clicks Login in that section, or reads the API key row detail.",
@@ -973,7 +973,7 @@
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "b2_change": "B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-648 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded.",
+      "b2_change": "B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-671 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded.",
       "deviation": {
         "decision": "OD-0012 G2",
         "upstream": "SettingsView.swift:695 \"Instead of `\\(provider.loginCommand)`: a Studio key from \\(provider.apiKeySource ?? \"the provider dashboard\"), stored in your Keychain and handed to the CLI.\"",
@@ -986,7 +986,7 @@
       "source_evidence": [
         "DroppyCode/Core/Models/Provider.swift:77 loginCommand - case .pi returns \"pi\"",
         "DroppyCode/Services/Providers/ProviderRegistry.swift:305 signIn - dropFirst() over the split yields an empty argument list",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` and :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)` - the card holding this row is collapsed, disabled and not hit-testable unless the provider is signed in or its header was clicked during the page's lifetime"
+        "DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` and :763-766 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)` - the card holding this row is collapsed, disabled and not hit-testable unless the provider is signed in or its header was clicked during the page's lifetime"
       ],
       "preconditions": "Pi is installed and not signed in. Its section is expanded: the Sign in row appears only when the provider is not signed in (SettingsView.swift:638-641), and with no header click such a section is collapsed, so the user first clicks the section header (UI-PROVREG-045).",
       "action": "The user clicks the Pi section header to expand it (UI-PROVREG-045), then clicks Login in that section.",
@@ -1005,7 +1005,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-648 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded."
+      "b2_change": "B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-671 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded."
     },
     {
       "id": "PR-PROVREG-041",
@@ -1013,7 +1013,7 @@
       "source_evidence": [
         "DroppyCode/Core/Models/Provider.swift:83 installURL - case .codex",
         "DroppyCode/App/Views/Settings/SettingsView.swift:741-742 `Link(destination: provider.installURL) {` `Text(verbatim: \"Get \\(provider.displayName)\")` - the Install row links to installURL with the label Get Codex",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` and :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)` - the card holding this row is collapsed, disabled and not hit-testable unless the provider is signed in or its header was clicked during the page's lifetime"
+        "DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` and :763-766 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)` - the card holding this row is collapsed, disabled and not hit-testable unless the provider is signed in or its header was clicked during the page's lifetime"
       ],
       "preconditions": "Codex is not installed. Its section is expanded: with no header click a section is expanded only when its provider is signed in (SettingsView.swift:608), so otherwise the user first clicks the section header (UI-PROVREG-045).",
       "action": "The user expands the section by clicking its header if it is collapsed (UI-PROVREG-045), then clicks the Get Codex link.",
@@ -1032,14 +1032,14 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-648 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded."
+      "b2_change": "B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-671 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded."
     },
     {
       "id": "PR-PROVREG-042",
       "title": "Claude install URL is https://claude.com/product/claude-code",
       "source_evidence": [
         "DroppyCode/Core/Models/Provider.swift:84 installURL - case .claude",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` and :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)` - the card holding this row is collapsed, disabled and not hit-testable unless the provider is signed in or its header was clicked during the page's lifetime"
+        "DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` and :763-766 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)` - the card holding this row is collapsed, disabled and not hit-testable unless the provider is signed in or its header was clicked during the page's lifetime"
       ],
       "preconditions": "Claude is not installed. Its section is expanded: with no header click a section is expanded only when its provider is signed in (SettingsView.swift:608), so otherwise the user first clicks the section header (UI-PROVREG-045).",
       "action": "The user expands the section by clicking its header if it is collapsed (UI-PROVREG-045), then clicks the Get Claude link.",
@@ -1058,14 +1058,14 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-648 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded."
+      "b2_change": "B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-671 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded."
     },
     {
       "id": "PR-PROVREG-043",
       "title": "Cursor install URL is https://cursor.com/cli",
       "source_evidence": [
         "DroppyCode/Core/Models/Provider.swift:85 installURL - case .cursor",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` and :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)` - the card holding this row is collapsed, disabled and not hit-testable unless the provider is signed in or its header was clicked during the page's lifetime"
+        "DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` and :763-766 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)` - the card holding this row is collapsed, disabled and not hit-testable unless the provider is signed in or its header was clicked during the page's lifetime"
       ],
       "preconditions": "Cursor is not installed. Its section is expanded: with no header click a section is expanded only when its provider is signed in (SettingsView.swift:608), so otherwise the user first clicks the section header (UI-PROVREG-045).",
       "action": "The user expands the section by clicking its header if it is collapsed (UI-PROVREG-045), then clicks the Get Cursor link.",
@@ -1084,14 +1084,14 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-648 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded."
+      "b2_change": "B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-671 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded."
     },
     {
       "id": "PR-PROVREG-044",
       "title": "OpenCode Zen install URL is https://opencode.ai",
       "source_evidence": [
         "DroppyCode/Core/Models/Provider.swift:86 installURL - case .opencode",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` and :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)` - the card holding this row is collapsed, disabled and not hit-testable unless the provider is signed in or its header was clicked during the page's lifetime"
+        "DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` and :763-766 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)` - the card holding this row is collapsed, disabled and not hit-testable unless the provider is signed in or its header was clicked during the page's lifetime"
       ],
       "preconditions": "OpenCode Zen is not installed. Its section is expanded: with no header click a section is expanded only when its provider is signed in (SettingsView.swift:608), so otherwise the user first clicks the section header (UI-PROVREG-045).",
       "action": "The user expands the section by clicking its header if it is collapsed (UI-PROVREG-045), then clicks the Get OpenCode Zen link.",
@@ -1110,14 +1110,14 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "The URL is unchanged (B2 Provider.swift:86 `case .opencode: URL(string: \"https://opencode.ai\")!`), but the link label is built from displayName (B2 SettingsView.swift:742 `Text(verbatim: \"Get \\(provider.displayName)\")`), which changed from \"OpenCode\" (B1 Provider.swift:25) to \"OpenCode Zen\" (B2 :26); the label is now \"Get OpenCode Zen\". B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-648 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded."
+      "b2_change": "The URL is unchanged (B2 Provider.swift:86 `case .opencode: URL(string: \"https://opencode.ai\")!`), but the link label is built from displayName (B2 SettingsView.swift:765 `Text(verbatim: \"Get \\(provider.displayName)\")`), which changed from \"OpenCode\" (B1 Provider.swift:25) to \"OpenCode Zen\" (B2 :26); the label is now \"Get OpenCode Zen\". B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-671 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded."
     },
     {
       "id": "PR-PROVREG-045",
       "title": "Grok install URL is https://x.ai/cli",
       "source_evidence": [
         "DroppyCode/Core/Models/Provider.swift:88 installURL - case .grok",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` and :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)` - the card holding this row is collapsed, disabled and not hit-testable unless the provider is signed in or its header was clicked during the page's lifetime"
+        "DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` and :763-766 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)` - the card holding this row is collapsed, disabled and not hit-testable unless the provider is signed in or its header was clicked during the page's lifetime"
       ],
       "preconditions": "Grok is not installed. Its section is expanded: with no header click a section is expanded only when its provider is signed in (SettingsView.swift:608), so otherwise the user first clicks the section header (UI-PROVREG-045).",
       "action": "The user expands the section by clicking its header if it is collapsed (UI-PROVREG-045), then clicks the Get Grok link.",
@@ -1136,7 +1136,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-648 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded."
+      "b2_change": "B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-671 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded."
     },
     {
       "id": "PR-PROVREG-046",
@@ -1144,7 +1144,7 @@
       "source_evidence": [
         "DroppyCode/Core/Models/Provider.swift:89 installURL - case .deepseek",
         "DroppyCode/App/Views/Settings/SettingsView.swift:719-727 `if provider.isAPIKeyBased, !status.isInstalled {` ... `ChromeRow(title: \"Get a key\", detail: \"\\(provider.displayName) needs an API key. Nothing to install.\")` ... `Text(verbatim: \"Get a \\(provider.displayName) key\")` - an API-key provider that is not installed renders the Get a key row linking to installURL with the label Get a DeepSeek key",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` and :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)` - the card holding this row is collapsed, disabled and not hit-testable unless the provider is signed in or its header was clicked during the page's lifetime"
+        "DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` and :763-766 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)` - the card holding this row is collapsed, disabled and not hit-testable unless the provider is signed in or its header was clicked during the page's lifetime"
       ],
       "preconditions": "DeepSeek has no API key stored, so status.isInstalled is false. Its section is expanded: with no header click a section is expanded only when its provider is signed in (SettingsView.swift:608), so otherwise the user first clicks the section header (UI-PROVREG-045).",
       "action": "The user expands the section by clicking its header if it is collapsed (UI-PROVREG-045), then clicks the Get a DeepSeek key link.",
@@ -1163,14 +1163,14 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-648 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded."
+      "b2_change": "B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-671 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded."
     },
     {
       "id": "PR-PROVREG-047",
       "title": "Meta install URL is https://dev.meta.ai/ including its trailing slash",
       "source_evidence": [
         "DroppyCode/Core/Models/Provider.swift:90 installURL - case .meta",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` and :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)` - the card holding this row is collapsed, disabled and not hit-testable unless the provider is signed in or its header was clicked during the page's lifetime"
+        "DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` and :763-766 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)` - the card holding this row is collapsed, disabled and not hit-testable unless the provider is signed in or its header was clicked during the page's lifetime"
       ],
       "preconditions": "Meta has no API key stored. Its section is expanded: with no header click a section is expanded only when its provider is signed in (SettingsView.swift:608), so otherwise the user first clicks the section header (UI-PROVREG-045).",
       "action": "The user expands the section by clicking its header if it is collapsed (UI-PROVREG-045), then clicks the Get a Meta key link.",
@@ -1189,14 +1189,14 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-648 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded."
+      "b2_change": "B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-671 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded."
     },
     {
       "id": "PR-PROVREG-048",
       "title": "Z.ai install URL is https://z.ai/manage-apikey/apikey-list",
       "source_evidence": [
         "DroppyCode/Core/Models/Provider.swift:91 installURL - case .zai",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` and :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)` - the card holding this row is collapsed, disabled and not hit-testable unless the provider is signed in or its header was clicked during the page's lifetime"
+        "DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` and :763-766 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)` - the card holding this row is collapsed, disabled and not hit-testable unless the provider is signed in or its header was clicked during the page's lifetime"
       ],
       "preconditions": "Z.ai has no API key stored. Its section is expanded: with no header click a section is expanded only when its provider is signed in (SettingsView.swift:608), so otherwise the user first clicks the section header (UI-PROVREG-045).",
       "action": "The user expands the section by clicking its header if it is collapsed (UI-PROVREG-045), then clicks the Get a Z.ai key link.",
@@ -1215,14 +1215,14 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-648 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded."
+      "b2_change": "B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-671 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded."
     },
     {
       "id": "PR-PROVREG-049",
       "title": "Devin install URL is https://cli.devin.ai",
       "source_evidence": [
         "DroppyCode/Core/Models/Provider.swift:92 installURL - case .devin",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` and :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)` - the card holding this row is collapsed, disabled and not hit-testable unless the provider is signed in or its header was clicked during the page's lifetime"
+        "DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` and :763-766 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)` - the card holding this row is collapsed, disabled and not hit-testable unless the provider is signed in or its header was clicked during the page's lifetime"
       ],
       "preconditions": "Devin is not installed. Its section is expanded: with no header click a section is expanded only when its provider is signed in (SettingsView.swift:608), so otherwise the user first clicks the section header (UI-PROVREG-045).",
       "action": "The user expands the section by clicking its header if it is collapsed (UI-PROVREG-045), then clicks the Get Devin link.",
@@ -1241,14 +1241,14 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-648 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded."
+      "b2_change": "B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-671 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded."
     },
     {
       "id": "PR-PROVREG-050",
       "title": "Antigravity install URL is https://antigravity.google/docs/cli/overview",
       "source_evidence": [
         "DroppyCode/Core/Models/Provider.swift:93 installURL - case .antigravity",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` and :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)` - the card holding this row is collapsed, disabled and not hit-testable unless the provider is signed in or its header was clicked during the page's lifetime"
+        "DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` and :763-766 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)` - the card holding this row is collapsed, disabled and not hit-testable unless the provider is signed in or its header was clicked during the page's lifetime"
       ],
       "preconditions": "Antigravity is not installed. Its section is expanded: with no header click a section is expanded only when its provider is signed in (SettingsView.swift:608), so otherwise the user first clicks the section header (UI-PROVREG-045).",
       "action": "The user expands the section by clicking its header if it is collapsed (UI-PROVREG-045), then clicks the Get Antigravity link.",
@@ -1267,14 +1267,14 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-648 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded."
+      "b2_change": "B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-671 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded."
     },
     {
       "id": "PR-PROVREG-051",
       "title": "Copilot install URL is https://github.com/github/copilot-cli",
       "source_evidence": [
         "DroppyCode/Core/Models/Provider.swift:94 installURL - case .copilot",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` and :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)` - the card holding this row is collapsed, disabled and not hit-testable unless the provider is signed in or its header was clicked during the page's lifetime"
+        "DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` and :763-766 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)` - the card holding this row is collapsed, disabled and not hit-testable unless the provider is signed in or its header was clicked during the page's lifetime"
       ],
       "preconditions": "Copilot is not installed. Its section is expanded: with no header click a section is expanded only when its provider is signed in (SettingsView.swift:608), so otherwise the user first clicks the section header (UI-PROVREG-045).",
       "action": "The user expands the section by clicking its header if it is collapsed (UI-PROVREG-045), then clicks the Get Copilot link.",
@@ -1293,14 +1293,14 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-648 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded."
+      "b2_change": "B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-671 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded."
     },
     {
       "id": "PR-PROVREG-052",
       "title": "Command Code install URL is https://commandcode.ai/docs/quickstart",
       "source_evidence": [
         "DroppyCode/Core/Models/Provider.swift:95 installURL - case .commandcode",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` and :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)` - the card holding this row is collapsed, disabled and not hit-testable unless the provider is signed in or its header was clicked during the page's lifetime"
+        "DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` and :763-766 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)` - the card holding this row is collapsed, disabled and not hit-testable unless the provider is signed in or its header was clicked during the page's lifetime"
       ],
       "preconditions": "Command Code is not installed. Its section is expanded: with no header click a section is expanded only when its provider is signed in (SettingsView.swift:608), so otherwise the user first clicks the section header (UI-PROVREG-045).",
       "action": "The user expands the section by clicking its header if it is collapsed (UI-PROVREG-045), then clicks the Get Command Code link.",
@@ -1319,14 +1319,14 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-648 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded."
+      "b2_change": "B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-671 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded."
     },
     {
       "id": "PR-PROVREG-053",
       "title": "Pi install URL is https://pi.dev/docs/latest",
       "source_evidence": [
         "DroppyCode/Core/Models/Provider.swift:96 installURL - case .pi",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` and :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)` - the card holding this row is collapsed, disabled and not hit-testable unless the provider is signed in or its header was clicked during the page's lifetime"
+        "DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` and :763-766 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)` - the card holding this row is collapsed, disabled and not hit-testable unless the provider is signed in or its header was clicked during the page's lifetime"
       ],
       "preconditions": "Pi is not installed. Its section is expanded: with no header click a section is expanded only when its provider is signed in (SettingsView.swift:608), so otherwise the user first clicks the section header (UI-PROVREG-045).",
       "action": "The user expands the section by clicking its header if it is collapsed (UI-PROVREG-045), then clicks the Get Pi link.",
@@ -1345,7 +1345,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-648 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded."
+      "b2_change": "B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-671 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded."
     },
     {
       "id": "PR-PROVREG-054",
@@ -1793,7 +1793,7 @@
       "depends_on_unknown": null,
       "deviation": {
         "decision": "OD-0012 G2",
-        "upstream": "SettingsView.swift:694 \"Stored in your Keychain. Get one at \\(provider.apiKeySource ?? \"the provider dashboard\").\" and :718 \"Instead of `\\(provider.loginCommand)`: a Studio key from \\(provider.apiKeySource ?? \"the provider dashboard\"), stored in your Keychain and handed to the CLI.\"",
+        "upstream": "SettingsView.swift:694 \"Stored in your Keychain. Get one at \\(provider.apiKeySource ?? \"the provider dashboard\").\" and :695 \"Instead of `\\(provider.loginCommand)`: a Studio key from \\(provider.apiKeySource ?? \"the provider dashboard\"), stored in your Keychain and handed to the CLI.\"",
         "port": "\"Stored in your Credential Manager. Get one at SOURCE.\" and \"Instead of `LOGIN`: a Studio key from SOURCE, stored in your Credential Manager and handed to the CLI.\""
       }
     },
@@ -2097,7 +2097,7 @@
       "source_evidence": [
         "DroppyCode/App/AppSettings.swift:886-889 setEnabled - removeAll matching the rawValue, then append only when the new value is false",
         "DroppyCode/App/AppSettings.swift:502-503 - the didSet writes the whole array back to defaults",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` and :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)` - the card holding this row is collapsed, disabled and not hit-testable unless the provider is signed in or its header was clicked during the page's lifetime"
+        "DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` and :763-766 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)` - the card holding this row is collapsed, disabled and not hit-testable unless the provider is signed in or its header was clicked during the page's lifetime"
       ],
       "preconditions": "The Providers page is open and the provider's section is expanded; with no header click only a signed-in provider's section is, so for any other provider the user first clicks its header (UI-PROVREG-045).",
       "action": "The user flips the switch in a provider's expanded section.",
@@ -2116,7 +2116,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-648 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded."
+      "b2_change": "B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-671 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded."
     },
     {
       "id": "PR-PROVREG-086",
@@ -2126,7 +2126,7 @@
         "DroppyCode/App/AppSettings.swift:873-880 binaryPath(for:) and setBinaryPath - returns the empty string when absent; the setter trims whitespace and newlines and stores nil for an empty result",
         "DroppyCode/App/AppSettings.swift:500-501 - the didSet writes the whole dictionary back",
         "DroppyCode/App/AppSettings.swift:749 - loaded with defaults.dictionary(forKey:) cast to [String: String]",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` and :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)` - the card holding this row is collapsed, disabled and not hit-testable unless the provider is signed in or its header was clicked during the page's lifetime"
+        "DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` and :763-766 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)` - the card holding this row is collapsed, disabled and not hit-testable unless the provider is signed in or its header was clicked during the page's lifetime"
       ],
       "preconditions": "The Providers page is open and the provider's section is expanded; with no header click only a signed-in provider's section is, so for any other provider the user first clicks its header (UI-PROVREG-045).",
       "action": "The user types in the Binary path field of a provider's expanded section.",
@@ -2144,7 +2144,7 @@
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null,
-      "b2_change": "B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-648 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded."
+      "b2_change": "B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-671 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded."
     },
     {
       "id": "PR-PROVREG-087",
@@ -2175,35 +2175,34 @@
       "id": "PR-PROVREG-088",
       "title": "API keys live in four Keychain items under one service, distinguished only by their account strings",
       "source_evidence": [
-        "DroppyCode/Services/Providers/APIKeychain.swift:45-49 setKey - kSecClassGenericPassword with kSecAttrService = AppInfo.name and kSecAttrAccount = the account string",
-        "DroppyCode/Services/Providers/DeepSeekKeychain.swift - account \"DeepSeek API Key\"",
-        "DroppyCode/Services/Providers/MetaKeychain.swift - account \"Meta API Key\"",
-        "DroppyCode/Services/Providers/ZaiKeychain.swift - account \"Z.ai API Key\"",
-        "DroppyCode/Services/Providers/CommandCodeKeychain.swift - account \"Command Code API Key\"",
-        "DroppyCode/App/AppSettings.swift:367-406 - each input didSet calls setAPIKey and then storeAPIKeyFallback with the empty string when the Keychain kept it",
+        "DroppyCode/Services/Providers/APIKeychain.swift:45-49 set(_:account:service:) - kSecClassGenericPassword with kSecAttrService = the `service` parameter (default AppInfo.name, :38) and kSecAttrAccount = the account string",
+        "DroppyCode/Services/Providers/APIKeychain.swift:25-34 account(for:) - `/// The accounts older builds stored keys under; changing one loses that key.`; `case .deepseek: \"DeepSeek API Key\"`, `case .meta: \"Meta API Key\"`, `case .zai: \"Z.ai API Key\"`, `case .commandcode: \"Command Code API Key\"`, `default: nil` (the four strings moved there from the deleted DeepSeekKeychain, MetaKeychain, ZaiKeychain and CommandCodeKeychain files, unchanged)",
+        "DroppyCode/Services/Providers/APIKeychain.swift:50-57 - `SecItemUpdate` first; `SecItemAdd` with kSecAttrAccessibleWhenUnlocked only on errSecItemNotFound; any other update failure returns false",
+        "DroppyCode/App/AppSettings.swift:367-400 - each input didSet calls storeAPIKeyChange (:369, :378, :389, :398), which calls `APIKeychain.setKey(value, for: provider)` and then storeAPIKeyFallback with the empty string when the Keychain kept it (:483-487)",
         "DroppyCode/App/AppSettings.swift:152-155 - the fallback defaults keys are deepseekAPIKey, metaAPIKey, zaiAPIKey, commandcodeAPIKey"
       ],
       "preconditions": "The user edits an API key field.",
       "action": "setAPIKeyInput is called for that provider.",
-      "expected_result": "The key is trimmed of whitespace and newlines and written as a generic password under the service name AppInfo.name with one of exactly these four account strings: \"DeepSeek API Key\", \"Meta API Key\", \"Z.ai API Key\", \"Command Code API Key\". Accessibility is kSecAttrAccessibleWhenUnlocked. Each write is a delete followed by an add. An empty key deletes the item rather than storing an empty value. The plaintext mirror that runs when this write REFUSES is a separate behaviour and is specified by PR-PROVREG-239.",
+      "expected_result": "The key is trimmed of whitespace and newlines and written as a generic password under the service name AppInfo.name with one of exactly these four account strings: \"DeepSeek API Key\", \"Meta API Key\", \"Z.ai API Key\", \"Command Code API Key\". A write updates the existing item in place; only when no item exists is one added, with accessibility kSecAttrAccessibleWhenUnlocked. An update that fails for any other reason stores nothing new and leaves the previous key in place. An empty key deletes the item rather than storing an empty value. The plaintext mirror that runs when this write REFUSES is a separate behaviour and is specified by PR-PROVREG-239.",
       "side_effects": [
-        "A Keychain delete followed by an add on every write."
+        "A Keychain update on every write, followed by an add only when no item existed."
       ],
       "persistence": "Keychain service = the app display name, four fixed account strings.",
       "failure_cases": [
-        "Keychain unavailable: SecItemAdd returns non-success and setKey returns false; what happens next is PR-PROVREG-239."
+        "Keychain unavailable or refusing: SecItemUpdate returns a status other than errSecSuccess and errSecItemNotFound (or the add fails) and setKey returns false, leaving any previously stored key untouched; what happens next is PR-PROVREG-239."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Windows Credential Manager (OD-0008 B3): one credential per account under the one service name the port uses in place of AppInfo.name, keeping the one-container-many-accounts partitioning and the four account strings verbatim, because MCP secrets share the container and are distinguished only by account string. A refused write stores nothing else (PR-PROVREG-239, OD-0008 A6).",
+      "windows_path": "Windows Credential Manager (OD-0008 B3): one credential per account under the one service name the port uses in place of AppInfo.name, keeping the one-container-many-accounts partitioning and the four account strings verbatim, because MCP secrets share the container and are distinguished only by account string. A write updates the existing credential and creates one only when none exists; a refused write leaves the old credential and stores nothing else (PR-PROVREG-239, OD-0008 A6).",
       "verification_method": "restart test on each of the four accounts plus a contract fixture on the account strings",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "deviation": {
         "decision": "OD-0008 B3",
-        "upstream": "APIKeychain.swift:45-57 stores each key as a macOS Keychain generic password (kSecClassGenericPassword, kSecAttrService AppInfo.name, kSecAttrAccount the account string, kSecAttrAccessibleWhenUnlocked), deleting and re-adding on every write.",
-        "port": "Each key is a Windows Credential Manager credential with the same service-plus-account partitioning and the same four account strings, replaced on every write and deleted for an empty key."
-      }
+        "upstream": "APIKeychain.swift:44-57 stores each key as a macOS Keychain generic password (kSecClassGenericPassword, kSecAttrService AppInfo.name, kSecAttrAccount the account string, kSecAttrAccessibleWhenUnlocked), updating the existing item and adding one only when none exists.",
+        "port": "Each key is a Windows Credential Manager credential with the same service-plus-account partitioning and the same four account strings, updated in place (created when missing) on every write and deleted for an empty key."
+      },
+      "b3_note": "At 1.7.0 a write no longer deletes and re-adds the item: it updates it in place and adds only when none exists, so a refused write keeps the old key (APIKeychain.swift:50-57); the four account strings moved unchanged into APIKeychain.account(for:) (:25-34) when the per-provider *Keychain files were deleted."
     },
     {
       "id": "PR-PROVREG-089",
@@ -2230,7 +2229,7 @@
       "depends_on_unknown": null,
       "deviation": {
         "decision": "OD-0008 A6 and B3",
-        "upstream": "apiKey(for:) reads the macOS Keychain lazily and, when the Keychain holds nothing, uses the UserDefaults plaintext fallback before the environment variable (AppSettings.swift:908-920, with the fallbacks read by keyFallbacks at :432-439 and passed to readKeys at :442-449).",
+        "upstream": "apiKey(for:) reads the macOS Keychain lazily and, when the Keychain holds nothing, uses the UserDefaults plaintext fallback before the environment variable (AppSettings.swift:908-920, with the fallbacks read by keyFallbacks at :424-431 and passed to readKeys at :434-441).",
         "port": "The stored key comes from Windows Credential Manager only; with nothing there the environment variable is used, then the empty string. The Credential Manager store is OD-0008 B3; dropping the plaintext fallback read is OD-0008 A6."
       },
       "resolved_unknown": "UNK-0005 resolved by OD-0008 C5"
@@ -2451,7 +2450,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "The default arm is unchanged (B1 ProviderRegistry.swift:260-262 -> B2 :255-257 `default:` `return []`), but ProviderKind gained opencodeGo, so it covers eleven providers, not ten."
+      "b2_change": "The default arm is unchanged (B1 ProviderRegistry.swift:252-254 -> B2 :255-257 `default:` `return []`), but ProviderKind gained opencodeGo, so it covers eleven providers, not ten."
     },
     {
       "id": "PR-PROVREG-099",
@@ -2523,7 +2522,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 ProviderRegistry.swift:280 `if provider == .opencode { environment.merge(MCPSessionOverrides.opencodeEnvironment()) { _, new in new } }` -> B2 :275 `if provider == .opencode || provider == .opencodeGo { environment.merge(MCPSessionOverrides.opencodeEnvironment()) { _, new in new } }`: OpenCode Go gets the same merge."
+      "b2_change": "B1 ProviderRegistry.swift:272 `if provider == .opencode { environment.merge(MCPSessionOverrides.opencodeEnvironment()) { _, new in new } }` -> B2 :275 `if provider == .opencode || provider == .opencodeGo { environment.merge(MCPSessionOverrides.opencodeEnvironment()) { _, new in new } }`: OpenCode Go gets the same merge."
     },
     {
       "id": "PR-PROVREG-102",
@@ -2640,14 +2639,14 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "refreshAll and probeWidth are unchanged (B1 ProviderRegistry.swift:340-361 -> B2 :335-356), but ProviderKind.allCases now has 14 members (B2 Provider.swift:8 adds opencodeGo), so refreshAll completes 14 providers, not 13."
+      "b2_change": "refreshAll and probeWidth are unchanged (B1 ProviderRegistry.swift:332-353 -> B2 :335-356), but ProviderKind.allCases now has 14 members (B2 Provider.swift:8 adds opencodeGo), so refreshAll completes 14 providers, not 13."
     },
     {
       "id": "PR-PROVREG-107",
       "title": "refresh marks the provider as checking before doing anything, and the flag is cleared only by the status that replaces it",
       "source_evidence": [
         "DroppyCode/Services/Providers/ProviderRegistry.swift:366-369 refresh - the existing status is copied, isChecking set true and stored back",
-        "DroppyCode/Services/Providers/ProviderRegistry.swift:376, :377 - both exits assign a freshly constructed ProviderStatus whose isChecking defaults to false"
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:376, :385 - both exits assign a freshly constructed ProviderStatus whose isChecking defaults to false"
       ],
       "preconditions": "None.",
       "action": "refresh(provider) is called.",
@@ -2926,7 +2925,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 ProviderRegistry.swift:852 `case .opencode:` -> B2 :833 `case .opencode, .opencodeGo:`. argv [\"auth\",\"list\"], the 20 second timeout, the ANSI strip, the case-sensitive \"Environment\" cut and the U+25CF marker are unchanged (B2 :834-839). Suffix stripping and dropping of empty names now happen per bullet line inside the compactMap (B2 :840-844) instead of on the first credential only (B1 :782-788)."
+      "b2_change": "B1 ProviderRegistry.swift:773 `case .opencode:` -> B2 :833 `case .opencode, .opencodeGo:`. argv [\"auth\",\"list\"], the 20 second timeout, the ANSI strip, the case-sensitive \"Environment\" cut and the U+25CF marker are unchanged (B2 :834-839). Suffix stripping and dropping of empty names now happen per bullet line inside the compactMap (B2 :840-844) instead of on the first credential only (B1 :782-788)."
     },
     {
       "id": "PR-PROVREG-119",
@@ -2951,7 +2950,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 ProviderRegistry.swift:861-867 took `creds.first`, stripped \" api\" then \" oauth\", and returned `.signedIn(credential.isEmpty ? nil : credential)`. B2 :840-850 strips every credential the same way, drops empty names (`return name.isEmpty ? nil : name`), and returns `.signedIn(name)` for the first credential (Zen) or the first containing \"opencode go\" (Go). `.signedIn(nil)` is no longer produced; an empty first bullet is skipped for the next credential."
+      "b2_change": "B1 ProviderRegistry.swift:782-788 took `creds.first`, stripped \" api\" then \" oauth\", and returned `.signedIn(credential.isEmpty ? nil : credential)`. B2 :840-850 strips every credential the same way, drops empty names (`return name.isEmpty ? nil : name`), and returns `.signedIn(name)` for the first credential (Zen) or the first containing \"opencode go\" (Go). `.signedIn(nil)` is no longer produced; an empty first bullet is skipped for the next credential."
     },
     {
       "id": "PR-PROVREG-120",
@@ -2974,14 +2973,14 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "The fallback line is unchanged (B1 ProviderRegistry.swift:868 -> B2 :851 `return result.succeeded ? .signedOut : .unknown`), but it is now reached in more cases: when every bullet name was empty (B2 :844), and for OpenCode Go whenever no credential contains \"opencode go\" (B2 :847-848)."
+      "b2_change": "The fallback line is unchanged (B1 ProviderRegistry.swift:789 -> B2 :851 `return result.succeeded ? .signedOut : .unknown`), but it is now reached in more cases: when every bullet name was empty (B2 :844), and for OpenCode Go whenever no credential contains \"opencode go\" (B2 :847-848)."
     },
     {
       "id": "PR-PROVREG-121",
       "title": "Grok auth is read from the file .grok/auth.json in the home directory with no process launch",
       "source_evidence": [
         "DroppyCode/Services/Providers/ProviderRegistry.swift:931-942 auth case .grok - the URL is the home directory with \".grok/auth.json\" appended; the file is read and deserialized as a top-level object",
-        "E:/Droppy/port/porting/blocked_requirements.json BLK-0007 owner_ruling - OD-0008: \"REPRODUCE UPSTREAM: plan limits read each CLI's own credential file and query that provider's usage endpoint exactly as the source does. Parity, owner-approved.\" (decision_batch_20260922.md A7: \"Keep as upstream\"); BLK-0007 lists this read among its source evidence (B1 ProviderRegistry.swift:869-880 \"reads ~/.grok/auth.json\")"
+        "E:/Droppy/port/porting/blocked_requirements.json BLK-0007 owner_ruling - OD-0008: \"REPRODUCE UPSTREAM: plan limits read each CLI's own credential file and query that provider's usage endpoint exactly as the source does. Parity, owner-approved.\" (decision_batch_20260922.md A7: \"Keep as upstream\"); BLK-0007 lists this read among its source evidence (B1 ProviderRegistry.swift:790-801 \"reads ~/.grok/auth.json\")"
       ],
       "preconditions": "Grok is installed.",
       "action": "The auth probe runs.",
@@ -3268,7 +3267,7 @@
       "title": "Cached model catalogs are read once at construction from the defaults key providerModelCatalogs",
       "source_evidence": [
         "DroppyCode/Services/Providers/ProviderRegistry.swift:48 cacheKey - the literal \"providerModelCatalogs\"",
-        "DroppyCode/Services/Providers/ProviderRegistry.swift:170-186 init - `let cached = try? JSONDecoder().decode([String: [ModelOption]].self, from: data)` (:167); `guard let provider = ProviderKind(rawValue: key) else { continue }` (:169) - the data is JSON-decoded as a dictionary of provider rawValue to an array of ModelOption; a key that is not a known rawValue is skipped"
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:170-186 init - `let cached = try? JSONDecoder().decode([String: [ModelOption]].self, from: data)` (:175); `guard let provider = ProviderKind(rawValue: key) else { continue }` (:177) - the data is JSON-decoded as a dictionary of provider rawValue to an array of ModelOption; a key that is not a known rawValue is skipped"
       ],
       "preconditions": "The app is launching.",
       "action": "The registry is constructed.",
@@ -3311,7 +3310,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 ProviderRegistry.swift:176-182 `catalogs[provider] = list.map { option in` -> B2 :170-176 `catalogs[provider] = Self.openCodeModels(list, for: provider).map { option in`: before the effort re-order every cached list now passes through openCodeModels (B2 :541-559). The orderedEfforts ranking is unchanged."
+      "b2_change": "B1 ProviderRegistry.swift:168-174 `catalogs[provider] = list.map { option in` -> B2 :170-176 `catalogs[provider] = Self.openCodeModels(list, for: provider).map { option in`: before the effort re-order every cached list now passes through openCodeModels (B2 :541-559). The orderedEfforts ranking is unchanged."
     },
     {
       "id": "PR-PROVREG-135",
@@ -3388,26 +3387,28 @@
     },
     {
       "id": "PR-PROVREG-138",
-      "title": "A live Claude list is laid over the seed rather than replacing it, and no seed row is ever dropped",
+      "title": "A live Claude list is laid over the seed rather than replacing it: a live name replaces a seed row's name except on the Default row, and no seed row is ever dropped",
       "source_evidence": [
-        "DroppyCode/Services/Providers/ProviderRegistry.swift:88-109 mergedClaudeCatalog - starts from claudeSeed; for a live row whose id matches a seed row, a non-empty efforts array replaces the seed's, a non-empty detail replaces the seed's, a non-nil fastTier replaces it and a non-nil defaultEffort replaces it; a live row with no matching seed id is appended",
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:87-109 mergedClaudeCatalog - starts from claudeSeed; for a live row whose id matches a seed row: `if option.id != \"default\", !option.name.isEmpty, option.name != option.id { kept.name = option.name }` (:98, under the comment :95-97 `// The CLI's own name carries the version (\"Opus 5.5\"), and recipes pick the` / `// newest family member by it: a seed row named just \"Opus\" lost to the` / `// older \"Opus 5\" row. The Default row keeps its short name.`); a non-empty efforts array replaces the seed's (:99), a non-empty detail replaces the seed's (:100), a non-nil fastTier replaces it (:101) and a non-nil defaultEffort replaces it (:102); a live row with no matching seed id is appended (:104-106)",
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:75-81 claudeSeed - five rows: `default` \"Default\", `opus` \"Opus\", `claude-fable-5-1[1m]` \"Fable\", `sonnet` \"Sonnet\", `haiku` \"Haiku\"",
         "DroppyCode/Services/Providers/ProviderRegistry.swift:801-802 updateCatalog - claude is routed through this merge"
       ],
       "preconditions": "A live Claude catalog arrived.",
       "action": "updateCatalog is called for Claude.",
-      "expected_result": "The five seed rows always survive in seed order, each field-updated only where the live row supplies a non-empty or non-nil value. New live rows are appended in live order after the seed. A live row's name never replaces the seed's name.",
+      "expected_result": "The five seed rows always survive in seed order, each updated only where the live row with the same id supplies a value. The live name replaces the seed's name when the row is not the Default row (id \"default\"), the live name is not empty, and the live name is not equal to the row's id; so a live \"Opus 5.5\" renames the seed row \"Opus\", while the Default row always keeps the name \"Default\". A non-empty efforts array, a non-empty detail, a non-nil fastTier and a non-nil defaultEffort each replace the seed's value. New live rows are appended in live order after the seed.",
       "side_effects": [],
       "persistence": "The merged list is what is persisted.",
       "failure_cases": [
         "A model removed from the account still appears, because seed rows are never dropped."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Same merge with the same four per-field conditions and the same non-replacement of name.",
-      "verification_method": "unit over merge permutations",
-      "status": "IMPLEMENTED",
+      "windows_path": "Same merge: the same name condition (not the \"default\" id, a non-empty name, a name not equal to the id, compared with Swift String equality) and the same four per-field conditions.",
+      "verification_method": "unit over merge permutations, including a live row that renames a seed row, a live Default row with another name (kept as \"Default\"), an empty live name and a live name equal to its id (both keep the seed name)",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "At 1.7.0 mergedClaudeCatalog also takes a live row's name over the seed row's, except for the Default row, an empty name or a name equal to the id (ProviderRegistry.swift:95-98); before, a live name never replaced the seed's."
     },
     {
       "id": "PR-PROVREG-139",
@@ -3431,7 +3432,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "mergedACPCatalog (B2 ProviderRegistry.swift:111-127) and the updateCatalog routing (B1 :664 -> B2 :724) are unchanged, but usesACP now includes opencodeGo (B2 Provider.swift:104), so OpenCode Go's live list goes through this merge too."
+      "b2_change": "mergedACPCatalog (B2 ProviderRegistry.swift:103-119) and the updateCatalog routing (B1 :664 -> B2 :724) are unchanged, but usesACP now includes opencodeGo (B2 Provider.swift:104), so OpenCode Go's live list goes through this merge too."
     },
     {
       "id": "PR-PROVREG-140",
@@ -3558,27 +3559,28 @@
     },
     {
       "id": "PR-PROVREG-145",
-      "title": "The Command Code seed is the nine-row CommandCodeAPI seed and doubles as an equality sentinel",
+      "title": "The Command Code seed is the eleven-row CommandCodeAPI seed and doubles as an equality sentinel",
       "source_evidence": [
         "DroppyCode/Services/Providers/ProviderRegistry.swift:156-158 commandcodeSeed - aliases CommandCodeAPI.seed, with a comment that the live list replaces it with the account's seventy-odd models",
-        "DroppyCode/Services/Providers/CommandCodeAPI.swift:349-361 seed - nine rows: claude-sonnet-5 \"Claude Sonnet 5\", claude-fable-5-1 \"Claude Fable 5.1\", claude-opus-5 \"Claude Opus 5\", gpt-6-astra \"GPT-6 Astra\", gpt-5.6-sol \"GPT-5.6 Sol\", google/gemini-3.8-flash \"Gemini 3.8 Flash\", deepseek/deepseek-v4-flash \"DeepSeek V4 Flash\", moonshotai/kimi-k3 \"Kimi K3\", zai-org/glm-5.3 \"GLM 5.3\"; only the first has isDefault true; each detail is a vendor word, a U+00B7 separator and a phrase",
+        "DroppyCode/Services/Providers/CommandCodeAPI.swift:349-361 seed - eleven rows: claude-sonnet-5 \"Claude Sonnet 5\", claude-fable-5-1 \"Claude Fable 5.1\", claude-opus-5-5 \"Claude Opus 5.5\", claude-opus-5 \"Claude Opus 5\", gpt-6-astra \"GPT-6 Astra\", gpt-5.6-sol \"GPT-5.6 Sol\", gpt-5.6-luna \"GPT-5.6 Luna\", google/gemini-3.8-flash \"Gemini 3.8 Flash\", deepseek/deepseek-v4-flash \"DeepSeek V4 Flash\", moonshotai/kimi-k3 \"Kimi K3\", zai-org/glm-5.3 \"GLM 5.3\"; only the first has isDefault true; each detail is a vendor word, a U+00B7 separator and a phrase",
         "DroppyCode/Services/Providers/ProviderRegistry.swift:202 init - installed when the cached list is empty or absent",
         "DroppyCode/Services/Providers/ProviderRegistry.swift:553 loadCatalog - still-seeded is decided by equality against this exact list"
       ],
       "preconditions": "No cached Command Code catalog.",
       "action": "The registry is constructed.",
-      "expected_result": "Exactly those nine rows in that order, with the ids carrying their vendor path prefixes where present. The list is compared for equality later, so any drift silently changes when the live catalog is fetched.",
+      "expected_result": "Exactly those eleven rows in that order, with the ids carrying their vendor path prefixes where present. The list is compared for equality later, so any drift silently changes when the live catalog is fetched.",
       "side_effects": [],
       "persistence": "The ids are persisted by threads.",
       "failure_cases": [
         "None."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Transcribe all nine rows byte for byte including ampersands, U+00B7 separators and the 1M casing in the details, and implement the sentinel as structural equality.",
+      "windows_path": "Transcribe all eleven rows byte for byte including ampersands, U+00B7 separators and the 1M casing in the details, and implement the sentinel as structural equality against the eleven-row list.",
       "verification_method": "unit against a golden fixture plus the sentinel equality",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "At 1.7.0 the aliased seed has eleven rows (CommandCodeAPI.swift:349-361), adding claude-opus-5-5 \"Claude Opus 5.5\" and gpt-5.6-luna \"GPT-5.6 Luna\"; the sentinel comparison uses the new list."
     },
     {
       "id": "PR-PROVREG-146",
@@ -3625,7 +3627,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "models(for:) is unchanged (B1 ProviderRegistry.swift:434-436 -> B2 :429-431), but the new opencodeGo provider also gets no seed in init (B2 :186-195 seeds claude, deepseek, meta, zai, antigravity, copilot, commandcode and pi only)."
+      "b2_change": "models(for:) is unchanged (B1 ProviderRegistry.swift:426-428 -> B2 :429-431), but the new opencodeGo provider also gets no seed in init (B2 :186-195 seeds claude, deepseek, meta, zai, antigravity, copilot, commandcode and pi only)."
     },
     {
       "id": "PR-PROVREG-148",
@@ -3651,7 +3653,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 ProviderRegistry.swift:438-447 matched inline and returned nil for any unmatched id without a bracket. B2 :433-440 calls the new private static match(_:in:) (:442-449, the same exact-then-bracket rule) and, when that fails for provider .opencode with an id prefixed \"opencode-go/\", resolves the id against models(for: .opencodeGo) (:436-439)."
+      "b2_change": "B1 ProviderRegistry.swift:430-439 matched inline and returned nil for any unmatched id without a bracket. B2 :433-440 calls the new private static match(_:in:) (:442-449, the same exact-then-bracket rule) and, when that fails for provider .opencode with an id prefixed \"opencode-go/\", resolves the id against models(for: .opencodeGo) (:436-439)."
     },
     {
       "id": "PR-PROVREG-149",
@@ -3704,7 +3706,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "The attempt rule is unchanged for other providers (B1 ProviderRegistry.swift:459 -> B2 :461; B1 :488-491 -> B2 :500-503). New at B2: a delivered OpenCode Zen or Go load also marks the other as attempted (:504-515), and the opencode probe is memoised per launch in openCodeCatalogTask (:159-160, :525-539), so an empty non-nil OpenCode result is not re-probed on the next unforced ask. At B1 it was \"tried again on the next ask\"."
+      "b2_change": "The attempt rule is unchanged for other providers (B1 ProviderRegistry.swift:451 -> B2 :461; B1 :488-491 -> B2 :500-503). New at B2: a delivered OpenCode Zen or Go load also marks the other as attempted (:504-515), and the opencode probe is memoised per launch in openCodeCatalogTask (:159-160, :525-539), so an empty non-nil OpenCode result is not re-probed on the next unforced ask. At B1 it was \"tried again on the next ask\"."
     },
     {
       "id": "PR-PROVREG-151",
@@ -3730,7 +3732,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 ProviderRegistry.swift:545 `|| (provider == .opencode && Self.lacksEffortWalk(models(for: provider)))` -> B2 :476 `|| ((provider == .opencode || provider == .opencodeGo) && Self.lacksEffortWalk(models(for: provider)))`. lacksEffortWalk is unchanged (B1 :495-499 -> B2 :519-523)."
+      "b2_change": "B1 ProviderRegistry.swift:466 `|| (provider == .opencode && Self.lacksEffortWalk(models(for: provider)))` -> B2 :476 `|| ((provider == .opencode || provider == .opencodeGo) && Self.lacksEffortWalk(models(for: provider)))`. lacksEffortWalk is unchanged (B1 :495-499 -> B2 :519-523)."
     },
     {
       "id": "PR-PROVREG-152",
@@ -3765,7 +3767,7 @@
         "DroppyCode/Services/Providers/ProviderRegistry.swift:541-544 loadCatalog - `if provider.isAPIKeyBased { await loadAPICatalog(provider, force: force); return }`",
         "DroppyCode/Services/Providers/ProviderRegistry.swift:563-573 `let raw: [ModelOption]? = switch provider {` - claude to loadClaudeCatalog, codex to CodexSession.listModels, antigravity to AntigravitySession.listModels, copilot to CopilotSession.listModels, commandcode to CommandCodeAPI.listModels, pi to PiCLI.listModels, `case .cursor, .grok, .devin: try? await ACPSession.probeModels(provider: provider, executable: executable, environment: environment)`, `case .opencode, .opencodeGo: await openCodeCatalog(force: force, executable: executable, environment: environment)`, `case .deepseek, .meta, .zai: nil`",
         "DroppyCode/Services/Providers/ProviderRegistry.swift:574 `let list = raw.map { Self.openCodeModels($0, for: provider) }`",
-        "DroppyCode/Services/Providers/ProviderRegistry.swift:560-562 - `await LoginEnvironment.load()`; `guard let executable = executable(for: provider) else { return }`; the loading flag is cleared by the defer at :480"
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:560-562 - `await LoginEnvironment.load()`; `guard let executable = executable(for: provider) else { return }`; the loading flag is cleared by the defer at :559"
       ],
       "preconditions": "The probe conditions passed.",
       "action": "loadCatalog dispatches.",
@@ -3784,7 +3786,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 ProviderRegistry.swift:553-562 had eight arms with `case .cursor, .opencode, .grok, .devin: try? await ACPSession.probeModels(provider: provider, ...)` and stored the result as list. B2 :484-495 has nine arms: `case .cursor, .grok, .devin:` probe directly and `case .opencode, .opencodeGo: await openCodeCatalog(force: force, executable: executable, environment: environment)`; the result is named raw and every provider's list then passes through `Self.openCodeModels` (:495)."
+      "b2_change": "B1 ProviderRegistry.swift:474-483 had eight arms with `case .cursor, .opencode, .grok, .devin: try? await ACPSession.probeModels(provider: provider, ...)` and stored the result as list. B2 :484-495 has nine arms: `case .cursor, .grok, .devin:` probe directly and `case .opencode, .opencodeGo: await openCodeCatalog(force: force, executable: executable, environment: environment)`; the result is named raw and every provider's list then passes through `Self.openCodeModels` (:495)."
     },
     {
       "id": "PR-PROVREG-154",
@@ -4025,7 +4027,7 @@
         "DroppyCode/Services/Providers/ProviderRegistry.swift:66-67 forcedLimitReads - the comment says a forced read that arrives while a read is out is remembered, not dropped",
         "DroppyCode/Services/Providers/ProviderRegistry.swift:687 refreshPlanLimits - when a read is in flight, a forced call inserts the provider into forcedLimitReads and returns",
         "DroppyCode/Services/Providers/ProviderRegistry.swift:722-726 drainedForcedRead - removing the provider from the set re-invokes refreshPlanLimits with force true",
-        "DroppyCode/Services/Providers/ProviderRegistry.swift:696, :619, :629, :631 - drainedForcedRead is called from both the watchdog and the defer, on both branches"
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:696, :698, :708, :710 - drainedForcedRead is called from both the watchdog and the defer, on both branches"
       ],
       "preconditions": "A limits read is in flight for the provider.",
       "action": "refreshPlanLimits is called again with force true.",
@@ -4051,7 +4053,7 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/ProviderRegistry.swift:683-684 - the doc comment says at most once a minute after a successful read unless forced",
         "DroppyCode/Services/Providers/ProviderRegistry.swift:688 refreshPlanLimits - when not forced and the stored fetch time is less than 60 seconds old, the call returns",
-        "DroppyCode/Services/Providers/ProviderRegistry.swift:701-702 and :638-639 - limitsFetchedAt is set only when a non-nil result arrived"
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:701-702 and :717-718 - limitsFetchedAt is set only when a non-nil result arrived"
       ],
       "preconditions": "A successful read happened less than sixty seconds ago.",
       "action": "An unforced refreshPlanLimits is called, for example by opening the Providers page.",
@@ -4095,8 +4097,8 @@
       "id": "PR-PROVREG-167",
       "title": "A limits read is bounded by a 25 second watchdog that clears the loading flag and drains the forced queue",
       "source_evidence": [
-        "DroppyCode/Services/Providers/ProviderRegistry.swift:696 and :629 - a watchdog task sleeps 25 seconds, then removes the provider from loadingLimits and calls drainedForcedRead",
-        "DroppyCode/Services/Providers/ProviderRegistry.swift:698 and :631 - the read task cancels the watchdog in its defer, removes the loading flag and drains the queue"
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:696 and :708 - a watchdog task sleeps 25 seconds, then removes the provider from loadingLimits and calls drainedForcedRead",
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:698 and :710 - the read task cancels the watchdog in its defer, removes the loading flag and drains the queue"
       ],
       "preconditions": "A limits read has started.",
       "action": "The read takes longer than 25 seconds.",
@@ -4121,7 +4123,7 @@
       "title": "The limits read runs on its own task so closing the popover that asked for it cannot cancel it",
       "source_evidence": [
         "DroppyCode/Services/Providers/ProviderRegistry.swift:683-684 - the doc comment says the read runs on its own task, so closing the popover that asked for it cannot cancel it",
-        "DroppyCode/Services/Providers/ProviderRegistry.swift:697 and :630 - the work is wrapped in an unstructured Task"
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:697 and :709 - the work is wrapped in an unstructured Task"
       ],
       "preconditions": "A view asked for a read and is then dismissed.",
       "action": "The view disappears.",
@@ -4170,7 +4172,7 @@
       "id": "PR-PROVREG-170",
       "title": "A limits read that returns nil leaves the previous limits and timestamp untouched",
       "source_evidence": [
-        "DroppyCode/Services/Providers/ProviderRegistry.swift:700-702 and :637-639 - on both branches the result is guarded for non-nil before planLimits and limitsFetchedAt are written"
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:700-702 and :716-718 - on both branches the result is guarded for non-nil before planLimits and limitsFetchedAt are written"
       ],
       "preconditions": "Limits were read successfully before.",
       "action": "A later read fails and returns nil.",
@@ -4906,7 +4908,7 @@
       "title": "A credits read has no watchdog and no defer, so a read that never returns leaves the spinner running for the rest of the session",
       "source_evidence": [
         "DroppyCode/Services/Providers/ProviderRegistry.swift:771-778 refreshCredits - the provider is inserted into loadingCredits, and the flag is removed only by a plain statement inside the task after the await, with no defer and no watchdog",
-        "DroppyCode/Services/Providers/ProviderRegistry.swift:696, :619, :629, :631 - the plan-limits path has both a 25 second watchdog and a defer",
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:696, :698, :708, :710 - the plan-limits path has both a 25 second watchdog and a defer",
         "E:/Droppy/port/porting/upstream_defects.md entry 4 - records this as an upstream defect to reproduce"
       ],
       "preconditions": "A credits read is in flight.",
@@ -4932,7 +4934,7 @@
       "title": "A forced credits read arriving while a read is in flight is silently dropped, with no queue",
       "source_evidence": [
         "DroppyCode/Services/Providers/ProviderRegistry.swift:760-761 refreshCredits - the guard combines exposesCredits with not already loading, and returns without recording the force flag, unlike refreshPlanLimits which queues it",
-        "DroppyCode/Services/Providers/ProviderRegistry.swift:687 and :644-647 - the plan-limits forced-read queue for contrast",
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:687 and :723-726 - the plan-limits forced-read queue for contrast",
         "E:/Droppy/port/porting/upstream_defects.md entry 4 - records this as an upstream defect to reproduce"
       ],
       "preconditions": "A credits read is in flight.",
@@ -5775,7 +5777,7 @@
       "title": "An unreachable guard in refreshPlanLimits is proven dead and gets no Windows implementation",
       "source_evidence": [
         "DroppyCode/Services/Providers/ProviderRegistry.swift:706 - a guard re-checking exposesLimits and the loading flag",
-        "E:/Droppy/port/porting/dead_code.md item 3 - a control-flow trace of refreshPlanLimits, made at B1 (lines 546 to 581), proves the guard can never fail. It holds at B2: refreshPlanLimits starts at ProviderRegistry.swift:685, both conditions are required at :607 and :608, and the only insertion into loadingLimits before :627 is at :616 inside the API-key branch, which returns at :625",
+        "E:/Droppy/port/porting/dead_code.md item 3 - a control-flow trace of refreshPlanLimits, made at B1 (lines 546 to 581), proves the guard can never fail. It holds at B3: refreshPlanLimits starts at ProviderRegistry.swift:685, both conditions are required at :686 and :687, and the only insertion into loadingLimits before :706 is at :695 inside the API-key branch, which returns at :704",
         "E:/Droppy/port/porting/upstream_defects.md entry 7 - the same line recorded as a never-taken guard, not a safety net"
       ],
       "preconditions": "None.",
@@ -5793,7 +5795,7 @@
       "upstream_defect": "7",
       "blocked_by": null,
       "depends_on_unknown": null,
-      "not_applicable": "ED-061: porting/dead_code.md item 3 proves the guard in refreshPlanLimits can never fail (control-flow trace); at B2 it is ProviderRegistry.swift:706, after exposesLimits and the loading flag are required at :607-608 and the only insertion into loadingLimits (:616) sits in the API-key branch that returns at :625. Upstream never executes its failure arm, so it is neither implemented nor counted as missing."
+      "not_applicable": "ED-061: porting/dead_code.md item 3 proves the guard in refreshPlanLimits can never fail (control-flow trace); at B3 it is ProviderRegistry.swift:706, after exposesLimits and the loading flag are required at :686-687 and the only insertion into loadingLimits (:695) sits in the API-key branch that returns at :704. Upstream never executes its failure arm, so it is neither implemented nor counted as missing."
     },
     {
       "id": "PR-PROVREG-238",
@@ -5817,23 +5819,24 @@
       "upstream_defect": "45",
       "blocked_by": null,
       "depends_on_unknown": null,
-      "not_applicable": "ED-061: porting/dead_code.md item 44 records the capture-mode short circuits as user-unreachable and not to be ported. It cites B1 lines; at B2 they are ProviderRegistry.swift:173, :179, :213, :598, :729 and :763 (CaptureRun.isEnabled), :164 and :758 (CaptureRun.defaults), and APIKeychain.swift:12."
+      "not_applicable": "ED-061: porting/dead_code.md item 44 records the capture-mode short circuits as user-unreachable and not to be ported. It cites B1 lines; at B3 they are ProviderRegistry.swift:173, :187, :221, :677, :808 and :842 (CaptureRun.isEnabled), :172 and :837 (CaptureRun.defaults), and APIKeychain.swift:12. B3 adds one more, ProviderRegistry.swift:498 `!CaptureRun.isEnabled` in updateCLIIfDue (PR-PROVREG-253), excluded the same way."
     },
     {
       "id": "PR-PROVREG-239",
       "title": "An API key the protected store refuses is stored nowhere and the refusal is shown; a successful store removes any legacy plaintext copy (deviation from upstream)",
       "source_evidence": [
-        "DroppyCode/App/AppSettings.swift:367-371 - deepseekAPIKeyInput didSet: `guard !isReadingKeychain, deepseekAPIKeyInput != oldValue else { return }`; `let kept = DeepSeekKeychain.setAPIKey(deepseekAPIKeyInput)`; `storeAPIKeyFallback(kept ? \"\" : deepseekAPIKeyInput, forKey: Key.deepseekAPIKey)`",
-        "DroppyCode/App/AppSettings.swift:376-380, :391-397, :402-408 - the same didSet for metaAPIKeyInput, zaiAPIKeyInput and commandcodeAPIKeyInput",
+        "DroppyCode/App/AppSettings.swift:367-371 - deepseekAPIKeyInput didSet: `storeAPIKeyChange(deepseekAPIKeyInput, from: oldValue, provider: .deepseek, fallbackKey: Key.deepseekAPIKey)`",
+        "DroppyCode/App/AppSettings.swift:376-380, :387-391, :396-400 - the same didSet for metaAPIKeyInput, zaiAPIKeyInput and commandcodeAPIKeyInput",
+        "DroppyCode/App/AppSettings.swift:483-487 storeAPIKeyChange - `guard !isReadingKeychain, value != oldValue else { return }`; `let kept = APIKeychain.setKey(value, for: provider)`; `storeAPIKeyFallback(kept ? \"\" : value, forKey: fallbackKey)`",
         "DroppyCode/App/AppSettings.swift:152-155 - `static let deepseekAPIKey = \"deepseekAPIKey\"`, `metaAPIKey = \"metaAPIKey\"`, `zaiAPIKey = \"zaiAPIKey\"`, `commandcodeAPIKey = \"commandcodeAPIKey\"`",
         "DroppyCode/App/AppSettings.swift:489-498 storeAPIKeyFallback - `/// The plaintext copy in defaults, for a Mac whose Keychain refused the key; an empty` `/// value removes it`; `let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)`; empty: `defaults.removeObject(forKey: key)`, otherwise `defaults.set(trimmed, forKey: key)`",
-        "DroppyCode/Services/Providers/APIKeychain.swift:17-58 setKey - `let trimmed = key.trimmed`; an empty trimmed key runs `delete(account)` and returns true; otherwise `return SecItemAdd(attributes as CFDictionary, nil) == errSecSuccess`",
-        "DroppyCode/Services/Providers/APIKeychain.swift:13-17 key(for:fallback:) - `if let keychain = read(account), !keychain.isEmpty { return keychain }` `return fallback`",
+        "DroppyCode/Services/Providers/APIKeychain.swift:20-23 setKey(_:for:) and :38-58 set(_:account:service:) - `let trimmed = key.trimmed`; an empty trimmed key runs `delete(account, service: service)` and returns true (:40-43); otherwise `SecItemUpdate` first (:50), true on errSecSuccess (:51), false on any status but errSecItemNotFound (:52), and only then `return SecItemAdd(attributes as CFDictionary, nil) == errSecSuccess` (:53-57)",
+        "DroppyCode/Services/Providers/APIKeychain.swift:10-15 key(for:fallback:) - `if let keychain = read(account), !keychain.isEmpty { return keychain }` `return fallback`",
         "E:/Droppy/port/porting/blocked_requirements.json BLK-0006 owner_ruling - OD-0008: \"FIX: when protected storage refuses an API key the failure is shown and nothing is stored; the key is never written in plain text. Named deviation.\""
       ],
       "preconditions": "The user has edited one of the four API key fields (DeepSeek, Meta, Z.ai, Command Code) and the protected-store write for it has returned.",
       "action": "The port persists the edited key.",
-      "expected_result": "Marrow (OD-0008 A6): the key is trimmed of whitespace and newlines and written only to Windows Credential Manager (OD-0008 B3). When that write fails, nothing is written anywhere else, the key never reaches disk in plain text, and the failure is shown under the key field (UI-PROVREG-038) as exactly: Credential Manager did not accept this key, so it was not saved. That wording is OD-0012 E5. When the write succeeds, or the field is emptied (an empty key deletes the credential and counts as stored, as upstream APIKeychain.swift:40-43 does), any value under the four legacy settings keys deepseekAPIKey, metaAPIKey, zaiAPIKey and commandcodeAPIKey is removed, as upstream does on success. The typed key stays in the in-memory input for the rest of the session, as upstream reads the in-memory input (AppSettings.swift:908-914), and is gone after relaunch when the store refused it.",
+      "expected_result": "Marrow (OD-0008 A6): the key is trimmed of whitespace and newlines and written only to Windows Credential Manager (OD-0008 B3). When that write fails, nothing is written anywhere else, the key never reaches disk in plain text, and the failure is shown under the key field (UI-PROVREG-038) as exactly: Credential Manager did not accept this key, so it was not saved. That wording is OD-0012 E5. When the write succeeds, or the field is emptied (an empty key deletes the credential and counts as stored, as upstream APIKeychain.swift:40-43 does), any value under the four legacy settings keys deepseekAPIKey, metaAPIKey, zaiAPIKey and commandcodeAPIKey is removed, as upstream does on success. The typed key stays in the in-memory input for the rest of the session, as upstream reads the in-memory input (AppSettings.swift:908-914). A refused write leaves whatever the store held before untouched (the write is an update, not a delete and re-add), so after relaunch the previously stored key, if there was one, is read back, and otherwise nothing.",
       "side_effects": [
         "One Credential Manager write, or a delete for an emptied key.",
         "On a refused write: the line \"Credential Manager did not accept this key, so it was not saved.\" under the key field; no settings, file or registry write carries the key."
@@ -5846,15 +5849,16 @@
       "cancellation": "not cancellable",
       "windows_path": "The port's secret store over Windows Credential Manager (OD-0008 B3), with no fallback writer of any kind. The clearing half (remove the legacy settings value after a successful store) is kept.",
       "verification_method": "unit with a refusing secret store asserting that no settings, file or registry write contains the key and that the line \"Credential Manager did not accept this key, so it was not saved.\" is shown under the key field; plus a unit asserting the legacy settings value is removed after a successful write and after clearing",
-      "status": "IMPLEMENTED",
-      "upstream_defect": "NEW, not in upstream_defects.md: upstream writes a provider API key to UserDefaults in plain text whenever the Keychain refuses the write (AppSettings.swift:371, :382, :395, :406 through storeAPIKeyFallback at :485-494). Both copies are trimmed (APIKeychain.swift:39, AppSettings.swift:492), correcting an earlier claim in this record that the mirror was untrimmed.",
+      "status": "SPECIFIED",
+      "upstream_defect": "NEW, not in upstream_defects.md: upstream writes a provider API key to UserDefaults in plain text whenever the Keychain refuses the write (AppSettings.swift:486 in storeAPIKeyChange, which every key's didSet calls at :369, :378, :389 and :398, through storeAPIKeyFallback at :489-498). Both copies are trimmed (APIKeychain.swift:39, AppSettings.swift:492), correcting an earlier claim in this record that the mirror was untrimmed.",
       "depends_on_unknown": null,
       "blocked_by": null,
       "deviation": {
         "decision": "OD-0008 A6; OD-0012 E5",
-        "upstream": "Each API key input's didSet stores the key with setAPIKey and, when the Keychain refuses it, storeAPIKeyFallback writes the trimmed key in plain text to UserDefaults under deepseekAPIKey, metaAPIKey, zaiAPIKey or commandcodeAPIKey, telling the user nothing (AppSettings.swift:367-400, :485-494; APIKeychain.swift:17-58). Upstream has no text for this path.",
+        "upstream": "Each API key input's didSet stores the key through storeAPIKeyChange and APIKeychain.setKey and, when the Keychain refuses it, storeAPIKeyFallback writes the trimmed key in plain text to UserDefaults under deepseekAPIKey, metaAPIKey, zaiAPIKey or commandcodeAPIKey, telling the user nothing (AppSettings.swift:367-400, :483-487, :489-498; APIKeychain.swift:20-23, :36-58). Upstream has no text for this path.",
         "port": "The key is written only to Windows Credential Manager; a refused write stores nothing anywhere and shows the failure; a successful write or a cleared key removes any legacy plaintext value. The failure reads exactly \"Credential Manager did not accept this key, so it was not saved.\", under the key field (OD-0012 E5)."
-      }
+      },
+      "b3_note": "At 1.7.0 a refused Keychain write leaves the previously stored key in place (SecItemUpdate first, APIKeychain.swift:50-52) instead of having deleted it, so after relaunch the earlier key is read back rather than nothing; the didSet bodies moved into storeAPIKeyChange (AppSettings.swift:483-487)."
     },
     {
       "id": "PR-PROVREG-240",
@@ -5918,7 +5922,7 @@
         "DroppyCode/Core/Models/Provider.swift:67 `case .opencode: \"opencode auth login\"`",
         "DroppyCode/App/Views/Settings/SettingsView.swift:751 `Workspace.openTerminal(running: provider.loginCommand)`",
         "DroppyCode/UI/Common/Components.swift:123-124 `let token = command.split(whereSeparator: \\.isWhitespace).first.map { $0.filter(\\.isLetter) } ?? \"\"` `let script = directory.appendingPathComponent(token.isEmpty ? \"login.command\" : \"login-\\(token).command\")`",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` and :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)` - the card holding this row is collapsed, disabled and not hit-testable unless the provider is signed in or its header was clicked during the page's lifetime"
+        "DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` and :763-766 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)` - the card holding this row is collapsed, disabled and not hit-testable unless the provider is signed in or its header was clicked during the page's lifetime"
       ],
       "preconditions": "OpenCode Go is installed and not signed in, and no check is running. Its section is expanded: the Sign in row appears only when the provider is not signed in (SettingsView.swift:638-641), and with no header click such a section is collapsed, so the user first clicks the section header (UI-PROVREG-045).",
       "action": "The user clicks the OpenCode Go section header to expand it (UI-PROVREG-045), then clicks Login in that section.",
@@ -5937,7 +5941,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-648 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded."
+      "b2_change": "B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-671 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded."
     },
     {
       "id": "PR-PROVREG-243",
@@ -5945,7 +5949,7 @@
       "source_evidence": [
         "DroppyCode/Core/Models/Provider.swift:87 `case .opencodeGo: URL(string: \"https://opencode.ai\")!`",
         "DroppyCode/App/Views/Settings/SettingsView.swift:738-746 `if !status.isInstalled {` `ChromeRow(title: \"Install\", detail: \"\\(provider.displayName) was not found on your PATH.\") {` `Link(destination: provider.installURL) {` `Text(verbatim: \"Get \\(provider.displayName)\")`",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` and :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)` - the card holding this row is collapsed, disabled and not hit-testable unless the provider is signed in or its header was clicked during the page's lifetime"
+        "DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` and :763-766 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)` - the card holding this row is collapsed, disabled and not hit-testable unless the provider is signed in or its header was clicked during the page's lifetime"
       ],
       "preconditions": "OpenCode Go is not installed. Its section is expanded: with no header click a section is expanded only when its provider is signed in (SettingsView.swift:608), so otherwise the user first clicks the section header (UI-PROVREG-045).",
       "action": "The user expands the section by clicking its header if it is collapsed (UI-PROVREG-045), then clicks the Get OpenCode Go link.",
@@ -5964,7 +5968,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-648 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded."
+      "b2_change": "B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-671 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded."
     },
     {
       "id": "PR-PROVREG-244",
@@ -6127,7 +6131,7 @@
       "source_evidence": [
         "DroppyCode/App/Views/Settings/SettingsView.swift:587-590 `/// Manual expansion overrides per provider, kept for the page's lifetime.` ... `@State private var providerExpansion: [ProviderKind: Bool] = [:]`",
         "DroppyCode/App/Views/Settings/SettingsView.swift:607-610 `isExpanded: Binding(` `get: { providerExpansion[provider] ?? configured(provider) },` `set: { providerExpansion[provider] = $0 }`",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:647-648 `Button {` `withAnimation(Chrome.panelSlide) { isExpanded.toggle() }`",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:647 `CollapsibleProviderHeader(provider: provider, isExpanded: $isExpanded, subject: \"provider settings\")`, the header view in DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:415-448, :423-424 `Button {` `withAnimation(Chrome.panelSlide) { isExpanded.toggle() }`",
         "DroppyCode/App/Views/Settings/SettingsView.swift:648 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`",
         "DroppyCode/App/Views/Settings/SettingsView.swift:761-766 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`",
         "DroppyCode/App/Views/Settings/SettingsView.swift:768-779 `.onAppear {` ... `.onChange(of: showsUsage, initial: true) {` - attached to the section, outside the reveal",
@@ -6149,6 +6153,221 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVREG-251",
+      "title": "Only Claude and Codex count as CLIs that carry their own updater",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:476-479 - `/// The providers whose CLI carries its own updater (`claude update`, `codex update`).` / `static func updatesOwnCLI(_ provider: ProviderKind) -> Bool {` / `provider == .claude || provider == .codex`",
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:498 - updateCLIIfDue returns false at once for any other provider",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2260 - the resend-after-update path also requires `ProviderRegistry.updatesOwnCLI(provider)`"
+      ],
+      "preconditions": "none",
+      "action": "updatesOwnCLI(_:) is asked about a provider.",
+      "expected_result": "True for exactly ProviderKind.claude and ProviderKind.codex; false for every other provider, so no other CLI is ever updated by the app.",
+      "side_effects": [],
+      "persistence": "none",
+      "failure_cases": [],
+      "windows_path": "The same two-provider predicate.",
+      "verification_method": "unit over all ProviderKind cases",
+      "cancellation": "not cancellable",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null,
+      "status": "SPECIFIED",
+      "b3_note": "New at 1.7.0 (impact R3-25 #2): part of the CLI updater added to ProviderRegistry (ProviderRegistry.swift:467-536)."
+    },
+    {
+      "id": "PR-PROVREG-252",
+      "title": "A provider error means the CLI is too old when its lowercased text contains one of six phrases",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:481-490 - `/// Whether a provider's error says its CLI is too old for what was asked of it.` / `nonisolated static func needsNewerCLI(_ message: String) -> Bool {` / `let text = message.lowercased()` / `return text.contains(\"or newer is required\")` / `|| text.contains(\"requires a newer version\")` / `|| text.contains(\"claude update\")` / `|| text.contains(\"codex update\")` / `|| text.contains(\"upgrade codex\")` / `|| text.contains(\"update codex\")`",
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:469-473 - the doc comment's example: Opus 5.5 answers Claude Code 2.1.270 with \"does not support this model; version 2.1.280 or newer is required\"",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2261 - the only caller, `ProviderRegistry.needsNewerCLI(error)`"
+      ],
+      "preconditions": "An error message from a provider turn.",
+      "action": "needsNewerCLI(_:) is called with the message.",
+      "expected_result": "The message is lowercased and the result is true exactly when it contains at least one of these substrings: \"or newer is required\", \"requires a newer version\", \"claude update\", \"codex update\", \"upgrade codex\", \"update codex\". Any other message, including the empty string, gives false.",
+      "side_effects": [],
+      "persistence": "none",
+      "failure_cases": [
+        "A phrase split across a line break or with different spacing does not match"
+      ],
+      "windows_path": "The same six substrings, matched after a lowercase conversion equivalent to Swift String.lowercased() (Unicode default lowercasing, not culture-specific).",
+      "verification_method": "unit: each of the six phrases in mixed case matches; the doc comment example matches; an unrelated message does not",
+      "cancellation": "not cancellable",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null,
+      "status": "SPECIFIED",
+      "b3_note": "New at 1.7.0 (impact R3-25 #3): part of the CLI updater added to ProviderRegistry."
+    },
+    {
+      "id": "PR-PROVREG-253",
+      "title": "updateCLIIfDue runs only for Claude or Codex with no custom binary path, once at a time, and at most every 12 hours unless forced",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:474 `private static let cliUpdateInterval: TimeInterval = 12 * 3600`",
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:496-509 - `guard Self.updatesOwnCLI(provider), !CaptureRun.isEnabled, settings.binaryPath(for: provider).isEmpty else { return false }` (:498); `if updatingCLIs.contains(provider) {` / `guard force else { return false }` / `while updatingCLIs.contains(provider) { try? await Task.sleep(for: .milliseconds(500)) }` (:501-504); `var dates = (UserDefaults.standard.dictionary(forKey: cliUpdatesKey) as? [String: Double]) ?? [:]` (:505); `if !force, let last = dates[provider.rawValue],` / `Date.now.timeIntervalSince1970 - last < Self.cliUpdateInterval { return false }` (:506-507); `await LoginEnvironment.load()` (:508); `guard let executable = executable(for: provider) else { return false }` (:509)",
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:492-495 - the doc comment: `/// A binary path the user set by hand is their own build, and is left alone.`",
+        "DroppyCode/App/AppModel.swift:278-282 - bootstrap calls `providers.updateCLIIfDue(provider)` (not forced) for .claude then .codex when installed; DroppyCode/App/Runtime/ThreadRuntime.swift:2275 calls it with `force: true`"
+      ],
+      "preconditions": "A call to updateCLIIfDue(_:force:), from launch (not forced) or from a turn that failed because the CLI is too old (forced).",
+      "action": "updateCLIIfDue is called.",
+      "expected_result": "The checks run in this order, and each failing one returns false with nothing run: the provider must be Claude or Codex (PR-PROVREG-251); the user must have set no binary path for it. If an update for that provider is already running, an unforced call returns false, and a forced call waits, checking every 500 milliseconds, until that update has finished, then continues. Next the stored attempt dates are read; an unforced call whose provider has a stored date less than 12 hours (43,200 seconds) before now returns false; a forced call ignores the date. Only then is the login environment loaded and the executable resolved; when no executable resolves, false is returned and no date is written. Otherwise the update runs as PR-PROVREG-254 describes.",
+      "side_effects": [
+        "Reads the providerCLIUpdateDates entry (PR-PROVREG-255)",
+        "Loads the login environment once past the date check"
+      ],
+      "persistence": "Reads providerCLIUpdateDates; writes nothing on any of these early returns.",
+      "failure_cases": [
+        "A custom binary path is set: never updated, whatever force says",
+        "No executable found: false, and no date is recorded, so the next call tries again",
+        "A forced call arriving while an update runs waits for it and then runs the updater again, even if that update just installed the newest version"
+      ],
+      "windows_path": "The same gates in the same order: provider predicate, custom path, the in-flight set with the 500 ms wait for a forced call, the 12-hour date check, then the login environment and the executable lookup. The capture-run gate (`!CaptureRun.isEnabled`, :498) is not ported: ED-001 drops the CaptureRun indirection and porting/dead_code.md entry 44 records such short circuits as unreachable from the shipped UI.",
+      "verification_method": "unit with a fake clock, settings and executable resolver: a provider other than Claude or Codex, a custom binary path, an in-flight update (unforced returns false, forced waits), a date 11 hours old (skipped) and 13 hours old (runs), a forced call with a fresh date (runs), and no executable (false, no date written)",
+      "cancellation": "not cancellable",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null,
+      "status": "SPECIFIED",
+      "b3_note": "New at 1.7.0 (impact R3-25 #4): the gates of the CLI updater added to ProviderRegistry."
+    },
+    {
+      "id": "PR-PROVREG-254",
+      "title": "updateCLIIfDue runs the CLI's own `update` command in the temporary directory with a 300 second timeout and ignores how it ends",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:512-514 - `let environment = environment(for: provider)` / `let before = await Self.cliVersion(executable, environment: environment)` / `_ = try? await Shell.run(executable, [\"update\"], in: FileManager.default.temporaryDirectory, environment: environment, timeout: 300)`",
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:469-473 - the comment: the CLIs update themselves only inside their own interactive sessions, the app runs them headless, so `The app runs each CLI's own updater instead.`",
+        "DroppyCode/Core/Support/Shell.swift:36-108 Shell.run - runs the process with the given working directory and environment, stdin from the null device, and terminates it when the timeout passes"
+      ],
+      "preconditions": "Every gate of PR-PROVREG-253 passed and the executable resolved.",
+      "action": "The update itself runs.",
+      "expected_result": "The provider's environment (environment(for:)) is computed once and used for all three runs. First the installed version is read (PR-PROVREG-258). Then the resolved executable is run with the single argument \"update\" (so `claude update` or `codex update`), with the system temporary directory as its working directory, that environment, no input, and a 300 second timeout. Its exit status, output and any launch error are ignored: success, failure and a timeout all continue to the date write (PR-PROVREG-255) and the version comparison (PR-PROVREG-256).",
+      "side_effects": [
+        "Runs the provider CLI's own updater, which may download and replace the CLI"
+      ],
+      "persistence": "none here; the attempt date is PR-PROVREG-255",
+      "failure_cases": [
+        "The updater fails, cannot launch or runs past 300 seconds (then it is terminated): nothing is shown, and the attempt still counts"
+      ],
+      "windows_path": "Run the resolved CLI with the argument \"update\" as a hidden child process in the temporary directory with the provider environment and a 300 second timeout, ignoring the result. Whether `claude update` and `codex update` run headless on Windows (an npm shim, the native installer, a running binary that is locked) is not settled: B3_PLAN.md 6.1 O1 asks the owner, and platform_adaptations.md needs an entry. The source runs the updater as a plain child process with no window and no input.",
+      "open_question": "Whether `claude update` and `codex update` run headless on Windows (an npm shim, the native installer, a running binary that is locked) is not settled: B3_PLAN.md 6.1 O1 asks the owner, and platform_adaptations.md needs an entry. The source runs the updater as a plain child process with no window and no input.",
+      "verification_method": "unit with a process-runner double asserting the executable, the single argument \"update\", the temporary working directory, the environment and the 300 second timeout, and that a failing or timed-out run still proceeds",
+      "cancellation": "not cancellable",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null,
+      "status": "SPECIFIED",
+      "b3_note": "New at 1.7.0 (impact R3-25 #5): the updater run of the CLI updater added to ProviderRegistry."
+    },
+    {
+      "id": "PR-PROVREG-255",
+      "title": "Every update attempt is recorded under providerCLIUpdateDates as seconds since 1970, keyed by the provider raw value",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:55 `@ObservationIgnored private let cliUpdatesKey = \"providerCLIUpdateDates\"`",
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:505 `var dates = (UserDefaults.standard.dictionary(forKey: cliUpdatesKey) as? [String: Double]) ?? [:]`",
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:515-516 `dates[provider.rawValue] = Date.now.timeIntervalSince1970` / `UserDefaults.standard.set(dates, forKey: cliUpdatesKey)`, right after the updater run whatever its result",
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:509 - no executable returns before any write"
+      ],
+      "preconditions": "An update attempt ran (PR-PROVREG-254).",
+      "action": "The attempt date is stored.",
+      "expected_result": "The settings key \"providerCLIUpdateDates\" holds a dictionary from provider raw value (\"claude\", \"codex\") to a Double of seconds since 00:00:00 UTC on 1 January 1970. After every attempted update, successful or not, the provider's entry is set to the current time and the whole dictionary is written back, keeping the other provider's entry. A value that is missing or not a [String: Double] dictionary reads as empty. No date is written when the call returned before the run (PR-PROVREG-253), including when no executable resolved.",
+      "side_effects": [
+        "One settings write per attempt"
+      ],
+      "persistence": "Key \"providerCLIUpdateDates\": [String: Double], seconds since 1970, keyed by ProviderKind raw value. It is in UserDefaults.standard, not the capture defaults.",
+      "failure_cases": [
+        "A stored value of another type is treated as no dates at all, so both CLIs are due at once"
+      ],
+      "windows_path": "The same key name, the same raw-value keys and the same epoch-seconds Double encoding in the port settings store.",
+      "verification_method": "unit: after a failing and after a succeeding update the entry equals the fake clock; the other provider's entry is kept; no executable writes nothing; a malformed value reads as empty",
+      "cancellation": "not cancellable",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null,
+      "status": "SPECIFIED",
+      "b3_note": "New at 1.7.0 (impact R3-25 #6): the persisted attempt dates of the CLI updater added to ProviderRegistry."
+    },
+    {
+      "id": "PR-PROVREG-256",
+      "title": "Only a changed --version after the update reloads the provider and its catalog, and only then does updateCLIIfDue return true",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:513 `let before = await Self.cliVersion(executable, environment: environment)`",
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:517-521 `let after = await Self.cliVersion(executable, environment: environment)` / `guard let after, after != before else { return false }` / `await refresh(provider)` / `await loadCatalog(provider, force: true)` / `return true`",
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:492-494 - the doc comment: when a newer version went in, the provider and its catalog are read again so the models that version brings show at once; the result says whether a newer version was installed"
+      ],
+      "preconditions": "The updater has run and the date was written.",
+      "action": "The version is read again and compared.",
+      "expected_result": "The version text read before the update is compared with the one read after it (PR-PROVREG-258). When the after value is nil, or equal to the before value, updateCLIIfDue returns false and nothing is reloaded. Otherwise (including a nil before value and a readable after value) the provider status is refreshed (refresh(provider)), then its catalog is loaded again with force true, and true is returned.",
+      "side_effects": [
+        "refresh(provider) and loadCatalog(provider, force: true) when the version changed"
+      ],
+      "persistence": "The forced catalog load persists the new catalog as any catalog load does.",
+      "failure_cases": [
+        "An updater that installs the same version, or a CLI whose --version cannot be read afterwards, gives false with no reload"
+      ],
+      "windows_path": "The same before/after comparison of the trimmed version text, then the same refresh and forced catalog load, in that order.",
+      "verification_method": "unit with a version double: same version (false, no reload), nil after (false), changed version (refresh then forced loadCatalog, true), nil before and a readable after (true)",
+      "cancellation": "not cancellable",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null,
+      "status": "SPECIFIED",
+      "b3_note": "New at 1.7.0 (impact R3-25 #7): the result of the CLI updater added to ProviderRegistry."
+    },
+    {
+      "id": "PR-PROVREG-257",
+      "title": "updatingCLIs is an observable set that holds a provider while its updater runs",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:53-54 `/// Providers whose CLI is being updated right now (see `updateCLIIfDue`).` / `private(set) var updatingCLIs: Set<ProviderKind> = []` (observed, on the @Observable registry, :30-32)",
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:510-511 `updatingCLIs.insert(provider)` / `defer { updatingCLIs.remove(provider) }`, after the executable resolved (:509) and before the version reads and the updater run",
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:501-504 - the set is the in-flight check of updateCLIIfDue"
+      ],
+      "preconditions": "An update passed its gates and has an executable.",
+      "action": "The update runs.",
+      "expected_result": "The provider is in updatingCLIs from just before the first version read until updateCLIIfDue returns by any path after that point (the version-unchanged return, the reload path, or the end), and is removed on return. It is never inserted when a gate or the executable lookup returned early. The set starts empty, is not persisted, and at 1.7.0 nothing in the UI reads it.",
+      "side_effects": [
+        "Observation change notifications on insert and remove"
+      ],
+      "persistence": "none (in memory for the process lifetime)",
+      "failure_cases": [],
+      "windows_path": "An observable in-memory set on the registry with the same insert point and a finally-style removal.",
+      "verification_method": "unit: the provider is in the set while a blocked updater double runs and absent after both a changed-version and an unchanged-version return",
+      "cancellation": "not cancellable",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null,
+      "status": "SPECIFIED",
+      "b3_note": "New at 1.7.0 (impact R3-25 #8): the in-flight state of the CLI updater added to ProviderRegistry."
+    },
+    {
+      "id": "PR-PROVREG-258",
+      "title": "The installed CLI version is the trimmed output of `<exe> --version`, read with a 30 second timeout",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:524-529 installedCLIVersion - `/// The version the installed CLI reports, or nil when it cannot be run.` / `await LoginEnvironment.load()` / `guard let executable = executable(for: provider) else { return nil }` / `return await Self.cliVersion(executable, environment: environment(for: provider))`",
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:531-536 cliVersion - `guard let result = try? await Shell.run(executable, [\"--version\"], environment: environment, timeout: 30),` / `result.succeeded else { return nil }` / `let version = result.trimmedOutput` / `return version.isEmpty ? nil : version`",
+        "DroppyCode/Core/Support/Shell.swift:9 `var succeeded: Bool { status == 0 }` and :12 `var trimmedOutput: String { output.trimmed }` (stdout decoded as UTF-8)",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2276 - the resend path reads installedCLIVersion after a forced update"
+      ],
+      "preconditions": "A provider whose executable may or may not resolve.",
+      "action": "installedCLIVersion(_:) is called, or updateCLIIfDue reads the version before and after its run.",
+      "expected_result": "installedCLIVersion loads the login environment, resolves the executable (nil when none resolves) and reads the version with the provider environment. Reading the version runs the executable with the single argument \"--version\", that environment, no working directory of its own and a 30 second timeout. The result is nil when the run throws or its exit status is not 0; otherwise it is stdout decoded as UTF-8 and trimmed of whitespace and newlines, or nil when that is empty.",
+      "side_effects": [
+        "One child process run per read"
+      ],
+      "persistence": "none",
+      "failure_cases": [
+        "The CLI cannot be launched, exits non-zero, times out or prints nothing on stdout: nil"
+      ],
+      "windows_path": "The same \"--version\" run with the provider environment and a 30 second timeout, exit code 0 required, stdout decoded as UTF-8 and trimmed with the Swift whitespace-and-newlines set.",
+      "verification_method": "unit with a process-runner double: exit 0 with padded output (trimmed text), exit 1 (nil), empty output (nil), a launch error (nil), no executable (nil)",
+      "cancellation": "not cancellable",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null,
+      "status": "SPECIFIED",
+      "b3_note": "New at 1.7.0 (impact R3-25 #9): the version read of the CLI updater added to ProviderRegistry."
     }
   ],
   "ui": [
@@ -6209,7 +6428,7 @@
       "element": "Provider section, one per provider",
       "role": "section",
       "exact_text": "Codex | Claude | Cursor | OpenCode Zen | OpenCode Go | Grok | DeepSeek | Meta | Z.ai | Devin | Antigravity | Copilot | Command Code | Pi",
-      "geometry": "The page is a VStack with alignment leading and spacing Chrome.sectionSpacing = 20 holding one ProviderSettingsSection per ProviderKind: every signed-in provider first, then every other provider, each group in allCases order. Each section is a VStack with alignment leading and spacing Chrome.sectionHeaderSpacing = 10 holding the header toggle (UI-PROVREG-045) and then a ChromeRevealLayout wrapping a ChromeCard. The header is 22 points high. The reveal slot is the card's natural height times the fraction (1 expanded, 0 collapsed), and the card is placed top-leading at full size so it never moves; the clip reveals it in place. The card is a LazyVStack with spacing 0 on a RoundedRectangle of corner radius Chrome.cardCornerRadius = 16, continuous style, filled with Chrome.overlay(0.03). Read from the code, not executed: the reveal slot is the second child of the spacing-10 VStack, so by standard SwiftUI VStack spacing a collapsed section keeps the 10 point gap under its 22 point header and is 32 points tall.",
+      "geometry": "The page is a VStack with alignment leading and spacing Chrome.sectionSpacing = 20 holding one ProviderSettingsSection per ProviderKind: every signed-in provider first, then every other provider, each group in allCases order. Each section is a VStack with alignment leading and spacing Chrome.sectionHeaderSpacing = 10 holding the header toggle (UI-PROVREG-045) and then a ChromeRevealLayout wrapping a ChromeCard. The header is 22 points high. The reveal slot is the card's natural height times the fraction (1 expanded, 0 collapsed), and the card is placed top-leading at full size so it never moves; the clip reveals it in place. The card is an eager VStack with spacing 0 (ChromeCard's lazy flag defaults to false and this page passes none) on a RoundedRectangle of corner radius Chrome.cardCornerRadius = 16, continuous style, filled with Chrome.overlay(0.03). Read from the code, not executed: the reveal slot is the second child of the spacing-10 VStack, so by standard SwiftUI VStack spacing a collapsed section keeps the 10 point gap under its 22 point header and is 32 points tall.",
       "typography": "The section name is drawn by the header toggle (UI-PROVREG-045) at font size 13, weight semibold, in SwiftUI's hierarchical .secondary style, NOT Chrome.secondaryText.",
       "colors": "Card fill is Chrome.primaryText at opacity 0.03, which resolves per appearance because it wraps the AppKit labelColor.",
       "states": [
@@ -6226,19 +6445,21 @@
       ],
       "source_evidence": [
         "DroppyCode/App/Views/Settings/SettingsView.swift:585-615 ProvidersSettingsPage - `@State private var providerExpansion: [ProviderKind: Bool] = [:]`; `VStack(alignment: .leading, spacing: Chrome.sectionSpacing) {`; `ForEach(ProviderKind.allCases.filter(configured) + ProviderKind.allCases.filter { !configured($0) }) { provider in`; `isExpanded: Binding(get: { providerExpansion[provider] ?? configured(provider) }, set: { providerExpansion[provider] = $0 })`",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:644-646 `VStack(alignment: .leading, spacing: Chrome.sectionHeaderSpacing) {` - the header toggle (UI-PROVREG-045) then the card",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:646-647 `VStack(alignment: .leading, spacing: Chrome.sectionHeaderSpacing) {` `CollapsibleProviderHeader(provider: provider, isExpanded: $isExpanded, subject: \"provider settings\")` - the header toggle (UI-PROVREG-045) then the card",
         "DroppyCode/App/Views/Settings/SettingsView.swift:648-649 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {` `ChromeCard {`",
         "DroppyCode/App/Views/Settings/SettingsView.swift:761-766 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`",
         "DroppyCode/UI/Chrome/Chrome.swift:59-60 `static let sectionSpacing: CGFloat = 20` `static let sectionHeaderSpacing: CGFloat = 10`",
         "DroppyCode/UI/Chrome/Chrome.swift:100-104 panelSlide - `.easeOut(duration: 0.18)` when accessibilityDisplayShouldReduceMotion, otherwise `.spring(response: 0.32, dampingFraction: 0.9)`",
         "DroppyCode/UI/Chrome/Chrome.swift:282-304 ChromeRevealLayout - height is the child's natural height times `min(max(fraction, 0), 1)`; the child is placed top-leading at full size and stays mounted",
-        "DroppyCode/UI/Chrome/Chrome.swift:1006-1027 ChromeCard - `LazyVStack(alignment: .leading, spacing: 0)` on `RoundedRectangle(cornerRadius: Chrome.cardCornerRadius, style: .continuous).fill(Chrome.overlay(0.03))`",
+        "DroppyCode/UI/Chrome/Chrome.swift:1006-1027 ChromeCard - `var lazy = false`; `if lazy { LazyVStack(alignment: .leading, spacing: 0) { content } } else { VStack(alignment: .leading, spacing: 0) { content } }` on `RoundedRectangle(cornerRadius: Chrome.cardCornerRadius, style: .continuous).fill(Chrome.overlay(0.03))`; the Providers page calls plain `ChromeCard {` (DroppyCode/App/Views/Settings/SettingsView.swift:649), so its card is the eager VStack",
         "E:/Droppy/port/porting/extracts/chrome-design-tokens.md:237",
         "E:/Droppy/port/porting/extracts/chrome-design-tokens.md:1260-1273",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:646-670 - the section header is a Button (not ChromeSection): `.font(.system(size: 13, weight: .semibold))` `.foregroundStyle(.secondary)` at :654-655, `.frame(height: 22)` at :665"
+        "DroppyCode/App/Views/Settings/SettingsView.swift:647 `CollapsibleProviderHeader(provider: provider, isExpanded: $isExpanded, subject: \"provider settings\")`, the header view in DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:415-448 - the section header is a Button (not ChromeSection): `.font(.system(size: 13, weight: .semibold))` `.foregroundStyle(.secondary)` at ModelsSettingsPage.swift:430-431, `.frame(height: 22)` at :441"
       ],
-      "notes": "The sections are built EAGERLY, not lazily. The source comment records why: lazy sections were rebuilt while scrolling, which reset their text fields and re-ran every check they started on appear. A port that uses a virtualised list here will reintroduce that bug. Collapsing does not unmount a section either, so its fields keep their values and its onAppear and onChange handlers still run while it is collapsed. The per-provider expansion overrides live in the page's state for the page's lifetime and are never persisted. All 14 sections are always present, so there is no empty state for the page itself.",
-      "b2_change": "Old (B1 SettingsView.swift:601-611, :637-639): each section was `ChromeSection(title: provider.displayName) { ChromeCard {`, always open, in plain allCases order. New (B2 :585-615, :644-790): signed-in providers first, then the rest; a header toggle button (UI-PROVREG-045); the card inside ChromeRevealLayout, expanded by default only when signed in, and while collapsed clipped, disabled, not hit-testable and hidden from accessibility. 13 sections -> 14 (opencodeGo), and OpenCode's section is titled OpenCode Zen."
+      "notes": "The sections are built EAGERLY, not lazily, and so is each card's own row stack (ChromeCard without lazy: true). The source comment records why: lazy sections were rebuilt while scrolling, which reset their text fields and re-ran every check they started on appear. A port that uses a virtualised list here will reintroduce that bug. Collapsing does not unmount a section either, so its fields keep their values and its onAppear and onChange handlers still run while it is collapsed. The per-provider expansion overrides live in the page's state for the page's lifetime and are never persisted. All 14 sections are always present, so there is no empty state for the page itself.",
+      "b2_change": "Old (B1 SettingsView.swift:601-611, :637-639): each section was `ChromeSection(title: provider.displayName) { ChromeCard {`, always open, in plain allCases order. New (B2 :585-615, :644-790): signed-in providers first, then the rest; a header toggle button (UI-PROVREG-045); the card inside ChromeRevealLayout, expanded by default only when signed in, and while collapsed clipped, disabled, not hit-testable and hidden from accessibility. 13 sections -> 14 (opencodeGo), and OpenCode's section is titled OpenCode Zen.",
+      "status": "SPECIFIED",
+      "b3_note": "At 1.7.0 ChromeCard gained a lazy flag defaulting to false (Chrome.swift:1009, :1014-1020), so the Providers page card, which passes none, is an eager VStack instead of a LazyVStack; the section header moved into CollapsibleProviderHeader (ModelsSettingsPage.swift:416-448) with identical strings."
     },
     {
       "id": "UI-PROVREG-004",
@@ -6286,7 +6507,7 @@
         "DroppyCode/Services/Providers/ProviderRegistry.swift:19-26 ProviderStatus.summary"
       ],
       "notes": "The checking text replaces the summary entirely rather than being appended. The Installed variant uses U+00B7 MIDDLE DOT with a space either side. This is rendered with Text(verbatim:), so no Markdown or localisation processing applies to the account name.",
-      "b2_change": "B2 moved the provider card inside a collapsible section (SettingsView.swift:648 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608)."
+      "b2_change": "B2 moved the provider card inside a collapsible section (SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608)."
     },
     {
       "id": "UI-PROVREG-006",
@@ -6310,7 +6531,7 @@
         "DroppyCode/Services/Providers/ProviderRegistry.swift:397-399"
       ],
       "notes": "The literal is \"Version \" followed by the parsed version, with one space and no other punctuation. Because the API-key check excludes them, the \"API\" version literal set by refreshAPIProvider is never rendered as \"Version API\".",
-      "b2_change": "B2 moved the provider card inside a collapsible section (SettingsView.swift:648 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608). Chrome.secondaryText changed from B1 Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` to B2 :79 `static let secondaryText = primaryText.opacity(0.7)`."
+      "b2_change": "B2 moved the provider card inside a collapsible section (SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608). Chrome.secondaryText changed from B1 Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` to B2 :79 `static let secondaryText = primaryText.opacity(0.7)`."
     },
     {
       "id": "UI-PROVREG-007",
@@ -6334,7 +6555,7 @@
         "DroppyCode/Core/Models/Provider.swift:112-119"
       ],
       "notes": "The separator is U+00B7 MIDDLE DOT with a space either side. The three host strings are api.deepseek.com, api.meta.ai/v1 and api.z.ai/api/coding/paas/v4.",
-      "b2_change": "B2 moved the provider card inside a collapsible section (SettingsView.swift:648 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608)."
+      "b2_change": "B2 moved the provider card inside a collapsible section (SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608)."
     },
     {
       "id": "UI-PROVREG-008",
@@ -6360,7 +6581,7 @@
         "DroppyCode/App/AppSettings.swift:882-889"
       ],
       "notes": "There is no confirmation and no undo. Disabling a provider removes it from availableProviders immediately, which changes the composer pickers. The switch is not disabled while a check is running; it is disabled only while its section is collapsed (SettingsView.swift:764).",
-      "b2_change": "B2 moved the provider card inside a collapsible section (SettingsView.swift:648 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608)."
+      "b2_change": "B2 moved the provider card inside a collapsible section (SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608)."
     },
     {
       "id": "UI-PROVREG-009",
@@ -6379,11 +6600,11 @@
         "none"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Settings/SettingsView.swift:677, :713, :743, :754, :762, :771 `ChromeRowDivider()` - before the usage block, the API key row, the Get a key row, the Binary path row, the Install row and the Sign in row",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:677, :690, :720, :731, :739, :748 `ChromeRowDivider()` - before the usage block, the API key row, the Get a key row, the Binary path row, the Install row and the Sign in row",
         "E:/Droppy/port/porting/extracts/chrome-design-tokens.md:1343-1348"
       ],
       "notes": "Each divider belongs to the row that follows it, so a card whose optional rows are all absent shows the status row with no divider at all. The asymmetric leading-only padding is a source fact.",
-      "b2_change": "B2 moved the provider card inside a collapsible section (SettingsView.swift:648 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608)."
+      "b2_change": "B2 moved the provider card inside a collapsible section (SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608)."
     },
     {
       "id": "UI-PROVREG-010",
@@ -6409,7 +6630,7 @@
         "DroppyCode/App/Views/Settings/SettingsView.swift:772-779"
       ],
       "notes": "Command Code is the only provider that shows BOTH sub-views. DeepSeek shows only credits. The onChange that starts the reads uses initial: true, so it fires once when the page opens on a signed-in account and again when a check signs one in; because the sections are eager, scrolling never re-fires it.",
-      "b2_change": "B2 moved the provider card inside a collapsible section (SettingsView.swift:648 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608)."
+      "b2_change": "B2 moved the provider card inside a collapsible section (SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608)."
     },
     {
       "id": "UI-PROVREG-011",
@@ -6454,7 +6675,7 @@
       ],
       "source_evidence": [
         "DroppyCode/App/Views/Usage/UsageViews.swift:21-23",
-        "DroppyCode/Services/Providers/ProviderRegistry.swift:696, :629"
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:696, :708"
       ],
       "notes": "Unlike the credits spinner, this one cannot hang, because the limits path has a watchdog. The asymmetry is deliberate upstream behavior.",
       "status": "IMPLEMENTED"
@@ -6548,7 +6769,7 @@
       ],
       "source_evidence": [
         "DroppyCode/App/Views/Usage/UsageViews.swift:163-168 `if let detail = window.detail {` `Text(verbatim: detail)` `.font(.system(.subheadline))` `.foregroundStyle(Chrome.secondaryText)` `.lineLimit(1)`",
-        "DroppyCode/Services/Providers/ZaiAPI.swift:112, :142"
+        "DroppyCode/Services/Providers/ZaiAPI.swift:112, :121"
       ],
       "notes": "Do not invent detail strings for any other provider. The two Z.ai formats are a formatted count, the literal \" of \", a formatted count, then \" credits\" or \" calls\".",
       "b2_change": "UsageViews.swift:165 `.font(.system(size: 11))` (B1) -> `.font(.system(.subheadline))` (B2). Same line numbers at both baselines; nothing else in the element changed.",
@@ -7054,10 +7275,10 @@
         "DroppyCode/UI/Chrome/Chrome.swift:1055-1079 ChromeRow - `Text(verbatim: title)` `.font(.system(.body))` `.foregroundStyle(Chrome.primaryText)`; `Text(verbatim: detail)` `.font(.system(.subheadline))` `.foregroundStyle(Chrome.secondaryText)` `.fixedSize(horizontal: false, vertical: true)`"
       ],
       "notes": "The API-key detail reads exactly: Stored in your Credential Manager. Get one at SOURCE. The Command Code detail reads exactly: Instead of `cmd login`: a Studio key from commandcode.ai/studio, stored in your Credential Manager and handed to the CLI. The backticks around the login command are literal characters in the string, not Markdown; the row renders with Text(verbatim:) semantics through ChromeRow, so they appear as backticks. The word Keychain becomes Credential Manager in both strings (OD-0012 G2), naming the store the port uses.",
-      "b2_change": "Row unchanged apart from its lines (B1 SettingsView.swift:657-664 -> B2 :712-719), but ProviderKind grew to 14 (B2 Provider.swift:8), so the row is absent for ten providers, not nine; opencodeGo has acceptsAPIKey false (B2 Provider.swift:109). B2 moved the provider card inside a collapsible section (SettingsView.swift:648 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608). ChromeRow typography changed at B2 (B1 Chrome.swift:1031 `.font(.system(size: 13))` -> B2 :1058 `.font(.system(.body))`; B1 :1029 `.font(.system(size: 11))` -> B2 :1062 `.font(.system(.subheadline))`).",
+      "b2_change": "Row unchanged apart from its lines (B1 SettingsView.swift:680-687 -> B2 :712-719), but ProviderKind grew to 14 (B2 Provider.swift:8), so the row is absent for ten providers, not nine; opencodeGo has acceptsAPIKey false (B2 Provider.swift:109). B2 moved the provider card inside a collapsible section (SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608). ChromeRow typography changed at B2 (B1 Chrome.swift:1025 `.font(.system(size: 13))` -> B2 :1058 `.font(.system(.body))`; B1 :1029 `.font(.system(size: 11))` -> B2 :1062 `.font(.system(.subheadline))`).",
       "deviation": {
         "decision": "OD-0012 G2",
-        "upstream": "SettingsView.swift:694 \"Stored in your Keychain. Get one at \\(provider.apiKeySource ?? \"the provider dashboard\").\" and :718 \"Instead of `\\(provider.loginCommand)`: a Studio key from \\(provider.apiKeySource ?? \"the provider dashboard\"), stored in your Keychain and handed to the CLI.\"",
+        "upstream": "SettingsView.swift:694 \"Stored in your Keychain. Get one at \\(provider.apiKeySource ?? \"the provider dashboard\").\" and :695 \"Instead of `\\(provider.loginCommand)`: a Studio key from \\(provider.apiKeySource ?? \"the provider dashboard\"), stored in your Keychain and handed to the CLI.\"",
         "port": "\"Stored in your Credential Manager. Get one at SOURCE.\" and \"Instead of `LOGIN`: a Studio key from SOURCE, stored in your Credential Manager and handed to the CLI.\""
       }
     },
@@ -7084,10 +7305,10 @@
         "DroppyCode/App/Views/Settings/SettingsView.swift:768-795"
       ],
       "notes": "The placeholder is exactly \"sk-\" followed by U+2026, for all four providers, even though only DeepSeek keys begin sk-. Both the secure and the plain variant use the same placeholder. The width 200 is a fixed point value, not a proportion. OD-0012 E5 (for OD-0008 A6): when Credential Manager refuses the key, the line \"Credential Manager did not accept this key, so it was not saved.\" is shown under this field (PR-PROVREG-239). Upstream has no such line; the ruling gives its text and placement only, not its font or colour.",
-      "b2_change": "B2 moved the provider card inside a collapsible section (SettingsView.swift:648 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608).",
+      "b2_change": "B2 moved the provider card inside a collapsible section (SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608).",
       "deviation": {
         "decision": "OD-0012 E5",
-        "upstream": "No message: a refused Keychain write falls back to a plaintext copy silently (AppSettings.swift:367-400, :485-494).",
+        "upstream": "No message: a refused Keychain write falls back to a plaintext copy silently (AppSettings.swift:367-400, :483-487, :489-498).",
         "port": "Under the key field: \"Credential Manager did not accept this key, so it was not saved.\""
       }
     },
@@ -7113,7 +7334,7 @@
         "DroppyCode/App/Views/Settings/SettingsView.swift:708-717 `Button { showsAPIKey.toggle() } label: { Image(systemName: showsAPIKey ? \"eye.slash\" : \"eye\").font(.system(size: 12)) }` `.buttonStyle(.plain)` `.foregroundStyle(Chrome.secondaryText)` `.help(showsAPIKey ? \"Hide the API key\" : \"Show the API key\")`"
       ],
       "notes": "The symbol is eye.slash when the key is VISIBLE and eye when it is hidden, which is the inverse of the naive reading. Both help strings begin with a capital and have no trailing full stop.",
-      "b2_change": "B2 moved the provider card inside a collapsible section (SettingsView.swift:648 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608)."
+      "b2_change": "B2 moved the provider card inside a collapsible section (SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608)."
     },
     {
       "id": "UI-PROVREG-040",
@@ -7139,7 +7360,7 @@
         "DroppyCode/UI/Chrome/Chrome.swift:1055-1079 ChromeRow - `Text(verbatim: title)` `.font(.system(.body))` `.foregroundStyle(Chrome.primaryText)`; `Text(verbatim: detail)` `.font(.system(.subheadline))` `.foregroundStyle(Chrome.secondaryText)` `.fixedSize(horizontal: false, vertical: true)`"
       ],
       "notes": "The row detail reads exactly: NAME needs an API key. Nothing to install. The link label reads exactly: Get a NAME key, so for Z.ai it is \"Get a Z.ai key\". The clamped label height exists because a monospaced copy button drew a taller capsule than a plain one beside it.",
-      "b2_change": "B2 moved the provider card inside a collapsible section (SettingsView.swift:648 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608). ChromeRow typography changed at B2 (B1 Chrome.swift:1031 `.font(.system(size: 13))` -> B2 :1058 `.font(.system(.body))`; B1 :1029 `.font(.system(size: 11))` -> B2 :1062 `.font(.system(.subheadline))`)."
+      "b2_change": "B2 moved the provider card inside a collapsible section (SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608). ChromeRow typography changed at B2 (B1 Chrome.swift:1025 `.font(.system(size: 13))` -> B2 :1058 `.font(.system(.body))`; B1 :1029 `.font(.system(size: 11))` -> B2 :1062 `.font(.system(.subheadline))`)."
     },
     {
       "id": "UI-PROVREG-041",
@@ -7165,7 +7386,7 @@
         "DroppyCode/UI/Chrome/Chrome.swift:1055-1079 ChromeRow - `Text(verbatim: title)` `.font(.system(.body))` `.foregroundStyle(Chrome.primaryText)`; `Text(verbatim: detail)` `.font(.system(.subheadline))` `.foregroundStyle(Chrome.secondaryText)` `.fixedSize(horizontal: false, vertical: true)`"
       ],
       "notes": "The placeholders are the executable names, so Cursor's reads cursor-agent, Antigravity's reads agy, Command Code's reads cmd, and OpenCode Zen's and OpenCode Go's both read opencode; each of the two has its own stored path. Unlike the API key field, editing this does not re-check the provider: the user must press the refresh button or relaunch. The detail line showing the resolved path is the only feedback that a path took effect, and it only updates after a refresh.",
-      "b2_change": "Row unchanged apart from its lines (B1 SettingsView.swift:698-705 -> B2 :753-760), but ProviderKind grew to 14 (B2 Provider.swift:8) and opencodeGo is not API-key based, so the row is shown for eleven of the fourteen providers, not ten of thirteen; OpenCode Go's placeholder is \"opencode\" (B2 Provider.swift:46). B2 moved the provider card inside a collapsible section (SettingsView.swift:648 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608). ChromeRow typography changed at B2 (B1 Chrome.swift:1031 `.font(.system(size: 13))` -> B2 :1058 `.font(.system(.body))`; B1 :1029 `.font(.system(size: 11))` -> B2 :1062 `.font(.system(.subheadline))`)."
+      "b2_change": "Row unchanged apart from its lines (B1 SettingsView.swift:721-728 -> B2 :753-760), but ProviderKind grew to 14 (B2 Provider.swift:8) and opencodeGo is not API-key based, so the row is shown for eleven of the fourteen providers, not ten of thirteen; OpenCode Go's placeholder is \"opencode\" (B2 Provider.swift:46). B2 moved the provider card inside a collapsible section (SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608). ChromeRow typography changed at B2 (B1 Chrome.swift:1025 `.font(.system(size: 13))` -> B2 :1058 `.font(.system(.body))`; B1 :1029 `.font(.system(size: 11))` -> B2 :1062 `.font(.system(.subheadline))`)."
     },
     {
       "id": "UI-PROVREG-042",
@@ -7190,7 +7411,7 @@
         "DroppyCode/UI/Chrome/Chrome.swift:1055-1079 ChromeRow - `Text(verbatim: title)` `.font(.system(.body))` `.foregroundStyle(Chrome.primaryText)`; `Text(verbatim: detail)` `.font(.system(.subheadline))` `.foregroundStyle(Chrome.secondaryText)` `.fixedSize(horizontal: false, vertical: true)`"
       ],
       "notes": "The row detail reads exactly: NAME was not found on your PATH. with PATH in capitals and a trailing full stop. The link label reads exactly: Get NAME, with no article, so it is \"Get Command Code\", not \"Get a Command Code\". On Windows the wording with PATH in capitals is kept because it is what the user reads.",
-      "b2_change": "B2 moved the provider card inside a collapsible section (SettingsView.swift:648 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608). ChromeRow typography changed at B2 (B1 Chrome.swift:1031 `.font(.system(size: 13))` -> B2 :1058 `.font(.system(.body))`; B1 :1029 `.font(.system(size: 11))` -> B2 :1062 `.font(.system(.subheadline))`)."
+      "b2_change": "B2 moved the provider card inside a collapsible section (SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608). ChromeRow typography changed at B2 (B1 Chrome.swift:1025 `.font(.system(size: 13))` -> B2 :1058 `.font(.system(.body))`; B1 :1029 `.font(.system(size: 11))` -> B2 :1062 `.font(.system(.subheadline))`)."
     },
     {
       "id": "UI-PROVREG-043",
@@ -7216,7 +7437,7 @@
         "DroppyCode/UI/Chrome/Chrome.swift:1055-1079 ChromeRow - `Text(verbatim: title)` `.font(.system(.body))` `.foregroundStyle(Chrome.primaryText)`; `Text(verbatim: detail)` `.font(.system(.subheadline))` `.foregroundStyle(Chrome.secondaryText)` `.fixedSize(horizontal: false, vertical: true)`"
       ],
       "notes": "The row title is \"Sign in\" but the button inside it is labelled \"Login\"; the two words are deliberately different and must not be harmonised. The detail reads exactly: Click here to login again. with a trailing full stop, unlike the plan-limits variant of the same sentence which has none. The row is shown for an auth state of unknown as well as signedOut, so a provider whose probe could not reach it still offers the button.",
-      "b2_change": "B2 moved the provider card inside a collapsible section (SettingsView.swift:648 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608). ChromeRow typography changed at B2 (B1 Chrome.swift:1031 `.font(.system(size: 13))` -> B2 :1058 `.font(.system(.body))`; B1 :1029 `.font(.system(size: 11))` -> B2 :1062 `.font(.system(.subheadline))`)."
+      "b2_change": "B2 moved the provider card inside a collapsible section (SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608). ChromeRow typography changed at B2 (B1 Chrome.swift:1025 `.font(.system(size: 13))` -> B2 :1058 `.font(.system(.body))`; B1 :1029 `.font(.system(size: 11))` -> B2 :1062 `.font(.system(.subheadline))`)."
     },
     {
       "id": "UI-PROVREG-044",
@@ -7239,7 +7460,7 @@
         "DroppyCode/UI/Common/Components.swift:117-132"
       ],
       "notes": "There is no in-app sign-in. The app hands the command to a terminal and then learns the result only from the next status check, which the user must start with the refresh button. A write failure produces no terminal and no message at all.",
-      "b2_change": "B2 moved the provider card inside a collapsible section (SettingsView.swift:648 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608)."
+      "b2_change": "B2 moved the provider card inside a collapsible section (SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608)."
     },
     {
       "id": "UI-PROVREG-045",
@@ -7259,7 +7480,7 @@
         "click, or keyboard activation through Button semantics: toggles the section inside withAnimation(Chrome.panelSlide); the chevron rotation animates in the same transaction"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Settings/SettingsView.swift:647-670 - `Button { withAnimation(Chrome.panelSlide) { isExpanded.toggle() } } label: { HStack(spacing: 8) { ProviderIcon(provider: provider, size: 16).foregroundStyle(Chrome.primaryText); Text(verbatim: provider.displayName).font(.system(size: 13, weight: .semibold)).foregroundStyle(.secondary); Spacer(minLength: 0); Image(systemName: \"chevron.right\").font(.system(size: 11, weight: .semibold)).foregroundStyle(Chrome.secondaryText).rotationEffect(.degrees(isExpanded ? 90 : 0)) }.contentShape(.rect) }` `.buttonStyle(ChromeQuietButtonStyle())` `.frame(height: 22)` `.help(isExpanded ? \"Hide the provider settings\" : \"Show the provider settings\")` `.accessibilityLabel(Text(provider.displayName))` `.accessibilityValue(Text(isExpanded ? \"Expanded\" : \"Collapsed\"))` `.accessibilityHint(Text(\"Shows or hides the provider settings\"))` `.accessibilityAddTraits(.isHeader)`",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:647 `CollapsibleProviderHeader(provider: provider, isExpanded: $isExpanded, subject: \"provider settings\")`, the header view in DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:415-448 - `Button { withAnimation(Chrome.panelSlide) { isExpanded.toggle() } } label: { HStack(spacing: 8) { ProviderIcon(provider: provider, size: 16).foregroundStyle(Chrome.primaryText); Text(verbatim: provider.displayName).font(.system(size: 13, weight: .semibold)).foregroundStyle(.secondary); Spacer(minLength: 0); Image(systemName: \"chevron.right\").font(.system(size: 11, weight: .semibold)).foregroundStyle(Chrome.secondaryText).rotationEffect(.degrees(isExpanded ? 90 : 0)) }.contentShape(.rect) }` `.buttonStyle(ChromeQuietButtonStyle())` `.frame(height: 22)` `.help(isExpanded ? \"Hide the \\(subject)\" : \"Show the \\(subject)\")` `.accessibilityLabel(Text(provider.displayName))` `.accessibilityValue(Text(isExpanded ? \"Expanded\" : \"Collapsed\"))` `.accessibilityHint(Text(\"Shows or hides the \\(subject)\"))` `.accessibilityAddTraits(.isHeader)` (ModelsSettingsPage.swift:423-446); with subject \"provider settings\" these read exactly \"Hide the provider settings\", \"Show the provider settings\" and \"Shows or hides the provider settings\"",
         "DroppyCode/UI/Chrome/Chrome.swift:275-280 ChromeQuietButtonStyle - `configuration.label` only, with the comment \"No pressed feedback, while retaining Button semantics for keyboard and accessibility.\"",
         "DroppyCode/UI/Chrome/Chrome.swift:60 `static let sectionHeaderSpacing: CGFloat = 10`",
         "DroppyCode/UI/Common/Components.swift:4-14 ProviderIcon",

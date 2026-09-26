@@ -14,7 +14,7 @@
       ],
       "preconditions": "A thread is starting a session, or the registry is loading a model catalog.",
       "action": "The runtime picks a ProviderSession implementation for the thread's ProviderKind.",
-      "expected_result": "ACPSession is constructed for exactly .cursor, .opencode, .opencodeGo, .grok and .devin, and for no other ProviderKind. Display names are \"Cursor\", \"OpenCode Zen\", \"OpenCode Go\", \"Grok\", \"Devin\" (Provider.swift:25-28,32); executable names are \"cursor-agent\", \"opencode\", \"opencode\", \"grok\", \"devin\" (Provider.swift:44-47,51), so .opencode and .opencodeGo launch the same opencode CLI. The model catalog of .cursor, .grok and .devin comes from ACPSession.probeModels run with that provider; .opencode and .opencodeGo share one probe run with provider .opencode (ProviderRegistry.swift:571,533; see PR-PROVACP-136).",
+      "expected_result": "ACPSession is constructed for exactly .cursor, .opencode, .opencodeGo, .grok and .devin, and for no other ProviderKind. Display names are \"Cursor\", \"OpenCode Zen\", \"OpenCode Go\", \"Grok\", \"Devin\" (Provider.swift:25-28,32); executable names are \"cursor-agent\", \"opencode\", \"opencode\", \"grok\", \"devin\" (Provider.swift:44-47,51), so .opencode and .opencodeGo launch the same opencode CLI. The model catalog of .cursor, .grok and .devin comes from ACPSession.probeModels run with that provider; .opencode and .opencodeGo share one probe run with provider .opencode (ProviderRegistry.swift:571,612; see PR-PROVACP-136).",
       "side_effects": [],
       "persistence": "None.",
       "failure_cases": [
@@ -27,7 +27,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Four ACP kinds -> five. B1 Provider.swift:98 `var usesACP: Bool { self == .cursor || self == .opencode || self == .grok || self == .devin }` and B1 ThreadRuntime.swift:1520 `case .cursor, .opencode, .grok, .devin: ACPSession(configuration: configuration)` -> B2 Provider.swift:104 and ThreadRuntime.swift:1556 add .opencodeGo (new case at B2 Provider.swift:8). B1 Provider.swift:25 `case .opencode: \"OpenCode\"` -> B2 Provider.swift:26-27 `case .opencode: \"OpenCode Zen\"` and the new `case .opencodeGo: \"OpenCode Go\"`; B2 Provider.swift:104 adds .opencodeGo to usesACP, so ACPSession now runs for it too. The catalog probe at B1 ProviderRegistry.swift:560 `case .cursor, .opencode, .grok, .devin: try? await ACPSession.probeModels(...)` is split at B2 ProviderRegistry.swift:570-571, OpenCode going through the shared openCodeCatalog (:527-539)."
+      "b2_change": "Four ACP kinds -> five. B1 Provider.swift:98 `var usesACP: Bool { self == .cursor || self == .opencode || self == .grok || self == .devin }` and B1 ThreadRuntime.swift:1520 `case .cursor, .opencode, .grok, .devin: ACPSession(configuration: configuration)` -> B2 Provider.swift:104 and ThreadRuntime.swift:1556 add .opencodeGo (new case at B2 Provider.swift:8). B1 Provider.swift:25 `case .opencode: \"OpenCode\"` -> B2 Provider.swift:26-27 `case .opencode: \"OpenCode Zen\"` and the new `case .opencodeGo: \"OpenCode Go\"`; B2 Provider.swift:104 adds .opencodeGo to usesACP, so ACPSession now runs for it too. The catalog probe at B1 ProviderRegistry.swift:481 `case .cursor, .opencode, .grok, .devin: try? await ACPSession.probeModels(...)` is split at B2 ProviderRegistry.swift:491-492, OpenCode going through the shared openCodeCatalog (:527-539)."
     },
     {
       "id": "PR-PROVACP-002",
@@ -1110,7 +1110,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 ProviderRegistry.swift:177 `catalogs[provider] = list.map { option in` -> B2 :172 `catalogs[provider] = Self.openCodeModels(list, for: provider).map { option in`. Before ordering, cached .opencode lists now drop ids prefixed \"opencode-go/\", cached .opencodeGo lists keep only those, and every provider's row names lose a leading \"<displayName>/\" (B2 ProviderRegistry.swift:622-638, new). orderedEfforts itself is unchanged."
+      "b2_change": "B1 ProviderRegistry.swift:169 `catalogs[provider] = list.map { option in` -> B2 :172 `catalogs[provider] = Self.openCodeModels(list, for: provider).map { option in`. Before ordering, cached .opencode lists now drop ids prefixed \"opencode-go/\", cached .opencodeGo lists keep only those, and every provider's row names lose a leading \"<displayName>/\" (B2 ProviderRegistry.swift:543-559, new). orderedEfforts itself is unchanged."
     },
     {
       "id": "PR-PROVACP-049",
@@ -1622,11 +1622,11 @@
         "DroppyCode/Core/Models/Provider.swift:25-28,32 - displayName: `case .cursor: \"Cursor\"`, `case .opencode: \"OpenCode Zen\"`, `case .opencodeGo: \"OpenCode Go\"`, `case .grok: \"Grok\"`, `case .devin: \"Devin\"`",
         "DroppyCode/Core/Models/Provider.swift:149-154 - `var supportsCompact: Bool { switch self { case .codex, .claude, .copilot, .deepseek, .meta, .zai, .pi: true; default: false } }`",
         "DroppyCode/App/Runtime/ThreadRuntime.swift:1163 - `case \"/compact\" where thread?.provider.supportsCompact == true:`",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:1738-1747 - `func compact() {` ... `try await session.compact()`; the only call of this function is `compact()` at :1166, inside `case \"/compact\" where thread?.provider.supportsCompact == true:` (:1164); no other code calls a session's compact()"
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1738-1747 - `func compact() {` ... `try await session.compact()`; the only call of this function is `compact()` at :1165, inside `case \"/compact\" where thread?.provider.supportsCompact == true:` (:1163); no other code calls a session's compact()"
       ],
       "preconditions": "Any state.",
       "action": "The user or runtime asks the session to compact its context.",
-      "expected_result": "It always throws, never compacts, and the message is exactly \"Cursor compacts its own context.\", \"OpenCode Zen compacts its own context.\", \"OpenCode Go compacts its own context.\", \"Grok compacts its own context.\" or \"Devin compacts its own context.\" - the display name, a space, then \"compacts its own context.\" with a trailing full stop. No request reaches the agent. Reachability at B2: the only caller of a session's compact() is ThreadRuntime.compact() (ThreadRuntime.swift:1738-1747), reached only from the local /compact command (:1164-1166), which requires supportsCompact, false for every ACP kind. So nothing in the pinned app calls ACPSession.compact() and this message is never shown; the same held at B1, where the /compact case listed only .codex, .copilot, .deepseek, .meta, .zai and .pi (B1 ThreadRuntime.swift:1145).",
+      "expected_result": "It always throws, never compacts, and the message is exactly \"Cursor compacts its own context.\", \"OpenCode Zen compacts its own context.\", \"OpenCode Go compacts its own context.\", \"Grok compacts its own context.\" or \"Devin compacts its own context.\" - the display name, a space, then \"compacts its own context.\" with a trailing full stop. No request reaches the agent. Reachability at B2: the only caller of a session's compact() is ThreadRuntime.compact() (ThreadRuntime.swift:1738-1747), reached only from the local /compact command (:1163-1165), which requires supportsCompact, false for every ACP kind. So nothing in the pinned app calls ACPSession.compact() and this message is never shown; the same held at B1, where the /compact case listed only .codex, .copilot, .deepseek, .meta, .zai and .pi (B1 ThreadRuntime.swift:1146).",
       "side_effects": [],
       "persistence": "None.",
       "failure_cases": [
@@ -1952,7 +1952,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Re-cited only, behaviour unchanged: B1 `let text = title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()` -> B2 `let text = title.trimmed.lowercased()`; `trimmed` is `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }` (DroppyCode/Core/Support/Text.swift:224). Line :645 at both baselines."
+      "b2_change": "Re-cited only, behaviour unchanged: B1 `let text = title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()` -> B2 `let text = title.trimmed.lowercased()`; `trimmed` is `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }` (DroppyCode/Core/Support/Text.swift:132). Line :645 at both baselines."
     },
     {
       "id": "PR-PROVACP-086",
@@ -2000,7 +2000,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Re-cited only, behaviour unchanged: B1 `!text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty` -> B2 `!text.trimmed.isEmpty`; `trimmed` is `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }` (DroppyCode/Core/Support/Text.swift:224). Line :691 at both baselines."
+      "b2_change": "Re-cited only, behaviour unchanged: B1 `!text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty` -> B2 `!text.trimmed.isEmpty`; `trimmed` is `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }` (DroppyCode/Core/Support/Text.swift:132). Line :691 at both baselines."
     },
     {
       "id": "PR-PROVACP-088",
@@ -2665,7 +2665,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Re-cited only, behaviour unchanged: B1 `text = text.trimmingCharacters(in: .whitespacesAndNewlines)` -> B2 `text = text.trimmed`; `trimmed` is `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }` (DroppyCode/Core/Support/Text.swift:224). Line :819 at both baselines."
+      "b2_change": "Re-cited only, behaviour unchanged: B1 `text = text.trimmingCharacters(in: .whitespacesAndNewlines)` -> B2 `text = text.trimmed`; `trimmed` is `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }` (DroppyCode/Core/Support/Text.swift:132). Line :819 at both baselines."
     },
     {
       "id": "PR-PROVACP-118",
@@ -2710,7 +2710,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Re-cited only, behaviour unchanged: B1 `value[key]?.string?.trimmingCharacters(in: .whitespacesAndNewlines)` -> B2 `value[key]?.string?.trimmed`; `trimmed` is `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }` (DroppyCode/Core/Support/Text.swift:224). Line :777 at both baselines."
+      "b2_change": "Re-cited only, behaviour unchanged: B1 `value[key]?.string?.trimmingCharacters(in: .whitespacesAndNewlines)` -> B2 `value[key]?.string?.trimmed`; `trimmed` is `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }` (DroppyCode/Core/Support/Text.swift:132). Line :777 at both baselines."
     },
     {
       "id": "PR-PROVACP-120",
@@ -3045,7 +3045,7 @@
         "DroppyCode/Services/Providers/ProviderRegistry.swift:570 - `case .cursor, .grok, .devin: try? await ACPSession.probeModels(provider: provider, executable: executable, environment: environment)`",
         "DroppyCode/Services/Providers/ProviderRegistry.swift:571 - `case .opencode, .opencodeGo: await openCodeCatalog(force: force, executable: executable, environment: environment)`",
         "DroppyCode/Services/Providers/ProviderRegistry.swift:606-618 - `if force { openCodeCatalogTask = nil }`; an existing `openCodeCatalogTask` is awaited, otherwise `task = Task { try? await ACPSession.probeModels(provider: .opencode, executable: executable, environment: environment) }` is stored in `openCodeCatalogTask`; `if list == nil { openCodeCatalogTask = nil }`",
-        "DroppyCode/Services/Providers/ProviderRegistry.swift:574-576 - `let list = raw.map { Self.openCodeModels($0, for: provider) }` / `if let list, !list.isEmpty {` / `updateCatalog(list, for: provider)`; the sibling fill at :504-515 is nested inside that block",
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:574-576 - `let list = raw.map { Self.openCodeModels($0, for: provider) }` / `if let list, !list.isEmpty {` / `updateCatalog(list, for: provider)`; the sibling fill at :583-594 is nested inside that block",
         "DroppyCode/Services/Providers/ProviderRegistry.swift:583-594 - after a delivered OpenCode catalog, for the sibling kind `let sibling = Self.openCodeModels(raw, for: kind); guard !sibling.isEmpty else { continue }; updateCatalog(sibling, for: kind); catalogFetchedAt[kind] = .now; attemptedCatalogs.insert(kind)`"
       ],
       "preconditions": "The registry asks for a model catalog for an ACP provider.",
@@ -3057,7 +3057,7 @@
       ],
       "persistence": "The directory persists on disk; nothing cleans it up.",
       "failure_cases": [
-        "Any throw from start() propagates out of probeModels; the registry wraps it in `try?` (ProviderRegistry.swift:570 for Cursor, Grok and Devin; :533 inside the shared OpenCode task), so a failed probe leaves the catalog untouched and is retried on the next ask; for OpenCode the failed task is also cleared (:537)."
+        "Any throw from start() propagates out of probeModels; the registry wraps it in `try?` (ProviderRegistry.swift:570 for Cursor, Grok and Devin; :612 inside the shared OpenCode task), so a failed probe leaves the catalog untouched and is retried on the next ask; for OpenCode the failed task is also cleared (:616)."
       ],
       "cancellation": "not cancellable",
       "windows_path": "Boundary: the directory is Path.Combine(Path.GetTempPath(), \"marrow-catalog\"), that is %TEMP%\\marrow-catalog, created with Directory.CreateDirectory and a creation failure swallowed. Deviation OD-0008 (OD-PENDING-17): the folder is named \"marrow-catalog\", not upstream's \"droppy-code-catalog\"; it is only the probe session's working directory and nothing reads it across runs.",
@@ -3071,7 +3071,7 @@
         "upstream": "DroppyCode/Services/Providers/ACPSession.swift:229 `FileManager.default.temporaryDirectory.appendingPathComponent(\"droppy-code-catalog\", isDirectory: true)`",
         "port": "Marrow names the probe folder \"marrow-catalog\" under the system temporary directory; everything else about the probe is unchanged. OD-0012 F1 names this folder explicitly (\"the temp folder marrow-catalog\") under the rule that every remaining \"droppy-code\" the app shows or sends out becomes \"marrow\"."
       },
-      "b2_change": "B1 ProviderRegistry.swift:560 `case .cursor, .opencode, .grok, .devin: try? await ACPSession.probeModels(provider: provider, executable: executable, environment: environment)` probed each ACP kind on every load. At B2 Cursor, Grok and Devin keep that (:491), while .opencode and the new .opencodeGo go through openCodeCatalog (:492, :527-539): one probe with provider .opencode per launch, shared by both kinds, dropped on force or on a nil result, and each delivered result fills both kinds (:504-515). probeModels itself (ACPSession.swift:228-238) is unchanged."
+      "b2_change": "B1 ProviderRegistry.swift:481 `case .cursor, .opencode, .grok, .devin: try? await ACPSession.probeModels(provider: provider, executable: executable, environment: environment)` probed each ACP kind on every load. At B2 Cursor, Grok and Devin keep that (:491), while .opencode and the new .opencodeGo go through openCodeCatalog (:492, :527-539): one probe with provider .opencode per launch, shared by both kinds, dropped on force or on a nil result, and each delivered result fills both kinds (:504-515). probeModels itself (ACPSession.swift:228-238) is unchanged."
     },
     {
       "id": "PR-PROVACP-137",
@@ -3130,12 +3130,12 @@
         "DroppyCode/Services/Providers/ProviderRegistry.swift:803 - `case _ where provider.usesACP: Self.mergedACPCatalog(list, over: catalogs[provider] ?? [])`",
         "DroppyCode/Services/Providers/ProviderRegistry.swift:116-127 - `mergedACPCatalog` returns the live list unchanged when nothing is cached; otherwise, for each live option whose efforts are empty and whose id matches a cached one, it copies efforts, and copies defaultEffort and fastTier only when the live value is nil",
         "DroppyCode/Core/Models/Provider.swift:104 - `var usesACP: Bool { self == .cursor || self == .opencode || self == .opencodeGo || self == .grok || self == .devin }`",
-        "DroppyCode/Services/Providers/ProviderRegistry.swift:574,508 - `let list = raw.map { Self.openCodeModels($0, for: provider) }` and `let sibling = Self.openCodeModels(raw, for: kind)` before each updateCatalog",
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:574,587 - `let list = raw.map { Self.openCodeModels($0, for: provider) }` and `let sibling = Self.openCodeModels(raw, for: kind)` before each updateCatalog",
         "DroppyCode/Services/Providers/ProviderRegistry.swift:622-638 - `openCodeModels`: `case .opencode: list.filter { !$0.id.hasPrefix(goPrefix) }`, `case .opencodeGo: list.filter { $0.id.hasPrefix(goPrefix) }`, `default: list`; then `let namePrefix = provider.displayName + \"/\"` ... `option.name = String(option.name.dropFirst(namePrefix.count))`"
       ],
       "preconditions": "A probe returned a catalog for one of the five ACP providers (.cursor, .opencode, .opencodeGo, .grok, .devin) and a cached catalog exists.",
       "action": "The registry updates the catalog.",
-      "expected_result": "Matching is by EXACT id, not base id, unlike everywhere inside ACPSession. Only options whose live efforts are empty inherit; a live option with its own scale is left alone. defaultEffort and fastTier are filled only where the live option has none. This is what lets a later probe that could not walk every model keep the scales from an earlier run. Every provider's live list passes through openCodeModels before updateCatalog (ProviderRegistry.swift:574, and :508 for the OpenCode sibling): for .opencode and .opencodeGo it keeps only that kind's half (ids without or with the \"opencode-go/\" prefix), so each merges only its own half over its own cache; for every provider, Cursor, Grok and Devin included, a row whose name starts with the provider's display name followed by \"/\" loses that prefix before the merge.",
+      "expected_result": "Matching is by EXACT id, not base id, unlike everywhere inside ACPSession. Only options whose live efforts are empty inherit; a live option with its own scale is left alone. defaultEffort and fastTier are filled only where the live option has none. This is what lets a later probe that could not walk every model keep the scales from an earlier run. Every provider's live list passes through openCodeModels before updateCatalog (ProviderRegistry.swift:574, and :587 for the OpenCode sibling): for .opencode and .opencodeGo it keeps only that kind's half (ids without or with the \"opencode-go/\" prefix), so each merges only its own half over its own cache; for every provider, Cursor, Grok and Devin included, a row whose name starts with the provider's display name followed by \"/\" loses that prefix before the merge.",
       "side_effects": [],
       "persistence": "The merged list is written to the registry's catalog cache.",
       "failure_cases": [],
@@ -3146,7 +3146,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Four providers -> five on this path: B1 Provider.swift:98 -> B2 Provider.swift:104 adds .opencodeGo to usesACP. The merge (B1 ProviderRegistry.swift:743 -> B2 :724, and mergedACPCatalog at :108-119) is unchanged; B2 :495 passes every provider's live list through openCodeModels (and :508 the OpenCode sibling's) before updateCatalog: the OpenCode kinds are split per kind, and every provider's row names lose a leading \"<displayName>/\" (:543-559, new)."
+      "b2_change": "Four providers -> five on this path: B1 Provider.swift:98 -> B2 Provider.swift:104 adds .opencodeGo to usesACP. The merge (B1 ProviderRegistry.swift:664 -> B2 :724, and mergedACPCatalog at :108-119) is unchanged; B2 :495 passes every provider's live list through openCodeModels (and :508 the OpenCode sibling's) before updateCatalog: the OpenCode kinds are split per kind, and every provider's row names lose a leading \"<displayName>/\" (:543-559, new)."
     },
     {
       "id": "PR-PROVACP-140",
@@ -3342,7 +3342,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Re-cited only, behaviour unchanged: B1 `let tail = process.errorTail.trimmingCharacters(in: .whitespacesAndNewlines)` -> B2 `let tail = process.errorTail.trimmed`; `trimmed` is `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }` (DroppyCode/Core/Support/Text.swift:224). Line :144 at both baselines."
+      "b2_change": "Re-cited only, behaviour unchanged: B1 `let tail = process.errorTail.trimmingCharacters(in: .whitespacesAndNewlines)` -> B2 `let tail = process.errorTail.trimmed`; `trimmed` is `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }` (DroppyCode/Core/Support/Text.swift:132). Line :144 at both baselines."
     },
     {
       "id": "PR-PROVACP-149",
@@ -3553,7 +3553,7 @@
       "id": "PR-PROVACP-158",
       "title": "Stdout closing finishes the message stream, after flushing any buffered remainder",
       "source_evidence": [
-        "DroppyCode/Core/Support/StdioProcess.swift:56-68,153-156 - the stdout readability handler sets `handle.readabilityHandler = nil` and calls `self.finishOutput()` when `data.isEmpty`; `finishOutput` is `if let remainder = state.withLock({ $0.framer.finish() }) { deliver(remainder) }; continuation.finish()`"
+        "DroppyCode/Core/Support/StdioProcess.swift:56-68,154-157 - the stdout readability handler sets `handle.readabilityHandler = nil` and calls `self.finishOutput()` when `data.isEmpty`; `finishOutput` is `if let remainder = state.withLock({ $0.framer.finish() }) { deliver(remainder) }; continuation.finish()`"
       ],
       "preconditions": "The child closed stdout or exited.",
       "action": "finishOutput runs.",
@@ -3570,13 +3570,13 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Re-cited only, behaviour unchanged: finishOutput moved from B1 StdioProcess.swift:151-154 (`lock.withLock({ framer.finish() })`) to B2 :153-156 (`state.withLock({ $0.framer.finish() })`)."
+      "b2_change": "Re-cited only, behaviour unchanged: finishOutput moved from B1 StdioProcess.swift:150-153 (`lock.withLock({ framer.finish() })`) to B2 :153-156 (`state.withLock({ $0.framer.finish() })`)."
     },
     {
       "id": "PR-PROVACP-159",
       "title": "Process exit waits one second before forcing the output stream closed, because a grandchild can hold stdout open",
       "source_evidence": [
-        "DroppyCode/Core/Support/StdioProcess.swift:168-183 - `didExit` sets `state.exitStatus = status` and takes and clears `state.exitWaiters` inside `state.withLock`, resumes every waiter with the status, then `DispatchQueue.global().asyncAfter(deadline: .now() + 1) { [weak self] in handle.readabilityHandler = nil; self?.finishOutput() }`; comment at :176: a grandchild can inherit stdout and keep it open after the provider exits"
+        "DroppyCode/Core/Support/StdioProcess.swift:168-183 - `didExit` sets `state.exitStatus = status` and takes and clears `state.exitWaiters` inside `state.withLock`, resumes every waiter with the status, then `DispatchQueue.global().asyncAfter(deadline: .now() + 1) { [weak self] in handle.readabilityHandler = nil; self?.finishOutput() }`; comment at :177: a grandchild can inherit stdout and keep it open after the provider exits"
       ],
       "preconditions": "The child process exited.",
       "action": "The termination handler runs.",
@@ -3593,7 +3593,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Re-cited only, behaviour unchanged: B1 StdioProcess.swift:165-180 (NSLock, `lock.withLock { exitStatus = status ... }`) -> B2 :167-182 (`state.withLock { state in state.exitStatus = status ... }`); the 1 second forced close is the same."
+      "b2_change": "Re-cited only, behaviour unchanged: B1 StdioProcess.swift:164-179 (NSLock, `lock.withLock { exitStatus = status ... }`) -> B2 :167-182 (`state.withLock { state in state.exitStatus = status ... }`); the 1 second forced close is the same."
     },
     {
       "id": "PR-PROVACP-160",
@@ -3647,7 +3647,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Re-cited only, behaviour unchanged: waitForExit moved from B1 StdioProcess.swift:126-137 (manual `lock.lock()` / `lock.unlock()`) to B2 :130-139 (`state.withLock`); it still resumes at once with a recorded status or parks the continuation."
+      "b2_change": "Re-cited only, behaviour unchanged: waitForExit moved from B1 StdioProcess.swift:125-136 (manual `lock.lock()` / `lock.unlock()`) to B2 :130-139 (`state.withLock`); it still resumes at once with a recorded status or parks the continuation."
     },
     {
       "id": "PR-PROVACP-162",
@@ -3690,6 +3690,63 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVACP-164",
+      "title": "PendingReplies registers a request id before sending, honours cancellation, and can time out to a value or a cancellation error",
+      "source_evidence": [
+        "DroppyCode/Core/Support/PendingReplies.swift:3-6 - `/// Replies waiting on a request id. The id is registered before `send` runs, so a fast` / `/// reply can't arrive before anyone is waiting for it.` / `@MainActor` / `final class PendingReplies<Value: Sendable> {`",
+        "DroppyCode/Core/Support/PendingReplies.swift:9-36 register(_:timeout:timeoutValue:send:) - `try Task.checkCancellation()` (:17); `continuations[id] = continuation` then `send()` (:19-20); with a timeout, `Task { try? await Task.sleep(for: timeout); if let timeoutValue { self.resolve(id, timeoutValue) } else { self.fail(id, CancellationError()) } }` (:21-29); `onCancel: { Task { @MainActor [weak self] in self?.continuations.removeValue(forKey: id)?.resume(throwing: CancellationError()) } }` (:31-35)",
+        "DroppyCode/Services/Providers/ClaudeSession.swift:306 and DroppyCode/Services/Providers/PiSession.swift:260-270 - the two users"
+      ],
+      "preconditions": "A caller registers a request id, optionally with a timeout and a timeout value, and a send closure.",
+      "action": "register runs.",
+      "expected_result": "If the calling task is already cancelled, register throws CancellationError and neither stores the id nor calls send. Otherwise the waiting continuation is stored under the id first and send runs after it, so a reply that comes back at once always finds its waiter. With a timeout, a separate task that does not inherit the caller's cancellation sleeps for that duration and then resolves the id with timeoutValue when one was given, or fails it with CancellationError when none was; if the id was already answered this does nothing. When the calling task is cancelled while waiting, a main-actor task removes the entry and resumes the waiter by throwing CancellationError; a reply that won the race has already resumed it, and then the removal finds nothing.",
+      "side_effects": [
+        "Calls send exactly once when not already cancelled",
+        "Starts one timer task per registration that has a timeout"
+      ],
+      "persistence": "none",
+      "failure_cases": [
+        "Already cancelled: CancellationError, send not called",
+        "Timeout without timeoutValue: CancellationError",
+        "Cancelled while waiting: CancellationError"
+      ],
+      "cancellation": "Cancellation is honoured before the send and while waiting; the timeout task is not cancelled with the caller and runs to the end of its sleep.",
+      "windows_path": "A main-thread-confined map from string id to a waiter (for example a TaskCompletionSource) with the same order: cancellation check, store, send, optional timer, and removal plus a cancellation fault on cancel. The Swift CancellationError maps to the port's cancellation error (B3_PLAN.md section 3 N1, Core.Support.PendingReplies).",
+      "verification_method": "unit: pre-cancelled (no send, CancellationError); a reply sent synchronously from inside send is received; a timeout with and without timeoutValue; cancellation while waiting; a reply racing a cancellation",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null,
+      "status": "SPECIFIED",
+      "b3_note": "New at 1.7.0 (impact R3-13 #1): Core/Support/PendingReplies.swift is a new file, extracted from the continuation maps ClaudeSession and PiSession each kept at B2."
+    },
+    {
+      "id": "PR-PROVACP-165",
+      "title": "PendingReplies resolve and fail report whether an id was waiting; resolveAll and failAll empty the map before resuming",
+      "source_evidence": [
+        "DroppyCode/Core/Support/PendingReplies.swift:38-50 - `@discardableResult func resolve(_ id: String, _ value: Value) -> Bool {` / `guard let continuation = continuations.removeValue(forKey: id) else { return false }` / `continuation.resume(returning: value)` / `return true`, and `fail(_:_:)` the same with `resume(throwing: error)`",
+        "DroppyCode/Core/Support/PendingReplies.swift:52-62 - `func resolveAll(_ value: Value) {` / `let waiting = Array(continuations.values)` / `continuations.removeAll()` / `for continuation in waiting { continuation.resume(returning: value) }`, and `failAll(_:)` the same with `resume(throwing: error)`",
+        "DroppyCode/Services/Providers/ClaudeSession.swift:338, :340, :684 and DroppyCode/Services/Providers/PiSession.swift:288-294, :594 - the callers"
+      ],
+      "preconditions": "Zero or more requests are waiting.",
+      "action": "A reply, an error, or a close arrives.",
+      "expected_result": "resolve(id, value) and fail(id, error) remove the waiter for that id and resume it with the value or the error, returning true; when no waiter has that id they do nothing and return false. resolveAll(value) and failAll(error) first take a copy of every waiter, then empty the map, then resume each copied waiter with the value or the error, so a waiter resumed this way can register again without being swept up by the same call. The order in which the waiters are resumed is the dictionary's, which is unspecified.",
+      "side_effects": [
+        "Resumes waiting callers"
+      ],
+      "persistence": "none",
+      "failure_cases": [
+        "An unknown id is ignored (false)"
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "The same semantics over the port's waiter map; the resume order across waiters must not be relied on.",
+      "verification_method": "unit: resolve and fail on a known and an unknown id (true and false); resolveAll and failAll with several waiters, and with a waiter that registers again when resumed",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null,
+      "status": "SPECIFIED",
+      "b3_note": "New at 1.7.0 (impact R3-13 #2): part of the new Core/Support/PendingReplies.swift."
     }
   ],
   "ui": [
@@ -3712,7 +3769,7 @@
         "DroppyCode/Services/Providers/ACPSession.swift:801-826 - `subject(from:kind:)`; :819 `text = text.trimmed`, then the four quote pairs at :821"
       ],
       "notes": "The subject-stripping rules are the visible behavior: a row reads \"https://example.com\" rather than \"Fetched https://example.com\", and \"src/main.ts\" rather than \"Edit file\". Porting the strings without the sixteen phrases, forty-eight verbs and four quote pairs produces visibly different rows.",
-      "b2_change": "Re-cited only, behaviour unchanged: B1 `text = text.trimmingCharacters(in: .whitespacesAndNewlines)` -> B2 `text = text.trimmed`; `trimmed` is `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }` (DroppyCode/Core/Support/Text.swift:224). Line :819 at both baselines; the row text is the same.",
+      "b2_change": "Re-cited only, behaviour unchanged: B1 `text = text.trimmingCharacters(in: .whitespacesAndNewlines)` -> B2 `text = text.trimmed`; `trimmed` is `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }` (DroppyCode/Core/Support/Text.swift:132). Line :819 at both baselines; the row text is the same.",
       "status": "IMPLEMENTED"
     },
     {
@@ -4190,7 +4247,7 @@
         "DroppyCode/Services/Providers/ACPSession.swift:503-523"
       ],
       "notes": "An OpenCode todowrite call titled \"3 todos\" is routed here and must NOT also appear as a tool row. The step label is the first present string among content, text, step, title.",
-      "b2_change": "Re-cited only, behaviour unchanged: B1 `!text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty` -> B2 `!text.trimmed.isEmpty`; `trimmed` is `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }` (DroppyCode/Core/Support/Text.swift:224). Line :691 at both baselines; the checklist is the same.",
+      "b2_change": "Re-cited only, behaviour unchanged: B1 `!text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty` -> B2 `!text.trimmed.isEmpty`; `trimmed` is `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }` (DroppyCode/Core/Support/Text.swift:132). Line :691 at both baselines; the checklist is the same.",
       "status": "IMPLEMENTED"
     },
     {
@@ -4305,7 +4362,7 @@
       "typography": "Not defined in PROVACP.",
       "colors": "Not defined in PROVACP.",
       "states": [
-        "Unreachable at B2: the only caller of a session's compact() is ThreadRuntime.compact() (ThreadRuntime.swift:1738-1747), reached only from the local /compact command (:1164-1166), which requires supportsCompact, false for every ACP kind, so the pinned app never shows this string. If ACPSession.compact() were invoked it would always throw this message: it has no success path.",
+        "Unreachable at B2: the only caller of a session's compact() is ThreadRuntime.compact() (ThreadRuntime.swift:1738-1747), reached only from the local /compact command (:1163-1165), which requires supportsCompact, false for every ACP kind, so the pinned app never shows this string. If ACPSession.compact() were invoked it would always throw this message: it has no success path.",
         "Provider-substituted variants: \"OpenCode Zen compacts its own context.\", \"OpenCode Go compacts its own context.\", \"Grok compacts its own context.\", \"Devin compacts its own context.\""
       ],
       "interactions": [],
@@ -4314,9 +4371,9 @@
         "DroppyCode/Core/Models/Provider.swift:25-28,32 - displayName: `case .cursor: \"Cursor\"`, `case .opencode: \"OpenCode Zen\"`, `case .opencodeGo: \"OpenCode Go\"`, `case .grok: \"Grok\"`, `case .devin: \"Devin\"`",
         "DroppyCode/Core/Models/Provider.swift:149-154 - `supportsCompact` is true only for `.codex, .claude, .copilot, .deepseek, .meta, .zai, .pi`",
         "DroppyCode/App/Runtime/ThreadRuntime.swift:1163 - `case \"/compact\" where thread?.provider.supportsCompact == true:`",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:1738-1747 - `func compact() {` ... `try await session.compact()`; the only call of this function is `compact()` at :1166, inside `case \"/compact\" where thread?.provider.supportsCompact == true:` (:1164); no other code calls a session's compact()"
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1738-1747 - `func compact() {` ... `try await session.compact()`; the only call of this function is `compact()` at :1165, inside `case \"/compact\" where thread?.provider.supportsCompact == true:` (:1163); no other code calls a session's compact()"
       ],
-      "notes": "The display name is substituted verbatim: \"OpenCode Zen\" and \"OpenCode Go\", each with the internal capital C and a space before the plan name. /compact is run locally only when supportsCompact is true, which is false for every ACP kind (Provider.swift:146-148: for every other provider the command goes to the tool). Because nothing else calls a session's compact(), the message is unreachable in the pinned app (and was at B1, whose /compact case at ThreadRuntime.swift:1145 listed no ACP kind).",
+      "notes": "The display name is substituted verbatim: \"OpenCode Zen\" and \"OpenCode Go\", each with the internal capital C and a space before the plan name. /compact is run locally only when supportsCompact is true, which is false for every ACP kind (Provider.swift:146-148: for every other provider the command goes to the tool). Because nothing else calls a session's compact(), the message is unreachable in the pinned app (and was at B1, whose /compact case at ThreadRuntime.swift:1146 listed no ACP kind).",
       "b2_change": "\"OpenCode compacts its own context.\" -> \"OpenCode Zen compacts its own context.\", plus the new \"OpenCode Go compacts its own context.\". B1 Provider.swift:25 `case .opencode: \"OpenCode\"` -> B2 Provider.swift:26-27 `case .opencode: \"OpenCode Zen\"` and the new `case .opencodeGo: \"OpenCode Go\"`; B2 Provider.swift:104 adds .opencodeGo to usesACP, so ACPSession now runs for it too. ACPSession.swift:210 is unchanged.",
       "status": "IMPLEMENTED"
     },
