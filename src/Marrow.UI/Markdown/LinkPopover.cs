@@ -46,8 +46,17 @@ public sealed class LinkPopover
         {
             IsLightDismissEnabled = true, // :20-21 behavior = .transient, animates = true
         };
+        // :22 popover.delegate = self, so popoverDidClose(_:) always runs on AppKit's own dismissal of a
+        // .transient popover (an outside click), not only on our own performClose(nil). IsLightDismissEnabled
+        // above means Avalonia can close this Popup itself the same way, so this resync is required here,
+        // not merely defensive as it is at AttachmentPreviewPanel.cs :56-65 (whose popup never light-dismisses).
+        popover.Closed += (_, _) => PopoverDidClose();
         closeBox = new PopoverCloseBox(Close); // :16
     }
+
+    /// <summary>Test-only readback (InternalsVisibleTo, matching AttachmentPreviewCoordinator.cs's PopupForTests
+    /// pattern): the Popup this class drives, so a test can inspect or directly close it.</summary>
+    internal Popup PopoverForTests => popover;
 
     /// <summary>
     /// :27-41 func show(url:mergeTarget:relativeTo:of:). Opens under <paramref name="relativeTo"/> (in
@@ -90,9 +99,13 @@ public sealed class LinkPopover
     }
 
     // :48-50 func popoverDidClose(_:)
-    public void PopoverDidClose() => StopEscapeMonitor(); // :49
+    public void PopoverDidClose()
+    {
+        isShown = false; // resync the shadow flag (:154-style guard) for a close this class did not itself drive
+        StopEscapeMonitor(); // :49
+    }
 
-    // :53-59 startEscapeMonitor(). Escape (key code 53) closes and swallows the key; the rows take no focus,
+    // :53-60 startEscapeMonitor(). Escape (key code 53) closes and swallows the key; the rows take no focus,
     // so the popover never sees the key itself.
     private void StartEscapeMonitor(Control of)
     {

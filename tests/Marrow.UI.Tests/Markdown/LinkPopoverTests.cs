@@ -25,7 +25,12 @@ namespace Marrow.UI.Tests.Markdown;
 //
 // UNTESTABLE for now, and why: the :36 non-positive-measurement fallback (220x110) never fires with real rows,
 // which always measure a positive size; Copy Link's clipboard write is not asserted (no existing test in this
-// suite reads back a headless TopLevel's clipboard content either, e.g. MarkdownView.cs's CopyButton).
+// suite reads back a headless TopLevel's clipboard content either, e.g. MarkdownView.cs's CopyButton); the
+// constructor's `popover.Closed` resync (review fix: :22 popover.delegate = self must keep firing
+// popoverDidClose on a real .transient light dismiss, which the PopoverRecorder seam never drives) has no test
+// here, because opening this class's own real Popup even once throws in headless ("Unable to create IPopupImpl
+// and no overlay layer is found for the target control"), confirmed empirically and matching this file's own
+// PopoverRecorder rationale above; AttachmentPreviewPanel.cs's matching resync line (:60-65) is equally untested.
 [Collection("Headless")]
 public sealed class LinkPopoverTests(HeadlessSession headless)
 {
