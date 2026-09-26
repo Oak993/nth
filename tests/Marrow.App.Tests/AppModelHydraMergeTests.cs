@@ -985,6 +985,93 @@ public void Reported_paths_drop_empty_and_build_output_and_keep_inside_paths_rel
         Assert.Single(state.Messages);
     }
 
+    [Fact]
+    [Trait("Req", "PR-HYDRAMERGE-125")] // AppModel+HydraMerge.swift:226-237, :407: a retryable failure whose detail
+    // changes from try to try (the last-record short-circuit at :230 never matches) is recorded every time but
+    // announced only once the two most recent records are both failed and retryable -- silent on the first two,
+    // said from the third.
+    public void Retryable_failure_with_a_changing_detail_speaks_only_from_its_third_record()
+    {
+        using var h = new AppModelHarness();
+        var repository = AppModelGitRepo.WithCommit(h.NewFolder("retry-dedup-project"));
+        // Left uncommitted for every attempt below: with a.txt unchanged from HEAD the pass would return
+        // AlreadyOnMain (:308) before ever reaching PushBranch, never exercising fail() at all.
+        File.WriteAllBytes(Path.Combine(repository.Root, "a.txt"), Encoding.UTF8.GetBytes("the team's edit\n"));
+        var project = AppModelSamples.Project("Project", repository.Root);
+        var lead = AppModelSamples.Thread(project) with { HydraEnabled = true, UpdatedAt = SwiftDate.Now };
+        var turn = new TurnRecord
+        {
+            Id = Guid.NewGuid(),
+            Index = 1,
+            Status = TurnStatus.Completed,
+            CompletedAt = SwiftDate.Now,
+            TouchedPaths = new ValueList<string>(["a.txt"]),
+        };
+        h.WriteLibrary([project], [lead]);
+        DiskWriter.Shared.WriteSynchronously(
+            new ThreadDocument(lead.Id) { Turns = new ValueList<TurnRecord>([turn]) },
+            Storage.ThreadURL(lead.Id));
+        var model = h.MakeModel();
+        h.Main.OnMain(() =>
+        {
+            model.Settings.HydraEnabled = true;
+            model.Settings.HydraAutoMerge = true;
+        });
+
+        for (var attempt = 1; attempt <= 3; attempt++)
+        {
+            // A different unreachable "remote" each time, so `git push` fails at the transport level (before any
+            // refspec is resolved) with a different message each attempt -- the generic catch at :407 fires with
+            // retryable: true, and the detail text differs, so the identical-last-record short-circuit at :230
+            // never suppresses it. The probe push is byte-for-byte the same command shape as the production
+            // PushBranch(force: true) call, so its FailureMessage is what the real attempt will also produce.
+            var unreachable = h.NewFolder($"unreachable-remote-{attempt}");
+            repository.Git("remote", attempt == 1 ? "add" : "set-url", "origin", unreachable);
+            var probe = repository.Raw(
+                "push", "-u", "--force", "origin", "HEAD:refs/heads/__hydramerge_probe__");
+            Assert.False(probe.Succeeded);
+            var expectedError = probe.FailureMessage;
+
+            h.Main.Loop.Run(() => InvokeResumeHydraMerges(model), AppModelHarness.Bound);
+
+            var state = h.Main.OnMain(() =>
+            {
+                var runtime = model.ExistingRuntime(lead.Id);
+                Assert.NotNull(runtime);
+                var notes = runtime!.Entries
+                    .Select(entry => entry.Item.TimelineItemContent)
+                    .OfType<TimelineItem.Content.User>()
+                    .Where(content => content.Value.HydraHeads is { Count: 0 })
+                    .ToArray();
+                return (Records: runtime.HydraMerges.ToArray(), Notes: notes);
+            });
+
+            Assert.Equal(attempt, state.Records.Length);
+            var record = state.Records[^1];
+            Assert.Equal(HydraMergeRecord.Outcome.Failed, record.HydraMergeRecordOutcome);
+            Assert.Equal(true, record.Retryable);
+            Assert.Equal("Project", record.Project);
+            Assert.Equal(0, record.Files);
+            Assert.Equal(
+                "Hydra could not merge the team's work.: " + expectedError +
+                "\n\nThe work is in the checkout; the next try sends it again.",
+                record.Detail);
+
+            if (attempt < 3)
+            {
+                Assert.Empty(state.Notes);
+            }
+            else
+            {
+                var note = Assert.Single(state.Notes);
+                Assert.Equal(
+                    "Hydra could not merge the team's work.\n" + expectedError +
+                    "\n\nThe work is in the checkout; the next try sends it again.",
+                    note.Value.Text);
+            }
+        }
+    }
+
     // UNRESOLVED: PR-HYDRAMERGE-077 and PR-HYDRAMERGE-078 need a controlled sibling-claim fixture, including tracked/deleted paths and an injected git cat-file stream failure. The supplied fixtures do not expose the required git-command seam.
     // UNRESOLVED: PR-HYDRAMERGE-085 needs a safe, controllable application-foreground/notification seam; the supplied material does not identify one.
     // UNRESOLVED: PR-HYDRAMERGE-111 needs a controllable in-flight Hydra landing and a way to change readiness while it is awaited; the supplied fixtures do not expose either.
