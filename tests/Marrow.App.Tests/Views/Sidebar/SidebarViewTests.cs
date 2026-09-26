@@ -11,6 +11,7 @@ using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Styling;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Marrow.App.Port;
 using Marrow.App.Runtime;
@@ -3327,4 +3328,886 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         Assert.Equal(72d, (double)CallStatic(type, "TrailingClearance", false, false, true, true)!); // + 20 pt fold
         Assert.Equal(50d, (double)CallStatic(type, "TrailingClearance", true, false, true, true)!); // 30 + 20
     }
+
+    // ======== Part 4 of 8 ========
+    //
+    // Records: PR-SIDEBAR-079, -081, -083, -084, -086, -087, -088, -089, -091, -093, -094, -095, -096, -097, -098,
+    // -099, -100, -101, -102, -103, -107, -108, -109, -110.
+    //
+    // STOP App.Views.Sidebar.SidebarView #6
+    // Kind: forbidden need
+    // Swift: DroppyCode/App/Views/Sidebar/SidebarView.swift:995-1024 (B3 52bc792); :1009 .textFieldStyle(.roundedBorder),
+    // :1017 .buttonStyle(.bordered), :1019-1022 .buttonStyle(.borderedProminent)
+    // Requirements: PR-SIDEBAR-091
+    // What is unclear or missing: two AppKit control styles this file needs for the rename popover have no Windows
+    // chrome anywhere in this port yet (Marrow.UI.Chrome, Marrow.UI.Port) and no engineering or platform-adaptation
+    // decision names either one; this part's own decision list (ED-008, ED-009, ED-010, ED-041, ED-051, ED-059,
+    // ED-062, ED-149, ED-187, OD-0001, OD-0005, OD-0008, OD-0009, OD-0010, PA-0019) is silent on both, and
+    // porting/engineering_decisions.md and porting/platform_adaptations.md have no "roundedBorder" or
+    // "borderedProminent"/"bordered" entry. Every other popover this part ports (Delete, Archive) reuses an
+    // already-decided recipe (PopoverItem; OD-0005's `.glass`/`.glassProminent`); inventing a third, undecided one
+    // here would be exactly the invention the contract forbids.
+    // Readings or options: (a) treat `.bordered`/`.borderedProminent` as close enough to the already-decided
+    // `.glass`/`.glassProminent` recipe and reuse it -> a visible material the source does not ask for on this
+    // popover, an invented equivalence; (b) build a new, unstyled rectangle/border recipe for these two roles ->
+    // arbitrary corner radius, padding and colours with no source number or owner ruling behind them.
+    // Needed to proceed: an engineering decision (or owner ruling) naming the Windows chrome for
+    // `.textFieldStyle(.roundedBorder)` and for `.buttonStyle(.bordered)`/`.buttonStyle(.borderedProminent)`.
+    // Done so far: nothing implemented at RenameThreadPopover or SidebarView.RenamePopover; both stay MARROW_STUB.
+    // liveRenameTarget (PR-SIDEBAR-093, the ellipsis path's live-thread lookup, :882-887) does not depend on this
+    // site and is proven below.
+
+    private static object? SetProp(object target, string name, object? value)
+    {
+        target.GetType().GetProperty(name, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)!.SetValue(target, value);
+        return null;
+    }
+
+    // ---- PR-SIDEBAR-110: HelperConnector and HelperConnectorShape, the dotted line beside a helper row ----
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-110")] // App/Views/Sidebar/SidebarView.swift:1662-1674
+    public void The_connector_shape_runs_from_the_top_to_the_bottom_or_only_to_midY_when_it_ends_here() => headless.OnUiThread(() =>
+    {
+        var full = (Geometry)CallOn(CreateShapeRecord(false), "Path", new Rect(0, 0, 28, 24))!;
+        Assert.Equal(0d, full.Bounds.Top, 3);
+        Assert.Equal(24d, full.Bounds.Bottom, 3); // :1669 endsHere false -> rect.maxY
+
+        var last = (Geometry)CallOn(CreateShapeRecord(true), "Path", new Rect(0, 0, 28, 24))!;
+        Assert.Equal(0d, last.Bounds.Top, 3);
+        Assert.Equal(12d, last.Bounds.Bottom, 3); // :1669 endsHere true -> rect.midY
+
+        object CreateShapeRecord(bool endsHere) => Activator.CreateInstance(Private("HelperConnectorShape"), [endsHere])!;
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-110")] // App/Views/Sidebar/SidebarView.swift:1644-1646
+    public void The_connectors_colour_is_secondaryText_at_0_45_or_0_9_hovered()
+    {
+        var type = Private("HelperConnector");
+        static Color Resolved(SwiftColor color) => color.Resolve(ThemeVariant.Light);
+        Assert.Equal(Resolved(Chrome.SecondaryText.Opacity(0.45)), Resolved((SwiftColor)CallStatic(type, "Color", false)!)); // :1645
+        Assert.Equal(Resolved(Chrome.SecondaryText.Opacity(0.9)), Resolved((SwiftColor)CallStatic(type, "Color", true)!));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-110")] // App/Views/Sidebar/SidebarView.swift:1648-1659
+    public void Clicking_the_connector_folds_the_helpers_and_it_is_tooltipped_and_labelled_Hide_helpers() => headless.OnUiThread(() =>
+    {
+        var folded = false;
+        var control = Shown((Control)Activator.CreateInstance(Private("HelperConnector"), false, (Action)(() => folded = true))!);
+        var button = Assert.IsType<Button>(LogicalQuery.SelfAndDescendants<Button>(control).Single());
+        Assert.Equal("Hide helpers", ToolTip.GetTip(button)); // :1657
+        Assert.Equal("Hide helpers", AutomationProperties.GetName(button)); // :1658
+        button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Assert.True(folded); // :1648 Button(action: action)
+    });
+
+    // ---- PR-SIDEBAR-088: DeleteThreadPopover's content ----
+
+    private static string? TextOf(Button button) =>
+        LogicalQuery.SelfAndDescendants<TextBlock>(button).Select(t => t.Text).FirstOrDefault();
+
+    // A StyledText.Render(host) target holds its text as Inlines' Runs, not host.Text (matches
+    // tests/Marrow.UI.Tests/Port/StyledTextTests.cs's own pattern).
+    private static string InlineText(TextBlock block) =>
+        block.Inlines is { } inlines ? string.Concat(inlines.OfType<Avalonia.Controls.Documents.Run>().Select(r => r.Text)) : "";
+
+    private static AvaloniaWindow WindowOf(Control control) => (AvaloniaWindow)TopLevel.GetTopLevel(control)!;
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-088")] // App/Views/Sidebar/SidebarView.swift:966-981
+    public void The_delete_popover_is_280_wide_with_a_header_a_curly_quoted_note_a_divider_and_delete_rows() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = AppModelSamples.Project("Alpha", harness.NewFolder("Alpha"));
+        var thread = AppModelSamples.Thread(project) with { Title = "Fix the bug" };
+        var deletes = new List<bool>();
+        var popover = Shown((Control)Activator.CreateInstance(Private("DeleteThreadPopover"), thread, (Action<bool>)(removeWorktree => deletes.Add(removeWorktree)))!);
+
+        var menu = Assert.IsType<PopoverMenu>(Get(popover, "Child"));
+        Assert.Equal(280d, menu.Width); // :980
+        var texts = Texts(popover);
+        Assert.Contains("Delete this thread?", texts); // :973
+        Assert.Contains("\u201CFix the bug\u201D and its history will be removed. Files in your project stay as they are.", texts); // :974
+        Assert.Contains("Delete thread", texts); // :976
+        Assert.DoesNotContain("Delete thread and worktree", texts); // :977, no worktree
+
+        var deleteButton = LogicalQuery.SelfAndDescendants<Button>(popover).Single(b => TextOf(b) == "Delete thread");
+        deleteButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        harness.Main.RunUntilIdle(); // :271-274 PopoverItem.Activate spawns the action on the main actor
+        Assert.Equal([false], deletes); // :976 onDelete(false)
+        WindowOf(popover).Close();
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-088")] // App/Views/Sidebar/SidebarView.swift:977-978
+    public void The_delete_and_worktree_row_shows_only_with_a_worktree_and_deletes_with_it_true() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = AppModelSamples.Project("Alpha", harness.NewFolder("Alpha"));
+        var thread = AppModelSamples.Thread(project) with { Title = "Fix the bug", WorktreePath = "C:/Alpha/wt" };
+        var deletes = new List<bool>();
+        var popover = Shown((Control)Activator.CreateInstance(Private("DeleteThreadPopover"), thread, (Action<bool>)(removeWorktree => deletes.Add(removeWorktree)))!);
+
+        Assert.Contains("Delete thread and worktree", Texts(popover)); // :977
+        var button = LogicalQuery.SelfAndDescendants<Button>(popover).Single(b => TextOf(b) == "Delete thread and worktree");
+        button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        harness.Main.RunUntilIdle(); // :271-274 PopoverItem.Activate spawns the action on the main actor
+        Assert.Equal([true], deletes); // :978 onDelete(true)
+        WindowOf(popover).Close();
+    });
+
+    // ---- PR-SIDEBAR-095, PR-SIDEBAR-096: ArchiveThreadPopover ----
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-095")] // App/Views/Sidebar/SidebarView.swift:905-943
+    public void The_archive_popover_is_272_wide_asks_Archive_title_and_offers_Delete_and_Archive() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = AppModelSamples.Project("Alpha", harness.NewFolder("Alpha"));
+        var thread = AppModelSamples.Thread(project) with { Title = "Fix the bug" };
+        var archived = 0;
+        var deleted = 0;
+        var popover = (Control)Activator.CreateInstance(Private("ArchiveThreadPopover"), thread,
+            (Action)(() => archived++), (Action)(() => deleted++), (Action)(() => { }))!;
+        Shown(popover);
+
+        var menu = Assert.IsType<PopoverMenu>(Get(popover, "Child"));
+        Assert.Equal(272d, menu.Width); // :943
+        var question = LogicalQuery.SelfAndDescendants<TextBlock>(popover).Single(t => InlineText(t) == "Archive \u201CFix the bug\u201D?"); // :917
+
+        var buttons = LogicalQuery.SelfAndDescendants<Button>(popover).ToList();
+        var delete = buttons.Single(b => TextOf(b) == "Delete"); // :927
+        var archive = buttons.Single(b => TextOf(b) == "Archive"); // :931
+        Assert.Equal("Remove the thread and its history", ToolTip.GetTip(delete)); // :929
+        Assert.Equal("Move it to Archived (Return)", ToolTip.GetTip(archive)); // :936
+        Assert.True(archive.IsDefault); // :932 .keyboardShortcut(.defaultAction)
+
+        delete.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Assert.Equal(1, deleted); // :927 Button(action: onDelete)
+        archive.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Assert.Equal(1, archived); // :931 Button("Archive", action: onArchive)
+        WindowOf(popover).Close();
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-095")] // App/Views/Sidebar/SidebarView.swift:927 Text("Delete").foregroundStyle(.red)
+    public void The_delete_button_in_the_archive_popover_is_drawn_in_danger() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = AppModelSamples.Project("Alpha", harness.NewFolder("Alpha"));
+        var thread = AppModelSamples.Thread(project) with { Title = "Fix the bug" };
+        var popover = (Control)Activator.CreateInstance(Private("ArchiveThreadPopover"), thread, (Action)(() => { }), (Action)(() => { }), (Action)(() => { }))!;
+        Shown(popover);
+        var delete = LogicalQuery.SelfAndDescendants<TextBlock>(popover).Single(t => t.Text == "Delete");
+        Assert.Equal(Chrome.Danger.Resolve(delete.ActualThemeVariant), ((ISolidColorBrush)delete.Foreground!).Color);
+        WindowOf(popover).Close();
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-096")] // App/Views/Sidebar/SidebarView.swift:946-955
+    public void Return_or_keypad_enter_archives_and_escape_dismisses_swallowing_the_key() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = AppModelSamples.Project("Alpha", harness.NewFolder("Alpha"));
+        var thread = AppModelSamples.Thread(project);
+        var archived = 0;
+        var dismissed = 0;
+        var popover = (Control)Activator.CreateInstance(Private("ArchiveThreadPopover"), thread,
+            (Action)(() => archived++), (Action)(() => { }), (Action)(() => dismissed++))!;
+        Shown(popover);
+        var window = WindowOf(popover);
+        var composerSawKey = false;
+        window.AddHandler(InputElement.KeyDownEvent, (_, e) => { if (e.PhysicalKey == PhysicalKey.Enter) composerSawKey = true; });
+
+        window.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null); // :951 keyCode 36
+        Assert.Equal(1, archived);
+        Assert.False(composerSawKey); // :954 return nil: swallowed before the bubble phase
+
+        window.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.NumPadEnter, null); // :951 keyCode 76
+        Assert.Equal(2, archived);
+
+        window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null); // :952 keyCode 53
+        Assert.Equal(1, dismissed);
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-096")] // App/Views/Sidebar/SidebarView.swift:949 modifierFlags.intersection(...).isEmpty
+    public void A_modifier_held_lets_the_key_pass_through_the_archive_popovers_monitor() => headless.OnUiThread(() =>
+    {
+        // Escape, not Return: Return is also the Archive button's own keyboard default-action (:932), so a Ctrl+Return
+        // observation would be confounded by Avalonia's own IsDefault dispatch rather than isolating the monitor.
+        using var harness = new AppModelHarness();
+        var project = AppModelSamples.Project("Alpha", harness.NewFolder("Alpha"));
+        var thread = AppModelSamples.Thread(project);
+        var dismissed = 0;
+        var popover = (Control)Activator.CreateInstance(Private("ArchiveThreadPopover"), thread, (Action)(() => { }), (Action)(() => { }), (Action)(() => dismissed++))!;
+        Shown(popover);
+        var window = WindowOf(popover);
+
+        window.KeyPress(Key.Escape, RawInputModifiers.Control, PhysicalKey.Escape, null); // :949
+        Assert.Equal(0, dismissed);
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-096")] // App/Views/Sidebar/SidebarView.swift:958-961 onDisappear
+    public void The_archive_popovers_monitor_is_torn_down_once_it_leaves_the_tree() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = AppModelSamples.Project("Alpha", harness.NewFolder("Alpha"));
+        var thread = AppModelSamples.Thread(project);
+        var archived = 0;
+        var popover = (Control)Activator.CreateInstance(Private("ArchiveThreadPopover"), thread, (Action)(() => archived++), (Action)(() => { }), (Action)(() => { }))!;
+        var window = new AvaloniaWindow { Content = popover, Width = 200, Height = 100 };
+        window.Show();
+        window.Content = null; // detaches the popover
+        window.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null);
+        Assert.Equal(0, archived); // the handler was removed, so nothing archives
+        window.Close();
+    });
+
+    // ---- PR-SIDEBAR-086, PR-SIDEBAR-087, PR-SIDEBAR-089: the delete popover's coordinator on SidebarView ----
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-086")] // App/Views/Sidebar/SidebarView.swift:889-896 (and the identical :359-366, :189-196)
+    public void RequestDeletion_asks_first_when_confirmBeforeDeleting_and_deletes_at_once_otherwise() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var confirming = NewThread(project, "Ask first", 0);
+        var immediate = NewThread(project, "No confirm", 1);
+        var model = Model(harness, [project], [confirming, immediate]);
+        harness.Main.OnMain(() =>
+        {
+            var view = Detached(model);
+            model.Settings.ConfirmBeforeDeleting = true;
+            Call(view, "RequestDeletion", confirming.Id);
+            var pending = Get(Field(view, "state")!, "PendingDeletionID");
+            Assert.Equal(confirming.Id, pending); // :890
+            Assert.NotNull(model.Thread(confirming.Id)); // not deleted yet
+
+            model.Settings.ConfirmBeforeDeleting = false;
+            Call(view, "RequestDeletion", immediate.Id);
+            Assert.Null(model.Thread(immediate.Id)); // :896 deleted at once, removeWorktree false
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-087")] // App/Views/Sidebar/SidebarView.swift:217-237
+    public void DeletePopover_presents_only_for_the_matching_id_with_its_arrow_on_the_trailing_edge() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Thread", 0);
+        var other = NewThread(project, "Other", 1);
+        var model = Model(harness, [project], [thread, other]);
+        var recorder = new RecordingPresenter();
+        using var presenter = Presentation.Presenter.Override(recorder);
+        object? view = null;
+        Popup? popup = null;
+        // Track's re-evaluation runs on a MainActor.Post; each phase below is its own OnMain call so the previous
+        // phase's post is already drained (RunUntilIdle "runs queued work, including work queued while running")
+        // before the next phase reads it, rather than re-entering the loop mid-pump.
+        harness.Main.OnMain(() =>
+        {
+            view = Detached(model);
+            var row = new Border();
+            var panel = (Panel)Call(view, "DeletePopover", thread, row)!;
+            popup = Assert.IsType<Popup>(panel.Children[1]);
+            Assert.Equal(PlacementMode.Right, popup.Placement); // :220 arrowEdge: .trailing
+            Shown(panel);
+        });
+        harness.Main.OnMain(() => SetProp(Field(view!, "state")!, "PendingDeletionID", other.Id)); // a different thread pending
+        harness.Main.OnMain(() => Assert.DoesNotContain(recorder.Calls, c => c.Popup == popup && c.Presented)); // :221 ids differ
+
+        harness.Main.OnMain(() => SetProp(Field(view!, "state")!, "PendingDeletionID", thread.Id)); // :221 this row's id
+        harness.Main.OnMain(() => Assert.Contains(recorder.Calls, c => c.Popup == popup && c.Presented));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-089")] // App/Views/Sidebar/SidebarView.swift:256-263 confirmDeletion
+    public void ConfirmDeletion_records_the_deed_clears_both_pending_ids_and_runs_at_once_when_no_popover_shows() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Thread", 0);
+        var model = Model(harness, [project], [thread]);
+        harness.Main.OnMain(() =>
+        {
+            var view = Detached(model);
+            var state = Field(view, "state")!;
+            SetProp(state, "PendingDeletionID", thread.Id);
+            SetProp(state, "PendingArchiveID", thread.Id);
+            Call(view, "ConfirmDeletion", thread.Id, true);
+            Assert.Null(Get(state, "PendingDeletionID")); // :259
+            Assert.Null(Get(state, "PendingArchiveID")); // :260
+        });
+        harness.Main.Loop.Run(() => Task.Delay(1), AppModelHarness.Bound); // let the spawned MainActor task run
+        Assert.Null(model.Thread(thread.Id)); // :261, :303-305 carried out with removeWorktree true
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-089")] // App/Views/Sidebar/SidebarView.swift:295-306 carryOutConfirmedDeletion
+    public void ConfirmDeletion_waits_for_the_popover_to_close_when_one_is_still_shown() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Thread", 0);
+        var model = Model(harness, [project], [thread]);
+        harness.Main.OnMain(() =>
+        {
+            var view = Detached(model);
+            var state = Field(view, "state")!;
+            SetProp(state, "IsDeletePopoverShown", true); // :261 the popover is still up
+            Call(view, "ConfirmDeletion", thread.Id, false);
+            Assert.NotNull(model.Thread(thread.Id)); // :261 not carried out yet
+            Assert.NotNull(Get(state, "ConfirmedDeletion")); // :258, waiting for onDisappear (:231-232)
+
+            SetProp(state, "IsDeletePopoverShown", false);
+            Call(view, "CarryOutConfirmedDeletion"); // what the popover's onDisappear calls (:232)
+            Assert.Null(Get(state, "ConfirmedDeletion")); // :301
+        });
+        harness.Main.Loop.Run(() => Task.Delay(1), AppModelHarness.Bound);
+        Assert.Null(model.Thread(thread.Id)); // :304-305, one MainActor turn later
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-089")] // App/Views/Sidebar/SidebarView.swift:299-300 guard let confirmed
+    public void CarryOutConfirmedDeletion_does_nothing_when_nothing_was_confirmed() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var model = harness.MakeModel();
+        harness.Main.OnMain(() =>
+        {
+            var view = Detached(model);
+            Call(view, "CarryOutConfirmedDeletion"); // no exception, nothing scheduled
+            Assert.Null(Get(Field(view, "state")!, "ConfirmedDeletion"));
+        });
+    });
+
+    // ---- PR-SIDEBAR-093: rename reads the live thread record ----
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-093")] // App/Views/Sidebar/SidebarView.swift:882-887 (and the identical :354-358)
+    public void LiveRenameTarget_reads_the_live_record_and_falls_back_to_the_snapshot_when_gone() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Old title", 0);
+        var model = Model(harness, [project], [thread]);
+        harness.Main.OnMain(() =>
+        {
+            model.Rename(thread.Id, "New title");
+            var live = (ChatThread)CallStatic(typeof(SidebarView), "LiveRenameTarget", model, thread)!;
+            Assert.Equal("New title", live.Title); // :886 the live record, not the stale snapshot
+
+            model.Delete(thread.Id);
+            var gone = (ChatThread)CallStatic(typeof(SidebarView), "LiveRenameTarget", model, thread)!;
+            Assert.Equal(thread.Id, gone.Id); // :886 ?? thread: falls back to the snapshot
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-093")] // App/Views/Sidebar/SidebarView.swift:182-186 the context-menu path uses the posted snapshot
+    public void A_rename_posted_from_the_context_menu_uses_the_posted_value_as_is() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Old title", 0);
+        var model = Model(harness, [project], [thread]);
+        object? view = null;
+        harness.Main.OnMain(() =>
+        {
+            view = Detached(model);
+            Call(view, "Appear"); // wires the onChange handlers without needing a real window (ProjectRow is still
+            // MARROW_STUB, so a real Attached() render of a non-empty library throws)
+            model.Rename(thread.Id, "New title"); // changes after the menu already posted its snapshot
+            SetProp(Field(view, "menuRequests")!, "Rename", thread); // the snapshot the AppKit menu captured before the rename
+        });
+        // A fresh OnMain call: Track's re-evaluation runs on a MainActor.Post, which the call above already drained.
+        harness.Main.OnMain(() =>
+        {
+            var state = Field(view!, "state")!;
+            Assert.Equal("Old title", Get(state, "RenameText")); // :187 posted.title, not the live one
+            Assert.Equal(thread, Get(state, "Renaming")); // :188
+            Assert.Null(Get(Field(view!, "menuRequests")!, "Rename")); // :186 cleared
+        });
+    });
+
+    // ---- PR-SIDEBAR-094: the archive shortcut's question lands on the thread's own row ----
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-094")] // App/Views/Sidebar/SidebarView.swift:198-202
+    public void An_archive_request_for_a_present_thread_opens_the_question_and_clears_the_request() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Thread", 0);
+        var model = Model(harness, [project], [thread]);
+        object? view = null;
+        harness.Main.OnMain(() =>
+        {
+            view = Detached(model);
+            Call(view, "Appear"); // see the rename test above for why Detached, not Attached
+            model.AppModelArchiveRequest = new AppModel.ArchiveRequest(thread.Id);
+        });
+        harness.Main.OnMain(() =>
+        {
+            Assert.Null(model.AppModelArchiveRequest); // :200
+            Assert.Equal(thread.Id, Get(Field(view!, "state")!, "PendingArchiveID")); // :201
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-094")] // App/Views/Sidebar/SidebarView.swift:199 guard ..., model.thread(request.threadID) != nil
+    public void An_archive_request_for_a_missing_thread_is_left_for_the_models_own_fallback() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var model = harness.MakeModel();
+        SidebarView? view = null;
+        var missing = Guid.NewGuid();
+        harness.Main.OnMain(() =>
+        {
+            view = Attached(model);
+            model.AppModelArchiveRequest = new AppModel.ArchiveRequest(missing);
+        });
+        harness.Main.OnMain(() =>
+        {
+            Assert.NotNull(model.AppModelArchiveRequest); // :199 not taken up: left for the model's 80 ms fallback
+            Assert.Null(Get(Field(view!, "state")!, "PendingArchiveID"));
+            Close(view!);
+        });
+    });
+
+    // ---- PR-SIDEBAR-097: archiving or deleting from the archive popover ----
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-097")] // App/Views/Sidebar/SidebarView.swift:276-279
+    public void Archiving_from_the_archive_popovers_content_closes_it_and_archives_inside_panelSlide() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Thread", 0);
+        var model = Model(harness, [project], [thread]);
+        harness.Main.OnMain(() =>
+        {
+            var view = Detached(model);
+            SetProp(Field(view, "state")!, "PendingArchiveID", thread.Id);
+            var content = (Control)Call(view, "BuildArchivePopoverContent", thread)!;
+            Shown(content);
+            var archive = LogicalQuery.SelfAndDescendants<Button>(content).Single(b => TextOf(b) == "Archive");
+            archive.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+
+            Assert.Null(Get(Field(view, "state")!, "PendingArchiveID")); // :278
+            Assert.True(model.Thread(thread.Id)!.IsArchived); // :279
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-097")] // App/Views/Sidebar/SidebarView.swift:281, the deferred-delete path shared with the delete popover
+    public void Deleting_from_the_archive_popovers_content_goes_through_the_deferred_delete_path() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Thread", 0);
+        var model = Model(harness, [project], [thread]);
+        harness.Main.OnMain(() =>
+        {
+            var view = Detached(model);
+            var state = Field(view, "state")!;
+            SetProp(state, "IsDeletePopoverShown", true); // :285, as the wrapping archivePopover sets on appear
+            var content = (Control)Call(view, "BuildArchivePopoverContent", thread)!;
+            Shown(content);
+            var delete = LogicalQuery.SelfAndDescendants<Button>(content).Single(b => TextOf(b) == "Delete");
+            delete.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+
+            Assert.NotNull(Get(state, "ConfirmedDeletion")); // :281 confirmDeletion(of:removeWorktree: false)
+            Assert.NotNull(model.Thread(thread.Id)); // deferred while the popover is still shown
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-097")] // App/Views/Sidebar/SidebarView.swift:283
+    public void Dismissing_the_archive_popovers_content_only_clears_the_pending_id() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Thread", 0);
+        var model = Model(harness, [project], [thread]);
+        harness.Main.OnMain(() =>
+        {
+            var view = Detached(model);
+            var state = Field(view, "state")!;
+            SetProp(state, "PendingArchiveID", thread.Id);
+            var content = (Control)Call(view, "BuildArchivePopoverContent", thread)!;
+            Shown(content);
+            var window = WindowOf(content);
+
+            window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null); // :952 onDismiss()
+
+            Assert.Null(Get(state, "PendingArchiveID")); // :283 clears the pending id, nothing else
+            Assert.NotNull(model.Thread(thread.Id)); // not archived, not deleted
+            window.Close();
+        });
+    });
+
+    // ---- PR-SIDEBAR-079, PR-SIDEBAR-081, PR-SIDEBAR-083: settling, reopening and the finish request ----
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-079")] // App/Views/Sidebar/SidebarView.swift:1904-1910
+    public void Settle_pops_the_check_and_settles_the_thread_with_its_own_sound_suppressed() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Thread", 0);
+        var model = Model(harness, [project], [thread]);
+        harness.Main.OnMain(() =>
+        {
+            var setCalls = new List<bool>();
+            CallStatic(Private("SidebarThreadRow"), "Settle", model, thread, false, false, (Action<bool>)(v => setCalls.Add(v)));
+            Assert.Equal([true], setCalls); // :1909
+            Assert.True(model.Thread(thread.Id)!.IsSettled); // :1910
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-079")] // App/Views/Sidebar/SidebarView.swift:1907 guard !isSettling, !thread.isSettled
+    public void Settle_does_nothing_while_already_settling_or_already_settled() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var already = NewThread(project, "Already", 0) with { IsSettled = true };
+        var mid = NewThread(project, "Mid", 1);
+        var model = Model(harness, [project], [already, mid]);
+        harness.Main.OnMain(() =>
+        {
+            var setCalls = new List<bool>();
+            CallStatic(Private("SidebarThreadRow"), "Settle", model, already, false, false, (Action<bool>)(v => setCalls.Add(v)));
+            Assert.Empty(setCalls); // :1907 already settled
+
+            CallStatic(Private("SidebarThreadRow"), "Settle", model, mid, true, false, (Action<bool>)(v => setCalls.Add(v)));
+            Assert.Empty(setCalls); // :1907 isSettling already true
+            Assert.False(model.Thread(mid.Id)!.IsSettled);
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-081")] // App/Views/Sidebar/SidebarView.swift:1912-1916
+    public void Reopen_glides_before_reopening_and_does_nothing_when_not_settled() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var settled = NewThread(project, "Settled", 0) with { IsSettled = true };
+        var open = NewThread(project, "Open", 1);
+        var model = Model(harness, [project], [settled, open]);
+        harness.Main.OnMain(() =>
+        {
+            var order = new List<string>();
+            CallStatic(Private("SidebarThreadRow"), "Reopen", model, settled, (Action)(() => order.Add("glide")));
+            Assert.Equal(["glide"], order); // :1914 launched first, so the arriving row can report its frame to it
+            Assert.False(model.Thread(settled.Id)!.IsSettled); // :1915 model.reopenAnimated
+
+            order.Clear();
+            CallStatic(Private("SidebarThreadRow"), "Reopen", model, open, (Action)(() => order.Add("glide")));
+            Assert.Empty(order); // :1913 guard thread.isSettled
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-083")] // App/Views/Sidebar/SidebarView.swift:1863-1870
+    public void FinishRequestReceived_settles_or_reopens_only_the_matching_thread_and_state() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var model = harness.MakeModel();
+        harness.Main.OnMain(() =>
+        {
+            var project = AppModelSamples.Project("Alpha", harness.NewFolder("Alpha"));
+            var thread = AppModelSamples.Thread(project);
+            var settled = 0;
+            var reopened = 0;
+
+            model.AppModelFinishRequest = new AppModel.FinishRequest(thread.Id, false); // not settled -> settle()
+            CallStatic(Private("SidebarThreadRow"), "FinishRequestReceived", model, thread, false, (Action)(() => settled++), (Action)(() => reopened++));
+            Assert.Equal(1, settled); // :1867
+            Assert.Equal(0, reopened);
+            Assert.Null(model.AppModelFinishRequest); // :1865
+
+            model.AppModelFinishRequest = new AppModel.FinishRequest(thread.Id, false);
+            CallStatic(Private("SidebarThreadRow"), "FinishRequestReceived", model, thread, true, (Action)(() => settled++), (Action)(() => reopened++));
+            Assert.Equal(1, settled); // :1864 isSettled (true) != request.reopens (false): not taken up
+            Assert.NotNull(model.AppModelFinishRequest);
+
+            model.AppModelFinishRequest = new AppModel.FinishRequest(Guid.NewGuid(), false); // a different thread
+            CallStatic(Private("SidebarThreadRow"), "FinishRequestReceived", model, thread, false, (Action)(() => settled++), (Action)(() => reopened++));
+            Assert.Equal(1, settled); // :1864 threadID mismatch: not taken up
+        });
+    });
+
+    // ---- PR-SIDEBAR-084: the hover archive button's genie flight ----
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-084")] // App/Views/Sidebar/SidebarView.swift:1988-1999
+    public void ArchiveWithGenie_flies_a_ghost_of_the_row_and_archives_the_thread() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Thread", 0);
+        var model = Model(harness, [project], [thread]);
+        harness.Main.OnMain(() =>
+        {
+            var animator = new GenieAnimator(new RenderingGeniePlatform());
+            CallStatic(Private("SidebarThreadRow"), "ArchiveWithGenie", animator, model, thread, null, null, false, null, new Rect(0, 0, 200, 28), ThemeVariant.Light);
+            Assert.True(model.Thread(thread.Id)!.IsArchived); // :1998 withAnimation(Chrome.panelSlide) { model.archive(...) }
+            Assert.Single(animator.Flights); // :1994-1997 a ghost launched from the row's own frame
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-084")] // App/Views/Sidebar/SidebarView.swift:1990 Chrome.overlay(isSelected ? 0.12 : 0.06)
+    public void ArchiveWithGenies_ghost_fill_is_the_selection_overlay() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Thread", 0);
+        var model = Model(harness, [project], [thread]);
+        harness.Main.OnMain(() =>
+        {
+            var animator = new GenieAnimator(new RenderingGeniePlatform());
+            CallStatic(Private("SidebarThreadRow"), "ArchiveWithGenie", animator, model, thread, null, null, true, null, new Rect(0, 0, 200, 28), ThemeVariant.Light);
+            Assert.Single(animator.Flights); // still flies once, selected this time (:1991 isSelected ? 0.12 : 0.06)
+        });
+    });
+
+    // ---- PR-SIDEBAR-098, 099, 100, 101, 102, 103: ThreadActions ----
+
+    private static List<RowAction> ThreadActionsMake(AppModel model, ChatThread thread, Action? onSettle = null, Action? onReopen = null) =>
+        ((IEnumerable)CallStatic(Private("ThreadActions"), "Make", model, thread, (Action)(() => { }), (Action)(() => { }), onSettle, onReopen)!)
+            .Cast<RowAction>().ToList();
+
+    private static List<RowAction> ThreadActionsMakeContextMenu(AppModel model, ChatThread thread, bool settleFirst, object requests) =>
+        ((IEnumerable)CallStatic(Private("ThreadActions"), "MakeContextMenu", model, thread, settleFirst, requests)!)
+            .Cast<RowAction>().ToList();
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-099")] // App/Views/Sidebar/SidebarView.swift:2199-2207
+    public void Pin_or_unpin_toggles_isPinned_and_is_absent_for_a_helper_or_a_settled_thread() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Thread", 0);
+        var parent = NewThread(project, "Parent", 1);
+        var helper = NewThread(project, "Helper", 2) with { ParentThreadID = parent.Id };
+        var settled = NewThread(project, "Settled", 3) with { IsSettled = true };
+        var model = Model(harness, [project], [thread, parent, helper, settled]);
+        harness.Main.OnMain(() =>
+        {
+            var pin = ThreadActionsMake(model, thread).Single(a => a.Title is "Pin" or "Unpin");
+            Assert.Equal("Pin", pin.Title); // :2200 not yet pinned
+            Assert.Equal("pin", pin.Symbol);
+            pin.Action();
+            Assert.True(model.Thread(thread.Id)!.IsPinned); // :2201-2203
+
+            var unpin = ThreadActionsMake(model, model.Thread(thread.Id)!).Single(a => a.Title is "Pin" or "Unpin");
+            Assert.Equal("Unpin", unpin.Title);
+            Assert.Equal("pin.slash", unpin.Symbol);
+
+            Assert.DoesNotContain(ThreadActionsMake(model, helper), a => a.Title is "Pin" or "Unpin"); // :2196-2198
+            Assert.DoesNotContain(ThreadActionsMake(model, settled), a => a.Title is "Pin" or "Unpin");
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-100")] // App/Views/Sidebar/SidebarView.swift:2210-2212
+    public void Forward_to_new_thread_starts_an_asynchronous_forward() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Thread", 0);
+        var model = Model(harness, [project], [thread]);
+        harness.Main.OnMain(() =>
+        {
+            var forward = ThreadActionsMake(model, thread).Single(a => a.Title == "Forward to new thread"); // :2210
+            Assert.Equal("arrowshape.turn.up.right", forward.Symbol);
+            forward.Action(); // :2211 Task { await model.forwardThread(thread.id) }
+        });
+        harness.Main.Loop.Run(() => Task.Delay(1), AppModelHarness.Bound); // lets the spawned async forward finish
+        harness.Main.OnMain(() => Assert.Equal(2, model.Threads.Count)); // the forward has landed
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-101")] // App/Views/Sidebar/SidebarView.swift:2216-2218, OD-0008 B1
+    public void Reveal_worktree_shows_only_with_a_worktree_and_reads_File_Explorer_by_the_owner_ruling() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var withWorktree = NewThread(project, "WT", 0) with { WorktreePath = "C:/Alpha/wt" };
+        var without = NewThread(project, "NoWT", 1);
+        var model = Model(harness, [project], [withWorktree, without]);
+        harness.Main.OnMain(() =>
+        {
+            var reveal = ThreadActionsMake(model, withWorktree).Single(a => a.Title == "Reveal worktree in File Explorer"); // OD-0008 B1
+            Assert.Equal("folder", reveal.Symbol);
+
+            var revealed = new List<string>();
+            var previous = ShellWorkspace.RevealInFileExplorer;
+            try
+            {
+                ShellWorkspace.RevealInFileExplorer = p => revealed.Add(p);
+                reveal.Action(); // :2217
+                Assert.Equal(["C:/Alpha/wt"], revealed);
+            }
+            finally
+            {
+                ShellWorkspace.RevealInFileExplorer = previous;
+            }
+
+            Assert.DoesNotContain(ThreadActionsMake(model, without), a => a.Title.StartsWith("Reveal", StringComparison.Ordinal)); // :2214
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-102")] // App/Views/Sidebar/SidebarView.swift:2219-2242
+    public void A_helpers_menu_offers_no_pin_and_no_settle_only_archive_in_that_group() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var helper = NewThread(project, "Helper", 1) with { ParentThreadID = parent.Id };
+        var model = Model(harness, [project], [parent, helper]);
+        harness.Main.OnMain(() =>
+        {
+            var actions = ThreadActionsMake(model, helper);
+            var titles = actions.Select(a => a.Title).ToList();
+            Assert.DoesNotContain("Pin", titles);
+            Assert.DoesNotContain("Unpin", titles);
+            Assert.DoesNotContain("Settle", titles);
+            Assert.DoesNotContain("Reopen", titles);
+            var archive = Assert.Single(actions, a => a.Title == "Archive"); // :2224-2225, only in the settle/archive group
+            Assert.True(archive.StartsGroup); // :2221 startsGroup: !settleFirst, and settleFirst is always false for a helper
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-103")] // App/Views/Sidebar/SidebarView.swift:2245-2312
+    public void The_context_menus_actions_post_rather_than_run() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Thread", 0);
+        var model = Model(harness, [project], [thread]);
+        harness.Main.OnMain(() =>
+        {
+            var requests = Activator.CreateInstance(Private("SidebarMenuRequests"))!;
+            var actions = ThreadActionsMakeContextMenu(model, thread, true, requests);
+
+            var rename = actions.Single(a => a.Title == "Rename");
+            rename.Action();
+            Assert.Equal(thread, Get(requests, "Rename")); // :2261 requests.rename = thread, posted rather than run
+            Assert.Null(Get(requests, "Delete"));
+
+            var delete = actions.Single(a => a.Title == "Delete\u2026");
+            delete.Action();
+            Assert.Equal(thread, Get(requests, "Delete")); // :2309-2310
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-103")] // App/Views/Sidebar/SidebarView.swift:2262-2263, :2269 guard let model else { return }
+    public void A_context_menu_actions_weak_model_capture_bails_once_the_model_is_gone() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Thread", 0);
+        var model = Model(harness, [project], [thread]);
+        harness.Main.OnMain(() =>
+        {
+            var requests = Activator.CreateInstance(Private("SidebarMenuRequests"))!;
+            var actions = ThreadActionsMakeContextMenu(model, thread, true, requests);
+            var pin = actions.Single(a => a.Title == "Pin");
+            GC.KeepAlive(model);
+            pin.Action(); // model is still alive: the weak capture resolves
+            Assert.True(model.Thread(thread.Id)!.IsPinned);
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-098")] // App/Views/Sidebar/SidebarView.swift:2193-2246, :2253-2312
+    public void The_popover_and_context_menu_lists_carry_the_same_items_in_the_same_order() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Thread", 0) with { WorktreePath = "C:/Alpha/wt" };
+        var model = Model(harness, [project], [thread]);
+        harness.Main.OnMain(() =>
+        {
+            var requests = Activator.CreateInstance(Private("SidebarMenuRequests"))!;
+            var popoverTitles = ThreadActionsMake(model, thread).Select(a => a.Title).ToList();
+            var menuTitles = ThreadActionsMakeContextMenu(model, thread, true, requests).Select(a => a.Title).ToList();
+            Assert.Equal(popoverTitles, menuTitles); // the two lists carry the same items in the same order
+            Assert.Equal(
+                ["Rename", "Pin", "Forward to new thread", "Reveal worktree in File Explorer"],
+                popoverTitles.Take(4).ToList()); // :2200-2218 the fixed order up to the settle/archive group
+            Assert.Equal("Delete\u2026", popoverTitles[^1]); // :2244 Delete… always last
+        });
+    });
+
+    // ---- PR-SIDEBAR-107, PR-SIDEBAR-108, PR-SIDEBAR-109: SidebarHelperRow's directly testable pieces ----
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-107")] // App/Views/Sidebar/SidebarView.swift:1361-1372
+    public void A_helper_rows_title_and_background_match_the_recorded_numbers()
+    {
+        var type = Private("SidebarHelperRow");
+        Assert.Equal(SwiftFont.Weight.Medium, CallStatic(type, "TitleWeight", true, false)); // :1361 selected
+        Assert.Equal(SwiftFont.Weight.Medium, CallStatic(type, "TitleWeight", false, true)); // :1361 unread
+        Assert.Equal(SwiftFont.Weight.Regular, CallStatic(type, "TitleWeight", false, false));
+        Assert.Equal(0.96, (double)CallStatic(type, "TitleOpacity", true)!); // :1362
+        Assert.Equal(0.8, (double)CallStatic(type, "TitleOpacity", false)!);
+        Assert.Equal(34d, (double)CallStatic(type, "TrailingPadding", true)!); // :1365-1367, 8 + 26
+        Assert.Equal(26d, (double)CallStatic(type, "TrailingPadding", false)!); // 8 + 18
+        Assert.Equal(0.12, (double)CallStatic(type, "BackgroundFill", true, false)!); // :1370 selected
+        Assert.Equal(0.06, (double)CallStatic(type, "BackgroundFill", false, true)!); // hovered
+        Assert.Equal(0d, (double)CallStatic(type, "BackgroundFill", false, false)!); // neither
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-108")] // App/Views/Sidebar/SidebarView.swift:1354-1357, upstream defect 65
+    public void A_helper_rows_head_glyph_never_shows_the_running_breath_ring() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var runningHead = NewThread(project, "Head", 0) with { Hydra = AppModelSamples.Head(HydraHeadInfo.Status.Running) };
+        var plain = NewThread(project, "Plain", 1);
+        harness.Main.OnMain(() =>
+        {
+            var glyph = (HydraGlyph)CallStatic(Private("SidebarHelperRow"), "HeadGlyph", runningHead)!;
+            Assert.False(glyph.IsRunning); // :1354-1357 no isRunning argument, even though the head is running
+            Assert.Equal(14d, glyph.Size); // ThreadRowMetrics.headGlyphSize, :1295
+
+            Assert.Null(CallStatic(Private("SidebarHelperRow"), "HeadGlyph", plain)); // no hydra head at all
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-109")] // App/Views/Sidebar/SidebarView.swift:1375-1384
+    public void A_helper_rows_trailing_area_holds_the_ellipsis_while_shown_or_the_activity_status_otherwise() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Thread", 0);
+        var model = Model(harness, [project], [thread]);
+        harness.Main.OnMain(() =>
+        {
+            var actionsButton = new Border(); // a stand-in for RowActionsButton, which this piece takes as a parameter
+            var withActions = (Control)CallStatic(Private("SidebarHelperRow"), "BuildTrailingOverlay", true, thread, actionsButton)!;
+            Assert.Same(actionsButton, withActions); // :1377 the ellipsis button, passed straight through
+            Assert.Equal(new Thickness(0, 0, 6, 0), withActions.Margin); // :1382 .padding(.trailing, 6)
+
+            var withoutActions = (Control)CallStatic(Private("SidebarHelperRow"), "BuildTrailingOverlay", false, thread, actionsButton)!;
+            Assert.IsType(Private("ActivityStatus"), withoutActions); // :1380 ActivityStatus(thread: thread)
+        });
+    });
 }
