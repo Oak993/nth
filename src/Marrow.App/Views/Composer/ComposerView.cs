@@ -1646,16 +1646,24 @@ public sealed class FileIndex : MainActorModel
     }
 
     // :1219-1233 Substring search on the bytes when both sides are ASCII; a carriage return in the path is the one byte a
-    // grapheme can span, so it takes the general path, as in isSubsequence. On ASCII text a byte search (memmem) and a
-    // search of UTF-16 units are the same search. ENGINEERING DECISION: the general `haystack.contains(needle)` is read as
-    // a literal search, the reading the tree gives Swift's String.contains elsewhere (CommandCodeAPI.cs:333); which
-    // overload Swift picks decides non-ASCII and carriage-return matches, and no oracle item settles that yet.
+    // grapheme can span, so it takes the general path, as in isSubsequence. Swift's comment specifies a Character
+    // walk (:1219-1222), retaining canonical equality (R-STR-2) rather than comparing raw UTF-16 units.
     private static bool Contains(string needle, string @in, bool ascii)
     {
-        if (!ascii) return @in.Contains(needle, StringComparison.Ordinal); // :1224
+        if (!ascii || @in.Contains('\r', StringComparison.Ordinal))
+        {
+            var pattern = SwiftString.Characters(needle).ToArray();
+            var text = SwiftString.Characters(@in).ToArray();
+            for (var start = 0; start <= text.Length - pattern.Length; start++)
+            {
+                var offset = 0;
+                while (offset < pattern.Length && SwiftString.Equal(text[start + offset], pattern[offset])) offset++;
+                if (offset == pattern.Length) return true;
+            }
+            return false;
+        }
         // :1225-1231 memchr(base, 13) finds a carriage return: nil, the general path; otherwise memmem.
-        bool? found = @in.Contains('\r', StringComparison.Ordinal) ? null : @in.Contains(needle, StringComparison.Ordinal);
-        return found ?? @in.Contains(needle, StringComparison.Ordinal); // :1232
+        return @in.Contains(needle, StringComparison.Ordinal); // :1225-1232 ASCII bytes
     }
 
     // :1235-1254 nonisolated static func isSubsequence(_:of:ascii:) -> Bool: on the bytes for ASCII, on Characters
