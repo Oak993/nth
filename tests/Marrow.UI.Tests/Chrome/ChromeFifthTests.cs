@@ -25,8 +25,10 @@ using Chrome = Marrow.UI.Chrome.Chrome; // ED-095: the Swift type Chrome, not th
 // Source under test: DroppyCode/UI/Chrome/Chrome.swift (B2 1fbf81e), part 2 of 4 (R-TEST-3: a new file for this part):
 // PaneTopVeil :579-628, ChromeCompactTitle :630-647, SidebarSymbol :651-668, SidebarIconBadge :670-679,
 // SidebarRow :681-757, RowAccessoryIcon :759-773, SoftAppearModifier/settleGlide/settleFlight :934-1002,
-// ChromeCard :1006-1021, ChromeSection :1023-1047, ChromeRow :1049-1074, ChromeRowDivider :1076-1081,
-// ChromeQuietButtonStyle :275-280, ChromeRevealLayout :282-304 and the colour/motion/token block :36-120.
+// ChromeCard :1006-1027 (B3 52bc792, PR-WIN-202/UI-WIN-052: gained `lazy: Bool = false`, was B2 :1006-1021),
+// ChromeSection :1029-1053, ChromeRow :1055-1080, ChromeRowDivider :1082-1087 (B3 line numbers; +6 from B2's
+// :1023-1047/:1049-1074/:1076-1081), ChromeQuietButtonStyle :275-280, ChromeRevealLayout :282-304 and the
+// colour/motion/token block :36-120.
 // Expected values are transcribed from the Swift and the records, never from the C# under test:
 //   :41 veilHeight = 72; :48-67 the sidebar and card token literals; :76 primaryText = labelColor (ED-051,
 //   SwiftColor.LabelColor); :79 secondaryText = primaryText.opacity(0.7) (ED-062); :98 hover 0.1s ease-out;
@@ -577,11 +579,11 @@ public sealed class ChromeFifthTests(HeadlessSession headless)
         window.Close();
     });
 
-    // ---- PR-WIN-202: ChromeCard ----
+    // ---- PR-WIN-202, UI-WIN-052: ChromeCard (B3 52bc792 :1006-1027, gained `lazy`) ----
 
     [Fact]
-    [Trait("Req", "PR-WIN-202")] // Chrome.swift:1014-1020: continuous rounded-16 fill at overlay(0.03)
-    [Trait("Req", "UI-WIN-052")] // UI/Chrome/Chrome.swift:1006-1021 chrome card fill 0.03, radius 16
+    [Trait("Req", "PR-WIN-202")] // Chrome.swift:1021-1025 (B3, was :1014-1020): continuous rounded-16 fill at overlay(0.03)
+    [Trait("Req", "UI-WIN-052")] // UI/Chrome/Chrome.swift:1006-1027 (B3) chrome card fill 0.03, radius 16
     public void ChromeCard_is_a_16_radius_fill_at_0_03() => headless.OnUiThread(() =>
     {
         var row = new TextBlock { Text = "row" };
@@ -591,6 +593,38 @@ public sealed class ChromeFifthTests(HeadlessSession headless)
         Assert.Equal(16, border.CornerRadius.TopLeft);
         AssertColor(Label(0.03, ThemeVariant.Light), Effective(border.Background));
         Assert.Contains(row, VisualQuery.Descendants<TextBlock>(border));
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-202")] // Chrome.swift:1009 (B3): `var lazy = false` - the default is eager, not lazy
+    [Trait("Req", "UI-WIN-052")] // UI/Chrome/Chrome.swift:1006-1027 (B3) eager-by-default state
+    public void ChromeCard_lazy_defaults_to_false() => headless.OnUiThread(() =>
+    {
+        var card = new ChromeCard(() => new TextBlock { Text = "row" });
+
+        Assert.False(card.Lazy);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-202")] // Chrome.swift:1009, :1015-1016 (B3): a caller can opt a card into lazy: true
+    [Trait("Req", "UI-WIN-052")] // UI/Chrome/Chrome.swift:1006-1027 (B3) lazy (only where the caller passes lazy: true) state
+    public void ChromeCard_records_lazy_true_when_the_caller_passes_it() => headless.OnUiThread(() =>
+    {
+        var card = new ChromeCard(() => new TextBlock { Text = "row" }, lazy: true);
+
+        Assert.True(card.Lazy);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-202")] // Chrome.swift:1015-1019 (B3): Avalonia has no LazyVStack-shaped host for a single already-built subtree, so lazy: true still renders the row (ENGINEERING DECISION: a recorded eager fallback, not a virtualizing host)
+    public void ChromeCard_lazy_true_still_builds_and_shows_its_content() => headless.OnUiThread(() =>
+    {
+        var row = new TextBlock { Text = "row" };
+        var card = new ChromeCard(() => row, lazy: true);
+        var window = Show(card, ThemeVariant.Light);
+
+        Assert.Contains(row, VisualQuery.Descendants<TextBlock>(card));
         window.Close();
     });
 
