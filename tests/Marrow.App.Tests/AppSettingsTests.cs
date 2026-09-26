@@ -13,10 +13,13 @@ using Marrow.UI.Theme;
 
 namespace Marrow.App.Tests;
 
-// Source under test: DroppyCode/App/AppSettings.swift (B2 1fbf81e), part 1 of 5: the Hydra keys and pair lookup, the
+// Source under test: DroppyCode/App/AppSettings.swift (B3 52bc792), part 1 of 5: the Hydra keys and pair lookup, the
 // API key fields over the protected store (OD-0008 A6, B3; OD-0012 E5), the provider switches, binary paths and last
 // models, and the first eight General settings. Every test builds AppSettings on the main loop over a throwaway
 // settings file and an in-memory Credential Manager (Fixtures/AppSettingsFixtures.cs).
+// B3 (PR-PROVAPI-192): the key-provider table below reads back through the shared Services.Providers.APIKeychain
+// (keyed by ProviderKind) instead of the deleted DeepSeekKeychain/MetaKeychain/ZaiKeychain/CommandCodeKeychain
+// wrapper types.
 [Collection("AppSettings")]
 public sealed class AppSettingsTests
 {
@@ -462,17 +465,17 @@ public sealed class AppSettingsTests
     // (provider, account, legacy settings key, stored-key reader)
     private static readonly (ProviderKind Provider, string Account, string LegacyKey, Func<string> Stored)[] KeyProviders =
     [
-        (ProviderKind.Deepseek, "DeepSeek API Key", "deepseekAPIKey", () => DeepSeekKeychain.ApiKey(fallback: "")),
-        (ProviderKind.Meta, "Meta API Key", "metaAPIKey", () => MetaKeychain.ApiKey(fallback: "")),
-        (ProviderKind.Zai, "Z.ai API Key", "zaiAPIKey", () => ZaiKeychain.ApiKey(fallback: "")),
-        (ProviderKind.Commandcode, "Command Code API Key", "commandcodeAPIKey", () => CommandCodeKeychain.ApiKey(fallback: "")),
+        (ProviderKind.Deepseek, "DeepSeek API Key", "deepseekAPIKey", () => APIKeychain.Key(ProviderKind.Deepseek, "")),
+        (ProviderKind.Meta, "Meta API Key", "metaAPIKey", () => APIKeychain.Key(ProviderKind.Meta, "")),
+        (ProviderKind.Zai, "Z.ai API Key", "zaiAPIKey", () => APIKeychain.Key(ProviderKind.Zai, "")),
+        (ProviderKind.Commandcode, "Command Code API Key", "commandcodeAPIKey", () => APIKeychain.Key(ProviderKind.Commandcode, "")),
     ];
 
     private static (ProviderKind Provider, string Account, string LegacyKey, Func<string> Stored) KeyProvider(ProviderKind provider) =>
         KeyProviders.Single(k => k.Provider == provider);
 
-    // The accepted half: the key goes to the protected store (trimmed by APIKeychain.swift:23), the provider's legacy
-    // plaintext entry is removed (AppSettings.swift:371 with :489-490), and no refusal is shown.
+    // The accepted half: the key goes to the protected store (trimmed by APIKeychain.swift:39), the provider's legacy
+    // plaintext entry is removed (AppSettings.swift:369 with :491-494), and no refusal is shown.
     private static void AssertAcceptedKeyIsStoredAndItsLegacyEntryRemoved(ProviderKind provider, Action<AppSettings, string> edit)
     {
         var (_, account, legacyKey, stored) = KeyProvider(provider);
@@ -619,8 +622,8 @@ public sealed class AppSettingsTests
     [InlineData(ProviderKind.Meta)]
     [InlineData(ProviderKind.Zai)]
     [InlineData(ProviderKind.Commandcode)]
-    [Trait("Req", "PR-PROVAPI-011")] // App/AppSettings.swift:487-490; Services/Providers/APIKeychain.swift:24-27
-    [Trait("Req", "PR-PROVREG-239")] // App/AppSettings.swift:367-408; Services/Providers/APIKeychain.swift:24-27
+    [Trait("Req", "PR-PROVAPI-011")] // App/AppSettings.swift:491-494; Services/Providers/APIKeychain.swift:39-43
+    [Trait("Req", "PR-PROVREG-239")] // App/AppSettings.swift:367-408; Services/Providers/APIKeychain.swift:39-43
     public void Emptying_a_key_field_deletes_the_credential_and_removes_the_legacy_entry(ProviderKind provider)
     {
         var (_, account, legacyKey, stored) = KeyProvider(provider);
@@ -675,7 +678,7 @@ public sealed class AppSettingsTests
         scope.Credentials.RefuseWrites = false;
         settings.DeepseekAPIKeyInput = "sk-second";
         Assert.Null(settings.APIKeyRefusal(ProviderKind.Deepseek));
-        Assert.Equal("sk-second", DeepSeekKeychain.ApiKey(fallback: ""));
+        Assert.Equal("sk-second", APIKeychain.Key(ProviderKind.Deepseek, ""));
     });
 
     [Fact]
@@ -1665,8 +1668,9 @@ public sealed class AppSettingsTests
     // ---- PR-SETTINGS-086 to PR-SETTINGS-100, PR-SETTINGS-106, PR-SETTINGS-253 to PR-SETTINGS-259 (part 4 of 5) ----
 
     [Fact]
-    [Trait("Req", "PR-SETTINGS-086")] // App/AppSettings.swift:184, :704, :864-867 (WebsiteCaptures NOT-PORTED, ED-001;
-                                       // porting/dead_code.md entry 44: capture-mode short circuits are user-unreachable)
+    [Trait("Req", "PR-SETTINGS-086")] // App/AppSettings.swift:184, :708, :869 (CaptureRun.defaults NOT-PORTED, ED-001;
+                                       // B2 named the same indirection WebsiteCaptures.defaults; porting/dead_code.md
+                                       // entry 44: capture-mode short circuits are user-unreachable)
     public void Settings_resolve_a_single_store_so_a_write_from_one_construction_is_seen_by_another() => WithSettings((scope, settings) =>
     {
         settings.NotifyWhenFinished = false;
