@@ -3,9 +3,9 @@ using Marrow.Core.Port;
 using Marrow.Services.MCP;
 using Marrow.Services.Store;
 
-// Source: DroppyCode/App/AppDelegate.swift (B3 52bc792), :1-93. Part 1 of 2 ports model (:7), the quit path
+// Source: DroppyCode/App/AppDelegate.swift (B3 52bc792), :1-93. Parts 1 and 2 of 2 port model (:7), the quit path
 // (applicationShouldTerminate(_:) :41-54, applicationWillTerminate(_:) :56-61) and the presentation gate
-// userNotificationCenter(_:willPresent:) (:63-75).
+// userNotificationCenter(_:willPresent:) (:63-75); part 2 added tests of these members and no new member.
 // NOT PORTED YET, each a STOP note at the end of tests/Marrow.App.Tests/AppDelegateTests.cs (missing dependency):
 // applicationDidFinishLaunching(_:) (:9-34), applicationShouldHandleReopen(_:hasVisibleWindows:) (:36-39) and
 // userNotificationCenter(_:didReceive:) (:77-92). Each reads WindowManager.shared or calls its showMain() or

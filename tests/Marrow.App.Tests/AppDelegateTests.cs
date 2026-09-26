@@ -12,9 +12,11 @@ using static Marrow.App.Tests.Fixtures.ReleaseFeed;
 
 namespace Marrow.App.Tests;
 
-// Source: DroppyCode/App/AppDelegate.swift (B3 52bc792), :1-93. Part 1 of 2: the quit path (:41-61) and the
-// notification presentation gate (:63-75). Every expected value is transcribed from the Swift line cited on the test
-// or from the record, never from the C# implementation. B3 lines: the file gained :2 and :10-14 over B2, so B2's
+// Source: DroppyCode/App/AppDelegate.swift (B3 52bc792), :1-93. Parts 1 and 2 of 2: the quit path (:41-61) and the
+// notification presentation gate (:63-75); part 2 adds the PR-WIN and UI-LAUNCH tests of the same members, and the
+// part 2 requirements that need WindowManager are named in the STOP notes at the end of this file. Every expected
+// value is transcribed from the Swift line cited on the test or from the requirement, never from the C#
+// implementation. B3 lines: the file gained :2 and :10-14 over B2, so B2's
 // :2-8 are B3's :3-9 and B2's :9-87 are B3's :15-93 (git diff 1fbf81e 52bc792 -- DroppyCode/App/AppDelegate.swift).
 //
 // MCPHub's list of live server processes is process-wide (MCPHub.swift:21-24); in this assembly only this class
@@ -73,6 +75,7 @@ public sealed class AppDelegateTests
 
     [Fact]
     [Trait("Req", "PR-LAUNCH-049")] // App/AppDelegate.swift:45; App/AppModel+HydraMerge.swift:36
+    [Trait("Req", "PR-WIN-073")] // App/AppDelegate.swift:45
     public void A_quit_while_no_live_runtime_is_merging_is_answered_terminate_now_with_no_wait()
     {
         using var h = new AppModelHarness();
@@ -133,10 +136,111 @@ public sealed class AppDelegateTests
         Assert.True(h.Main.OnMain(() => runtime.IsHydraMerging)); // it went ahead with the merge still running
     }
 
+    [Fact]
+    [Trait("Req", "PR-WIN-073")] // App/AppDelegate.swift:45-53; App/AppModel+HydraMerge.swift:36
+    public void A_quit_waits_while_any_live_chat_is_merging_even_when_the_merging_chat_changes_during_the_wait()
+    {
+        using var h = new AppModelHarness();
+        var project = AppModelSamples.Project("Project", h.NewFolder("project"));
+        var first = AppModelSamples.Thread(project);
+        var second = AppModelSamples.Thread(project);
+        h.WriteLibrary([project], [first, second]);
+        var model = h.MakeModel();
+        var firstRuntime = h.Main.OnMain(() => model.Runtime(first.Id));
+        var secondRuntime = h.Main.OnMain(() => model.Runtime(second.Id));
+        h.Main.OnMain(() => secondRuntime.IsHydraMerging = true); // only the second chat is merging
+        var appDelegate = new AppDelegate { Model = model };
+        var sender = new RecordingTerminationSender();
+
+        var reply = h.Main.OnMain(() => appDelegate.ApplicationShouldTerminate(sender));
+
+        Assert.Equal(NSApplication.TerminateReply.TerminateLater, reply); // :45, :53
+        h.Main.AdvanceMilliseconds(400); // the poll at 0.25 s sees the second chat merging
+        h.Main.OnMain(() =>
+        {
+            firstRuntime.IsHydraMerging = true; // the first chat starts merging as the second one ends
+            secondRuntime.IsHydraMerging = false;
+        });
+        h.Main.AdvanceMilliseconds(700); // to 1.1 s: the polls at 0.5, 0.75 and 1 s see the first chat merging
+        Assert.Empty(sender.Replies);
+        h.Main.OnMain(() => firstRuntime.IsHydraMerging = false);
+        h.Main.AdvanceMilliseconds(149);
+        Assert.Empty(sender.Replies);
+        h.Main.AdvanceMilliseconds(1); // the poll at 1.25 s finds no chat merging (:48) and replies (:51)
+        Assert.Equal([true], sender.Replies);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-WIN-073")] // App/AppDelegate.swift:45-53
+    public void The_deferred_quit_replies_from_a_later_main_turn_and_checks_the_merge_before_its_first_sleep()
+    {
+        using var h = new AppModelHarness();
+        var (model, _, runtime) = ModelWithLiveRuntime(h);
+        h.Main.OnMain(() => runtime.IsHydraMerging = true);
+        var appDelegate = new AppDelegate { Model = model };
+        var sender = new RecordingTerminationSender();
+        var repliesWhenAnswered = -1;
+
+        var reply = h.Main.OnMain(() =>
+        {
+            var answer = appDelegate.ApplicationShouldTerminate(sender);
+            repliesWhenAnswered = sender.Replies.Count;
+            runtime.IsHydraMerging = false; // the merge ends in the same main turn as the quit
+            return answer;
+        });
+
+        Assert.Equal(NSApplication.TerminateReply.TerminateLater, reply); // the merge was running at :45
+        Assert.Equal(0, repliesWhenAnswered); // the wait is a Task (:46), so nothing is replied inside the call
+        Assert.Equal([true], sender.Replies); // the loop head (:48) sees no merge: no 250 ms sleep, no time passes
+    }
+
+    [Fact]
+    [Trait("Req", "PR-WIN-073")] // App/AppDelegate.swift:48-51
+    public void A_merge_that_ends_before_the_first_poll_is_seen_at_250_ms_and_not_sooner()
+    {
+        using var h = new AppModelHarness();
+        var (model, _, runtime) = ModelWithLiveRuntime(h);
+        h.Main.OnMain(() => runtime.IsHydraMerging = true);
+        var appDelegate = new AppDelegate { Model = model };
+        var sender = new RecordingTerminationSender();
+
+        var reply = h.Main.OnMain(() => appDelegate.ApplicationShouldTerminate(sender));
+
+        Assert.Equal(NSApplication.TerminateReply.TerminateLater, reply);
+        h.Main.AdvanceMilliseconds(100);
+        h.Main.OnMain(() => runtime.IsHydraMerging = false); // ends 100 ms into the first 250 ms sleep (:49)
+        h.Main.AdvanceMilliseconds(149);
+        Assert.Empty(sender.Replies);
+        h.Main.AdvanceMilliseconds(1); // the first poll, at 250 ms
+        Assert.Equal([true], sender.Replies);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-WIN-073")] // App/AppDelegate.swift:47-51
+    public void The_four_minute_cap_is_counted_from_the_quit_and_not_from_an_earlier_time()
+    {
+        using var h = new AppModelHarness();
+        var (model, _, runtime) = ModelWithLiveRuntime(h);
+        h.Main.OnMain(() => runtime.IsHydraMerging = true);
+        var appDelegate = new AppDelegate { Model = model };
+        var sender = new RecordingTerminationSender();
+        h.Main.Advance(TimeSpan.FromSeconds(90)); // the merge has been running for a while before the quit
+
+        var reply = h.Main.OnMain(() => appDelegate.ApplicationShouldTerminate(sender));
+
+        Assert.Equal(NSApplication.TerminateReply.TerminateLater, reply);
+        h.Main.Advance(TimeSpan.FromSeconds(4 * 60) - TimeSpan.FromMilliseconds(1)); // deadline = Date.now + 4 * 60 (:47)
+        Assert.Empty(sender.Replies);
+        h.Main.AdvanceMilliseconds(1); // 240 s after the quit, Date.now < deadline is false (:48)
+        Assert.Equal([true], sender.Replies); // replied true with the merge still running (:51)
+        Assert.True(h.Main.OnMain(() => runtime.IsHydraMerging));
+    }
+
     // ===== applicationWillTerminate(_:) :56-61 =====
 
     [Fact]
     [Trait("Req", "PR-LAUNCH-051")] // App/AppDelegate.swift:56-61
+    [Trait("Req", "PR-WIN-074")] // App/AppDelegate.swift:56-61
     public void Termination_saves_the_model_then_flushes_the_live_spend_then_ends_the_MCP_servers()
     {
         using var h = new AppModelHarness();
@@ -165,6 +269,7 @@ public sealed class AppDelegateTests
     [Fact]
     [Trait("Req", "PR-LAUNCH-075")] // App/AppDelegate.swift:57-60
     [Trait("Req", "PR-LAUNCH-051")] // App/AppDelegate.swift:57
+    [Trait("Req", "PR-WIN-074")] // App/AppDelegate.swift:57-60
     public void Termination_with_no_model_skips_the_save_and_still_flushes_the_live_spend_and_ends_the_MCP_servers()
     {
         using var h = new AppModelHarness();
@@ -236,6 +341,50 @@ public sealed class AppDelegateTests
         Assert.Equal(["stubborn:terminate", "polite:terminate", "stubborn:killTree"], log);
         Assert.False(stubborn.IsRunning);
         Assert.False(polite.IsRunning);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-WIN-074")] // App/AppDelegate.swift:56-61
+    public void Termination_stops_every_MCP_server_the_hub_started_and_each_one_finds_the_save_and_the_flush_done()
+    {
+        using var h = new AppModelHarness();
+        var (model, _, _) = ModelWithLiveRuntime(h);
+        var ledger = h.Main.OnMain(FreshTokenLedger.Make);
+        using var ledgerScope = TokenLedger.Shared.Override(ledger);
+        h.Main.OnMain(() => ledger.Record(42)); // a live save is pending, so the flush (:58) writes the file
+        File.Delete(Storage.LibraryURL); // loaded already; only the quit-time save (:57) writes it again
+        var seen = new List<string>();
+        void Look(string server) =>
+            seen.Add(server + ":" + File.Exists(Storage.LibraryURL) + "," + File.Exists(FreshTokenLedger.LiveSpendFile));
+        var first = new RecordingServerProcess("first", onTerminate: () => Look("first"));
+        var second = new RecordingServerProcess("second", onTerminate: () => Look("second"));
+        MCPHub.Track(first);
+        MCPHub.Track(second);
+        var appDelegate = new AppDelegate { Model = model };
+
+        h.Main.OnMain(appDelegate.ApplicationWillTerminate);
+
+        Assert.Equal(["first:True,True", "second:True,True"], seen.Order(StringComparer.Ordinal).ToArray());
+        Assert.False(first.IsRunning);
+        Assert.False(second.IsRunning);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-WIN-074")] // App/AppDelegate.swift:59-60; Services/MCP/MCPHub.swift:367-375
+    public void Termination_ends_a_server_that_outlives_the_graceful_stop_with_its_whole_process_tree()
+    {
+        using var h = new AppModelHarness();
+        var ledger = h.Main.OnMain(FreshTokenLedger.Make);
+        using var ledgerScope = TokenLedger.Shared.Override(ledger);
+        var stubborn = new RecordingServerProcess("stubborn") { ExitsOnTerminate = false };
+        MCPHub.Track(stubborn);
+        var appDelegate = new AppDelegate();
+
+        h.Main.OnMain(appDelegate.ApplicationWillTerminate);
+
+        // The port kills the tree (the group of the requirement's windows_path), never the lone process.
+        Assert.Equal(["terminate", "killTree"], stubborn.Calls);
+        Assert.False(stubborn.IsRunning);
     }
 
     [Fact]
@@ -323,6 +472,7 @@ public sealed class AppDelegateTests
 
     [Theory]
     [Trait("Req", "PR-LAUNCH-063")] // App/AppDelegate.swift:67-68, :74
+    [Trait("Req", "PR-WIN-075")] // App/AppDelegate.swift:67-68, :74
     [InlineData("not-a-uuid")]
     [InlineData("")]
     public void A_threadID_that_does_not_parse_as_a_UUID_shows_a_banner_with_sound(string threadID)
@@ -380,13 +530,131 @@ public sealed class AppDelegateTests
 
         Assert.Equal(UNNotificationPresentationOptions.Banner | UNNotificationPresentationOptions.Sound, options);
     }
+
+    [Theory]
+    [Trait("Req", "PR-WIN-075")] // App/AppDelegate.swift:69-72, :74
+    [InlineData(true, true, UNNotificationPresentationOptions.None)]
+    [InlineData(true, false, UNNotificationPresentationOptions.Banner | UNNotificationPresentationOptions.Sound)]
+    [InlineData(false, true, UNNotificationPresentationOptions.Banner | UNNotificationPresentationOptions.Sound)]
+    [InlineData(false, false, UNNotificationPresentationOptions.Banner | UNNotificationPresentationOptions.Sound)]
+    public void Only_an_active_app_with_the_notified_thread_selected_suppresses_the_banner_and_the_sound(
+        bool appIsActive, bool notifiedThreadIsSelected, UNNotificationPresentationOptions expected)
+    {
+        using var h = new AppModelHarness();
+        var (model, thread, _) = ModelWithLiveRuntime(h);
+        h.Main.OnMain(() => model.SelectedThreadID = thread.Id);
+        using var active = NSApplication.IsActive.Override(() => appIsActive);
+        var appDelegate = new AppDelegate { Model = model };
+        var notifiedID = notifiedThreadIsSelected ? thread.Id : Guid.NewGuid();
+
+        var options = Present(h, appDelegate, ThreadNotification(SwiftUUID.UuidString(notifiedID)));
+
+        Assert.Equal(expected, options);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-WIN-075")] // App/AppDelegate.swift:67-68, :74
+    public void A_notification_with_no_threadID_shows_a_banner_with_sound_while_the_app_is_active()
+    {
+        using var h = new AppModelHarness();
+        var (model, thread, _) = ModelWithLiveRuntime(h);
+        h.Main.OnMain(() => model.SelectedThreadID = thread.Id);
+        using var active = NSApplication.IsActive.Override(() => true);
+        var appDelegate = new AppDelegate { Model = model };
+
+        var options = Present(h, appDelegate, new UNNotification(new Dictionary<string, object>(StringComparer.Ordinal)));
+
+        Assert.Equal(UNNotificationPresentationOptions.Banner | UNNotificationPresentationOptions.Sound, options);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-WIN-075")] // App/AppDelegate.swift:67 `as? String`, :74
+    public void A_threadID_that_is_not_a_string_is_not_read_even_when_it_names_the_selected_thread()
+    {
+        using var h = new AppModelHarness();
+        var (model, thread, _) = ModelWithLiveRuntime(h);
+        h.Main.OnMain(() => model.SelectedThreadID = thread.Id);
+        using var active = NSApplication.IsActive.Override(() => true);
+        var appDelegate = new AppDelegate { Model = model };
+        var notification = new UNNotification(new Dictionary<string, object>(StringComparer.Ordinal) { ["threadID"] = thread.Id });
+
+        var options = Present(h, appDelegate, notification);
+
+        Assert.Equal(UNNotificationPresentationOptions.Banner | UNNotificationPresentationOptions.Sound, options);
+    }
+
+    [Theory]
+    [Trait("Req", "PR-WIN-075")] // App/AppDelegate.swift:67 userInfo["threadID"], :74
+    [InlineData("threadId")]
+    [InlineData("ThreadID")]
+    [InlineData("threadid")]
+    public void Only_the_exact_key_threadID_names_the_thread(string key)
+    {
+        using var h = new AppModelHarness();
+        var (model, thread, _) = ModelWithLiveRuntime(h);
+        h.Main.OnMain(() => model.SelectedThreadID = thread.Id);
+        using var active = NSApplication.IsActive.Override(() => true);
+        var appDelegate = new AppDelegate { Model = model };
+        var notification = new UNNotification(
+            new Dictionary<string, object>(StringComparer.Ordinal) { [key] = SwiftUUID.UuidString(thread.Id) });
+
+        var options = Present(h, appDelegate, notification);
+
+        Assert.Equal(UNNotificationPresentationOptions.Banner | UNNotificationPresentationOptions.Sound, options);
+    }
+
+    [Theory]
+    [Trait("Req", "UI-LAUNCH-005")] // App/AppDelegate.swift:63-75; App/AppModel.swift:1265; App/UpdateChecker.swift:252
+    [InlineData("selected thread", true, true)]
+    [InlineData("selected thread", false, false)]
+    [InlineData("other thread", true, false)]
+    [InlineData("no threadID", true, false)]
+    [InlineData("unparseable threadID", true, false)]
+    [InlineData("update", true, false)]
+    public void The_presentation_is_nothing_for_the_open_chat_and_exactly_a_banner_with_sound_otherwise(
+        string payload, bool appIsActive, bool suppressed)
+    {
+        using var h = new AppModelHarness();
+        var (model, thread, _) = ModelWithLiveRuntime(h);
+        h.Main.OnMain(() => model.SelectedThreadID = thread.Id);
+        using var active = NSApplication.IsActive.Override(() => appIsActive);
+        var appDelegate = new AppDelegate { Model = model };
+        var userInfo = new Dictionary<string, object>(StringComparer.Ordinal);
+        switch (payload)
+        {
+            case "selected thread": userInfo["threadID"] = SwiftUUID.UuidString(thread.Id); break; // AppModel.swift:1265
+            case "other thread": userInfo["threadID"] = SwiftUUID.UuidString(Guid.NewGuid()); break;
+            case "unparseable threadID": userInfo["threadID"] = "not-a-uuid"; break;
+            case "update": userInfo["update"] = "1.7.1"; break; // UpdateChecker.swift:252
+        }
+
+        var options = Present(h, appDelegate, new UNNotification(userInfo));
+
+        // :72 `return []` or :74 `return [.banner, .sound]`; there is no third answer.
+        Assert.Equal(
+            suppressed ? UNNotificationPresentationOptions.None : UNNotificationPresentationOptions.Banner | UNNotificationPresentationOptions.Sound,
+            options);
+    }
 }
 
-// STOP App.AppDelegate #1 (part 1, 2026-09-26)
+// STOP App.AppDelegate #1 (part 1, 2026-09-26; part 2 requirements added 2026-09-26)
 // Kind: missing dependency
 // Swift: DroppyCode/App/AppDelegate.swift:9-34 (B3 52bc792), applicationDidFinishLaunching(_:)
 // Requirements: PR-LAUNCH-025, PR-LAUNCH-026, PR-LAUNCH-028, PR-LAUNCH-029, PR-LAUNCH-037, PR-LAUNCH-038,
-// PR-LAUNCH-046, PR-LAUNCH-047, PR-LAUNCH-071, PR-UPDATE-059
+// PR-LAUNCH-046, PR-LAUNCH-047, PR-LAUNCH-071, PR-UPDATE-059; part 2: PR-UPDATE-090, PR-WIN-068, PR-WIN-070,
+// PR-WIN-071, UI-LAUNCH-001, UI-LAUNCH-002, UI-LAUNCH-003
+// Part 2 re-check (2026-09-26): impl/b2 is still 6ca97d568 and src/Marrow.App/Window/WindowManager.cs is unchanged
+// (Shared, ShowMain, ShowSettings throw MARROW_STUB; branch build/App.Window.WindowManager has no commit). Every other
+// callee of :22-33 is in the tree: AppModel.OpenThreadOnLaunch, AppModel.Bootstrap, AppSettings.HasSeenTour
+// ("hasSeenTour", default false), Tour.Present, UpdateChecker.StartBackgroundChecks, AppUpdater.ConsumeRelaunchMarker
+// and UpdateInstallProgress.ArmCelebration. PR-UPDATE-090, PR-WIN-070 and UI-LAUNCH-002 are the tour gate (:24-26),
+// which the Swift evaluates after windows.showMain() (:22) and windows.model.openThreadOnLaunch() (:23) on the model
+// WindowManager owns; PR-WIN-071 and UI-LAUNCH-003 are :30-33, whose windows.showSettings(page: .about) (:32) is
+// WindowManager's; UI-LAUNCH-001 is the main window :22 shows (WindowManager.swift); PR-WIN-068 is the whole order.
+// B3 change to a part 2 requirement: PR-WIN-068 lists the delegate install as the first step of the launch order
+// (B2 :9); in B3 :13 (URLCache.shared) and :14 (MarkdownDelegationCard.render) run before it (:15), and the
+// capture-run gate it excludes reads CaptureRun.isEnabled (:18) where B2 read WebsiteCaptures.isEnabled. The other
+// part 2 requirements cite B2 lines that B3 only moves (B2 :16-27 are B3 :22-33).
 // What is unclear or missing: from :16 on every line goes through `windows`, WindowManager.shared: :17 takes the
 // model from it, :22 calls showMain(), :23-27 use windows.model, :32 calls showSettings(page: .about).
 // src/Marrow.App/Window/WindowManager.cs is still the c100 skeleton (Shared, the constructor that makes the one
@@ -417,11 +685,12 @@ public sealed class AppDelegateTests
 // awaited (:27); startBackgroundChecks (:28); consumeRelaunchMarker, then armCelebration and showSettings(.about)
 // (:30-33).
 
-// STOP App.AppDelegate #2 (part 1, 2026-09-26)
+// STOP App.AppDelegate #2 (part 1, 2026-09-26; part 2 requirements added 2026-09-26)
 // Kind: missing dependency
 // Swift: DroppyCode/App/AppDelegate.swift:36-39 (B3 52bc792), applicationShouldHandleReopen(_:hasVisibleWindows:),
 // "if !flag { WindowManager.shared.showMain() }" then "return true"
-// Requirements: PR-LAUNCH-048
+// Requirements: PR-LAUNCH-048; part 2: PR-WIN-072 (the same path, the same ED-002 second-launch binding; the part 2
+// re-check of STOP #1 found WindowManager unchanged)
 // What is unclear or missing: the one statement with behaviour calls WindowManager.shared.showMain(), still
 // MARROW_STUB. On Windows the path runs on a second launch of the single-instance app (ED-002, PR-LAUNCH-048
 // windows_path), which also needs the second process to reach the first; DroppyCodeApp.TryAcquireSingleInstanceLock
@@ -432,10 +701,12 @@ public sealed class AppDelegateTests
 // mechanism, owned by the shell or App.DroppyCodeApp).
 // Done so far: nothing implemented at this site; no test written.
 
-// STOP App.AppDelegate #3 (part 1, 2026-09-26)
+// STOP App.AppDelegate #3 (part 1, 2026-09-26; part 2 requirements added 2026-09-26)
 // Kind: missing dependency
 // Swift: DroppyCode/App/AppDelegate.swift:77-92 (B3 52bc792), userNotificationCenter(_:didReceive:)
-// Requirements: PR-LAUNCH-064, PR-LAUNCH-065, PR-UPDATE-024
+// Requirements: PR-LAUNCH-064, PR-LAUNCH-065, PR-UPDATE-024; part 2: PR-WIN-076, the two tap interactions of
+// UI-LAUNCH-005 (its presentation states, :63-75, are implemented and tested above) and the update-notification
+// opening of UI-LAUNCH-003 (:90)
 // What is unclear or missing: the routing calls WindowManager.shared.showMain() (:85) and
 // WindowManager.shared.showSettings(page: .about) (:90), both MARROW_STUB, and NSApp.activate() (:89), whose Windows
 // form WindowManager's present(_:) owns (WindowManager.swift:57-60). No Windows toast activation pipeline exists to
@@ -445,10 +716,11 @@ public sealed class AppDelegateTests
 // Needed to proceed: unit App.Window.WindowManager; the Windows toast delivery and activation unit.
 // Done so far: nothing implemented at this site; no test written.
 
-// STOP App.AppDelegate #4 (part 1, 2026-09-26)
+// STOP App.AppDelegate #4 (part 1, 2026-09-26; part 2 requirements added 2026-09-26)
 // Kind: missing dependency
 // Swift: DroppyCode/App/AppDelegate.swift:1-93 (no applicationShouldTerminateAfterLastWindowClosed), :41-54, :56-61
-// Requirements: PR-LAUNCH-074
+// Requirements: PR-LAUNCH-074; part 2: the close-button and Alt+F4 half of PR-WIN-073 (its deferral, 250 ms poll and
+// four-minute cap are implemented and tested above) and the WM_QUERYENDSESSION note of its windows_path (ED-004)
 // What is unclear or missing: OD-0008 C1 makes the main window's close (and Alt+F4, C2) quit the app through the
 // terminate handshake. The delegate's side is ported and tested here (PR-LAUNCH-049, -050, -051); what is missing is
 // the window and the shell that turn a close into ApplicationShouldTerminate, implement ITerminationSender (continue
