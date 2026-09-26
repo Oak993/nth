@@ -751,6 +751,10 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-012")] // App/Views/Sidebar/SidebarView.swift:165-167, :500-511
+    [Trait("Req", "UI-SIDEBAR-042")] // App/Views/Sidebar/SidebarView.swift:165-167 (part 7: the same row's action, as
+    // a screen-contract record)
+    [Trait("Req", "UI-SIDEBAR-044")] // App/Views/Sidebar/SidebarView.swift:500-512 (part 7: the same dialog, as a
+    // screen-contract record)
     public void Add_project_asks_for_folders_only_several_at_once_with_the_exact_prompt_and_message()
     {
         headless.OnUiThread(() =>
@@ -775,6 +779,8 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-012")] // App/Views/Sidebar/SidebarView.swift:507-510
+    [Trait("Req", "UI-SIDEBAR-044")] // App/Views/Sidebar/SidebarView.swift:507-511 (part 7: confirm adds every chosen
+    // folder as a project and starts a thread in the last, as a screen-contract record)
     public void Add_project_adds_one_project_per_chosen_folder_and_starts_a_thread_in_the_last()
     {
         headless.OnUiThread(() =>
@@ -798,6 +804,8 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-012")] // App/Views/Sidebar/SidebarView.swift:507
+    [Trait("Req", "UI-SIDEBAR-044")] // App/Views/Sidebar/SidebarView.swift:507 (part 7: cancel does nothing at all,
+    // as a screen-contract record)
     public void Cancelling_the_folder_chooser_adds_nothing_and_starts_no_thread()
     {
         headless.OnUiThread(() =>
@@ -843,6 +851,8 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-013")] // App/Views/Sidebar/SidebarView.swift:168-169
+    [Trait("Req", "UI-SIDEBAR-043")] // App/Views/Sidebar/SidebarView.swift:168-175 (part 7: the same gear glyph, as a
+    // screen-contract record)
     public void The_Settings_row_carries_the_gear_at_1_15_scale_and_Add_project_the_plus()
     {
         headless.OnUiThread(() =>
@@ -866,6 +876,9 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     [Trait("Req", "PR-SIDEBAR-013")] // App/Views/Sidebar/SidebarView.swift:170-174; App/Views/Settings/AboutUpdateViews.swift:526-534
     [Trait("Req", "PR-UPDATE-080")] // App/Views/Sidebar/SidebarView.swift:168-175 (part 6: this file's half of the record; the
     // About row's own placement is App/Views/Settings/SettingsView.swift:159-163, a different unit)
+    [Trait("Req", "UI-SIDEBAR-043")] // App/Views/Sidebar/SidebarView.swift:170-174; App/Views/Settings/AboutUpdateViews.swift:526-534
+    // (part 7: the same update dot, as a screen-contract record; OD-0008 C6, OD-0012 I1 keep the dot hidden until the
+    // owner sets a Windows release feed)
     public void The_update_dot_sits_on_the_gear_only_while_an_update_is_available()
     {
         headless.OnUiThread(() =>
@@ -1094,6 +1107,8 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-020")] // App/Views/Sidebar/SidebarView.swift:317-326
+    [Trait("Req", "UI-SIDEBAR-059")] // App/Views/Sidebar/SidebarView.swift:317-326 (part 7: the same arms, as a
+    // screen-contract record)
     public void Settled_rows_the_Settled_header_and_gaps_fade_plainly_and_every_other_row_uses_sidebarRow()
     {
         headless.OnUiThread(() =>
@@ -1135,6 +1150,8 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-020")] // App/Views/Sidebar/SidebarView.swift:1064-1076
+    [Trait("Req", "UI-SIDEBAR-059")] // App/Views/Sidebar/SidebarView.swift:1063-1076 (part 7: the same timing, as a
+    // screen-contract record)
     public void The_sidebarRow_transition_fades_in_over_0_18_after_0_12_and_out_over_0_06()
     {
         var sidebarRow = (SwiftTransition)typeof(SidebarView).Assembly.GetType("Marrow.App.Views.Sidebar.SidebarViewExtensions", throwOnError: true)!
@@ -2126,6 +2143,10 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-044")] // App/Views/Sidebar/SidebarView.swift:705-714
+    [Trait("Req", "UI-SIDEBAR-058")] // App/Views/Sidebar/SidebarView.swift:703-712 (part 7: the gap, project-row and
+    // thread-row sequence, and hasHelpers, as a screen-contract record; the project row's own inertness-but-live-
+    // accessories and the thread rows' project form are proven separately below, since ThreadRow (:870) stays
+    // MARROW_STUB -- STOP #8, SidebarThreadRow's own constructor)
     public void Search_groups_are_separated_by_a_plain_10_point_spacer_that_is_no_list_item()
     {
         headless.OnUiThread(() =>
@@ -2171,6 +2192,8 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-045")] // App/Views/Sidebar/SidebarView.swift:693-703
+    [Trait("Req", "UI-SIDEBAR-041")] // App/Views/Sidebar/SidebarView.swift:692-703 (part 7: the same empty state, as a
+    // screen-contract record)
     public void An_empty_search_shows_No_results_and_the_hint_6_points_apart_with_8_and_14_points_of_padding()
     {
         headless.OnUiThread(() =>
@@ -3100,6 +3123,8 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-073")] // App/Views/Sidebar/SidebarView.swift:2412-2427
+    [Trait("Req", "UI-SIDEBAR-024")] // App/Views/Sidebar/SidebarView.swift:2408-2427 (part 7: the same states, as a
+    // screen-contract record)
     public void The_trailing_status_is_the_hand_then_the_spinner_then_the_unread_dot_then_nothing()
     {
         headless.OnUiThread(() =>
@@ -3313,6 +3338,8 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-075")] // App/Views/Sidebar/SidebarView.swift:2686-2694
+    [Trait("Req", "UI-SIDEBAR-023")] // App/Views/Sidebar/SidebarView.swift:2686-2695 (part 7: the same label, as a
+    // screen-contract record; the B3 colour is Chrome.secondaryText at 0.8, ED-062's 0.7 label colour further scaled)
     public void The_relative_time_label_reads_the_shared_clocks_now_at_subheadline_size_secondaryText_0_8()
     {
         headless.OnUiThread(() =>
@@ -3348,11 +3375,14 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     // Records: PR-SIDEBAR-079, -081, -083, -084, -086, -087, -088, -089, -091, -093, -094, -095, -096, -097, -098,
     // -099, -100, -101, -102, -103, -107, -108, -109, -110.
     //
-    // STOP App.Views.Sidebar.SidebarView #6
+    // STOP App.Views.Sidebar.SidebarView #6 (extended part 7: UI-SIDEBAR-028, -029, -030 name the same site under
+    // the B3 packet's own record ids)
     // Kind: forbidden need
     // Swift: DroppyCode/App/Views/Sidebar/SidebarView.swift:995-1024 (B3 52bc792); :1009 .textFieldStyle(.roundedBorder),
     // :1017 .buttonStyle(.bordered), :1019-1022 .buttonStyle(.borderedProminent)
-    // Requirements: PR-SIDEBAR-091
+    // Requirements: PR-SIDEBAR-091; UI-SIDEBAR-028 (the rename popover as a whole), UI-SIDEBAR-029 (the Title field;
+    // its own site is otherwise unchanged from B1/B2, see this part's b2_change note, so only the field's chrome is
+    // blocked, not its text or behaviour), UI-SIDEBAR-030 (the Cancel/Rename buttons)
     // What is unclear or missing: two AppKit control styles this file needs for the rename popover have no Windows
     // chrome anywhere in this port yet (Marrow.UI.Chrome, Marrow.UI.Port) and no engineering or platform-adaptation
     // decision names either one; this part's own decision list (ED-008, ED-009, ED-010, ED-041, ED-051, ED-059,
@@ -3360,7 +3390,8 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     // porting/engineering_decisions.md and porting/platform_adaptations.md have no "roundedBorder" or
     // "borderedProminent"/"bordered" entry. Every other popover this part ports (Delete, Archive) reuses an
     // already-decided recipe (PopoverItem; OD-0005's `.glass`/`.glassProminent`); inventing a third, undecided one
-    // here would be exactly the invention the contract forbids.
+    // here would be exactly the invention the contract forbids. Part 7's own decision list (ED-193 to ED-206) is
+    // silent on both too; nothing has changed since part 4.
     // Readings or options: (a) treat `.bordered`/`.borderedProminent` as close enough to the already-decided
     // `.glass`/`.glassProminent` recipe and reuse it -> a visible material the source does not ask for on this
     // popover, an invented equivalence; (b) build a new, unstyled rectangle/border recipe for these two roles ->
@@ -3369,7 +3400,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     // `.textFieldStyle(.roundedBorder)` and for `.buttonStyle(.bordered)`/`.buttonStyle(.borderedProminent)`.
     // Done so far: nothing implemented at RenameThreadPopover or SidebarView.RenamePopover; both stay MARROW_STUB.
     // liveRenameTarget (PR-SIDEBAR-093, the ellipsis path's live-thread lookup, :882-887) does not depend on this
-    // site and is proven below.
+    // site and is proven below. Nothing is claimed for UI-SIDEBAR-028, -029 or -030, and no test names them.
 
     private static object? SetProp(object target, string name, object? value)
     {
@@ -3396,6 +3427,9 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-110")] // App/Views/Sidebar/SidebarView.swift:1644-1646
+    [Trait("Req", "UI-SIDEBAR-034")] // App/Views/Sidebar/SidebarView.swift:1636-1660 (part 7: the same connector, as a
+    // screen-contract record; the B3 colour is Chrome.secondaryText at 0.45/0.9, ED-062's 0.7 label colour further
+    // scaled to 0.315/0.63)
     public void The_connectors_colour_is_secondaryText_at_0_45_or_0_9_hovered()
     {
         var type = Private("HelperConnector");
@@ -3460,6 +3494,8 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     [Trait("Req", "PR-SIDEBAR-088")] // App/Views/Sidebar/SidebarView.swift:966-981
     [Trait("Req", "UI-GIT-057")] // App/Views/Sidebar/SidebarView.swift:965-983; App/AppModel.swift:943-966 (part 6: the same
     // popover, as a screen-contract record)
+    [Trait("Req", "UI-SIDEBAR-026")] // App/Views/Sidebar/SidebarView.swift:966-981 (part 7: the same popover, as a
+    // screen-contract record)
     public void The_delete_popover_is_280_wide_with_a_header_a_curly_quoted_note_a_divider_and_delete_rows() => headless.OnUiThread(() =>
     {
         using var harness = new AppModelHarness();
@@ -3486,6 +3522,8 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     [Fact]
     [Trait("Req", "PR-SIDEBAR-088")] // App/Views/Sidebar/SidebarView.swift:977-978
     [Trait("Req", "UI-GIT-057")] // App/Views/Sidebar/SidebarView.swift:977-978 (part 6: the worktree row's own state)
+    [Trait("Req", "UI-SIDEBAR-027")] // App/Views/Sidebar/SidebarView.swift:977-980 (part 7: the same rows, as a
+    // screen-contract record)
     public void The_delete_and_worktree_row_shows_only_with_a_worktree_and_deletes_with_it_true() => headless.OnUiThread(() =>
     {
         using var harness = new AppModelHarness();
@@ -3524,6 +3562,8 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-095")] // App/Views/Sidebar/SidebarView.swift:905-943
+    [Trait("Req", "UI-SIDEBAR-031")] // App/Views/Sidebar/SidebarView.swift:904-964 (part 7: the same popover, as a
+    // screen-contract record; OD-0005 governs the glass material, reproduced as an Acrylic-class Windows material)
     public void The_archive_popover_is_272_wide_asks_Archive_title_and_offers_Delete_and_Archive() => headless.OnUiThread(() =>
     {
         using var harness = new AppModelHarness();
@@ -3553,6 +3593,8 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-095")] // App/Views/Sidebar/SidebarView.swift:927 Text("Delete").foregroundStyle(.red)
+    [Trait("Req", "UI-SIDEBAR-032")] // App/Views/Sidebar/SidebarView.swift:927-940 (part 7: the same buttons, as a
+    // screen-contract record)
     public void The_delete_button_in_the_archive_popover_is_drawn_in_danger() => headless.OnUiThread(() =>
     {
         using var harness = new AppModelHarness();
@@ -4239,6 +4281,8 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-098")] // App/Views/Sidebar/SidebarView.swift:2193-2246, :2253-2312
+    [Trait("Req", "UI-SIDEBAR-025")] // App/Views/Sidebar/SidebarView.swift:2192-2314 (part 7: the same menu items, as a
+    // screen-contract record: order, symbols, Delete… in danger, and the settle/archive swap by threadFinishAction)
     public void The_popover_and_context_menu_lists_carry_the_same_items_in_the_same_order() => headless.OnUiThread(() =>
     {
         using var harness = new AppModelHarness();
@@ -4390,6 +4434,8 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-113")] // App/Views/Sidebar/SidebarView.swift:1564-1620
+    [Trait("Req", "UI-SIDEBAR-035")] // App/Views/Sidebar/SidebarView.swift:1552-1618 (part 7: the same row, as a
+    // screen-contract record)
     public void A_folded_stub_counts_its_helpers_and_says_head_only_when_every_folded_thread_is_a_head() => headless.OnUiThread(() =>
     {
         using var harness = new AppModelHarness();
@@ -4635,6 +4681,8 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-123")] // App/Views/Sidebar/SidebarView.swift:2363-2406
+    [Trait("Req", "UI-SIDEBAR-040")] // App/Views/Sidebar/SidebarView.swift:2363-2406 (part 7: the same header, as a
+    // screen-contract record; the B3 chevron is 10 pt, .caption2, ED-059 (a fixed 9 pt at B1))
     public void The_settled_header_shows_its_count_toggles_the_fold_and_rotates_the_chevron() => headless.OnUiThread(() =>
     {
         using var harness = new AppModelHarness();
@@ -4674,6 +4722,8 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-125")] // App/Views/Sidebar/SidebarView.swift:2345-2358
+    [Trait("Req", "UI-SIDEBAR-039")] // App/Views/Sidebar/SidebarView.swift:2345-2361 (part 7: the same header, as a
+    // screen-contract record)
     public void The_activity_header_is_the_verbatim_title_with_2_or_14pt_of_top_padding() => headless.OnUiThread(() =>
     {
         using var harness = new AppModelHarness();
@@ -5477,4 +5527,305 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             Assert.Null(model.Project(project.Id)!.HydraPairID);
         });
     });
+
+    // ======== Part 7 of 8 ========
+    //
+    // Records: UI-SIDEBAR-023, -024, -025, -026, -027, -031, -032, -034, -035, -039, -040, -041, -042, -043, -044,
+    // -059 (16 of this part's 24) are proven by adding this part's own [Trait] to a test parts 1-6 already wrote for
+    // the identical evidence (grep the id to find the added trait; the sites are RelativeTimeLabel, ActivityStatus,
+    // ThreadActions.Make/MakeContextMenu, DeleteThreadPopover, ArchiveThreadPopover, HelperConnector, HelperStubRow,
+    // ActivityHeader, SettledHeader, NoResults, the Add project/Settings rows and folder chooser, and the sidebarRow
+    // transition). UI-SIDEBAR-058's own gap/project-row/thread-row sequence is proven the same way; the project
+    // row's own inertness-but-live-accessories in a search group is new below, and the thread rows' project form and
+    // disabled reordering stay open under STOP #8 (SidebarThreadRow's own constructor, unchanged from part 6).
+    // SidebarHelperRow's own constructor (UI-SIDEBAR-033) and HeadCardsRow's own constructor (UI-SIDEBAR-036, -037,
+    // -038; the same site as PR-SIDEBAR-121, -122, now also proven except their own context menus) are new this
+    // part, assembled from pieces that were still missing when STOP #7 was written (RowGlideAnimator.Shared.IsHiding
+    // and the per-row hover/menu @State pattern, both landed by parts 5 and 6). Each row's own right-click
+    // .contextMenu is left out: STOP #7 below is narrowed to name it explicitly for these two rows, rather than
+    // resolved, since the same missing per-open-refresh ED/PA foundation still blocks it. UI-SIDEBAR-028, -029, -030
+    // extend STOP #6 (part 4): the rename popover's TextField/Button chrome is still undecided.
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-033")] // App/Views/Sidebar/SidebarView.swift:1317-1425
+    public void A_helper_row_shows_its_head_glyph_selects_on_click_and_swaps_its_overlay_on_hover() => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource()); // the hover fill's own AnimatedColor needs a bound clock
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var head = HeadHelper(project, parent.Id, 0, 1) with { HasUnread = true };
+        var model = Model(harness, [project], [parent, head]);
+        Control row = null!;
+        AvaloniaWindow window = null!;
+        Panel overlayHost = null!;
+        Button selectButton = null!;
+        harness.Main.OnMain(() =>
+        {
+            var requests = Activator.CreateInstance(Private("SidebarMenuRequests"))!;
+            row = (Control)Activator.CreateInstance(Private("SidebarHelperRow"),
+                head, true, requests, (Action)(() => { }), (Action)(() => { }), (Action)(() => { }))!;
+            row.VerticalAlignment = VerticalAlignment.Top; // the row's own 24pt height, not the host's full stretch
+            var host = Hosted(model, row);
+            window = WindowOf(host);
+            window.UpdateLayout();
+
+            var grid = Assert.IsType<Grid>(Get(row, "Child"));
+            var connector = grid.Children[0];
+            Assert.Equal(ThreadRowMetrics.ConnectorWidth, connector.Width); // :1339, this row's own connector column
+            overlayHost = Assert.IsType<Panel>(grid.Children[1]);
+            selectButton = Assert.IsType<Button>(overlayHost.Children[0]);
+
+            Assert.NotEmpty(LogicalQuery.SelfAndDescendants<HydraGlyph>(selectButton)); // :1354-1357 a head keeps its glyph
+            var title = LogicalQuery.SelfAndDescendants<TextBlock>(selectButton).Single(t => t.Text == head.Title); // :1359
+            Assert.Equal(FontWeight.Medium, title.FontWeight); // :1361, hasUnread
+            Assert.Equal(Chrome.PrimaryText.Opacity(0.8).Resolve(title.ActualThemeVariant), ((ISolidColorBrush)title.Foreground!).Color); // :1362, not selected
+
+            Assert.IsType(Private("ActivityStatus"), overlayHost.Children[1]); // :1380, not hovering, no menu open
+
+            Assert.Null(model.SelectedThreadID);
+            Click(selectButton); // :1348-1350
+            Assert.Equal(head.Id, model.SelectedThreadID);
+        });
+        harness.Main.OnMain(() => window.MouseMove(selectButton.TranslatePoint(new Point(10, 10), window)!.Value)); // :1401-1404 .onHover, pumps the posted Track update on return
+        harness.Main.OnMain(() =>
+        {
+            Assert.IsType<RowActionsButton>(overlayHost.Children[1]); // :1376 showsActions -> the ellipsis
+            window.Close();
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-033")] // App/Views/Sidebar/SidebarView.swift:1348-1409
+    public void A_selected_helper_rows_title_is_medium_weight_at_0_96_with_the_selection_fill() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var helper = NewThread(project, "Helper", 1) with { ParentThreadID = parent.Id };
+        var model = Model(harness, [project], [parent, helper]);
+        harness.Main.OnMain(() =>
+        {
+            model.SelectedThreadID = helper.Id; // :1340 model.isSelected(thread.id)
+            var requests = Activator.CreateInstance(Private("SidebarMenuRequests"))!;
+            var row = (Control)Activator.CreateInstance(Private("SidebarHelperRow"),
+                helper, false, requests, (Action)(() => { }), (Action)(() => { }), (Action)(() => { }))!;
+            var host = Hosted(model, row);
+            WindowOf(host).UpdateLayout();
+
+            var grid = Assert.IsType<Grid>(Get(row, "Child"));
+            var overlayHost = Assert.IsType<Panel>(grid.Children[1]);
+            var selectButton = Assert.IsType<Button>(overlayHost.Children[0]);
+            var title = LogicalQuery.SelfAndDescendants<TextBlock>(selectButton).Single(t => t.Text == helper.Title);
+            Assert.Equal(FontWeight.Medium, title.FontWeight); // :1361, isSelected
+            Assert.Equal(Chrome.PrimaryText.Opacity(0.96).Resolve(title.ActualThemeVariant), ((ISolidColorBrush)title.Foreground!).Color); // :1362
+            Assert.Empty(LogicalQuery.SelfAndDescendants<HydraGlyph>(selectButton)); // :1354, not a head
+            WindowOf(host).Close();
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-036")] // App/Views/Sidebar/SidebarView.swift:1427-1548
+    [Trait("Req", "UI-SIDEBAR-037")] // App/Views/Sidebar/SidebarView.swift:1472-1507
+    [Trait("Req", "PR-SIDEBAR-121")] // App/Views/Sidebar/SidebarView.swift:1472-1507 (B2 id, same site; the right-click
+    // .contextMenu at :1490-1500 is not attached -- STOP #7 below)
+    [Trait("Req", "PR-SIDEBAR-122")] // App/Views/Sidebar/SidebarView.swift:1440-1551
+    public void A_head_card_selects_a_head_on_click_and_rings_the_selected_glyph() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        // :1010 OrderedHeads sorts newest createdAt first among finished heads, so headA (the one selected below)
+        // is given the later minute to land at index 0.
+        var headB = HeadHelper(project, parent.Id, 1, 1);
+        var headA = HeadHelper(project, parent.Id, 0, 2);
+        var model = Model(harness, [project], [parent, headA, headB]);
+        harness.Main.OnMain(() => model.SelectedThreadID = headA.Id); // :1479 model.isSelected(head.id)
+        harness.Main.OnMain(() =>
+        {
+            var requests = Activator.CreateInstance(Private("SidebarMenuRequests"))!;
+            var card = (Control)Activator.CreateInstance(Private("HeadCardsRow"),
+                parent, new[] { headA, headB }, requests, (Action)(() => { }))!;
+            var host = Hosted(model, card);
+            var window = WindowOf(host);
+            window.UpdateLayout(); // :1544 onGeometryChange(width) fires from the real layout pass
+
+            var buttons = LogicalQuery.SelfAndDescendants<Button>(card)
+                .Where(b => LogicalQuery.SelfAndDescendants<HydraGlyph>(b).Any()).ToList();
+            Assert.Equal(2, buttons.Count); // :1466-1509 one glyph button per head
+
+            var selectedGlyph = LogicalQuery.SelfAndDescendants<HydraGlyph>(buttons[0]).Single();
+            var selectedHost = (Panel)selectedGlyph.Parent!;
+            Assert.Equal(2, selectedHost.Children.Count); // :1479-1483 the disc sits behind the selected head's glyph
+            var disc = Assert.IsType<Avalonia.Controls.Shapes.Ellipse>(selectedHost.Children[0]);
+            Assert.Equal(ThreadRowMetrics.HeadGlyphSize + 6, disc.Width); // :1481 padding(-3) each side
+            Assert.Equal(Chrome.Overlay(0.14).Resolve(disc.ActualThemeVariant), ((ISolidColorBrush)disc.Fill!).Color);
+
+            var unselectedGlyph = LogicalQuery.SelfAndDescendants<HydraGlyph>(buttons[1]).Single();
+            Assert.Single(((Panel)unselectedGlyph.Parent!).Children); // :1479, headB is not selected: no disc
+
+            Assert.Equal(headA.Id, model.SelectedThreadID);
+            Click(buttons[1]); // :1473-1475
+            Assert.Equal(headB.Id, model.SelectedThreadID);
+            window.Close();
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-037")] // App/Views/Sidebar/SidebarView.swift:1484-1499
+    public void A_head_glyph_scales_1_18_on_hover_and_carries_the_dotted_tooltip_and_comma_label() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual); // the hover scale animates (Chrome.hover)
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var head = HeadHelper(project, parent.Id, 0, 1);
+        var model = Model(harness, [project], [parent, head]);
+        AvaloniaWindow window = null!;
+        Control card = null!;
+        // The card's own width arrives through onGeometryChange (:1544) and can settle in more than one layout
+        // pass, rebuilding the row's controls each time (ApplyEntries' own diff does not reach inside this card);
+        // re-querying by the glyph's own HydraGlyph, rather than holding a captured Button/ScaleTransform, survives
+        // that rebuild the way ChevronOf() does below for the chevron.
+        Button HeadButton() => (Button)LogicalQuery.SelfAndDescendants<HydraGlyph>(card).Single().Parent!.Parent!;
+        ScaleTransform Scale() => (ScaleTransform)((Panel)LogicalQuery.SelfAndDescendants<HydraGlyph>(card).Single().Parent!).RenderTransform!;
+        harness.Main.OnMain(() =>
+        {
+            var requests = Activator.CreateInstance(Private("SidebarMenuRequests"))!;
+            card = (Control)Activator.CreateInstance(Private("HeadCardsRow"),
+                parent, new[] { head }, requests, (Action)(() => { }))!;
+            card.VerticalAlignment = VerticalAlignment.Top; // the card's own measured height, not the host's full stretch
+            var host = Hosted(model, card);
+            window = WindowOf(host);
+            window.UpdateLayout();
+
+            var button = HeadButton();
+            Assert.Equal($"{head.Hydra!.Persona.Name} · {head.Hydra!.Task}", ToolTip.GetTip(button)); // :1490
+            Assert.Equal($"{head.Hydra!.Persona.Name}, {head.Hydra!.Task}", AutomationProperties.GetName(button)); // :1499
+            Assert.Equal(1d, Scale().ScaleX);
+        });
+        harness.Main.OnMain(() => window.MouseMove(HeadButton().TranslatePoint(new Point(7, 7), window)!.Value)); // :1486-1488 .onHover, pumps the posted Track update on return
+        for (var i = 0; i < 20; i++) { harness.Main.Advance(TimeSpan.FromMilliseconds(16)); manual.Advance(TimeSpan.FromMilliseconds(16)); }
+        harness.Main.OnMain(() =>
+        {
+            Assert.Equal(1.18, Scale().ScaleX, 3); // :1484
+            window.Close();
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-038")] // App/Views/Sidebar/SidebarView.swift:1514-1526
+    public void The_head_cards_chevron_toggles_all_heads_with_the_right_glyph_and_tooltip_and_snappy_animation() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var heads = Enumerable.Range(0, 13).Select(i => HeadHelper(project, parent.Id, i, i + 1)).ToList();
+        var model = Model(harness, [project, ], heads.Prepend(parent).ToList());
+        AvaloniaWindow window = null!;
+        Control card = null!;
+        Button ChevronOf() => LogicalQuery.SelfAndDescendants<Button>(card)
+            .Single(b => LogicalQuery.SelfAndDescendants<SwiftImage>(b).Any(i => i.SymbolName?.StartsWith("chevron", StringComparison.Ordinal) == true));
+        harness.Main.OnMain(() =>
+        {
+            var requests = Activator.CreateInstance(Private("SidebarMenuRequests"))!;
+            card = (Control)Activator.CreateInstance(Private("HeadCardsRow"),
+                parent, heads, requests, (Action)(() => { }))!;
+            var host = Hosted(model, card);
+            window = WindowOf(host);
+            window.UpdateLayout();
+
+            var chevron = ChevronOf();
+            var glyph = LogicalQuery.SelfAndDescendants<SwiftImage>(chevron).Single();
+            Assert.Equal("chevron.down", glyph.SymbolName); // :1516, collapsed: 13 > 12
+            Assert.Equal("Show all 13 heads", ToolTip.GetTip(chevron)); // :1526
+
+            Click(chevron); // :1515-1516, .snappy(duration: 0.18)
+        });
+        // A separate harness.Main.OnMain call, as SettledHeader's own regression does: OnMain pumps the manual loop
+        // to idle on return, which is what runs Tracked<T>'s MainActor.Post(Update) after the click's mutation, not
+        // Dispatcher.UIThread.RunJobs (a different queue).
+        harness.Main.OnMain(() =>
+        {
+            var buttons = LogicalQuery.SelfAndDescendants<Button>(card).Where(b => LogicalQuery.SelfAndDescendants<HydraGlyph>(b).Any()).ToList();
+            Assert.Equal(13, buttons.Count); // :1443 showsAllHeads -> every head
+
+            var expandedChevron = ChevronOf();
+            var expandedGlyph = LogicalQuery.SelfAndDescendants<SwiftImage>(expandedChevron).Single();
+            Assert.Equal("chevron.up", expandedGlyph.SymbolName); // :1516
+            Assert.Equal("Show fewer heads", ToolTip.GetTip(expandedChevron)); // :1526
+            window.Close();
+        });
+    });
+
+    // ---- UI-SIDEBAR-058: a search group's project row stays inert but keeps its live hover accessories ----
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-058")] // App/Views/Sidebar/SidebarView.swift:709 ProjectRow(..., togglesExpansion: false)
+    public void A_search_groups_project_row_never_toggles_but_still_shows_its_hover_ellipsis_and_plus() => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource()); // the hover fill's own AnimatedColor needs a bound clock
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Fix it", 1);
+        var model = Model(harness, [project], [thread]);
+        AvaloniaWindow window = null!;
+        Control row = null!;
+        Button button = null!;
+        harness.Main.OnMain(() =>
+        {
+            var view = Detached(model);
+            SearchBox(view).Text = "fix";
+            var helpers = Helpers(view);
+            var entries = Items(Call(view, "SearchEntries", Call(view, "SearchResults", helpers), helpers));
+            var projectEntry = entries.Single(entry => Get(entry, "Value") is ValueTuple<Project, long>);
+            row = ((Func<Control>)Get(projectEntry, "Make")!)(); // :709 ProjectRow(result.project, result.count, togglesExpansion: false)
+            row.VerticalAlignment = VerticalAlignment.Top; // the row's own 28pt height, not the host's full stretch (ShownProjectRow's own pattern)
+            var host = Hosted(model, row);
+            window = WindowOf(host);
+            window.UpdateLayout();
+
+            var wasExpanded = model.Project(project.Id)!.IsExpanded;
+            button = ButtonNamed(row, "Alpha"); // SidebarRow's own title button
+            Click(button);
+            Assert.Equal(wasExpanded, model.Project(project.Id)!.IsExpanded); // :1101 guard togglesExpansion else return: inert
+        });
+        harness.Main.OnMain(() => window.MouseMove(row.TranslatePoint(new Point(10, 10), window)!.Value)); // :1116 hovering, pumps the posted Track update on return
+        harness.Main.OnMain(() =>
+        {
+            Assert.NotNull(LogicalQuery.SelfAndDescendants<RowActionsButton>(row).SingleOrDefault()); // :1117-1118, still live
+            window.Close();
+        });
+    });
+
+    // STOP App.Views.Sidebar.SidebarView #7 (narrowed part 7: SidebarHelperRow's and HeadCardsRow's own constructors
+    // are now built, along with every other record this part names; ProjectRow's own PR-SIDEBAR-133 stays the
+    // longest-standing item, unresolved since part 6)
+    // Kind: forbidden need
+    // Swift: DroppyCode/App/Views/Sidebar/SidebarView.swift:1138-1161 ProjectRow's own <c>.contextMenu</c>;
+    // :1387-1397 SidebarHelperRow's own <c>.contextMenu</c>; :1490-1500 HeadCardsRow's own per-glyph
+    // <c>.contextMenu</c> (B3 52bc792)
+    // Requirements: PR-SIDEBAR-133 (ProjectRow's live AppKit context menu); PR-SIDEBAR-130 (the "Remove project"
+    // confirmation gated behind it); the right-click interaction named in UI-SIDEBAR-033 ("right-click opens the
+    // helper's context menu") and in UI-SIDEBAR-037 ("right-click opens the head's context menu with settleFirst
+    // false") -- every other interaction, state and geometry each record names is proven above.
+    // What is unclear or missing: SwiftUI's <c>.contextMenu</c> modifier re-evaluates its content fresh every time
+    // the menu opens (all three sites cited above), and no ED or platform-adaptation entry names a Windows/Avalonia
+    // foundation for that per-open refresh (porting/engineering_decisions.md and porting/platform_adaptations.md
+    // have no ".contextMenu" or "ContextMenu" entry). A menu attached once, at construction time, would go stale the
+    // first time the underlying snapshot changed without the row itself being rebuilt: an invented, silently wrong
+    // behaviour. This part built SidebarHelperRow's and HeadCardsRow's own constructors in full otherwise, once
+    // RowGlideAnimator.Shared.IsHiding(_:) and the per-row hover/menu @State pattern (both named missing when this
+    // STOP was opened at part 5) were confirmed already in the tree (HelperStubRow, part 5; ProjectRow, part 6).
+    // Readings or options: (a) build a menu fixed at construction time -> goes stale, an invented behaviour the
+    // contract forbids more than an honest gap does; (b) invent a rebuild-on-open hook with no ED/PA backing -> the
+    // same objection.
+    // Needed to proceed: an engineering or platform-adaptation decision naming the Windows/Avalonia foundation for
+    // SwiftUI's <c>.contextMenu</c> re-evaluation-on-open (then PR-SIDEBAR-130's request field and popover follow).
+    // Done so far: ProjectRow's own body, contextMenuActions, actions(isActive:), BuildContextMenuItems and
+    // ProjectPairMenuItems are proven directly (part 6); SidebarHelperRow's own constructor and HeadCardsRow's own
+    // constructor are proven directly above, including their ellipsis-popover/click-to-select/hover-scale/selection-
+    // ring/chevron pieces; nothing is claimed for PR-SIDEBAR-133 or -130, or for the right-click interaction alone
+    // of UI-SIDEBAR-033/-037, and no test names them.
 }
