@@ -12,7 +12,7 @@ using Marrow.Testing;
 
 namespace Marrow.Services.Tests.Providers;
 
-// Source: DroppyCode/Services/Providers/CodexSession.swift (B2 1fbf81e), :1-1052.
+// Source: DroppyCode/Services/Providers/CodexSession.swift (B3 52bc792), :1-1059.
 //
 // Tests for unit Services.Providers.CodexSession part 1 of 4 (PR-PROVCLI-065 to 088): the executable guard,
 // the connect handshake (fixed "app-server" argv, bare-line framing, the Marrow client identity, the 20 second
@@ -1203,7 +1203,7 @@ public sealed class CodexSessionTests
     // ---- PR-PROVCLI-095 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-095")] // CodexSession.swift:336-340
+    [Trait("Req", "PR-PROVCLI-095")] // CodexSession.swift:338-343 (B3)
     public void StopAgent_interrupts_that_heads_own_thread_and_turn()
     {
         using var storage = new StorageScratchFolder();
@@ -1225,7 +1225,7 @@ public sealed class CodexSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-095")] // CodexSession.swift:336
+    [Trait("Req", "PR-PROVCLI-095")] // CodexSession.swift:338-339 (B3)
     public void StopAgent_returns_false_for_an_unknown_head_or_a_head_with_no_running_turn()
     {
         using var storage = new StorageScratchFolder();
@@ -1236,6 +1236,23 @@ public sealed class CodexSessionTests
 
         PrivateField<HashSet<string>>(session, "headThreads").Add("head-2"); // known head, but no recorded turn
         Assert.False(Resolved(session.StopAgent("head-2")));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-095")] // CodexSession.swift:338-339 (B3)
+    public void StopAgent_returns_false_for_the_leads_own_thread_id_even_if_it_is_in_headThreads()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("stop-agent-lead-id");
+        var session = StartedSession(runtime, script); // threadID "t1"
+        // The lead's own thread id, oddly also recorded as a head with a running turn.
+        PrivateField<HashSet<string>>(session, "headThreads").Add("t1");
+        PrivateField<Dictionary<string, string>>(session, "headTurns")["t1"] = "turn-1";
+        var before = script.MessageCount(0);
+
+        Assert.False(Resolved(session.StopAgent("t1")));
+        Assert.Equal(before, script.MessageCount(0)); // nothing sent: the lead's own thread is never a stoppable head
     }
 
     // ---- PR-PROVCLI-096 ----
@@ -1696,7 +1713,7 @@ public sealed class CodexSessionTests
     // ---- PR-PROVCLI-110, 111 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-110")] // CodexSession.swift:598-612
+    [Trait("Req", "PR-PROVCLI-110")] // CodexSession.swift:601-615 (B3)
     public void HandleNotification_tokenUsage_on_the_lead_emits_usage_and_records_the_delta_from_the_growing_total()
     {
         using var storage = new StorageScratchFolder();
@@ -1730,7 +1747,7 @@ public sealed class CodexSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-110")] // CodexSession.swift:610-611
+    [Trait("Req", "PR-PROVCLI-110")] // CodexSession.swift:613-614 (B3)
     public void HandleNotification_tokenUsage_without_a_positive_total_spends_the_per_update_used_value()
     {
         using var storage = new StorageScratchFolder();
@@ -1748,7 +1765,41 @@ public sealed class CodexSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-111")] // CodexSession.swift:613-625
+    [Trait("Req", "PR-PROVCLI-110")] // CodexSession.swift:147-150 (B3)
+    public void Send_switching_the_turns_model_updates_activeModel_so_a_later_lead_spend_names_the_new_model()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("send-switch-model");
+        var session = StartedSession(runtime, script); // activeModel becomes "gpt-5.1-codex" from thread/start's reply
+        script.SetResponse("turn/start", "{}");
+
+        // A turn that names a different model switches activeModel to that turn's model.
+        var input = new TurnInput
+        {
+            Text = "x",
+            Images = ValueList<Attachment>.Empty,
+            Model = "gpt-6-codex",
+            RuntimeMode = RuntimeMode.Supervised,
+            InteractionMode = InteractionMode.Build,
+        };
+        Run(runtime, session.Send(input));
+        Assert.Equal("gpt-6-codex", PrivateField<string?>(session, "activeModel"));
+
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+        runtime.OnMain(() => InvokePrivate(session, "HandleNotification", "thread/tokenUsage/updated", JSONValue.FromDictionaryLiteral(
+            ("tokenUsage", JSONValue.FromDictionaryLiteral(
+                ("last", JSONValue.FromDictionaryLiteral(("totalTokens", 10L))),
+                ("total", JSONValue.FromDictionaryLiteral(("totalTokens", 10L))))))));
+
+        // Lead spend and TokenLedger records name the model of the turn that just ran, not the thread's original model.
+        var spend = Assert.Single(events.OfType<ProviderEvent.TokenSpend>());
+        Assert.Equal("gpt-6-codex", spend.Value.Model);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-111")] // CodexSession.swift:616-628 (B3)
     public void HandleNotification_tokenUsage_on_a_head_tracks_its_own_spend_and_reports_agentProgress()
     {
         using var storage = new StorageScratchFolder();
@@ -1940,7 +1991,7 @@ public sealed class CodexSessionTests
     // ---- PR-PROVCLI-116, PR-PROVCLI-440 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-116")]
+    [Trait("Req", "PR-PROVCLI-116")] // CodexSession.swift:681-682,698-704 (B3)
     [Trait("Req", "PR-PROVCLI-440")]
     public void HandleNotification_thread_started_registers_a_head_whose_parent_is_the_lead_and_records_its_model()
     {
@@ -1964,7 +2015,7 @@ public sealed class CodexSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-116")]
+    [Trait("Req", "PR-PROVCLI-116")] // CodexSession.swift:681-682,684-695 (B3)
     [Trait("Req", "PR-PROVCLI-440")]
     public void HandleNotification_thread_started_adopts_an_unrelated_thread_by_nickname_or_role_and_logs_it()
     {
@@ -1990,7 +2041,7 @@ public sealed class CodexSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-116")]
+    [Trait("Req", "PR-PROVCLI-116")] // CodexSession.swift:684-685 (B3)
     public void HandleNotification_thread_started_ignores_an_unrelated_thread_with_no_nickname_or_role()
     {
         using var storage = new StorageScratchFolder();
@@ -2005,6 +2056,25 @@ public sealed class CodexSessionTests
 
         Assert.Empty(events);
         Assert.DoesNotContain("head-3", PrivateField<HashSet<string>>(session, "headThreads"));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-116")] // CodexSession.swift:681-682 (B3)
+    public void HandleNotification_thread_started_naming_the_leads_own_thread_id_is_ignored_even_with_a_nickname()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("thread-started-lead-id");
+        var session = StartedSession(runtime, script); // threadID "t1"
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+
+        // Carries an agentNickname, which would otherwise be enough to adopt it: exclusion runs first.
+        InvokePrivate(session, "HandleNotification", "thread/started", JSONValue.FromDictionaryLiteral(
+            ("thread", JSONValue.FromDictionaryLiteral(("id", "t1"), ("parentThreadId", "not-t1"), ("agentNickname", "scout")))));
+
+        Assert.Empty(events);
+        Assert.DoesNotContain("t1", PrivateField<HashSet<string>>(session, "headThreads"));
     }
 
     // ---- PR-PROVCLI-117 ----
@@ -2150,7 +2220,7 @@ public sealed class CodexSessionTests
     // ---- PR-PROVCLI-119 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-119")]
+    [Trait("Req", "PR-PROVCLI-119")] // CodexSession.swift:760-761,776,778-779 (B3)
     public void HandleNotification_collabAgentToolCall_spawnAgent_registers_each_receiver_as_a_head()
     {
         using var storage = new StorageScratchFolder();
@@ -2177,7 +2247,7 @@ public sealed class CodexSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-119")]
+    [Trait("Req", "PR-PROVCLI-119")] // CodexSession.swift:765 (B3)
     public void HandleNotification_collabAgentToolCall_ignores_a_call_that_is_not_spawnAgent()
     {
         using var storage = new StorageScratchFolder();
@@ -2195,10 +2265,32 @@ public sealed class CodexSessionTests
         Assert.DoesNotContain("head-c", PrivateField<HashSet<string>>(session, "headThreads"));
     }
 
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-119")] // CodexSession.swift:777 (B3)
+    public void HandleNotification_collabAgentToolCall_spawnAgent_skips_a_receiver_equal_to_the_leads_own_thread_id()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("spawn-agent-lead-receiver");
+        var session = StartedSession(runtime, script); // threadID "t1"
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+
+        InvokePrivate(session, "HandleNotification", "item/started", JSONValue.FromDictionaryLiteral(("item", JSONValue.FromDictionaryLiteral(
+            ("id", "spawn-2"), ("type", "collabAgentToolCall"), ("tool", "spawnAgent"), ("prompt", "go build it"),
+            ("receiverThreadIds", new JSONValue.Array(new ValueList<JSONValue>([new JSONValue.String("t1"), new JSONValue.String("head-d")])))))));
+
+        var starts = events.OfType<ProviderEvent.AgentStarted>().ToList();
+        var start = Assert.Single(starts); // only head-d, not the lead's own thread id
+        Assert.Equal("head-d", start.Value.Id);
+        Assert.DoesNotContain("t1", PrivateField<HashSet<string>>(session, "headThreads"));
+        Assert.Contains("head-d", PrivateField<HashSet<string>>(session, "headThreads"));
+    }
+
     // ---- PR-PROVCLI-120 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-120")]
+    [Trait("Req", "PR-PROVCLI-120")] // CodexSession.swift:781-784 (B3)
     public void HandleNotification_subAgentActivity_adopts_an_unknown_head_and_logs_it_then_ends_it_on_completed()
     {
         using var storage = new StorageScratchFolder();
@@ -2226,7 +2318,7 @@ public sealed class CodexSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-120")]
+    [Trait("Req", "PR-PROVCLI-120")] // CodexSession.swift:784,799-801 (B3)
     public void HandleNotification_subAgentActivity_does_not_readopt_an_already_known_head_and_ends_it_on_interrupted()
     {
         using var storage = new StorageScratchFolder();
@@ -2243,6 +2335,29 @@ public sealed class CodexSessionTests
         Assert.Empty(events.OfType<ProviderEvent.AgentStarted>());
         var finished = Assert.Single(events.OfType<ProviderEvent.AgentFinished>());
         Assert.Equal(TurnStatus.Interrupted, finished.Status);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-120")] // CodexSession.swift:782-783 (B3)
+    public void HandleNotification_subAgentActivity_naming_the_leads_own_thread_does_nothing()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("sub-agent-activity-lead-id");
+        var session = StartedSession(runtime, script); // threadID "t1"
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+        var logged = new List<string>();
+
+        using (Logger.Sink.Override((message, _) => logged.Add(message)))
+        {
+            InvokePrivate(session, "HandleNotification", "item/completed", JSONValue.FromDictionaryLiteral(("item", JSONValue.FromDictionaryLiteral(
+                ("id", "note-3"), ("type", "subAgentActivity"), ("agentThreadId", "t1"), ("agentPath", "root/worker_two"), ("kind", "completed")))));
+        }
+
+        Assert.Empty(events);
+        Assert.Empty(logged);
+        Assert.DoesNotContain("t1", PrivateField<HashSet<string>>(session, "headThreads"));
     }
 
     // ---- PR-PROVCLI-121 ----
