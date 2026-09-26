@@ -13,7 +13,8 @@ using Marrow.UI.Port;
 // as a table in the source's order, each with its action, its enablement rule and its chord; Port/MenuKeyEquivalents.cs
 // dispatches the chords with no menu present. The groups, the "Thread" menu and the dividers (:24, :32, :52, :84, :99)
 // are drawn by nothing, so they have no entries. Chords are named in Windows notation (OD-0008 B7, ED-050, ED-099).
-// Parts 1 and 2 of 3 (App.AppCommands): :1-115 except the two sites below. Not written here:
+// Parts 1 to 3 of 3 (App.AppCommands): :1-115 except the two sites below. Part 3 (the UI contract's menu-item records
+// of :48-113) adds no member: its items are the entries parts 1 and 2 wrote. Not written here:
 // - :12-15 (the Settings item) and :21-25 (the app-name item that shows the main window) call WindowManager.shared,
 //   still MARROW_STUB (App/Window/WindowManager.cs): STOP App.AppCommands #1 in tests/Marrow.App.Tests/AppCommandsTests.cs.
 // - :17-19 replaces the save placement with nothing, so it has no entry; Ctrl+W stays free for the archive command and

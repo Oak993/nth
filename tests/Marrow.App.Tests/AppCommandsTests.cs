@@ -22,6 +22,8 @@ namespace Marrow.App.Tests;
 // new-item and sidebar groups (:12-51), the Thread menu's first sixteen items (:65-98) and the help group (:111-113).
 // Part 2 of 3: the zoom items (:52-62), the Thread menu's last three items (:99-108), and the menu-item records of the
 // UI contract for the commands of part 1 (their order, chords and enablement, with no menu drawn).
+// Part 3 of 3: the menu-item records of the UI contract for the Thread menu (:65-109), the activity toggle (:48-51),
+// the zoom items (:53-62) and the help group (:111-113): place, title, chord, enablement and rebinding.
 // DEVIATION OD-0008 C3: the port draws no menu bar. The body is a table of the same commands, each with its action,
 // its enablement rule and its chord, and the port dispatches the chords itself (Port/MenuKeyEquivalents.cs), so these
 // tests press chords rather than open menus. Chords are the defaults of Core/Models/Shortcuts.swift:216-234 in Windows
@@ -1093,8 +1095,11 @@ public sealed class AppCommandsTests(HeadlessSession headless)
 
             model.SelectedThreadID = thread.Id;
             Assert.False(On(commands, CtrlW).IsDisabled);
+            // Part 3 correction: reading the body with a selection makes the thread's runtime (:7-9, :68; AppModel.swift
+            // :434-439), so an empty thread would be deleted with no question (AppModel.swift:906-910, STOP #3). Something
+            // typed for it keeps it from being that empty thread, so it is asked about.
+            model.Runtime(thread.Id).Draft = new ComposerDraft { Text = "keep" };
             Assert.True(commands.PerformKeyEquivalent(CtrlW));
-            // No runtime was ever made for the thread, so it is asked about rather than deleted (AppModel.swift:906-910).
             Assert.Equal(thread.Id, model.AppModelArchiveRequest?.ThreadID);
             Assert.False(model.Thread(thread.Id)!.IsArchived);
         });
@@ -1113,6 +1118,9 @@ public sealed class AppCommandsTests(HeadlessSession headless)
         AppModelHarness.WriteDocument(thread.Id);
         var model = new AppModel();
         model.SelectedThreadID = thread.Id;
+        // Part 3 correction: the press reads the body, which makes the thread's runtime (:7-9), and an empty thread with
+        // a runtime is deleted with no question (AppModel.swift:906-910, STOP #3); a draft keeps this one to be asked about.
+        model.Runtime(thread.Id).Draft = new ComposerDraft { Text = "keep" };
         var commands = new AppCommands(model);
         var window = Show(new ThreadWindow());
         var passed = Passed(window);
@@ -1544,6 +1552,793 @@ public sealed class AppCommandsTests(HeadlessSession headless)
             }
         });
     }
+
+    // ================================================================================================================
+    // Part 3 of 3
+    // ================================================================================================================
+
+    // :65-109 CommandMenu("Thread"): its eighteen items start at "Stop" (:66), a title no other item carries.
+    private static int ThreadMenuStart(IReadOnlyList<MenuCommand> body)
+    {
+        var start = body.Select(command => command.Title).ToList().IndexOf("Stop");
+        Assert.True(start >= 0);
+        return start;
+    }
+
+    private static List<MenuCommand> ThreadMenu(IReadOnlyList<MenuCommand> body) => body.Skip(ThreadMenuStart(body)).Take(18).ToList();
+
+    // Shortcuts.swift:249, :259-265: the recorded chords as UserDefaults holds them. A plain JSONEncoder writes an
+    // unsorted object, so either order of KeyChord's two keys is the Swift's (R-TEST-4; precedent
+    // Marrow.Core.Tests/Models/ShortcutsTests.cs AssertStoredChord).
+    private static void AssertStoredChord(AppModelHarness h, string raw, long keyCode, ulong modifiers)
+    {
+        var stored = Assert.IsType<byte[]>(h.Defaults.Object("keyboardShortcuts"));
+        var code = "\"keyCode\":" + keyCode.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        var mods = "\"modifiers\":" + modifiers.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        var prefix = "{\"" + raw + "\":{\"chord\":{";
+        string[] permutations = [prefix + code + "," + mods + "}}}", prefix + mods + "," + code + "}}}"];
+        Assert.Contains(permutations, permutation => System.Text.Encoding.UTF8.GetBytes(permutation).AsSpan().SequenceEqual(stored));
+    }
+
+    // ===== UI-WIN-015: Toggle activity view =====
+
+    [Fact]
+    [Trait("Req", "UI-WIN-015")] // App/AppCommands.swift:37-52; Core/Models/Shortcuts.swift:184, :232; UI/Chrome/Chrome.swift:100-104
+    public void Toggle_activity_view_is_the_fifth_view_toggle_on_ctrl_alt_u_never_disabled_with_the_zoom_items_right_after_it()
+    {
+        using var h = new AppModelHarness();
+        using var motion = Chrome.ReduceMotionPlatform.Override(new FakeGeniePlatform { AccessibilityDisplayShouldReduceMotion = false });
+        using var shared = ShortcutStore.Shared.Override(h.Main.OnMain(FreshStore));
+        var project = AppModelSamples.Project("P", h.NewFolder("p"));
+        var thread = AppModelSamples.Thread(project);
+        var model = Model(h, [project], [thread]);
+        var commands = h.Main.OnMain(() => new AppCommands(model));
+
+        h.Main.OnMain(() =>
+        {
+            foreach (var selected in new Guid?[] { null, thread.Id })
+            {
+                model.SelectedThreadID = selected;
+                var body = commands.Body;
+                var titles = body.Select(command => command.Title).ToList();
+                var index = titles.IndexOf("Toggle activity view");
+                // :38, :40, :42, :45 before it: the fifth of the five.
+                Assert.Equal(["Toggle sidebar", "Command palette", "Toggle terminal", "Toggle changes"], titles.Skip(index - 4).Take(4));
+                // :52 the divider after it is drawn by no menu, so the first zoom item (:53) follows it directly.
+                Assert.Equal("Zoom In", titles[index + 1]);
+                Assert.Equal(CtrlAltU, body[index].Shortcut);
+                Assert.False(body[index].IsDisabled); // :48-51 carry no .disabled
+            }
+            // OD-0008 B7: Option-Command-U (key code 32 with option and command, Shortcuts.swift:232) reads Ctrl+Alt+U.
+            Assert.Equal("Ctrl+Alt+U", ShortcutStore.Label(AppShortcut.ToggleActivityView));
+            // Shortcuts.swift:184: the shortcut settings list titles the same command "Activity view".
+            Assert.Equal("Activity view", AppShortcut.ToggleActivityView.Title());
+        });
+
+        // :49 withAnimation(Chrome.panelSlide): the flip lands inside the spring 0.32 / 0.9 (Chrome.swift:101-103).
+        var applied = new List<(bool Value, Animation? Animation)>();
+        using var tracked = h.Main.OnMain(() => new Tracked<bool>(() => model.Settings.SidebarActivityView, value => applied.Add((value, Transaction.Current))));
+        h.Main.OnMain(() => Assert.True(commands.PerformKeyEquivalent(CtrlAltU)));
+        Assert.Equal(new (bool Value, Animation? Animation)[] { (false, null), (true, Animation.Spring(response: 0.32, dampingFraction: 0.9)) }, applied);
+    }
+
+    // ===== UI-WIN-016: the Thread menu =====
+
+    [Fact]
+    [Trait("Req", "UI-WIN-016")] // App/AppCommands.swift:65-109; App/AppModel.swift:855-858; App/AppSettings.swift:716
+    public void The_thread_menu_holds_nine_named_and_nine_numbered_commands_in_order_between_the_zoom_items_and_the_tour()
+    {
+        using var h = new AppModelHarness();
+        using var shared = ShortcutStore.Shared.Override(h.Main.OnMain(FreshStore));
+        var model = Model(h, [], []);
+
+        h.Main.OnMain(() =>
+        {
+            var body = new AppCommands(model).Body;
+            var start = ThreadMenuStart(body);
+            // :66, :74, :78 | :85, :87, :89, :95-98 | :100, :103, :106. Nothing selected and the finish setting at its
+            // default, settle (AppSettings.swift:716), so the finish item reads "Settle thread" (AppModel.swift:857).
+            // U+2026 HORIZONTAL ELLIPSIS.
+            string[] titles =
+            [
+                "Stop", "Queue a chat", "Toggle plan mode",
+                "Previous thread", "Next thread", "Run top script",
+                "Thread 1", "Thread 2", "Thread 3", "Thread 4", "Thread 5", "Thread 6", "Thread 7", "Thread 8", "Thread 9",
+                "Settle thread", "Archive thread\U00002026", "Settle thread",
+            ];
+            KeyboardShortcut?[] chords =
+            [
+                CtrlPeriod, CtrlReturn, CtrlShiftP,
+                CtrlShiftTab, CtrlTab, CtrlR,
+                CtrlDigit(1), CtrlDigit(2), CtrlDigit(3), CtrlDigit(4), CtrlDigit(5), CtrlDigit(6), CtrlDigit(7), CtrlDigit(8), CtrlDigit(9),
+                CtrlShiftDelete, CtrlW, CtrlS,
+            ];
+            Assert.Equal(titles, body.Skip(start).Take(18).Select(command => command.Title));
+            Assert.Equal(chords, body.Skip(start).Take(18).Select(command => command.Shortcut));
+            // The dividers at :84 and :99 are drawn by no menu, so the three blocks run on with no entry between them. The
+            // view group ends right before the menu with the hidden Zoom In (:60-62) and the help group (:111-113) follows it.
+            Assert.Equal(CtrlEquals, body[start - 1].Shortcut);
+            Assert.Equal("Welcome tour", body[start + 18].Title);
+        });
+    }
+
+    // ===== UI-WIN-017: Stop =====
+
+    [Fact]
+    [Trait("Req", "UI-WIN-017")] // App/AppCommands.swift:7-9, :66-68; Core/Models/Shortcuts.swift:171, :219
+    public void Stop_is_the_first_thread_command_on_ctrl_period_and_is_on_only_while_the_selected_threads_runtime_runs()
+    {
+        using var h = new AppModelHarness();
+        using var shared = ShortcutStore.Shared.Override(h.Main.OnMain(FreshStore));
+        var project = AppModelSamples.Project("P", h.NewFolder("p"));
+        var working = AppModelSamples.Thread(project);
+        var idle = AppModelSamples.Thread(project);
+        var model = Model(h, [project], [working, idle]);
+        var runtime = h.Main.OnMain(() => model.Runtime(working.Id));
+        h.Main.Loop.Run(() => runtime.EnsureLoaded(), AppModelHarness.Bound);
+
+        h.Main.OnMain(() =>
+        {
+            var commands = new AppCommands(model);
+            var stop = ThreadMenu(commands.Body)[0];
+            Assert.Equal("Stop", stop.Title);
+            Assert.Equal(CtrlPeriod, stop.Shortcut);
+            Assert.True(stop.IsDisabled); // :68 nothing selected: runtime?.isRunning ?? false
+
+            model.SelectedThreadID = working.Id;
+            Assert.True(ThreadMenu(commands.Body)[0].IsDisabled); // selected, not running
+            runtime.RehearseTurn("working");
+            Assert.False(ThreadMenu(commands.Body)[0].IsDisabled);
+
+            // Another thread selected while the first still runs: the selected thread's own runtime decides.
+            model.SelectedThreadID = idle.Id;
+            Assert.True(ThreadMenu(commands.Body)[0].IsDisabled);
+            Assert.False(commands.PerformKeyEquivalent(CtrlPeriod));
+            Assert.True(runtime.IsRunning);
+
+            Assert.Equal("Ctrl+.", ShortcutStore.Label(AppShortcut.StopTurn)); // OD-0008 B7: Command-period
+            Assert.Equal("Stop the running turn", AppShortcut.StopTurn.Title()); // Shortcuts.swift:171
+        });
+    }
+
+    // ===== UI-WIN-018: Queue a chat =====
+
+    [Fact]
+    [Trait("Req", "UI-WIN-018")] // App/AppCommands.swift:69-77; Core/Models/Shortcuts.swift:172, :220
+    public void Queue_a_chat_is_the_second_thread_command_on_ctrl_return_and_is_off_with_no_selection_an_empty_draft_or_an_approval()
+    {
+        using var h = new AppModelHarness();
+        using var shared = ShortcutStore.Shared.Override(h.Main.OnMain(FreshStore));
+        var project = AppModelSamples.Project("P", h.NewFolder("p"));
+        var thread = AppModelSamples.Thread(project);
+        var model = Model(h, [project], [thread]);
+        var runtime = h.Main.OnMain(() => model.Runtime(thread.Id));
+        h.Main.Loop.Run(() => runtime.EnsureLoaded(), AppModelHarness.Bound);
+
+        h.Main.OnMain(() =>
+        {
+            var commands = new AppCommands(model);
+            MenuCommand Queue() => ThreadMenu(commands.Body)[1];
+            Assert.Equal("Queue a chat", Queue().Title);
+            Assert.Equal(CtrlReturn, Queue().Shortcut);
+
+            runtime.Draft = new ComposerDraft { Text = "next step" };
+            Assert.True(Queue().IsDisabled); // :76 nothing selected: runtime?.draftIsEmpty ?? true
+
+            // :76-77 read only the draft and the approvals: with a draft and nothing running the item is on, the case
+            // queueDraftAsFollowUp answers by sending the draft (ThreadRuntime.swift:780-785; STOP #5 below).
+            model.SelectedThreadID = thread.Id;
+            Assert.False(runtime.IsRunning);
+            Assert.False(Queue().IsDisabled);
+            runtime.RehearseTurn("working");
+            Assert.False(Queue().IsDisabled);
+
+            runtime.Draft = new ComposerDraft();
+            Assert.True(Queue().IsDisabled); // the draft is empty
+            Assert.False(commands.PerformKeyEquivalent(CtrlReturn));
+
+            runtime.Draft = new ComposerDraft { Text = "next step" };
+            runtime.Rehearse(new ProviderEvent.Approval(new ApprovalRequest("approval", ApprovalRequest.Kind.Command, "Command", ValueList<ApprovalRequest.Option>.Empty)));
+            Assert.True(Queue().IsDisabled); // :77 an approval is pending
+            Assert.False(commands.PerformKeyEquivalent(CtrlReturn));
+            Assert.Empty(runtime.FollowUps);
+
+            Assert.Equal("Ctrl+Return", ShortcutStore.Label(AppShortcut.QueueChat)); // OD-0008 B7: Command-Return
+            Assert.Equal("Queue a chat", AppShortcut.QueueChat.Title()); // Shortcuts.swift:172
+        });
+    }
+
+    // ===== UI-WIN-019: Toggle plan mode =====
+
+    [Fact]
+    [Trait("Req", "UI-WIN-019")] // App/AppCommands.swift:78-84; Core/Models/Shortcuts.swift:173, :221
+    public void Toggle_plan_mode_is_the_third_thread_command_on_ctrl_shift_p_keeping_one_title_in_either_mode()
+    {
+        using var h = new AppModelHarness();
+        using var shared = ShortcutStore.Shared.Override(h.Main.OnMain(FreshStore));
+        var project = AppModelSamples.Project("P", h.NewFolder("p"));
+        var thread = AppModelSamples.Thread(project);
+        var model = Model(h, [project], [thread]);
+
+        h.Main.OnMain(() =>
+        {
+            var commands = new AppCommands(model);
+            var item = ThreadMenu(commands.Body)[2];
+            Assert.Equal("Toggle plan mode", item.Title);
+            Assert.Equal(CtrlShiftP, item.Shortcut);
+            Assert.True(item.IsDisabled); // :83
+
+            model.SelectedThreadID = thread.Id;
+            foreach (var mode in new[] { InteractionMode.Plan, InteractionMode.Build })
+            {
+                Assert.False(ThreadMenu(commands.Body)[2].IsDisabled);
+                Assert.True(commands.PerformKeyEquivalent(CtrlShiftP));
+                Assert.Equal(mode, model.Thread(thread.Id)!.InteractionMode); // :80
+                // :78 a constant title: no checkmark and no word for the mode in force.
+                Assert.Equal("Toggle plan mode", ThreadMenu(commands.Body)[2].Title);
+            }
+            // :84 the divider after it is drawn by no menu: Previous thread comes next.
+            Assert.Equal("Previous thread", ThreadMenu(commands.Body)[3].Title);
+
+            Assert.Equal("Ctrl+Shift+P", ShortcutStore.Label(AppShortcut.TogglePlanMode)); // OD-0008 B7: Shift-Command-P
+            Assert.Equal("Plan mode", AppShortcut.TogglePlanMode.Title()); // Shortcuts.swift:173
+        });
+    }
+
+    // ===== UI-WIN-020, UI-WIN-021: previous and next thread =====
+
+    [Fact]
+    [Trait("Req", "UI-WIN-020")] // App/AppCommands.swift:85-86; Core/Models/Shortcuts.swift:174, :222
+    [Trait("Req", "UI-WIN-021")] // App/AppCommands.swift:87-88; Core/Models/Shortcuts.swift:175, :223
+    public void Previous_and_next_thread_are_the_fourth_and_fifth_thread_commands_on_the_tab_chords_and_never_disabled()
+    {
+        using var h = new AppModelHarness();
+        using var shared = ShortcutStore.Shared.Override(h.Main.OnMain(FreshStore));
+        var model = Model(h, [], []);
+
+        h.Main.OnMain(() =>
+        {
+            // No thread at all and nothing selected: neither carries a .disabled.
+            var menu = ThreadMenu(new AppCommands(model).Body);
+            Assert.Equal(("Previous thread", (KeyboardShortcut?)CtrlShiftTab, false), (menu[3].Title, menu[3].Shortcut, menu[3].IsDisabled));
+            Assert.Equal(("Next thread", (KeyboardShortcut?)CtrlTab, false), (menu[4].Title, menu[4].Shortcut, menu[4].IsDisabled));
+
+            // OD-0008 B7: Control-Shift-Tab and Control-Tab.
+            Assert.Equal("Ctrl+Shift+Tab", ShortcutStore.Label(AppShortcut.PreviousThread));
+            Assert.Equal("Ctrl+Tab", ShortcutStore.Label(AppShortcut.NextThread));
+            Assert.Equal("Previous thread", AppShortcut.PreviousThread.Title()); // Shortcuts.swift:174
+            Assert.Equal("Next thread", AppShortcut.NextThread.Title()); // Shortcuts.swift:175
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "UI-WIN-020")] // App/AppCommands.swift:85-86; App/Window/ThreadWindow.swift:25-38
+    [Trait("Decision", "ED-099")]
+    public void In_the_main_window_the_tab_chord_of_previous_thread_is_taken_by_the_window_and_a_rebound_chord_reaches_the_command() => headless.OnUiThread(() =>
+    {
+        using var h = new AppModelHarness(withRuntime: false);
+        var store = FreshStore();
+        using var shared = ShortcutStore.Shared.Override(store);
+        var project = AppModelSamples.Project("P", h.NewFolder("p"));
+        h.WriteLibrary([project], [AppModelSamples.Thread(project), AppModelSamples.Thread(project), AppModelSamples.Thread(project)]);
+        var model = new AppModel();
+        var order = model.SidebarThreads.Select(thread => thread.Id).ToList();
+        model.SelectedThreadID = order[1];
+        var commands = new AppCommands(model);
+        var window = Show(new ThreadWindow());
+        var steps = new List<long>();
+        window.SelectThread = steps.Add;
+        var passed = Passed(window);
+        using var attached = MenuKeyEquivalents.Attach(window, commands.PerformKeyEquivalent);
+
+        // ThreadWindow.swift:26-35: the default is a Tab chord, which the window takes before any menu sees it.
+        Press(window, Key.Tab, PhysicalKey.Tab, RawInputModifiers.Control | RawInputModifiers.Shift);
+        Assert.Equal([-1L], steps);
+        Assert.Equal(order[1], model.SelectedThreadID);
+        Assert.Empty(passed);
+
+        // Rebound off the Tab key (Y, scan code 0x15, with Ctrl and Alt), the chord goes the menu's way: the command runs
+        // selectThread(offset: -1) (AppModel.swift:1109-1117) and the window's handler is not involved.
+        var rebound = new KeyChord(0x15, ChordModifiers.Control | ChordModifiers.Alt);
+        Assert.Null(store.Refusal(rebound, AppShortcut.PreviousThread));
+        store.Set(rebound, AppShortcut.PreviousThread);
+        Press(window, Key.Y, PhysicalKey.Y, RawInputModifiers.Control | RawInputModifiers.Alt);
+        Assert.Equal([-1L], steps);
+        Assert.Equal(order[0], model.SelectedThreadID);
+        Assert.Empty(passed);
+
+        // The old chord now belongs to no command, so nothing takes it.
+        Press(window, Key.Tab, PhysicalKey.Tab, RawInputModifiers.Control | RawInputModifiers.Shift);
+        Assert.Equal([-1L], steps);
+        Assert.Equal(order[0], model.SelectedThreadID);
+        Assert.Equal([Key.Tab], passed);
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Req", "UI-WIN-021")] // App/AppCommands.swift:87-88; App/Window/ThreadWindow.swift:25-38
+    [Trait("Decision", "ED-099")]
+    public void In_the_main_window_one_tab_chord_recorded_for_both_directions_selects_the_next_thread() => headless.OnUiThread(() =>
+    {
+        using var h = new AppModelHarness(withRuntime: false);
+        var store = FreshStore();
+        using var shared = ShortcutStore.Shared.Override(store);
+        var project = AppModelSamples.Project("P", h.NewFolder("p"));
+        h.WriteLibrary([project], [AppModelSamples.Thread(project), AppModelSamples.Thread(project)]);
+        var model = new AppModel();
+        var commands = new AppCommands(model);
+        var window = Show(new ThreadWindow());
+        var steps = new List<long>();
+        window.SelectThread = steps.Add;
+        var passed = Passed(window);
+        using var attached = MenuKeyEquivalents.Attach(window, commands.PerformKeyEquivalent);
+
+        // Control-Tab, next thread's default, recorded for previous thread as well (set does not refuse, :300-302).
+        store.Set(new KeyChord(0x0F, ChordModifiers.Control), AppShortcut.PreviousThread);
+        Assert.Equal(store.Chord(AppShortcut.NextThread), store.Chord(AppShortcut.PreviousThread));
+
+        // ThreadWindow.swift:28-35 tests next before previous.
+        Press(window, Key.Tab, PhysicalKey.Tab, RawInputModifiers.Control);
+        Assert.Equal([1L], steps);
+        Assert.Null(model.SelectedThreadID);
+        Assert.Empty(passed);
+        window.Close();
+    });
+
+    // ===== UI-WIN-022: the run-script item =====
+
+    [Fact]
+    [Trait("Req", "UI-WIN-022")] // App/AppCommands.swift:89-94; App/AppModel.swift:1098-1101; Core/Models/Shortcuts.swift:176, :224
+    public void The_run_script_item_is_the_sixth_thread_command_on_ctrl_r_titled_Run_and_the_scripts_own_name_verbatim()
+    {
+        using var h = new AppModelHarness();
+        using var shared = ShortcutStore.Shared.Override(h.Main.OnMain(FreshStore));
+        var scripted = AppModelSamples.Project("Scripted", h.NewFolder("scripted")) with
+        {
+            Scripts = new ValueList<ProjectScript>([new ProjectScript("build", "Write-Output built"), new ProjectScript("Test", "Write-Output tested")]),
+        };
+        var plain = AppModelSamples.Project("Plain", h.NewFolder("plain"));
+        var scriptedThread = AppModelSamples.Thread(scripted);
+        var plainThread = AppModelSamples.Thread(plain);
+        var model = Model(h, [scripted, plain], [scriptedThread, plainThread]);
+
+        h.Main.OnMain(() =>
+        {
+            var commands = new AppCommands(model);
+            // AppModel.swift:1099 finds the top script only through the selected thread, so with nothing selected there
+            // is none, whatever scripts a project holds, and :94 disables the item. (The record UI-WIN-022 lists "enabled
+            // with a script even when no thread is selected"; the Swift gives no such state. Reported for correction.)
+            (Guid? Selected, string Title, bool Disabled)[] cases =
+            [
+                (null, "Run top script", true),
+                (plainThread.Id, "Run top script", true),
+                (scriptedThread.Id, "Run build", false), // :89 "Run " and the first script's name, case kept
+            ];
+            foreach (var (selected, title, disabled) in cases)
+            {
+                model.SelectedThreadID = selected;
+                var item = ThreadMenu(commands.Body)[5];
+                Assert.Equal(title, item.Title);
+                Assert.Equal(CtrlR, item.Shortcut);
+                Assert.Equal(disabled, item.IsDisabled);
+            }
+
+            Assert.Equal("Ctrl+R", ShortcutStore.Label(AppShortcut.RunScript)); // OD-0008 B7: Command-R
+            Assert.Equal("Run top script", AppShortcut.RunScript.Title()); // Shortcuts.swift:176
+        });
+    }
+
+    // ===== UI-WIN-023: Thread 1 to Thread 9 =====
+
+    [Fact]
+    [Trait("Req", "UI-WIN-023")] // App/AppCommands.swift:95-99; Core/Models/Shortcuts.swift:251-257, :320-334
+    public void Thread_1_to_Thread_9_follow_the_run_script_item_on_ctrl_and_their_digit_never_disabled_and_never_rebindable()
+    {
+        using var h = new AppModelHarness();
+        var store = h.Main.OnMain(FreshStore);
+        using var shared = ShortcutStore.Shared.Override(store);
+        var model = Model(h, [], []);
+
+        h.Main.OnMain(() =>
+        {
+            var commands = new AppCommands(model);
+            var menu = ThreadMenu(commands.Body);
+            // Items seven to fifteen. With no thread at all none is disabled, and each still takes its chord.
+            for (var number = 1; number <= 9; number++)
+            {
+                var item = menu[5 + number];
+                Assert.Equal("Thread " + number.ToString(System.Globalization.CultureInfo.InvariantCulture), item.Title); // :96
+                Assert.Equal(CtrlDigit(number), item.Shortcut); // :97
+                Assert.False(item.IsDisabled);
+                Assert.True(commands.PerformKeyEquivalent(CtrlDigit(number)));
+                Assert.Null(model.SelectedThreadID);
+            }
+            // :99 the divider after Thread 9 is drawn by no menu: the finish item comes next.
+            Assert.Equal(CtrlShiftDelete, menu[15].Shortcut);
+
+            // :97 hard-coded, outside the store: no command of the shortcut list stands for them.
+            var listed = SwiftEnum<AppShortcut>.AllCases.Select(shortcut => shortcut.Title()).ToHashSet(StringComparer.Ordinal);
+            for (var number = 1; number <= 9; number++)
+                Assert.DoesNotContain("Thread " + number.ToString(System.Globalization.CultureInfo.InvariantCulture), listed);
+            // Shortcuts.swift:255: the same nine chords are reserved, so the store refuses each of them to every command
+            // (:329, in the OD-0008 B8 wording). ED-099 (2): the number row 1 to 9 is scan codes 0x02 to 0x0A.
+            foreach (var code in new long[] { 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A })
+                foreach (var shortcut in SwiftEnum<AppShortcut>.AllCases)
+                    Assert.Equal("Windows or Marrow already uses this chord.", store.Refusal(new KeyChord(code, ChordModifiers.Control), shortcut));
+        });
+    }
+
+    // ===== UI-WIN-024: the finish item =====
+
+    [Fact]
+    [Trait("Req", "UI-WIN-024")] // App/AppCommands.swift:99-102; App/AppModel.swift:855-858; App/AppSettings.swift:716; Core/Models/Shortcuts.swift:177, :225
+    public void The_finish_item_opens_the_last_block_on_ctrl_shift_delete_with_three_titles_and_needs_a_selection()
+    {
+        using var h = new AppModelHarness();
+        using var shared = ShortcutStore.Shared.Override(h.Main.OnMain(FreshStore));
+        var project = AppModelSamples.Project("P", h.NewFolder("p"));
+        var open = AppModelSamples.Thread(project);
+        var settled = AppModelSamples.Thread(project) with { IsSettled = true };
+        var model = Model(h, [project], [open, settled]);
+
+        h.Main.OnMain(() =>
+        {
+            var commands = new AppCommands(model);
+            // AppSettings.swift:716: settle unless Archive was chosen.
+            Assert.Equal(ThreadFinishAction.Settle, model.Settings.ThreadFinishAction);
+            // AppModel.swift:856-857: "Reopen thread" only with settle chosen and a settled thread selected.
+            (ThreadFinishAction Action, Guid? Selected, string Title, bool Disabled)[] cases =
+            [
+                (ThreadFinishAction.Settle, null, "Settle thread", true),
+                (ThreadFinishAction.Settle, open.Id, "Settle thread", false),
+                (ThreadFinishAction.Settle, settled.Id, "Reopen thread", false),
+                (ThreadFinishAction.Archive, null, "Archive thread", true),
+                (ThreadFinishAction.Archive, open.Id, "Archive thread", false),
+                (ThreadFinishAction.Archive, settled.Id, "Archive thread", false),
+            ];
+            foreach (var (action, selected, title, disabled) in cases)
+            {
+                model.Settings.ThreadFinishAction = action;
+                model.SelectedThreadID = selected;
+                var menu = ThreadMenu(commands.Body);
+                Assert.Equal("Thread 9", menu[14].Title);
+                Assert.Equal(title, menu[15].Title);
+                Assert.Equal(CtrlShiftDelete, menu[15].Shortcut);
+                Assert.Equal(disabled, menu[15].IsDisabled); // :102
+            }
+
+            // The shortcut settings list's "Finish thread" (Shortcuts.swift:177) is a fourth string, never the item's.
+            Assert.Equal("Finish thread", AppShortcut.FinishThread.Title());
+            Assert.Equal("Ctrl+Shift+Delete", ShortcutStore.Label(AppShortcut.FinishThread)); // OD-0008 B7: Shift-Command-Delete
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "UI-WIN-024")] // App/AppCommands.swift:100-101; Core/Models/Shortcuts.swift:115-117, :259-265, :300-302
+    [Trait("Req", "UI-WIN-025")] // App/AppCommands.swift:103-104; Core/Models/Shortcuts.swift:118-119, :259-265, :300-302
+    public void A_chord_recorded_for_the_finish_item_is_stored_under_archiveThread_and_one_for_the_archive_item_under_archiveThreadPrompt()
+    {
+        using var h = new AppModelHarness();
+        var store = h.Main.OnMain(FreshStore);
+        using var shared = ShortcutStore.Shared.Override(store);
+        var model = Model(h, [], []);
+
+        h.Main.OnMain(() =>
+        {
+            var commands = new AppCommands(model);
+            // Shortcuts.swift:117 finishThread = "archiveThread", its old name; :119 archiveThread = "archiveThreadPrompt".
+            Assert.Equal("archiveThread", SwiftEnum<AppShortcut>.RawValue(AppShortcut.FinishThread));
+            Assert.Equal("archiveThreadPrompt", SwiftEnum<AppShortcut>.RawValue(AppShortcut.ArchiveThread));
+
+            // Ctrl+Alt with "[" (scan code 0x1A) for the finish item: stored under "archiveThread", taken by the item.
+            var finish = new KeyChord(0x1A, ChordModifiers.Control | ChordModifiers.Alt);
+            Assert.Null(store.Refusal(finish, AppShortcut.FinishThread));
+            store.Set(finish, AppShortcut.FinishThread);
+            AssertStoredChord(h, "archiveThread", 0x1A, 3);
+            Assert.Equal(Chord("[", ChordModifiers.Control | ChordModifiers.Alt), ThreadMenu(commands.Body)[15].Shortcut);
+            Assert.DoesNotContain(commands.Body, command => command.Shortcut == CtrlShiftDelete);
+
+            // Back to its default, then Ctrl+Alt with "]" (0x1B) for the archive item: stored under "archiveThreadPrompt".
+            store.Reset(AppShortcut.FinishThread);
+            var archive = new KeyChord(0x1B, ChordModifiers.Control | ChordModifiers.Alt);
+            Assert.Null(store.Refusal(archive, AppShortcut.ArchiveThread));
+            store.Set(archive, AppShortcut.ArchiveThread);
+            AssertStoredChord(h, "archiveThreadPrompt", 0x1B, 3);
+            var menu = ThreadMenu(commands.Body);
+            Assert.Equal(CtrlShiftDelete, menu[15].Shortcut);
+            Assert.Equal(Chord("]", ChordModifiers.Control | ChordModifiers.Alt), menu[16].Shortcut);
+            Assert.DoesNotContain(commands.Body, command => command.Shortcut == CtrlW);
+        });
+    }
+
+    // ===== UI-WIN-025: Archive thread (with U+2026) =====
+
+    [Fact]
+    [Trait("Req", "UI-WIN-025")] // App/AppCommands.swift:103-105; App/AppModel.swift:902-912; Core/Models/Shortcuts.swift:178, :226
+    public void Archive_thread_with_its_ellipsis_is_the_seventeenth_thread_command_on_ctrl_w_and_asks_for_the_selected_thread()
+    {
+        using var h = new AppModelHarness();
+        using var shared = ShortcutStore.Shared.Override(h.Main.OnMain(FreshStore));
+        var project = AppModelSamples.Project("P", h.NewFolder("p"));
+        var thread = AppModelSamples.Thread(project);
+        var model = Model(h, [project], [thread]);
+
+        h.Main.OnMain(() =>
+        {
+            var commands = new AppCommands(model);
+            var item = ThreadMenu(commands.Body)[16];
+            Assert.Equal("Archive thread\U00002026", item.Title); // U+2026 HORIZONTAL ELLIPSIS
+            Assert.Equal(CtrlW, item.Shortcut);
+            Assert.True(item.IsDisabled); // :105
+            Assert.False(commands.PerformKeyEquivalent(CtrlW));
+
+            model.SelectedThreadID = thread.Id;
+            foreach (var action in new[] { ThreadFinishAction.Settle, ThreadFinishAction.Archive })
+            {
+                model.Settings.ThreadFinishAction = action;
+                item = ThreadMenu(commands.Body)[16];
+                Assert.Equal("Archive thread\U00002026", item.Title); // U+2026 HORIZONTAL ELLIPSIS
+                Assert.False(item.IsDisabled);
+            }
+
+            // Something typed for the thread, so it is not the empty one askToArchiveSelectedThread deletes outright
+            // (AppModel.swift:906-910): the chord raises the question on the thread's row (:911-912), nothing archived yet.
+            model.Runtime(thread.Id).Draft = new ComposerDraft { Text = "keep" };
+            Assert.True(commands.PerformKeyEquivalent(CtrlW));
+            Assert.Equal(thread.Id, model.AppModelArchiveRequest?.ThreadID);
+            Assert.False(model.Thread(thread.Id)!.IsArchived);
+
+            Assert.Equal("Ctrl+W", ShortcutStore.Label(AppShortcut.ArchiveThread)); // OD-0008 B7: Command-W
+            Assert.Equal("Archive thread", AppShortcut.ArchiveThread.Title()); // Shortcuts.swift:178, no ellipsis
+        });
+    }
+
+    // ===== UI-WIN-026: Settle thread / Reopen thread =====
+
+    [Fact]
+    [Trait("Req", "UI-WIN-026")] // App/AppCommands.swift:106-109; Core/Models/Library.swift:143, :189; Core/Models/Shortcuts.swift:179, :227
+    public void The_settle_item_ends_the_thread_menu_on_ctrl_s_titled_by_the_selection_alone_and_off_for_a_helper_or_nothing()
+    {
+        using var h = new AppModelHarness();
+        using var shared = ShortcutStore.Shared.Override(h.Main.OnMain(FreshStore));
+        var project = AppModelSamples.Project("P", h.NewFolder("p"));
+        var open = AppModelSamples.Thread(project);
+        var settled = AppModelSamples.Thread(project) with { IsSettled = true };
+        var helper = AppModelSamples.Thread(project) with { ParentThreadID = open.Id };
+        var model = Model(h, [project], [open, settled, helper]);
+
+        h.Main.OnMain(() =>
+        {
+            var commands = new AppCommands(model);
+            // :106 reads isSettled alone, whatever the finish setting; :108 maps no selection to true, so it is disabled.
+            (ThreadFinishAction Action, Guid? Selected, string Title, bool Disabled)[] cases =
+            [
+                (ThreadFinishAction.Settle, null, "Settle thread", true),
+                (ThreadFinishAction.Archive, null, "Settle thread", true),
+                (ThreadFinishAction.Archive, open.Id, "Settle thread", false),
+                (ThreadFinishAction.Archive, settled.Id, "Reopen thread", false),
+                (ThreadFinishAction.Settle, settled.Id, "Reopen thread", false),
+                (ThreadFinishAction.Settle, helper.Id, "Settle thread", true),
+            ];
+            foreach (var (action, selected, title, disabled) in cases)
+            {
+                model.Settings.ThreadFinishAction = action;
+                model.SelectedThreadID = selected;
+                var body = commands.Body;
+                var start = ThreadMenuStart(body);
+                var item = body[start + 17];
+                Assert.Equal(title, item.Title);
+                Assert.Equal(CtrlS, item.Shortcut);
+                Assert.Equal(disabled, item.IsDisabled);
+                // The eighteenth and last item of the menu: the help group's item follows it.
+                Assert.Equal("Welcome tour", body[start + 18].Title);
+            }
+
+            Assert.Equal("Ctrl+S", ShortcutStore.Label(AppShortcut.SettleThread)); // OD-0008 B7: Command-S
+            Assert.Equal("Settle thread", AppShortcut.SettleThread.Title()); // Shortcuts.swift:179
+        });
+    }
+
+    // ===== UI-WIN-015, UI-WIN-017 to UI-WIN-022, UI-WIN-024 to UI-WIN-026: rebinding =====
+
+    [Fact]
+    [Trait("Req", "UI-WIN-015")] // App/AppCommands.swift:51; Core/Models/Shortcuts.swift:276-283, :300-302
+    [Trait("Req", "UI-WIN-017")] // App/AppCommands.swift:67; Core/Models/Shortcuts.swift:276-283, :300-302
+    [Trait("Req", "UI-WIN-018")] // App/AppCommands.swift:75; Core/Models/Shortcuts.swift:276-283, :300-302
+    [Trait("Req", "UI-WIN-019")] // App/AppCommands.swift:82; Core/Models/Shortcuts.swift:276-283, :300-302
+    [Trait("Req", "UI-WIN-020")] // App/AppCommands.swift:86; Core/Models/Shortcuts.swift:276-283, :300-302
+    [Trait("Req", "UI-WIN-021")] // App/AppCommands.swift:88; Core/Models/Shortcuts.swift:276-283, :300-302
+    [Trait("Req", "UI-WIN-022")] // App/AppCommands.swift:93; Core/Models/Shortcuts.swift:276-283, :300-302
+    [Trait("Req", "UI-WIN-024")] // App/AppCommands.swift:101; Core/Models/Shortcuts.swift:276-283, :300-302
+    [Trait("Req", "UI-WIN-025")] // App/AppCommands.swift:104; Core/Models/Shortcuts.swift:276-283, :300-302
+    [Trait("Req", "UI-WIN-026")] // App/AppCommands.swift:107; Core/Models/Shortcuts.swift:276-283, :300-302
+    public void Each_rebindable_item_takes_the_chord_recorded_for_its_command_and_gives_up_its_default()
+    {
+        using var h = new AppModelHarness();
+        var store = h.Main.OnMain(FreshStore);
+        using var shared = ShortcutStore.Shared.Override(store);
+        var model = Model(h, [], []);
+
+        h.Main.OnMain(() =>
+        {
+            var commands = new AppCommands(model);
+            var body = commands.Body;
+            var activity = body.Select(command => command.Title).ToList().IndexOf("Toggle activity view");
+            var start = ThreadMenuStart(body);
+            // Each item's place, its command, its default key equivalent, and a free Ctrl+Alt chord to record for it
+            // (ED-099 (2) scan codes: F 0x21, G 0x22, E 0x12, I 0x17, Y 0x15, T 0x14, L 0x26, [ 0x1A, ] 0x1B, ; 0x27).
+            (int Index, AppShortcut Shortcut, KeyboardShortcut Default, long Code, string Key)[] rows =
+            [
+                (activity, AppShortcut.ToggleActivityView, CtrlAltU, 0x21, "f"),
+                (start, AppShortcut.StopTurn, CtrlPeriod, 0x22, "g"),
+                (start + 1, AppShortcut.QueueChat, CtrlReturn, 0x12, "e"),
+                (start + 2, AppShortcut.TogglePlanMode, CtrlShiftP, 0x17, "i"),
+                (start + 3, AppShortcut.PreviousThread, CtrlShiftTab, 0x15, "y"),
+                (start + 4, AppShortcut.NextThread, CtrlTab, 0x14, "t"),
+                (start + 5, AppShortcut.RunScript, CtrlR, 0x26, "l"),
+                (start + 15, AppShortcut.FinishThread, CtrlShiftDelete, 0x1A, "["),
+                (start + 16, AppShortcut.ArchiveThread, CtrlW, 0x1B, "]"),
+                (start + 17, AppShortcut.SettleThread, CtrlS, 0x27, ";"),
+            ];
+            foreach (var row in rows)
+            {
+                Assert.Equal(row.Default, commands.Body[row.Index].Shortcut);
+                var chord = new KeyChord(row.Code, ChordModifiers.Control | ChordModifiers.Alt);
+                Assert.Null(store.Refusal(chord, row.Shortcut));
+                store.Set(chord, row.Shortcut);
+                Assert.Equal(Chord(row.Key, ChordModifiers.Control | ChordModifiers.Alt), commands.Body[row.Index].Shortcut);
+                Assert.DoesNotContain(commands.Body, command => command.Shortcut == row.Default);
+            }
+
+            // A chord cleared in the store leaves the item with none (Shortcuts.swift:277, :282), its title unchanged.
+            store.Set(null, AppShortcut.StopTurn);
+            Assert.Null(commands.Body[start].Shortcut);
+            Assert.Equal("Stop", commands.Body[start].Title);
+        });
+    }
+
+    // ===== UI-WIN-027: Welcome tour =====
+
+    [Fact]
+    [Trait("Req", "UI-WIN-027")] // App/AppCommands.swift:111-113; App/Views/Tour/TourPages.swift:26-28
+    public void Welcome_tour_follows_the_thread_menu_alone_with_no_chord_never_disabled_and_presents_the_tour() => headless.OnUiThread(() =>
+    {
+        using var h = new AppModelHarness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var shared = ShortcutStore.Shared.Override(h.Main.OnMain(FreshStore));
+        var project = AppModelSamples.Project("P", h.NewFolder("p"));
+        var thread = AppModelSamples.Thread(project);
+        var model = Model(h, [project], [thread]);
+        var commands = h.Main.OnMain(() => new AppCommands(model));
+
+        h.Main.OnMain(() =>
+        {
+            foreach (var selected in new Guid?[] { null, thread.Id })
+            {
+                model.SelectedThreadID = selected;
+                var body = commands.Body;
+                // CommandGroup(replacing: .help) (:111) holds this one item, after the Thread menu's last item.
+                Assert.Equal(ThreadMenuStart(body) + 18, body.Count - 1);
+                Assert.Equal("Welcome tour", body[^1].Title);
+                Assert.Null(body[^1].Shortcut); // :112 no .keyboardShortcut
+                Assert.False(body[^1].IsDisabled); // :112 no .disabled
+            }
+        });
+
+        // :112 Tour.present(model:): only a tour presented for this model marks it seen again when it closes.
+        h.Main.OnMain(() => model.Settings.HasSeenTour = true);
+        h.Main.OnMain(() => commands.Body[^1].Action());
+        h.Main.OnMain(() => model.Settings.HasSeenTour = false);
+        h.Main.OnMain(() => TourWindowController.Shared.Close());
+        Assert.True(h.Main.OnMain(() => model.Settings.HasSeenTour));
+    });
+
+    // ===== UI-WIN-074 to UI-WIN-077: the zoom items =====
+
+    [Fact]
+    [Trait("Req", "UI-WIN-074")] // App/AppCommands.swift:52-54
+    [Trait("Req", "UI-WIN-075")] // App/AppCommands.swift:55-56
+    [Trait("Req", "UI-WIN-076")] // App/AppCommands.swift:57-58
+    [Trait("Req", "UI-WIN-077")] // App/AppCommands.swift:59-63
+    public void The_four_zoom_items_follow_the_activity_toggle_in_order_on_their_literal_chords_and_are_never_disabled()
+    {
+        using var h = new AppModelHarness();
+        using var shared = ShortcutStore.Shared.Override(h.Main.OnMain(FreshStore));
+        var project = AppModelSamples.Project("P", h.NewFolder("p"));
+        var thread = AppModelSamples.Thread(project);
+        var model = Model(h, [project], [thread]);
+
+        h.Main.OnMain(() =>
+        {
+            var commands = new AppCommands(model);
+            // At the bottom level, at the default and at the top level, with and without a selection.
+            foreach (var level in new long[] { 75, 100, 200 })
+            {
+                foreach (var selected in new Guid?[] { null, thread.Id })
+                {
+                    model.Settings.AppZoom = level;
+                    model.SelectedThreadID = selected;
+                    var body = commands.Body;
+                    var first = body.Select(command => command.Title).ToList().IndexOf("Toggle activity view") + 1;
+                    // :53, :55, :57, :60 in Title Case, the last one hidden (:62) and so the group's last element: the
+                    // Thread menu (:65) comes right after it.
+                    Assert.Equal(["Zoom In", "Zoom Out", "Actual Size", "Zoom In"], body.Skip(first).Take(4).Select(command => command.Title));
+                    Assert.Equal(new KeyboardShortcut?[] { CtrlPlus, CtrlMinus, Ctrl0, CtrlEquals }, body.Skip(first).Take(4).Select(command => command.Shortcut));
+                    Assert.All(body.Skip(first).Take(4), command => Assert.False(command.IsDisabled));
+                    Assert.Equal(first + 4, ThreadMenuStart(body));
+                }
+            }
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "UI-WIN-074")] // App/AppCommands.swift:53-54; UI/Common/AppZoom.swift:6, :12-15
+    [Trait("Req", "UI-WIN-077")] // App/AppCommands.swift:59-62; UI/Common/AppZoom.swift:6, :12-15
+    public void Both_Zoom_In_items_step_the_zoom_up_one_level_and_at_200_leave_it_there()
+    {
+        using var h = new AppModelHarness();
+        using var shared = ShortcutStore.Shared.Override(h.Main.OnMain(FreshStore));
+        var model = Model(h, [], []);
+
+        h.Main.OnMain(() =>
+        {
+            var commands = new AppCommands(model);
+            // AppZoom.swift:6 levels [75, 90, 100, 110, 125, 150, 175, 200]; next(increasing: true) takes the first above.
+            foreach (var chord in new[] { CtrlPlus, CtrlEquals })
+            {
+                model.Settings.AppZoom = 75;
+                foreach (var level in new long[] { 90, 100, 110, 125, 150, 175, 200, 200 })
+                {
+                    Assert.True(commands.PerformKeyEquivalent(chord));
+                    Assert.Equal(level, model.Settings.AppZoom);
+                }
+            }
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "UI-WIN-075")] // App/AppCommands.swift:55-56; UI/Common/AppZoom.swift:6, :12-15
+    public void Zoom_Out_steps_the_zoom_down_one_level_and_at_75_leaves_it_there()
+    {
+        using var h = new AppModelHarness();
+        using var shared = ShortcutStore.Shared.Override(h.Main.OnMain(FreshStore));
+        var model = Model(h, [], []);
+
+        h.Main.OnMain(() =>
+        {
+            var commands = new AppCommands(model);
+            // next(increasing: false) takes the last level below.
+            model.Settings.AppZoom = 200;
+            foreach (var level in new long[] { 175, 150, 125, 110, 100, 90, 75, 75 })
+            {
+                Assert.True(commands.PerformKeyEquivalent(CtrlMinus));
+                Assert.Equal(level, model.Settings.AppZoom);
+            }
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "UI-WIN-076")] // App/AppCommands.swift:57-58; Core/Models/Shortcuts.swift:233 (OD-0012 G6)
+    public void Actual_Size_alone_holds_ctrl_0_and_sets_the_zoom_to_100()
+    {
+        using var h = new AppModelHarness();
+        using var shared = ShortcutStore.Shared.Override(h.Main.OnMain(FreshStore));
+        var model = Model(h, [], []);
+
+        h.Main.OnMain(() =>
+        {
+            var commands = new AppCommands(model);
+            // OD-0012 G6: "Show Marrow" (showMainWindow) keeps no default chord, so nothing else answers Ctrl+0.
+            Assert.Null(ShortcutStore.Shared.Current.Chord(AppShortcut.ShowMainWindow));
+            Assert.Equal(["Actual Size"], commands.Body.Where(command => command.Shortcut == Ctrl0).Select(command => command.Title));
+            foreach (var level in new long[] { 75, 90, 175, 200 })
+            {
+                model.Settings.AppZoom = level;
+                Assert.True(commands.PerformKeyEquivalent(Ctrl0));
+                Assert.Equal(100, model.Settings.AppZoom); // :57
+            }
+        });
+    }
 }
 
 // STOP App.AppCommands #1 (build agent, 2026-09-26)
@@ -1622,6 +2417,12 @@ public sealed class AppCommandsTests(HeadlessSession headless)
 // fail on the dependency rather than on this unit: the finish chord with Settle chosen on a settled thread (Swift:
 // finishRequest is FinishRequest(reopens: true) at once and the thread is reopened 80 ms later), and the finish item's
 // title for a helper with Settle chosen ("Settle thread" unsettled, "Reopen thread" settled).
+// Part 3 (2026-09-26): reading AppCommands.body with a selection makes the thread's runtime (:7-9, :68;
+// AppModel.swift:434-439), so whenever the archive chord fires the selected thread has one, and a thread with
+// nothing in it is deleted with no question (AppModel.swift:906-910), which item (4) lacks. The part 2 archive tests
+// asserted the question for such an empty thread; they now give the thread a draft, so the Swift asks too. Not
+// written, for the same reason as above: the archive chord on an empty selected thread (Swift: the thread is
+// deleted, no archive request). UI-WIN-025 is tested with a draft as well.
 
 // STOP App.AppCommands #4 (build agent, part 2, 2026-09-26)
 // Kind: missing dependency
@@ -1639,3 +2440,27 @@ public sealed class AppCommandsTests(HeadlessSession headless)
 // and id.
 // Done so far: the help group's command itself is in AppCommands.Body, tested in part 1 (PR-UPDATE-092) and above for
 // UI-UPDATE-055 (last, alone, no chord, never disabled), green; nothing is written for the palette row.
+// Part 3 (2026-09-26): the palette halves of UI-WIN-015 to UI-WIN-027 and UI-WIN-074 to UI-WIN-077 are rows of the
+// same CommandPalette.swift:153-178, not of this file: "no palette row" for every item but two, the palette's finish
+// row with the same three titles (UI-WIN-024) and the "Welcome tour" row (UI-WIN-027, as PR-WIN-115). Nothing is
+// tested for them here; the items themselves are tested above (green).
+
+// STOP App.AppCommands #5 (build agent, part 3, 2026-09-26)
+// Kind: conflict
+// Swift: DroppyCode/App/Runtime/ThreadRuntime.swift:771-788 (B3 52bc792), which AppCommands.swift:74 calls:
+//   var canQueue: Bool { isRunning || hasWorkingHeads }
+//   func queueDraftAsFollowUp() { guard !isReverting, !draft.isEmpty else { return }
+//       guard canQueue else { send(); return } ... }
+// Requirements: UI-WIN-018 ("or simply sends it when there is nothing to queue behind"), PR-WIN-105 (the same case)
+// What is unclear or missing: nothing in AppCommands; the dependency differs from the Swift. In
+// src/Marrow.App/Runtime/ThreadRuntime.cs (unit App.Runtime.ThreadRuntime), QueueDraftAsFollowUp returns at once when
+// CanQueue is false, and CanQueue is "phase is not idle, not reverting, the draft not empty", where Swift :771-773 is
+// isRunning || hasWorkingHeads and :782-785 sends the draft when it cannot queue. So with a draft and no running turn
+// the item is on (:76-77, tested above) and takes Ctrl+Return, but the port then does nothing, where Swift sends the
+// draft ("the queue chord is never a dead key", ThreadRuntime.swift:778-779; AppCommands.swift:71-73).
+// Readings or options: none; the Swift reads one way.
+// Needed to proceed: a repair of unit App.Runtime.ThreadRuntime against ThreadRuntime.swift:771-788 (B3).
+// Done so far: the item, its chord and its three disabled rules are tested (green), and the queueing case is tested
+// in part 1 (green). Not written, because it would fail on the dependency rather than on this unit: Ctrl+Return with
+// a draft such as "/plan" on a selected idle thread (Swift: send() handles it locally, ThreadRuntime.swift:743-750,
+// :1157-1162, so the thread flips to plan and the draft is emptied; no follow-up is queued).
