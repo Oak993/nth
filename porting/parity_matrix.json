@@ -7,9 +7,9 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "IMPLEMENTED": 3132,
+      "IMPLEMENTED": 3142,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
-      "SPECIFIED": 769,
+      "SPECIFIED": 759,
       "RETIRED": 6,
       "DISCOVERED": 6
     },
@@ -17642,7 +17642,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the countsAsInstalled leniency, or a freshly launched window would show no pairs.",
       "verification_method": "unit over an unprobed provider, a disabled one and a missing one",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -17663,7 +17663,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pure predicate.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -17689,7 +17689,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Stopping the old session must terminate the CLI process cleanly before the next turn starts one.",
       "verification_method": "interaction test entering a same-provider pair and a cross-provider pair",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -17710,7 +17710,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the `option?.efforts.contains(chosen) ?? true` leniency; a strict check would drop the pair's effort before the catalogue loads.",
       "verification_method": "unit over a pair with and without a lead model, before and after the catalogue loads",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -17735,7 +17735,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the provider-change release; silently moving a chat to another provider mid-conversation would break its session.",
       "verification_method": "interaction test changing a pair's lead model and changing its provider",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -17758,7 +17758,7 @@
       "cancellation": "not cancellable",
       "windows_path": "All four writes must happen.",
       "verification_method": "interaction test with a pinned chat and a project rule",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -17779,7 +17779,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One field write.",
       "verification_method": "interaction test asserting open chats are untouched",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -17802,7 +17802,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Two field writes.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -17935,7 +17935,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pure resolution over the provider registry.",
       "verification_method": "unit with a stubbed registry over a fully ready recipe, one missing a lead provider and one whose provider is ready but lacks the model",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -17960,7 +17960,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Parse the version with a decimal point regardless of locale; a locale-aware number parser would read '3.8' differently in some locales.",
       "verification_method": "unit over two same-version models, a versionless model and an id-only match",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
