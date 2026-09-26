@@ -106,18 +106,18 @@ public static class ProbeProcessScripts
                $"[Console]::Error.Write($filler); [Console]::Error.Flush(); exit {code}";
     }
 
-    /// <summary>Answers initialize with a stray reply for id 999 (an id nobody is waiting on) immediately before
-    /// the real reply for the request's own id, both on the same read: proves MCPStdioConnection.Handle buffers a
-    /// reply nobody is waiting on rather than discarding it, and the awaited reply still arrives (PR-MCP-109).
-    /// serverInfo.name is "real" and .version is "v1" so the test can tell the real reply from the stray one.</summary>
+    /// <summary>Answers "initialize" (id 1) with two lines: the id-1 reply itself, and the id-2 tools/list reply
+    /// (never separately requested yet at that point, since the probe only sends tools/list after initialize
+    /// completes). The script has no "tools/list" branch at all, so a real request for id 2 is never answered by
+    /// the script; the probe can only complete it from MCPStdioConnection's buffer. Review finding L3b-2: under the
+    /// old B2 loop (`guard value["id"]?.int == id else { continue }`), the stray id-2 line would be silently
+    /// skipped rather than buffered, the real tools/list request would go unanswered, and Probe would time out.</summary>
     public static string EchoWithBufferedExtraReply()
     {
         var body = new StringBuilder();
         body.Append("  if ($msg.method -eq 'initialize') {\n");
-        WriteLine(body, "'{\"jsonrpc\":\"2.0\",\"id\":999,\"result\":{\"serverInfo\":{\"name\":\"stray\",\"version\":\"stray\"}}}'");
         WriteLine(body, "'{\"jsonrpc\":\"2.0\",\"id\":' + $msg.id + ',\"result\":{\"serverInfo\":{\"name\":\"real\",\"version\":\"v1\"}}}'");
-        body.Append("  } elseif ($msg.method -eq 'tools/list') {\n");
-        WriteLine(body, "'{\"jsonrpc\":\"2.0\",\"id\":' + $msg.id + ',\"result\":{\"tools\":[]}}'");
+        WriteLine(body, "'{\"jsonrpc\":\"2.0\",\"id\":2,\"result\":{\"tools\":[{\"name\":\"early\"}]}}'");
         body.Append("  }\n");
         return ReadLoop.Replace("__BODY__", body.ToString(), StringComparison.Ordinal);
     }
@@ -143,4 +143,24 @@ public static class ProbeProcessScripts
           }
         }
         """;
+
+    /// <summary>Answers "initialize" with serverInfo.name set to the script's own $PID and serverInfo.version set
+    /// to the pid of a grandchild it spawns (a detached "Start-Sleep 60"), then answers "tools/list" with an empty
+    /// page. ProbeStdio does not expose the MCPStdioConnection it creates, so name/version are the only channel
+    /// MCPProbeResult carries back through which the test can learn either pid (review finding L3b-4). Lets a test
+    /// observe, after Probe returns, that MCPStdioConnection.Stop's ED-126/ED-194 pid-only ladder (:152-154, +3 s
+    /// SIGKILL of the pid alone) ends the probed child but leaves the grandchild running, unlike a job-object tree
+    /// kill.</summary>
+    public static string ReportsOwnPidAndAGrandchildAsServerInfo()
+    {
+        var body = new StringBuilder();
+        body.Append("  if ($msg.method -eq 'initialize') {\n");
+        body.Append("    $g = Start-Process -FilePath powershell.exe -ArgumentList " +
+            "'-NoProfile','-NonInteractive','-Command','Start-Sleep 60' -NoNewWindow -PassThru\n");
+        WriteLine(body, "'{\"jsonrpc\":\"2.0\",\"id\":' + $msg.id + ',\"result\":{\"serverInfo\":{\"name\":\"' + $PID + '\",\"version\":\"' + $g.Id + '\"}}}'");
+        body.Append("  } elseif ($msg.method -eq 'tools/list') {\n");
+        WriteLine(body, "'{\"jsonrpc\":\"2.0\",\"id\":' + $msg.id + ',\"result\":{\"tools\":[]}}'");
+        body.Append("  }\n");
+        return ReadLoop.Replace("__BODY__", body.ToString(), StringComparison.Ordinal);
+    }
 }

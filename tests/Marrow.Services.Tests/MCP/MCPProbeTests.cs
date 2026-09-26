@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using Marrow.Core.Models;
@@ -28,11 +30,6 @@ namespace Marrow.Services.Tests.MCP;
 //  - PR-MCP-107's "a launch failure rethrows the system error": ProcessLauncher.Run's own launch-failure exception
 //    is F.ProcessLauncher's concern and has its own tests; MCPStdioConnection.Launch's cleanup on that path is
 //    MCPWireTests.cs's concern, not this file's.
-//  - PR-MCP-111's precise "terminate 3 s later, pid only" (ED-194): that ladder is TerminationLadder.Stdio, proven
-//    by its own unit (Core.Support.StdioProcess / F.ProcessLauncher); MCPProbe.ProbeStdio does not expose the
-//    MCPStdioConnection it creates, so this unit cannot observe the child's liveness after Probe returns without
-//    inventing a seam the Swift does not have. PR-MCP-111's windows_path also names an unresolved conflict with the
-//    3 s pid-only kill (lane A16 note, 6.1 O3): left unwritten here rather than guessed.
 //  - The exact 64,000/16,000-byte internal stderr buffer cap (distinct from the 4,000-byte errorTail this file's
 //    tests do cover): that cap is StdioProcess.AppendError's concern, proven by its own unit.
 //  - MCPHTTPError's "a non-HTTPURLResponse throws malformed(invalid reply)" (part of PR-MCP-116): unreachable over
@@ -265,9 +262,13 @@ public sealed class MCPProbeTests
     [Trait("Req", "PR-MCP-109")] // :97-114; MCPWire.swift MCPStdioConnection.Handle :219-228 buffers, never discards
     public async Task A_reply_for_an_id_the_probe_is_not_yet_waiting_on_is_buffered_not_discarded()
     {
-        // The script answers "initialize" with a stray reply for an id nobody has asked for yet (999), immediately
-        // followed by the real id-1 reply. MCPStdioConnection.Handle buffers the id-999 message (nothing is Pending
-        // for it) rather than dropping it, and the probe still finds and completes its own id-1 wait right after.
+        // The script answers "initialize" (id 1) with two lines: the id-1 reply, and the id-2 tools/list reply
+        // ("early") sent before the probe has even asked for id 2. The script has no "tools/list" branch, so the
+        // real tools/list request the probe sends next is never separately answered: the only way Probe can
+        // complete it is from MCPStdioConnection's buffer (MCPWire.swift :219-228 Handle / :203 AwaitReply). Under
+        // the old B2 loop (`guard value["id"]?.int == id else { continue }`), the stray id-2 line would be
+        // discarded while probing id 1, the real tools/list request would go unanswered, and Probe would time out
+        // instead of returning "early" (review finding L3b-2).
         var server = new MCPResolvedServer("s", "S")
         {
             Command = ProbeProcessScripts.PowerShell,
@@ -276,6 +277,7 @@ public sealed class MCPProbeTests
         var result = await MCPProbe.Probe(server).WaitAsync(TimeSpan.FromSeconds(60));
         Assert.Equal("real", result.ServerName);
         Assert.Equal("v1", result.ServerVersion);
+        Assert.Equal(["early"], result.Tools.Select(t => t.Name));
     }
 
     [Fact]
@@ -291,6 +293,51 @@ public sealed class MCPProbeTests
         };
         var result = await MCPProbe.Probe(server).WaitAsync(TimeSpan.FromSeconds(60));
         Assert.Empty(result.Tools);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-MCP-111")] // :95 defer { connection.stop() } -> MCPWire.swift MCPStdioConnection.Stop :152-154
+    [Trait("Decision", "ED-194")] // the ED-126/ED-194 ladder is pid-only (terminate, +3s SIGKILL), never a job-object tree kill
+    public async Task Probe_stops_the_child_pid_only_after_returning_leaving_a_grandchild_running()
+    {
+        // Review finding L3b-4. ProbeStdio does not expose the MCPStdioConnection it creates (:95's defer runs
+        // inside ProbeStdio itself), so this test learns the child's own pid, and a grandchild's pid, only through
+        // the channel MCPProbeResult actually carries: serverInfo.name/.version (ProbeProcessScripts
+        // .ReportsOwnPidAndAGrandchildAsServerInfo). After Probe returns, ProbeStdio's `finally { connection.Stop();
+        // }` has already run. If Stop (or the code path that calls it) were removed, or switched back to a
+        // job-object tree kill, the child would still be running when this test checks it, or the grandchild would
+        // already be dead - either way this test would fail.
+        var server = new MCPResolvedServer("s", "S")
+        {
+            Command = ProbeProcessScripts.PowerShell,
+            Args = new ValueList<string>(ProbeProcessScripts.Args(ProbeProcessScripts.ReportsOwnPidAndAGrandchildAsServerInfo())),
+        };
+        var result = await MCPProbe.Probe(server).WaitAsync(TimeSpan.FromSeconds(60));
+        var childPid = int.Parse(result.ServerName!, CultureInfo.InvariantCulture);
+        var grandchildPid = int.Parse(result.ServerVersion!, CultureInfo.InvariantCulture);
+
+        var grandchild = Process.GetProcessById(grandchildPid);
+        _ = grandchild.SafeHandle; // retain the native handle before exit, as StdioProcessTests does
+        try
+        {
+            var stillRunning = true;
+            try
+            {
+                using var child = Process.GetProcessById(childPid);
+                stillRunning = !child.WaitForExit(4_000); // true = exited before the timeout
+            }
+            catch (ArgumentException)
+            {
+                stillRunning = false; // already gone: the pid no longer resolves to a running process
+            }
+            Assert.False(stillRunning, "the probed child did not stop after Probe returned");
+            Assert.False(grandchild.HasExited, "the grandchild should survive a pid-only stop, not a tree kill");
+        }
+        finally
+        {
+            grandchild.Refresh();
+            if (!grandchild.HasExited) grandchild.Kill();
+        }
     }
 
     // ---- PR-MCP-109/110/120: exit classification --------------------------------------------------------
@@ -438,6 +485,58 @@ public sealed class MCPProbeTests
         Assert.Equal(2, result.Tools.Count);
         Assert.Equal("a", result.Tools[0].Name);
         Assert.Equal("b", result.Tools[1].Name);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-MCP-113")] // :195-202 every page is matched as id 2 even over SSE, across three pages
+    [Trait("Req", "PR-MCP-117")] // MCPWire.swift:92-102 an SSE frame for a different id is skipped, not accepted
+    public async Task Every_tools_list_page_is_matched_by_id_2_when_answered_as_SSE_with_a_mismatched_id_frame_first()
+    {
+        // Review finding L3b-3: the prior test above answers every page as application/json, so it never exercises
+        // MCPWire.Post's SSE id-matching branch for a page reply, and MCPProbe.cs:275's `Post(..., 2)` argument
+        // could be replaced by 1 or null without failing anything. Each page here answers as text/event-stream with
+        // a "wrong" frame carrying id 1 (the initialize id, not the tools/list id) before the correct id-2 frame;
+        // only threading the caller's own id (2) through to MCPWire.Post, and MCPWire.Post actually matching on it
+        // (MCPWire.swift :98), keeps the "wrong*" tools out of the result.
+        using var runtime = new TestRuntime();
+        await using var loop = new LoopbackHttpServer();
+        var probing = MCPProbe.Probe(RemoteServer(loop.Url("/mcp")));
+
+        var init = await loop.NextExchange();
+        await init.Respond(200, "OK", Ascii("{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"serverInfo\":{}}}"), ("Content-Type", "application/json"));
+        var notified = await loop.NextExchange();
+        await notified.Respond(202, "Accepted", []);
+
+        static string Sse(string wrongIdFrame, string correctFrame) =>
+            "data: " + wrongIdFrame + "\r\n\r\n" + "data: " + correctFrame + "\r\n\r\n";
+
+        var page1 = await loop.NextExchange();
+        Assert.Equal(2, Assert.IsType<JSONValue.Object>(JSONValue.Parse(page1.Body))["id"]?.JSONValueInt);
+        await page1.Respond(200, "OK", Ascii(Sse(
+                "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"tools\":[{\"name\":\"wrong1\"}]}}",
+                "{\"jsonrpc\":\"2.0\",\"id\":2,\"result\":{\"tools\":[{\"name\":\"a\"}],\"nextCursor\":\"p2\"}}")),
+            ("Content-Type", "text/event-stream"));
+
+        var page2 = await loop.NextExchange();
+        var page2Body = Assert.IsType<JSONValue.Object>(JSONValue.Parse(page2.Body));
+        Assert.Equal(2, page2Body["id"]?.JSONValueInt);
+        Assert.Equal("p2", page2Body["params"]?["cursor"]?.JSONValueString);
+        await page2.Respond(200, "OK", Ascii(Sse(
+                "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"tools\":[{\"name\":\"wrong2\"}]}}",
+                "{\"jsonrpc\":\"2.0\",\"id\":2,\"result\":{\"tools\":[{\"name\":\"b\"}],\"nextCursor\":\"p3\"}}")),
+            ("Content-Type", "text/event-stream"));
+
+        var page3 = await loop.NextExchange();
+        var page3Body = Assert.IsType<JSONValue.Object>(JSONValue.Parse(page3.Body));
+        Assert.Equal(2, page3Body["id"]?.JSONValueInt);
+        Assert.Equal("p3", page3Body["params"]?["cursor"]?.JSONValueString);
+        await page3.Respond(200, "OK", Ascii(Sse(
+                "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"tools\":[{\"name\":\"wrong3\"}]}}",
+                "{\"jsonrpc\":\"2.0\",\"id\":2,\"result\":{\"tools\":[{\"name\":\"c\"}]}}")),
+            ("Content-Type", "text/event-stream"));
+
+        var result = await probing.WaitAsync(Guard);
+        Assert.Equal(["a", "b", "c"], result.Tools.Select(t => t.Name));
     }
 
     [Fact]
@@ -648,15 +747,18 @@ public sealed class MCPProbeTests
     // ---- PR-MCP-117: the SSE first message --------------------------------------------------------------------
 
     [Fact]
-    [Trait("Req", "PR-MCP-117")] // Services/MCP/MCPWire.swift:92-102 the first "data:" line that parses as an object carrying an id
-    public async Task An_SSE_reply_yields_the_first_data_line_that_is_an_object_with_an_id()
+    [Trait("Req", "PR-MCP-117")] // Services/MCP/MCPWire.swift:92-102, :98 value["id"]?.int == id: the first "data:" line whose id matches the request, not merely the first one carrying any id (B3 change from B2's "any id wins")
+    public async Task An_SSE_reply_yields_the_first_data_line_whose_id_matches_the_request()
     {
         using var runtime = new TestRuntime();
         await using var loop = new LoopbackHttpServer();
         var probing = MCPProbe.Probe(RemoteServer(loop.Url("/mcp")));
         var init = await loop.NextExchange();
+        // The request is id 1. A frame with a different id (99) precedes the matching one: under B2's "first
+        // object carrying any id wins" rule this wrong frame would be accepted; B3 must skip it and keep reading.
         var sse = "event: message\r\n" +
                    "data: {\"jsonrpc\":\"2.0\",\"method\":\"notifications/x\"}\r\n\r\n" + // no id: skipped
+                   "data: {\"jsonrpc\":\"2.0\",\"id\":99,\"result\":{\"serverInfo\":{\"name\":\"wrong\"}}}\r\n\r\n" + // wrong id: skipped
                    "data:   {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"serverInfo\":{\"name\":\"sse\"}}}  \r\n\r\n";
         await init.Respond(200, "OK", Ascii(sse), ("Content-Type", "text/event-stream"));
         var notified = await loop.NextExchange();
@@ -668,14 +770,17 @@ public sealed class MCPProbeTests
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-117")] // Services/MCP/MCPWire.swift:92-102 no matching "data:" line -> nil -> malformed(empty reply)
-    public async Task An_SSE_reply_with_no_id_bearing_data_line_throws_malformed_empty_reply()
+    [Trait("Req", "PR-MCP-117")] // Services/MCP/MCPWire.swift:92-102 no line carrying the requested id -> nil -> malformed(empty reply); a frame present for a different id is skipped, not accepted
+    public async Task An_SSE_reply_with_no_frame_for_the_requested_id_throws_malformed_empty_reply()
     {
         using var runtime = new TestRuntime();
         await using var loop = new LoopbackHttpServer();
         var probing = MCPProbe.Probe(RemoteServer(loop.Url("/mcp")));
         var init = await loop.NextExchange();
-        await init.Respond(200, "OK", Ascii("data: {\"jsonrpc\":\"2.0\",\"method\":\"notifications/x\"}\r\n\r\n"), ("Content-Type", "text/event-stream"));
+        await init.Respond(200, "OK", Ascii(
+                "data: {\"jsonrpc\":\"2.0\",\"method\":\"notifications/x\"}\r\n\r\n" + // no id
+                "data: {\"jsonrpc\":\"2.0\",\"id\":99,\"result\":{\"serverInfo\":{\"name\":\"wrong\"}}}\r\n\r\n"), // present but wrong id
+            ("Content-Type", "text/event-stream"));
         var error = await Assert.ThrowsAsync<MCPProbeError>(() => probing.WaitAsync(Guard));
         Assert.Equal(new MCPProbeError.Case.Malformed("empty reply"), error.ErrorCase);
     }

@@ -202,8 +202,11 @@ public static class MCPProbe
         // :148
         string? sessionID = null;
 
-        // :150-174. DEVIATION OD-0022/ED-152: MCPWire.Post forwards a server's custom headers only to that same
-        // server; a redirect that changes scheme, host or port drops them (F.HTTP, ED-152).
+        // :150-174. OD-0022/ED-152 NOT YET IMPLEMENTED: MCPWire.Post forwards a server's custom headers to
+        // every redirect target it follows, including one that changes scheme, host or port; F.HTTP
+        // (Http.cs:778-782) drops only Authorization across such a redirect, not an arbitrary named header
+        // (e.g. X-Api-Key). See MCPWire.cs:77-84 / review finding L2f-1: tracked as incomplete, not silently
+        // dropped, until F.HTTP gains a per-header origin-bound marker.
         async Task<JSONValue?> Post(JSONValue payload, int? id)
         {
             try
