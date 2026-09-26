@@ -2559,6 +2559,17 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     // ---------------------------------------------------------------- PR-CHAT-116 TurnEndRow
 
     [Fact]
+    [Trait("Req", "PR-CHAT-116")] // App/Views/Chat/TimelineRows.swift:2448-2455; UI/Common/Components.swift:37-40
+    [Trait("Decision", "ED-197")]
+    [Trait("Oracle", "O-65")]
+    public void The_B3_duration_rounds_half_seconds_away_from_zero_before_the_narrow_unit_formatter()
+    {
+        using var locale = SwiftFormatters.CurrentLocale.Override("en_US");
+        Assert.Equal("Worked for 3s", TurnEndRow.Label(Summary(System.Guid.NewGuid(), 2.5)));
+        Assert.Equal("Worked for 0s", TurnEndRow.Label(Summary(System.Guid.NewGuid(), -2.5)));
+    }
+
+    [Fact]
     [Trait("Req", "PR-CHAT-116")] // App/Views/Chat/TimelineRows.swift:2448-2455; UI/Common/Components.swift:36-41
     public void The_turn_end_line_reads_Worked_for_Stopped_after_or_Failed_after_and_the_formatted_duration()
     {
