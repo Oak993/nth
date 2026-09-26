@@ -102,4 +102,19 @@ public sealed class MentionScannerTests
         Assert.Equal(1, only.Value.Id);
         Assert.Equal((5, 9), (only.LowerBound, only.UpperBound));
     }
+
+    [Fact]
+    [Trait("Req", "PR-THEME-143")] // DroppyCode/UI/Markdown/MentionScanner.swift:15 hasPrefix compares whole
+                                    // Characters canonically (R-STR-2), not raw UTF-16 units.
+    public void A_combining_mark_grapheme_matches_a_canonically_equivalent_precomposed_candidate_name()
+    {
+        // "e" + U+0301 COMBINING ACUTE ACCENT is one grapheme cluster, canonically equivalent to precomposed
+        // U+00E9 LATIN SMALL LETTER E WITH ACUTE, but it spans two UTF-16 units in `text` where the candidate
+        // name (the precomposed form) is only one UTF-16 unit long. Swift's `hasPrefix` matches on Character
+        // equivalence, and `text.index(i, offsetBy: candidateName.count)` then advances by that one Character,
+        // landing on the boundary after both UTF-16 units of the combining-mark form, not after just one.
+        var matches = Matches("e\U00000301 is here", ["\U000000E9"]);
+        var only = Assert.Single(matches);
+        Assert.Equal((0, 2, "\U000000E9"), only);
+    }
 }
