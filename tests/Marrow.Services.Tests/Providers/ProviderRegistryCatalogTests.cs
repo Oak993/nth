@@ -471,15 +471,15 @@ public sealed class ProviderRegistryCatalogTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVREG-145")] // ProviderRegistry.swift:148-150, CommandCodeAPI.swift:349-359
-    public void the_commandcode_seed_is_the_nine_row_commandcodeapi_seed_led_by_claude_sonnet_5()
+    [Trait("Req", "PR-PROVREG-145")] // ProviderRegistry.swift:148-150, CommandCodeAPI.swift:349-361
+    public void the_commandcode_seed_is_the_eleven_row_commandcodeapi_seed_led_by_claude_sonnet_5()
     {
         var seed = ProviderRegistry.CommandcodeSeed;
-        Assert.Equal(9, seed.Count);
+        Assert.Equal(11, seed.Count);
         Assert.Equal(
         [
-            "claude-sonnet-5", "claude-fable-5-1", "claude-opus-5", "gpt-6-astra", "gpt-5.6-sol",
-            "google/gemini-3.8-flash", "deepseek/deepseek-v4-flash", "moonshotai/kimi-k3", "zai-org/glm-5.3",
+            "claude-sonnet-5", "claude-fable-5-1", "claude-opus-5-5", "claude-opus-5", "gpt-6-astra", "gpt-5.6-sol",
+            "gpt-5.6-luna", "google/gemini-3.8-flash", "deepseek/deepseek-v4-flash", "moonshotai/kimi-k3", "zai-org/glm-5.3",
         ],
         seed.Select(o => o.Id).ToArray());
         Assert.Equal("Claude Sonnet 5", seed[0].Name);
@@ -487,7 +487,7 @@ public sealed class ProviderRegistryCatalogTests
         for (var i = 1; i < seed.Count; i++) Assert.False(seed[i].IsDefault);
         // Every detail is a vendor word, a middle dot, and a phrase.
         Assert.Equal("Anthropic \U000000B7 best combo of speed & intelligence", seed[0].Detail);
-        Assert.Equal("Open Source \U000000B7 frontier coding with emergent cyber capabilities", seed[8].Detail);
+        Assert.Equal("Open Source \U000000B7 frontier coding with emergent cyber capabilities", seed[10].Detail);
         // The seed doubles as loadCatalog's still-seeded equality sentinel (:194, :474).
         Assert.Equal(ProviderRegistry.CommandcodeSeed, seed);
     }
