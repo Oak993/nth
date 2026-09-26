@@ -8,7 +8,7 @@ using Marrow.Testing;
 
 namespace Marrow.Core.Tests.Models;
 
-// Source: DroppyCode/Core/Models/Timeline.swift (B2 1fbf81e), :1-366.
+// Source: DroppyCode/Core/Models/Timeline.swift (B3 52bc792), :1-369.
 //
 // Tests for part 1 of Core.Models.Timeline (work packet part1.md): the records listed there, minus
 // TurnRecord.tokenSpends and ThreadDocument.continuation, both reported as blocked in Timeline.cs's header comment
@@ -78,7 +78,7 @@ public sealed class TimelineTests
     // ---- PR-CHAT-002: isEmptyReasoning trims Unicode whitespace-and-newlines ----
 
     [Theory]
-    [Trait("Req", "PR-CHAT-002")] // Core/Models/Timeline.swift:28-32; Core/Support/Text.swift:132
+    [Trait("Req", "PR-CHAT-002")] // Core/Models/Timeline.swift:28-32; Core/Support/Text.swift:222-224
     [InlineData("")]
     [InlineData("   ")]
     [InlineData("\n\t \n")]
@@ -410,8 +410,8 @@ public sealed class TimelineTests
     // ---- PR-CHAT-013 / PR-GIT-148: TurnRecord's per-field lenient decode ----
 
     [Fact]
-    [Trait("Req", "PR-CHAT-013")] // Core/Models/Timeline.swift:283-307, :309-329
-    [Trait("Req", "PR-GIT-148")] // Core/Models/Timeline.swift:290-291, :294, :296, :299, :306
+    [Trait("Req", "PR-CHAT-013")] // Core/Models/Timeline.swift:286-310, :312-332
+    [Trait("Req", "PR-GIT-148")] // Core/Models/Timeline.swift:293-294, :297, :299, :302, :309
     public void A_turn_record_stored_with_only_the_oldest_fields_still_decodes_with_every_default()
     {
         // An older build's turn: only index, startedAt and status - none of the newer git or Hydra fields.
@@ -433,7 +433,7 @@ public sealed class TimelineTests
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-013")] // Core/Models/Timeline.swift:309-329: every default, an entirely empty object
+    [Trait("Req", "PR-CHAT-013")] // Core/Models/Timeline.swift:312-332: every default, an entirely empty object
     public void An_entirely_empty_turn_record_decodes_with_every_field_defaulted()
     {
         using var runtime = new TestRuntime();
@@ -446,7 +446,7 @@ public sealed class TimelineTests
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-013")] // Core/Models/Timeline.swift:311: a wrong-typed field falls back to its default
+    [Trait("Req", "PR-CHAT-013")] // Core/Models/Timeline.swift:314: a wrong-typed field falls back to its default
     public void A_field_of_the_wrong_type_takes_its_default_rather_than_failing_the_record()
     {
         var turn = Decode<TurnRecord>("{\"index\":\"three\",\"hydraMerged\":\"yes\"}");
@@ -455,7 +455,7 @@ public sealed class TimelineTests
     }
 
     [Fact]
-    [Trait("Req", "PR-GIT-148")] // Core/Models/Timeline.swift:290-291, :294, :296, :299, :306: exact key names
+    [Trait("Req", "PR-GIT-148")] // Core/Models/Timeline.swift:293-294, :297, :299, :302, :309: exact key names
     public void The_git_fields_persist_under_their_exact_key_names_and_touchedPaths_round_trips()
     {
         var turn = new TurnRecord
@@ -478,7 +478,7 @@ public sealed class TimelineTests
     // ---- PR-CHAT-014: ContextUsage.fraction ----
 
     [Fact]
-    [Trait("Req", "PR-CHAT-014")] // Core/Models/Timeline.swift:331-339
+    [Trait("Req", "PR-CHAT-014")] // Core/Models/Timeline.swift:334-342
     public void Fraction_is_null_without_a_positive_window_and_otherwise_used_over_window_clamped_to_1()
     {
         Assert.Null(new ContextUsage { UsedTokens = 10 }.Fraction);
@@ -492,7 +492,7 @@ public sealed class TimelineTests
     // ---- PR-USAGE-085: ContextUsage.fraction is nil without a positive window and is otherwise clamped to at most one ----
 
     [Fact]
-    [Trait("Req", "PR-USAGE-085")] // Core/Models/Timeline.swift:335-338
+    [Trait("Req", "PR-USAGE-085")] // Core/Models/Timeline.swift:338-341
     public void Fraction_is_nil_for_a_missing_zero_or_negative_window_and_otherwise_used_over_window_capped_at_one()
     {
         Assert.Null(new ContextUsage { UsedTokens = 500 }.Fraction);
@@ -504,7 +504,7 @@ public sealed class TimelineTests
     }
 
     [Fact]
-    [Trait("Req", "PR-USAGE-085")] // Core/Models/Timeline.swift:335-338; no lower clamp on usedTokens
+    [Trait("Req", "PR-USAGE-085")] // Core/Models/Timeline.swift:338-341; no lower clamp on usedTokens
     public void Fraction_has_no_lower_clamp_so_a_negative_usedTokens_yields_a_negative_fraction()
     {
         Assert.Equal(-0.5, new ContextUsage { UsedTokens = -50, WindowTokens = 100 }.Fraction);
@@ -553,7 +553,7 @@ public sealed class TimelineTests
     // ---- PR-CHAT-017: ThreadDocument's seven keys and defaults ----
 
     [Fact]
-    [Trait("Req", "PR-CHAT-017")] // Core/Models/Timeline.swift:341-354
+    [Trait("Req", "PR-CHAT-017")] // Core/Models/Timeline.swift:344-357
     public void A_freshly_created_thread_document_has_only_the_required_threadID_and_every_other_field_empty_or_null()
     {
         var threadID = Guid.NewGuid();
@@ -568,7 +568,7 @@ public sealed class TimelineTests
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-017")] // Core/Models/Timeline.swift:356-358: a missing threadID is the one non-lenient field
+    [Trait("Req", "PR-CHAT-017")] // Core/Models/Timeline.swift:359-361: a missing threadID is the one non-lenient field
     public void A_document_with_no_threadID_fails_to_decode()
     {
         Assert.Throws<DecodingError>(() => Decode<ThreadDocument>("{}"));
@@ -577,7 +577,7 @@ public sealed class TimelineTests
     // ---- PR-CHAT-019: array members decode leniently, dropping only the broken element ----
 
     [Fact]
-    [Trait("Req", "PR-CHAT-019")] // Core/Models/Timeline.swift:356-365
+    [Trait("Req", "PR-CHAT-019")] // Core/Models/Timeline.swift:359-368
     public void An_unreadable_item_is_dropped_and_every_readable_item_around_it_survives_in_order()
     {
         var threadID = Guid.NewGuid();
@@ -593,7 +593,7 @@ public sealed class TimelineTests
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-019")] // Core/Models/Timeline.swift:359-363: turns, followUps and hydraMerges are lenient too
+    [Trait("Req", "PR-CHAT-019")] // Core/Models/Timeline.swift:362-366: turns, followUps and hydraMerges are lenient too
     public void Turns_followUps_and_hydraMerges_also_decode_leniently_and_usage_defaults_to_null_when_absent()
     {
         var threadID = Guid.NewGuid();
@@ -615,8 +615,8 @@ public sealed class TimelineTests
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-017")] // Core/Models/Timeline.swift:341-365: full round trip through every non-blocked field
-    [Trait("Req", "PR-USAGE-084")] // Core/Models/Timeline.swift:345, :361; ContextUsage :331-339
+    [Trait("Req", "PR-CHAT-017")] // Core/Models/Timeline.swift:344-368: full round trip through every non-blocked field
+    [Trait("Req", "PR-USAGE-084")] // Core/Models/Timeline.swift:348, :364; ContextUsage :334-342
     public void A_document_with_every_field_populated_round_trips()
     {
         var threadID = Guid.NewGuid();
@@ -649,8 +649,8 @@ public sealed class TimelineTests
     // ---- PR-CHAT-018 / PR-HYDRAMERGE-081: HydraMergeRecord's five outcomes and seven fields ----
 
     [Fact]
-    [Trait("Req", "PR-CHAT-018")] // Core/Models/Timeline.swift:269-281
-    [Trait("Req", "PR-HYDRAMERGE-081")] // Core/Models/Timeline.swift:269-281
+    [Trait("Req", "PR-CHAT-018")] // Core/Models/Timeline.swift:269-284
+    [Trait("Req", "PR-HYDRAMERGE-081")] // Core/Models/Timeline.swift:269-284
     public void HydraMergeRecord_has_five_outcomes_and_stores_every_optional_field_when_present()
     {
         Assert.Equal(
@@ -675,9 +675,82 @@ public sealed class TimelineTests
 
         var minimal = new HydraMergeRecord { At = at, HydraMergeRecordOutcome = HydraMergeRecord.Outcome.Settled, Files = 0 };
         var minimalJson = Encode(minimal);
-        foreach (var key in new[] { "project", "label", "url", "detail" })
+        foreach (var key in new[] { "project", "label", "url", "detail", "retryable" })
             Assert.DoesNotContain($"\"{key}\"", minimalJson, StringComparison.Ordinal);
         Assert.Equal(minimal, Decode<HydraMergeRecord>(minimalJson));
+        Assert.Null(minimal.Retryable);
+    }
+
+    // ---- PR-HYDRAMERGE-132: retryable is saved true on a failure that clears by itself, omitted otherwise ----
+
+    [Fact]
+    [Trait("Req", "PR-HYDRAMERGE-132")] // Core/Models/Timeline.swift:281-283
+    public void Retryable_true_round_trips_and_is_omitted_when_null()
+    {
+        var at = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        var retryableFailure = new HydraMergeRecord
+        {
+            At = at, HydraMergeRecordOutcome = HydraMergeRecord.Outcome.Failed, Files = 2, Detail = "still checking", Retryable = true,
+        };
+        var retryableJson = Encode(retryableFailure);
+        Assert.Contains("\"retryable\":true", retryableJson, StringComparison.Ordinal);
+        var reloadedRetryable = Decode<HydraMergeRecord>(retryableJson);
+        Assert.Equal(true, reloadedRetryable.Retryable);
+
+        var plainFailure = new HydraMergeRecord { At = at, HydraMergeRecordOutcome = HydraMergeRecord.Outcome.Failed, Files = 2, Detail = "needs the user" };
+        var plainJson = Encode(plainFailure);
+        Assert.DoesNotContain("\"retryable\"", plainJson, StringComparison.Ordinal);
+        Assert.Null(Decode<HydraMergeRecord>(plainJson).Retryable);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-HYDRAMERGE-132")] // Core/Models/Timeline.swift:281-283: absent on one saved before 1.7.0
+    public void A_record_written_before_1_7_0_with_no_retryable_key_decodes_as_null()
+    {
+        var legacy = "{\"at\":\"2026-01-01T00:00:00Z\",\"outcome\":\"failed\",\"files\":1,\"detail\":\"a conflict\"}";
+        Assert.Null(Decode<HydraMergeRecord>(legacy).Retryable);
+    }
+
+    // PR-HYDRAMERGE-132's failure_cases: "A record carrying false, which this build never writes, is treated
+    // like nil by both readers." This model itself is a faithful three-state field: an explicit "retryable":false
+    // key (never produced by this build, but a hand-written or third-party record could carry one) decodes as
+    // false, not squashed to null, and a record built with Retryable = false round-trips as false rather than
+    // being omitted the way null is. The "treated like nil" behaviour belongs to the field's readers, not to
+    // this decode/encode step; see HydraTests.cs's
+    // MergeStatus_failed_outcome_with_retryable_false_matches_retryable_null_not_retryable_true for the one such
+    // reader in this lane's scope (Core.Models.Hydra.MergeStatus). The other reader named by
+    // the record, AppModel+HydraMerge.swift:233's fail() "saysIt" check, is App-layer runtime behaviour outside
+    // Core.Models and is left for the unit that owns AppModel+HydraMerge.swift.
+    [Fact]
+    [Trait("Req", "PR-HYDRAMERGE-132")] // Core/Models/Timeline.swift:281-283: false is a real, distinct wire value
+    public void An_explicit_false_retryable_key_decodes_as_false_and_round_trips_as_false_not_null()
+    {
+        var explicitFalse = "{\"at\":\"2026-01-01T00:00:00Z\",\"outcome\":\"failed\",\"files\":1,\"detail\":\"a conflict\",\"retryable\":false}";
+        var reloaded = Decode<HydraMergeRecord>(explicitFalse);
+        Assert.False(reloaded.Retryable is null);
+        Assert.Equal(false, reloaded.Retryable);
+
+        var built = new HydraMergeRecord
+        {
+            At = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero), HydraMergeRecordOutcome = HydraMergeRecord.Outcome.Failed, Files = 1, Retryable = false,
+        };
+        var json = Encode(built);
+        Assert.Contains("\"retryable\":false", json, StringComparison.Ordinal); // written, not omitted: only null is omitted
+        Assert.Equal(false, Decode<HydraMergeRecord>(json).Retryable);
+    }
+
+    // ---- PR-CHAT-018 / PR-HYDRAMERGE-081: held is a legacy raw value, still valid on decode, never written here ----
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-018")] // Core/Models/Timeline.swift:269-272: held stays a valid raw value for old records
+    [Trait("Req", "PR-HYDRAMERGE-081")] // Core/Models/Timeline.swift:269-272
+    public void A_legacy_held_record_written_by_an_earlier_version_still_decodes()
+    {
+        var legacy = "{\"at\":\"2026-01-01T00:00:00Z\",\"outcome\":\"held\",\"files\":4,\"detail\":\"another chat holds this job's files\"}";
+        var reloaded = Decode<HydraMergeRecord>(legacy);
+        Assert.Equal(HydraMergeRecord.Outcome.Held, reloaded.HydraMergeRecordOutcome);
+        Assert.Equal(4, reloaded.Files);
+        Assert.Null(reloaded.Retryable);
     }
 
     // A minimal uncompressed 24bpp BMP, matching Support/ThumbnailCacheTests.cs's own helper: any WIC-capable

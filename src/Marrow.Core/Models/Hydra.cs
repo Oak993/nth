@@ -8,13 +8,13 @@ using ValueDictionary = System.Collections.Generic.Dictionary<string, Marrow.Cor
 
 namespace Marrow.Core.Models;
 
-// Source: DroppyCode/Core/Models/Hydra.swift (B2 1fbf81e), :1-1434.
+// Source: DroppyCode/Core/Models/Hydra.swift (B3 52bc792), :1-1438.
 // SKELETON (cycle c4). Every member with behaviour throws MARROW_STUB until its unit ports it.
 // String constants whose text may fall under OD-0012 F1 / ED-088 (the words "Droppy Code", the agent names
 // sent to the CLIs) or is built by interpolation are stub getters, left for the implementing unit to decide.
 // Not declared yet, private in Swift and used by no other file: :659-718 the private rules and texts of
-// HydraPrompts, :1092-1109 delegationOpener and lineStartFences, :1156-1162 delegations(fromBody:),
-// :1217-1226 verificationMarkers, :1397-1433 landingLine, duration, list and quoted.
+// HydraPrompts, :1096-1113 delegationOpener and lineStartFences, :1160-1166 delegations(fromBody:),
+// :1221-1230 verificationMarkers, :1401-1437 landingLine, duration, list and quoted.
 // Codable conformance (synthesized coding and the init(from:) at :82-94, :398-433, :477-485) is left to the
 // implementing unit.
 // Unit Core.Models.Hydra part 1 of 4 (PR-HYDRA-001 to 024) implemented HydraHeadProfile (ctor, BriefLabel,
@@ -38,8 +38,8 @@ namespace Marrow.Core.Models;
 // in this part, but ClaudeAgents (051) and CopilotAgents (052) both read them directly, so they are implemented
 // here too, word for word with OD-0012 F1's "Droppy Code" -> "Marrow" applied (they are sent to the head's own
 // CLI, so they are app-sent text). The private HydraPrompts members that this part's own callers (Policy,
-// WorkerPrompt) do not reach - HowToWork and WorkplaceRules, consumed only by DelegatedHeadPrompt (:1241) and
-// QueuedHeadPrompt (:1271), a later part's work - are declared `internal` rather than `private` (R-NAME-6 is
+// WorkerPrompt) do not reach - HowToWork and WorkplaceRules, consumed only by DelegatedHeadPrompt (:1245) and
+// QueuedHeadPrompt (:1275), a later part's work - are declared `internal` rather than `private` (R-NAME-6 is
 // written for ordinary module-internal/private members; these are Swift file-private members with no public
 // caller yet in this part) so this part's own tests can assert their exact text directly, via the
 // Marrow.Core.Tests InternalsVisibleTo grant already declared in Support/HangWatchdog.cs.
@@ -47,8 +47,8 @@ namespace Marrow.Core.Models;
 // TeamStatus, both FallbackPolicy overloads, MergeStatus, DelegationRequest, FallbackTurnNote,
 // FallbackReportNote, FallbackPreamble/FallbackReportPreamble, HeldBackMessage, UnreadableBlockMessage (its
 // VerificationMarkers table too, for WithoutVerificationSteps), WithoutVerificationSteps, DelegatedHeadPrompt,
-// QueuedHeadPrompt, and ReportMessage with its private helpers LandingLine, Duration, Listed and Quoted (:1397-
-// 1433, not declared until now per this file's own header note). PR-HYDRA-054 (workerPrompt/scoutPrompt) was
+// QueuedHeadPrompt, and ReportMessage with its private helpers LandingLine, Duration, Listed and Quoted (:1401-
+// 1437, not declared until now per this file's own header note). PR-HYDRA-054 (workerPrompt/scoutPrompt) was
 // already implemented in part 2 (ClaudeAgents/CopilotAgents read it directly); this part only adds its test
 // coverage. HydraDelegationBudget (CanDelegate, BeginTurn, ChargeRound, Refuse, NoteDropped, TakeDropNotice) and
 // DelegationBlockRange/HasDelegationBlock/HasDelegationOpener/Delegations/WithoutDelegationBlock/
@@ -866,7 +866,7 @@ public sealed record HydraDelegationBudget
     public const long MaxRefusals = 3; // :616
 }
 
-// :620-1434.
+// :620-1438.
 public static partial class HydraPrompts
 {
     public const string WorkerAgentName = "droppy-worker"; // :621
@@ -943,10 +943,12 @@ public static partial class HydraPrompts
         return $"Heads may work in any project. A head works in {own} unless it is sent to another: an entry of the delegation block names it with \"project\" (a sidebar project's name or path, or the absolute path of any git repository on this Mac, which Marrow then adds to the sidebar), and a head spawned with your own agent tool is told the project's folder in its prompt.{named} Whatever a head changes lands in the checkout of the project it worked in, and the team's work is merged per project, one merge request each. Your own tools run in this chat's checkout, and you may read and edit files in any project all the same: what you change elsewhere is merged along with that project's work. Run your own checks in the checkout itself: never make a worktree or a copy of the project for them.";
     }
 
-    // :708. Swift `private`. DEVIATION OD-0012 F1: "Droppy Code handles branches" -> "Marrow handles
-    // branches"; the rest of the paragraph is unchanged.
+    // :708 (B3). Swift `private`. DEVIATION OD-0012 F1 (x2): "Droppy Code handles branches" -> "Marrow handles
+    // branches", and "if it says Droppy Code retries by itself" -> "if it says Marrow retries by itself". B3
+    // adds two sentences: the "if it says ... retries by itself" clause and "A merge never waits on another
+    // chat or session ...". The rest of the paragraph is unchanged.
     internal const string AutoMergeRule =
-        "Marrow handles branches, commits and merge requests after all heads return and you finish. Never run or delegate those operations. For merge/status questions, use only the current [Hydra] note: if merged, give its link; if files remain, say they land when your answer ends; if merging failed or files are outside every project, give the stated reason and required user action. If nothing is pending, promise no merge. Never claim a merge without the note confirming it.";
+        "Marrow handles branches, commits and merge requests after all heads return and you finish. Never run or delegate those operations. For merge/status questions, use only the current [Hydra] note: if merged, give its link; if files remain, say they land when your answer ends; if it says Marrow retries by itself, say the work lands by itself and ask nothing; if merging failed or files are outside every project, give the stated reason and required user action. A merge never waits on another chat or session: never say it does, and never ask the user to merge. If nothing is pending, promise no merge. Never claim a merge without the note confirming it.";
 
     // :713. Swift `private`.
     internal const string ReviewRule =
@@ -1165,7 +1167,7 @@ public static partial class HydraPrompts
     }
 
     // :894-904. Codex's model test is only `!model.isEmpty`: there is no "default"/"auto" sentinel here, unlike
-    // Claude (Policy, :753-758) and Copilot (CopilotAgents, :1092-1093).
+    // Claude (ClaudeAgents, :820) and Copilot (CopilotAgents, :853).
     public static ValueMap<string, JSONValue> CodexConfig(HydraLaunch launch)
     {
         var agents = new ValueDictionary();
@@ -1272,7 +1274,7 @@ public static partial class HydraPrompts
         FallbackPolicy(launch.MaxHeads, launch.IsolatesHeads, launch.AutoMerges, launch.ReviewsHeads,
             launch.HeadsLabel, launch.Projects, launch.HeadProfiles);
 
-    // :979-1018. The Swift default `now: Date = .now` is a null default.
+    // :979-1022. The Swift default `now: Date = .now` is a null default.
     public static string? MergeStatus(IReadOnlyList<HydraMergeRecord> merges, long unmergedFiles, DateTimeOffset? now = null)
     {
         // :980
@@ -1307,20 +1309,26 @@ public static partial class HydraPrompts
             return $"Merge state: {PendingLine($"{Files(unmergedFiles)} changed in this chat")}";
         }
         var last = merges[merges.Count - 1];
-        // :998-1017
+        // :998-1021 (B3; B2 :998-1017). The failed branch now splits on Retryable (PR-HYDRA-253), and held
+        // handles legacy records only (PR-HYDRAMERGE-083).
         switch (last.HydraMergeRecordOutcome)
         {
             case HydraMergeRecord.Outcome.Merged: // :999-1000
                 return $"Merge state: {Merged(last)} {pending}";
-            case HydraMergeRecord.Outcome.Failed: // :1001-1002
-                return $"Merge state: the last merge failed at {When(last.At)}: {last.Detail ?? "no reason recorded"}. The work is still in the checkout and is retried once you finish this answer; if the reason needs the user (a sign-in, a conflict), say exactly that.";
-            case HydraMergeRecord.Outcome.Held: // :1003-1007
+            case HydraMergeRecord.Outcome.Failed: // :1001-1005. NEW at B3: the retryable branch (:1002-1004, PR-HYDRA-253).
+                if (last.Retryable == true)
+                {
+                    // DEVIATION OD-0012 F1: "Droppy Code retries it by itself" -> "Marrow retries it by itself".
+                    return $"Merge state: the last try at {When(last.At)} did not land yet ({last.Detail ?? "no reason recorded"}). Marrow retries it by itself within a minute; nothing is needed from the user, so do not ask for anything or describe it as a problem. Do not claim a successful merge.";
+                }
+                return $"Merge state: the last merge failed at {When(last.At)}: {last.Detail ?? "no reason recorded"}. The work is still in the checkout and goes out by itself once that is settled; if the reason needs the user (a sign-in, conflict markers, a real conflict with the remote), say exactly that.";
+            case HydraMergeRecord.Outcome.Held: // :1006-1011. Written only by earlier versions: a merge never waits on another chat now.
                 if (unmergedFiles <= 0)
-                    return "Merge state: the earlier wait has no recorded files left to merge. Do not claim a new merge or promise another one.";
-                return $"Merge state: the merge is waiting at {When(last.At)}: {last.Detail ?? "another chat holds this job's files"} The work is still in the checkout. Explain the recorded dependency without assuming a completed chat needs more work: active work must finish, while completed jobs merge in order. Hydra retries automatically while this job remains eligible. Do not claim a successful merge.";
-            case HydraMergeRecord.Outcome.Settled: // :1008-1009
+                    return "Merge state: nothing from this job is left to merge. Do not claim a new merge or promise another one.";
+                return $"Merge state: {PendingLine($"{Files(unmergedFiles)} from this job")}";
+            case HydraMergeRecord.Outcome.Settled: // :1012-1013
                 return $"Merge state: at {When(last.At)}, Hydra found no recorded files left to merge. {pending} Do not describe this as a new merge.";
-            case HydraMergeRecord.Outcome.Stray: // :1010-1016
+            case HydraMergeRecord.Outcome.Stray: // :1014-1020
                 var parts = new List<string> { "Merge state:" };
                 var landed = merges.LastOrDefault(m => m.HydraMergeRecordOutcome == HydraMergeRecord.Outcome.Merged);
                 if (landed is not null) parts.Add(Merged(landed));
@@ -1332,7 +1340,7 @@ public static partial class HydraPrompts
         }
     }
 
-    // :1023-1035. DEVIATION OD-0012 F1: "so Droppy Code runs the selected heads" -> "so Marrow runs the selected
+    // :1027-1039. DEVIATION OD-0012 F1: "so Droppy Code runs the selected heads" -> "so Marrow runs the selected
     // heads" in the fallback route; the native route is unchanged.
     public static string DelegationRequest(HydraLaunch launch)
     {
@@ -1344,14 +1352,14 @@ public static partial class HydraPrompts
             "\n---\n\n";
     }
 
-    // :1038-1042
+    // :1042-1046
     public static string FallbackTurnNote(string? team, string? merge = null)
     {
         var parts = new[] { team, merge }.Where(p => p is not null).Cast<string>().ToList();
         return parts.Count == 0 ? "" : "[Hydra] " + string.Join(" ", parts) + "\n\n---\n\n";
     }
 
-    // :1047-1052. Swift order is (team, merge = nil, canDelegate); the defaulted merge goes last here. `team`/
+    // :1051-1056. Swift order is (team, merge = nil, canDelegate); the defaulted merge goes last here. `team`/
     // `merge` are tested for presence (not emptiness), so a present-but-empty string still contributes its
     // leading space; never collapse the resulting run of spaces.
     public static string FallbackReportNote(string? team, bool canDelegate, string? merge = null)
@@ -1362,29 +1370,29 @@ public static partial class HydraPrompts
         return "[Hydra] Your heads reported back below." + (team is { } t ? " " + t : "") + (merge is { } m ? " " + m : "") + " " + more + "\n\n---\n\n";
     }
 
-    // :1056-1058. fallbackTurnNote is evaluated twice, exactly as the Swift does (an inefficiency, not a
+    // :1060-1062. fallbackTurnNote is evaluated twice, exactly as the Swift does (an inefficiency, not a
     // behaviour to fix).
     public static string FallbackPreamble(HydraLaunch launch, string? team, string? merge = null) =>
         FallbackPolicy(launch) + "\n\n" + (FallbackTurnNote(team, merge).Length == 0 ? "---\n\n" : FallbackTurnNote(team, merge));
 
-    // :1060-1062. Swift order is (launch, team, merge = nil, canDelegate); the defaulted merge goes last here.
+    // :1064-1066. Swift order is (launch, team, merge = nil, canDelegate); the defaulted merge goes last here.
     public static string FallbackReportPreamble(HydraLaunch launch, string? team, bool canDelegate, string? merge = null) =>
         FallbackPolicy(launch) + "\n\n" + FallbackReportNote(team, canDelegate, merge);
 
-    // :1066-1071
+    // :1070-1075
     public static string HeldBackMessage(long count) =>
         $"Hydra held back {(count == 1 ? "a head" : $"{count} heads")}.\n" +
         $"None of the heads you asked for went out: this request has had all {MaxDelegationRounds} of its rounds of heads already. Do the rest yourself now, without git status or git diff on the heads' work, and answer the user.";
 
-    // :1075-1080. PR-HYDRA-251
+    // :1079-1084. PR-HYDRA-251
     public static string InterruptedBlockMessage(bool stopped) =>
         "No heads went out.\n" +
         $"Your reply's delegation block was dropped: the turn {(stopped ? "was stopped" : "failed")} before the heads could go out, and none of that work was delegated. Do it yourself, or send the block again.";
 
-    // :1086-1088. PR-HYDRA-250
+    // :1090-1092. PR-HYDRA-250
     public static string DroppedBlockNotice(string message) => "[Hydra] " + message + "\n\n---\n\n";
 
-    // :1092-1094. Three dialects, case-insensitive: hydra, hydra-sent, hydra-leaving. R-RE-1. PR-HYDRA-080
+    // :1096-1098. Three dialects, case-insensitive: hydra, hydra-sent, hydra-leaving. R-RE-1. PR-HYDRA-080
     [GeneratedRegex(@"```[ \t]*hydra(?:-sent|-leaving)?[ \t]*\r?\n", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex DelegationOpenerPattern();
 
@@ -1394,7 +1402,7 @@ public static partial class HydraPrompts
         return match.Success ? (match.Index, match.Index + match.Length) : null;
     }
 
-    // :1099-1109. Every "```" that opens a line (text start, or immediately preceded by a Character.isNewline
+    // :1103-1113. Every "```" that opens a line (text start, or immediately preceded by a Character.isNewline
     // character), from `start` on, in order. A fence with an info string after it still counts. PR-HYDRA-082
     private static List<(int Lower, int Upper)> LineStartFences(string text, int start)
     {
@@ -1411,7 +1419,7 @@ public static partial class HydraPrompts
         return fences;
     }
 
-    // :1117-1121. The end is the LAST line-start fence after the opener, never the first, or the end of the
+    // :1121-1125. The end is the LAST line-start fence after the opener, never the first, or the end of the
     // text when there is none. R-STR-10: a UTF-16 offset range. PR-HYDRA-083
     public static (int LowerBound, int UpperBound)? DelegationBlockRange(string @in)
     {
@@ -1421,14 +1429,14 @@ public static partial class HydraPrompts
         return (opener.Lower, end);
     }
 
-    // :1124. PR-HYDRA-089
+    // :1128. PR-HYDRA-089
     public static bool HasDelegationBlock(string @in) => DelegationBlockRange(@in) is not null;
 
-    // :1129-1131. The Swift parameter is a Substring (a streaming tail); the same three-dialect regex.
+    // :1133-1135. The Swift parameter is a Substring (a streaming tail); the same three-dialect regex.
     // PR-HYDRA-089
     public static bool HasDelegationOpener(string @in) => DelegationOpenerPattern().IsMatch(@in);
 
-    // :1156-1162. A body that is not valid JSON returns nil. An explicitly empty array
+    // :1160-1166. A body that is not valid JSON returns nil. An explicitly empty array
     // returns an empty list (PR-HYDRA-098). A bare object is treated as a one-entry array.
     // An array/object whose entries all fail Delegation(fromEntry:) returns nil, not [],
     // so the caller (Delegations) keeps walking earlier fence candidates. PR-HYDRA-085
@@ -1441,7 +1449,7 @@ public static partial class HydraPrompts
         return parsed.Count == 0 ? null : new ValueList<HydraDelegation>(parsed);
     }
 
-    // :1140-1149. Candidate ends are every line-start fence after the opener's body start,
+    // :1144-1153. Candidate ends are every line-start fence after the opener's body start,
     // walked LAST first, then the end of the text; the first candidate body that parses
     // wins. PR-HYDRA-084
     public static ValueList<HydraDelegation>? Delegations(string @in)
@@ -1458,7 +1466,7 @@ public static partial class HydraPrompts
         return null;
     }
 
-    // :1165-1169. `.trimmed` is `trimmingCharacters(in: .whitespacesAndNewlines)`, ported as StringExtensions.
+    // :1169-1173. `.trimmed` is `trimmingCharacters(in: .whitespacesAndNewlines)`, ported as StringExtensions.
     // Trimmed (Support/Text.cs). PR-HYDRA-088
     public static string WithoutDelegationBlock(string text)
     {
@@ -1468,23 +1476,23 @@ public static partial class HydraPrompts
         return kept.Trimmed();
     }
 
-    public static TimeSpan DelegationSentHold { get; } = SwiftTask.Seconds(3.2);          // :1173
-    public static TimeSpan DelegationLeaveFade { get; } = TimeSpan.FromMilliseconds(450); // :1177
+    public static TimeSpan DelegationSentHold { get; } = SwiftTask.Seconds(3.2);          // :1177
+    public static TimeSpan DelegationLeaveFade { get; } = TimeSpan.FromMilliseconds(450); // :1181
 
-    // :1181-1183. Matches hydra-sent OR hydra-leaving; the plain hydra opener does not match. `contains`, so
+    // :1185-1187. Matches hydra-sent OR hydra-leaving; the plain hydra opener does not match. `contains`, so
     // the match may sit anywhere in the text. PR-HYDRA-092
     [GeneratedRegex(@"```[ \t]*hydra-(?:sent|leaving)[ \t]*\r?\n", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex SentOrLeavingDelegationPattern();
 
     public static bool HasSentDelegationBlock(string @in) => SentOrLeavingDelegationPattern().IsMatch(@in);
 
-    // :1186-1188. PR-HYDRA-092
+    // :1190-1192. PR-HYDRA-092
     [GeneratedRegex(@"```[ \t]*hydra-leaving[ \t]*\r?\n", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex LeavingDelegationPattern();
 
     public static bool HasLeavingDelegationBlock(string @in) => LeavingDelegationPattern().IsMatch(@in);
 
-    // :1193-1196. Only rewrites a sent, not-yet-leaving block; idempotent. PR-HYDRA-091
+    // :1197-1200. Only rewrites a sent, not-yet-leaving block; idempotent. PR-HYDRA-091
     public static string MarkingDelegationBlockLeaving(string text)
     {
         if (!HasSentDelegationBlock(text) || HasLeavingDelegationBlock(text) || DelegationOpener(text) is not { } opener)
@@ -1492,7 +1500,7 @@ public static partial class HydraPrompts
         return text[..opener.Lower] + "```hydra-leaving\n" + text[opener.Upper..];
     }
 
-    // :1200-1203. Only rewrites when an opener exists and no sent-or-leaving block is already present;
+    // :1204-1207. Only rewrites when an opener exists and no sent-or-leaving block is already present;
     // idempotent. Always LF, never CRLF, even when the original opener ended with CRLF. PR-HYDRA-090
     public static string MarkingDelegationBlockSent(string text)
     {
@@ -1501,7 +1509,7 @@ public static partial class HydraPrompts
         return text[..opener.Lower] + "```hydra-sent\n" + text[opener.Upper..];
     }
 
-    // :1207-1213. The single call site (ThreadRuntime.swift:2846) always passes nil, so the reason branch is
+    // :1211-1217. The single call site (ThreadRuntime.swift:2888) always passes nil, so the reason branch is
     // ported for structural parity only; it is unreachable in shipped code.
     public static string UnreadableBlockMessage(string? reason)
     {
@@ -1515,7 +1523,7 @@ public static partial class HydraPrompts
         return message + " Write the block again at the end of your reply: one fenced block whose info string is hydra, holding a JSON array of objects with a task string and a prompt string. Inside a prompt never open a fenced code block of your own (no three backticks): describe code in words, quote identifiers with single backticks, or indent snippets. This does not count as a round of heads.";
     }
 
-    // :1217-1226. All 34 markers, in Swift's order, including the trailing space in "tsc ".
+    // :1221-1230. All 34 markers, in Swift's order, including the trailing space in "tsc ".
     private static readonly string[] VerificationMarkers =
     [
         "xcodebuild", "swift build", "swift test", "swiftlint", "npm test", "npm run build",
@@ -1528,7 +1536,7 @@ public static partial class HydraPrompts
         "run the suite", "build verification",
     ];
 
-    // :1230-1238. Matching is an unanchored, case-insensitive substring test, never word-bounded.
+    // :1234-1242. Matching is an unanchored, case-insensitive substring test, never word-bounded.
     public static string WithoutVerificationSteps(string prompt)
     {
         var lines = SwiftString.Split(prompt, "\n", omittingEmptySubsequences: false);
@@ -1541,7 +1549,7 @@ public static partial class HydraPrompts
         return string.Join("\n", kept) + "\nMake the assigned edits and report; the lead handles all validation.";
     }
 
-    // :1241-1257. DEVIATION OD-0012 F1: "a Hydra head in Droppy Code:" -> "a Hydra head in Marrow:"; the
+    // :1245-1261. DEVIATION OD-0012 F1: "a Hydra head in Droppy Code:" -> "a Hydra head in Marrow:"; the
     // sections and headings are unchanged.
     public static string DelegatedHeadPrompt(HydraPersona persona, HydraDelegation delegation, Workplace workplace) =>
         $"You are {persona.Name}, a Hydra head in Marrow: one of several helpers working in parallel for a lead agent. The lead delegated this task to you.\n" +
@@ -1558,35 +1566,35 @@ public static partial class HydraPrompts
         "## Your report\n" +
         $"{HowToReport}";
 
-    // :1262-1266
+    // :1266-1270
     public sealed record ChatContext
     {
-        public string? LastUserPrompt { get; init; }                                  // :1263
-        public string? LastReply { get; init; }                                       // :1264
-        public ValueList<string> TouchedPaths { get; init; } = ValueList<string>.Empty; // :1265
+        public string? LastUserPrompt { get; init; }                                  // :1267
+        public string? LastReply { get; init; }                                       // :1268
+        public ValueList<string> TouchedPaths { get; init; } = ValueList<string>.Empty; // :1269
     }
 
-    // :1271-1305. DEVIATION OD-0012 F1: "a Hydra head in Droppy Code:" -> "a Hydra head in Marrow:". The task is
+    // :1275-1309. DEVIATION OD-0012 F1: "a Hydra head in Droppy Code:" -> "a Hydra head in Marrow:". The task is
     // interpolated raw: unlike DelegatedHeadPrompt, it is NOT passed through WithoutVerificationSteps.
     public static string QueuedHeadPrompt(HydraPersona persona, string task, ChatContext context, Workplace workplace,
         bool leadIsWorking = true)
     {
         var lines = new List<string>();
-        // :1273-1275
+        // :1277-1279
         if (context.LastUserPrompt is { Length: > 0 } prompt)
             lines.Add($"- The user last asked the lead: {Quoted(prompt, 1_200)}");
-        // :1276-1278
+        // :1280-1282
         if (context.LastReply is { Length: > 0 } reply)
             lines.Add($"- The lead's latest reply{(leadIsWorking ? " so far" : "")}: {Quoted(reply, 800)}");
-        // :1279-1282
+        // :1283-1286
         if (leadIsWorking && context.TouchedPaths.Count > 0)
         {
             var paths = string.Join(", ", context.TouchedPaths.Take(20));
             lines.Add($"- Files the lead is changing in its current turn: {paths}. Leave these alone; if your task cannot be done without touching one, keep the change minimal and say so in your report.");
         }
-        // :1283
+        // :1287
         var contextBlock = lines.Count == 0 ? "The lead has not said anything yet." : string.Join("\n", lines);
-        // :1284-1286
+        // :1288-1290
         var handoff = leadIsWorking
             ? "The user queued this task for you while the lead works on something else."
             : "The user sent this task straight to you; the lead is idle and will hear your report.";
@@ -1609,13 +1617,13 @@ public static partial class HydraPrompts
             $"{HowToReport}";
     }
 
-    // :1310-1393. The Swift default `stillWorking: []` is a null default.
+    // :1314-1397. The Swift default `stillWorking: []` is a null default.
     public static string ReportMessage(IReadOnlyList<HydraReport> reports, IReadOnlyList<string>? stillWorking = null,
         bool reviewsHeads = false)
     {
         stillWorking ??= [];
 
-        // :1311-1315
+        // :1315-1319
         var names = reports.Select(r => HydraRoster.Persona(r.HeadIndex).Name).ToList();
         var opening = $"Hydra reports: {Listed(names)} finished.";
         if (stillWorking.Count > 0)
@@ -1623,7 +1631,7 @@ public static partial class HydraPrompts
             opening += $" {Listed(stillWorking)} {(stillWorking.Count == 1 ? "is" : "are")} still at work; {(stillWorking.Count == 1 ? "its report comes" : "their reports come")} as a later message.";
         }
 
-        // :1317-1335
+        // :1321-1339
         var sections = new List<string>();
         foreach (var report in reports)
         {
@@ -1647,16 +1655,16 @@ public static partial class HydraPrompts
             sections.Add(string.Join("\n", lines));
         }
 
-        // :1337-1384
+        // :1341-1388
         var closing = new List<string>();
-        if (reports.Any(r => r.Landing?.Landed == true)) // :1338-1340
+        if (reports.Any(r => r.Landing?.Landed == true)) // :1342-1344
             closing.Add("The changes listed above are in your checkout already; nothing needs applying.");
-        if (reports.Any(r => r.CopyPath is null && r.Status == HydraHeadInfo.Status.Completed)) // :1341-1343
+        if (reports.Any(r => r.CopyPath is null && r.Status == HydraHeadInfo.Status.Completed)) // :1345-1347
             closing.Add("The heads worked in your checkout, so their changes are there already.");
-        if (reports.Any(r => r.Landing is { } l && l.Conflicts.Count > 0)) // :1344-1346
+        if (reports.Any(r => r.Landing is { } l && l.Conflicts.Count > 0)) // :1348-1350
             closing.Add("A file listed with conflicts was merged three-way and keeps conflict markers: resolve those first, and tell the user in one line that you settled them, so the landing card above does not read as broken.");
 
-        // :1349-1357
+        // :1353-1361
         var owners = new Dictionary<string, List<string>>();
         foreach (var report in reports)
         foreach (var file in report.Landing?.Files ?? ValueList<HydraLanding.File>.Empty)
@@ -1668,35 +1676,35 @@ public static partial class HydraPrompts
             if (pair.Value.Count > 1)
                 closing.Add($"{Listed(pair.Value)} both changed {pair.Key}: read it as it is now before you build on it.");
 
-        // :1358-1361
+        // :1362-1365
         foreach (var report in reports)
         {
             if (report.Landing?.PatchPath is not { } path) continue;
             closing.Add($"{HydraRoster.Persona(report.HeadIndex).Name}'s changes would not apply on their own; the patch is at {path}. Apply it with `git apply --3way {path}` and settle what conflicts.");
         }
 
-        if (reports.Any(r => r.Status == HydraHeadInfo.Status.Failed)) // :1362-1364
+        if (reports.Any(r => r.Status == HydraHeadInfo.Status.Failed)) // :1366-1368
             closing.Add("A head that failed leaves its part to you: do it yourself or send it out again.");
-        if (reports.Any(r => r.Status == HydraHeadInfo.Status.Stopped)) // :1365-1367
+        if (reports.Any(r => r.Status == HydraHeadInfo.Status.Stopped)) // :1369-1371
             closing.Add("A head the user stopped leaves its part alone unless the user asks for it.");
-        if (reports.Any(r => r.Origin == HydraHeadInfo.Origin.Queued)) // :1368-1370
+        if (reports.Any(r => r.Origin == HydraHeadInfo.Origin.Queued)) // :1372-1374
             closing.Add("The user queued that work for the heads while you were busy; take it into account and carry on with the main job.");
-        if (reports.Any(r => r.Origin == HydraHeadInfo.Origin.Sent)) // :1371-1373
+        if (reports.Any(r => r.Origin == HydraHeadInfo.Origin.Sent)) // :1375-1377
             closing.Add("The user sent that work straight to the heads instead of to you; take it into account, and reply to the user on it as if they had asked you.");
 
-        // :1376-1380
+        // :1380-1384
         closing.Add(reviewsHeads
             ? "Do not check any of this with git status or git diff: the checkout changes under you while heads work, and the user may be editing too. Do not reconcile or revert anything. " + ReviewRule
             : "Do not check any of this with git status or git diff: the checkout changes under you while heads work, and the user may be editing too. Do not reconcile, revert or redo anything. Build on the reports, read the files they name if something matters, run one verification if it matters, and finish the job.");
-        closing.Add(ReportStyleRule); // :1381
-        if (stillWorking.Count > 0) // :1382-1384
+        closing.Add(ReportStyleRule); // :1385
+        if (stillWorking.Count > 0) // :1386-1388
             closing.Add($"Do not wait for {Listed(stillWorking)} and do not take over {(stillWorking.Count == 1 ? "its" : "their")} tasks; tell the user {(stillWorking.Count == 1 ? "it is" : "they are")} still at work and that you will hear from {(stillWorking.Count == 1 ? "it" : "them")}.");
 
-        // :1386-1392
+        // :1390-1396
         return opening + "\n\n" + string.Join("\n\n", sections) + "\n\n" + string.Join(" ", closing);
     }
 
-    // :1397-1414. Nothing for a head that worked in the checkout itself: its changes are simply there.
+    // :1401-1418. Nothing for a head that worked in the checkout itself: its changes are simply there.
     private static string? LandingLine(HydraReport report)
     {
         if (report.Landing is not { } landing)
@@ -1721,14 +1729,21 @@ public static partial class HydraPrompts
         return $"Landed in your checkout: {listed}{omitted}.";
     }
 
-    // :1416-1419
+    // :1420-1423
+    // NEW at B3 (PR-HYDRA-254; ED-197, F.ICUFormatters/SwiftFormatters.DurationUnits): B2's hand-built "Ns" /
+    // "Mm Ss" is replaced by Duration.UnitsFormatStyle(allowed: [.seconds, .minutes], width: .narrow,
+    // maximumUnitCount: 2, fractionalPart: .hide(rounded: .down)). No locale is set, so Locale.autoupdatingCurrent
+    // applies (SwiftFormatters.CurrentLocale.Current, ED-197).
+    private static readonly SwiftFormatters.DurationUnit[] DurationSecondsAndMinutes =
+        [SwiftFormatters.DurationUnit.Seconds, SwiftFormatters.DurationUnit.Minutes];
+
     private static string Duration(double seconds)
     {
         var total = SwiftNumber.TruncatingToInt(seconds);
-        return total < 60 ? $"{total}s" : $"{total / 60}m {total % 60}s";
+        return SwiftFormatters.DurationUnits(total, DurationSecondsAndMinutes, SwiftFormatters.CurrentLocale.Current);
     }
 
-    // :1421-1427. No Oxford comma: two names are "A and B", three or more are "A, B and C".
+    // :1425-1431. No Oxford comma: two names are "A and B", three or more are "A, B and C".
     private static string Listed(IReadOnlyList<string> names) => names.Count switch
     {
         0 => "",
@@ -1736,7 +1751,7 @@ public static partial class HydraPrompts
         _ => string.Join(", ", names.Take(names.Count - 1)) + " and " + names[^1],
     };
 
-    // :1429-1433. U+201C LEFT DOUBLE QUOTATION MARK, U+201D RIGHT DOUBLE QUOTATION MARK, U+2026 HORIZONTAL
+    // :1433-1437. U+201C LEFT DOUBLE QUOTATION MARK, U+201D RIGHT DOUBLE QUOTATION MARK, U+2026 HORIZONTAL
     // ELLIPSIS. Counts Characters (grapheme clusters), not UTF-16 units.
     private static string Quoted(string text, int limit)
     {

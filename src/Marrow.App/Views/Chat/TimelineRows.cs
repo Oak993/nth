@@ -22,18 +22,9 @@ using Marrow.UI.Common;
 using Marrow.UI.Markdown;
 using Marrow.UI.Port;
 
-// Source: DroppyCode/App/Views/Chat/TimelineRows.swift (B3 52bc792), :1-2859. The file is unchanged from B2 1fbf81e,
-// so every line cited here is the same in both.
-// Part 1 of 6 is ported: TimelineMetrics, copyMessageText, lastCodeBlock, messageMenu, UserMessageRow, finishedHeads,
-// UserBubble, AssistantMessageRow, FoldedAnswerView, WorkGroup, WorkSteps, WorkGroupSummary, ToolRow (with its
-// departure helpers, :1723-1755), HeadStepsPopoverModifier, ToolStatusIcon, ToolDetailView, DiffDetailCache,
-// ToolPresentation, TurnEndRow.label (:2448-2455, read by the reply row and the turn header) and TurnFinishedBlock
-// (with Derived, :2527-2587, which its body builds). Three sites wait on something outside this file (STOP notes at
-// the end of tests/Marrow.App.Tests/Views/Chat/TimelineRowsTests.cs): the quote chips' ChipChrome (ComposerView.cs,
-// MARROW_STUB), the Edit from here confirmationDialog (no port seam) and the expanded turn's TimelineGroup.build
-// (ThreadTimeline.cs, MARROW_STUB). Animated numbers (a chevron's turn, the reply's hover line) move on the frame clock
-// through App.Views.Tour's AnimatedDouble and AnimatedOpacity, the one port of that mechanic in this assembly.
-// Everything else below that still throws MARROW_STUB belongs to parts 2 to 6.
+// Source: DroppyCode/App/Views/Chat/TimelineRows.swift (B3 52bc792), :1-2859.
+// Inherited part-1 bodies and the partial part-2 test draft are being audited against the pinned 1.7.0 source.
+// External dependency sites are documented in TimelineRowsTests; later-part bodies retain their exact stubs.
 // Forms (ED-095): a SwiftUI View is a Decorator whose constructor builds `body`; a ViewModifier is a sealed record with
 // `Control Body(Control content)`; a Shape is a record whose Path(in:) returns an Avalonia Geometry; NSView is Control;
 // a parameter without a default that follows one with a default moves before it and callers name their arguments.
@@ -1893,30 +1884,39 @@ public static class DiffDetailCache
 /// <summary>:2184-2255 <c>enum ToolPresentation</c>.</summary>
 public static class ToolPresentation
 {
-    // :2185-2206 static func label(for:) -> String: the row's text run, verb plus subject. Agents that title a call with
-    // the tool's own name ("Edit file") would read "Edited Edit file": a leading word that only restates the kind goes,
-    // so it reads "Edited file". PR-CHAT-093.
+    // :2189-2206 static func label(for:) -> String
+    // Ported ahead of the rest of this skeleton, for HydraProgressBar's EventsIn (self-contained: only
+    // ToolCall.Kind/Status and SwiftString). Root-word roots per :2192-2200; the two-part join per :2201-2205.
     public static string Label(ToolCall @for)
     {
-        string[] roots = @for.ToolCallKind switch // :2190-2199
-        {
-            ToolCall.Kind.Command => ["run", "bash", "shell", "exec", "execute", "command"],
-            ToolCall.Kind.Read => ["read", "view", "open", "cat"],
-            ToolCall.Kind.Edit => ["edit", "write", "multiedit", "create", "notebookedit", "apply_patch", "patch"],
-            ToolCall.Kind.Search => ["search", "grep", "glob", "find"],
-            ToolCall.Kind.Web => ["fetch", "webfetch", "websearch", "browse"],
-            ToolCall.Kind.Mcp => ["call"],
-            ToolCall.Kind.Agent => ["delegate", "agent", "task"],
-            ToolCall.Kind.Other => ["use"],
-        };
-        var subject = @for.Title; // :2200
-        var words = SwiftString.Split(@for.Title, " ", maxSplits: 1); // :2201
-        if (words.Count > 0 && SwiftString.Lowercased(words[0]) is var first && roots.Any(root => SwiftString.Equal(root, first))) // :2202
-            subject = words.Count > 1 ? words[1] : ""; // :2203
-        return string.Join(" ", new[] { Verb(@for), subject }.Where(part => part.Length != 0)); // :2205
+        var roots = Roots(@for.ToolCallKind); // :2192-2200
+        var subject = @for.Title; // :2201
+        var words = SwiftString.Split(@for.Title, " ", maxSplits: 1); // :2202
+        if (words.Count > 0 && roots.Any(root => SwiftString.Equal(root, SwiftString.Lowercased(words[0])))) // :2203
+            subject = words.Count > 1 ? words[1] : ""; // :2204
+        var parts = new List<string>();
+        var verb = Verb(@for);
+        if (verb.Length > 0) parts.Add(verb);
+        if (subject.Length > 0) parts.Add(subject);
+        return string.Join(" ", parts); // :2205
     }
 
-    // :2208-2220 static func verb(for:) -> String. PR-CHAT-093.
+    // :2192-2200, the switch inside label(for:) that builds `roots`.
+    private static IReadOnlyList<string> Roots(ToolCall.Kind kind) => kind switch
+    {
+        ToolCall.Kind.Command => new[] { "run", "bash", "shell", "exec", "execute", "command" },
+        ToolCall.Kind.Read => new[] { "read", "view", "open", "cat" },
+        ToolCall.Kind.Edit => new[] { "edit", "write", "multiedit", "create", "notebookedit", "apply_patch", "patch" },
+        ToolCall.Kind.Search => new[] { "search", "grep", "glob", "find" },
+        ToolCall.Kind.Web => new[] { "fetch", "webfetch", "websearch", "browse" },
+        ToolCall.Kind.Mcp => new[] { "call" },
+        ToolCall.Kind.Agent => new[] { "delegate", "agent", "task" },
+        ToolCall.Kind.Other => new[] { "use" },
+        _ => throw new InvalidOperationException(),
+    };
+
+    // :2208-2220 static func verb(for:) -> String
+    // Ported alongside label(for:), which calls it; self-contained (ToolCall.Kind/Status only).
     public static string Verb(ToolCall @for)
     {
         var running = @for.ToolCallStatus == ToolCall.Status.Running; // :2209
@@ -1930,21 +1930,24 @@ public static class ToolPresentation
             ToolCall.Kind.Mcp => running ? "Calling" : "Called",
             ToolCall.Kind.Agent => running ? "Delegating" : "Delegated",
             ToolCall.Kind.Other => running ? "Using" : "Used",
+            _ => throw new InvalidOperationException(),
         };
     }
 
-    // :2222-2233 static func symbol(for:) -> String. PR-CHAT-094; the names map to glyphs through SymbolCatalogue
-    // (PA-0012).
+    // :2222-2233 static func symbol(for:) -> String
+    // Ported ahead of the rest of this skeleton, for HydraProgressBar's EventsIn (self-contained: only
+    // ToolCall.Kind).
     public static string Symbol(ToolCall.Kind @for) => @for switch
     {
-        ToolCall.Kind.Command => "terminal", // :2224
-        ToolCall.Kind.Read => "doc.text", // :2225
-        ToolCall.Kind.Edit => "pencil", // :2226
-        ToolCall.Kind.Search => "magnifyingglass", // :2227
-        ToolCall.Kind.Web => "globe", // :2228
-        ToolCall.Kind.Mcp => "puzzlepiece.extension", // :2229
-        ToolCall.Kind.Agent => "person.2", // :2230
-        ToolCall.Kind.Other => "wrench.and.screwdriver", // :2231
+        ToolCall.Kind.Command => "terminal",
+        ToolCall.Kind.Read => "doc.text",
+        ToolCall.Kind.Edit => "pencil",
+        ToolCall.Kind.Search => "magnifyingglass",
+        ToolCall.Kind.Web => "globe",
+        ToolCall.Kind.Mcp => "puzzlepiece.extension",
+        ToolCall.Kind.Agent => "person.2",
+        ToolCall.Kind.Other => "wrench.and.screwdriver",
+        _ => throw new InvalidOperationException(),
     };
 
     // :2235-2240 static func stats(for:) -> (additions: Int, deletions: Int)?: nil with no edits, and nil when the sums

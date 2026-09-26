@@ -14,11 +14,13 @@ using Marrow.UI.Port;
 
 namespace Marrow.App.Tests.Views.Composer;
 
-// Source: DroppyCode/App/Views/Composer/DownloadsPopover.swift (B2 1fbf81e), :99-242 (DownloadsPopover, DownloadRow).
+// Source: DroppyCode/App/Views/Composer/DownloadsPopover.swift (B3 52bc792), :93-236 (DownloadsPopover, DownloadRow).
 // Port shape read (R-VIEW-9, matching Chrome/PopoversTests.cs): DownloadsPopover is shown in a plain headless
 // Window (not the Popup seam, which this unit does not present), MainActor.Spawn posts to the Avalonia dispatcher
 // and only runs once Dispatcher.UIThread.RunJobs() pumps it, and RecentDownloads.DirectoryProvider is pointed at a
 // throwaway folder under MARROW_PORT_DATA_DIR (R-TEST-9), never the real Downloads folder.
+// ED-198: the row's size text now comes from SwiftFormatters.ByteCountStyleFile ("2 kB", lowercase b), not the old
+// ByteCountFormatter-shaped FileByteCount ("2 KB").
 [Collection("Headless")]
 public sealed class DownloadsPopoverSecondTests(HeadlessSession headless)
 {
@@ -36,12 +38,18 @@ public sealed class DownloadsPopoverSecondTests(HeadlessSession headless)
         return window;
     }
 
-    /// <summary>Pumps the dispatcher until <paramref name="loaded"/> is true or 2s pass: RecentDownloads.Load's
-    /// scan runs on a real background thread (Task.detached, R-TASK-1), so its completion posting back to the
-    /// dispatcher is not guaranteed to be queued by the time a single RunJobs() call runs.</summary>
+    /// <summary>Pumps the dispatcher until <paramref name="loaded"/> is true or the deadline passes:
+    /// RecentDownloads.Load's scan runs on a real background thread (Task.detached, R-TASK-1), so its completion
+    /// posting back to the dispatcher is not guaranteed to be queued by the time a single RunJobs() call runs.
+    /// Ten seconds, not two: the same real-background-hop wait WallpaperCardFixtures.WaitFor polls for (a real
+    /// file copy and decode) already uses a ten-second ceiling for exactly this reason ("nothing can drive the
+    /// pool, so this pumps the UI thread until the condition holds"); two seconds was an outlier short bound for
+    /// the identical hazard, tight enough that this scan's real disk read plus its ThreadPool hop back to main
+    /// could still lose the race under the full suite's load even after the pool has enough threads to run it
+    /// promptly (ThreadPoolWarmup.EnsureMinThreads).</summary>
     private static void PumpUntil(Func<bool> loaded)
     {
-        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(2);
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(10);
         while (!loaded() && DateTime.UtcNow < deadline)
         {
             Thread.Sleep(5);
@@ -65,7 +73,7 @@ public sealed class DownloadsPopoverSecondTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "UI-COMPOSER-023")] // DownloadsPopover.swift:145 .frame(width: 360, ...)
+    [Trait("Req", "UI-COMPOSER-023")] // DownloadsPopover.swift:139 .frame(width: 360, ...)
     public void The_popover_is_360_points_wide() => headless.OnUiThread(() =>
     {
         using var directed = Directed(null);
@@ -76,7 +84,7 @@ public sealed class DownloadsPopoverSecondTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-079")] // DownloadsPopover.swift:153, :159-161: a full 15 rows' worth while loading
+    [Trait("Req", "PR-COMPOSER-079")] // DownloadsPopover.swift:147, :153-155: a full 15 rows' worth while loading
     public void The_popover_is_sized_for_a_full_15_rows_while_loading() => headless.OnUiThread(() =>
     {
         using var directed = Directed(null); // Load() returns immediately (no directory), so isLoaded never flips.
@@ -84,12 +92,12 @@ public sealed class DownloadsPopoverSecondTests(HeadlessSession headless)
         var window = Show(popover);
         var menu = Assert.IsType<PopoverMenu>(popover.Child);
         var scroll = Assert.IsType<ScrollViewer>(menu.Child);
-        Assert.Equal(Math.Min(700, 15 * 38 + 106), scroll.Height); // :159-161 height(forRows:)
+        Assert.Equal(Math.Min(700, 15 * 38 + 106), scroll.Height); // :153-155 height(forRows:)
         window.Close();
     });
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-079")] // DownloadsPopover.swift:155, :159-161: the rows' own height once loaded
+    [Trait("Req", "PR-COMPOSER-079")] // DownloadsPopover.swift:149, :153-155: the rows' own height once loaded
     public void The_popover_height_matches_the_loaded_row_count() => headless.OnUiThread(() =>
     {
         using var folder = new ScratchDownloads();
@@ -103,12 +111,12 @@ public sealed class DownloadsPopoverSecondTests(HeadlessSession headless)
 
         var menu = Assert.IsType<PopoverMenu>(popover.Child);
         var scroll = Assert.IsType<ScrollViewer>(menu.Child);
-        Assert.Equal(Math.Min(700, 2 * 38 + 106), scroll.Height); // :159-161
+        Assert.Equal(Math.Min(700, 2 * 38 + 106), scroll.Height); // :153-155
         window.Close();
     });
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-079")] // DownloadsPopover.swift:154: nil for an empty folder, which sizes itself
+    [Trait("Req", "PR-COMPOSER-079")] // DownloadsPopover.swift:148: nil for an empty folder, which sizes itself
     public void The_popover_self_sizes_for_an_empty_folder() => headless.OnUiThread(() =>
     {
         using var folder = new ScratchDownloads();
@@ -125,7 +133,7 @@ public sealed class DownloadsPopoverSecondTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-080")] // DownloadsPopover.swift:114 PopoverSectionHeader("Recent downloads")
+    [Trait("Req", "PR-COMPOSER-080")] // DownloadsPopover.swift:108 PopoverSectionHeader("Recent downloads")
     public void The_header_reads_Recent_downloads() => headless.OnUiThread(() =>
     {
         using var directed = Directed(null);
@@ -138,7 +146,7 @@ public sealed class DownloadsPopoverSecondTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-080")] // DownloadsPopover.swift:116-121 a small, centered ProgressView padded 14 vertically
+    [Trait("Req", "PR-COMPOSER-080")] // DownloadsPopover.swift:110-115 a small, centered ProgressView padded 14 vertically
     public void The_loading_state_is_a_small_centered_spinner_padded_14() => headless.OnUiThread(() =>
     {
         using var directed = Directed(null);
@@ -146,16 +154,16 @@ public sealed class DownloadsPopoverSecondTests(HeadlessSession headless)
         Show(popover);
         var (_, listSlot) = Parts(popover);
         var loading = Assert.IsType<Border>(Assert.Single(listSlot.Children));
-        Assert.Equal(new Thickness(0, 14), loading.Margin); // :121 .padding(.vertical, 14)
+        Assert.Equal(new Thickness(0, 14), loading.Margin); // :115 .padding(.vertical, 14)
         var spinner = Assert.IsType<ProgressBar>(loading.Child);
-        Assert.True(spinner.IsIndeterminate); // :118 ProgressView().controlSize(.small)
+        Assert.True(spinner.IsIndeterminate); // :112 ProgressView().controlSize(.small)
         Assert.Equal(16, spinner.Width);
         Assert.Equal(16, spinner.Height);
     });
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-080")] // DownloadsPopover.swift:123
-    [Trait("Req", "UI-COMPOSER-025")] // DownloadsPopover.swift:123
+    [Trait("Req", "PR-COMPOSER-080")] // DownloadsPopover.swift:117
+    [Trait("Req", "UI-COMPOSER-025")] // DownloadsPopover.swift:117
     public void The_empty_state_note_reads_the_exact_text() => headless.OnUiThread(() =>
     {
         using var folder = new ScratchDownloads();
@@ -171,7 +179,7 @@ public sealed class DownloadsPopoverSecondTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-081")] // DownloadsPopover.swift:134, :139
+    [Trait("Req", "PR-COMPOSER-081")] // DownloadsPopover.swift:128, :133
     [Trait("Req", "UI-COMPOSER-027")]
     [Trait("Req", "UI-COMPOSER-028")]
     // "Show in Finder" -> "Show in File Explorer" (OD-0008 B1)
@@ -182,7 +190,7 @@ public sealed class DownloadsPopoverSecondTests(HeadlessSession headless)
         Show(popover);
         var (stack, _) = Parts(popover);
 
-        Assert.IsType<PopoverDivider>(stack.Children[2]); // :133
+        Assert.IsType<PopoverDivider>(stack.Children[2]); // :127
         var explorerRow = Assert.IsType<PopoverItem>(stack.Children[3]);
         Assert.Equal("Show in File Explorer", TitleOf(explorerRow));
         var chooseRow = Assert.IsType<PopoverItem>(stack.Children[4]);
@@ -199,7 +207,7 @@ public sealed class DownloadsPopoverSecondTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-081")] // DownloadsPopover.swift:134-137 NSWorkspace.shared.open(directory)
+    [Trait("Req", "PR-COMPOSER-081")] // DownloadsPopover.swift:128-131 NSWorkspace.shared.open(directory)
     public void Show_in_File_Explorer_opens_the_downloads_folder() => headless.OnUiThread(() =>
     {
         using var folder = new ScratchDownloads();
@@ -222,7 +230,7 @@ public sealed class DownloadsPopoverSecondTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-081")] // DownloadsPopover.swift:135 "if let directory": no directory, no call
+    [Trait("Req", "PR-COMPOSER-081")] // DownloadsPopover.swift:129 "if let directory": no directory, no call
     public void Show_in_File_Explorer_does_nothing_without_a_downloads_directory() => headless.OnUiThread(() =>
     {
         using var directed = Directed(null);
@@ -244,7 +252,7 @@ public sealed class DownloadsPopoverSecondTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-081")] // DownloadsPopover.swift:139-141 chooseOther()
+    [Trait("Req", "PR-COMPOSER-081")] // DownloadsPopover.swift:133-135 chooseOther()
     public void Choose_Files_runs_chooseOther() => headless.OnUiThread(() =>
     {
         using var directed = Directed(null);
@@ -260,7 +268,7 @@ public sealed class DownloadsPopoverSecondTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-082")] // DownloadsPopover.swift:178-192
+    [Trait("Req", "PR-COMPOSER-082")] // DownloadsPopover.swift:172-186
     [Trait("Req", "UI-COMPOSER-026")]
     public void Clicking_a_row_arms_the_drop_closes_the_popover_then_picks_the_file() => headless.OnUiThread(() =>
     {
@@ -281,10 +289,10 @@ public sealed class DownloadsPopoverSecondTests(HeadlessSession headless)
         var button = Assert.IsType<Button>(rowDecorator.Child);
 
         button.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
-        Assert.True(closed); // :190 dismiss(), runs before the deferred pick
-        Assert.Null(picked); // :192 Task { @MainActor in pick() }: not yet run
+        Assert.True(closed); // :184 dismiss(), runs before the deferred pick
+        Assert.Null(picked); // :186 Task { @MainActor in pick() }: not yet run
         var drop = AttachmentDrops.Shared.Current.Take();
-        Assert.NotNull(drop); // :185-189 armed with the row's own preview frame and a 6pt radius
+        Assert.NotNull(drop); // :179-183 armed with the row's own preview frame and a 6pt radius
         Assert.Equal(6, drop!.Radius);
 
         Dispatcher.UIThread.RunJobs(); // the deferred main-actor turn
@@ -293,7 +301,7 @@ public sealed class DownloadsPopoverSecondTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "UI-COMPOSER-026")] // DownloadsPopover.swift:194-220 the row's geometry and hover
+    [Trait("Req", "UI-COMPOSER-026")] // DownloadsPopover.swift:188-214 the row's geometry and hover
     public void A_download_row_is_38_tall_with_the_name_and_formatted_size() => headless.OnUiThread(() =>
     {
         using var folder = new ScratchDownloads();
@@ -310,20 +318,20 @@ public sealed class DownloadsPopoverSecondTests(HeadlessSession headless)
         var button = Assert.IsType<Button>(rowDecorator.Child);
         var background = Assert.IsType<Border>(button.Content);
         var row = Assert.IsType<StackPanel>(background.Child);
-        Assert.Equal(38, row.Height); // :210
-        Assert.Equal(new Thickness(8, 0), row.Margin); // :209
-        Assert.Equal(10, row.Spacing); // :194
+        Assert.Equal(38, row.Height); // :204
+        Assert.Equal(new Thickness(8, 0), row.Margin); // :203
+        Assert.Equal(10, row.Spacing); // :188
 
         var nameBlock = Assert.IsType<MiddleTruncatingTextBlock>(row.Children[1]);
-        Assert.Equal("photo.txt", nameBlock.FullText); // :196
+        Assert.Equal("photo.txt", nameBlock.FullText); // :190
         var sizeBlock = Assert.IsType<TextBlock>(row.Children[3]);
         Assert.True(sizeBlock.IsVisible);
-        Assert.Equal("2 KB", sizeBlock.Text); // :201-206
+        Assert.Equal("2 kB", sizeBlock.Text); // :195-200, ByteCountFormatStyle(.file) (B3, ED-198)
         window.Close();
     });
 
     [Fact]
-    [Trait("Req", "UI-COMPOSER-026")] // DownloadsPopover.swift:201 if let size = item.size
+    [Trait("Req", "UI-COMPOSER-026")] // DownloadsPopover.swift:195 if let size = item.size
     public void A_download_row_omits_its_size_text_when_the_file_is_zero_bytes() => headless.OnUiThread(() =>
     {
         using var folder = new ScratchDownloads();

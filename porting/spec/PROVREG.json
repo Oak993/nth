@@ -2194,7 +2194,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Windows Credential Manager (OD-0008 B3): one credential per account under the one service name the port uses in place of AppInfo.name, keeping the one-container-many-accounts partitioning and the four account strings verbatim, because MCP secrets share the container and are distinguished only by account string. A write updates the existing credential and creates one only when none exists; a refused write leaves the old credential and stores nothing else (PR-PROVREG-239, OD-0008 A6).",
       "verification_method": "restart test on each of the four accounts plus a contract fixture on the account strings",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "deviation": {
@@ -3404,7 +3404,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same merge: the same name condition (not the \"default\" id, a non-empty name, a name not equal to the id, compared with Swift String equality) and the same four per-field conditions.",
       "verification_method": "unit over merge permutations, including a live row that renames a seed row, a live Default row with another name (kept as \"Default\"), an empty live name and a live name equal to its id (both keep the seed name)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5849,7 +5849,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The port's secret store over Windows Credential Manager (OD-0008 B3), with no fallback writer of any kind. The clearing half (remove the legacy settings value after a successful store) is kept.",
       "verification_method": "unit with a refusing secret store asserting that no settings, file or registry write contains the key and that the line \"Credential Manager did not accept this key, so it was not saved.\" is shown under the key field; plus a unit asserting the legacy settings value is removed after a successful write and after clearing",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "NEW, not in upstream_defects.md: upstream writes a provider API key to UserDefaults in plain text whenever the Keychain refuses the write (AppSettings.swift:486 in storeAPIKeyChange, which every key's didSet calls at :369, :378, :389 and :398, through storeAPIKeyFallback at :489-498). Both copies are trimmed (APIKeychain.swift:39, AppSettings.swift:492), correcting an earlier claim in this record that the mirror was untrimmed.",
       "depends_on_unknown": null,
       "blocked_by": null,
@@ -6174,7 +6174,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "New at 1.7.0 (impact R3-25 #2): part of the CLI updater added to ProviderRegistry (ProviderRegistry.swift:467-536)."
     },
     {
@@ -6199,7 +6199,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "New at 1.7.0 (impact R3-25 #3): part of the CLI updater added to ProviderRegistry."
     },
     {
@@ -6230,7 +6230,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "New at 1.7.0 (impact R3-25 #4): the gates of the CLI updater added to ProviderRegistry."
     },
     {
@@ -6258,7 +6258,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "New at 1.7.0 (impact R3-25 #5): the updater run of the CLI updater added to ProviderRegistry."
     },
     {
@@ -6286,7 +6286,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "New at 1.7.0 (impact R3-25 #6): the persisted attempt dates of the CLI updater added to ProviderRegistry."
     },
     {
@@ -6313,7 +6313,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "New at 1.7.0 (impact R3-25 #7): the result of the CLI updater added to ProviderRegistry."
     },
     {
@@ -6338,7 +6338,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "New at 1.7.0 (impact R3-25 #8): the in-flight state of the CLI updater added to ProviderRegistry."
     },
     {
@@ -6366,7 +6366,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "New at 1.7.0 (impact R3-25 #9): the version read of the CLI updater added to ProviderRegistry."
     }
   ],

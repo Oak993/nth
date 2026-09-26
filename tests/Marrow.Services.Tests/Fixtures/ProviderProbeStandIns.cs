@@ -75,9 +75,35 @@ public sealed class ProviderProbeScript(string executablePath, string folder)
         return this;
     }
 
+    /// <summary>What a later "--version" call reports once this stand-in has been called with exactly
+    /// ["update"] (ProviderProbeStandIn.cs's post-update-stdout.txt): simulates the CLI's own updater having
+    /// installed a newer build, for PR-PROVREG-256's before/after comparison.</summary>
+    public ProviderProbeScript SetPostUpdateStdout(string text)
+    {
+        File.WriteAllBytes(Path.Combine(Folder, "post-update-stdout.txt"), new UTF8Encoding(false).GetBytes(text));
+        return this;
+    }
+
+    /// <summary>What a later call's exit code is once this stand-in has been called with exactly ["update"]
+    /// (ProviderProbeStandIn.cs's post-update-exit.txt), the exit-code twin of <see cref="SetPostUpdateStdout"/>.</summary>
+    public ProviderProbeScript SetPostUpdateExitCode(int code)
+    {
+        File.WriteAllText(Path.Combine(Folder, "post-update-exit.txt"), code.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        return this;
+    }
+
     public ProviderProbeScript SetExitCode(int code)
     {
         File.WriteAllText(Path.Combine(Folder, "exit.txt"), code.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        return this;
+    }
+
+    /// <summary>The exit code for the "update" call only (ProviderProbeStandIn.cs's update-exit.txt): the
+    /// --version calls before and after it keep reporting SetExitCode's code. Lets a test make the update
+    /// call itself fail while both version reads still succeed and report the same text.</summary>
+    public ProviderProbeScript SetUpdateExitCode(int code)
+    {
+        File.WriteAllText(Path.Combine(Folder, "update-exit.txt"), code.ToString(System.Globalization.CultureInfo.InvariantCulture));
         return this;
     }
 

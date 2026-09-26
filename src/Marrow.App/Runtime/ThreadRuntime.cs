@@ -379,6 +379,8 @@ public sealed class ThreadRuntime : MainActorModel
         }
     }
     private bool isHydraMerging = false;
+    private bool isHydraMergeQueued = false; // :314. New in B3.
+    private bool hasHydraMergeRetryPending = false; // :317. New in B3.
     private string? hydraMergeStage;
     private HydraMergeStage? hydraMergeStep;
     private DateTimeOffset? hydraMergeStartedAt;
@@ -404,6 +406,9 @@ public sealed class ThreadRuntime : MainActorModel
     private Guid? currentTurnID;
     private Guid? closingTurnID;
     private long? changeStatsRevision;
+    // :472-475. New in B3. The CLI version a message was last sent again at after the CLI said it was too old
+    // for the model, per provider: one resend per version. Not persisted (PR-RUNTIME-266).
+    private readonly Dictionary<ProviderKind, string> cliResendVersions = [];
     private readonly HashSet<string> hydraTouched = new(SwiftStringComparer.Instance);
     private ProviderSession? session;
     private TaskHandle? warmup;
@@ -598,6 +603,12 @@ public sealed class ThreadRuntime : MainActorModel
     // :312
     public bool IsHydraMerging { get => Read(isHydraMerging); set => Set(ref isHydraMerging, value); }
 
+    // :313-314. New in B3 (App.Runtime.ThreadRuntime lane, unit A33).
+    public bool IsHydraMergeQueued { get => Read(isHydraMergeQueued); set => Set(ref isHydraMergeQueued, value); }
+
+    // :316-317. New in B3 (App.Runtime.ThreadRuntime lane, unit A33).
+    public bool HasHydraMergeRetryPending { get => Read(hasHydraMergeRetryPending); set => Set(ref hasHydraMergeRetryPending, value); }
+
     // :315. The property shadows the type HydraMergeStage in expression context inside this class; type positions
     // (HydraMergeStep below) still name the type.
     public string? HydraMergeStage { get => Read(hydraMergeStage); set => Set(ref hydraMergeStage, value); }
@@ -632,11 +643,8 @@ public sealed class ThreadRuntime : MainActorModel
             ? SwiftDate.ReferenceSeconds(SwiftDate.Now) - SwiftDate.ReferenceSeconds(lastEventAt)
             : 0d;
 
-    // :345-352
-    public HydraHeadInfo HydraLiveInfo(HydraHeadInfo stored) =>
-        stored.HydraHeadInfoStatus == HydraHeadInfo.Status.Running
-            ? stored with { Tokens = Math.Max(stored.Tokens, HydraTokens) }
-            : stored; // :345-351
+    // Deleted in B3 (PR-RUNTIME-253 b3_note): hydraLiveInfo had no caller even at B2 and upstream removes it
+    // entirely at ThreadRuntime.swift (formerly :345-352).
 
     // :358
     public Guid? DiffSelection { get => Read(diffSelection); set => Set(ref diffSelection, value); }
@@ -715,7 +723,7 @@ public sealed class ThreadRuntime : MainActorModel
         if (Thread?.Hydra?.HydraHeadInfoKind == HydraHeadInfo.Kind.Droppy)
             HydraTokens = Turns.SelectMany(turn => turn.TokenSpends ?? ValueList<TokenSpend>.Empty).Sum(spend => spend.TotalTokens); // :559-561
         Usage = Usage ?? document.Usage; // :562
-        Continuation = Continuation ?? document.Continuation; // :563
+        Continuation = document.Continuation ?? Continuation; // :563
         FollowUps = new ValueList<FollowUpPrompt>(document.FollowUps.Where(prompt => !prompt.IsEmpty).Concat(FollowUps)); // :564
         HydraMerges = new ValueList<HydraMergeRecord>(document.HydraMerges.Concat(HydraMerges)); // :565
 
@@ -1670,6 +1678,7 @@ public sealed class ThreadRuntime : MainActorModel
             var description = error is System.ComponentModel.Win32Exception nativeError
                 ? nativeError.Message
                 : SwiftErrors.LocalizedDescription(error);
+            if (FinishTurnUpdatingCLI(description, TurnStatus.Failed, turn.Id)) return; // B3: PR-RUNTIME-077/265.
             AppendNotice(Notice.Level.Error, description);
             await FinishTurn(TurnStatus.Failed, turn.Id);
         }
@@ -2473,6 +2482,70 @@ public sealed class ThreadRuntime : MainActorModel
             .ToArray(); // :1810
         var end = removed.Select(turn => turn.EndCheckpoint).LastOrDefault(checkpoint => checkpoint is not null); // :1811
         return await new Git(thread.WorktreePath ?? project.Path).PreviewRestore(baseCheckpoint, end, paths); // :1812
+    }
+
+    // :2255-2270. Swift: finishTurnUpdatingCLI(_:status:turnID:). New in B3 (PR-RUNTIME-265). A model newer than
+    // the installed CLI fails with the CLI's own "version X or newer is required". That is not left to the user:
+    // the turn ends, the CLI runs its own updater, and the message goes out again on the new version. Returns
+    // whether the error was taken that way; the caller then neither posts it nor ends the turn.
+    private bool FinishTurnUpdatingCLI(string error, TurnStatus status, Guid? turnID)
+    {
+        if (turnID is not { } id || Thread?.Provider is not { } provider
+            || !ProviderRegistry.UpdatesOwnCLI(provider) || !ProviderRegistry.NeedsNewerCLI(error)) return false;
+        // Part of the turn, so the resend's rewind takes it away with the failed attempt. UI-RUNTIME-039.
+        AppendNotice(Notice.Level.Info, $"This model needs a newer {provider.DisplayName}. Updating it, then sending your message again.");
+        var weakSelf = new WeakReference<ThreadRuntime>(this);
+        _ = MainActor.Spawn(async () =>
+        {
+            if (!weakSelf.TryGetTarget(out var runtime)) return;
+            await runtime.FinishTurn(status, id);
+            await runtime.ResendAfterCLIUpdate(id, provider, error);
+        });
+        return true;
+    }
+
+    // :2272-2293. Swift: resendAfterCLIUpdate(_:provider:error:) async. New in B3 (PR-RUNTIME-266).
+    private async Task ResendAfterCLIUpdate(Guid turnID, ProviderKind provider, string error)
+    {
+        if (App is not { } app) return;
+        var command = provider == ProviderKind.Claude ? "claude update" : "codex update";
+        await app.Providers.UpdateCLIIfDue(provider, force: true);
+        if (await app.Providers.InstalledCLIVersion(provider) is not { } version
+            || (cliResendVersions.TryGetValue(provider, out var resentAt) && resentAt == version))
+        {
+            // UI-RUNTIME-040. ED-193: OD-0012 F1 renames "Droppy Code" to "Marrow"; OD-0008 B6 keeps "in Terminal".
+            AppendNotice(Notice.Level.Error,
+                $"{error}\n\nMarrow could not bring {provider.DisplayName} up to date. Run `{command}` in Terminal, then send the message again.");
+            return;
+        }
+        cliResendVersions[provider] = version;
+        // The session still runs the binary that refused: the next one starts the new one.
+        ReleaseSession(stop: true);
+        if (Phase != RuntimePhase.Idle
+            || turns.FirstOrDefault(turn => turn.Id == turnID) is not { } turn
+            || turn.UserItemID is not { } itemID
+            || !entryIndex.TryGetValue(itemID, out var entry)
+            || entry.Item.TimelineItemContent is not TimelineItem.Content.User user
+            || user.Value.IsFromHydra)
+        {
+            // UI-RUNTIME-041.
+            AppendNotice(Notice.Level.Error, $"{error}\n\n{provider.DisplayName} is up to date now ({version}). Send the message again.");
+            return;
+        }
+        try
+        {
+            await Resend(turnID, user.Value.Text, user.Value.Attachments, restoreFiles: false);
+        }
+        catch (Exception ex) when (SwiftTry.IsThrownError(ex))
+        {
+            // UI-RUNTIME-042. Foundation localizes process-launch errors; Win32Exception.Message is the
+            // Windows equivalent (same per-site decision as the StartTurn catch at :1689).
+            var description = ex is System.ComponentModel.Win32Exception nativeError
+                ? nativeError.Message
+                : SwiftErrors.LocalizedDescription(ex);
+            AppendNotice(Notice.Level.Error,
+                $"{provider.DisplayName} is up to date now ({version}), but the message could not be sent again: {description} Send it again.");
+        }
     }
 
     // :1820-1831. Swift: resend(_:text:attachments:restoreFiles:) async throws.
@@ -3548,11 +3621,16 @@ public sealed class ThreadRuntime : MainActorModel
             return;
         }
 
+        // :3634-3639. B3: no longer a fixed 5 seconds. No chat rewrites more than about 250 KB a second however
+        // big it grows: five seconds up to a megabyte, twenty for five megabytes and more, linear in between
+        // (PR-RUNTIME-158 b3_note).
         if (saveTask is not null) return;
+        var bytes = DiskWriter.Shared.LastWrittenSize(Storage.ThreadURL(ThreadID)) ?? 0;
+        var seconds = Math.Min(20.0, Math.Max(5.0, bytes / 250_000.0));
         var runningSelf = new WeakReference<ThreadRuntime>(this);
         saveTask = MainActor.Spawn(async () =>
         {
-            await SwiftTask.TrySleep(TimeSpan.FromSeconds(5));
+            await SwiftTask.TrySleep(TimeSpan.FromSeconds(seconds));
             if (SwiftTask.IsCancelled || !runningSelf.TryGetTarget(out var runtime)) return;
             await MainActor.Run(() => runtime.SaveNow());
         });
@@ -3743,11 +3821,14 @@ public sealed class ThreadRuntime : MainActorModel
                 if (currentTurnID is not null) currentProviderAnchor = value.Value;
                 break;
             case ProviderEvent.TurnCompleted value:
+            {
                 FlushDeltas();
-                if (value.Error is { } error) AppendNotice(Notice.Level.Error, error);
-                var completedTurnID = currentTurnID;
+                var completedTurnID = currentTurnID; // captured before either branch (PR-RUNTIME-102 b3_note).
+                if (value.Error is { } error && FinishTurnUpdatingCLI(error, value.Status, completedTurnID)) break; // B3.
+                if (value.Error is { } notice) AppendNotice(Notice.Level.Error, notice);
                 _ = MainActor.Spawn(async () => await FinishTurn(value.Status, completedTurnID));
                 break;
+            }
             case ProviderEvent.Exited value:
                 FlushDeltas();
                 if (isStartingSession) break;
@@ -3758,8 +3839,9 @@ public sealed class ThreadRuntime : MainActorModel
                 if (currentTurnID is not null)
                 {
                     var name = Thread?.Provider.DisplayName ?? "The agent";
-                    AppendNotice(Notice.Level.Error, value.Error ?? $"{name} stopped unexpectedly.");
                     var failedTurnID = currentTurnID;
+                    if (value.Error is { } exitError && FinishTurnUpdatingCLI(exitError, TurnStatus.Failed, failedTurnID)) break; // B3.
+                    AppendNotice(Notice.Level.Error, value.Error ?? $"{name} stopped unexpectedly.");
                     _ = MainActor.Spawn(async () => await FinishTurn(TurnStatus.Failed, failedTurnID));
                 }
                 break;
@@ -3791,11 +3873,20 @@ public sealed class ThreadRuntime : MainActorModel
     private void HydraAgentFinished(string agentID, TurnStatus status, string? summary) { }
     private void HydraToolFinished(Guid headID, ToolCall.Status status, string? output) { }
 
-    // The provider event routes call this teardown on release and exit. Its native-Hydra
-    // implementation is blocked until AppModel exposes its native-head completion surface.
+    // The provider event routes call this teardown on release and exit. :2680-2690. Review fix
+    // (PR-RUNTIME-103): this was previously a no-op pending AppModel.FinishHydraHead/ExistingRuntime, which
+    // are now present; ported line for line.
     private void StopNativeHeads()
     {
-        // Intentionally empty for this slice; see the p5 report for the missing AppModel API.
+        if (App is not { } app) return;
+        foreach (var headID in hydraNativeHeads.Values.ToArray())
+        {
+            if (app.Thread(headID) is not { } head || head.Hydra is not { IsFinished: false }) continue;
+            app.FinishHydraHead(headID, TurnStatus.Interrupted, summary: null);
+            if (app.ExistingRuntime(headID) is { IsRunning: true } headRuntime)
+                headRuntime.Rehearse(new ProviderEvent.TurnCompleted(TurnStatus.Interrupted, null));
+        }
+        hydraNativeHeads.Clear();
     }
 
     // :2253-2266. Token reports with the same provider/model/agent identity are coalesced.

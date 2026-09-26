@@ -66,8 +66,12 @@ public static class Shell
     /// the boundary (R-ISO-2).
     /// </summary>
     public static Task<ShellResult> Run(string executable, IReadOnlyList<string> arguments, string? @in = null,
-        IReadOnlyDictionary<string, string>? environment = null, byte[]? input = null, double timeout = 120, int? outputLimit = null) =>
-        Task.Run(() => RunBody(executable, arguments, @in, environment, input, timeout, outputLimit));
+        IReadOnlyDictionary<string, string>? environment = null, byte[]? input = null, double timeout = 120, int? outputLimit = null)
+    {
+        // PORT-ONLY (ED-207): a test's observer sees the call as its site made it; the app installs none.
+        ShellObserver.Current?.Invoke(new ShellInvocation(executable, [.. arguments], @in, environment, input, timeout, outputLimit));
+        return Task.Run(() => RunBody(executable, arguments, @in, environment, input, timeout, outputLimit));
+    }
 
     private static async Task<ShellResult> RunBody(string executable, IReadOnlyList<string> arguments, string? directory,
         IReadOnlyDictionary<string, string>? environment, byte[]? input, double timeout, int? outputLimit)

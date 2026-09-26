@@ -9,7 +9,7 @@ using Marrow.Testing;
 namespace Marrow.Services.Tests.Store;
 
 // Tests for src/Marrow.Services/Store/TokenLedger.cs, the port of
-// DroppyCode/Services/Store/TokenLedger.swift (B2 1fbf81e), :1-708.
+// DroppyCode/Services/Store/TokenLedger.swift (B3 52bc792), :1-698.
 public sealed class TokenLedgerTests
 {
     // ---- TokenSpendTracker: PR-USAGE-089, PR-USAGE-090 ----
@@ -72,7 +72,7 @@ public sealed class TokenLedgerTests
     // ---- TokenActivityMode: PR-USAGE-107 ----
 
     [Fact]
-    [Trait("Req", "PR-USAGE-107")] // TokenLedger.swift:589-602
+    [Trait("Req", "PR-USAGE-107")] // TokenLedger.swift:580-593
     public void TokenActivityMode_HasThreeCasesInDeclarationOrderWithFixedTitles()
     {
         Assert.Equal([TokenActivityMode.Daily, TokenActivityMode.Weekly, TokenActivityMode.Cumulative], SwiftEnum<TokenActivityMode>.AllCases);
@@ -87,7 +87,7 @@ public sealed class TokenLedgerTests
     // ---- TokenActivityGrid: PR-USAGE-108, PR-USAGE-109, PR-USAGE-110, PR-SETTINGS-136 ----
 
     [Fact]
-    [Trait("Req", "PR-USAGE-108")] // TokenLedger.swift:609-662
+    [Trait("Req", "PR-USAGE-108")] // TokenLedger.swift:600-653
     public void Build_CoversTheWholeYearInSundayFirstColumnsWithFutureDaysAsCells()
     {
         var now = new DateTimeOffset(2026, 3, 15, 12, 0, 0, TimeSpan.Zero); // a Sunday-anchored mid-year date
@@ -106,7 +106,7 @@ public sealed class TokenLedgerTests
     }
 
     [Fact]
-    [Trait("Req", "PR-USAGE-109")] // TokenLedger.swift:664-691, daily mode
+    [Trait("Req", "PR-USAGE-109")] // TokenLedger.swift:655-682, daily mode
     public void Build_DailyModePutsEachDaysOwnTotalInItsCellAndZeroElsewhere()
     {
         var now = new DateTimeOffset(2026, 1, 10, 0, 0, 0, TimeSpan.Zero);
@@ -128,7 +128,7 @@ public sealed class TokenLedgerTests
     }
 
     [Fact]
-    [Trait("Req", "PR-USAGE-109")] // TokenLedger.swift:674-681, weekly mode: nil cells stay 0
+    [Trait("Req", "PR-USAGE-109")] // TokenLedger.swift:665-672, weekly mode: nil cells stay 0
     public void Build_WeeklyModeSumsTheColumnIntoEveryRealCellAndLeavesOutOfYearCellsAtZero()
     {
         var now = new DateTimeOffset(2026, 1, 10, 0, 0, 0, TimeSpan.Zero); // Jan 1 2026 is a Thursday
@@ -146,7 +146,7 @@ public sealed class TokenLedgerTests
     }
 
     [Fact]
-    [Trait("Req", "PR-USAGE-109")] // TokenLedger.swift:682-689, cumulative mode: a running total in every cell
+    [Trait("Req", "PR-USAGE-109")] // TokenLedger.swift:673-680, cumulative mode: a running total in every cell
     public void Build_CumulativeModeWritesARunningTotalIntoEveryCellIncludingOutOfYearOnes()
     {
         var now = new DateTimeOffset(2026, 1, 10, 0, 0, 0, TimeSpan.Zero);
@@ -162,7 +162,7 @@ public sealed class TokenLedgerTests
     }
 
     [Fact]
-    [Trait("Req", "PR-USAGE-110")] // TokenLedger.swift:623-625, :693-703
+    [Trait("Req", "PR-USAGE-110")] // TokenLedger.swift:614-616, :693-703
     public void Build_MonthTicksAreTwelveFixedEnglishAbbreviationsAtEachMonthsFirstColumn()
     {
         var now = new DateTimeOffset(2026, 6, 1, 0, 0, 0, TimeSpan.Zero);
@@ -176,7 +176,7 @@ public sealed class TokenLedgerTests
     }
 
     [Fact]
-    [Trait("Req", "PR-SETTINGS-136")] // TokenLedger.swift:664-691, the three modes read the same underlying data differently
+    [Trait("Req", "PR-SETTINGS-136")] // TokenLedger.swift:655-682, the three modes read the same underlying data differently
     public void Build_TheThreeModesScaleTheSameDataDifferentlyAndMaxValueIsThePostScaleMaximum()
     {
         var now = new DateTimeOffset(2026, 1, 10, 0, 0, 0, TimeSpan.Zero);
@@ -406,7 +406,7 @@ public sealed class TokenLedgerTests
     }
 
     [Fact]
-    [Trait("Req", "PR-USAGE-100")] // TokenLedger.swift:498-581: growth = tail total - inherited head total
+    [Trait("Req", "PR-USAGE-100")] // TokenLedger.swift:498-572 (B3; was :498-581 in B2): growth = tail total - inherited head total
     public void ScanCodexHistory_ContributesOnlyTheFilesOwnGrowthOverItsInheritedHistory()
     {
         using var scratch = new StorageScratchFolder();
@@ -499,7 +499,7 @@ public sealed class TokenLedgerTests
     }
 
     [Fact]
-    [Trait("Req", "PR-USAGE-105")] // TokenLedger.swift:583-586, Core/Support/ISO8601.swift:19-21
+    [Trait("Req", "PR-USAGE-105")] // TokenLedger.swift:574-577, Core/Support/ISO8601.swift:19-21
     public void EventTimestamps_ParseFractionalSecondsFirstThenWholeSeconds()
     {
         Assert.NotNull(ISO8601.Date("2026-01-05T10:00:00.123Z"));
@@ -510,5 +510,73 @@ public sealed class TokenLedgerTests
     private static string TokenCountLine(long totalTokens, long lastTokenUsageTotal, string timestamp) =>
         "{\"timestamp\":\"" + timestamp + "\",\"payload\":{\"info\":{\"token_count\":true,\"total_token_usage\":{\"total_tokens\":" + totalTokens +
         "},\"last_token_usage\":{\"total_tokens\":" + lastTokenUsageTotal + "}}}}";
+
+    /// Like <see cref="TokenCountLine"/>, but total_tokens is spliced in as a raw JSON literal instead of a plain
+    /// integer, so a test can exercise JSONValue.int's other accepted/rejected shapes (a numeric string, a finite
+    /// double, or a boolean) for PR-USAGE-100 (B3 b3_note).
+    private static string TokenCountLineRawTotal(string totalTokensJson, long lastTokenUsageTotal, string timestamp) =>
+        "{\"timestamp\":\"" + timestamp + "\",\"payload\":{\"info\":{\"token_count\":true,\"total_token_usage\":{\"total_tokens\":" + totalTokensJson +
+        "},\"last_token_usage\":{\"total_tokens\":" + lastTokenUsageTotal + "}}}}";
+
+    // ---- PR-USAGE-100 (B3 b3_note): total_token_usage.total_tokens now parses through JSONValue.int ----
+
+    [Fact]
+    [Trait("Req", "PR-USAGE-100")] // TokenLedger.swift:524, Core/Support/JSONValue.swift:88 .int on a numeric string
+    public void ScanCodexHistory_AcceptsATailTotalTokensGivenAsANumericJsonString()
+    {
+        using var scratch = new StorageScratchFolder();
+        var home = Path.Combine(scratch.Home, "home-string-total");
+        Directory.CreateDirectory(home);
+        using var homeOverride = TokenHistoryScanner.HomeOverride.Override(home);
+
+        var sessions = Path.Combine(home, ".codex", "sessions");
+        var content = TokenCountLine(200, 0, "2026-01-05T09:00:00Z") + "\n" +
+            TokenCountLineRawTotal("\"260\"", 200, "2026-01-05T11:00:00Z"); // numeric-string total, tail event
+        var path = WriteRollout(sessions, "string-total-a1b2c3d4-1111-2222-3333-aaaaaaaaaaaa.jsonl", DateTime.Now.AddDays(-1), content);
+
+        var result = TokenHistoryScanner.ScanCodexHistory(ValueMap<string, CodexFileFingerprint>.Empty, DateTimeOffset.Now, ValueMap<string, long>.Empty);
+
+        Assert.Equal(60, result.Daily["2026-01-05"]); // "260" parses through JSONValue.int the same as a plain 260
+        Assert.Equal("a1b2c3d4-1111-2222-3333-aaaaaaaaaaaa", result.Fingerprints[path].Identity);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-USAGE-100")] // TokenLedger.swift:524, Core/Support/JSONValue.swift:85 .int on a finite double truncates toward zero
+    public void ScanCodexHistory_AcceptsATailTotalTokensGivenAsAFractionalNumberTruncatedTowardZero()
+    {
+        using var scratch = new StorageScratchFolder();
+        var home = Path.Combine(scratch.Home, "home-fractional-total");
+        Directory.CreateDirectory(home);
+        using var homeOverride = TokenHistoryScanner.HomeOverride.Override(home);
+
+        var sessions = Path.Combine(home, ".codex", "sessions");
+        var content = TokenCountLine(200, 0, "2026-01-05T09:00:00Z") + "\n" +
+            TokenCountLineRawTotal("260.9", 200, "2026-01-05T11:00:00Z"); // fractional total, tail event
+        var path = WriteRollout(sessions, "fractional-total-a1b2c3d4-1111-2222-3333-bbbbbbbbbbbb.jsonl", DateTime.Now.AddDays(-1), content);
+
+        var result = TokenHistoryScanner.ScanCodexHistory(ValueMap<string, CodexFileFingerprint>.Empty, DateTimeOffset.Now, ValueMap<string, long>.Empty);
+
+        Assert.Equal(60, result.Daily["2026-01-05"]); // 260.9 truncates to 260 (not rounded to 261), then 260-200=60
+        Assert.Equal("a1b2c3d4-1111-2222-3333-bbbbbbbbbbbb", result.Fingerprints[path].Identity);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-USAGE-100")] // TokenLedger.swift:524, Core/Support/JSONValue.swift:90 .int rejects a boolean, same as a missing field
+    public void ScanCodexHistory_RejectsATotalTokensGivenAsABooleanAndContributesNothing()
+    {
+        using var scratch = new StorageScratchFolder();
+        var home = Path.Combine(scratch.Home, "home-boolean-total");
+        Directory.CreateDirectory(home);
+        using var homeOverride = TokenHistoryScanner.HomeOverride.Override(home);
+
+        var sessions = Path.Combine(home, ".codex", "sessions");
+        var content = TokenCountLineRawTotal("true", 0, "2026-01-05T11:00:00Z"); // boolean total: the only candidate line
+        var path = WriteRollout(sessions, "boolean-total-a1b2c3d4-1111-2222-3333-cccccccccccc.jsonl", DateTime.Now.AddDays(-1), content);
+
+        var result = TokenHistoryScanner.ScanCodexHistory(ValueMap<string, CodexFileFingerprint>.Empty, DateTimeOffset.Now, ValueMap<string, long>.Empty);
+
+        Assert.Empty(result.Daily); // the only candidate line is unparsable, same as a missing total
+        Assert.Equal(0, result.Fingerprints[path].Tokens);
+    }
 }
 

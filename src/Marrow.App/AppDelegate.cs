@@ -13,8 +13,10 @@ using Marrow.UI.Markdown;
 // userNotificationCenter(_:willPresent:) (:63-75); part 2 added tests of these members and no new member. The Boot unit
 // adds applicationDidFinishLaunching(_:) (:9-34) and applicationShouldHandleReopen(_:hasVisibleWindows:) (:36-39), now
 // that App.Window.WindowManager is in the tree; Port/AppShell.cs calls them where AppKit does (finishLaunching, and a
-// second launch under ED-002). Still NOT PORTED, each a STOP note at the end of tests/Marrow.App.Tests/AppDelegateTests.cs:
-// userNotificationCenter(_:didReceive:) (:77-92) and :13 and :15 of the launch (see the member).
+// second launch under ED-002). The App.AppDelegate unit adds the URLCache reconfiguration (:13, lane 1c landed
+// Core/Port/Http.cs's public URLCache constructor and settable Shared). Still NOT PORTED, each a STOP note at the end
+// of tests/Marrow.App.Tests/AppDelegateTests.cs: userNotificationCenter(_:didReceive:) (:77-92) and :15 of the launch
+// (see the member).
 // Forms: `@MainActor final class` that is not @Observable -> a plain class whose members run on main (R-ISO-1);
 // NSApplication, NSApplication.TerminateReply, NSApp.isActive and the UserNotifications values are the port-only
 // stand-ins in Port/ApplicationLifecycle.cs and Port/UserNotifications.cs. The unused `Notification`,
@@ -43,10 +45,10 @@ public sealed class AppDelegate
     /// </summary>
     public void ApplicationDidFinishLaunching()
     {
-        // :10-13 URLCache.shared = URLCache(memoryCapacity: 8 * 1024 * 1024, diskCapacity: 0). NOT PORTED (STOP
-        // App.AppDelegate #1): the port's shared cache (Core/Port/Http.cs URLCache.Shared, ED-118 (4)-(5)) already keeps
-        // nothing on disk, and its 8 MiB memory cap has no port form while ED-118 parks any size cut-off under O-33.
-        MarkdownBlockView.HydraDelegationBlock = (json, sent) => new HydraDelegationBlock(json, sent); // :14
+        // :10-13 the shared cache wrote a SQLite commit for every response; a third of the app's disk writes while a
+        // team ran. Memory only.
+        URLCache.Shared = new URLCache(8 * 1024 * 1024, 0); // :13
+        MarkdownDelegationCard.Render = (json, sent) => new HydraDelegationBlock(json, sent); // :14
         // :15 UNUserNotificationCenter.current().delegate = self. NOT PORTED (STOP App.AppDelegate #1, PR-LAUNCH-025):
         // no unit has built the Windows toast activation handler this line maps to (Port/UpdateNotificationCenter.cs
         // binds a no-op, AppModel.Notify delivers nothing), so no notification can arrive to be routed.

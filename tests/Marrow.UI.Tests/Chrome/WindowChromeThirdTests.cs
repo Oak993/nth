@@ -13,24 +13,28 @@ namespace Marrow.UI.Tests.Chrome;
 
 using Chrome = Marrow.UI.Chrome.Chrome; // ED-095: the Swift type Chrome, not this test namespace
 
-// Source under test: DroppyCode/UI/Chrome/WindowChrome.swift (B2 1fbf81e). Part 2 of 2 (this file): the rest
-// of SidebarLayout (PR-WIN-046 through PR-WIN-048), the resize strip SidebarResizeHandleView (PR-WIN-049
-// through PR-WIN-057), and the traffic-light buttons plus the strip as screens (UI-WIN-001 through UI-WIN-004).
-// See WindowChromeTests (window/titlebar/buttons, part 1) and WindowChromeSecondTests (SidebarLayout up to
-// PR-WIN-045) for the earlier parts.
-// Constants transcribed from WindowChrome.swift:416-425, :424, Chrome.swift:15-19:
-//   Grip.width 2.5, restHeight 10, shownHeight 22, alpha 0.6, hoverGlow 0.05, dragGlow 0.10, duration 0.18
-//   Grip.verticalInset = trafficLightTop (16) + trafficLightDiameter (14) = 30
+// Source under test: DroppyCode/UI/Chrome/WindowChrome.swift (B3 52bc792), :373-401. Part 2 of 2 (this file): the
+// rest of SidebarLayout (PR-WIN-046 through PR-WIN-048, unchanged at B3), the resize strip - at B3 a thin
+// SidebarResizeHandle configuration (:376-401) of the shared UI.Chrome.DragHandle/DragHandleView (N8) - covering
+// PR-WIN-049 through PR-WIN-057, and the traffic-light buttons plus the strip as screens (UI-WIN-001 through
+// UI-WIN-004). See WindowChromeTests (window/titlebar/buttons, part 1) and WindowChromeSecondTests (SidebarLayout
+// up to PR-WIN-045) for the earlier parts, and DragHandleTests for the shared mechanism's own generic coverage.
+// Constants transcribed from WindowChrome.swift:387-393, Chrome.swift:15-19 (all unchanged B2 -> B3):
+//   Grip thickness 2.5, restLength 10, shownLength 22, alpha 0.6 (Grip default), hoverGlow 0.05, dragGlow 0.10
+//   (Grip defaults), duration 0.18 (DragHandleView.Metrics)
+//   glowInset = trafficLightTop (16) + trafficLightDiameter (14) = 30
 [Collection("Headless")]
 public sealed class WindowChromeThirdTests(HeadlessSession headless)
 {
-    private static (Window Window, SidebarResizeHandleView View) NewAttachedStrip(double width = 9, double height = 200)
+    // :384-399 SidebarResizeHandle.body, reached through MakeNSView() exactly as App's binding reaches it
+    // (WindowChrome.cs's own doc comment on SidebarResizeHandle). Proves the wrapper wires the shared
+    // DragHandleView with the sidebar's own axis/grip/cursor, not merely that DragHandleView itself works
+    // (DragHandleTests already proves the generic mechanism against arbitrary configurations).
+    private static (Window Window, DragHandleView View) NewAttachedStrip(double width = 9, double height = 200)
     {
-        var view = new SidebarResizeHandleView
-        {
-            Width = width, Height = height,
-            HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top,
-        };
+        var view = new SidebarResizeHandle().MakeNSView();
+        view.Width = width; view.Height = height;
+        view.HorizontalAlignment = HorizontalAlignment.Left; view.VerticalAlignment = VerticalAlignment.Top;
         var window = new Window { Content = view, Width = 400, Height = 300 };
         window.Show();
         Dispatcher.UIThread.RunJobs();
@@ -181,22 +185,22 @@ public sealed class WindowChromeThirdTests(HeadlessSession headless)
 
     // ---- PR-WIN-049, UI-WIN-004: hit width, cursor ----
 
-    [Trait("Req", "PR-WIN-049")] // WindowChrome.swift:376-377
+    [Trait("Req", "PR-WIN-049")] // WindowChrome.swift:377
     [Fact]
     public void The_hit_width_constant_is_9()
     {
         Assert.Equal(9, SidebarResizeHandle.HitWidth);
     }
 
-    [Trait("Req", "PR-WIN-049")] // WindowChrome.swift:524-528, active shows a column-resize cursor
-    [Trait("Req", "UI-WIN-004")] // WindowChrome.swift:376-570
+    [Trait("Req", "PR-WIN-049")] // WindowChrome.swift:394 cursor: .columnResize; DragHandle.swift:39-44, :188-192
+    [Trait("Req", "UI-WIN-004")] // WindowChrome.swift:373-401
     [Fact]
     public void An_active_strip_shows_a_fixed_shared_cursor_and_an_inactive_one_shows_none()
     {
         headless.OnUiThread(() =>
         {
             var (_, view) = NewAttachedStrip();
-            var otherActive = new SidebarResizeHandleView();
+            var otherActive = new SidebarResizeHandle().MakeNSView();
             Assert.NotNull(view.Cursor);
             Assert.Same(view.Cursor, otherActive.Cursor); // the same shared IDC_SIZEWE cursor, not a new one per view
             view.IsActive = false;
@@ -206,7 +210,7 @@ public sealed class WindowChromeThirdTests(HeadlessSession headless)
 
     // ---- PR-WIN-050, PR-WIN-051, UI-WIN-004: grip and glow geometry ----
 
-    [Trait("Req", "PR-WIN-050")] // WindowChrome.swift:497-507
+    [Trait("Req", "PR-WIN-050")] // WindowChrome.swift:387-393; DragHandle.swift:153-181
     [Trait("Req", "UI-WIN-004")]
     [Fact]
     public void At_rest_the_grip_is_10_tall_and_invisible()
@@ -216,11 +220,11 @@ public sealed class WindowChromeThirdTests(HeadlessSession headless)
             // Flake cause (evidence: a headless Window always reports Position (0,0), so NewAttachedStrip's strip
             // occupies real screen pixels (0,0)-(9,200) — confirmed by a throwaway diagnostic printing
             // window.PointToScreen and the live WindowsCursorPlatform.ScreenPosition side by side). RefreshHover
-            // (WindowChrome.cs:565-579) reads the real, unrelated OS cursor via CursorPlatform unless overridden, so
-            // this test intermittently saw isHovering true whenever the machine's actual mouse pointer sat in that
-            // corner of the screen, growing the "at rest" grip. Pin the cursor off-strip, as Move()'s
+            // (DragHandle.swift:142-151) reads the real, unrelated OS cursor via CursorPlatform unless overridden,
+            // so this test intermittently saw isHovering true whenever the machine's actual mouse pointer sat in
+            // that corner of the screen, growing the "at rest" grip. Pin the cursor off-strip, as Move()'s
             // FakeCursorPlatform comment above already establishes for the hover-driven tests in this file.
-            using var _ = SidebarResizeHandleView.CursorPlatform.Override(new FakeCursorPlatform(null));
+            using var _ = DragHandleView.CursorPlatform.Override(new FakeCursorPlatform(null));
             var (_, view) = NewAttachedStrip();
             var grip = view.GripLayerForTest;
             Assert.Equal(2.5, grip.Width);
@@ -232,7 +236,7 @@ public sealed class WindowChromeThirdTests(HeadlessSession headless)
         });
     }
 
-    [Trait("Req", "PR-WIN-050")] // WindowChrome.swift:484, :498, :507. showsGrip = isActive && (hovering || dragging)
+    [Trait("Req", "PR-WIN-050")] // DragHandle.swift:140, :159, :173. showsGrip = isActive && (hovering || dragging)
     [Fact]
     public void Hovering_grows_the_grip_to_22_tall_at_06_opacity()
     {
@@ -240,7 +244,7 @@ public sealed class WindowChromeThirdTests(HeadlessSession headless)
         {
             var (window, view) = NewAttachedStrip();
             var cursor = new FakeCursorPlatform(null);
-            using var _ = SidebarResizeHandleView.CursorPlatform.Override(cursor);
+            using var _ = DragHandleView.CursorPlatform.Override(cursor);
             Move(window, new Point(4, 100), cursor); // inside the 9-wide strip
             Assert.Equal(22, view.GripLayerForTest.Height);
             Assert.Equal(0.6, view.GripLayerForTest.Opacity);
@@ -248,15 +252,15 @@ public sealed class WindowChromeThirdTests(HeadlessSession headless)
         });
     }
 
-    [Trait("Req", "PR-WIN-051")] // WindowChrome.swift:424, :448-449, :508-514
+    [Trait("Req", "PR-WIN-051")] // WindowChrome.swift:391 glowInset; DragHandle.swift:84-85, :174-179
     [Fact]
     public void At_rest_the_glow_is_invisible_and_starts_30_points_down()
     {
         headless.OnUiThread(() =>
         {
             // Same real-cursor flake as At_rest_the_grip_is_10_tall_and_invisible above: pin the cursor off-strip
-            // so ShowsGrip (WindowChrome.cs:484) can never read the live OS pointer as hovering.
-            using var _ = SidebarResizeHandleView.CursorPlatform.Override(new FakeCursorPlatform(null));
+            // so ShowsGrip (DragHandle.swift:140) can never read the live OS pointer as hovering.
+            using var _ = DragHandleView.CursorPlatform.Override(new FakeCursorPlatform(null));
             var (_, view) = NewAttachedStrip();
             var glow = view.GlowLayerForTest;
             Assert.Equal(0, glow.Opacity);
@@ -268,7 +272,7 @@ public sealed class WindowChromeThirdTests(HeadlessSession headless)
         });
     }
 
-    [Trait("Req", "PR-WIN-051")] // WindowChrome.swift:514, hover 0.05, drag 0.10
+    [Trait("Req", "PR-WIN-051")] // DragHandle.swift:176, hover 0.05, drag 0.10 (Grip defaults)
     [Fact]
     public void Hovering_shows_the_glow_at_005_and_dragging_at_010()
     {
@@ -276,21 +280,22 @@ public sealed class WindowChromeThirdTests(HeadlessSession headless)
         {
             var (window, view) = NewAttachedStrip();
             var cursor = new FakeCursorPlatform(null);
-            using var _ = SidebarResizeHandleView.CursorPlatform.Override(cursor);
+            using var _ = DragHandleView.CursorPlatform.Override(cursor);
             var at = new Point(4, 100);
             Move(window, at, cursor);
             Assert.Equal(0.05, view.GlowLayerForTest.Opacity);
             Down(window, at, cursor);
             // The press starts a genuine 0.18s transition (PR-WIN-052) from the already-settled hover opacity, so
             // reading it back immediately would catch it mid-flight; flipping IsActive forces the same target
-            // through the unanimated snap path (:407-414), which the "at rest" tests above already prove correct.
+            // through the unanimated snap path (DragHandle.swift:49-54), which the "at rest" tests above already
+            // prove correct.
             view.IsActive = false;
             view.IsActive = true;
             Assert.Equal(0.10, view.GlowLayerForTest.Opacity);
         });
     }
 
-    [Trait("Req", "PR-WIN-051")] // WindowChrome.swift:511-512, floored at zero for a degenerate bounds
+    [Trait("Req", "PR-WIN-051")] // DragHandle.swift:174-179, floored at zero for a degenerate bounds
     [Fact]
     public void The_glow_size_is_floored_at_zero()
     {
@@ -302,7 +307,7 @@ public sealed class WindowChromeThirdTests(HeadlessSession headless)
         });
     }
 
-    [Trait("Req", "UI-WIN-004")] // WindowChrome.swift:451-452, glow beneath the grip
+    [Trait("Req", "UI-WIN-004")] // DragHandle.swift:87-88, glow beneath the grip
     [Fact]
     public void The_glow_layer_is_added_before_the_grip_layer_so_the_grip_draws_on_top()
     {
@@ -317,7 +322,7 @@ public sealed class WindowChromeThirdTests(HeadlessSession headless)
 
     // ---- PR-WIN-052: animation duration/curve, animated vs snapped ----
 
-    [Trait("Req", "PR-WIN-052")] // WindowChrome.swift:497-505, :534-552, a press animates
+    [Trait("Req", "PR-WIN-052")] // DragHandle.swift:160-166, :332-354, a press animates
     [Fact]
     public void A_press_installs_018_second_ease_out_transitions()
     {
@@ -332,7 +337,7 @@ public sealed class WindowChromeThirdTests(HeadlessSession headless)
         });
     }
 
-    [Trait("Req", "PR-WIN-052")] // WindowChrome.swift:478-482, viewDidMoveToWindow uses animated: false
+    [Trait("Req", "PR-WIN-052")] // DragHandle.swift:207-232, viewDidMoveToWindow uses animated: false
     [Fact]
     public void Attaching_to_a_window_installs_no_transitions()
     {
@@ -344,7 +349,7 @@ public sealed class WindowChromeThirdTests(HeadlessSession headless)
         });
     }
 
-    [Trait("Req", "PR-WIN-052")] // WindowChrome.swift:407-414, the isActive didSet uses animated: false
+    [Trait("Req", "PR-WIN-052")] // DragHandle.swift:100-112, the isActive didSet uses animated: false
     [Fact]
     public void Flipping_the_active_flag_snaps_with_no_transitions()
     {
@@ -358,7 +363,7 @@ public sealed class WindowChromeThirdTests(HeadlessSession headless)
         });
     }
 
-    [Trait("Req", "PR-WIN-052")] // WindowChrome.swift:468-476, a layout pass with no hover change snaps
+    [Trait("Req", "PR-WIN-052")] // DragHandle.swift:186-201, a layout pass with no hover change snaps
     [Fact]
     public void A_layout_pass_that_does_not_change_hover_installs_no_transitions()
     {
@@ -373,13 +378,13 @@ public sealed class WindowChromeThirdTests(HeadlessSession headless)
 
     // ---- PR-WIN-053: never moves the window ----
 
-    [Trait("Req", "PR-WIN-053")] // WindowChrome.swift:520-522
+    [Trait("Req", "PR-WIN-053")] // DragHandle.swift:128-130, :327-329
     [Fact]
     public void The_strip_declares_a_client_hit_so_it_never_moves_the_window()
     {
         headless.OnUiThread(() =>
         {
-            var view = new SidebarResizeHandleView();
+            var view = new SidebarResizeHandle().MakeNSView();
             Assert.Equal(
                 Win32Properties.Win32HitTestValue.Client,
                 view.GetValue(Win32Properties.NonClientHitTestResultProperty));
@@ -387,17 +392,17 @@ public sealed class WindowChromeThirdTests(HeadlessSession headless)
         });
     }
 
-    [Trait("Req", "PR-WIN-053")] // WindowChrome.swift:518, a single click-drag works on an inactive window
+    [Trait("Req", "PR-WIN-053")] // DragHandle.swift:323-325, a single click-drag works on an inactive window
     [Fact]
     public void AcceptsFirstMouse_is_true()
     {
-        var view = new SidebarResizeHandleView();
+        var view = new SidebarResizeHandle().MakeNSView();
         Assert.True(view.AcceptsFirstMouse(null));
     }
 
     // ---- PR-WIN-054: fully inert while inactive ----
 
-    [Trait("Req", "PR-WIN-054")] // WindowChrome.swift:530-532
+    [Trait("Req", "PR-WIN-054")] // DragHandle.swift:100-112, :140
     [Fact]
     public void An_inactive_strip_is_excluded_from_hit_testing()
     {
@@ -410,7 +415,7 @@ public sealed class WindowChromeThirdTests(HeadlessSession headless)
         });
     }
 
-    [Trait("Req", "PR-WIN-054")] // WindowChrome.swift:407-414, :488-495, isActive false forces hover off
+    [Trait("Req", "PR-WIN-054")] // DragHandle.swift:100-112, :142-151, isActive false forces hover off
     [Fact]
     public void An_inactive_strip_never_shows_hover_or_a_grown_grip()
     {
@@ -418,7 +423,7 @@ public sealed class WindowChromeThirdTests(HeadlessSession headless)
         {
             var (window, view) = NewAttachedStrip();
             var cursor = new FakeCursorPlatform(null);
-            using var _ = SidebarResizeHandleView.CursorPlatform.Override(cursor);
+            using var _ = DragHandleView.CursorPlatform.Override(cursor);
             Move(window, new Point(4, 100), cursor);
             Assert.True(view.IsHoveringForTest);
             view.IsActive = false;
@@ -429,7 +434,7 @@ public sealed class WindowChromeThirdTests(HeadlessSession headless)
 
     // ---- PR-WIN-055: drag deltas from the press point, final delta before ending ----
 
-    [Trait("Req", "PR-WIN-055")] // WindowChrome.swift:534-543
+    [Trait("Req", "PR-WIN-055")] // DragHandle.swift:198-208, :210-220; the sidebar's own onChange: { onChange($0.width) }
     [Fact]
     public void Drag_deltas_are_reported_relative_to_the_press_point()
     {
@@ -437,7 +442,7 @@ public sealed class WindowChromeThirdTests(HeadlessSession headless)
         {
             var (window, view) = NewAttachedStrip(width: 300); // wide, so distant move points still hit the strip
             var deltas = new List<double>();
-            view.OnChange = deltas.Add;
+            view.OnChange = size => deltas.Add(size.Width); // WindowChrome.swift:397 onChange: { onChange($0.width) }
             Down(window, new Point(100, 100));
             Move(window, new Point(130, 100));
             Move(window, new Point(80, 100));
@@ -445,7 +450,7 @@ public sealed class WindowChromeThirdTests(HeadlessSession headless)
         });
     }
 
-    [Trait("Req", "PR-WIN-055")] // WindowChrome.swift:545-552, onChange fires before onEnd, in that order
+    [Trait("Req", "PR-WIN-055")] // DragHandle.swift:222-232, onChange fires before onEnd, in that order
     [Fact]
     public void Releasing_reports_the_final_delta_before_ending_the_drag()
     {
@@ -453,7 +458,7 @@ public sealed class WindowChromeThirdTests(HeadlessSession headless)
         {
             var (window, view) = NewAttachedStrip(width: 300);
             var order = new List<string>();
-            view.OnChange = delta => order.Add($"change:{delta}");
+            view.OnChange = size => order.Add($"change:{size.Width}");
             view.OnEnd = () => order.Add("end");
             Down(window, new Point(100, 100));
             Up(window, new Point(145, 100));
@@ -462,7 +467,7 @@ public sealed class WindowChromeThirdTests(HeadlessSession headless)
         });
     }
 
-    [Trait("Req", "PR-WIN-055")] // WindowChrome.swift:539, onBegin fires on press
+    [Trait("Req", "PR-WIN-055")] // DragHandle.swift:207, onBegin fires on press
     [Fact]
     public void Pressing_begins_the_drag_and_fires_onBegin()
     {
@@ -479,14 +484,14 @@ public sealed class WindowChromeThirdTests(HeadlessSession headless)
 
     // ---- PR-WIN-056: hover re-read from the real cursor position ----
 
-    [Trait("Req", "PR-WIN-056")] // WindowChrome.swift:486-495, :468-476
+    [Trait("Req", "PR-WIN-056")] // DragHandle.swift:142-151, :186-201
     [Fact]
     public void A_layout_pass_recomputes_hover_from_the_scripted_cursor_position()
     {
         headless.OnUiThread(() =>
         {
             var (window, view) = NewAttachedStrip();
-            using var _ = SidebarResizeHandleView.CursorPlatform.Override(
+            using var _ = DragHandleView.CursorPlatform.Override(
                 new FakeCursorPlatform(window.PointToScreen(new Point(view.Bounds.Width / 2, 50))));
             view.InvalidateArrange(); // forces a real layout pass: nothing else changed to make one due
             window.UpdateLayout(); // strip moved out from under a stationary cursor, in effect:
@@ -494,14 +499,14 @@ public sealed class WindowChromeThirdTests(HeadlessSession headless)
         });
     }
 
-    [Trait("Req", "PR-WIN-056")] // WindowChrome.swift:489, a cursor outside the strip's bounds is not hovering
+    [Trait("Req", "PR-WIN-056")] // DragHandle.swift:145, a cursor outside the strip's bounds is not hovering
     [Fact]
     public void A_cursor_outside_the_strips_bounds_is_not_hovering()
     {
         headless.OnUiThread(() =>
         {
             var (window, view) = NewAttachedStrip();
-            using var _ = SidebarResizeHandleView.CursorPlatform.Override(
+            using var _ = DragHandleView.CursorPlatform.Override(
                 new FakeCursorPlatform(window.PointToScreen(new Point(300, 50))));
             view.InvalidateArrange();
             window.UpdateLayout();
@@ -511,7 +516,7 @@ public sealed class WindowChromeThirdTests(HeadlessSession headless)
 
     // ---- PR-WIN-057: grip and glow follow the label color ----
 
-    [Trait("Req", "PR-WIN-057")] // WindowChrome.swift:455-461, :463-466
+    [Trait("Req", "PR-WIN-057")] // DragHandle.swift:91-97, :99-102
     [Fact]
     public void The_grip_and_glow_are_filled_with_the_label_color()
     {

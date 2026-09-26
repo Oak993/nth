@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Marrow.App.Port;
 using Marrow.Core.Port;
+using Marrow.Core.Support;
 using Marrow.Services.Port;
 using Marrow.Services.Store;
 using Marrow.UI.Markdown;
@@ -45,8 +46,12 @@ public static class Program
         var settings = new SettingsStore(SettingsStore.ProductionPath(localAppData));
         UserDefaults.Standard.SetProcessDefault(settings);
         AppDomain.CurrentDomain.UnhandledException += (_, _) => settings.Synchronize();
-        // Storage.swift:19-48's roots (OD-0008 C7: %LOCALAPPDATA%\Marrow Code; OD-0012 F1: %USERPROFILE%\.marrow).
+        // Storage.swift:19-48's roots (OD-0008 C7: %LOCALAPPDATA%\Marrow Code; OD-0012 F1: %USERPROFILE%\.marrow)
+        // and StoragePaths.swift's roots (ED-195: split out of Storage.swift at B3), the sibling Ambient
+        // Marrow.UI.Theme.Wallpaper reads directly (Wallpaper.cs:154, :187, :191) and that traps
+        // (SwiftTrapException, "StoragePaths.Locations is not bound...") on first access if this is missed.
         Storage.Locations.SetProcessDefault(StorageLocations.CreateProduction());
+        StoragePaths.Locations.SetProcessDefault(StoragePathsLocations.CreateProduction());
 
         var lifetime = new ClassicDesktopStyleApplicationLifetime
         {

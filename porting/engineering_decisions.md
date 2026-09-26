@@ -1097,3 +1097,220 @@ AutoContinue read only the main window, which would have treated "Settings in fr
 notifications the Mac would suppress. Tests: AppDelegateSecondTests (a non-main window active, only the main window
 active, no lifetime) and the presentation gate agreeing with AppModel.threadNeedsAttention. ENGINEERING DECISION; parity.
 
+ED-207 [TEST] A per-flow observer of Shell.Run, so a test can assert a call site's literal argv and timeout budget
+(lane A9/L2d stop at 4a38922f; PR-GIT-003, PR-GIT-031). SOURCE FACT: every git invocation goes through
+`run(_:environment:input:timeout:)` into `Shell.run` with the site's own budget, 120 s by default
+(`Services/Git/Git.swift:30-49`, B3 52bc792). PR-GIT-003 asks for "a table test asserting the timeout constant of every
+one of the 82 invocation sites" and PR-GIT-031 for "a contract fixture asserting the argv". MEASURED (4a38922f): the stall
+probes in `tests/Marrow.Services.Tests/Fixtures/GitProbeFixtures.cs` (clean filter, diff textconv, post-checkout hook,
+reference-transaction hook) cannot hold open read-tree, diff --name-only, rm --cached, merge-file, hash-object,
+update-index, write-tree, cat-file or ls-tree (captureTree(paths:onto:from:) and its helpers, :294-359), and
+`LoginEnvironment.Git` is resolved once per process, so no test could see a git site's argv. Rejected: (a) a git wrapper
+first on PATH: that once-per-process resolution puts it in front of every git spawn in the whole test process (one more
+process per spawn; TerminationLadder's CTRL_BREAK and TerminateJobObject reach the wrapper first), and it still cannot
+see the budget, so every site would need its own manual-clock stall; (b) GIT_TRACE or trace2: GIT_TRACE is environment
+only, and Git.Run builds its environment from LoginEnvironment.Current, so it needs a process-wide change; trace2 targets
+are read only from the system and global config, never the repository's (git-config(1), Git for Windows 2.54.0);
+neither records the budget. DECISION: `ShellObserver` (`src/Marrow.Core/Port/ShellObserver.cs`, PORT-ONLY). `Shell.Run`
+reports a `ShellInvocation` (executable, a copy of the argv, directory, environment, input, timeout, outputLimit) to the
+observer the calling async flow installed, on entry, before the process starts; the real process runs unchanged, and
+with no observer (the app, every other test) nothing is reported. Tests call `ShellRecording.Start()`
+(`tests/Marrow.Testing/ShellRecording.cs`), which records only its own flow, so test classes still run in parallel
+(R-TEST-5). A site's budget is verified by its recorded constant together with the end-to-end proof that a budget
+passed to Shell.Run becomes the process deadline (GitTests.Run_passes_a_call_sites_own_budget_through_to_the_process,
+ShellTests); the existing stall tests stay. Nothing is replaced, so this is not a stub or a mock. Tests:
+ShellObserverTests (reported on entry with every argument; only the observing flow and the flows it starts; dispose
+restores the previous observer); GitFifthTests.CaptureTreeOnto_runs_its_clean_add_at_300_seconds_and_every_other_git_site_at_the_120_second_default
+(the 13 calls one captureTree(paths:onto:from:) makes, covering all 10 of its sites, blobData's cat-file and fileMode's
+ls-tree included: literal argv, budget, GIT_INDEX_FILE per site, stdin) and PushBranch_without_force_... / PushBranch_with_force_puts_force_after_u_and_before_origin_...
+(PR-GIT-031). Mutation check (b3/shell-recorder): moving "--force" after "origin" and giving write-tree 300 s fails exactly
+those two new tests, while the behavioural PushBranch_with_force_overwrites_a_branch_the_remote_moved_on_without still
+passes. FOLLOW-UP: the rest of PR-GIT-003's table; before this decision the Git test classes held 12 per-site budget tests
+(10 git sites, 2 forge-CLI sites), against 82 git sites and 6 forge-CLI sites. ENGINEERING DECISION (test infrastructure); no product change, not a deviation.
+
+ED-208 [UI] MentionScanner skips an empty candidate name before scanning (B3_PLAN.md section 3, row N10; PR-THEME-143).
+SOURCE FACT: `UI/Markdown/MentionScanner.swift` (B3 52bc792) :7-32's `matches(in:candidates:name:)` advances
+`i = text.index(i, offsetBy: candidateName.count)` on every hit (:16, :24, :26); with an empty `candidateName` that
+advance is zero, and an empty string is a prefix of anything at :15, so a real empty candidate name would leave `i`
+unmoved and the `while i < text.endIndex` loop (:11) would never terminate. B3_PLAN.md's N10 row names this exact
+risk and asks for the ED: "Record an ED that empty names are skipped (the Swift would loop forever on one; roster
+names are never empty)". No roster name this app ever renders is empty. DECISION:
+`src/Marrow.UI/Markdown/MentionScanner.cs`'s `Matches<T>` filters candidates to those whose projected name has
+non-zero length before ordering or scanning (`.Where(candidate => name(candidate).Length > 0)`), so the port cannot
+hang even on an input the B3 Swift source itself has no guard against, because this app's own roster never supplies
+one. Tests: `tests/Marrow.UI.Tests/Markdown/MentionScannerTests.cs`'s
+`An_empty_candidate_name_is_skipped_and_never_hangs` pins it, tagged `[Trait("Decision", "ED-208")]` in place of the
+stand-in `[Trait("Req", "PR-THEME-143")]` the verifying cloud run used for it, since the empty-name guard is not
+itself part of PR-THEME-143 (the mention-scan-extraction record) but a port-only addition this decision records.
+ENGINEERING DECISION; not a deviation (no real input's output changes; the guard only forecloses a hang on an input
+this port never produces).
+
+ED-209 [MCP][NET] A per-header origin-bound mark on `URLRequest`, so F.HTTP's redirect handling can drop one of a
+caller's own header fields on a cross-origin redirect, the same way ED-152 already drops Authorization
+(`src/Marrow.Core/Port/Http.cs`: `URLRequest.MarkOriginBound`/`OriginBoundHeaderFields`, `Hop.OriginBoundFields`,
+`Redirected`). FOUND: lane L3a review finding L3a-1 (HIGH). PR-MCP-188's deviation record already states OD-0022
+("Marrow sends a server's custom headers only to that server: a redirect that changes scheme, host or port drops
+them") and both MCPWire.cs and MCPProbe.cs carried a comment tracking the gap, but neither `MCPHub.swift:343-352`'s
+port (`MCPHub.cs`'s private `Post`) nor F.HTTP itself ever implemented it, and no test exercised a redirect at
+all: `MCPWire.Post` (`MCPWire.swift:66` `for (field, value) in headers { request.setValue(...) }`) put every one of
+a server's custom headers directly on the request with no marking, and `Http.cs`'s `Redirected` (`Http.cs`,
+ED-152) stripped only a literal `Authorization` field on an origin change, so `X-Api-Key` and any other custom
+header rode along to a redirect target the server never configured. DECISION: `URLRequest.MarkOriginBound(field)`
+records a field name (case-insensitive, idempotent) that `Hop.OriginBoundFields` carries through every redirect
+hop; `Redirected` drops it, alongside `Authorization`, the moment scheme, host or port changes, and never restores
+it even if a later hop returns to the original origin (matching Authorization's own one-way rule, UNVERIFIED
+O-29). `MCPWire.Post` (`:90`) now calls `.MarkOriginBound(field)` for every one of its caller-supplied `headers`
+entries (a server's own custom headers), which is the only per-server secret MCPHub's http client ever sends,
+before `Content-Type`, `Accept`, `MCP-Protocol-Version` and `Mcp-Session-Id` are added (those are protocol
+constants, never marked, and travel with every redirect exactly as before). PORT-ONLY: upstream `URLRequest` has
+no such member; like ED-152's own Authorization handling, this is F.HTTP-internal machinery with no Swift source
+line, justified by OD-0022's ruling. `MCPProbe.cs:246-266` carries its own, still-open copy of the same note for
+its own inline `Post` (a different unit, Services.MCP.MCPProbe, out of this lane's scope) and is not touched here.
+Tests: `HttpTests.A_same_origin_redirect_keeps_an_origin_bound_header` and
+`A_redirect_to_another_origin_drops_an_origin_bound_header_but_keeps_an_unmarked_one` (Core, the mechanism
+in isolation, mirroring the existing Authorization pair); `MCPHubTests.Http_client_keeps_the_servers_custom_header_across_a_same_origin_redirect`
+and `Http_client_drops_the_servers_custom_header_across_a_cross_origin_redirect` (through the real hub and two
+LoopbackHttpServer instances, all three of a client's POSTs - initialize, notifications/initialized, the real
+call - each redirecting in turn, since `MCPHub.swift:317,328,335` all post to the same configured URL, never a
+remembered redirect target). ENGINEERING DECISION extending ED-152's mechanism; the resulting behaviour (headers
+dropped across an origin-changing redirect) is OD-0022's owner-ruled deviation, not a new one.
+
+ED-210 [UI] How ProseRunView's single NSAttributedString in a single NSTextView is represented on Avalonia (unit
+UI.Markdown.ProseRunView; PR-THEME-149, PR-THEME-150; the verifier's "mixed paragraph styles" block).
+
+SOURCE FACT: B3 (52bc792) `UI/Markdown/ProseRunView.swift:114-208` builds a whole run of headings, paragraphs, list
+items and quotes as ONE NSMutableAttributedString. Blocks are joined by a "\n" in the base font and colour (:201-208).
+Each block's line carries its own NSMutableParagraphStyle: firstLineHeadIndent, headIndent, paragraphSpacing and
+paragraphSpacingBefore, plus, on a list item, one left NSTextTab at indent + 18 and defaultTabInterval 18 (:131-134,
+:155-159, :180-185). The lines are made from LinkParagraphView.attributed(source:...) pieces (:130, :146, :178;
+LinkParagraphView.swift:110-223): its fonts, favicon and dragon-glyph NSTextAttachments, and .link and .hydraHead
+runs. :71 hands the string to LinkTextView.render (LinkParagraphView.swift:481-496), which is one NSTextView. The run
+therefore has one selection, one character index space for the link, head-mention and popover lookups (:355-428,
+:463-471), and one height (height(forWidth:), :498-507). ProseRunView.swift is the only B3 file that sets a paragraph
+style (NSMutableParagraphStyle occurs at :131, :155 and :180 only). The merged port draws a LinkParagraphView
+paragraph through one Avalonia SelectableTextBlock. Its TextLayout takes a single TextParagraphProperties for all of
+its text, so it has no per-paragraph indent, hanging indent, paragraph spacing or tab stop, and its tab is a
+fixed-width advance rather than a stop.
+
+Rejected: (a) one SelectableTextBlock with line breaks: it loses every per-paragraph indent, the hanging list indent,
+the paragraph spacing and the tab stop. (b) A StackPanel of one text block per paragraph: a drag cannot cross blocks
+and a copy cannot join them, so the run's single selection and single index space are lost, and the run is no longer
+"one text object" (PR-THEME-149 expected_result). (c) Spacer InlineUIContainers or padding characters in one text
+block: they add characters that copy and indices count, and they still cannot hang continuation lines.
+
+DECISION:
+
+(1) Value. A port-only `ParagraphText` (src/Marrow.UI/Port/ParagraphText.cs) is the NSMutableAttributedString subset
+these two files use. It is a UTF-16 string held as ordered runs. Each run has an optional font (SwiftFont), foreground
+colour (SwiftColor), .link (SwiftURL), .hydraHead (SwiftURL), attachment and paragraph style. An attachment holds an
+image and its bounds, and its run is the single character U+FFFC, as NSAttributedString(attachment:) stores it.
+`ParagraphStyle` holds exactly firstLineHeadIndent, headIndent, paragraphSpacing, paragraphSpacingBefore, tabStops
+(left stops in container coordinates) and defaultTabInterval. Its default is NSParagraphStyle.default: 0, 0, 0, 0,
+twelve stops 28 apart, and 0 (platform knowledge, UNVERIFIED under OD-0001). The operations are the ones the Swift
+calls:
+- append a string with attributes, an attachment, or an attributed string;
+- addAttribute over a range, for a paragraph style or a font;
+- enumerateAttribute(.font);
+- the attributes at an index;
+- isEqual.
+
+`LinkParagraphView.Attributed(source:pointSize:dimmed:streaming:mentions:targets:)` is ported to return a
+ParagraphText (LinkParagraphView.swift:110-223). It keeps the fonts cache and places favicon and dragon attachments at
+y = base.descender + 1. NSFont.descender is read from the Inter glyph metrics. `ProseRunRepresentable.Attributed`,
+`Append` and `Separate` are line-for-line ports of :114-208. SwiftFont gains HasBoldTrait (bold or heavier) and
+HasMonoSpaceTrait (monospaced design) for the symbolicTraits test at :150-151. Semibold never reaches that test,
+because the heading line holds only regular, bold, italic and monospaced faces, so whether AppKit treats semibold as
+bold is not modelled. The dimmed and undimmed label colours are a single SwiftColor value each
+(LinkParagraphView.LabelTextColor and DimmedLabelTextColor), so two builds of the same text compare equal.
+
+(2) Layout. A port-only control, `ParagraphTextPresenter` (src/Marrow.UI/Port/ParagraphTextPresenter.cs), is the
+NSTextView and NSLayoutManager half.
+- Paragraphs: it splits the string at NSString's paragraph separators (U+000A, U+000D, CRLF, U+0085, U+2029). A
+paragraph takes the style of its first character (the "\n" that separate() inserts carries none and ends the paragraph
+before it); with no style it uses NSParagraphStyle.default.
+- Lines: it formats one line at a time with Avalonia's TextFormatter.FormatLine. The first line sits at x =
+firstLineHeadIndent with width W - firstLineHeadIndent; every later line sits at x = headIndent with width W -
+headIndent. This matches zero container inset and zero line fragment padding (LinkParagraphView.swift:319).
+- Vertical spacing: paragraphSpacingBefore goes above a paragraph's first line and paragraphSpacing below its last.
+This applies to every paragraph, the first and last included, which is the Swift's literal style and the record's
+wording. Whether TextKit 1 drops the space before the first paragraph, or leaves the last paragraph's space out of
+usedRect, is UNVERIFIED under OD-0001.
+- Line heights are Avalonia's for the fonts on the line, as on the LinkParagraphView path.
+- Tabs: a tab is a drawable run whose width moves the pen to the first tab stop to its right, or failing that to the
+next multiple of defaultTabInterval. Both are in container coordinates, as NSTextTab locations are, which is why :183
+writes indent + 18. The width is measured before the line is formatted. With neither a stop nor an interval, the pen
+does not move (UNVERIFIED).
+- Attachments: an attachment is a drawable run of its bounds, with its bottom bounds.y above the baseline, and the
+presenter draws the image there.
+- Links: a .link run is drawn in linkTextAttributes' colour, Chrome.AccentNSColor, with no underline (:485-489).
+- Height: height(forWidth:) is the laid-out height rounded up and cached per width. The cache is dropped when the
+storage changes (:490-495, :498-507).
+
+(3) The view. `LinkTextView.Render(ParagraphText)` is render(_:) (:481-496):
+- the first call replaces the view's SelectableTextBlock with one presenter;
+- every call sets the link colour;
+- the storage is replaced and the measurement dropped only when the new text is not isEqual to the storage (:490-494);
+- the size is invalidated either way.
+
+The link, head-mention and popover lookups (:355-428, :463-471) run over the storage. A point maps to the character
+whose own glyph box contains it (:367-369, :418-420). A link is the longest effective range of one .link value. A head
+mention is the longest effective range of one .hydraHead value. Its name is that range's text with U+FFFC removed and
+trimmed, or else the text of the next .hydraHead range (:381-412). LinkParagraphView's own paragraph path (RenderText
+and its SelectableTextBlock) is unchanged.
+
+(4) Selection. There is one selection over the whole string:
+- a press places the caret, and a drag or shift-press extends it;
+- two presses select a word and three select a paragraph;
+- Ctrl+C copies the selected substring, separators and U+FFFC included, and Ctrl+A selects all.
+
+The highlight uses SelectableTextBlock's SelectionBrush property, with the same default, painted under the glyphs.
+passesProseThrough is false on this path (:50), so a press on prose selects. Before the presenter's own selection
+handling sees a press (a tunnel handler), a head press opens the head and a link press goes to the delegate first, as
+mouseDown (:444-451) and clickedOnLink do. The word, paragraph and key behaviour follow NSTextView's standard
+behaviour, not B3 source (UNVERIFIED under OD-0001). Like the LinkParagraphView path, this path offers no system text
+menu on a right-click over prose.
+
+(5) Representable lifecycle. ProseRunRepresentable keeps SwiftUI's names:
+- The constructor runs makeCoordinator, then makeNSView (delegate = coordinator, passesProseThrough = false, onHost,
+merge target; :43-54), then a first updateNSView.
+- `Update(...)` stands for SwiftUI handing it new inputs and running updateNSView (:56-77). The string is rebuilt only
+when the joined source, point size, dimming, revision, mention names or head URLs change. The head handler and the
+merge target are set on every call.
+- A change of the inherited merge-request target also runs updateNSView.
+- Leaving the visual tree runs dismantleNSView, which clears the delegate, handler and merge target and does not
+detach the veil (upstream defect 55, :84-88). Coming back makes a new text view and coordinator, as SwiftUI would.
+- sizeThatFits (:79-82) answers only a finite proposed width.
+
+LinkTextView gains Delegate (NSTextView.delegate). A link click asks the delegate first, and opens through
+MarkdownLinkOpener when there is no delegate or it declines. The LinkParagraphView path sets no delegate, so it opens
+links as before. ProseRunView re-reads the environment (:6-9) and faviconRevision (:14) whenever they change, and
+hands the representable the point size rounded to the nearest half point (:17).
+
+Tests: tests/Marrow.UI.Tests/Markdown/ProseRunViewTests.cs, 31 tests, traits PR-THEME-149 and PR-THEME-150. They
+cover:
+- the joined sources;
+- the string and every paragraph style, font and colour the Swift sets;
+- the laid-out x of quoted text (14), and of list text and its continuation lines (18, or 36 nested);
+- the vertical gaps (12, 18, 14, 6, 12), and a level-1 heading's 6 before and 12 after inside the height;
+- one drag selecting across two paragraphs;
+- a link in a later paragraph found under the pointer;
+- the rebuild check and the handlers;
+- make and dismantle.
+
+ENGINEERING DECISION: the representation is a port mechanism, not a deviation. The UNVERIFIED items above wait on a
+macOS capture (OD-0001): the default tab stops, the edges of paragraph spacing, a tab with no stop, and NSTextView's
+word, paragraph and key selection.
+ED-211 [TEST] Test processes can never resolve a real installed provider CLI (R-TEST-10; incident 2026-09-27). SOURCE FACT:
+ProviderRegistry.ResolveExecutable (ProviderRegistry.swift:219-226) finds a provider CLI by searching PATH and the fallback
+locations; AppModel reaches it for commit messages (TextEngine), sessions and the B3 self-updater. Several test harnesses override it
+(AppModelHarness.PrepareBootstrap's missing.exe, the AsyncLocal SetCLIUpdaterExecutableForTesting seam), but a test that forgets its
+override resolves the real CLI: AppModelHydraMergeTests (about 40 tests without PrepareBootstrap) generated commit messages through
+the owner's real signed-in CLI, and a ProviderRegistry test once ran a real `claude update` (followups.md). DECISION: a port-only,
+process-wide `ProviderRegistry.ExecutableRootsForTesting` (null in production, so production is unchanged). When set, an executable
+that resolves outside the listed folders is treated as not installed (fails closed). Every test assembly that can reach
+ProviderRegistry (Marrow.Services.Tests, Marrow.App.Tests) sets it from a module initializer (Fixtures/ProviderCliGuard.cs) to
+Marrow.Testing.ProviderCliRoots.Compute(): the repository root (stand-ins under tests/fixtures), the temp folder and
+MARROW_PORT_DATA_DIR. Real installs (%USERPROFILE%\.local\bin, %LOCALAPPDATA%\Programs, %APPDATA%\npm) are outside every root.
+Tests: ProviderCliGuardTests (guard installed and excludes the real install folders; a binary outside the roots resolves to
+nothing; a stand-in in the temp folder still resolves). ENGINEERING DECISION; test safety, not a behaviour change.
+

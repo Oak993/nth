@@ -423,7 +423,7 @@
       "id": "PR-STORE-015",
       "preconditions": "persistenceEnabled is true.",
       "action": "Any library mutation (project added, thread renamed, thread pinned, order changed).",
-      "expected_result": "A mutation while persistenceEnabled is true and no save is pending schedules one: wait max(400 ms, 4 s minus the time since the last save), or 60 s when there has been none. A mutation while a save is already pending does nothing extra; that pending save carries it. When the wait ends, a fresh Library value is built from the current projects and threads and handed to the disk writer, which coalesces it against any snapshot already waiting for library.json. Every saveLibrary() call, whether reached through this scheduler or called directly, stamps lastLibrarySave.",
+      "expected_result": "A mutation while persistenceEnabled is true and no save is pending schedules one: wait max(400 ms, 4 s minus the time since the last save), where 'time since the last save' is assumed to be 60 s when there has been none this run. That 60 s assumption always loses to the 400 ms floor in the max, so with no prior save the wait is 400 ms, never up to 60 s. A mutation while a save is already pending does nothing extra; that pending save carries it. When the wait ends, a fresh Library value is built from the current projects and threads and handed to the disk writer, which coalesces it against any snapshot already waiting for library.json. Every saveLibrary() call, whether reached through this scheduler or called directly, stamps lastLibrarySave.",
       "side_effects": [
         "Background write of library.json",
         "Updates the lastLibrarySave timestamp that throttles the next scheduled save"
@@ -437,7 +437,7 @@
       "cancellation": "The scheduled task is cancelled only by saveBeforeQuit; a later scheduleSave call while one is pending does not cancel it. A cancelled task writes nothing.",
       "windows_path": "Same 400 ms floor, same 4 s minimum spacing measured from lastLibrarySave, and the same per-file coalescing. The literals (400 ms, 4 s, 60 s fallback) must stay exact. After a failed load of library.json (PR-STORE-013, OD-0008 A10) no save writes library.json in that run. Windows: PA-0015 applies - file replace, delete and rename can fail transiently with a sharing violation, so the operation retries with backoff, clears the read-only attribute before a delete, uses an atomic replace primitive and surfaces a real error after a bounded number of attempts rather than dropping the write.",
       "verification_method": "unit with an injected clock: a mutation right after a direct saveLibrary() call (settle/reopen/delete) waits nearly 4 s before its own write; a burst of mutations with no prior save writes once, 400 ms after the first of the burst; a mutation while a save is already pending produces no second write and no restarted timer",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -452,7 +452,7 @@
         "upstream": "DroppyCode/Services/Store/Storage.swift:49-52 loadLibrary() - 'guard let data = try? Data(contentsOf: libraryURL) else { return Library() }' then 'return (try? JSONDecoder.storage.decode(Library.self, from: data)) ?? Library()': an undecodable library.json opens the app empty with no message, and the next write of library.json puts the empty library over it: saveLibrary (AppModel.swift:1316-1324), reached through the 400 ms debounce (:1304-1314) or called directly on settle (:815), reopen (:834) and thread delete (:965), or the synchronous write in saveBeforeQuit (:1335)",
         "port": "Do not overwrite after a failed load; show the error. FIX: an undecodable library.json is surfaced to the user and never overwritten by the next save."
       },
-      "b3_note": "scheduleSave is no longer a cancel-and-restart 400 ms debounce. It now returns early while a save is already pending (no cancellation, no restart), and the wait is max(400 ms, 4 s since the last save, or 60 s when there has been none), so a burst of changes writes once 400 ms after the FIRST change of the burst rather than 400 ms after the last, and a steady stream of changes is no longer starved (no write at all, as the old cancel-and-restart could produce). Every saveLibrary() call, including the direct ones from settle/reopen/delete, stamps lastLibrarySave, so a scheduled save that follows one of those waits up to 4 s from it. Upstream commit (bootstrap CLI self-update change) fixed a September 22 incident where a busy Hydra team rewrote library.json over two gigabytes in an hour and a quarter."
+      "b3_note": "scheduleSave is no longer a cancel-and-restart 400 ms debounce. It now returns early while a save is already pending (no cancellation, no restart), and the wait is max(400 ms, 4 s minus the time since the last save, where that time-since is assumed to be 60 s when there has been none) - which always resolves to the 400 ms floor when there has been no prior save, not to 60 s - so a burst of changes writes once 400 ms after the FIRST change of the burst rather than 400 ms after the last, and a steady stream of changes is no longer starved (no write at all, as the old cancel-and-restart could produce). Every saveLibrary() call, including the direct ones from settle/reopen/delete, stamps lastLibrarySave, so a scheduled save that follows one of those waits up to 4 s from it. saveBeforeQuit does NOT call saveLibrary and does NOT stamp lastLibrarySave; it writes library.json synchronously through its own separate path (AppModel.swift:1327-1345). Upstream commit (bootstrap CLI self-update change) fixed a September 22 incident where a busy Hydra team rewrote library.json over two gigabytes in an hour and a quarter. Review fix (finding #5, MEDIUM): the 60 s figure and the saveBeforeQuit/scheduled-save stamping claims were previously misstated in this file's sibling record, PR-LAUNCH-076; both were corrected there and the same correction is reflected here and in E:/Droppy/work/b3/B3_PLAN.md section A32."
     },
     {
       "id": "PR-STORE-016",
@@ -2717,7 +2717,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Byte-identical output: the exact difference(from:), the 7-op grouping threshold, 3 lines of context on each side, independent old/new starts (0 when a side has no op in the slice), the always-printed \",count\", and hunks joined by a bare \"\\n\" with no --- / +++ headers. .NET's LCS-based diff will not automatically match Swift's CollectionDifference tie-breaking when several minimal scripts exist; that case needs its own fixtures before this can be marked VERIFIED.",
       "verification_method": "contract fixture comparing produced hunk text against macOS output for: identical inputs (nil diff), a single-line insert into an empty text, a single-line delete to empty, a multi-hunk edit with two change runs more than 7 ops apart, and a multi-hunk edit with two change runs within 7 ops that must merge into one hunk",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3193,7 +3193,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static data, reproduced byte for byte including the colons, semicolons and the apostrophe in any possessive. The model and provider names are literals, not computed.",
       "verification_method": "contract fixture over the table plus a capture comparison of the pair list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3216,7 +3216,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static data, reproduced byte for byte including the colons, semicolons and the apostrophe in any possessive. The model and provider names are literals, not computed.",
       "verification_method": "contract fixture over the table plus a capture comparison of the pair list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3239,7 +3239,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static data, reproduced byte for byte including the colons, semicolons and the apostrophe in any possessive. The model and provider names are literals, not computed.",
       "verification_method": "contract fixture over the table plus a capture comparison of the pair list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3262,7 +3262,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static data, reproduced byte for byte including the colons, semicolons and the apostrophe in any possessive. The model and provider names are literals, not computed.",
       "verification_method": "contract fixture over the table plus a capture comparison of the pair list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3285,7 +3285,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static data, reproduced byte for byte including the colons, semicolons and the apostrophe in any possessive. The model and provider names are literals, not computed.",
       "verification_method": "contract fixture over the table plus a capture comparison of the pair list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3308,7 +3308,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static data, reproduced byte for byte including the colons, semicolons and the apostrophe in any possessive. The model and provider names are literals, not computed.",
       "verification_method": "contract fixture over the table plus a capture comparison of the pair list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3331,7 +3331,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static data, reproduced byte for byte including the colons, semicolons and the apostrophe in any possessive. The model and provider names are literals, not computed.",
       "verification_method": "contract fixture over the table plus a capture comparison of the pair list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3354,7 +3354,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static data, reproduced byte for byte including the colons, semicolons and the apostrophe in any possessive. The model and provider names are literals, not computed.",
       "verification_method": "contract fixture over the table plus a capture comparison of the pair list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3377,7 +3377,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static data, reproduced byte for byte including the colons, semicolons and the apostrophe in any possessive. The model and provider names are literals, not computed.",
       "verification_method": "contract fixture over the table plus a capture comparison of the pair list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3400,7 +3400,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static data, reproduced byte for byte including the colons, semicolons and the apostrophe in any possessive. The model and provider names are literals, not computed.",
       "verification_method": "contract fixture over the table plus a capture comparison of the pair list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4147,7 +4147,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static data, reproduced byte for byte including the colons, semicolons and the apostrophe in any possessive. The model and provider names are literals, not computed.",
       "verification_method": "contract fixture over the table plus a capture comparison of the pair list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4170,7 +4170,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static data, reproduced byte for byte including the colons, semicolons and the apostrophe in any possessive. The model and provider names are literals, not computed.",
       "verification_method": "contract fixture over the table plus a capture comparison of the pair list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4196,7 +4196,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port: the same per-URL map (Mutex<[URL: Int]>), updated only from the asynchronous encodeAndWrite path, read by lastWrittenSize(of:).",
       "verification_method": "unit: encodeAndWrite a value, wait for the queued hop to run, assert lastWrittenSize(of:) equals the encoded byte count; assert a subsequent writeSynchronously or removeSynchronously for the same URL does not change the recorded size; assert an unencodable value leaves lastWrittenSize as it was",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4212,17 +4212,18 @@
       "id": "PR-STORE-175",
       "preconditions": "Two texts that compare equal line by line under Swift String ==, including the case where both are empty.",
       "action": "SimpleDiff.unified(old:new:) is called.",
-      "expected_result": "newLines.difference(from: oldLines) has no removed and no inserted offsets, so unified returns FileEdit.Stats(diff: nil, additions: 0, deletions: 0) immediately, before the merged-ops walk or any hunk work runs. Lines are compared as produced by splitting each text on \"\\n\" (an empty string gives an empty line array).",
+      "expected_result": "newLines.difference(from: oldLines) has no removed and no inserted offsets, so unified returns FileEdit.Stats(diff: nil, additions: 0, deletions: 0) immediately, before the merged-ops walk or any hunk work runs. Lines are compared as produced by splitting each text on \"\\n\" (an empty string gives an empty line array). Downstream, the nil diff is not uniformly invisible: the tool row's own inline rendering shows no diff block for it (TimelineRows.swift:2128), and DiffInspector's focusedFiles fallback contributes nothing for it (DiffInspector.swift:165, which requires a non-nil, non-empty patch); but on a tool row that is part of the selected turn, TurnDiff.merge (TurnDiff.swift:39-48) still appends this edit as a hunk-less DiffFile (it filters only on an empty path, not a nil diff, and only records reportedAdditions/reportedDeletions when file.hunks.isEmpty), so DiffInspector's file card still appears for it, reading \"Diff details unavailable\" rather than showing a diff (DiffInspector.swift:215-221), and the tool row still opens the changes popover because TimelineRows.swift's opensDiff (:1664-1665) is true whenever the call has any edit with a non-empty path, independent of whether that edit's own diff is nil.",
       "side_effects": [],
       "persistence": "Nothing is stored for such an edit: no diff text, and the recorded additions and deletions are both 0.",
       "failure_cases": [
-        "Downstream, a reported edit with a nil diff renders no diff block in the tool row (TimelineRows.swift:2128) and none in DiffInspector (DiffInspector.swift:165).",
+        "A reported edit with a nil diff renders no diff block in the tool row's own inline rendering (TimelineRows.swift:2128) and DiffInspector's focusedFiles fallback adds nothing for it (DiffInspector.swift:165).",
+        "But when that same edit's path is part of the selected turn's own diff, TurnDiff.merge (TurnDiff.swift:39-48) still adds a hunk-less file for it, so the inspector shows a \"Diff details unavailable\" card (DiffInspector.swift:215-221) rather than no card, and the tool row still opens the changes popover (TimelineRows.swift:1664-1665) rather than staying collapsed.",
         "ThreadRuntime.swift:3447 settleCommand treats such an edit as unreported, so the git-snapshot edits replace it rather than leaving a phantom empty diff."
       ],
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the short-circuit and its two downstream effects: a nil diff must render no diff block at all (not an empty one), and must not stop the git-snapshot edits from replacing the report.",
       "verification_method": "unit: two identical multi-line texts and two empty texts both give diff nil, additions 0, deletions 0; integration test that a tool row carrying such an edit shows no diff block and that DiffInspector shows none",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4233,7 +4234,7 @@
         "DroppyCode/App/Views/Diff/DiffInspector.swift:165 - no diff shown when diff is nil",
         "DroppyCode/App/Runtime/ThreadRuntime.swift:3447 settleCommand - treats a nil-diff edit as unreported, so the git-snapshot edits replace it"
       ],
-      "b3_note": "Split out as its own record from the B3 exact-diff rewrite of SimpleDiff.unified (PR-STORE-112): B2's head/tail trim reached the same nil result for identical inputs, but at a different line, and no record pinned the downstream consumers. See impacts.json bundle R3-15 (Text.swift) new_records_needed, proposal #3."
+      "b3_note": "Split out as its own record from the B3 exact-diff rewrite of SimpleDiff.unified (PR-STORE-112): B2's head/tail trim reached the same nil result for identical inputs, but at a different line, and no record pinned the downstream consumers. See impacts.json bundle R3-15 (Text.swift) new_records_needed, proposal #3. B3 batch 2 merge (claude/gracious-tesla-add68a's PR-STORE-175 integration tests): reworded expected_result/failure_cases, checked against the pristine B3 Swift, to stop implying a nil diff is invisible everywhere downstream. It is invisible only through the tool row's own inline diff block (TimelineRows.swift:2128) and DiffInspector's focusedFiles fallback (DiffInspector.swift:165); once the edit's path is part of the selected turn's own diff, TurnDiff.merge (TurnDiff.swift:39-48) still merges it in as a hunk-less file, so DiffInspector still shows a \"Diff details unavailable\" card for it (DiffInspector.swift:215-221) and the tool row still opens the changes popover (TimelineRows.swift:1664-1665)."
     }
   ],
   "ui": [
@@ -4485,7 +4486,7 @@
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 1 of 12",
       "role": "row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "The table grows from 10 to 12 rows (see PR-STORE-132's b3_note). This row's text changes from \"Opus 5\" to \"Opus 5.5\"; its position (1) and cite line (:30) are unchanged."
     },
     {
@@ -4509,7 +4510,7 @@
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 2 of 12",
       "role": "row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "The table grows from 10 to 12 rows (see PR-STORE-132's b3_note). This row's text changes from \"Opus 5\" to \"Opus 5.5\"; its position (2) and cite line (:31) are unchanged."
     },
     {
@@ -4533,7 +4534,7 @@
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 3 of 12",
       "role": "row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "The table grows from 10 to 12 rows (see PR-STORE-132's b3_note). This row's text changes from \"Opus 5\" to \"Opus 5.5\"; its position (3) and cite line (:32) are unchanged."
     },
     {
@@ -4557,7 +4558,7 @@
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 4 of 12",
       "role": "row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "The table grows from 10 to 12 rows (see PR-STORE-132's b3_note). This row's text changes from \"Opus 5\" to \"Opus 5.5\"; its position (4) and cite line (:33) are unchanged."
     },
     {
@@ -4581,7 +4582,7 @@
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 5 of 12",
       "role": "row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "The table grows from 10 to 12 rows (see PR-STORE-132's b3_note). This row's text is unchanged; only the stated count changes."
     },
     {
@@ -4605,7 +4606,7 @@
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 6 of 12",
       "role": "row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "The table grows from 10 to 12 rows (see PR-STORE-132's b3_note). This row's text is unchanged; only the stated count changes."
     },
     {
@@ -4629,7 +4630,7 @@
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 7 of 12",
       "role": "row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "The table grows from 10 to 12 rows (see PR-STORE-132's b3_note). This row's text is unchanged; only the stated count changes."
     },
     {
@@ -4653,7 +4654,7 @@
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 10 of 12",
       "role": "row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "Two new rows (astra-sol, sol-luna) are inserted at positions 8 and 9, pushing this row from position 8 to position 10. Cite line moves :37 -> :39 (already re-cited)."
     },
     {
@@ -4677,7 +4678,7 @@
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 11 of 12",
       "role": "row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "Two new rows (astra-sol, sol-luna) are inserted at positions 8 and 9, pushing this row from position 9 to position 11. Its text also changes from \"Opus 5\" to \"Opus 5.5\". Cite line moves :38 -> :40."
     },
     {
@@ -4701,7 +4702,7 @@
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 12 of 12",
       "role": "row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "Two new rows (astra-sol, sol-luna) are inserted at positions 8 and 9, pushing this row from position 10 to position 12. Cite line moves :39 -> :41 (already re-cited)."
     },
     {
@@ -4725,7 +4726,7 @@
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 8 of 12",
       "role": "row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "New row added in B3; see PR-STORE-172."
     },
     {
@@ -4749,7 +4750,7 @@
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 9 of 12",
       "role": "row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "New row added in B3; see PR-STORE-173."
     }
   ]

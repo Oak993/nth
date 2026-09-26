@@ -12,11 +12,11 @@ using Marrow.Core.Models;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
 
-// Source: DroppyCode/App/Views/Terminal/TerminalPanel.swift (B2 1fbf81e), :1-443.
+// Source: DroppyCode/App/Views/Terminal/TerminalPanel.swift (B3 52bc792), :1-318.
 
 namespace Marrow.App.Views.Terminal;
 
-/// <summary>:4-112 The thread's terminal drawer.</summary>
+/// <summary>:4-111 The thread's terminal drawer.</summary>
 public sealed class TerminalPanel : Decorator
 {
     private readonly ThreadRuntime runtime;
@@ -26,7 +26,7 @@ public sealed class TerminalPanel : Decorator
     private readonly StackPanel content;
     private readonly StackPanel tabStrip;
     private readonly Border terminalArea;
-    private readonly TerminalResizeHandle resizeHandle;
+    private readonly DragHandleView resizeHandle;
     private AppModel? model;
     private double? dragOrigin;
     private double? dragHeight;
@@ -94,16 +94,22 @@ public sealed class TerminalPanel : Decorator
         content.Children.Add(header);
         content.Children.Add(terminalArea);
 
-        resizeHandle = new TerminalResizeHandle(
-            begin: BeginResize,
-            change: ChangeResize,
-            end: EndResize)
+        // :113-131 TerminalResizeHandle.body wraps the shared DragHandle; TerminalResizeHandleView installs the
+        // one configuration that struct's body used to build (BLK-none, coordinator review 6.2: previously a
+        // hand-rolled Control duplicated DragHandleView's press/drag/release and paint logic instead of using it,
+        // which meant it never picked up DragHandleView's 0.18s grip transition, painted the grip from
+        // Chrome.PrimaryText instead of the source's own label colour, and called onEnd from the capture-lost
+        // path where DragHandleView deliberately does not).
+        resizeHandle = new TerminalResizeHandleView
         {
-            Height = 8,
-            HorizontalAlignment = HorizontalAlignment.Stretch,
-            VerticalAlignment = VerticalAlignment.Top,
-            ZIndex = 1,
-        };
+            OnBegin = BeginResize,
+            OnChange = ChangeResize,
+            OnEnd = EndResize,
+        }.MakeNSView();
+        resizeHandle.Height = 8;
+        resizeHandle.HorizontalAlignment = HorizontalAlignment.Stretch;
+        resizeHandle.VerticalAlignment = VerticalAlignment.Top;
+        resizeHandle.ZIndex = 1;
 
         surface = new Grid
         {
@@ -289,88 +295,44 @@ public sealed class TerminalPanel : Decorator
     }
 }
 
-/// <summary>:114-256 The drawer's top-edge resize strip.</summary>
-public sealed class TerminalResizeHandle : Control
+/// <summary>:113-131 <c>private struct TerminalResizeHandle: View</c>. The one <see cref="DragHandle"/>
+/// configuration the drawer's top-edge strip installs: vertical axis, the 12/28/2.5 grip (PR-TERM-016) and the
+/// up/down resize cursor (PR-TERM-012), leaving every press/drag/release mechanic, the grip's 0.18s hover/drag
+/// transition and its label-colour fill, and the capture-lost handling to the shared <see cref="DragHandleView"/>
+/// (coordinator review 6.2: this file previously reimplemented all of that by hand instead of wrapping the shared
+/// component, so it never picked up the transition, painted from Chrome.PrimaryText instead of the source's own
+/// label colour, and called onEnd from a lost pointer capture, which DragHandleView deliberately never does,
+/// matching AppKit's own mid-drag-detach behaviour at DragHandle.swift:127-133).</summary>
+public sealed class TerminalResizeHandleView
 {
-    private readonly Action begin;
-    private readonly Action<double> change;
-    private readonly Action end;
-    private Point? pointerOrigin;
-    private TopLevel? dragRoot;
-    private bool isHovering;
-    private bool isDragging;
+    // :125 cursor: .resizeUpDown. One shared instance, matching WindowChrome.cs's SidebarResizeHandle
+    // ColumnResizeCursor (PR-WIN-049's "the same shared cursor, not a new one per view").
+    internal static readonly Cursor ResizeCursor = new(StandardCursorType.SizeNorthSouth);
 
-    public TerminalResizeHandle(Action begin, Action<double> change, Action end)
+    public Action? OnBegin { get; set; } // :115 let onBegin: () -> Void
+    public Action<double>? OnChange { get; set; } // :117-118 let onChange: (CGFloat) -> Void
+    public Action? OnEnd { get; set; } // :119 let onEnd: () -> Void
+
+    /// <summary>:122-129 <c>var body: some View</c>.</summary>
+    private DragHandle Handle() => new()
     {
-        this.begin = begin;
-        this.change = change;
-        this.end = end;
+        HandleAxis = DragHandleView.Axis.Vertical, // :123 axis: .vertical
+        HandleGrip = new DragHandleView.Grip(RestLength: 12, ShownLength: 28, Thickness: 2.5), // :124
+        HandleCursor = ResizeCursor, // :125 cursor: .resizeUpDown
+        OnBegin = OnBegin, // :126
+        OnChange = size => OnChange?.Invoke(size.Height), // :127 onChange: { onChange($0.height) }
+        OnEnd = OnEnd, // :128
+    };
 
-        Cursor = new Cursor(StandardCursorType.SizeNorthSouth);
-        PointerPressed += OnPointerPressed;
-        PointerMoved += OnPointerMoved;
-        PointerReleased += OnPointerReleased;
-        PointerCaptureLost += (_, _) => FinishDrag();
-        PointerEntered += (_, _) => { isHovering = true; InvalidateVisual(); };
-        PointerExited += (_, _) => { isHovering = false; InvalidateVisual(); };
-    }
+    // :282-286 DragHandle.makeNSView(context:), reached through this struct's own body, exactly as
+    // WindowChrome.cs's SidebarResizeHandle reaches the same wrapper for its own axis and grip.
+    public DragHandleView MakeNSView() => Handle().MakeNSView();
 
-    public override void Render(DrawingContext context)
-    {
-        base.Render(context);
-        var shown = isHovering || isDragging;
-        var width = shown ? 28 : 12;
-        var opacity = shown ? 0.6 : 0;
-        var bar = new Rect((Bounds.Width - width) / 2, (Bounds.Height - 2.5) / 2, width, 2.5);
-        context.DrawRectangle(
-            new SolidColorBrush(Chrome.PrimaryText.Resolve(ActualThemeVariant), opacity),
-            null,
-            bar,
-            1.25,
-            1.25);
-    }
-
-    private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
-    {
-        if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
-        dragRoot = TopLevel.GetTopLevel(this);
-        if (dragRoot is null) return;
-
-        pointerOrigin = e.GetPosition(dragRoot);
-        isDragging = true;
-        begin();
-        e.Pointer.Capture(this);
-        InvalidateVisual();
-    }
-
-    private void OnPointerMoved(object? sender, PointerEventArgs e)
-    {
-        if (pointerOrigin is not { } origin || dragRoot is null) return;
-        var current = e.GetPosition(dragRoot);
-        // DOM/Avalonia y increases downward; invert it so upward travel grows the drawer.
-        change(origin.Y - current.Y);
-    }
-
-    private void OnPointerReleased(object? sender, PointerReleasedEventArgs e)
-    {
-        if (pointerOrigin is not { } origin || dragRoot is null) return;
-        var current = e.GetPosition(dragRoot);
-        change(origin.Y - current.Y);
-        FinishDrag();
-    }
-
-    private void FinishDrag()
-    {
-        if (pointerOrigin is null) return;
-        pointerOrigin = null;
-        dragRoot = null;
-        isDragging = false;
-        end();
-        InvalidateVisual();
-    }
+    // :288-290 DragHandle.updateNSView(_:context:), reached the same way.
+    public void UpdateNSView(DragHandleView view) => Handle().UpdateNSView(view);
 }
 
-/// <summary>:258-311 A terminal tab chip.</summary>
+/// <summary>:133-186 A terminal tab chip.</summary>
 internal sealed class TerminalTab : Border
 {
     private readonly TerminalSession session;
@@ -468,7 +430,7 @@ internal sealed class TerminalTab : Border
     }
 }
 
-/// <summary>:313-376 Hosts the terminal's rendering surface. Marrow.App.Views.Terminal.Port.TerminalHost.cs
+/// <summary>:191-251 Hosts the terminal's rendering surface. Marrow.App.Views.Terminal.Port.TerminalHost.cs
 /// documents TerminalHostView as carrying no rendering yet: it starts the real shell over a pseudoconsole
 /// and exposes the properties TerminalSession assigns, but the visible ANSI grid (SwiftTerm's Windows
 /// equivalent) is "a future UI unit" (that file's own header comment, :1-5). This host can therefore only
@@ -508,7 +470,7 @@ public sealed class TerminalHost : Decorator
     }
 }
 
-/// <summary>:382-443 Avalonia host for a session's existing terminal view.</summary>
+/// <summary>:257-318 Avalonia host for a session's existing terminal view.</summary>
 public sealed class TerminalHostContainer : Decorator
 {
     public Control? HostedView

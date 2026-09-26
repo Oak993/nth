@@ -23,7 +23,7 @@ using Marrow.UI.Port;
 
 namespace Marrow.App.Views.Chat;
 
-// Source: DroppyCode/App/Views/Chat/HydraPanel.swift (B2 1fbf81e), :1-553.
+// Source: DroppyCode/App/Views/Chat/HydraPanel.swift (B3 52bc7926), :1-552.
 
 /// <summary>:4-201 <c>struct HydraPanel: View</c>: the lead's team as a floating glass panel.</summary>
 public sealed class HydraPanel : Decorator
@@ -265,12 +265,22 @@ public sealed class HydraPanel : Decorator
     }
 
     /// <summary>
-    /// :169-175, :640-738. The strip's invisible handle. In the source the middle of the strip is
-    /// <c>PanelDragHandle</c>, an NSViewRepresentable over SubagentPanel.swift's <c>PanelDragHandleView</c>
-    /// (:677-738): a press is tracked, the pointer's travel is reported through <c>onDrag</c> once it has
-    /// passed the source's 2-point slop (:685), and the release is reported through <c>onDragEnd</c>. That
-    /// pair belongs to the SubagentPanel twin, whose bodies are not ported yet, so the strip wires the same
-    /// pointer behaviour here.
+    /// :169-175. The strip's invisible handle. In the source the middle of the strip is
+    /// <c>PanelDragHandle</c> (SubagentPanel.swift:646-666), a thin <c>View</c> wrapping the shared
+    /// <c>DragHandle</c>/<c>DragHandleView</c> in UI/Chrome/DragHandle.swift (<c>DragHandleView: NSView</c>
+    /// :6-268, <c>DragHandle: NSViewRepresentable</c> :270-304): a press is tracked, the pointer's travel is
+    /// reported through <c>onChange</c> once it has passed the handle's 2-point slop, and the release is
+    /// reported through <c>onEnd</c>. B3 has no <c>PanelDragHandleView</c> symbol anywhere in the tree; that
+    /// name, and the press/move/release logic wired below, are what B2's SubagentPanel.swift used before the
+    /// shared DragHandle existed (B2 had no UI/Chrome/DragHandle.swift at all). The C# port's own
+    /// <c>Marrow.App.Views.Chat.SubagentPanel.PanelDragHandle</c> (SubagentPanel.cs:796-849) has since been
+    /// re-pinned against B3 (unit App.Views.Chat.SubagentPanel) and now wraps the shared
+    /// <see cref="Marrow.UI.Chrome.DragHandleView"/> instead of carrying its own B2-era
+    /// <c>PanelDragHandleView</c> press-tracking, so that precondition is now met: <c>WireDragHandle</c> here
+    /// is the one remaining place in the tree still duplicating that same pre-refactor pointer-tracking
+    /// directly instead of reusing the shared <c>Marrow.UI.Chrome.DragHandle</c> (the plan's N8). Re-pointing
+    /// this call site onto N8, the way SubagentPanel.cs's own <c>PanelDragHandle</c> now does, is out of this
+    /// unit's scope.
     /// </summary>
     private static void WireDragHandle(Border handle, Action<Size> onDrag, Action onDragEnd)
     {
@@ -292,7 +302,8 @@ public sealed class HydraPanel : Decorator
             var step = new Size(point.X - previous.X, point.Y - previous.Y);
             if (!moved)
             {
-                // :685 private let slop: CGFloat = 2
+                // B2 SubagentPanel.swift:685 private let slop: CGFloat = 2 (pre-refactor; see WireDragHandle's
+                // doc comment above for why this file still mirrors the B2 logic rather than B3's DragHandle).
                 if (Math.Abs(step.Width) + Math.Abs(step.Height) < 2) return;
                 moved = true;
             }
@@ -718,10 +729,10 @@ internal sealed class HydraHeadFooter : Decorator
     }
 }
 
-/// <summary>:475-489 <c>@MainActor enum HydraLiveInfo</c>, a caseless enum used as a namespace.</summary>
+/// <summary>:475-487 <c>@MainActor enum HydraLiveInfo</c>, a caseless enum used as a namespace.</summary>
 public static class HydraLiveInfo
 {
-    // :482-488
+    // :480-486
     public static HydraHeadInfo Shown(HydraHeadInfo stored, ThreadRuntime? runtime)
     {
         if (stored.HydraHeadInfoStatus != HydraHeadInfo.Status.Running || runtime is null) return stored;
@@ -732,10 +743,10 @@ public static class HydraLiveInfo
     }
 }
 
-/// <summary>:491-553 <c>enum HydraStatusText</c>, a caseless enum used as a namespace: the words for a head's state.</summary>
+/// <summary>:489-552 <c>enum HydraStatusText</c>, a caseless enum used as a namespace: the words for a head's state.</summary>
 public static class HydraStatusText
 {
-    // :493-500
+    // :491-498
     public static string Short(HydraHeadInfo info) => info.HydraHeadInfoStatus switch
     {
         HydraHeadInfo.Status.Running => "working",
@@ -745,7 +756,7 @@ public static class HydraStatusText
         _ => throw new System.Diagnostics.UnreachableException()
     };
 
-    // :502-513
+    // :500-511
     public static string Long(HydraHeadInfo info) => info.HydraHeadInfoStatus switch
     {
         HydraHeadInfo.Status.Running => info.Activity is { } activity
@@ -758,7 +769,7 @@ public static class HydraStatusText
         _ => throw new System.Diagnostics.UnreachableException()
     };
 
-    // :515-526
+    // :513-524
     public static string Footer(HydraHeadInfo info) => info.HydraHeadInfoStatus switch
     {
         HydraHeadInfo.Status.Running => info.Activity is { } activity
@@ -773,7 +784,7 @@ public static class HydraStatusText
         _ => throw new System.Diagnostics.UnreachableException()
     };
 
-    // :528-540 Where a Droppy-run head's work went, in a few words; nil for a head with no copy of its own.
+    // :528-538 Where a Droppy-run head's work went, in a few words; nil for a head with no copy of its own.
     public static string? Landed(HydraHeadInfo info)
     {
         if (info.Landing is not { } landing) return null;
@@ -788,7 +799,7 @@ public static class HydraStatusText
         return "landed " + files;
     }
 
-    // :542-545
+    // :540-543
     private static string Steps(HydraHeadInfo info)
     {
         if (info.ToolCalls <= 0) return "";
@@ -797,15 +808,17 @@ public static class HydraStatusText
             : $" \U000000B7 {info.ToolCalls.ToString(CultureInfo.InvariantCulture)} steps"; // U+00B7 MIDDLE DOT
     }
 
-    // :547-552
+    // :545-551. ED-197: Duration.UnitsFormatStyle(allowed: [.seconds, .minutes], width: .narrow, maximumUnitCount:
+    // 2, fractionalPart: .hide(rounded: .down)), the same configuration as Hydra.swift:1420-1423's duration(_:).
+    private static readonly SwiftFormatters.DurationUnit[] ElapsedUnits =
+        [SwiftFormatters.DurationUnit.Seconds, SwiftFormatters.DurationUnit.Minutes];
+
     private static string Elapsed(HydraHeadInfo info)
     {
         if (info.FinishedAt is not { } finished) return "";
         var seconds = SwiftNumber.TruncatingToInt(SwiftDate.TimeIntervalSince(finished, info.StartedAt));
         if (seconds <= 0) return "";
-        return seconds < 60
-            ? $" in {seconds.ToString(CultureInfo.InvariantCulture)}s"
-            : $" in {(seconds / 60).ToString(CultureInfo.InvariantCulture)}m {(seconds % 60).ToString(CultureInfo.InvariantCulture)}s";
+        return " in " + SwiftFormatters.DurationUnits(seconds, ElapsedUnits, SwiftFormatters.CurrentLocale.Current);
     }
 
     // Text.swift:63-73 TextCleanup.singleLine, at this file's own call sites (:505, :518, :520, :522).

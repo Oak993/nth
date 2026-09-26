@@ -25,8 +25,10 @@ using Chrome = Marrow.UI.Chrome.Chrome; // ED-095: the Swift type Chrome, not th
 // Source under test: DroppyCode/UI/Chrome/Chrome.swift (B2 1fbf81e), part 2 of 4 (R-TEST-3: a new file for this part):
 // PaneTopVeil :579-628, ChromeCompactTitle :630-647, SidebarSymbol :651-668, SidebarIconBadge :670-679,
 // SidebarRow :681-757, RowAccessoryIcon :759-773, SoftAppearModifier/settleGlide/settleFlight :934-1002,
-// ChromeCard :1006-1021, ChromeSection :1023-1047, ChromeRow :1049-1074, ChromeRowDivider :1076-1081,
-// ChromeQuietButtonStyle :275-280, ChromeRevealLayout :282-304 and the colour/motion/token block :36-120.
+// ChromeCard :1006-1027 (B3 52bc792, PR-WIN-202/UI-WIN-052: gained `lazy: Bool = false`, was B2 :1006-1021),
+// ChromeSection :1029-1053, ChromeRow :1055-1080, ChromeRowDivider :1082-1087 (B3 line numbers; +6 from B2's
+// :1023-1047/:1049-1074/:1076-1081), ChromeQuietButtonStyle :275-280, ChromeRevealLayout :282-304 and the
+// colour/motion/token block :36-120.
 // Expected values are transcribed from the Swift and the records, never from the C# under test:
 //   :41 veilHeight = 72; :48-67 the sidebar and card token literals; :76 primaryText = labelColor (ED-051,
 //   SwiftColor.LabelColor); :79 secondaryText = primaryText.opacity(0.7) (ED-062); :98 hover 0.1s ease-out;
@@ -577,11 +579,11 @@ public sealed class ChromeFifthTests(HeadlessSession headless)
         window.Close();
     });
 
-    // ---- PR-WIN-202: ChromeCard ----
+    // ---- PR-WIN-202, UI-WIN-052: ChromeCard (B3 52bc792 :1006-1027, gained `lazy`) ----
 
     [Fact]
-    [Trait("Req", "PR-WIN-202")] // Chrome.swift:1014-1020: continuous rounded-16 fill at overlay(0.03)
-    [Trait("Req", "UI-WIN-052")] // UI/Chrome/Chrome.swift:1006-1021 chrome card fill 0.03, radius 16
+    [Trait("Req", "PR-WIN-202")] // Chrome.swift:1021-1025 (B3, was :1014-1020): continuous rounded-16 fill at overlay(0.03)
+    [Trait("Req", "UI-WIN-052")] // UI/Chrome/Chrome.swift:1006-1027 (B3) chrome card fill 0.03, radius 16
     public void ChromeCard_is_a_16_radius_fill_at_0_03() => headless.OnUiThread(() =>
     {
         var row = new TextBlock { Text = "row" };
@@ -594,11 +596,43 @@ public sealed class ChromeFifthTests(HeadlessSession headless)
         window.Close();
     });
 
+    [Fact]
+    [Trait("Req", "PR-WIN-202")] // Chrome.swift:1009 (B3): `var lazy = false` - the default is eager, not lazy
+    [Trait("Req", "UI-WIN-052")] // UI/Chrome/Chrome.swift:1006-1027 (B3) eager-by-default state
+    public void ChromeCard_lazy_defaults_to_false() => headless.OnUiThread(() =>
+    {
+        var card = new ChromeCard(() => new TextBlock { Text = "row" });
+
+        Assert.False(card.Lazy);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-202")] // Chrome.swift:1009, :1015-1016 (B3): a caller can opt a card into lazy: true
+    [Trait("Req", "UI-WIN-052")] // UI/Chrome/Chrome.swift:1006-1027 (B3) lazy (only where the caller passes lazy: true) state
+    public void ChromeCard_records_lazy_true_when_the_caller_passes_it() => headless.OnUiThread(() =>
+    {
+        var card = new ChromeCard(() => new TextBlock { Text = "row" }, lazy: true);
+
+        Assert.True(card.Lazy);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-202")] // Chrome.swift:1015-1019 (B3): Avalonia has no LazyVStack-shaped host for a single already-built subtree, so lazy: true still renders the row (ENGINEERING DECISION: a recorded eager fallback, not a virtualizing host)
+    public void ChromeCard_lazy_true_still_builds_and_shows_its_content() => headless.OnUiThread(() =>
+    {
+        var row = new TextBlock { Text = "row" };
+        var card = new ChromeCard(() => row, lazy: true);
+        var window = Show(card, ThemeVariant.Light);
+
+        Assert.Contains(row, VisualQuery.Descendants<TextBlock>(card));
+        window.Close();
+    });
+
     // ---- PR-WIN-203, PR-WIN-231 (partial): ChromeSection ----
 
     [Fact]
-    [Trait("Req", "PR-WIN-203")] // Chrome.swift:1034-1036: semibold body heading in secondaryText
-    [Trait("Req", "UI-WIN-053")] // UI/Chrome/Chrome.swift:1023-1047 chrome section header semibold body, secondaryText
+    [Trait("Req", "PR-WIN-203")] // Chrome.swift:1040-1042: semibold body heading in secondaryText
+    [Trait("Req", "UI-WIN-053")] // UI/Chrome/Chrome.swift:1029-1053 chrome section header semibold body, secondaryText
     [Trait("Req", "PR-WIN-231")]
     public void ChromeSection_heading_is_semibold_body_in_secondaryText() => headless.OnUiThread(() =>
     {
@@ -611,8 +645,8 @@ public sealed class ChromeFifthTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-WIN-203")] // Chrome.swift:1037-1041: accessory after the title, trailing pushed to the far right with 8pt before it
-    [Trait("Req", "UI-WIN-053")] // UI/Chrome/Chrome.swift:1023-1047 accessory and trailing control layout
+    [Trait("Req", "PR-WIN-203")] // Chrome.swift:1043-1047: accessory after the title, trailing pushed to the far right with 8pt before it
+    [Trait("Req", "UI-WIN-053")] // UI/Chrome/Chrome.swift:1029-1053 accessory and trailing control layout
     public void ChromeSection_places_an_accessory_and_a_trailing_control() => headless.OnUiThread(() =>
     {
         var accessory = new TextBlock { Text = "info" };
@@ -628,8 +662,8 @@ public sealed class ChromeFifthTests(HeadlessSession headless)
     // ---- PR-WIN-204, PR-WIN-231 (partial): ChromeRow ----
 
     [Fact]
-    [Trait("Req", "PR-WIN-204")] // Chrome.swift:1058-1064: body title, subheadline detail only when non-nil and non-empty
-    [Trait("Req", "UI-WIN-054")] // UI/Chrome/Chrome.swift:1049-1074 chrome row title and detail typography/colors
+    [Trait("Req", "PR-WIN-204")] // Chrome.swift:1064-1070: body title, subheadline detail only when non-nil and non-empty
+    [Trait("Req", "UI-WIN-054")] // UI/Chrome/Chrome.swift:1055-1080 chrome row title and detail typography/colors
     [Trait("Req", "PR-WIN-231")]
     public void ChromeRow_shows_the_detail_only_when_present_and_non_empty() => headless.OnUiThread(() =>
     {
@@ -651,7 +685,7 @@ public sealed class ChromeFifthTests(HeadlessSession headless)
     // ---- PR-WIN-205: ChromeRowDivider ----
 
     [Fact]
-    [Trait("Req", "PR-WIN-205")] // Chrome.swift:1077-1080: a hairline inset 16pt from the leading edge only
+    [Trait("Req", "PR-WIN-205")] // Chrome.swift:1083-1086: a hairline inset 16pt from the leading edge only
     public void ChromeRowDivider_is_inset_16_points_leading_only() => headless.OnUiThread(() =>
     {
         var divider = new ChromeRowDivider();

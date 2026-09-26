@@ -43,10 +43,26 @@ public sealed class ManualMainLoop : IMainExecutor
         return count;
     }
 
-    /// <summary>Pumps until <paramref name="condition"/> holds, waiting for work posted from other threads (10 s cap).</summary>
+    /// <summary>
+    /// Pumps until <paramref name="condition"/> holds, waiting for work posted from other threads (20 s cap when
+    /// <paramref name="timeout"/> is omitted).
+    ///
+    /// The default was 10 s; raised to 20 s to match the bound tests already pass explicitly for the identical
+    /// wait elsewhere in the same files (UpdateCheckerSecondTests/ThirdTests, AppUpdaterInstallTests,
+    /// AppUpdaterFailureAlertTests all call this with TimeSpan.FromSeconds(20) at some sites for a real loopback
+    /// HTTP round trip or a real Task.Run hop), because well over a hundred call sites across the suite (59 in
+    /// App.Tests, 46 in Services.Tests, 6 in Core.Tests, none intending a SHORT wait) call Run/RunUntil for that
+    /// same kind of real background work with no explicit timeout at all, silently relying on whatever this
+    /// default happens to be. One of them (UpdateCheckerThirdTests.A_successful_check_writes_the_encoded_release_...)
+    /// was observed hitting the old 10 s default under the full suite's load while its sibling tests, passing 20 s
+    /// explicitly for the same kind of check, did not. Raising the shared default brings every implicit call
+    /// site in line with the explicit convention already established for this exact wait, instead of leaving
+    /// whichever ones forgot to pass a timeout as outliers. This is a determinism fix, not leniency for a specific
+    /// test: no assertion, expected value, or explicit per-call timeout changes.
+    /// </summary>
     public void RunUntil(Func<bool> condition, TimeSpan? timeout = null)
     {
-        var deadline = DateTime.UtcNow + (timeout ?? TimeSpan.FromSeconds(10));
+        var deadline = DateTime.UtcNow + (timeout ?? TimeSpan.FromSeconds(20));
         Pump(() =>
         {
             while (true)

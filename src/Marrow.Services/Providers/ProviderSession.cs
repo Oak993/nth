@@ -1,9 +1,12 @@
 using System.Diagnostics;
+using System.Linq;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
 
-// Source: DroppyCode/Services/Providers/ProviderSession.swift (B2 1fbf81e), :1-209.
+// Source: DroppyCode/Services/Providers/ProviderSession.swift (B3 52bc792), :1-230. B3 adds ToolText.blocks
+// (:211-219) and ApprovalRequest.Kind.grantKey (:221-230), both relocated here from the Claude, Pi and Command
+// Code sessions (lane A7); their own switchover to the shared helpers happens in those files' own lanes.
 
 namespace Marrow.Services.Providers;
 
@@ -287,4 +290,31 @@ public static class ToolTitles
         }
         return (additions, deletions); // :207
     }
+}
+
+// :211-219 (B3). Re-cites PR-PROVCLI-053, moved here from the Claude session.
+public static class ToolText
+{
+    /// <summary>The text of a content-block array, as tool results and messages carry it.</summary>
+    public static string Blocks(JSONValue? value) // :212-218
+    {
+        if (value is null || value.IsNull) return ""; // :214
+        if (value.JSONValueString is { } text) return text; // :215
+        if (value.JSONValueArray is not { } blocks) return ""; // :216
+        return string.Join("\n", blocks.Select(block => block["text"]?.JSONValueString).OfType<string>()); // :217
+    }
+}
+
+// :221-230 (B3). Re-cites PR-PROVCLI-248 and PR-PROVCLI-285, moved here from the Pi and Command Code sessions.
+// R-NAME-4: an extension of a nested enum is `static class <Owner><Nested>Extensions`.
+public static class ApprovalRequestKindExtensions
+{
+    /// <summary>The key an "approve for session" grant is remembered under.</summary>
+    public static string GrantKey(this ApprovalRequest.Kind kind) => kind switch // :222-229
+    {
+        ApprovalRequest.Kind.Command => "command",
+        ApprovalRequest.Kind.FileChange => "fileChange",
+        ApprovalRequest.Kind.Tool or ApprovalRequest.Kind.Permissions or ApprovalRequest.Kind.Plan => "tool",
+        _ => throw new UnreachableException(),
+    };
 }

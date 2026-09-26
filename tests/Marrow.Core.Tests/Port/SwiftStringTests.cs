@@ -89,6 +89,19 @@ public sealed class SwiftStringTests
     }
 
     [Fact]
+    [Trait("Rule", "R-STR-2")]
+    public void Contains_finds_a_canonically_equivalent_but_differently_encoded_needle()
+    {
+        Assert.True(SwiftString.Contains("caf" + Composed + "x", Decomposed));
+        Assert.True(SwiftString.Contains("caf" + Decomposed + "x", Composed));
+        Assert.False(("caf" + Composed + "x").Contains(Decomposed, StringComparison.Ordinal)); // the pitfall
+        Assert.False(SwiftString.Contains(Family, "\U0001F468")); // half a Character never matches
+        Assert.True(SwiftString.Contains("abc", ""));
+        Assert.False(SwiftString.Contains("ab", "abc"));
+        Assert.True(SwiftString.Contains("xyz" + Flags, Flags));
+    }
+
+    [Fact]
     [Trait("Rule", "R-STR-3")]
     public void The_three_line_splitters_disagree_on_CRLF()
     {

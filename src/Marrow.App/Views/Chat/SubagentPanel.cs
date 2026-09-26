@@ -20,7 +20,10 @@ using Marrow.UI.Port;
 
 namespace Marrow.App.Views.Chat;
 
-// Source: DroppyCode/App/Views/Chat/SubagentPanel.swift (B2 1fbf81e), :1-738.
+// Source: DroppyCode/App/Views/Chat/SubagentPanel.swift (B2 1fbf81e), :1-738. B3 (52bc792) re-verification is
+// partial: only PanelDragHandle below (B3 :640-666) has been re-pinned and re-cited against the B3 tree (unit
+// App.Views.Chat.SubagentPanel, plan section 2.B row L9/20, B3_PLAN.md:696); every other member's citations
+// still point at the B2 tree pending its own re-verification pass.
 
 /// <summary>:4-7 <c>enum FloatingPanelID: Hashable</c>. An enum with an associated value is a record union.</summary>
 public abstract record FloatingPanelID
@@ -790,10 +793,23 @@ internal sealed class PanelResizeGrips : Decorator
     }
 }
 
-/// <summary>:640-675 <c>struct PanelDragHandle: NSViewRepresentable</c>.</summary>
+/// <summary>
+/// :640-666 <c>struct PanelDragHandle: View</c>. A thin wrapper over the shared
+/// <see cref="Marrow.UI.Chrome.DragHandle"/>/<see cref="DragHandleView"/> (UI/Chrome/DragHandle.swift, B3
+/// 52bc792, unit N8). B3 deleted this struct's own B2 body - an <c>NSViewRepresentable</c> around its own
+/// <c>PanelDragHandleView: NSView</c> (B2 :640-738), which tracked the press itself - and replaced it with
+/// exactly the configuration below (:655-665), the same reduction the Swift diff makes at 52bc792; B3 has no
+/// <c>PanelDragHandleView</c> symbol anywhere in the tree. This also fixes a pre-existing port defect (6.2,
+/// DragHandle.cs:23-31): the deleted C# <c>PanelDragHandleView.Travel</c> (B2 :908-913) computed
+/// <c>pressOrigin.Y - point.Y</c>, the <c>.vertical</c> axis's rule (right for AppKit's own y-up window space,
+/// which is what the equivalent Swift code at B2 needed), for what B2's Swift itself called its <c>.free</c>
+/// travel; the shared <see cref="DragHandleView"/>'s own <see cref="DragHandleView.Axis.Free"/>
+/// (DragHandle.cs:463) reports <c>point.Y - pressOrigin.Y</c> instead, because Avalonia's window space already
+/// runs y down, matching the panel's own offset, so <c>.free</c> needs no inversion on this platform.
+/// </summary>
 public sealed class PanelDragHandle : Decorator
 {
-    // :647-653, :655-674
+    // :647-653, :655-665
     public PanelDragHandle(
         Action<Size> onDrag,
         Action onDragEnd,
@@ -801,114 +817,33 @@ public sealed class PanelDragHandle : Decorator
         Cursor? dragCursor = null,
         Action? onDoubleClick = null)
     {
-        Child = new PanelDragHandleView
+        var view = new DragHandleView
         {
-            OnDrag = onDrag,
-            OnDragEnd = onDragEnd,
-            OnDoubleClick = onDoubleClick,
-            DragCursor = dragCursor ?? new Cursor(StandardCursorType.SizeAll),
-            Cursor = cursor ?? new Cursor(StandardCursorType.Hand),
+            HandleAxis = DragHandleView.Axis.Free, // :657 axis: .free
+            Slop = 2, // :660
+            HandleCursor = cursor ?? PointerStyleCursors.Get(PointerStyle.GrabIdle, 1), // :651 .openHand
+            DragCursor = dragCursor ?? PointerStyleCursors.Get(PointerStyle.GrabActive, 1), // :652 .closedHand
+            OnChange = onDrag, // :661
+            OnEnd = onDragEnd, // :662
+            OnDoubleClick = onDoubleClick, // :663
         };
-    }
-}
 
-/// <summary>:677-738 <c>final class PanelDragHandleView: NSView</c>.</summary>
-public sealed class PanelDragHandleView : Control
-{
-    public Action<Size>? OnDrag { get; set; } // :678
-    public Action? OnDragEnd { get; set; } // :679
-    public Action? OnDoubleClick { get; set; } // :680
-    public Cursor? DragCursor { get; set; } // :682
-
-    private const double Slop = 2; // :685
-    private Point pressOrigin;
-    private bool isDragging;
-    private Cursor? pressCursor;
-
-    public PanelDragHandleView()
-    {
-        Focusable = false;
-        IsHitTestVisible = true;
-        PointerPressed += HandlePressed;
-        PointerMoved += HandleMoved;
-        PointerReleased += HandleReleased;
-        PointerCaptureLost += HandleCaptureLost;
-        DetachedFromVisualTree += (_, _) => CancelDrag();
-    }
-
-    // :690
-    // Avalonia routes the initial press to this control without requiring an activated window.
-
-    // :693
-    // Pointer capture on this control consumes strip drags rather than moving the window.
-
-    // :695-698
-    protected override void OnPointerMoved(PointerEventArgs e)
-    {
-        base.OnPointerMoved(e);
-    }
-
-    // :700-704
-    private void HandlePressed(object? sender, PointerPressedEventArgs e)
-    {
-        if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
-        var topLevel = (Control?)TopLevel.GetTopLevel(this) ?? this;
-        pressOrigin = e.GetPosition(topLevel);
-        pressCursor = Cursor;
-        isDragging = false;
-        if (e.ClickCount == 2) OnDoubleClick?.Invoke();
-        e.Pointer.Capture(this);
-        e.Handled = true;
-    }
-
-    // :706-714
-    private void HandleMoved(object? sender, PointerEventArgs e)
-    {
-        if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
-        var travel = Travel(e);
-        if (!isDragging)
+        if (cursor is null || dragCursor is null)
         {
-            if (Math.Abs(travel.Width) < Slop && Math.Abs(travel.Height) < Slop) return;
-            isDragging = true;
-            if (DragCursor is { } dragCursor) Cursor = dragCursor;
+            // PointerStyleControl (Marrow.UI.Port, PointerStyle.cs:48) resolves RenderScaling as 1 until the
+            // control has a TopLevel; this constructor runs before the caller attaches the handle, so the
+            // defaults above are always baked at scale 1 (matches FollowUpQueueTab.cs:525-529's identical
+            // note). Re-apply once attached, so a real monitor's RenderScaling gets picked up. A grip (which
+            // always passes its own resize cursor for both roles, PanelResizeGrips.MakeGrip below) never runs
+            // this branch.
+            view.AttachedToVisualTree += (_, _) =>
+            {
+                var scale = TopLevel.GetTopLevel(view)?.RenderScaling ?? 1;
+                if (cursor is null) view.HandleCursor = PointerStyleCursors.Get(PointerStyle.GrabIdle, scale);
+                if (dragCursor is null) view.DragCursor = PointerStyleCursors.Get(PointerStyle.GrabActive, scale);
+            };
         }
 
-        OnDrag?.Invoke(travel);
-        e.Handled = true;
-    }
-
-    // :716-722
-    private void HandleReleased(object? sender, PointerReleasedEventArgs e)
-    {
-        if (isDragging)
-        {
-            isDragging = false;
-            Cursor = pressCursor ?? new Cursor(StandardCursorType.Hand);
-            OnDrag?.Invoke(Travel(e));
-            OnDragEnd?.Invoke();
-        }
-
-        e.Pointer.Capture(null);
-        pressCursor = null;
-        e.Handled = true;
-    }
-
-    // :724-731
-    private void HandleCaptureLost(object? sender, PointerCaptureLostEventArgs e) => CancelDrag();
-
-    private void CancelDrag()
-    {
-        if (!isDragging) return;
-        isDragging = false;
-        Cursor = pressCursor ?? new Cursor(StandardCursorType.Hand);
-        pressCursor = null;
-    }
-
-    // :733-737
-    private Size Travel(PointerEventArgs e)
-    {
-        var topLevel = (Control?)TopLevel.GetTopLevel(this) ?? this;
-        var point = e.GetPosition(topLevel);
-        return new Size(point.X - pressOrigin.X, pressOrigin.Y - point.Y);
+        Child = view;
     }
 }
