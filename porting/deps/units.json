@@ -998,7 +998,7 @@
    "records_todo": [],
    "parts": [],
    "packets": [
-    "T-M4-142"
+    "T-M4-143"
    ],
    "risk": "STANDARD",
    "status": "DONE"
@@ -2233,31 +2233,13 @@
    ],
    "intra_deps": [],
    "records_total": 8,
-   "records_todo": [
-    "PR-MCP-102",
-    "PR-MCP-111",
-    "PR-MCP-117",
-    "PR-MCP-232",
-    "PR-MCP-234",
-    "PR-MCP-235",
-    "PR-MCP-236"
-   ],
-   "parts": [
-    [
-     "PR-MCP-102",
-     "PR-MCP-111",
-     "PR-MCP-117",
-     "PR-MCP-232",
-     "PR-MCP-234",
-     "PR-MCP-235",
-     "PR-MCP-236"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-020"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.Providers.MetaAPI",
@@ -2327,12 +2309,14 @@
     "Services.Providers.ProviderSession"
    ],
    "intra_deps": [],
-   "records_total": 0,
+   "records_total": 2,
    "records_todo": [],
    "parts": [],
-   "packets": [],
+   "packets": [
+    "T-M4-141"
+   ],
    "risk": "STANDARD",
-   "status": "NO_RECORDS"
+   "status": "DONE"
   },
   {
    "id": "Services.Providers.TextGeneration",
@@ -2354,7 +2338,7 @@
    "records_todo": [],
    "parts": [],
    "packets": [
-    "T-M4-141"
+    "T-M4-142"
    ],
    "risk": "STANDARD",
    "status": "DONE"
@@ -2381,14 +2365,8 @@
    ],
    "intra_deps": [],
    "records_total": 61,
-   "records_todo": [
-    "PR-STORE-174"
-   ],
-   "parts": [
-    [
-     "PR-STORE-174"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M3-016",
     "T-M3-017",
@@ -2399,7 +2377,7 @@
     "T-M3-022"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "UI.Chrome.Chrome",
@@ -3891,7 +3869,6 @@
    ],
    "records_total": 5,
    "records_todo": [
-    "PR-THEME-147",
     "UI-THEME-042",
     "UI-THEME-043",
     "UI-THEME-044",
@@ -3899,7 +3876,6 @@
    ],
    "parts": [
     [
-     "PR-THEME-147",
      "UI-THEME-042",
      "UI-THEME-043",
      "UI-THEME-044",
@@ -3954,18 +3930,8 @@
     "UI.Markdown.StreamVeil"
    ],
    "records_total": 48,
-   "records_todo": [
-    "PR-THEME-108",
-    "PR-THEME-123",
-    "PR-THEME-186"
-   ],
-   "parts": [
-    [
-     "PR-THEME-108",
-     "PR-THEME-123",
-     "PR-THEME-186"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M5-056",
     "T-M5-057",
@@ -3975,7 +3941,7 @@
     "T-M5-061"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "UI.Markdown.ProseRunView",
@@ -4051,28 +4017,10 @@
    ],
    "records_total": 10,
    "records_todo": [
-    "PR-THEME-153",
-    "PR-THEME-154",
-    "PR-THEME-155",
-    "PR-THEME-156",
-    "PR-THEME-157",
-    "PR-THEME-158",
-    "PR-THEME-159",
-    "PR-THEME-160",
-    "PR-THEME-161",
     "UI-THEME-047"
    ],
    "parts": [
     [
-     "PR-THEME-153",
-     "PR-THEME-154",
-     "PR-THEME-155",
-     "PR-THEME-156",
-     "PR-THEME-157",
-     "PR-THEME-158",
-     "PR-THEME-159",
-     "PR-THEME-160",
-     "PR-THEME-161",
      "UI-THEME-047"
     ]
    ],
@@ -4235,36 +4183,17 @@
    "records_total": 54,
    "records_todo": [
     "PR-SETTINGS-240",
-    "PR-SETTINGS-241",
     "PR-SETTINGS-242",
     "PR-SETTINGS-243",
-    "PR-SETTINGS-244",
-    "PR-SETTINGS-245",
     "PR-SETTINGS-246",
-    "PR-SETTINGS-247",
     "PR-UPDATE-060",
     "PR-UPDATE-061",
-    "PR-UPDATE-062",
     "PR-UPDATE-063",
-    "PR-UPDATE-064",
-    "PR-UPDATE-065",
-    "PR-UPDATE-066",
-    "PR-UPDATE-067",
-    "PR-UPDATE-068",
-    "PR-UPDATE-069",
     "PR-UPDATE-072",
     "PR-UPDATE-073",
     "PR-UPDATE-074",
     "PR-UPDATE-075",
     "PR-UPDATE-076",
-    "PR-UPDATE-077",
-    "PR-UPDATE-078",
-    "PR-UPDATE-079",
-    "PR-UPDATE-107",
-    "PR-UPDATE-108",
-    "PR-UPDATE-109",
-    "PR-UPDATE-110",
-    "PR-UPDATE-111",
     "UI-SETTINGS-055",
     "UI-SETTINGS-056",
     "UI-SETTINGS-057",
@@ -4292,38 +4221,17 @@
    "parts": [
     [
      "PR-SETTINGS-240",
-     "PR-SETTINGS-241",
      "PR-SETTINGS-242",
      "PR-SETTINGS-243",
-     "PR-SETTINGS-244",
-     "PR-SETTINGS-245",
      "PR-SETTINGS-246",
-     "PR-SETTINGS-247",
      "PR-UPDATE-060",
      "PR-UPDATE-061",
-     "PR-UPDATE-062",
      "PR-UPDATE-063",
-     "PR-UPDATE-064",
-     "PR-UPDATE-065",
-     "PR-UPDATE-066",
-     "PR-UPDATE-067",
-     "PR-UPDATE-068",
-     "PR-UPDATE-069",
      "PR-UPDATE-072",
      "PR-UPDATE-073",
      "PR-UPDATE-074",
      "PR-UPDATE-075",
      "PR-UPDATE-076",
-     "PR-UPDATE-077"
-    ],
-    [
-     "PR-UPDATE-078",
-     "PR-UPDATE-079",
-     "PR-UPDATE-107",
-     "PR-UPDATE-108",
-     "PR-UPDATE-109",
-     "PR-UPDATE-110",
-     "PR-UPDATE-111",
      "UI-SETTINGS-055",
      "UI-SETTINGS-056",
      "UI-SETTINGS-057",
@@ -4335,14 +4243,14 @@
      "UI-UPDATE-004",
      "UI-UPDATE-005",
      "UI-UPDATE-006",
-     "UI-UPDATE-007",
+     "UI-UPDATE-007"
+    ],
+    [
      "UI-UPDATE-008",
      "UI-UPDATE-009",
      "UI-UPDATE-012",
      "UI-UPDATE-013",
-     "UI-UPDATE-014"
-    ],
-    [
+     "UI-UPDATE-014",
      "UI-UPDATE-015",
      "UI-UPDATE-016",
      "UI-UPDATE-017",
@@ -5034,9 +4942,9 @@
    "records_todo": [],
    "parts": [],
    "packets": [
-    "T-M4-143",
     "T-M4-144",
-    "T-M4-145"
+    "T-M4-145",
+    "T-M4-146"
    ],
    "risk": "STANDARD",
    "status": "DONE"
@@ -5196,8 +5104,8 @@
    "records_todo": [],
    "parts": [],
    "packets": [
-    "T-M4-146",
-    "T-M4-147"
+    "T-M4-147",
+    "T-M4-148"
    ],
    "risk": "STANDARD",
    "status": "DONE"
@@ -8997,20 +8905,14 @@
     "App.Views.Chat.HydraButton"
    ],
    "records_total": 3,
-   "records_todo": [
-    "PR-SETTINGS-177"
-   ],
-   "parts": [
-    [
-     "PR-SETTINGS-177"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M7-135",
     "T-M7-136"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "App.Views.Settings.HydraSettingsPage",
@@ -9635,12 +9537,10 @@
    ],
    "records_total": 24,
    "records_todo": [
-    "PR-SETTINGS-186",
     "PR-SETTINGS-189"
    ],
    "parts": [
     [
-     "PR-SETTINGS-186",
      "PR-SETTINGS-189"
     ]
    ],
