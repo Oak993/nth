@@ -2704,6 +2704,52 @@ public sealed class ComposerViewTests(HeadlessSession headless)
     }
 
     [Fact]
+    [Trait("Req", "PR-COMPOSER-063")] // App/Views/Composer/ComposerView.swift:526-533
+    [Trait("Req", "UI-COMPOSER-029")] // App/Views/Composer/ComposerView.swift:527-532
+    public void B3_attach_default_dialog_reuses_OpenPanel_options_and_cancel()
+    {
+        // Test-safety precondition: the red run must fail before it could open the legacy native dialog.
+        // The review asks for removal of this duplicate COM interface as well as reuse of the shared runner.
+        Assert.Null(typeof(ComposerFileDialog).Assembly.GetType("Marrow.App.Port.IComposerShellItemArray"));
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            var runner = new RecordingOpenPanelRunner(null);
+            using var seam = OpenPanel.Runner.Override(runner);
+            var view = Pill(h, h.Runtime);
+            h.Main.OnMain(() => { h.Runtime.Draft = new ComposerDraft { Text = "keep" }; InvokePrivate(view, "ChooseFiles"); });
+            h.Main.RunUntilIdle();
+            Assert.Equal((false, true, true, "Attach", ""), Assert.Single(runner.Shown));
+            Assert.Equal("keep", h.Runtime.Draft.Text);
+            Assert.Empty(h.Runtime.Draft.Attachments);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-063")] // App/Views/Composer/ComposerView.swift:532-533
+    public void B3_attach_default_dialog_preserves_shared_panel_selected_file_paths_and_order()
+    {
+        // Never enter the unadapted COM dialog in the red run; OpenPanel.Runner must own presentation.
+        Assert.Null(typeof(ComposerFileDialog).Assembly.GetType("Marrow.App.Port.IComposerShellItemArray"));
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            var directory = h.Store.NewFolder("shared-panel-files");
+            Touch(directory, "caf\u00e9 % file.txt", "second.txt");
+            var paths = new[] { Path.Combine(directory, "caf\u00e9 % file.txt"), Path.Combine(directory, "second.txt") };
+            var runner = new RecordingOpenPanelRunner(paths.Select(path => new Project("fixture", path).Url).ToArray());
+            using var seam = OpenPanel.Runner.Override(runner);
+            var view = Pill(h, h.Runtime);
+            h.Main.OnMain(() => { h.Runtime.Draft = new ComposerDraft { Text = "keep" }; InvokePrivate(view, "ChooseFiles"); });
+            Until(h, null, () => h.Runtime.Draft.Attachments.Count == 2);
+            Assert.Single(runner.Shown);
+            Assert.Equal(paths.Select(Path.GetFileName), h.Runtime.Draft.Attachments.Select(file => file.Name));
+            Assert.All(h.Runtime.Draft.Attachments, file => Assert.True(File.Exists(file.Path)));
+            Assert.Equal("keep", h.Runtime.Draft.Text);
+        });
+    }
+
+    [Fact]
     [Trait("Req", "PR-COMPOSER-067")] // App/Views/Composer/ComposerView.swift:990-1023
     [Trait("Req", "UI-COMPOSER-009")] // App/Views/Composer/ComposerView.swift:1000-1023
     [Trait("Req", "UI-COMPOSER-010")] // App/Views/Composer/ComposerView.swift:1005-1016
