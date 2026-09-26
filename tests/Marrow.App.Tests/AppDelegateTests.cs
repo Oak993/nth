@@ -735,6 +735,11 @@ public sealed class AppDelegateTests
 // awaited (:27); startBackgroundChecks (:28); consumeRelaunchMarker, then armCelebration and showSettings(.about)
 // (:30-33).
 
+// Boot unit (2026-09-26): impl/b2 ec7c4395 has WindowManager, so :9-34 is now written (AppDelegate.cs) and tested in
+// AppDelegateThirdTests.cs, in source order, with these lines still open: :13 (the 8 MiB memory cap, O-33, ED-118) and
+// :15 (the Windows toast activation handler, PR-LAUNCH-025), which keep PR-LAUNCH-025, PR-WIN-068 and UI-LAUNCH-001
+// open; :22's boot sequence (OD-0018, ED-103) is STOP Boot #1 in AppDelegateThirdTests.cs.
+
 // STOP App.AppDelegate #2 (part 1, 2026-09-26; part 2 requirements added 2026-09-26)
 // Kind: missing dependency
 // Swift: DroppyCode/App/AppDelegate.swift:36-39 (B3 52bc792), applicationShouldHandleReopen(_:hasVisibleWindows:),
@@ -750,6 +755,10 @@ public sealed class AppDelegateTests
 // Needed to proceed: unit App.Window.WindowManager; the second-launch signal ED-002 asks for (a decision on its
 // mechanism, owned by the shell or App.DroppyCodeApp).
 // Done so far: nothing implemented at this site; no test written.
+
+// Boot unit (2026-09-26): CLOSED. :36-39 is written (AppDelegate.cs) and the second-launch signal is
+// Port/ReopenSignal.cs; tests in AppDelegateThirdTests.cs, Port/AppShellSecondTests.cs and Port/ReopenSignalTests.cs.
+// PR-WIN-072's "restores" (a minimised main window) stays open as STOP Boot #5 in AppDelegateThirdTests.cs.
 
 // STOP App.AppDelegate #3 (part 1, 2026-09-26; part 2 requirements added 2026-09-26)
 // Kind: missing dependency
@@ -783,3 +792,7 @@ public sealed class AppDelegateTests
 // Needed to proceed: unit App.Window.WindowManager and the application shell (Program.cs's entry point).
 // Done so far: the terminate decision and the three termination steps are implemented and green in this file; the
 // close wiring is not implemented.
+// Boot unit (2026-09-26): CLOSED. The close wiring is Port/AppShell.cs (Terminate, ShutdownRequested, WillTerminate,
+// the WM_ENDSESSION hook) with WindowManager.MainWindowClose, driven by Program.cs's desktop lifetime; tests in
+// Port/AppShellTests.cs and Port/AppShellSecondTests.cs. ED-004's ShutdownBlockReasonCreate is STOP Boot #3 in
+// AppDelegateThirdTests.cs.

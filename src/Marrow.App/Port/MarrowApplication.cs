@@ -1,0 +1,22 @@
+// PORT-ONLY: the Avalonia Application of the Windows app, standing for SwiftUI's App and AppKit's NSApplication, which
+// DroppyCode/App/DroppyCodeApp.swift (B3 52bc792) gets from the framework. It carries no styles: no theme package is
+// referenced and every control the port shows carries its own template (Marrow.UI/Port/PlainControls.cs), exactly as
+// the headless TestApp of both test assemblies (tests/*/Fixtures/HeadlessFixtures.cs). The process-wide appearance
+// (Application.RequestedThemeVariant) is set by WindowManager's HostedRoot (WindowManager.swift:152-159).
+using Avalonia;
+using Marrow.UI.Port;
+
+namespace Marrow.App.Port;
+
+/// <summary>PORT-ONLY. The application object (NSApp).</summary>
+public sealed class MarrowApplication : Application
+{
+    /// <summary>
+    /// The app's builder: the platform detected for this machine (Win32 with Skia and HarfBuzz on Windows, as probe P4b
+    /// ran the live-resize remedy OD-0017 adopted: porting/probes/p4b/Program.cs) and the port's faces, registered at the
+    /// one point ED-107 (5) names, shared with the headless TestApp.
+    /// </summary>
+    public static AppBuilder BuildAvaloniaApp() => AppBuilder.Configure<MarrowApplication>()
+        .UsePlatformDetect()
+        .WithSwiftFonts();
+}
