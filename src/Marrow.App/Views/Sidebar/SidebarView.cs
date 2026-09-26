@@ -198,7 +198,10 @@ public sealed class SidebarView : Decorator
         };
         Add(scroll, new GridLength(1, GridUnitType.Star));
 
-        // :124 .pointerStyle(drag.id != nil ? .grabActive : nil): STOP #5 (SidebarViewTests.cs), left unwritten.
+        // :124 .pointerStyle(drag.id != nil ? .grabActive : nil). B3 replaced B2's NSCursor.closedHand.push()/pop()
+        // pair (dragChanged :775, dragEnded :805) with this state-driven style; SwiftUI applies and clears the
+        // pointer itself, so there is no cursor stack to balance (PR-SIDEBAR-049, PA-0019, ED-205).
+        list.Track(() => state.Drag.Id is not null, dragging => list.PointerStyle(dragging ? PointerStyle.GrabActive : null));
         // :123, :125-137 One drag gesture for the whole list, ahead of every row's own click: it listens on the way down
         // (tunnelling), so it sees a press before the row's button does. The list's space here is the stack's own:
         // the rows report their frames and the gesture reads its locations in it, whatever the scroll position.

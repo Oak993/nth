@@ -103,21 +103,6 @@ namespace Marrow.App.Tests.Views.Sidebar;
 // observable; no test asserts the stored path of a chosen folder.
 //
 // STOP App.Views.Sidebar.SidebarView #5
-// Kind: platform gap
-// Swift: DroppyCode/App/Views/Sidebar/SidebarView.swift:124 (B3 52bc792) `.pointerStyle(drag.id != nil ? .grabActive : nil)`
-// Requirements: PR-SIDEBAR-049 (B3 replaced B2's `NSCursor.closedHand.push()` at :775 and `NSCursor.pop()` at :805
-// with this pointer style)
-// What is unclear or missing: while a row is grabbed the list shows the closed-hand ("grab active") pointer; nil
-// leaves the rows' own pointers. Windows has no closed-hand system cursor (IDC_HAND is the pointing hand) and no
-// decision maps `.grabActive` (FollowUpQueueTab.swift:384 and ModelsSettingsPage.swift:184 use it too, with
-// `.grabIdle`).
-// Readings or options: (a) a bundled closed-hand cursor image -> the source's look; (b) a stock cursor such as
-// StandardCursorType.SizeAll or DragMove -> a different shape; (c) no pointer change -> the cursor stays as it was.
-// Needed to proceed: a decision (ED or PA) mapping `.grabActive` and `.grabIdle` for the three sites.
-// Done so far: the grab, the peers snapshot and the release are implemented and tested; the list's pointer style is
-// left unwritten.
-//
-// STOP App.Views.Sidebar.SidebarView #6
 // Kind: unverified
 // Swift: DroppyCode/App/Views/Sidebar/SidebarView.swift:743, :745 (B3 52bc792) `.lowercased().contains(needle)`
 // Requirements: PR-SIDEBAR-043
@@ -2403,6 +2388,47 @@ public sealed class SidebarViewTests(HeadlessSession headless)
                 Call(view, "DragEnded");
                 Assert.Null(Drag(view).Id);
                 Assert.Null(Field(view, "dragPeers"));
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-049")] // App/Views/Sidebar/SidebarView.swift:124 (B3; replaces B2's NSCursor push/pop)
+    public void The_list_carries_the_grab_active_pointer_style_only_while_a_row_is_dragged()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var model = harness.MakeModel();
+            SidebarView view = null!;
+            StackPanel list = null!;
+            var scale = 1d;
+            var grabbed = Guid.NewGuid();
+            // Track applies one main-actor turn after the state it reads changes (ViewLifetime.Track), so each step
+            // that mutates state.Drag runs in its own OnMain, letting the posted apply land before the next assertion.
+            harness.Main.OnMain(() =>
+            {
+                view = Attached(model);
+                list = (StackPanel)Field(view, "list")!;
+                scale = TopLevel.GetTopLevel(list)!.RenderScaling;
+                Assert.Null(list.Cursor); // :124 nil while drag.id is nil
+            });
+            harness.Main.OnMain(() => Call(view, "DragChanged", grabbed, 5d));
+            harness.Main.OnMain(() =>
+                Assert.Same(PointerStyleCursors.Get(PointerStyle.GrabActive, scale), list.Cursor)); // :124 .grabActive
+            harness.Main.OnMain(() => Call(view, "DragChanged", grabbed, 9d));
+            harness.Main.OnMain(() =>
+                Assert.Same(PointerStyleCursors.Get(PointerStyle.GrabActive, scale), list.Cursor)); // stays while grabbed
+            harness.Main.OnMain(() => Call(view, "DragEnded"));
+            harness.Main.OnMain(() =>
+            {
+                Assert.Null(list.Cursor); // drag.id returns to nil; the style clears itself
+                Call(view, "DragEnded"); // :804 nothing grabbed: no re-application, no throw
+            });
+            harness.Main.OnMain(() =>
+            {
+                Assert.Null(list.Cursor);
+                Close(view);
             });
         });
     }
