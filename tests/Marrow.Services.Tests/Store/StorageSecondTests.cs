@@ -287,6 +287,105 @@ public sealed class StorageSecondTests
         Assert.True(File.Exists(url)); // already landed, not merely "eventually"
     }
 
+    // ---- PR-STORE-174 (DiskWriter.LastWrittenSize) ----
+
+    [Fact]
+    [Trait("Req", "PR-STORE-174")] // Services/Store/Storage.swift:336-338, :347-350
+    public void LastWrittenSize_IsNullForAUrlNeverWrittenThroughEncodeAndWrite()
+    {
+        using var scratch = new StorageScratchFolder();
+        var url = Storage.ThreadURL(Guid.NewGuid());
+        Assert.Null(DiskWriter.Shared.LastWrittenSize(url));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-STORE-174")] // Services/Store/Storage.swift:347-350: only encodeAndWrite's queued hop records a size
+    public void EncodeAndWrite_RecordsTheWrittenByteSizeForThatUrl()
+    {
+        using var scratch = new StorageScratchFolder();
+        var id = Guid.NewGuid();
+        var url = Storage.ThreadURL(id);
+        var document = new ThreadDocument(id);
+
+        DiskWriter.Shared.EncodeAndWrite(document, url);
+        DiskWriter.Shared.WaitForQueuedWrites(); // the queued hop has now run
+
+        var expected = (int)new FileInfo(url).Length;
+        Assert.Equal(expected, DiskWriter.Shared.LastWrittenSize(url));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-STORE-174")] // Services/Store/Storage.swift:378: an encode failure leaves the recorded size unchanged
+    public void EncodeAndWrite_WithAnUnencodableValue_LeavesThePreviousRecordedSizeUnchanged()
+    {
+        using var scratch = new StorageScratchFolder();
+        var id = Guid.NewGuid();
+        var url = Storage.ThreadURL(id);
+        var good = new ThreadDocument(id);
+        DiskWriter.Shared.EncodeAndWrite(good, url);
+        DiskWriter.Shared.WaitForQueuedWrites();
+        var recordedAfterGoodWrite = DiskWriter.Shared.LastWrittenSize(url);
+        Assert.NotNull(recordedAfterGoodWrite);
+
+        var badTurnSummary = new TurnSummary
+        {
+            TurnID = Guid.NewGuid(),
+            Status = TurnStatus.Completed,
+            Duration = double.NaN, // SwiftJson.WriteDouble throws EncodingError for a non-finite Double (R-CODE-5)
+            FilesChanged = 0,
+            Additions = 0,
+            Deletions = 0,
+        };
+        var bad = new ThreadDocument(id) with
+        {
+            Items = new ValueList<TimelineItem>([new TimelineItem(null, new TimelineItem.Content.TurnEnd(badTurnSummary))]),
+        };
+        DiskWriter.Shared.EncodeAndWrite(bad, url);
+        DiskWriter.Shared.WaitForQueuedWrites();
+
+        Assert.Equal(recordedAfterGoodWrite, DiskWriter.Shared.LastWrittenSize(url));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-STORE-174")] // Services/Store/Storage.swift:358-361: writeSynchronously never records or clears a size
+    public void WriteSynchronously_NeverChangesTheRecordedSizeForThatUrl()
+    {
+        using var scratch = new StorageScratchFolder();
+        var id = Guid.NewGuid();
+        var url = Storage.ThreadURL(id);
+        DiskWriter.Shared.EncodeAndWrite(new ThreadDocument(id), url);
+        DiskWriter.Shared.WaitForQueuedWrites();
+        var recorded = DiskWriter.Shared.LastWrittenSize(url);
+        Assert.NotNull(recorded);
+
+        // A synchronous write of a much larger document touches the same file, but only encodeAndWrite's
+        // queued hop ever records a size (:349-350): the earlier recorded size must survive untouched.
+        var larger = new ThreadDocument(id) with
+        {
+            FollowUps = new ValueList<FollowUpPrompt>([new FollowUpPrompt { Text = new string('x', 4096) }]),
+        };
+        DiskWriter.Shared.WriteSynchronously(larger, url);
+
+        Assert.Equal(recorded, DiskWriter.Shared.LastWrittenSize(url));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-STORE-174")] // Services/Store/Storage.swift:363-374: removeSynchronously never clears a recorded size
+    public void RemoveSynchronously_NeverChangesTheRecordedSizeForThatUrl()
+    {
+        using var scratch = new StorageScratchFolder();
+        var id = Guid.NewGuid();
+        var url = Storage.ThreadURL(id);
+        DiskWriter.Shared.EncodeAndWrite(new ThreadDocument(id), url);
+        DiskWriter.Shared.WaitForQueuedWrites();
+        var recorded = DiskWriter.Shared.LastWrittenSize(url);
+        Assert.NotNull(recorded);
+
+        DiskWriter.Shared.RemoveSynchronously(url);
+
+        Assert.Equal(recorded, DiskWriter.Shared.LastWrittenSize(url));
+    }
+
     // ---- PR-STORE-042 to PR-STORE-048 (DocumentPrefetch.Warm and its worker) ----
 
     [Fact]

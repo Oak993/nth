@@ -11,12 +11,12 @@ every line, not a sample.
 | M0 Probes that must pass before production code (ADR-0002) | 10 | 0 | 2 | 0 |
 | M2 Core models and pure support | 81 | 553 | 9 | 0 |
 | M3 Services foundation: store and git | 25 | 191 | 12 | 0 |
-| M4 Providers and MCP | 147 | 1080 | 7 | 0 |
+| M4 Providers and MCP | 148 | 1082 | 7 | 0 |
 | M5 UI toolkit: theme, chrome, glass, markdown, sound | 79 | 299 | 14 | 0 |
 | M6 App shell, windows, model and runtime | 94 | 717 | 47 | 0 |
 | M7 Feature views | 242 | 1057 | 9 | 0 |
 | M8 Update and packaging | 8 | 56 | 4 | 0 |
-| **Total** | **686** | **3953** | **104** | **0** |
+| **Total** | **687** | **3955** | **104** | **0** |
 
 ## M0: Probes that must pass before production code (ADR-0002)
 
@@ -293,13 +293,14 @@ every line, not a sample.
 | [T-M4-138](T-M4-138.md) | Services/Providers/ProviderRegistry.swift (UI) | 0 | STANDARD | `src/Marrow.Services/Providers/ProviderRegistry.cs` |
 | [T-M4-139](T-M4-139.md) | Services/Providers/ProviderSession.swift (1 of 2) | 10 | STANDARD | `src/Marrow.Services/Providers/ProviderSession.cs` |
 | [T-M4-140](T-M4-140.md) | Services/Providers/ProviderSession.swift (2 of 2) | 5 | STANDARD | `src/Marrow.Services/Providers/ProviderSession.cs` |
-| [T-M4-141](T-M4-141.md) | Services/Providers/TextGeneration.swift | 5 | STANDARD | `src/Marrow.Services/Providers/TextGeneration.cs` |
-| [T-M4-142](T-M4-142.md) | Services/Providers/UsageLimitSignal.swift | 4 | STANDARD | `src/Marrow.Services/Providers/UsageLimitSignal.cs` |
-| [T-M4-143](T-M4-143.md) | Services/Providers/ZaiAPI.swift (1 of 2) | 10 | STANDARD | `src/Marrow.Services/Providers/ZaiAPI.cs` |
-| [T-M4-144](T-M4-144.md) | Services/Providers/ZaiAPI.swift (2 of 2) | 7 | STANDARD | `src/Marrow.Services/Providers/ZaiAPI.cs` |
-| [T-M4-145](T-M4-145.md) | Services/Providers/ZaiAPI.swift (UI) | 0 | STANDARD | `src/Marrow.Services/Providers/ZaiAPI.cs` |
-| [T-M4-146](T-M4-146.md) | Services/Providers/ZaiSession.swift (1 of 2) | 10 | STANDARD | `src/Marrow.Services/Providers/ZaiSession.cs` |
-| [T-M4-147](T-M4-147.md) | Services/Providers/ZaiSession.swift (2 of 2) | 5 | STANDARD | `src/Marrow.Services/Providers/ZaiSession.cs` |
+| [T-M4-141](T-M4-141.md) | Services/Providers/SessionSupport.swift | 2 | STANDARD | `src/Marrow.Services/Providers/SessionSupport.cs` |
+| [T-M4-142](T-M4-142.md) | Services/Providers/TextGeneration.swift | 5 | STANDARD | `src/Marrow.Services/Providers/TextGeneration.cs` |
+| [T-M4-143](T-M4-143.md) | Services/Providers/UsageLimitSignal.swift | 4 | STANDARD | `src/Marrow.Services/Providers/UsageLimitSignal.cs` |
+| [T-M4-144](T-M4-144.md) | Services/Providers/ZaiAPI.swift (1 of 2) | 10 | STANDARD | `src/Marrow.Services/Providers/ZaiAPI.cs` |
+| [T-M4-145](T-M4-145.md) | Services/Providers/ZaiAPI.swift (2 of 2) | 7 | STANDARD | `src/Marrow.Services/Providers/ZaiAPI.cs` |
+| [T-M4-146](T-M4-146.md) | Services/Providers/ZaiAPI.swift (UI) | 0 | STANDARD | `src/Marrow.Services/Providers/ZaiAPI.cs` |
+| [T-M4-147](T-M4-147.md) | Services/Providers/ZaiSession.swift (1 of 2) | 10 | STANDARD | `src/Marrow.Services/Providers/ZaiSession.cs` |
+| [T-M4-148](T-M4-148.md) | Services/Providers/ZaiSession.swift (2 of 2) | 5 | STANDARD | `src/Marrow.Services/Providers/ZaiSession.cs` |
 
 ## M5: UI toolkit: theme, chrome, glass, markdown, sound
 

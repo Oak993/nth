@@ -9,6 +9,8 @@ using AvaloniaWindow = Avalonia.Controls.Window;
 
 namespace Marrow.App.Tests.Views.Settings;
 
+// Source: DroppyCode/App/Views/Settings/HydraCookbookPanel.swift (B3 52bc7926), :33-38, :43-55, :89-95, :107-111,
+// :114-129.
 [Collection("Headless")]
 public sealed class HydraCookbookPanelTests(HeadlessSession headless)
 {

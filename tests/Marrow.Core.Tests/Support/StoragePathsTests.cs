@@ -7,8 +7,10 @@ namespace Marrow.Core.Tests.Support;
 // Tests for src/Marrow.Core/Support/StoragePaths.cs, the port of
 // DroppyCode/Core/Support/StoragePaths.swift (B3 52bc7926), :1-23. This is the new home of the root,
 // wallpaperDirectory and directory(_:) code that used to live inline in Services/Store/Storage.swift
-// (B2 1fbf81e, :19-25, :35-36, :54-58); Services.Store.StorageTests keeps its own tests proving
-// Storage.Root / Storage.WallpaperDirectory still resolve correctly through the move.
+// (B2 1fbf81e, :19-25, :35-36, :54-58); Services.Store.StorageTests keeps its own test proving Storage.Root
+// still resolves correctly through the move (Root_IsCreatedWithIntermediatesAndCachedForTheScope). Storage no
+// longer has a WallpaperDirectory member at all (lane A10/ED-195): UI.Theme.Wallpaper reads
+// StoragePaths.WallpaperDirectory (below) directly.
 public sealed class StoragePathsTests
 {
     // ---- PR-STORE-001 (root, moved to StoragePaths.swift:6-12) ----

@@ -4196,7 +4196,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port: the same per-URL map (Mutex<[URL: Int]>), updated only from the asynchronous encodeAndWrite path, read by lastWrittenSize(of:).",
       "verification_method": "unit: encodeAndWrite a value, wait for the queued hop to run, assert lastWrittenSize(of:) equals the encoded byte count; assert a subsequent writeSynchronously or removeSynchronously for the same URL does not change the recorded size; assert an unencodable value leaves lastWrittenSize as it was",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,

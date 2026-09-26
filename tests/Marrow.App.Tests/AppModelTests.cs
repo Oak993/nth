@@ -736,6 +736,18 @@ public sealed class AppModelTests
         h.Main.Advance(TimeSpan.FromSeconds(299));
         h.Main.OnMain(() => Assert.Null(model.ExistingRuntime(first.Id))); // it sleeps first
         h.Main.Advance(TimeSpan.FromSeconds(1));
+        // The fired sweep round calls ResumeHydraMerges, which awaits Runtime(lead.Id).EnsureLoaded() for every
+        // eligible lead (AppModel+HydraMerge.cs:57) before it moves on to the next one. AppModel.Runtime(id)
+        // (AppModel.cs:465-466) creates and stores the ThreadRuntime synchronously, so ExistingRuntime(first.Id)
+        // turns non-null the instant the sweep reaches it - waiting on that alone is satisfied before the load
+        // it gates on finishes. EnsureLoaded's own load is a real TaskHandle.Detached hop (ThreadRuntime.cs:864-871,
+        // R-ISO-2's @concurrent boundary): genuine ThreadPool scheduling the manual clock does not drive, so the
+        // real fix is to wait for THAT to finish (IsLoadingHistory false) before moving on, not just for the
+        // runtime object to exist: otherwise round 2's foreach reaches `first` again, finds its round-1 loadTask
+        // still pending under real contention, and awaits that same unfinished task - which is what a bare
+        // ExistingRuntime(first.Id)-is-not-null wait (an earlier version of this fix) still let happen, hitting
+        // the full Bound under a loaded full-suite run despite passing 9/9 in isolation.
+        h.Main.Loop.RunUntil(() => model.ExistingRuntime(first.Id) is { IsLoadingHistory: false }, AppModelHarness.Bound);
         h.Main.OnMain(() =>
         {
             Assert.NotNull(model.ExistingRuntime(first.Id));
@@ -747,6 +759,7 @@ public sealed class AppModelTests
         h.Main.Advance(TimeSpan.FromSeconds(299));
         h.Main.OnMain(() => Assert.Null(model.ExistingRuntime(later.Id)));
         h.Main.Advance(TimeSpan.FromSeconds(1));
+        h.Main.Loop.RunUntil(() => model.ExistingRuntime(later.Id) is { IsLoadingHistory: false }, AppModelHarness.Bound);
         h.Main.OnMain(() => Assert.NotNull(model.ExistingRuntime(later.Id)));
     }
 

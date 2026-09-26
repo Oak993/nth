@@ -89,7 +89,7 @@ public sealed class AppDelegateThirdTests(HeadlessSession headless)
             // :14 MarkdownDelegationCard.render = { AnyView(HydraDelegationBlock(json: $0, sent: $1)) }, set before :16.
             // The renderer is not called here: HydraDelegationBlock's body is still MARROW_STUB (TimelineRows.swift:652).
             Assert.NotNull(launch.DelegationBlockWhenMainWindowBuilt);
-            Assert.Same(launch.DelegationBlockWhenMainWindowBuilt, MarkdownBlockView.HydraDelegationBlock);
+            Assert.Same(launch.DelegationBlockWhenMainWindowBuilt, MarkdownDelegationCard.Render);
         });
     }
 
