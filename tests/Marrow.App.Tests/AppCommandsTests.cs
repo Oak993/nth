@@ -60,6 +60,71 @@ public sealed class AppCommandsTests(HeadlessSession headless)
 
     private static MenuCommand Named(AppCommands commands, string title) => commands.Body.Single(command => command.Title == title);
 
+    [Fact]
+    [Trait("Req", "PR-WIN-090")] // App/AppCommands.swift:12-15
+    [Trait("Req", "UI-LAUNCH-007")] // App/AppCommands.swift:12-15
+    [Trait("Req", "UI-WIN-006")] // App/AppCommands.swift:12-15
+    public void Settings_is_first_never_disabled_and_its_default_and_rebound_chords_show_the_cached_Settings_window() => headless.OnUiThread(() =>
+    {
+        using var launch = new LaunchHarness();
+        using var store = ShortcutStore.Shared.Override(FreshStore());
+        launch.Harness.Main.OnMain(() =>
+        {
+            var commands = new AppCommands(launch.Manager.Model);
+            var settings = commands.Body[0];
+            Assert.Equal("Settings\U00002026", settings.Title); // :13
+            Assert.Equal(Chord(",", ChordModifiers.Control), settings.Shortcut); // :14; Shortcuts.swift:234, ED-050
+            Assert.False(settings.IsDisabled); // :12-15 has no .disabled
+            Assert.True(commands.PerformKeyEquivalent(Chord(",", ChordModifiers.Control)));
+            var window = LaunchHarness.WindowOf(launch.SettingsContent);
+            Assert.NotNull(window);
+            Assert.True(window.IsVisible);
+            window.Hide();
+
+            var rebound = new KeyChord(0x15, ChordModifiers.Control | ChordModifiers.Alt); // Windows US Y position, ED-050
+            ShortcutStore.Shared.Current.Set(rebound, AppShortcut.OpenSettings);
+            Assert.False(commands.PerformKeyEquivalent(Chord(",", ChordModifiers.Control)));
+            Assert.True(commands.PerformKeyEquivalent(rebound.KeyboardShortcut!.Value));
+            Assert.Same(window, LaunchHarness.WindowOf(launch.SettingsContent));
+            Assert.True(window.IsVisible);
+            Assert.Single(launch.Events, value => value == "settings window built");
+            window.Close();
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-092")] // App/AppCommands.swift:21-25
+    [Trait("Req", "UI-WIN-007")] // App/AppCommands.swift:21-25; OD-0012 F1,G6
+    public void The_app_name_command_follows_Settings_has_no_default_chord_and_a_recorded_chord_shows_the_cached_main_window() => headless.OnUiThread(() =>
+    {
+        using var launch = new LaunchHarness();
+        using var store = ShortcutStore.Shared.Override(FreshStore());
+        launch.Harness.Main.OnMain(() =>
+        {
+            var commands = new AppCommands(launch.Manager.Model);
+            var main = commands.Body[1];
+            Assert.Equal("Marrow", main.Title); // :22 AppInfo.name, OD-0012 F1
+            Assert.Null(main.Shortcut); // OD-0012 G6
+            Assert.False(main.IsDisabled); // :21-25 has no .disabled
+            Assert.Equal("New thread", commands.Body[2].Title); // :28 follows the app-name group
+            commands.PerformKeyEquivalent(Chord("0", ChordModifiers.Control)); // :57-58 Actual Size, not showMain
+            Assert.Empty(launch.Events);
+
+            var rebound = new KeyChord(0x15, ChordModifiers.Control | ChordModifiers.Alt);
+            ShortcutStore.Shared.Current.Set(rebound, AppShortcut.ShowMainWindow);
+            Assert.True(commands.PerformKeyEquivalent(rebound.KeyboardShortcut!.Value));
+            var window = LaunchHarness.WindowOf(launch.MainContent);
+            Assert.NotNull(window);
+            Assert.True(window.IsVisible);
+            window.Hide();
+            Assert.True(commands.PerformKeyEquivalent(rebound.KeyboardShortcut!.Value));
+            Assert.Same(window, LaunchHarness.WindowOf(launch.MainContent));
+            Assert.True(window.IsVisible);
+            Assert.Single(launch.Events, value => value == "main window built");
+            window.Close();
+        });
+    });
+
     private static AppModel Model(AppModelHarness h, IEnumerable<Project> projects, IEnumerable<ChatThread> threads)
     {
         h.WriteLibrary(projects, threads);
