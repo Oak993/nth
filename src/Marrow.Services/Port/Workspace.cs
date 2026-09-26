@@ -1,4 +1,5 @@
 // PORT-ONLY: NSWorkspace.shared.open(_:) for a web address (MCPOAuth.swift:434), as a seam tests replace.
+// ED-203 (PA-0020): refuse a relative or scheme-less-host URL before calling ShellExecuteW.
 using System.Runtime.InteropServices;
 using Marrow.Core.Port;
 
@@ -15,9 +16,14 @@ public static class Workspace
 {
     public static Ambient<Func<SwiftURL, bool>> Open { get; } = new(() => ShellOpen);
 
-    // ShellExecuteW returns a value greater than 32 on success (SE_ERR_* values are 32 or less).
+    // ED-203: refuse a URL with no scheme, or a host with no scheme (the two-slash relative-host form), before
+    // calling ShellExecuteW - the same absolute-URL requirement NSWorkspace.shared.open enforces on the source's
+    // own platform. This changes nothing for this seam's own caller (MCPOAuth.swift:434 always hands it an
+    // absolute http(s) URL). ShellExecuteW returns a value greater than 32 on success (SE_ERR_* values are 32 or
+    // less).
     private static bool ShellOpen(SwiftURL url) =>
-        ShellExecuteW(IntPtr.Zero, "open", url.AbsoluteString, null, null, ShowNormal).ToInt64() > 32;
+        url.Scheme is not null
+        && ShellExecuteW(IntPtr.Zero, "open", url.AbsoluteString, null, null, ShowNormal).ToInt64() > 32;
 
     private const int ShowNormal = 1; // SW_SHOWNORMAL
 
