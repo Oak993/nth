@@ -1,15 +1,19 @@
+using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Media;
+using Avalonia.Styling;
 using Marrow.App.Port;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Settings;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
+using Marrow.UI.Port;
 using Xunit;
 using AvaloniaWindow = Avalonia.Controls.Window;
 
 namespace Marrow.App.Tests.Views.Settings;
 
-// Source: DroppyCode/App/Views/Settings/ModelsSettingsPage.swift (B2 1fbf81e), :105-110, 154-159.
+// Source: DroppyCode/App/Views/Settings/ModelsSettingsPage.swift (B3 52bc7926), :105-110, 152-157.
 [Collection("Headless")]
 public sealed class ModelsSettingsPageTests(HeadlessSession headless)
 {
@@ -115,7 +119,7 @@ public sealed class ModelsSettingsPageTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-SETTINGS-181")] // App/Views/Settings/ModelsSettingsPage.swift:154-159
+    [Trait("Req", "PR-SETTINGS-181")] // App/Views/Settings/ModelsSettingsPage.swift:152-157
     public void An_empty_query_matches_every_model_including_an_unknown_option()
     {
         Assert.True(ModelsSettingsPage.Matches(Option("model-id", "Alpha"), "model-id", ProviderKind.Claude, ""));
@@ -123,7 +127,7 @@ public sealed class ModelsSettingsPageTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-SETTINGS-181")] // App/Views/Settings/ModelsSettingsPage.swift:154-159
+    [Trait("Req", "PR-SETTINGS-181")] // App/Views/Settings/ModelsSettingsPage.swift:152-157
     public void A_model_matches_on_its_short_name_full_name_detail_id_or_provider_name()
     {
         var option = Option("model-id", "Alpha Model", "Fast option");
@@ -138,12 +142,115 @@ public sealed class ModelsSettingsPageTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-SETTINGS-181")] // App/Views/Settings/ModelsSettingsPage.swift:105-110, 154-159
+    [Trait("Req", "PR-SETTINGS-181")] // App/Views/Settings/ModelsSettingsPage.swift:105-110, 152-157
     public void An_unknown_pinned_model_still_matches_on_its_id_or_provider_name()
     {
         Assert.True(ModelsSettingsPage.Matches(null, "raw-model-id", ProviderKind.Claude, "RAW-MODEL"));
         Assert.True(ModelsSettingsPage.Matches(null, "raw-model-id", ProviderKind.Claude, "CLAUDE"));
         Assert.False(ModelsSettingsPage.Matches(null, "raw-model-id", ProviderKind.Claude, "no match"));
+    }
+
+    private static (CollapsibleProviderHeader Header, bool[] Values) Header(bool expanded = false)
+    {
+        var value = expanded;
+        var binding = new Binding<bool>(() => value, v => value = v);
+        var header = new CollapsibleProviderHeader(ProviderKind.Claude, binding, "model list");
+        return (header, [value]);
+    }
+
+    private static Button HeaderButton(CollapsibleProviderHeader header) => Assert.IsType<Button>(header.Child);
+
+    [Fact]
+    [Trait("Req", "UI-SETTINGS-041")] // App/Views/Settings/ModelsSettingsPage.swift:416-448
+    [Trait("Decision", "ED-062")]
+    public void Collapsed_header_shows_the_collapsed_value_and_the_show_tooltip_and_help_text()
+    {
+        headless.OnUiThread(() =>
+        {
+            var (header, _) = Header(expanded: false);
+            var button = HeaderButton(header);
+
+            Assert.Equal("Claude", AutomationProperties.GetName(button));
+            Assert.Equal("Collapsed", AutomationProperties.GetItemStatus(button));
+            Assert.Equal("Show the model list", ToolTip.GetTip(button));
+            Assert.Equal("Shows or hides the model list", AutomationProperties.GetHelpText(button));
+            Assert.Equal(1, AutomationProperties.GetHeadingLevel(button));
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "UI-SETTINGS-041")] // App/Views/Settings/ModelsSettingsPage.swift:416-448
+    public void Expanded_header_shows_the_expanded_value_and_the_hide_tooltip()
+    {
+        headless.OnUiThread(() =>
+        {
+            var (header, _) = Header(expanded: true);
+            var button = HeaderButton(header);
+
+            Assert.Equal("Expanded", AutomationProperties.GetItemStatus(button));
+            Assert.Equal("Hide the model list", ToolTip.GetTip(button));
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "UI-SETTINGS-041")] // App/Views/Settings/ModelsSettingsPage.swift:423-424
+    public void Clicking_the_header_toggles_isExpanded()
+    {
+        headless.OnUiThread(() =>
+        {
+            var value = false;
+            var binding = new Binding<bool>(() => value, v => value = v);
+            var header = new CollapsibleProviderHeader(ProviderKind.Claude, binding, "model list");
+            var button = HeaderButton(header);
+
+            button.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+            Assert.True(value);
+            Assert.Equal("Expanded", AutomationProperties.GetItemStatus(button));
+
+            button.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+            Assert.False(value);
+            Assert.Equal("Collapsed", AutomationProperties.GetItemStatus(button));
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "UI-SETTINGS-041")] // App/Views/Settings/ModelsSettingsPage.swift:429-435
+    [Trait("Decision", "ED-062")]
+    public void The_chevron_is_11_point_semibold_and_the_provider_name_uses_the_system_secondary_colour()
+    {
+        headless.OnUiThread(() =>
+        {
+            var (header, _) = Header();
+            var content = Assert.IsType<Grid>(HeaderButton(header).Content);
+            var chevron = Assert.Single(LogicalQuery.SelfAndDescendants<SwiftImage>(content), image => image.SymbolName == "chevron.right");
+            var font = SwiftImage.GetFont(chevron)!.Resolve();
+            Assert.Equal(11, font.FontSize);
+            Assert.Equal(FontWeight.SemiBold, font.FontWeight);
+
+            var name = Assert.Single(LogicalQuery.SelfAndDescendants<TextBlock>(content), block => block.Text == "Claude");
+            Assert.Equal(SwiftColor.Secondary.Resolve(ThemeVariant.Default), ((ISolidColorBrush)name.Foreground!).Color);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-186")] // App/Views/Settings/ModelsSettingsPage.swift:178-191
+    [Trait("Decision", "ED-205")]
+    public void The_grip_shows_grabidle_when_idle_and_grabactive_while_this_row_is_dragged()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var model = harness.MakeModel();
+            var pin = new ModelPin(ProviderKind.Claude, "claude-model");
+
+            var idle = new PinnedModelRow(model, pin, isDragged: false, _ => { }, () => { });
+            var idleGrip = Assert.Single(LogicalQuery.SelfAndDescendants<Border>(idle), b => b.Width == 24 && b.Height == 24);
+            Assert.Same(PointerStyleCursors.Get(PointerStyle.GrabIdle, 1), idleGrip.Cursor);
+
+            var dragged = new PinnedModelRow(model, pin, isDragged: true, _ => { }, () => { });
+            var draggedGrip = Assert.Single(LogicalQuery.SelfAndDescendants<Border>(dragged), b => b.Width == 24 && b.Height == 24);
+            Assert.Same(PointerStyleCursors.Get(PointerStyle.GrabActive, 1), draggedGrip.Cursor);
+        });
     }
 }
 
