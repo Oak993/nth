@@ -575,6 +575,9 @@ public sealed class HydraMergeTrack : Decorator
     // :830-840 body
     public HydraMergeTrack(int step, int count, Mode mode) =>
         throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:830");
+
+    public void Update(int step, int count, Mode mode) =>
+        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:830");
 }
 
 /// <summary>:844-916 <c>private struct HydraMergeTrackBody: View, Animatable</c>.</summary>
@@ -596,6 +599,12 @@ public sealed class HydraMergeTrackBody : Decorator
     public HydraMergeTrackBody(double position, double done, double rest, int count, bool hops) =>
         throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:884");
 
+    public (double Position, (double Done, double Resting) Outcome) AnimatableData
+    {
+        get => throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:856");
+        set => throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:856");
+    }
+
     // :872-874 private static func dotCentre(_:) -> CGFloat
     private static double DotCentre(double i) =>
         throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:872");
@@ -611,6 +620,9 @@ public sealed class HydraMergeRow : Decorator
     /// <param name="phase">:928 <c>let phase: HydraMergePhase</c>.</param>
     // :937-952 body
     public HydraMergeRow(ThreadRuntime runtime, HydraMergePhase phase) =>
+        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:937");
+
+    public void Update(HydraMergePhase phase) =>
         throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:937");
 }
 

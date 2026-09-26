@@ -2,19 +2,25 @@ using System.Linq;
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Controls.Documents;
 using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
+using Avalonia.Layout;
+using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Marrow.App.Runtime;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Chat;
+using Marrow.App.Views.Composer;
 using Marrow.App.Views.Diff;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
+using Marrow.Services.Providers;
+using Marrow.Services.Store;
 using Marrow.Testing;
 using Marrow.UI.Chrome;
 using Marrow.UI.Common;
@@ -29,7 +35,8 @@ namespace Marrow.App.Tests.Views.Chat;
 // Source: DroppyCode/App/Views/Chat/TimelineRows.swift (B3 52bc792), :1-2859; the file is unchanged from B2 1fbf81e,
 // so B2 and B3 line numbers are the same.
 // Part 1 of 6 (PR-CHAT-020, 036, 077-082, 088-102, 104) plus the AttachmentStrip and AttachmentThumbnail tests
-// (UI-CHAT-009) an earlier merge brought. Sites this part cannot verify yet are listed in the STOP notes at the end.
+// (UI-CHAT-009) an earlier merge brought; part 2 of 6 (PR-CHAT-105 to 116, 123, 143 to 153). Sites these parts cannot
+// verify yet are listed in the STOP notes at the end.
 [Collection("Headless")]
 public sealed class TimelineRowsTests(HeadlessSession headless)
 {
@@ -1622,6 +1629,1826 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
                 Assert.Empty(LogicalQuery.SelfAndDescendants<FoldedAnswerView>(block));
                 Close(window);
             });
+        });
+    }
+
+    // ================================================================ part 2 of 6
+    // PR-CHAT-105 to 116, 123, 143 to 153. The private members the Swift keeps private (a view's popover body, its
+    // static labels) are reached by reflection, as AppModelHydraMergeTests does, so their text is read from the port
+    // itself and compared with the Swift literals.
+
+    private static object? Invoke(object target, string name, params object?[] arguments) =>
+        (target.GetType().GetMethod(name, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+            ?? throw new Xunit.Sdk.XunitException("no private method " + name)).Invoke(target, arguments);
+
+    private static object? InvokeStatic(System.Type type, string name, params object?[] arguments) =>
+        (type.GetMethod(name, System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)
+            ?? throw new Xunit.Sdk.XunitException("no private static method " + name)).Invoke(null, arguments);
+
+    private static TimelineEntry PlanEntry(ProposedPlan.State state, string markdown = "```\nstep one\n```", System.Guid? turn = null) =>
+        new(new TimelineItem(turn, new TimelineItem.Content.Plan(new ProposedPlan { Markdown = markdown, ProposedPlanState = state })));
+
+    private static TimelineItem.Content.Todos Steps(params (string Text, TodoStep.Status Status)[] steps) =>
+        new(new ValueList<TodoStep>(steps.Select(step => new TodoStep { Text = step.Text, TodoStepStatus = step.Status })));
+
+    private static TimelineEntry NoticeEntry(Notice.Level level, string message, System.Guid? turn = null) =>
+        new(new TimelineItem(turn, new TimelineItem.Content.Notice(new Notice { NoticeLevel = level, Message = message })));
+
+    private static FileChangeSummary Changes(int count) =>
+        new(new ValueList<FileChangeSummary.File>(Enumerable.Range(1, count).Select(i => new FileChangeSummary.File("src/file" + i + ".swift", i, 1, false))), 40, 7);
+
+    private static UserMessage Report(string text, params long[] heads) =>
+        new() { Text = text, HydraHeads = new ValueList<long>(heads) };
+
+    private static TextBlock TextNamed(Control root, string text) =>
+        LogicalQuery.SelfAndDescendants<TextBlock>(root).Single(block => block.Text == text);
+
+    private static double FontSize(SwiftFont font) => font.Resolve().FontSize;
+
+    // Shows the window and presses a key in it, so the badge popovers find the window the current event is in
+    // (WindowRectAnchor.Target, ChatBadgeTests' precedent).
+    private static AvaloniaWindow ShowForPopover(Control control)
+    {
+        var window = Show(control);
+        _ = AppCurrentEvent.CurrentWindow;
+        window.KeyPress(Key.F13, RawInputModifiers.None, PhysicalKey.F13, null);
+        Settle(window);
+        return window;
+    }
+
+    // A lead with head threads under it and the lead's runtime: ThreadRuntimePart12Harness's setup with the heads added.
+    private static (AppModelHarness Store, AppModel App, ThreadRuntime Runtime) TeamHarness(params HydraHeadInfo[] heads)
+    {
+        System.Threading.Tasks.Task.Run(() => LoginEnvironment.Load()).GetAwaiter().GetResult();
+        var store = new AppModelHarness();
+        var project = AppModelSamples.Project("Team", store.NewFolder("team"));
+        var lead = AppModelSamples.Thread(project);
+        var team = heads.Select(head => AppModelSamples.Thread(project) with { ParentThreadID = lead.Id, Hydra = head }).ToArray();
+        store.WriteLibrary([project], [lead, .. team]);
+        AppModelHarness.WriteDocument(lead.Id);
+        var app = store.MakeModel();
+        store.PrepareBootstrap(app);
+        var runtime = store.Main.OnMain(() => new ThreadRuntime(lead.Id, app));
+        return (store, app, runtime);
+    }
+
+    private static HydraHeadInfo Head(long index, HydraHeadInfo.Status status) =>
+        new HydraHeadInfo(index, "task", HydraHeadInfo.Kind.Droppy, HydraHeadInfo.Origin.Delegated) with { HydraHeadInfoStatus = status };
+
+    // ---------------------------------------------------------------- PR-CHAT-105 Derived
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-105")] // App/Views/Chat/TimelineRows.swift:2547-2579, :2664-2680
+    public void A_folded_turns_answer_is_the_replies_after_its_last_tool_with_plans_and_warnings_below_and_info_folded_away()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+            h.Main.OnMain(() =>
+            {
+                var turn = System.Guid.NewGuid();
+                const string before = "```\nnarration\n```";
+                const string first = "```\nfirst answer\n```";
+                const string second = "```\nsecond answer\n```";
+                var content = new ValueList<TimelineEntry>(
+                [
+                    ReplyEntry(before, turn: turn),
+                    ToolEntry(Call(ToolCall.Kind.Command, "make"), turn),
+                    ReplyEntry(first, turn: turn),
+                    PlanEntry(ProposedPlan.State.Accepted, turn: turn),
+                    ReplyEntry(second, turn: turn),
+                    NoticeEntry(Notice.Level.Warning, "careful", turn),
+                    NoticeEntry(Notice.Level.Info, "fyi", turn),
+                    NoticeEntry(Notice.Level.Error, "boom", turn),
+                ]);
+                var block = new TurnFinishedBlock(h.Runtime, turn, Summary(turn), ValueList<TimelineEntry>.Empty, content, null, canUndo: false, chronological: false);
+                var window = Show(block);
+                // :2566-2573 the tool ends the answer so far; :2560-2565 a plan and a notice do not.
+                Assert.Equal([first, second], LogicalQuery.SelfAndDescendants<FoldedAnswerView>(block).Select(view => LogicalQuery.SelfAndDescendants<MarkdownView>(view).Single().Text));
+                Assert.Single(LogicalQuery.SelfAndDescendants<PlanCard>(block));
+                // :2562-2565 only warnings and errors are collected; the info notice stays behind the chevron.
+                var notices = LogicalQuery.SelfAndDescendants<NoticeRow>(block).ToList();
+                Assert.Equal(2, notices.Count);
+                Assert.Contains("careful", Texts(notices[0]));
+                Assert.Contains("boom", Texts(notices[1]));
+                Assert.DoesNotContain("fyi", Texts(block));
+                // :2666-2677 the answers, then the plans, then the notices, in one column.
+                var column = Assert.IsType<StackPanel>(LogicalQuery.SelfAndDescendants<FoldedAnswerView>(block).First().Parent);
+                Assert.Equal([typeof(FoldedAnswerView), typeof(FoldedAnswerView), typeof(PlanCard), typeof(NoticeRow), typeof(NoticeRow)], column.Children.Select(child => child.GetType()));
+                Close(window);
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-105")] // App/Views/Chat/TimelineRows.swift:2551-2559, :2578-2579, :2597
+    public void A_turn_that_ended_on_a_tool_shows_its_last_reply_a_blank_reply_is_none_and_a_plan_alone_is_a_response()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+            h.Main.OnMain(() =>
+            {
+                var turn = System.Guid.NewGuid();
+                var endedOnTool = new TurnFinishedBlock(h.Runtime, turn, Summary(turn), ValueList<TimelineEntry>.Empty,
+                    new ValueList<TimelineEntry>([ReplyEntry(CodeOnlyReply, turn: turn), ToolEntry(Call(ToolCall.Kind.Read, "Read a"), turn), ReplyEntry(" \n\t ", turn: turn)]),
+                    null, canUndo: false, chronological: false);
+                var blankOnly = new TurnFinishedBlock(h.Runtime, turn, Summary(turn), ValueList<TimelineEntry>.Empty,
+                    new ValueList<TimelineEntry>([ReplyEntry("   \n", turn: turn)]), null, canUndo: false, chronological: false);
+                var planOnly = new TurnFinishedBlock(h.Runtime, turn, Summary(turn), ValueList<TimelineEntry>.Empty,
+                    new ValueList<TimelineEntry>([PlanEntry(ProposedPlan.State.Dismissed, turn: turn)]), null, canUndo: false, chronological: false);
+                var panel = new StackPanel();
+                panel.Children.Add(endedOnTool);
+                panel.Children.Add(blankOnly);
+                panel.Children.Add(planOnly);
+                var window = Show(panel);
+                // :2578 no reply after the last tool: the last words it said, not the blank one after it.
+                var answer = Assert.Single(LogicalQuery.SelfAndDescendants<FoldedAnswerView>(endedOnTool));
+                Assert.Equal(CodeOnlyReply, LogicalQuery.SelfAndDescendants<MarkdownView>(answer).Single().Text);
+                // :2551-2559 a reply of whitespace alone is no response at all.
+                Assert.Empty(Rules(blankOnly));
+                Assert.Empty(LogicalQuery.SelfAndDescendants<FoldedAnswerView>(blankOnly));
+                // :2579 a plan is a response of its own.
+                Assert.Single(Rules(planOnly));
+                Assert.Single(LogicalQuery.SelfAndDescendants<PlanCard>(planOnly));
+                Close(window);
+            });
+        });
+    }
+
+    // ---------------------------------------------------------------- PR-CHAT-106 memo
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-106")] // App/Views/Chat/TimelineRows.swift:2511-2521, :2590-2591, :2703-2706
+    public void The_turns_derivation_is_read_back_while_its_entries_and_fold_are_the_same_and_stored_once_the_body_has_run()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            h.Main.OnMain(() =>
+            {
+                var turn = System.Guid.NewGuid();
+                var block = new TurnFinishedBlock(h.Runtime, turn, Summary(turn), ValueList<TimelineEntry>.Empty,
+                    new ValueList<TimelineEntry>([ReplyEntry(CodeOnlyReply, turn: turn)]), null, canUndo: false, chronological: false);
+                var stored = typeof(TurnFinishedBlock).GetField("derived", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+                // Nothing is derived before the body has run.
+                Assert.Null(stored.GetValue(block));
+                var window = Show(block);
+                Assert.NotNull(stored.GetValue(block));
+                var first = Invoke(block, "DerivedFor", false);
+                var again = Invoke(block, "DerivedFor", false);
+                Assert.Same(first, again);
+                Close(window);
+            });
+        });
+    }
+
+    // ---------------------------------------------------------------- PR-CHAT-107 legacy changes
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-107")] // App/Views/Chat/TimelineRows.swift:2707-2714; App/Runtime/ThreadRuntime.swift:3751-3757
+    public void An_older_turn_with_files_but_no_per_file_summary_works_its_changes_out_and_stores_them_while_one_with_none_never_does()
+    {
+        headless.OnUiThread(() =>
+        {
+            System.Threading.Tasks.Task.Run(() => LoginEnvironment.Load()).GetAwaiter().GetResult();
+            using var store = new AppModelHarness();
+            var project = AppModelSamples.Project("Legacy", store.NewFolder("legacy turn"));
+            var thread = AppModelSamples.Thread(project);
+            store.WriteLibrary([project], [thread]);
+            var withFiles = System.Guid.NewGuid();
+            var withNone = System.Guid.NewGuid();
+            DiskWriter.Shared.WriteSynchronously(
+                new ThreadDocument(thread.Id)
+                {
+                    Turns = new ValueList<TurnRecord>(
+                    [
+                        new TurnRecord { Id = withFiles, Index = 0, Status = TurnStatus.Completed },
+                        new TurnRecord { Id = withNone, Index = 1, Status = TurnStatus.Completed },
+                    ]),
+                    Items = new ValueList<TimelineItem>(
+                    [
+                        new TimelineItem(withFiles, new TimelineItem.Content.User(new UserMessage { Text = "first" })),
+                        new TimelineItem(withNone, new TimelineItem.Content.User(new UserMessage { Text = "second" })),
+                    ]),
+                },
+                Storage.ThreadURL(thread.Id));
+            var model = store.MakeModel();
+            store.PrepareBootstrap(model);
+            var runtime = store.Main.OnMain(() => model.Runtime(thread.Id));
+            store.Main.Loop.Run(() => runtime.EnsureLoaded(), AppModelHarness.Bound);
+            FileChangeSummary? Stored(System.Guid turn) => store.Main.OnMain(() =>
+                Assert.IsType<TimelineItem.Content.TurnEnd>(runtime.Entries.Single(entry => entry.TurnID == turn && entry.TimelineEntryKind == TimelineEntry.Kind.TurnEnd).Item.TimelineItemContent).Value.Changes);
+            AvaloniaWindow? window = null;
+            store.Main.OnMain(() =>
+            {
+                var content = new ValueList<TimelineEntry>([ToolEntry(Call(ToolCall.Kind.Command, "make"))]);
+                var files = new TurnFinishedBlock(runtime, withFiles, Summary(withFiles) with { FilesChanged = 2 }, ValueList<TimelineEntry>.Empty, content, null, canUndo: false, chronological: false);
+                var none = new TurnFinishedBlock(runtime, withNone, Summary(withNone), ValueList<TimelineEntry>.Empty, content, null, canUndo: false, chronological: false);
+                var panel = new StackPanel();
+                panel.Children.Add(files);
+                panel.Children.Add(none);
+                window = Show(panel);
+            });
+            // :2709-2713 the diff is parsed once, off the main thread, and the summary written back to the turn's end.
+            store.Main.Loop.RunUntil(() => Stored(withFiles) is not null, AppModelHarness.Bound);
+            store.Main.RunUntilIdle();
+            // :2708 no files changed and no edits: nothing is worked out.
+            Assert.Null(Stored(withNone));
+            store.Main.OnMain(() =>
+            {
+                Close(window!);
+                runtime.CancelPersistence();
+            });
+        });
+    }
+
+    // ---------------------------------------------------------------- PR-CHAT-108 to 110 TurnFileCard
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-108")] // App/Views/Chat/TimelineRows.swift:2735-2765
+    public void The_file_card_reads_Edited_1_file_or_Edited_N_files_beside_the_badge_and_the_totals_with_a_chevron()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var runtime = new TestRuntime();
+            using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+            runtime.OnMain(() =>
+            {
+            var one = new TurnFileCard(Changes(1), canUndo: false, onRevert: () => { }, onReview: _ => { });
+            var three = new TurnFileCard(Changes(3), canUndo: false, onRevert: () => { }, onReview: _ => { });
+            var panel = new StackPanel();
+            panel.Children.Add(one);
+            panel.Children.Add(three);
+            var window = Show(panel);
+            Assert.Contains("Edited 1 file", Texts(one));
+            var title = TextNamed(three, "Edited 3 files");
+            Assert.Equal(FontSize(ChatFont.Chat(SwiftFont.TextStyle.Callout, SwiftFont.Weight.Medium)), title.FontSize);
+            Assert.Equal(ChatFont.Chat(SwiftFont.TextStyle.Callout, SwiftFont.Weight.Medium).Resolve().FontWeight, title.FontWeight);
+            Assert.Equal(Resolved(ChromeTokens.PrimaryText.Opacity(0.9), title), BrushColor(title.Foreground));
+            var badge = LogicalQuery.SelfAndDescendants<SwiftImage>(three).Single(image => image.Width == 18 && image.Height == 18);
+            Assert.Equal(Resolved(ChromeTokens.SecondaryText, badge), BrushColor(badge.Foreground));
+            var stat = Assert.Single(LogicalQuery.SelfAndDescendants<DiffStatLabel>(three));
+            Assert.Equal(40, stat.Additions);
+            Assert.Equal(7, stat.Deletions);
+            var titleButton = LogicalQuery.SelfAndDescendants<Button>(three).First();
+            Assert.True(titleButton.IsEnabled);
+            Assert.Equal("Show the files this turn changed", ToolTip.GetTip(titleButton));
+            var chevron = LogicalQuery.SelfAndDescendants<SwiftImage>(titleButton).Single(image => image.SymbolName == "chevron.right");
+            Assert.Equal(Resolved(ChromeTokens.SecondaryText, chevron), BrushColor(chevron.Foreground));
+            Assert.Equal(FontSize(ChatFont.Chat(SwiftFont.TextStyle.Caption2, SwiftFont.Weight.Semibold)), SwiftImage.GetFont(chevron)!.Resolve().FontSize);
+            Assert.Equal("Edited 3 files", AutomationProperties.GetName(three));
+            Close(window);
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-108")] // App/Views/Chat/TimelineRows.swift:2753-2760
+    public void A_card_with_no_files_has_a_disabled_title_and_no_chevron()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var runtime = new TestRuntime();
+            using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+            runtime.OnMain(() =>
+            {
+                var card = new TurnFileCard(new FileChangeSummary(ValueList<FileChangeSummary.File>.Empty, 0, 0), canUndo: false, onRevert: () => { }, onReview: _ => { });
+                var window = Show(card);
+                Assert.Contains("Edited 0 files", Texts(card));
+                var titleButton = LogicalQuery.SelfAndDescendants<Button>(card).First();
+                Assert.False(titleButton.IsEnabled);
+                Assert.DoesNotContain("chevron.right", Symbols(card));
+                Close(window);
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-108")] // App/Views/Chat/TimelineRows.swift:2766-2827
+    public void The_round_controls_follow_a_20_point_gap_revert_only_when_undoable_on_a_hugging_quaternary_pill()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var runtime = new TestRuntime();
+            using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+            runtime.OnMain(() =>
+            {
+            var undoable = new TurnFileCard(Changes(2), canUndo: true, onRevert: () => { }, onReview: _ => { });
+            var fixedTurn = new TurnFileCard(Changes(2), canUndo: false, onRevert: () => { }, onReview: _ => { });
+            var panel = new StackPanel();
+            panel.Children.Add(undoable);
+            panel.Children.Add(fixedTurn);
+            var window = Show(panel);
+            Assert.Equal(["arrow.uturn.backward", "plusminus"], LogicalQuery.SelfAndDescendants<MutedRoundGlyph>(undoable).Select(glyph => Symbols(glyph).Single()));
+            Assert.Equal(["plusminus"], LogicalQuery.SelfAndDescendants<MutedRoundGlyph>(fixedTurn).Select(glyph => Symbols(glyph).Single()));
+            var buttons = LogicalQuery.SelfAndDescendants<Button>(undoable).ToList();
+            var revert = buttons.Single(button => LogicalQuery.SelfAndDescendants<MutedRoundGlyph>(button).Any(glyph => Symbols(glyph).Contains("arrow.uturn.backward")));
+            var review = buttons.Single(button => LogicalQuery.SelfAndDescendants<MutedRoundGlyph>(button).Any(glyph => Symbols(glyph).Contains("plusminus")));
+            Assert.Equal("Revert this turn's files and conversation", ToolTip.GetTip(revert));
+            Assert.Equal("Show this turn's changes", ToolTip.GetTip(review));
+            Assert.False(revert.Focusable);
+            Assert.False(review.Focusable);
+            // :2768 a fixed 20 by 1 gap, not a spacer, right after the title.
+            var row = Assert.IsType<StackPanel>(buttons[0].Parent is StackPanel ? buttons[0].Parent : buttons[0].Parent!.Parent);
+            Assert.Equal(8, row.Spacing);
+            var gap = row.Children[1];
+            Assert.Equal(20, gap.Width);
+            Assert.Equal(1, gap.Height);
+            // :2815-2819 padded 12 leading, 6 trailing and 6 vertical on .quaternary at 0.32, hugging its content.
+            var pill = LogicalQuery.SelfAndDescendants<Border>(undoable).First(border => border.Padding == new Thickness(TimelineMetrics.PillLeading, 6, 6, 6));
+            Assert.Equal(new CornerRadius(TimelineMetrics.PillRadius), pill.CornerRadius);
+            Assert.Equal(Resolved(SwiftColor.Quaternary.Opacity(0.32), pill), BrushColor(pill.Background));
+            Assert.Equal(HorizontalAlignment.Left, pill.HorizontalAlignment);
+            Close(window);
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-108")] // App/Views/Chat/TimelineRows.swift:2463-2478
+    public void A_muted_round_glyph_is_a_28_point_overlay_disc_whose_glyph_and_fill_come_up_under_the_pointer()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var runtime = new TestRuntime();
+            var frames = new ManualFrameSource();
+            using var frameSeam = FrameClock.Source.Override(frames);
+            MutedRoundGlyph? glyph = null;
+            AvaloniaWindow? window = null;
+            runtime.OnMain(() =>
+            {
+                glyph = new MutedRoundGlyph("plusminus");
+                var host = new StackPanel { Margin = new Thickness(20) };
+                host.Children.Add(glyph);
+                window = Show(host);
+                var disc = LogicalQuery.SelfAndDescendants<Border>(glyph).Single(border => border.Width == 28 && border.Height == 28);
+                Assert.Equal(new CornerRadius(14), disc.CornerRadius);
+                var image = LogicalQuery.SelfAndDescendants<SwiftImage>(glyph).Single();
+                Assert.Equal("plusminus", image.SymbolName);
+                Assert.Equal(FontSize(ChromeTokens.IconFont), SwiftImage.GetFont(image)!.Resolve().FontSize);
+                Assert.Equal(Resolved(ChromeTokens.SecondaryText, image), BrushColor(image.Foreground));
+                Assert.Equal(Resolved(ChromeTokens.Overlay(0.1), disc), BrushColor(disc.Background));
+                Hover(window, disc);
+            });
+            // Chrome.hover, an ease-out of 0.1 s on the frame clock.
+            frames.Advance(System.TimeSpan.Zero);
+            runtime.AdvanceMilliseconds(1000);
+            frames.Advance(System.TimeSpan.FromMilliseconds(1000));
+            runtime.OnMain(() =>
+            {
+                var disc = LogicalQuery.SelfAndDescendants<Border>(glyph!).Single(border => border.Width == 28 && border.Height == 28);
+                var image = LogicalQuery.SelfAndDescendants<SwiftImage>(glyph!).Single();
+                Assert.Equal(Resolved(ChromeTokens.PrimaryText, image), BrushColor(image.Foreground));
+                Assert.Equal(Resolved(ChromeTokens.Overlay(0.18), disc), BrushColor(disc.Background));
+                Close(window!);
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-108")] // App/Views/Chat/TimelineRows.swift:2796-2812
+    public void The_review_control_hands_its_own_anchor_to_the_review_once_the_pointer_has_been_there_and_does_nothing_before()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var runtime = new TestRuntime();
+            using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+            var reviewed = new List<Control>();
+            TurnFileCard? card = null;
+            AvaloniaWindow? window = null;
+            runtime.OnMain(() =>
+            {
+                card = new TurnFileCard(Changes(2), canUndo: false, onRevert: () => { }, onReview: reviewed.Add);
+                var host = new StackPanel { Margin = new Thickness(20) };
+                host.Children.Add(card);
+                window = Show(host);
+                var review = LogicalQuery.SelfAndDescendants<Button>(card).Last();
+                Click(review);
+                Assert.Empty(reviewed);
+                Assert.Empty(LogicalQuery.SelfAndDescendants<AttachmentAnchorCapture>(card));
+                Hover(window, review);
+            });
+            runtime.OnMain(() =>
+            {
+                Settle(window!);
+                var anchor = Assert.Single(LogicalQuery.SelfAndDescendants<AttachmentAnchorCapture>(card!));
+                Click(LogicalQuery.SelfAndDescendants<Button>(card!).Last());
+                Assert.Same(anchor, Assert.Single(reviewed));
+                Close(window!);
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-109")] // App/Views/Chat/TimelineRows.swift:2829-2858
+    public void The_files_popover_lists_twelve_files_then_and_1_more_file_or_and_N_more_files()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var runtime = new TestRuntime();
+            runtime.OnMain(() =>
+            {
+            string[] Lines(int count)
+            {
+                var card = new TurnFileCard(Changes(count), canUndo: false, onRevert: () => { }, onReview: _ => { });
+                return Texts(Assert.IsAssignableFrom<Control>(Invoke(card, "FilesPopover")));
+            }
+            var twelve = Lines(12);
+            Assert.Equal(12, twelve.Count(text => text.StartsWith("src/file", System.StringComparison.Ordinal)));
+            Assert.DoesNotContain(twelve, text => text.StartsWith("and ", System.StringComparison.Ordinal));
+            var thirteen = Lines(13);
+            Assert.Equal(12, thirteen.Count(text => text.StartsWith("src/file", System.StringComparison.Ordinal)));
+            Assert.DoesNotContain("src/file13.swift", thirteen);
+            Assert.Contains("and 1 more file", thirteen);
+            Assert.Contains("and 8 more files", Lines(20));
+
+            var binary = new TurnFileCard(
+                new FileChangeSummary(new ValueList<FileChangeSummary.File>([new("logo.png", 0, 0, true), new("a.swift", 3, 2, false)]), 3, 2),
+                canUndo: false, onRevert: () => { }, onReview: _ => { });
+            var popover = Assert.IsAssignableFrom<Control>(Invoke(binary, "FilesPopover"));
+            var word = TextNamed(popover, "Binary");
+            Assert.Equal(FontSize(ChatFont.Chat(SwiftFont.TextStyle.Caption)), word.FontSize);
+            var path = TextNamed(popover, "logo.png");
+            Assert.Equal(FontSize(ChatFont.Chat(SwiftFont.TextStyle.Callout)), path.FontSize);
+            Assert.Equal(1, path.MaxLines);
+            var stat = Assert.Single(LogicalQuery.SelfAndDescendants<DiffStatLabel>(popover));
+            Assert.Equal(3, stat.Additions);
+            Assert.Equal(2, stat.Deletions);
+            // :2849-2850 each row padded 12 horizontally and 7 vertically.
+            var rows = Assert.IsType<StackPanel>(LogicalQuery.SelfAndDescendants<StackPanel>(popover).First(panel => panel.Orientation == Orientation.Vertical));
+            Assert.Equal(0, rows.Spacing);
+            Assert.All(rows.Children, control => Assert.Equal(new Thickness(12, 7), control.Margin));
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-110")] // App/Views/Chat/TimelineRows.swift:2770-2798, :2695
+    public void The_revert_disc_asks_in_a_300_point_popover_where_only_Revert_reverts()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var runtime = new TestRuntime();
+            using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+            var presenter = new RecordingPresenter();
+            using var seam = Presentation.Presenter.Override(presenter);
+            var reverts = 0;
+            TurnFileCard? card = null;
+            AvaloniaWindow? window = null;
+            runtime.OnMain(() =>
+            {
+                card = new TurnFileCard(Changes(2), canUndo: true, onRevert: () => reverts++, onReview: _ => { });
+                window = Show(card);
+                var revert = LogicalQuery.SelfAndDescendants<Button>(card).Single(button => ToolTip.GetTip(button) as string == "Revert this turn's files and conversation");
+                Click(revert);
+            });
+            runtime.OnMain(() =>
+            {
+            Settle(window!);
+            Assert.Single(presenter.Calls, call => call.Presented);
+
+            var confirm = Assert.IsAssignableFrom<Control>(Invoke(card!, "RevertConfirmation"));
+            var sheet = LogicalQuery.SelfAndDescendants<Control>(confirm).First(control => control.Width == 300);
+            var heading = TextNamed(confirm, "Revert up to this point?");
+            Assert.Equal(FontSize(SwiftFont.System(14, SwiftFont.Weight.Semibold)), heading.FontSize);
+            Assert.Equal(SwiftFont.System(14, SwiftFont.Weight.Semibold).Resolve().FontWeight, heading.FontWeight);
+            var message = TextNamed(confirm, "Files go back to how they were before this turn, and the turn leaves the conversation.");
+            Assert.Equal(FontSize(SwiftFont.System(SwiftFont.TextStyle.Callout)), message.FontSize);
+            Assert.Equal(Resolved(ChromeTokens.SecondaryText, message), BrushColor(message.Foreground));
+            Assert.Equal(TextWrapping.Wrap, message.TextWrapping);
+            Assert.Contains(LogicalQuery.SelfAndDescendants<Decorator>(sheet), decorator => decorator.Padding == new Thickness(16));
+            var cancel = LogicalQuery.SelfAndDescendants<Button>(confirm).Single(button => Texts(button).Contains("Cancel"));
+            var go = LogicalQuery.SelfAndDescendants<Button>(confirm).Single(button => Texts(button).Contains("Revert"));
+            Assert.True(go.IsDefault);
+            Assert.False(cancel.IsDefault);
+            Click(cancel);
+            Assert.Equal(0, reverts);
+            Click(go);
+            Assert.Equal(1, reverts);
+            Close(window!);
+            });
+        });
+    }
+
+    // ---------------------------------------------------------------- PR-CHAT-111 to 113 PlanCard
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-111")] // App/Views/Chat/TimelineRows.swift:2263-2278, :2318-2337
+    public void A_plans_badge_title_caption_and_attention_follow_its_state()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+            h.Main.OnMain(() =>
+            {
+                var states = new[] { ProposedPlan.State.Drafting, ProposedPlan.State.Proposed, ProposedPlan.State.Accepted, ProposedPlan.State.Dismissed };
+                var cards = states.Select(state => new PlanCard(PlanEntry(state), h.Runtime)).ToArray();
+                var panel = new StackPanel();
+                foreach (var card in cards) panel.Children.Add(card);
+                var window = Show(panel);
+                string[] Words(PlanCard card) => Texts(card).Where(text => text.Length != 0).ToArray();
+                Assert.Equal(["Writing a plan"], Words(cards[0]));
+                Assert.Equal(["Plan ready", "Implement or dismiss"], Words(cards[1]));
+                Assert.Equal(["Plan", "Approved"], Words(cards[2]));
+                Assert.Equal(["Plan", "Dismissed"], Words(cards[3]));
+                // :2335-2337 only a proposed plan draws the attention dots.
+                Assert.Equal([false, true, false, false], cards.Select(card => LogicalQuery.SelfAndDescendants<DotFieldControl>(card).Any()));
+                // :2272-2276 the spinner while drafting, the clipboard in the tint otherwise.
+                var spinner = Assert.Single(LogicalQuery.SelfAndDescendants<WorkingSpinner>(cards[0]));
+                Assert.Equal(14, spinner.Width);
+                Assert.DoesNotContain("list.bullet.clipboard", Symbols(cards[0]));
+                var clipboard = LogicalQuery.SelfAndDescendants<SwiftImage>(cards[1]).Single(image => image.SymbolName == "list.bullet.clipboard");
+                Assert.Equal(Resolved(ChromeTokens.Accent, clipboard), BrushColor(clipboard.Foreground));
+                Assert.All(cards, card => Assert.Contains("chevron.right", Symbols(card)));
+                Assert.All(cards, card => Assert.True(LogicalQuery.SelfAndDescendants<Button>(card).First().IsEnabled));
+                Close(window);
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-111")] // App/Views/Chat/TimelineRows.swift:2268-2270
+    public void A_plan_with_empty_markdown_has_no_chevron_and_cannot_be_opened()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+            h.Main.OnMain(() =>
+            {
+                var card = new PlanCard(PlanEntry(ProposedPlan.State.Drafting, markdown: ""), h.Runtime);
+                var window = Show(card);
+                Assert.DoesNotContain("chevron.right", Symbols(card));
+                Assert.False(LogicalQuery.SelfAndDescendants<Button>(card).First().IsEnabled);
+                Close(window);
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-111")] // App/Views/Chat/TimelineRows.swift:2263-2264
+    public void A_plan_card_follows_its_entry_as_the_plan_moves_from_drafting_to_proposed()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+            var entry = PlanEntry(ProposedPlan.State.Drafting);
+            PlanCard? card = null;
+            AvaloniaWindow? window = null;
+            h.Main.OnMain(() =>
+            {
+                card = new PlanCard(entry, h.Runtime);
+                window = Show(card);
+                Assert.Contains("Writing a plan", Texts(card));
+                entry.Item = entry.Item with { TimelineItemContent = new TimelineItem.Content.Plan(new ProposedPlan { Markdown = "```\nstep one\n```", ProposedPlanState = ProposedPlan.State.Proposed }) };
+            });
+            h.Main.OnMain(() =>
+            {
+                Settle(window!);
+                Assert.Contains("Plan ready", Texts(card!));
+                Assert.Contains("Implement or dismiss", Texts(card!));
+                Close(window!);
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-112")] // App/Views/Chat/TimelineRows.swift:2279-2313
+    public void The_plan_popover_is_520_wide_with_the_markdown_in_a_420_point_scroller_and_the_two_buttons_only_while_proposed()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+            h.Main.OnMain(() =>
+            {
+                var proposed = PlanEntry(ProposedPlan.State.Proposed);
+                var card = new PlanCard(proposed, h.Runtime);
+                var plan = ((TimelineItem.Content.Plan)proposed.Item.TimelineItemContent).Value;
+                var detail = Assert.IsAssignableFrom<Control>(Invoke(card, "Detail", plan));
+                var window = Show(detail);
+                var sheet = LogicalQuery.SelfAndDescendants<Control>(detail).First(control => control.Width == 520);
+                Assert.Contains(LogicalQuery.SelfAndDescendants<Decorator>(sheet), decorator => decorator.Padding == new Thickness(16));
+                var heading = TextNamed(detail, "Plan");
+                Assert.Equal(FontSize(ChatFont.Chat(SwiftFont.TextStyle.Headline)), heading.FontSize);
+                Assert.Single(LogicalQuery.SelfAndDescendants<CopyButton>(detail));
+                var scroll = Assert.Single(LogicalQuery.SelfAndDescendants<PopoverScroll>(detail));
+                var markdown = Assert.Single(LogicalQuery.SelfAndDescendants<MarkdownView>(scroll));
+                Assert.Equal("```\nstep one\n```", markdown.Text);
+                Assert.Equal(new Thickness(16, 0), markdown.Margin);
+                Assert.True(LogicalQuery.SelfAndDescendants<ScrollViewer>(scroll).Single().Height <= 420);
+                Assert.Equal(["Implement plan", "Dismiss"], LogicalQuery.SelfAndDescendants<Button>(detail).Select(button => Texts(button).FirstOrDefault(text => text.Length != 0)).Where(text => text is "Implement plan" or "Dismiss"));
+                Close(window);
+
+                var accepted = PlanEntry(ProposedPlan.State.Accepted);
+                var done = Assert.IsAssignableFrom<Control>(Invoke(new PlanCard(accepted, h.Runtime), "Detail", ((TimelineItem.Content.Plan)accepted.Item.TimelineItemContent).Value));
+                Assert.DoesNotContain("Implement plan", Texts(done));
+                Assert.DoesNotContain("Dismiss", Texts(done));
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-112")] // App/Views/Chat/TimelineRows.swift:2290-2308
+    public void The_plan_buttons_stay_greyed_while_the_thread_is_busy_with_the_reason_and_carry_no_tip_when_free()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+            Control? detail = null;
+            AvaloniaWindow? window = null;
+            Panel Row() => (Panel)LogicalQuery.SelfAndDescendants<Button>(detail!).First(button => Texts(button).Contains("Implement plan")).GetLogicalAncestors().OfType<Panel>()
+                .First(panel => LogicalQuery.SelfAndDescendants<Button>(panel).Count() == 2);
+            h.Main.OnMain(() =>
+            {
+                var entry = PlanEntry(ProposedPlan.State.Proposed);
+                detail = Assert.IsAssignableFrom<Control>(Invoke(new PlanCard(entry, h.Runtime), "Detail", ((TimelineItem.Content.Plan)entry.Item.TimelineItemContent).Value));
+                window = Show(detail);
+                Assert.True(Row().IsEnabled);
+                Assert.Null(ToolTip.GetTip(Row()));
+                h.Runtime.RehearseTurn("busy");
+            });
+            h.Main.OnMain(() =>
+            {
+                Settle(window!);
+                var row = Row();
+                Assert.False(row.IsEnabled);
+                Assert.Equal("Wait for the current turn to finish", ToolTip.GetTip(row));
+                Assert.True(ToolTip.GetShowOnDisabled(row));
+                Assert.Equal(2, LogicalQuery.SelfAndDescendants<Button>(row).Count());
+                Close(window!);
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-112")] // App/Views/Chat/TimelineRows.swift:2296-2305
+    public void Dismiss_closes_the_popover_and_dismisses_the_plan_and_Implement_plan_closes_it_and_implements()
+    {
+        headless.OnUiThread(() =>
+        {
+            System.Threading.Tasks.Task.Run(() => LoginEnvironment.Load()).GetAwaiter().GetResult();
+            using var store = new AppModelHarness();
+            var project = AppModelSamples.Project("Plans", store.NewFolder("plans"));
+            var thread = AppModelSamples.Thread(project);
+            store.WriteLibrary([project], [thread]);
+            var turn = System.Guid.NewGuid();
+            var planItem = new TimelineItem(turn, new TimelineItem.Content.Plan(new ProposedPlan { Markdown = "```\nstep one\n```", ProposedPlanState = ProposedPlan.State.Proposed }));
+            DiskWriter.Shared.WriteSynchronously(
+                new ThreadDocument(thread.Id)
+                {
+                    Turns = new ValueList<TurnRecord>([new TurnRecord { Id = turn, Index = 0, Status = TurnStatus.Completed }]),
+                    Items = new ValueList<TimelineItem>([new TimelineItem(turn, new TimelineItem.Content.User(new UserMessage { Text = "plan it" })), planItem]),
+                },
+                Storage.ThreadURL(thread.Id));
+            var model = store.MakeModel();
+            store.PrepareBootstrap(model);
+            var runtime = store.Main.OnMain(() => model.Runtime(thread.Id));
+            store.Main.Loop.Run(() => runtime.EnsureLoaded(), AppModelHarness.Bound);
+            store.Main.OnMain(() =>
+            {
+                var entry = runtime.Entries.Single(candidate => candidate.Id == planItem.Id);
+                var card = new PlanCard(entry, runtime);
+                var shown = typeof(PlanCard).GetField("state", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(card)!;
+                var isShowing = shown.GetType().GetProperty("IsShowingPlan")!;
+                isShowing.SetValue(shown, true);
+                var detail = Assert.IsAssignableFrom<Control>(Invoke(card, "Detail", ((TimelineItem.Content.Plan)entry.Item.TimelineItemContent).Value));
+                Click(LogicalQuery.SelfAndDescendants<Button>(detail).Single(button => Texts(button).Contains("Dismiss")));
+                Assert.Equal(false, isShowing.GetValue(shown));
+                Assert.Equal(ProposedPlan.State.Dismissed, ((TimelineItem.Content.Plan)entry.Item.TimelineItemContent).Value.ProposedPlanState);
+                runtime.CancelPersistence();
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-113")] // App/Views/Chat/TimelineRows.swift:2287
+    public void A_drafting_plan_renders_with_the_streaming_markdown_and_a_proposed_one_with_the_finished_prose()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+            h.Main.OnMain(() =>
+            {
+                bool Streams(ProposedPlan.State state)
+                {
+                    var entry = PlanEntry(state);
+                    var detail = Assert.IsAssignableFrom<Control>(Invoke(new PlanCard(entry, h.Runtime), "Detail", ((TimelineItem.Content.Plan)entry.Item.TimelineItemContent).Value));
+                    return LogicalQuery.SelfAndDescendants<MarkdownView>(detail).Single().IsStreaming;
+                }
+                Assert.True(Streams(ProposedPlan.State.Drafting));
+                Assert.False(Streams(ProposedPlan.State.Proposed));
+                Assert.False(Streams(ProposedPlan.State.Accepted));
+            });
+        });
+    }
+
+    // ---------------------------------------------------------------- PR-CHAT-114 TodoListRow
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-114")] // App/Views/Chat/TimelineRows.swift:2343-2382
+    public void A_checklist_is_a_card_headed_N_of_M_done_with_a_glyph_and_line_per_step()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var runtime = new TestRuntime();
+            using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+            runtime.OnMain(() =>
+            {
+            var entry = new TimelineEntry(new TimelineItem(null, Steps(("Read the code", TodoStep.Status.Done), ("Write the fix", TodoStep.Status.Active), ("Run tests", TodoStep.Status.Pending))));
+            var row = new TodoListRow(entry);
+            var window = Show(row);
+            var header = TextNamed(row, "1 of 3 done");
+            Assert.Equal(FontSize(ChatFont.Chat(SwiftFont.TextStyle.Caption)), header.FontSize);
+            Assert.Equal(Resolved(ChromeTokens.SecondaryText, header), BrushColor(header.Foreground));
+            Assert.Equal(["checklist", "checkmark.circle.fill", "circle.dotted.circle", "circle"], Symbols(row));
+            var glyphs = LogicalQuery.SelfAndDescendants<SwiftImage>(row).ToList();
+            Assert.Equal(Resolved(ChromeTokens.SecondaryText, glyphs[0]), BrushColor(glyphs[0].Foreground));
+            Assert.Equal(Resolved(ChromeTokens.Accent, glyphs[1]), BrushColor(glyphs[1].Foreground));
+            Assert.Equal(Resolved(ChromeTokens.Accent, glyphs[2]), BrushColor(glyphs[2].Foreground));
+            Assert.Equal(Resolved(SwiftColor.Tertiary, glyphs[3]), BrushColor(glyphs[3].Foreground));
+            var done = TextNamed(row, "Read the code");
+            Assert.Equal(Resolved(SwiftColor.Secondary, done), BrushColor(done.Foreground));
+            var strike = Assert.Single(done.TextDecorations!);
+            Assert.Equal(TextDecorationLocation.Strikethrough, strike.Location);
+            Assert.Equal(Resolved(SwiftColor.Secondary, done), BrushColor(strike.Stroke));
+            var active = TextNamed(row, "Write the fix");
+            Assert.Equal(Resolved(SwiftColor.Primary, active), BrushColor(active.Foreground));
+            Assert.True(active.TextDecorations is null || active.TextDecorations.Count == 0);
+            Assert.Equal(FontSize(ChatFont.Chat(SwiftFont.TextStyle.Callout)), active.FontSize);
+            var card = LogicalQuery.SelfAndDescendants<Border>(row).First(border => border.Padding == new Thickness(14));
+            Assert.Equal(new CornerRadius(TimelineMetrics.PillRadius), card.CornerRadius);
+            Assert.Equal(Resolved(SwiftColor.Quaternary.Opacity(0.32), card), BrushColor(card.Background));
+            Assert.Equal(HorizontalAlignment.Left, card.HorizontalAlignment);
+            Assert.Equal(96, row.Padding.Right);
+            Assert.Equal(7, Assert.IsType<StackPanel>(card.Child).Spacing);
+            Close(window);
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-114")] // App/Views/Chat/TimelineRows.swift:2344, :2369-2371
+    public void A_checklist_with_no_steps_draws_nothing_and_an_update_rewrites_the_same_rows_in_place()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var runtime = new TestRuntime();
+            using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+            TodoListRow? row = null;
+            TextBlock? before = null;
+            AvaloniaWindow? window = null;
+            runtime.OnMain(() =>
+            {
+                var empty = new TodoListRow(new TimelineEntry(new TimelineItem(null, Steps())));
+                var entry = new TimelineEntry(new TimelineItem(null, Steps(("One", TodoStep.Status.Active), ("Two", TodoStep.Status.Pending))));
+                row = new TodoListRow(entry);
+                var panel = new StackPanel();
+                panel.Children.Add(empty);
+                panel.Children.Add(row);
+                window = Show(panel);
+                Assert.Empty(LogicalQuery.SelfAndDescendants<TextBlock>(empty));
+                Assert.Empty(LogicalQuery.SelfAndDescendants<Border>(empty));
+                before = TextNamed(row, "One");
+                entry.Item = entry.Item with { TimelineItemContent = Steps(("One", TodoStep.Status.Done), ("Two", TodoStep.Status.Active)) };
+            });
+            runtime.OnMain(() =>
+            {
+                Settle(window!);
+                Assert.Contains("1 of 2 done", Texts(row!));
+                Assert.Same(before, TextNamed(row!, "One"));
+                Assert.Equal(["checklist", "checkmark.circle.fill", "circle.dotted.circle"], Symbols(row!));
+                Close(window!);
+            });
+        });
+    }
+
+    // ---------------------------------------------------------------- PR-CHAT-115 NoticeRow
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-115")] // App/Views/Chat/TimelineRows.swift:2388-2430
+    public void An_info_notice_is_a_bare_line_of_secondary_selectable_text()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var runtime = new TestRuntime();
+            runtime.OnMain(() =>
+            {
+                var row = new NoticeRow(NoticeEntry(Notice.Level.Info, "Context compacted"));
+                var window = Show(row);
+                var glyph = LogicalQuery.SelfAndDescendants<SwiftImage>(row).Single();
+                Assert.Equal("info.circle", glyph.SymbolName);
+                Assert.Equal(Resolved(SwiftColor.Secondary, glyph), BrushColor(glyph.Foreground));
+                var message = Assert.Single(LogicalQuery.SelfAndDescendants<SelectableTextBlock>(row));
+                Assert.Equal("Context compacted", message.Text);
+                Assert.Equal(Resolved(SwiftColor.Secondary, message), BrushColor(message.Foreground));
+                Assert.Equal(FontSize(ChatFont.Chat(SwiftFont.TextStyle.Callout)), message.FontSize);
+                var pill = LogicalQuery.SelfAndDescendants<Border>(row).First();
+                Assert.Equal(default, pill.Padding);
+                Assert.Equal(Resolved(SwiftColor.Clear, pill), BrushColor(pill.Background));
+                Assert.Equal(HorizontalAlignment.Stretch, pill.HorizontalAlignment);
+                Close(window);
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-115")] // App/Views/Chat/TimelineRows.swift:2388-2430
+    public void A_warning_or_error_notice_sits_in_a_full_width_pill_tinted_at_ten_percent_of_its_theme_status_colour()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var runtime = new TestRuntime();
+            runtime.OnMain(() =>
+            {
+                var warning = new NoticeRow(NoticeEntry(Notice.Level.Warning, "Low on context"));
+                var error = new NoticeRow(NoticeEntry(Notice.Level.Error, "The provider failed"));
+                var panel = new StackPanel();
+                panel.Children.Add(warning);
+                panel.Children.Add(error);
+                var window = Show(panel);
+                foreach (var (row, symbol, color, text) in new[] { (warning, "exclamationmark.triangle", ChromeTokens.Warning, "Low on context"), (error, "exclamationmark.octagon", ChromeTokens.Danger, "The provider failed") })
+                {
+                    var glyph = LogicalQuery.SelfAndDescendants<SwiftImage>(row).Single();
+                    Assert.Equal(symbol, glyph.SymbolName);
+                    Assert.Equal(Resolved(color, glyph), BrushColor(glyph.Foreground));
+                    var message = LogicalQuery.SelfAndDescendants<SelectableTextBlock>(row).Single();
+                    Assert.Equal(text, message.Text);
+                    Assert.Equal(Resolved(SwiftColor.Primary, message), BrushColor(message.Foreground));
+                    var pill = LogicalQuery.SelfAndDescendants<Border>(row).First();
+                    Assert.Equal(new Thickness(TimelineMetrics.PillLeading, TimelineMetrics.PillVertical, TimelineMetrics.PillTrailing, TimelineMetrics.PillVertical), pill.Padding);
+                    Assert.Equal(Resolved(color.Opacity(0.1), pill), BrushColor(pill.Background));
+                    Assert.Equal(new CornerRadius(TimelineMetrics.PillRadius), pill.CornerRadius);
+                    Assert.Equal(HorizontalAlignment.Stretch, pill.HorizontalAlignment);
+                }
+                Close(window);
+            });
+        });
+    }
+
+    // ---------------------------------------------------------------- PR-CHAT-116 TurnEndRow
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-116")] // App/Views/Chat/TimelineRows.swift:2448-2455; UI/Common/Components.swift:36-41
+    public void The_turn_end_line_reads_Worked_for_Stopped_after_or_Failed_after_and_the_formatted_duration()
+    {
+        var turn = System.Guid.NewGuid();
+        Assert.Equal("Worked for 1m 4s", TurnEndRow.Label(Summary(turn, 64)));
+        Assert.Equal("Worked for 5s", TurnEndRow.Label(Summary(turn, 5) with { Status = TurnStatus.Running }));
+        Assert.Equal("Stopped after 59s", TurnEndRow.Label(Summary(turn, 59) with { Status = TurnStatus.Interrupted }));
+        Assert.Equal("Failed after 2h 15m", TurnEndRow.Label(Summary(turn, 8100) with { Status = TurnStatus.Failed }));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-116")] // App/Views/Chat/TimelineRows.swift:2439-2445
+    public void The_standalone_turn_end_line_shows_only_when_the_turn_produced_no_reply()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var runtime = new TestRuntime();
+            runtime.OnMain(() =>
+            {
+                var turn = System.Guid.NewGuid();
+                var silent = new TurnEndRow(Summary(turn, 64), hasReply: false);
+                var replied = new TurnEndRow(Summary(turn, 64), hasReply: true);
+                var panel = new StackPanel();
+                panel.Children.Add(silent);
+                panel.Children.Add(replied);
+                var window = Show(panel);
+                var line = TextNamed(silent, "Worked for 1m 4s");
+                Assert.Equal(FontSize(ChatFont.Chat(SwiftFont.TextStyle.Caption)), line.FontSize);
+                Assert.Equal(Resolved(ChromeTokens.SecondaryText, line), BrushColor(line.Foreground));
+                Assert.Equal(HorizontalAlignment.Stretch, line.HorizontalAlignment);
+                Assert.Empty(LogicalQuery.SelfAndDescendants<TextBlock>(replied));
+                Close(window);
+            });
+        });
+    }
+
+    // ---------------------------------------------------------------- PR-CHAT-123 reveal call sites
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-123")] // App/Views/Chat/TimelineRows.swift:1473, :1527-1528, :1697-1698
+    public void The_reveal_fires_only_on_open_outside_the_work_groups_animation_and_inside_the_steps_and_the_tool_rows()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+            var reveals = new List<(string Site, bool Animated)>();
+            var follows = 0;
+            var site = "";
+            var showsAll = false;
+            WorkGroup? group = null;
+            ToolRow? tool = null;
+            AvaloniaWindow? window = null;
+            h.Main.OnMain(() =>
+            {
+                group = new WorkGroup(new ValueList<TimelineEntry>([ToolEntry(Call(ToolCall.Kind.Edit, "Edit a")), ToolEntry(Call(ToolCall.Kind.Command, "ls"))]), h.Runtime, startsCollapsed: true);
+                var three = new ValueList<TimelineEntry>([ToolEntry(Call(ToolCall.Kind.Read, "Read a")), ToolEntry(Call(ToolCall.Kind.Read, "Read b")), ToolEntry(Call(ToolCall.Kind.Read, "Read c"))]);
+                var steps = new WorkSteps(three, h.Runtime, new Binding<bool>(() => showsAll, value => showsAll = value));
+                tool = ToolRowFor(h.Runtime, Call(ToolCall.Kind.Command, "ls") with { Detail = "details" });
+                var host = new StackPanel();
+                host.Children.Add(group);
+                host.Children.Add(steps);
+                host.Children.Add(tool);
+                ThreadTimeline.SetRevealTimelineEnd(host, new TimelineRevealBox
+                {
+                    Action = () => reveals.Add((site, Transaction.Current is not null)),
+                    Follow = () => follows++,
+                });
+                window = Show(host);
+                site = "group";
+                Click(LogicalQuery.SelfAndDescendants<Button>(group).First());
+                site = "steps";
+                Click(LogicalQuery.SelfAndDescendants<Button>(steps).Single(button => Texts(button).Contains("1 earlier step")));
+                site = "tool";
+                Click(LogicalQuery.SelfAndDescendants<Button>(tool).Single());
+            });
+            h.Main.OnMain(() =>
+            {
+                // Closing never reveals.
+                site = "closing";
+                Click(LogicalQuery.SelfAndDescendants<Button>(group!).First());
+                Click(LogicalQuery.SelfAndDescendants<Button>(tool!).First());
+            });
+            h.Main.OnMain(() =>
+            {
+                Assert.Equal([("group", false), ("steps", true), ("tool", true)], reveals);
+                Assert.Equal(0, follows);
+                Close(window!);
+            });
+        });
+    }
+
+    // ---------------------------------------------------------------- PR-CHAT-143 to 146 HydraReportRow
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-143")] // App/Views/Chat/TimelineRows.swift:340-373
+    public void A_heads_report_pill_names_who_is_done_and_names_a_failed_or_stopped_head_with_its_outcome()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var runtime = new TestRuntime();
+            using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+            runtime.OnMain(() =>
+            {
+                string Title(UserMessage message)
+                {
+                    var row = new HydraReportRow(message);
+                    var window = Show(row);
+                    var title = LogicalQuery.SelfAndDescendants<TextBlock>(row).Single(block => block.MaxLines == 1).Text!;
+                    Close(window);
+                    return title;
+                }
+                Assert.Equal("Hank is done", Title(Report("## Hank: tidy\nall good", 0)));
+                Assert.Equal("Hank and Walter are done", Title(Report("## Hank: tidy\n## Walter: build", 0, 1)));
+                Assert.Equal("Hank, Walter and Ada are done", Title(Report("## Hank: a\n## Walter: b\n## Ada: c", 0, 1, 2)));
+                Assert.Equal("Hank and Ada are done, Walter failed", Title(Report("## Hank: a\n## Walter: b (Failed: tests)\n## Ada: c", 0, 1, 2)));
+                Assert.Equal("Ada stopped", Title(Report("  ## Ada: c (stopped by you)", 2)));
+                // The outcome marker needs its opening parenthesis, and is read from the colon on.
+                Assert.Equal("Hank is done", Title(Report("## Hank: failed once, fixed", 0)));
+                // :350-351 one line, capped at 140 characters.
+                var many = Enumerable.Range(0, 25).Select(i => (long)i).ToArray();
+                var names = many.Select(i => HydraRoster.Persona(i).Name).ToList();
+                var full = string.Join(", ", names.Take(24)) + " and " + names[24] + " are done";
+                Assert.True(full.Length > 140);
+                Assert.Equal(full[..139] + "\U00002026", Title(Report("report", many))); // U+2026 HORIZONTAL ELLIPSIS
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-143")] // App/Views/Chat/TimelineRows.swift:258-329
+    public void A_heads_report_pill_overlaps_the_heads_glyphs_and_sits_in_the_tinted_pill_with_96_points_clear_on_the_trailing_side()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var runtime = new TestRuntime();
+            using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+            runtime.OnMain(() =>
+            {
+                var row = new HydraReportRow(Report("## Hank: a\nbody\n## Walter: b\nbody", 0, 1));
+                var window = Show(row);
+                var glyphs = LogicalQuery.SelfAndDescendants<HydraGlyph>(row).ToList();
+                Assert.Equal(["Hank", "Walter"], glyphs.Select(glyph => glyph.Persona.Name));
+                Assert.All(glyphs, glyph => Assert.Equal(18, glyph.Size));
+                Assert.Equal(-4, Assert.IsType<StackPanel>(glyphs[0].Parent).Spacing);
+                Assert.Empty(LogicalQuery.SelfAndDescendants<HydraMarkImage>(row));
+                var title = TextNamed(row, "Hank and Walter are done");
+                Assert.Equal(FontSize(ChatFont.Chat(SwiftFont.TextStyle.Callout, SwiftFont.Weight.Medium)), title.FontSize);
+                Assert.Equal(Resolved(ChromeTokens.PrimaryText.Opacity(0.9), title), BrushColor(title.Foreground));
+                Assert.Equal(TextTrimming.CharacterEllipsis, title.TextTrimming);
+                var chevron = LogicalQuery.SelfAndDescendants<SwiftImage>(row).Single(image => image.SymbolName == "chevron.right");
+                Assert.Equal(Resolved(ChromeTokens.SecondaryText, chevron), BrushColor(chevron.Foreground));
+                var button = LogicalQuery.SelfAndDescendants<Button>(row).Single();
+                Assert.True(button.IsEnabled);
+                Assert.Equal("Show the message", ToolTip.GetTip(button));
+                var pill = LogicalQuery.SelfAndDescendants<Border>(row).First(border => border.Padding == new Thickness(TimelineMetrics.PillLeading, TimelineMetrics.PillVertical, TimelineMetrics.PillTrailing, TimelineMetrics.PillVertical));
+                Assert.Equal(Resolved(ChromeTokens.Accent.Opacity(0.1), pill), BrushColor(pill.Background));
+                Assert.Equal(new CornerRadius(TimelineMetrics.PillRadius), pill.CornerRadius);
+                Assert.Equal(HorizontalAlignment.Left, pill.HorizontalAlignment);
+                Assert.Equal(new Thickness(0, 0, 96, 0), row.Padding);
+                Assert.Equal("Hank and Walter are done", AutomationProperties.GetName(row));
+                Close(window);
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-143")] // App/Views/Chat/TimelineRows.swift:248-250, :264-268, :288-292, :332-334
+    public void A_note_from_Hydra_shows_its_first_line_less_one_stop_beside_the_mark_and_with_nothing_behind_it_is_disabled_with_no_tip()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var runtime = new TestRuntime();
+            runtime.OnMain(() =>
+            {
+                Assert.Equal("Held the heads back", HydraReportRow.WithoutTrailingStop("Held the heads back."));
+                Assert.Equal("Wait..", HydraReportRow.WithoutTrailingStop("Wait..."));
+                Assert.Equal("No stop", HydraReportRow.WithoutTrailingStop("No stop"));
+                var note = new HydraReportRow(Report("Held the heads back.\n\n  The lead is busy.  ", []) with { HydraHeads = null });
+                var bare = new HydraReportRow(Report("Just a title.") with { HydraHeads = ValueList<long>.Empty });
+                var panel = new StackPanel();
+                panel.Children.Add(note);
+                panel.Children.Add(bare);
+                var window = Show(panel);
+                Assert.Contains("Held the heads back", Texts(note));
+                var mark = Assert.Single(LogicalQuery.SelfAndDescendants<HydraMarkImage>(note));
+                Assert.Equal(18, mark.Width);
+                Assert.Equal(18, mark.Height);
+                Assert.Equal(Resolved(ChromeTokens.SecondaryText, mark), BrushColor(LogicalQuery.SelfAndDescendants<SwiftImage>(mark).Single().Foreground));
+                Assert.Empty(LogicalQuery.SelfAndDescendants<HydraGlyph>(note));
+                var noteButton = LogicalQuery.SelfAndDescendants<Button>(note).Single();
+                Assert.True(noteButton.IsEnabled);
+                Assert.Equal("Show the message", ToolTip.GetTip(noteButton));
+                Assert.Contains("chevron.right", Symbols(note));
+                // Nothing behind the title: a disabled control, no chevron and no tooltip at all.
+                Assert.Contains("Just a title", Texts(bare));
+                var bareButton = LogicalQuery.SelfAndDescendants<Button>(bare).Single();
+                Assert.False(bareButton.IsEnabled);
+                Assert.Null(ToolTip.GetTip(bareButton));
+                Assert.DoesNotContain("chevron.right", Symbols(bare));
+                // An empty note reads Hydra.
+                var empty = new HydraReportRow(Report("") with { HydraHeads = null });
+                var emptyWindow = Show(empty);
+                Assert.Contains("Hydra", Texts(empty));
+                Close(emptyWindow);
+                Close(window);
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-143")] // App/Views/Chat/TimelineRows.swift:257-261, :293-303, :607-639
+    public void Tapping_a_notes_pill_opens_the_note_in_the_report_popover()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var runtime = new TestRuntime();
+            using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+            var presenter = new RecordingPresenter();
+            using var seam = Presentation.Presenter.Override(presenter);
+            HydraReportRow? row = null;
+            AvaloniaWindow? window = null;
+            runtime.OnMain(() =>
+            {
+                row = new HydraReportRow(Report("Held back.\n" + CodeOnlyReply) with { HydraHeads = null });
+                window = ShowForPopover(row);
+                Click(LogicalQuery.SelfAndDescendants<Button>(row).Single());
+            });
+            runtime.OnMain(() =>
+            {
+                Settle(window!);
+                var shown = Assert.Single(presenter.Calls, call => call.Presented);
+                var popover = Assert.Single(LogicalQuery.SelfAndDescendants<HydraReportPopover>(shown.Popup.Child!));
+                Assert.Equal(460, popover.Width);
+                Close(window!);
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-144")] // App/Views/Chat/TimelineRows.swift:375-387
+    public void A_leading_address_is_a_first_line_of_http_or_https_and_nothing_else_and_the_rest_is_the_body_past_it()
+    {
+        Assert.Equal("https://gitlab.com/g/p/-/merge_requests/7", HydraReportRow.LeadingURL("https://gitlab.com/g/p/-/merge_requests/7\nMerged.")!.AbsoluteString);
+        Assert.NotNull(HydraReportRow.LeadingURL("HTTP://Example.com/x"));
+        Assert.Equal("https://x.example/a", HydraReportRow.LeadingURL("  https://x.example/a \t\nrest")!.AbsoluteString);
+        Assert.Null(HydraReportRow.LeadingURL("https://x.example/a and more\nrest"));
+        Assert.Null(HydraReportRow.LeadingURL("ftp://x.example/a"));
+        Assert.Null(HydraReportRow.LeadingURL("see https://x.example/a"));
+        Assert.Null(HydraReportRow.LeadingURL(""));
+        Assert.Equal("Merged.\n\nAll four heads.", HydraReportRow.WithoutFirstLine("https://x.example/a\n  Merged.\n\nAll four heads.  \n"));
+        Assert.Equal("", HydraReportRow.WithoutFirstLine("https://x.example/a"));
+        Assert.Equal("b", HydraReportRow.WithoutFirstLine("a\r\nb"));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-144")] // App/Views/Chat/TimelineRows.swift:252-257, :304-311
+    public void A_note_that_leads_with_an_address_gets_an_Open_link_beside_the_pill_that_opens_it_in_the_browser()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var runtime = new TestRuntime();
+            var opened = new List<string>();
+            using var browser = Marrow.Services.Port.Workspace.Open.Override(url => { opened.Add(url.AbsoluteString); return true; });
+            runtime.OnMain(() =>
+            {
+                var linkOnly = new HydraReportRow(Report("Hydra merged the team's work.\nhttps://gitlab.com/g/p/-/merge_requests/7") with { HydraHeads = null });
+                var withMore = new HydraReportRow(Report("Hydra merged the team's work.\nhttps://gitlab.com/g/p/-/merge_requests/7\nThree heads landed.") with { HydraHeads = null });
+                var panel = new StackPanel();
+                panel.Children.Add(linkOnly);
+                panel.Children.Add(withMore);
+                var window = Show(panel);
+                var buttons = LogicalQuery.SelfAndDescendants<Button>(linkOnly).ToList();
+                Assert.Equal(2, buttons.Count);
+                var open = buttons.Single(button => Texts(button).Contains("Open"));
+                Assert.Equal("Open in the browser", ToolTip.GetTip(open));
+                var word = TextNamed(open, "Open");
+                Assert.Equal(FontSize(ChatFont.Chat(SwiftFont.TextStyle.Caption, SwiftFont.Weight.Semibold)), word.FontSize);
+                Assert.Equal(Resolved(ChromeTokens.SecondaryText, word), BrushColor(word.Foreground));
+                // The link is a sibling of the pill's button, never inside it.
+                var pillButton = buttons.Single(button => !ReferenceEquals(button, open));
+                Assert.DoesNotContain(open, LogicalQuery.SelfAndDescendants<Button>(pillButton));
+                // A note that is nothing but an address has no popover.
+                Assert.False(pillButton.IsEnabled);
+                Assert.DoesNotContain("chevron.right", Symbols(linkOnly));
+                Assert.Contains("chevron.right", Symbols(withMore));
+                Assert.True(LogicalQuery.SelfAndDescendants<Button>(withMore).Single(button => !Texts(button).Contains("Open")).IsEnabled);
+                Click(open);
+                Assert.Equal(["https://gitlab.com/g/p/-/merge_requests/7"], opened);
+                Close(window);
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-145")] // App/Views/Chat/TimelineRows.swift:317-324
+    public void A_reports_markdown_is_warmed_as_the_pill_appears_per_head_for_a_batch()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+            var nonce = System.Guid.NewGuid().ToString("N");
+            var note = "Held back.\n```\nnote " + nonce + "\n```";
+            var noteBody = "```\nnote " + nonce + "\n```";
+            var batch = "## Hank: a\n```\nhank " + nonce + "\n```\n## Walter: b\n```\nwalter " + nonce + "\n```";
+            var heads = HydraReportDigest.Parse(batch).Heads.Select(head => head.Body).ToList();
+            AvaloniaWindow? window = null;
+            h.Main.OnMain(() =>
+            {
+                Assert.Equal(2, heads.Count);
+                Assert.Equal([noteBody], MarkdownView.WarmTexts([noteBody]));
+                Assert.Equal(heads, MarkdownView.WarmTexts(heads));
+                var panel = new StackPanel();
+                panel.Children.Add(new HydraReportRow(Report(note) with { HydraHeads = null }));
+                panel.Children.Add(new HydraReportRow(Report(batch, 0, 1)));
+                window = Show(panel);
+            });
+            h.Main.Loop.RunUntil(() => MarkdownView.WarmTexts([noteBody, .. heads]).Count == 0, AppModelHarness.Bound);
+            h.Main.OnMain(() =>
+            {
+                // The batch warmed head by head, not as one text.
+                Assert.Equal([batch], MarkdownView.WarmTexts([batch]));
+                Close(window!);
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-146")] // App/Views/Chat/TimelineRows.swift:607-639
+    public void The_report_popover_is_460_wide_with_a_460_point_scroller_at_the_callout_style_with_12_point_markdown()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var runtime = new TestRuntime();
+            runtime.OnMain(() =>
+            {
+                const string text = "```\none\n```\n\n```\ntwo\n```";
+                var popover = new HydraReportPopover(text);
+                var window = Show(popover);
+                Assert.Equal(460, popover.Width);
+                var scroll = Assert.Single(LogicalQuery.SelfAndDescendants<PopoverScroll>(popover));
+                Assert.True(LogicalQuery.SelfAndDescendants<ScrollViewer>(scroll).Single().Height <= 460);
+                var blocks = LogicalQuery.SelfAndDescendants<MarkdownBlockView>(popover).ToList();
+                Assert.Equal(MarkdownView.Blocks(text).Count, blocks.Count);
+                var stack = Assert.IsType<StackPanel>(blocks[0].Parent);
+                Assert.Equal(10, stack.Spacing);
+                Assert.Equal(12, MarkdownView.GetMarkdownPointSize(blocks[0]));
+                Assert.False(MarkdownView.GetMarkdownDimmed(blocks[0]));
+                Assert.Equal(FontSize(SwiftFont.System(SwiftFont.TextStyle.Callout)), TextElement.GetFontSize(stack));
+                Assert.Equal(new Thickness(16, 14), Assert.IsAssignableFrom<Decorator>(stack.Parent).Padding);
+                Assert.Equal(300, new HydraReportPopover(text, width: 300).Width);
+                Close(window);
+            });
+        });
+    }
+
+    // ---------------------------------------------------------------- PR-CHAT-147 HydraBriefRow
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-147")] // App/Views/Chat/TimelineRows.swift:537-595
+    public void A_brief_reads_as_cooking_until_its_turn_has_output_and_then_as_the_brief()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+            using var genie = ChromeTokens.ReduceMotionPlatform.Override(new FakeGeniePlatform());
+            HydraBriefRow? row = null;
+            AvaloniaWindow? window = null;
+            h.Main.Loop.Run(() => h.Runtime.EnsureLoaded(), AppModelHarness.Bound);
+            h.Main.OnMain(() =>
+            {
+                h.Runtime.RehearseTurn("Build the thing");
+                var entry = h.Runtime.Entries.Last(candidate => candidate.TimelineEntryKind == TimelineEntry.Kind.User);
+                var message = ((TimelineItem.Content.User)entry.Item.TimelineItemContent).Value;
+                row = new HydraBriefRow(message, entry, h.Runtime);
+                window = Show(row);
+                var title = TextNamed(row, "Hank is starting to cook\U00002026"); // U+2026 HORIZONTAL ELLIPSIS
+                Assert.Equal(FontSize(ChatFont.Chat(SwiftFont.TextStyle.Callout, SwiftFont.Weight.Medium)), title.FontSize);
+                Assert.Equal(Resolved(ChromeTokens.PrimaryText.Opacity(0.9), title), BrushColor(title.Foreground));
+                Assert.True(Assert.Single(LogicalQuery.SelfAndDescendants<HydraGlyph>(row)).IsRunning);
+                var button = LogicalQuery.SelfAndDescendants<Button>(row).Single();
+                Assert.Equal("Show the brief", ToolTip.GetTip(button));
+                Assert.False(button.Focusable);
+                Assert.Equal("Hank is starting to cook\U00002026", AutomationProperties.GetName(button)); // U+2026 HORIZONTAL ELLIPSIS
+                Assert.Equal(HorizontalAlignment.Right, LogicalQuery.SelfAndDescendants<StackPanel>(row).First().HorizontalAlignment);
+                Assert.Equal(new Thickness(96, 0, 0, 0), row.Padding);
+                h.Runtime.Rehearse(new ProviderEvent.ToolStarted("tool-1", Call(ToolCall.Kind.Read, "Read a", ToolCall.Status.Running)));
+            });
+            h.Main.OnMain(() =>
+            {
+                Settle(window!);
+                Assert.Contains("Hank's brief", Texts(row!));
+                Assert.False(Assert.Single(LogicalQuery.SelfAndDescendants<HydraGlyph>(row!)).IsRunning);
+                Close(window!);
+            });
+        });
+    }
+
+    // ---------------------------------------------------------------- PR-CHAT-148 HydraShimmer
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-148")] // App/Views/Chat/TimelineRows.swift:480-520
+    public void The_shimmer_is_a_band_a_third_as_wide_as_the_text_masked_to_it_and_nothing_under_reduced_motion()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var runtime = new TestRuntime();
+            using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+            var genie = new FakeGeniePlatform();
+            using var reduce = ChromeTokens.ReduceMotionPlatform.Override(genie);
+            runtime.OnMain(() =>
+            {
+                var plain = new TextBlock { Text = "Merging" };
+                genie.AccessibilityDisplayShouldReduceMotion = true;
+                Assert.Same(plain, new HydraShimmer().Body(plain));
+                genie.AccessibilityDisplayShouldReduceMotion = false;
+                var text = new TextBlock { Text = "Pushing the branch", Width = 150 };
+                var shimmer = new HydraShimmer().Body(text);
+                var window = Show(shimmer);
+                var band = LogicalQuery.SelfAndDescendants<Border>(shimmer).Single(border => border.Background is LinearGradientBrush);
+                Assert.Equal(50, band.Width);
+                var gradient = (LinearGradientBrush)band.Background!;
+                Assert.Equal([0.0, 0.5, 1.0], gradient.GradientStops.Select(stop => stop.Offset));
+                Assert.Equal(
+                    [Resolved(ChromeTokens.PrimaryText.Opacity(0), band), Resolved(ChromeTokens.PrimaryText.Opacity(0.9), band), Resolved(ChromeTokens.PrimaryText.Opacity(0), band)],
+                    gradient.GradientStops.Select(stop => stop.Color));
+                var layer = (Control)band.Parent!;
+                Assert.False(layer.IsHitTestVisible);
+                Assert.Same(text, Assert.IsType<VisualBrush>(layer.OpacityMask).Visual);
+                // A narrow text still gets a 24-point band.
+                var narrow = new TextBlock { Text = "Go", Width = 30 };
+                var small = new HydraShimmer().Body(narrow);
+                var smallWindow = Show(small);
+                Assert.Equal(24, LogicalQuery.SelfAndDescendants<Border>(small).Single(border => border.Background is LinearGradientBrush).Width);
+                Close(smallWindow);
+                Close(window);
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-117")] // App/Views/Chat/TimelineRows.swift:499-512
+    [Trait("Oracle", "O-34")]
+    public void The_shimmer_band_is_offset_by_the_reference_time_modulo_one_point_eight_seconds_at_each_thirtieth_of_a_second()
+    {
+        // Rests on ED-117 (3), the date an animation timeline passes at a frame (O-34), so no Req trait.
+        headless.OnUiThread(() =>
+        {
+            using var runtime = new TestRuntime();
+            var frames = new ManualFrameSource();
+            using var frameSeam = FrameClock.Source.Override(frames);
+            using var reduce = ChromeTokens.ReduceMotionPlatform.Override(new FakeGeniePlatform());
+            Control? shimmer = null;
+            AvaloniaWindow? window = null;
+            double Expected()
+            {
+                var phase = SwiftDate.ReferenceSeconds(SwiftDate.Now) % 1.8 / 1.8;
+                return -50 + phase * (150 + 50);
+            }
+            double Offset() => Assert.IsType<TranslateTransform>(LogicalQuery.SelfAndDescendants<Border>(shimmer!).Single(border => border.Background is LinearGradientBrush).RenderTransform).X;
+            runtime.OnMain(() =>
+            {
+                var text = new TextBlock { Text = "Pushing the branch", Width = 150 };
+                shimmer = new HydraShimmer().Body(text);
+                window = Show(shimmer);
+                Assert.Equal(Expected(), Offset(), 6);
+            });
+            runtime.AdvanceMilliseconds(700);
+            frames.Advance(System.TimeSpan.FromMilliseconds(700));
+            runtime.OnMain(() =>
+            {
+                Assert.Equal(Expected(), Offset(), 6);
+                Close(window!);
+            });
+        });
+    }
+
+    // ---------------------------------------------------------------- PR-CHAT-149 HydraDelegationBlock
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-149")] // App/Views/Chat/TimelineRows.swift:652-707, :745-753
+    public void The_delegation_card_says_Summoning_heads_while_streaming_then_names_the_count_or_the_one_head()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var runtime = new TestRuntime();
+            using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+            runtime.OnMain(() =>
+            {
+                const string hank = "{\"task\": \"Tidy the popover\", \"prompt\": \"Tidy it.\", \"name\": \"Hank\"}";
+                const string anon = "{\"task\": \"Write tests\", \"prompt\": \"Write them.\"}";
+                string[] Words(string json, bool sent = false)
+                {
+                    var block = new HydraDelegationBlock(json, sent);
+                    var window = Show(block);
+                    var words = Texts(block);
+                    Close(window);
+                    return words;
+                }
+                // Streaming: the first brief has closed, the block has not.
+                var streaming = Words("[\n" + hank + ",\n{\"task\": \"Wri");
+                Assert.Equal("Summoning heads", streaming[0]);
+                Assert.Contains("Tidy the popover", streaming);
+                Assert.Contains("Writing the next brief\U00002026", streaming); // U+2026 HORIZONTAL ELLIPSIS
+                Assert.Equal(["Summoning heads"], Words("[\n{\"task\": \"a"));
+                Assert.Equal(["Summoning heads"], Words("not json at all"));
+                Assert.Equal("Summoning Hank", Words("[\n" + hank + "\n]")[0]);
+                Assert.Equal("Summoning a head", Words("[\n" + anon + "\n]")[0]);
+                Assert.Equal("Summoning 2 heads", Words("[\n" + hank + ",\n" + anon + "\n]")[0]);
+                Assert.Equal("Summoned 2 heads", Words("[\n" + hank + ",\n" + anon + "\n]", sent: true)[0]);
+                Assert.DoesNotContain("Writing the next brief\U00002026", Words("[\n" + hank + ",\n" + anon + "\n]")); // U+2026 HORIZONTAL ELLIPSIS
+                // Sent while still streaming: the block is done being written.
+                Assert.Equal("Summoned Hank", Words("[\n" + hank + ",\n{\"ta", sent: true)[0]);
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-149")] // App/Views/Chat/TimelineRows.swift:652-741, :762-766
+    public void The_delegation_card_lists_each_head_with_its_glyph_task_and_other_project_and_once_sent_checks_and_sweeps()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var runtime = new TestRuntime();
+            using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+            runtime.OnMain(() =>
+            {
+                const string json = "[\n{\"task\": \"Tidy the popover\", \"prompt\": \"p\", \"name\": \"Walter\", \"project\": \"/Users/me/code/website\"},\n{\"task\": \"Write tests\", \"prompt\": \"p\", \"project\": \"docs\"}\n]";
+                var block = new HydraDelegationBlock(json, sent: true);
+                var window = Show(block);
+                var marks = LogicalQuery.SelfAndDescendants<HydraMarkImage>(block).ToList();
+                Assert.Equal(2, marks.Count);
+                Assert.All(marks, mark => Assert.Equal(16, mark.Width));
+                Assert.All(marks, mark => Assert.Equal(Resolved(ChromeTokens.SecondaryText, mark), BrushColor(LogicalQuery.SelfAndDescendants<SwiftImage>(mark).Single().Foreground)));
+                var glyph = Assert.Single(LogicalQuery.SelfAndDescendants<HydraGlyph>(block));
+                Assert.Equal("Walter", glyph.Persona.Name);
+                Assert.Equal(16, glyph.Size);
+                var task = TextNamed(block, "Tidy the popover");
+                Assert.Equal(FontSize(ChatFont.Chat(SwiftFont.TextStyle.Caption)), task.FontSize);
+                Assert.Equal(Resolved(ChromeTokens.PrimaryText.Opacity(0.75), task), BrushColor(task.Foreground));
+                var project = TextNamed(block, "website");
+                Assert.Contains("docs", Texts(block));
+                var tag = (Control)project.Parent!;
+                Assert.Equal("in website", AutomationProperties.GetName(tag));
+                Assert.Equal(2, tag.Margin.Left);
+                Assert.Contains("arrow.right", Symbols(tag));
+                Assert.Equal(FontSize(ChatFont.Chat(SwiftFont.TextStyle.Caption2, SwiftFont.Weight.Medium)), project.FontSize);
+                var title = TextNamed(block, "Summoned 2 heads");
+                Assert.Equal(FontSize(ChatFont.Chat(SwiftFont.TextStyle.Callout, SwiftFont.Weight.Medium)), title.FontSize);
+                var check = LogicalQuery.SelfAndDescendants<SwiftImage>(block).Single(image => image.SymbolName == "checkmark.circle.fill");
+                Assert.Equal("sent", AutomationProperties.GetName(check));
+                Assert.Single(LogicalQuery.SelfAndDescendants<DotFieldSweep>(block));
+                var pill = LogicalQuery.SelfAndDescendants<Border>(block).First(border => border.Padding == new Thickness(TimelineMetrics.PillLeading, TimelineMetrics.PillVertical, TimelineMetrics.PillTrailing, TimelineMetrics.PillVertical));
+                Assert.Equal(Resolved(ChromeTokens.Accent.Opacity(0.1), pill), BrushColor(pill.Background));
+                Close(window);
+
+                var unsent = new HydraDelegationBlock(json);
+                var unsentWindow = Show(unsent);
+                Assert.DoesNotContain("checkmark.circle.fill", Symbols(unsent));
+                Assert.Empty(LogicalQuery.SelfAndDescendants<DotFieldSweep>(unsent));
+                Close(unsentWindow);
+            });
+        });
+    }
+
+    // ---------------------------------------------------------------- PR-CHAT-150, 151 merge pill and track
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-150")] // App/Views/Chat/TimelineRows.swift:937-1019, :1044-1094; Core/Models/Hydra.swift:509-529
+    public void The_merge_pill_shows_the_stage_under_way_with_an_ellipsis_and_goes_once_the_merge_is_over_without_a_note()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+            using var genie = ChromeTokens.ReduceMotionPlatform.Override(new FakeGeniePlatform());
+            HydraMergeRow? row = null;
+            AvaloniaWindow? window = null;
+            h.Main.OnMain(() =>
+            {
+                h.Runtime.IsHydraMerging = true;
+                h.Runtime.HydraMergeStep = HydraMergeStage.Pushing;
+                h.Runtime.HydraMergeStage = HydraMergeStage.Pushing.Words;
+                row = new HydraMergeRow(h.Runtime, new HydraMergePhase.Merging());
+                window = Show(row);
+                Assert.Contains("Pushing the branch\U00002026", Texts(row)); // U+2026 HORIZONTAL ELLIPSIS
+                var pill = LogicalQuery.SelfAndDescendants<Border>(row).Single(border => AutomationProperties.GetName(border) is not null);
+                Assert.Equal("Merging the team's work: Pushing the branch\U00002026", AutomationProperties.GetName(pill)); // U+2026 HORIZONTAL ELLIPSIS
+                Assert.Equal(new Thickness(TimelineMetrics.PillLeading, TimelineMetrics.PillVertical, TimelineMetrics.PillTrailing, TimelineMetrics.PillVertical), pill.Padding);
+                Assert.Equal(Resolved(ChromeTokens.Accent.Opacity(0.1), pill), BrushColor(pill.Background));
+                var body = Assert.Single(LogicalQuery.SelfAndDescendants<HydraMergeTrackBody>(row));
+                Assert.Equal(3, body.AnimatableData.Position);
+                Assert.DoesNotContain(Texts(row), text => text.Contains("Open", System.StringComparison.Ordinal));
+                h.Runtime.HydraMergeStage = null;
+            });
+            h.Main.OnMain(() =>
+            {
+                Settle(window!);
+                Assert.Contains("Merging\U00002026", Texts(row!)); // U+2026 HORIZONTAL ELLIPSIS
+                h.Runtime.IsHydraMerging = false;
+            });
+            h.Main.OnMain(() =>
+            {
+                Settle(window!);
+                Assert.Empty(LogicalQuery.SelfAndDescendants<HydraMergeTrack>(row!));
+                Assert.Empty(Texts(row!));
+                Close(window!);
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-150")] // App/Views/Chat/TimelineRows.swift:937-952, :1020-1027, :1036-1042, :1099-1161
+    public void When_the_note_lands_the_pill_morphs_to_its_title_and_link_and_a_successful_merge_flourishes_for_1100_milliseconds()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            var frames = new ManualFrameSource();
+            using var frameSeam = FrameClock.Source.Override(frames);
+            using var genie = ChromeTokens.ReduceMotionPlatform.Override(new FakeGeniePlatform());
+            using var browser = Marrow.Services.Port.Workspace.Open.Override(_ => true);
+            HydraMergeRow? row = null;
+            AvaloniaWindow? window = null;
+            (double Position, (double Done, double Resting) Outcome) Track() => LogicalQuery.SelfAndDescendants<HydraMergeTrackBody>(row!).Single().AnimatableData;
+            h.Main.OnMain(() =>
+            {
+                h.Runtime.IsHydraMerging = true;
+                h.Runtime.HydraMergeStep = HydraMergeStage.Opening;
+                h.Runtime.HydraMergeStage = HydraMergeStage.Opening.Words;
+                row = new HydraMergeRow(h.Runtime, new HydraMergePhase.Merging());
+                window = Show(row);
+                Assert.Equal((4.0, (0.0, 0.0)), Track());
+                h.Runtime.IsHydraMerging = false;
+                h.Runtime.HydraMergeStep = null;
+                row.Update(new HydraMergePhase.Outcome(new UserMessage { Text = "Hydra merged the team's work.\nhttps://gitlab.com/g/p/-/merge_requests/7\nThree heads landed." }));
+            });
+            void Frames(double milliseconds)
+            {
+                frames.Advance(System.TimeSpan.Zero);
+                h.Main.AdvanceMilliseconds(milliseconds);
+                frames.Advance(System.TimeSpan.FromMilliseconds(milliseconds));
+            }
+            // Under 1.1 s: the outcome has landed and the flourish is still on.
+            Frames(1000);
+            h.Main.OnMain(() =>
+            {
+                Settle(window!);
+                Assert.Contains("Hydra merged the team's work", Texts(row!));
+                Assert.DoesNotContain(Texts(row!), text => text.EndsWith("…", System.StringComparison.Ordinal)); // U+2026 HORIZONTAL ELLIPSIS
+                var pill = LogicalQuery.SelfAndDescendants<Border>(row!).Single(border => AutomationProperties.GetName(border) is not null);
+                Assert.Equal("Hydra merged the team's work", AutomationProperties.GetName(pill));
+                var open = LogicalQuery.SelfAndDescendants<Button>(row!).Single(button => Texts(button).Contains("Open"));
+                Assert.Equal("Open in the browser", ToolTip.GetTip(open));
+                var title = LogicalQuery.SelfAndDescendants<Button>(row!).Single(button => Texts(button).Contains("Hydra merged the team's work"));
+                Assert.Equal("Show the message", ToolTip.GetTip(title));
+                Assert.Contains("chevron.right", Symbols(title));
+                // :1036-1042 done: the head on the last dot, every dot lit, not yet settled.
+                Assert.Equal((6.0, (1.0, 0.0)), Track());
+            });
+            // Past 1.1 s the flourish ends and the head settles to its resting size.
+            h.Main.AdvanceMilliseconds(200);
+            Frames(2000);
+            h.Main.OnMain(() =>
+            {
+                Assert.Equal((6.0, (1.0, 1.0)), Track());
+                Close(window!);
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-150")] // App/Views/Chat/TimelineRows.swift:1020-1027
+    public void An_outcome_that_is_not_a_merge_settles_at_once_with_no_flourish_and_an_outcome_with_nothing_behind_it_is_disabled()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            var frames = new ManualFrameSource();
+            using var frameSeam = FrameClock.Source.Override(frames);
+            using var genie = ChromeTokens.ReduceMotionPlatform.Override(new FakeGeniePlatform());
+            HydraMergeRow? row = null;
+            AvaloniaWindow? window = null;
+            h.Main.OnMain(() =>
+            {
+                h.Runtime.IsHydraMerging = true;
+                row = new HydraMergeRow(h.Runtime, new HydraMergePhase.Merging());
+                window = Show(row);
+                h.Runtime.IsHydraMerging = false;
+                row.Update(new HydraMergePhase.Outcome(new UserMessage { Text = "The merge stopped." }));
+            });
+            frames.Advance(System.TimeSpan.Zero);
+            h.Main.AdvanceMilliseconds(2000);
+            frames.Advance(System.TimeSpan.FromMilliseconds(2000));
+            h.Main.OnMain(() =>
+            {
+                Settle(window!);
+                Assert.Equal((6.0, (1.0, 1.0)), LogicalQuery.SelfAndDescendants<HydraMergeTrackBody>(row!).Single().AnimatableData);
+                var title = LogicalQuery.SelfAndDescendants<Button>(row!).Single();
+                Assert.False(title.IsEnabled);
+                Assert.Null(ToolTip.GetTip(title));
+                Assert.DoesNotContain("chevron.right", Symbols(row!));
+                Close(window!);
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-151")] // App/Views/Chat/TimelineRows.swift:844-916
+    public void The_track_is_drawn_from_its_three_values_dots_lit_as_the_head_reaches_them_and_the_head_arcing_between_dots()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var runtime = new TestRuntime();
+            runtime.OnMain(() =>
+            {
+                var body = new HydraMergeTrackBody(position: 2, done: 0, rest: 0, count: 7, hops: true);
+                var window = Show(new StackPanel { Children = { body } });
+                // :868-870 seven 4-point dots 3 apart: 46 wide, 20 high.
+                Assert.Equal(46, body.Width);
+                Assert.Equal(20, body.Height);
+                var dots = LogicalQuery.SelfAndDescendants<Panel>(body).Where(panel => panel.Width == 4 && panel.Height == 4).ToList();
+                Assert.Equal(7, dots.Count);
+                Assert.Equal([0.0, 7, 14, 21, 28, 35, 42], dots.Select(Canvas.GetLeft));
+                Assert.All(dots, dot => Assert.Equal(16, Canvas.GetTop(dot)));
+                double Lit(Panel dot) => ((Control)dot.Children[1]).Opacity;
+                Assert.Equal([1.0, 1, 1, 0, 0, 0, 0], dots.Select(Lit));
+                Assert.Equal(Resolved(ChromeTokens.Overlay(0.28), dots[0]), BrushColor(((Avalonia.Controls.Shapes.Ellipse)dots[0].Children[0]).Fill));
+                Assert.Equal(Resolved(ChromeTokens.Accent, dots[0]), BrushColor(((Avalonia.Controls.Shapes.Ellipse)dots[0].Children[1]).Fill));
+                var head = Assert.Single(LogicalQuery.SelfAndDescendants<HydraMarkImage>(body));
+                Assert.Equal(12, head.Width);
+                Assert.Equal(10, Canvas.GetLeft(head), 9);
+                Assert.Equal(0, Canvas.GetTop(head), 9);
+                Assert.Equal(Resolved(ChromeTokens.SecondaryText, head), BrushColor(LogicalQuery.SelfAndDescendants<SwiftImage>(head).Single().Foreground));
+                // Half way between two dots the head is at the top of its 4-point arc; 2.7 lights the fourth dot early.
+                body.AnimatableData = (2.5, (0, 0));
+                Assert.Equal(-4, Canvas.GetTop(head), 9);
+                Assert.Equal(2.5 * 7 + 2 - 6, Canvas.GetLeft(head), 9);
+                body.AnimatableData = (2.7, (0, 0));
+                Assert.Equal([1.0, 1, 1, 1, 0, 0, 0], dots.Select(Lit));
+                // The outcome: the wave lights the dots left to right and the head pops once.
+                body.AnimatableData = (6, (0.5, 0));
+                Assert.Equal(1.18, Assert.IsType<ScaleTransform>(head.RenderTransform).ScaleX, 9);
+                body.AnimatableData = (0, (0.5625, 0));
+                Assert.Equal([1.0, 1, 1, 1, 0.5, 0, 0], dots.Select(Lit));
+                // Settled: the dots faded, the head at 18 points pinned to the leading edge, the frame shrunk to it.
+                body.AnimatableData = (6, (1, 1));
+                Assert.Equal(18, head.Width);
+                Assert.Equal(0, Canvas.GetLeft(head), 9);
+                Assert.Equal(1, Canvas.GetTop(head), 9);
+                Assert.Equal(18, body.Width);
+                Assert.All(dots, dot => Assert.Equal(0, ((Control)dot.Parent!).Opacity));
+                Assert.Equal(1, Assert.IsType<ScaleTransform>(head.RenderTransform).ScaleX, 9);
+                // Without hops (reduced motion) there is no arc and no pop.
+                var still = new HydraMergeTrackBody(position: 2.5, done: 0.5, rest: 0, count: 7, hops: false);
+                var stillWindow = Show(new StackPanel { Children = { still } });
+                var stillHead = LogicalQuery.SelfAndDescendants<HydraMarkImage>(still).Single();
+                Assert.Equal(0, Canvas.GetTop(stillHead), 9);
+                Assert.Equal(1, Assert.IsType<ScaleTransform>(stillHead.RenderTransform).ScaleX, 9);
+                Close(stillWindow);
+                Close(window);
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-151")] // App/Views/Chat/TimelineRows.swift:821-840
+    public void The_track_glides_to_a_new_step_from_where_the_head_is_and_eases_into_the_outcome()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var runtime = new TestRuntime();
+            var frames = new ManualFrameSource();
+            using var frameSeam = FrameClock.Source.Override(frames);
+            HydraMergeTrack? track = null;
+            AvaloniaWindow? window = null;
+            HydraMergeTrackBody Body() => LogicalQuery.SelfAndDescendants<HydraMergeTrackBody>(track!).Single();
+            void Frames(double milliseconds)
+            {
+                frames.Advance(System.TimeSpan.Zero);
+                runtime.AdvanceMilliseconds(milliseconds);
+                frames.Advance(System.TimeSpan.FromMilliseconds(milliseconds));
+            }
+            runtime.OnMain(() =>
+            {
+                track = new HydraMergeTrack(step: 0, count: 7, mode: HydraMergeTrack.Mode.Running);
+                window = Show(new StackPanel { Children = { track } });
+                Assert.Equal((0.0, (0.0, 0.0)), Body().AnimatableData);
+                track.Update(step: 3, count: 7, mode: HydraMergeTrack.Mode.Running);
+            });
+            Frames(100);
+            var midway = runtime.OnMain(() => Body().AnimatableData.Position);
+            Assert.InRange(midway, 0.01, 2.99);
+            // Retargeted mid-flight: the head goes on from where it is, not from the ground.
+            runtime.OnMain(() => track!.Update(step: 5, count: 7, mode: HydraMergeTrack.Mode.Running));
+            frames.Advance(System.TimeSpan.Zero);
+            Assert.InRange(runtime.OnMain(() => Body().AnimatableData.Position), midway - 0.01, 5);
+            Frames(2000);
+            Assert.Equal(5, runtime.OnMain(() => Body().AnimatableData.Position));
+            runtime.OnMain(() => track!.Update(step: 6, count: 7, mode: HydraMergeTrack.Mode.Resting));
+            Frames(2000);
+            runtime.OnMain(() =>
+            {
+                Assert.Equal((6.0, (1.0, 1.0)), Body().AnimatableData);
+                Close(window!);
+            });
+        });
+    }
+
+    // ---------------------------------------------------------------- PR-CHAT-152 finished heads
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-152")] // App/Views/Chat/TimelineRows.swift:438-476
+    public void A_finished_heads_pill_names_its_outcome_beside_its_glyph_with_the_report_one_tap_away()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var runtime = new TestRuntime();
+            using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+            runtime.OnMain(() =>
+            {
+                var failed = new FinishedHeadPill(Head(0, HydraHeadInfo.Status.Failed));
+                var stopped = new FinishedHeadPill(Head(1, HydraHeadInfo.Status.Stopped));
+                var done = new FinishedHeadPill(Head(2, HydraHeadInfo.Status.Completed));
+                var panel = new StackPanel();
+                panel.Children.Add(failed);
+                panel.Children.Add(stopped);
+                panel.Children.Add(done);
+                var window = Show(panel);
+                string Words(Control pill) => string.Concat(LogicalQuery.SelfAndDescendants<TextBlock>(pill).Single().Inlines!.OfType<Avalonia.Controls.Documents.Run>().Select(run => run.Text));
+                Assert.Equal("Hank failed", Words(failed));
+                Assert.Equal("Walter was stopped", Words(stopped));
+                Assert.Equal("Ada finished working", Words(done));
+                Assert.Equal("Hank failed", AutomationProperties.GetName(failed));
+                var runs = LogicalQuery.SelfAndDescendants<TextBlock>(failed).Single().Inlines!.OfType<Avalonia.Controls.Documents.Run>().ToList();
+                Assert.Equal("Hank", runs[0].Text);
+                Assert.Equal(Resolved(ChromeTokens.PrimaryText.Opacity(0.75), failed), BrushColor(runs[0].Foreground));
+                Assert.Equal(FontSize(ChatFont.Chat(SwiftFont.TextStyle.Callout, SwiftFont.Weight.Medium)), runs[1].FontSize);
+                var glyph = Assert.Single(LogicalQuery.SelfAndDescendants<HydraGlyph>(failed));
+                Assert.Equal(18, glyph.Size);
+                Assert.Equal(HydraHeadInfo.Status.Failed, glyph.Status);
+                var button = LogicalQuery.SelfAndDescendants<Button>(failed).Single();
+                Assert.Equal("Show the report", ToolTip.GetTip(button));
+                Assert.Contains("chevron.right", Symbols(failed));
+                var pill = LogicalQuery.SelfAndDescendants<Border>(failed).First(border => border.Padding == new Thickness(TimelineMetrics.PillLeading, TimelineMetrics.PillVertical, TimelineMetrics.PillTrailing, TimelineMetrics.PillVertical));
+                Assert.Equal(Resolved(ChromeTokens.Accent.Opacity(0.1), pill), BrushColor(pill.Background));
+                Close(window);
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-152")] // App/Views/Chat/TimelineRows.swift:398-418; App/AppModel.swift:396-400
+    public void The_finished_heads_row_draws_one_leading_aligned_pill_per_named_head_found_among_this_threads_helpers()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+            var (store, app, runtime) = TeamHarness(Head(0, HydraHeadInfo.Status.Failed), Head(1, HydraHeadInfo.Status.Completed), Head(2, HydraHeadInfo.Status.Running));
+            using (store)
+            {
+                store.Main.OnMain(() =>
+                {
+                    var row = new HydraHeadsWorkingRow(new ValueList<int>([1, 0, 5]), runtime);
+                    var host = new Border { Child = row };
+                    Marrow.App.Port.AppEnvironment.SetAppModel(host, app);
+                    var window = Show(host);
+                    var pills = LogicalQuery.SelfAndDescendants<FinishedHeadPill>(row).ToList();
+                    Assert.Equal(["Walter finished working", "Hank failed"], pills.Select(pill => AutomationProperties.GetName(pill)));
+                    var column = LogicalQuery.SelfAndDescendants<StackPanel>(row).First();
+                    Assert.Equal(6, column.Spacing);
+                    Assert.Equal(HorizontalAlignment.Left, column.HorizontalAlignment);
+                    Assert.Equal(new Thickness(0, 0, 96, 0), row.Padding);
+                    Close(window);
+                });
+            }
+        });
+    }
+
+    // ---------------------------------------------------------------- PR-CHAT-153 agent rows
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-153")] // App/Views/Chat/TimelineRows.swift:1723-1755, :1766-1793, :1812-1820
+    public void A_call_sending_out_a_head_draws_as_a_head_badge_that_reads_Sending_out_Sent_out_or_Could_not_send_out()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+            h.Main.OnMain(() =>
+            {
+                var sending = ToolRowFor(h.Runtime, Call(ToolCall.Kind.Agent, "Pip: the merge popover", ToolCall.Status.Running));
+                var couldNot = ToolRowFor(h.Runtime, Call(ToolCall.Kind.Agent, "Pip: the merge popover", ToolCall.Status.Failed));
+                var generic = ToolRowFor(h.Runtime, Call(ToolCall.Kind.Agent, "Subagent"));
+                var unnamed = ToolRowFor(h.Runtime, Call(ToolCall.Kind.Agent, "Refactor: the store"));
+                var panel = new StackPanel();
+                foreach (var row in new[] { sending, couldNot, generic, unnamed }) panel.Children.Add(row);
+                var window = Show(panel);
+                Assert.Contains("Sending out Pip: the merge popover", Texts(sending));
+                Assert.Contains("Could not send out Pip: the merge popover", Texts(couldNot));
+                Assert.Contains("Sent out a head", Texts(generic));
+                Assert.Contains("Sent out a head: Refactor: the store", Texts(unnamed));
+                Assert.Empty(LogicalQuery.SelfAndDescendants<ProgressBar>(sending));
+                Assert.Empty(LogicalQuery.SelfAndDescendants<ToolStatusIcon>(sending));
+                var glyph = Assert.Single(LogicalQuery.SelfAndDescendants<HydraGlyph>(sending));
+                Assert.Equal("Pip", glyph.Persona.Name);
+                Assert.True(glyph.IsRunning);
+                Assert.Null(glyph.Status);
+                Assert.Equal(HydraHeadInfo.Status.Failed, LogicalQuery.SelfAndDescendants<HydraGlyph>(couldNot).Single().Status);
+                Assert.Equal(HydraHeadInfo.Status.Completed, LogicalQuery.SelfAndDescendants<HydraGlyph>(generic).Single().Status);
+                Assert.Equal("Hank", LogicalQuery.SelfAndDescendants<HydraGlyph>(generic).Single().Persona.Name);
+                var label = LogicalQuery.SelfAndDescendants<TextBlock>(sending).Single(block => block.Text == "Sending out Pip: the merge popover");
+                Assert.Equal(FontSize(ChatFont.Chat(SwiftFont.TextStyle.Callout, SwiftFont.Weight.Medium)), label.FontSize);
+                Assert.Equal(Resolved(ChromeTokens.PrimaryText.Opacity(0.9), label), BrushColor(label.Foreground));
+                var pill = LogicalQuery.SelfAndDescendants<Border>(sending).Single(border => border.Padding == new Thickness(TimelineMetrics.PillLeading, TimelineMetrics.PillVertical, TimelineMetrics.PillTrailing, TimelineMetrics.PillVertical));
+                Assert.Equal(Resolved(SwiftColor.Quaternary.Opacity(0.32), pill), BrushColor(pill.Background));
+                Assert.Equal(new CornerRadius(TimelineMetrics.PillRadius), pill.CornerRadius);
+                Close(window);
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-153")] // App/Views/Chat/TimelineRows.swift:1766-1788
+    public void A_call_whose_head_is_linked_reads_Sending_out_or_Sent_out_the_heads_name_and_the_title()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+            var (store, app, runtime) = TeamHarness(Head(3, HydraHeadInfo.Status.Running));
+            using (store)
+            {
+                store.Main.OnMain(() =>
+                {
+                    var headID = app.Threads.Single(thread => thread.IsHydraHead).Id;
+                    var running = ToolEntry(Call(ToolCall.Kind.Agent, "Tidy the popover", ToolCall.Status.Running));
+                    var finished = ToolEntry(Call(ToolCall.Kind.Agent, "Tidy the popover"));
+                    runtime.RehearseHydraHead(running.Id, headID);
+                    runtime.RehearseHydraHead(finished.Id, headID);
+                    var panel = new StackPanel();
+                    panel.Children.Add(new ToolRow(running, runtime));
+                    panel.Children.Add(new ToolRow(finished, runtime));
+                    var host = new Border { Child = panel };
+                    Marrow.App.Port.AppEnvironment.SetAppModel(host, app);
+                    var window = Show(host);
+                    Assert.Contains("Sending out Otto: Tidy the popover", Texts(panel.Children[0]));
+                    Assert.Contains("Sent out Otto: Tidy the popover", Texts(panel.Children[1]));
+                    Assert.All(LogicalQuery.SelfAndDescendants<HydraGlyph>(panel), glyph => Assert.Equal("Otto", glyph.Persona.Name));
+                    Close(window);
+                });
+            }
         });
     }
 }
