@@ -71,25 +71,29 @@ using Marrow.UI.Sound;
 // SidebarThreadRow.BuildFoldOverlay (:1804-1814) and .RowEquals (:1882-1891), and SidebarHelperRow.RowEquals
 // (:1413-1420), each a directly testable static piece the row's own constructor (still MARROW_STUB) will call;
 // ActivityHeader (:2345-2358) and SettledHeader (:2363-2406) in full.
-// STOP App.Views.Sidebar.SidebarView #7 (this unit; full note in SidebarViewTests.cs's own header)
-// Kind: missing dependency
-// Requirements: PR-SIDEBAR-121, PR-SIDEBAR-122 (HeadCardsRow's own constructor); PR-SIDEBAR-126 to PR-SIDEBAR-130,
-// PR-SIDEBAR-133 (ProjectRow's own constructor); PR-SIDEBAR-134, PR-SIDEBAR-135 (SidebarThreadRow's windowFrame/glide)
-// What is unclear or missing: these six records' behaviour lives inside a constructor this and earlier parts leave
-// MARROW_STUB (HeadCardsRow, ProjectRow, SidebarThreadRow itself), each needing collaborators beyond this part's
-// scope (HeadCardsRow: the geometry-observed width and the per-glyph hover/selection wiring; ProjectRow: a project
-// removal confirmation popover this tree has no precedent for, and the Hydra-pair context submenu; SidebarThreadRow:
-// RowGlideAnimator's offscreen bitmap rendering plumbed through the row's own body). Attempting a partial assembly
-// risked a wrong or untested behaviour rather than an honest gap.
-// Needed to proceed: the row assembly itself (a later part of this unit, per the file's own "parts 5 to 8" plan
-// below) and, for ProjectRow's "Remove project" confirmation, an owner or engineering decision naming the request
-// mechanism (SidebarMenuRequests already has the Rename/Delete precedent to extend).
-// Done so far: nothing claimed for these six records; no test names them.
-// Still MARROW_STUB and named where they stand: RenameThreadPopover and renamePopover (STOP #6 above); HeadCardsRow's
-// and ProjectRow's own constructors and SidebarThreadRow's windowFrame/glide (STOP #7 above); the row views'
-// remaining assembly (SidebarThreadRow's and SidebarHelperRow's own constructors, ThreadRow, HelperItemView), the
-// head-card and stub arms of itemView (parts 6 to 8), and the empty-needle case of the search match (STOP #1 in
-// SidebarViewTests.cs).
+// STOP App.Views.Sidebar.SidebarView #7 (narrowed part 6, narrowed again part 7; full note in SidebarViewTests.cs's
+// own header). HeadCardsRow's and ProjectRow's own constructors, named here at part 5, are built in full (parts 6
+// and 7) and are no longer part of this STOP.
+// Kind: forbidden need
+// Requirements: PR-SIDEBAR-133 (ProjectRow's live AppKit-style context menu, on a right click); PR-SIDEBAR-130 (the
+// "Remove project" confirmation gated behind it); the right-click interaction named in UI-SIDEBAR-033 ("right-click
+// opens the helper's context menu") and UI-SIDEBAR-037 ("right-click opens the head's context menu").
+// What is unclear or missing: ProjectRow's, SidebarHelperRow's and HeadCardsRow's own constructors are each built in
+// full (parts 6 and 7), but each leaves its own `.contextMenu` unattached: SwiftUI's `.contextMenu` re-evaluates its
+// content fresh every time the menu opens, and no ED or platform-adaptation entry names a Windows/Avalonia
+// foundation for that per-open refresh. Attaching one fixed at construction time would go stale the first time the
+// underlying state changed without the row being rebuilt: an invented, silently wrong behaviour.
+// Needed to proceed: an engineering or platform-adaptation decision naming that foundation (then PR-SIDEBAR-130's
+// own request field and popover follow, extending SidebarMenuRequests' Rename/Delete precedent).
+// Done so far: nothing claimed for PR-SIDEBAR-130 or -133, or for the right-click interaction alone of
+// UI-SIDEBAR-033/-037; no test names them.
+// Still MARROW_STUB and named where they stand: RenameThreadPopover and renamePopover (STOP #6 above); ProjectRow's,
+// SidebarHelperRow's and HeadCardsRow's own `.contextMenu` attachment (STOP #7 above); ThreadRow and
+// SidebarThreadRow's own constructor, including windowFrame and glide (STOP App.Views.Sidebar.SidebarView #8,
+// opened part 8; full note in SidebarViewTests.cs's own header); itemView's helper, head-card and stub arms
+// (HelperItemView :347, HeadCardsItemView :368, HelperStubItemView :372), unassembled since part 1 and not yet
+// named by any STOP; FrameHolder.Note (:2436-2439), unassembled since part 1 and unreachable until SidebarThreadRow's
+// own constructor exists to call it; and the empty-needle case of the search match (STOP #1 in SidebarViewTests.cs).
 // Forms (ED-095): a SwiftUI View is a Decorator whose constructor builds `body`; a ViewModifier is a sealed record
 // with `Control Body(Control content)`; a Shape is a sealed record with `Geometry Path(Rect in)`; a caseless enum is a
 // static class; an enum with associated values is an abstract record (R-ENUM-2), an unlabelled payload named Value; a

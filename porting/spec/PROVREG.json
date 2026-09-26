@@ -3404,7 +3404,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same merge: the same name condition (not the \"default\" id, a non-empty name, a name not equal to the id, compared with Swift String equality) and the same four per-field conditions.",
       "verification_method": "unit over merge permutations, including a live row that renames a seed row, a live Default row with another name (kept as \"Default\"), an empty live name and a live name equal to its id (both keep the seed name)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -6174,7 +6174,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "New at 1.7.0 (impact R3-25 #2): part of the CLI updater added to ProviderRegistry (ProviderRegistry.swift:467-536)."
     },
     {
@@ -6199,7 +6199,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "New at 1.7.0 (impact R3-25 #3): part of the CLI updater added to ProviderRegistry."
     },
     {
@@ -6230,7 +6230,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "New at 1.7.0 (impact R3-25 #4): the gates of the CLI updater added to ProviderRegistry."
     },
     {
@@ -6258,7 +6258,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "New at 1.7.0 (impact R3-25 #5): the updater run of the CLI updater added to ProviderRegistry."
     },
     {
@@ -6286,7 +6286,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "New at 1.7.0 (impact R3-25 #6): the persisted attempt dates of the CLI updater added to ProviderRegistry."
     },
     {
@@ -6313,7 +6313,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "New at 1.7.0 (impact R3-25 #7): the result of the CLI updater added to ProviderRegistry."
     },
     {
@@ -6338,7 +6338,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "New at 1.7.0 (impact R3-25 #8): the in-flight state of the CLI updater added to ProviderRegistry."
     },
     {
@@ -6366,7 +6366,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "New at 1.7.0 (impact R3-25 #9): the version read of the CLI updater added to ProviderRegistry."
     }
   ],
