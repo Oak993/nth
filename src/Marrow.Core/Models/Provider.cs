@@ -6,9 +6,7 @@ using Marrow.Core.Support;
 
 namespace Marrow.Core.Models;
 
-// Source: DroppyCode/Core/Models/Provider.swift (B2 1fbf81e), :1-351.
-// SKELETON (cycle c4). Every member with behaviour throws MARROW_STUB until its unit ports it.
-// Codable conformance (the synthesized coding and :244-253 init(from:)) is left to the implementing unit.
+// Source: DroppyCode/Core/Models/Provider.swift (B3 52bc792), :1-351.
 // Unit Core.Models.Provider part 1 of 5 implemented ProviderKind.Id, DisplayName, ExecutableName, IconName
 // and LoginCommand (PR-PROVREG-001 to 012, PR-PROVCLI-203, 266, 317), and SlashCommand.NameIn,
 // ClaudeCommands, CodexSkills and CodexInput (PR-PROVCLI-345 to 353). Part 1's switch statements already
@@ -19,9 +17,8 @@ namespace Marrow.Core.Models;
 // IsAPIKeyBased, UsesACP, AcceptsAPIKey, ApiHost, ApiKeySource, ApiKeyEnvVar, SupportsRewind,
 // SupportsCompact, SupportsImages and ModelOption in full. Part 5 of 5 (PR-PROVREG-245, UI-PROVACP-034)
 // added no new SupportsCompact arms (already covered by part 4) and implemented RuntimeMode's Id, Title,
-// Summary and Symbol. SlashCommand.Id and Suggestions, and WorkspaceMode.Id and Title, are not named by
-// any record in this unit's five work packets and stay MARROW_STUB; a later unit that is given a record
-// covering them ports them then.
+// Summary and Symbol. The follow-up ports SlashCommand.Suggestions for PR-COMPOSER-042 and the three
+// remaining identity/title members directly from the Swift under R-FILE-1. No throwing stubs remain.
 
 // :3-18
 public enum ProviderKind
@@ -258,8 +255,16 @@ public static class WorkspaceModeExtensions
 {
     extension(WorkspaceMode mode)
     {
-        public string Id => throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Provider.swift:206");
-        public string Title => throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Provider.swift:208");
+        // :206 `var id: String { rawValue }`.
+        public string Id => SwiftEnum<WorkspaceMode>.RawValue(mode);
+
+        // :208-213.
+        public string Title => mode switch
+        {
+            WorkspaceMode.Local => "Local", // :210
+            WorkspaceMode.Worktree => "New worktree", // :211
+            _ => throw new UnreachableException(),
+        };
     }
 }
 
@@ -365,7 +370,8 @@ public sealed record SlashCommand
     public bool IsBuiltIn { get; init; } = false; // :296
     public string? SkillPath { get; init; }      // :297
 
-    public string Id => throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Provider.swift:299");
+    // :299 `var id: String { name }`.
+    public string Id => Name;
 
     // :301-304 `static func name(in text: String) -> String?`. C# cannot give a static method the name of
     // the property Name, so it is NameIn. Requires text to open with "/" or "$", then the first whitespace-
@@ -395,9 +401,30 @@ public sealed record SlashCommand
         return started ? token.ToString() : null;
     }
 
+    // :306-323. PR-COMPOSER-042: first name wins; prefix, earliest recent rank, then lowercased name.
     public static ValueList<SlashCommand> Suggestions(IReadOnlyList<SlashCommand> commands, string matching,
-        IReadOnlyList<string> recent) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Provider.swift:306");
+        IReadOnlyList<string> recent)
+    {
+        var needle = SwiftString.Lowercased(matching); // :307
+        var ranks = new Dictionary<string, int>(SwiftStringComparer.Instance); // :308, R-STR-2
+        for (var index = 0; index < recent.Count; index++)
+            ranks.TryAdd(recent[index], index); // :308 `uniquingKeysWith: min`: ascending offsets keep the first.
+        var seen = new HashSet<string>(SwiftStringComparer.Instance); // :309
+        var matched = new List<(SlashCommand Command, string Name, bool Prefixed, int Rank)>(commands.Count); // :311-312
+        foreach (var command in commands) // :313
+        {
+            if (!seen.Add(command.Name)) continue; // :313: insert before filtering, preserving the first command.
+            var name = SwiftString.Lowercased(command.Name); // :314
+            if (needle.Length != 0 && !SwiftString.Contains(name, needle)) continue; // :315
+            matched.Add((command, name, SwiftString.HasPrefix(name, needle),
+                ranks.GetValueOrDefault(command.Name, int.MaxValue))); // :316, Swift Int.max: unseen ranks last.
+        }
+        // :318-320. LINQ keeps equal keys in input order, matching Swift's stable sort (R-COLL-1).
+        return new ValueList<SlashCommand>(matched.OrderByDescending(item => item.Prefixed)
+            .ThenBy(item => item.Rank)
+            .ThenBy(item => item.Name, SwiftStringComparer.Instance)
+            .Select(item => item.Command)); // :322
+    }
 
     // :325-333. PR-PROVCLI-351/352/353. One plain text part unless both hold: this command owns a
     // skillPath, AND the text still names it (NameIn(text) == Name). Then two parts: the rewritten text
