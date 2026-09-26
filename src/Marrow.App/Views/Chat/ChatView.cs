@@ -1083,14 +1083,18 @@ internal sealed class GitActionsMenu : Decorator
     }
 }
 
-/// <summary>:1530-1650 <c>private struct CommitSheet: View</c>. The exact visual layout (spacing, fonts, the
-/// monospaced summary box) is a UI-GIT-* record for a later part; this wires the controls PR-GIT-129/130/131
-/// need to observe and drive: the message field, the summary, the generate button and the commit button.</summary>
+/// <summary>:1530-1650 <c>private struct CommitSheet: View</c>.</summary>
 internal sealed class CommitSheet : Decorator
 {
+    private readonly AppModel model;
+    private readonly ThreadRuntime runtime;
     private readonly TextBox messageField;
+    private readonly Border messageFrame;
     private readonly TextBlock summaryBlock;
+    private readonly Border summaryFrame;
     private readonly Button writeForMeButton;
+    private readonly SwiftImage writeForMeIcon; // :1584-1587 sparkles, swapped for a spinner while generating
+    private readonly ProgressBar writeForMeSpinner; // :1582-1584 ProgressView().controlSize(.small)
     private readonly Button commitButton;
     private readonly CheckBox pushToggle;
     private bool isGenerating;
@@ -1107,12 +1111,46 @@ internal sealed class CommitSheet : Decorator
 
     public bool PushesAfterCommit { get => pushToggle.IsChecked == true; set => pushToggle.IsChecked = value; }
 
+    public Button WriteForMeButton => writeForMeButton;
+
+    public Button CommitButton => commitButton;
+
+    public Border SummaryFrame => summaryFrame;
+
+    public Border MessageFrame => messageFrame;
+
     // :1533-1535 the view's inputs, plus AppModel and dismiss explicitly (no Avalonia @Environment or `.dismiss`).
     public CommitSheet(AppModel model, ThreadRuntime runtime, string directory, GitStatusModel git, Action dismiss)
     {
-        messageField = new TextBox { AcceptsReturn = true, PlaceholderText = "Commit message" }; // :1558-1563
-        summaryBlock = new TextBlock { IsVisible = false }; // :1547-1556 shown only when non-empty
-        writeForMeButton = new Button { Content = "Write for me" }; // :1576-1592
+        this.model = model;
+        this.runtime = runtime;
+
+        var heading = new TextBlock { Text = "Commit changes" }; // :1545
+        SwiftFont.System(SwiftFont.TextStyle.Title2, weight: SwiftFont.Weight.Semibold).Apply(heading); // :1546
+
+        summaryBlock = new TextBlock { HorizontalAlignment = HorizontalAlignment.Left }; // :1549-1552
+        SwiftFont.System(SwiftFont.TextStyle.Subheadline, design: SwiftFont.Design.Monospaced).Apply(summaryBlock); // :1550
+        summaryFrame = new Border // :1547-1556
+        {
+            Child = new ScrollViewer { Content = summaryBlock, MaxHeight = 110 }, // :1548,1553
+            Padding = new Thickness(10), // :1554
+            IsVisible = false, // shown only once Load finds a non-empty summary
+        }.RoundedRectangle(12, RoundedCornerStyle.Continuous); // :1555
+        summaryFrame.Background = Chrome.Overlay(0.05).Brush(summaryFrame);
+
+        messageField = new TextBox { AcceptsReturn = true, PlaceholderText = "Commit message", BorderThickness = new Thickness(0), Background = Brushes.Transparent }; // :1558-1563,1567
+        SwiftFont.Body.Apply(messageField); // :1559
+        messageFrame = new Border // :1557-1571
+        {
+            Child = messageField,
+            Padding = new Thickness(8), // :1561
+            MinHeight = 130, // :1570
+        }.RoundedRectangle(12, RoundedCornerStyle.Continuous); // :1571
+        messageFrame.Background = Chrome.Overlay(0.05).Brush(messageFrame);
+
+        writeForMeIcon = SwiftImage.SystemName("sparkles"); // :1586
+        writeForMeSpinner = new ProgressBar { IsIndeterminate = true, Width = 16, Height = 16, IsVisible = false }; // :1582-1584
+        writeForMeButton = new Button { Content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Children = { writeForMeSpinner, writeForMeIcon, new TextBlock { Text = "Write for me" } } } }; // :1578-1589
         pushToggle = new CheckBox { Content = "Push after committing" }; // :1593
         var cancelButton = new Button { Content = "Cancel" }; // :1596
         commitButton = new Button { Content = "Commit", IsEnabled = false }; // :1598-1600
@@ -1125,16 +1163,21 @@ internal sealed class CommitSheet : Decorator
             if (e.Property == TextBox.TextProperty) commitButton.IsEnabled = Message.Trimmed().Length > 0 && !isCommitting; // :1600
         };
 
+        UpdateWriteForMeState();
+
         Child = new StackPanel
         {
-            Spacing = 14,
+            HorizontalAlignment = HorizontalAlignment.Left, // :1544 .leading
+            Spacing = 14, // :1544
             Children =
             {
-                summaryBlock,
-                messageField,
+                heading,
+                summaryFrame,
+                messageFrame,
                 new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12, Children = { writeForMeButton, pushToggle, cancelButton, commitButton } },
             },
         };
+        Width = 560; // :1604
 
         MainActor.Spawn(() => Load(model, runtime, directory)); // :1605-1609 .task
     }
@@ -1144,8 +1187,24 @@ internal sealed class CommitSheet : Decorator
     {
         var changes = await new Git(directory).WorkingChanges(); // :1606
         summaryBlock.Text = changes.Summary; // :1607
-        summaryBlock.IsVisible = changes.Summary.Length > 0; // :1547 `if !summary.isEmpty`
+        summaryFrame.IsVisible = changes.Summary.Length > 0; // :1547 `if !summary.isEmpty`
         if (Message.Length == 0) await Generate(model, runtime, directory, changes); // :1608
+    }
+
+    // :1575 `let canGenerate = model.textEngine(preferring: runtime.thread?.provider) != nil`
+    private bool CanGenerate => model.TextEngine(runtime.Thread?.Provider) is not null;
+
+    // :1582-1592
+    private void UpdateWriteForMeState()
+    {
+        writeForMeSpinner.IsVisible = isGenerating; // :1582-1584
+        writeForMeIcon.IsVisible = !isGenerating; // :1585-1587
+        writeForMeButton.IsEnabled = !isGenerating && CanGenerate; // :1591
+        var canGenerate = CanGenerate;
+        ToolTip.SetTip(writeForMeButton, canGenerate
+            ? "Write a commit message from these changes"
+            : "Turn on text generation in Settings > Source control"); // :1592
+        messageField.PlaceholderText = isGenerating ? "Writing a message…" : "Commit message"; // :1563
     }
 
     // :1612-1631
@@ -1153,6 +1212,7 @@ internal sealed class CommitSheet : Decorator
     {
         if (model.TextEngine(runtime.Thread?.Provider) is not { } engine) return; // :1613
         isGenerating = true;
+        UpdateWriteForMeState();
         try
         {
             var resolved = changes ?? await new Git(directory).WorkingChanges(); // :1616-1621
@@ -1164,6 +1224,7 @@ internal sealed class CommitSheet : Decorator
         finally
         {
             isGenerating = false; // :1615 defer
+            UpdateWriteForMeState();
         }
     }
 
