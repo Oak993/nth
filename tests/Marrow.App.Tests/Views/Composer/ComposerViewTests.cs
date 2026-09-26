@@ -3125,8 +3125,9 @@ public sealed class ComposerViewTests(HeadlessSession headless)
     {
         headless.OnUiThread(()=>
         {
-            using var h=RuntimeHarness(); var presenter=new RecordingPresenter(); using var ps=Presentation.Presenter.Override(presenter); var directory=h.Store.NewFolder("landing-commands"); var (view,window,_,_)=OnScreen(h,h.Runtime,directory); h.Main.OnMain(()=>Type(view,"/")); Until(h,window,()=>view.Suggestions.IsVisible); Assert.True(h.Main.OnMain(()=>view.Controller.HasFocus));
-            h.Main.OnMain(()=>h.App.Providers.UpdateCommands(new ValueList<SlashCommand>([new(){Name="review",Detail="Review diff"}]),ProviderKind.Codex,directory)); h.Main.Loop.RunUntil(()=> { Settle(window); return view.Suggestions.Items.Any(item=>item.Title=="/review"); },TimeSpan.FromSeconds(20)); Assert.True(h.Main.OnMain(()=>view.Controller.HasFocus)); Close(h,window);
+            var frames=new ManualFrameSource(); using var fs=FrameClock.Source.Override(frames); using var h=RuntimeHarness(); var presenter=new RecordingPresenter(); using var ps=Presentation.Presenter.Override(presenter); var directory=h.Store.NewFolder("landing-commands"); var (view,window,_,_)=OnScreen(h,h.Runtime,directory); h.Main.OnMain(()=>Type(view,"/")); Until(h,window,()=>view.Suggestions.IsVisible); Assert.True(h.Main.OnMain(()=>view.Controller.HasFocus));
+            try { h.Main.OnMain(()=>h.App.Providers.UpdateCommands(new ValueList<SlashCommand>([new(){Name="review",Detail="Review diff"}]),ProviderKind.Codex,directory)); h.Main.Loop.RunUntil(()=> { Settle(window); return view.Suggestions.Items.Any(item=>item.Title=="/review"); },TimeSpan.FromSeconds(20)); Assert.True(h.Main.OnMain(()=>view.Controller.HasFocus)); }
+            finally { Close(h,window); }
         });
     }
 
@@ -3177,10 +3178,10 @@ public sealed class ComposerViewTests(HeadlessSession headless)
     {
         headless.OnUiThread(()=>
         {
-            using var h=RuntimeHarness(); var view=Pill(h,h.Runtime); h.Main.OnMain(()=>
+            var frames=new ManualFrameSource(); using var fs=FrameClock.Source.Override(frames); using var h=RuntimeHarness(); var view=Pill(h,h.Runtime); var window=h.Main.OnMain(()=>Show(view,h.App,500)); Pump(h,window); h.Main.OnMain(()=>InvokePrivate(view,"Note","One file was left out: a message holds 8 attachments")); Pump(h,window); h.Main.OnMain(()=>
             {
-                var column=One<ComposerTextColumn>(view); column.Update("","One file was left out: a message holds 8 attachments"); var text=LogicalQuery.SelfAndDescendants<TextBlock>(column).Single(t=>t.Text=="One file was left out: a message holds 8 attachments"); Assert.Equal(11,text.FontSize); Assert.Equal(1,text.MaxLines); Assert.Equal(new Thickness(0,0,0,6),text.Margin); Assert.Equal(Chrome.Warning.Resolve(text.ActualThemeVariant),Assert.IsAssignableFrom<ISolidColorBrush>(text.Foreground).Color);
-            });
+                var column=One<ComposerTextColumn>(view); var text=LogicalQuery.SelfAndDescendants<TextBlock>(column).Single(t=>t.Text=="One file was left out: a message holds 8 attachments"); Assert.Equal(11,text.FontSize); Assert.Equal(1,text.MaxLines); Assert.Equal(new Thickness(0,0,0,6),text.Margin); Assert.Equal(Chrome.Warning.Resolve(text.ActualThemeVariant),Assert.IsAssignableFrom<ISolidColorBrush>(text.Foreground).Color);
+            }); Close(h,window);
         });
     }
 }

@@ -9,6 +9,8 @@ using Avalonia.Automation.Peers;
 using Avalonia.Automation.Provider;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Controls.Presenters;
+using Avalonia.Controls.Templates;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Marrow.App.Port;
@@ -29,36 +31,15 @@ using Marrow.UI.Port;
 namespace Marrow.App.Views.Composer;
 
 // Source: DroppyCode/App/Views/Composer/ComposerView.swift (B3 52bc792), :1-1307.
-// Skeleton (c100 group 2): every type the file declares, private and nested ones included, the views' inputs, the
-// records' shapes and the members the other cycle files use. Every view body and every member with behaviour is left to
-// the implementing unit (MARROW_STUB), as are ComposerView's private members (:228-533), the private views' private
-// members, and FileIndex's private cache (:1118-1127) and private statics build, search, contains, list and enumerate
-// (:1161-1287).
-// Forms (ED-095): a SwiftUI View is a Decorator whose constructor builds `body`; a ViewModifier is a sealed record with
-// `Control Body(Control content)`; `@Binding var x` is a Binding<T> (R-VIEW-2); a file `URL` handed to an attach is
-// its path string, as AttachmentSource.File and DownloadsPopover's pick take it. ENGINEERING DECISION: NSRange
-// (SuggestionState.range, :1044) is the (Location, Length) pair of UTF-16 offsets ComposerController.ReplaceCharacters
-// takes; the port has no NSRange type. Swift `private` top-level types are `internal` here: C# has no private top-level
-// type, and `file` cannot appear in another type's member signatures (CS9051).
-//
-// Unit App.Views.Composer.ComposerView, part 1 of 5 (B3 52bc792; this file is unchanged from B2 1fbf81e): ComposerArea
-// (:4-58), TabSlot (:60-99), ChangeStatsRefresh (:101-112), ComposerView's body layout (:139-189), placeholder and the
-// Hydra helpers (:275-309), keys (:311-368), send (:370-382) and recall (:400-422), ComposerTextColumn (:536-607),
-// SuggestionState.isVisible (:1048) and ComposerSurface (:1290-1307). blur (:228-237), cursorMoved (:426-437) and
-// refreshSuggestions (:439-473) are written too, because the text view calls the first two on every loss of focus and
-// every change of its text (ComposerTextView.swift:280-282, :317-327). DraftChips (:876-879, :939), DraftAttachments
-// (:980-987) and ComposerWorkingDotsSlot (:664-665) carry only their conditions and gaps here; what they draw is parts 2
-// to 5's, as are ComposerView's other body modifiers (:190-226) and private members, marked MARROW_STUB where they
-// stand. Not written: the height animation at :604 (STOP #1 in ComposerViewTests.cs, WindowLiveResize missing).
-//
-// Part 2 of 5 (B3 52bc792, unchanged from B2): ComposerView's body modifiers :190-218 (the list's show and hide, the
-// hide on disappear, thread change and hidden column, the column-shown focus, the command and file index tasks and the
-// command observers), suggestionMenu (:239-262), commandKey and loadCommands (:264-273), steer (:384-398),
-// commandSuggestions (:475-485), pick (:487-501), attach and note (:505-524), Suggestion.id (:1058),
-// SuggestionPopoverRow (:1061-1101) and FileIndex (:1103-1288); the pick arm of handleKey now follows upstream defect
-// 50's windows_path. SlashCommand.suggestions (Provider.swift:306-323), which commandSuggestions ranks with, is ported
-// in Provider.cs. Still MARROW_STUB for parts 3 to 5: the notice's timeout (:219-225), chooseFiles (:526-533),
-// ComposerControls and the views under it, the chip row, the attachment strip, ChipRowCollapse and ChipChrome.
+// Forms (ED-095): SwiftUI views build their body in Decorators; ViewModifiers expose Body(Control), bindings are
+// Binding<T>, and file URLs are path strings. NSRange is a (Location, Length) pair of UTF-16 offsets. Swift private
+// top-level declarations remain internal, preserving every declared type and existing public signature.
+// All five B3 parts have been audited against pinned 1.7.0. The native chooser is behind ComposerFileDialog for
+// isolated tests. STOP #6 leaves only the missing ModelEffortButton content and chip-style calls unwritten; #7 leaves
+// surviving chip/approval layout movement unanimated pending foundation support; #8 records ProviderRegistry's
+// missing notifications; #9 records the SlashCommand.Suggestions dependency after inherited cross-unit code removal.
+// Diff popup and suggestion popup headless limits are documented in tests (STOP #3/#5). ED-180/181/182 retain the
+// existing material, continuous-corner, palette and symbol-transition deferrals; visual macOS parity is unverified.
 
 /// <summary>:4-58 <c>struct ComposerArea: View</c>.</summary>
 public sealed class ComposerArea : Decorator
@@ -1301,7 +1282,7 @@ internal sealed class ComposerWorkingDotsSlot : Decorator
         Child = clip;
     }
 
-    // :666-672 the dots, their frame, clip and transition. MARROW_STUB: part 3 of this unit (PR-COMPOSER-101).
+    // :666-672 the dots, their frame, clip and opacity transition (PR-COMPOSER-101).
     private static Control Dots()
     {
         var dots = new ComposerWorkingDots { VerticalAlignment = VerticalAlignment.Bottom }; // :667-669
@@ -1331,7 +1312,7 @@ internal sealed class ContextMeter : Decorator
         public string SpokenValue { get; set; } = "";
         public ContextButton(Control label, Action action)
         {
-            Template = PlainControls.Button(label, action).Template;
+            Template = ComposerButtonTemplates.PlainWithPadding; // :726-728 include the rectangular padded hit area
             Content = label;
             Click += (_, _) => action();
         }
@@ -1386,6 +1367,7 @@ internal sealed class ContextMeter : Decorator
             {
                 button = new ContextButton(ring, () => state.IsPresented = !state.IsPresented); // :714-715
                 button.Focusable = false; // :731
+                button.HorizontalAlignment = HorizontalAlignment.Left; // :717-728 the label keeps its padded natural width
                 button.Padding = new Thickness(6, 5); // :726-728 rectangular hit area
                 popup = new Popup { PlacementTarget = button, Placement = PlacementMode.Bottom, IsLightDismissEnabled = true }; // :737
                 popup.Closed += (_, _) => state.IsPresented = false;
@@ -1570,8 +1552,7 @@ internal sealed class DraftChips : Decorator
         current = chipRow;
     }
 
-    // :880-938 the chips' scroller, and :940-941 its transition and animation. MARROW_STUB: part 3 of this unit
-    // (PR-COMPOSER-086 to PR-COMPOSER-089).
+    // :880-938 the chips' scroller, and :940-941 its transition; internal movement awaits STOP #7.
     private Control Row(ValueList<ReplyQuote> quotes, DraftCommand? command)
     {
         var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 }; // :881
@@ -1685,8 +1666,7 @@ internal sealed class DraftAttachments : Decorator
         Child = shown;
     }
 
-    // :990-1032 private func strip(_:), with :975-978 its @State. MARROW_STUB: part 3 of this unit (PR-COMPOSER-067,
-    // PR-COMPOSER-068).
+    // :990-1032 private func strip(_:), with :975-978 its preview and drawn-id state (PR-COMPOSER-067/068).
     private Control Strip(ValueList<Attachment> attachments)
     {
         var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 0 }; // :1000
@@ -1725,6 +1705,7 @@ internal sealed class DraftAttachments : Decorator
             Attachments = new ValueList<Attachment>(runtime.Draft.Attachments.Where(held => held.Id != attachment.Id)), // :1005-1006
         });
         remove.Padding = new Thickness(4); // :1011
+        remove.Template = ComposerButtonTemplates.PlainWithPadding; // :1011 the image's padding participates in layout
         remove.Focusable = false; // :1014
         remove.HorizontalAlignment = HorizontalAlignment.Right;
         remove.VerticalAlignment = VerticalAlignment.Top;
@@ -1733,6 +1714,20 @@ internal sealed class DraftAttachments : Decorator
         overlay.Children.Add(remove);
         return new Border { Child = overlay, Padding = new Thickness(0,2,8,0) }; // :1018-1019
     }
+}
+
+// PORT-ONLY: the unit's .plain buttons whose Swift labels include padding. The shared plain template does not
+// forward Button.Padding; forwarding it here preserves the source hit rectangles without changing another unit.
+internal static class ComposerButtonTemplates
+{
+    public static readonly FuncControlTemplate<Button> PlainWithPadding = new((button, scope) =>
+        new ContentPresenter
+        {
+            Name = "PART_ContentPresenter",
+            Background = Brushes.Transparent,
+            [!ContentPresenter.ContentProperty] = button[!ContentControl.ContentProperty],
+            [!ContentPresenter.PaddingProperty] = button[!Avalonia.Controls.Primitives.TemplatedControl.PaddingProperty],
+        }.RegisterInNameScope(scope));
 }
 
 /// <summary>:1037-1049 <c>struct SuggestionState: Equatable</c>.</summary>
