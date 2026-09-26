@@ -176,6 +176,110 @@ public sealed class ThreadTimelineTests(HeadlessSession headless)
     // Missing: TimelineRows.WorkGroupSummary.Text and WorkSteps constructors are MARROW_STUB.
     // Needed: those external members; card/badge shell, title/time/bar and thinking expansion remain owned and implementable.
 
+    [Fact]
+    [Trait("Req", "PR-CHAT-126")] // App/Views/Chat/ThreadTimeline.swift:2301-2314
+    [Trait("Req", "PR-CHAT-127")] // App/Views/Chat/ThreadTimeline.swift:2267-2285,2290-2299
+    public void Current_turn_scans_skip_nil_turns_stop_at_previous_turn_and_keep_nonempty_thinking_in_order() => WithTimeline((view, runtime, _, _, _) =>
+    {
+        ((Decorator)view.Parent!).Child = null; var older = Guid.NewGuid(); var entries = new[] { Reason("old", older), Reason("a", Turn), User("note"), Entry("empty", new TimelineItem.Content.Reasoning(new ReasoningBlock { Text = "" }), Turn), Entry("b", new TimelineItem.Content.Reasoning(new ReasoningBlock { Text = "last", IsStreaming = true }), Turn), Reply("reply", Turn) }; typeof(ThreadRuntime).GetProperty("Entries")!.SetValue(runtime, new ValueList<TimelineEntry>(entries)); var type = typeof(WorkingBlockView); var rows = (ValueList<TimelineEntry>)type.GetMethod("TurnEntries", BindingFlags.Static | BindingFlags.NonPublic)!.Invoke(null, [runtime])!; Assert.Equal(new[] { "a", "empty", "b", "reply" }, rows.Select(row => row.Id)); var steps = (ValueList<ThinkingStep>)type.GetMethod("Thinking", BindingFlags.Static | BindingFlags.NonPublic)!.Invoke(null, [runtime])!; Assert.Equal(new[] { new ThinkingStep("thinking", false), new ThinkingStep("last", true) }, steps);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-128")] // App/Views/Chat/ThreadTimeline.swift:393-397,689-712
+    [Trait("Req", "PR-CHAT-132")] // App/Views/Chat/ThreadTimeline.swift:689-712
+    [Trait("Req", "PR-CHAT-191")] // App/Views/Chat/ThreadTimeline.swift:77-81,273-278
+    public void Arrival_follows_only_the_end_or_a_question_and_prunes_to_twenty_four_past_ninety_six() => WithTimeline((view, _, _, state, _) =>
+    {
+        var blocks = Enumerable.Range(0, 120).Select(i => (DisplayBlock)new DisplayBlock.Merging("b" + i)).ToArray(); Put(view, "windowStartID", "b0"); var tracking = Field<TimelineScrollTracking>(view, "tracking"); tracking.IsPinnedToBottom = false; tracking.NoteGeometry(0, 400, 0); state.ShowsJumpButton = true; Invoke<object?>(view, "NoteArrival", "b119", blocks); Assert.False(tracking.IsPinnedToBottom); Assert.Equal(0, Invoke<int>(view, "WindowStartIndex", (object)blocks)); Invoke<object?>(view, "NoteArrival", "question-q", blocks); Assert.True(tracking.IsPinnedToBottom); Assert.False(state.ShowsJumpButton); Assert.Equal(96, Invoke<int>(view, "WindowStartIndex", (object)blocks)); Put(view, "historyLoadPending", true); tracking.IsPinnedToBottom = false; Invoke<object?>(view, "NoteArrival", "question-next", blocks); Assert.False(tracking.IsPinnedToBottom);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-130")] // App/Views/Chat/ThreadTimeline.swift:624-661
+    [Trait("Req", "PR-CHAT-131")] // App/Views/Chat/ThreadTimeline.swift:626-638
+    public void Unattended_token_change_leaves_an_older_reader_but_first_seen_start_counts_as_a_send() => WithTimeline((view, _, _, _, _) =>
+    {
+        var tracking = Field<TimelineScrollTracking>(view, "tracking"); tracking.IsPinnedToBottom = false; Invoke<object?>(view, "NoteTurnChange", true, 0); Assert.True(tracking.IsPinnedToBottom); tracking.IsPinnedToBottom = false; Invoke<object?>(view, "NoteTurnChange", false, 0); Invoke<object?>(view, "NoteTurnChange", true, 1); Assert.False(tracking.IsPinnedToBottom); Invoke<object?>(view, "NoteTurnChange", false, 1); Invoke<object?>(view, "NoteTurnChange", true, 1); Assert.True(tracking.IsPinnedToBottom);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-133")] // App/Views/Chat/ThreadTimeline.swift:673-677,2218-2220
+    [Trait("Req", "PR-CHAT-134")] // App/Views/Chat/ThreadTimeline.swift:678-688,2224-2226
+    [Trait("Req", "PR-CHAT-135")] // App/Views/Chat/ThreadTimeline.swift:713-720
+    public void Separate_jump_and_growth_requests_preserve_an_older_reader_and_thread_reset_clears_the_window() => WithTimeline((view, _, _, state, _) =>
+    {
+        state.JumpToLatest(); state.JumpToLatest(); Assert.Equal(2, state.JumpRequest); state.NoteComposerAreaGrowth(); Assert.Equal(1, state.AreaGrowthRequest); var tracking = Field<TimelineScrollTracking>(view, "tracking"); tracking.IsPinnedToBottom = false; tracking.NoteGeometry(0, 48, 0); Invoke<object?>(view, "ComposerGrew", false); Assert.False(tracking.IsPinnedToBottom); tracking.NoteGeometry(0, 47, 0); Invoke<object?>(view, "ComposerGrew", true); Assert.False(tracking.IsPinnedToBottom); Invoke<object?>(view, "ComposerGrew", false); Assert.True(tracking.IsPinnedToBottom); Put(view, "windowStartID", "old"); Put(view, "historyLoadPending", true); tracking.SetOutline([("old", true)]); tracking.SetVisible("old", true); Invoke<object?>(view, "ResetThread"); Assert.Null(Field<string?>(view, "windowStartID")); Assert.False(Field<bool>(view, "historyLoadPending")); Assert.Null(tracking.ActiveBlockID);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-136")] // App/Views/Chat/ThreadTimeline.swift:433-435,1034-1038,1075-1086
+    [Trait("Req", "PR-CHAT-163")] // App/Views/Chat/ThreadTimeline.swift:1062-1071
+    public void Arrival_hold_extends_never_shortens_and_scroll_report_is_withdrawn_on_detach() => headless.OnUiThread(() =>
+    {
+        using var time = new TestRuntime(); using var activity = ScrollActivity.Shared.Override(new ScrollActivity()); var tracking = new TimelineScrollTracking(); time.OnMain(() => { tracking.HoldEnd(1.5); tracking.IsReaderScrolling = true; tracking.ReportActivity(Guid.NewGuid()); Assert.True(ScrollActivity.Shared.Current.IsScrolling); }); time.AdvanceMilliseconds(500); time.OnMain(() => tracking.HoldEnd(0.1)); time.AdvanceMilliseconds(999); time.OnMain(() => Assert.True(tracking.IsArriving)); time.AdvanceMilliseconds(1); time.OnMain(() => { Assert.False(tracking.IsArriving); tracking.EndActivity(); Assert.False(ScrollActivity.Shared.Current.IsScrolling); });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-137")] // App/Views/Chat/ThreadTimeline.swift:1290-1350
+    public void Front_bumps_concern_only_the_uncovered_window_unless_the_bump_is_app_wide() => OnMain(() =>
+    {
+        var monitor = FrontMonitor.Shared.Current; var first = new Avalonia.Controls.Window(); var other = new Avalonia.Controls.Window(); Invoke<object?>(monitor, "Bump", first); Assert.True(monitor.Concerns(first)); Assert.False(monitor.Concerns(other)); Assert.False(monitor.Concerns(null)); var revision = monitor.Revision; Invoke<object?>(monitor, "Bump", (object?)null); Assert.Equal(revision + 1, monitor.Revision); Assert.True(monitor.Concerns(other));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-156")] // App/Views/Chat/ThreadTimeline.swift:147-155,1784-1795
+    public void Mention_targets_choose_newest_same_persona_and_persona_cache_keys_only_indices_and_roster() => OnMain(() =>
+    {
+        var project = AppModelSamples.Project("project", "C:\\fixture"); var old = AppModelSamples.Thread(project) with { CreatedAt = DateTimeOffset.UnixEpoch, Hydra = new HydraHeadInfo(1, "old", HydraHeadInfo.Kind.Droppy, HydraHeadInfo.Origin.Delegated) }; var newer = old with { Id = Guid.NewGuid(), CreatedAt = DateTimeOffset.UnixEpoch.AddSeconds(1), Hydra = old.Hydra! with { Task = "new" } }; var map = (ValueMap<string, HydraMentionTarget>)typeof(ThreadTimeline).GetMethod("MentionTargets", BindingFlags.Static | BindingFlags.NonPublic)!.Invoke(null, [new[] { newer, old }])!; Assert.Equal(newer.Id, map[old.Hydra!.Persona.Name].ThreadID); var cache = new TimelineBlockCache(); var personas = cache.MentionPersonas([old], false); Assert.Equal(new[] { old.Hydra.Persona }, personas); Assert.Same(personas, cache.MentionPersonas([newer], false)); Assert.Equal(HydraRoster.Personas, cache.MentionPersonas([], true));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-160")] // App/Views/Chat/ThreadTimeline.swift:26-35
+    [Trait("Req", "PR-CHAT-162")] // App/Views/Chat/ThreadTimeline.swift:451-457,840-851
+    public void Timeline_equivalence_checks_all_handed_values_and_resize_settle_never_unpins() => WithTimeline((view, runtime, chrome, state, _) =>
+    {
+        var same = new ThreadTimeline(runtime, chrome, state, "Project", null, false, 480); Assert.True(Invoke<bool>(view, "SameInputs", same)); Assert.False(Invoke<bool>(view, "SameInputs", new ThreadTimeline(runtime, chrome, state, "Project", null, false, 481))); Assert.False(Invoke<bool>(view, "SameInputs", new ThreadTimeline(runtime, chrome, state, "Project", null, false, 480, false))); var tracking = Field<TimelineScrollTracking>(view, "tracking"); tracking.IsPinnedToBottom = false; Invoke<object?>(view, "SettleAfterResize"); Assert.False(tracking.IsPinnedToBottom);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-164")] // App/Views/Chat/ThreadTimeline.swift:2006-2019
+    [Trait("Req", "PR-CHAT-165")] // App/Views/Chat/ThreadTimeline.swift:1959-1976
+    public void Live_partition_reuses_identity_and_keeps_prose_and_tool_work_in_the_card_heads_below_rows() => OnMain(() =>
+    {
+        var entries = new[] { User("u", Turn), Reply("r", Turn), Tool("t", Turn), Tool("head", Turn, true) }; var cache = new TurnGroupCache(); var groups = cache.Groups(entries); entries[1].Item = entries[1].Item with { TimelineItemContent = new TimelineItem.Content.Assistant(new AssistantMessage { Text = "stream changed" }) }; Assert.Same(groups, cache.Groups(entries)); Assert.NotSame(groups, cache.Groups(entries.Append(Reply("more", Turn)).ToArray())); var partition = ((ValueList<TimelineGroup> Rows, TimelineGroup? Heads, ValueList<TimelineEntry> Work))typeof(TurnRunningBlock).GetMethod("Partition", BindingFlags.Static | BindingFlags.NonPublic)!.Invoke(null, [groups])!; Assert.Equal("u", partition.Rows.Single().Id); Assert.Equal("heads-head", partition.Heads!.Id); Assert.Equal(new[] { "r", "t" }, partition.Work.Select(entry => entry.Id));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-167")] // App/Views/Chat/ThreadTimeline.swift:786-788,883-888
+    [Trait("Req", "PR-CHAT-168")] // App/Views/Chat/ThreadTimeline.swift:862-889,1193-1235
+    public void Eager_stack_has_no_virtualized_generation_or_nudge_to_restore() => OnMain(() =>
+    {
+        var tracking = new TimelineScrollTracking(); Assert.False(tracking.BeginNudge()); tracking.ArmViewportRefresh(); Assert.Equal(0, tracking.RefreshRequest); Assert.False(tracking.IsNudging); var restored = false; tracking.RestoreNudge(() => restored = true); Assert.False(restored);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-186")] // App/Views/Chat/ThreadTimeline.swift:2101-2104
+    [Trait("Req", "PR-CHAT-187")] // App/Views/Chat/ThreadTimeline.swift:2137-2140
+    [Trait("Req", "PR-CHAT-188")] // App/Views/Chat/ThreadTimeline.swift:2105-2108,2126-2135,2152-2153
+    public void Working_label_bar_and_chevron_follow_running_and_expandability_branches() => WithTimeline((_, runtime, _, _, _) =>
+    {
+        var finished = new WorkingIndicator(runtime, SwiftDate.Now, 1, new([]), new([]), new([]), false, SwiftDate.Now); Assert.Contains("Earlier steps", LogicalQuery.SelfAndDescendants<TextBlock>(finished).Select(text => text.Text)); Assert.Empty(LogicalQuery.SelfAndDescendants<HydraProgressBar>(finished)); Assert.DoesNotContain(LogicalQuery.SelfAndDescendants<SwiftImage>(finished), icon => icon.SymbolName == "chevron.right"); Assert.Equal("", ToolTip.GetTip(LogicalQuery.SelfAndDescendants<Button>(finished).Single())); var active = new WorkingIndicator(runtime, SwiftDate.Now, 1, new([new ThinkingStep("think", false)]), new([]), new([]), true); Assert.Single(LogicalQuery.SelfAndDescendants<HydraProgressBar>(active)); Assert.Contains(LogicalQuery.SelfAndDescendants<TextBlock>(active), text => text.Text == WorkingWords.Word(1, 0) + "\u2026"); var icon = LogicalQuery.SelfAndDescendants<SwiftImage>(active).Single(image => image.SymbolName == "chevron.right"); Assert.Equal(new Avalonia.Media.RotateTransform(0).Angle, Assert.IsType<Avalonia.Media.RotateTransform>(icon.RenderTransform).Angle);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-129")] // App/Views/Chat/ThreadTimeline.swift:289-297,607,637
+    public void Warm_pass_collects_only_finished_assistant_text() => OnMain(() =>
+    {
+        var entries = new[] { Reply("done"), Entry("stream", new TimelineItem.Content.Assistant(new AssistantMessage { Text = "stream", IsStreaming = true })), User("prompt") }; var method = typeof(ThreadTimeline).GetMethod("FinishedMarkdownTexts", BindingFlags.Static | BindingFlags.NonPublic)!; Assert.Equal(new[] { "reply" }, (string[])method.Invoke(null, [entries])!);
+    });
+
+    // STOP App.Views.Chat.ThreadTimeline #3
+    // Kind: platform dependency. Swift: ThreadTimeline.swift:1303-1323,1347-1350. Record: PR-CHAT-137 (native occlusion only).
+    // Missing: Avalonia's visible/active/minimized window events do not report a visible window fully covered by another app.
+    // Needed: the Windows window-layer occlusion signal. Identity-scoped activation/visibility bumps are ported; no invented occlusion state.
+    // STOP App.Views.Chat.ThreadTimeline #4
+    // Kind: dependency. Swift: ThreadTimeline.swift:393-397. Record: PR-CHAT-128 (badge rendering only).
+    // Missing: external QuestionBadgeRow constructor is MARROW_STUB. Needed: TimelineRows implementation; question arrival/identity logic remains owned.
+
     // STOP App.Views.Chat.ThreadTimeline #1
     // Kind: dependency. Swift: ThreadTimeline.swift:104-107,186-197,1886-1934,2049-2065.
     // Records: PR-CHAT-021/022/026/027/034/035/039/045/046 (rendering/integration only).
