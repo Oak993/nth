@@ -73,6 +73,35 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     private static ChromeRow Row(Control view, string title) => Nodes<ChromeRow>(view).Single(row => Text(row).FirstOrDefault() == title);
 
     [Fact]
+    [Trait("Req", "UI-UPDATE-026")] // App/Views/Settings/SettingsView.swift:1060-1101
+    [Trait("Req", "UI-UPDATE-027")] // App/Views/Settings/SettingsView.swift:1081-1088
+    public void Attribution_hover_fades_the_trailing_link_over_Chrome_hover_without_changing_row_geometry() => WithView(() => new MadeByDroppyRow(SwiftURL.Create("https://getdroppy.app")!), (view, _, h) =>
+    {
+        var button = Assert.Single(Nodes<Button>(view)); var grid = Assert.Single(Nodes<Grid>(view)); Assert.Equal(new Thickness(16, 12, 14, 12), grid.Margin); Assert.Equal(12, grid.ColumnSpacing); var trailing = Assert.Single(Nodes<StackPanel>(view), stack => stack.Orientation == Avalonia.Layout.Orientation.Horizontal); Assert.Equal(4, trailing.Spacing); Assert.Equal(0.9, trailing.Opacity); Assert.Equal(12, Nodes<TextBlock>(trailing).Single().FontSize); Assert.Equal(Avalonia.Media.FontWeight.Medium, Nodes<TextBlock>(trailing).Single().FontWeight); Assert.Equal(SwiftFont.System(10, SwiftFont.Weight.Semibold), SwiftImage.GetFont(Nodes<SwiftImage>(trailing).Single()));
+        button.RaiseEvent(new PointerEventArgs(InputElement.PointerEnteredEvent, button, new Avalonia.Input.Pointer(78, PointerType.Mouse, true), button, default, 0, default, default)); Sync(); Assert.Equal(0.9, trailing.Opacity); AdvanceFrames(h, 50); Assert.InRange(trailing.Opacity, 0.901, 0.999); AdvanceFrames(h, 51); Assert.Equal(1, trailing.Opacity); Assert.Equal(new Thickness(16, 12, 14, 12), grid.Margin);
+    });
+
+    [Fact]
+    [Trait("Req", "UI-UPDATE-025")] // App/Views/Settings/SettingsView.swift:946-964
+    [Trait("Req", "UI-UPDATE-028")] // App/Views/Settings/SettingsView.swift:950-952,1104-1121
+    [Trait("Req", "UI-UPDATE-030")] // App/Views/Settings/SettingsView.swift:958-960,1104-1121
+    public void Credits_header_and_resolved_repository_links_keep_exact_fonts_spacing_and_targets() => WithView(() => new AboutSettingsPage(), (view, _, _) =>
+    {
+        var section = Assert.Single(Nodes<ChromeSection>(view)); var header = Nodes<TextBlock>(section).Single(text => text.Text == "Credits"); Assert.Equal(13, header.FontSize); Assert.Equal(Avalonia.Media.FontWeight.SemiBold, header.FontWeight); Assert.Equal(Chrome.SecondaryText.Resolve(header.ActualThemeVariant), Assert.IsType<Avalonia.Media.SolidColorBrush>(header.Foreground).Color);
+        var opened = new List<string>(); using var browser = Marrow.Services.Port.Workspace.Open.Override(url => { opened.Add(url.AbsoluteString); return true; });
+        foreach (var (title, detail, url) in new[] { ("Working indicators", "Ported from Zeron by Wing, MIT License.", "https://github.com/zeronsh/zeron"), ("Welcome tour", "Ported from TourKit by Ram Patra, MIT License.", "https://github.com/rampatra/TourKit") }) { var row = Row(section, title); Assert.Contains(detail, Text(row)); var link = Assert.Single(Nodes<CreditLink>(row)); var button = Assert.Single(Nodes<Button>(link)); Assert.Equal(url, ToolTip.GetTip(button)); Assert.Equal(12, Nodes<TextBlock>(link).Single().FontSize); Assert.Equal(Avalonia.Media.FontWeight.Medium, Nodes<TextBlock>(link).Single().FontWeight); Assert.Equal(4, Nodes<StackPanel>(link).Single().Spacing); Assert.Equal(SwiftFont.System(10, SwiftFont.Weight.Semibold), SwiftImage.GetFont(Nodes<SwiftImage>(link).Single())); Click(button); }
+        Assert.Equal(new[] { "https://github.com/zeronsh/zeron", "https://github.com/rampatra/TourKit" }, opened);
+    });
+
+    [Fact]
+    [Trait("Req", "UI-UPDATE-031")] // App/Views/Settings/SettingsView.swift:1018-1023
+    [Trait("Req", "UI-UPDATE-032")] // App/Views/Settings/SettingsView.swift:1012-1056
+    public void Legal_popover_inherits_presented_chrome_and_selectable_markdown_with_all_missing_resource_names() => WithView(() => new LicensesRow(), (view, _, _) =>
+    {
+        var presenter = new RecordingPresenter(); using var presentation = Presentation.Presenter.Override(presenter); var show = Button(view, "Show"); Assert.True(show.IsEnabled); Click(show); Sync(); var popup = presenter.Calls.Last(x => x.Presented).Popup; Assert.Equal(Avalonia.Controls.PlacementMode.Bottom, popup.Placement); var content = Opened(popup); Assert.True(Popovers.GetIsCapsuleButtonBorderShape(content)); foreach (var body in Nodes<MarkdownView>(content)) Assert.True(MarkdownView.GetMarkdownBlockSelection(body)); var reader = typeof(LicensesRow).GetMethod("Text", BindingFlags.Static | BindingFlags.NonPublic)!; foreach (var resource in new[] { "LICENSE", "THIRD_PARTY_NOTICES", "TRADEMARK" }) Assert.Equal($"The {resource} file is missing from this copy of the app.", reader.Invoke(null, [resource]));
+    });
+
+    [Fact]
     [Trait("Req", "UI-THEME-002")] // App/Views/Settings/SettingsView.swift:1159-1202
     public void Theme_picker_holds_its_intrinsic_size_and_hover_animates_label_not_chevron() => WithView(() => new ThemePickerButton(Binding<AppTheme>.Constant(AppTheme.System)), (view, _, h) =>
     {
@@ -422,6 +451,9 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     [Trait("Req", "PR-THEME-086")] // App/Views/Settings/SettingsView.swift:404-407
     [Trait("Req", "PR-THEME-087")] // App/Views/Settings/SettingsView.swift:408-409
     [Trait("Req", "PR-USAGE-076")] // App/Views/Settings/SettingsView.swift:374-379
+    [Trait("Req", "UI-USAGE-042")] // App/Views/Settings/SettingsView.swift:373-379
+    [Trait("Req", "UI-USAGE-043")] // App/Views/Settings/SettingsView.swift:374-377
+    [Trait("Req", "UI-USAGE-044")] // App/Views/Settings/SettingsView.swift:378
     public void General_preview_transitions_are_not_replayed_on_equal_writes_and_usage_switch_is_last() => WithView(() => new GeneralSettingsPage(), (view, model, _) =>
     {
         var sound = new SettingsViewSoundRecorder(); using var output = SoundOutput.Current.Override(sound); model.Settings.ChimeWhenFinished = false; model.Settings.SettleSound = false; Sync(); Assert.Equal(0, sound.Starts);
@@ -472,7 +504,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
 
     // STOP App.Views.Settings.SettingsView #4
     // Kind: dependency / owner decision. Swift: SettingsView.swift:954-955,1002 (terminal fragments only).
-    // Records: PR-SETTINGS-238, PR-SETTINGS-248, PR-UPDATE-082, PR-UPDATE-084, PR-UPDATE-085, UI-SETTINGS-072 (terminal clauses only).
+    // Records: PR-SETTINGS-238, PR-SETTINGS-248, PR-UPDATE-082, PR-UPDATE-084, PR-UPDATE-085, UI-SETTINGS-072, UI-UPDATE-024/029 (terminal clauses only).
     // Missing: TerminalHostView explicitly has no renderer or chosen terminal component.
     // Needed: the shipped terminal's name, author, licence and project URL; do not credit SwiftTerm on Windows.
     // Keep the Terminal title/divider and the AGPL sentence prefix; only its CreditLink, component detail and trailing licence fragment are blocked.
@@ -615,6 +647,8 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     [Trait("Req", "PR-SETTINGS-248")] // App/Views/Settings/SettingsView.swift:946-963,1060-1121
     [Trait("Req", "UI-SETTINGS-072")] // App/Views/Settings/SettingsView.swift:950-960,1104-1121
     [Trait("Req", "UI-UPDATE-023")] // App/Views/Settings/SettingsView.swift:991-995
+    [Trait("Req", "UI-UPDATE-024")] // App/Views/Settings/SettingsView.swift:997-1002
+    [Trait("Req", "UI-UPDATE-029")] // App/Views/Settings/SettingsView.swift:954-956
     public void About_keeps_the_empty_update_slot_and_truthful_product_and_attribution_content() => WithView(() => new AboutSettingsPage(), (view, _, _) =>
     {
         var stack = Assert.IsType<StackPanel>(Assert.IsType<AboutSettingsPage>(view).Child); Assert.Equal(20, stack.Spacing); Assert.Equal(3, stack.Children.Count); Assert.IsType<AboutSoftwareUpdateSection>(stack.Children[0]);
@@ -865,6 +899,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SETTINGS-013")] // App/Views/Settings/SettingsView.swift:130-133
+    [Trait("Req", "UI-UPDATE-033")] // App/Views/Settings/SettingsView.swift:77,148-164
     public void Filtering_out_selection_selects_first_survivor_but_empty_results_preserve_it() => WithSettings((view, _, _) =>
     {
         SettingsNavigation.Shared.RequestedPage = SettingsPage.SourceControl;
