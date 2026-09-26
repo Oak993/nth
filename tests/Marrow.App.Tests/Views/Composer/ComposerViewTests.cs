@@ -2642,6 +2642,308 @@ public sealed class ComposerViewTests(HeadlessSession headless)
         Touch(ranked, "a cafe\u0301.txt", "f0\u00e9.txt");
         Assert.Equal(["a cafe\u0301.txt", "f0\u00e9.txt"], Search(store, Prepared(store, ranked), "f\u00e9"));
     }
+    private static Button Named(Control root, string name) => LogicalQuery.SelfAndDescendants<Button>(root).Single(b => AutomationProperties.GetName(b) == name);
+    private static void Click(Button button) => button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+    private static void InvokePrivate(object target, string method, params object[] args) => target.GetType().GetMethod(method, System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.Invoke(target, args);
+
+    private sealed class ComposerDialogProbe : IComposerFileDialog
+    {
+        public (bool Multiple, bool Directories, string Prompt)? Options;
+        public ValueList<string>? Result { get; set; }
+        public System.Threading.Tasks.Task<ValueList<string>?> Choose(AvaloniaWindow? owner, bool allowsMultipleSelection, bool canChooseDirectories, string prompt)
+        {
+            Options = (allowsMultipleSelection, canChooseDirectories, prompt);
+            return System.Threading.Tasks.Task.FromResult(Result);
+        }
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-060")] // App/Views/Composer/ComposerView.swift:219-225
+    public void B3_attachment_notice_uses_a_five_second_string_key_and_equal_notices_do_not_restart_it()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            var frames = new ManualFrameSource(); using var fs = FrameClock.Source.Override(frames);
+            var runtime = Unresolved(h);
+            var view = h.Main.OnMain(() => Pill(h, runtime));
+            var window = h.Main.OnMain(() => Show(view, h.App, 500));
+            h.Main.OnMain(() => InvokePrivate(view, "Note", "first")); Pump(h, window);
+            h.Main.Advance(TimeSpan.FromSeconds(4)); Pump(h, window); Assert.Equal("first", view.AttachmentNotice);
+            h.Main.OnMain(() => InvokePrivate(view, "Note", "first")); Pump(h, window);
+            h.Main.Advance(TimeSpan.FromMilliseconds(999)); Pump(h, window); Assert.Equal("first", view.AttachmentNotice);
+            h.Main.Advance(TimeSpan.FromMilliseconds(1)); Pump(h, window); Assert.Null(view.AttachmentNotice);
+            h.Main.OnMain(() => InvokePrivate(view, "Note", "second")); Pump(h, window);
+            h.Main.Advance(TimeSpan.FromSeconds(4)); Pump(h, window);
+            h.Main.OnMain(() => InvokePrivate(view, "Note", "replacement")); Pump(h, window);
+            h.Main.Advance(TimeSpan.FromSeconds(1)); Pump(h, window); Assert.Equal("replacement", view.AttachmentNotice);
+            h.Main.Advance(TimeSpan.FromSeconds(4)); Pump(h, window); Assert.Null(view.AttachmentNotice);
+            Close(h, window);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-063")] // App/Views/Composer/ComposerView.swift:526-533
+    public void B3_file_chooser_is_multiple_files_only_with_Attach_as_accept_label_and_cancel_leaves_the_draft()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness(); var dialog = new ComposerDialogProbe();
+            using var ds = ComposerFileDialog.Current.Override(dialog);
+            var view = Pill(h, h.Runtime);
+            h.Main.OnMain(() => { h.Runtime.Draft = new ComposerDraft { Text = "keep" }; InvokePrivate(view, "ChooseFiles"); });
+            h.Main.RunUntilIdle();
+            Assert.Equal((true, false, "Attach"), dialog.Options);
+            Assert.Equal("keep", h.Runtime.Draft.Text); Assert.Empty(h.Runtime.Draft.Attachments);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-067")] // App/Views/Composer/ComposerView.swift:990-1023
+    public void B3_attachment_strip_has_48_point_thumbnails_2_top_8_trailing_and_named_remove_badges()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            var files = new ValueList<Attachment>([Fake(1), Fake(2)]);
+            h.Main.OnMain(() => h.Runtime.Draft = new ComposerDraft { Attachments = files });
+            var strip = h.Main.OnMain(() => new DraftAttachments(h.Runtime));
+            var window = h.Main.OnMain(() => Show(strip, h.App, 400)); Pump(h, window);
+            h.Main.OnMain(() =>
+            {
+                var scroll = One<ScrollViewer>(strip);
+                Assert.Equal(Avalonia.Controls.Primitives.ScrollBarVisibility.Hidden, scroll.HorizontalScrollBarVisibility);
+                var thumbnails = LogicalQuery.SelfAndDescendants<Marrow.App.Views.Chat.AttachmentThumbnail>(strip).ToArray();
+                Assert.Equal(2, thumbnails.Length);
+                foreach (var thumb in thumbnails) { Assert.Equal(48, thumb.Bounds.Width); Assert.Equal(48, thumb.Bounds.Height); }
+                foreach (var file in files) { var remove = Named(strip, "Remove " + file.Name); Assert.False(remove.Focusable); Assert.Equal(new Thickness(4), remove.Padding); }
+                Assert.Equal(new Thickness(0, 0, 0, 8), strip.Child!.Margin);
+            });
+            Close(h, window);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-068")] // App/Views/Composer/ComposerView.swift:1005-1006,1028-1031
+    public void B3_attachment_remove_leaves_the_copied_file_and_closes_its_preview()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness(); var presenter = new RecordingPresenter(); using var ps = Presentation.Presenter.Override(presenter);
+            var path = System.IO.Path.Combine(h.Store.NewFolder("preview"), "kept.txt"); System.IO.File.WriteAllText(path, "file");
+            var file = Fake(1) with { Path = path };
+            h.Main.OnMain(() => h.Runtime.Draft = new ComposerDraft { Attachments = new ValueList<Attachment>([file]) });
+            var strip = h.Main.OnMain(() => new DraftAttachments(h.Runtime)); var window = h.Main.OnMain(() => Show(strip, h.App, 400)); Pump(h, window);
+            h.Main.OnMain(() => Click(LogicalQuery.SelfAndDescendants<Button>(One<Marrow.App.Views.Chat.AttachmentThumbnail>(strip)).First())); Pump(h, window);
+            Assert.Contains(presenter.Calls, call => call.Presented);
+            h.Main.OnMain(() => Click(Named(strip, "Remove " + file.Name))); Pump(h, window);
+            Assert.Empty(h.Runtime.Draft.Attachments); Assert.True(System.IO.File.Exists(path)); Assert.False(presenter.Calls[^1].Presented);
+            Close(h, window);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-077")] // App/Views/Composer/ComposerView.swift:627-646
+    public void B3_attach_action_uses_the_setting_and_never_takes_focus()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness(); var presenter = new RecordingPresenter(); using var ps = Presentation.Presenter.Override(presenter);
+            foreach (var recent in new[] { true, false })
+            {
+                var shown = false; var chosen = 0;
+                var controls = h.Main.OnMain(() => new ComposerControls(h.Runtime, h.Thread, true, recent, false, false, null,
+                    new Binding<bool>(() => shown, v => shown = v), _ => { }, () => chosen++, () => { }));
+                var window = h.Main.OnMain(() => Show(controls, h.App, 400)); Pump(h, window);
+                h.Main.OnMain(() => { var button = Named(controls, "Attach files"); Assert.False(button.Focusable); Assert.Equal("Attach files", ToolTip.GetTip(button)); Click(button); }); Pump(h, window);
+                Assert.Equal(recent, shown); Assert.Equal(recent ? 0 : 1, chosen);
+                Close(h, window);
+            }
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-086")] // App/Views/Composer/ComposerView.swift:882-906
+    public void B3_command_chip_has_verbatim_name_detail_symbol_and_removes_only_the_command()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness(); h.Main.OnMain(() => h.Runtime.Draft = new ComposerDraft { Text = "keep", Command = new DraftCommand { Name = "plan", Detail = "Turn plan mode on or off", IsBuiltIn = true } });
+            var chips = h.Main.OnMain(() => new DraftChips(h.Runtime)); var window = h.Main.OnMain(() => Show(chips, h.App, 400)); Pump(h, window);
+            h.Main.OnMain(() =>
+            {
+                Assert.Equal("/plan", One<TextBlock>(chips).Text); Assert.Contains(LogicalQuery.SelfAndDescendants<SwiftImage>(chips), image => image.SymbolName == "command");
+                Assert.Contains(LogicalQuery.SelfAndDescendants<Control>(chips), control => Equals(ToolTip.GetTip(control), "Turn plan mode on or off"));
+                var remove = Named(chips, "Remove command"); Assert.False(remove.Focusable); Click(remove);
+            }); Pump(h, window); Assert.Null(h.Runtime.Draft.Command); Assert.Equal("keep", h.Runtime.Draft.Text); Close(h, window);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-087")] // App/Views/Composer/ComposerView.swift:908-935
+    public void B3_quote_chip_shows_excerpt_one_line_capped_at_260_and_removes_by_id()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness(); var a = new ReplyQuote { Text = "\n  alpha   beta\nsecond" }; var b = new ReplyQuote { Text = "other" };
+            h.Main.OnMain(() => h.Runtime.Draft = new ComposerDraft { Quotes = new ValueList<ReplyQuote>([a, b]) });
+            var chips = h.Main.OnMain(() => new DraftChips(h.Runtime)); var window = h.Main.OnMain(() => Show(chips, h.App, 400)); Pump(h, window);
+            h.Main.OnMain(() => { var text = LogicalQuery.SelfAndDescendants<TextBlock>(chips).First(); Assert.Equal("alpha beta", text.Text); Assert.Equal(260, text.MaxWidth); Assert.Equal(1, text.MaxLines); Assert.Equal(TextTrimming.CharacterEllipsis, text.TextTrimming); Click(LogicalQuery.SelfAndDescendants<Button>(chips).First()); });
+            Pump(h, window); Assert.Equal([b.Id], h.Runtime.Draft.Quotes.Select(q => q.Id)); Close(h, window);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-088")] // App/Views/Composer/ComposerView.swift:880-881,939-957
+    public void B3_chip_row_scrolls_without_indicators_and_collapse_clips_from_the_top()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness(); h.Main.OnMain(() => h.Runtime.Draft = new ComposerDraft { Quotes = new ValueList<ReplyQuote>([new() { Text = "quote" }]) });
+            var chips = h.Main.OnMain(() => new DraftChips(h.Runtime)); var window = h.Main.OnMain(() => Show(chips, h.App, 400)); Pump(h, window);
+            h.Main.OnMain(() => { Assert.Equal(6, One<StackPanel>(chips).Spacing); Assert.Equal(Avalonia.Controls.Primitives.ScrollBarVisibility.Hidden, One<ScrollViewer>(chips).HorizontalScrollBarVisibility); var collapsed = Assert.IsType<Border>(new ChipRowCollapse(true).Body(new Border())); Assert.Equal(0, collapsed.Height); Assert.Equal(0, collapsed.Opacity); Assert.True(collapsed.ClipToBounds); }); Close(h, window);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-089")] // App/Views/Composer/ComposerView.swift:963-969
+    public void B3_chip_capsule_uses_9_7_5_padding_and_12_percent_primary_fill()
+    {
+        headless.OnUiThread(() => { using var h = RuntimeHarness(); h.Main.OnMain(() => { var chrome = Assert.IsType<Border>(new ChipChrome().Body(new TextBlock())); Assert.Equal(new Thickness(9,5,7,5), chrome.Padding); Assert.Equal(RoundedCornerStyle.Continuous, SwiftShapes.GetCornerStyle(chrome)); Assert.Equal(Chrome.Overlay(0.12).Resolve(chrome.ActualThemeVariant), Assert.IsAssignableFrom<ISolidColorBrush>(chrome.Background).Color); }); });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-090")] // App/Views/Composer/ComposerView.swift:625-655
+    public void B3_controls_are_attach_model_context_send_two_apart_and_compact_omits_context()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            foreach (var compact in new[] { false, true })
+            {
+                var controls = h.Main.OnMain(() => new ComposerControls(h.Runtime,h.Thread,compact,false,false,false,null,Binding<bool>.Constant(false),_ => {},() => {},() => {}));
+                var row = Assert.IsType<StackPanel>(controls.Child); Assert.Equal(2,row.Spacing); Assert.Equal(compact ? 3 : 4,row.Children.Count); Assert.IsType<Button>(row.Children[0]); Assert.IsType<ModelEffortSlot>(row.Children[1]); if (!compact) Assert.IsType<ContextMeter>(row.Children[2]); Assert.IsType<SendButton>(row.Children[^1]);
+            }
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-091")] // App/Views/Composer/ComposerView.swift:704-713
+    [Trait("Req", "PR-USAGE-001")] // App/Views/Composer/ComposerView.swift:704-713
+    public void B3_context_ring_uses_fraction_limits_or_key_and_is_absent_while_popped_out()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness(); var meter = h.Main.OnMain(() => new ContextMeter(h.Runtime, ProviderKind.Codex,null)); var window = h.Main.OnMain(() => Show(meter,h.App,200)); Pump(h,window); Assert.Single(LogicalQuery.SelfAndDescendants<Button>(meter));
+            h.Main.OnMain(() => h.App.Settings.ShowsUsagePanel=true); Pump(h,window); Assert.Empty(LogicalQuery.SelfAndDescendants<Button>(meter)); h.Main.OnMain(() => h.App.Settings.ShowsUsagePanel=false); Pump(h,window); Assert.Single(LogicalQuery.SelfAndDescendants<Button>(meter)); Close(h,window);
+            var noLimits = h.Main.OnMain(() => new ContextMeter(h.Runtime,ProviderKind.Cursor,null)); var other = h.Main.OnMain(() => Show(noLimits,h.App,200)); Pump(h,other); Assert.Empty(LogicalQuery.SelfAndDescendants<Button>(noLimits));
+            h.Main.OnMain(() => h.Runtime.Rehearse(new ProviderEvent.Usage(new ContextUsage { UsedTokens=5,WindowTokens=10 }))); Pump(h,other); Assert.Single(LogicalQuery.SelfAndDescendants<Button>(noLimits)); Close(h,other);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-092")] // App/Views/Composer/ComposerView.swift:718-731
+    [Trait("Req", "PR-USAGE-002")] // App/Views/Composer/ComposerView.swift:718-731
+    public void B3_context_ring_is_15_square_with_25_strokes_round_cap_and_6_5_hit_padding()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness(); var meter=h.Main.OnMain(() => new ContextMeter(h.Runtime,ProviderKind.Codex,null)); var window=h.Main.OnMain(() => Show(meter,h.App,200)); Pump(h,window);
+            h.Main.OnMain(() => { var button=One<Button>(meter); Assert.False(button.Focusable); Assert.Equal(new Thickness(6,5),button.Padding); var ring=Assert.IsType<Grid>(button.Content); Assert.Equal(15,ring.Width); Assert.Equal(15,ring.Height); var track=Assert.IsType<Avalonia.Controls.Shapes.Ellipse>(ring.Children[0]); var arc=Assert.IsType<Avalonia.Controls.Shapes.Path>(ring.Children[1]); Assert.Equal(2.5,track.StrokeThickness); Assert.Equal(2.5,arc.StrokeThickness); Assert.Equal(PenLineCap.Round,arc.StrokeLineCap); Assert.Equal(-90,Assert.IsType<RotateTransform>(arc.RenderTransform).Angle); }); Close(h,window);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-093")] // App/Views/Composer/ComposerView.swift:732-736,764-772
+    public void B3_ring_percentage_truncates_and_accessibility_name_stays_Context_window()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness(); h.Main.OnMain(() => h.Runtime.Rehearse(new ProviderEvent.Usage(new ContextUsage { UsedTokens=859,WindowTokens=1000 })));
+            var meter=h.Main.OnMain(() => new ContextMeter(h.Runtime,ProviderKind.Codex,null)); var window=h.Main.OnMain(() => Show(meter,h.App,200)); Pump(h,window);
+            h.Main.OnMain(() => { var button=One<Button>(meter); Assert.Equal("85% of the context window used",ToolTip.GetTip(button)); Assert.Equal("Context window",AutomationProperties.GetName(button)); Assert.Equal("85% of the context window used",AutomationProperties.GetHelpText(button)); }); Close(h,window);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-094")] // App/Views/Composer/ComposerView.swift:737-759
+    public void B3_ring_popover_header_popout_hides_ring_and_enables_floating_usage()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h=RuntimeHarness(); var presenter=new RecordingPresenter(); using var ps=Presentation.Presenter.Override(presenter);
+            var meter=h.Main.OnMain(() => new ContextMeter(h.Runtime,ProviderKind.Codex,null)); var window=h.Main.OnMain(() => Show(meter,h.App,200)); Pump(h,window);
+            h.Main.OnMain(() => Click(One<Button>(meter))); Pump(h,window); var popup=presenter.Calls[^1].Popup; Assert.Equal(Avalonia.Controls.PlacementMode.Bottom,popup.Placement); Assert.NotNull(popup.Child);
+            var content=popup.Child!; Assert.Contains(LogicalQuery.SelfAndDescendants<TextBlock>(content), t=>t.Text=="Usage");
+            h.Main.OnMain(() => Click(Named(content,"Open as a floating panel beside the chat"))); Pump(h,window); Assert.True(h.App.Settings.ShowsUsagePanel); Assert.False(presenter.Calls[^1].Presented); Assert.Empty(LogicalQuery.SelfAndDescendants<Button>(meter)); Close(h,window);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-095")] // App/Views/Composer/ComposerView.swift:301-307
+    public void B3_heads_usage_provider_is_nil_when_it_equals_the_lead_or_Hydra_is_off()
+    {
+        headless.OnUiThread(() => { using var h=RuntimeHarness(); var view=Pill(h,h.Runtime); h.Main.OnMain(() => { var method=typeof(ComposerView).GetMethod("HeadsProvider",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic)!; h.App.Settings.HydraEnabled=false; Assert.Null(method.Invoke(view,[h.Thread])); }); });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-096")] // App/Views/Composer/ComposerView.swift:825-841
+    [Trait("Req", "PR-COMPOSER-100")] // App/Views/Composer/ComposerView.swift:843
+    public void B3_send_is_28_circle_4_leading_and_disabled_until_draft_then_named_Send_to_a_head()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h=RuntimeHarness(); var send=h.Main.OnMain(() => new SendDraftState(h.Runtime,false,false,true,false,()=>{})); var window=h.Main.OnMain(() => Show(send,h.App,200)); Pump(h,window);
+            var button=One<Button>(send); Assert.False(button.IsEnabled); Assert.False(button.Focusable); Assert.Equal("Send to a head",AutomationProperties.GetName(button)); Assert.Equal(new Thickness(4,0,0,0),button.Margin);
+            h.Main.OnMain(() => h.Runtime.Draft=new ComposerDraft{Text="message"}); Pump(h,window); Assert.True(button.IsEnabled); var label=Assert.IsType<Border>(button.Content); Assert.Equal(28,label.Width); Assert.Equal(28,label.Height); Assert.Equal("arrow.up",One<SwiftImage>(label).SymbolName); Close(h,window);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-097")] // App/Views/Composer/ComposerView.swift:828-829
+    public void B3_stop_click_is_plain_interrupt_and_never_returns_the_turn_text_to_the_draft()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h=RuntimeHarness(); Loaded(h,h.Runtime); h.Main.OnMain(() => h.Runtime.RehearseTurn("sent prompt"));
+            var send=h.Main.OnMain(() => new SendDraftState(h.Runtime,true,false,false,false,()=> throw new Exception("idle send invoked"))); var window=h.Main.OnMain(() => Show(send,h.App,200)); Pump(h,window);
+            h.Main.OnMain(() => { Assert.Equal("Stop",AutomationProperties.GetName(One<Button>(send))); Click(One<Button>(send)); }); Pump(h,window); Assert.Equal("",h.Runtime.Draft.Text); Assert.Single(h.Runtime.Turns); Close(h,window);
+        });
+    }
+
+    [Theory]
+    [InlineData(true,"Heads are at work: your message goes to a head")]
+    [InlineData(false,"Heads are at work: your message waits for the lead")]
+    [Trait("Req", "PR-COMPOSER-098")] // App/Views/Composer/ComposerView.swift:848-860
+    public void B3_running_heads_tooltip_names_the_exact_message_destination(bool queueHeads,string expected)
+    {
+        headless.OnUiThread(() => { using var h=RuntimeHarness(); h.Main.OnMain(() => { var send=new SendDraftState(h.Runtime,true,true,false,queueHeads,()=>{}); Assert.Equal(expected,ToolTip.GetTip(One<Button>(send))); }); });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-099")] // App/Views/Composer/ComposerView.swift:862-864
+    public void B3_idle_help_uses_the_cached_queue_chord_and_literal_Return()
+    {
+        headless.OnUiThread(() => { using var h=RuntimeHarness(); h.Main.OnMain(() => { var send=new SendDraftState(h.Runtime,false,false,true,false,()=>{}); var tail=SendShortcutText.Queue is {} q ? " · "+q+" queues while running" : ""; Assert.Equal("Send to a head (Return) · the lead reports back"+tail,ToolTip.GetTip(One<Button>(send))); }); });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-101")] // App/Views/Composer/ComposerView.swift:664-672
+    public void B3_working_dots_take_bottom_two_fifths_inside_22_point_clip()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h=RuntimeHarness(); h.Main.OnMain(() => h.Runtime.RehearseTurn("working")); var slot=h.Main.OnMain(() => new ComposerWorkingDotsSlot(h.Runtime)); var window=h.Main.OnMain(() => Show(slot,h.App,400)); h.Main.OnMain(() => slot.Height=100); Pump(h,window);
+            h.Main.OnMain(() => { var dots=One<ComposerWorkingDots>(slot); Assert.Equal(40,dots.Bounds.Height); Assert.Equal(60,Frame(dots,slot).Y); var clip=Assert.IsType<Border>(slot.Child); Assert.Equal(new CornerRadius(22),clip.CornerRadius); Assert.True(clip.ClipToBounds); }); Close(h,window);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-TERM-073")] // App/Views/Composer/ComposerView.swift:342-354
+    public void B3_Escape_closes_terminal_before_diff_without_terminating_shells()
+    {
+        headless.OnUiThread(() => { using var h=RuntimeHarness(); var view=Pill(h,h.Runtime); h.Main.OnMain(() => { h.Runtime.IsTerminalVisible=true; h.Runtime.IsDiffVisible=true; Assert.True(Press(view,Key.Escape)); Assert.False(h.Runtime.IsTerminalVisible); Assert.True(h.Runtime.IsDiffVisible); }); });
+    }
 }
 
 // STOP #1 and #2 below are historical, resolved in B3 part 1 after impl/b2 supplied their dependencies.
