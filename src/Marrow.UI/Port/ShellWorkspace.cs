@@ -15,10 +15,14 @@ namespace Marrow.UI.Port;
 public static class ShellWorkspace
 {
     // ED-203: refuse a relative or scheme-less-host string before calling ShellExecuteW, the same absolute-URL
-    // requirement NSWorkspace.shared.open enforces on the source's own platform. This changes nothing for this
-    // seam's own callers today (AttachmentPreview.swift's footer always hands an absolute Windows path, whose
-    // drive letter parses as a one-letter scheme; MarkdownLinkOpener's generic branch only ever forwards a URL
-    // that already carries one).
+    // requirement NSWorkspace.shared.open enforces on the source's own platform. This seam's callers today are
+    // MarkdownLinkOpener's own local-file hand-off (a resolved absolute path, drive-letter-prefixed or, for the
+    // source's own POSIX shape, not), MarkdownLinkOpener's generic fallback for a link that carries a real scheme
+    // (review A29: a bare "/"-rooted or "\\"-rooted string has none, so it is not "a URL that already carries
+    // one" as an earlier version of this comment claimed), and AttachmentPreview/DownloadsPopover's own absolute
+    // Windows or UNC path (review A29, finding 6: a UNC path is only unsafe from an unreviewed chat link, which
+    // MarkdownLinkOpener.IsUnc already refuses before ever reaching this seam; a trusted caller's own UNC path,
+    // e.g. a redirected Downloads folder, is exactly what NSWorkspace.shared.open opens on the source's platform).
     public static Action<string> OpenWithDefaultApp { get; set; } = path =>
     {
         if (ShouldAttemptShellExecute(path)) ShellExecuteW(IntPtr.Zero, "open", path, null, null, ShowNormal);
@@ -30,16 +34,33 @@ public static class ShellWorkspace
     public static Action<string> RevealInFileExplorer { get; set; } = path =>
         ShellExecuteW(IntPtr.Zero, "open", "explorer.exe", "/select,\"" + path + "\"", null, ShowNormal);
 
-    // ED-203: (a) no URL scheme, or (b) a host with no scheme (the two-slash relative-host form, "//host/share").
-    // (b) is always also (a) once parsed - a URL with a host but no scheme still parses with Scheme null - kept
-    // as its own clause so both of the decision's named shapes ("calc"; "//host/share") read directly off it.
+    /// <summary>
+    /// ED-203: accepted when the string is (1) an absolute URL with a real scheme (an <c>http(s)://</c> or
+    /// <c>file://</c> link), (2) a drive-letter path (whose drive letter parses as a one-letter scheme,
+    /// <see cref="MarkdownLinkOpener.LocalFilePath"/>'s own reconstructed strings), provided what follows the
+    /// drive letter is itself rooted rather than drive-relative (review A29: "C:tool.exe" resolves against
+    /// whatever the process's current directory on the C: drive happens to be - exactly the kind of relative
+    /// reference NSWorkspace.shared.open refuses on the source's platform), or (3) scheme-less but rooted (a
+    /// single leading "/", as the source's own POSIX local-file branch hands this seam, or a leading "\\"/"/\",
+    /// a UNC path a trusted non-chat caller passed). Refused: a bare relative token ("calc") and the two-slash
+    /// relative-host form ("//host/share") that a scheme-less URL with a Host but no Scheme parses into.
+    /// </summary>
     internal static bool ShouldAttemptShellExecute(string path)
     {
         var url = SwiftURL.Create(path);
-        if (url is null || url.Scheme is null) return false; // (a)
-        if (url.Host is not null && url.Scheme is null) return false; // (b)
-        return true;
+        if (url is null) return false;
+
+        if (url.Scheme is { Length: 1 } drive && IsAsciiLetter(drive[0]))
+            return url.Host is not null || IsRootedPath(url.Path); // review A29: refuse a drive-relative path
+
+        if (url.Scheme is not null) return true;
+        if (url.Host is not null) return false; // the two-slash relative-host form ("//host/share")
+        return IsRootedPath(url.Path);
     }
+
+    private static bool IsRootedPath(string path) => path.Length > 0 && (path[0] == '/' || path[0] == '\\');
+
+    private static bool IsAsciiLetter(char c) => c is >= 'A' and <= 'Z' or >= 'a' and <= 'z';
 
     // ED-204: Windows' own "potentially dangerous file type" test (the one its downloaded-attachment handling
     // uses), so the floor list below follows whatever a stock Windows 11 answers, even where a machine's own
@@ -57,9 +78,10 @@ public static class ShellWorkspace
     /// <summary>
     /// ED-204: a local chat-link target of a type Windows runs directly is revealed, selected, in File Explorer
     /// instead of opened. A directory is not a program: it opens, as Finder opens a folder, whatever its name
-    /// looks like.
+    /// looks like. The extension that decides this is read off <see cref="CanonicalFileName"/>, not the literal
+    /// path text (review A29: Windows itself would resolve the two to the same file).
     /// </summary>
-    public static bool ShouldReveal(string path) => !Directory.Exists(path) && IsDangerousExtension(ExtensionOf(path));
+    public static bool ShouldReveal(string path) => !Directory.Exists(path) && IsDangerousExtension(ExtensionOf(CanonicalFileName(path)));
 
     internal static bool IsDangerousExtension(string extension)
     {
@@ -77,6 +99,23 @@ public static class ShellWorkspace
         var separator = Math.Max(path.LastIndexOf('/'), path.LastIndexOf('\\'));
         var dot = path.LastIndexOf('.');
         return dot > separator ? path[dot..] : "";
+    }
+
+    // review A29: Win32 file-name resolution (CreateFileW and everything built on it, including ShellExecuteW)
+    // drops trailing dots and spaces from a literal name - "tool.exe " and "tool.exe." both resolve to "tool.exe"
+    // on disk - and "<name>::$DATA" addresses <name>'s own unnamed data stream, the same underlying file, opened
+    // the same way. ExtensionOf must see the name Windows will actually open, or a dangerous extension hidden
+    // behind either form (a trailing "%20" once the URL is decoded; an explicit ADS suffix) goes unrecognised and
+    // ShouldReveal answers false for what is, on disk, exactly the type ED-204's floor list names.
+    internal static string CanonicalFileName(string path)
+    {
+        const string dataStreamSuffix = "::$DATA";
+        var name = path.EndsWith(dataStreamSuffix, StringComparison.OrdinalIgnoreCase)
+            ? path[..^dataStreamSuffix.Length]
+            : path;
+        var end = name.Length;
+        while (end > 0 && (name[end - 1] == ' ' || name[end - 1] == '.')) end--;
+        return name[..end];
     }
 
     private const int ShowNormal = 1; // SW_SHOWNORMAL

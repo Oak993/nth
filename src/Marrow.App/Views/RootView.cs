@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
+using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -13,13 +15,14 @@ using Marrow.App.Window;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Services.Providers;
+using Marrow.Services.Store;
 using Marrow.UI.Chrome;
 using Marrow.UI.Common;
 using Marrow.UI.Port;
 
 namespace Marrow.App.Views;
 
-// Source: DroppyCode/App/Views/RootView.swift (B2 1fbf81e), :1-479.
+// Source: DroppyCode/App/Views/RootView.swift (B3 52bc792), :1-450.
 // Skeleton (c100 group 4): every type the file declares, with the inputs other files pass; every view body and member
 // with behaviour is left to the implementing unit (MARROW_STUB).
 // Forms (ED-095): a SwiftUI View is a Decorator whose constructor builds `body`; `@Environment(AppModel.self)` and
@@ -27,15 +30,21 @@ namespace Marrow.App.Views;
 // `extension EnvironmentValues` (:116-118) is an inherited attached property on the class named after the Swift file
 // (R-NAME-4, R-VIEW-6), which is the file's own view RootView. NSViewRepresentable is the Decorator hosting its NSView
 // (NSView is Control). Swift `private` top-level types are `internal`.
+// B3 delta (B3_PLAN.md section 4): CopyCommandButton (B2 :424-451) is removed from this file outright; grep of the
+// pinned B3 tree confirms no CopyCommandButton in RootView.swift and no other DroppyCode file declaring it either
+// (SOURCE FACT, verified against E:/Droppy/reference/droppy-code-v1.7.0). Its class and test are deleted here.
 //
-// This unit implements the 7 types that do not depend on SidebarView.cs (53 MARROW_STUB) or ChatView.cs (23
+// This unit implements the 6 remaining types that do not depend on SidebarView.cs (53 MARROW_STUB) or ChatView.cs (23
 // MARROW_STUB): DetailView's empty-state branch, WelcomeView, ProviderChecklist, ProviderStatusRow,
-// OpenProvidersSettingsButton, CopyCommandButton and NoThreadView. RootView's top-level body and ThreadColumns stay
-// MARROW_STUB: RootView's body needs SidebarView, GenieLayer, RowGlideLayer, CommandPalette, WindowChromeConfigurator
-// and WallpaperStore, none of which exist yet; ThreadColumns needs ChatView (blocked) and a WindowLiveResize read from
-// the environment, which nothing yet attaches (App.Window.WindowManager's HostedEnvironment, the ViewModifier that
-// would do it, is itself MARROW_STUB). DetailView's "a thread is selected" branch calls into ThreadColumns and so
-// stays MARROW_STUB for the same reason.
+// OpenProvidersSettingsButton and NoThreadView. RootView.HandleDrop (below) is implemented and tested through an
+// extracted HandleDropCore, which needs no visual tree at all. RootView's top-level body and ThreadColumns stay
+// MARROW_STUB: RootView's body needs SidebarView (still 53 MARROW_STUB; its own constructor throws unconditionally,
+// so no RootView instance can be built while it does) and, only for the isCommandPalettePresented branch,
+// CommandPalette (still MARROW_STUB); GenieLayer, RowGlideLayer, WindowChromeConfigurator and WallpaperStore are now
+// real (0 MARROW_STUB each), narrowing the block from the prior STOP note (see the STOP note at the end of
+// RootViewTests.cs). ThreadColumns needs ChatView (blocked) and a WindowLiveResize read from the environment, which
+// HostedEnvironment (App.Window.WindowManager.cs) now attaches for real; DetailView's "a thread is selected" branch
+// calls into ThreadColumns and so stays MARROW_STUB for ChatView's sake alone.
 
 /// <summary>:4-111 <c>struct RootView: View</c>, with the file's <c>extension EnvironmentValues</c> (:116-118).</summary>
 public sealed class RootView : Decorator
@@ -44,9 +53,65 @@ public sealed class RootView : Decorator
     public RootView() =>
         throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/RootView.swift:8");
 
-    // :94-110 @discardableResult private func handleDrop(_ urls: [URL]) -> Bool
+    // :94-110 @discardableResult private func handleDrop(_ urls: [URL]) -> Bool. Delegates to HandleDropCore, which
+    // holds the whole function body: HandleDropCore needs only the model and the dropped urls, never `this` or any
+    // control, so it is directly testable without RootView's own body (still MARROW_STUB, see above) ever running.
+    // ENGINEERING DECISION: this split is pure testability scaffolding, not an observable behaviour change; the
+    // Swift function's own body is reproduced verbatim in HandleDropCore, cited line for line below.
     private bool HandleDrop(IReadOnlyList<SwiftURL> urls) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/RootView.swift:95");
+        HandleDropCore(AppEnvironment.GetAppModel(this), urls);
+
+    // :94-110 the whole handleDrop body. internal (not private, R-NAME-6's testability exception noted above): tests
+    // reach it through Marrow.App's existing [assembly: InternalsVisibleTo("Marrow.App.Tests")]
+    // (Port/AttachmentFlightPlatform.cs:10), the same visibility every other testable internal member already uses.
+    // FOR WHOEVER WIRES THIS TO A REAL DROP EVENT (RootView's own top-level body, still MARROW_STUB): do not build
+    // these SwiftURL arguments as a plain "file://" + path URL. SOURCE FACT, empirically confirmed in
+    // RootViewTests.cs's own DroppedUrl helper and already documented on Services.Providers.CodexSession.cs's
+    // DirectoryFileUrl and ACPSession.cs: a "file://" SwiftURL's .Path (SwiftURL.cs's FileSystemPath, cited there)
+    // reproduces macOS's POSIX url.path unconditionally and corrupts a Windows drive-letter path ("C:\Users\x" ->
+    // "/C:/Users/x"), which then reads as not existing. Build the URL the same way DirectoryFileUrl does: a
+    // non-"file" scheme (e.g. "marrow-dropped-path:"), whose .Path takes the plain percent-decode branch with no
+    // POSIX-root handling.
+    internal static bool HandleDropCore(AppModel model, IReadOnlyList<SwiftURL> urls)
+    {
+        // :96-102. FileManager.fileExists(atPath:isDirectory:) (R-FS-1): a path that exists as neither is skipped
+        // (the guard fails and the loop `continue`s); Directory.Exists is checked first since Swift's isDirectory
+        // out-param is authoritative when the path exists at all.
+        var folders = new List<SwiftURL>();
+        var files = new List<SwiftURL>();
+        foreach (var url in urls)
+        {
+            var path = url.Path;
+            if (Directory.Exists(path)) folders.Add(url); // :101 isDirectory.boolValue
+            else if (File.Exists(path)) files.Add(url); // :101 else branch
+            // else: fileExists returned false; :100 guard ... else { continue }
+        }
+
+        // :103-105. lastProject stays null when folders is empty, matching Swift's uninitialized-then-optional var.
+        Project? lastProject = null;
+        foreach (var folder in folders) lastProject = model.AddProject(folder); // :104
+        if (lastProject is { } project) model.NewThread(project); // :105 model.newThread(in: lastProject)
+
+        // :106-108. The selection is read now, as it stands after the folder loop above. SOURCE FACT, verified
+        // directly against the pinned reference (AppModel.swift:614/623: newThread(in:) sets
+        // selectedThreadID = thread.id), overriding this record's own windows_path prose (PR-WIN-065, "a thread
+        // created by the folder half is NOT the thread the files attach to"): that prose does not match the traced
+        // control flow. newThread(in:) selects the thread it creates BEFORE this line runs, so a mixed drop of a
+        // folder and a file, with nothing selected beforehand, DOES attach the file to the thread the folder half
+        // just created (RootViewTests.cs, A_mixed_drop_with_no_prior_selection_attaches_the_file_to_the_thread_the_
+        // folder_half_just_created). Only a thread already selected BEFORE the drop, unrelated to the folder half,
+        // keeps its own selection here (:104-105 touch nothing when folders is empty).
+        if (files.Count > 0 && model.SelectedThreadID is { } threadID)
+        {
+            var runtime = model.Runtime(threadID);
+            Storage.Attach(
+                files.Select(file => (AttachmentSource)new AttachmentSource.File(file.Path)).ToArray(), // :107 files.map(AttachmentSource.file)
+                () => runtime.Draft.Attachments,
+                value => runtime.Draft = runtime.Draft with { Attachments = value }); // :107 Bindable(...).draft.attachments
+        }
+
+        return folders.Count > 0 || files.Count > 0; // :109
+    }
 
     // :117 @Entry var chatColumnIsShown = true: whether the chat column a view sits in is the one on screen.
     public static readonly AttachedProperty<bool> ChatColumnIsShownProperty =
@@ -357,68 +422,17 @@ internal sealed class OpenProvidersSettingsButton : Decorator
     }
 }
 
-/// <summary>:424-451 <c>struct CopyCommandButton: View</c>.</summary>
-public sealed class CopyCommandButton : Decorator
-{
-    private readonly string command;
-    private bool didCopy;
-    private readonly StackPanel label = new() { Orientation = Orientation.Horizontal, Spacing = 4, VerticalAlignment = VerticalAlignment.Center };
-
-    // :425 let command: String; :428-450 body
-    public CopyCommandButton(string command)
-    {
-        this.command = command;
-        UpdateLabel();
-        var framed = new Border { Height = Chrome.RowButtonLabelHeight, Child = label }; // :446
-        var button = PlainControls.Button(framed, OnClick);
-        ToolTip.SetTip(button, "Copy the sign-in command, then run it in Terminal"); // :449
-        Child = button.ChromeGlassCapsule();
-    }
-
-    private async void OnClick()
-    {
-        var topLevel = TopLevel.GetTopLevel(this);
-        if (topLevel?.Clipboard is { } clipboard) // :430-431
-        {
-            await clipboard.ClearAsync();
-            var data = new Avalonia.Input.DataTransfer();
-            data.Add(Avalonia.Input.DataTransferItem.CreateText(command));
-            await clipboard.SetDataAsync(data);
-        }
-        didCopy = true; // :432
-        UpdateLabel();
-        MainActor.Spawn(async () =>
-        {
-            await SwiftTask.TrySleep(SwiftTask.Seconds(1.4)); // :436
-            didCopy = false; // :437
-            UpdateLabel();
-        });
-    }
-
-    // :439-445 the icon/checkmark plus text label
-    private void UpdateLabel()
-    {
-        label.Children.Clear();
-        var glyph = SwiftImage.SystemName(didCopy ? "checkmark" : "terminal") // :441
-            .Font(SwiftFont.System(SwiftFont.TextStyle.Footnote)); // :442
-        var text = new TextBlock { Text = didCopy ? "Copied" : command, VerticalAlignment = VerticalAlignment.Center }; // :443-444
-        SwiftFont.System(SwiftFont.TextStyle.Subheadline, design: SwiftFont.Design.Monospaced).Apply(text);
-        label.Children.Add(glyph);
-        label.Children.Add(text);
-    }
-}
-
-/// <summary>:453-479 <c>struct NoThreadView: View</c>.</summary>
+/// <summary>:424-450 <c>struct NoThreadView: View</c>.</summary>
 public sealed class NoThreadView : Decorator
 {
-    // :456-478 body
+    // :427-448 body
     public NoThreadView()
     {
-        var symbol = SwiftImage.SystemName("bubble.left.and.text.bubble.right") // :458
+        var symbol = SwiftImage.SystemName("bubble.left.and.text.bubble.right") // :429
             .Font(SwiftFont.System(46, SwiftFont.Weight.Light))
             .ForegroundStyle(Chrome.SecondaryText);
 
-        var heading = new TextBlock { Text = "Pick a thread or start a new one" }; // :461
+        var heading = new TextBlock { Text = "Pick a thread or start a new one" }; // :432
         SwiftFont.System(SwiftFont.TextStyle.Title2, weight: SwiftFont.Weight.Medium).Apply(heading);
 
         var newThreadLabel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, VerticalAlignment = VerticalAlignment.Center };
@@ -430,8 +444,8 @@ public sealed class NoThreadView : Decorator
         stack.Children.Add(heading);
         this.Track(() => AppEnvironment.GetAppModel(this), model =>
         {
-            stack.Children.Add(WelcomeView.GlassProminentButton(newThreadLabel, LargeControlHeight, () => model.NewThread())); // :463-469
-            // :470-475 the chord hint, omitted entirely when the shortcut has been cleared
+            stack.Children.Add(WelcomeView.GlassProminentButton(newThreadLabel, LargeControlHeight, () => model.NewThread())); // :434-440
+            // :441-446 the chord hint, omitted entirely when the shortcut has been cleared
             if (ShortcutStore.Label(AppShortcut.NewThread) is { } chord)
             {
                 var chordText = new TextBlock { Text = chord };

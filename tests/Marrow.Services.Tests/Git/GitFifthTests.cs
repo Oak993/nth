@@ -88,6 +88,53 @@ public sealed class GitFifthTests
         Assert.Equal(rebuilt, GitRepository.GitIn(remote, null, "rev-parse", "refs/heads/topic/one").Trim());
     }
 
+    // The literal argv of pushBranch, read from Shell.Run by the ED-207 observer while the real push to a local bare
+    // origin runs (R-TEST-10): force false has no "--force"; force true puts it after "-u" and before "origin".
+
+    [Fact]
+    [Trait("Req", "PR-GIT-031")] // Services/Git/Git.swift:390-392 (B3)
+    public async Task PushBranch_without_force_runs_push_u_origin_and_the_refspec_as_one_argument_at_300_seconds()
+    {
+        using var runtime = new TestRuntime();
+        using var repository = GitRepository.WithCommit();
+        var remote = AddBareOrigin(repository);
+        repository.Git("branch", "topic/one");
+        IReadOnlyList<ShellInvocation> calls;
+        using (var shell = ShellRecording.Start())
+        {
+            await new GitValue(repository.Root).PushBranch("topic/one");
+            calls = shell.Calls;
+        }
+        var call = Assert.Single(calls);
+        Assert.Equal(LoginEnvironment.Git, call.Executable);
+        Assert.Equal(new[] { "-c", "core.quotepath=false", "-c", "color.ui=false",
+            "push", "-u", "origin", "refs/heads/topic/one:refs/heads/topic/one" }, call.Arguments);
+        Assert.Equal(300.0, call.Timeout);
+        Assert.Equal(repository.Git("rev-parse", "topic/one"), GitRepository.GitIn(remote, null, "rev-parse", "refs/heads/topic/one"));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-GIT-031")] // Services/Git/Git.swift:390-392 (B3)
+    public async Task PushBranch_with_force_puts_force_after_u_and_before_origin_at_300_seconds()
+    {
+        using var runtime = new TestRuntime();
+        using var repository = GitRepository.WithCommit();
+        var remote = AddBareOrigin(repository);
+        repository.Git("branch", "topic/one");
+        IReadOnlyList<ShellInvocation> calls;
+        using (var shell = ShellRecording.Start())
+        {
+            await new GitValue(repository.Root).PushBranch("topic/one", force: true);
+            calls = shell.Calls;
+        }
+        var call = Assert.Single(calls);
+        Assert.Equal(LoginEnvironment.Git, call.Executable);
+        Assert.Equal(new[] { "-c", "core.quotepath=false", "-c", "color.ui=false",
+            "push", "-u", "--force", "origin", "refs/heads/topic/one:refs/heads/topic/one" }, call.Arguments);
+        Assert.Equal(300.0, call.Timeout);
+        Assert.Equal(repository.Git("rev-parse", "topic/one"), GitRepository.GitIn(remote, null, "rev-parse", "refs/heads/topic/one"));
+    }
+
     // ---- createPullRequest's existing-request fallback (Git.swift:192-200, PR-GIT-161) ----
 
     [Fact]
@@ -259,6 +306,73 @@ public sealed class GitFifthTests
         var marker = GitProbes.InstallStallFilter(repository);
         var git = new GitValue(repository.Root);
         await GitProbes.AssertBudgetOnceStalled(runtime, git.CaptureTree(["clean.txt"], onto: head, from: head), 300, marker);
+    }
+
+    // The per-site budget table of captureTree(paths:onto:from:) and its two helpers, read from Shell.Run by the ED-207
+    // observer while the real git runs. The stall test above proves the add's 300 s end to end; that a budget passed to
+    // Shell.Run becomes the process deadline is GitTests.Run_passes_a_call_sites_own_budget_through_to_the_process.
+
+    [Fact]
+    [Trait("Req", "PR-GIT-003")] // Services/Git/Git.swift:294-344,347-359 (B3)
+    public async Task CaptureTreeOnto_runs_its_clean_add_at_300_seconds_and_every_other_git_site_at_the_120_second_default()
+    {
+        using var runtime = new TestRuntime();
+        var scenario = Scenario();
+        using var repository = scenario.Repository;
+        var head = scenario.Head;
+        var @base = scenario.Base;
+        // One call reaching every site: clean.txt is clean (the add); teamdelete_ok.txt is contested and deleted by the
+        // team while the remote kept its bytes (rm --cached); merge.txt is contested and merges cleanly (merge-file,
+        // hash-object, ls-tree, update-index); each contested path reads its two blobs first (cat-file).
+        repository.Write("clean.txt", "clean-v2-team\n");
+        File.Delete(repository.Child("teamdelete_ok.txt"));
+        repository.Write("merge.txt", "L1\nL2\nL3\nL4\nTEAM-L5\n");
+        var git = new GitValue(repository.Root);
+        (string Tree, IReadOnlyDictionary<string, byte[]> Merged)? result;
+        IReadOnlyList<ShellInvocation> calls;
+        using (var shell = ShellRecording.Start())
+        {
+            result = await git.CaptureTree(["clean.txt", "teamdelete_ok.txt", "merge.txt"], onto: @base, from: head);
+            calls = shell.Calls;
+        }
+        Assert.NotNull(result);
+        // :291-294. The scratch index named by the index-bound sites; merge-file's three files sit beside it.
+        var index = calls[0].Environment!["GIT_INDEX_FILE"];
+        Assert.Matches(RebaseIndex, index);
+        var scratch = index[..^"\\index".Length];
+        var blob = repository.Git("rev-parse", result.Value.Tree + ":merge.txt").Trim();
+        var expected = new (string[] Arguments, double Timeout, bool ScratchIndex)[]
+        {
+            (new[] { "read-tree", @base }, 120, true), // :295
+            (new[] { "diff", "--name-only", "--no-renames", "-z", head, @base }, 120, false), // :298
+            (new[] { "add", "-A", "--ignore-errors", "--pathspec-from-file=-", "--pathspec-file-nul" }, 300, true), // :302
+            (new[] { "cat-file", "blob", head + ":teamdelete_ok.txt" }, 120, false), // :307, :349
+            (new[] { "cat-file", "blob", @base + ":teamdelete_ok.txt" }, 120, false), // :308, :349
+            (new[] { "rm", "--cached", "--quiet", "--ignore-unmatch", "--", "teamdelete_ok.txt" }, 120, true), // :317
+            (new[] { "cat-file", "blob", head + ":merge.txt" }, 120, false), // :307, :349
+            (new[] { "cat-file", "blob", @base + ":merge.txt" }, 120, false), // :308, :349
+            (new[] { "merge-file", "--quiet", "--", scratch + "\\current", scratch + "\\common", scratch + "\\other" }, 120, false), // :326-332
+            (new[] { "hash-object", "-w", "--stdin" }, 120, false), // :335
+            (new[] { "ls-tree", "-z", @base, "--", "merge.txt" }, 120, false), // :337, :355
+            (new[] { "update-index", "--add", "--cacheinfo", "100755," + blob + ",merge.txt" }, 120, true), // :338
+            (new[] { "write-tree" }, 120, true), // :342
+        };
+        Assert.Equal(expected.Select(row => row.Arguments[0]), calls.Select(call => call.Arguments[4]));
+        for (var row = 0; row < expected.Length; row++)
+        {
+            var call = calls[row];
+            // :31-48. The login git, the two fixed -c pairs first, in the checkout, with the site's own budget.
+            Assert.Equal(LoginEnvironment.Git, call.Executable);
+            Assert.Equal(new[] { "-c", "core.quotepath=false", "-c", "color.ui=false" }.Concat(expected[row].Arguments), call.Arguments);
+            Assert.Equal(repository.Root, call.Directory);
+            Assert.Equal(expected[row].Timeout, call.Timeout);
+            if (expected[row].ScratchIndex) Assert.Equal(index, call.Environment!["GIT_INDEX_FILE"]);
+            else Assert.False(call.Environment!.ContainsKey("GIT_INDEX_FILE"), expected[row].Arguments[0] + " named an index");
+        }
+        // :302 with :461-465: the add's pathspecs as NUL-terminated stdin. :334-335: hash-object hashes the merge result.
+        Assert.Equal(new byte[] { 0x63, 0x6C, 0x65, 0x61, 0x6E, 0x2E, 0x74, 0x78, 0x74, 0x00 }, calls[2].Input);
+        Assert.Equal(Encoding.UTF8.GetBytes("REMOTE-L1\nL2\nL3\nL4\nTEAM-L5\n"), calls[9].Input);
+        Assert.Null(calls[0].Input);
     }
 
     [Fact]

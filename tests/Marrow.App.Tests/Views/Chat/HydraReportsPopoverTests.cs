@@ -48,6 +48,19 @@ public sealed class HydraReportsPopoverTests(HeadlessSession headless)
     private static Color Of(SwiftColor color) => color.Resolve(ThemeVariant.Default);
 
     [Fact]
+    [Trait("Req", "PR-HYDRA-199")] // App/Views/Chat/HydraReportsPopover.swift:101
+    public void ParseHeader_recognizes_ultra_as_an_effort_word_not_task_text()
+    {
+        var digest = HydraReportDigest.Parse(
+            "## " + FirstRosterName + ": Stream the parser (Ultra)\nDone.\n\nBody.");
+
+        var head = Assert.Single(digest.Heads);
+        Assert.Equal("Stream the parser", head.Task);
+        Assert.Equal("Ultra", head.Effort);
+        Assert.Equal(HydraReportDigest.Outcome.Done, head.Outcome);
+    }
+
+    [Fact]
     [Trait("Req", "UI-HYDRA-045")] // App/Views/Chat/HydraReportsPopover.swift:591-626
     public void File_rows_show_additions_and_minus_sign_deletions_for_each_file()
     {
