@@ -117,13 +117,19 @@ public static class PointerStyleCursors
             key => Rasterize(key.Style == PointerStyle.GrabIdle ? GrabIdleIcon.Value : GrabActiveIcon.Value, key.Scale));
     }
 
+    // ED-205 fix (coordinator review): the glyph is arranged once, at the FIXED logical BaseSize x BaseSize square
+    // (not `pixels x pixels`, which is already scale-multiplied) - exactly GeniePlatform.RenderImage's own pattern
+    // (content.Arrange(content.DesiredSize) at its natural size, then a RenderTargetBitmap `scale` times larger in
+    // pixels with dpi 96*scale). Arranging at `pixels` DIPs while ALSO setting dpi to 96*scale double-applied the
+    // scale factor, so at scale 2 the render target only had room for the glyph's top-left quarter (caught by
+    // The_whole_glyph_stays_inside_the_square_with_a_margin_and_the_same_proportions_at_every_scale).
     private static Bitmap Rasterize(SvgIcon icon, double scale)
     {
         var pixels = PixelSize(scale);
-        var size = new Size(pixels, pixels);
+        var logical = new Size(BaseSize, BaseSize);
         var glyph = new HaloGlyph(icon);
-        glyph.Measure(size);
-        glyph.Arrange(new Rect(size));
+        glyph.Measure(logical);
+        glyph.Arrange(new Rect(logical));
         var bitmap = new RenderTargetBitmap(new PixelSize(pixels, pixels), new Vector(96 * scale, 96 * scale));
         bitmap.Render(glyph);
         return bitmap;

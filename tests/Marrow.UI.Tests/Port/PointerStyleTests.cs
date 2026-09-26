@@ -125,4 +125,79 @@ public sealed class PointerStyleTests(HeadlessSession headless)
         var b = PointerStyleCursors.Render(PointerStyle.GrabActive, 1.5);
         Assert.Same(a, b);
     });
+
+    // Coordinator review: PixelSize(scale) is already scale-multiplied, so arranging the glyph at that size in
+    // DIPs and ALSO setting the RenderTargetBitmap's dpi to 96*scale double-applied the scale factor - at 2x the
+    // render target only had room for the glyph's top-left quarter (alpha bbox (10,6,64,64) of a 64x64 square,
+    // running off the right and bottom edges). This theory catches any recurrence: the alpha bounding box of every
+    // (style, scale) render must sit fully inside its square with a real margin, at the same proportions the 100%
+    // render has.
+    [Theory]
+    [Trait("Decision", "ED-205")]
+    [InlineData(PointerStyle.GrabIdle, 1.0)]
+    [InlineData(PointerStyle.GrabIdle, 1.25)]
+    [InlineData(PointerStyle.GrabIdle, 1.5)]
+    [InlineData(PointerStyle.GrabIdle, 2.0)]
+    [InlineData(PointerStyle.GrabActive, 1.0)]
+    [InlineData(PointerStyle.GrabActive, 1.25)]
+    [InlineData(PointerStyle.GrabActive, 1.5)]
+    [InlineData(PointerStyle.GrabActive, 2.0)]
+    public void The_whole_glyph_stays_inside_the_square_with_a_margin_and_the_same_proportions_at_every_scale(PointerStyle style, double scale) =>
+        headless.OnUiThread(() =>
+        {
+            var side = PointerStyleCursors.PixelSize(scale);
+            var (left, top, right, bottom) = AlphaBoundingBox(PointerStyleCursors.Render(style, scale));
+            var width = right - left + 1;
+            var height = bottom - top + 1;
+
+            // At least 1 px of transparent margin on every side.
+            Assert.True(left >= 1, $"{style}@{scale}x: left margin was {left}px of a {side}px side (box {left},{top},{right},{bottom})");
+            Assert.True(top >= 1, $"{style}@{scale}x: top margin was {top}px of a {side}px side (box {left},{top},{right},{bottom})");
+            Assert.True(right <= side - 2, $"{style}@{scale}x: right edge at {right} of a {side}px side (box {left},{top},{right},{bottom})");
+            Assert.True(bottom <= side - 2, $"{style}@{scale}x: bottom edge at {bottom} of a {side}px side (box {left},{top},{right},{bottom})");
+
+            // The same composition at every scale, not a fraction of it: width/height relative to the square are
+            // within 10% of the 100% render's own ratios.
+            var baselineSide = PointerStyleCursors.PixelSize(1);
+            var (baseLeft, baseTop, baseRight, baseBottom) = AlphaBoundingBox(PointerStyleCursors.Render(style, 1));
+            var baselineWidthRatio = (double)(baseRight - baseLeft + 1) / baselineSide;
+            var baselineHeightRatio = (double)(baseBottom - baseTop + 1) / baselineSide;
+            var widthRatio = (double)width / side;
+            var heightRatio = (double)height / side;
+            Assert.InRange(widthRatio, baselineWidthRatio * 0.9, baselineWidthRatio * 1.1);
+            Assert.InRange(heightRatio, baselineHeightRatio * 0.9, baselineHeightRatio * 1.1);
+        });
+
+    // Same pixel-readback idiom as LoadingMarkHeadlessTests.Alpha/Copy: CopyPixels a RenderTargetBitmap into a
+    // WriteableBitmap, then Lock() and read the raw bytes. Alpha is byte offset 3 regardless of Rgba8888 vs
+    // Bgra8888 channel order, so no format branch is needed here (unlike a test that reads R/G/B). Returns the
+    // smallest rectangle (inclusive pixel indices) enclosing every non-transparent pixel.
+    private static (int Left, int Top, int Right, int Bottom) AlphaBoundingBox(Bitmap bitmap)
+    {
+        var size = bitmap.PixelSize;
+        using var copy = new WriteableBitmap(size, bitmap.Dpi,
+            bitmap.Format ?? Avalonia.Platform.PixelFormat.Rgba8888, Avalonia.Platform.AlphaFormat.Premul);
+        using (var buffer = copy.Lock())
+            ((RenderTargetBitmap)bitmap).CopyPixels(new PixelRect(size), buffer.Address, buffer.RowBytes * buffer.Size.Height, buffer.RowBytes);
+
+        int left = size.Width, top = size.Height, right = -1, bottom = -1;
+        using (var buffer = copy.Lock())
+        {
+            var row = new byte[buffer.RowBytes];
+            for (var y = 0; y < size.Height; y++)
+            {
+                System.Runtime.InteropServices.Marshal.Copy(buffer.Address + y * buffer.RowBytes, row, 0, buffer.RowBytes);
+                for (var x = 0; x < size.Width; x++)
+                {
+                    if (row[x * 4 + 3] == 0) continue;
+                    if (x < left) left = x;
+                    if (x > right) right = x;
+                    if (y < top) top = y;
+                    if (y > bottom) bottom = y;
+                }
+            }
+        }
+        Assert.True(right >= 0, "the glyph rendered nothing");
+        return (left, top, right, bottom);
+    }
 }
