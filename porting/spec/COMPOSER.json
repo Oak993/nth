@@ -2988,7 +2988,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exhaustive mapping including every provider name; a provider added later would not compile in Swift and must be handled explicitly on Windows.",
       "verification_method": "unit test asserting the brand for every one of the fourteen ProviderKind cases, opencodeGo included",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3009,7 +3009,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same derivation; the roster persona colours come from the app's own first-party Hydra data.",
       "verification_method": "capture comparison of a same-provider pair and a cross-provider pair",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3029,7 +3029,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same derivations, in the same precedence.",
       "verification_method": "unit test of the four derived values across looks",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3097,7 +3097,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Port the hash exactly, in double precision, so the field matches; sin and the fractional part must be computed the same way.",
       "verification_method": "unit test comparing the first ten particles' traits against recorded values",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3206,7 +3206,7 @@
       "cancellation": "The 30 millisecond delay runs in a task keyed to the lead and heads pair; a change restarts it.",
       "windows_path": "Same masking, gradient stop placement and spring. The provider icon artwork is first-party and ships (OD-0010 maps SF Symbols only and does not cover it). Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "verification_method": "capture comparison of a same-provider and a cross-provider pair mark",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3228,7 +3228,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same composition and the same insertion at index 0.",
       "verification_method": "unit test with an empty and a configured model list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

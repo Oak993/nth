@@ -1,9 +1,13 @@
+using System;
+using System.Diagnostics;
+using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Services.Providers;
+using Marrow.UI.Chrome;
 using Marrow.UI.Port;
 
 // Source: DroppyCode/App/Views/Composer/EffortSlider.swift (B2 1fbf81e), :1-1347.
@@ -33,13 +37,35 @@ public static class ModelCatalog
     public sealed record Entry(ProviderKind Provider, ModelOption Option) // :8-9
     {
         // :11 var id: String
-        public string Id =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Composer/EffortSlider.swift:11");
+        public string Id => $"{Provider.Id}/{Option.Id}";
     }
 
-    // :14-30 static func entries(_:including:) -> [Entry]
-    public static ValueList<Entry> Entries(AppModel model, ChatThread? including) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Composer/EffortSlider.swift:14");
+    // :14-30 static func entries(_:including:) -> [Entry]. PR-COMPOSER-140: the chosen model list, or every ready
+    // provider's models until one is set up, always including the thread's current model.
+    public static ValueList<Entry> Entries(AppModel model, ChatThread? including)
+    {
+        var registry = model.Providers;
+        var result = model.Settings.ModelList.Count == 0
+            ? registry.AvailableProviders
+                .SelectMany(provider => registry.Models(provider).Select(option => new Entry(provider, option)))
+                .ToList()
+            : model.Settings.ModelList
+                .Select(pin => registry.Model(pin.ModelID, pin.Provider) is { } option
+                    ? new Entry(pin.Provider, option)
+                    : null)
+                .Where(entry => entry is not null)
+                .Select(entry => entry!)
+                .ToList();
+
+        if (including is { } thread &&
+            registry.Model(thread.Model, thread.Provider) is { } current &&
+            !result.Any(entry => entry.Provider == thread.Provider && entry.Option.Id == current.Id))
+        {
+            result.Insert(0, new Entry(thread.Provider, current));
+        }
+
+        return new ValueList<Entry>(result);
+    }
 }
 
 /// <summary>:36-150 <c>struct ModelEffortButton: View</c>.</summary>
@@ -202,8 +228,7 @@ public sealed class EffortSlider : Decorator
 public static class EffortPalette
 {
     // :841 static var title: Color { Chrome.accent.mix(with: .white, by: 0.22) }
-    public static SwiftColor Title =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Composer/EffortSlider.swift:841");
+    public static SwiftColor Title => Chrome.Accent.Mix(SwiftColor.White, 0.22);
 
     public static SwiftColor Supercharged { get; } = new(red: 0.74, green: 0.55, blue: 1.0);      // :842
     public static SwiftColor SuperchargedFill { get; } = new(red: 0.55, green: 0.34, blue: 0.97); // :843
@@ -227,36 +252,66 @@ public static class EffortBrandExtensions
 {
     extension(EffortBrand)
     {
-        // :862-871 init(provider:)
-        public static EffortBrand Create(ProviderKind? provider) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Composer/EffortSlider.swift:862");
+        // :862-871 init(provider:). PR-COMPOSER-129: ten providers share Silver; a null provider (no pair, no
+        // fast mode, no maximum effort) is Purple.
+        public static EffortBrand Create(ProviderKind? provider) => provider switch
+        {
+            ProviderKind.Claude => EffortBrand.Claude, // :864
+            ProviderKind.Deepseek => EffortBrand.Deepseek, // :865
+            ProviderKind.Meta => EffortBrand.Meta, // :866
+            ProviderKind.Antigravity => EffortBrand.Antigravity, // :867
+            ProviderKind.Codex or ProviderKind.Cursor or ProviderKind.Grok or ProviderKind.Opencode
+                or ProviderKind.OpencodeGo or ProviderKind.Devin or ProviderKind.Copilot
+                or ProviderKind.Commandcode or ProviderKind.Pi or ProviderKind.Zai => EffortBrand.Silver, // :868
+            null => EffortBrand.Purple, // :869
+            _ => throw new UnreachableException(),
+        };
 
         // :931-935 static let gemini
-        public static ValueList<SwiftColor> Gemini =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Composer/EffortSlider.swift:931");
+        public static ValueList<SwiftColor> Gemini => GeminiColors;
     }
+
+    private static readonly ValueList<SwiftColor> GeminiColors = new(
+    [
+        new SwiftColor(0.26, 0.52, 0.96),
+        new SwiftColor(0.61, 0.45, 0.80),
+        new SwiftColor(0.85, 0.40, 0.44),
+    ]);
 
     extension(EffortBrand brand)
     {
         // :874-883 var titleColor: Color
-        public SwiftColor TitleColor =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Composer/EffortSlider.swift:874");
+        public SwiftColor TitleColor => brand switch
+        {
+            EffortBrand.Claude => new SwiftColor(0.93, 0.58, 0.44), // :876
+            EffortBrand.Deepseek => new SwiftColor(0.49, 0.58, 1.0), // :877
+            EffortBrand.Meta => new SwiftColor(0.31, 0.64, 1.0), // :878
+            EffortBrand.Antigravity => new SwiftColor(0.61, 0.45, 0.80), // :879
+            EffortBrand.Silver => Chrome.PrimaryText, // :880
+            EffortBrand.Purple => new SwiftColor(0.74, 0.55, 1.0), // :881, EffortPalette.Supercharged
+            _ => throw new UnreachableException(),
+        };
 
         // :911-920 var fillColor: Color
-        public SwiftColor FillColor =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Composer/EffortSlider.swift:911");
+        public SwiftColor FillColor => brand switch
+        {
+            EffortBrand.Claude => new SwiftColor(0.80, 0.42, 0.28), // :895
+            EffortBrand.Deepseek => new SwiftColor(0.24, 0.36, 0.98), // :896
+            EffortBrand.Meta => new SwiftColor(0.0, 0.45, 0.93), // :897-900
+            EffortBrand.Antigravity => new SwiftColor(0.56, 0.45, 0.80), // :901
+            EffortBrand.Silver => new SwiftColor(0.92, 0.92, 0.94), // :902-905
+            EffortBrand.Purple => new SwiftColor(0.55, 0.34, 0.97), // :906, EffortPalette.SuperchargedFill
+            _ => throw new UnreachableException(),
+        };
 
         // :923 var spark: Color
-        public SwiftColor Spark =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Composer/EffortSlider.swift:923");
+        public SwiftColor Spark => brand == EffortBrand.Silver ? SwiftColor.Black : SwiftColor.White;
 
         // :926 var isLight: Bool
-        public bool IsLight =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Composer/EffortSlider.swift:926");
+        public bool IsLight => brand == EffortBrand.Silver;
 
         // :928 var glow: Color
-        public SwiftColor Glow =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Composer/EffortSlider.swift:928");
+        public SwiftColor Glow => brand == EffortBrand.Silver ? SwiftColor.Black.Opacity(0.35) : brand.FillColor.Opacity(0.6);
     }
 }
 
@@ -266,13 +321,31 @@ public sealed record EffortPairBrand
     public ValueList<SwiftColor> Colors { get; init; } // :944
     public bool IsLight { get; init; }                 // :946
 
-    // :948-961 init(_ pair: HydraPair)
-    public EffortPairBrand(HydraPair pair) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Composer/EffortSlider.swift:948");
+    // :948-961 init(_ pair: HydraPair). PR-COMPOSER-130: a pair's far-end colours are the heads' provider's brand
+    // when they run elsewhere, else the first four roster persona colours.
+    public EffortPairBrand(HydraPair pair)
+    {
+        if (pair.SendsHeadsElsewhere)
+        {
+            var brand = EffortBrand.Create(pair.HeadsProvider);
+            Colors = brand switch
+            {
+                EffortBrand.Antigravity => EffortBrand.Gemini,
+                EffortBrand.Silver => new ValueList<SwiftColor>([new SwiftColor(white: 0.8), new SwiftColor(white: 0.95)]),
+                _ => new ValueList<SwiftColor>([brand.FillColor, brand.TitleColor]),
+            };
+            IsLight = brand.IsLight;
+        }
+        else
+        {
+            Colors = new ValueList<SwiftColor>(HydraRoster.Personas.Take(4).Select(persona =>
+                new SwiftColor(persona.Color.Red, persona.Color.Green, persona.Color.Blue, persona.Color.Alpha)));
+            IsLight = false;
+        }
+    }
 
     // :964 var titleColors: [Color]
-    public ValueList<SwiftColor> TitleColors =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Composer/EffortSlider.swift:964");
+    public ValueList<SwiftColor> TitleColors => new(Colors.Select(color => color.Mix(SwiftColor.White, 0.18)));
 }
 
 /// <summary>:968-1027 <c>struct TrackLook: Hashable</c>.</summary>
@@ -290,25 +363,36 @@ public sealed record TrackLook(TrackLook.Kind TrackLookKind, EffortBrand Brand, 
         Fusion,       // :976
     }
 
-    // :1000-1008 var glow: Color
-    public SwiftColor Glow =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Composer/EffortSlider.swift:1000");
+    // :1000-1008 var glow: Color. PR-COMPOSER-131: the knob's glow follows the pair when there is one.
+    public SwiftColor Glow
+    {
+        get
+        {
+            if (Pair is { } pair && pair.Colors.Count > 0)
+                return pair.IsLight ? SwiftColor.Black.Opacity(0.35) : pair.Colors[^1].Opacity(0.7);
 
-    // :1012 var isLightFill: Bool
-    public bool IsLightFill =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Composer/EffortSlider.swift:1012");
+            return TrackLookKind switch
+            {
+                Kind.Plain => SwiftColor.Black.Opacity(0.28),
+                Kind.Supercharged => Brand.Glow,
+                Kind.Fast => new SwiftColor(0.93, 0.66, 0.13).Opacity(0.7),
+                Kind.Fusion => new SwiftColor(1.0, 0.84, 0.36).Opacity(0.75),
+                _ => throw new UnreachableException(),
+            };
+        }
+    }
 
-    // :1015 var stopColor: Color
-    public SwiftColor StopColor =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Composer/EffortSlider.swift:1015");
+    // :1012 var isLightFill: Bool. PR-COMPOSER-131: the light-fill test follows the pair when there is one.
+    public bool IsLightFill => Pair?.IsLight ?? (TrackLookKind == Kind.Supercharged && Brand.IsLight);
+
+    // :1015 var stopColor: Color. PR-COMPOSER-131: the stop colour follows the pair when there is one (via IsLightFill).
+    public SwiftColor StopColor => IsLightFill ? SwiftColor.Black.Opacity(0.35) : SwiftColor.White.Opacity(0.6);
 
     // :1018 var spark: Color
-    public SwiftColor Spark =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Composer/EffortSlider.swift:1018");
+    public SwiftColor Spark => Pair is null && TrackLookKind is Kind.Supercharged or Kind.Fusion ? Brand.Spark : SwiftColor.White;
 
     // :1024-1026 var effectIdentity: AnyHashable
-    public object EffectIdentity =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Composer/EffortSlider.swift:1024");
+    public object EffectIdentity => Pair is { } pair ? this with { TrackLookKind = Kind.Plain, Pair = pair } : this;
 }
 
 /// <summary>:1039-1347 <c>struct TrackEffect: View</c>.</summary>
@@ -344,17 +428,59 @@ public sealed class TrackEffect : Decorator
     /// <summary>:1093-1116 <c>struct Traits: Equatable</c>.</summary>
     public sealed record Traits(ValueList<Particle> Particles, ValueList<Streak> Streaks) // :1094-1095
     {
-        // :1099-1115 static func build(width:) -> Traits
-        public static Traits Build(double width) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Composer/EffortSlider.swift:1099");
+        // :1099-1115 static func build(width:) -> Traits. PR-COMPOSER-134: one particle per five points and one
+        // streak per fourteen, with per-index deterministic values (TrackEffect.Random).
+        public static Traits Build(double width)
+        {
+            var particles = Enumerable.Range(0, Math.Max(10, (int)(width / 5))).Select(index =>
+            {
+                var seed = (double)index;
+                return new Particle
+                {
+                    Height = Random(seed, 1),
+                    Speed = 12 + 28 * Random(seed, 2),
+                    Radius = 0.7 + 1.1 * Random(seed, 3),
+                    Start = Random(seed, 4),
+                    Brightness = 0.22 + 0.5 * Random(seed, 5),
+                    ShimmerRate = 2 + 3 * Random(seed, 6),
+                };
+            });
+
+            var streaks = Enumerable.Range(0, Math.Max(5, (int)(width / 14))).Select(index =>
+            {
+                var seed = (double)index + 100;
+                return new Streak
+                {
+                    Length = 10 + 20 * Random(seed, 1),
+                    Speed = 110 + 190 * Random(seed, 2),
+                    Thickness = 1.1 + 1.1 * Random(seed, 3),
+                    Start = Random(seed, 4),
+                    Height = 0.2 + 0.6 * Random(seed, 5),
+                    Brightness = 0.35 + 0.55 * Random(seed, 6),
+                };
+            });
+
+            return new Traits(new ValueList<Particle>(particles), new ValueList<Streak>(streaks));
+        }
     }
 
     /// <summary>:1121-1132 <c>final class TraitCache</c>.</summary>
     public sealed class TraitCache
     {
-        // :1125-1131 func traits(width:) -> Traits
-        public Traits Traits(double width) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Composer/EffortSlider.swift:1125");
+        private double width = -1.0;
+        private Traits built = new(ValueList<Particle>.Empty, ValueList<Streak>.Empty);
+
+        // :1125-1131 func traits(width:) -> Traits. PR-COMPOSER-134: rebuilt only when the width changes.
+        public Traits Traits(double width)
+        {
+            if (width != this.width)
+            {
+                this.width = width;
+                built = TrackEffect.Traits.Build(width);
+            }
+
+            return built;
+        }
     }
 
     // :1134-1148 private static func drawParticles(_:size:time:color:particles:)
@@ -377,11 +503,14 @@ public sealed class TrackEffect : Decorator
     private static void DrawFusion(DrawingContext context, Size size, double time, SwiftColor lead, IReadOnlyList<SwiftColor> heads) =>
         throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Composer/EffortSlider.swift:1232");
 
-    // :1338-1340 private static func edgeFade(_:width:)
+    // :1338-1340 private static func edgeFade(_:width:). PR-COMPOSER-135: an edge fade over the last 14 points.
     private static double EdgeFade(double x, double width) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Composer/EffortSlider.swift:1338");
+        Math.Min(1, Math.Min(Math.Max(0, x / 14), Math.Max(0, (width - x) / 14)));
 
-    // :1343-1346 nonisolated static func random(_:_:)
-    public static double Random(double index, double trait) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Composer/EffortSlider.swift:1343");
+    // :1343-1346 nonisolated static func random(_:_:). Deterministic per-index pseudo-random value (PR-COMPOSER-134).
+    public static double Random(double index, double trait)
+    {
+        var value = Math.Sin(index * 12.9898 + trait * 78.233) * 43758.5453;
+        return value - Math.Floor(value);
+    }
 }
