@@ -1,18 +1,38 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using Avalonia;
+using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Controls.Presenters;
+using Avalonia.Controls.Primitives;
+using Avalonia.Controls.Templates;
+using Avalonia.Input;
+using Avalonia.Input.GestureRecognizers;
+using Avalonia.Layout;
 using Avalonia.Media;
+using Marrow.App.Port;
 using Marrow.App.Runtime;
+using Marrow.App.Views.Settings;
+using Marrow.App.Window;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
+using Marrow.Core.Support;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
 
-// Source: DroppyCode/App/Views/Sidebar/SidebarView.swift (B2 1fbf81e), :1-2696.
+// Source: DroppyCode/App/Views/Sidebar/SidebarView.swift (B3 52bc792), :1-2695.
 // Skeleton (c100 group 5): every type the file declares, the views' inputs, the record shapes, the metrics constants
 // and the members the other files use. Every view body and every member with behaviour is left to the implementing
 // unit (MARROW_STUB).
+// Implemented so far (part 1 of 8): SidebarView's body (:69-205) with its search field, bell, list and bottom rows,
+// query (:61-63), the scroll freeze (:392-404), the placements and helper grouping (:385-422), listItems (:424-448),
+// hasRunningHead, helperItems and orderedHeads (:450-485), addProject (:498-511), projectItems (:515-557),
+// needsAttention (:633-636), search (:690-749), rowTransition and itemView's dispatch (:312-376), SidebarItem.id(for:)
+// and the two extensions (:1053-1076), SidebarThreadRow.mergeStage (:1980-1984), ActivityViewToggle (:2316-2343),
+// PlacementCache, ThreadPlacement and SidebarItemCache (:2480-2658). Still MARROW_STUB and named where they stand:
+// the row views, the activity layout, the thread and helper arms of itemView and threadRow (parts 2 to 8), and the
+// empty-needle case of the search match (STOP #1 in SidebarViewTests.cs).
 // Forms (ED-095): a SwiftUI View is a Decorator whose constructor builds `body`; a ViewModifier is a sealed record
 // with `Control Body(Control content)`; a Shape is a sealed record with `Geometry Path(Rect in)`; a caseless enum is a
 // static class; an enum with associated values is an abstract record (R-ENUM-2), an unlabelled payload named Value; a
@@ -22,298 +42,1001 @@ using Marrow.UI.Port;
 // `Set<T>` ValueSet (R-VAL-2). Swift `private` top-level types are `internal` (C# has no private top-level type).
 // `@Environment(AppModel.self)` is read by the bodies, so it is no constructor parameter (the question group 3 raised).
 // Renames: SidebarItem's `static func id(for:)` is IdFor (the record's own `Id` property takes the name), and its
-// `kind` property is SidebarItemKind (R-NAME-3, type SidebarItem.Kind). The file's two library extensions (:1059-1063
-// on ChatThread, :1065-1077 on AnyTransition) go in SidebarViewExtensions, as C# 14 extension blocks (ED-164): the
+// `kind` property is SidebarItemKind (R-NAME-3, type SidebarItem.Kind). The file's two library extensions (:1058-1062
+// on ChatThread, :1064-1076 on AnyTransition) go in SidebarViewExtensions, as C# 14 extension blocks (ED-164): the
 // file's own name belongs to the view.
-// Not declared yet (private, read only by the bodies the implementing unit writes): SidebarView's @State storage
-// (:12-59, :384) and its private instance helpers (:61-63, :206-305, :316-898), the rows' @State storage, their
-// private helpers (ProjectRow.actions :1206-1230, SidebarHelperRow.makeActions :1423-1425, SidebarThreadRow :1896-2001),
-// HelperConnector.style (:1643, a StrokeStyle with a dash pattern, no port type yet) and the private storage of
-// PlacementCache (:2527-2528), SidebarItemCache (:2610-2619), RowFrames (:2458) and MinuteClock.tick (:2672).
-// The rows' custom `==` (SidebarHelperRow :1414-1421, SidebarThreadRow :1883-1892) stand for `.equatable()`; a
+// Not declared yet (private, read only by the bodies the implementing unit writes): SidebarView's other @State storage
+// (:13-49: the rename, delete and archive popovers' state, menuRequests, drag, rowHeights, listFrame, rowFrames,
+// dragPeers) and its remaining private helpers (:207-306, :487-494, :561-631, :638-685, :753-897), the rows' @State
+// storage, their private helpers (ProjectRow.actions :1205-1229, SidebarHelperRow.makeActions :1422-1424,
+// SidebarThreadRow :1895-2000), HelperConnector.style (:1642, a StrokeStyle with a dash pattern, no port type yet) and
+// the private storage of RowFrames (:2457) and MinuteClock.tick (:2671).
+// The rows' custom `==` (SidebarHelperRow :1413-1420, SidebarThreadRow :1882-1891) stand for `.equatable()`; a
 // Control keeps reference equality, so they are not declared as Equals (NEEDS DECISION, as group 3 reports).
 
 namespace Marrow.App.Views.Sidebar;
 
-/// <summary>:4-899 <c>struct SidebarView: View</c>: the thread list, in the project or the activity layout.</summary>
+/// <summary>:4-898 <c>struct SidebarView: View</c>: the thread list, in the project or the activity layout.</summary>
 public sealed class SidebarView : Decorator
 {
     // :67 private nonisolated static let listSpace = "sidebar-list"
     private const string ListSpace = "sidebar-list";
 
-    // :766 private static let slide = Animation.spring(response: 0.28, dampingFraction: 0.82)
+    // :767 private static let slide = Animation.spring(response: 0.28, dampingFraction: 0.82)
     private static Animation Slide { get; } = Animation.Spring(response: 0.28, dampingFraction: 0.82);
+
+    // :9-10 the view's inputs.
+    private readonly bool inPopover;
+    private readonly Action? dismiss;
+
+    /// <summary>The @State the body reads (R-VIEW-2).</summary>
+    private sealed class ViewState : MainActorModel
+    {
+        private string search = ""; // :12
+        private bool isListScrolling; // :56
+
+        // :12 @State private var search = ""
+        public string Search { get => Read(search); set => Set(ref search, value); }
+
+        // :56 @State private var isListScrolling = false
+        public bool IsListScrolling { get => Read(isListScrolling); set => Set(ref isListScrolling, value); }
+    }
+
+    private readonly ViewState state = new();
+
+    // :59 @State private var scrollSettle: Task<Void, Never>? (read only by actions: a field, R-VIEW-2).
+    private TaskHandle? scrollSettle;
+
+    // :52 @State private var itemCache = SidebarItemCache()
+    private readonly SidebarItemCache itemCache = new();
+
+    // :385 @State private var placementCache = PlacementCache()
+    private readonly PlacementCache placementCache = new();
+
+    // :101-124 the ScrollView and its LazyVStack.
+    private readonly ScrollViewer scroll;
+    private readonly StackPanel list;
+
+    // The list's rows by the id their ForEach keys them with (R-VIEW-8), and the ids ScrollViewReader can reach.
+    private readonly Dictionary<string, ListRow> listRows = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, Control> scrollTargets = new(StringComparer.Ordinal);
+    private ListMotion? lastMotion;
+    private Action<TimeSpan>? scrollFrame;
+    private IFrameSource? scrollFrames;
+    private readonly List<IDisposable> changes = [];
 
     /// <param name="inPopover">:9 <c>var inPopover = false</c>.</param>
     /// <param name="dismiss">:10 <c>var dismiss: (() -> Void)? = nil</c>.</param>
-    // :69-204 body
-    public SidebarView(bool inPopover = false, Action? dismiss = null) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:69");
+    // :69-205 body
+    public SidebarView(bool inPopover = false, Action? dismiss = null)
+    {
+        this.inPopover = inPopover;
+        this.dismiss = dismiss;
 
-    // :477-484 fileprivate static func orderedHeads(_ heads: [ChatThread]) -> [ChatThread]
-    public static ValueList<ChatThread> OrderedHeads(IReadOnlyList<ChatThread> heads) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:477");
+        // :74 VStack(alignment: .leading, spacing: 0); the scroll view takes the height the others leave.
+        var column = new Grid { HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch };
+        var row = 0;
+        void Add(Control child, GridLength height)
+        {
+            column.RowDefinitions.Add(new RowDefinition(height));
+            Grid.SetRow(child, row++);
+            column.Children.Add(child);
+        }
 
-    /// <summary>:307-310 <c>private struct ConfirmedDeletion</c>.</summary>
+        // :75-80 Clears the window buttons that float over the sidebar's top corner (OD-0008 C4: the app draws them
+        // at the source's positions on Windows), in the window column only.
+        if (!inPopover)
+        {
+            Add(new Border
+            {
+                Height = Chrome.TrafficLightDiameter, // :78
+                Margin = new Thickness(0, Chrome.TrafficLightTop, 0, 0), // :79
+            }, GridLength.Auto);
+        }
+
+        // :82-99 the search field and the bell, 6 pt apart.
+        var field = new SidebarSearchField(
+            new Binding<string>(() => state.Search, value => state.Search = value), // :84 $search
+            prompt: "Search threads", // :85
+            onSubmit: () => // :86-90
+            {
+                var results = SearchResults(HelpersByParent(ThreadPlacements));
+                if (results.Count > 0 && results[0].Threads.Count > 0) Model.SelectedThreadID = results[0].Threads[0].Id;
+            },
+            onMove: offset => MoveSearchSelection(offset, HelpersByParent(ThreadPlacements))); // :91
+        var toggle = new ActivityViewToggle(new Binding<bool>( // :93-96
+            () => Model.Settings.SidebarActivityView,
+            value => Model.Settings.SidebarActivityView = value));
+        toggle.Margin = new Thickness(6, 0, 0, 0); // :82 HStack(spacing: 6)
+        toggle.VerticalAlignment = VerticalAlignment.Center;
+        field.VerticalAlignment = VerticalAlignment.Center;
+        Grid.SetColumn(field, 0);
+        Grid.SetColumn(toggle, 1);
+        Add(new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitions("*,Auto"),
+            Margin = new Thickness(Chrome.ListInset, inPopover ? 12 : 14, Chrome.ListInset, 0), // :98-99
+            Children = { field, toggle },
+        }, GridLength.Auto);
+
+        // :101-124 ScrollView(.vertical) { LazyVStack(alignment: .leading, spacing: 1) { ... } }
+        list = new StackPanel
+        {
+            Orientation = Orientation.Vertical,
+            Spacing = 1, // :103
+            Margin = new Thickness(Chrome.ListInset, 12, Chrome.ListInset, 8), // :120-122
+        };
+        scroll = new ScrollViewer
+        {
+            Template = ListScrollTemplate, // :139 .scrollIndicators(.never)
+            Content = list,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, // :102 .vertical
+            VerticalScrollBarVisibility = ScrollBarVisibility.Hidden,
+        };
+        Add(scroll, new GridLength(1, GridUnitType.Star));
+
+        // :164-178 Add project and Settings, 1 pt apart, below the list.
+        var addProject = new SidebarRow("Add project", AddProject, // :165
+            () => new SidebarIconBadge(() => new SidebarSymbol("plus"))); // :166
+        var settings = new SidebarRow("Settings", () => WindowManager.Shared.ShowSettings(), SettingsIcon); // :168-175
+        Add(new StackPanel
+        {
+            Orientation = Orientation.Vertical,
+            Spacing = 1, // :164
+            Margin = new Thickness(Chrome.ListInset, 0, Chrome.ListInset, 12), // :177-178
+            Children = { addProject, settings },
+        }, GridLength.Auto);
+
+        // :180 .frame(maxHeight: .infinity, alignment: .top); :181 .background { if !inPopover { WindowDragArea() } }
+        var root = new Panel();
+        if (!inPopover) root.Children.Add(new WindowDragArea());
+        root.Children.Add(column);
+        Child = root;
+
+        // :104-113 the list, in either layout or as search results, rebuilt when what it reads changes.
+        list.Track(ListPassNow, ApplyList);
+        // :115 .allowsHitTesting(!isListScrolling)
+        list.Track(() => state.IsListScrolling, scrolling => list.IsHitTestVisible = !scrolling);
+
+        // :141-148 .onScrollPhaseChange: a moving phase re-arms the freeze, .idle lifts it at once. ED-010: Windows
+        // reports a phase only for gesture scrolling (touch, pen, precision touchpad through the recognizer); wheel
+        // ticks report none and are covered by the offset below and the 150 ms settle.
+        scroll.AddHandler(InputElement.ScrollGestureEvent, (_, _) => NoteListScroll());
+        scroll.AddHandler(InputElement.ScrollGestureInertiaStartingEvent, (_, _) => NoteListScroll());
+        scroll.AddHandler(InputElement.ScrollGestureEndedEvent, (_, _) =>
+        {
+            scrollSettle?.Cancel(); // :143
+            state.IsListScrolling = false; // :144
+        });
+        // :149-151 .onScrollGeometryChange(for: CGFloat.self, of: { $0.contentOffset.y }) { old, new in ... }
+        scroll.PropertyChanged += (_, e) =>
+        {
+            if (e.Property != ScrollViewer.OffsetProperty) return;
+            if (e.GetOldValue<Vector>().Y != e.GetNewValue<Vector>().Y) NoteListScroll();
+        };
+
+        AttachedToVisualTree += (_, _) => Appear();
+        DetachedFromVisualTree += (_, _) => Disappear();
+    }
+
+    // :5 @Environment(AppModel.self) private var model
+    private AppModel Model => AppEnvironment.GetAppModel(this);
+
+    // :61-63
+    private string Query => state.Search.Trimmed();
+
+    // The view's `.onChange` modifiers, alive while it is on screen (R-VIEW-5).
+    private void Appear()
+    {
+        // :182-183 Read only in the popover: the list itself has no reason to re-render on selection.
+        changes.Add(new OnChange<Guid?>(() => inPopover ? Model.SelectedThreadID : null, (_, _) =>
+        {
+            if (inPopover) dismiss?.Invoke();
+        }));
+        // :154-161 A thread that has just moved to another project is brought into view.
+        changes.Add(new OnChange<Guid?>(() => Model.SidebarRevealThreadID, (_, reveal) =>
+        {
+            if (reveal is not { } id) return; // :155
+            Model.SidebarRevealThreadID = null; // :156
+            if (Model.Thread(id) is not { } thread) return; // :157
+            Transaction.WithAnimation(Chrome.PanelSlide, () => ScrollTo(SidebarItem.IdFor(thread))); // :158-160
+        }));
+        // :184-205 the menu requests and the archive question are taken up by part 4 of this unit (PR-SIDEBAR-086,
+        // PR-SIDEBAR-094); the drag gesture and its pointer style (:125-137) by the drag records of parts 2 and 3.
+    }
+
+    private void Disappear()
+    {
+        foreach (var change in changes) change.Dispose();
+        changes.Clear();
+        StopScrollAnimation();
+    }
+
+    // :168-175 the Settings row's icon: the gear, with the update dot at its top-trailing corner while an update waits.
+    private static Control SettingsIcon()
+    {
+        var badge = new SidebarIconBadge(() => new SidebarSymbol("gear", scale: 1.15)); // :169
+        var overlay = new Panel { Children = { badge } };
+        UpdateAvailableDot? dot = null;
+        overlay.Track(() => UpdateChecker.Shared.UpdateAvailable, available => // :171
+        {
+            if (available && dot is null)
+            {
+                dot = new UpdateAvailableDot // :172
+                {
+                    HorizontalAlignment = HorizontalAlignment.Right, // :170 .overlay(alignment: .topTrailing)
+                    VerticalAlignment = VerticalAlignment.Top,
+                };
+                overlay.Children.Add(dot);
+            }
+            else if (!available && dot is { } shown)
+            {
+                overlay.Children.Remove(shown);
+                dot = null;
+            }
+        });
+        return overlay;
+    }
+
+    // ENGINEERING DECISION: `.scrollIndicators(.never)` (:139) is a scroll view with no scroll bars at all, so its
+    // template is the content presenter alone, with the recognizer that scrolls it by touch and pen; the wheel is the
+    // presenter's own. A template of its own also keeps the list scrolling where no theme supplies one.
+    private static readonly FuncControlTemplate<ScrollViewer> ListScrollTemplate = new((viewer, scope) =>
+    {
+        var presenter = new ScrollContentPresenter
+        {
+            Name = "PART_ContentPresenter",
+            [!ContentPresenter.ContentProperty] = viewer[!ContentControl.ContentProperty],
+        };
+        presenter.GestureRecognizers.Add(new ScrollGestureRecognizer { CanVerticallyScroll = true, CanHorizontallyScroll = false });
+        return presenter.RegisterInNameScope(scope);
+    });
+
+    // :392-404 A scroll movement (re)arms the list's scroll freeze: rows take no hover or clicks for 150 ms after the
+    // last movement, covering wheel ticks, which report no phase.
+    private void NoteListScroll()
+    {
+        if (!state.IsListScrolling) state.IsListScrolling = true; // :397
+        scrollSettle?.Cancel(); // :398
+        scrollSettle = MainActor.Spawn(async () => // :399
+        {
+            await SwiftTask.TrySleep(TimeSpan.FromMilliseconds(150)); // :400
+            if (SwiftTask.IsCancelled || !state.IsListScrolling) return; // :401
+            state.IsListScrolling = false; // :402
+        });
+    }
+
+    // MARK: The list as the body builds it
+
+    // :117-119 the three values whose change animates the list with Chrome.panelSlide.
+    private sealed record ListMotion(long ThreadCount, ValueList<bool> Expansion, bool SettledCollapsed);
+
+    // One pass of :72-73 and :103-113: the items of the current layout, or the search results.
+    private sealed record ListPass(
+        ValueList<SidebarItem>? Items,
+        ValueList<SidebarSearchResult>? Results,
+        ValueMap<Guid, ValueList<ChatThread>> Helpers,
+        ListMotion Motion);
+
+    private ListPass ListPassNow()
+    {
+        var placements = ThreadPlacements; // :72
+        var helpers = HelpersByParent(placements); // :73
+        var model = Model;
+        var motion = new ListMotion(
+            model.Threads.Count, // :117
+            new ValueList<bool>(model.Projects.Select(project => project.IsExpanded)), // :118
+            model.Settings.SettledCollapsed); // :119
+        return Query.Length == 0 // :104
+            ? new ListPass(ListItems(placements, helpers), null, helpers, motion) // :107-110
+            : new ListPass(null, SearchResults(helpers), helpers, motion); // :112
+    }
+
+    private void ApplyList(ListPass pass)
+    {
+        // :117-119 R-VIEW-4: a change of any of the three values animates the pass with Chrome.panelSlide; otherwise the
+        // change's own transaction applies. The entering and leaving rows ride it. STOP #3 (test file): the rows that
+        // stay have no layout animation in the port, so they move without the slide.
+        var animation = lastMotion is not null && lastMotion != pass.Motion ? Chrome.PanelSlide : Transaction.Current;
+        lastMotion = pass.Motion;
+        Transaction.WithAnimation(animation, () => ApplyEntries(pass.Items is { } items
+            ? ItemEntries(items)
+            : SearchEntries(pass.Results!, pass.Helpers)));
+    }
+
+    // A row of the list as its ForEach keeps it: the value it was built from and its control (R-VIEW-8).
+    private sealed class ListRow(object value, Control control)
+    {
+        public object Value { get; set; } = value;
+        public Control Control { get; set; } = control;
+    }
+
+    // One entry a pass wants: its ForEach id, the value that builds it, the id ScrollViewReader finds it by, the
+    // control, and how a surviving row takes a new value in place (false: it is rebuilt where it stands).
+    private sealed record ListEntry(string Key, object Value, string? Target, Func<Control> Make, Func<Control, object, bool>? Update);
+
+    // :107-110 ForEach(listItems(...)) { item in itemView(item).transition(rowTransition(item)) }
+    private List<ListEntry> ItemEntries(ValueList<SidebarItem> items) =>
+        items.Select(item => new ListEntry(
+            "item:" + item.Id,
+            item,
+            item.Id,
+            () => ItemView(item).Transition(RowTransition(item)),
+            (control, value) => UpdateItemView(control, (SidebarItem)value))).ToList();
+
+    // :691-716 searchList(helpers:)
+    private List<ListEntry> SearchEntries(ValueList<SidebarSearchResult> results, ValueMap<Guid, ValueList<ChatThread>> helpers)
+    {
+        var entries = new List<ListEntry>();
+        if (results.Count == 0) // :693
+        {
+            entries.Add(new ListEntry("search:empty", "empty", null, NoResults, null)); // :694-703
+            return entries;
+        }
+        for (var index = 0; index < results.Count; index++) // :705 ForEach(..., id: \.element.project.id)
+        {
+            var result = results[index];
+            var group = "search:" + SwiftUUID.UuidString(result.Project.Id);
+            if (index > 0) // :706-708
+                entries.Add(new ListEntry(group + ":gap", Chrome.GroupGap, null, () => new Border { Height = Chrome.GroupGap }, null));
+            entries.Add(new ListEntry(group + ":project", (result.Project, result.Count), null, // :709
+                () => new ProjectRow(result.Project, result.Count, togglesExpansion: false), null));
+            foreach (var thread in result.Threads) // :711 ForEach(result.threads, id: \.sidebarItemID)
+            {
+                var hasHelpers = !thread.IsSettled && helpers.TryGetValue(thread.Id, out var own) && own.Count > 0; // :712
+                entries.Add(new ListEntry(group + ":" + thread.SidebarItemID, (thread, hasHelpers), thread.SidebarItemID,
+                    () => ThreadRow(thread, projectName: null, projectIcon: null, hasHelpers: hasHelpers), null));
+            }
+        }
+        return entries;
+    }
+
+    // :694-703 the search list's empty state.
+    private static Control NoResults()
+    {
+        var title = new TextBlock { Text = "No results" }; // :695
+        SwiftFont.System(SwiftFont.TextStyle.Body, weight: SwiftFont.Weight.Semibold).Apply(title); // :696
+        title.Foreground = Chrome.PrimaryText.Opacity(0.92).Brush(title); // :697
+        var hint = new TextBlock { Text = "Try a thread title or a project name." }; // :698
+        SwiftFont.System(SwiftFont.TextStyle.Subheadline).Apply(hint); // :699
+        hint.Foreground = Chrome.SecondaryText.Brush(hint); // :700
+        return new StackPanel
+        {
+            Orientation = Orientation.Vertical,
+            Spacing = 6, // :694 VStack(alignment: .leading, spacing: 6)
+            HorizontalAlignment = HorizontalAlignment.Left,
+            Margin = new Thickness(8, 14, 8, 0), // :702-703
+            Children = { title, hint },
+        };
+    }
+
+    // The ForEach diff (R-VIEW-8) over the list: a vanished id's row leaves with its transition, a new id's row
+    // enters with its own, a surviving id keeps its control and takes the new value, and the rows follow the order.
+    // Every transition here is an opacity one, so no row is wrapped and each control is the list's own child.
+    private void ApplyEntries(List<ListEntry> entries)
+    {
+        var wanted = new List<ListEntry>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var entry in entries)
+            if (seen.Add(entry.Key)) wanted.Add(entry); // a duplicate id keeps its first entry (UNVERIFIED O-18)
+        foreach (var gone in listRows.Keys.Where(key => !seen.Contains(key)).ToArray())
+        {
+            SwiftTransition.Remove(list, listRows[gone].Control);
+            listRows.Remove(gone);
+        }
+        scrollTargets.Clear();
+        Control? previous = null;
+        foreach (var entry in wanted)
+        {
+            var target = previous is null ? 0 : list.Children.IndexOf(previous) + 1;
+            Control control;
+            if (listRows.TryGetValue(entry.Key, out var row))
+            {
+                if (!Equals(row.Value, entry.Value))
+                {
+                    if (entry.Update is { } update && update(row.Control, entry.Value)) row.Value = entry.Value;
+                    else
+                    {
+                        var fresh = entry.Make();
+                        list.Children[list.Children.IndexOf(row.Control)] = fresh;
+                        row.Control = fresh;
+                        row.Value = entry.Value;
+                    }
+                }
+                control = row.Control;
+                var current = list.Children.IndexOf(control);
+                if (current != target) list.Children.Move(current, current < target ? target - 1 : target);
+            }
+            else
+            {
+                control = entry.Make();
+                listRows[entry.Key] = new ListRow(entry.Value, control);
+                SwiftTransition.Insert(list, target, control);
+            }
+            if (entry.Target is { } id) scrollTargets[id] = control;
+            previous = control;
+        }
+    }
+
+    // :159 proxy.scrollTo(id, anchor: .center): the row's centre to the middle of the visible list, as far as the
+    // content allows, along the current transaction's animation.
+    private void ScrollTo(string id)
+    {
+        if (!scrollTargets.TryGetValue(id, out var row)) return;
+        scroll.UpdateLayout();
+        if (row.TranslatePoint(new Point(0, row.Bounds.Height / 2), scroll) is not { } centre) return;
+        var limit = Math.Max(0, scroll.Extent.Height - scroll.Viewport.Height);
+        var y = Math.Min(Math.Max(scroll.Offset.Y + centre.Y - scroll.Viewport.Height / 2, 0), limit);
+        var to = new Vector(scroll.Offset.X, y);
+        StopScrollAnimation();
+        if (Transaction.Current is not { } animation)
+        {
+            scroll.Offset = to;
+            return;
+        }
+        var from = scroll.Offset;
+        var start = SwiftClock.Now;
+        var frames = FrameClock.Source.Current;
+        Action<TimeSpan>? frame = null;
+        frame = _ =>
+        {
+            var seconds = (SwiftClock.Now - start).TotalSeconds;
+            var complete = seconds >= animation.Duration;
+            scroll.Offset = from + (to - from) * (complete ? 1 : animation.Progress(seconds));
+            if (complete) scrollFrame = null;
+            else frames.RequestFrame(frame!);
+        };
+        scrollFrames = frames;
+        scrollFrame = frame;
+        frames.RequestFrame(frame);
+    }
+
+    private void StopScrollAnimation()
+    {
+        if (scrollFrame is { } frame) scrollFrames?.CancelFrame(frame);
+        scrollFrame = null;
+    }
+
+    // :312-326 How a row enters and leaves the list. A settled thread's row, the Settled header and the gaps ride the
+    // list's own motion; every other row keeps the sidebarRow handover delay.
+    private SwiftTransition RowTransition(SidebarItem item) => item.SidebarItemKind switch
+    {
+        SidebarItem.Kind.Thread thread => thread.Value.IsSettled ? SwiftTransition.Opacity : SwiftTransition.SidebarRow, // :319-320
+        SidebarItem.Kind.SettledHeader or SidebarItem.Kind.Gap => SwiftTransition.Opacity, // :321-322
+        _ => SwiftTransition.SidebarRow, // :323-324
+    };
+
+    // :328-376 itemView(_:)
+    private Control ItemView(SidebarItem item) => item.SidebarItemKind switch
+    {
+        SidebarItem.Kind.Gap gap => new Border { Height = gap.Value }, // :331-332 Color.clear.frame(height:)
+        SidebarItem.Kind.Project project => new ProjectRow(project.Value, project.Count), // :333-334
+        SidebarItem.Kind.Header header => new ActivityHeader(header.Value, header.IsFirst), // :335-336
+        SidebarItem.Kind.SettledHeader settled => new SettledHeader(settled.Count, settled.IsFirst), // :337-338
+        SidebarItem.Kind.Thread thread => ThreadItemView(item, thread), // :339-346
+        SidebarItem.Kind.Helper helper => HelperItemView(item, helper), // :347-367
+        SidebarItem.Kind.HeadCards cards => HeadCardsItemView(item, cards), // :368-371
+        SidebarItem.Kind.HelperStub stub => HelperStubItemView(item, stub), // :372-375
+        _ => throw new UnreachableException(),
+    };
+
+    // A surviving row takes its item's new value in place where its view can; the others are rebuilt where they stand.
+    private static bool UpdateItemView(Control control, SidebarItem item)
+    {
+        if (item.SidebarItemKind is not SidebarItem.Kind.Gap gap || control is not Border border) return false;
+        border.Height = gap.Value; // :332
+        return true;
+    }
+
+    // :339-346 the thread arm: reorderableRow (:757-765) with its frame and height reports. Parts 2 to 4 write it
+    // (the drag records and the thread row's own).
+    private Control ThreadItemView(SidebarItem item, SidebarItem.Kind.Thread thread) =>
+        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:339");
+
+    // :347-367 the helper arm: the helper row inside the delete and archive popovers (part 4).
+    private Control HelperItemView(SidebarItem item, SidebarItem.Kind.Helper helper) =>
+        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:347");
+
+    // :368-371 the head-card arm, which rides a dragged parent (parts 3 and 5).
+    private Control HeadCardsItemView(SidebarItem item, SidebarItem.Kind.HeadCards cards) =>
+        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:368");
+
+    // :372-375 the folded-helpers arm, which rides a dragged parent (parts 3 and 5).
+    private Control HelperStubItemView(SidebarItem item, SidebarItem.Kind.HelperStub stub) =>
+        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:372");
+
+    // :870-897 threadRow(_:projectName:projectIcon:hasHelpers:isDragged:), the popovers around SidebarThreadRow (parts 3
+    // and 4).
+    private Control ThreadRow(ChatThread thread, string? projectName, ProjectIcon? projectIcon, bool hasHelpers, bool isDragged = false) =>
+        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:870");
+
+    // MARK: Where the threads sit
+
+    // :385-389 Where every thread sits in the list, kept while a cheap fingerprint of the threads stands.
+    private ValueList<ThreadPlacement> ThreadPlacements => placementCache.Placements(Model.Threads);
+
+    // :406-422 Every helper by the thread it hangs under, worked out once for the whole list.
+    private ValueMap<Guid, ValueList<ChatThread>> HelpersByParent(ValueList<ThreadPlacement> placements) =>
+        itemCache.Helpers(placements, () =>
+        {
+            var grouped = new Dictionary<Guid, List<ChatThread>>();
+            // Heads count while they are still in the lead's panel too (see `AppModel.helpers(of:)`).
+            foreach (var thread in Model.Threads)
+            {
+                if (thread.IsArchived || (thread.IsInPanel && !thread.IsHydraHead)) continue; // :415
+                if (thread.ParentThreadID is not { } parentID) continue; // :416
+                if (!grouped.TryGetValue(parentID, out var siblings)) grouped[parentID] = siblings = [];
+                siblings.Add(thread); // :417
+            }
+            // :419-420 Newest first, like the threads around them.
+            return new ValueMap<Guid, ValueList<ChatThread>>(grouped.Select(pair =>
+                KeyValuePair.Create(pair.Key, new ValueList<ChatThread>(pair.Value.OrderByDescending(thread => thread.CreatedAt)))));
+        });
+
+    // :424-448 The list in the current layout, built only when something that places a row has changed.
+    private ValueList<SidebarItem> ListItems(ValueList<ThreadPlacement> placements, ValueMap<Guid, ValueList<ChatThread>> helpers)
+    {
+        var model = Model;
+        var activity = model.Settings.SidebarActivityView; // :430
+        var autoHidesIdleHeads = model.Settings.HydraAutoHidesIdleHeads; // :431
+        var parentsShowingHeads = autoHidesIdleHeads // :432-434
+            ? new ValueSet<Guid>(helpers.Where(pair => HasRunningHead(pair.Value)).Select(pair => pair.Key))
+            : ValueSet<Guid>.Empty;
+        var key = new SidebarItemCache.Key // :435-444
+        {
+            Placements = placements,
+            Projects = model.Projects,
+            Attention = activity ? new ValueSet<Guid>(model.Threads.Where(NeedsAttention).Select(thread => thread.Id)) : ValueSet<Guid>.Empty,
+            ActivityView = activity,
+            ActivityThreadStyle = model.Settings.ActivityThreadStyle,
+            SettledCollapsed = model.Settings.SettledCollapsed,
+            AutoHidesIdleHeads = autoHidesIdleHeads,
+            ParentsShowingHeads = parentsShowingHeads,
+        };
+        return itemCache.Items(key, () => activity ? ActivityItems(helpers) : ProjectItems(helpers)); // :445-447
+    }
+
+    // :450-454 Whether any of these heads is still running, read through the model rather than the snapshot.
+    private bool HasRunningHead(IReadOnlyList<ChatThread> heads) =>
+        heads.Any(head => (Model.Thread(head.Id) ?? head).Hydra?.HydraHeadInfoStatus == HydraHeadInfo.Status.Running);
+
+    // :456-474 The helpers under a thread: one small row each, or a single line naming them while they are folded.
+    private ValueList<SidebarItem> HelperItems(ChatThread under, IReadOnlyList<ChatThread> helpers)
+    {
+        // A settled thread is one small line; what it spawned comes back when it reopens.
+        if (under.IsSettled || helpers.Count == 0) return ValueList<SidebarItem>.Empty; // :460
+        var parent = SwiftUUID.UuidString(under.Id);
+        if (under.FoldsHelpers) // :461-463
+            return new ValueList<SidebarItem>([new SidebarItem { Id = "helpers-" + parent, SidebarItemKind = new SidebarItem.Kind.HelperStub(under, new ValueList<ChatThread>(helpers)) }]);
+        var plain = helpers.Where(helper => !helper.IsHydraHead).ToList(); // :464
+        var heads = OrderedHeads(helpers.Where(helper => helper.IsHydraHead).ToList()); // :465
+        var showsHeads = heads.Count > 0 && !(Model.Settings.HydraAutoHidesIdleHeads && !HasRunningHead(heads)); // :466
+        Guid? lastPlain = plain.Count > 0 ? plain[^1].Id : null;
+        var items = plain.Select(helper => new SidebarItem // :467-469
+        {
+            Id = SwiftUUID.UuidString(helper.Id),
+            SidebarItemKind = new SidebarItem.Kind.Helper(helper, helper.Id == lastPlain && !showsHeads),
+        }).ToList();
+        if (showsHeads) // :470-472
+            items.Add(new SidebarItem { Id = "heads-" + parent, SidebarItemKind = new SidebarItem.Kind.HeadCards(under, heads) });
+        return new ValueList<SidebarItem>(items);
+    }
+
+    // :476-485 Hydra heads in card order: running heads first, newest `createdAt` first among them, then finished heads,
+    // newest first. A stable sort by the source's predicate (R-COLL-1).
+    public static ValueList<ChatThread> OrderedHeads(IReadOnlyList<ChatThread> heads)
+    {
+        static bool Before(ChatThread lhs, ChatThread rhs)
+        {
+            var lhsRunning = lhs.Hydra?.HydraHeadInfoStatus == HydraHeadInfo.Status.Running; // :480
+            var rhsRunning = rhs.Hydra?.HydraHeadInfoStatus == HydraHeadInfo.Status.Running; // :481
+            if (lhsRunning != rhsRunning) return lhsRunning; // :482
+            return lhs.CreatedAt > rhs.CreatedAt; // :483
+        }
+        return new ValueList<ChatThread>(heads.OrderBy(head => head,
+            Comparer<ChatThread>.Create((lhs, rhs) => Before(lhs, rhs) ? -1 : Before(rhs, lhs) ? 1 : 0)));
+    }
+
+    // MARK: Adding projects
+
+    // :498-511 New projects join from here: a folder picker, one project per folder, then a thread in the last one
+    // added. Adding persists through the model.
+    private void AddProject()
+    {
+        var panel = new OpenPanel(); // :501
+        panel.CanChooseDirectories = true; // :502
+        panel.CanChooseFiles = false; // :503
+        panel.AllowsMultipleSelection = true; // :504
+        panel.Prompt = "Add project"; // :505
+        panel.Message = "Choose a folder for your agents to work in."; // :506
+        if (panel.RunModal() != ModalResponse.OK) return; // :507
+        Project? added = null; // :508
+        foreach (var url in panel.Urls) added = Model.AddProject(url); // :509
+        if (added is { } project) Model.NewThread(project); // :510
+    }
+
+    // MARK: Project layout
+
+    // :515-557
+    private ValueList<SidebarItem> ProjectItems(ValueMap<Guid, ValueList<ChatThread>> helpers)
+    {
+        var model = Model;
+        var items = new List<SidebarItem>(); // :516
+        var projects = model.Projects;
+        for (var index = 0; index < projects.Count; index++) // :517
+        {
+            var project = projects[index];
+            var projectID = SwiftUUID.UuidString(project.Id);
+            if (index > 0) // :518-520
+                items.Add(new SidebarItem { Id = "gap-" + projectID, SidebarItemKind = new SidebarItem.Kind.Gap(Chrome.GroupGap) });
+            var projectThreads = model.ThreadsIn(project); // :521
+            // :522-523 The count a folded project shows: its threads and everything under them.
+            var count = projectThreads.Aggregate(0L, (sum, thread) => sum + 1 + (helpers.TryGetValue(thread.Id, out var under) ? under.Count : 0));
+            items.Add(new SidebarItem { Id = "project-" + projectID, SidebarItemKind = new SidebarItem.Kind.Project(project, count) }); // :524
+            if (!project.IsExpanded) continue; // :525
+            // :526-528 The settled threads close the project's list, a small step below the ones still open, under a
+            // header that folds them away. Pinned threads lead each project's open list; settled ones never do.
+            var collapsed = model.Settings.SettledCollapsed; // :529
+            var hasOpen = false; // :530
+            var reachedSettled = false; // :531
+            var openThreads = projectThreads.Where(thread => !thread.IsSettled).ToList(); // :532
+            openThreads = openThreads.Where(thread => thread.IsPinned).Concat(openThreads.Where(thread => !thread.IsPinned)).ToList(); // :533
+            var orderedThreads = openThreads.Concat(projectThreads.Where(thread => thread.IsSettled)).ToList(); // :534
+            foreach (var thread in orderedThreads) // :535
+            {
+                if (thread.IsSettled && !reachedSettled) // :536
+                {
+                    reachedSettled = true; // :537
+                    if (hasOpen) // :538-540
+                        items.Add(new SidebarItem { Id = "settled-gap-" + projectID, SidebarItemKind = new SidebarItem.Kind.Gap(ThreadRowMetrics.SettledGap) });
+                    long settledCount = orderedThreads.Count(value => value.IsSettled); // :541
+                    if (settledCount > 0) // :542-544
+                        items.Add(new SidebarItem { Id = "settled-header-" + projectID, SidebarItemKind = new SidebarItem.Kind.SettledHeader(settledCount, IsFirst: false) });
+                    if (collapsed) break; // :545
+                }
+                hasOpen = hasOpen || !thread.IsSettled; // :547
+                var own = helpers.TryGetValue(thread.Id, out var found) ? found : ValueList<ChatThread>.Empty; // :548
+                items.Add(new SidebarItem // :549-552
+                {
+                    Id = SidebarItem.IdFor(thread),
+                    SidebarItemKind = new SidebarItem.Kind.Thread(thread, ProjectName: null, ProjectIcon: null, Peers: null, HasHelpers: !thread.IsSettled && own.Count > 0),
+                });
+                items.AddRange(HelperItems(thread, own)); // :553
+            }
+        }
+        return new ValueList<SidebarItem>(items); // :556
+    }
+
+    // MARK: Activity layout
+
+    // :561-605 activityItems(helpers:): the activity layout (PR-SIDEBAR-034 to -042), written by part 2 of this unit.
+    private ValueList<SidebarItem> ActivityItems(ValueMap<Guid, ValueList<ChatThread>> helpers) =>
+        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:561");
+
+    // :633-636
+    private bool NeedsAttention(ChatThread thread)
+    {
+        if (Model.ExistingRuntime(thread.Id) is not { } runtime) return false; // :634
+        return runtime.Approvals.Count > 0 || runtime.Questions.Count > 0; // :635
+    }
+
+    // MARK: Search
+
+    // :718-731 Up and down in the search field walk the results without leaving the keyboard; the row highlights exactly
+    // as a clicked one does.
+    private void MoveSearchSelection(int by, ValueMap<Guid, ValueList<ChatThread>> helpers)
+    {
+        if (Query.Length == 0) return; // :721
+        var results = SearchResults(helpers).SelectMany(result => result.Threads).ToList(); // :722
+        if (results.Count == 0) return; // :723
+        var model = Model;
+        var index = model.SelectedThreadID is { } current ? results.FindIndex(thread => thread.Id == current) : -1; // :724-725
+        if (index < 0)
+        {
+            model.SelectedThreadID = (by < 0 ? results[^1] : results[0]).Id; // :726
+            return; // :727
+        }
+        var next = Math.Min(Math.Max(index + by, 0), results.Count - 1); // :729
+        model.SelectedThreadID = results[next].Id; // :730
+    }
+
+    // :733-749 The projects and threads matching the query, kept for the query and library they were found in.
+    private ValueList<SidebarSearchResult> SearchResults(ValueMap<Guid, ValueList<ChatThread>> helpers)
+    {
+        var model = Model;
+        var query = Query;
+        var key = new SidebarItemCache.SearchKey { Threads = model.Threads, Projects = model.Projects, Query = query }; // :738
+        return itemCache.Search(key, titles => // :739
+        {
+            var needle = SwiftString.Lowercased(query); // :740
+            var results = new List<SidebarSearchResult>();
+            foreach (var project in model.Projects) // :741 compactMap, :746 nil for no match
+            {
+                var all = model.ThreadsIn(project) // :742
+                    .SelectMany(thread => helpers.TryGetValue(thread.Id, out var own) ? new[] { thread }.Concat(own) : [thread])
+                    .ToList();
+                var threads = Contains(SwiftString.Lowercased(project.Name), needle) // :743
+                    ? all // :744
+                    : all.Where(thread => titles.TryGetValue(thread.Id, out var title) // :745
+                        ? Contains(title, needle)
+                        : Contains(SwiftString.Lowercased(thread.Title), needle)).ToList();
+                if (threads.Count == 0) continue; // :746
+                results.Add(new SidebarSearchResult { Project = project, Threads = new ValueList<ChatThread>(threads), Count = all.Count });
+            }
+            return new ValueList<SidebarSearchResult>(results);
+        });
+    }
+
+    // :743, :745 `lowercased().contains(needle)`: a plain substring test of the lowercased texts, as the port reads
+    // Swift's String.contains at its other lowercased sites (AppModel+HydraMerge.cs, MCPProxy.cs, ZaiAPI.cs). An empty
+    // needle is STOP #1 (SidebarViewTests.cs): which overload the source binds, and so its answer, is unsettled.
+    private static bool Contains(string text, string needle)
+    {
+        if (needle.Length == 0)
+            throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:743 (STOP #1: String.contains with an empty needle)");
+        return text.Contains(needle, StringComparison.Ordinal);
+    }
+
+    /// <summary>:308-311 <c>private struct ConfirmedDeletion</c>.</summary>
     private sealed record ConfirmedDeletion
     {
-        public required Guid ThreadID { get; init; } // :308
-        public required bool RemoveWorktree { get; init; } // :309
+        public required Guid ThreadID { get; init; } // :309
+        public required bool RemoveWorktree { get; init; } // :310
     }
 
-    /// <summary>:637-640 <c>private struct ActivityGroup</c>.</summary>
+    /// <summary>:638-641 <c>private struct ActivityGroup</c>.</summary>
     private sealed record ActivityGroup
     {
-        public required string Title { get; init; } // :638
-        public required ValueList<ChatThread> Threads { get; init; } // :639 var threads
+        public required string Title { get; init; } // :639
+        public required ValueList<ChatThread> Threads { get; init; } // :640 var threads
     }
 
-    /// <summary>:859-869 <c>private struct DragPeers</c>.</summary>
+    /// <summary>:858-868 <c>private struct DragPeers</c>.</summary>
     private sealed record DragPeers
     {
-        public ValueList<Guid> Order { get; } = ValueList<Guid>.Empty; // :860
-        public ValueList<Guid>? Group { get; } // :861
-        public ValueMap<Guid, double> Heights { get; } = ValueMap<Guid, double>.Empty; // :862
+        public ValueList<Guid> Order { get; } = ValueList<Guid>.Empty; // :859
+        public ValueList<Guid>? Group { get; } // :860
+        public ValueMap<Guid, double> Heights { get; } = ValueMap<Guid, double>.Empty; // :861
 
-        // :864-868 init(_ peers: (order: [UUID], group: [UUID]?), heights: ([UUID]) -> [UUID: CGFloat])
+        // :863-867 init(_ peers: (order: [UUID], group: [UUID]?), heights: ([UUID]) -> [UUID: CGFloat])
         public DragPeers((ValueList<Guid> Order, ValueList<Guid>? Group) peers, Func<ValueList<Guid>, ValueMap<Guid, double>> heights) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:864");
+            throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:863");
     }
 }
 
-/// <summary>:906-964 <c>private struct ArchiveThreadPopover: View</c>: the archive shortcut's question.</summary>
+/// <summary>:905-963 <c>private struct ArchiveThreadPopover: View</c>: the archive shortcut's question.</summary>
 internal sealed class ArchiveThreadPopover : Decorator
 {
-    /// <param name="thread">:907 <c>let thread: ChatThread</c>.</param>
-    /// <param name="onArchive">:908 <c>let onArchive: () -> Void</c>.</param>
-    /// <param name="onDelete">:909 <c>let onDelete: () -> Void</c>.</param>
-    /// <param name="onDismiss">:910 <c>let onDismiss: () -> Void</c>.</param>
-    // :915-963 body
+    /// <param name="thread">:906 <c>let thread: ChatThread</c>.</param>
+    /// <param name="onArchive">:907 <c>let onArchive: () -> Void</c>.</param>
+    /// <param name="onDelete">:908 <c>let onDelete: () -> Void</c>.</param>
+    /// <param name="onDismiss">:909 <c>let onDismiss: () -> Void</c>.</param>
+    // :914-962 body
     public ArchiveThreadPopover(ChatThread thread, Action onArchive, Action onDelete, Action onDismiss) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:915");
+        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:914");
 }
 
-/// <summary>:968-984 <c>private struct DeleteThreadPopover: View</c>.</summary>
+/// <summary>:967-983 <c>private struct DeleteThreadPopover: View</c>.</summary>
 internal sealed class DeleteThreadPopover : Decorator
 {
-    /// <param name="thread">:969 <c>let thread: ChatThread</c>.</param>
-    /// <param name="onDelete">:970 <c>let onDelete: (_ removeWorktree: Bool) -> Void</c>.</param>
-    // :972-983 body
+    /// <param name="thread">:968 <c>let thread: ChatThread</c>.</param>
+    /// <param name="onDelete">:969 <c>let onDelete: (_ removeWorktree: Bool) -> Void</c>.</param>
+    // :971-982 body
     public DeleteThreadPopover(ChatThread thread, Action<bool> onDelete) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:972");
+        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:971");
 }
 
-/// <summary>:988-1026 <c>private struct RenameThreadPopover: View</c>.</summary>
+/// <summary>:987-1025 <c>private struct RenameThreadPopover: View</c>.</summary>
 internal sealed class RenameThreadPopover : Decorator
 {
-    /// <param name="title">:989 <c>let title: String</c>.</param>
-    /// <param name="onRename">:990 <c>let onRename: (String) -> Void</c>.</param>
-    /// <param name="onCancel">:991 <c>let onCancel: () -> Void</c>.</param>
-    // :996-1001 init; :1003-1025 body
+    /// <param name="title">:988 <c>let title: String</c>.</param>
+    /// <param name="onRename">:989 <c>let onRename: (String) -> Void</c>.</param>
+    /// <param name="onCancel">:990 <c>let onCancel: () -> Void</c>.</param>
+    // :995-1000 init; :1002-1024 body
     public RenameThreadPopover(string title, Action<string> onRename, Action onCancel) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:996");
+        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:995");
 }
 
-/// <summary>:1031-1057 <c>private struct SidebarItem: Identifiable</c>: one entry of the sidebar list.</summary>
+/// <summary>:1030-1056 <c>private struct SidebarItem: Identifiable</c>: one entry of the sidebar list.</summary>
 internal sealed record SidebarItem
 {
-    /// <summary>:1032-1049 <c>enum Kind</c> (R-ENUM-2).</summary>
+    /// <summary>:1031-1048 <c>enum Kind</c> (R-ENUM-2).</summary>
     public abstract record Kind
     {
         private Kind() { }
 
-        public sealed record Gap(double Value) : Kind; // :1033
+        public sealed record Gap(double Value) : Kind; // :1032
 
-        public sealed record Project(Marrow.Core.Models.Project Value, long Count) : Kind; // :1035
+        public sealed record Project(Marrow.Core.Models.Project Value, long Count) : Kind; // :1034
 
-        public sealed record Header(string Value, bool IsFirst) : Kind; // :1036
+        public sealed record Header(string Value, bool IsFirst) : Kind; // :1035
 
-        public sealed record SettledHeader(long Count, bool IsFirst) : Kind; // :1039
+        public sealed record SettledHeader(long Count, bool IsFirst) : Kind; // :1038
 
-        // :1042
+        // :1041
         public sealed record Thread(ChatThread Value, string? ProjectName, ProjectIcon? ProjectIcon, ValueList<Guid>? Peers, bool HasHelpers) : Kind;
 
-        public sealed record Helper(ChatThread Value, bool IsLast) : Kind; // :1044
+        public sealed record Helper(ChatThread Value, bool IsLast) : Kind; // :1043
 
-        public sealed record HeadCards(ChatThread Parent, ValueList<ChatThread> Heads) : Kind; // :1046
+        public sealed record HeadCards(ChatThread Parent, ValueList<ChatThread> Heads) : Kind; // :1045
 
-        public sealed record HelperStub(ChatThread Parent, ValueList<ChatThread> Helpers) : Kind; // :1048
+        public sealed record HelperStub(ChatThread Parent, ValueList<ChatThread> Helpers) : Kind; // :1047
     }
 
-    public required string Id { get; init; } // :1051
+    public required string Id { get; init; } // :1050
 
-    public required Kind SidebarItemKind { get; init; } // :1052 Swift: kind (R-NAME-3)
+    public required Kind SidebarItemKind { get; init; } // :1051 Swift: kind (R-NAME-3)
 
-    // :1054-1056 static func id(for thread: ChatThread) -> String. Swift: id(for:); `Id` is the record's property.
-    public static string IdFor(ChatThread thread) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1054");
+    // :1053-1055 static func id(for thread: ChatThread) -> String. Swift: id(for:); `Id` is the record's property.
+    public static string IdFor(ChatThread thread) => thread.SidebarItemID; // :1054
 }
 
 /// <summary>The file's extensions of types it does not own (R-NAME-4, ED-164): <c>private extension ChatThread</c>
-/// (:1059-1063) and <c>private extension AnyTransition</c> (:1065-1077).</summary>
+/// (:1058-1062) and <c>private extension AnyTransition</c> (:1064-1076).</summary>
 internal static class SidebarViewExtensions
 {
     extension(ChatThread thread)
     {
-        // :1060-1062 var sidebarItemID: String
+        // :1059-1061 var sidebarItemID: String
         public string SidebarItemID =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1060");
+            thread.IsSettled ? "settled-" + SwiftUUID.UuidString(thread.Id) : SwiftUUID.UuidString(thread.Id); // :1060
     }
 
     extension(SwiftTransition)
     {
-        // :1071-1076 static var sidebarRow: AnyTransition
-        public static SwiftTransition SidebarRow =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1071");
+        // :1070-1075 static var sidebarRow: AnyTransition
+        public static SwiftTransition SidebarRow => SwiftTransition.Asymmetric(
+            insertion: SwiftTransition.Opacity.Animation(Animation.EaseIn(duration: 0.18).Delay(0.12)), // :1072
+            removal: SwiftTransition.Opacity.Animation(Animation.EaseOut(duration: 0.06))); // :1073
     }
 }
 
-/// <summary>:1079-1231 <c>private struct ProjectRow: View</c>.</summary>
+/// <summary>:1078-1230 <c>private struct ProjectRow: View</c>.</summary>
 internal sealed class ProjectRow : Decorator
 {
-    /// <param name="snapshot">:1082 <c>let snapshot: Project</c>.</param>
-    /// <param name="count">:1089 <c>let count: Int</c>.</param>
-    /// <param name="togglesExpansion">:1090 <c>var togglesExpansion = true</c>.</param>
-    // :1094-1164 body
+    /// <param name="snapshot">:1081 <c>let snapshot: Project</c>.</param>
+    /// <param name="count">:1088 <c>let count: Int</c>.</param>
+    /// <param name="togglesExpansion">:1089 <c>var togglesExpansion = true</c>.</param>
+    // :1093-1163 body
     public ProjectRow(Project snapshot, long count, bool togglesExpansion = true) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1094");
+        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1093");
 
-    // :1169-1204 private static func contextMenuActions(project:isActive:hasOverride:model:) -> [RowAction]
+    // :1168-1203 private static func contextMenuActions(project:isActive:hasOverride:model:) -> [RowAction]
     private static ValueList<RowAction> ContextMenuActions(Project project, bool isActive, bool hasOverride, AppModel model) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1169");
+        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1168");
 }
 
-/// <summary>:1234-1237 <c>private struct ProjectPairChoice: Identifiable</c>.</summary>
+/// <summary>:1233-1236 <c>private struct ProjectPairChoice: Identifiable</c>.</summary>
 internal sealed record ProjectPairChoice
 {
-    public required Guid Id { get; init; } // :1235
-    public required string Title { get; init; } // :1236
+    public required Guid Id { get; init; } // :1234
+    public required string Title { get; init; } // :1235
 }
 
-/// <summary>:1242-1271 <c>private struct ProjectPairMenuItems: View</c>.</summary>
+/// <summary>:1241-1270 <c>private struct ProjectPairMenuItems: View</c>.</summary>
 internal sealed class ProjectPairMenuItems : Decorator
 {
-    /// <param name="projectID">:1243 <c>let projectID: UUID</c>.</param>
-    /// <param name="selectedID">:1244 <c>let selectedID: UUID?</c>.</param>
-    /// <param name="pairs">:1245 <c>let pairs: [ProjectPairChoice]</c>.</param>
-    /// <param name="model">:1246 <c>let model: AppModel</c>.</param>
-    // :1248-1270 body
+    /// <param name="projectID">:1242 <c>let projectID: UUID</c>.</param>
+    /// <param name="selectedID">:1243 <c>let selectedID: UUID?</c>.</param>
+    /// <param name="pairs">:1244 <c>let pairs: [ProjectPairChoice]</c>.</param>
+    /// <param name="model">:1245 <c>let model: AppModel</c>.</param>
+    // :1247-1269 body
     public ProjectPairMenuItems(Guid projectID, Guid? selectedID, IReadOnlyList<ProjectPairChoice> pairs, AppModel model) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1248");
+        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1247");
 }
 
-/// <summary>:1273-1313 <c>private enum ThreadRowMetrics</c>.</summary>
+/// <summary>:1272-1312 <c>private enum ThreadRowMetrics</c>.</summary>
 internal static class ThreadRowMetrics
 {
-    public const double DetailedVerticalPadding = 7; // :1274
-    public const double DetailedHeight = 48; // :1276
-    public const double HelperHeight = 24; // :1278
-    public const double SettledHeight = 24; // :1280
-    public const double SettledGap = 4; // :1282
-    public const double SettledCheckInset = 6; // :1285
-    public const double OpenCheckInset = 26; // :1286
-    public const double FoldInset = 46; // :1289
-    public const double SettledTitleInset = 22; // :1290
-    public const double ConnectorWidth = 28; // :1292
-    public const double ConnectorLineX = 18; // :1293
-    public const double HeadGlyphSize = 14; // :1296
-    public const double HeadGlyphPitch = 22; // :1298
-    public const double HeadBadgeOverhang = 3; // :1302
-    public const double HeadRowGap = 6; // :1304
-    public const double HeadCardPadding = 6; // :1305
+    public const double DetailedVerticalPadding = 7; // :1273
+    public const double DetailedHeight = 48; // :1275
+    public const double HelperHeight = 24; // :1277
+    public const double SettledHeight = 24; // :1279
+    public const double SettledGap = 4; // :1281
+    public const double SettledCheckInset = 6; // :1284
+    public const double OpenCheckInset = 26; // :1285
+    public const double FoldInset = 46; // :1288
+    public const double SettledTitleInset = 22; // :1289
+    public const double ConnectorWidth = 28; // :1291
+    public const double ConnectorLineX = 18; // :1292
+    public const double HeadGlyphSize = 14; // :1295
+    public const double HeadGlyphPitch = 22; // :1297
+    public const double HeadBadgeOverhang = 3; // :1301
+    public const double HeadRowGap = 6; // :1303
+    public const double HeadCardPadding = 6; // :1304
 
-    // :1309-1312 static func headCardHeight(rows: Int) -> CGFloat
+    // :1308-1311 static func headCardHeight(rows: Int) -> CGFloat
     public static double HeadCardHeight(long rows) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1309");
+        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1308");
 }
 
-/// <summary>:1318-1426 <c>private struct SidebarHelperRow: View, Equatable</c>.</summary>
+/// <summary>:1317-1425 <c>private struct SidebarHelperRow: View, Equatable</c>.</summary>
 internal sealed class SidebarHelperRow : Decorator
 {
-    /// <param name="snapshot">:1321 <c>let snapshot: ChatThread</c>.</param>
-    /// <param name="isLast">:1327 <c>let isLast: Bool</c>.</param>
-    /// <param name="menuRequests">:1331 <c>let menuRequests: SidebarMenuRequests</c>.</param>
-    /// <param name="onFold">:1332 <c>let onFold: () -> Void</c>.</param>
-    /// <param name="onRename">:1333 <c>let onRename: () -> Void</c>.</param>
-    /// <param name="onDelete">:1334 <c>let onDelete: () -> Void</c>.</param>
-    // :1339-1410 body
+    /// <param name="snapshot">:1320 <c>let snapshot: ChatThread</c>.</param>
+    /// <param name="isLast">:1326 <c>let isLast: Bool</c>.</param>
+    /// <param name="menuRequests">:1330 <c>let menuRequests: SidebarMenuRequests</c>.</param>
+    /// <param name="onFold">:1331 <c>let onFold: () -> Void</c>.</param>
+    /// <param name="onRename">:1332 <c>let onRename: () -> Void</c>.</param>
+    /// <param name="onDelete">:1333 <c>let onDelete: () -> Void</c>.</param>
+    // :1338-1409 body
     public SidebarHelperRow(ChatThread snapshot, bool isLast, SidebarMenuRequests menuRequests, Action onFold, Action onRename, Action onDelete) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1339");
+        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1338");
 }
 
-/// <summary>:1428-1549 <c>private struct HeadCardsRow: View</c>: the parent's Hydra heads as glyph cards.</summary>
+/// <summary>:1427-1548 <c>private struct HeadCardsRow: View</c>: the parent's Hydra heads as glyph cards.</summary>
 internal sealed class HeadCardsRow : Decorator
 {
-    /// <param name="parentSnapshot">:1430 <c>let parentSnapshot: ChatThread</c>.</param>
-    /// <param name="headSnapshots">:1431 <c>let headSnapshots: [ChatThread]</c>.</param>
-    /// <param name="menuRequests">:1432 <c>let menuRequests: SidebarMenuRequests</c>.</param>
-    /// <param name="onFold">:1433 <c>let onFold: () -> Void</c>.</param>
-    // :1441-1543 body
+    /// <param name="parentSnapshot">:1429 <c>let parentSnapshot: ChatThread</c>.</param>
+    /// <param name="headSnapshots">:1430 <c>let headSnapshots: [ChatThread]</c>.</param>
+    /// <param name="menuRequests">:1431 <c>let menuRequests: SidebarMenuRequests</c>.</param>
+    /// <param name="onFold">:1432 <c>let onFold: () -> Void</c>.</param>
+    // :1440-1542 body
     public HeadCardsRow(ChatThread parentSnapshot, IReadOnlyList<ChatThread> headSnapshots, SidebarMenuRequests menuRequests, Action onFold) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1441");
+        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1440");
 
-    // :1546-1548 private static func chunk(_ heads: [ChatThread], by size: Int) -> [[ChatThread]]
+    // :1545-1547 private static func chunk(_ heads: [ChatThread], by size: Int) -> [[ChatThread]]
     private static ValueList<ValueList<ChatThread>> Chunk(IReadOnlyList<ChatThread> heads, long by) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1546");
+        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1545");
 }
 
-/// <summary>:1553-1619 <c>private struct HelperStubRow: View</c>: a parent's folded helpers as one line.</summary>
+/// <summary>:1552-1618 <c>private struct HelperStubRow: View</c>: a parent's folded helpers as one line.</summary>
 internal sealed class HelperStubRow : Decorator
 {
-    /// <param name="parentSnapshot">:1556 <c>let parentSnapshot: ChatThread</c>.</param>
-    /// <param name="helperSnapshots">:1559 <c>let helperSnapshots: [ChatThread]</c>.</param>
-    /// <param name="action">:1560 <c>let action: () -> Void</c>.</param>
-    // :1569-1618 body
+    /// <param name="parentSnapshot">:1555 <c>let parentSnapshot: ChatThread</c>.</param>
+    /// <param name="helperSnapshots">:1558 <c>let helperSnapshots: [ChatThread]</c>.</param>
+    /// <param name="action">:1559 <c>let action: () -> Void</c>.</param>
+    // :1568-1617 body
     public HelperStubRow(ChatThread parentSnapshot, IReadOnlyList<ChatThread> helperSnapshots, Action action) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1569");
+        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1568");
 }
 
-/// <summary>:1623-1633 <c>private struct RidesWithDraggedParent: ViewModifier</c>.</summary>
-/// <param name="ParentID">:1624 <c>let parentID: UUID?</c>.</param>
-/// <param name="Drag">:1625 <c>let drag: RowDrag&lt;UUID&gt;</c>.</param>
+/// <summary>:1622-1632 <c>private struct RidesWithDraggedParent: ViewModifier</c>.</summary>
+/// <param name="ParentID">:1623 <c>let parentID: UUID?</c>.</param>
+/// <param name="Drag">:1624 <c>let drag: RowDrag&lt;UUID&gt;</c>.</param>
 internal sealed record RidesWithDraggedParent(Guid? ParentID, RowDrag<Guid> Drag)
 {
-    // :1627-1632 func body(content: Content) -> some View
+    // :1626-1631 func body(content: Content) -> some View
     public Control Body(Control content) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1627");
+        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1626");
 }
 
-/// <summary>:1637-1661 <c>private struct HelperConnector: View</c>: the dotted connector beside a helper's row.</summary>
+/// <summary>:1636-1660 <c>private struct HelperConnector: View</c>: the dotted connector beside a helper's row.</summary>
 internal sealed class HelperConnector : Decorator
 {
-    /// <param name="endsHere">:1638 <c>let endsHere: Bool</c>.</param>
-    /// <param name="action">:1639 <c>let action: () -> Void</c>.</param>
-    // :1649-1660 body
+    /// <param name="endsHere">:1637 <c>let endsHere: Bool</c>.</param>
+    /// <param name="action">:1638 <c>let action: () -> Void</c>.</param>
+    // :1648-1659 body
     public HelperConnector(bool endsHere, Action action) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1649");
+        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1648");
 
-    // :1645-1647 static func color(hovering: Bool) -> Color
+    // :1644-1646 static func color(hovering: Bool) -> Color
     public static SwiftColor Color(bool hovering) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1645");
+        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1644");
 }
 
-/// <summary>:1663-1676 <c>private struct HelperConnectorShape: Shape</c>.</summary>
-/// <param name="EndsHere">:1664 <c>let endsHere: Bool</c>.</param>
+/// <summary>:1662-1675 <c>private struct HelperConnectorShape: Shape</c>.</summary>
+/// <param name="EndsHere">:1663 <c>let endsHere: Bool</c>.</param>
 internal sealed record HelperConnectorShape(bool EndsHere)
 {
-    // :1666-1675 func path(in rect: CGRect) -> Path
+    // :1665-1674 func path(in rect: CGRect) -> Path
     public Geometry Path(Rect @in) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1666");
+        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1665");
 }
 
-/// <summary>:1683-2002 <c>private struct SidebarThreadRow: View, Equatable</c>: a thread in either layout.</summary>
+/// <summary>:1682-2001 <c>private struct SidebarThreadRow: View, Equatable</c>: a thread in either layout.</summary>
 internal sealed class SidebarThreadRow : Decorator
 {
-    /// <param name="snapshot">:1687 <c>let snapshot: ChatThread</c>.</param>
-    /// <param name="projectName">:1693 <c>let projectName: String?</c>.</param>
-    /// <param name="projectIcon">:1697 <c>let projectIcon: ProjectIcon?</c>.</param>
-    /// <param name="menuRequests">:1701 <c>let menuRequests: SidebarMenuRequests</c>.</param>
-    /// <param name="onRename">:1708 <c>let onRename: () -> Void</c> (moved before the defaulted inputs, ED-095).</param>
-    /// <param name="onDelete">:1709 <c>let onDelete: () -> Void</c> (moved before the defaulted inputs, ED-095).</param>
-    /// <param name="isDragged">:1703 <c>var isDragged = false</c>.</param>
-    /// <param name="listFrame">:1705 <c>var listFrame: FrameHolder?</c>.</param>
-    /// <param name="onToggleFold">:1707 <c>var onToggleFold: (() -> Void)?</c>.</param>
-    // :1717-1873 body
+    /// <param name="snapshot">:1686 <c>let snapshot: ChatThread</c>.</param>
+    /// <param name="projectName">:1692 <c>let projectName: String?</c>.</param>
+    /// <param name="projectIcon">:1696 <c>let projectIcon: ProjectIcon?</c>.</param>
+    /// <param name="menuRequests">:1700 <c>let menuRequests: SidebarMenuRequests</c>.</param>
+    /// <param name="onRename">:1707 <c>let onRename: () -> Void</c> (moved before the defaulted inputs, ED-095).</param>
+    /// <param name="onDelete">:1708 <c>let onDelete: () -> Void</c> (moved before the defaulted inputs, ED-095).</param>
+    /// <param name="isDragged">:1702 <c>var isDragged = false</c>.</param>
+    /// <param name="listFrame">:1704 <c>var listFrame: FrameHolder?</c>.</param>
+    /// <param name="onToggleFold">:1706 <c>var onToggleFold: (() -> Void)?</c>.</param>
+    // :1716-1872 body
     public SidebarThreadRow(
         ChatThread snapshot,
         string? projectName,
@@ -324,33 +1047,36 @@ internal sealed class SidebarThreadRow : Decorator
         bool isDragged = false,
         FrameHolder? listFrame = null,
         Action? onToggleFold = null) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1717");
+        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1716");
 
-    // :1875-1878 private static func fill(isSelected: Bool, isHovering: Bool) -> Double
+    // :1874-1877 private static func fill(isSelected: Bool, isHovering: Bool) -> Double
     private static double Fill(bool isSelected, bool isHovering) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1875");
+        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1874");
 
-    // :1896-1899 private static func trailingClearance(isSettled:isDetailed:showsActions:showsFold:) -> CGFloat
+    // :1895-1898 private static func trailingClearance(isSettled:isDetailed:showsActions:showsFold:) -> CGFloat
     private static double TrailingClearance(bool isSettled, bool isDetailed, bool showsActions, bool showsFold = false) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1896");
+        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1895");
 
-    // :1982-1985 static func mergeStage(of runtime: ThreadRuntime?) -> String?
-    public static string? MergeStage(ThreadRuntime? of) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1982");
+    // :1981-1984 static func mergeStage(of runtime: ThreadRuntime?) -> String?
+    public static string? MergeStage(ThreadRuntime? of)
+    {
+        if (of is not { } runtime || !runtime.IsHydraMerging) return null; // :1982
+        return (runtime.HydraMergeStage ?? "Merging") + "\U00002026"; // :1983 U+2026 HORIZONTAL ELLIPSIS
+    }
 }
 
-/// <summary>:2007-2080 <c>private struct ThreadRowFace&lt;Badge: View&gt;: View</c>: what a thread row shows, drawn
+/// <summary>:2006-2079 <c>private struct ThreadRowFace&lt;Badge: View&gt;: View</c>: what a thread row shows, drawn
 /// by the live row and by its ghosts.</summary>
 internal sealed class ThreadRowFace : Decorator
 {
-    /// <param name="thread">:2008 <c>let thread: ChatThread</c>.</param>
-    /// <param name="projectName">:2010 <c>let projectName: String?</c>.</param>
-    /// <param name="isSelected">:2012 <c>let isSelected: Bool</c> (moved before the defaulted inputs, ED-095).</param>
-    /// <param name="trailingClearance">:2014 <c>let trailingClearance: CGFloat</c> (moved, ED-095).</param>
-    /// <param name="badge">:2018 <c>@ViewBuilder let badge: Badge</c> (moved, ED-095).</param>
-    /// <param name="projectIcon">:2011 <c>var projectIcon: ProjectIcon? = nil</c>.</param>
-    /// <param name="mergeStage">:2016 <c>var mergeStage: String? = nil</c>.</param>
-    // :2020-2073 body
+    /// <param name="thread">:2007 <c>let thread: ChatThread</c>.</param>
+    /// <param name="projectName">:2009 <c>let projectName: String?</c>.</param>
+    /// <param name="isSelected">:2011 <c>let isSelected: Bool</c> (moved before the defaulted inputs, ED-095).</param>
+    /// <param name="trailingClearance">:2013 <c>let trailingClearance: CGFloat</c> (moved, ED-095).</param>
+    /// <param name="badge">:2017 <c>@ViewBuilder let badge: Badge</c> (moved, ED-095).</param>
+    /// <param name="projectIcon">:2010 <c>var projectIcon: ProjectIcon? = nil</c>.</param>
+    /// <param name="mergeStage">:2015 <c>var mergeStage: String? = nil</c>.</param>
+    // :2019-2072 body
     public ThreadRowFace(
         ChatThread thread,
         string? projectName,
@@ -359,60 +1085,60 @@ internal sealed class ThreadRowFace : Decorator
         Func<Control> badge,
         ProjectIcon? projectIcon = null,
         string? mergeStage = null) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2020");
+        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2019");
 
-    // :2076-2079 private static func titleOpacity(isSettled: Bool, isSelected: Bool) -> Double
+    // :2075-2078 private static func titleOpacity(isSettled: Bool, isSelected: Bool) -> Double
     private static double TitleOpacity(bool isSettled, bool isSelected) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2076");
+        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2075");
 }
 
-/// <summary>:2084-2110 <c>private struct ThreadGhostBadge: View</c>: the badge as a ghost carries it.</summary>
+/// <summary>:2083-2109 <c>private struct ThreadGhostBadge: View</c>: the badge as a ghost carries it.</summary>
 internal sealed class ThreadGhostBadge : Decorator
 {
-    public ChatThread Thread { get; } // :2085
-    public bool NeedsInput { get; } // :2086
-    public bool IsRunning { get; } // :2087
+    public ChatThread Thread { get; } // :2084
+    public bool NeedsInput { get; } // :2085
+    public bool IsRunning { get; } // :2086
 
-    // :2089-2093 init(thread:runtime:); :2095-2109 body
+    // :2088-2092 init(thread:runtime:); :2094-2108 body
     public ThreadGhostBadge(ChatThread thread, ThreadRuntime? runtime) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2089");
+        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2088");
 }
 
-/// <summary>:2115-2142 <c>private struct SettleCheck: View</c>.</summary>
+/// <summary>:2114-2141 <c>private struct SettleCheck: View</c>.</summary>
 internal sealed class SettleCheck : Decorator
 {
-    /// <param name="isSettled">:2116 <c>let isSettled: Bool</c>.</param>
-    /// <param name="isPopping">:2118 <c>let isPopping: Bool</c>.</param>
-    /// <param name="action">:2119 <c>let action: () -> Void</c>.</param>
-    // :2123-2141 body
+    /// <param name="isSettled">:2115 <c>let isSettled: Bool</c>.</param>
+    /// <param name="isPopping">:2117 <c>let isPopping: Bool</c>.</param>
+    /// <param name="action">:2118 <c>let action: () -> Void</c>.</param>
+    // :2122-2140 body
     public SettleCheck(bool isSettled, bool isPopping, Action action) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2123");
+        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2122");
 }
 
-/// <summary>:2144-2176 <c>private struct ThreadBadge: View</c>.</summary>
+/// <summary>:2143-2175 <c>private struct ThreadBadge: View</c>.</summary>
 internal sealed class ThreadBadge : Decorator
 {
-    /// <param name="thread">:2146 <c>let thread: ChatThread</c>.</param>
-    // :2148-2175 body
+    /// <param name="thread">:2145 <c>let thread: ChatThread</c>.</param>
+    // :2147-2174 body
     public ThreadBadge(ChatThread thread) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2148");
+        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2147");
 }
 
-/// <summary>:2185-2189 <c>@Observable private final class SidebarMenuRequests</c>: context-menu intents carried
+/// <summary>:2184-2188 <c>@Observable private final class SidebarMenuRequests</c>: context-menu intents carried
 /// outside any row's state.</summary>
 internal sealed class SidebarMenuRequests : ObservableModel
 {
-    private ChatThread? rename; // :2187
-    private ChatThread? delete; // :2188
+    private ChatThread? rename; // :2186
+    private ChatThread? delete; // :2187
 
-    // :2187 var rename: ChatThread?
+    // :2186 var rename: ChatThread?
     public ChatThread? Rename
     {
         get => Read(rename);
         set => Set(ref rename, value);
     }
 
-    // :2188 var delete: ChatThread?
+    // :2187 var delete: ChatThread?
     public ChatThread? Delete
     {
         get => Read(delete);
@@ -420,226 +1146,350 @@ internal sealed class SidebarMenuRequests : ObservableModel
     }
 }
 
-/// <summary>:2192-2314 <c>@MainActor private enum ThreadActions</c>: what a thread row offers.</summary>
+/// <summary>:2191-2313 <c>@MainActor private enum ThreadActions</c>: what a thread row offers.</summary>
 internal static class ThreadActions
 {
-    // :2194-2247 static func make(model:thread:onRename:onDelete:onSettle:onReopen:) -> [RowAction]
+    // :2193-2246 static func make(model:thread:onRename:onDelete:onSettle:onReopen:) -> [RowAction]
     public static ValueList<RowAction> Make(AppModel model, ChatThread thread, Action onRename, Action onDelete, Action? onSettle = null, Action? onReopen = null) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2194");
+        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2193");
 
-    // :2254-2313 static func makeContextMenu(model:thread:settleFirst:requests:) -> [RowAction]
+    // :2253-2312 static func makeContextMenu(model:thread:settleFirst:requests:) -> [RowAction]
     public static ValueList<RowAction> MakeContextMenu(AppModel model, ChatThread thread, bool settleFirst, SidebarMenuRequests requests) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2254");
+        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2253");
 }
 
-/// <summary>:2317-2344 <c>private struct ActivityViewToggle: View</c>.</summary>
+/// <summary>:2316-2343 <c>private struct ActivityViewToggle: View</c>.</summary>
 internal sealed class ActivityViewToggle : Decorator
 {
-    /// <param name="isOn">:2318 <c>@Binding var isOn: Bool</c>.</param>
-    // :2321-2343 body
-    public ActivityViewToggle(Binding<bool> isOn) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2321");
+    /// <param name="isOn">:2317 <c>@Binding var isOn: Bool</c>.</param>
+    // :2320-2342 body
+    public ActivityViewToggle(Binding<bool> isOn)
+    {
+        var state = new ViewState();
+        // :2329-2332 .background { Circle().fill(...) } behind the 30 by 30 frame; :2333 .contentShape(Circle()): the
+        // circle takes the hits, the glyph's square corners do not.
+        var circle = new Avalonia.Controls.Shapes.Ellipse { Width = 30, Height = 30 };
+        var fill = new AnimatedColor(circle);
+        circle.Fill = fill.Brush;
+        var glyph = SwiftImage.SystemName("bell").Font(Chrome.IconFont); // :2325-2326
+        glyph.Width = 30; // :2328 .frame(width: 30, height: 30)
+        glyph.Height = 30;
+        glyph.IsHitTestVisible = false;
+        var label = new Panel { Width = 30, Height = 30, Children = { circle, glyph } };
+        var button = PlainControls.Button(label, () => // :2322-2324, :2335 .buttonStyle(.plain)
+            Transaction.WithAnimation(Chrome.PanelSlide, () => isOn.Value = !isOn.Value));
+        button.OnHover(hovering => // :2336-2338
+            Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = hovering));
+        AutomationProperties.SetName(button, "Activity view"); // :2340
+        button.Track(() => (isOn.Value, state.IsHovering, ShortcutStore.Shared.Current.Chord(AppShortcut.ToggleActivityView)), value =>
+        {
+            var (on, hovering, chord) = value;
+            glyph.ForegroundStyle(on ? Chrome.Accent : Chrome.SecondaryText); // :2327
+            fill.Set(on ? Chrome.Accent.Opacity(0.16) : (hovering ? Chrome.Overlay(0.08) : SwiftColor.Clear), Transaction.Current); // :2331
+            // :2321 DEVIATION OD-0008 B7: the chord's description is Windows notation (Ctrl+Alt+U), Shortcuts.cs.
+            var hint = chord is { } bound ? " (" + bound.Description + ")" : "";
+            ToolTip.SetTip(button, (on ? "Turn off activity view" : "Turn on activity view") + hint); // :2339
+            // :2341 .accessibilityValue, as the port carries it (ChatBadge.cs): the automation item status.
+            AutomationProperties.SetItemStatus(button, on ? "On" : "Off");
+        });
+        Child = button;
+    }
+
+    // :2318 @State private var isHovering = false
+    private sealed class ViewState : MainActorModel
+    {
+        private bool isHovering;
+
+        public bool IsHovering { get => Read(isHovering); set => Set(ref isHovering, value); }
+    }
 }
 
-/// <summary>:2346-2359 <c>private struct ActivityHeader: View</c>.</summary>
+/// <summary>:2345-2358 <c>private struct ActivityHeader: View</c>.</summary>
 internal sealed class ActivityHeader : Decorator
 {
-    /// <param name="title">:2347 <c>let title: String</c>.</param>
-    /// <param name="isFirst">:2348 <c>let isFirst: Bool</c>.</param>
-    // :2350-2358 body
+    /// <param name="title">:2346 <c>let title: String</c>.</param>
+    /// <param name="isFirst">:2347 <c>let isFirst: Bool</c>.</param>
+    // :2349-2357 body
     public ActivityHeader(string title, bool isFirst) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2350");
+        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2349");
 }
 
-/// <summary>:2364-2407 <c>private struct SettledHeader: View</c>.</summary>
+/// <summary>:2363-2406 <c>private struct SettledHeader: View</c>.</summary>
 internal sealed class SettledHeader : Decorator
 {
-    /// <param name="count">:2366 <c>let count: Int</c>.</param>
-    /// <param name="isFirst">:2367 <c>let isFirst: Bool</c>.</param>
-    // :2369-2406 body
+    /// <param name="count">:2365 <c>let count: Int</c>.</param>
+    /// <param name="isFirst">:2366 <c>let isFirst: Bool</c>.</param>
+    // :2368-2405 body
     public SettledHeader(long count, bool isFirst) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2369");
+        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2368");
 }
 
-/// <summary>:2409-2429 <c>private struct ActivityStatus: View</c>.</summary>
+/// <summary>:2408-2428 <c>private struct ActivityStatus: View</c>.</summary>
 internal sealed class ActivityStatus : Decorator
 {
-    /// <param name="thread">:2411 <c>let thread: ChatThread</c>.</param>
-    // :2413-2428 body
+    /// <param name="thread">:2410 <c>let thread: ChatThread</c>.</param>
+    // :2412-2427 body
     public ActivityStatus(ChatThread thread) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2413");
+        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2412");
 }
 
-/// <summary>:2434-2441 <c>private final class FrameHolder</c>: a row's latest frame, kept out of observation.</summary>
+/// <summary>:2433-2440 <c>private final class FrameHolder</c>: a row's latest frame, kept out of observation.</summary>
 internal sealed class FrameHolder
 {
-    // :2435 var frame: CGRect = .zero
+    // :2434 var frame: CGRect = .zero
     public Rect Frame { get; set; }
 
-    // :2437-2440 func note(_ frame: CGRect)
+    // :2436-2439 func note(_ frame: CGRect)
     public void Note(Rect frame) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2437");
+        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2436");
 }
 
-/// <summary>:2446-2453 <c>private final class RowHeights</c>: every row's measured height.</summary>
+/// <summary>:2445-2452 <c>private final class RowHeights</c>: every row's measured height.</summary>
 internal sealed class RowHeights
 {
-    // :2447 var values: [String: CGFloat] = [:]
+    // :2446 var values: [String: CGFloat] = [:]
     public ValueMap<string, double> Values { get; set; } = ValueMap<string, double>.Empty;
 
-    // :2449-2452 func note(_ id: String, _ height: CGFloat)
+    // :2448-2451 func note(_ id: String, _ height: CGFloat)
     public void Note(string id, double height) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2449");
+        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2448");
 }
 
-/// <summary>:2457-2473 <c>private final class RowFrames</c>: every open thread row's frame in the list.</summary>
+/// <summary>:2456-2472 <c>private final class RowFrames</c>: every open thread row's frame in the list.</summary>
 internal sealed class RowFrames
 {
-    // :2460-2463 func note(_ id: UUID, _ frame: CGRect)
+    // :2459-2462 func note(_ id: UUID, _ frame: CGRect)
     public void Note(Guid id, Rect frame) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2460");
+        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2459");
 
-    // :2465-2467 func forget(_ id: UUID)
+    // :2464-2466 func forget(_ id: UUID)
     public void Forget(Guid id) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2465");
+        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2464");
 
-    // :2470-2472 func thread(at point: CGPoint) -> UUID?
+    // :2469-2471 func thread(at point: CGPoint) -> UUID?
     public Guid? Thread(Point at) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2470");
+        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2469");
 }
 
-/// <summary>:2476-2480 <c>private struct SidebarSearchResult</c>: one project's search hits.</summary>
+/// <summary>:2475-2479 <c>private struct SidebarSearchResult</c>: one project's search hits.</summary>
 internal sealed record SidebarSearchResult
 {
-    public required Project Project { get; init; } // :2477
-    public required ValueList<ChatThread> Threads { get; init; } // :2478
-    public required long Count { get; init; } // :2479
+    public required Project Project { get; init; } // :2476
+    public required ValueList<ChatThread> Threads { get; init; } // :2477
+    public required long Count { get; init; } // :2478
 }
 
-/// <summary>:2486-2537 <c>private final class PlacementCache</c>: the placements, kept while a fingerprint of the
+/// <summary>:2485-2536 <c>private final class PlacementCache</c>: the placements, kept while a fingerprint of the
 /// threads stands.</summary>
 internal sealed class PlacementCache
 {
-    /// <summary>:2487-2525 <c>private struct Fingerprint: Equatable</c>.</summary>
+    /// <summary>:2486-2524 <c>private struct Fingerprint: Equatable</c>.</summary>
     private sealed record Fingerprint
     {
-        public Guid Id { get; } // :2488
-        public Guid ProjectID { get; } // :2489
-        public Guid? ParentThreadID { get; } // :2490
-        public bool IsArchived { get; } // :2491
-        public bool IsInPanel { get; } // :2492
-        public bool IsSettled { get; } // :2493
-        public DateTimeOffset? SettledAt { get; } // :2494
-        public bool IsPinned { get; } // :2495
-        public double? SortOrder { get; } // :2496
-        public double? ActivityOrder { get; } // :2497
-        public DateTimeOffset? ActivityOrderDay { get; } // :2498
-        public DateTimeOffset CreatedAt { get; } // :2499
-        public DateTimeOffset UpdatedAt { get; } // :2500
-        public bool FoldsHelpers { get; } // :2501
-        public bool IsHydraHead { get; } // :2502
-        public long? HydraIndex { get; } // :2503
-        public bool HasUnread { get; } // :2504
+        public Guid Id { get; } // :2487
+        public Guid ProjectID { get; } // :2488
+        public Guid? ParentThreadID { get; } // :2489
+        public bool IsArchived { get; } // :2490
+        public bool IsInPanel { get; } // :2491
+        public bool IsSettled { get; } // :2492
+        public DateTimeOffset? SettledAt { get; } // :2493
+        public bool IsPinned { get; } // :2494
+        public double? SortOrder { get; } // :2495
+        public double? ActivityOrder { get; } // :2496
+        public DateTimeOffset? ActivityOrderDay { get; } // :2497
+        public DateTimeOffset CreatedAt { get; } // :2498
+        public DateTimeOffset UpdatedAt { get; } // :2499
+        public bool FoldsHelpers { get; } // :2500
+        public bool IsHydraHead { get; } // :2501
+        public long? HydraIndex { get; } // :2502
+        public bool HasUnread { get; } // :2503
 
-        // :2506-2524 init(_ thread: ChatThread)
-        public Fingerprint(ChatThread thread) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2506");
+        // :2505-2523 init(_ thread: ChatThread)
+        public Fingerprint(ChatThread thread)
+        {
+            Id = thread.Id; // :2506
+            ProjectID = thread.ProjectID;
+            ParentThreadID = thread.ParentThreadID;
+            IsArchived = thread.IsArchived;
+            IsInPanel = thread.IsInPanel;
+            IsSettled = thread.IsSettled;
+            SettledAt = thread.SettledAt;
+            IsPinned = thread.IsPinned;
+            SortOrder = thread.SortOrder;
+            ActivityOrder = thread.ActivityOrder;
+            ActivityOrderDay = thread.ActivityOrderDay;
+            CreatedAt = thread.CreatedAt;
+            UpdatedAt = thread.UpdatedAt;
+            FoldsHelpers = thread.FoldsHelpers;
+            IsHydraHead = thread.IsHydraHead;
+            HydraIndex = thread.Hydra?.Index;
+            HasUnread = thread.HasUnread; // :2522
+        }
     }
 
-    // :2530-2536 func placements(for threads: [ChatThread]) -> [ThreadPlacement]
-    public ValueList<ThreadPlacement> Placements(IReadOnlyList<ChatThread> @for) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2530");
+    // :2529-2535 func placements(for threads: [ChatThread]) -> [ThreadPlacement]
+    public ValueList<ThreadPlacement> Placements(IReadOnlyList<ChatThread> @for)
+    {
+        var next = new ValueList<Fingerprint>(@for.Select(thread => new Fingerprint(thread))); // :2530
+        if (next.Equals(fingerprint)) return cached; // :2531
+        fingerprint = next; // :2532
+        cached = new ValueList<ThreadPlacement>(@for.Select(thread => new ThreadPlacement(thread))); // :2533
+        return cached; // :2534
+    }
+
+    private ValueList<Fingerprint>? fingerprint; // :2526
+    private ValueList<ThreadPlacement> cached = ValueList<ThreadPlacement>.Empty; // :2527
 }
 
-/// <summary>:2544-2583 <c>private struct ThreadPlacement: Equatable</c>: the fields that decide where a thread sits.</summary>
+/// <summary>:2543-2582 <c>private struct ThreadPlacement: Equatable</c>: the fields that decide where a thread sits.</summary>
 internal sealed record ThreadPlacement
 {
-    public Guid Id { get; } // :2545
-    public Guid ProjectID { get; } // :2546
-    public Guid? ParentThreadID { get; } // :2547
-    public bool IsArchived { get; } // :2548
-    public bool IsInPanel { get; } // :2549
-    public bool IsSettled { get; } // :2550
-    public DateTimeOffset? SettledAt { get; } // :2551
-    public bool IsPinned { get; } // :2552
-    public double? SortOrder { get; } // :2553
-    public double? ActivityOrder { get; } // :2555
-    public DateTimeOffset? ActivityOrderDay { get; } // :2556
-    public DateTimeOffset CreatedAt { get; } // :2557
-    public DateTimeOffset UpdatedAt { get; } // :2558
-    public bool FoldsHelpers { get; } // :2559
-    public bool IsHydraHead { get; } // :2560
-    public long? HydraIndex { get; } // :2561
-    public bool HasUnread { get; } // :2562
+    public Guid Id { get; } // :2544
+    public Guid ProjectID { get; } // :2545
+    public Guid? ParentThreadID { get; } // :2546
+    public bool IsArchived { get; } // :2547
+    public bool IsInPanel { get; } // :2548
+    public bool IsSettled { get; } // :2549
+    public DateTimeOffset? SettledAt { get; } // :2550
+    public bool IsPinned { get; } // :2551
+    public double? SortOrder { get; } // :2552
+    public double? ActivityOrder { get; } // :2554
+    public DateTimeOffset? ActivityOrderDay { get; } // :2555
+    public DateTimeOffset CreatedAt { get; } // :2556
+    public DateTimeOffset UpdatedAt { get; } // :2557
+    public bool FoldsHelpers { get; } // :2558
+    public bool IsHydraHead { get; } // :2559
+    public long? HydraIndex { get; } // :2560
+    public bool HasUnread { get; } // :2561
 
-    // :2564-2582 init(_ thread: ChatThread)
-    public ThreadPlacement(ChatThread thread) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2564");
+    // :2563-2581 init(_ thread: ChatThread)
+    public ThreadPlacement(ChatThread thread)
+    {
+        Id = thread.Id; // :2564
+        ProjectID = thread.ProjectID;
+        ParentThreadID = thread.ParentThreadID;
+        IsArchived = thread.IsArchived;
+        IsInPanel = thread.IsInPanel;
+        IsSettled = thread.IsSettled;
+        SettledAt = thread.SettledAt;
+        IsPinned = thread.IsPinned;
+        SortOrder = thread.SortOrder;
+        ActivityOrder = thread.ActivityOrder;
+        ActivityOrderDay = thread.ActivityOrderDay;
+        CreatedAt = thread.CreatedAt;
+        UpdatedAt = thread.UpdatedAt;
+        FoldsHelpers = thread.FoldsHelpers;
+        IsHydraHead = thread.IsHydraHead;
+        HydraIndex = thread.Hydra?.Index;
+        HasUnread = thread.HasUnread; // :2580
+    }
 }
 
-/// <summary>:2590-2660 <c>private final class SidebarItemCache</c>: the built list, kept while its inputs stand.</summary>
+/// <summary>:2589-2659 <c>private final class SidebarItemCache</c>: the built list, kept while its inputs stand.</summary>
 internal sealed class SidebarItemCache
 {
-    /// <summary>:2591-2602 <c>struct Key: Equatable</c>.</summary>
+    /// <summary>:2590-2601 <c>struct Key: Equatable</c>.</summary>
     public sealed record Key
     {
-        public required ValueList<ThreadPlacement> Placements { get; init; } // :2592
-        public required ValueList<Project> Projects { get; init; } // :2593
-        public required ValueSet<Guid> Attention { get; init; } // :2595
-        public required bool ActivityView { get; init; } // :2596
-        public required ActivityThreadStyle ActivityThreadStyle { get; init; } // :2597
-        public required bool SettledCollapsed { get; init; } // :2598
-        public required bool AutoHidesIdleHeads { get; init; } // :2600
-        public required ValueSet<Guid> ParentsShowingHeads { get; init; } // :2601
+        public required ValueList<ThreadPlacement> Placements { get; init; } // :2591
+        public required ValueList<Project> Projects { get; init; } // :2592
+        public required ValueSet<Guid> Attention { get; init; } // :2594
+        public required bool ActivityView { get; init; } // :2595
+        public required ActivityThreadStyle ActivityThreadStyle { get; init; } // :2596
+        public required bool SettledCollapsed { get; init; } // :2597
+        public required bool AutoHidesIdleHeads { get; init; } // :2599
+        public required ValueSet<Guid> ParentsShowingHeads { get; init; } // :2600
     }
 
-    /// <summary>:2604-2608 <c>struct SearchKey: Equatable</c>.</summary>
+    /// <summary>:2603-2607 <c>struct SearchKey: Equatable</c>.</summary>
     public sealed record SearchKey
     {
-        public required ValueList<ChatThread> Threads { get; init; } // :2605
-        public required ValueList<Project> Projects { get; init; } // :2606
-        public required string Query { get; init; } // :2607
+        public required ValueList<ChatThread> Threads { get; init; } // :2604
+        public required ValueList<Project> Projects { get; init; } // :2605
+        public required string Query { get; init; } // :2606
     }
 
-    // :2621-2626 func items(for wanted: Key, build: () -> [SidebarItem]) -> [SidebarItem]
-    public ValueList<SidebarItem> Items(Key @for, Func<ValueList<SidebarItem>> build) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2621");
+    // :2620-2625 func items(for wanted: Key, build: () -> [SidebarItem]) -> [SidebarItem]
+    public ValueList<SidebarItem> Items(Key @for, Func<ValueList<SidebarItem>> build)
+    {
+        if (@for.Equals(key)) return built; // :2621
+        built = build(); // :2622
+        key = @for; // :2623
+        return built; // :2624
+    }
 
-    // :2629-2634 func helpers(for placements: [ThreadPlacement], group: () -> [UUID: [ChatThread]]) -> [UUID: [ChatThread]]
-    public ValueMap<Guid, ValueList<ChatThread>> Helpers(ValueList<ThreadPlacement> @for, Func<ValueMap<Guid, ValueList<ChatThread>>> group) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2629");
+    private Key? key; // :2609
+    private ValueList<SidebarItem> built = ValueList<SidebarItem>.Empty; // :2610
+    private ValueList<ThreadPlacement>? helpersFor; // :2611
+    private ValueMap<Guid, ValueList<ChatThread>> helpers = ValueMap<Guid, ValueList<ChatThread>>.Empty; // :2612
+    private SearchKey? searchKey; // :2613
+    private ValueList<SidebarSearchResult> found = ValueList<SidebarSearchResult>.Empty; // :2614
+    private ValueList<ChatThread>? titlesFor; // :2617
+    private ValueMap<Guid, string> titles = ValueMap<Guid, string>.Empty; // :2618
 
-    // :2636-2641 func search(for wanted: SearchKey, find: ([UUID: String]) -> [SidebarSearchResult]) -> [SidebarSearchResult]
-    public ValueList<SidebarSearchResult> Search(SearchKey @for, Func<ValueMap<Guid, string>, ValueList<SidebarSearchResult>> find) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2636");
+    // :2628-2633 func helpers(for placements: [ThreadPlacement], group: () -> [UUID: [ChatThread]]) -> [UUID: [ChatThread]]
+    public ValueMap<Guid, ValueList<ChatThread>> Helpers(ValueList<ThreadPlacement> @for, Func<ValueMap<Guid, ValueList<ChatThread>>> group)
+    {
+        if (@for.Equals(helpersFor)) return helpers; // :2629
+        helpers = group(); // :2630
+        helpersFor = @for; // :2631
+        return helpers; // :2632
+    }
 
-    // :2643-2659 private func lowercasedTitles(for threads: [ChatThread]) -> [UUID: String]
-    private ValueMap<Guid, string> LowercasedTitles(ValueList<ChatThread> @for) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2643");
+    // :2635-2640 func search(for wanted: SearchKey, find: ([UUID: String]) -> [SidebarSearchResult]) -> [SidebarSearchResult]
+    public ValueList<SidebarSearchResult> Search(SearchKey @for, Func<ValueMap<Guid, string>, ValueList<SidebarSearchResult>> find)
+    {
+        if (@for.Equals(searchKey)) return found; // :2636
+        found = find(LowercasedTitles(@for.Threads)); // :2637
+        searchKey = @for; // :2638
+        return found; // :2639
+    }
+
+    // :2642-2658 private func lowercasedTitles(for threads: [ChatThread]) -> [UUID: String]
+    private ValueMap<Guid, string> LowercasedTitles(ValueList<ChatThread> @for)
+    {
+        if (@for.Equals(titlesFor)) return titles; // :2643
+        var next = new Dictionary<Guid, string>(@for.Count); // :2644-2645
+        // :2646-2647 Only a title that changed is lowercased again; the rest carry over. The previous titles by id,
+        // the first of a repeated id kept (uniquingKeysWith: { first, _ in first }).
+        var previous = new Dictionary<Guid, string>();
+        if (titlesFor is { } before)
+            foreach (var thread in before) previous.TryAdd(thread.Id, thread.Title);
+        foreach (var thread in @for) // :2648
+        {
+            if (previous.TryGetValue(thread.Id, out var title) && SwiftString.Equal(title, thread.Title) && titles.TryGetValue(thread.Id, out var kept))
+                next[thread.Id] = kept; // :2649-2650
+            else
+                next[thread.Id] = SwiftString.Lowercased(thread.Title); // :2651-2652
+        }
+        titles = new ValueMap<Guid, string>(next); // :2655
+        titlesFor = @for; // :2656
+        return titles; // :2657
+    }
 }
 
-/// <summary>:2665-2683 <c>@MainActor @Observable final class MinuteClock</c> (R-OBS-6): the minute hand behind the
+/// <summary>:2664-2682 <c>@MainActor @Observable final class MinuteClock</c> (R-OBS-6): the minute hand behind the
 /// sidebar's relative times.</summary>
 public sealed class MinuteClock : MainActorModel
 {
-    // :2668 static let shared = MinuteClock()
+    // :2667 static let shared = MinuteClock()
     public static MinuteClock Shared =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2668");
+        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2667");
 
-    // :2670 private(set) var now = Date.now
+    // :2669 private(set) var now = Date.now
     public DateTimeOffset Now =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2670");
+        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2669");
 
-    // :2674-2682 private init()
+    // :2673-2681 private init()
     private MinuteClock() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2674");
+        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2673");
 }
 
-/// <summary>:2687-2696 <c>private struct RelativeTimeLabel: View</c>.</summary>
+/// <summary>:2686-2695 <c>private struct RelativeTimeLabel: View</c>.</summary>
 internal sealed class RelativeTimeLabel : Decorator
 {
-    /// <param name="date">:2688 <c>let date: Date</c>.</param>
-    // :2690-2695 body
+    /// <param name="date">:2687 <c>let date: Date</c>.</param>
+    // :2689-2694 body
     public RelativeTimeLabel(DateTimeOffset date) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2690");
+        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2689");
 }
