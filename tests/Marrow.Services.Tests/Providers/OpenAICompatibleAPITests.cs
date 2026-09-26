@@ -80,7 +80,7 @@ public sealed class OpenAICompatibleAPITests
 
         Assert.Equal("GET", exchange.Method);
         Assert.Equal("/models", exchange.Target);
-        Assert.Equal(["Bearer   key-abc  "], exchange.HeaderValues("Authorization"));
+        Assert.Equal(["Bearer key-abc"], exchange.HeaderValues("Authorization"));
         Assert.Equal(["application/json"], exchange.HeaderValues("Accept"));
 
         await exchange.Respond(200, "OK", []);
