@@ -357,7 +357,7 @@
       "title": "The sidebar's background is a window-drag area in the column and nothing in the popover/panel",
       "source_evidence": [
         "DroppyCode/App/Views/Sidebar/SidebarView.swift:180-181 - `.frame(maxHeight: .infinity, alignment: .top)` then `.background { if !inPopover { WindowDragArea() } }`",
-        "DroppyCode/UI/Chrome/Chrome.swift:1086-1093 WindowDragArea"
+        "DroppyCode/UI/Chrome/Chrome.swift:1092-1099 WindowDragArea"
       ],
       "preconditions": "Sidebar rendered.",
       "action": "User presses and drags on empty sidebar background.",
@@ -374,7 +374,8 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation corrected (wrong at B1 and B2 alike; SidebarView.swift keeps the same line numbers at B2): `.frame(maxHeight: .infinity, alignment: .top)` and `.background { if !inPopover { WindowDragArea() } }` are SidebarView.swift:180-181, not :175-176. Citation only: B1 Chrome.swift:1059-1066 WindowDragArea -> B2 :1086-1093 (body unchanged)."
+      "b2_change": "Citation corrected (wrong at B1 and B2 alike; SidebarView.swift keeps the same line numbers at B2): `.frame(maxHeight: .infinity, alignment: .top)` and `.background { if !inPopover { WindowDragArea() } }` are SidebarView.swift:180-181, not :175-176. Citation only: B1 Chrome.swift:1059-1066 WindowDragArea -> B2 :1086-1093 (body unchanged).",
+      "b3_note": "Citation only: B2 Chrome.swift:1086-1093 -> B3 :1092-1099. WindowDragArea's own implementation changes at B3 (a WindowDragGesture plus allowsWindowActivationEvents(true), replacing the NSViewRepresentable/WindowDragView pair that performDrag'd on mouseDown; WindowDragView is deleted). This record's own claim, that the sidebar background moves the window outside the popover form and does nothing inside it, is unaffected; the mechanism's behaviour change is tracked by WIN's PR-WIN-193 and UI-WIN-005."
     },
     {
       "id": "PR-SIDEBAR-016",
@@ -1131,28 +1132,30 @@
     },
     {
       "id": "PR-SIDEBAR-049",
-      "title": "Grabbing a row pushes the closed-hand cursor and takes a snapshot of its peers and their slot heights",
+      "title": "The list shows a grabbing pointer style while a row is dragged, and dragChanged takes a snapshot of its peers and their slot heights on the first change",
       "source_evidence": [
-        "DroppyCode/App/Views/Sidebar/SidebarView.swift:771-777 dragChanged - `if drag.id != id { drag = RowDrag(id: id); dragPeers = DragPeers(peers(of: id), heights: slotHeights); NSCursor.closedHand.push() }`",
-        "DroppyCode/App/Views/Sidebar/SidebarView.swift:803-811 dragEnded - `guard drag.id != nil else { return }; NSCursor.pop(); dragPeers = nil; withAnimation(.spring(response: 0.32, dampingFraction: 0.8)) { drag = RowDrag() }`"
+        "DroppyCode/App/Views/Sidebar/SidebarView.swift:124 - `.pointerStyle(drag.id != nil ? .grabActive : nil)` on the scrolling list's LazyVStack",
+        "DroppyCode/App/Views/Sidebar/SidebarView.swift:771-776 dragChanged - `if drag.id != id { drag = RowDrag(id: id); dragPeers = DragPeers(peers(of: id), heights: slotHeights) }`",
+        "DroppyCode/App/Views/Sidebar/SidebarView.swift:803-807 dragEnded - `guard drag.id != nil else { return }; dragPeers = nil; withAnimation(.spring(response: 0.32, dampingFraction: 0.8)) { drag = RowDrag() }`"
       ],
       "preconditions": "A drag begins on an open thread row.",
-      "action": "The gesture's first change is delivered.",
-      "expected_result": "The cursor becomes the closed hand for the whole drag and is popped exactly once on release. The peers and their slot heights are read once at the grab, and again only after a swap, so a pointer move never rebuilds the list to find them. Release with no grabbed row does nothing at all, so the cursor stack is never popped without a matching push.",
+      "action": "The gesture's first change is delivered; the drag ends.",
+      "expected_result": "The whole scrolling list carries `.pointerStyle(.grabActive)` for as long as `drag.id` is non-nil, and no pointer style (falls back to the platform default) otherwise; SwiftUI, not app code, is responsible for applying and removing it, so there is no push/pop pair to balance. The peers and their slot heights are read once at the grab (drag.id first becomes non-nil for this id), and again only after a swap, so a pointer move never rebuilds the list to find them. Release with no grabbed row does nothing at all.",
       "side_effects": [
-        "Pushes and pops a cursor on the system cursor stack."
+        "None beyond the SwiftUI pointer-style state"
       ],
       "persistence": "None.",
       "failure_cases": [
-        "Gesture ends without ever having grabbed: `dragEnded` returns before popping."
+        "Gesture ends without ever having grabbed: `dragEnded` returns before touching state."
       ],
-      "cancellation": "A cancelled gesture delivers onEnded, which pops the cursor and springs the offset home.",
-      "windows_path": "Windows sets a grabbing cursor for the drag's duration via SetCursor/class cursor override and restores it on release; there is no cursor stack, so the implementation must restore exactly once and must not restore when no grab occurred.",
-      "verification_method": "interaction test asserting cursor set and restored, including the no-grab path.",
+      "cancellation": "A cancelled gesture delivers onEnded, which clears drag and springs the offset home; the pointer style reverts because drag.id becomes nil.",
+      "windows_path": "A grabbing cursor bound to the same drag.id != nil condition, following the DragHandleView pointerStyle pattern (WIN area) rather than a manual push/pop pair.",
+      "verification_method": "interaction test asserting the grab cursor is shown exactly while drag.id is non-nil, including the no-grab release path.",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "B3 deletes the NSCursor.closedHand.push()/NSCursor.pop() pair (B2 :775, :805) and replaces it with a state-driven `.pointerStyle(drag.id != nil ? .grabActive : nil)` on the list (B3 :124). Behaviourally equivalent (the grab cursor shows for the drag's whole life either way), but there is no cursor stack to balance any more."
     },
     {
       "id": "PR-SIDEBAR-050",
@@ -4173,6 +4176,7 @@
       "colors": "transparent; rows supply their own fills",
       "states": [
         "normal",
+        "dragging a row (pointerStyle .grabActive over the whole list; none otherwise)",
         "scrolling (hit testing off for the whole list, lifted 150 ms after the last movement or immediately on an idle phase)",
         "search mode (the reorder gesture is disabled)"
       ],
@@ -4181,9 +4185,11 @@
         "one list-wide DragGesture with minimumDistance 4 in the list space, attached as highPriorityGesture, enabled only while the query is empty"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Sidebar/SidebarView.swift:101-148"
+        "DroppyCode/App/Views/Sidebar/SidebarView.swift:101-148",
+        "DroppyCode/App/Views/Sidebar/SidebarView.swift:124 - `.pointerStyle(drag.id != nil ? .grabActive : nil)`"
       ],
-      "notes": "Scroll indicators are never shown. The 1 pt row spacing is load-bearing: every reorder slot height adds exactly 1 for it."
+      "notes": "Scroll indicators are never shown. The 1 pt row spacing is load-bearing: every reorder slot height adds exactly 1 for it.",
+      "b3_note": "B3 adds the pointerStyle drag state at :124 (one line, shifting the range's end from B2 :147 to B3 :148) and removes the manual NSCursor push/pop (see PR-SIDEBAR-049)."
     },
     {
       "id": "UI-SIDEBAR-006",
@@ -5512,9 +5518,11 @@
       "source_evidence": [
         "DroppyCode/App/Views/Sidebar/SidebarView.swift:1838-1849",
         "DroppyCode/App/Views/Sidebar/SidebarView.swift:767",
-        "DroppyCode/App/Views/Sidebar/SidebarView.swift:803-811"
+        "DroppyCode/App/Views/Sidebar/SidebarView.swift:124 - `.pointerStyle(drag.id != nil ? .grabActive : nil)`",
+        "DroppyCode/App/Views/Sidebar/SidebarView.swift:803-807"
       ],
-      "notes": "The fill must be opaque enough that rows sliding underneath do not show through. The cursor becomes the closed hand for the drag's whole life, and one alignment haptic fires per accepted swap on macOS; Windows has no equivalent haptic."
+      "notes": "The fill must be opaque enough that rows sliding underneath do not show through. The cursor becomes the grab-active pointer style for the drag's whole life (a SwiftUI .pointerStyle bound to drag.id, not a manual push/pop), and one alignment haptic fires per accepted swap on macOS; Windows has no equivalent haptic.",
+      "b3_note": "B3 replaces the NSCursor.closedHand.push()/NSCursor.pop() pair (B2 :775 push inside dragChanged, :805 pop inside dragEnded, cited here as :803-811) with `.pointerStyle(drag.id != nil ? .grabActive : nil)` on the list at B3 :124; dragEnded's citation narrows to B3 :803-807 (no cursor line to include)."
     },
     {
       "id": "UI-SIDEBAR-061",

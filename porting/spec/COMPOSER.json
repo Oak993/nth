@@ -1755,11 +1755,11 @@
       "title": "The preview footer shows the name, the file size, and the links \"Show in File Explorer\" and \"Open\"",
       "source_evidence": [
         "DroppyCode/UI/Common/AttachmentPreview.swift:341-363 the footer - `HStack(spacing: 8) { Text(attachment.name).font(.caption).foregroundStyle(Chrome.secondaryText).lineLimit(1).truncationMode(.middle); if let size = PreviewImages.fileSize(attachment.path) { Text(size).font(.caption).foregroundStyle(Chrome.secondaryText) }; Spacer(minLength: 12); Button(\"Show in Finder\") { NSWorkspace.shared.activateFileViewerSelecting([attachment.url]) }.buttonStyle(.link).font(.caption); Button(\"Open\") { NSWorkspace.shared.open(attachment.url) }.buttonStyle(.link).font(.caption) }`",
-        "DroppyCode/UI/Common/AttachmentPreview.swift:96-106 fileSize via ByteCountFormatter with countStyle .file"
+        "DroppyCode/UI/Common/AttachmentPreview.swift:95-98 fileSize(_:) - `guard let size = try? FileManager.default.attributesOfItem(atPath: path)[.size] as? NSNumber else { return nil }; return size.int64Value.formatted(.byteCount(style: .file))`"
       ],
       "preconditions": "A preview is open.",
       "action": "The user reads or clicks the footer.",
-      "expected_result": "The footer reads: the name, then the size, both as captions in Chrome.secondaryText (the size is no longer a step dimmer than the name), then two link-styled caption buttons labelled exactly \"Show in File Explorer\" and \"Open\". The first reveals the file in File Explorer with it selected; the second opens it with its default application.",
+      "expected_result": "The footer reads: the name, then the size, both as captions in Chrome.secondaryText (the size is no longer a step dimmer than the name), then two link-styled caption buttons labelled exactly \"Show in File Explorer\" and \"Open\". The first reveals the file in File Explorer with it selected; the second opens it with its default application. The size string comes from Foundation's ByteCountFormatStyle(.file), not ByteCountFormatter: 0 bytes reads \"Zero kB\" (lowercase b, spelled out); 1 byte reads \"1 byte\"; 999 bytes already reads \"1 kB\" (the unit switches at 999, not 1000); whole kB and MB values have no decimal, MB shows up to one decimal place, and GB and above show up to two, with ICU half-even rounding; the unit words are the CLDR short forms \"kB\", \"MB\", \"GB\" (lowercase k).",
       "side_effects": [
         "Launches File Explorer or the file's default application"
       ],
@@ -1768,13 +1768,14 @@
         "Size unreadable: the size text is omitted."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "The first label is the OD-0008 B1 wording \"Show in File Explorer\", a named deviation; its action is explorer.exe /select on the file. \"Open\" is verbatim. Size formatting follows the Windows file byte-count conventions of the same style (KB, MB with a decimal, as ByteCountFormatter's .file style produces). Text style per ED-059: .caption is 10 point, upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10` (file deleted at B2), set in Inter (OD-0009) and scaled only by the app zoom; visual size parity stays UNVERIFIED under OD-0001.",
-      "verification_method": "interaction test of both links",
-      "status": "IMPLEMENTED",
+      "windows_path": "The first label is the OD-0008 B1 wording \"Show in File Explorer\", a named deviation; its action is explorer.exe /select on the file. \"Open\" is verbatim. Size formatting needs a ported SwiftFormatters.ByteCountFormatStyle (ICU skeletons plus the en spell-out of zero), not the existing ByteCountFormatter-shaped FileByteCount helper: \"Zero kB\", \"1 byte\", the 999-byte-to-kB threshold, and lowercase \"kB\"/\"MB\"/\"GB\" units all differ from FileByteCount's \"Zero KB\"/\"999 bytes\"/\"KB\". Text style per ED-059: .caption is 10 point, upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10` (file deleted at B2), set in Inter (OD-0009) and scaled only by the app zoom; visual size parity stays UNVERIFIED under OD-0001.",
+      "verification_method": "interaction test of both links, plus exact-string size assertions at 0, 1, 998, 999, 1000 and the MB/GB boundaries once ByteCountFormatStyle's output is captured (6.1 E2, oracle O-66)",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
       "b2_change": "The footer moved from B1 DroppyCode/UI/Common/AttachmentPreview.swift:331-353 to B2 :348-370 with its strings and actions unchanged. Colours changed: the name B1 :341 `.foregroundStyle(.secondary)` -> B2 :351 `.foregroundStyle(Chrome.secondaryText)`; the size B1 :347 `.foregroundStyle(.tertiary)` -> B2 :357 `.foregroundStyle(Chrome.secondaryText)`. Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`); ED-062 pins the B2 definition for the port, superseding ED-051's secondaryLabelColor literal.",
+      "b3_note": "B3 replaces PreviewImages.fileSize's ByteCountFormatter(countStyle: .file) (B2 :96-106) with size.int64Value.formatted(.byteCount(style: .file)) (B3 :95-98), a different formatter (Foundation's ByteCountFormatStyle) with different output: \"Zero kB\" not \"Zero KB\", the unit switching to kB at 999 bytes rather than 1000, and lowercase \"kB\"/\"MB\"/\"GB\". This is the same formatter DownloadsPopover.swift:68 and AboutUpdateViews.swift:787 already use or move to (6.1 E2); the port's shared ByteCountFormatStyle helper serves all three sites.",
       "deviation": {
         "decision": "OD-0008 B1",
         "upstream": "Button(\"Show in Finder\") at DroppyCode/UI/Common/AttachmentPreview.swift:353, revealing the file with NSWorkspace.shared.activateFileViewerSelecting([attachment.url]) at :361",
@@ -1807,15 +1808,16 @@
     },
     {
       "id": "PR-COMPOSER-078",
-      "title": "The Downloads popover lists the 15 most recently modified non-directory files in the Downloads folder",
+      "title": "The Downloads popover lists the 15 most recently modified non-directory files in the Downloads folder, each sized with ByteCountFormatStyle",
       "source_evidence": [
         "DroppyCode/App/Views/Composer/DownloadsPopover.swift:18-19 limit = 15, previewPointSize = 30",
         "DroppyCode/App/Views/Composer/DownloadsPopover.swift:33-90 load - contentsOfDirectory with skipsHiddenFiles; directories dropped; sorted by content modification date descending; the first 15 kept; an image extension gets a square-filling thumbnail at point size 30; items and isLoaded are published before the thumbnails arrive",
+        "DroppyCode/App/Views/Composer/DownloadsPopover.swift:68 - `size: size > 0 ? Int64(size).formatted(.byteCount(style: .file)) : nil`",
         "DroppyCode/App/Views/Composer/DownloadsPopover.swift:29-31 imageExtensions = png, jpg, jpeg, heic, heif, gif, tiff, tif, bmp, webp"
       ],
       "preconditions": "The popover opens.",
       "action": "The folder is read.",
-      "expected_result": "Up to 15 files, newest first by modification date, hidden files and directories excluded. Each row shows a thumbnail for the ten listed image extensions and the system file icon otherwise, the file name, and the formatted size when it is above zero. Rows appear as soon as the listing lands; thumbnails fill in afterwards.",
+      "expected_result": "Up to 15 files, newest first by modification date, hidden files and directories excluded. Each row shows a thumbnail for the ten listed image extensions and the system file icon otherwise, the file name, and the formatted size when it is above zero (a zero-byte file shows no size text at all, since the ternary's false branch is nil, not a formatted zero). The size string is Foundation's ByteCountFormatStyle(.file): whole kB/MB have no decimal, MB shows up to one decimal, GB and above up to two, half-even rounded; the unit switches from bytes to kB at 999 bytes; unit words are lowercase \"kB\", \"MB\", \"GB\". Rows appear as soon as the listing lands; thumbnails fill in afterwards.",
       "side_effects": [
         "Reads the Downloads directory and decodes thumbnails"
       ],
@@ -1825,12 +1827,13 @@
         "A directory read that throws yields an empty list, which shows the empty note."
       ],
       "cancellation": "The scan is cancelled with the task, and cancellation is propagated to the detached scan.",
-      "windows_path": "SHGetKnownFolderPath(FOLDERID_Downloads). Same limit, sort, extension set and thumbnail size.",
-      "verification_method": "interaction test against a fixture Downloads folder",
-      "status": "IMPLEMENTED",
+      "windows_path": "SHGetKnownFolderPath(FOLDERID_Downloads). Same limit, sort, extension set and thumbnail size. The size text needs the same ported ByteCountFormatStyle helper as PR-COMPOSER-076 (6.1 E2), not the existing ByteCountFormatter-shaped FileByteCount helper, whose \"KB\" (uppercase) and 1000-byte threshold no longer match this site.",
+      "verification_method": "interaction test against a fixture Downloads folder, plus exact-string size assertions shared with PR-COMPOSER-076's table",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "Promoted from a line-only re-cite: B2's PreviewImages-independent ByteCountFormatter call at DownloadsPopover.swift:33-37/:74 becomes B3's `.formatted(.byteCount(style: .file))` at :68 (lines :33-90 shift internally to :33-90 unchanged as a range but the body reflows, per code_changed_inside_range), which produces \"kB\" not \"KB\" and moves the byte/kB threshold from 1000 to 999 (6.1 E2)."
     },
     {
       "id": "PR-COMPOSER-079",
@@ -3648,52 +3651,55 @@
     },
     {
       "id": "PR-COMPOSER-159",
-      "title": "The grip is a 28 by 22 hit area that shows a grab cursor and starts the reorder drag",
+      "title": "The grip is a 28 by 22 hit area that shows a grab-idle or grab-active pointer style and starts the reorder drag",
       "source_evidence": [
-        "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:378-395 the grip - `Image(systemName: \"line.3.horizontal\").font(.system(.subheadline, weight: .medium)).foregroundStyle(isBundledWithNext ? Color.accentColor.opacity(isHoveringGrip ? 1 : 0.85) : Chrome.secondaryText.opacity(isHoveringGrip ? 1 : 0.7)).frame(width: 28, height: 22)`; hover `if hovering { NSCursor.openHand.push() } else { NSCursor.pop() }` after `guard !isDragged`; `DragGesture(minimumDistance: 1, coordinateSpace: .global)`; `.help(\"Drag above or below to reorder · drop onto the middle of another to send them together\")`; `.accessibilityLabel(Text(\"Drag to reorder\"))`",
+        "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:378-395 the grip - `Image(systemName: \"line.3.horizontal\").font(.system(.subheadline, weight: .medium)).foregroundStyle(isBundledWithNext ? Color.accentColor.opacity(isHoveringGrip ? 1 : 0.85) : Chrome.secondaryText.opacity(isHoveringGrip ? 1 : 0.7)).frame(width: 28, height: 22)`; `.onHover { hovering in isHoveringGrip = hovering }` (brightness only, no cursor call); `.pointerStyle(isDragged ? .grabActive : .grabIdle)`; `DragGesture(minimumDistance: 1, coordinateSpace: .global)`; `.help(\"Drag above or below to reorder · drop onto the middle of another to send them together\")`; `.accessibilityLabel(Text(\"Drag to reorder\"))`",
         "porting/port_impacts.md:262 G5 - reproduce the 1-point minimum distance and the global coordinate space",
         "porting/port_impacts.md:294 T2 - grip 28x22"
       ],
       "preconditions": "A queue row is on screen.",
       "action": "The user hovers and drags the grip.",
-      "expected_result": "A 28 by 22 grip, its glyph in the .subheadline text style at medium (11 point at the macOS default), brightens on hover and shows the open-hand cursor; a drag of at least 1 point in global coordinates starts the reorder and switches to the closed-hand cursor. The tooltip is exactly \"Drag above or below to reorder · drop onto the middle of another to send them together\" with a U+00B7 separator; the accessibility label is exactly \"Drag to reorder\".",
+      "expected_result": "A 28 by 22 grip, its glyph in the .subheadline text style at medium (11 point at the macOS default), brightens on hover (via the isHoveringGrip state alone) and shows the grab-idle pointer style over its hit area whenever this row is not the dragged one, and the grab-active pointer style whenever it is; SwiftUI owns showing and clearing the cursor for the hit area, there is no push/pop pair to balance. A drag of at least 1 point in global coordinates starts the reorder. The tooltip is exactly \"Drag above or below to reorder · drop onto the middle of another to send them together\" with a U+00B7 separator; the accessibility label is exactly \"Drag to reorder\".",
       "side_effects": [
-        "Pushes and pops a cursor"
+        "None beyond the SwiftUI pointer-style and hover state"
       ],
       "persistence": "Nothing at hover time.",
       "failure_cases": [
         "A gesture cancelled from under the pointer reports no end; the @GestureState reset and the mouse-up monitor both end the drag (FollowUpQueueTab.swift:391-393, :165-178)."
       ],
       "cancellation": "A cancelled gesture is ended by the isGrabbing reset or the local mouse-up monitor.",
-      "windows_path": "An explicit LIFO cursor-owner stack mirroring each push and pop site (port_impacts X8(a)); the global coordinate space is screen coordinates. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
-      "verification_method": "interaction test dragging and releasing outside the window",
-      "status": "IMPLEMENTED",
+      "windows_path": "A grab-idle/grab-active cursor bound to isDragged on the grip's own hit area (custom .cur resources, platform_adaptations.md); the global coordinate space is screen coordinates. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
+      "verification_method": "interaction test dragging and releasing outside the window, asserting the cursor over the grip in each of the idle and dragged states",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:379 `.font(.system(size: 11, weight: .medium))` -> B2 :381 `.font(.system(.subheadline, weight: .medium))`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059). The 28 by 22 frame, cursors, gesture and strings unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:379 `.font(.system(size: 11, weight: .medium))` -> B2 :381 `.font(.system(.subheadline, weight: .medium))`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059). The 28 by 22 frame, cursors, gesture and strings unchanged.",
+      "b3_note": "B3 deletes the hover-driven `NSCursor.openHand.push()/.pop()` pair and replaces it with `.pointerStyle(isDragged ? .grabActive : .grabIdle)` (:384), a state-driven SwiftUI pointer style that needs no push/pop balancing and cannot leak (see the retirement of PR-COMPOSER-160 and UI-COMPOSER-052's cursor-leak state, decisions_draft.md O6). The grip cursor today is a constant Hand, a pre-existing gap (6.2) that this reclassification must close with real grab-idle and grab-active cursors."
     },
     {
       "id": "PR-COMPOSER-160",
-      "title": "A queued prompt deleted or sent while dragged with the pointer off the grip leaks one cursor push",
+      "title": "RETIRED: a queued prompt deleted or sent while dragged with the pointer off the grip leaked one cursor push",
       "source_evidence": [
         "porting/upstream_defects.md:119 entry 53 - cursor-stack leak; onChange(of: followUps ids) calls dragEnded (FollowUpQueueTab.swift:159), which pops the closedHand (:294); the openHand pushed on grip hover (:389) is popped only by hover-leave (suppressed during a drag by guard !isDragged, :388), by onChange(of: isDragged) when released away from the grip (:398), or by onDisappear while still hovering (:392); a row deleted or sent while dragged with the pointer off the grip satisfies none of these"
       ],
       "preconditions": "A row is being dragged and the pointer is not over the grip.",
       "action": "That row is deleted, or sent by another path, mid-drag.",
-      "expected_result": "The drag ends and the closed hand is popped, but the open hand pushed on hover is never popped: one unbalanced cursor push remains for the rest of the launch. This is upstream behavior and is reproduced.",
-      "side_effects": [
-        "An unbalanced cursor push"
-      ],
+      "expected_result": "RETIRED at B3: this state can no longer occur.",
+      "side_effects": [],
       "persistence": "Nothing persisted.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Mirror the same four push and pop sites one for one on the LIFO cursor-owner stack; do not silently balance the stack.",
-      "verification_method": "unit test on the cursor stack asserting the depth after the scenario",
-      "status": "SPECIFIED",
+      "windows_path": "RETIRED; no port behaviour to reproduce.",
+      "verification_method": "RETIRED",
+      "status": "RETIRED",
       "upstream_defect": "53",
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "retired": {
+        "reason": "grep over DroppyCode/App/Views/Composer/FollowUpQueueTab.swift at the B3 pin finds no NSCursor reference anywhere in the file; the grip's cursor is now `.pointerStyle(isDragged ? .grabActive : .grabIdle)` (:384), a state-driven SwiftUI pointer style with no push/pop stack to leak. Upstream defect 53 no longer exists in the pinned source (fixed upstream at B3), so the rule to reproduce upstream defects, which binds only to the pinned source, no longer applies; the port never implemented the leak either (the grip cursor is a pre-existing constant-Hand gap that PR-COMPOSER-159 closes with real grab-idle/grab-active cursors, not with a leak). Retired per decisions_draft.md O6, which reasons the same way for UI-COMPOSER-052's matching cursor-leak state.",
+        "evidence": "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:378-395 (B3 pin 52bc7926); porting/upstream_defects.md entry 53 to be marked \"fixed upstream at B3\""
+      }
     },
     {
       "id": "PR-COMPOSER-161",
@@ -3751,13 +3757,13 @@
       "id": "PR-COMPOSER-163",
       "title": "Releasing over a pair target bundles the rows; otherwise the row settles back on a spring",
       "source_evidence": [
-        "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:284-296 dragEnded - with a pair target, bundleFollowUp runs inside .spring(response: 0.36, dampingFraction: 0.78) with a levelChange haptic and the target is cleared; then, if a row was held, the cursor is popped and drag is reset inside .spring(response: 0.32, dampingFraction: 0.8) so the offset animates from wherever the pointer let go back to the row's slot",
+        "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:284-296 dragEnded - with a pair target, bundleFollowUp runs inside .spring(response: 0.36, dampingFraction: 0.78) with a levelChange haptic and the target is cleared; then, if a row was held, drag is reset inside .spring(response: 0.32, dampingFraction: 0.8) so the offset animates from wherever the pointer let go back to the row's slot (no cursor call: the grip's `.pointerStyle(isDragged ? .grabActive : .grabIdle)` reverts on its own once isDragged becomes false)",
         "DroppyCode/App/Runtime/ThreadRuntime.swift:834-847 bundleFollowUp - both prompts take the target's bundle id, or a fresh one; the dragged prompt moves to sit right after the bundle's last prompt",
         "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:165-178 a local left-mouse-up monitor ends a drag the gesture never reports"
       ],
       "preconditions": "A drag is in progress.",
       "action": "The user releases the mouse.",
-      "expected_result": "With a pair target lit, the two prompts join one bundle and the dragged prompt moves after the bundle's last member, on a spring of response 0.36 and damping 0.78, with a level-change haptic. Either way the held row settles back into its slot on a spring of response 0.32 and damping 0.8 and the cursor is popped. A gesture cancelled from under the pointer is caught by the mouse-up monitor.",
+      "expected_result": "With a pair target lit, the two prompts join one bundle and the dragged prompt moves after the bundle's last member, on a spring of response 0.36 and damping 0.78, with a level-change haptic. Either way the held row settles back into its slot on a spring of response 0.32 and damping 0.8; the grip's pointer style falls back to grab-idle because isDragged becomes false, with no explicit cursor call needed. A gesture cancelled from under the pointer is caught by the mouse-up monitor.",
       "side_effects": [
         "Haptic feedback",
         "The queue is saved"
@@ -3767,12 +3773,13 @@
         "Dropping a row onto itself is rejected by bundleFollowUp's id != target guard."
       ],
       "cancellation": "The monitor is removed when the drag ends and on disappearance.",
-      "windows_path": "Same springs, same insertion point. The mouse-up monitor becomes an app-scoped message filter or a capture release.",
-      "verification_method": "interaction test pairing two rows and reordering the bundle",
-      "status": "IMPLEMENTED",
+      "windows_path": "Same springs, same insertion point. The mouse-up monitor becomes an app-scoped message filter or a capture release. No cursor pop to reproduce; the pointer-style binding (PR-COMPOSER-159) handles the revert.",
+      "verification_method": "interaction test pairing two rows and reordering the bundle, asserting the grip returns to the grab-idle cursor after release",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "B3 deletes dragEnded's `NSCursor.pop()` call; the grip's cursor is now entirely a function of isDragged via PR-COMPOSER-159's `.pointerStyle`, so there is nothing left to pop on release."
     },
     {
       "id": "PR-COMPOSER-164",
@@ -4740,9 +4747,9 @@
       "title": "Moving the composer to another thread closes the changes popover and clears isDiffVisible on BOTH the outgoing and the incoming runtime",
       "source_evidence": [
         "DroppyCode/App/Views/Diff/DiffInspector.swift:547-550 the doc comment on sync: 'Drives the popover from `runtime.isDiffVisible`. Call on change and on appear. Three cases: the composer moved to another thread (close what was open and never open on arrival), first appearance (adopt the runtime without opening unless asked), or the same thread (follow the flag as before).'",
-        "DroppyCode/App/Views/Diff/DiffInspector.swift:552-559 `if let current = self.runtime, current !== runtime { close(); if current.isDiffVisible { current.isDiffVisible = false }; self.runtime = runtime; seenOpenRequest = runtime.diffOpenRequest; if runtime.isDiffVisible, !WebsiteCaptures.isEnabled { runtime.isDiffVisible = false }; return }`",
-        "DroppyCode/App/Views/Diff/DiffInspector.swift:560-567 the first-appearance branch: `if self.runtime == nil { self.runtime = runtime; seenOpenRequest = runtime.diffOpenRequest; if isVisible, !WebsiteCaptures.isEnabled { runtime.isDiffVisible = false; return } }`",
-        "porting/dead_code.md:77 entry 34 - DiffInspector.swift:557 and :563, the two `!WebsiteCaptures.isEnabled` conjuncts inside DiffPopoverCoordinator.sync, are always true outside a capture launch, so adopting or switching to a runtime always forces runtime.isDiffVisible = false"
+        "DroppyCode/App/Views/Diff/DiffInspector.swift:552-559 `if let current = self.runtime, current !== runtime { close(); if current.isDiffVisible { current.isDiffVisible = false }; self.runtime = runtime; seenOpenRequest = runtime.diffOpenRequest; if runtime.isDiffVisible, !CaptureRun.isEnabled { runtime.isDiffVisible = false }; return }`",
+        "DroppyCode/App/Views/Diff/DiffInspector.swift:560-567 the first-appearance branch: `if self.runtime == nil { self.runtime = runtime; seenOpenRequest = runtime.diffOpenRequest; if isVisible, !CaptureRun.isEnabled { runtime.isDiffVisible = false; return } }`",
+        "porting/dead_code.md entry 34 - DiffInspector.swift:557 and :563, the two `!CaptureRun.isEnabled` conjuncts inside DiffPopoverCoordinator.sync, are always true outside a capture launch, so adopting or switching to a runtime always forces runtime.isDiffVisible = false"
       ],
       "preconditions": "The composer's changes popover coordinator already serves one thread's runtime and the composer moves to a different thread.",
       "action": "sync is called with the new runtime.",
@@ -4754,12 +4761,13 @@
       "persistence": "isDiffVisible lives on the runtime, not in user defaults.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Both clears must be reproduced. Omitting the outgoing one leaves a thread that reopens its panel when you come back, which is a different product; omitting the incoming one pops a panel on every thread switch. The capture guard is dead code in every normal launch (porting/dead_code.md entry 34: the `!WebsiteCaptures.isEnabled` conjuncts at DroppyCode/App/Views/Diff/DiffInspector.swift:557 and :563) and the capture subsystem is not ported (ED-001), so under ED-061 the port omits the guard and both clears are unconditional.",
+      "windows_path": "Both clears must be reproduced. Omitting the outgoing one leaves a thread that reopens its panel when you come back, which is a different product; omitting the incoming one pops a panel on every thread switch. The capture guard is dead code in every normal launch (porting/dead_code.md entry 34: the `!CaptureRun.isEnabled` conjuncts at DroppyCode/App/Views/Diff/DiffInspector.swift:557 and :563) and the capture subsystem is not ported (ED-001), so under ED-061 the port omits the guard and both clears are unconditional.",
       "verification_method": "interaction test moving between two threads, both with the panel open, asserting isDiffVisible on each runtime after the move and after moving back",
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "Citation only: B2's `WebsiteCaptures.isEnabled` (DiffInspector.swift:557, :563) is renamed `CaptureRun.isEnabled` at B3, at the same lines. No behaviour change; the capture subsystem stays unported under ED-001."
     },
     {
       "id": "PR-COMPOSER-208",
@@ -5987,10 +5995,11 @@
         "its three buttons send, edit and delete it"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:299-510 `private struct FollowUpRow: View {` - the row `HStack(alignment: .center, spacing: 8)` (345), the text `if prompt.text.trimmed.isEmpty { Text(verbatim: attachmentOnlyLabel).font(.system(.callout)) ... } else { ... Text(verbatim: prompt.text).font(.system(.callout)) ... }` (424-439), attachmentOnlyLabel ending `guard !parts.isEmpty else { return \"Empty follow-up\" }` (522)"
+        "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:299-510 `private struct FollowUpRow: View {` - the row `HStack(alignment: .center, spacing: 8)` (343), the text `if prompt.text.trimmed.isEmpty { Text(verbatim: attachmentOnlyLabel).font(.system(.callout)) ... } else { ... Text(verbatim: prompt.text).font(.system(.callout)) ... }` (409-424), attachmentOnlyLabel ending `guard !parts.isEmpty else { return \"Empty follow-up\" }` (507)"
       ],
       "notes": "Row text is deliberately not selectable; the pencil is how the full text is reached for copying.",
       "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:411 and :435 `.font(.system(size: 12))` -> B2 :426 and :435 `.font(.system(.callout))`, 12 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2; the port uses these sizes per ED-059). The emptiness test B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:409 `prompt.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty` -> B2 :424 `prompt.text.trimmed.isEmpty`, the same test (DroppyCode/Core/Support/Text.swift:224).",
+      "b3_note": "Inline line references corrected (recite_b3.mjs fault 1: the bracketed range :301-525 -> :299-510 was remapped, but the inline (345)/(424-439)/(522) pointers inside the same string were not): the row HStack moves to :343, the if/else text block to :409-424, and attachmentOnlyLabel's guard to :507. No behaviour change; FollowUpQueueTab.swift loses one line overall (its NSCursor push/pop removal, PR-COMPOSER-159/-163/UI-COMPOSER-052) which shifts everything after it by -1 relative to a naive B2+shift guess, on top of the file's other internal reflow.",
       "status": "IMPLEMENTED"
     },
     {
@@ -6050,19 +6059,19 @@
       "typography": "System .subheadline medium (11 point at the macOS default)",
       "colors": "Chrome.secondaryText at 0.7 (1 while hovering), or Color.accentColor at 0.85 (1 hovering) when the next row shares the bundle. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "states": [
-        "hover pushes the open-hand cursor",
-        "dragging pushes the closed-hand cursor",
-        "a row removed mid-drag with the pointer off the grip leaks one cursor push (upstream defect 53)"
+        "idle: grab-idle pointer style over the hit area",
+        "dragging (this row is the one held): grab-active pointer style over the hit area"
       ],
       "interactions": [
         "drag of at least 1 point in global coordinates reorders; over a neighbour's middle it pairs instead"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:378-395 `Image(systemName: \"line.3.horizontal\").font(.system(.subheadline, weight: .medium))` in `.frame(width: 28, height: 22)` with `NSCursor.openHand.push()` on hover, `DragGesture(minimumDistance: 1, coordinateSpace: .global)`, `.help(\"Drag above or below to reorder · drop onto the middle of another to send them together\")`, `.accessibilityLabel(Text(\"Drag to reorder\"))`"
+        "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:378-395 `Image(systemName: \"line.3.horizontal\").font(.system(.subheadline, weight: .medium))` in `.frame(width: 28, height: 22)` with `.pointerStyle(isDragged ? .grabActive : .grabIdle)`, `DragGesture(minimumDistance: 1, coordinateSpace: .global)`, `.help(\"Drag above or below to reorder · drop onto the middle of another to send them together\")`, `.accessibilityLabel(Text(\"Drag to reorder\"))`"
       ],
       "notes": "The tooltip's separator is U+00B7. Sideways travel plays no part in the reorder.",
       "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:379 `.font(.system(size: 11, weight: .medium))` -> B2 :381 `.font(.system(.subheadline, weight: .medium))`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059).",
-      "status": "IMPLEMENTED"
+      "b3_note": "B3 deletes the NSCursor.openHand.push()/.pop() hover pair and replaces it with `.pointerStyle(isDragged ? .grabActive : .grabIdle)` (:384), a state-driven cursor with no push/pop to leak. The former 'row removed mid-drag leaks one cursor push' state (upstream defect 53) is dropped from this record's states, since it reproduced a cursor-stack mechanism the pinned source no longer has (decisions_draft.md O6): FollowUpQueueTab.swift has no NSCursor call at the B3 pin (52bc7926), so no leak can occur. See PR-COMPOSER-160 (RETIRED) for the matching PR-level record. The grip cursor today is a constant Hand, a pre-existing gap (6.2) that must be closed with real grab-idle/grab-active .cur resources.",
+      "status": "SPECIFIED"
     },
     {
       "id": "UI-COMPOSER-053",
