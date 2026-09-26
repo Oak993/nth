@@ -1995,11 +1995,106 @@ internal sealed class SidebarHelperRow : Decorator
     /// <param name="onFold">:1331 <c>let onFold: () -> Void</c>.</param>
     /// <param name="onRename">:1332 <c>let onRename: () -> Void</c>.</param>
     /// <param name="onDelete">:1333 <c>let onDelete: () -> Void</c>.</param>
-    // :1338-1409 body. Still MARROW_STUB: the constructor needs RowGlideAnimator.Shared.IsHiding(_:) and
-    // model.IsSelected(_:) wired through a live per-row @State (isHovering, isMenuPresented) that no part has added
-    // yet; the pieces below are written so that constructor can call them once it is assembled, each proven directly.
-    public SidebarHelperRow(ChatThread snapshot, bool isLast, SidebarMenuRequests menuRequests, Action onFold, Action onRename, Action onDelete) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1338");
+    // :1338-1409 body. Part 7: RowGlideAnimator.Shared.IsHiding(_:) (used directly by HelperStubRow, part 5) and the
+    // per-row hover/menu @State pattern (ProjectRow, part 6) are both now in the tree, so this constructor is
+    // assembled from the pieces below. The right-click .contextMenu (:1387-1397) is not attached: it is the same
+    // per-open-refresh gap STOP #7 (SidebarViewTests.cs) already names for ProjectRow's own context menu (no ED/PA
+    // entry for re-evaluating a live AppKit-style menu on each open), so this row's ellipsis popover (built fresh on
+    // every hover/open, like ProjectRow's) is the only menu surface this part gives it.
+    private sealed class ViewState : MainActorModel
+    {
+        private bool isHovering; // :1339 @State private var isHovering = false
+        private bool isMenuPresented; // :1340 @State private var isMenuPresented = false
+
+        public bool IsHovering { get => Read(isHovering); set => Set(ref isHovering, value); }
+        public bool IsMenuPresented { get => Read(isMenuPresented); set => Set(ref isMenuPresented, value); }
+    }
+
+    public SidebarHelperRow(ChatThread snapshot, bool isLast, SidebarMenuRequests menuRequests, Action onFold, Action onRename, Action onDelete)
+    {
+        var state = new ViewState();
+        var current = snapshot; // :1324-1325, refreshed by the Track below
+        var isMenuPresented = new Binding<bool>(() => state.IsMenuPresented, value => state.IsMenuPresented = value);
+
+        var connector = new HelperConnector(isLast, onFold) // :1348-1349
+        {
+            Width = ThreadRowMetrics.ConnectorWidth,
+            Height = ThreadRowMetrics.HelperHeight,
+        };
+
+        var title = new TextBlock { MaxLines = 1, TextTrimming = TextTrimming.CharacterEllipsis }; // :1359-1362
+        Control? glyph = null;
+        var leading = new StackPanel // :1350 HStack(spacing: 6) { [glyph]; title; Spacer(minLength: 4) }
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 6,
+            VerticalAlignment = VerticalAlignment.Center,
+            Children = { title, new Border { MinWidth = 4 } }, // :1364 Spacer(minLength: 4)
+        };
+
+        var shape = new Border // :1370 shape.fill(...); .contentShape(shape)
+        {
+            Height = ThreadRowMetrics.HelperHeight, // :1367
+            HorizontalAlignment = HorizontalAlignment.Stretch, // :1368 frame(maxWidth: .infinity, alignment: .leading)
+            Child = leading,
+        }.RoundedRectangle(Chrome.RowCornerRadius, RoundedCornerStyle.Continuous);
+        var fill = new AnimatedColor(shape);
+        shape.Background = fill.Brush;
+
+        var button = PlainControls.Button(shape, () => Model.SelectedThreadID = current.Id); // :1348-1350
+        var overlayHost = new Panel { Children = { button } };
+        Control? overlayControl = null;
+
+        button.OnHover(hovering => // :1401-1404
+        {
+            Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = hovering);
+            if (hovering) Model.WarmDocuments([current.Id]); // :1404
+        });
+
+        overlayHost.Track(() =>
+        {
+            var thread = Model.Thread(snapshot.Id) ?? snapshot; // :1324-1325
+            var isSelected = Model.IsSelected(thread.Id); // :1340
+            var showsActions = state.IsHovering || state.IsMenuPresented; // :1341
+            var isHidden = RowGlideAnimator.Shared.Current.IsHiding(thread.ParentThreadID ?? thread.Id); // :1343, :1409
+            return (thread, isSelected, showsActions, isHidden);
+        }, value =>
+        {
+            var (thread, isSelected, showsActions, isHidden) = value;
+            current = thread;
+            title.Text = thread.Title; // :1359, verbatim
+            SwiftFont.System(SwiftFont.TextStyle.Callout, weight: TitleWeight(isSelected, thread.HasUnread)).Apply(title); // :1361
+            title.Foreground = Chrome.PrimaryText.Opacity(TitleOpacity(isSelected)).Brush(title); // :1362
+            if (HeadGlyph(thread) is { } head) // :1354-1357
+            {
+                if (glyph is not null) leading.Children.Remove(glyph);
+                glyph = head;
+                leading.Children.Insert(0, glyph);
+            }
+            else if (glyph is not null)
+            {
+                leading.Children.Remove(glyph);
+                glyph = null;
+            }
+            shape.Padding = new Thickness(6, 0, TrailingPadding(showsActions), 0); // :1365-1367
+            fill.Set(Chrome.Overlay(BackgroundFill(isSelected, state.IsHovering)), Transaction.Current); // :1370-1372
+            if (overlayControl is { } previous) overlayHost.Children.Remove(previous);
+            var actionsButton = new RowActionsButton(ThreadActions.Make(Model, thread, onRename, onDelete), isMenuPresented); // :1375-1376
+            overlayControl = BuildTrailingOverlay(showsActions, thread, actionsButton); // :1375-1384
+            overlayHost.Children.Add(overlayControl);
+            Opacity = isHidden ? 0 : 1; // :1409, on this SidebarHelperRow itself (the whole HStack)
+        });
+
+        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*") }; // :1338 HStack(spacing: 0)
+        Grid.SetColumn(connector, 0);
+        Grid.SetColumn(overlayHost, 1);
+        row.Children.Add(connector);
+        row.Children.Add(overlayHost);
+        Child = row;
+    }
+
+    // :5 @Environment(AppModel.self) private var model (this file's own convention: SidebarView.cs:337)
+    private AppModel Model => AppEnvironment.GetAppModel(this);
 
     // :1361 .font(.system(.callout, weight: isSelected || thread.hasUnread ? .medium : .regular)). PR-SIDEBAR-107.
     internal static SwiftFont.Weight TitleWeight(bool isSelected, bool hasUnread) =>
@@ -2052,9 +2147,197 @@ internal sealed class HeadCardsRow : Decorator
     /// <param name="headSnapshots">:1430 <c>let headSnapshots: [ChatThread]</c>.</param>
     /// <param name="menuRequests">:1431 <c>let menuRequests: SidebarMenuRequests</c>.</param>
     /// <param name="onFold">:1432 <c>let onFold: () -> Void</c>.</param>
-    // :1440-1542 body
-    public HeadCardsRow(ChatThread parentSnapshot, IReadOnlyList<ChatThread> headSnapshots, SidebarMenuRequests menuRequests, Action onFold) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1440");
+    // :1434-1437 @State private var width/hoveredID/showsAllHeads.
+    private sealed class ViewState : MainActorModel
+    {
+        private double width;
+        private Guid? hoveredID;
+        private bool showsAllHeads;
+
+        public double Width { get => Read(width); set => Set(ref width, value); }
+        public Guid? HoveredID { get => Read(hoveredID); set => Set(ref hoveredID, value); }
+        public bool ShowsAllHeads { get => Read(showsAllHeads); set => Set(ref showsAllHeads, value); }
+    }
+
+    // PORT-ONLY: animates a ScaleTransform's uniform scale along a Chrome.hover-style transaction, the same
+    // frame-tick technique PlainControls.AnimatedColor already uses for a colour (UI/Port/PlainControls.cs:186), here
+    // adapted to a scalar for the per-glyph hover scale (:1484-1486).
+    private sealed class AnimatedScale(ScaleTransform transform)
+    {
+        private IFrameSource? source;
+        private Action<TimeSpan>? pending;
+
+        public void Set(double to, Animation? animation)
+        {
+            Stop();
+            var from = transform.ScaleX;
+            if (animation is null || from == to)
+            {
+                transform.ScaleX = transform.ScaleY = to;
+                return;
+            }
+            var start = SwiftClock.Now;
+            var span = TimeSpan.FromSeconds(animation.Duration);
+            var frames = FrameClock.Source.Current;
+            Action<TimeSpan>? tick = null;
+            tick = _ =>
+            {
+                var now = SwiftClock.Now;
+                // ED-117 (2): a span S from instant s is complete at a frame when (now - since) + 1 ms >= S (in
+                // ticks), matching FrameClock.IsComplete (UI/Port/FrameClock.cs, internal to Marrow.UI, so restated
+                // here rather than called across the assembly boundary).
+                var complete = (now - start).Ticks + TimeSpan.TicksPerMillisecond >= span.Ticks;
+                var value = complete ? to : from + (to - from) * animation.Progress((now - start).TotalSeconds);
+                transform.ScaleX = value;
+                transform.ScaleY = value;
+                if (complete) pending = null;
+                else frames.RequestFrame(tick!);
+            };
+            source = frames;
+            pending = tick;
+            frames.RequestFrame(tick);
+        }
+
+        private void Stop()
+        {
+            if (pending is { } frame) source?.CancelFrame(frame);
+            pending = null;
+        }
+    }
+
+    // :1440-1542 body. Part 7: OrderedHeads, model.SelectedThreadID/IsSelected/WarmDocuments and
+    // ThreadActions.MakeContextMenu (this file's own dependencies) are all in the tree, so every piece except the
+    // right-click .contextMenu (:1490-1500) is assembled below. The context menu is left out for the same
+    // per-open-refresh gap STOP #7 (SidebarViewTests.cs) already names for ProjectRow's own context menu: no ED/PA
+    // entry says how a live AppKit-style menu re-reads its content on each open under this port's Track model, so
+    // attaching one fixed at construction time would go stale (an invented behaviour), the same objection.
+    public HeadCardsRow(ChatThread parentSnapshot, IReadOnlyList<ChatThread> headSnapshots, SidebarMenuRequests menuRequests, Action onFold)
+    {
+        var state = new ViewState();
+        var connector = new HelperConnector(true, onFold); // :1436-1437, endsHere: true
+
+        var rows = new StackPanel { Orientation = Orientation.Vertical, Spacing = ThreadRowMetrics.HeadRowGap }; // :1465
+        var card = new Border // :1516-1521
+        {
+            Padding = new Thickness(ThreadRowMetrics.HeadCardPadding),
+            HorizontalAlignment = HorizontalAlignment.Stretch, // :1517 frame(maxWidth: .infinity, alignment: .leading)
+            VerticalAlignment = VerticalAlignment.Top, // :1518 frame(alignment: .top)
+            Child = rows,
+        }.RoundedRectangle(Chrome.RowCornerRadius, RoundedCornerStyle.Continuous); // :1519-1521 background + clipShape
+        card.Background = Chrome.Overlay(0.04).Brush(card); // :1520
+
+        var outer = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*") }; // :1440 HStack(spacing: 0)
+        Grid.SetColumn(connector, 0);
+        Grid.SetColumn(card, 1);
+        outer.Children.Add(connector);
+        outer.Children.Add(card);
+        outer.SizeChanged += (_, e) => state.Width = e.NewSize.Width; // :1544 onGeometryChange(width)
+
+        void Rebuild(ValueList<ChatThread> heads, double width, bool showsAllHeads, bool isHidden)
+        {
+            var capped = Capped(heads.Count); // :1442
+            var visible = Visible(heads, showsAllHeads); // :1443
+            var perRow = PerRow(width); // :1451
+            var rowGap = RowGap(width, perRow); // :1456-1458
+            var chunked = Chunk(visible, perRow); // :1545-1547
+            var cardRows = CardRows(chunked.Count, capped); // :1461
+            var cardHeight = ThreadRowMetrics.HeadCardHeight(cardRows); // :1305-1311
+
+            connector.Height = cardHeight; // :1439
+            card.Height = cardHeight; // :1518
+
+            rows.Children.Clear();
+            foreach (var line in chunked)
+            {
+                var lineHost = new StackPanel // :1467 HStack(spacing: rowGap)
+                {
+                    Orientation = Orientation.Horizontal,
+                    Spacing = rowGap,
+                    Margin = new Thickness(0, 0, ThreadRowMetrics.HeadBadgeOverhang, 0), // :1512-1513
+                };
+                foreach (var head in line)
+                {
+                    if (head.Hydra is not { } info) continue; // :1471
+
+                    var glyphHost = new Panel // :1476, the glyph and its selection disc share this frame
+                    {
+                        Width = ThreadRowMetrics.HeadGlyphSize,
+                        Height = ThreadRowMetrics.HeadGlyphSize,
+                        ClipToBounds = false, // the disc rides 3 pt past this frame, unclipped
+                    };
+                    if (Model.IsSelected(head.Id)) // :1479
+                    {
+                        var disc = new Avalonia.Controls.Shapes.Ellipse // :1480-1482 Circle().fill(...).padding(-3)
+                        {
+                            Width = ThreadRowMetrics.HeadGlyphSize + 6,
+                            Height = ThreadRowMetrics.HeadGlyphSize + 6,
+                            Fill = Chrome.Overlay(0.14).Brush(glyphHost),
+                            HorizontalAlignment = HorizontalAlignment.Center,
+                            VerticalAlignment = VerticalAlignment.Center,
+                        };
+                        glyphHost.Children.Add(disc);
+                    }
+                    var mark = new HydraGlyph(info.Persona, ThreadRowMetrics.HeadGlyphSize, // :1477
+                        isRunning: info.HydraHeadInfoStatus == HydraHeadInfo.Status.Running, status: info.HydraHeadInfoStatus);
+                    glyphHost.Children.Add(mark);
+                    var scale = new ScaleTransform(1, 1); // :1484 .scaleEffect(...), applied to the glyph+disc composite
+                    glyphHost.RenderTransform = scale;
+                    glyphHost.RenderTransformOrigin = RelativePoint.Center;
+                    var animatedScale = new AnimatedScale(scale);
+
+                    var headID = head.Id;
+                    var button = PlainControls.Button(glyphHost, () => Model.SelectedThreadID = headID); // :1473-1475
+                    button.OnHover(hovering => // :1486-1488
+                    {
+                        Transaction.WithAnimation(Chrome.Hover, () =>
+                            state.HoveredID = hovering ? headID : (state.HoveredID == headID ? null : state.HoveredID)); // :1487
+                        if (hovering) Model.WarmDocuments([headID]); // :1488
+                    });
+                    button.Track(() => state.HoveredID == headID, hovering => animatedScale.Set(hovering ? 1.18 : 1, Transaction.Current)); // :1484-1486
+                    ToolTip.SetTip(button, $"{info.Persona.Name} · {info.Task}"); // :1490 "\(persona.name) · \(task)"
+                    AutomationProperties.SetName(button, $"{info.Persona.Name}, {info.Task}"); // :1499
+                    lineHost.Children.Add(button);
+                }
+                rows.Children.Add(lineHost);
+            }
+            if (capped) // :1514
+            {
+                var chevronGlyph = SwiftImage.SystemName(showsAllHeads ? "chevron.up" : "chevron.down") // :1516
+                    .Font(SwiftFont.System(SwiftFont.TextStyle.Caption2, weight: SwiftFont.Weight.Semibold)); // :1517
+                chevronGlyph.ForegroundStyle(Chrome.SecondaryText); // :1518
+                chevronGlyph.Width = ThreadRowMetrics.HeadGlyphSize; // :1519
+                chevronGlyph.Height = ThreadRowMetrics.HeadGlyphSize;
+                chevronGlyph.HorizontalAlignment = HorizontalAlignment.Center;
+                chevronGlyph.VerticalAlignment = VerticalAlignment.Center;
+                var chevronHost = new Border // :1519 .contentShape(Rectangle())
+                {
+                    Width = ThreadRowMetrics.HeadGlyphSize,
+                    Height = ThreadRowMetrics.HeadGlyphSize,
+                    Background = Brushes.Transparent,
+                    Child = chevronGlyph,
+                };
+                var chevronButton = PlainControls.Button(chevronHost, () => // :1515-1516
+                    Transaction.WithAnimation(Animation.Snappy(duration: 0.18), () => state.ShowsAllHeads = !state.ShowsAllHeads));
+                ToolTip.SetTip(chevronButton, ChevronTooltip(showsAllHeads, heads.Count)); // :1526
+                rows.Children.Add(chevronButton);
+            }
+            Opacity = isHidden ? 0 : 1; // :1543
+        }
+
+        outer.Track(() => (
+            SidebarView.OrderedHeads(headSnapshots.Select(head => Model.Thread(head.Id) ?? head).ToList()), // :1441
+            state.Width,
+            state.ShowsAllHeads,
+            RowGlideAnimator.Shared.Current.IsHiding(parentSnapshot.Id), // :1543
+            Model.SelectedThreadID), // :1479 model.isSelected(head.id), read per glyph inside Rebuild; this signal
+            // registers the dependency so a selection change (elsewhere in the sidebar) re-renders this card's rings
+            value => Rebuild(value.Item1, value.Item2, value.Item3, value.Item4));
+
+        Child = outer;
+    }
+
+    // :5 @Environment(AppModel.self) private var model (this file's own convention: SidebarView.cs:337)
+    private AppModel Model => AppEnvironment.GetAppModel(this);
 
     // :1545-1547 private static func chunk(_ heads: [ChatThread], by size: Int) -> [[ChatThread]]. Part 5. PR-SIDEBAR-119.
     private static ValueList<ValueList<ChatThread>> Chunk(IReadOnlyList<ChatThread> heads, long by)
