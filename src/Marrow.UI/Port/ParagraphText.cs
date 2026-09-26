@@ -64,7 +64,7 @@ public sealed record ParagraphTextRun(
 public sealed class ParagraphText
 {
     /// <summary>U+FFFC OBJECT REPLACEMENT CHARACTER, the character an attachment occupies.</summary>
-    public const char AttachmentCharacter = '￼';
+    public const string AttachmentCharacter = "\U0000FFFC"; // U+FFFC OBJECT REPLACEMENT CHARACTER
 
     private readonly List<ParagraphTextRun> runs = [];
     private readonly StringBuilder text = new();
@@ -87,7 +87,7 @@ public sealed class ParagraphText
 
     /// <summary><c>append(NSAttributedString(attachment:))</c>, with the attributes added over it.</summary>
     public void Append(ParagraphTextAttachment attachment, SwiftURL? hydraHead = null) =>
-        Add(new ParagraphTextRun(AttachmentCharacter.ToString(), HydraHead: hydraHead, Attachment: attachment));
+        Add(new ParagraphTextRun(AttachmentCharacter, HydraHead: hydraHead, Attachment: attachment));
 
     /// <summary><c>append(_ attrString: NSAttributedString)</c>.</summary>
     public void Append(ParagraphText other)
@@ -155,11 +155,19 @@ public sealed class ParagraphText
     {
         if (other is null || other.Length != Length || !string.Equals(other.String, String, StringComparison.Ordinal))
             return false;
-        for (var index = 0; index < Length; index++)
+        // Walk both run lists together: every stretch of characters must carry equal attributes on both sides,
+        // however each side happens to split its runs.
+        int mine = 0, theirs = 0, mineOffset = 0, theirsOffset = 0;
+        while (mine < runs.Count && theirs < other.runs.Count)
         {
-            var mine = RunAt(index) with { Text = "" };
-            var theirs = other.RunAt(index) with { Text = "" };
-            if (mine != theirs) return false;
+            if (runs[mine] with { Text = "" } != other.runs[theirs] with { Text = "" }) return false;
+            var mineLeft = runs[mine].Text.Length - mineOffset;
+            var theirsLeft = other.runs[theirs].Text.Length - theirsOffset;
+            var step = Math.Min(mineLeft, theirsLeft);
+            mineOffset += step;
+            theirsOffset += step;
+            if (mineOffset == runs[mine].Text.Length) { mine++; mineOffset = 0; }
+            if (theirsOffset == other.runs[theirs].Text.Length) { theirs++; theirsOffset = 0; }
         }
         return true;
     }

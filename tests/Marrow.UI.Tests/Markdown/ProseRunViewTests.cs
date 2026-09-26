@@ -81,6 +81,9 @@ public sealed class ProseRunViewTests(HeadlessSession headless)
         return rects[0];
     }
 
+    // A real layout pass needs a hosting window (as LinkHoverTests.Show). The windows are left open, as there: closing
+    // one detaches the run, whose hover end (LinkHover.swift:41-43) reaches the process-wide HydraHeadHoverPopover,
+    // a Popup owned by whichever headless dispatcher thread first touched it.
     private static Window Show(Control content, double width = 400)
     {
         var window = new Window { Width = width, Height = 600, Content = content };
@@ -300,13 +303,12 @@ public sealed class ProseRunViewTests(HeadlessSession headless)
             MarkdownView.SetMarkdownPointSize(host, environment);
             var run = new ProseRunView(Blocks(P("one")));
             host.Child = run;
-            var window = Show(host);
+            _ = Show(host);
 
             var representable = Assert.IsType<ProseRunRepresentable>(run.Child);
             Assert.Equal(expected, representable.PointSize);
             var view = Assert.IsType<LinkTextView>(representable.Child);
             Assert.Equal(SwiftFont.SystemFont(expected), view.TextStorageForTests!.RunAt(0).Font);
-            window.Close();
         }
     });
 
@@ -318,11 +320,10 @@ public sealed class ProseRunViewTests(HeadlessSession headless)
         MarkdownView.SetMarkdownDimmed(host, true);
         var run = new ProseRunView(Blocks(P("one")));
         host.Child = run;
-        var window = Show(host);
+        _ = Show(host);
 
         var view = Assert.IsType<LinkTextView>(Assert.IsType<ProseRunRepresentable>(run.Child).Child);
         AssertColour(SwiftColor.LabelColor.Opacity(0.7), view.TextStorageForTests!.RunAt(0).ForegroundColor);
-        window.Close();
     });
 
     [Fact]
@@ -432,7 +433,6 @@ public sealed class ProseRunViewTests(HeadlessSession headless)
         window.MouseUp(presenter.TranslatePoint(to, window)!.Value, MouseButton.Left, RawInputModifiers.None);
 
         Assert.Equal("words\nsec", presenter.SelectedText);
-        window.Close();
     });
 
     [Fact]
@@ -445,7 +445,7 @@ public sealed class ProseRunViewTests(HeadlessSession headless)
             VerticalAlignment = VerticalAlignment.Top,
             Width = 300,
         };
-        var window = Show(representable);
+        _ = Show(representable);
         var view = Assert.IsType<LinkTextView>(representable.Child);
         var presenter = Assert.IsType<ParagraphTextPresenter>(view.Child);
         var text = view.TextStorageForTests!;
@@ -455,7 +455,6 @@ public sealed class ProseRunViewTests(HeadlessSession headless)
         Assert.True(view.HasLink(linkPoint));
         Assert.Equal(SwiftURL.Create("https://prose-run.invalid/x"), view.Link(linkPoint));
         Assert.False(view.HasLink(prosePoint));
-        window.Close();
     });
 
     // ---- makeNSView / updateNSView / dismantleNSView (PR-THEME-150) ----
