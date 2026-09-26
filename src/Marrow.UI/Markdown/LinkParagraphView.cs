@@ -326,6 +326,13 @@ public sealed class LinkTextView : Decorator
     // :290 let streamVeil = LinkTextVeil()
     public LinkTextVeil StreamVeil { get; } = new();
 
+    // NSTextView.delegate
+    public LinkParagraphView.Coordinator? Delegate { get; set; }
+
+    internal int RenderCountForTests => throw new NotImplementedException("MARROW_STUB LinkTextView.render");
+
+    internal ParagraphText? TextStorageForTests => throw new NotImplementedException("MARROW_STUB LinkTextView.render");
+
     // :299-332 init()
     public LinkTextView()
     {
