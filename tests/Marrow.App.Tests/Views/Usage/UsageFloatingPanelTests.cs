@@ -354,7 +354,10 @@ public sealed class UsageFloatingPanelTests(HeadlessSession session)
                 onContentHeight: _ => { }, onDrag: d => drags.Add(d), onDragEnd: () => ended++, dismiss: () => { });
             Show(panel, harness);
 
-            var handle = LogicalQuery.SelfAndDescendants<PanelDragHandleView>(panel)
+            // PanelDragHandleView (the old B2 NSViewRepresentable's own NSView) no longer exists at B3:
+            // b3/SubagentPanel's PanelDragHandle now wraps the shared Marrow.UI.Chrome.DragHandleView directly
+            // (SubagentPanel.cs:810-845), so that is the leaf control each drag handle renders.
+            var handle = LogicalQuery.SelfAndDescendants<DragHandleView>(panel)
                 .First(h => h.Bounds.Width > 32); // the flexible middle handle, not the capsule overlay
 
             handle.RaiseEvent(MakePointerPressed(handle, new Point(10, 10)));
