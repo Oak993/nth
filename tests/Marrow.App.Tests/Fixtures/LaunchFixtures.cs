@@ -25,6 +25,7 @@ public sealed class LaunchHarness : IDisposable
 
     private readonly List<IDisposable> scopes = [];
     private readonly MarkdownDelegationCard.RenderDelegate? savedDelegationBlock;
+    private readonly URLCache savedUrlCache;
 
     public LaunchHarness(Action<AppModelHarness>? prepare = null)
     {
@@ -39,12 +40,15 @@ public sealed class LaunchHarness : IDisposable
         scopes.Add(UpdateInstallProgress.Running.Override(Progress));
         savedDelegationBlock = MarkdownDelegationCard.Render;
         MarkdownDelegationCard.Render = null;
+        // URLCache.Shared is process-wide (Core/Port/Http.cs), like MarkdownDelegationCard.Render above (R-TEST-5).
+        savedUrlCache = URLCache.Shared;
 
         Manager.MainContent = () =>
         {
             Events.Add("main window built");
             SelectedWhenMainWindowBuilt = Manager.Model.SelectedThreadID;
             DelegationBlockWhenMainWindowBuilt = MarkdownDelegationCard.Render;
+            UrlCacheWhenMainWindowBuilt = URLCache.Shared;
             return MainContent;
         };
         Manager.SettingsContent = () =>
@@ -89,6 +93,8 @@ public sealed class LaunchHarness : IDisposable
 
     public MarkdownDelegationCard.RenderDelegate? DelegationBlockWhenMainWindowBuilt { get; private set; }
 
+    public URLCache? UrlCacheWhenMainWindowBuilt { get; private set; }
+
     /// <summary>The window a hosted stand-in sits in, by its logical parents.</summary>
     public static Avalonia.Controls.Window? WindowOf(Control content)
     {
@@ -100,6 +106,7 @@ public sealed class LaunchHarness : IDisposable
     public void Dispose()
     {
         MarkdownDelegationCard.Render = savedDelegationBlock;
+        URLCache.Shared = savedUrlCache;
         for (var index = scopes.Count - 1; index >= 0; index--) scopes[index].Dispose();
         Harness.Dispose();
     }

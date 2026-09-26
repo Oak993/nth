@@ -266,18 +266,22 @@ public sealed class ProviderRegistryCatalogTests
     }
 
     // ---- mergedClaudeCatalog: lay a live list over the seed, never dropping a seed row (PR-PROVREG-138) -----
+    //
+    // B3 (ProviderRegistry.swift:90-106): a live row's name now replaces the seed row's name too, except on
+    // the Default row, an empty live name, or a live name equal to the row's id (:95-98).
 
     [Fact]
-    [Trait("Req", "PR-PROVREG-138")] // ProviderRegistry.swift:83-101
+    [Trait("Req", "PR-PROVREG-138")] // ProviderRegistry.swift:90-106
     public void merged_claude_catalog_updates_matching_seed_rows_field_by_field_appends_new_rows_and_drops_none()
     {
         var live = new ValueList<ModelOption>(
         [
-            // matches "opus": non-empty efforts, detail, fastTier and defaultEffort all replace the seed's.
-            new ModelOption("opus", "A different name entirely", detail: "live detail",
+            // matches "opus": a non-"default" id, a non-empty name not equal to the id, so the name replaces
+            // the seed's too, along with non-empty efforts, detail, fastTier and defaultEffort.
+            new ModelOption("opus", "Opus 5.5", detail: "live detail",
                 efforts: new ValueList<string>(["low", "max"]), defaultEffort: "max", fastTier: "slow"),
             // matches "haiku" (which has no efforts in the seed) but supplies an EMPTY efforts array: the
-            // seed's own (empty) efforts stay, since only a non-empty live array replaces (:91).
+            // seed's own (empty) efforts stay, since only a non-empty live array replaces (:99).
             new ModelOption("haiku", "Haiku"),
             // not in the seed: appended in live order, after the five seed rows.
             new ModelOption("new-model", "New Model"),
@@ -287,7 +291,7 @@ public sealed class ProviderRegistryCatalogTests
         Assert.Equal(6, merged.Count); // all five seed rows survive, plus the one new row
         var opus = merged[1];
         Assert.Equal("opus", opus.Id);
-        Assert.Equal("Opus", opus.Name); // the live row's name never replaces the seed's name
+        Assert.Equal("Opus 5.5", opus.Name); // B3: the live row's name now replaces the seed's name
         Assert.Equal("live detail", opus.Detail);
         Assert.Equal(["low", "max"], opus.Efforts.ToArray());
         Assert.Equal("max", opus.DefaultEffort);
@@ -297,9 +301,30 @@ public sealed class ProviderRegistryCatalogTests
         Assert.Equal("claude-fable-5-1[1m]", merged[2].Id); // the Fable row survives untouched (not in live)
         Assert.Equal("sonnet", merged[3].Id);
         Assert.Equal("haiku", merged[4].Id);
+        Assert.Equal("Haiku", merged[4].Name); // the live row's name equals the seed's own: no visible change either way
         Assert.Empty(merged[4].Efforts); // unchanged: the live row's empty array did not replace it
 
         Assert.Equal("new-model", merged[5].Id); // appended last, in live order
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVREG-138")] // ProviderRegistry.swift:95-98
+    public void merged_claude_catalog_keeps_the_seed_name_on_the_default_row_an_empty_live_name_or_a_name_equal_to_the_id()
+    {
+        var live = new ValueList<ModelOption>(
+        [
+            // the Default row: a differing live name is never taken, whatever it says.
+            new ModelOption("default", "Some Other Name"),
+            // an empty live name never replaces the seed's.
+            new ModelOption("sonnet", ""),
+            // a live name equal to the row's own id never replaces the seed's (the CLI echoing the id back).
+            new ModelOption("haiku", "haiku"),
+        ]);
+        var merged = ProviderRegistry.MergedClaudeCatalog(live);
+
+        Assert.Equal("Default", merged[0].Name); // :95-96 id == "default": never renamed
+        Assert.Equal("Sonnet", merged[3].Name); // :97 empty name: never renamed
+        Assert.Equal("Haiku", merged[4].Name); // :97 name == id: never renamed
     }
 
     // ---- API-provider seeds (PR-PROVREG-140 to 146) --------------------------------------------------------

@@ -15161,7 +15161,7 @@
       ],
       "notes": "Split out of UI-RUNTIME-003. A nil error appends nothing, so a failed turn can end with no notice row at all. A non-nil error the CLI-update path takes also appends nothing here; see UI-RUNTIME-039 through UI-RUNTIME-042.",
       "b2_change": "Typography restated from the notice row: B1 TimelineRows.swift:2413 `.font(.chat(.callout, zoom: zoom))`; B2 :2397 `.font(.chat(.callout))`, and Font.chat takes no zoom (UI/Common/ChatFont.swift:6-10). Text, geometry and colours unchanged. Owner rulings applied in this refresh: the face follows OD-0009 (Inter).",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "B3 :2206-2211 (evidence range moves from :2206-2208 to :2206-2210). For Claude or Codex, a .turnCompleted error that ProviderRegistry.needsNewerCLI matches is no longer shown as this unwrapped error row; the .info notice UI-RUNTIME-039 replaces it, and this row returns later, for a failure of the update or the resend, as one of UI-RUNTIME-040/041/042."
     },
     {
@@ -15185,7 +15185,7 @@
       ],
       "notes": "Split out of UI-RUNTIME-003. Appended only while a turn is in flight; an exit with no current turn is silent. A non-nil error the CLI-update path takes also appends nothing here; see UI-RUNTIME-039 through UI-RUNTIME-042.",
       "b2_change": "Typography restated from the notice row: B1 TimelineRows.swift:2413 `.font(.chat(.callout, zoom: zoom))`; B2 :2397 `.font(.chat(.callout))`, and Font.chat takes no zoom (UI/Common/ChatFont.swift:6-10). Text, geometry and colours unchanged. Owner rulings applied in this refresh: the face follows OD-0009 (Inter).",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "B3 :2221-2229 (evidence range moves from :2221-2224). \"An exit error is shown instead, unwrapped\" no longer holds for Claude or Codex when the error matches ProviderRegistry.needsNewerCLI: the CLI-update path takes it (:2226) and posts the .info notice UI-RUNTIME-039 instead. The nil-error \"stopped unexpectedly.\" text is unchanged, now at :2227."
     },
     {
@@ -15255,7 +15255,7 @@
         "DroppyCode/App/Runtime/ThreadRuntime.swift:2263 - appendNotice(.info, \"This model needs a newer \\(provider.displayName). Updating it, then sending your message again.\")"
       ],
       "notes": "Filed inside the failing turn by finishTurnUpdatingCLI (PR-RUNTIME-265), only for Claude or Codex when the error matches ProviderRegistry.needsNewerCLI. Removed along with the rest of the failed attempt if the resend's revert runs.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "New in B3; part of the CLI-update-and-resend path (PR-RUNTIME-265/266). Also updates UI-RUNTIME-001's 'exactly three info messages' claim to four."
     },
     {
@@ -15278,7 +15278,7 @@
         "DroppyCode/App/Runtime/ThreadRuntime.swift:2276-2278 - guard let version = await app.providers.installedCLIVersion(provider), cliResendVersions[provider] != version else { appendNotice(.error, \"\\(error)\\n\\nDroppy Code could not bring \\(provider.displayName) up to date. Run `\\(command)` in Terminal, then send the message again.\"); return }"
       ],
       "notes": "Has no turn of its own (appended outside any turn). Shown when the version cannot be read after the forced update, or equals the version already resent at. `claude update` for Claude, `codex update` for Codex. The app name and the 'in Terminal' wording are governed by OD-0002/OD-0012 F1, matching the sibling UI-RUNTIME rows.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "New in B3; part of the CLI-update-and-resend path (PR-RUNTIME-266)."
     },
     {
@@ -15301,7 +15301,7 @@
         "DroppyCode/App/Runtime/ThreadRuntime.swift:2283-2287 - guard phase == .idle, let turn = turns.first(where: { $0.id == turnID }), let itemID = turn.userItemID, let entry = entryIndex[itemID], case .user(let message) = entry.item.content, !message.isFromHydra else { appendNotice(.error, \"\\(error)\\n\\n\\(provider.displayName) is up to date now (\\(version)). Send the message again.\"); return }"
       ],
       "notes": "Has no turn of its own. Shown when the runtime is not idle, the turn or its user entry is gone, or the message is from Hydra, after the CLI update itself succeeded.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "New in B3; part of the CLI-update-and-resend path (PR-RUNTIME-266)."
     },
     {
@@ -15324,7 +15324,7 @@
         "DroppyCode/App/Runtime/ThreadRuntime.swift:2288-2292 - do { try await resend(turnID, text: message.text, attachments: message.attachments, restoreFiles: false) } catch { appendNotice(.error, \"\\(provider.displayName) is up to date now (\\(version)), but the message could not be sent again: \\(error.localizedDescription) Send it again.\") }"
       ],
       "notes": "Has no turn of its own. Shown when resend(_:text:attachments:restoreFiles:) throws, for example from its own guards or Codex's 'no Codex turn ID' refusal.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "New in B3; part of the CLI-update-and-resend path (PR-RUNTIME-266)."
     },
     {

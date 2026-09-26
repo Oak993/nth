@@ -2,7 +2,9 @@ using System;
 using System.Diagnostics;
 using System.Linq;
 using Avalonia;
+using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Controls.Shapes;
 using Avalonia.Media;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
@@ -146,13 +148,22 @@ public sealed record EffortPairLook
     public EffortPairBrand Brand { get; init; }  // :488
     public string? HeadsEffort { get; init; }    // :490
 
-    // :492-497 @MainActor init(_:registry:resolvedHeadsEffort:)
-    public EffortPairLook(HydraPair pair, ProviderRegistry registry, string? resolvedHeadsEffort) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Composer/EffortSlider.swift:493");
+    // :492-497 @MainActor init(_:registry:resolvedHeadsEffort:). PR-COMPOSER-115: the heads effort is the pair's
+    // own workerEffort when set, else the caller's resolved launch effort; either way it is run through
+    // ModelOption.effortTitle and lowercased once here, so Caption never has to repeat that work.
+    public EffortPairLook(HydraPair pair, ProviderRegistry registry, string? resolvedHeadsEffort)
+    {
+        Title = Marrow.App.Views.Chat.HydraPairSummary.Title(pair, registry); // :494
+        Brand = new EffortPairBrand(pair); // :495
+        HeadsEffort = (pair.WorkerEffort ?? resolvedHeadsEffort) is { } effort // :496
+            ? SwiftString.Lowercased(ModelOption.EffortTitle(effort))
+            : null;
+    }
 
-    // :500-503 var caption: String
-    public string Caption =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Composer/EffortSlider.swift:500");
+    // :500-503 var caption: String. PR-COMPOSER-115: byte-for-byte, including the U+00B7 separators.
+    public string Caption => HeadsEffort is { } headsEffort
+        ? $"The lead's effort · heads run at {headsEffort} effort" // :501
+        : "The lead's effort · heads keep their own"; // :502
 }
 
 /// <summary>:506-657 <c>struct EffortSliderCard: View</c>.</summary>
@@ -186,21 +197,110 @@ public sealed class EffortSliderCard : Decorator
 /// <summary>:659-683 <c>private struct FastModeButton: View</c>.</summary>
 public sealed class FastModeButton : Decorator
 {
+    // :660 @State private var isHovering = false (implied by :675, :679-681)
+    private sealed class ViewState : MainActorModel
+    {
+        private bool isHovering;
+
+        public bool IsHovering { get => Read(isHovering); set => Set(ref isHovering, value); }
+    }
+
     /// <param name="isOn">:660 <c>@Binding var isOn: Bool</c>.</param>
-    // :663-682 body
-    public FastModeButton(Binding<bool> isOn) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Composer/EffortSlider.swift:663");
+    // :663-682 body. PR-COMPOSER-119: a 30 by 30 circle whose bolt fills and turns yellow when on.
+    public FastModeButton(Binding<bool> isOn)
+    {
+        var state = new ViewState();
+        var iconHost = new Panel(); // holds the swapped bolt/bolt.fill glyph (:664 Image(systemName: isOn ? "bolt.fill" : "bolt"))
+        var circle = new Ellipse();
+        var fill = new AnimatedColor(circle);
+        circle.Fill = fill.Brush;
+
+        void Apply(bool on, bool hovering)
+        {
+            iconHost.Children.Clear();
+            iconHost.Children.Add(SwiftImage.SystemName(on ? "bolt.fill" : "bolt") // :667
+                .Font(SwiftFont.System(SwiftFont.TextStyle.Body, weight: SwiftFont.Weight.Semibold)) // :668
+                .ForegroundStyle(on ? SwiftColor.Yellow : Chrome.SecondaryText) // :669
+                .SymbolEffect(SymbolEffectKind.Bounce, on)); // :670 MARROW_DEFERRED ED-182 (EffortSlider.swift:670)
+        }
+
+        Apply(isOn.Value, state.IsHovering);
+        fill.Set(CirclePlate(isOn.Value, state.IsHovering), null); // :673 Circle().fill(...)
+
+        var frame = new Panel
+        {
+            Width = 30, // :671 .frame(width: 30, height: 30)
+            Height = 30,
+            Children = { circle, iconHost },
+        };
+
+        var button = PlainControls.Button(frame, () => // :664
+            Transaction.WithAnimation(Animation.Spring(response: 0.3, dampingFraction: 0.7), () => isOn.Value = !isOn.Value)); // :665
+        button.OnHover(hovering => state.IsHovering = hovering); // :678 .onHover { isHovering = $0 } has no withAnimation wrapper, unlike RoundIconButton's :702-703
+
+        this.Track(() => (isOn.Value, state.IsHovering), current =>
+        {
+            var (on, hovering) = current;
+            Apply(on, hovering);
+            // :673 inherits whichever ambient animation (the :665 spring for isOn, or none for an unwrapped :678 hover) drove this apply.
+            fill.Set(CirclePlate(on, hovering), Transaction.Current);
+            ToolTip.SetTip(button, on ? "Fast mode is on" : "Fast mode"); // :679 .help(...)
+            AutomationProperties.SetItemStatus(button, on ? "On" : "Off"); // :681 .accessibilityValue(...)
+        });
+
+        ToolTip.SetTip(button, isOn.Value ? "Fast mode is on" : "Fast mode"); // :679
+        AutomationProperties.SetName(button, "Fast mode"); // :680 .accessibilityLabel(Text("Fast mode"))
+        AutomationProperties.SetItemStatus(button, isOn.Value ? "On" : "Off"); // :681
+        Child = button;
+    }
+
+    // :673 Circle().fill(isOn ? Color.yellow.opacity(0.18) : Chrome.overlay(isHovering ? 0.1 : 0.06))
+    private static SwiftColor CirclePlate(bool isOn, bool isHovering) =>
+        isOn ? SwiftColor.Yellow.Opacity(0.18) : Chrome.Overlay(isHovering ? 0.1 : 0.06);
 }
 
 /// <summary>:685-708 <c>private struct RoundIconButton: View</c>.</summary>
 public sealed class RoundIconButton : Decorator
 {
+    // :686 @State private var isHovering = false (implied by :701-703)
+    private sealed class ViewState : MainActorModel
+    {
+        private bool isHovering;
+
+        public bool IsHovering { get => Read(isHovering); set => Set(ref isHovering, value); }
+    }
+
     /// <param name="symbol">:686 <c>let symbol: String</c>.</param>
     /// <param name="help">:687 <c>let help: String</c>.</param>
     /// <param name="action">:688 <c>let action: () -> Void</c>.</param>
-    // :692-707 body
-    public RoundIconButton(string symbol, string help, Action action) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Composer/EffortSlider.swift:692");
+    // :692-707 body. PR-COMPOSER-120: a 30 by 30 circular button with a hover plate at 10 percent of the label colour.
+    public RoundIconButton(string symbol, string help, Action action)
+    {
+        var state = new ViewState();
+        var icon = SwiftImage.SystemName(symbol) // :693
+            .Font(SwiftFont.System(SwiftFont.TextStyle.Body, weight: SwiftFont.Weight.Medium))
+            .ForegroundStyle(Chrome.SecondaryText);
+        var circle = new Ellipse { Fill = Brushes.Transparent }; // :695 Circle().fill(clear at rest)
+        var fill = new AnimatedColor(circle);
+        circle.Fill = fill.Brush;
+
+        var frame = new Panel
+        {
+            Width = 30, // :693-694 .frame(width: 30, height: 30)
+            Height = 30,
+            Children = { circle, icon },
+        };
+
+        var button = PlainControls.Button(frame, action); // :692
+        button.OnHover(hovering =>
+        {
+            Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = hovering); // :696
+            fill.Set(hovering ? Chrome.Overlay(0.1) : SwiftColor.Clear, Chrome.Hover); // :695
+        });
+        ToolTip.SetTip(button, help); // :699 .help(help)
+        AutomationProperties.SetName(button, help); // :699 .accessibilityLabel(Text(help))
+        Child = button;
+    }
 }
 
 /// <summary>:711-837 <c>struct EffortSlider: View</c>.</summary>

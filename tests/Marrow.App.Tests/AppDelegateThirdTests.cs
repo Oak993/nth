@@ -12,6 +12,7 @@ namespace Marrow.App.Tests;
 // applicationShouldHandleReopen(_:hasVisibleWindows:), written by the Boot unit now that App.Window.WindowManager is in
 // the tree (it closes STOP App.AppDelegate #1 and #2 of AppDelegateTests.cs, except the lines named there that stay
 // open). Every expected value is transcribed from the cited Swift line or from the record, never from the C#:
+//   :13 URLCache.shared is reconfigured to 8 MiB memory-only, before :14 and :16
 //   :14 MarkdownDelegationCard.render is set before :16 reads WindowManager.shared
 //   :16-17 the model is WindowManager.shared.model; :22 showMain() before :23 openThreadOnLaunch()
 //   :24-26 hasSeenTour false: a main-actor task sleeps 700 ms, then Tour.present(model:); true: nothing
@@ -75,6 +76,26 @@ public sealed class AppDelegateThirdTests(HeadlessSession headless)
             Assert.NotNull(window);
             Assert.True(window.IsVisible);
             Assert.Equal(unused, launch.Harness.Main.OnMain(() => launch.Manager.Model.SelectedThreadID)); // :23
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-LAUNCH-083")] // App/AppDelegate.swift:10-13
+    [Trait("Req", "PR-LAUNCH-025")] // App/AppDelegate.swift:10-13, now the first statement
+    public void Launch_reconfigures_the_shared_URLCache_to_8_MiB_memory_only_before_it_reaches_the_window_manager()
+    {
+        WithLaunch(null, launch =>
+        {
+            var before = URLCache.Shared;
+
+            launch.Harness.Main.OnMain(launch.Delegate.ApplicationDidFinishLaunching);
+
+            // :13 URLCache.shared = URLCache(memoryCapacity: 8 * 1024 * 1024, diskCapacity: 0), set before :16.
+            Assert.NotSame(before, launch.UrlCacheWhenMainWindowBuilt);
+            Assert.NotNull(launch.UrlCacheWhenMainWindowBuilt);
+            Assert.Equal(8 * 1024 * 1024, launch.UrlCacheWhenMainWindowBuilt!.MemoryCapacity);
+            Assert.Equal(0, launch.UrlCacheWhenMainWindowBuilt!.DiskCapacity);
+            Assert.Same(launch.UrlCacheWhenMainWindowBuilt, URLCache.Shared); // still the shared instance after launch
         });
     }
 
