@@ -11,6 +11,13 @@
 // exit code (0 if absent or unparseable). Every call also records its own argv, NUL-separated, to
 // call-<n>.args (0-based, the same shape ClaudeStandIn.cs uses), so a test can assert call order and argument
 // vectors across the two probes of one Refresh.
+//
+// post-update-stdout.txt and post-update-exit.txt, if present, are copied over stdout.txt and exit.txt
+// (deterministically, before this call exits) whenever this call's argv is exactly ["update"], so a test
+// can prove ProviderRegistry.UpdateCLIIfDue's before/after version comparison (PR-PROVREG-256) with a
+// stand-in that "installs" a new version, starts answering, or stops answering: the next call (an
+// installedCLIVersion/cliVersion "--version" probe) then reports the new text or exit code. Never a real AI
+// CLI (R-TEST-10): this file's own "update" is the only thing that ever runs.
 using System;
 using System.IO;
 using System.Text;
@@ -68,6 +75,13 @@ internal static class ProviderProbeStandIn
         }
         finally
         {
+            if (args.Length == 1 && args[0] == "update")
+            {
+                string postUpdateStdout = Path.Combine(dir, "post-update-stdout.txt");
+                if (File.Exists(postUpdateStdout)) File.Copy(postUpdateStdout, Path.Combine(dir, "stdout.txt"), true);
+                string postUpdateExit = Path.Combine(dir, "post-update-exit.txt");
+                if (File.Exists(postUpdateExit)) File.Copy(postUpdateExit, Path.Combine(dir, "exit.txt"), true);
+            }
             if (marker.Length != 0 && File.Exists(marker)) File.Delete(marker);
         }
     }
