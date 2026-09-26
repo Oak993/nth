@@ -10,6 +10,7 @@ using Avalonia.Controls.Documents;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
+using Avalonia.Media;
 using Marrow.App.Port;
 using Marrow.App.Window;
 using Marrow.Core.Models;
@@ -295,11 +296,11 @@ public sealed class CommandPalette : Decorator
 
         var matchingActions = needle.Length == 0 // :180
             ? actions
-            : actions.Where(action => SwiftString.Lowercased(action.Title).Contains(needle, StringComparison.Ordinal)).ToList();
+            : actions.Where(action => SwiftString.Contains(SwiftString.Lowercased(action.Title), needle)).ToList(); // :180 canonical, not ordinal (R-STR-2): needle and title are both outside text
 
         var threads = model.Threads // :181-189
             .Where(thread => !thread.IsArchived && !thread.IsInPanel && // :182
-                (needle.Length == 0 || SwiftString.Lowercased(thread.Title).Contains(needle, StringComparison.Ordinal)))
+                (needle.Length == 0 || SwiftString.Contains(SwiftString.Lowercased(thread.Title), needle))) // canonical (R-STR-2)
             .OrderByDescending(thread => thread.UpdatedAt) // :183, stable (R-COLL-1)
             .Take(needle.Length == 0 ? 6 : 10) // :184
             .Select(thread => new Item(
@@ -310,7 +311,7 @@ public sealed class CommandPalette : Decorator
         var projects = needle.Length == 0 // :190-196
             ? []
             : model.Projects
-                .Where(project => SwiftString.Lowercased(project.Name).Contains(needle, StringComparison.Ordinal)) // :191
+                .Where(project => SwiftString.Contains(SwiftString.Lowercased(project.Name), needle)) // :191 canonical, not ordinal (R-STR-2)
                 .Select(project => new Item(
                     SwiftUUID.UuidString(project.Id), "New thread in " + project.Name, project.Path, project.Icon, "folder", null, // :192-195
                     () => model.NewThread(project)))
@@ -336,7 +337,7 @@ file sealed class CommandPaletteRow : Decorator
     private const double IconWidth = 18; // :120 .frame(width: 18)
 
     private readonly Panel iconSlot = new() { Width = IconWidth, HorizontalAlignment = HorizontalAlignment.Center };
-    private readonly TextBlock titleBlock = new() { MaxLines = 1 }; // :122-123
+    private readonly TextBlock titleBlock = new() { MaxLines = 1, TextTrimming = TextTrimming.CharacterEllipsis }; // :122-123 .lineLimit(1), default .tail truncation (R-STR convention: Chrome.cs:1395, ChatBadge.cs:55)
     private readonly MiddleTruncatingTextBlock subtitleBlock = new() { MaxLines = 1, IsVisible = false }; // :124-130
     private readonly TextBlock chordBlock = new() { IsVisible = false }; // :133-137
     private readonly Border background;
@@ -371,13 +372,25 @@ file sealed class CommandPaletteRow : Decorator
         textStack.Children.Add(subtitleBlock);
 
         // :111 HStack(spacing: 12): icon column (18pt), the text block, a Spacer(minLength: 8), then the chord.
-        // ENGINEERING DECISION: the same fixed-gap approximation of Spacer(minLength:) DownloadsPopover.cs's
-        // DownloadRow already uses for its own trailing Spacer, rather than a Grid star column, so a chord-less
-        // row's text block does not visibly jump (IsVisible collapses the chord's slot entirely, PR-WIN-179).
-        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12 };
+        // ENGINEERING DECISION: a two-column-of-flex Grid ("Auto,*,Auto"), the ChromeRow/ChromeSection convention
+        // for Spacer(minLength:) already established elsewhere (Chrome.cs:1039, :1066; TokenActivitySection.cs's
+        // own BuildHeader), not the fixed-width Control this file used before review: a horizontal StackPanel
+        // never stretches a main-axis child regardless of HorizontalAlignment, so that Control never actually
+        // expanded and the chord sat a fixed 8px after the text instead of at the row's trailing edge - visible
+        // on nearly every row here, since almost every action carries a shortcut (PR-WIN-171/172/173). The Star
+        // column also gives titleBlock/subtitleBlock a real bounded width, which is what lets their MaxLines(1)
+        // truncation (above, and :124-130) actually clip rather than only ever measuring their full text.
+        // Spacer(minLength: 8)'s minimum and the HStack's own 12pt spacing on both sides of it collapse into one
+        // 20pt margin ahead of the chord, since nothing else sits between the text block and the chord.
+        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto") };
+        textStack.Margin = new Thickness(12, 0, 0, 0); // :111 icon -> text HStack spacing
+        textStack.HorizontalAlignment = HorizontalAlignment.Stretch; // Grid, unlike StackPanel, honors Stretch along this axis
+        chordBlock.Margin = new Thickness(20, 0, 0, 0); // :111 text -> spacer spacing (12) + :132 Spacer(minLength: 8)
+        Grid.SetColumn(iconSlot, 0);
+        Grid.SetColumn(textStack, 1);
+        Grid.SetColumn(chordBlock, 2);
         row.Children.Add(iconSlot);
         row.Children.Add(textStack);
-        row.Children.Add(new Control { Width = 8, HorizontalAlignment = HorizontalAlignment.Stretch }); // :132 Spacer(minLength: 8)
         row.Children.Add(chordBlock);
         foreach (var part in row.Children) if (part is Control control) control.VerticalAlignment = VerticalAlignment.Center;
         row.SetValue(TextElement.ForegroundProperty, Marrow.UI.Chrome.Chrome.PrimaryText.Brush(row)); // title's ambient colour

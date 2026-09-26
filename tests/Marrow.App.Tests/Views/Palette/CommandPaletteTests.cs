@@ -49,17 +49,18 @@ public sealed class CommandPaletteTests(HeadlessSession headless)
         }
     }
 
-    /// <summary>A row's fixed children, in the layout order CommandPaletteRow builds them.</summary>
+    /// <summary>A row's fixed children, in the layout order CommandPaletteRow builds them: an icon/text/chord
+    /// Grid ("Auto,*,Auto", review fix), not the flat HStack StackPanel it used before review.</summary>
     private static (Panel Icon, TextBlock Title, MiddleTruncatingTextBlock Subtitle, TextBlock Chord, Border Background) RowParts(Control rowControl)
     {
         var decorator = Assert.IsAssignableFrom<Decorator>(rowControl);
         var background = Assert.IsType<Border>(decorator.Child);
-        var row = Assert.IsType<StackPanel>(background.Child);
+        var row = Assert.IsType<Grid>(background.Child);
         var icon = Assert.IsType<Panel>(row.Children[0]);
         var textStack = Assert.IsType<StackPanel>(row.Children[1]);
         var title = Assert.IsType<TextBlock>(textStack.Children[0]);
         var subtitle = Assert.IsType<MiddleTruncatingTextBlock>(textStack.Children[1]);
-        var chord = Assert.IsType<TextBlock>(row.Children[3]);
+        var chord = Assert.IsType<TextBlock>(row.Children[2]);
         return (icon, title, subtitle, chord, background);
     }
 
@@ -875,6 +876,86 @@ public sealed class CommandPaletteTests(HeadlessSession headless)
                 var unselectedFill = Assert.IsAssignableFrom<ISolidColorBrush>(second.Background.Background);
                 Assert.NotEqual(0, selectedFill.Color.A); // :141 accent at 0.16 for the selected row (index 0)
                 Assert.Equal(0, unselectedFill.Color.A); // Color.clear otherwise
+            });
+        });
+    }
+
+    // ---- Row title truncation and chord position, review fixes for PR-WIN-168 ----
+
+    [Fact]
+    [Trait("Req", "PR-WIN-168")] // App/Views/Palette/CommandPalette.swift:122-123 lineLimit(1), default .tail truncation
+    public void A_row_title_truncates_with_a_trailing_character_ellipsis()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var model = harness.MakeModel();
+            harness.Main.OnMain(() =>
+            {
+                var (_, _, palette) = Build(model);
+                var parts = RowParts(palette.RowsPanel.Children[0]);
+                Assert.Equal(1, parts.Title.MaxLines);
+                Assert.Equal(TextTrimming.CharacterEllipsis, parts.Title.TextTrimming);
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-WIN-168")] // App/Views/Palette/CommandPalette.swift:111,132 Spacer(minLength: 8) actually expands
+    public void A_rows_chord_sits_at_the_trailing_edge_regardless_of_the_titles_length()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var model = harness.MakeModel();
+            harness.Main.OnMain(() =>
+            {
+                var (_, _, palette) = Build(model);
+                // Rows 0-2 are the three base actions (:154-162): "New thread", "New thread in worktree" and
+                // "Add project", all carrying a shortcut, with titles of deliberately different lengths. A
+                // Spacer(minLength: 8) that only ever expands its fixed 8px minimum, rather than filling the
+                // row, would leave the chord's distance from the row's trailing edge grow with the title's
+                // width instead of staying constant.
+                for (var index = 0; index < 3; index++)
+                {
+                    var parts = RowParts(palette.RowsPanel.Children[index]);
+                    Assert.True(parts.Chord.IsVisible);
+                    var topRight = parts.Chord.TranslatePoint(new Point(parts.Chord.Bounds.Width, 0), parts.Background)!.Value;
+                    var expectedRight = parts.Background.Bounds.Width - parts.Background.Padding.Right;
+                    Assert.True(Math.Abs(topRight.X - expectedRight) < 1.0,
+                        $"row {index} (\"{parts.Title.Text}\"): chord right edge {topRight.X}, expected {expectedRight}");
+                }
+            });
+        });
+    }
+
+    // ---- Query matching is canonical, review fix for PR-WIN-174 ----
+
+    [Fact]
+    [Trait("Req", "PR-WIN-174")] // App/Views/Palette/CommandPalette.swift:150,182 needle.lowercased().contains: canonical, not ordinal (R-STR-2)
+    public void Query_matching_finds_a_title_written_with_a_differently_normalized_but_canonically_equal_needle()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var model = harness.MakeModel();
+            var directory = harness.NewFolder("p");
+            CommandPalette palette = null!;
+            AvaloniaWindow window = null!;
+            harness.Main.OnMain(() =>
+            {
+                var project = model.AddProject(new Project("P", directory).Url);
+                // Title has NFC "é"; the query is typed with the NFD form "é" of the same visible
+                // character. Swift's contains(_:) compares Characters canonically (R-STR-2), so it matches;
+                // an ordinal substring search would not, even though the two forms render identically.
+                model.InsertThread(AppModelSamples.Thread(project) with { Title = "Café project" });
+                (_, window, palette) = Build(model);
+                palette.QueryField.Text = "café";
+            });
+            harness.Main.OnMain(() =>
+            {
+                Settle(window);
+                Assert.Contains("Café project", Titles(palette));
             });
         });
     }
