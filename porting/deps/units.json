@@ -3855,22 +3855,14 @@
     "UI.Markdown.StreamVeil"
    ],
    "records_total": 12,
-   "records_todo": [
-    "PR-THEME-145",
-    "PR-THEME-185"
-   ],
-   "parts": [
-    [
-     "PR-THEME-145",
-     "PR-THEME-185"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M5-049",
     "T-M5-050"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "UI.Markdown.LinkPopover",
@@ -4203,14 +4195,8 @@
    ],
    "intra_deps": [],
    "records_total": 26,
-   "records_todo": [
-    "PR-HYDRA-199"
-   ],
-   "parts": [
-    [
-     "PR-HYDRA-199"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M7-032",
     "T-M7-033",
@@ -4218,7 +4204,7 @@
     "T-M7-035"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "App.Views.Settings.AboutUpdateViews",
@@ -6348,14 +6334,8 @@
     "App.Window.WindowManager"
    ],
    "records_total": 30,
-   "records_todo": [
-    "PR-HYDRA-180"
-   ],
-   "parts": [
-    [
-     "PR-HYDRA-180"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M7-025",
     "T-M7-026",
@@ -6363,7 +6343,7 @@
     "T-M7-028"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "App.Views.Chat.HydraProgressBar",
@@ -7085,21 +7065,15 @@
     "App.Window.WindowManager"
    ],
    "records_total": 13,
-   "records_todo": [
-    "PR-CHAT-072"
-   ],
-   "parts": [
-    [
-     "PR-CHAT-072"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M7-054",
     "T-M7-055",
     "T-M7-056"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "App.Views.Chat.TimelineRows",
@@ -8266,25 +8240,15 @@
     "App.Views.Composer.PromptEditor"
    ],
    "records_total": 28,
-   "records_todo": [
-    "PR-COMPOSER-159",
-    "PR-COMPOSER-163",
-    "UI-COMPOSER-052"
-   ],
-   "parts": [
-    [
-     "PR-COMPOSER-159",
-     "PR-COMPOSER-163",
-     "UI-COMPOSER-052"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M7-101",
     "T-M7-102",
     "T-M7-103"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "App.Views.Composer.HydraFusedPairIcon",

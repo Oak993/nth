@@ -3315,7 +3315,7 @@
       "notes": "The tooltip's separator is U+00B7. Sideways travel plays no part in the reorder.",
       "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:381 `.font(.system(size: 11, weight: .medium))` -> B2 :381 `.font(.system(.subheadline, weight: .medium))`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059).",
       "b3_note": "B3 deletes the NSCursor.openHand.push()/.pop() hover pair and replaces it with `.pointerStyle(isDragged ? .grabActive : .grabIdle)` (:384), a state-driven cursor with no push/pop to leak. The former 'row removed mid-drag leaks one cursor push' state (upstream defect 53) is dropped from this record's states, since it reproduced a cursor-stack mechanism the pinned source no longer has (decisions_draft.md O6): FollowUpQueueTab.swift has no NSCursor call at the B3 pin (52bc7926), so no leak can occur. See PR-COMPOSER-160 (RETIRED) for the matching PR-level record. The grip cursor today is a constant Hand, a pre-existing gap (6.2) that must be closed with real grab-idle/grab-active .cur resources.",
-      "status": "SPECIFIED"
+      "status": "IMPLEMENTED"
     },
     {
       "area": "COMPOSER",

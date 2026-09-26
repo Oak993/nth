@@ -1128,3 +1128,20 @@ those two new tests, while the behavioural PushBranch_with_force_overwrites_a_br
 passes. FOLLOW-UP: the rest of PR-GIT-003's table; before this decision the Git test classes held 12 per-site budget tests
 (10 git sites, 2 forge-CLI sites), against 82 git sites and 6 forge-CLI sites. ENGINEERING DECISION (test infrastructure); no product change, not a deviation.
 
+ED-208 [UI] MentionScanner skips an empty candidate name before scanning (B3_PLAN.md section 3, row N10; PR-THEME-143).
+SOURCE FACT: `UI/Markdown/MentionScanner.swift` (B3 52bc792) :7-32's `matches(in:candidates:name:)` advances
+`i = text.index(i, offsetBy: candidateName.count)` on every hit (:16, :24, :26); with an empty `candidateName` that
+advance is zero, and an empty string is a prefix of anything at :15, so a real empty candidate name would leave `i`
+unmoved and the `while i < text.endIndex` loop (:11) would never terminate. B3_PLAN.md's N10 row names this exact
+risk and asks for the ED: "Record an ED that empty names are skipped (the Swift would loop forever on one; roster
+names are never empty)". No roster name this app ever renders is empty. DECISION:
+`src/Marrow.UI/Markdown/MentionScanner.cs`'s `Matches<T>` filters candidates to those whose projected name has
+non-zero length before ordering or scanning (`.Where(candidate => name(candidate).Length > 0)`), so the port cannot
+hang even on an input the B3 Swift source itself has no guard against, because this app's own roster never supplies
+one. Tests: `tests/Marrow.UI.Tests/Markdown/MentionScannerTests.cs`'s
+`An_empty_candidate_name_is_skipped_and_never_hangs` pins it, tagged `[Trait("Decision", "ED-208")]` in place of the
+stand-in `[Trait("Req", "PR-THEME-143")]` the verifying cloud run used for it, since the empty-name guard is not
+itself part of PR-THEME-143 (the mention-scan-extraction record) but a port-only addition this decision records.
+ENGINEERING DECISION; not a deviation (no real input's output changes; the guard only forecloses a hang on an input
+this port never produces).
+

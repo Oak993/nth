@@ -4212,11 +4212,12 @@
       "id": "PR-STORE-175",
       "preconditions": "Two texts that compare equal line by line under Swift String ==, including the case where both are empty.",
       "action": "SimpleDiff.unified(old:new:) is called.",
-      "expected_result": "newLines.difference(from: oldLines) has no removed and no inserted offsets, so unified returns FileEdit.Stats(diff: nil, additions: 0, deletions: 0) immediately, before the merged-ops walk or any hunk work runs. Lines are compared as produced by splitting each text on \"\\n\" (an empty string gives an empty line array).",
+      "expected_result": "newLines.difference(from: oldLines) has no removed and no inserted offsets, so unified returns FileEdit.Stats(diff: nil, additions: 0, deletions: 0) immediately, before the merged-ops walk or any hunk work runs. Lines are compared as produced by splitting each text on \"\\n\" (an empty string gives an empty line array). Downstream, the nil diff is not uniformly invisible: the tool row's own inline rendering shows no diff block for it (TimelineRows.swift:2128), and DiffInspector's focusedFiles fallback contributes nothing for it (DiffInspector.swift:165, which requires a non-nil, non-empty patch); but on a tool row that is part of the selected turn, TurnDiff.merge (TurnDiff.swift:39-48) still appends this edit as a hunk-less DiffFile (it filters only on an empty path, not a nil diff, and only records reportedAdditions/reportedDeletions when file.hunks.isEmpty), so DiffInspector's file card still appears for it, reading \"Diff details unavailable\" rather than showing a diff (DiffInspector.swift:215-221), and the tool row still opens the changes popover because TimelineRows.swift's opensDiff (:1664-1665) is true whenever the call has any edit with a non-empty path, independent of whether that edit's own diff is nil.",
       "side_effects": [],
       "persistence": "Nothing is stored for such an edit: no diff text, and the recorded additions and deletions are both 0.",
       "failure_cases": [
-        "Downstream, a reported edit with a nil diff renders no diff block in the tool row (TimelineRows.swift:2128) and none in DiffInspector (DiffInspector.swift:165).",
+        "A reported edit with a nil diff renders no diff block in the tool row's own inline rendering (TimelineRows.swift:2128) and DiffInspector's focusedFiles fallback adds nothing for it (DiffInspector.swift:165).",
+        "But when that same edit's path is part of the selected turn's own diff, TurnDiff.merge (TurnDiff.swift:39-48) still adds a hunk-less file for it, so the inspector shows a \"Diff details unavailable\" card (DiffInspector.swift:215-221) rather than no card, and the tool row still opens the changes popover (TimelineRows.swift:1664-1665) rather than staying collapsed.",
         "ThreadRuntime.swift:3447 settleCommand treats such an edit as unreported, so the git-snapshot edits replace it rather than leaving a phantom empty diff."
       ],
       "cancellation": "not cancellable",
@@ -4233,7 +4234,7 @@
         "DroppyCode/App/Views/Diff/DiffInspector.swift:165 - no diff shown when diff is nil",
         "DroppyCode/App/Runtime/ThreadRuntime.swift:3447 settleCommand - treats a nil-diff edit as unreported, so the git-snapshot edits replace it"
       ],
-      "b3_note": "Split out as its own record from the B3 exact-diff rewrite of SimpleDiff.unified (PR-STORE-112): B2's head/tail trim reached the same nil result for identical inputs, but at a different line, and no record pinned the downstream consumers. See impacts.json bundle R3-15 (Text.swift) new_records_needed, proposal #3."
+      "b3_note": "Split out as its own record from the B3 exact-diff rewrite of SimpleDiff.unified (PR-STORE-112): B2's head/tail trim reached the same nil result for identical inputs, but at a different line, and no record pinned the downstream consumers. See impacts.json bundle R3-15 (Text.swift) new_records_needed, proposal #3. B3 batch 2 merge (claude/gracious-tesla-add68a's PR-STORE-175 integration tests): reworded expected_result/failure_cases, checked against the pristine B3 Swift, to stop implying a nil diff is invisible everywhere downstream. It is invisible only through the tool row's own inline diff block (TimelineRows.swift:2128) and DiffInspector's focusedFiles fallback (DiffInspector.swift:165); once the edit's path is part of the selected turn's own diff, TurnDiff.merge (TurnDiff.swift:39-48) still merges it in as a hunk-less file, so DiffInspector still shows a \"Diff details unavailable\" card for it (DiffInspector.swift:215-221) and the tool row still opens the changes popover (TimelineRows.swift:1664-1665)."
     }
   ],
   "ui": [

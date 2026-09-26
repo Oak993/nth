@@ -3670,7 +3670,7 @@
       "cancellation": "A cancelled gesture is ended by the isGrabbing reset or the local mouse-up monitor.",
       "windows_path": "A grab-idle/grab-active cursor bound to isDragged on the grip's own hit area (custom .cur resources, platform_adaptations.md); the global coordinate space is screen coordinates. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "verification_method": "interaction test dragging and releasing outside the window, asserting the cursor over the grip in each of the idle and dragged states",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3775,7 +3775,7 @@
       "cancellation": "The monitor is removed when the drag ends and on disappearance.",
       "windows_path": "Same springs, same insertion point. The mouse-up monitor becomes an app-scoped message filter or a capture release. No cursor pop to reproduce; the pointer-style binding (PR-COMPOSER-159) handles the revert.",
       "verification_method": "interaction test pairing two rows and reordering the bundle, asserting the grip returns to the grab-idle cursor after release",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -6071,7 +6071,7 @@
       "notes": "The tooltip's separator is U+00B7. Sideways travel plays no part in the reorder.",
       "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:381 `.font(.system(size: 11, weight: .medium))` -> B2 :381 `.font(.system(.subheadline, weight: .medium))`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059).",
       "b3_note": "B3 deletes the NSCursor.openHand.push()/.pop() hover pair and replaces it with `.pointerStyle(isDragged ? .grabActive : .grabIdle)` (:384), a state-driven cursor with no push/pop to leak. The former 'row removed mid-drag leaks one cursor push' state (upstream defect 53) is dropped from this record's states, since it reproduced a cursor-stack mechanism the pinned source no longer has (decisions_draft.md O6): FollowUpQueueTab.swift has no NSCursor call at the B3 pin (52bc7926), so no leak can occur. See PR-COMPOSER-160 (RETIRED) for the matching PR-level record. The grip cursor today is a constant Hand, a pre-existing gap (6.2) that must be closed with real grab-idle/grab-active .cur resources.",
-      "status": "SPECIFIED"
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-053",

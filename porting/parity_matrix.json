@@ -7,9 +7,9 @@
   "counts": {
     "total": 3990,
     "by_status": {
-      "IMPLEMENTED": 3138,
+      "IMPLEMENTED": 3145,
       "RETIRED": 15,
-      "SPECIFIED": 809,
+      "SPECIFIED": 802,
       "NOT_APPLICABLE_WITH_EVIDENCE": 22,
       "DISCOVERED": 6
     },
@@ -1687,7 +1687,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Declare the hand pointer on the rail's hit area itself, so it follows the pointer in and out with no push/pop bookkeeping to leak.",
       "verification_method": "interaction test for hover, scrub, release and the pointer shape over the hit area; unit for entryID",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -8497,7 +8497,7 @@
       "cancellation": "A cancelled gesture is ended by the isGrabbing reset or the local mouse-up monitor.",
       "windows_path": "A grab-idle/grab-active cursor bound to isDragged on the grip's own hit area (custom .cur resources, platform_adaptations.md); the global coordinate space is screen coordinates. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "verification_method": "interaction test dragging and releasing outside the window, asserting the cursor over the grip in each of the idle and dragged states",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -8606,7 +8606,7 @@
       "cancellation": "The monitor is removed when the drag ends and on disappearance.",
       "windows_path": "Same springs, same insertion point. The mouse-up monitor becomes an app-scoped message filter or a capture release. No cursor pop to reproduce; the pointer-style binding (PR-COMPOSER-159) handles the revert.",
       "verification_method": "interaction test pairing two rows and reordering the bundle, asserting the grip returns to the grab-idle cursor after release",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -18851,7 +18851,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The two truncation limits, 40 and 80, go through the shared single-line text helper and must match it. The elapsed strings come from reference-runtime fixtures of that formatter, not from a hand-written template.",
       "verification_method": "unit over all four statuses in all three registers, with the elapsed strings taken from reference-runtime fixtures",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -19310,7 +19310,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exactly these nine effort words and these three meta tests.",
       "verification_method": "unit over '(failed)', '(stopped by the user before finishing)', '(2m 7s, 14 tools)', '(high)', '(ultra)' and a task ending in a real parenthesis",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -81581,11 +81581,12 @@
       "id": "PR-STORE-175",
       "preconditions": "Two texts that compare equal line by line under Swift String ==, including the case where both are empty.",
       "action": "SimpleDiff.unified(old:new:) is called.",
-      "expected_result": "newLines.difference(from: oldLines) has no removed and no inserted offsets, so unified returns FileEdit.Stats(diff: nil, additions: 0, deletions: 0) immediately, before the merged-ops walk or any hunk work runs. Lines are compared as produced by splitting each text on \"\\n\" (an empty string gives an empty line array).",
+      "expected_result": "newLines.difference(from: oldLines) has no removed and no inserted offsets, so unified returns FileEdit.Stats(diff: nil, additions: 0, deletions: 0) immediately, before the merged-ops walk or any hunk work runs. Lines are compared as produced by splitting each text on \"\\n\" (an empty string gives an empty line array). Downstream, the nil diff is not uniformly invisible: the tool row's own inline rendering shows no diff block for it (TimelineRows.swift:2128), and DiffInspector's focusedFiles fallback contributes nothing for it (DiffInspector.swift:165, which requires a non-nil, non-empty patch); but on a tool row that is part of the selected turn, TurnDiff.merge (TurnDiff.swift:39-48) still appends this edit as a hunk-less DiffFile (it filters only on an empty path, not a nil diff, and only records reportedAdditions/reportedDeletions when file.hunks.isEmpty), so DiffInspector's file card still appears for it, reading \"Diff details unavailable\" rather than showing a diff (DiffInspector.swift:215-221), and the tool row still opens the changes popover because TimelineRows.swift's opensDiff (:1664-1665) is true whenever the call has any edit with a non-empty path, independent of whether that edit's own diff is nil.",
       "side_effects": [],
       "persistence": "Nothing is stored for such an edit: no diff text, and the recorded additions and deletions are both 0.",
       "failure_cases": [
-        "Downstream, a reported edit with a nil diff renders no diff block in the tool row (TimelineRows.swift:2128) and none in DiffInspector (DiffInspector.swift:165).",
+        "A reported edit with a nil diff renders no diff block in the tool row's own inline rendering (TimelineRows.swift:2128) and DiffInspector's focusedFiles fallback adds nothing for it (DiffInspector.swift:165).",
+        "But when that same edit's path is part of the selected turn's own diff, TurnDiff.merge (TurnDiff.swift:39-48) still adds a hunk-less file for it, so the inspector shows a \"Diff details unavailable\" card (DiffInspector.swift:215-221) rather than no card, and the tool row still opens the changes popover (TimelineRows.swift:1664-1665) rather than staying collapsed.",
         "ThreadRuntime.swift:3447 settleCommand treats such an edit as unreported, so the git-snapshot edits replace it rather than leaving a phantom empty diff."
       ],
       "cancellation": "not cancellable",
@@ -81602,7 +81603,7 @@
         "DroppyCode/App/Views/Diff/DiffInspector.swift:165 - no diff shown when diff is nil",
         "DroppyCode/App/Runtime/ThreadRuntime.swift:3447 settleCommand - treats a nil-diff edit as unreported, so the git-snapshot edits replace it"
       ],
-      "b3_note": "Split out as its own record from the B3 exact-diff rewrite of SimpleDiff.unified (PR-STORE-112): B2's head/tail trim reached the same nil result for identical inputs, but at a different line, and no record pinned the downstream consumers. See impacts.json bundle R3-15 (Text.swift) new_records_needed, proposal #3."
+      "b3_note": "Split out as its own record from the B3 exact-diff rewrite of SimpleDiff.unified (PR-STORE-112): B2's head/tail trim reached the same nil result for identical inputs, but at a different line, and no record pinned the downstream consumers. See impacts.json bundle R3-15 (Text.swift) new_records_needed, proposal #3. B3 batch 2 merge (claude/gracious-tesla-add68a's PR-STORE-175 integration tests): reworded expected_result/failure_cases, checked against the pristine B3 Swift, to stop implying a nil diff is invisible everywhere downstream. It is invisible only through the tool row's own inline diff block (TimelineRows.swift:2128) and DiffInspector's focusedFiles fallback (DiffInspector.swift:165); once the edit's path is part of the selected turn's own diff, TurnDiff.merge (TurnDiff.swift:39-48) still merges it in as a hunk-less file, so DiffInspector still shows a \"Diff details unavailable\" card for it (DiffInspector.swift:215-221) and the tool row still opens the changes popover (TimelineRows.swift:1664-1665)."
     },
     {
       "area": "TERM",
@@ -88766,7 +88767,7 @@
       "cancellation": "not cancellable",
       "windows_path": "UNRESOLVED pending owner decision O4 (drive-letter and UNC paths, and what a chat link may launch): Windows paths are `C:\\...` or `C:/...`, not `/...`, so a literal port of the \"/\"-rooted check never fires on Windows and every link falls through to the generic opener, where a bare drive-letter string parses with scheme \"C\" and fails against ShellExecuteW. Recommendation B (decisions_draft.md O4): treat Windows absolute paths (`C:\\...`, `C:/...`, the file-URL form `/C:/...`) as the local-file branch with the same `:line` suffix rule; never open a UNC path (`\\\\host\\share`, `file://host/...`) from a chat link, as a named safety deviation; and reveal a locally-runnable file type in File Explorer rather than launching it, also a named safety deviation. The generic opener (ShellExecuteW) must otherwise refuse a relative or scheme-less string it cannot resolve, rather than guessing.",
       "verification_method": "interaction test: a mention click does not move the caret; unit: /abs/a.swift:12 opens the stripped path, :0 and a negative suffix are kept, a directory-prefixed path is kept, and a scheme/query/fragment URL goes to the default opener",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -89855,7 +89856,7 @@
       "cancellation": "not cancellable; synchronous",
       "windows_path": "UNRESOLVED pending OWNER decision O4. On Windows, `/x/a.swift:12` has no drive letter, so it is not how a user or a model would ever write an absolute Windows path; a genuine absolute path (`C:\\...`, `C:/...`) parses with scheme \"C\" and takes the generic-opener branch, which ShellExecuteW cannot resolve correctly. Recommendation B (decisions_draft.md O4): also treat `C:\\...`/`C:/...`/`/C:/...` as the local-file branch with the same `:<line>` stripping rule; never take a UNC path (`\\\\host\\share`, `file://host/...`) down the local-file branch or the generic opener, as a named safety deviation (it would send the user's Windows credentials to a host named in model output); and for a locally runnable file type, reveal it selected in File Explorer rather than launching it, also a named safety deviation.",
       "verification_method": "unit: a table test over the four gating fields (scheme/host/query/fragment) each individually present; the exists/does-not-exist matrix for the path and its colon-stripped candidate; :0, a negative suffix, a non-numeric suffix and a directory-prefix all left unstripped",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
