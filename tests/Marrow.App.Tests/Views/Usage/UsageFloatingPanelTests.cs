@@ -176,11 +176,9 @@ public sealed class UsageFloatingPanelTests(HeadlessSession session)
     [Trait("Req", "PR-USAGE-063")] // App/Views/Usage/UsageFloatingPanel.swift:68-73
     public void Scrim_and_shadow_use_the_source_opacities_per_theme(bool isDark, byte scrimAlpha, byte shadowAlpha)
     {
-        // isDark itself comes from ActualThemeVariant (:56), which only reflects an ancestor's theme once this
-        // control is attached to one, well after these fixed colors are computed at construction; the color and
-        // shadow math is verified directly as the pure functions the constructor calls (UsageFloatingPanel.cs's
-        // ScrimColor/ScrimShadow), and the light-theme case in the surface test above additionally confirms the
-        // path renders as a real Border in the default (light, headless) tree.
+        // The pure color/shadow math the constructor (and its theme-change handler) calls, verified directly.
+        // The end-to-end wiring — that these actually reach the rendered Border for a themed window, including
+        // when the theme changes after construction — is covered by the tests below.
         var color = UsageFloatingPanel.ScrimColor(isDark);
         Assert.Equal(scrimAlpha, color.A);
         var shadow = UsageFloatingPanel.ScrimShadow(isDark);
@@ -188,6 +186,66 @@ public sealed class UsageFloatingPanelTests(HeadlessSession session)
         Assert.Equal(28, shadow.Blur);
         Assert.Equal(10, shadow.OffsetY);
         Assert.Equal(0, shadow.OffsetX);
+    }
+
+    // :56 `let isDark = colorScheme == .dark` inside `body`, and :69's own re-read of the same environment value
+    // for the scrim/shadow layer: SwiftUI recomputes `body` (and both `isDark` locals) whenever colorScheme
+    // changes while the panel is on screen, so the port must show the dark-theme scrim/shadow when actually
+    // shown inside a window whose RequestedThemeVariant is Dark, not just when the pure helpers above are called
+    // with a hand-supplied bool.
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    [Trait("Req", "PR-USAGE-063")] // App/Views/Usage/UsageFloatingPanel.swift:56, :68-73
+    public void Panel_renders_the_theme_matched_scrim_and_shadow_when_shown_in_a_themed_window(bool isDark)
+    {
+        session.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var runtime = MakeRuntime(harness, usage: null, provider: ProviderKind.Codex);
+            var panel = new UsageFloatingPanel(
+                runtime, ProviderKind.Codex, headsProvider: null, size: new Size(360, 300),
+                onContentHeight: _ => { }, onDrag: _ => { }, onDragEnd: () => { }, dismiss: () => { });
+            Show(panel, harness, theme: isDark ? ThemeVariant.Dark : ThemeVariant.Light);
+
+            // The scrim border is the one that carries the panel's single box shadow (:68-73); the glass-tint
+            // layer (:53-63) carries none.
+            var scrimBorder = Assert.Single(LogicalQuery.SelfAndDescendants<Border>(panel), b => b.BoxShadow.Count > 0);
+            var brush = Assert.IsType<SolidColorBrush>(scrimBorder.Background);
+            Assert.Equal(UsageFloatingPanel.ScrimColor(isDark), brush.Color);
+            Assert.Equal(1, scrimBorder.BoxShadow.Count);
+            Assert.Equal(UsageFloatingPanel.ScrimShadow(isDark).Color, scrimBorder.BoxShadow[0].Color);
+        });
+    }
+
+    // Reproduces the HIGH finding directly: the panel must re-derive the glass tint and the scrim/shadow when
+    // the ambient theme changes live, the same way SwiftUI recomputes `body` on every colorScheme change (:56,
+    // :69) and the way this codebase's other ports of the identical dependency already behave (Chrome.cs's
+    // WindowBackdrop, Views/Chat/SubagentPanel.cs, Views/Tour/TourView.cs all redraw on
+    // ActualThemeVariantChanged). A construction-time-only isDark would leave these stuck at the light values
+    // below even after the window flips to dark.
+    [Fact]
+    [Trait("Req", "PR-USAGE-063")] // App/Views/Usage/UsageFloatingPanel.swift:56, :68-73
+    public void Scrim_and_shadow_update_when_the_window_theme_changes_live()
+    {
+        session.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var runtime = MakeRuntime(harness, usage: null, provider: ProviderKind.Codex);
+            var panel = new UsageFloatingPanel(
+                runtime, ProviderKind.Codex, headsProvider: null, size: new Size(360, 300),
+                onContentHeight: _ => { }, onDrag: _ => { }, onDragEnd: () => { }, dismiss: () => { });
+            var (_, window) = Show(panel, harness, theme: ThemeVariant.Light);
+
+            var scrimBorder = Assert.Single(LogicalQuery.SelfAndDescendants<Border>(panel), b => b.BoxShadow.Count > 0);
+            Assert.Equal(UsageFloatingPanel.ScrimColor(false), Assert.IsType<SolidColorBrush>(scrimBorder.Background).Color);
+
+            window.RequestedThemeVariant = ThemeVariant.Dark;
+
+            Assert.Equal(UsageFloatingPanel.ScrimColor(true), Assert.IsType<SolidColorBrush>(scrimBorder.Background).Color);
+            Assert.Equal(1, scrimBorder.BoxShadow.Count);
+            Assert.Equal(UsageFloatingPanel.ScrimShadow(true).Color, scrimBorder.BoxShadow[0].Color);
+        });
     }
 
 
@@ -234,6 +292,28 @@ public sealed class UsageFloatingPanelTests(HeadlessSession session)
                 .Where(icon => icon.Size == 12.0).ToArray();
             Assert.Single(icons); // no heads provider: exactly the lead's icon
             Assert.Equal(ProviderKind.Codex, icons[0].Provider);
+        });
+    }
+
+    // :79 HStack(alignment: .top, spacing: 8) { titleHolder, middleDrag, closeHolder }: the 8-point gap sits
+    // between each pair of adjacent children, matching HydraPanel.cs's HydraHeadFooter (App/Views/Chat/
+    // HydraPanel.cs:650-652), which uses the identical Auto/Star/Auto topology for the same spacing: 8 HStack.
+    [Fact]
+    [Trait("Req", "PR-USAGE-065")] // App/Views/Usage/UsageFloatingPanel.swift:79
+    public void Strip_row_has_an_eight_point_gap_between_title_drag_and_close()
+    {
+        session.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var runtime = MakeRuntime(harness, usage: null, provider: ProviderKind.Codex);
+            var panel = new UsageFloatingPanel(
+                runtime, ProviderKind.Codex, headsProvider: null, size: new Size(360, 300),
+                onContentHeight: _ => { }, onDrag: _ => { }, onDragEnd: () => { }, dismiss: () => { });
+            Show(panel, harness);
+
+            var stripRow = Assert.Single(LogicalQuery.SelfAndDescendants<Grid>(panel),
+                g => g.Height == HydraPanel.StripHeight && g.ColumnDefinitions.Count == 3);
+            Assert.Equal(8, stripRow.ColumnSpacing);
         });
     }
 

@@ -71,11 +71,7 @@ public sealed class UsageFloatingPanel : Decorator
         // OD-0005 (Acrylic where the window shows the desktop; the app-drawn material otherwise), applied by the
         // window's own backdrop layer; this per-panel layer is the source-defined tint, exactly as HydraPanel.cs
         // (B3 52bc7926) :85-96 renders its own analogous background.
-        var isDark = ActualThemeVariant == ThemeVariant.Dark;
-        var glassLayer = new Border
-        {
-            Background = Chrome.GlassTint.Opacity(isDark ? 0.22 : 0.16).Brush(this),
-        };
+        var glassLayer = new Border();
 
         var panelContents = new Grid();
         panelContents.Children.Add(glassLayer);
@@ -89,17 +85,32 @@ public sealed class UsageFloatingPanel : Decorator
             Child = panelContents,
         };
 
-        // :68-73 the scrim, drawn once, carrying the panel's single shadow.
+        // :68-73 the scrim, carrying the panel's single shadow.
         var scrim = new Border
         {
             CornerRadius = cornerRadius,
-            Background = new SolidColorBrush(ScrimColor(isDark)),
-            BoxShadow = new BoxShadows(ScrimShadow(isDark)),
         };
 
         var floatingPanel = new Grid();
         floatingPanel.Children.Add(scrim);
         floatingPanel.Children.Add(panel);
+
+        // :56 `let isDark = colorScheme == .dark` inside `body`, and :69's own re-read of the same environment
+        // value for the scrim/shadow layer: SwiftUI recomputes `body` (and both `isDark` locals) on every
+        // colorScheme change while the panel is on screen, so the glass tint and the scrim/shadow must be
+        // re-derived on every theme change too, not fixed at construction (matching the established
+        // ActualThemeVariantChanged -> redraw convention for this identical dependency, e.g.
+        // Chrome.cs's WindowBackdrop, Views/Chat/SubagentPanel.cs and Views/Tour/TourView.cs).
+        void UpdateTheme()
+        {
+            var isDark = ActualThemeVariant == ThemeVariant.Dark;
+            glassLayer.Background = Chrome.GlassTint.Opacity(isDark ? 0.22 : 0.16).Brush(this);
+            scrim.Background = new SolidColorBrush(ScrimColor(isDark));
+            scrim.BoxShadow = new BoxShadows(ScrimShadow(isDark));
+        }
+
+        UpdateTheme();
+        ActualThemeVariantChanged += (_, _) => UpdateTheme();
 
         // :50 .frame(width: size.width, height: size.height)
         Child = floatingPanel;
@@ -256,6 +267,7 @@ public sealed class UsageFloatingPanel : Decorator
         var row = new Grid
         {
             Height = HydraPanel.StripHeight,
+            ColumnSpacing = 8,
             ColumnDefinitions =
             {
                 new ColumnDefinition(GridLength.Auto),
