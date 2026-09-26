@@ -4,8 +4,8 @@ using Marrow.Core.Support;
 
 // Source: DroppyCode/Services/MCP/MCPWire.swift (B3 52bc7926), :1-246. New at 1.7.0 (B3_PLAN.md N5): the wire
 // pieces MCPHub and MCPProbe share, extracted from B2 MCPHub.swift:161-172,193-221,256-310,393-418,455-533 and
-// MCPProbe.swift:64-107,134-236,287-348,381-430. MCPHub and MCPProbe do not yet call this type here (lanes
-// A15/A16 switch them over without otherwise changing their behaviour, B3_PLAN.md row N5).
+// MCPProbe.swift:64-107,134-236,287-348,381-430. MCPProbe now calls this type (A16, this lane); MCPHub does
+// not yet (A15 switches it over without otherwise changing its behaviour, B3_PLAN.md row N5).
 
 namespace Marrow.Services.MCP;
 
@@ -79,8 +79,10 @@ public static class MCPWire
     // with a per-request marking (URLRequest.MarkOriginBound) for an arbitrary named header. Each of this call's
     // caller-supplied `headers` (a server's own custom headers, e.g. X-Api-Key) is marked below, so a redirect
     // that changes scheme, host or port drops it the same way Authorization is dropped, and a same-server
-    // redirect keeps it, exactly as OD-0022 requires. MCPProbe.cs:246-266 carries its own, still-unresolved copy
-    // of this note for its own inline Post (a separate unit, out of this lane's scope).
+    // redirect keeps it, exactly as OD-0022 requires. MCPProbe.cs's own Post (:150-174 as of A16, this batch)
+    // now calls this same MCPWire.Post rather than carrying an inline copy, so it is covered by this same
+    // marking with no separate fix needed there; its comment is updated alongside this merge (B3 batch 4) to
+    // stop describing the gap as still open.
     public static async Task<MCPHTTPReply> Post(
         Uri to, IReadOnlyDictionary<string, string> headers, string? sessionID, JSONValue payload, int? id, double timeout)
     {
