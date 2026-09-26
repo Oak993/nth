@@ -6,7 +6,7 @@
       "title": "APIKeychain.key returns the stored Keychain value, else the caller's fallback; a capture run returns the empty string",
       "source_evidence": [
         "DroppyCode/Services/Providers/APIKeychain.swift:13-17 key(for:fallback:) - `static func key(for account: String, fallback: String) -> String {` / `guard !CaptureRun.isEnabled else { return \"\" }` / `if let keychain = read(account), !keychain.isEmpty { return keychain }` / `return fallback`",
-        "DroppyCode/Services/Providers/APIKeychain.swift:11-12 the doc comment: `/// A capture run reads nothing, so recorded sessions keep working without` / `/// touching the user's real credentials.`"
+        "DroppyCode/Services/Providers/APIKeychain.swift:8-9 the doc comment: `/// A capture run reads nothing, so recorded sessions keep working without` / `/// touching the user's real credentials.`"
       ],
       "preconditions": "A Keychain item may or may not exist for the account string.",
       "action": "Any caller asks for a provider's stored API key.",
@@ -28,7 +28,7 @@
       "depends_on_unknown": null,
       "deviation": {
         "decision": "OD-0008 B3",
-        "upstream": "DroppyCode/Services/Providers/APIKeychain.swift:29-39 stores each provider key in the macOS Keychain: `kSecClass as String: kSecClassGenericPassword,` / `kSecAttrService as String: AppInfo.name,` / `kSecAttrAccount as String: account,` then `SecItemAdd`, readable only through `SecItemCopyMatching` (:42-56).",
+        "upstream": "DroppyCode/Services/Providers/APIKeychain.swift:45-57 stores each provider key in the macOS Keychain: `kSecClass as String: kSecClassGenericPassword,` / `kSecAttrService as String: AppInfo.name,` / `kSecAttrAccount as String: account,` then `SecItemAdd`, readable only through `SecItemCopyMatching` (:42-56).",
         "port": "Secrets are stored in Windows Credential Manager, one generic credential per account string under the one service name the port uses in place of AppInfo.name (shared with the MCP secrets, as upstream), with the same trim and delete-then-add rules; a read returns the stored value, else the caller's fallback argument, as upstream."
       }
     },
@@ -36,7 +36,7 @@
       "id": "PR-PROVAPI-002",
       "title": "APIKeychain.setKey with an empty or whitespace-only value deletes the item and reports success",
       "source_evidence": [
-        "DroppyCode/Services/Providers/APIKeychain.swift:22-27 setKey - trims whitespace and newlines; an empty trimmed value calls delete(account) and returns true. B2: `static func setKey(_ key: String, account: String) -> Bool {` / `let trimmed = key.trimmed` / `if trimmed.isEmpty {` / `delete(account)` / `return true` (`.trimmed` is defined at DroppyCode/Core/Support/Text.swift:132 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, the same trim as before)"
+        "DroppyCode/Services/Providers/APIKeychain.swift:22-27 setKey - trims whitespace and newlines; an empty trimmed value calls delete(account) and returns true. B2: `static func setKey(_ key: String, account: String) -> Bool {` / `let trimmed = key.trimmed` / `if trimmed.isEmpty {` / `delete(account)` / `return true` (`.trimmed` is defined at DroppyCode/Core/Support/Text.swift:224 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, the same trim as before)"
       ],
       "preconditions": "An item may or may not exist for the account.",
       "action": "The user clears the API key field, or any caller stores an empty or whitespace-only string.",
@@ -56,7 +56,7 @@
       "depends_on_unknown": null,
       "deviation": {
         "decision": "OD-0008 B3",
-        "upstream": "DroppyCode/Services/Providers/APIKeychain.swift:29-39 stores each provider key in the macOS Keychain: `kSecClass as String: kSecClassGenericPassword,` / `kSecAttrService as String: AppInfo.name,` / `kSecAttrAccount as String: account,` then `SecItemAdd`, readable only through `SecItemCopyMatching` (:42-56).",
+        "upstream": "DroppyCode/Services/Providers/APIKeychain.swift:45-57 stores each provider key in the macOS Keychain: `kSecClass as String: kSecClassGenericPassword,` / `kSecAttrService as String: AppInfo.name,` / `kSecAttrAccount as String: account,` then `SecItemAdd`, readable only through `SecItemCopyMatching` (:42-56).",
         "port": "Secrets are stored in Windows Credential Manager, one generic credential per account string under the one service name the port uses in place of AppInfo.name (shared with the MCP secrets, as upstream), with the same trim and delete-then-add rules; a read returns the stored value, else the caller's fallback argument, as upstream."
       }
     },
@@ -64,7 +64,7 @@
       "id": "PR-PROVAPI-003",
       "title": "APIKeychain.setKey stores the trimmed key as a generic password under one service, delete-then-add",
       "source_evidence": [
-        "DroppyCode/Services/Providers/APIKeychain.swift:28-39 - Data(trimmed.utf8); query kSecClass kSecClassGenericPassword, kSecAttrService AppInfo.name, kSecAttrAccount account; SecItemDelete(query) then SecItemAdd with kSecValueData and kSecAttrAccessible kSecAttrAccessibleWhenUnlocked; returns whether SecItemAdd was errSecSuccess"
+        "DroppyCode/Services/Providers/APIKeychain.swift:44-57 - Data(trimmed.utf8); query kSecClass kSecClassGenericPassword, kSecAttrService AppInfo.name, kSecAttrAccount account; SecItemDelete(query) then SecItemAdd with kSecValueData and kSecAttrAccessible kSecAttrAccessibleWhenUnlocked; returns whether SecItemAdd was errSecSuccess"
       ],
       "preconditions": "A non-empty trimmed key.",
       "action": "A provider API key is saved.",
@@ -84,7 +84,7 @@
       "depends_on_unknown": null,
       "deviation": {
         "decision": "OD-0008 B3, A6",
-        "upstream": "DroppyCode/Services/Providers/APIKeychain.swift:29-39 stores each provider key in the macOS Keychain: `kSecClass as String: kSecClassGenericPassword,` / `kSecAttrService as String: AppInfo.name,` / `kSecAttrAccount as String: account,` then `SecItemAdd`, readable only through `SecItemCopyMatching` (:42-56). When SecItemAdd fails the caller keeps the key in plain text instead: DroppyCode/App/AppSettings.swift:371 `storeAPIKeyFallback(kept ? \"\" : deepseekAPIKeyInput, forKey: Key.deepseekAPIKey)` (and :382, :395, :406 for the other keys) with :492 `defaults.set(trimmed, forKey: key)`.",
+        "upstream": "DroppyCode/Services/Providers/APIKeychain.swift:45-57 stores each provider key in the macOS Keychain: `kSecClass as String: kSecClassGenericPassword,` / `kSecAttrService as String: AppInfo.name,` / `kSecAttrAccount as String: account,` then `SecItemAdd`, readable only through `SecItemCopyMatching` (:42-56). When SecItemAdd fails the caller keeps the key in plain text instead: DroppyCode/App/AppSettings.swift:371 `storeAPIKeyFallback(kept ? \"\" : deepseekAPIKeyInput, forKey: Key.deepseekAPIKey)` (and :382, :395, :406 for the other keys) with :492 `defaults.set(trimmed, forKey: key)`.",
         "port": "Secrets are stored in Windows Credential Manager, one generic credential per account string under the one service name the port uses in place of AppInfo.name (shared with the MCP secrets, as upstream), with the same trim and delete-then-add rules; a read returns the stored value, else the caller's fallback argument, as upstream. A false return is never followed by a plaintext copy anywhere (OD-0008 A6)."
       }
     },
@@ -92,7 +92,7 @@
       "id": "PR-PROVAPI-004",
       "title": "APIKeychain.read rejects a blank stored value and returns the trimmed key",
       "source_evidence": [
-        "DroppyCode/Services/Providers/APIKeychain.swift:42-56 read - query with kSecReturnData true and kSecMatchLimit kSecMatchLimitOne; requires errSecSuccess, Data, a UTF-8 decode and a non-blank trimmed value, then returns the trimmed value. B2: `guard SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess,` / `let data = item as? Data,` / `let key = String(data: data, encoding: .utf8),` / `!key.trimmed.isEmpty else { return nil }` / `return key.trimmed` (`.trimmed` is defined at DroppyCode/Core/Support/Text.swift:132 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, the same trim as before)"
+        "DroppyCode/Services/Providers/APIKeychain.swift:42-56 read - query with kSecReturnData true and kSecMatchLimit kSecMatchLimitOne; requires errSecSuccess, Data, a UTF-8 decode and a non-blank trimmed value, then returns the trimmed value. B2: `guard SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess,` / `let data = item as? Data,` / `let key = String(data: data, encoding: .utf8),` / `!key.trimmed.isEmpty else { return nil }` / `return key.trimmed` (`.trimmed` is defined at DroppyCode/Core/Support/Text.swift:224 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, the same trim as before)"
       ],
       "preconditions": "An item exists or does not.",
       "action": "The app reads a provider key.",
@@ -114,7 +114,7 @@
       "depends_on_unknown": null,
       "deviation": {
         "decision": "OD-0008 B3",
-        "upstream": "DroppyCode/Services/Providers/APIKeychain.swift:29-39 stores each provider key in the macOS Keychain: `kSecClass as String: kSecClassGenericPassword,` / `kSecAttrService as String: AppInfo.name,` / `kSecAttrAccount as String: account,` then `SecItemAdd`, readable only through `SecItemCopyMatching` (:42-56).",
+        "upstream": "DroppyCode/Services/Providers/APIKeychain.swift:45-57 stores each provider key in the macOS Keychain: `kSecClass as String: kSecClassGenericPassword,` / `kSecAttrService as String: AppInfo.name,` / `kSecAttrAccount as String: account,` then `SecItemAdd`, readable only through `SecItemCopyMatching` (:42-56).",
         "port": "Secrets are stored in Windows Credential Manager, one generic credential per account string under the one service name the port uses in place of AppInfo.name (shared with the MCP secrets, as upstream), with the same trim and delete-then-add rules; a read returns the stored value, else the caller's fallback argument, as upstream."
       }
     },
@@ -142,7 +142,7 @@
       "depends_on_unknown": null,
       "deviation": {
         "decision": "OD-0008 B3",
-        "upstream": "DroppyCode/Services/Providers/APIKeychain.swift:29-39 stores each provider key in the macOS Keychain: `kSecClass as String: kSecClassGenericPassword,` / `kSecAttrService as String: AppInfo.name,` / `kSecAttrAccount as String: account,` then `SecItemAdd`, readable only through `SecItemCopyMatching` (:42-56).",
+        "upstream": "DroppyCode/Services/Providers/APIKeychain.swift:45-57 stores each provider key in the macOS Keychain: `kSecClass as String: kSecClassGenericPassword,` / `kSecAttrService as String: AppInfo.name,` / `kSecAttrAccount as String: account,` then `SecItemAdd`, readable only through `SecItemCopyMatching` (:42-56).",
         "port": "Secrets are stored in Windows Credential Manager, one generic credential per account string under the one service name the port uses in place of AppInfo.name (shared with the MCP secrets, as upstream), with the same trim and delete-then-add rules; a read returns the stored value, else the caller's fallback argument, as upstream."
       }
     },
@@ -170,7 +170,7 @@
       "depends_on_unknown": null,
       "deviation": {
         "decision": "OD-0008 B3",
-        "upstream": "DroppyCode/Services/Providers/APIKeychain.swift:29-39 stores each provider key in the macOS Keychain: `kSecClass as String: kSecClassGenericPassword,` / `kSecAttrService as String: AppInfo.name,` / `kSecAttrAccount as String: account,` then `SecItemAdd`, readable only through `SecItemCopyMatching` (:42-56).",
+        "upstream": "DroppyCode/Services/Providers/APIKeychain.swift:45-57 stores each provider key in the macOS Keychain: `kSecClass as String: kSecClassGenericPassword,` / `kSecAttrService as String: AppInfo.name,` / `kSecAttrAccount as String: account,` then `SecItemAdd`, readable only through `SecItemCopyMatching` (:42-56).",
         "port": "Secrets are stored in Windows Credential Manager, one generic credential per account string under the one service name the port uses in place of AppInfo.name (shared with the MCP secrets, as upstream), with the same trim and delete-then-add rules; a read returns the stored value, else the caller's fallback argument, as upstream."
       }
     },
@@ -198,7 +198,7 @@
       "depends_on_unknown": null,
       "deviation": {
         "decision": "OD-0008 B3",
-        "upstream": "DroppyCode/Services/Providers/APIKeychain.swift:29-39 stores each provider key in the macOS Keychain: `kSecClass as String: kSecClassGenericPassword,` / `kSecAttrService as String: AppInfo.name,` / `kSecAttrAccount as String: account,` then `SecItemAdd`, readable only through `SecItemCopyMatching` (:42-56).",
+        "upstream": "DroppyCode/Services/Providers/APIKeychain.swift:45-57 stores each provider key in the macOS Keychain: `kSecClass as String: kSecClassGenericPassword,` / `kSecAttrService as String: AppInfo.name,` / `kSecAttrAccount as String: account,` then `SecItemAdd`, readable only through `SecItemCopyMatching` (:42-56).",
         "port": "Secrets are stored in Windows Credential Manager, one generic credential per account string under the one service name the port uses in place of AppInfo.name (shared with the MCP secrets, as upstream), with the same trim and delete-then-add rules; a read returns the stored value, else the caller's fallback argument, as upstream."
       }
     },
@@ -206,9 +206,9 @@
       "id": "PR-PROVAPI-008",
       "title": "Editing the DeepSeek key field writes the protected store; a key the store refuses is reported and never kept in plain text",
       "source_evidence": [
-        "DroppyCode/App/AppSettings.swift:367-373 deepseekAPIKeyInput didSet - `guard !isReadingKeychain, deepseekAPIKeyInput != oldValue else { return }` / `let kept = DeepSeekKeychain.setAPIKey(deepseekAPIKeyInput)` / `storeAPIKeyFallback(kept ? \"\" : deepseekAPIKeyInput, forKey: Key.deepseekAPIKey)`",
+        "DroppyCode/App/AppSettings.swift:367-371 deepseekAPIKeyInput didSet - `guard !isReadingKeychain, deepseekAPIKeyInput != oldValue else { return }` / `let kept = DeepSeekKeychain.setAPIKey(deepseekAPIKeyInput)` / `storeAPIKeyFallback(kept ? \"\" : deepseekAPIKeyInput, forKey: Key.deepseekAPIKey)`",
         "DroppyCode/App/AppSettings.swift:152 `static let deepseekAPIKey = \"deepseekAPIKey\"`",
-        "DroppyCode/App/AppSettings.swift:485-494 storeAPIKeyFallback - `/// The plaintext copy in defaults, for a Mac whose Keychain refused the key; an empty` ... `let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)` / `if trimmed.isEmpty {` / `defaults.removeObject(forKey: key)` / `} else {` / `defaults.set(trimmed, forKey: key)`"
+        "DroppyCode/App/AppSettings.swift:489-498 storeAPIKeyFallback - `/// The plaintext copy in defaults, for a Mac whose Keychain refused the key; an empty` ... `let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)` / `if trimmed.isEmpty {` / `defaults.removeObject(forKey: key)` / `} else {` / `defaults.set(trimmed, forKey: key)`"
       ],
       "preconditions": "Keys have been loaded (isReadingKeychain false) and the new value differs from the old one.",
       "action": "The user types or clears the DeepSeek API key in Settings, or setAPIKeyInput is called.",
@@ -232,7 +232,7 @@
       "blocked_by": null,
       "deviation": {
         "decision": "OD-0008 A6, B3; OD-0012 E5",
-        "upstream": "DroppyCode/App/AppSettings.swift:371 `storeAPIKeyFallback(kept ? \"\" : deepseekAPIKeyInput, forKey: Key.deepseekAPIKey)` with DroppyCode/App/AppSettings.swift:487-494 writing `defaults.set(trimmed, forKey: key)` for a non-empty value: a key the Keychain refused is kept in plain text in UserDefaults 'deepseekAPIKey', with nothing shown to the user. The store itself is the macOS Keychain: DroppyCode/Services/Providers/APIKeychain.swift:29-39 stores each provider key in the macOS Keychain: `kSecClass as String: kSecClassGenericPassword,` / `kSecAttrService as String: AppInfo.name,` / `kSecAttrAccount as String: account,` then `SecItemAdd`, readable only through `SecItemCopyMatching` (:42-56). DroppyCode/App/AppSettings.swift:371 with :485-494 shows nothing when the Keychain refuses the key, so upstream has no wording or placement for a refusal message.",
+        "upstream": "DroppyCode/App/AppSettings.swift:371 `storeAPIKeyFallback(kept ? \"\" : deepseekAPIKeyInput, forKey: Key.deepseekAPIKey)` with DroppyCode/App/AppSettings.swift:491-498 writing `defaults.set(trimmed, forKey: key)` for a non-empty value: a key the Keychain refused is kept in plain text in UserDefaults 'deepseekAPIKey', with nothing shown to the user. The store itself is the macOS Keychain: DroppyCode/Services/Providers/APIKeychain.swift:45-57 stores each provider key in the macOS Keychain: `kSecClass as String: kSecClassGenericPassword,` / `kSecAttrService as String: AppInfo.name,` / `kSecAttrAccount as String: account,` then `SecItemAdd`, readable only through `SecItemCopyMatching` (:42-56). DroppyCode/App/AppSettings.swift:371 with :485-494 shows nothing when the Keychain refuses the key, so upstream has no wording or placement for a refusal message.",
         "port": "A key the protected store refuses is reported to the user and nothing is stored; the key is never written in plain text. The removal of the settings entry after a successful store is kept. The protected store is Windows Credential Manager, one generic credential per account string under the one service name the port uses in place of AppInfo.name (OD-0008 B3). The refusal is shown under the key field as exactly: Credential Manager did not accept this key, so it was not saved. (OD-0012 E5)."
       }
     },
@@ -240,9 +240,9 @@
       "id": "PR-PROVAPI-009",
       "title": "Editing the Meta key field writes the protected store; a key the store refuses is reported and never kept in plain text",
       "source_evidence": [
-        "DroppyCode/App/AppSettings.swift:378-384 metaAPIKeyInput didSet - `guard !isReadingKeychain, metaAPIKeyInput != oldValue else { return }` / `let kept = MetaKeychain.setAPIKey(metaAPIKeyInput)` / `storeAPIKeyFallback(kept ? \"\" : metaAPIKeyInput, forKey: Key.metaAPIKey)`",
+        "DroppyCode/App/AppSettings.swift:376-380 metaAPIKeyInput didSet - `guard !isReadingKeychain, metaAPIKeyInput != oldValue else { return }` / `let kept = MetaKeychain.setAPIKey(metaAPIKeyInput)` / `storeAPIKeyFallback(kept ? \"\" : metaAPIKeyInput, forKey: Key.metaAPIKey)`",
         "DroppyCode/App/AppSettings.swift:153 `static let metaAPIKey = \"metaAPIKey\"`",
-        "DroppyCode/App/AppSettings.swift:485-494 storeAPIKeyFallback - `/// The plaintext copy in defaults, for a Mac whose Keychain refused the key; an empty` ... `let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)` / `if trimmed.isEmpty {` / `defaults.removeObject(forKey: key)` / `} else {` / `defaults.set(trimmed, forKey: key)`"
+        "DroppyCode/App/AppSettings.swift:489-498 storeAPIKeyFallback - `/// The plaintext copy in defaults, for a Mac whose Keychain refused the key; an empty` ... `let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)` / `if trimmed.isEmpty {` / `defaults.removeObject(forKey: key)` / `} else {` / `defaults.set(trimmed, forKey: key)`"
       ],
       "preconditions": "Keys loaded; value changed.",
       "action": "The user edits the Meta API key in Settings.",
@@ -266,7 +266,7 @@
       "blocked_by": null,
       "deviation": {
         "decision": "OD-0008 A6, B3; OD-0012 E5",
-        "upstream": "DroppyCode/App/AppSettings.swift:382 `storeAPIKeyFallback(kept ? \"\" : metaAPIKeyInput, forKey: Key.metaAPIKey)` with DroppyCode/App/AppSettings.swift:487-494 writing `defaults.set(trimmed, forKey: key)` for a non-empty value: a key the Keychain refused is kept in plain text in UserDefaults 'metaAPIKey', with nothing shown to the user. The store itself is the macOS Keychain: DroppyCode/Services/Providers/APIKeychain.swift:29-39 stores each provider key in the macOS Keychain: `kSecClass as String: kSecClassGenericPassword,` / `kSecAttrService as String: AppInfo.name,` / `kSecAttrAccount as String: account,` then `SecItemAdd`, readable only through `SecItemCopyMatching` (:42-56). DroppyCode/App/AppSettings.swift:382 with :485-494 shows nothing when the Keychain refuses the key, so upstream has no wording or placement for a refusal message.",
+        "upstream": "DroppyCode/App/AppSettings.swift:382 `storeAPIKeyFallback(kept ? \"\" : metaAPIKeyInput, forKey: Key.metaAPIKey)` with DroppyCode/App/AppSettings.swift:491-498 writing `defaults.set(trimmed, forKey: key)` for a non-empty value: a key the Keychain refused is kept in plain text in UserDefaults 'metaAPIKey', with nothing shown to the user. The store itself is the macOS Keychain: DroppyCode/Services/Providers/APIKeychain.swift:45-57 stores each provider key in the macOS Keychain: `kSecClass as String: kSecClassGenericPassword,` / `kSecAttrService as String: AppInfo.name,` / `kSecAttrAccount as String: account,` then `SecItemAdd`, readable only through `SecItemCopyMatching` (:42-56). DroppyCode/App/AppSettings.swift:382 with :485-494 shows nothing when the Keychain refuses the key, so upstream has no wording or placement for a refusal message.",
         "port": "A key the protected store refuses is reported to the user and nothing is stored; the key is never written in plain text. The removal of the settings entry after a successful store is kept. The protected store is Windows Credential Manager, one generic credential per account string under the one service name the port uses in place of AppInfo.name (OD-0008 B3). The refusal is shown under the key field as exactly: Credential Manager did not accept this key, so it was not saved. (OD-0012 E5)."
       }
     },
@@ -274,9 +274,9 @@
       "id": "PR-PROVAPI-010",
       "title": "Editing the Z.ai key field writes the protected store; a key the store refuses is reported and never kept in plain text",
       "source_evidence": [
-        "DroppyCode/App/AppSettings.swift:391-397 zaiAPIKeyInput didSet - `guard !isReadingKeychain, zaiAPIKeyInput != oldValue else { return }` / `let kept = ZaiKeychain.setAPIKey(zaiAPIKeyInput)` / `storeAPIKeyFallback(kept ? \"\" : zaiAPIKeyInput, forKey: Key.zaiAPIKey)`",
+        "DroppyCode/App/AppSettings.swift:387-391 zaiAPIKeyInput didSet - `guard !isReadingKeychain, zaiAPIKeyInput != oldValue else { return }` / `let kept = ZaiKeychain.setAPIKey(zaiAPIKeyInput)` / `storeAPIKeyFallback(kept ? \"\" : zaiAPIKeyInput, forKey: Key.zaiAPIKey)`",
         "DroppyCode/App/AppSettings.swift:154 `static let zaiAPIKey = \"zaiAPIKey\"`",
-        "DroppyCode/App/AppSettings.swift:485-494 storeAPIKeyFallback - `/// The plaintext copy in defaults, for a Mac whose Keychain refused the key; an empty` ... `let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)` / `if trimmed.isEmpty {` / `defaults.removeObject(forKey: key)` / `} else {` / `defaults.set(trimmed, forKey: key)`"
+        "DroppyCode/App/AppSettings.swift:489-498 storeAPIKeyFallback - `/// The plaintext copy in defaults, for a Mac whose Keychain refused the key; an empty` ... `let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)` / `if trimmed.isEmpty {` / `defaults.removeObject(forKey: key)` / `} else {` / `defaults.set(trimmed, forKey: key)`"
       ],
       "preconditions": "Keys loaded; value changed.",
       "action": "The user edits the Z.ai API key in Settings.",
@@ -300,7 +300,7 @@
       "blocked_by": null,
       "deviation": {
         "decision": "OD-0008 A6, B3; OD-0012 E5",
-        "upstream": "DroppyCode/App/AppSettings.swift:395 `storeAPIKeyFallback(kept ? \"\" : zaiAPIKeyInput, forKey: Key.zaiAPIKey)` with DroppyCode/App/AppSettings.swift:487-494 writing `defaults.set(trimmed, forKey: key)` for a non-empty value: a key the Keychain refused is kept in plain text in UserDefaults 'zaiAPIKey', with nothing shown to the user. The store itself is the macOS Keychain: DroppyCode/Services/Providers/APIKeychain.swift:29-39 stores each provider key in the macOS Keychain: `kSecClass as String: kSecClassGenericPassword,` / `kSecAttrService as String: AppInfo.name,` / `kSecAttrAccount as String: account,` then `SecItemAdd`, readable only through `SecItemCopyMatching` (:42-56). DroppyCode/App/AppSettings.swift:395 with :485-494 shows nothing when the Keychain refuses the key, so upstream has no wording or placement for a refusal message.",
+        "upstream": "DroppyCode/App/AppSettings.swift:395 `storeAPIKeyFallback(kept ? \"\" : zaiAPIKeyInput, forKey: Key.zaiAPIKey)` with DroppyCode/App/AppSettings.swift:491-498 writing `defaults.set(trimmed, forKey: key)` for a non-empty value: a key the Keychain refused is kept in plain text in UserDefaults 'zaiAPIKey', with nothing shown to the user. The store itself is the macOS Keychain: DroppyCode/Services/Providers/APIKeychain.swift:45-57 stores each provider key in the macOS Keychain: `kSecClass as String: kSecClassGenericPassword,` / `kSecAttrService as String: AppInfo.name,` / `kSecAttrAccount as String: account,` then `SecItemAdd`, readable only through `SecItemCopyMatching` (:42-56). DroppyCode/App/AppSettings.swift:395 with :485-494 shows nothing when the Keychain refuses the key, so upstream has no wording or placement for a refusal message.",
         "port": "A key the protected store refuses is reported to the user and nothing is stored; the key is never written in plain text. The removal of the settings entry after a successful store is kept. The protected store is Windows Credential Manager, one generic credential per account string under the one service name the port uses in place of AppInfo.name (OD-0008 B3). The refusal is shown under the key field as exactly: Credential Manager did not accept this key, so it was not saved. (OD-0012 E5)."
       }
     },
@@ -308,7 +308,7 @@
       "id": "PR-PROVAPI-011",
       "title": "The key fallback writer keeps only its clearing half: an empty value removes the settings entry, and no key is ever written there",
       "source_evidence": [
-        "DroppyCode/App/AppSettings.swift:485-494 storeAPIKeyFallback - trims whitespace and newlines; an empty value removes the object, otherwise sets the trimmed value. B2: `private func storeAPIKeyFallback(_ value: String, forKey key: String) {` / `let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)` / `if trimmed.isEmpty {` / `defaults.removeObject(forKey: key)` / `} else {` / `defaults.set(trimmed, forKey: key)`",
+        "DroppyCode/App/AppSettings.swift:489-498 storeAPIKeyFallback - trims whitespace and newlines; an empty value removes the object, otherwise sets the trimmed value. B2: `private func storeAPIKeyFallback(_ value: String, forKey key: String) {` / `let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)` / `if trimmed.isEmpty {` / `defaults.removeObject(forKey: key)` / `} else {` / `defaults.set(trimmed, forKey: key)`",
         "DroppyCode/App/AppSettings.swift:371 `storeAPIKeyFallback(kept ? \"\" : deepseekAPIKeyInput, forKey: Key.deepseekAPIKey)`, :382 `storeAPIKeyFallback(kept ? \"\" : metaAPIKeyInput, forKey: Key.metaAPIKey)`, :395 `storeAPIKeyFallback(kept ? \"\" : zaiAPIKeyInput, forKey: Key.zaiAPIKey)` and :406 `storeAPIKeyFallback(kept ? \"\" : commandcodeAPIKeyInput, forKey: Key.commandcodeAPIKey)` - the empty value arrives exactly when the Keychain accepted the key"
       ],
       "preconditions": "A fallback write is requested.",
@@ -328,7 +328,7 @@
       "blocked_by": null,
       "deviation": {
         "decision": "OD-0008 A6",
-        "upstream": "DroppyCode/App/AppSettings.swift:487-494 `defaults.set(trimmed, forKey: key)` for a non-empty value: the fallback writer stores a refused key in plain text in UserDefaults.",
+        "upstream": "DroppyCode/App/AppSettings.swift:491-498 `defaults.set(trimmed, forKey: key)` for a non-empty value: the fallback writer stores a refused key in plain text in UserDefaults.",
         "port": "Only the clearing half is kept: an empty value removes the entry; a non-empty key is never written to the settings store."
       }
     },
@@ -336,10 +336,10 @@
       "id": "PR-PROVAPI-012",
       "title": "Key fields start empty at launch and are filled from the Keychain once, off the main thread",
       "source_evidence": [
-        "DroppyCode/App/AppSettings.swift:740-744 - deepseekAPIKeyInput, metaAPIKeyInput and zaiAPIKeyInput are set to the empty string during init, with the comment that the Keychain is read later",
-        "DroppyCode/App/AppSettings.swift:454-457 readKeychainIfNeeded",
-        "DroppyCode/App/AppSettings.swift:461-466 loadKeychainInBackground - detached at userInitiated priority, guarded by didReadKeychain",
-        "DroppyCode/App/AppSettings.swift:442-449 readKeys - one Keychain round trip per key"
+        "DroppyCode/App/AppSettings.swift:744-748 - deepseekAPIKeyInput, metaAPIKeyInput and zaiAPIKeyInput are set to the empty string during init, with the comment that the Keychain is read later",
+        "DroppyCode/App/AppSettings.swift:450-453 readKeychainIfNeeded",
+        "DroppyCode/App/AppSettings.swift:457-462 loadKeychainInBackground - detached at userInitiated priority, guarded by didReadKeychain",
+        "DroppyCode/App/AppSettings.swift:434-441 readKeys - one Keychain round trip per key"
       ],
       "preconditions": "App launch.",
       "action": "The app starts and later something asks for a key, or the background load runs.",
@@ -349,7 +349,7 @@
       ],
       "persistence": "none",
       "failure_cases": [
-        "Upstream: a Keychain read that returns nothing fills the field from the UserDefaults plaintext copy (DroppyCode/App/AppSettings.swift:420-421 `inKeychain = !keychain.isEmpty` / `value = inKeychain ? keychain : fallback`, with the fallbacks read at :434-437). Port: nothing ever writes that copy (OD-0008 A6) and none is read, so a Credential Manager read that returns nothing leaves the field empty, as PR-PROVREG-089 specifies."
+        "Upstream: a Keychain read that returns nothing fills the field from the UserDefaults plaintext copy (DroppyCode/App/AppSettings.swift:412-413 `inKeychain = !keychain.isEmpty` / `value = inKeychain ? keychain : fallback`, with the fallbacks read at :434-437). Port: nothing ever writes that copy (OD-0008 A6) and none is read, so a Credential Manager read that returns nothing leaves the field empty, as PR-PROVREG-089 specifies."
       ],
       "cancellation": "not cancellable",
       "windows_path": "Deferred, single, off-the-UI-thread Credential Manager read (OD-0008 B3), one query per account, never before the first frame. No plaintext fallback is read (OD-0008 A6): a field whose account holds nothing stays empty.",
@@ -360,7 +360,7 @@
       "depends_on_unknown": null,
       "deviation": {
         "decision": "OD-0008 B3, A6",
-        "upstream": "DroppyCode/Services/Providers/APIKeychain.swift:29-39 stores each provider key in the macOS Keychain: `kSecClass as String: kSecClassGenericPassword,` / `kSecAttrService as String: AppInfo.name,` / `kSecAttrAccount as String: account,` then `SecItemAdd`, readable only through `SecItemCopyMatching` (:42-56). Each field is then filled from the Keychain value or, when that is empty, from the UserDefaults plaintext copy: DroppyCode/App/AppSettings.swift:420-421 `inKeychain = !keychain.isEmpty` / `value = inKeychain ? keychain : fallback`, the fallbacks coming from `defaults.string(forKey: Key.deepseekAPIKey) ?? \"\"` and its siblings (:434-437).",
+        "upstream": "DroppyCode/Services/Providers/APIKeychain.swift:45-57 stores each provider key in the macOS Keychain: `kSecClass as String: kSecClassGenericPassword,` / `kSecAttrService as String: AppInfo.name,` / `kSecAttrAccount as String: account,` then `SecItemAdd`, readable only through `SecItemCopyMatching` (:42-56). Each field is then filled from the Keychain value or, when that is empty, from the UserDefaults plaintext copy: DroppyCode/App/AppSettings.swift:412-413 `inKeychain = !keychain.isEmpty` / `value = inKeychain ? keychain : fallback`, the fallbacks coming from `defaults.string(forKey: Key.deepseekAPIKey) ?? \"\"` and its siblings (:434-437).",
         "port": "Keys are read from Windows Credential Manager, one generic credential per account string under the one service name the port uses in place of AppInfo.name, once and off the UI thread. No plaintext fallback is read, because the port never writes one (OD-0008 A6); an account that holds nothing leaves its field empty."
       }
     },
@@ -368,7 +368,7 @@
       "id": "PR-PROVAPI-013",
       "title": "Filling the key fields does not write them back, and clears any now-redundant plaintext copy",
       "source_evidence": [
-        "DroppyCode/App/AppSettings.swift:468-483 fillKeys - sets didReadKeychain, raises isReadingKeychain around the assignments, then removes the UserDefaults entry for each key the Keychain holds"
+        "DroppyCode/App/AppSettings.swift:464-479 fillKeys - sets didReadKeychain, raises isReadingKeychain around the assignments, then removes the UserDefaults entry for each key the Keychain holds"
       ],
       "preconditions": "Stored keys have just been read.",
       "action": "fillKeys runs.",
@@ -388,7 +388,7 @@
       "depends_on_unknown": null,
       "deviation": {
         "decision": "OD-0008 B3, A6",
-        "upstream": "DroppyCode/App/AppSettings.swift:472-475 fill each field with StoredKey.value, which is the Keychain value or the UserDefaults plaintext copy (:419-422), then :479-482 `if keys.deepseek.inKeychain { defaults.removeObject(forKey: Key.deepseekAPIKey) }` and its siblings clear the copy once the Keychain holds the key.",
+        "upstream": "DroppyCode/App/AppSettings.swift:468-471 fill each field with StoredKey.value, which is the Keychain value or the UserDefaults plaintext copy (:419-422), then :479-482 `if keys.deepseek.inKeychain { defaults.removeObject(forKey: Key.deepseekAPIKey) }` and its siblings clear the copy once the Keychain holds the key.",
         "port": "The fields are filled from Windows Credential Manager only; no plaintext copy is read into them (OD-0008 A6). The removal of any legacy settings entry for an account the store holds is kept."
       }
     },
@@ -396,7 +396,7 @@
       "id": "PR-PROVAPI-014",
       "title": "The key sent to an API provider falls back to its environment variable when nothing is stored",
       "source_evidence": [
-        "DroppyCode/App/AppSettings.swift:904-916 apiKey(for:) - trims the stored input, and when empty reads provider.apiKeyEnvVar from LoginEnvironment.current, trimmed",
+        "DroppyCode/App/AppSettings.swift:908-920 apiKey(for:) - trims the stored input, and when empty reads provider.apiKeyEnvVar from LoginEnvironment.current, trimmed",
         "DroppyCode/Core/Models/Provider.swift:133-141 apiKeyEnvVar - deepseek DEEPSEEK_API_KEY, meta MODEL_API_KEY, zai ZAI_API_KEY",
         "DroppyCode/Core/Models/Provider.swift:109 acceptsAPIKey"
       ],
@@ -445,7 +445,7 @@
       "id": "PR-PROVAPI-016",
       "title": "DeepSeek key validation is a models list with a 15 second timeout",
       "source_evidence": [
-        "DroppyCode/Services/Providers/DeepSeekAPI.swift:13-22 validate(apiKey:) - trims, returns false for empty, URLRequest(url: modelsURL, timeoutInterval: 15), header Authorization 'Bearer <key>', header Accept application/json, true only when the HTTP status is 200. B2: `let key = apiKey.trimmed` / `guard !key.isEmpty else { return false }` / `var request = URLRequest(url: modelsURL, timeoutInterval: 15)` / `request.setValue(\"Bearer \\(key)\", forHTTPHeaderField: \"Authorization\")` / `request.setValue(\"application/json\", forHTTPHeaderField: \"Accept\")` / `return http.statusCode == 200` (`.trimmed` is defined at DroppyCode/Core/Support/Text.swift:132 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, the same trim as before)"
+        "DroppyCode/Services/Providers/DeepSeekAPI.swift:13-15 validate(apiKey:) - trims, returns false for empty, URLRequest(url: modelsURL, timeoutInterval: 15), header Authorization 'Bearer <key>', header Accept application/json, true only when the HTTP status is 200. B2: `let key = apiKey.trimmed` / `guard !key.isEmpty else { return false }` / `var request = URLRequest(url: modelsURL, timeoutInterval: 15)` / `request.setValue(\"Bearer \\(key)\", forHTTPHeaderField: \"Authorization\")` / `request.setValue(\"application/json\", forHTTPHeaderField: \"Accept\")` / `return http.statusCode == 200` (`.trimmed` is defined at DroppyCode/Core/Support/Text.swift:224 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, the same trim as before)"
       ],
       "preconditions": "A key string, possibly empty.",
       "action": "The registry checks the DeepSeek key.",
@@ -471,7 +471,7 @@
       "id": "PR-PROVAPI-017",
       "title": "DeepSeek model catalog fetch parses data[].id and sorts the default first",
       "source_evidence": [
-        "DroppyCode/Services/Providers/DeepSeekAPI.swift:24-38 listModels - an empty key returns an empty list; GET modelsURL with the same two headers and a 15 second timeout; a non-200 or unparseable body returns an empty list; ids are json data[].id; no ids returns an empty list; ids map through option(for:) and sort by (isDefault ? 0 : 1, id) ascending. B2: `let key = apiKey.trimmed` / `guard !key.isEmpty else { return [] }` / `guard (response as? HTTPURLResponse)?.statusCode == 200,` / `let json = JSONValue.parse(data) else { return [] }` / `let ids = (json[\"data\"]?.array ?? []).compactMap { $0[\"id\"]?.string }` / `(lhs.isDefault ? 0 : 1, lhs.id) < (rhs.isDefault ? 0 : 1, rhs.id)` (`.trimmed` is defined at DroppyCode/Core/Support/Text.swift:132 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, the same trim as before)"
+        "DroppyCode/Services/Providers/DeepSeekAPI.swift:17-19 listModels - an empty key returns an empty list; GET modelsURL with the same two headers and a 15 second timeout; a non-200 or unparseable body returns an empty list; ids are json data[].id; no ids returns an empty list; ids map through option(for:) and sort by (isDefault ? 0 : 1, id) ascending. B2: `let key = apiKey.trimmed` / `guard !key.isEmpty else { return [] }` / `guard (response as? HTTPURLResponse)?.statusCode == 200,` / `let json = JSONValue.parse(data) else { return [] }` / `let ids = (json[\"data\"]?.array ?? []).compactMap { $0[\"id\"]?.string }` / `(lhs.isDefault ? 0 : 1, lhs.id) < (rhs.isDefault ? 0 : 1, rhs.id)` (`.trimmed` is defined at DroppyCode/Core/Support/Text.swift:224 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, the same trim as before)"
       ],
       "preconditions": "A non-empty key.",
       "action": "The registry loads the DeepSeek catalog.",
@@ -498,8 +498,8 @@
       "id": "PR-PROVAPI-018",
       "title": "DeepSeek model option for deepseek-v4-pro",
       "source_evidence": [
-        "DroppyCode/Services/Providers/DeepSeekAPI.swift:81-82 - ModelOption(id: \"deepseek-v4-pro\", name: \"V4 Pro\", detail: \"Best reasoning and coding quality\", efforts: deepseekEfforts, defaultEffort: \"high\", isDefault: true)",
-        "DroppyCode/Services/Providers/DeepSeekAPI.swift:70 deepseekEfforts = [\"low\", \"high\", \"max\"]"
+        "DroppyCode/Services/Providers/DeepSeekAPI.swift:60-61 - ModelOption(id: \"deepseek-v4-pro\", name: \"V4 Pro\", detail: \"Best reasoning and coding quality\", efforts: deepseekEfforts, defaultEffort: \"high\", isDefault: true)",
+        "DroppyCode/Services/Providers/DeepSeekAPI.swift:49 deepseekEfforts = [\"low\", \"high\", \"max\"]"
       ],
       "preconditions": "The id appears in the catalog or the seed.",
       "action": "The model picker is populated.",
@@ -519,7 +519,7 @@
       "id": "PR-PROVAPI-019",
       "title": "DeepSeek model option for deepseek-flash",
       "source_evidence": [
-        "DroppyCode/Services/Providers/DeepSeekAPI.swift:83-84 - ModelOption(id: \"deepseek-flash\", name: \"V4.1 Flash\", detail: \"Newest, fast, reads images\", efforts: deepseekEfforts, defaultEffort: \"high\")"
+        "DroppyCode/Services/Providers/DeepSeekAPI.swift:62-63 - ModelOption(id: \"deepseek-flash\", name: \"V4.1 Flash\", detail: \"Newest, fast, reads images\", efforts: deepseekEfforts, defaultEffort: \"high\")"
       ],
       "preconditions": "The id appears in the catalog or the seed.",
       "action": "The model picker is populated.",
@@ -539,8 +539,8 @@
       "id": "PR-PROVAPI-020",
       "title": "Four retired DeepSeek ids are never offered",
       "source_evidence": [
-        "DroppyCode/Services/Providers/DeepSeekAPI.swift:85-86 - the ids \"deepseek-v4-flash\", \"deepseek-v4-flash-vision-exp\", \"deepseek-chat\" and \"deepseek-reasoner\" return nil",
-        "DroppyCode/Services/Providers/DeepSeekAPI.swift:75-78 comment recording why"
+        "DroppyCode/Services/Providers/DeepSeekAPI.swift:64-65 - the ids \"deepseek-v4-flash\", \"deepseek-v4-flash-vision-exp\", \"deepseek-chat\" and \"deepseek-reasoner\" return nil",
+        "DroppyCode/Services/Providers/DeepSeekAPI.swift:54-57 comment recording why"
       ],
       "preconditions": "The API lists one of those ids.",
       "action": "The catalog is built.",
@@ -562,7 +562,7 @@
       "id": "PR-PROVAPI-021",
       "title": "Any other DeepSeek id is offered under its own id as its name",
       "source_evidence": [
-        "DroppyCode/Services/Providers/DeepSeekAPI.swift:87-91 default - ModelOption(id: id, name: id, efforts: deepseekEfforts, defaultEffort: \"high\") with no detail and not the default"
+        "DroppyCode/Services/Providers/DeepSeekAPI.swift:66-70 default - ModelOption(id: id, name: id, efforts: deepseekEfforts, defaultEffort: \"high\") with no detail and not the default"
       ],
       "preconditions": "The API lists an id not covered by the earlier cases.",
       "action": "The catalog is built.",
@@ -582,7 +582,7 @@
       "id": "PR-PROVAPI-022",
       "title": "Only three DeepSeek ids count as vision models",
       "source_evidence": [
-        "DroppyCode/Services/Providers/DeepSeekAPI.swift:96-98 isVisionModel - membership in [\"deepseek-flash\", \"deepseek-v4-flash\", \"deepseek-v4-flash-vision-exp\"], with a nil id treated as the empty string"
+        "DroppyCode/Services/Providers/DeepSeekAPI.swift:75-77 isVisionModel - membership in [\"deepseek-flash\", \"deepseek-v4-flash\", \"deepseek-v4-flash-vision-exp\"], with a nil id treated as the empty string"
       ],
       "preconditions": "The thread has image attachments.",
       "action": "A user message with images is built for DeepSeek.",
@@ -604,7 +604,7 @@
       "id": "PR-PROVAPI-023",
       "title": "DeepSeek context window is 1048576 tokens for every DeepSeek model",
       "source_evidence": [
-        "DroppyCode/Services/Providers/DeepSeekAPI.swift:72-73 contextWindow = 1_048_576 with the source note that both current models have a 1M context",
+        "DroppyCode/Services/Providers/DeepSeekAPI.swift:51-52 contextWindow = 1_048_576 with the source note that both current models have a 1M context",
         "DroppyCode/Services/Providers/DeepSeekSession.swift:14 contextWindow: DeepSeekAPI.contextWindow"
       ],
       "preconditions": "A DeepSeek response reports usage.",
@@ -625,7 +625,7 @@
       "id": "PR-PROVAPI-024",
       "title": "DeepSeek prepaid balance is read from the user balance endpoint",
       "source_evidence": [
-        "DroppyCode/Services/Providers/DeepSeekAPI.swift:43-53 balance(apiKey:) - an empty key returns nil; GET balanceURL with Authorization Bearer and Accept application/json and a 15 second timeout; nil unless the status is 200 and the body parses. B2: `let key = apiKey.trimmed` / `guard !key.isEmpty else { return nil }` / `var request = URLRequest(url: balanceURL, timeoutInterval: 15)` / `(response as? HTTPURLResponse)?.statusCode == 200,` / `let json = JSONValue.parse(data) else { return nil }` / `return credits(from: json)` (`.trimmed` is defined at DroppyCode/Core/Support/Text.swift:132 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, the same trim as before)"
+        "DroppyCode/Services/Providers/DeepSeekAPI.swift:24-32 balance(apiKey:) - an empty key returns nil; GET balanceURL with Authorization Bearer and Accept application/json and a 15 second timeout; nil unless the status is 200 and the body parses. B2: `let key = apiKey.trimmed` / `guard !key.isEmpty else { return nil }` / `var request = URLRequest(url: balanceURL, timeoutInterval: 15)` / `(response as? HTTPURLResponse)?.statusCode == 200,` / `let json = JSONValue.parse(data) else { return nil }` / `return credits(from: json)` (`.trimmed` is defined at DroppyCode/Core/Support/Text.swift:224 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, the same trim as before)"
       ],
       "preconditions": "A non-empty DeepSeek key that has just validated.",
       "action": "The usage panel refreshes DeepSeek credits.",
@@ -649,7 +649,7 @@
       "id": "PR-PROVAPI-025",
       "title": "DeepSeek balance JSON parsing, with string amounts, first-entry-only and a default availability of true",
       "source_evidence": [
-        "DroppyCode/Services/Providers/DeepSeekAPI.swift:55-68 credits(from:) - requires balance_infos first entry and a total_balance string parseable as a Double; currency defaults to the empty string; toppedUp from topped_up_balance and granted from granted_balance, both optional; isUsable from is_available defaulting to true"
+        "DroppyCode/Services/Providers/DeepSeekAPI.swift:34-47 credits(from:) - requires balance_infos first entry and a total_balance string parseable as a Double; currency defaults to the empty string; toppedUp from topped_up_balance and granted from granted_balance, both optional; isUsable from is_available defaulting to true"
       ],
       "preconditions": "A parsed balance response.",
       "action": "Credits are built.",
@@ -869,7 +869,7 @@
       "id": "PR-PROVAPI-035",
       "title": "Meta key validation is a models list with a 15 second timeout",
       "source_evidence": [
-        "DroppyCode/Services/Providers/MetaAPI.swift:25-34 validate(apiKey:) - trim, empty false, GET modelsURL, Authorization Bearer, Accept application/json, timeoutInterval 15, true only on status 200. B2: `let key = apiKey.trimmed` / `guard !key.isEmpty else { return false }` / `var request = URLRequest(url: modelsURL, timeoutInterval: 15)` / `return http.statusCode == 200` (`.trimmed` is defined at DroppyCode/Core/Support/Text.swift:132 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, the same trim as before)"
+        "DroppyCode/Services/Providers/MetaAPI.swift:25-27 validate(apiKey:) - trim, empty false, GET modelsURL, Authorization Bearer, Accept application/json, timeoutInterval 15, true only on status 200. B2: `let key = apiKey.trimmed` / `guard !key.isEmpty else { return false }` / `var request = URLRequest(url: modelsURL, timeoutInterval: 15)` / `return http.statusCode == 200` (`.trimmed` is defined at DroppyCode/Core/Support/Text.swift:224 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, the same trim as before)"
       ],
       "preconditions": "A key string.",
       "action": "The registry checks the Meta key.",
@@ -893,7 +893,7 @@
       "id": "PR-PROVAPI-036",
       "title": "Meta catalog fetch parses data[].id and sorts the default first",
       "source_evidence": [
-        "DroppyCode/Services/Providers/MetaAPI.swift:36-50 listModels - ids from json data[].id, mapped through option(for:), sorted by (isDefault ? 0 : 1, id). B2: `let key = apiKey.trimmed` / `guard !key.isEmpty else { return [] }` / `let ids = (json[\"data\"]?.array ?? []).compactMap { $0[\"id\"]?.string }` / `return ids.compactMap(Self.option(for:)).sorted { lhs, rhs in` / `(lhs.isDefault ? 0 : 1, lhs.id) < (rhs.isDefault ? 0 : 1, rhs.id)` (`.trimmed` is defined at DroppyCode/Core/Support/Text.swift:132 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, the same trim as before)"
+        "DroppyCode/Services/Providers/MetaAPI.swift:29-31 listModels - ids from json data[].id, mapped through option(for:), sorted by (isDefault ? 0 : 1, id). B2: `let key = apiKey.trimmed` / `guard !key.isEmpty else { return [] }` / `let ids = (json[\"data\"]?.array ?? []).compactMap { $0[\"id\"]?.string }` / `return ids.compactMap(Self.option(for:)).sorted { lhs, rhs in` / `(lhs.isDefault ? 0 : 1, lhs.id) < (rhs.isDefault ? 0 : 1, rhs.id)` (`.trimmed` is defined at DroppyCode/Core/Support/Text.swift:224 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, the same trim as before)"
       ],
       "preconditions": "A non-empty key.",
       "action": "The registry loads the Meta catalog.",
@@ -917,8 +917,8 @@
       "id": "PR-PROVAPI-037",
       "title": "Only muse-spark-1.3 offers the 'max' effort; every other Meta model offers five",
       "source_evidence": [
-        "DroppyCode/Services/Providers/MetaAPI.swift:55-60 - maxEfforts [\"minimal\", \"low\", \"medium\", \"high\", \"xhigh\", \"max\"], standardEfforts [\"minimal\", \"low\", \"medium\", \"high\", \"xhigh\"], efforts(for:) returns maxEfforts only for the exact id \"muse-spark-1.3\"",
-        "DroppyCode/Services/Providers/MetaAPI.swift:52-54 comment recording the live probe on 2026-09-13"
+        "DroppyCode/Services/Providers/MetaAPI.swift:36-41 - maxEfforts [\"minimal\", \"low\", \"medium\", \"high\", \"xhigh\", \"max\"], standardEfforts [\"minimal\", \"low\", \"medium\", \"high\", \"xhigh\"], efforts(for:) returns maxEfforts only for the exact id \"muse-spark-1.3\"",
+        "DroppyCode/Services/Providers/MetaAPI.swift:33-35 comment recording the live probe on 2026-09-13"
       ],
       "preconditions": "A Meta model is selected.",
       "action": "The effort slider is populated.",
@@ -940,7 +940,7 @@
       "id": "PR-PROVAPI-038",
       "title": "Meta model option for muse-spark-1.3",
       "source_evidence": [
-        "DroppyCode/Services/Providers/MetaAPI.swift:65-66 - ModelOption(id: \"muse-spark-1.3\", name: \"Spark 1.3\", detail: \"Latest Muse Spark · best agentic coding · 1M context\", efforts: efforts, defaultEffort: \"high\", isDefault: true)"
+        "DroppyCode/Services/Providers/MetaAPI.swift:46-47 - ModelOption(id: \"muse-spark-1.3\", name: \"Spark 1.3\", detail: \"Latest Muse Spark · best agentic coding · 1M context\", efforts: efforts, defaultEffort: \"high\", isDefault: true)"
       ],
       "preconditions": "The id is listed or seeded.",
       "action": "The model picker is populated.",
@@ -960,7 +960,7 @@
       "id": "PR-PROVAPI-039",
       "title": "Meta model option for muse-spark-1.3-contributor",
       "source_evidence": [
-        "DroppyCode/Services/Providers/MetaAPI.swift:67-68 - ModelOption(id: \"muse-spark-1.3-contributor\", name: \"Spark 1.3 Contributor\", detail: \"Cheaper 1.3 · Meta may train on your chats · no max effort\", efforts: efforts, defaultEffort: \"high\")"
+        "DroppyCode/Services/Providers/MetaAPI.swift:48-49 - ModelOption(id: \"muse-spark-1.3-contributor\", name: \"Spark 1.3 Contributor\", detail: \"Cheaper 1.3 · Meta may train on your chats · no max effort\", efforts: efforts, defaultEffort: \"high\")"
       ],
       "preconditions": "The id is listed or seeded.",
       "action": "The model picker is populated.",
@@ -980,7 +980,7 @@
       "id": "PR-PROVAPI-040",
       "title": "Meta model option for muse-spark-1.2",
       "source_evidence": [
-        "DroppyCode/Services/Providers/MetaAPI.swift:69-70 - ModelOption(id: \"muse-spark-1.2\", name: \"Spark 1.2\", detail: \"Previous checkpoint · Standard tier · 1M context\", efforts: efforts, defaultEffort: \"high\")"
+        "DroppyCode/Services/Providers/MetaAPI.swift:50-51 - ModelOption(id: \"muse-spark-1.2\", name: \"Spark 1.2\", detail: \"Previous checkpoint · Standard tier · 1M context\", efforts: efforts, defaultEffort: \"high\")"
       ],
       "preconditions": "The id is listed or seeded.",
       "action": "The model picker is populated.",
@@ -1000,7 +1000,7 @@
       "id": "PR-PROVAPI-041",
       "title": "Meta model option for muse-spark-1.2-contributor",
       "source_evidence": [
-        "DroppyCode/Services/Providers/MetaAPI.swift:71-72 - ModelOption(id: \"muse-spark-1.2-contributor\", name: \"Spark 1.2 Contributor\", detail: \"Cheaper 1.2 · Meta may train on your chats\", efforts: efforts, defaultEffort: \"high\")"
+        "DroppyCode/Services/Providers/MetaAPI.swift:52-53 - ModelOption(id: \"muse-spark-1.2-contributor\", name: \"Spark 1.2 Contributor\", detail: \"Cheaper 1.2 · Meta may train on your chats\", efforts: efforts, defaultEffort: \"high\")"
       ],
       "preconditions": "The id is listed or seeded.",
       "action": "The model picker is populated.",
@@ -1020,7 +1020,7 @@
       "id": "PR-PROVAPI-042",
       "title": "Meta model option for muse-spark-1.1",
       "source_evidence": [
-        "DroppyCode/Services/Providers/MetaAPI.swift:73-74 - ModelOption(id: \"muse-spark-1.1\", name: \"Spark 1.1\", detail: \"Original checkpoint · Standard tier · 1M context\", efforts: efforts, defaultEffort: \"high\")"
+        "DroppyCode/Services/Providers/MetaAPI.swift:54-55 - ModelOption(id: \"muse-spark-1.1\", name: \"Spark 1.1\", detail: \"Original checkpoint · Standard tier · 1M context\", efforts: efforts, defaultEffort: \"high\")"
       ],
       "preconditions": "The id is listed or seeded.",
       "action": "The model picker is populated.",
@@ -1040,8 +1040,8 @@
       "id": "PR-PROVAPI-043",
       "title": "Only ids beginning with 'muse-spark' are offered by Meta; other listed models are dropped",
       "source_evidence": [
-        "DroppyCode/Services/Providers/MetaAPI.swift:75-81 default - requires id.lowercased().hasPrefix(\"muse-spark\"), else nil; otherwise ModelOption(id: id, name: id, efforts: efforts, defaultEffort: \"high\")",
-        "DroppyCode/Services/Providers/MetaAPI.swift:76-78 comment naming muse-image-1.0 and muse-voice-transcribe-1.0 as listed models that fail on chat/completions"
+        "DroppyCode/Services/Providers/MetaAPI.swift:56-62 default - requires id.lowercased().hasPrefix(\"muse-spark\"), else nil; otherwise ModelOption(id: id, name: id, efforts: efforts, defaultEffort: \"high\")",
+        "DroppyCode/Services/Providers/MetaAPI.swift:57-59 comment naming muse-image-1.0 and muse-voice-transcribe-1.0 as listed models that fail on chat/completions"
       ],
       "preconditions": "The models endpoint lists non-chat models alongside Spark checkpoints.",
       "action": "The catalog is built.",
@@ -1061,7 +1061,7 @@
       "id": "PR-PROVAPI-044",
       "title": "Every Meta Spark model accepts images, and a nil or empty model id is treated as vision-capable",
       "source_evidence": [
-        "DroppyCode/Services/Providers/MetaAPI.swift:84-88 isVisionModel - a nil or empty id returns true; otherwise the lowercased id must start with 'muse-spark'"
+        "DroppyCode/Services/Providers/MetaAPI.swift:65-69 isVisionModel - a nil or empty id returns true; otherwise the lowercased id must start with 'muse-spark'"
       ],
       "preconditions": "The thread has image attachments.",
       "action": "A user message with images is built for Meta.",
@@ -1345,7 +1345,7 @@
       "id": "PR-PROVAPI-057",
       "title": "Z.ai key validation is a models list with a 15 second timeout",
       "source_evidence": [
-        "DroppyCode/Services/Providers/ZaiAPI.swift:20-29 validate(apiKey:) - trim, empty false, GET modelsURL, Authorization Bearer, Accept application/json, timeoutInterval 15, true only on status 200. B2: `let key = apiKey.trimmed` / `guard !key.isEmpty else { return false }` / `var request = URLRequest(url: modelsURL, timeoutInterval: 15)` / `return http.statusCode == 200` (`.trimmed` is defined at DroppyCode/Core/Support/Text.swift:132 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, the same trim as before)"
+        "DroppyCode/Services/Providers/ZaiAPI.swift:20-22 validate(apiKey:) - trim, empty false, GET modelsURL, Authorization Bearer, Accept application/json, timeoutInterval 15, true only on status 200. B2: `let key = apiKey.trimmed` / `guard !key.isEmpty else { return false }` / `var request = URLRequest(url: modelsURL, timeoutInterval: 15)` / `return http.statusCode == 200` (`.trimmed` is defined at DroppyCode/Core/Support/Text.swift:224 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, the same trim as before)"
       ],
       "preconditions": "A key string.",
       "action": "The registry checks the Z.ai key.",
@@ -1369,7 +1369,7 @@
       "id": "PR-PROVAPI-058",
       "title": "Z.ai catalog fetch parses data[].id and sorts the default first",
       "source_evidence": [
-        "DroppyCode/Services/Providers/ZaiAPI.swift:31-45 listModels - sorted by (isDefault ? 0 : 1, id). B2: `let key = apiKey.trimmed` / `guard !key.isEmpty else { return [] }` / `let ids = (json[\"data\"]?.array ?? []).compactMap { $0[\"id\"]?.string }` / `(lhs.isDefault ? 0 : 1, lhs.id) < (rhs.isDefault ? 0 : 1, rhs.id)` (`.trimmed` is defined at DroppyCode/Core/Support/Text.swift:132 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, the same trim as before)"
+        "DroppyCode/Services/Providers/ZaiAPI.swift:24-26 listModels - sorted by (isDefault ? 0 : 1, id). B2: `let key = apiKey.trimmed` / `guard !key.isEmpty else { return [] }` / `let ids = (json[\"data\"]?.array ?? []).compactMap { $0[\"id\"]?.string }` / `(lhs.isDefault ? 0 : 1, lhs.id) < (rhs.isDefault ? 0 : 1, rhs.id)` (`.trimmed` is defined at DroppyCode/Core/Support/Text.swift:224 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, the same trim as before)"
       ],
       "preconditions": "A non-empty key.",
       "action": "The registry loads the Z.ai catalog.",
@@ -1393,7 +1393,7 @@
       "id": "PR-PROVAPI-059",
       "title": "Z.ai model option for glm-5.3",
       "source_evidence": [
-        "DroppyCode/Services/Providers/ZaiAPI.swift:51-52 - ModelOption(id: \"glm-5.3\", name: \"GLM-5.3\", detail: \"Best reasoning and coding · 1M context\", efforts: zaiEfforts, defaultEffort: \"max\", isDefault: true)",
+        "DroppyCode/Services/Providers/ZaiAPI.swift:32-33 - ModelOption(id: \"glm-5.3\", name: \"GLM-5.3\", detail: \"Best reasoning and coding · 1M context\", efforts: zaiEfforts, defaultEffort: \"max\", isDefault: true)",
         "DroppyCode/Services/Providers/ZaiAPI.swift:14 zaiEfforts = [\"low\", \"high\", \"max\"]"
       ],
       "preconditions": "The id is listed or seeded.",
@@ -1414,7 +1414,7 @@
       "id": "PR-PROVAPI-060",
       "title": "Z.ai model option for glm-5.3-flash",
       "source_evidence": [
-        "DroppyCode/Services/Providers/ZaiAPI.swift:53-54 - ModelOption(id: \"glm-5.3-flash\", name: \"GLM-5.3 Flash\", detail: \"Fast, reads images · 1M context\", efforts: zaiEfforts, defaultEffort: \"max\")"
+        "DroppyCode/Services/Providers/ZaiAPI.swift:34-35 - ModelOption(id: \"glm-5.3-flash\", name: \"GLM-5.3 Flash\", detail: \"Fast, reads images · 1M context\", efforts: zaiEfforts, defaultEffort: \"max\")"
       ],
       "preconditions": "The id is listed or seeded.",
       "action": "The model picker is populated.",
@@ -1434,8 +1434,8 @@
       "id": "PR-PROVAPI-061",
       "title": "Z.ai offers only glm-5.3 ids and never GLM-5.3-FlashX",
       "source_evidence": [
-        "DroppyCode/Services/Providers/ZaiAPI.swift:55-63 default - requires id.hasPrefix(\"glm-5.3\") and not id.lowercased().contains(\"flashx\"), else nil; otherwise ModelOption(id: id, name: id, efforts: zaiEfforts, defaultEffort: \"max\")",
-        "DroppyCode/Services/Providers/ZaiAPI.swift:56-60 comment recording the 1311 refusal for FlashX"
+        "DroppyCode/Services/Providers/ZaiAPI.swift:36-44 default - requires id.hasPrefix(\"glm-5.3\") and not id.lowercased().contains(\"flashx\"), else nil; otherwise ModelOption(id: id, name: id, efforts: zaiEfforts, defaultEffort: \"max\")",
+        "DroppyCode/Services/Providers/ZaiAPI.swift:37-41 comment recording the 1311 refusal for FlashX"
       ],
       "preconditions": "The account's model list includes ids outside the Coding Plan.",
       "action": "The catalog is built.",
@@ -1457,7 +1457,7 @@
       "id": "PR-PROVAPI-062",
       "title": "A Z.ai model is vision-capable when its id contains 'flash' or ends with 'v'",
       "source_evidence": [
-        "DroppyCode/Services/Providers/ZaiAPI.swift:67-70 isVisionModel - a nil id returns false; otherwise id.contains(\"flash\") or id.hasSuffix(\"v\")"
+        "DroppyCode/Services/Providers/ZaiAPI.swift:48-51 isVisionModel - a nil id returns false; otherwise id.contains(\"flash\") or id.hasSuffix(\"v\")"
       ],
       "preconditions": "The thread has image attachments.",
       "action": "A user message with images is built for Z.ai.",
@@ -1501,7 +1501,7 @@
       "id": "PR-PROVAPI-064",
       "title": "Z.ai plan limits are read from the monitor quota endpoint and then decorated with reset cards",
       "source_evidence": [
-        "DroppyCode/Services/Providers/ZaiAPI.swift:74-87 planLimits(apiKey:) - an empty key returns nil; GET quotaURL with Bearer and Accept and a 15 second timeout; nil unless the status is 200 and the body parses; nil unless code is 200 or success is true; nil unless limits(from:) produced windows; then resetCredits is fetched and attached. B2: `let key = apiKey.trimmed` / `guard !key.isEmpty else { return nil }` / `var request = URLRequest(url: quotaURL, timeoutInterval: 15)` / `guard json[\"code\"]?.int == 200 || json[\"success\"]?.bool == true else { return nil }` / `guard var limits = limits(from: json) else { return nil }` / `limits.resetCredits = await resetCredits(apiKey: key)` (`.trimmed` is defined at DroppyCode/Core/Support/Text.swift:132 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, the same trim as before)"
+        "DroppyCode/Services/Providers/ZaiAPI.swift:55-66 planLimits(apiKey:) - an empty key returns nil; GET quotaURL with Bearer and Accept and a 15 second timeout; nil unless the status is 200 and the body parses; nil unless code is 200 or success is true; nil unless limits(from:) produced windows; then resetCredits is fetched and attached. B2: `let key = apiKey.trimmed` / `guard !key.isEmpty else { return nil }` / `var request = URLRequest(url: quotaURL, timeoutInterval: 15)` / `guard json[\"code\"]?.int == 200 || json[\"success\"]?.bool == true else { return nil }` / `guard var limits = limits(from: json) else { return nil }` / `limits.resetCredits = await resetCredits(apiKey: key)` (`.trimmed` is defined at DroppyCode/Core/Support/Text.swift:224 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, the same trim as before)"
       ],
       "preconditions": "A non-empty Z.ai key that has just validated.",
       "action": "The usage panel refreshes Z.ai plan limits.",
@@ -1525,7 +1525,7 @@
       "id": "PR-PROVAPI-065",
       "title": "Z.ai plan name is the level prefixed with 'Coding Plan '",
       "source_evidence": [
-        "DroppyCode/Services/Providers/ZaiAPI.swift:90 - PlanLimitsReader.planName(data.level) mapped to \"Coding Plan \" plus the value"
+        "DroppyCode/Services/Providers/ZaiAPI.swift:69 - PlanLimitsReader.planName(data.level) mapped to \"Coding Plan \" plus the value"
       ],
       "preconditions": "The quota response carries data.level.",
       "action": "The plan limits header is built.",
@@ -1547,7 +1547,7 @@
       "id": "PR-PROVAPI-066",
       "title": "Z.ai credit and token windows, with a percentage computed when not reported and clamped to 0 to 100",
       "source_evidence": [
-        "DroppyCode/Services/Providers/ZaiAPI.swift:95-135 - per entry: type, usage, currentValue; percent from the reported percentage, else currentValue divided by usage times 100 when usage is above zero, else 0; then min(max(percent, 0), 100); resetsAt from nextResetTime divided by 1000 as seconds since 1970; CREDIT_LIMIT and TOKENS_LIMIT produce a window with id 'credit-<index>' and detail '<current> of <usage> credits'"
+        "DroppyCode/Services/Providers/ZaiAPI.swift:74-114 - per entry: type, usage, currentValue; percent from the reported percentage, else currentValue divided by usage times 100 when usage is above zero, else 0; then min(max(percent, 0), 100); resetsAt from nextResetTime divided by 1000 as seconds since 1970; CREDIT_LIMIT and TOKENS_LIMIT produce a window with id 'credit-<index>' and detail '<current> of <usage> credits'"
       ],
       "preconditions": "The quota response lists limit entries.",
       "action": "The plan limits view is built.",
@@ -1570,7 +1570,7 @@
       "id": "PR-PROVAPI-067",
       "title": "Z.ai window title comes from a unit code, falling back to '5-hour limit' then 'Weekly'",
       "source_evidence": [
-        "DroppyCode/Services/Providers/ZaiAPI.swift:111-127 - unit 3 multiplies number by 60, unit 4 by 1440, unit 6 by 10080 and unit 5 by 43200, each only when number is above zero, otherwise minutes is nil; with minutes the title is PlanLimitsReader.windowTitle(minutes:); without minutes the first credit window is titled \"5-hour limit\" and every later one \"Weekly\""
+        "DroppyCode/Services/Providers/ZaiAPI.swift:90-106 - unit 3 multiplies number by 60, unit 4 by 1440, unit 6 by 10080 and unit 5 by 43200, each only when number is above zero, otherwise minutes is nil; with minutes the title is PlanLimitsReader.windowTitle(minutes:); without minutes the first credit window is titled \"5-hour limit\" and every later one \"Weekly\""
       ],
       "preconditions": "A credit or token window entry.",
       "action": "The window title is chosen.",
@@ -1592,8 +1592,8 @@
       "id": "PR-PROVAPI-068",
       "title": "Z.ai TIME_LIMIT entries become an MCP tools window",
       "source_evidence": [
-        "DroppyCode/Services/Providers/ZaiAPI.swift:136-144 - TIME_LIMIT appends a window with id 'tools-<index>', title \"Monthly · MCP tools\" and detail '<current> of <usage> calls'",
-        "DroppyCode/Services/Providers/ZaiAPI.swift:145-147 - every other type string is skipped"
+        "DroppyCode/Services/Providers/ZaiAPI.swift:115-123 - TIME_LIMIT appends a window with id 'tools-<index>', title \"Monthly · MCP tools\" and detail '<current> of <usage> calls'",
+        "DroppyCode/Services/Providers/ZaiAPI.swift:124-126 - every other type string is skipped"
       ],
       "preconditions": "The quota response lists a TIME_LIMIT entry.",
       "action": "The plan limits view is built.",
@@ -1613,7 +1613,7 @@
       "id": "PR-PROVAPI-069",
       "title": "Z.ai counts are formatted with US grouping and no fraction digits",
       "source_evidence": [
-        "DroppyCode/Services/Providers/ZaiAPI.swift:213-223 - a NumberFormatter with locale en_US, decimal style and maximumFractionDigits 0; formatCount falls back to the truncated integer when formatting fails"
+        "DroppyCode/Services/Providers/ZaiAPI.swift:196-206 - a NumberFormatter with locale en_US, decimal style and maximumFractionDigits 0; formatCount falls back to the truncated integer when formatting fails"
       ],
       "preconditions": "A window detail line is built.",
       "action": "A count is rendered.",
@@ -1635,7 +1635,7 @@
       "id": "PR-PROVAPI-070",
       "title": "Z.ai reset cards are listed 5-hour first, then weekly, skipping unavailable cards",
       "source_evidence": [
-        "DroppyCode/Services/Providers/ZaiAPI.swift:155-176 resetCredits - GET resetListURL with Bearer and Accept and a 15 second timeout; nil unless the status is 200, the body parses, code is 200 and data is present; iterates the pairs (\"fiveHourResets\", \"FIVE_HOUR\", \"Resets the 5-hour limit\") then (\"weekResets\", \"WEEK\", \"Resets the weekly limit\"); a card is skipped when available is exactly false or recordId is missing; each credit's id is the type, a colon and the record id, its title the pair's title, its detail nil, its expiry parsed from expireTime"
+        "DroppyCode/Services/Providers/ZaiAPI.swift:134-155 resetCredits - GET resetListURL with Bearer and Accept and a 15 second timeout; nil unless the status is 200, the body parses, code is 200 and data is present; iterates the pairs (\"fiveHourResets\", \"FIVE_HOUR\", \"Resets the 5-hour limit\") then (\"weekResets\", \"WEEK\", \"Resets the weekly limit\"); a card is skipped when available is exactly false or recordId is missing; each credit's id is the type, a colon and the record id, its title the pair's title, its detail nil, its expiry parsed from expireTime"
       ],
       "preconditions": "A valid Z.ai key.",
       "action": "The plan limits panel loads reset cards.",
@@ -1660,7 +1660,7 @@
       "id": "PR-PROVAPI-071",
       "title": "Spending a Z.ai reset card posts the record id and waits two seconds before reporting success",
       "source_evidence": [
-        "DroppyCode/Services/Providers/ZaiAPI.swift:179-202 consumeResetCredit - splits the credit id on the first colon and requires an integer record, else throws ResetCreditError.unknownOutcome; POST resetUseURL with a 20 second timeout, Authorization Bearer, Content-Type application/json and Accept application/json; body targetType \"PERSONAL\", resetType the type part, recordId the integer, requestId a lowercased UUID; an unparseable response throws unknownOutcome; a code other than 200 or success not true throws ResetCreditError.rejected with the msg field or \"Z.ai declined the reset.\"; then sleeps two seconds and returns .reset"
+        "DroppyCode/Services/Providers/ZaiAPI.swift:158-181 consumeResetCredit - splits the credit id on the first colon and requires an integer record, else throws ResetCreditError.unknownOutcome; POST resetUseURL with a 20 second timeout, Authorization Bearer, Content-Type application/json and Accept application/json; body targetType \"PERSONAL\", resetType the type part, recordId the integer, requestId a lowercased UUID; an unparseable response throws unknownOutcome; a code other than 200 or success not true throws ResetCreditError.rejected with the msg field or \"Z.ai declined the reset.\"; then sleeps two seconds and returns .reset"
       ],
       "preconditions": "The user has an available reset card.",
       "action": "The user spends a reset card.",
@@ -2045,7 +2045,7 @@
       "id": "PR-PROVAPI-088",
       "title": "An API-key provider's install state is the presence and validity of its key, with no binary",
       "source_evidence": [
-        "DroppyCode/Services/Providers/ProviderRegistry.swift:380-424 refreshAPIProvider - an empty key gives ProviderStatus(auth: .signedOut); otherwise the provider's validate() decides, and the status carries version \"API\" and apiKeyConfigured true",
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:388-432 refreshAPIProvider - an empty key gives ProviderStatus(auth: .signedOut); otherwise the provider's validate() decides, and the status carries version \"API\" and apiKeyConfigured true",
         "DroppyCode/Core/Models/Provider.swift:40-57 executableName is the empty string for deepseek, meta and zai",
         "DroppyCode/Core/Models/Provider.swift:101 isAPIKeyBased"
       ],
@@ -2074,7 +2074,7 @@
       "title": "Starting a session without an API key fails with the provider's add-a-key message",
       "source_evidence": [
         "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:248 - guard the trimmed key is non-empty, else throw ProviderError.notInstalled(config.kind)",
-        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:243 apiKey is configuration.apiKey trimmed. B2: `private var apiKey: String { (configuration.apiKey ?? \"\").trimmed }` (`.trimmed` is defined at DroppyCode/Core/Support/Text.swift:132 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, the same trim as before)",
+        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:243 apiKey is configuration.apiKey trimmed. B2: `private var apiKey: String { (configuration.apiKey ?? \"\").trimmed }` (`.trimmed` is defined at DroppyCode/Core/Support/Text.swift:224 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, the same trim as before)",
         "DroppyCode/Services/Providers/ProviderSession.swift:164-169 notInstalled for an API-key provider reads '<name> needs an API key. Add one in Settings → Providers → <name>.'"
       ],
       "preconditions": "No key stored and no environment variable set.",
@@ -2596,7 +2596,7 @@
       "id": "PR-PROVAPI-111",
       "title": "A completed plan-mode turn emits a planCompleted event carrying the final text as markdown",
       "source_evidence": [
-        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:431-433 - in plan mode, when the final text is not blank, planCompleted is emitted with a fresh id from nextID(\"plan\") and the final text as markdown. B2: `if interactionMode == .plan, !finalText.trimmed.isEmpty {` / `onEvent?(.planCompleted(id: nextID(\"plan\"), markdown: finalText))` (`.trimmed` is defined at DroppyCode/Core/Support/Text.swift:132 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, the same trim as before)",
+        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:431-433 - in plan mode, when the final text is not blank, planCompleted is emitted with a fresh id from nextID(\"plan\") and the final text as markdown. B2: `if interactionMode == .plan, !finalText.trimmed.isEmpty {` / `onEvent?(.planCompleted(id: nextID(\"plan\"), markdown: finalText))` (`.trimmed` is defined at DroppyCode/Core/Support/Text.swift:224 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, the same trim as before)",
         "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:434 - turnCompleted with status completed follows"
       ],
       "preconditions": "The interaction mode is plan and the turn produced text.",
@@ -2946,7 +2946,7 @@
       "id": "PR-PROVAPI-126",
       "title": "The error message is taken from error.message, then message, then the raw body capped at 500 characters, then a status sentence",
       "source_evidence": [
-        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:792-800 errorMessage(fromBody:statusCode:) - a parseable body yields json error.message or json message when non-empty; otherwise the trimmed body's first 500 characters; otherwise '<title> returned status <code>.'. B2: `let message = json[\"error\"]?[\"message\"]?.string ?? json[\"message\"]?.string` / `let trimmed = body.trimmed` / `if !trimmed.isEmpty { return String(trimmed.prefix(500)) }` / `return \"\\(config.title) returned status \\(statusCode).\"` (`.trimmed` is defined at DroppyCode/Core/Support/Text.swift:132 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, the same trim as before)"
+        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:792-800 errorMessage(fromBody:statusCode:) - a parseable body yields json error.message or json message when non-empty; otherwise the trimmed body's first 500 characters; otherwise '<title> returned status <code>.'. B2: `let message = json[\"error\"]?[\"message\"]?.string ?? json[\"message\"]?.string` / `let trimmed = body.trimmed` / `if !trimmed.isEmpty { return String(trimmed.prefix(500)) }` / `return \"\\(config.title) returned status \\(statusCode).\"` (`.trimmed` is defined at DroppyCode/Core/Support/Text.swift:224 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, the same trim as before)"
       ],
       "preconditions": "A non-200 body was read.",
       "action": "The message is extracted.",
@@ -2968,7 +2968,7 @@
       "id": "PR-PROVAPI-127",
       "title": "SSE lines are recognized only by a 'data:' prefix, and '[DONE]' ends the stream",
       "source_evidence": [
-        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:742-748 drainSSE - each line is trimmed of whitespace and newlines; lines without the prefix 'data:' are skipped; the remainder after dropping five characters is trimmed of spaces; the literal [DONE] breaks the loop; an unparseable payload is skipped. B2: `let trimmed = line.trimmed` / `guard trimmed.hasPrefix(\"data:\") else { continue }` / `let data = trimmed.dropFirst(5).trimmingCharacters(in: .whitespaces)` / `if data == \"[DONE]\" { break }` / `guard let json = JSONValue.parse(String(data)) else { continue }` (`.trimmed` is defined at DroppyCode/Core/Support/Text.swift:132 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, the same trim as before)"
+        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:742-748 drainSSE - each line is trimmed of whitespace and newlines; lines without the prefix 'data:' are skipped; the remainder after dropping five characters is trimmed of spaces; the literal [DONE] breaks the loop; an unparseable payload is skipped. B2: `let trimmed = line.trimmed` / `guard trimmed.hasPrefix(\"data:\") else { continue }` / `let data = trimmed.dropFirst(5).trimmingCharacters(in: .whitespaces)` / `if data == \"[DONE]\" { break }` / `guard let json = JSONValue.parse(String(data)) else { continue }` (`.trimmed` is defined at DroppyCode/Core/Support/Text.swift:224 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, the same trim as before)"
       ],
       "preconditions": "A 200 response is streaming.",
       "action": "Each line arrives.",
@@ -3151,7 +3151,7 @@
         "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:610-611 - a message id and a thought id are minted once per round",
         "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:675-682 - deltas are emitted against those ids",
         "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:718-723 - messageCompleted is emitted with the full text when any text was seen or the content is non-empty, and reasoningCompleted likewise",
-        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1332-1335 nextID - '<prefix>-<counter>-<first 8 characters of a UUID>', the counter incrementing per call"
+        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1330-1333 nextID - '<prefix>-<counter>-<first 8 characters of a UUID>', the counter incrementing per call"
       ],
       "preconditions": "A round streamed.",
       "action": "The stream ends.",
@@ -3221,7 +3221,7 @@
       "title": "Old tool results are condensed once they total more than 160000 bytes, keeping the last ten whole",
       "source_evidence": [
         "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:77-80 condenseHistoryAt 160_000, condenseHistoryTo 100_000, condenseKeepsRecent 10, condensedMarker '…[Droppy Code condensed this output'",
-        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1098-1116 condenseHistory - sums the byte length of every tool message's content; returns unless the total exceeds 160000; then, skipping the last ten tool messages, condenses each while the total is still above 100000, skipping any content of 1200 bytes or fewer and any already condensed; the kept head is the first 400 characters, and the replacement is that head plus a newline, the marker, ' (<original byte count> bytes); call the tool again if you need it]'",
+        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1096-1114 condenseHistory - sums the byte length of every tool message's content; returns unless the total exceeds 160000; then, skipping the last ten tool messages, condenses each while the total is still above 100000, skipping any content of 1200 bytes or fewer and any already condensed; the kept head is the first 400 characters, and the replacement is that head plus a newline, the marker, ' (<original byte count> bytes); call the tool again if you need it]'",
         "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:340 condenseHistory() is called once per round"
       ],
       "preconditions": "A long turn with many tool results.",
@@ -3247,8 +3247,8 @@
       "id": "PR-PROVAPI-139",
       "title": "History is trimmed above 60 messages to the system prompt, the running turn, and enough earlier messages to reach 50",
       "source_evidence": [
-        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1247-1260 trimHistory - returns unless the count exceeds 60; keeps the first message; finds the last user message in the body and treats everything from there as the current turn; keeps the current turn whole plus the last max(0, 50 minus the current turn's length) earlier messages",
-        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1250-1253 comment recording that a blind suffix once dropped the running turn's own user message"
+        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1245-1258 trimHistory - returns unless the count exceeds 60; keeps the first message; finds the last user message in the body and treats everything from there as the current turn; keeps the current turn whole plus the last max(0, 50 minus the current turn's length) earlier messages",
+        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1248-1251 comment recording that a blind suffix once dropped the running turn's own user message"
       ],
       "preconditions": "History has grown past 60 messages.",
       "action": "A trim runs, after the user message and after every tool result.",
@@ -3270,7 +3270,7 @@
       "id": "PR-PROVAPI-140",
       "title": "History is repaired so no tool message is orphaned and no tool call is left unanswered",
       "source_evidence": [
-        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1268-1324 sanitizeHistory - walks the history keeping a list of assistant messages still awaiting answers; a tool message is kept only when some open assistant message holds its tool_call_id, and that id is then struck off; an assistant message with tool_calls closes the previous open set first; closing removes every still-unanswered call, and when none remain it removes the tool_calls key and drops the message entirely if its trimmed content is empty; removals are applied from the highest index downward. B2 (:1284-1288): `if kept.isEmpty {` / `values.removeValue(forKey: \"tool_calls\")` / `let content = (values[\"content\"]?.string ?? \"\").trimmed` / `if content.isEmpty {` / `clean.remove(at: entry.index)` (`.trimmed` is defined at DroppyCode/Core/Support/Text.swift:132 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, the same trim as before)"
+        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1266-1322 sanitizeHistory - walks the history keeping a list of assistant messages still awaiting answers; a tool message is kept only when some open assistant message holds its tool_call_id, and that id is then struck off; an assistant message with tool_calls closes the previous open set first; closing removes every still-unanswered call, and when none remain it removes the tool_calls key and drops the message entirely if its trimmed content is empty; removals are applied from the highest index downward. B2 (:1284-1288): `if kept.isEmpty {` / `values.removeValue(forKey: \"tool_calls\")` / `let content = (values[\"content\"]?.string ?? \"\").trimmed` / `if content.isEmpty {` / `clean.remove(at: entry.index)` (`.trimmed` is defined at DroppyCode/Core/Support/Text.swift:224 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, the same trim as before)"
       ],
       "preconditions": "A trim, a compaction or an interruption has left the history inconsistent.",
       "action": "A round is about to be sent.",
@@ -3292,8 +3292,8 @@
       "id": "PR-PROVAPI-141",
       "title": "The system prompt names the agent, the working directory, the platform, the mode and six standing rules",
       "source_evidence": [
-        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1201-1214 systemPrompt - the first line is \"You are Droppy Code's <identity>, working inside <working directory> on macOS.\", then the mode line, then \"Rules:\" and six bullets, then a blank line and the appended policy. B2: `You are Droppy Code's \\(config.agentIdentity(currentModel)), working inside \\(workingDirectory) on macOS.` / `\\(modeLine)` / `Rules:` / six lines beginning `- ` (:1205-1212) / `\\n\\(appendedPolicy)`",
-        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1212 - the last bullet is \"- Today's date is <ISO8601 timestamp>.\". B2: `- Today's date is \\(ISO8601.string(from: Date())).`, where DroppyCode/Core/Support/ISO8601.swift:28-31 reads `/// A stamp for a filename or a prompt: whole seconds, UTC, `Z` suffix.` / `static func string(from date: Date) -> String {` / `plain.format(date)` and :13 `static let plain = Date.ISO8601FormatStyle()` (documented at :12 as the `2026-09-13T18:28:42Z` shape). B1 used `ISO8601DateFormatter().string(from: Date())`, whose default output is the same whole-second UTC `Z` form, so the bullet text is unchanged"
+        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1199-1212 systemPrompt - the first line is \"You are Droppy Code's <identity>, working inside <working directory> on macOS.\", then the mode line, then \"Rules:\" and six bullets, then a blank line and the appended policy. B2: `You are Droppy Code's \\(config.agentIdentity(currentModel)), working inside \\(workingDirectory) on macOS.` / `\\(modeLine)` / `Rules:` / six lines beginning `- ` (:1205-1212) / `\\n\\(appendedPolicy)`",
+        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1210 - the last bullet is \"- Today's date is <ISO8601 timestamp>.\". B2: `- Today's date is \\(ISO8601.string(from: Date())).`, where DroppyCode/Core/Support/ISO8601.swift:28-31 reads `/// A stamp for a filename or a prompt: whole seconds, UTC, `Z` suffix.` / `static func string(from date: Date) -> String {` / `plain.format(date)` and :13 `static let plain = Date.ISO8601FormatStyle()` (documented at :12 as the `2026-09-13T18:28:42Z` shape). B1 used `ISO8601DateFormatter().string(from: Date())`, whose default output is the same whole-second UTC `Z` form, so the bullet text is unchanged"
       ],
       "preconditions": "A session exists.",
       "action": "The system prompt is built, at start and again at the top of every turn.",
@@ -3310,7 +3310,7 @@
       "depends_on_unknown": null,
       "deviation": {
         "decision": "OD-0012 F1",
-        "upstream": "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1202 `You are Droppy Code's \\(config.agentIdentity(currentModel)), working inside \\(workingDirectory) on macOS.`",
+        "upstream": "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1200 `You are Droppy Code's \\(config.agentIdentity(currentModel)), working inside \\(workingDirectory) on macOS.`",
         "port": "You are Marrow's <identity>, working inside <working directory> on Windows."
       }
     },
@@ -3318,7 +3318,7 @@
       "id": "PR-PROVAPI-142",
       "title": "Plan mode system prompt line",
       "source_evidence": [
-        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1179-1181 - the plan case, whatever the runtime mode"
+        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1177-1179 - the plan case, whatever the runtime mode"
       ],
       "preconditions": "The interaction mode is plan.",
       "action": "The system prompt is built.",
@@ -3338,7 +3338,7 @@
       "id": "PR-PROVAPI-143",
       "title": "Build mode with supervised permissions system prompt line",
       "source_evidence": [
-        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1181-1182"
+        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1179-1180"
       ],
       "preconditions": "Interaction mode build, runtime mode supervised.",
       "action": "The system prompt is built.",
@@ -3355,7 +3355,7 @@
       "depends_on_unknown": null,
       "deviation": {
         "decision": "OD-0012 F1",
-        "upstream": "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1182 `\"You are in BUILD mode with supervised permissions: use tools freely but the user approves each one in Droppy Code.\"`",
+        "upstream": "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1180 `\"You are in BUILD mode with supervised permissions: use tools freely but the user approves each one in Droppy Code.\"`",
         "port": "You are in BUILD mode with supervised permissions: use tools freely but the user approves each one in Marrow."
       }
     },
@@ -3363,7 +3363,7 @@
       "id": "PR-PROVAPI-144",
       "title": "Build mode with auto-accepted edits system prompt line",
       "source_evidence": [
-        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1183-1184 - the autoAcceptEdits and auto cases share one line"
+        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1181-1182 - the autoAcceptEdits and auto cases share one line"
       ],
       "preconditions": "Interaction mode build, runtime mode autoAcceptEdits or auto.",
       "action": "The system prompt is built.",
@@ -3380,7 +3380,7 @@
       "depends_on_unknown": null,
       "deviation": {
         "decision": "OD-0012 F1",
-        "upstream": "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1184 `\"You are in BUILD mode: read and edit files freely; the user approves shell commands in Droppy Code.\"`",
+        "upstream": "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1182 `\"You are in BUILD mode: read and edit files freely; the user approves shell commands in Droppy Code.\"`",
         "port": "You are in BUILD mode: read and edit files freely; the user approves shell commands in Marrow."
       }
     },
@@ -3388,7 +3388,7 @@
       "id": "PR-PROVAPI-145",
       "title": "Build mode with full access system prompt line",
       "source_evidence": [
-        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1185-1186"
+        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1183-1184"
       ],
       "preconditions": "Interaction mode build, runtime mode fullAccess.",
       "action": "The system prompt is built.",
@@ -3408,7 +3408,7 @@
       "id": "PR-PROVAPI-146",
       "title": "The Hydra policy and the anti-slop guidance go in once each, above the project's own guidelines",
       "source_evidence": [
-        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1188-1200 - the optional Hydra fallback policy and AntiSlopPolicy.instructions(enabled:) are joined with a blank line; the project's guidance block is appended after them, again separated by a blank line, so the policy above stays higher priority",
+        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1186-1198 - the optional Hydra fallback policy and AntiSlopPolicy.instructions(enabled:) are joined with a blank line; the project's guidance block is appended after them, again separated by a blank line, so the policy above stays higher priority",
         "DroppyCode/Core/Models/AntiSlopPolicy.swift:16-18 instructions(enabled:) returns the enabled or the disabled instructions, never nothing"
       ],
       "preconditions": "A session with or without a Hydra launch, and with anti-slop on or off.",
@@ -3429,7 +3429,7 @@
       "id": "PR-PROVAPI-147",
       "title": "The system prompt is rebuilt in place at the top of every turn, touching only the first message",
       "source_evidence": [
-        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1172-1175 refreshSystemPrompt - returns unless the first message has role 'system', then replaces it with a freshly built one",
+        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1170-1173 refreshSystemPrompt - returns unless the first message has role 'system', then replaces it with a freshly built one",
         "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:295 - called from performTurn"
       ],
       "preconditions": "A turn is starting.",
@@ -3458,7 +3458,7 @@
         "DroppyCode/Services/Providers/ProjectGuidance.swift:20-22 perFileLimit 16_000 and totalLimit 24_000",
         "DroppyCode/Services/Providers/ProjectGuidance.swift:40-47 the block is re-rendered only when a file's size or modification date changed",
         "DroppyCode/Services/Providers/ProjectGuidance.swift:65-75 resolvedFile - only those names at the root, resolved through symlinks, refused when the target leaves the working directory, and only a regular file",
-        "DroppyCode/Services/Providers/ProjectGuidance.swift:77-103 render - an unreadable file yields 'Could not load <name>. Read it with the read_file tool before changing the project.'; an oversized or out-of-budget file yields '<name> is too large to include here (<size> bytes). Read <name> with the read_file tool; it may contain rules the project expects you to follow.'; an included file is '--- <name> ---' then its text; the block is headed 'Project guidelines from <directory>. They supplement the rules above; where they conflict, the Droppy Code rules take priority.'. B2: `sections.append(\"Could not load \\(name). Read it with the read_file tool before changing the project.\")` (:83) / `sections.append(\"\\(name) is too large to include here (\\(size) bytes). Read \\(name) with the read_file tool; it may contain rules the project expects you to follow.\")` (:90) / `guard let text = String(data: data, encoding: .utf8),` / `!text.trimmed.isEmpty else { continue }` (:93-94) / `sections.append(\"--- \\(name) ---\\n\\(text)\")` (:96) / `Project guidelines from \\(directory). They supplement the rules above; where they conflict, the Droppy Code rules take priority.` (:100) (`.trimmed` is defined at DroppyCode/Core/Support/Text.swift:132 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, the same trim as before)"
+        "DroppyCode/Services/Providers/ProjectGuidance.swift:77-103 render - an unreadable file yields 'Could not load <name>. Read it with the read_file tool before changing the project.'; an oversized or out-of-budget file yields '<name> is too large to include here (<size> bytes). Read <name> with the read_file tool; it may contain rules the project expects you to follow.'; an included file is '--- <name> ---' then its text; the block is headed 'Project guidelines from <directory>. They supplement the rules above; where they conflict, the Droppy Code rules take priority.'. B2: `sections.append(\"Could not load \\(name). Read it with the read_file tool before changing the project.\")` (:83) / `sections.append(\"\\(name) is too large to include here (\\(size) bytes). Read \\(name) with the read_file tool; it may contain rules the project expects you to follow.\")` (:90) / `guard let text = String(data: data, encoding: .utf8),` / `!text.trimmed.isEmpty else { continue }` (:93-94) / `sections.append(\"--- \\(name) ---\\n\\(text)\")` (:96) / `Project guidelines from \\(directory). They supplement the rules above; where they conflict, the Droppy Code rules take priority.` (:100) (`.trimmed` is defined at DroppyCode/Core/Support/Text.swift:224 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, the same trim as before)"
       ],
       "preconditions": "The project may hold one or both files.",
       "action": "The system prompt is built.",
@@ -3487,7 +3487,7 @@
       "id": "PR-PROVAPI-149",
       "title": "A message with no usable images is sent as a plain string",
       "source_evidence": [
-        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1217-1220 userContentValue - attachments are filtered to images and capped at the first four; with none usable the content is the plain text string"
+        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1215-1218 userContentValue - attachments are filtered to images and capped at the first four; with none usable the content is the plain text string"
       ],
       "preconditions": "The user sent text with no image attachments.",
       "action": "The user message is built.",
@@ -3507,7 +3507,7 @@
       "id": "PR-PROVAPI-150",
       "title": "Images sent to a model that cannot see them are named in the text instead",
       "source_evidence": [
-        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1219-1223 - when images are present but the current model is not a vision model, the content is the text plus two newlines and '[Attached images (model cannot see them): <names joined by comma and space>]'"
+        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1217-1221 - when images are present but the current model is not a vision model, the content is the text plus two newlines and '[Attached images (model cannot see them): <names joined by comma and space>]'"
       ],
       "preconditions": "Image attachments with a non-vision model selected.",
       "action": "The user message is built.",
@@ -3529,8 +3529,8 @@
       "id": "PR-PROVAPI-151",
       "title": "A vision model receives at most four images as base64 data URLs after the text part, with any image over 2000 px downscaled to a JPEG",
       "source_evidence": [
-        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1218 - the images are the first four attachments whose MIME type is an image type",
-        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1224-1229 - the parts array starts with {\"type\": \"text\", \"text\": <text>} and then one {\"type\": \"image_url\", \"image_url\": {\"url\": \"data:<mime>;base64,<data>\"}} per image. B2: `for (image, base64) in await Attachment.base64Images(Array(usable)) {` / `let url = \"data:\\(image.mimeType);base64,\\(base64)\"`, where `image` is the attachment returned by base64Images, so its mimeType is the rewritten one",
+        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1216 - the images are the first four attachments whose MIME type is an image type",
+        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1222-1227 - the parts array starts with {\"type\": \"text\", \"text\": <text>} and then one {\"type\": \"image_url\", \"image_url\": {\"url\": \"data:<mime>;base64,<data>\"}} per image. B2: `for (image, base64) in await Attachment.base64Images(Array(usable)) {` / `let url = \"data:\\(image.mimeType);base64,\\(base64)\"`, where `image` is the attachment returned by base64Images, so its mimeType is the rewritten one",
         "DroppyCode/Core/Models/Timeline.swift:96 `var isImage: Bool { mimeType.hasPrefix(\"image/\") }`",
         "DroppyCode/Core/Models/Timeline.swift:102-111 base64Images - `guard attachment.isImage, let data = try? Data(contentsOf: attachment.url) else { return nil }` / `let downscaled = downscaledJPEG(data)` / `var sent = attachment` / `if downscaled != nil { sent.mimeType = \"image/jpeg\" }` / `return (sent, (downscaled ?? data).base64EncodedString())`",
         "DroppyCode/Core/Models/Timeline.swift:114 `private static let maxPixelSize = 2000`",
@@ -3556,14 +3556,14 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 DroppyCode/Core/Models/Timeline.swift:100-105 base64Images returned `(attachment, data.base64EncodedString())`, the file's own bytes and MIME type -> B2 Timeline.swift:102-111 passes each image through downscaledJPEG (:120-137), which re-encodes any image over maxPixelSize 2000 (:114) as a JPEG at quality 0.8 with its transform applied, and sets `sent.mimeType = \"image/jpeg\"` (:108); OpenAICompatibleSession.swift:1225-1226 builds the data URL from the returned attachment's mimeType, so such an image now goes out as data:image/jpeg;base64,... The cap of four (:1218) and the part order (:1224-1229) are unchanged."
+      "b2_change": "B1 DroppyCode/Core/Models/Timeline.swift:100-105 base64Images returned `(attachment, data.base64EncodedString())`, the file's own bytes and MIME type -> B2 Timeline.swift:102-111 passes each image through downscaledJPEG (:120-137), which re-encodes any image over maxPixelSize 2000 (:114) as a JPEG at quality 0.8 with its transform applied, and sets `sent.mimeType = \"image/jpeg\"` (:108); OpenAICompatibleSession.swift:1223-1224 builds the data URL from the returned attachment's mimeType, so such an image now goes out as data:image/jpeg;base64,... The cap of four (:1218) and the part order (:1224-1229) are unchanged."
     },
     {
       "id": "PR-PROVAPI-152",
       "title": "An assistant history message carries content, reasoning_content only where the provider replays it, and tool_calls only when there are any",
       "source_evidence": [
-        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1236-1245 assistantTurn - role assistant and content always; reasoning_content added as a string only when the configuration replays reasoning, an empty string being acceptable; tool_calls added only when non-empty, each entry {\"id\": <id>, \"type\": \"function\", \"function\": {\"name\": <name>, \"arguments\": <raw argument string>}}",
-        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1232-1235 comment - DeepSeek's thinking mode rejects the follow-up request unless every tool-call message carries reasoning_content"
+        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1234-1243 assistantTurn - role assistant and content always; reasoning_content added as a string only when the configuration replays reasoning, an empty string being acceptable; tool_calls added only when non-empty, each entry {\"id\": <id>, \"type\": \"function\", \"function\": {\"name\": <name>, \"arguments\": <raw argument string>}}",
+        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1230-1233 comment - DeepSeek's thinking mode rejects the follow-up request unless every tool-call message carries reasoning_content"
       ],
       "preconditions": "An assistant turn is being recorded.",
       "action": "The message is built.",
@@ -3585,7 +3585,7 @@
       "id": "PR-PROVAPI-153",
       "title": "Tool output shown in the timeline is truncated with a trailing truncation marker",
       "source_evidence": [
-        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1326-1330 summary(_:limit:) - returns the text unchanged unless both its byte count and its character count exceed the limit, otherwise the first <limit> characters plus a newline and '…(truncated)'"
+        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1324-1328 summary(_:limit:) - returns the text unchanged unless both its byte count and its character count exceed the limit, otherwise the first <limit> characters plus a newline and '…(truncated)'"
       ],
       "preconditions": "A tool produced a long output.",
       "action": "The timeline row is updated.",
@@ -3751,7 +3751,7 @@
       "id": "PR-PROVAPI-161",
       "title": "An approval request carries three options and is declined immediately if the turn was already stopped",
       "source_evidence": [
-        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1058-1089 approveIfNeeded - an interrupted turn returns false before anything else; when no approval is needed it returns true; otherwise an id from nextID(\"approval\") is minted, the request kind is command for a command, fileChange for an edit and tool for everything else, and the options are id 'allow' titled 'Approve' with role approve, id 'always' titled 'Approve for turn' with role approveAlways, and id 'decline' titled 'Decline' with role decline; the request is emitted on the main actor and the call waits on a continuation which is resumed with false if the turn is cancelled first"
+        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1058-1087 approveIfNeeded - an interrupted turn returns false before anything else; when no approval is needed it returns true; otherwise an id from nextID(\"approval\") is minted, the request kind is command for a command, fileChange for an edit and tool for everything else, and the options are id 'allow' titled 'Approve' with role approve, id 'always' titled 'Approve for turn' with role approveAlways, and id 'decline' titled 'Decline' with role decline; the request is emitted on the main actor and the call waits on a continuation which is resumed with false if the turn is cancelled first"
       ],
       "preconditions": "A tool needs approval.",
       "action": "The user is asked.",
@@ -4038,8 +4038,8 @@
       "id": "PR-PROVAPI-173",
       "title": "search_text runs grep with a fixed argument vector and refuses a path outside the project",
       "source_evidence": [
-        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1118-1146 searchText - an empty trimmed pattern returns 'Error: a search pattern is required.'; an empty path searches '.', otherwise the path is resolved through the same containment guard as the other file tools and a failure returns 'Error: <description>'; the executable is /usr/bin/grep; the arguments are -R, -n, -I, --exclude-dir=.git, --exclude-dir=node_modules, --exclude-dir=.build, --exclude-dir=build, then -E for a regex search or -F otherwise, then --, then the pattern, then the target; it runs in the working directory with the login environment, a 30 second timeout and a 64000 byte output limit; a failure to run returns 'Search failed.'. B2: `let trimmed = pattern.trimmed` / `guard !trimmed.isEmpty else { return \"Error: a search pattern is required.\" }` (:1119-1120) / `if path.trimmed.isEmpty {` / `target = \".\"` (:1127-1128) / `guard let result = try? await Shell.run(grep, args, in: directory, environment: LoginEnvironment.current, timeout: 30, outputLimit: 64_000) else {` / `return \"Search failed.\"` (:1144-1145) (`.trimmed` is defined at DroppyCode/Core/Support/Text.swift:132 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, the same trim as before)",
-        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1122-1125 comment - search used to hand the model's path to the shell untouched, so an absolute path or a climb out of the root recursively grepped ~/.ssh and returned the matches into the transcript"
+        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1116-1144 searchText - an empty trimmed pattern returns 'Error: a search pattern is required.'; an empty path searches '.', otherwise the path is resolved through the same containment guard as the other file tools and a failure returns 'Error: <description>'; the executable is /usr/bin/grep; the arguments are -R, -n, -I, --exclude-dir=.git, --exclude-dir=node_modules, --exclude-dir=.build, --exclude-dir=build, then -E for a regex search or -F otherwise, then --, then the pattern, then the target; it runs in the working directory with the login environment, a 30 second timeout and a 64000 byte output limit; a failure to run returns 'Search failed.'. B2: `let trimmed = pattern.trimmed` / `guard !trimmed.isEmpty else { return \"Error: a search pattern is required.\" }` (:1119-1120) / `if path.trimmed.isEmpty {` / `target = \".\"` (:1127-1128) / `guard let result = try? await Shell.run(grep, args, in: directory, environment: LoginEnvironment.current, timeout: 30, outputLimit: 64_000) else {` / `return \"Search failed.\"` (:1144-1145) (`.trimmed` is defined at DroppyCode/Core/Support/Text.swift:224 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, the same trim as before)",
+        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1120-1123 comment - search used to hand the model's path to the shell untouched, so an absolute path or a climb out of the root recursively grepped ~/.ssh and returned the matches into the transcript"
       ],
       "preconditions": "The model called search_text.",
       "action": "The search runs.",
@@ -4065,7 +4065,7 @@
       "id": "PR-PROVAPI-174",
       "title": "Search results are capped at 120 lines with a count of the total",
       "source_evidence": [
-        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1147-1151 - standard output and standard error are concatenated and trimmed; an empty result returns '(no matches)'; otherwise the first 120 lines are returned, and when there were more the text ends with a newline and '…(<total> matches, truncated)'. B2: `let output = (result.output + result.errorOutput).trimmed` / `if output.isEmpty { return \"(no matches)\" }` / `let limited = lines.prefix(120).joined(separator: \"\\n\")` / `return lines.count > 120 ? limited + \"\\n…(\\(lines.count) matches, truncated)\" : String(limited)` (`.trimmed` is defined at DroppyCode/Core/Support/Text.swift:132 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, the same trim as before)"
+        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1145-1149 - standard output and standard error are concatenated and trimmed; an empty result returns '(no matches)'; otherwise the first 120 lines are returned, and when there were more the text ends with a newline and '…(<total> matches, truncated)'. B2: `let output = (result.output + result.errorOutput).trimmed` / `if output.isEmpty { return \"(no matches)\" }` / `let limited = lines.prefix(120).joined(separator: \"\\n\")` / `return lines.count > 120 ? limited + \"\\n…(\\(lines.count) matches, truncated)\" : String(limited)` (`.trimmed` is defined at DroppyCode/Core/Support/Text.swift:224 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, the same trim as before)"
       ],
       "preconditions": "grep produced output.",
       "action": "The result is built.",
@@ -4085,7 +4085,7 @@
       "id": "PR-PROVAPI-175",
       "title": "run_command runs the command through a login shell with a 120 second timeout and a 24000 byte output cap",
       "source_evidence": [
-        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1154-1165 runCommand - an empty trimmed command returns ('Error: a command is required.', 1); the executable is /bin/zsh with the arguments -lc and the trimmed command, run in the working directory with the login environment, a 120 second timeout and a 24000 byte output limit; a failure to start returns ('The command could not start.', 1); standard output and standard error are joined with a newline between them when the error stream is non-empty, then trimmed; an output over 24000 bytes is replaced by a leading '…' plus its last 24000 characters; the process's exit status is returned. B2: `let trimmed = command.trimmed` / `guard !trimmed.isEmpty else { return (\"Error: a command is required.\", 1) }` / `let shell = URL(fileURLWithPath: \"/bin/zsh\")` / `guard let result = try? await Shell.run(shell, [\"-lc\", trimmed], in: directory, environment: LoginEnvironment.current, timeout: 120, outputLimit: 24_000) else {` / `return (\"The command could not start.\", 1)` / `var output = (result.output + (result.errorOutput.isEmpty ? \"\" : \"\\n\" + result.errorOutput)).trimmed` / `if output.utf8.count > 24_000 { output = \"…\" + String(output.suffix(24_000)) }` / `return (output, result.status)` (`.trimmed` is defined at DroppyCode/Core/Support/Text.swift:132 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, the same trim as before)"
+        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1152-1163 runCommand - an empty trimmed command returns ('Error: a command is required.', 1); the executable is /bin/zsh with the arguments -lc and the trimmed command, run in the working directory with the login environment, a 120 second timeout and a 24000 byte output limit; a failure to start returns ('The command could not start.', 1); standard output and standard error are joined with a newline between them when the error stream is non-empty, then trimmed; an output over 24000 bytes is replaced by a leading '…' plus its last 24000 characters; the process's exit status is returned. B2: `let trimmed = command.trimmed` / `guard !trimmed.isEmpty else { return (\"Error: a command is required.\", 1) }` / `let shell = URL(fileURLWithPath: \"/bin/zsh\")` / `guard let result = try? await Shell.run(shell, [\"-lc\", trimmed], in: directory, environment: LoginEnvironment.current, timeout: 120, outputLimit: 24_000) else {` / `return (\"The command could not start.\", 1)` / `var output = (result.output + (result.errorOutput.isEmpty ? \"\" : \"\\n\" + result.errorOutput)).trimmed` / `if output.utf8.count > 24_000 { output = \"…\" + String(output.suffix(24_000)) }` / `return (output, result.status)` (`.trimmed` is defined at DroppyCode/Core/Support/Text.swift:224 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, the same trim as before)"
       ],
       "preconditions": "The model called run_command with a non-empty command.",
       "action": "The command runs.",
@@ -4110,7 +4110,7 @@
       "resolved_unknown": "UNK-0005 resolved by OD-0008 C5",
       "deviation": {
         "decision": "OD-0008 C5",
-        "upstream": "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1154-1165 `let shell = URL(fileURLWithPath: \"/bin/zsh\")` / `Shell.run(shell, [\"-lc\", trimmed], in: directory, environment: LoginEnvironment.current, timeout: 120, outputLimit: 24_000)`",
+        "upstream": "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1152-1163 `let shell = URL(fileURLWithPath: \"/bin/zsh\")` / `Shell.run(shell, [\"-lc\", trimmed], in: directory, environment: LoginEnvironment.current, timeout: 120, outputLimit: 24_000)`",
         "port": "PowerShell 7 if installed, otherwise Windows PowerShell, with -NoProfile -NonInteractive -Command <trimmed command> (ED-028 (1)); timeout, output cap, truncation and both failure strings unchanged."
       }
     },
@@ -4118,7 +4118,7 @@
       "id": "PR-PROVAPI-176",
       "title": "Every file tool path is resolved against the project root and refused when it escapes",
       "source_evidence": [
-        "DroppyCode/Services/Providers/NativeFileTools.swift:19-31 resolveURL - an empty trimmed path throws 'A file path is required.'; a path starting with / or ~ is taken as absolute with the tilde expanded, otherwise it is appended to the root; the candidate is standardized; unless it equals the root or begins with the root plus a separator it throws 'That path is outside the project. Stay inside <working directory>.'. B2: `let trimmed = path.trimmed` / `guard !trimmed.isEmpty else { throw ProviderError.failed(\"A file path is required.\") }` / `let candidate: URL = trimmed.hasPrefix(\"/\") || trimmed.hasPrefix(\"~\")` / `? URL(fileURLWithPath: (trimmed as NSString).expandingTildeInPath)` / `: root.appendingPathComponent(trimmed)` / `guard standardized.path == root.path || standardized.path.hasPrefix(root.path + \"/\") else {` / `throw ProviderError.failed(\"That path is outside the project. Stay inside \\(workingDirectory).\")` (`.trimmed` is defined at DroppyCode/Core/Support/Text.swift:132 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, the same trim as before)"
+        "DroppyCode/Services/Providers/NativeFileTools.swift:19-31 resolveURL - an empty trimmed path throws 'A file path is required.'; a path starting with / or ~ is taken as absolute with the tilde expanded, otherwise it is appended to the root; the candidate is standardized; unless it equals the root or begins with the root plus a separator it throws 'That path is outside the project. Stay inside <working directory>.'. B2: `let trimmed = path.trimmed` / `guard !trimmed.isEmpty else { throw ProviderError.failed(\"A file path is required.\") }` / `let candidate: URL = trimmed.hasPrefix(\"/\") || trimmed.hasPrefix(\"~\")` / `? URL(fileURLWithPath: (trimmed as NSString).expandingTildeInPath)` / `: root.appendingPathComponent(trimmed)` / `guard standardized.path == root.path || standardized.path.hasPrefix(root.path + \"/\") else {` / `throw ProviderError.failed(\"That path is outside the project. Stay inside \\(workingDirectory).\")` (`.trimmed` is defined at DroppyCode/Core/Support/Text.swift:224 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, the same trim as before)"
       ],
       "preconditions": "A tool supplied a path.",
       "action": "The path is resolved.",
@@ -4140,7 +4140,7 @@
       "id": "PR-PROVAPI-177",
       "title": "Paths shown to the user are relative to the project root, and an empty path shows the root itself",
       "source_evidence": [
-        "DroppyCode/Services/Providers/NativeFileTools.swift:33-38 displayPath - an empty trimmed path returns the working directory; a path inside the working directory is shown relative to it; anything else is shown as given. B2: `let trimmed = path.trimmed` / `if trimmed.isEmpty { return workingDirectory }` / `if trimmed.hasPrefix(workingDirectory) { return ToolTitles.relativePath(trimmed, to: workingDirectory) }` / `return trimmed` (`.trimmed` is defined at DroppyCode/Core/Support/Text.swift:132 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, the same trim as before)",
+        "DroppyCode/Services/Providers/NativeFileTools.swift:33-38 displayPath - an empty trimmed path returns the working directory; a path inside the working directory is shown relative to it; anything else is shown as given. B2: `let trimmed = path.trimmed` / `if trimmed.isEmpty { return workingDirectory }` / `if trimmed.hasPrefix(workingDirectory) { return ToolTitles.relativePath(trimmed, to: workingDirectory) }` / `return trimmed` (`.trimmed` is defined at DroppyCode/Core/Support/Text.swift:224 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, the same trim as before)",
         "DroppyCode/Services/Providers/ProviderSession.swift:194-197 relativePath - strips the root plus a trailing separator when the path has that prefix, otherwise returns the path unchanged"
       ],
       "preconditions": "A tool row or message is being built.",
@@ -4299,7 +4299,7 @@
       "id": "PR-PROVAPI-184",
       "title": "list_files refuses a path that is not a directory and returns '(empty)' for an empty one",
       "source_evidence": [
-        "DroppyCode/Services/Providers/NativeFileTools.swift:122-130 - an empty path lists the working directory, otherwise the path is resolved through the containment guard; a path that is not an existing directory throws 'No such directory: <display path>.'. B2: `let base: URL = path.trimmed.isEmpty` / `? URL(fileURLWithPath: workingDirectory)` / `: try resolveURL(path)` / `guard FileManager.default.fileExists(atPath: base.path, isDirectory: &isDirectory), isDirectory.boolValue else {` / `throw ProviderError.failed(\"No such directory: \\(displayPath(path.isEmpty ? workingDirectory : path)).\")` (`.trimmed` is defined at DroppyCode/Core/Support/Text.swift:132 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, the same trim as before)",
+        "DroppyCode/Services/Providers/NativeFileTools.swift:122-130 - an empty path lists the working directory, otherwise the path is resolved through the containment guard; a path that is not an existing directory throws 'No such directory: <display path>.'. B2: `let base: URL = path.trimmed.isEmpty` / `? URL(fileURLWithPath: workingDirectory)` / `: try resolveURL(path)` / `guard FileManager.default.fileExists(atPath: base.path, isDirectory: &isDirectory), isDirectory.boolValue else {` / `throw ProviderError.failed(\"No such directory: \\(displayPath(path.isEmpty ? workingDirectory : path)).\")` (`.trimmed` is defined at DroppyCode/Core/Support/Text.swift:224 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, the same trim as before)",
         "DroppyCode/Services/Providers/NativeFileTools.swift:157-158 - an empty result returns '(empty)', otherwise the entries joined by newlines"
       ],
       "preconditions": "The model called list_files.",
@@ -4395,7 +4395,7 @@
       "id": "PR-PROVAPI-188",
       "title": "A generated title is rejected when it reads as a sentence, a question or a refusal",
       "source_evidence": [
-        "DroppyCode/Services/Providers/TextGeneration.swift:40-54 usable(_:) - rejects an empty title, one over 64 characters, one of more than 9 whitespace-separated words, one containing a newline or a question mark, and one ending in : ; , ! or …; rejects any title whose lowercased form starts with 'i ', \"i'\", 'sorry', 'sure', 'here', 'please', 'could you', 'can you', 'what ', 'it seems', 'it looks', 'unfortunately', 'there is no', 'not enough', 'need more', 'maybe ', 'the request' or 'this request'; rejects any containing 'more context', 'meaningful title', 'as an ai', 'cannot', \"can't\" or 'unable to'. B2: `let title = candidate.trimmed` / `guard !title.isEmpty, title.count <= 64 else { return nil }` / `guard title.split(whereSeparator: \\.isWhitespace).count <= 9 else { return nil }` / `guard !title.contains(\"\\n\"), !title.contains(\"?\") else { return nil }` / `guard let last = title.last, !\":;,!…\".contains(last) else { return nil }` (`.trimmed` is defined at DroppyCode/Core/Support/Text.swift:132 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, the same trim as before)"
+        "DroppyCode/Services/Providers/TextGeneration.swift:40-54 usable(_:) - rejects an empty title, one over 64 characters, one of more than 9 whitespace-separated words, one containing a newline or a question mark, and one ending in : ; , ! or …; rejects any title whose lowercased form starts with 'i ', \"i'\", 'sorry', 'sure', 'here', 'please', 'could you', 'can you', 'what ', 'it seems', 'it looks', 'unfortunately', 'there is no', 'not enough', 'need more', 'maybe ', 'the request' or 'this request'; rejects any containing 'more context', 'meaningful title', 'as an ai', 'cannot', \"can't\" or 'unable to'. B2: `let title = candidate.trimmed` / `guard !title.isEmpty, title.count <= 64 else { return nil }` / `guard title.split(whereSeparator: \\.isWhitespace).count <= 9 else { return nil }` / `guard !title.contains(\"\\n\"), !title.contains(\"?\") else { return nil }` / `guard let last = title.last, !\":;,!…\".contains(last) else { return nil }` (`.trimmed` is defined at DroppyCode/Core/Support/Text.swift:224 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, the same trim as before)"
       ],
       "preconditions": "A candidate title came back.",
       "action": "It is checked.",
@@ -4415,7 +4415,7 @@
       "id": "PR-PROVAPI-189",
       "title": "Commit messages are generated from a fixed prompt with the changed files and patch truncated",
       "source_evidence": [
-        "DroppyCode/Services/Providers/TextGeneration.swift:56-74 commitMessage(summary:patch:instructions:engine:directory:) - the prompt states the rules that the subject line be imperative and at most 72 characters with no trailing period, that a blank line and a few short bullet points may follow, and that the reply contain the message only without code fences; a non-empty instructions string is inserted as a line beginning 'Follow these instructions too: '; the summary is truncated to 6000 characters under 'Changed files:' and the patch to 40000 characters under 'Patch:'; every occurrence of a triple backtick is removed from the reply, which is then trimmed; an empty result is nil. B2: `let extra = instructions.isEmpty ? \"\" : \"\\nFollow these instructions too: \\(instructions)\\n\"` / `\\(summary.prefix(6_000))` / `\\(patch.prefix(40_000))` / `.replacingOccurrences(of: \"```\", with: \"\")` / `.trimmed` / `return message.isEmpty ? nil : message` (`.trimmed` is defined at DroppyCode/Core/Support/Text.swift:132 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, the same trim as before)"
+        "DroppyCode/Services/Providers/TextGeneration.swift:56-74 commitMessage(summary:patch:instructions:engine:directory:) - the prompt states the rules that the subject line be imperative and at most 72 characters with no trailing period, that a blank line and a few short bullet points may follow, and that the reply contain the message only without code fences; a non-empty instructions string is inserted as a line beginning 'Follow these instructions too: '; the summary is truncated to 6000 characters under 'Changed files:' and the patch to 40000 characters under 'Patch:'; every occurrence of a triple backtick is removed from the reply, which is then trimmed; an empty result is nil. B2: `let extra = instructions.isEmpty ? \"\" : \"\\nFollow these instructions too: \\(instructions)\\n\"` / `\\(summary.prefix(6_000))` / `\\(patch.prefix(40_000))` / `.replacingOccurrences(of: \"```\", with: \"\")` / `.trimmed` / `return message.isEmpty ? nil : message` (`.trimmed` is defined at DroppyCode/Core/Support/Text.swift:224 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, the same trim as before)"
       ],
       "preconditions": "A commit message is requested.",
       "action": "The message is generated.",
@@ -4463,7 +4463,7 @@
       "id": "PR-PROVAPI-191",
       "title": "The Codex text-generation engine argument vector, output file and timeout",
       "source_evidence": [
-        "DroppyCode/Services/Providers/TextGeneration.swift:87-99 - a temporary file named 'droppy-code-<UUID>.txt' is created in the system temporary directory and removed afterwards; the arguments are exactly exec, --ephemeral, --skip-git-repo-check, -s, read-only, --model, the model, --config, model_reasoning_effort=\"low\", --output-last-message, that file's path, and a single hyphen; the prompt goes in on standard input; the timeout is 180 seconds; the result is the file's contents trimmed, or nil when the run failed or the file is empty. B2: `let output = FileManager.default.temporaryDirectory.appendingPathComponent(\"droppy-code-\\(UUID().uuidString).txt\")` / `defer { try? FileManager.default.removeItem(at: output) }` / `\"exec\", \"--ephemeral\", \"--skip-git-repo-check\", \"-s\", \"read-only\", \"--model\", model,` / `\"--config\", \"model_reasoning_effort=\\\"low\\\"\", \"--output-last-message\", output.path, \"-\",` / `guard let result = try? await Shell.run(executable, arguments, in: directory, environment: environment, input: Data(prompt.utf8), timeout: 180),` / `return (try? String(contentsOf: output, encoding: .utf8))?` / `.trimmed` / `.nilIfEmpty` (`.trimmed` is defined at DroppyCode/Core/Support/Text.swift:132 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, the same trim as before)"
+        "DroppyCode/Services/Providers/TextGeneration.swift:87-99 - a temporary file named 'droppy-code-<UUID>.txt' is created in the system temporary directory and removed afterwards; the arguments are exactly exec, --ephemeral, --skip-git-repo-check, -s, read-only, --model, the model, --config, model_reasoning_effort=\"low\", --output-last-message, that file's path, and a single hyphen; the prompt goes in on standard input; the timeout is 180 seconds; the result is the file's contents trimmed, or nil when the run failed or the file is empty. B2: `let output = FileManager.default.temporaryDirectory.appendingPathComponent(\"droppy-code-\\(UUID().uuidString).txt\")` / `defer { try? FileManager.default.removeItem(at: output) }` / `\"exec\", \"--ephemeral\", \"--skip-git-repo-check\", \"-s\", \"read-only\", \"--model\", model,` / `\"--config\", \"model_reasoning_effort=\\\"low\\\"\", \"--output-last-message\", output.path, \"-\",` / `guard let result = try? await Shell.run(executable, arguments, in: directory, environment: environment, input: Data(prompt.utf8), timeout: 180),` / `return (try? String(contentsOf: output, encoding: .utf8))?` / `.trimmed` / `.nilIfEmpty` (`.trimmed` is defined at DroppyCode/Core/Support/Text.swift:224 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, the same trim as before)"
       ],
       "preconditions": "The Codex engine was selected or chosen automatically.",
       "action": "A title or commit message is generated.",
@@ -4504,18 +4504,18 @@
         "Shown only when the provider is API-key based and a key is configured",
         "While a check is running the summary line above reads 'Checking…'",
         "With no key configured the line is absent entirely",
-        "At B2 the whole provider card sits inside the provider's collapsible section: DroppyCode/App/Views/Settings/SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {` and :786-789 `.clipped()` / `.disabled(!isExpanded)` / `.allowsHitTesting(isExpanded)` / `.accessibilityHidden(!isExpanded)`; DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` makes a signed-in provider start expanded, so this line is on screen only while that section is expanded"
+        "At B2 the whole provider card sits inside the provider's collapsible section: DroppyCode/App/Views/Settings/SettingsView.swift:648 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {` and :786-789 `.clipped()` / `.disabled(!isExpanded)` / `.allowsHitTesting(isExpanded)` / `.accessibilityHidden(!isExpanded)`; DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` makes a signed-in provider start expanded, so this line is on screen only while that section is expanded"
       ],
       "interactions": [],
       "source_evidence": [
-        "DroppyCode/App/Views/Settings/SettingsView.swift:684-688 (B1 :652-656) `} else if provider.isAPIKeyBased, status.apiKeyConfigured, let host = provider.apiHost {` / `Text(verbatim: \"Native API · \\(host)\")` / `.font(.system(size: 11))` / `.foregroundStyle(Chrome.secondaryText)`",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:661-665 (B1 :652-656) `} else if provider.isAPIKeyBased, status.apiKeyConfigured, let host = provider.apiHost {` / `Text(verbatim: \"Native API · \\(host)\")` / `.font(.system(size: 11))` / `.foregroundStyle(Chrome.secondaryText)`",
         "DroppyCode/Core/Models/Provider.swift:112-119 apiHost",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:673-677 and :696-698 for the header metrics: `HStack(spacing: 12) {` / `VStack(alignment: .leading, spacing: 2) {` / `.padding(.leading, 16)` / `.padding(.trailing, Chrome.rowControlTrailingPadding)` / `.padding(.vertical, 11)`; DroppyCode/UI/Chrome/Chrome.swift:63 `static let rowControlTrailingPadding: CGFloat = 10`",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:650-654 and :696-698 for the header metrics: `HStack(spacing: 12) {` / `VStack(alignment: .leading, spacing: 2) {` / `.padding(.leading, 16)` / `.padding(.trailing, Chrome.rowControlTrailingPadding)` / `.padding(.vertical, 11)`; DroppyCode/UI/Chrome/Chrome.swift:63 `static let rowControlTrailingPadding: CGFloat = 10`",
         "DroppyCode/UI/Chrome/Chrome.swift:76-79 `static let primaryText = Color(nsColor: .labelColor)` / `static let secondaryText = primaryText.opacity(0.7)` (B1 :77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)`)",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:671 and :786-789 the collapsible section"
+        "DroppyCode/App/Views/Settings/SettingsView.swift:648 and :786-789 the collapsible section"
       ],
       "notes": "The separator is U+00B7 with a single space either side. These three providers never show a 'Version <n>' line, because that branch is gated on the provider not being API-key based.",
-      "b2_change": "Chrome.secondaryText changed from `Color(nsColor: .secondaryLabelColor)` (B1 DroppyCode/UI/Chrome/Chrome.swift:77) to `primaryText.opacity(0.7)` (B2 Chrome.swift:79, commented at :77-78 as clearing the 4.5:1 contrast floor that secondaryLabelColor's 50% alpha misses). The label's own font stays `.font(.system(size: 11))` (B2 DroppyCode/App/Views/Settings/SettingsView.swift:686). The card moved from B1 DroppyCode/App/Views/Settings/SettingsView.swift:652-656 to B2 :684-688 and now sits inside a collapsible section (B2 :671, :786-789), so the line shows only while that section is expanded."
+      "b2_change": "Chrome.secondaryText changed from `Color(nsColor: .secondaryLabelColor)` (B1 DroppyCode/UI/Chrome/Chrome.swift:77) to `primaryText.opacity(0.7)` (B2 Chrome.swift:79, commented at :77-78 as clearing the 4.5:1 contrast floor that secondaryLabelColor's 50% alpha misses). The label's own font stays `.font(.system(size: 11))` (B2 DroppyCode/App/Views/Settings/SettingsView.swift:663). The card moved from B1 DroppyCode/App/Views/Settings/SettingsView.swift:652-656 to B2 :684-688 and now sits inside a collapsible section (B2 :671, :786-789), so the line shows only while that section is expanded."
     },
     {
       "id": "UI-PROVAPI-002",
@@ -4529,24 +4529,24 @@
       "states": [
         "Present for this provider whenever its section is expanded, because acceptsAPIKey is true",
         "The title is 'API key' without the '(optional)' suffix, because DeepSeek is API-key based",
-        "At B2 the whole provider card sits inside the provider's collapsible section: DroppyCode/App/Views/Settings/SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {` and :786-789 `.clipped()` / `.disabled(!isExpanded)` / `.allowsHitTesting(isExpanded)` / `.accessibilityHidden(!isExpanded)`; DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` makes a signed-in provider start expanded"
+        "At B2 the whole provider card sits inside the provider's collapsible section: DroppyCode/App/Views/Settings/SettingsView.swift:648 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {` and :786-789 `.clipped()` / `.disabled(!isExpanded)` / `.allowsHitTesting(isExpanded)` / `.accessibilityHidden(!isExpanded)`; DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` makes a signed-in provider start expanded"
       ],
       "interactions": [],
       "source_evidence": [
-        "DroppyCode/App/Views/Settings/SettingsView.swift:712-719 (B1 :680-687) `if provider.acceptsAPIKey {` / `ChromeRowDivider()` / `ChromeRow(` / `title: provider.isAPIKeyBased ? \"API key\" : \"API key (optional)\",` / `detail: provider.isAPIKeyBased` / `? \"Stored in your Keychain. Get one at \\(provider.apiKeySource ?? \"the provider dashboard\").\"`",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:689-696 (B1 :680-687) `if provider.acceptsAPIKey {` / `ChromeRowDivider()` / `ChromeRow(` / `title: provider.isAPIKeyBased ? \"API key\" : \"API key (optional)\",` / `detail: provider.isAPIKeyBased` / `? \"Stored in your Keychain. Get one at \\(provider.apiKeySource ?? \"the provider dashboard\").\"`",
         "DroppyCode/Core/Models/Provider.swift:122-130 apiKeySource",
-        "DroppyCode/UI/Chrome/Chrome.swift:1049-1081 (B1 :1016-1048) ChromeRow and ChromeRowDivider: `HStack(alignment: .center, spacing: 16) {` / `VStack(alignment: .leading, spacing: 2) {` / `.font(.system(.body))` / `.foregroundStyle(Chrome.primaryText)` / `.font(.system(.subheadline))` / `.foregroundStyle(Chrome.secondaryText)` / `.fixedSize(horizontal: false, vertical: true)` / `Spacer(minLength: 12)` / `.padding(.leading, 16)` / `.padding(.trailing, Chrome.rowControlTrailingPadding)` / `.padding(.vertical, 11)`; ChromeRowDivider `Divider()` / `.padding(.leading, 16)`",
+        "DroppyCode/UI/Chrome/Chrome.swift:1055-1087 (B1 :1016-1048) ChromeRow and ChromeRowDivider: `HStack(alignment: .center, spacing: 16) {` / `VStack(alignment: .leading, spacing: 2) {` / `.font(.system(.body))` / `.foregroundStyle(Chrome.primaryText)` / `.font(.system(.subheadline))` / `.foregroundStyle(Chrome.secondaryText)` / `.fixedSize(horizontal: false, vertical: true)` / `Spacer(minLength: 12)` / `.padding(.leading, 16)` / `.padding(.trailing, Chrome.rowControlTrailingPadding)` / `.padding(.vertical, 11)`; ChromeRowDivider `Divider()` / `.padding(.leading, 16)`",
         "DroppyCode/UI/Chrome/Chrome.swift:76-79 `static let primaryText = Color(nsColor: .labelColor)` / `static let secondaryText = primaryText.opacity(0.7)` (B1 :77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)`)",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:671 and :786-789 the collapsible section",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:648 and :786-789 the collapsible section",
         "DroppyCode/App/Window/WindowManager.swift:175 and DroppyCode/UI/Common/AppZoom.swift:6-25 the app zoom"
       ],
       "notes": "The detail sentence is built from a fixed prefix plus the provider's apiKeySource, so the trailing full stop follows the host name directly. On Windows the key is stored in Windows Credential Manager (OD-0008 B3, PR-PROVAPI-001 to PR-PROVAPI-005), and the detail says so: 'Keychain' becomes 'Credential Manager' in this row (OD-0012 G2), the same substitution B3 made in the five MCP strings.",
       "deviation": {
         "decision": "OD-0012 G2",
-        "upstream": "DroppyCode/App/Views/Settings/SettingsView.swift:717 `? \"Stored in your Keychain. Get one at \\(provider.apiKeySource ?? \"the provider dashboard\").\"`, which reads \"Stored in your Keychain. Get one at platform.deepseek.com.\"",
+        "upstream": "DroppyCode/App/Views/Settings/SettingsView.swift:694 `? \"Stored in your Keychain. Get one at \\(provider.apiKeySource ?? \"the provider dashboard\").\"`, which reads \"Stored in your Keychain. Get one at platform.deepseek.com.\"",
         "port": "Stored in your Credential Manager. Get one at platform.deepseek.com."
       },
-      "b2_change": "ChromeRow title `.font(.system(size: 13))` -> `.font(.system(.body))` (B1 Chrome.swift:1025 -> B2 :1058) and detail `.font(.system(size: 11))` -> `.font(.system(.subheadline))` (B1 :1029 -> B2 :1062); B1's DroppyCode/UI/Common/ChatZoom.swift:44-55 (dd2b86ef) listed .body as 13 and .subheadline as 11, but that file is deleted at B2, so the pinned source no longer states a point size; the resolved sizes are delegated to macOS rendering and UNVERIFIED under UNK-0003. B2 also scales the whole window by the app zoom (DroppyCode/App/Window/WindowManager.swift:175, levels 75 to 200 percent at DroppyCode/UI/Common/AppZoom.swift:6). Chrome.secondaryText changed from `Color(nsColor: .secondaryLabelColor)` (B1 DroppyCode/UI/Chrome/Chrome.swift:77) to `primaryText.opacity(0.7)` (B2 Chrome.swift:79, commented at :77-78 as clearing the 4.5:1 contrast floor that secondaryLabelColor's 50% alpha misses). The row moved from B1 DroppyCode/App/Views/Settings/SettingsView.swift:680-687 to B2 :712-719 and now sits inside a collapsible section (B2 :671, :786-789), so 'Always present' became 'present whenever the section is expanded'."
+      "b2_change": "ChromeRow title `.font(.system(size: 13))` -> `.font(.system(.body))` (B1 Chrome.swift:1031 -> B2 :1058) and detail `.font(.system(size: 11))` -> `.font(.system(.subheadline))` (B1 :1029 -> B2 :1062); B1's DroppyCode/UI/Common/ChatZoom.swift:44-55 (dd2b86ef) listed .body as 13 and .subheadline as 11, but that file is deleted at B2, so the pinned source no longer states a point size; the resolved sizes are delegated to macOS rendering and UNVERIFIED under UNK-0003. B2 also scales the whole window by the app zoom (DroppyCode/App/Window/WindowManager.swift:175, levels 75 to 200 percent at DroppyCode/UI/Common/AppZoom.swift:6). Chrome.secondaryText changed from `Color(nsColor: .secondaryLabelColor)` (B1 DroppyCode/UI/Chrome/Chrome.swift:77) to `primaryText.opacity(0.7)` (B2 Chrome.swift:79, commented at :77-78 as clearing the 4.5:1 contrast floor that secondaryLabelColor's 50% alpha misses). The row moved from B1 DroppyCode/App/Views/Settings/SettingsView.swift:657-664 to B2 :712-719 and now sits inside a collapsible section (B2 :671, :786-789), so 'Always present' became 'present whenever the section is expanded'."
     },
     {
       "id": "UI-PROVAPI-003",
@@ -4559,20 +4559,20 @@
       "colors": "As UI-PROVAPI-002.",
       "states": [
         "Present for this provider whenever its section is expanded",
-        "At B2 the whole provider card sits inside the provider's collapsible section: DroppyCode/App/Views/Settings/SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {` and :786-789 `.clipped()` / `.disabled(!isExpanded)` / `.allowsHitTesting(isExpanded)` / `.accessibilityHidden(!isExpanded)`; DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` makes a signed-in provider start expanded"
+        "At B2 the whole provider card sits inside the provider's collapsible section: DroppyCode/App/Views/Settings/SettingsView.swift:648 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {` and :786-789 `.clipped()` / `.disabled(!isExpanded)` / `.allowsHitTesting(isExpanded)` / `.accessibilityHidden(!isExpanded)`; DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` makes a signed-in provider start expanded"
       ],
       "interactions": [],
       "source_evidence": [
-        "DroppyCode/App/Views/Settings/SettingsView.swift:714-719 (B1 :682-687) `ChromeRow(` / `title: provider.isAPIKeyBased ? \"API key\" : \"API key (optional)\",` / `detail: provider.isAPIKeyBased` / `? \"Stored in your Keychain. Get one at \\(provider.apiKeySource ?? \"the provider dashboard\").\"`",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:691-696 (B1 :682-687) `ChromeRow(` / `title: provider.isAPIKeyBased ? \"API key\" : \"API key (optional)\",` / `detail: provider.isAPIKeyBased` / `? \"Stored in your Keychain. Get one at \\(provider.apiKeySource ?? \"the provider dashboard\").\"`",
         "DroppyCode/Core/Models/Provider.swift:125 apiKeySource for meta"
       ],
       "notes": "The key Meta wants is the MODEL_API_KEY; that name appears only in the rejected-key error message, not in this row. On Windows the key is stored in Windows Credential Manager (OD-0008 B3, PR-PROVAPI-001 to PR-PROVAPI-005), and the detail says so: 'Keychain' becomes 'Credential Manager' in this row (OD-0012 G2), the same substitution B3 made in the five MCP strings.",
       "deviation": {
         "decision": "OD-0012 G2",
-        "upstream": "DroppyCode/App/Views/Settings/SettingsView.swift:717 `? \"Stored in your Keychain. Get one at \\(provider.apiKeySource ?? \"the provider dashboard\").\"`, which reads \"Stored in your Keychain. Get one at dev.meta.ai.\"",
+        "upstream": "DroppyCode/App/Views/Settings/SettingsView.swift:694 `? \"Stored in your Keychain. Get one at \\(provider.apiKeySource ?? \"the provider dashboard\").\"`, which reads \"Stored in your Keychain. Get one at dev.meta.ai.\"",
         "port": "Stored in your Credential Manager. Get one at dev.meta.ai."
       },
-      "b2_change": "B1 state 'Always present for this provider' -> B2 present only while the provider's collapsible section is expanded (B2 DroppyCode/App/Views/Settings/SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789); row moved from B1 DroppyCode/App/Views/Settings/SettingsView.swift:680-687 to B2 :712-719. Typography and colours follow UI-PROVAPI-002, which records the ChromeRow text-style and Chrome.secondaryText changes."
+      "b2_change": "B1 state 'Always present for this provider' -> B2 present only while the provider's collapsible section is expanded (B2 DroppyCode/App/Views/Settings/SettingsView.swift:648 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789); row moved from B1 DroppyCode/App/Views/Settings/SettingsView.swift:657-664 to B2 :712-719. Typography and colours follow UI-PROVAPI-002, which records the ChromeRow text-style and Chrome.secondaryText changes."
     },
     {
       "id": "UI-PROVAPI-004",
@@ -4585,20 +4585,20 @@
       "colors": "As UI-PROVAPI-002.",
       "states": [
         "Present for this provider whenever its section is expanded",
-        "At B2 the whole provider card sits inside the provider's collapsible section: DroppyCode/App/Views/Settings/SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {` and :786-789 `.clipped()` / `.disabled(!isExpanded)` / `.allowsHitTesting(isExpanded)` / `.accessibilityHidden(!isExpanded)`; DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` makes a signed-in provider start expanded"
+        "At B2 the whole provider card sits inside the provider's collapsible section: DroppyCode/App/Views/Settings/SettingsView.swift:648 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {` and :786-789 `.clipped()` / `.disabled(!isExpanded)` / `.allowsHitTesting(isExpanded)` / `.accessibilityHidden(!isExpanded)`; DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` makes a signed-in provider start expanded"
       ],
       "interactions": [],
       "source_evidence": [
-        "DroppyCode/App/Views/Settings/SettingsView.swift:714-719 (B1 :682-687) `ChromeRow(` / `title: provider.isAPIKeyBased ? \"API key\" : \"API key (optional)\",` / `detail: provider.isAPIKeyBased` / `? \"Stored in your Keychain. Get one at \\(provider.apiKeySource ?? \"the provider dashboard\").\"`",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:691-696 (B1 :682-687) `ChromeRow(` / `title: provider.isAPIKeyBased ? \"API key\" : \"API key (optional)\",` / `detail: provider.isAPIKeyBased` / `? \"Stored in your Keychain. Get one at \\(provider.apiKeySource ?? \"the provider dashboard\").\"`",
         "DroppyCode/Core/Models/Provider.swift:126 apiKeySource for zai"
       ],
       "notes": "The source string here is a path, not a bare host, so the sentence ends with '...apikey-list.' On Windows the key is stored in Windows Credential Manager (OD-0008 B3, PR-PROVAPI-001 to PR-PROVAPI-005), and the detail says so: 'Keychain' becomes 'Credential Manager' in this row (OD-0012 G2), the same substitution B3 made in the five MCP strings.",
       "deviation": {
         "decision": "OD-0012 G2",
-        "upstream": "DroppyCode/App/Views/Settings/SettingsView.swift:717 `? \"Stored in your Keychain. Get one at \\(provider.apiKeySource ?? \"the provider dashboard\").\"`, which reads \"Stored in your Keychain. Get one at z.ai/manage-apikey/apikey-list.\"",
+        "upstream": "DroppyCode/App/Views/Settings/SettingsView.swift:694 `? \"Stored in your Keychain. Get one at \\(provider.apiKeySource ?? \"the provider dashboard\").\"`, which reads \"Stored in your Keychain. Get one at z.ai/manage-apikey/apikey-list.\"",
         "port": "Stored in your Credential Manager. Get one at z.ai/manage-apikey/apikey-list."
       },
-      "b2_change": "B1 state 'Always present for this provider' -> B2 present only while the provider's collapsible section is expanded (B2 DroppyCode/App/Views/Settings/SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789); row moved from B1 DroppyCode/App/Views/Settings/SettingsView.swift:680-687 to B2 :712-719. Typography and colours follow UI-PROVAPI-002, which records the ChromeRow text-style and Chrome.secondaryText changes."
+      "b2_change": "B1 state 'Always present for this provider' -> B2 present only while the provider's collapsible section is expanded (B2 DroppyCode/App/Views/Settings/SettingsView.swift:648 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789); row moved from B1 DroppyCode/App/Views/Settings/SettingsView.swift:657-664 to B2 :712-719. Typography and colours follow UI-PROVAPI-002, which records the ChromeRow text-style and Chrome.secondaryText changes."
     },
     {
       "id": "UI-PROVAPI-005",
@@ -4614,7 +4614,7 @@
         "Rendered as a plain TextField while the reveal toggle is on",
         "Filled from the stored key when the page appears, and re-filled if the stored value changes elsewhere",
         "Empty while the Keychain read has not completed",
-        "At B2 the whole provider card sits inside the provider's collapsible section: DroppyCode/App/Views/Settings/SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {` and :786-789 `.clipped()` / `.disabled(!isExpanded)` / `.allowsHitTesting(isExpanded)` / `.accessibilityHidden(!isExpanded)`; DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` makes a signed-in provider start expanded, so this field is on screen, enabled and hit-testable only while that section is expanded",
+        "At B2 the whole provider card sits inside the provider's collapsible section: DroppyCode/App/Views/Settings/SettingsView.swift:648 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {` and :786-789 `.clipped()` / `.disabled(!isExpanded)` / `.allowsHitTesting(isExpanded)` / `.accessibilityHidden(!isExpanded)`; DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` makes a signed-in provider start expanded, so this field is on screen, enabled and hit-testable only while that section is expanded",
         "When Credential Manager refused the key just entered: the line 'Credential Manager did not accept this key, so it was not saved.' shows under the field (OD-0012 E5; PR-PROVAPI-008 to PR-PROVAPI-010). Upstream shows nothing here."
       ],
       "interactions": [
@@ -4622,9 +4622,9 @@
         "Every edit saves immediately, then after 600 milliseconds of quiet re-checks the provider and force-reloads its model catalog; a further keystroke cancels the pending check"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Settings/SettingsView.swift:720-730 (B1 :688-698) `HStack(spacing: 8) {` / `if showsAPIKey {` / `TextField(\"\", text: $apiKey, prompt: Text(\"sk-…\"))` / `SecureField(\"\", text: $apiKey, prompt: Text(\"sk-…\"))` / `.textFieldStyle(.roundedBorder)` / `.font(.system(size: 12, design: .monospaced))` / `.frame(width: 200)`",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:791-822",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:671 and :786-789 the collapsible section",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:697-707 (B1 :688-698) `HStack(spacing: 8) {` / `if showsAPIKey {` / `TextField(\"\", text: $apiKey, prompt: Text(\"sk-…\"))` / `SecureField(\"\", text: $apiKey, prompt: Text(\"sk-…\"))` / `.textFieldStyle(.roundedBorder)` / `.font(.system(size: 12, design: .monospaced))` / `.frame(width: 200)`",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:768-799",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:648 and :786-789 the collapsible section",
         "DroppyCode/App/Views/Settings/SettingsView.swift:594-596 `let configured: (ProviderKind) -> Bool = { provider in` / `if case .signedIn = model.providers.status(provider).auth { return true }` / `return false`; :608 `get: { providerExpansion[provider] ?? configured(provider) },`"
       ],
       "notes": "The placeholder is the literal 'sk-' followed by U+2026, and it is the same for all three providers even though only DeepSeek's keys actually begin with sk-. Loading the stored key into the field must not save or re-check it; only a value that differs from the stored one counts as an edit. The refusal line under the field is ruled by OD-0012 E5 (text and placement only); neither that ruling nor the pinned source gives its font, colour or when it is cleared.",
@@ -4633,7 +4633,7 @@
         "upstream": "DroppyCode/App/AppSettings.swift:371, :382, :395 with :485-494: a key the Keychain refuses is kept in plain text in UserDefaults and nothing is shown under the field.",
         "port": "A refused key is not stored and the line 'Credential Manager did not accept this key, so it was not saved.' shows under the field."
       },
-      "b2_change": "The field moved from B1 DroppyCode/App/Views/Settings/SettingsView.swift:688-698 to B2 :720-730 with its own code unchanged, and now sits inside the provider's collapsible section (B2 :671, :786-789): visible, editable and focusable only while that section is expanded, and a provider that is not signed in starts collapsed (:594-596, :608)."
+      "b2_change": "The field moved from B1 DroppyCode/App/Views/Settings/SettingsView.swift:665-675 to B2 :720-730 with its own code unchanged, and now sits inside the provider's collapsible section (B2 :671, :786-789): visible, editable and focusable only while that section is expanded, and a provider that is not signed in starts collapsed (:594-596, :608)."
     },
     {
       "id": "UI-PROVAPI-006",
@@ -4647,19 +4647,19 @@
       "states": [
         "Hidden state shows the 'eye' symbol and the tooltip 'Show the API key'",
         "Shown state shows the 'eye.slash' symbol and the tooltip 'Hide the API key'",
-        "At B2 the whole provider card sits inside the provider's collapsible section: DroppyCode/App/Views/Settings/SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {` and :786-789 `.clipped()` / `.disabled(!isExpanded)` / `.allowsHitTesting(isExpanded)` / `.accessibilityHidden(!isExpanded)`; DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` makes a signed-in provider start expanded, so this button is on screen, enabled and hit-testable only while that section is expanded"
+        "At B2 the whole provider card sits inside the provider's collapsible section: DroppyCode/App/Views/Settings/SettingsView.swift:648 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {` and :786-789 `.clipped()` / `.disabled(!isExpanded)` / `.allowsHitTesting(isExpanded)` / `.accessibilityHidden(!isExpanded)`; DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` makes a signed-in provider start expanded, so this button is on screen, enabled and hit-testable only while that section is expanded"
       ],
       "interactions": [
         "Click toggles between the SecureField and the TextField"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Settings/SettingsView.swift:731-739 (B1 :699-707) `showsAPIKey.toggle()` / `Image(systemName: showsAPIKey ? \"eye.slash\" : \"eye\")` / `.font(.system(size: 12))` / `.buttonStyle(.plain)` / `.foregroundStyle(Chrome.secondaryText)` / `.help(showsAPIKey ? \"Hide the API key\" : \"Show the API key\")`",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:708-716 (B1 :699-707) `showsAPIKey.toggle()` / `Image(systemName: showsAPIKey ? \"eye.slash\" : \"eye\")` / `.font(.system(size: 12))` / `.buttonStyle(.plain)` / `.foregroundStyle(Chrome.secondaryText)` / `.help(showsAPIKey ? \"Hide the API key\" : \"Show the API key\")`",
         "DroppyCode/UI/Chrome/Chrome.swift:76-79 `static let primaryText = Color(nsColor: .labelColor)` / `static let secondaryText = primaryText.opacity(0.7)` (B1 :77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)`)",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:671 and :786-789 the collapsible section",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:648 and :786-789 the collapsible section",
         "DroppyCode/App/Views/Settings/SettingsView.swift:594-596 `let configured: (ProviderKind) -> Bool = { provider in` / `if case .signedIn = model.providers.status(provider).auth { return true }` / `return false`; :608 `get: { providerExpansion[provider] ?? configured(provider) },`"
       ],
       "notes": "The symbol names are inverted relative to the state: 'eye.slash' is shown while the key is visible. The toggle is per card and is not persisted, so reopening Settings hides the key again. The two SF Symbols are Apple-licensed artwork and cannot ship; on Windows they map to Lucide per OD-0010 (UNK-0007 resolved by OD-0010) through porting/icons/sf-symbols-to-lucide.json: 'eye' to Lucide `eye`, 'eye.slash' to Lucide `eye-off`.",
-      "b2_change": "Chrome.secondaryText changed from `Color(nsColor: .secondaryLabelColor)` (B1 DroppyCode/UI/Chrome/Chrome.swift:77) to `primaryText.opacity(0.7)` (B2 Chrome.swift:79, commented at :77-78 as clearing the 4.5:1 contrast floor that secondaryLabelColor's 50% alpha misses). The button moved from B1 DroppyCode/App/Views/Settings/SettingsView.swift:699-707 to B2 :731-739 with its own code unchanged. It now sits inside the provider's collapsible section (B2 :671, :786-789), so it is visible and clickable only while that section is expanded."
+      "b2_change": "Chrome.secondaryText changed from `Color(nsColor: .secondaryLabelColor)` (B1 DroppyCode/UI/Chrome/Chrome.swift:77) to `primaryText.opacity(0.7)` (B2 Chrome.swift:79, commented at :77-78 as clearing the 4.5:1 contrast floor that secondaryLabelColor's 50% alpha misses). The button moved from B1 DroppyCode/App/Views/Settings/SettingsView.swift:676-684 to B2 :731-739 with its own code unchanged. It now sits inside the provider's collapsible section (B2 :671, :786-789), so it is visible and clickable only while that section is expanded."
     },
     {
       "id": "UI-PROVAPI-007",
@@ -4672,7 +4672,7 @@
       "colors": "Title Chrome.primaryText, detail Chrome.secondaryText, which at B2 is labelColor at 70% opacity (Chrome.swift:79); the button uses the glass style (`.buttonStyle(.glass)`); on Windows the material is a named deviation under owner decision OD-0005, which resolves UNK-0004: Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content; visual parity stays UNVERIFIED without macOS (OD-0001). Port: secondaryText is primaryText at 0.7, as B2 states (ED-062).",
       "states": [
         "Present only while status.isInstalled is false. For these providers that means apiKeyConfigured is false: no check has finished yet, or the stored key is empty (DroppyCode/Services/Providers/ProviderRegistry.swift:17 `var isInstalled: Bool { executable != nil || apiKeyConfigured }`; :383-385 `guard !apiKey.isEmpty else {` / `statuses[provider] = ProviderStatus(auth: .signedOut)`)",
-        "Absent for a rejected key: a key that fails validation still sets `apiKeyConfigured: true` with `auth: valid ? .signedIn(nil) : .signedOut` (ProviderRegistry.swift:389-393 DeepSeek, :404-408 Meta, :411-415 Z.ai), so the row disappears as soon as a non-empty key has been checked, valid or not",
+        "Absent for a rejected key: a key that fails validation still sets `apiKeyConfigured: true` with `auth: valid ? .signedIn(nil) : .signedOut` (ProviderRegistry.swift:397-401 DeepSeek, :404-408 Meta, :411-415 Z.ai), so the row disappears as soon as a non-empty key has been checked, valid or not",
         "Whenever the row is present the provider is not signed in, so configured(provider) is false (DroppyCode/App/Views/Settings/SettingsView.swift:594-596 `let configured: (ProviderKind) -> Bool = { provider in` / `if case .signedIn = model.providers.status(provider).auth { return true }` / `return false`) and the section starts collapsed (:608 `get: { providerExpansion[provider] ?? configured(provider) },`): the row is hidden until the user clicks the provider header, and while collapsed it is clipped, disabled, not hit-testable and hidden from accessibility (:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` / `.disabled(!isExpanded)` / `.allowsHitTesting(isExpanded)` / `.accessibilityHidden(!isExpanded)`)",
         "A header click overrides that default for the page's lifetime (SettingsView.swift:590 `@State private var providerExpansion: [ProviderKind: Bool] = [:]`, :609 `set: { providerExpansion[provider] = $0 }`)"
       ],
@@ -4680,16 +4680,16 @@
         "Click opens https://platform.deepseek.com/api_keys in the default browser"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Settings/SettingsView.swift:742-751 (B1 :710-719) `if provider.isAPIKeyBased, !status.isInstalled {` / `ChromeRow(title: \"Get a key\", detail: \"\\(provider.displayName) needs an API key. Nothing to install.\") {` / `Link(destination: provider.installURL) {` / `Text(verbatim: \"Get a \\(provider.displayName) key\")` / `.frame(height: Chrome.rowButtonLabelHeight)` / `.buttonStyle(.glass)`",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:719-728 (B1 :710-719) `if provider.isAPIKeyBased, !status.isInstalled {` / `ChromeRow(title: \"Get a key\", detail: \"\\(provider.displayName) needs an API key. Nothing to install.\") {` / `Link(destination: provider.installURL) {` / `Text(verbatim: \"Get a \\(provider.displayName) key\")` / `.frame(height: Chrome.rowButtonLabelHeight)` / `.buttonStyle(.glass)`",
         "DroppyCode/Core/Models/Provider.swift:89 installURL for deepseek",
-        "DroppyCode/UI/Chrome/Chrome.swift:1057-1063 `Text(verbatim: title)` / `.font(.system(.body))` / `Text(verbatim: detail)` / `.font(.system(.subheadline))` / `.foregroundStyle(Chrome.secondaryText)`",
+        "DroppyCode/UI/Chrome/Chrome.swift:1063-1069 `Text(verbatim: title)` / `.font(.system(.body))` / `Text(verbatim: detail)` / `.font(.system(.subheadline))` / `.foregroundStyle(Chrome.secondaryText)`",
         "DroppyCode/UI/Chrome/Chrome.swift:76-79 `static let primaryText = Color(nsColor: .labelColor)` / `static let secondaryText = primaryText.opacity(0.7)` (B1 :77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)`)",
         "DroppyCode/Services/Providers/ProviderRegistry.swift:17, :383-385, :389-393, :404-408, :411-415 install and auth state of the API-key providers",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:671 and :786-789 the collapsible section",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:648 and :786-789 the collapsible section",
         "DroppyCode/App/Views/Settings/SettingsView.swift:594-596 `let configured: (ProviderKind) -> Bool = { provider in` / `if case .signedIn = model.providers.status(provider).auth { return true }` / `return false`; :608 `get: { providerExpansion[provider] ?? configured(provider) },`"
       ],
       "notes": "The button label is built as 'Get a ' plus the provider display name plus ' key'. These providers never show the 'Binary path', 'Install' or 'Sign in' rows, because all three are gated on the provider not being API-key based.",
-      "b2_change": "ChromeRow title `.font(.system(size: 13))` -> `.font(.system(.body))` (B1 Chrome.swift:1025 -> B2 :1058) and detail `.font(.system(size: 11))` -> `.font(.system(.subheadline))` (B1 :1029 -> B2 :1062); B1's DroppyCode/UI/Common/ChatZoom.swift:44-55 (dd2b86ef) listed .body as 13 and .subheadline as 11, but that file is deleted at B2, so the pinned source no longer states a point size; the resolved sizes are delegated to macOS rendering and UNVERIFIED under UNK-0003. B2 also scales the whole window by the app zoom (DroppyCode/App/Window/WindowManager.swift:175, levels 75 to 200 percent at DroppyCode/UI/Common/AppZoom.swift:6). Chrome.secondaryText changed from `Color(nsColor: .secondaryLabelColor)` (B1 DroppyCode/UI/Chrome/Chrome.swift:77) to `primaryText.opacity(0.7)` (B2 Chrome.swift:79, commented at :77-78 as clearing the 4.5:1 contrast floor that secondaryLabelColor's 50% alpha misses). The row moved from B1 DroppyCode/App/Views/Settings/SettingsView.swift:710-719 to B2 :742-751 with its own code unchanged. The row now also sits inside the provider's collapsible section (B2 :671, :786-789), which starts collapsed whenever this row is present, because the provider is then not signed in (:594-596, :608)."
+      "b2_change": "ChromeRow title `.font(.system(size: 13))` -> `.font(.system(.body))` (B1 Chrome.swift:1031 -> B2 :1058) and detail `.font(.system(size: 11))` -> `.font(.system(.subheadline))` (B1 :1029 -> B2 :1062); B1's DroppyCode/UI/Common/ChatZoom.swift:44-55 (dd2b86ef) listed .body as 13 and .subheadline as 11, but that file is deleted at B2, so the pinned source no longer states a point size; the resolved sizes are delegated to macOS rendering and UNVERIFIED under UNK-0003. B2 also scales the whole window by the app zoom (DroppyCode/App/Window/WindowManager.swift:175, levels 75 to 200 percent at DroppyCode/UI/Common/AppZoom.swift:6). Chrome.secondaryText changed from `Color(nsColor: .secondaryLabelColor)` (B1 DroppyCode/UI/Chrome/Chrome.swift:77) to `primaryText.opacity(0.7)` (B2 Chrome.swift:79, commented at :77-78 as clearing the 4.5:1 contrast floor that secondaryLabelColor's 50% alpha misses). The row moved from B1 DroppyCode/App/Views/Settings/SettingsView.swift:687-696 to B2 :742-751 with its own code unchanged. The row now also sits inside the provider's collapsible section (B2 :671, :786-789), which starts collapsed whenever this row is present, because the provider is then not signed in (:594-596, :608)."
     },
     {
       "id": "UI-PROVAPI-008",
@@ -4702,7 +4702,7 @@
       "colors": "As UI-PROVAPI-007.",
       "states": [
         "Present only while status.isInstalled is false. For these providers that means apiKeyConfigured is false: no check has finished yet, or the stored key is empty (DroppyCode/Services/Providers/ProviderRegistry.swift:17 `var isInstalled: Bool { executable != nil || apiKeyConfigured }`; :383-385 `guard !apiKey.isEmpty else {` / `statuses[provider] = ProviderStatus(auth: .signedOut)`)",
-        "Absent for a rejected key: a key that fails validation still sets `apiKeyConfigured: true` with `auth: valid ? .signedIn(nil) : .signedOut` (ProviderRegistry.swift:389-393 DeepSeek, :404-408 Meta, :411-415 Z.ai), so the row disappears as soon as a non-empty key has been checked, valid or not",
+        "Absent for a rejected key: a key that fails validation still sets `apiKeyConfigured: true` with `auth: valid ? .signedIn(nil) : .signedOut` (ProviderRegistry.swift:397-401 DeepSeek, :404-408 Meta, :411-415 Z.ai), so the row disappears as soon as a non-empty key has been checked, valid or not",
         "Whenever the row is present the provider is not signed in, so configured(provider) is false (DroppyCode/App/Views/Settings/SettingsView.swift:594-596 `let configured: (ProviderKind) -> Bool = { provider in` / `if case .signedIn = model.providers.status(provider).auth { return true }` / `return false`) and the section starts collapsed (:608 `get: { providerExpansion[provider] ?? configured(provider) },`): the row is hidden until the user clicks the provider header, and while collapsed it is clipped, disabled, not hit-testable and hidden from accessibility (:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` / `.disabled(!isExpanded)` / `.allowsHitTesting(isExpanded)` / `.accessibilityHidden(!isExpanded)`)",
         "A header click overrides that default for the page's lifetime (SettingsView.swift:590 `@State private var providerExpansion: [ProviderKind: Bool] = [:]`, :609 `set: { providerExpansion[provider] = $0 }`)"
       ],
@@ -4710,14 +4710,14 @@
         "Click opens https://dev.meta.ai/ in the default browser"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Settings/SettingsView.swift:742-751 (B1 :710-719) `if provider.isAPIKeyBased, !status.isInstalled {` / `ChromeRow(title: \"Get a key\", detail: \"\\(provider.displayName) needs an API key. Nothing to install.\") {` / `Link(destination: provider.installURL) {` / `Text(verbatim: \"Get a \\(provider.displayName) key\")`",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:719-728 (B1 :710-719) `if provider.isAPIKeyBased, !status.isInstalled {` / `ChromeRow(title: \"Get a key\", detail: \"\\(provider.displayName) needs an API key. Nothing to install.\") {` / `Link(destination: provider.installURL) {` / `Text(verbatim: \"Get a \\(provider.displayName) key\")`",
         "DroppyCode/Core/Models/Provider.swift:90 installURL for meta",
         "DroppyCode/Services/Providers/ProviderRegistry.swift:17, :383-385, :389-393, :404-408, :411-415 install and auth state of the API-key providers",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:671 and :786-789 the collapsible section",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:648 and :786-789 the collapsible section",
         "DroppyCode/App/Views/Settings/SettingsView.swift:594-596 `let configured: (ProviderKind) -> Bool = { provider in` / `if case .signedIn = model.providers.status(provider).auth { return true }` / `return false`; :608 `get: { providerExpansion[provider] ?? configured(provider) },`"
       ],
       "notes": "The Meta install URL ends with a trailing slash and must be reproduced as written.",
-      "b2_change": "The row moved from B1 DroppyCode/App/Views/Settings/SettingsView.swift:710-719 to B2 :742-751 with its own code unchanged, and now sits inside the provider's collapsible section (B2 :671, :786-789), which starts collapsed whenever this row is present (:594-596, :608); at B1 it was on screen whenever it was present."
+      "b2_change": "The row moved from B1 DroppyCode/App/Views/Settings/SettingsView.swift:687-696 to B2 :742-751 with its own code unchanged, and now sits inside the provider's collapsible section (B2 :671, :786-789), which starts collapsed whenever this row is present (:594-596, :608); at B1 it was on screen whenever it was present."
     },
     {
       "id": "UI-PROVAPI-009",
@@ -4730,7 +4730,7 @@
       "colors": "As UI-PROVAPI-007.",
       "states": [
         "Present only while status.isInstalled is false. For these providers that means apiKeyConfigured is false: no check has finished yet, or the stored key is empty (DroppyCode/Services/Providers/ProviderRegistry.swift:17 `var isInstalled: Bool { executable != nil || apiKeyConfigured }`; :383-385 `guard !apiKey.isEmpty else {` / `statuses[provider] = ProviderStatus(auth: .signedOut)`)",
-        "Absent for a rejected key: a key that fails validation still sets `apiKeyConfigured: true` with `auth: valid ? .signedIn(nil) : .signedOut` (ProviderRegistry.swift:389-393 DeepSeek, :404-408 Meta, :411-415 Z.ai), so the row disappears as soon as a non-empty key has been checked, valid or not",
+        "Absent for a rejected key: a key that fails validation still sets `apiKeyConfigured: true` with `auth: valid ? .signedIn(nil) : .signedOut` (ProviderRegistry.swift:397-401 DeepSeek, :404-408 Meta, :411-415 Z.ai), so the row disappears as soon as a non-empty key has been checked, valid or not",
         "Whenever the row is present the provider is not signed in, so configured(provider) is false (DroppyCode/App/Views/Settings/SettingsView.swift:594-596 `let configured: (ProviderKind) -> Bool = { provider in` / `if case .signedIn = model.providers.status(provider).auth { return true }` / `return false`) and the section starts collapsed (:608 `get: { providerExpansion[provider] ?? configured(provider) },`): the row is hidden until the user clicks the provider header, and while collapsed it is clipped, disabled, not hit-testable and hidden from accessibility (:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` / `.disabled(!isExpanded)` / `.allowsHitTesting(isExpanded)` / `.accessibilityHidden(!isExpanded)`)",
         "A header click overrides that default for the page's lifetime (SettingsView.swift:590 `@State private var providerExpansion: [ProviderKind: Bool] = [:]`, :609 `set: { providerExpansion[provider] = $0 }`)"
       ],
@@ -4738,14 +4738,14 @@
         "Click opens https://z.ai/manage-apikey/apikey-list in the default browser"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Settings/SettingsView.swift:742-751 (B1 :710-719) `if provider.isAPIKeyBased, !status.isInstalled {` / `ChromeRow(title: \"Get a key\", detail: \"\\(provider.displayName) needs an API key. Nothing to install.\") {` / `Link(destination: provider.installURL) {` / `Text(verbatim: \"Get a \\(provider.displayName) key\")`",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:719-728 (B1 :710-719) `if provider.isAPIKeyBased, !status.isInstalled {` / `ChromeRow(title: \"Get a key\", detail: \"\\(provider.displayName) needs an API key. Nothing to install.\") {` / `Link(destination: provider.installURL) {` / `Text(verbatim: \"Get a \\(provider.displayName) key\")`",
         "DroppyCode/Core/Models/Provider.swift:91 installURL for zai",
         "DroppyCode/Services/Providers/ProviderRegistry.swift:17, :383-385, :389-393, :404-408, :411-415 install and auth state of the API-key providers",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:671 and :786-789 the collapsible section",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:648 and :786-789 the collapsible section",
         "DroppyCode/App/Views/Settings/SettingsView.swift:594-596 `let configured: (ProviderKind) -> Bool = { provider in` / `if case .signedIn = model.providers.status(provider).auth { return true }` / `return false`; :608 `get: { providerExpansion[provider] ?? configured(provider) },`"
       ],
       "notes": "The install URL is the key list page, which differs from the apiKeySource string only in carrying a scheme.",
-      "b2_change": "The row moved from B1 DroppyCode/App/Views/Settings/SettingsView.swift:710-719 to B2 :742-751 with its own code unchanged, and now sits inside the provider's collapsible section (B2 :671, :786-789), which starts collapsed whenever this row is present (:594-596, :608); at B1 it was on screen whenever it was present."
+      "b2_change": "The row moved from B1 DroppyCode/App/Views/Settings/SettingsView.swift:687-696 to B2 :742-751 with its own code unchanged, and now sits inside the provider's collapsible section (B2 :671, :786-789), which starts collapsed whenever this row is present (:594-596, :608); at B1 it was on screen whenever it was present."
     },
     {
       "id": "UI-PROVAPI-010",
@@ -4759,14 +4759,14 @@
       "states": [
         "On when the provider is enabled",
         "Off hides the provider from the pickers",
-        "At B2 the whole provider card sits inside the provider's collapsible section: DroppyCode/App/Views/Settings/SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {` and :786-789 `.clipped()` / `.disabled(!isExpanded)` / `.allowsHitTesting(isExpanded)` / `.accessibilityHidden(!isExpanded)`; DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` makes a signed-in provider start expanded, so this switch is on screen, enabled and hit-testable only while that section is expanded"
+        "At B2 the whole provider card sits inside the provider's collapsible section: DroppyCode/App/Views/Settings/SettingsView.swift:648 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {` and :786-789 `.clipped()` / `.disabled(!isExpanded)` / `.allowsHitTesting(isExpanded)` / `.accessibilityHidden(!isExpanded)`; DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` makes a signed-in provider start expanded, so this switch is on screen, enabled and hit-testable only while that section is expanded"
       ],
       "interactions": [
         "Click toggles the provider's enabled state, which is persisted in the disabled providers list"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Settings/SettingsView.swift:690-695 (B1 :658-663) `Spacer()` / `SettingsSwitch(isOn: Binding(` / `get: { model.settings.isEnabled(provider) },` / `set: { model.settings.setEnabled($0, for: provider) }`",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:671 and :786-789 the collapsible section",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:667-672 (B1 :658-663) `Spacer()` / `SettingsSwitch(isOn: Binding(` / `get: { model.settings.isEnabled(provider) },` / `set: { model.settings.setEnabled($0, for: provider) }`",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:648 and :786-789 the collapsible section",
         "DroppyCode/App/Views/Settings/SettingsView.swift:594-596 `let configured: (ProviderKind) -> Bool = { provider in` / `if case .signedIn = model.providers.status(provider).auth { return true }` / `return false`; :608 `get: { providerExpansion[provider] ?? configured(provider) },`"
       ],
       "notes": "Shared control on the common provider card rather than one this area owns; listed here because it is the gate on these three providers and a porter reading only this area would otherwise miss it. Its own requirement belongs to the settings area.",
@@ -5123,9 +5123,9 @@
         "Selecting a row sets the thread's model, which is remembered per provider"
       ],
       "source_evidence": [
-        "DroppyCode/Services/Providers/DeepSeekAPI.swift:70",
-        "DroppyCode/Services/Providers/DeepSeekAPI.swift:79-92",
-        "DroppyCode/Services/Providers/ProviderRegistry.swift:127 deepseekSeed"
+        "DroppyCode/Services/Providers/DeepSeekAPI.swift:49",
+        "DroppyCode/Services/Providers/DeepSeekAPI.swift:58-71",
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:135 deepseekSeed"
       ],
       "notes": "The seed shown before any network call is exactly ['deepseek-v4-pro', 'deepseek-flash'] mapped through the same table, so the seeded and the live list can never disagree. The em dash here is the record's own separator, not part of either string.",
       "status": "IMPLEMENTED"
@@ -5150,9 +5150,9 @@
         "Moving a thread saved at 'max' to any other row silently sends 'xhigh' instead"
       ],
       "source_evidence": [
-        "DroppyCode/Services/Providers/MetaAPI.swift:55-81",
+        "DroppyCode/Services/Providers/MetaAPI.swift:36-62",
         "DroppyCode/Services/Providers/MetaSession.swift:38-49",
-        "DroppyCode/Services/Providers/ProviderRegistry.swift:128-129 metaSeed"
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:136-137 metaSeed"
       ],
       "notes": "The separators inside the detail strings are U+00B7 with single spaces. The seed is exactly those five ids in that order.",
       "status": "IMPLEMENTED"
@@ -5177,8 +5177,8 @@
       ],
       "source_evidence": [
         "DroppyCode/Services/Providers/ZaiAPI.swift:14",
-        "DroppyCode/Services/Providers/ZaiAPI.swift:49-63",
-        "DroppyCode/Services/Providers/ProviderRegistry.swift:130 zaiSeed"
+        "DroppyCode/Services/Providers/ZaiAPI.swift:30-44",
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:138 zaiSeed"
       ],
       "notes": "These are the only two providers' rows whose preselected effort is 'max' rather than 'high'.",
       "status": "IMPLEMENTED"
@@ -5196,16 +5196,16 @@
         "Hidden entirely when the quota call returns nothing",
         "Reset cards hidden when the card list cannot be read",
         "A card whose available flag is exactly false is not listed",
-        "At B2 the usage block sits inside the provider's collapsible section (DroppyCode/App/Views/Settings/SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {` and :786-789 `.clipped()` / `.disabled(!isExpanded)` / `.allowsHitTesting(isExpanded)` / `.accessibilityHidden(!isExpanded)`), so it is on screen only while that section is expanded. showsUsage requires `return status.isInstalled && status.auth != .signedOut` (DroppyCode/App/Views/Settings/SettingsView.swift:633), which for these providers only a key that validated reaches (`auth: valid ? .signedIn(nil) : .signedOut`, DroppyCode/Services/Providers/ProviderRegistry.swift:391 and :413), so the section starts expanded whenever the block exists (:608) unless the header has been clicked to collapse it"
+        "At B2 the usage block sits inside the provider's collapsible section (DroppyCode/App/Views/Settings/SettingsView.swift:648 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {` and :786-789 `.clipped()` / `.disabled(!isExpanded)` / `.allowsHitTesting(isExpanded)` / `.accessibilityHidden(!isExpanded)`), so it is on screen only while that section is expanded. showsUsage requires `return status.isInstalled && status.auth != .signedOut` (DroppyCode/App/Views/Settings/SettingsView.swift:633), which for these providers only a key that validated reaches (`auth: valid ? .signedIn(nil) : .signedOut`, DroppyCode/Services/Providers/ProviderRegistry.swift:399 and :413), so the section starts expanded whenever the block exists (:608) unless the header has been clicked to collapse it"
       ],
       "interactions": [
         "Spending a reset card posts to Z.ai and consumes a real entitlement, then waits two seconds before the meters are re-read"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Settings/SettingsView.swift:699-711 (B1 :667-679) `if showsUsage {` / `ChromeRowDivider()` / `VStack(alignment: .leading, spacing: 14) {` / `if PlanLimitsReader.exposesLimits(provider) {` / `PlanLimitsView(provider: provider)` / `.padding(.horizontal, 16)` / `.padding(.vertical, 12)`",
-        "DroppyCode/Services/Providers/ZaiAPI.swift:89-151",
-        "DroppyCode/Services/Providers/ZaiAPI.swift:155-202",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:671 and :786-789 the collapsible section",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:676-688 (B1 :667-679) `if showsUsage {` / `ChromeRowDivider()` / `VStack(alignment: .leading, spacing: 14) {` / `if PlanLimitsReader.exposesLimits(provider) {` / `PlanLimitsView(provider: provider)` / `.padding(.horizontal, 16)` / `.padding(.vertical, 12)`",
+        "DroppyCode/Services/Providers/ZaiAPI.swift:68-130",
+        "DroppyCode/Services/Providers/ZaiAPI.swift:134-181",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:648 and :786-789 the collapsible section",
         "DroppyCode/App/Views/Settings/SettingsView.swift:594-596 `let configured: (ProviderKind) -> Bool = { provider in` / `if case .signedIn = model.providers.status(provider).auth { return true }` / `return false`; :608 `get: { providerExpansion[provider] ?? configured(provider) },`",
         "DroppyCode/App/Views/Settings/SettingsView.swift:630-634 showsUsage"
       ],
@@ -5225,14 +5225,14 @@
         "Hidden entirely when the balance call returns nothing, including when the key is missing, rejected or the API is unreachable",
         "Cleared when a key check fails, so no stale number survives",
         "Refreshed immediately after a key validates",
-        "At B2 the usage block sits inside the provider's collapsible section (DroppyCode/App/Views/Settings/SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {` and :786-789 `.clipped()` / `.disabled(!isExpanded)` / `.allowsHitTesting(isExpanded)` / `.accessibilityHidden(!isExpanded)`), so it is on screen only while that section is expanded. showsUsage requires `return status.isInstalled && status.auth != .signedOut` (DroppyCode/App/Views/Settings/SettingsView.swift:633), which for these providers only a key that validated reaches (`auth: valid ? .signedIn(nil) : .signedOut`, DroppyCode/Services/Providers/ProviderRegistry.swift:391 and :413), so the section starts expanded whenever the block exists (:608) unless the header has been clicked to collapse it"
+        "At B2 the usage block sits inside the provider's collapsible section (DroppyCode/App/Views/Settings/SettingsView.swift:648 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {` and :786-789 `.clipped()` / `.disabled(!isExpanded)` / `.allowsHitTesting(isExpanded)` / `.accessibilityHidden(!isExpanded)`), so it is on screen only while that section is expanded. showsUsage requires `return status.isInstalled && status.auth != .signedOut` (DroppyCode/App/Views/Settings/SettingsView.swift:633), which for these providers only a key that validated reaches (`auth: valid ? .signedIn(nil) : .signedOut`, DroppyCode/Services/Providers/ProviderRegistry.swift:399 and :413), so the section starts expanded whenever the block exists (:608) unless the header has been clicked to collapse it"
       ],
       "interactions": [],
       "source_evidence": [
-        "DroppyCode/App/Views/Settings/SettingsView.swift:699-711 (B1 :667-679) `if showsUsage {` / `ChromeRowDivider()` / `VStack(alignment: .leading, spacing: 14) {` / `if CreditsReader.exposesCredits(provider) {` / `CreditsView(provider: provider)` / `.padding(.horizontal, 16)` / `.padding(.vertical, 12)`",
-        "DroppyCode/Services/Providers/DeepSeekAPI.swift:40-68 (same lines at B2; only :44 changed, `let key = apiKey.trimmed`, the same trim as before) `static func balance(apiKey: String) async -> ProviderCredits? {` / `guard !key.isEmpty else { return nil }` / `return credits(from: json)`",
-        "DroppyCode/Services/Providers/ProviderRegistry.swift:394-401",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:671 and :786-789 the collapsible section",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:676-688 (B1 :667-679) `if showsUsage {` / `ChromeRowDivider()` / `VStack(alignment: .leading, spacing: 14) {` / `if CreditsReader.exposesCredits(provider) {` / `CreditsView(provider: provider)` / `.padding(.horizontal, 16)` / `.padding(.vertical, 12)`",
+        "DroppyCode/Services/Providers/DeepSeekAPI.swift:21-47 (same lines at B2; only :44 changed, `let key = apiKey.trimmed`, the same trim as before) `static func balance(apiKey: String) async -> ProviderCredits? {` / `guard !key.isEmpty else { return nil }` / `return credits(from: json)`",
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:402-409",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:648 and :786-789 the collapsible section",
         "DroppyCode/App/Views/Settings/SettingsView.swift:594-596 `let configured: (ProviderKind) -> Bool = { provider in` / `if case .signedIn = model.providers.status(provider).auth { return true }` / `return false`; :608 `get: { providerExpansion[provider] ?? configured(provider) },`",
         "DroppyCode/App/Views/Settings/SettingsView.swift:630-634 showsUsage"
       ],

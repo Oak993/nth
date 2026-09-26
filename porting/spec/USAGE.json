@@ -182,7 +182,7 @@
       "title": "The pop-out button closes the popover and switches the floating usage panel on, animated with panelSlide",
       "source_evidence": [
         "DroppyCode/App/Views/Composer/ComposerView.swift:748-753 ChromeCircleButton(...) { isPresented = false; withAnimation(Chrome.panelSlide) { model.settings.showsUsagePanel = true } }",
-        "DroppyCode/App/AppSettings.swift:631-633 var showsUsagePanel { didSet { defaults.set(showsUsagePanel, forKey: Key.showsUsagePanel) } }",
+        "DroppyCode/App/AppSettings.swift:635-637 var showsUsagePanel { didSet { defaults.set(showsUsagePanel, forKey: Key.showsUsagePanel) } }",
         "porting/extracts/chrome-design-tokens.md:347 - Chrome.panelSlide is .spring(response: 0.32, dampingFraction: 0.9), or .easeOut(duration: 0.18) under Reduce Motion"
       ],
       "preconditions": "The usage popover is open.",
@@ -233,7 +233,7 @@
       "source_evidence": [
         "DroppyCode/App/Views/Usage/UsagePanel.swift:71-78 .onAppear { registry.refreshPlanLimits(provider); registry.refreshCredits(provider); if let heads { registry.refreshPlanLimits(heads); registry.refreshCredits(heads) } }",
         "DroppyCode/App/Views/Usage/UsageViews.swift:3-6 PlanLimitsView doc comment - Refreshing is the caller's call: this only renders.",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:800-801 - Settings, Providers refreshes the same pair for the providers it lists"
+        "DroppyCode/App/Views/Settings/SettingsView.swift:777-778 - Settings, Providers refreshes the same pair for the providers it lists"
       ],
       "preconditions": "UsagePanel is mounted, from the popover or from the floating panel.",
       "action": "The view appears.",
@@ -245,7 +245,7 @@
       "failure_cases": [
         "A reader returning nil leaves the previous values in place; the registry assigns only on success."
       ],
-      "cancellation": "The read runs on its own task, so closing the popover that asked for it does not cancel it (ProviderRegistry.swift:604-606).",
+      "cancellation": "The read runs on its own task, so closing the popover that asked for it does not cancel it (ProviderRegistry.swift:683-685).",
       "windows_path": "Mount effect calling the two registry methods; the reads must be detached from component lifetime so unmounting cannot abort them.",
       "verification_method": "interaction test with a fake registry counting calls, including the heads case",
       "status": "IMPLEMENTED",
@@ -259,7 +259,7 @@
       "source_evidence": [
         "DroppyCode/App/Views/Usage/UsagePanel.swift:32 let showsContext = usage?.fraction != nil && usage?.windowTokens != nil",
         "DroppyCode/App/Views/Usage/UsagePanel.swift:34 if let usage, let fraction = usage.fraction, let window = usage.windowTokens",
-        "DroppyCode/Core/Models/Timeline.swift:335-338 ContextUsage.fraction returns nil unless windowTokens is non-nil and greater than 0"
+        "DroppyCode/Core/Models/Timeline.swift:338-341 ContextUsage.fraction returns nil unless windowTokens is non-nil and greater than 0"
       ],
       "preconditions": "UsagePanel is rendering.",
       "action": "The panel evaluates whether to draw the context block.",
@@ -1744,7 +1744,7 @@
         "DroppyCode/App/Views/Chat/ChatView.swift:492-494 let slot = scene.slots[.usage] ?? PanelScene.PanelSlot(corner: model.settings.usagePanelDock, below: 0, lift: 0)",
         "DroppyCode/App/Views/Chat/ChatView.swift:509-519 onDrag: { translation in let position = usageDrag.move(by: translation, from: origin, in: scene.layout); dockUsage(nearest: position, scene: scene); reorder(.usage, at: position, corner: model.settings.usagePanelDock, scene: scene) }, onDragEnd: { if let heading = usageDrag.release() { dockUsage(nearest: heading, scene: scene); reorder(...) } }",
         "DroppyCode/App/Views/Chat/ChatView.swift:619-625 - dockUsage takes scene.layout.dockCorner(nearest:keeping:docks:) and writes model.settings.usagePanelDock only when it differs",
-        "DroppyCode/App/AppSettings.swift:783 usagePanelDock = defaults.string(forKey: Key.usagePanelDock).flatMap(PanelDockCorner.init(rawValue:)) ?? .bottomLeading",
+        "DroppyCode/App/AppSettings.swift:787 usagePanelDock = defaults.string(forKey: Key.usagePanelDock).flatMap(PanelDockCorner.init(rawValue:)) ?? .bottomLeading",
         "DroppyCode/App/AppSettings.swift:175 static let usagePanelDock = \"usagePanelDock\""
       ],
       "preconditions": "The floating panel is placed.",
@@ -1843,7 +1843,7 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/ChatView.swift:574-577 onReset: { withAnimation(Chrome.panelSlide) { model.settings.usagePanelHeight = nil } }",
         "DroppyCode/App/Views/Chat/ChatView.swift:554-555 doc comment - a double-click puts it back to fitting its rows",
-        "DroppyCode/App/AppSettings.swift:688-696 var usagePanelHeight - nil removes the key rather than storing a sentinel"
+        "DroppyCode/App/AppSettings.swift:692-700 var usagePanelHeight - nil removes the key rather than storing a sentinel"
       ],
       "preconditions": "A height was stored by an earlier drag.",
       "action": "The user double-clicks a resize grip.",
@@ -1869,9 +1869,9 @@
       "source_evidence": [
         "DroppyCode/App/AppSettings.swift:170 static let showsUsagePanel = \"showsUsagePanel\"",
         "DroppyCode/App/AppSettings.swift:175-176 static let usagePanelDock = \"usagePanelDock\"; static let usagePanelHeight = \"usagePanelHeight\"",
-        "DroppyCode/App/AppSettings.swift:770 showsUsagePanel = defaults.object(forKey: Key.showsUsagePanel) as? Bool ?? false",
-        "DroppyCode/App/AppSettings.swift:783-784 usagePanelDock ... ?? .bottomLeading; usagePanelHeight = defaults.object(forKey: Key.usagePanelHeight).flatMap { $0 as? Double }.map { CGFloat($0) }",
-        "DroppyCode/App/AppSettings.swift:688-696 - a non-nil height is written as a Double, a nil height removes the key"
+        "DroppyCode/App/AppSettings.swift:774 showsUsagePanel = defaults.object(forKey: Key.showsUsagePanel) as? Bool ?? false",
+        "DroppyCode/App/AppSettings.swift:787-788 usagePanelDock ... ?? .bottomLeading; usagePanelHeight = defaults.object(forKey: Key.usagePanelHeight).flatMap { $0 as? Double }.map { CGFloat($0) }",
+        "DroppyCode/App/AppSettings.swift:692-700 - a non-nil height is written as a Double, a nil height removes the key"
       ],
       "preconditions": "The app starts.",
       "action": "Settings are loaded and later written.",
@@ -1920,15 +1920,15 @@
       "id": "PR-USAGE-077",
       "title": "Settings, Providers shows the same plan limits and credits views, so the two surfaces can never disagree",
       "source_evidence": [
-        "DroppyCode/App/Views/Settings/SettingsView.swift:702-707 if PlanLimitsReader.exposesLimits(provider) { PlanLimitsView(provider: provider) }; if CreditsReader.exposesCredits(provider) { CreditsView(provider: provider) }",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:800-801 model.providers.refreshPlanLimits(provider); model.providers.refreshCredits(provider)",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:679-684 if PlanLimitsReader.exposesLimits(provider) { PlanLimitsView(provider: provider) }; if CreditsReader.exposesCredits(provider) { CreditsView(provider: provider) }",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:777-778 model.providers.refreshPlanLimits(provider); model.providers.refreshCredits(provider)",
         "DroppyCode/App/Views/Usage/UsageViews.swift:5-6 doc comment - The composer's usage popover and Settings, Providers both show limits through this view, so the two can never disagree",
         "DroppyCode/App/Views/Usage/UsageViews.swift:85 doc comment - Shared by the usage popover and Settings, Providers",
         "DroppyCode/App/Views/Settings/SettingsView.swift:604-611 ForEach(ProviderKind.allCases.filter(configured) + ProviderKind.allCases.filter { !configured($0) }) { provider in ProviderSettingsSection(provider: provider, isExpanded: Binding(get: { providerExpansion[provider] ?? configured(provider) }, set: { providerExpansion[provider] = $0 })) }",
         "DroppyCode/App/Views/Settings/SettingsView.swift:593-597 configured - if case .signedIn = model.providers.status(provider).auth { return true }; return false",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:671 ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:784-789 comment - Collapsed content is neither focusable, tappable nor in the accessibility tree; .clipped(); .disabled(!isExpanded); .allowsHitTesting(isExpanded); .accessibilityHidden(!isExpanded)",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:795-801 .onChange(of: showsUsage, initial: true) { _, shows in guard shows else { return }; model.providers.refreshPlanLimits(provider); model.providers.refreshCredits(provider) }",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:648 ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:761-766 comment - Collapsed content is neither focusable, tappable nor in the accessibility tree; .clipped(); .disabled(!isExpanded); .allowsHitTesting(isExpanded); .accessibilityHidden(!isExpanded)",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:772-778 .onChange(of: showsUsage, initial: true) { _, shows in guard shows else { return }; model.providers.refreshPlanLimits(provider); model.providers.refreshCredits(provider) }",
         "DroppyCode/UI/Chrome/Chrome.swift:282-286 doc comment - 0 collapses the slot to nothing while the child stays mounted"
       ],
       "preconditions": "Settings, Providers is open.",
@@ -1948,7 +1948,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "CHANGED. The views moved: B1 DroppyCode/App/Views/Settings/SettingsView.swift:670-675 (`PlanLimitsView(provider: provider)` at :671, `CreditsView(provider: provider)` at :674) -> B2 SettingsView.swift:702-707 (:703 and :706), still guarded by exposesLimits and exposesCredits inside `if showsUsage` (B2 :699). New at B2: each provider section is collapsible. B1 SettingsView.swift:606-607 `ForEach(ProviderKind.allCases) { provider in ProviderSettingsSection(provider: provider)` kept every section open -> B2 :604-611 lists configured (signed-in) providers first and expands a section by default only when `configured(provider)`, and :671 wraps the card in `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, so a collapsed section hides these views. The refresh calls at B2 :800-801 still run from `.onChange(of: showsUsage, initial: true)` (:795) whatever the expansion. The section header itself belongs to the settings area."
+      "b2_change": "CHANGED. The views moved: B1 DroppyCode/App/Views/Settings/SettingsView.swift:670-675 (`PlanLimitsView(provider: provider)` at :671, `CreditsView(provider: provider)` at :674) -> B2 SettingsView.swift:679-684 (:703 and :706), still guarded by exposesLimits and exposesCredits inside `if showsUsage` (B2 :699). New at B2: each provider section is collapsible. B1 SettingsView.swift:606-607 `ForEach(ProviderKind.allCases) { provider in ProviderSettingsSection(provider: provider)` kept every section open -> B2 :604-611 lists configured (signed-in) providers first and expands a section by default only when `configured(provider)`, and :671 wraps the card in `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, so a collapsed section hides these views. The refresh calls at B2 :800-801 still run from `.onChange(of: showsUsage, initial: true)` (:795) whatever the expansion. The section header itself belongs to the settings area."
     },
     {
       "id": "PR-USAGE-078",
@@ -2007,9 +2007,9 @@
       "id": "PR-USAGE-080",
       "title": "Plan limits are read at most once a minute per provider, with a queued forced read and a 25 second watchdog",
       "source_evidence": [
-        "DroppyCode/Services/Providers/ProviderRegistry.swift:606-641 refreshPlanLimits(_:force:) - guard exposesLimits; guard !loadingLimits.contains(provider) else { if force { forcedLimitReads.insert(provider) }; return }; if !force, let fetched = limitsFetchedAt[provider], Date.now.timeIntervalSince(fetched) < 60 { return }; API-key branch clears planLimits when the key is empty; loadingLimits.insert; watchdog Task sleeping 25 seconds then removing from loadingLimits; defer cancels the watchdog and removes; a nil result returns without assigning; a non-nil result assigns planLimits and limitsFetchedAt",
-        "DroppyCode/Services/Providers/ProviderRegistry.swift:643-647 drainedForcedRead - re-runs a forced read that had to wait",
-        "DroppyCode/Services/Providers/ProviderRegistry.swift:632-634 - the CLI branch awaits LoginEnvironment.load() first"
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:685-720 refreshPlanLimits(_:force:) - guard exposesLimits; guard !loadingLimits.contains(provider) else { if force { forcedLimitReads.insert(provider) }; return }; if !force, let fetched = limitsFetchedAt[provider], Date.now.timeIntervalSince(fetched) < 60 { return }; API-key branch clears planLimits when the key is empty; loadingLimits.insert; watchdog Task sleeping 25 seconds then removing from loadingLimits; defer cancels the watchdog and removes; a nil result returns without assigning; a non-nil result assigns planLimits and limitsFetchedAt",
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:722-726 drainedForcedRead - re-runs a forced read that had to wait",
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:711-713 - the CLI branch awaits LoginEnvironment.load() first"
       ],
       "preconditions": "A caller asks for a provider's limits.",
       "action": "refreshPlanLimits runs.",
@@ -2020,7 +2020,7 @@
       "persistence": "None; the cache and the timestamps are in memory only and do not survive a restart.",
       "failure_cases": [
         "A nil read leaves the previous limits and the previous timestamp, so the 60 second gate does not block the next attempt.",
-        "ProviderRegistry.swift:627 repeats two guards that are already unreachable there; it is proven dead (dead_code.md entry 3) and gets no behaviour of its own."
+        "ProviderRegistry.swift:706 repeats two guards that are already unreachable there; it is proven dead (dead_code.md entry 3) and gets no behaviour of its own."
       ],
       "cancellation": "The read is not cancellable by the caller; the watchdog only releases the loading flag, it does not stop the work.",
       "windows_path": "Same gating, same 60 second freshness and 25 second watchdog. Windows process launch replaces the macOS one; the login-environment preload has its own Windows decision (port_impacts entry 215).",
@@ -2034,7 +2034,7 @@
       "id": "PR-USAGE-081",
       "title": "Credits reads deliberately lack the watchdog and the forced-read queue, and leave a stale timestamp on an empty key",
       "source_evidence": [
-        "DroppyCode/Services/Providers/ProviderRegistry.swift:681-700 refreshCredits(_:force:) - guard exposesCredits && !loadingCredits.contains(provider); Command Code's key comes from CommandCodeAPI.apiKey(environment:) unless Settings holds one; an empty key sets credits[provider] = nil and returns; the 60 second gate; loadingCredits.insert; a plain Task with no watchdog and no defer; loadingCredits.remove after the await; a nil balance returns without assigning",
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:760-779 refreshCredits(_:force:) - guard exposesCredits && !loadingCredits.contains(provider); Command Code's key comes from CommandCodeAPI.apiKey(environment:) unless Settings holds one; an empty key sets credits[provider] = nil and returns; the 60 second gate; loadingCredits.insert; a plain Task with no watchdog and no defer; loadingCredits.remove after the await; a nil balance returns without assigning",
         "porting/upstream_defects.md:21 entry 4 - refreshCredits has neither the 25-second watchdog nor the defer, so a read that never returns leaves the provider stuck in loadingCredits for the rest of the run; force:true arriving during an in-flight read is silently dropped. Reproduce both.",
         "porting/upstream_defects.md:23 entry 5 - the empty-API-key path returns without clearing creditsFetchedAt, so the stale timestamp makes the 60-second gate suppress the next read and a just-pasted key can leave the balance blank for up to a minute. Reproduce.",
         "porting/port_impacts.md:40 entry 16 - Reproduce both asymmetries rather than unifying them"
@@ -2062,8 +2062,8 @@
       "title": "A reported usage event invalidates the cached credits and, for API-key providers, the cached plan limits",
       "source_evidence": [
         "DroppyCode/App/Runtime/ThreadRuntime.swift:2177-2184 case .usage(let usage): self.usage = usage; saveRevision += 1; if let provider = thread?.provider { app?.providers.invalidateCredits(provider); app?.providers.invalidatePlanLimits(provider) }",
-        "DroppyCode/Services/Providers/ProviderRegistry.swift:702-707 invalidateCredits - guard exposesCredits; creditsFetchedAt[provider] = nil",
-        "DroppyCode/Services/Providers/ProviderRegistry.swift:709-715 invalidatePlanLimits - guard provider.isAPIKeyBased && exposesLimits; limitsFetchedAt[provider] = nil"
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:781-786 invalidateCredits - guard exposesCredits; creditsFetchedAt[provider] = nil",
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:788-794 invalidatePlanLimits - guard provider.isAPIKeyBased && exposesLimits; limitsFetchedAt[provider] = nil"
       ],
       "preconditions": "A provider session reports context usage for a thread.",
       "action": "The runtime handles the usage event.",
@@ -2087,8 +2087,8 @@
       "id": "PR-USAGE-083",
       "title": "Spending a banked reset routes to Codex or Z.ai, re-reads that provider's limits, and throws for anyone else",
       "source_evidence": [
-        "DroppyCode/Services/Providers/ProviderRegistry.swift:649-676 consumeResetCredit(_:_:) - redeemingReset = creditID ?? provider.rawValue with a defer clearing it; codex awaits LoginEnvironment.load(), throws ResetCreditError.codexUnavailable when no executable, calls CodexSession.consumeResetCredit(executable:environment:creditID:), then re-reads CodexSession.readPlanLimits and stores it with a fresh timestamp on success; zai requires a non-empty API key and a non-nil creditID else throws ResetCreditError.unknownOutcome, calls ZaiAPI.consumeResetCredit(apiKey:creditID:), then re-reads ZaiAPI.planLimits; default throws ResetCreditError.unknownOutcome",
-        "DroppyCode/Services/Providers/ProviderRegistry.swift:59-60 private(set) var redeemingReset: String? - the banked reset being spent right now: its credit id, or \"codex\" for one the app-server listed only by count"
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:728-755 consumeResetCredit(_:_:) - redeemingReset = creditID ?? provider.rawValue with a defer clearing it; codex awaits LoginEnvironment.load(), throws ResetCreditError.codexUnavailable when no executable, calls CodexSession.consumeResetCredit(executable:environment:creditID:), then re-reads CodexSession.readPlanLimits and stores it with a fresh timestamp on success; zai requires a non-empty API key and a non-nil creditID else throws ResetCreditError.unknownOutcome, calls ZaiAPI.consumeResetCredit(apiKey:creditID:), then re-reads ZaiAPI.planLimits; default throws ResetCreditError.unknownOutcome",
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:63-64 private(set) var redeemingReset: String? - the banked reset being spent right now: its credit id, or \"codex\" for one the app-server listed only by count"
       ],
       "preconditions": "The user pressed Reset now.",
       "action": "consumeResetCredit runs.",
@@ -2112,12 +2112,12 @@
       "id": "PR-USAGE-084",
       "title": "Context usage is part of the thread document: restored on load, kept on snapshot, cleared on rewind",
       "source_evidence": [
-        "DroppyCode/Core/Models/Timeline.swift:345 struct ThreadDocument - var usage: ContextUsage?",
-        "DroppyCode/Core/Models/Timeline.swift:361 usage = container.value(.usage, default: nil)",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:562 usage = usage ?? document.usage",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:3655 document.usage = usage",
+        "DroppyCode/Core/Models/Timeline.swift:348 struct ThreadDocument - var usage: ContextUsage?",
+        "DroppyCode/Core/Models/Timeline.swift:364 usage = container.value(.usage, default: nil)",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:561 usage = usage ?? document.usage",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:3701 document.usage = usage",
         "DroppyCode/App/Runtime/ThreadRuntime.swift:1930 usage = nil",
-        "DroppyCode/Core/Models/Timeline.swift:331-339 struct ContextUsage: Codable, Hashable, Sendable { var usedTokens: Int; var windowTokens: Int? }"
+        "DroppyCode/Core/Models/Timeline.swift:334-342 struct ContextUsage: Codable, Hashable, Sendable { var usedTokens: Int; var windowTokens: Int? }"
       ],
       "preconditions": "A thread has reported usage at least once.",
       "action": "The thread is saved, closed and reopened, or rewound.",
@@ -2141,7 +2141,7 @@
       "id": "PR-USAGE-085",
       "title": "ContextUsage.fraction is nil without a positive window and is otherwise clamped to at most one",
       "source_evidence": [
-        "DroppyCode/Core/Models/Timeline.swift:335-338 var fraction: Double? { guard let windowTokens, windowTokens > 0 else { return nil }; return min(1, Double(usedTokens) / Double(windowTokens)) }"
+        "DroppyCode/Core/Models/Timeline.swift:338-341 var fraction: Double? { guard let windowTokens, windowTokens > 0 else { return nil }; return min(1, Double(usedTokens) / Double(windowTokens)) }"
       ],
       "preconditions": "A ContextUsage value exists.",
       "action": "fraction is read.",
@@ -2330,7 +2330,7 @@
       "title": "A pending live-spend write is flushed when the app quits",
       "source_evidence": [
         "DroppyCode/Services/Store/TokenLedger.swift:147-153 func flushLiveSpend() { guard let liveSave else { return }; liveSave.cancel(); self.liveSave = nil; LiveSpendStateStore.save(state) }",
-        "DroppyCode/App/AppDelegate.swift:52 TokenLedger.shared.flushLiveSpend()"
+        "DroppyCode/App/AppDelegate.swift:58 TokenLedger.shared.flushLiveSpend()"
       ],
       "preconditions": "A debounced write is pending.",
       "action": "The application terminates. On Windows closing the main window and Alt+F4 both quit the app (OD-0008 C1, C2), so both reach this point.",
@@ -2351,7 +2351,7 @@
       "depends_on_unknown": null,
       "deviation": {
         "decision": "OD-0008 C1, C2",
-        "upstream": "The flush runs in applicationWillTerminate (DroppyCode/App/AppDelegate.swift:50-52 `TokenLedger.shared.flushLiveSpend()`); AppDelegate.swift implements no applicationShouldTerminateAfterLastWindowClosed, so on macOS closing the window leaves the app running and does not flush",
+        "upstream": "The flush runs in applicationWillTerminate (DroppyCode/App/AppDelegate.swift:56-58 `TokenLedger.shared.flushLiveSpend()`); AppDelegate.swift implements no applicationShouldTerminateAfterLastWindowClosed, so on macOS closing the window leaves the app running and does not flush",
         "port": "Closing the main window quits the app, keeping the upstream wait while a Hydra merge is running, and Alt+F4 quits it the same way, so either one flushes the pending live-spend write"
       }
     },
@@ -2455,7 +2455,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "At B1 nothing called record(codexSpend:rolloutID:) (B1 DroppyCode/Services/Providers/CodexSession.swift:608, :610, :619, :621 called record(spend:)), so liveCodex stayed empty and this roll-forward did nothing. B2 CodexSession.swift:671 `TokenLedger.shared.record(codexSpend: spend, rolloutID: rolloutID)` fills it. The roll-forward itself, TokenLedger.swift:369-376, is unchanged."
+      "b2_change": "At B1 nothing called record(codexSpend:rolloutID:) (B1 DroppyCode/Services/Providers/CodexSession.swift:611, :610, :619, :621 called record(spend:)), so liveCodex stayed empty and this roll-forward did nothing. B2 CodexSession.swift:674 `TokenLedger.shared.record(codexSpend: spend, rolloutID: rolloutID)` fills it. The roll-forward itself, TokenLedger.swift:369-376, is unchanged."
     },
     {
       "id": "PR-USAGE-098",
@@ -2514,9 +2514,9 @@
       "id": "PR-USAGE-100",
       "title": "Each rollout contributes its own growth: the last token_count total less the total it inherited on resume",
       "source_evidence": [
-        "DroppyCode/Services/Store/TokenLedger.swift:545-581 tailContribution(at:) - seeks to the last 131072 bytes, decodes lines in reverse looking for a line containing \"token_count\", requires payload.info.total_token_usage.total_tokens greater than zero, takes the day from the event's timestamp, and returns (max(0, tokens - inheritedTotal(at: url)), day); a line whose timestamp is missing or unparsable is skipped",
-        "DroppyCode/Services/Store/TokenLedger.swift:498-540 inheritedTotal(at:) - reads up to 8388608 bytes from the head in 524288 byte chunks, scanning line by line for the first token_count event, and returns max(0, total_token_usage.total_tokens - last_token_usage.total_tokens), or 0 when none is found",
-        "DroppyCode/Services/Store/TokenLedger.swift:558-560 comment - Lossy on purpose: one stray byte must not throw away the whole tail when the token_count line itself is intact"
+        "DroppyCode/Services/Store/TokenLedger.swift:538-572 tailContribution(at:) - seeks to the last 131072 bytes, decodes lines in reverse looking for a line containing \"token_count\", requires payload.info.total_token_usage.total_tokens greater than zero, takes the day from the event's timestamp, and returns (max(0, tokens - inheritedTotal(at: url)), day); a line whose timestamp is missing or unparsable is skipped",
+        "DroppyCode/Services/Store/TokenLedger.swift:498-533 inheritedTotal(at:) - reads up to 8388608 bytes from the head in 524288 byte chunks, scanning line by line for the first token_count event, and returns max(0, total_token_usage.total_tokens - last_token_usage.total_tokens), or 0 when none is found",
+        "DroppyCode/Services/Store/TokenLedger.swift:551-553 comment - Lossy on purpose: one stray byte must not throw away the whole tail when the token_count line itself is intact"
       ],
       "preconditions": "A rollout file is being read.",
       "action": "Its contribution is computed.",
@@ -2583,7 +2583,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "At B1 no caller populated liveCodex (B1 DroppyCode/Services/Providers/CodexSession.swift:608, :610, :619, :621 called record(spend:)), so settledLive was empty and every file's growth was kept whole. B2 CodexSession.swift:671 `TokenLedger.shared.record(codexSpend: spend, rolloutID: rolloutID)` gives settledCodex real content after the next launch, so the subtraction now applies. reconcile at TokenLedger.swift:468-488 is unchanged."
+      "b2_change": "At B1 no caller populated liveCodex (B1 DroppyCode/Services/Providers/CodexSession.swift:611, :610, :619, :621 called record(spend:)), so settledLive was empty and every file's growth was kept whole. B2 CodexSession.swift:674 `TokenLedger.shared.record(codexSpend: spend, rolloutID: rolloutID)` gives settledCodex real content after the next launch, so the subtraction now applies. reconcile at TokenLedger.swift:468-488 is unchanged."
     },
     {
       "id": "PR-USAGE-103",
@@ -2643,7 +2643,7 @@
       "id": "PR-USAGE-105",
       "title": "Rollout event timestamps are parsed as ISO 8601 with fractional seconds first, then without",
       "source_evidence": [
-        "DroppyCode/Services/Store/TokenLedger.swift:583-586 /// Parses both fractional and whole-second event stamps. private static func eventDate(from stamp: String) -> Date? { ISO8601.date(from: stamp) }",
+        "DroppyCode/Services/Store/TokenLedger.swift:574-577 /// Parses both fractional and whole-second event stamps. private static func eventDate(from stamp: String) -> Date? { ISO8601.date(from: stamp) }",
         "DroppyCode/Core/Support/ISO8601.swift:10 static let fractional = Date.ISO8601FormatStyle(includingFractionalSeconds: true)",
         "DroppyCode/Core/Support/ISO8601.swift:13 static let plain = Date.ISO8601FormatStyle()",
         "DroppyCode/Core/Support/ISO8601.swift:19-21 static func date(from text: String) -> Date? { (try? fractional.parse(text)) ?? (try? plain.parse(text)) }",
@@ -2651,7 +2651,7 @@
       ],
       "preconditions": "A token_count line carries a timestamp string.",
       "action": "The event date is parsed.",
-      "expected_result": "The shared ISO8601.date(from:) is used: the Date.ISO8601FormatStyle with fractional seconds is tried first; if it fails the plain Date.ISO8601FormatStyle is tried. A string neither accepts yields nil, and the line is then skipped because an empty day is not accepted (TokenLedger.swift:576).",
+      "expected_result": "The shared ISO8601.date(from:) is used: the Date.ISO8601FormatStyle with fractional seconds is tried first; if it fails the plain Date.ISO8601FormatStyle is tried. A string neither accepts yields nil, and the line is then skipped because an empty day is not accepted (TokenLedger.swift:567).",
       "side_effects": [],
       "persistence": "None.",
       "failure_cases": [
@@ -2664,7 +2664,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": "UNK-0003",
-      "b2_change": "MOVED. B1 DroppyCode/Services/Store/TokenLedger.swift:583-595 built two ISO8601DateFormatter instances per call (`fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]`, then `plain.formatOptions = [.withInternetDateTime]`) with the comment at :583-587 -> B2 TokenLedger.swift:583-586 `ISO8601.date(from: stamp)`, delegating to the new DroppyCode/Core/Support/ISO8601.swift:19-21 `(try? fractional.parse(text)) ?? (try? plain.parse(text))` over Date.ISO8601FormatStyle values (:10, :13). Order and outcome are the same: fractional first, then whole-second, nil otherwise, and the empty-day skip at :576 is unchanged. Whether Date.ISO8601FormatStyle accepts exactly the strings ISO8601DateFormatter accepted is UNKNOWN: Swift was not run, and there is no macOS runtime (UNK-0003)."
+      "b2_change": "MOVED. B1 DroppyCode/Services/Store/TokenLedger.swift:574-586 built two ISO8601DateFormatter instances per call (`fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]`, then `plain.formatOptions = [.withInternetDateTime]`) with the comment at :583-587 -> B2 TokenLedger.swift:574-577 `ISO8601.date(from: stamp)`, delegating to the new DroppyCode/Core/Support/ISO8601.swift:19-21 `(try? fractional.parse(text)) ?? (try? plain.parse(text))` over Date.ISO8601FormatStyle values (:10, :13). Order and outcome are the same: fractional first, then whole-second, nil otherwise, and the empty-day skip at :576 is unchanged. Whether Date.ISO8601FormatStyle accepts exactly the strings ISO8601DateFormatter accepted is UNKNOWN: Swift was not run, and there is no macOS runtime (UNK-0003)."
     },
     {
       "id": "PR-USAGE-106",
@@ -2672,11 +2672,11 @@
       "source_evidence": [
         "DroppyCode/Services/Store/TokenLedger.swift:111-116 func record(_ spend: TokenSpend, on date: Date = Date()) { record(spend: spend.totalTokens, codexRollout: nil, on: date) } with the doc comment Codex callers must use record(codexSpend:rolloutID:on:) instead",
         "DroppyCode/Services/Store/TokenLedger.swift:118-126 func record(codexSpend spend: Int, rolloutID: String, on date: Date = Date()) { guard !rolloutID.isEmpty else { return }; record(spend: spend, codexRollout: rolloutID.lowercased(), on: date) }",
-        "DroppyCode/Services/Providers/CodexSession.swift:607-612 case .lead: if let total = usage[\"total\"]?[\"totalTokens\"]?.int, total > 0 { let spend = spendTracker.spend(total: total, before: max(0, total - used)); recordCodexSpend(spend, rolloutID: threadID, model: activeModel) } else { recordCodexSpend(used, rolloutID: threadID, model: activeModel) }",
-        "DroppyCode/Services/Providers/CodexSession.swift:613-624 case .head(let head): let total = usage[\"total\"]?[\"totalTokens\"]?.int ?? 0; let headModel = headModels[head]; if total > 0 { ... recordCodexSpend(spend, rolloutID: head, model: headModel, agentID: head) } else { recordCodexSpend(used, rolloutID: head, model: headModel, agentID: head) }",
-        "DroppyCode/Services/Providers/CodexSession.swift:668-674 private func recordCodexSpend(_ spend: Int, rolloutID: String?, model: String?, agentID: String? = nil) { guard spend > 0 else { return }; if let rolloutID, !rolloutID.isEmpty { TokenLedger.shared.record(codexSpend: spend, rolloutID: rolloutID) }; onEvent?(.tokenSpend(TokenSpend(provider: .codex, totalTokens: spend, model: model, agentID: agentID))) }",
-        "DroppyCode/Services/Providers/CodexSession.swift:662-667 doc comment - the ledger is told which rollout it came from: the thread (or head) id, which is the session id its rollout file is named for ... Without an id only the runtime event is emitted; history owns the daily total.",
-        "git grep at 1fbf81e for \"codexSpend\" and \"TokenLedger.shared.record\" over *.swift returns AntigravitySession.swift:310, ClaudeSession.swift:584 record(spend: spend.totalTokens), CodexSession.swift:671 record(codexSpend: spend, rolloutID: rolloutID), CommandCodeSession.swift:348, CopilotSession.swift:547 and OpenAICompatibleSession.swift:491; nothing calls record(_ spend: TokenSpend)"
+        "DroppyCode/Services/Providers/CodexSession.swift:610-615 case .lead: if let total = usage[\"total\"]?[\"totalTokens\"]?.int, total > 0 { let spend = spendTracker.spend(total: total, before: max(0, total - used)); recordCodexSpend(spend, rolloutID: threadID, model: activeModel) } else { recordCodexSpend(used, rolloutID: threadID, model: activeModel) }",
+        "DroppyCode/Services/Providers/CodexSession.swift:616-627 case .head(let head): let total = usage[\"total\"]?[\"totalTokens\"]?.int ?? 0; let headModel = headModels[head]; if total > 0 { ... recordCodexSpend(spend, rolloutID: head, model: headModel, agentID: head) } else { recordCodexSpend(used, rolloutID: head, model: headModel, agentID: head) }",
+        "DroppyCode/Services/Providers/CodexSession.swift:671-677 private func recordCodexSpend(_ spend: Int, rolloutID: String?, model: String?, agentID: String? = nil) { guard spend > 0 else { return }; if let rolloutID, !rolloutID.isEmpty { TokenLedger.shared.record(codexSpend: spend, rolloutID: rolloutID) }; onEvent?(.tokenSpend(TokenSpend(provider: .codex, totalTokens: spend, model: model, agentID: agentID))) }",
+        "DroppyCode/Services/Providers/CodexSession.swift:665-670 doc comment - the ledger is told which rollout it came from: the thread (or head) id, which is the session id its rollout file is named for ... Without an id only the runtime event is emitted; history owns the daily total.",
+        "git grep at 1fbf81e for \"codexSpend\" and \"TokenLedger.shared.record\" over *.swift returns AntigravitySession.swift:299, ClaudeSession.swift:582 record(spend: spend.totalTokens), CodexSession.swift:674 record(codexSpend: spend, rolloutID: rolloutID), CommandCodeSession.swift:332, CopilotSession.swift:547 and OpenAICompatibleSession.swift:491; nothing calls record(_ spend: TokenSpend)"
       ],
       "preconditions": "A Codex session receives thread/tokenUsage/updated for its lead thread or for a head.",
       "action": "The observed spend is recorded.",
@@ -2697,13 +2697,13 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 DroppyCode/Services/Providers/CodexSession.swift:608 `if spend > 0 { TokenLedger.shared.record(spend: spend) }` and :610 `TokenLedger.shared.record(spend: used)` (lead), :619 and :621 the same for heads -> B2 CodexSession.swift:609 `recordCodexSpend(spend, rolloutID: threadID, model: activeModel)`, :611 `recordCodexSpend(used, rolloutID: threadID, model: activeModel)`, :621 `recordCodexSpend(spend, rolloutID: head, model: headModel, agentID: head)`, :623 `recordCodexSpend(used, rolloutID: head, model: headModel, agentID: head)`, and :671 `TokenLedger.shared.record(codexSpend: spend, rolloutID: rolloutID)`. The B1 record's premise (no caller of record(codexSpend:), a provenance path with no producer, and a directive not to wire it) no longer holds: upstream wires it at B2. Claude is unchanged in amount: B1 ClaudeSession.swift:574 `if spend > 0 { TokenLedger.shared.record(spend: spend) }` -> B2 :583-586 `if let spend = Self.turnSpendEvent(message, model: model) { TokenLedger.shared.record(spend: spend.totalTokens); onEvent?(.tokenSpend(spend)) }`. Status DISCOVERED -> SPECIFIED: the owner question the B1 record raised is answered by the source."
+      "b2_change": "B1 DroppyCode/Services/Providers/CodexSession.swift:611 `if spend > 0 { TokenLedger.shared.record(spend: spend) }` and :610 `TokenLedger.shared.record(spend: used)` (lead), :619 and :621 the same for heads -> B2 CodexSession.swift:612 `recordCodexSpend(spend, rolloutID: threadID, model: activeModel)`, :611 `recordCodexSpend(used, rolloutID: threadID, model: activeModel)`, :621 `recordCodexSpend(spend, rolloutID: head, model: headModel, agentID: head)`, :623 `recordCodexSpend(used, rolloutID: head, model: headModel, agentID: head)`, and :671 `TokenLedger.shared.record(codexSpend: spend, rolloutID: rolloutID)`. The B1 record's premise (no caller of record(codexSpend:), a provenance path with no producer, and a directive not to wire it) no longer holds: upstream wires it at B2. Claude is unchanged in amount: B1 ClaudeSession.swift:572 `if spend > 0 { TokenLedger.shared.record(spend: spend) }` -> B2 :583-586 `if let spend = Self.turnSpendEvent(message, model: model) { TokenLedger.shared.record(spend: spend.totalTokens); onEvent?(.tokenSpend(spend)) }`. Status DISCOVERED -> SPECIFIED: the owner question the B1 record raised is answered by the source."
     },
     {
       "id": "PR-USAGE-107",
       "title": "Token activity has exactly three scaling modes titled Daily, Weekly and Cumulative",
       "source_evidence": [
-        "DroppyCode/Services/Store/TokenLedger.swift:589-602 enum TokenActivityMode: String, Sendable, CaseIterable { case daily, weekly, cumulative; var title: String { switch self { case .daily: \"Daily\"; case .weekly: \"Weekly\"; case .cumulative: \"Cumulative\" } } }",
+        "DroppyCode/Services/Store/TokenLedger.swift:580-593 enum TokenActivityMode: String, Sendable, CaseIterable { case daily, weekly, cumulative; var title: String { switch self { case .daily: \"Daily\"; case .weekly: \"Weekly\"; case .cumulative: \"Cumulative\" } } }",
         "DroppyCode/App/Views/Settings/TokenActivitySection.swift:61-85 ForEach(TokenActivityMode.allCases, id: \\.self) rendering one chip per mode with Text(verbatim: option.title)"
       ],
       "preconditions": "The token activity section renders.",
@@ -2721,15 +2721,15 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "No behaviour change. Flagged citation re-checked at B2: DroppyCode/App/Views/Settings/TokenActivitySection.swift:61-85 still renders one chip per TokenActivityMode case with Text(verbatim: option.title), and TokenLedger.swift:589-602 still declares daily, weekly and cumulative with the titles Daily, Weekly and Cumulative. The only B2 edit inside the range is :77 `.font(.system(size: 13, weight: mode == option ? .medium : .regular))` -> `.font(.system(.body, weight: mode == option ? .medium : .regular))`, which UI-USAGE-045 specifies."
+      "b2_change": "No behaviour change. Flagged citation re-checked at B2: DroppyCode/App/Views/Settings/TokenActivitySection.swift:61-85 still renders one chip per TokenActivityMode case with Text(verbatim: option.title), and TokenLedger.swift:580-593 still declares daily, weekly and cumulative with the titles Daily, Weekly and Cumulative. The only B2 edit inside the range is :77 `.font(.system(size: 13, weight: mode == option ? .medium : .regular))` -> `.font(.system(.body, weight: mode == option ? .medium : .regular))`, which UI-USAGE-045 specifies."
     },
     {
       "id": "PR-USAGE-108",
       "title": "The activity grid covers the whole current year in Sunday-first week columns, keeping future days as cells",
       "source_evidence": [
-        "DroppyCode/Services/Store/TokenLedger.swift:609-625 struct TokenActivityGrid { var columns: [[Date?]]; var values: [[Int]]; var maxValue: Int; var monthTicks: [(label: String, column: Int)]; var tomorrow: Date; static let rows = 7; static let months = 12 }",
-        "DroppyCode/Services/Store/TokenLedger.swift:627-662 build(daily:mode:now:) - a Gregorian calendar with firstWeekday 1; rangeStart is the first day of the current year, rangeEnd one year less one day later; tomorrow is the day after today; leadingGap places the first column on the Sunday on or before the range start; columns hold seven entries each, nil outside the range, and the loop ends after the column holding the last day",
-        "DroppyCode/Services/Store/TokenLedger.swift:604-608 doc comment - Days still to come stay in the grid as faint cells, so the year keeps its shape and the months read Jan through Dec whatever today's date"
+        "DroppyCode/Services/Store/TokenLedger.swift:600-616 struct TokenActivityGrid { var columns: [[Date?]]; var values: [[Int]]; var maxValue: Int; var monthTicks: [(label: String, column: Int)]; var tomorrow: Date; static let rows = 7; static let months = 12 }",
+        "DroppyCode/Services/Store/TokenLedger.swift:618-653 build(daily:mode:now:) - a Gregorian calendar with firstWeekday 1; rangeStart is the first day of the current year, rangeEnd one year less one day later; tomorrow is the day after today; leadingGap places the first column on the Sunday on or before the range start; columns hold seven entries each, nil outside the range, and the loop ends after the column holding the last day",
+        "DroppyCode/Services/Store/TokenLedger.swift:595-599 doc comment - Days still to come stay in the grid as faint cells, so the year keeps its shape and the months read Jan through Dec whatever today's date"
       ],
       "preconditions": "Daily totals are available.",
       "action": "The grid is built.",
@@ -2751,7 +2751,7 @@
       "id": "PR-USAGE-109",
       "title": "Grid cell values are per-day, per-week or running-cumulative depending on the mode, and maxValue is their maximum",
       "source_evidence": [
-        "DroppyCode/Services/Store/TokenLedger.swift:664-691 switch mode { case .daily: each in-range cell takes its own day total; case .weekly: each column sums its seven days and every non-nil cell of that column takes the week total, nil cells take 0; case .cumulative: a running total accumulates across columns and rows in order and every cell, including nil cells, takes the running value }; let maxValue = values.flatMap { $0 }.max() ?? 0"
+        "DroppyCode/Services/Store/TokenLedger.swift:655-682 switch mode { case .daily: each in-range cell takes its own day total; case .weekly: each column sums its seven days and every non-nil cell of that column takes the week total, nil cells take 0; case .cumulative: a running total accumulates across columns and rows in order and every cell, including nil cells, takes the running value }; let maxValue = values.flatMap { $0 }.max() ?? 0"
       ],
       "preconditions": "The grid is being built for a mode.",
       "action": "Values are filled.",
@@ -2773,8 +2773,8 @@
       "id": "PR-USAGE-110",
       "title": "Month ticks use fixed English abbreviations placed at the column holding each month's first day",
       "source_evidence": [
-        "DroppyCode/Services/Store/TokenLedger.swift:623-625 private static let monthNames = [\"Jan\", \"Feb\", \"Mar\", \"Apr\", \"May\", \"Jun\", \"Jul\", \"Aug\", \"Sep\", \"Oct\", \"Nov\", \"Dec\"] with the comment that the calendar's own symbols come out as \"M01\" without a locale, and the rest of the app reads in English",
-        "DroppyCode/Services/Store/TokenLedger.swift:693-703 for offset in 0..<months { monthStart is clamped to the range start; daysOut is the day count from the grid start to that clamped date; column = daysOut / rows; label = monthNames[(month - 1 + 12) % 12]; the tick is appended only when the column is inside the grid }"
+        "DroppyCode/Services/Store/TokenLedger.swift:614-616 private static let monthNames = [\"Jan\", \"Feb\", \"Mar\", \"Apr\", \"May\", \"Jun\", \"Jul\", \"Aug\", \"Sep\", \"Oct\", \"Nov\", \"Dec\"] with the comment that the calendar's own symbols come out as \"M01\" without a locale, and the rest of the app reads in English",
+        "DroppyCode/Services/Store/TokenLedger.swift:684-694 for offset in 0..<months { monthStart is clamped to the range start; daysOut is the day count from the grid start to that clamped date; column = daysOut / rows; label = monthNames[(month - 1 + 12) % 12]; the tick is appended only when the column is inside the grid }"
       ],
       "preconditions": "The grid is being built.",
       "action": "Month ticks are computed.",
@@ -3862,7 +3862,7 @@
       ],
       "source_evidence": [
         "DroppyCode/App/Views/Settings/SettingsView.swift:378",
-        "DroppyCode/App/AppSettings.swift:631-633, :770"
+        "DroppyCode/App/AppSettings.swift:635-637, :770"
       ],
       "notes": "The same setting is written by the popover's pop-out button and by the panel's close button, so all three stay in sync."
     },
@@ -3885,7 +3885,7 @@
       ],
       "source_evidence": [
         "DroppyCode/App/Views/Settings/TokenActivitySection.swift:61-87",
-        "DroppyCode/Services/Store/TokenLedger.swift:589-602",
+        "DroppyCode/Services/Store/TokenLedger.swift:580-593",
         "B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2) - the size ED-059 adopts for .body"
       ],
       "notes": "The three titles come from TokenActivityMode, which is in this area; the section's own layout, heatmap canvas and legend belong to the settings area's specification.",

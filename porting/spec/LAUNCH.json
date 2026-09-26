@@ -199,7 +199,7 @@
       "source_evidence": [
         "DroppyCode/App/DroppyCodeApp.swift:13-14 - comment 'Before anything reads settings or the library.' then WebsiteCaptures.prepare()",
         "DroppyCode/App/Captures/WebsiteCaptures.swift:84-85 prepare() - 'guard let output = outputDirectory, let root = storageRoot, let defaults else { return }'",
-        "DroppyCode/App/Captures/WebsiteCaptures.swift:86-109 - removes the storage root, creates <root>/threads and <output>/films, removes the persistent domain for CaptureRun.suiteName and writes the run's fixed defaults"
+        "DroppyCode/App/Captures/WebsiteCaptures.swift:78-101 - removes the storage root, creates <root>/threads and <output>/films, removes the persistent domain for CaptureRun.suiteName and writes the run's fixed defaults"
       ],
       "preconditions": "Prologue step 3.",
       "action": "prepare() is called unconditionally.",
@@ -545,7 +545,7 @@
       "source_evidence": [
         "DroppyCode/Core/Support/HangWatchdog.swift:50-56 - the thread body is 'while true' with no cancellation check and no exit",
         "DroppyCode/Core/Support/HangWatchdog.swift:17-131 - the enum declares no stop(), pause() or teardown",
-        "DroppyCode/App/AppDelegate.swift:50-55 applicationWillTerminate - saveBeforeQuit, flushLiveSpend and MCPHub.terminateAll only; the watchdog is not touched"
+        "DroppyCode/App/AppDelegate.swift:56-61 applicationWillTerminate - saveBeforeQuit, flushLiveSpend and MCPHub.terminateAll only; the watchdog is not touched"
       ],
       "preconditions": "App is quitting.",
       "action": "The termination sequence runs.",
@@ -641,8 +641,8 @@
       "id": "PR-LAUNCH-025",
       "title": "applicationDidFinishLaunching sets the user-notification centre delegate before anything else",
       "source_evidence": [
-        "DroppyCode/App/AppDelegate.swift:8-9 - UNUserNotificationCenter.current().delegate = self is the first statement",
-        "DroppyCode/App/AppDelegate.swift:5 - AppDelegate conforms to UNUserNotificationCenterDelegate"
+        "DroppyCode/App/AppDelegate.swift:9-15 - UNUserNotificationCenter.current().delegate = self is the first statement",
+        "DroppyCode/App/AppDelegate.swift:6 - AppDelegate conforms to UNUserNotificationCenterDelegate"
       ],
       "preconditions": "The prologue has finished; the application has launched.",
       "action": "applicationDidFinishLaunching runs.",
@@ -664,8 +664,8 @@
       "id": "PR-LAUNCH-026",
       "title": "The delegate takes its model handle from the single WindowManager-owned AppModel",
       "source_evidence": [
-        "DroppyCode/App/AppDelegate.swift:6 - var model: AppModel?",
-        "DroppyCode/App/AppDelegate.swift:10-11 - 'let windows = WindowManager.shared' then 'model = windows.model'",
+        "DroppyCode/App/AppDelegate.swift:7 - var model: AppModel?",
+        "DroppyCode/App/AppDelegate.swift:16-17 - 'let windows = WindowManager.shared' then 'model = windows.model'",
         "DroppyCode/App/Window/WindowManager.swift:11-13 - static let shared = WindowManager(); let model = AppModel()"
       ],
       "preconditions": "Launch, immediately after the delegate is installed.",
@@ -712,7 +712,7 @@
       "id": "PR-LAUNCH-028",
       "title": "Launch shows the main window, activating the app and bringing the window to the front",
       "source_evidence": [
-        "DroppyCode/App/AppDelegate.swift:16 - windows.showMain()",
+        "DroppyCode/App/AppDelegate.swift:22 - windows.showMain()",
         "DroppyCode/App/Window/WindowManager.swift:26-30 showMain() - 'let window = mainWindow ?? makeMainWindow(); mainWindow = window; present(window)'",
         "DroppyCode/App/Window/WindowManager.swift:57-60 present(_:) - NSApp.activate() then window.makeKeyAndOrderFront(nil)",
         "DroppyCode/App/Window/WindowManager.swift:18-24 Size.main = 1320 x 860, Size.mainMinimum = 860 x 560, mainFrameName = \"DroppyCodeMainWindow\"",
@@ -743,9 +743,9 @@
       "id": "PR-LAUNCH-029",
       "title": "Launch lands in a chat, never on an empty page: the newest unused thread in the last project is reused",
       "source_evidence": [
-        "DroppyCode/App/AppDelegate.swift:17 - windows.model.openThreadOnLaunch()",
-        "DroppyCode/App/AppModel.swift:571-573 - comment 'Launch lands in a chat, never on the empty page: the newest thread nothing has been sent in yet, in the project you last worked in, or a fresh one there.'",
-        "DroppyCode/App/AppModel.swift:574-581 openThreadOnLaunch() - 'guard let project = currentProject else { return }' then the unused filter: projectID == project.id && !isArchived && !isSettled && !isHelper && lastStatus == nil && !hasCustomTitle && title == ChatThread.untitled, taking .max { $0.createdAt < $1.createdAt }",
+        "DroppyCode/App/AppDelegate.swift:23 - windows.model.openThreadOnLaunch()",
+        "DroppyCode/App/AppModel.swift:580-582 - comment 'Launch lands in a chat, never on the empty page: the newest thread nothing has been sent in yet, in the project you last worked in, or a fresh one there.'",
+        "DroppyCode/App/AppModel.swift:583-590 openThreadOnLaunch() - 'guard let project = currentProject else { return }' then the unused filter: projectID == project.id && !isArchived && !isSettled && !isHelper && lastStatus == nil && !hasCustomTitle && title == ChatThread.untitled, taking .max { $0.createdAt < $1.createdAt }",
         "DroppyCode/Core/Models/Library.swift:122 - static let untitled = \"New thread\""
       ],
       "preconditions": "Normal launch; the library has been loaded; currentProject resolves to a project.",
@@ -767,8 +767,8 @@
       "id": "PR-LAUNCH-030",
       "title": "A reused launch thread is refreshed to what a fresh chat would open on today, clearing the provider session if the provider changed",
       "source_evidence": [
-        "DroppyCode/App/AppModel.swift:582-598 - 'let fresh = makeThread(in: project, carrying: nil)' then updateThread(unused.id) setting provider, model, effort, fastMode, hydraPairID and hydraEnabled from fresh, with 'if thread.provider != fresh.provider { thread.providerSessionID = nil; thread.providerResumeAt = nil }' first, then selectedThreadID = unused.id",
-        "DroppyCode/App/AppModel.swift:583-584 - comment 'The row may be older than the pair or model chosen since: nothing was sent in it, so it starts over on what a fresh chat would open on today.'"
+        "DroppyCode/App/AppModel.swift:591-607 - 'let fresh = makeThread(in: project, carrying: nil)' then updateThread(unused.id) setting provider, model, effort, fastMode, hydraPairID and hydraEnabled from fresh, with 'if thread.provider != fresh.provider { thread.providerSessionID = nil; thread.providerResumeAt = nil }' first, then selectedThreadID = unused.id",
+        "DroppyCode/App/AppModel.swift:592-593 - comment 'The row may be older than the pair or model chosen since: nothing was sent in it, so it starts over on what a fresh chat would open on today.'"
       ],
       "preconditions": "An unused thread was found.",
       "action": "openThreadOnLaunch() refreshes it.",
@@ -791,9 +791,9 @@
       "id": "PR-LAUNCH-031",
       "title": "With no reusable thread, launch creates a new thread in the current project",
       "source_evidence": [
-        "DroppyCode/App/AppModel.swift:599-601 - 'else { newThread(in: project) }'",
-        "DroppyCode/App/AppModel.swift:604-605 - @discardableResult func newThread(in project: Project? = nil, workspace: WorkspaceMode? = nil) -> ChatThread?",
-        "DroppyCode/App/AppModel.swift:572-573 - the comment explains the reuse exists so a launch does not leave 'a \"New thread\" row behind every time'"
+        "DroppyCode/App/AppModel.swift:608-610 - 'else { newThread(in: project) }'",
+        "DroppyCode/App/AppModel.swift:613-614 - @discardableResult func newThread(in project: Project? = nil, workspace: WorkspaceMode? = nil) -> ChatThread?",
+        "DroppyCode/App/AppModel.swift:581-582 - the comment explains the reuse exists so a launch does not leave 'a \"New thread\" row behind every time'"
       ],
       "preconditions": "A current project exists but no thread satisfies the reuse predicate.",
       "action": "openThreadOnLaunch() falls through.",
@@ -815,10 +815,10 @@
       "id": "PR-LAUNCH-032",
       "title": "The project launch lands in is resolved by a four-step fallback chain",
       "source_evidence": [
-        "DroppyCode/App/AppModel.swift:296-304 currentProject - (1) the selected thread's project, (2) the project named by settings.lastProjectID, (3) the project of the most recently updated non-archived non-panel thread, (4) projects.first; nil when there are no projects",
-        "DroppyCode/App/AppModel.swift:299-300 - comment 'No selection (for example after relaunch): stay in the folder you last worked in instead of jumping back to the first project ever added.'",
+        "DroppyCode/App/AppModel.swift:305-313 currentProject - (1) the selected thread's project, (2) the project named by settings.lastProjectID, (3) the project of the most recently updated non-archived non-panel thread, (4) projects.first; nil when there are no projects",
+        "DroppyCode/App/AppModel.swift:308-309 - comment 'No selection (for example after relaunch): stay in the folder you last worked in instead of jumping back to the first project ever added.'",
         "DroppyCode/App/AppSettings.swift:149 - static let lastProjectID = \"lastProjectID\"",
-        "DroppyCode/App/AppSettings.swift:733-736 - lastProjectID is loaded as UUID(uuidString:) of the stored string, else nil"
+        "DroppyCode/App/AppSettings.swift:737-740 - lastProjectID is loaded as UUID(uuidString:) of the stored string, else nil"
       ],
       "preconditions": "Launch; nothing is selected yet, so step 1 cannot apply.",
       "action": "currentProject is read by openThreadOnLaunch().",
@@ -840,7 +840,7 @@
       "id": "PR-LAUNCH-033",
       "title": "A stored lastProjectID naming a project that no longer exists is cleared during model construction",
       "source_evidence": [
-        "DroppyCode/App/AppModel.swift:143-145 init() - 'if let lastID = settings.lastProjectID, project(lastID) == nil { settings.lastProjectID = nil }'",
+        "DroppyCode/App/AppModel.swift:144-146 init() - 'if let lastID = settings.lastProjectID, project(lastID) == nil { settings.lastProjectID = nil }'",
         "DroppyCode/App/AppSettings.swift:320-326 - the lastProjectID setter writes the uuidString or removes the key"
       ],
       "preconditions": "The library has just been loaded and the cells built; settings hold an id for a project that is not in the library.",
@@ -863,13 +863,13 @@
       "id": "PR-LAUNCH-034",
       "title": "AppModel construction loads the library; a missing file gives an empty library, an undecodable one is surfaced to the user and never overwritten",
       "source_evidence": [
-        "DroppyCode/App/AppModel.swift:120-128 init() - builds AppSettings, ProviderRegistry(settings:), MCPStore(), TerminalStore(), SidebarLayout(), then 'let library = Storage.loadLibrary(); projects = library.projects; threads = library.threads'",
-        "DroppyCode/Services/Store/Storage.swift:60-63 loadLibrary() - 'guard let data = try? Data(contentsOf: libraryURL) else { return Library() }' then '(try? JSONDecoder.storage.decode(Library.self, from: data)) ?? Library()'",
-        "DroppyCode/Services/Store/Storage.swift:27 - libraryURL = root/\"library.json\""
+        "DroppyCode/App/AppModel.swift:121-129 init() - builds AppSettings, ProviderRegistry(settings:), MCPStore(), TerminalStore(), SidebarLayout(), then 'let library = Storage.loadLibrary(); projects = library.projects; threads = library.threads'",
+        "DroppyCode/Services/Store/Storage.swift:49-52 loadLibrary() - 'guard let data = try? Data(contentsOf: libraryURL) else { return Library() }' then '(try? JSONDecoder.storage.decode(Library.self, from: data)) ?? Library()'",
+        "DroppyCode/Services/Store/Storage.swift:21 - libraryURL = root/\"library.json\""
       ],
       "preconditions": "First read of the library at startup.",
       "action": "AppModel() is constructed.",
-      "expected_result": "The five collaborators are constructed in the order settings, providers, mcp, terminals, sidebar, then library.json is read from the store root. A missing file yields an empty library with no message, as upstream. A file that exists but cannot be read or decoded is a failed load: it is surfaced to the user as an error and is never overwritten by the next save (named deviation OD-0008 A10, whose ruling is 'Do not overwrite after a failed load; show the error'). The error is shown in the main window at launch with the exact text \"Marrow could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\" (OD-0012 E4); upstream both cases silently open an empty library (Storage.swift:61 for the read, :62 for the decode) and the first save overwrites the file.",
+      "expected_result": "The five collaborators are constructed in the order settings, providers, mcp, terminals, sidebar, then library.json is read from the store root. A missing file yields an empty library with no message, as upstream. A file that exists but cannot be read or decoded is a failed load: it is surfaced to the user as an error and is never overwritten by the next save (named deviation OD-0008 A10, whose ruling is 'Do not overwrite after a failed load; show the error'). The error is shown in the main window at launch with the exact text \"Marrow could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\" (OD-0012 E4); upstream both cases silently open an empty library (Storage.swift:50 for the read, :62 for the decode) and the first save overwrites the file.",
       "side_effects": [
         "Reads library.json; creates the store root directory if missing (Storage.swift:23)"
       ],
@@ -887,7 +887,7 @@
       "blocked_by": null,
       "deviation": {
         "decision": "OD-0008 A10; OD-0012 E4",
-        "upstream": "DroppyCode/Services/Store/Storage.swift:60-63 loadLibrary() - 'guard let data = try? Data(contentsOf: libraryURL) else { return Library() }' then 'return (try? JSONDecoder.storage.decode(Library.self, from: data)) ?? Library()': an undecodable library.json opens the app empty with no message, and the next save writes the empty library over it; upstream has no text for this error because it never shows one",
+        "upstream": "DroppyCode/Services/Store/Storage.swift:49-52 loadLibrary() - 'guard let data = try? Data(contentsOf: libraryURL) else { return Library() }' then 'return (try? JSONDecoder.storage.decode(Library.self, from: data)) ?? Library()': an undecodable library.json opens the app empty with no message, and the next save writes the empty library over it; upstream has no text for this error because it never shows one",
         "port": "Do not overwrite after a failed load; show the error. FIX: an undecodable library.json is surfaced to the user and never overwritten by the next save. OD-0012 E4: the error is shown in the main window at launch as \"Marrow could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\""
       }
     },
@@ -895,7 +895,7 @@
       "id": "PR-LAUNCH-035",
       "title": "On load, every thread whose last status was running is repaired to interrupted",
       "source_evidence": [
-        "DroppyCode/App/AppModel.swift:129-131 init() - 'for index in threads.indices where threads[index].lastStatus == .running { threads[index].lastStatus = .interrupted }'"
+        "DroppyCode/App/AppModel.swift:130-132 init() - 'for index in threads.indices where threads[index].lastStatus == .running { threads[index].lastStatus = .interrupted }'"
       ],
       "preconditions": "The previous run ended, cleanly or not, while a turn was running.",
       "action": "AppModel.init processes the loaded threads.",
@@ -917,7 +917,7 @@
       "id": "PR-LAUNCH-036",
       "title": "On load, every Hydra head that was running is marked stopped and stamped with the current time",
       "source_evidence": [
-        "DroppyCode/App/AppModel.swift:132-136 init() - comment 'A head at work when the app last quit went with its session.' then 'for index in threads.indices where threads[index].hydra?.status == .running { threads[index].hydra?.status = .stopped; threads[index].hydra?.finishedAt = .now }'"
+        "DroppyCode/App/AppModel.swift:133-137 init() - comment 'A head at work when the app last quit went with its session.' then 'for index in threads.indices where threads[index].hydra?.status == .running { threads[index].hydra?.status = .stopped; threads[index].hydra?.finishedAt = .now }'"
       ],
       "preconditions": "The previous run ended with one or more heads running.",
       "action": "AppModel.init processes the loaded threads.",
@@ -939,10 +939,10 @@
       "id": "PR-LAUNCH-037",
       "title": "The welcome tour is presented 700 ms after launch, only when it has not been seen",
       "source_evidence": [
-        "DroppyCode/App/AppDelegate.swift:18-20 - 'if !windows.model.settings.hasSeenTour { Task { @MainActor in try? await Task.sleep(for: .milliseconds(700)); Tour.present(model: windows.model) } }'",
+        "DroppyCode/App/AppDelegate.swift:24-26 - 'if !windows.model.settings.hasSeenTour { Task { @MainActor in try? await Task.sleep(for: .milliseconds(700)); Tour.present(model: windows.model) } }'",
         "DroppyCode/App/AppSettings.swift:178 - static let hasSeenTour = \"hasSeenTour\"",
-        "DroppyCode/App/AppSettings.swift:754 - hasSeenTour = defaults.object(forKey: Key.hasSeenTour) as? Bool ?? false",
-        "DroppyCode/App/AppSettings.swift:540-542 - the setter writes the key on every change",
+        "DroppyCode/App/AppSettings.swift:758 - hasSeenTour = defaults.object(forKey: Key.hasSeenTour) as? Bool ?? false",
+        "DroppyCode/App/AppSettings.swift:544-546 - the setter writes the key on every change",
         "DroppyCode/App/Views/Tour/TourPages.swift:26-28 present(model:) - TourWindowController.shared.present(pages: pages, onFinish: { model.settings.hasSeenTour = true }, onClose: { model.settings.hasSeenTour = true })"
       ],
       "preconditions": "Normal launch; the setting \"hasSeenTour\" is absent or false.",
@@ -967,10 +967,10 @@
       "id": "PR-LAUNCH-038",
       "title": "Launch starts the asynchronous bootstrap, which runs its nine steps strictly in order",
       "source_evidence": [
-        "DroppyCode/App/AppDelegate.swift:21 - Task { await windows.model.bootstrap() }",
-        "DroppyCode/App/AppModel.swift:239-278 bootstrap() - warmDocuments(recent), await settings.loadKeychainInBackground(), await LoginEnvironment.load(), sweepHydraCopies(), await resumeHydraMerges(), start the repeating merge sweep, await providers.refreshAll(), the catalog task group, the zai catalog, and finally await Storage.sweepOrphanedAttachments()",
-        "DroppyCode/App/AppModel.swift:245-246 - comment 'After the login environment, so git runs with the user's PATH.'",
-        "DroppyCode/App/AppModel.swift:274-275 - comment 'Last, once nothing the first click needs is waiting on the disk'"
+        "DroppyCode/App/AppDelegate.swift:27 - Task { await windows.model.bootstrap() }",
+        "DroppyCode/App/AppModel.swift:240-287 bootstrap() - warmDocuments(recent), await settings.loadKeychainInBackground(), await LoginEnvironment.load(), sweepHydraCopies(), await resumeHydraMerges(), start the repeating merge sweep, await providers.refreshAll(), the catalog task group, the zai catalog, and finally await Storage.sweepOrphanedAttachments()",
+        "DroppyCode/App/AppModel.swift:246-247 - comment 'After the login environment, so git runs with the user's PATH.'",
+        "DroppyCode/App/AppModel.swift:283-284 - comment 'Last, once nothing the first click needs is waiting on the disk'"
       ],
       "preconditions": "The main window is up and a thread is selected; bootstrap runs concurrently with the user's first interactions.",
       "action": "bootstrap() runs.",
@@ -994,8 +994,8 @@
       "id": "PR-LAUNCH-039",
       "title": "Bootstrap pre-decodes the 12 most recently updated open threads off the main thread",
       "source_evidence": [
-        "DroppyCode/App/AppModel.swift:240-243 - comment 'The threads most likely to be opened first decode in the background from the start, so the first click into a conversation never parses its history on the main thread.' then 'let recent = threads.filter { !$0.isArchived && !$0.isInPanel }.sorted { $0.updatedAt > $1.updatedAt }.prefix(12).map(\\.id)' and warmDocuments(recent)",
-        "DroppyCode/App/AppModel.swift:441-445 warmDocuments(_:) - 'let cold = ids.filter { runtimes[$0] == nil }; guard !cold.isEmpty else { return }; DocumentPrefetch.shared.warm(cold)'"
+        "DroppyCode/App/AppModel.swift:241-244 - comment 'The threads most likely to be opened first decode in the background from the start, so the first click into a conversation never parses its history on the main thread.' then 'let recent = threads.filter { !$0.isArchived && !$0.isInPanel }.sorted { $0.updatedAt > $1.updatedAt }.prefix(12).map(\\.id)' and warmDocuments(recent)",
+        "DroppyCode/App/AppModel.swift:450-454 warmDocuments(_:) - 'let cold = ids.filter { runtimes[$0] == nil }; guard !cold.isEmpty else { return }; DocumentPrefetch.shared.warm(cold)'"
       ],
       "preconditions": "The library is loaded.",
       "action": "Bootstrap step 1 runs.",
@@ -1019,10 +1019,10 @@
       "id": "PR-LAUNCH-040",
       "title": "Bootstrap reads the stored API keys from the Keychain in the background, once per process",
       "source_evidence": [
-        "DroppyCode/App/AppModel.swift:244 - await settings.loadKeychainInBackground()",
-        "DroppyCode/App/AppSettings.swift:461-466 loadKeychainInBackground() - 'guard !didReadKeychain else { return }', reads on a detached userInitiated task, then fillKeys(keys)",
-        "DroppyCode/App/AppSettings.swift:740 comment - 'Read from the Keychain later (see `loadKeychainInBackground`), not before the first frame.'",
-        "DroppyCode/App/AppSettings.swift:477-482 - keys held in the Keychain cause the legacy plaintext defaults copies to be removed, one removeObject(forKey:) each for deepseek, meta, zai and commandcode (:479-482)"
+        "DroppyCode/App/AppModel.swift:245 - await settings.loadKeychainInBackground()",
+        "DroppyCode/App/AppSettings.swift:457-462 loadKeychainInBackground() - 'guard !didReadKeychain else { return }', reads on a detached userInitiated task, then fillKeys(keys)",
+        "DroppyCode/App/AppSettings.swift:744 comment - 'Read from the Keychain later (see `loadKeychainInBackground`), not before the first frame.'",
+        "DroppyCode/App/AppSettings.swift:473-478 - keys held in the Keychain cause the legacy plaintext defaults copies to be removed, one removeObject(forKey:) each for deepseek, meta, zai and commandcode (:479-482)"
       ],
       "preconditions": "Settings were constructed with empty key inputs.",
       "action": "Bootstrap step 2 runs.",
@@ -1043,7 +1043,7 @@
       "depends_on_unknown": null,
       "deviation": {
         "decision": "OD-0008 B3",
-        "upstream": "DroppyCode/App/AppSettings.swift:461-466 loadKeychainInBackground() - 'guard !didReadKeychain else { return }', then 'Task.detached(priority: .userInitiated) { Self.readKeys(fallbacks: fallbacks) }' reading the macOS Keychain",
+        "upstream": "DroppyCode/App/AppSettings.swift:457-462 loadKeychainInBackground() - 'guard !didReadKeychain else { return }', then 'Task.detached(priority: .userInitiated) { Self.readKeys(fallbacks: fallbacks) }' reading the macOS Keychain",
         "port": "Store secrets in Windows Credential Manager and say \"Credential Manager\" in all five"
       }
     },
@@ -1051,7 +1051,7 @@
       "id": "PR-LAUNCH-041",
       "title": "Bootstrap loads the login environment before any git work",
       "source_evidence": [
-        "DroppyCode/App/AppModel.swift:245-247 - 'await LoginEnvironment.load()' followed by the comment 'After the login environment, so git runs with the user's PATH.' and then sweepHydraCopies()"
+        "DroppyCode/App/AppModel.swift:246-248 - 'await LoginEnvironment.load()' followed by the comment 'After the login environment, so git runs with the user's PATH.' and then sweepHydraCopies()"
       ],
       "preconditions": "Bootstrap step 3.",
       "action": "LoginEnvironment.load() is awaited.",
@@ -1075,7 +1075,7 @@
       "id": "PR-LAUNCH-042",
       "title": "Bootstrap sweeps Hydra working copies and starts the Hydra watchdog loop",
       "source_evidence": [
-        "DroppyCode/App/AppModel.swift:247 - sweepHydraCopies()",
+        "DroppyCode/App/AppModel.swift:248 - sweepHydraCopies()",
         "DroppyCode/App/AppModel+Hydra.swift:1064-1082 sweepHydraCopies() - prunes worktrees for projects that ever had a copy, sweeps orphan copies, clears worktreePath, branch and baseTree for heads whose copy is gone from disk, then startHydraWatchdog()",
         "DroppyCode/App/AppModel+Hydra.swift:1021-1030 startHydraWatchdog() - 'guard HydraWatchdog.loop == nil else { return }', a task looping 'try? await Task.sleep(for: HydraWatchdog.tick)' then watchHydraHeads()",
         "DroppyCode/App/AppModel+Hydra.swift:117-119 - tick = .seconds(30), thinkingAfter = 180, stalledAfter = 600"
@@ -1102,14 +1102,14 @@
       "id": "PR-LAUNCH-043",
       "title": "Bootstrap finishes a Hydra merge the previous run was quit under",
       "source_evidence": [
-        "DroppyCode/App/AppModel.swift:248-249 - comment 'A merge the last run did not finish (the app was quit under it) goes out now.' then 'await resumeHydraMerges()'",
-        "DroppyCode/App/AppModel+HydraMerge.swift:41 - 'private static var hydraMergeWindow: TimeInterval { 3 * 24 * 3600 }'",
-        "DroppyCode/App/AppModel+HydraMerge.swift:48-52 resumeHydraMerges() - 'guard settings.hydraAutoMerge else { return }', 'let cutoff = Date.now.addingTimeInterval(-Self.hydraMergeWindow)', 'let leads = threads.filter { !$0.isArchived && hydraIsOn($0) && $0.updatedAt > cutoff }' '.sorted { $0.id.uuidString < $1.id.uuidString }'",
-        "DroppyCode/App/AppModel+HydraMerge.swift:53-57 - comment 'Load every competitor before choosing the first winner.' then 'for lead in leads { await runtime(for: lead.id).ensureLoaded() }'",
-        "DroppyCode/App/AppModel+HydraMerge.swift:58-60 - 'guard let runtime = existingRuntime(for: lead.id), runtime.isReadyForHydraMerge, !runtime.isHydraMerging else { continue }'",
-        "DroppyCode/App/AppModel+HydraMerge.swift:65-72 - 'let finished = runtime.hydraUnmergedTurns.filter { $0.status == .completed }'; 'let hasOwnWork = finished.contains { !($0.touchedPaths ?? []).isEmpty } || hydraTeam(of: lead.id).contains { $0.hydra.map { $0.mergedAt == nil && ($0.landing?.landed ?? false) } ?? false }'; 'guard hasOwnWork else { continue }'; 'await autoMergeHydraWork(of: lead.id)'",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:2485-2490 isReadyForHydraMerge - 'phase == .idle && !isLoadingHistory && !isReverting && pendingSend == nil && turns.last?.status == .completed && !hasWorkingHeads && hydraPendingReports.isEmpty && hydraBatches.isEmpty && hydraWaiting.isEmpty && !hydraFlushScheduled'",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:665-667 hasWorkingHeads - '(app?.runningHydraHeads(of: threadID) ?? 0) > 0'",
+        "DroppyCode/App/AppModel.swift:249-250 - comment 'A merge the last run did not finish (the app was quit under it) goes out now.' then 'await resumeHydraMerges()'",
+        "DroppyCode/App/AppModel+HydraMerge.swift:42 - 'private static var hydraMergeWindow: TimeInterval { 3 * 24 * 3600 }'",
+        "DroppyCode/App/AppModel+HydraMerge.swift:49-53 resumeHydraMerges() - 'guard settings.hydraAutoMerge else { return }', 'let cutoff = Date.now.addingTimeInterval(-Self.hydraMergeWindow)', 'let leads = threads.filter { !$0.isArchived && hydraIsOn($0) && $0.updatedAt > cutoff }' '.sorted { $0.id.uuidString < $1.id.uuidString }'",
+        "DroppyCode/App/AppModel+HydraMerge.swift:54-58 - comment 'Load every competitor before choosing the first winner.' then 'for lead in leads { await runtime(for: lead.id).ensureLoaded() }'",
+        "DroppyCode/App/AppModel+HydraMerge.swift:59-61 - 'guard let runtime = existingRuntime(for: lead.id), runtime.isReadyForHydraMerge, !runtime.isHydraMerging else { continue }'",
+        "DroppyCode/App/AppModel+HydraMerge.swift:66-73 - 'let finished = runtime.hydraUnmergedTurns.filter { $0.status == .completed }'; 'let hasOwnWork = finished.contains { !($0.touchedPaths ?? []).isEmpty } || hydraTeam(of: lead.id).contains { $0.hydra.map { $0.mergedAt == nil && ($0.landing?.landed ?? false) } ?? false }'; 'guard hasOwnWork else { continue }'; 'await autoMergeHydraWork(of: lead.id)'",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2527-2532 isReadyForHydraMerge - 'phase == .idle && !isLoadingHistory && !isReverting && pendingSend == nil && turns.last?.status == .completed && !hasWorkingHeads && hydraPendingReports.isEmpty && hydraBatches.isEmpty && hydraWaiting.isEmpty && !hydraFlushScheduled'",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:664-666 hasWorkingHeads - '(app?.runningHydraHeads(of: threadID) ?? 0) > 0'",
         "DroppyCode/Core/Models/Hydra.swift:475 - 'var landed: Bool { !files.isEmpty && patchPath == nil && error == nil }'"
       ],
       "preconditions": "Bootstrap step 5; automatic merge (hydraAutoMerge) is on.",
@@ -1129,14 +1129,14 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Resume criteria changed. B1 AppModel+HydraMerge.swift:36-52 loaded and judged each lead in filter order, skipped it unless 'runtime.phase == .idle, !runtime.isHydraMerging, runningHydraHeads(of: lead.id) == 0', then required '!finished.isEmpty, runtime.turns.last?.status == .completed', and counted a head as work when '!($0.landing?.files ?? []).isEmpty'. B2 AppModel+HydraMerge.swift:48-74 sorts leads by id.uuidString, loads them all first, gates on 'runtime.isReadyForHydraMerge, !runtime.isHydraMerging' (ThreadRuntime.swift:2485-2490), drops the at-least-one-completed-unmerged-turn requirement, and counts a head only when '$0.landing?.landed' (Hydra.swift:475). The 3-day window is unchanged (now hydraMergeWindow, :41); AppModel.swift:248-249 is unchanged."
+      "b2_change": "Resume criteria changed. B1 AppModel+HydraMerge.swift:37-53 loaded and judged each lead in filter order, skipped it unless 'runtime.phase == .idle, !runtime.isHydraMerging, runningHydraHeads(of: lead.id) == 0', then required '!finished.isEmpty, runtime.turns.last?.status == .completed', and counted a head as work when '!($0.landing?.files ?? []).isEmpty'. B2 AppModel+HydraMerge.swift:49-75 sorts leads by id.uuidString, loads them all first, gates on 'runtime.isReadyForHydraMerge, !runtime.isHydraMerging' (ThreadRuntime.swift:2527-2532), drops the at-least-one-completed-unmerged-turn requirement, and counts a head only when '$0.landing?.landed' (Hydra.swift:475). The 3-day window is unchanged (now hydraMergeWindow, :41); AppModel.swift:249-250 is unchanged."
     },
     {
       "id": "PR-LAUNCH-044",
       "title": "Bootstrap starts a repeating merge sweep that asks again every 300 seconds for the life of the process",
       "source_evidence": [
-        "DroppyCode/App/AppModel.swift:111-116 - the field's comment: a chat whose automatic merge never got its moment 'would sit on its files forever'; 'The sweep asks again every few minutes; it skips anything still running, so a busy chat is left alone.'",
-        "DroppyCode/App/AppModel.swift:250-261 - comment 'This task asks every five minutes for as long as the app runs' then 'hydraMergeSweepTask?.cancel()' and a task looping 'try? await Task.sleep(for: .seconds(300)); guard !Task.isCancelled, let self else { return }; await self.resumeHydraMerges()'"
+        "DroppyCode/App/AppModel.swift:112-117 - the field's comment: a chat whose automatic merge never got its moment 'would sit on its files forever'; 'The sweep asks again every few minutes; it skips anything still running, so a busy chat is left alone.'",
+        "DroppyCode/App/AppModel.swift:251-262 - comment 'This task asks every five minutes for as long as the app runs' then 'hydraMergeSweepTask?.cancel()' and a task looping 'try? await Task.sleep(for: .seconds(300)); guard !Task.isCancelled, let self else { return }; await self.resumeHydraMerges()'"
       ],
       "preconditions": "Bootstrap step 6.",
       "action": "The sweep task is started.",
@@ -1158,11 +1158,11 @@
       "id": "PR-LAUNCH-045",
       "title": "Bootstrap refreshes provider status, then loads the catalogs of installed providers, then sweeps orphaned attachments last",
       "source_evidence": [
-        "DroppyCode/App/AppModel.swift:262 - await providers.refreshAll()",
-        "DroppyCode/App/AppModel.swift:263-270 - comment 'The catalogs a fresh install starts without, or with only a seed of: one CLI and two HTTPS calls, overlapped.' then a withTaskGroup over 'for provider in [ProviderKind.claude, .codex, .deepseek, .meta] where providers.status(provider).isInstalled' calling providers.loadCatalog(provider)",
-        "DroppyCode/App/AppModel.swift:271-273 - 'if providers.status(.zai).isInstalled { await providers.loadCatalog(.zai) }', outside the group",
+        "DroppyCode/App/AppModel.swift:263 - await providers.refreshAll()",
+        "DroppyCode/App/AppModel.swift:264-271 - comment 'The catalogs a fresh install starts without, or with only a seed of: one CLI and two HTTPS calls, overlapped.' then a withTaskGroup over 'for provider in [ProviderKind.claude, .codex, .deepseek, .meta] where providers.status(provider).isInstalled' calling providers.loadCatalog(provider)",
+        "DroppyCode/App/AppModel.swift:272-274 - 'if providers.status(.zai).isInstalled { await providers.loadCatalog(.zai) }', outside the group",
         "DroppyCode/App/AppModel.swift:276-277 - 'guard !WebsiteCaptures.isEnabled else { return }' then 'await Storage.sweepOrphanedAttachments()'",
-        "DroppyCode/Services/Store/Storage.swift:117-143 sweepOrphanedAttachments() - detached utility task, scans every thread document as text for attachment file names, also decodes forwarded continuations, and deletes unreferenced attachment files older than 'let cutoff = Date.now.addingTimeInterval(-24 * 60 * 60)'"
+        "DroppyCode/Services/Store/Storage.swift:106-132 sweepOrphanedAttachments() - detached utility task, scans every thread document as text for attachment file names, also decodes forwarded continuations, and deletes unreferenced attachment files older than 'let cutoff = Date.now.addingTimeInterval(-24 * 60 * 60)'"
       ],
       "preconditions": "Bootstrap steps 7 to 9.",
       "action": "The remaining bootstrap steps run.",
@@ -1188,7 +1188,7 @@
       "id": "PR-LAUNCH-046",
       "title": "Launch starts background update checks after an 8 second delay, then every 6 hours, plus on activation when stale",
       "source_evidence": [
-        "DroppyCode/App/AppDelegate.swift:22 - UpdateChecker.shared.startBackgroundChecks()",
+        "DroppyCode/App/AppDelegate.swift:28 - UpdateChecker.shared.startBackgroundChecks()",
         "DroppyCode/App/UpdateChecker.swift:132-133 - 'guard backgroundTask == nil, !WebsiteCaptures.isEnabled, !AppInfo.isDevelopment else { return }'",
         "DroppyCode/App/UpdateChecker.swift:74-75 - checkInterval: TimeInterval = 6 * 60 * 60; launchDelay: TimeInterval = 8",
         "DroppyCode/App/UpdateChecker.swift:134-140 - sleep launchDelay, then loop { check(background: true); sleep checkInterval }",
@@ -1221,7 +1221,7 @@
       "id": "PR-LAUNCH-047",
       "title": "The first launch after an installed update consumes the relaunch marker, arms the celebration and opens Settings on About",
       "source_evidence": [
-        "DroppyCode/App/AppDelegate.swift:23-27 - comment 'The relaunch after an install: the update story finishes on About, where it began.' then 'if AppUpdater.shared.consumeRelaunchMarker() { UpdateInstallProgress.shared.armCelebration(); windows.showSettings(page: .about) }'",
+        "DroppyCode/App/AppDelegate.swift:29-33 - comment 'The relaunch after an install: the update story finishes on About, where it began.' then 'if AppUpdater.shared.consumeRelaunchMarker() { UpdateInstallProgress.shared.armCelebration(); windows.showSettings(page: .about) }'",
         "DroppyCode/App/AppUpdater.swift:242 - private static let relaunchVersionKey = \"appUpdater_pendingRelaunchVersion\"",
         "DroppyCode/App/AppUpdater.swift:254-259 consumeRelaunchMarker() - 'guard let pending = defaults.string(forKey: Self.relaunchVersionKey) else { return false }', removeObject, 'return pending == AppInfo.version'",
         "DroppyCode/App/AppUpdater.swift:153-155 armCelebration() - hasPendingCelebration = true",
@@ -1249,7 +1249,7 @@
       "id": "PR-LAUNCH-048",
       "title": "Reopening the app from the Dock shows the main window only when no window is visible, and always accepts the reopen",
       "source_evidence": [
-        "DroppyCode/App/AppDelegate.swift:30-33 applicationShouldHandleReopen(_:hasVisibleWindows:) - 'if !flag { WindowManager.shared.showMain() }' then 'return true'"
+        "DroppyCode/App/AppDelegate.swift:36-39 applicationShouldHandleReopen(_:hasVisibleWindows:) - 'if !flag { WindowManager.shared.showMain() }' then 'return true'"
       ],
       "preconditions": "The app is running with no windows visible, or with at least one visible window.",
       "action": "The user clicks the Dock icon or otherwise reopens the app.",
@@ -1268,7 +1268,7 @@
       "depends_on_unknown": null,
       "deviation": {
         "decision": "OD-0008 C1",
-        "upstream": "DroppyCode/App/AppDelegate.swift:30-33 applicationShouldHandleReopen - 'if !flag { WindowManager.shared.showMain() }' then 'return true', reached from the Dock after the last window was closed with the app still running",
+        "upstream": "DroppyCode/App/AppDelegate.swift:36-39 applicationShouldHandleReopen - 'if !flag { WindowManager.shared.showMain() }' then 'return true', reached from the Dock after the last window was closed with the app still running",
         "port": "Closing the main window quits the app, keeping the upstream wait while a Hydra merge is running"
       }
     },
@@ -1276,9 +1276,9 @@
       "id": "PR-LAUNCH-049",
       "title": "Quit proceeds immediately when there is no model or no Hydra merge in flight",
       "source_evidence": [
-        "DroppyCode/App/AppDelegate.swift:38-39 applicationShouldTerminate - 'guard let model, model.isAnyHydraMergeRunning else { return .terminateNow }'",
-        "DroppyCode/App/AppModel+HydraMerge.swift:35 - var isAnyHydraMergeRunning: Bool { liveRuntimes.contains { $0.isHydraMerging } }",
-        "DroppyCode/App/AppModel.swift:436-437 - liveRuntimes is every runtime alive right now"
+        "DroppyCode/App/AppDelegate.swift:44-45 applicationShouldTerminate - 'guard let model, model.isAnyHydraMergeRunning else { return .terminateNow }'",
+        "DroppyCode/App/AppModel+HydraMerge.swift:36 - var isAnyHydraMergeRunning: Bool { liveRuntimes.contains { $0.isHydraMerging } }",
+        "DroppyCode/App/AppModel.swift:445-446 - liveRuntimes is every runtime alive right now"
       ],
       "preconditions": "The user quits, or the system asks the app to terminate.",
       "action": "applicationShouldTerminate is called.",
@@ -1298,8 +1298,8 @@
       "id": "PR-LAUNCH-050",
       "title": "A quit during a Hydra merge is deferred, polled every 250 ms, and capped at 4 minutes",
       "source_evidence": [
-        "DroppyCode/App/AppDelegate.swift:35-37 - comment 'A quit while the team's work is going out waits for it: the merge is a minute or two of git and one model call, and losing it half-way leaves the work unmerged until the user's next message. Capped, so a stuck merge never holds the quit.'",
-        "DroppyCode/App/AppDelegate.swift:40-47 - 'let deadline = Date.now.addingTimeInterval(4 * 60)'; 'while model.isAnyHydraMergeRunning, Date.now < deadline { try? await Task.sleep(for: .milliseconds(250)) }'; 'sender.reply(toApplicationShouldTerminate: true)'; the method returns .terminateLater",
+        "DroppyCode/App/AppDelegate.swift:41-43 - comment 'A quit while the team's work is going out waits for it: the merge is a minute or two of git and one model call, and losing it half-way leaves the work unmerged until the user's next message. Capped, so a stuck merge never holds the quit.'",
+        "DroppyCode/App/AppDelegate.swift:46-53 - 'let deadline = Date.now.addingTimeInterval(4 * 60)'; 'while model.isAnyHydraMergeRunning, Date.now < deadline { try? await Task.sleep(for: .milliseconds(250)) }'; 'sender.reply(toApplicationShouldTerminate: true)'; the method returns .terminateLater",
         "porting/platform_adaptations.md:136-148 PA-0006"
       ],
       "preconditions": "At least one live runtime is merging Hydra work when the quit arrives.",
@@ -1325,7 +1325,7 @@
       "id": "PR-LAUNCH-051",
       "title": "Termination runs exactly three steps in this order: save everything, flush the token ledger, terminate the MCP servers",
       "source_evidence": [
-        "DroppyCode/App/AppDelegate.swift:50-55 applicationWillTerminate - 'model?.saveBeforeQuit()', then 'TokenLedger.shared.flushLiveSpend()', then the comment 'The MCP servers the hub started go with the app.' and 'MCPHub.terminateAll()'"
+        "DroppyCode/App/AppDelegate.swift:56-61 applicationWillTerminate - 'model?.saveBeforeQuit()', then 'TokenLedger.shared.flushLiveSpend()', then the comment 'The MCP servers the hub started go with the app.' and 'MCPHub.terminateAll()'"
       ],
       "preconditions": "Termination has been approved, immediately or after the merge wait.",
       "action": "applicationWillTerminate runs.",
@@ -1350,7 +1350,7 @@
       "title": "The capture-run early return does NOT short-circuit termination",
       "source_evidence": [
         "DroppyCode/App/AppDelegate.swift:12-15 - the capture branch returns only from applicationDidFinishLaunching",
-        "DroppyCode/App/AppDelegate.swift:50-55 applicationWillTerminate - no WebsiteCaptures.isEnabled guard",
+        "DroppyCode/App/AppDelegate.swift:56-61 applicationWillTerminate - no WebsiteCaptures.isEnabled guard",
         "porting/port_impacts.md:224 entry 108 - 'capture-run early return does not short-circuit applicationWillTerminate'"
       ],
       "preconditions": "A capture run is quitting.",
@@ -1374,10 +1374,10 @@
       "id": "PR-LAUNCH-053",
       "title": "saveBeforeQuit latches persistence off permanently and cancels the debounced save before writing",
       "source_evidence": [
-        "DroppyCode/App/AppModel.swift:1308-1313 - comment 'Writes everything synchronously, for use while the app terminates.' then 'guard persistenceEnabled else { return }', 'persistenceEnabled = false', 'saveTask?.cancel()', 'saveTask = nil'",
-        "DroppyCode/App/AppModel.swift:117 - @ObservationIgnored private var persistenceEnabled = true",
-        "DroppyCode/App/AppModel.swift:1289-1297 scheduleSave() - 'guard persistenceEnabled else { return }' then cancel-and-restart a task that sleeps 400 ms and calls saveLibrary()",
-        "DroppyCode/App/AppModel.swift:1299-1300 saveLibrary() - 'guard persistenceEnabled else { return }'"
+        "DroppyCode/App/AppModel.swift:1326-1331 - comment 'Writes everything synchronously, for use while the app terminates.' then 'guard persistenceEnabled else { return }', 'persistenceEnabled = false', 'saveTask?.cancel()', 'saveTask = nil'",
+        "DroppyCode/App/AppModel.swift:118 - @ObservationIgnored private var persistenceEnabled = true",
+        "DroppyCode/App/AppModel.swift:1304-1314 scheduleSave() - 'guard persistenceEnabled else { return }' then cancel-and-restart a task that sleeps 400 ms and calls saveLibrary()",
+        "DroppyCode/App/AppModel.swift:1316-1317 saveLibrary() - 'guard persistenceEnabled else { return }'"
       ],
       "preconditions": "Termination step 1.",
       "action": "saveBeforeQuit() runs.",
@@ -1399,8 +1399,8 @@
       "id": "PR-LAUNCH-054",
       "title": "saveBeforeQuit writes the whole library synchronously, dropping any queued write for the same file",
       "source_evidence": [
-        "DroppyCode/App/AppModel.swift:1314-1317 - 'var library = Library(); library.projects = projects; library.threads = threads; DiskWriter.shared.writeSynchronously(library, to: Storage.libraryURL)'",
-        "DroppyCode/Services/Store/Storage.swift:358-361 writeSynchronously(_:to:) - 'pending.withLock { $0[url] = nil }' then 'queue.sync { Self.write(value, to: url) }'",
+        "DroppyCode/App/AppModel.swift:1332-1335 - 'var library = Library(); library.projects = projects; library.threads = threads; DiskWriter.shared.writeSynchronously(library, to: Storage.libraryURL)'",
+        "DroppyCode/Services/Store/Storage.swift:353-356 writeSynchronously(_:to:) - 'pending.withLock { $0[url] = nil }' then 'queue.sync { Self.write(value, to: url) }'",
         "DroppyCode/Services/Store/Storage.swift:381-388 write(_:to:) - JSONEncoder.storage, 'try data.write(to: url, options: .atomic)', and on failure NSLog(\"Droppy Code could not save %@: %@\", url.lastPathComponent, error.localizedDescription)"
       ],
       "preconditions": "The latch has just been set.",
@@ -1423,7 +1423,7 @@
       "depends_on_unknown": null,
       "deviation": {
         "decision": "OD-0012 F1",
-        "upstream": "DroppyCode/Services/Store/Storage.swift:386 - 'NSLog(\"Droppy Code could not save %@: %@\", url.lastPathComponent, error.localizedDescription)'",
+        "upstream": "DroppyCode/Services/Store/Storage.swift:383 - 'NSLog(\"Droppy Code could not save %@: %@\", url.lastPathComponent, error.localizedDescription)'",
         "port": "The save-failure log line reads \"Marrow could not save %@: %@\""
       }
     },
@@ -1431,9 +1431,9 @@
       "id": "PR-LAUNCH-055",
       "title": "saveBeforeQuit tears down every live runtime in a fixed per-runtime order and writes only genuinely unsaved documents",
       "source_evidence": [
-        "DroppyCode/App/AppModel.swift:1318-1324 - 'for runtime in runtimes.values { runtime.cancelPersistence(); runtime.stopSession(); guard let snapshot = runtime.unsavedSnapshot() else { continue }; DiskWriter.shared.writeSynchronously(snapshot, to: Storage.threadURL(runtime.threadID)) }'",
-        "DroppyCode/App/AppModel.swift:1321 - comment 'A thread only read since its last save is already on disk as it is.'",
-        "DroppyCode/Services/Store/Storage.swift:50-52 threadURL(_:) - threadsDirectory/\"<uuidString>.json\""
+        "DroppyCode/App/AppModel.swift:1336-1342 - 'for runtime in runtimes.values { runtime.cancelPersistence(); runtime.stopSession(); guard let snapshot = runtime.unsavedSnapshot() else { continue }; DiskWriter.shared.writeSynchronously(snapshot, to: Storage.threadURL(runtime.threadID)) }'",
+        "DroppyCode/App/AppModel.swift:1339 - comment 'A thread only read since its last save is already on disk as it is.'",
+        "DroppyCode/Services/Store/Storage.swift:41-43 threadURL(_:) - threadsDirectory/\"<uuidString>.json\""
       ],
       "preconditions": "The library has been written.",
       "action": "Each live runtime is torn down.",
@@ -1457,8 +1457,8 @@
       "id": "PR-LAUNCH-056",
       "title": "saveBeforeQuit waits for every queued disk write, then terminates every terminal session",
       "source_evidence": [
-        "DroppyCode/App/AppModel.swift:1325-1326 - 'DiskWriter.shared.waitForQueuedWrites()' then 'terminals.terminateAll()'",
-        "DroppyCode/Services/Store/Storage.swift:376-379 waitForQueuedWrites() - comment 'Returns once every write queued so far has landed, so a read that follows sees them.' and 'queue.sync {}'",
+        "DroppyCode/App/AppModel.swift:1343-1344 - 'DiskWriter.shared.waitForQueuedWrites()' then 'terminals.terminateAll()'",
+        "DroppyCode/Services/Store/Storage.swift:371-374 waitForQueuedWrites() - comment 'Returns once every write queued so far has landed, so a read that follows sees them.' and 'queue.sync {}'",
         "DroppyCode/App/Views/Terminal/TerminalStore.swift:171-175 terminateAll() - 'for list in sessions.values { for session in list { session.terminate() } }'"
       ],
       "preconditions": "All synchronous writes have been issued.",
@@ -1483,7 +1483,7 @@
       "id": "PR-LAUNCH-057",
       "title": "Termination flushes the token ledger's live spend, cancelling its pending debounced save",
       "source_evidence": [
-        "DroppyCode/App/AppDelegate.swift:52 - TokenLedger.shared.flushLiveSpend()",
+        "DroppyCode/App/AppDelegate.swift:58 - TokenLedger.shared.flushLiveSpend()",
         "DroppyCode/Services/Store/TokenLedger.swift:148-153 flushLiveSpend() - 'guard let liveSave else { return }', 'liveSave.cancel()', 'self.liveSave = nil', 'LiveSpendStateStore.save(state)'"
       ],
       "preconditions": "Termination step 2; the library and thread documents have been written.",
@@ -1508,9 +1508,9 @@
       "id": "PR-LAUNCH-058",
       "title": "Termination terminates every MCP server the hub started, escalating to a process-group kill",
       "source_evidence": [
-        "DroppyCode/App/AppDelegate.swift:53-54 - comment 'The MCP servers the hub started go with the app.' then MCPHub.terminateAll()",
+        "DroppyCode/App/AppDelegate.swift:59-60 - comment 'The MCP servers the hub started go with the app.' then MCPHub.terminateAll()",
         "DroppyCode/Services/MCP/MCPHub.swift:30 - nonisolated static func terminateAll() { liveProcesses.terminateAll() }",
-        "DroppyCode/Services/MCP/MCPHub.swift:547-556 - 'let running = state.withLock { $0.filter(\\.isRunning) }'; 'for process in running { process.terminate() }'; then 'for process in running where process.isRunning { let pid = process.processIdentifier; kill(getpgid(pid) == pid ? -pid : pid, SIGKILL) }'"
+        "DroppyCode/Services/MCP/MCPHub.swift:367-375 - 'let running = state.withLock { $0.filter(\\.isRunning) }'; 'for process in running { process.terminate() }'; then 'for process in running where process.isRunning { let pid = process.processIdentifier; kill(getpgid(pid) == pid ? -pid : pid, SIGKILL) }'"
       ],
       "preconditions": "Termination step 3, the last step.",
       "action": "MCPHub.terminateAll() runs.",
@@ -1530,16 +1530,16 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Moved and re-cited; the behaviour is unchanged. B1 MCPHub.swift:544-553 snapshotted under an NSLock ('lock.withLock { processes.filter(\\.isRunning) }') -> B2 MCPHub.swift:547-556 snapshots under a Mutex (MCPHub.swift:538 'private let state = Mutex<[Process]>([])'); the terminate pass and the SIGKILL pass are identical."
+      "b2_change": "Moved and re-cited; the behaviour is unchanged. B1 MCPHub.swift:364-372 snapshotted under an NSLock ('lock.withLock { processes.filter(\\.isRunning) }') -> B2 MCPHub.swift:367-375 snapshots under a Mutex (MCPHub.swift:538 'private let state = Mutex<[Process]>([])'); the terminate pass and the SIGKILL pass are identical."
     },
     {
       "id": "PR-LAUNCH-059",
       "title": "Nothing in the quit path cancels the hang watchdog, the Hydra watchdog, the merge sweep, the update checker or the idle-stop tasks",
       "source_evidence": [
-        "DroppyCode/App/AppDelegate.swift:50-55 applicationWillTerminate - only the three steps; no task cancellation",
-        "DroppyCode/App/AppModel.swift:1309-1327 saveBeforeQuit() - cancels only saveTask and each runtime's persistence; hydraMergeSweepTask and idleSessionStops are not cancelled",
+        "DroppyCode/App/AppDelegate.swift:56-61 applicationWillTerminate - only the three steps; no task cancellation",
+        "DroppyCode/App/AppModel.swift:1327-1345 saveBeforeQuit() - cancels only saveTask and each runtime's persistence; hydraMergeSweepTask and idleSessionStops are not cancelled",
         "DroppyCode/App/AppModel.swift:109 - idleSessionStops: [UUID: Task<Void, Never>]",
-        "DroppyCode/App/AppModel.swift:116 - hydraMergeSweepTask",
+        "DroppyCode/App/AppModel.swift:117 - hydraMergeSweepTask",
         "DroppyCode/App/UpdateChecker.swift:134-149 - backgroundTask and activationObserver are never torn down at quit",
         "DroppyCode/App/AppModel+Hydra.swift:1021-1030 - HydraWatchdog.loop has no cancellation site at quit"
       ],
@@ -1563,9 +1563,9 @@
       "id": "PR-LAUNCH-060",
       "title": "Library changes are saved on a 400 ms debounce during the session",
       "source_evidence": [
-        "DroppyCode/App/AppModel.swift:1289-1297 scheduleSave() - 'guard persistenceEnabled else { return }', 'saveTask?.cancel()', then a task that sleeps 400 milliseconds, checks cancellation and calls saveLibrary()",
-        "DroppyCode/App/AppModel.swift:1299-1306 saveLibrary() - builds a Library from projects and threads and calls DiskWriter.shared.encodeAndWrite(library, to: Storage.libraryURL)",
-        "DroppyCode/Services/Store/Storage.swift:345-356 encodeAndWrite - coalesces by URL: a second value for the same URL replaces the pending one and enqueues no second job"
+        "DroppyCode/App/AppModel.swift:1304-1314 scheduleSave() - 'guard persistenceEnabled else { return }', 'saveTask?.cancel()', then a task that sleeps 400 milliseconds, checks cancellation and calls saveLibrary()",
+        "DroppyCode/App/AppModel.swift:1316-1324 saveLibrary() - builds a Library from projects and threads and calls DiskWriter.shared.encodeAndWrite(library, to: Storage.libraryURL)",
+        "DroppyCode/Services/Store/Storage.swift:340-351 encodeAndWrite - coalesces by URL: a second value for the same URL replaces the pending one and enqueues no second job"
       ],
       "preconditions": "The app is running and persistence has not been latched off.",
       "action": "Anything mutates projects or threads and calls scheduleSave().",
@@ -1589,8 +1589,8 @@
       "id": "PR-LAUNCH-061",
       "title": "A thread left unselected for 10 minutes has its provider session stopped and its runtime released",
       "source_evidence": [
-        "DroppyCode/App/AppModel.swift:465-469 - comment 'A thread left alone for ten minutes gives its agent process back, and its history with it when nothing but the saved document would be lost'",
-        "DroppyCode/App/AppModel.swift:470-488 scheduleIdleSessionStop(leaving:) - cancels and removes any pending stop for the NEW selection, then, when the outgoing id has a runtime, cancels its old task and starts a task looping 'try? await Task.sleep(for: .seconds(600))' with 'guard !Task.isCancelled, let self, self.selectedThreadID != id, let runtime = self.runtimes[id] else { return }', 'guard !runtime.isRunning else { continue }', then runtime.stopSession(), clearing the entry and calling releaseIdleRuntime(id)",
+        "DroppyCode/App/AppModel.swift:474-478 - comment 'A thread left alone for ten minutes gives its agent process back, and its history with it when nothing but the saved document would be lost'",
+        "DroppyCode/App/AppModel.swift:479-497 scheduleIdleSessionStop(leaving:) - cancels and removes any pending stop for the NEW selection, then, when the outgoing id has a runtime, cancels its old task and starts a task looping 'try? await Task.sleep(for: .seconds(600))' with 'guard !Task.isCancelled, let self, self.selectedThreadID != id, let runtime = self.runtimes[id] else { return }', 'guard !runtime.isRunning else { continue }', then runtime.stopSession(), clearing the entry and calling releaseIdleRuntime(id)",
         "DroppyCode/App/AppModel.swift:88-93 - scheduleIdleSessionStop(leaving: oldValue) is called from the selectedThreadID didSet whenever the selection changes"
       ],
       "preconditions": "The selection moves away from a thread that has a live runtime.",
@@ -1599,7 +1599,7 @@
       "side_effects": [
         "Terminates a provider session process; frees the decoded history"
       ],
-      "persistence": "releaseIdleRuntime queues the document save before dropping the runtime (AppModel.swift:500-503).",
+      "persistence": "releaseIdleRuntime queues the document save before dropping the runtime (AppModel.swift:509-512).",
       "failure_cases": [],
       "cancellation": "Cancelled by reselecting the thread, or by a later selection change that re-enters this function for the same id.",
       "windows_path": "Direct port; the literal 600 seconds and the running-turn continue are reproduced.",
@@ -1613,9 +1613,9 @@
       "id": "PR-LAUNCH-062",
       "title": "An idle runtime is released only when all eight conditions hold, and its document is saved before it goes",
       "source_evidence": [
-        "DroppyCode/App/AppModel.swift:490-506 releaseIdleRuntime(_:) - the guard requires: a runtime exists; selectedThreadID != id; the thread exists; the thread's parent is nil or is not the current selection; runtime.holdsOnlyPersistedState; !sessionsToRelease.contains(id); autoContinue.resumesAt[id] == nil; terminals.sessions(for: id).isEmpty; runningDroppyHeads(of: id) == 0",
-        "DroppyCode/App/AppModel.swift:500-505 - comment 'The save is queued before the runtime goes; a read that follows waits for it (see Storage.readDocument), so the thread can never come back older than it left.' then runtime.saveNow(), runtime.cancelPersistence(), runtimes[id] = nil, return true",
-        "DroppyCode/Services/Store/Storage.swift:74 readDocument - 'DiskWriter.shared.waitForQueuedWrites()' as its first statement"
+        "DroppyCode/App/AppModel.swift:499-515 releaseIdleRuntime(_:) - the guard requires: a runtime exists; selectedThreadID != id; the thread exists; the thread's parent is nil or is not the current selection; runtime.holdsOnlyPersistedState; !sessionsToRelease.contains(id); autoContinue.resumesAt[id] == nil; terminals.sessions(for: id).isEmpty; runningDroppyHeads(of: id) == 0",
+        "DroppyCode/App/AppModel.swift:509-514 - comment 'The save is queued before the runtime goes; a read that follows waits for it (see Storage.readDocument), so the thread can never come back older than it left.' then runtime.saveNow(), runtime.cancelPersistence(), runtimes[id] = nil, return true",
+        "DroppyCode/Services/Store/Storage.swift:63 readDocument - 'DiskWriter.shared.waitForQueuedWrites()' as its first statement"
       ],
       "preconditions": "An idle stop has fired, or another caller asks to release.",
       "action": "releaseIdleRuntime(id) is called.",
@@ -1637,8 +1637,8 @@
       "id": "PR-LAUNCH-063",
       "title": "A delivered notification for the chat that is already open and in front is suppressed entirely",
       "source_evidence": [
-        "DroppyCode/App/AppDelegate.swift:57-69 userNotificationCenter(_:willPresent:) - reads userInfo[\"threadID\"] as? String, parses it as a UUID, and on the main actor computes 'NSApp.isActive && self.model?.selectedThreadID == notifiedID'; when true it returns [] (no banner, no sound); otherwise it returns [.banner, .sound]",
-        "DroppyCode/App/AppModel.swift:1256 - content.userInfo = [\"threadID\": threadID.uuidString]"
+        "DroppyCode/App/AppDelegate.swift:63-75 userNotificationCenter(_:willPresent:) - reads userInfo[\"threadID\"] as? String, parses it as a UUID, and on the main actor computes 'NSApp.isActive && self.model?.selectedThreadID == notifiedID'; when true it returns [] (no banner, no sound); otherwise it returns [.banner, .sound]",
+        "DroppyCode/App/AppModel.swift:1265 - content.userInfo = [\"threadID\": threadID.uuidString]"
       ],
       "preconditions": "A notification arrives while the app is running.",
       "action": "The system asks the delegate how to present it.",
@@ -1662,7 +1662,7 @@
       "id": "PR-LAUNCH-064",
       "title": "Tapping a thread notification shows the main window, selects that thread and activates the app, in that order",
       "source_evidence": [
-        "DroppyCode/App/AppDelegate.swift:71-86 userNotificationCenter(_:didReceive:) - 'let identifier = userInfo[\"threadID\"] as? String'; 'let isUpdate = userInfo[\"update\"] != nil'; then on the main actor: 'if !isUpdate { WindowManager.shared.showMain() }'; 'if let identifier, let threadID = UUID(uuidString: identifier) { self.model?.selectedThreadID = threadID }'; 'NSApp.activate()'; 'if isUpdate { WindowManager.shared.showSettings(page: .about) }'"
+        "DroppyCode/App/AppDelegate.swift:77-92 userNotificationCenter(_:didReceive:) - 'let identifier = userInfo[\"threadID\"] as? String'; 'let isUpdate = userInfo[\"update\"] != nil'; then on the main actor: 'if !isUpdate { WindowManager.shared.showMain() }'; 'if let identifier, let threadID = UUID(uuidString: identifier) { self.model?.selectedThreadID = threadID }'; 'NSApp.activate()'; 'if isUpdate { WindowManager.shared.showSettings(page: .about) }'"
       ],
       "preconditions": "A thread notification, one carrying \"threadID\" and not \"update\", is tapped.",
       "action": "The system delivers the response.",
@@ -1687,7 +1687,7 @@
       "id": "PR-LAUNCH-065",
       "title": "Tapping an update notification skips the main window and opens Settings on About after activating",
       "source_evidence": [
-        "DroppyCode/App/AppDelegate.swift:77-85 - isUpdate is 'userInfo[\"update\"] != nil'; showMain is skipped when isUpdate; NSApp.activate() runs; then 'if isUpdate { WindowManager.shared.showSettings(page: .about) }'",
+        "DroppyCode/App/AppDelegate.swift:83-91 - isUpdate is 'userInfo[\"update\"] != nil'; showMain is skipped when isUpdate; NSApp.activate() runs; then 'if isUpdate { WindowManager.shared.showSettings(page: .about) }'",
         "DroppyCode/App/UpdateChecker.swift:249-252 - the update notification's content: title \"Droppy Code \\(update.version) is available\", body \"Open Settings › About to update and restart.\", userInfo [\"update\": update.version]"
       ],
       "preconditions": "The update notification is tapped. It carries \"update\" and no \"threadID\".",
@@ -1715,8 +1715,8 @@
       "id": "PR-LAUNCH-066",
       "title": "The app icon badge shows the number of unread threads, and nothing at zero",
       "source_evidence": [
-        "DroppyCode/App/AppModel.swift:1261-1264 updateDockBadge() - 'let unread = threads.count { $0.hasUnread && !$0.isArchived && !$0.isInPanel }' then 'NSApp.dockTile.badgeLabel = unread > 0 ? String(unread) : nil'",
-        "DroppyCode/App/AppModel.swift:1236-1238 - markRead calls scheduleSave() then updateDockBadge()"
+        "DroppyCode/App/AppModel.swift:1270-1273 updateDockBadge() - 'let unread = threads.count { $0.hasUnread && !$0.isArchived && !$0.isInPanel }' then 'NSApp.dockTile.badgeLabel = unread > 0 ? String(unread) : nil'",
+        "DroppyCode/App/AppModel.swift:1245-1247 - markRead calls scheduleSave() then updateDockBadge()"
       ],
       "preconditions": "Threads carry unread marks.",
       "action": "The unread set changes: a turn finishes in a background chat, or a thread is read.",
@@ -1738,9 +1738,9 @@
       "id": "PR-LAUNCH-067",
       "title": "Notification permission is requested lazily, at most once per process, and never in a capture run",
       "source_evidence": [
-        "DroppyCode/App/AppModel.swift:118 - @ObservationIgnored private var didRequestNotifications = false",
-        "DroppyCode/App/AppModel.swift:1240-1246 requestNotificationPermission() - 'guard !didRequestNotifications, !WebsiteCaptures.isEnabled else { return }', 'didRequestNotifications = true', then a task calling requestAuthorization(options: [.alert, .sound, .badge])",
-        "DroppyCode/App/AppModel.swift:1251 - notify(...) calls requestNotificationPermission() before building the content"
+        "DroppyCode/App/AppModel.swift:119 - @ObservationIgnored private var didRequestNotifications = false",
+        "DroppyCode/App/AppModel.swift:1249-1255 requestNotificationPermission() - 'guard !didRequestNotifications, !WebsiteCaptures.isEnabled else { return }', 'didRequestNotifications = true', then a task calling requestAuthorization(options: [.alert, .sound, .badge])",
+        "DroppyCode/App/AppModel.swift:1260 - notify(...) calls requestNotificationPermission() before building the content"
       ],
       "preconditions": "The app has launched. No permission prompt is shown at launch.",
       "action": "The first notification the app wants to post is built.",
@@ -1765,9 +1765,9 @@
       "title": "The launch sequence produces no modal, no progress UI and no error dialog of its own, except the ruled failed-library-load error",
       "source_evidence": [
         "DroppyCode/App/DroppyCodeApp.swift:7-19 - the prologue presents nothing",
-        "DroppyCode/App/AppDelegate.swift:8-28 applicationDidFinishLaunching - the only presented surfaces are the main window, the tour conditionally after 700 ms, and the Settings window on About conditionally",
+        "DroppyCode/App/AppDelegate.swift:9-34 applicationDidFinishLaunching - the only presented surfaces are the main window, the tour conditionally after 700 ms, and the Settings window on About conditionally",
         "DroppyCode/App/AppModel.swift:106 - var alert: AppAlert? is never set by any launch-path code in this file",
-        "DroppyCode/Services/Store/Storage.swift:60-63 - a failed library load falls back to an empty library with no message",
+        "DroppyCode/Services/Store/Storage.swift:49-52 - a failed library load falls back to an empty library with no message",
         "DroppyCode/App/LegacyMigration.swift:23 - the folder move is try? with no message"
       ],
       "preconditions": "Any launch, including one where the library is corrupt, the migration failed, or the store root could not be created.",
@@ -1786,7 +1786,7 @@
       "depends_on_unknown": null,
       "deviation": {
         "decision": "OD-0008 A10; OD-0012 E4",
-        "upstream": "DroppyCode/Services/Store/Storage.swift:60-63 - a failed library load falls back to an empty library with no message; upstream has no text for this error because it never shows one",
+        "upstream": "DroppyCode/Services/Store/Storage.swift:49-52 - a failed library load falls back to an empty library with no message; upstream has no text for this error because it never shows one",
         "port": "Do not overwrite after a failed load; show the error. FIX: an undecodable library.json is surfaced to the user and never overwritten by the next save. OD-0012 E4: the error is shown in the main window at launch as \"Marrow could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\""
       }
     },
@@ -1794,8 +1794,8 @@
       "id": "PR-LAUNCH-069",
       "title": "A launch with no projects at all selects nothing and creates nothing",
       "source_evidence": [
-        "DroppyCode/App/AppModel.swift:296-304 currentProject - returns projects.first, which is nil when projects is empty",
-        "DroppyCode/App/AppModel.swift:574-575 openThreadOnLaunch() - 'guard let project = currentProject else { return }'"
+        "DroppyCode/App/AppModel.swift:305-313 currentProject - returns projects.first, which is nil when projects is empty",
+        "DroppyCode/App/AppModel.swift:583-584 openThreadOnLaunch() - 'guard let project = currentProject else { return }'"
       ],
       "preconditions": "A fresh install, or every project removed: the library holds no projects.",
       "action": "Launch runs openThreadOnLaunch().",
@@ -1816,9 +1816,9 @@
       "title": "The store root and the home state directory are two separate roots, both resolved on first use",
       "source_evidence": [
         "DroppyCode/Services/Store/Storage.swift:19-25 root - CaptureRun.storageRoot, else ~/Library/Application Support/<AppInfo.name>, created with intermediate directories",
-        "DroppyCode/Services/Store/Storage.swift:43-48 stateDirectory(_:) - URL(fileURLWithPath: LoginEnvironment.homeDirectory)/<AppInfo.stateDirectoryName>/<name>, created with intermediate directories",
+        "DroppyCode/Services/Store/Storage.swift:34-39 stateDirectory(_:) - URL(fileURLWithPath: LoginEnvironment.homeDirectory)/<AppInfo.stateDirectoryName>/<name>, created with intermediate directories",
         "DroppyCode/Core/Support/Text.swift:6 - AppInfo.stateDirectoryName = isDevelopment ? \".droppy-code-dev\" : \".droppy-code\"",
-        "DroppyCode/Services/Store/Storage.swift:31-41 - threadsDirectory, attachmentsDirectory and wallpaperDirectory under root; worktreesDirectory = stateDirectory(\"worktrees\"); patchesDirectory = stateDirectory(\"patches\")"
+        "DroppyCode/Services/Store/Storage.swift:25-32 - threadsDirectory, attachmentsDirectory and wallpaperDirectory under root; worktreesDirectory = stateDirectory(\"worktrees\"); patchesDirectory = stateDirectory(\"patches\")"
       ],
       "preconditions": "First access to any storage path during launch.",
       "action": "Storage resolves a path.",
@@ -1847,9 +1847,9 @@
       "id": "PR-LAUNCH-071",
       "title": "There is no first-run onboarding beyond the welcome tour, and no account or sign-in step at launch",
       "source_evidence": [
-        "DroppyCode/App/AppDelegate.swift:16-27 - the complete launch sequence: showMain, openThreadOnLaunch, the conditional tour, bootstrap, update checks, the conditional About page",
-        "DroppyCode/App/AppModel.swift:120-146 init() - constructs the stores and loads the library; no onboarding state",
-        "DroppyCode/App/AppModel.swift:239-278 bootstrap() - no sign-in, no account and no registration step"
+        "DroppyCode/App/AppDelegate.swift:22-33 - the complete launch sequence: showMain, openThreadOnLaunch, the conditional tour, bootstrap, update checks, the conditional About page",
+        "DroppyCode/App/AppModel.swift:121-147 init() - constructs the stores and loads the library; no onboarding state",
+        "DroppyCode/App/AppModel.swift:240-287 bootstrap() - no sign-in, no account and no registration step"
       ],
       "preconditions": "A genuinely first launch on a clean machine.",
       "action": "The app launches.",
@@ -1870,7 +1870,7 @@
       "title": "The source has no single-instance lock; a second launch is a separate process",
       "source_evidence": [
         "DroppyCode/App/DroppyCodeApp.swift:1-26 - the entry point installs no instance lock, mutex or port",
-        "DroppyCode/App/AppDelegate.swift:1-87 - no instance arbitration in any lifecycle callback",
+        "DroppyCode/App/AppDelegate.swift:1-93 - no instance arbitration in any lifecycle callback",
         "DroppyCode/Core/Support/CaptureRun.swift:9-19 - the capture invocation relies on launching another copy with arguments, implying multiple instances are possible",
         "porting/dead_code.md:93 entry 42 - records the documented capture invocation, which opens a new instance"
       ],
@@ -1885,7 +1885,7 @@
         "Concurrent writes: last writer wins per file, atomically; there is no lock, no merge and no warning."
       ],
       "cancellation": "not applicable",
-      "windows_path": "ENGINEERING DECISION ED-002 (engineering_decisions.md, [LAUNCH] single-instance lock): Windows has no Launch Services single-activation behavior, so without an explicit lock a double-click would start a second process. The port implements a single-instance lock, and on the second launch runs exactly the reopen path the source already defines (AppDelegate.swift:30-33 applicationShouldHandleReopen, see PR-LAUNCH-048): the main window is shown when none is visible and the app is activated. The two-process store sharing described above therefore does not arise in the port.",
+      "windows_path": "ENGINEERING DECISION ED-002 (engineering_decisions.md, [LAUNCH] single-instance lock): Windows has no Launch Services single-activation behavior, so without an explicit lock a double-click would start a second process. The port implements a single-instance lock, and on the second launch runs exactly the reopen path the source already defines (AppDelegate.swift:36-39 applicationShouldHandleReopen, see PR-LAUNCH-048): the main window is shown when none is visible and the app is activated. The two-process store sharing described above therefore does not arise in the port.",
       "verification_method": "interaction test: launching twice results in one visible main window",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -1926,9 +1926,9 @@
       "id": "PR-LAUNCH-074",
       "title": "Closing the main window quits the app, keeping the quit deferral while a Hydra merge runs",
       "source_evidence": [
-        "DroppyCode/App/AppDelegate.swift:1-87 - the delegate implements no applicationShouldTerminateAfterLastWindowClosed, so the AppKit default of false applies",
-        "DroppyCode/App/AppDelegate.swift:30-33 applicationShouldHandleReopen - exists precisely to bring the main window back when no window is visible, which is only reachable if closing the window left the app running",
-        "DroppyCode/App/AppDelegate.swift:38-48 applicationShouldTerminate - 'guard let model, model.isAnyHydraMergeRunning else { return .terminateNow }', otherwise a 250 ms poll against 'Date.now.addingTimeInterval(4 * 60)' and .terminateLater: the wait the ruling keeps"
+        "DroppyCode/App/AppDelegate.swift:1-93 - the delegate implements no applicationShouldTerminateAfterLastWindowClosed, so the AppKit default of false applies",
+        "DroppyCode/App/AppDelegate.swift:36-39 applicationShouldHandleReopen - exists precisely to bring the main window back when no window is visible, which is only reachable if closing the window left the app running",
+        "DroppyCode/App/AppDelegate.swift:44-54 applicationShouldTerminate - 'guard let model, model.isAnyHydraMergeRunning else { return .terminateNow }', otherwise a 250 ms poll against 'Date.now.addingTimeInterval(4 * 60)' and .terminateLater: the wait the ruling keeps"
       ],
       "preconditions": "The main window is open.",
       "action": "The user closes it.",
@@ -1947,7 +1947,7 @@
       "depends_on_unknown": null,
       "deviation": {
         "decision": "OD-0008 C1",
-        "upstream": "DroppyCode/App/AppDelegate.swift:1-87 implements no applicationShouldTerminateAfterLastWindowClosed, so the AppKit default of false keeps the app running with no window; AppDelegate.swift:30-33 applicationShouldHandleReopen brings the window back",
+        "upstream": "DroppyCode/App/AppDelegate.swift:1-93 implements no applicationShouldTerminateAfterLastWindowClosed, so the AppKit default of false keeps the app running with no window; AppDelegate.swift:36-39 applicationShouldHandleReopen brings the window back",
         "port": "Closing the main window quits the app, keeping the upstream wait while a Hydra merge is running"
       }
     },
@@ -1955,10 +1955,10 @@
       "id": "PR-LAUNCH-075",
       "title": "A quit that arrives before the delegate has its model is never deferred and saves nothing",
       "source_evidence": [
-        "DroppyCode/App/AppDelegate.swift:6 - var model: AppModel? starts nil",
-        "DroppyCode/App/AppDelegate.swift:10-11 - model is assigned inside applicationDidFinishLaunching",
-        "DroppyCode/App/AppDelegate.swift:39 - 'guard let model, ... else { return .terminateNow }'",
-        "DroppyCode/App/AppDelegate.swift:51 - 'model?.saveBeforeQuit()' is optional-chained"
+        "DroppyCode/App/AppDelegate.swift:7 - var model: AppModel? starts nil",
+        "DroppyCode/App/AppDelegate.swift:16-17 - model is assigned inside applicationDidFinishLaunching",
+        "DroppyCode/App/AppDelegate.swift:45 - 'guard let model, ... else { return .terminateNow }'",
+        "DroppyCode/App/AppDelegate.swift:57 - 'model?.saveBeforeQuit()' is optional-chained"
       ],
       "preconditions": "A quit arrives between process start and the model assignment.",
       "action": "The termination path runs.",
@@ -1980,8 +1980,8 @@
       "id": "PR-LAUNCH-076",
       "title": "A force kill or crash loses only what the debounced saves had not yet written",
       "source_evidence": [
-        "DroppyCode/App/AppModel.swift:1289-1297 scheduleSave() - the 400 ms debounce is the only routine library persistence",
-        "DroppyCode/App/AppModel.swift:129-136 init() - the running-to-interrupted and running-head-to-stopped repairs exist precisely because a previous run may not have terminated cleanly",
+        "DroppyCode/App/AppModel.swift:1304-1314 scheduleSave() - the 400 ms debounce is the only routine library persistence",
+        "DroppyCode/App/AppModel.swift:130-137 init() - the running-to-interrupted and running-head-to-stopped repairs exist precisely because a previous run may not have terminated cleanly",
         "DroppyCode/Core/Support/HangWatchdog.swift:5-7 - 'A freeze that ends in a force quit leaves nothing behind'"
       ],
       "preconditions": "The process is killed without running applicationWillTerminate.",
@@ -2007,7 +2007,7 @@
       "title": "The selection change at launch marks the opened thread and its on-screen children read",
       "source_evidence": [
         "DroppyCode/App/AppModel.swift:79-87 selectedThreadID didSet - comment 'A helper or head under the selected thread is on screen with it, so reading the thread reads them too' then 'let ids = [selectedThreadID] + children(of: selectedThreadID).map(\\.id)' and 'Task { @MainActor [weak self] in self?.markRead(ids) }'",
-        "DroppyCode/App/AppModel.swift:1226-1238 markRead(_ ids:) - clears hasUnread on the named threads, then scheduleSave() and updateDockBadge()"
+        "DroppyCode/App/AppModel.swift:1235-1247 markRead(_ ids:) - clears hasUnread on the named threads, then scheduleSave() and updateDockBadge()"
       ],
       "preconditions": "openThreadOnLaunch assigns the selection.",
       "action": "The selection is set at launch.",
@@ -2030,8 +2030,8 @@
       "title": "The selection change at launch remembers the project and warms the neighbouring threads",
       "source_evidence": [
         "DroppyCode/App/AppModel.swift:88-96 selectedThreadID didSet - 'scheduleIdleSessionStop(leaving: oldValue)'; 'Task { @MainActor [weak self] in self?.warmNeighbors(of: id) }'; 'if let selectedThreadID, let thread = thread(selectedThreadID) { rememberLastProject(thread.projectID) }'",
-        "DroppyCode/App/AppModel.swift:306-309 rememberLastProject(_:) - 'guard project(id) != nil else { return }' then 'if settings.lastProjectID != id { settings.lastProjectID = id }'",
-        "DroppyCode/App/AppModel.swift:449-463 warmNeighbors/neighbors - the row above and the row below within the thread's project, in sidebar order"
+        "DroppyCode/App/AppModel.swift:315-318 rememberLastProject(_:) - 'guard project(id) != nil else { return }' then 'if settings.lastProjectID != id { settings.lastProjectID = id }'",
+        "DroppyCode/App/AppModel.swift:458-472 warmNeighbors/neighbors - the row above and the row below within the thread's project, in sidebar order"
       ],
       "preconditions": "The launch selection is assigned.",
       "action": "The didSet chain runs.",
@@ -2054,9 +2054,9 @@
       "title": "The launch prologue and the launch callback make no network call",
       "source_evidence": [
         "DroppyCode/App/DroppyCodeApp.swift:7-19 - no networking",
-        "DroppyCode/App/AppDelegate.swift:8-28 - the only network-capable step is UpdateChecker.shared.startBackgroundChecks(), which sleeps 8 seconds before its first call",
+        "DroppyCode/App/AppDelegate.swift:9-34 - the only network-capable step is UpdateChecker.shared.startBackgroundChecks(), which sleeps 8 seconds before its first call",
         "DroppyCode/App/UpdateChecker.swift:134-135 - the launch delay precedes the first check",
-        "DroppyCode/App/AppModel.swift:262-273 - the provider refresh and catalog loads happen inside bootstrap, after the window is up"
+        "DroppyCode/App/AppModel.swift:263-274 - the provider refresh and catalog loads happen inside bootstrap, after the window is up"
       ],
       "preconditions": "Any normal launch.",
       "action": "The app launches.",
@@ -2084,11 +2084,11 @@
       "title": "Background work started at launch is exactly four long-lived loops, one activation observer and per-thread idle timers",
       "source_evidence": [
         "DroppyCode/Core/Support/HangWatchdog.swift:50-59 - the hang-watchdog thread, 0.5 s",
-        "DroppyCode/App/AppModel+Hydra.swift:1021-1029 with AppModel.swift:247 - the Hydra watchdog task, 30 s",
-        "DroppyCode/App/AppModel.swift:254-261 - the Hydra merge sweep task, 300 s",
+        "DroppyCode/App/AppModel+Hydra.swift:1021-1029 with AppModel.swift:248 - the Hydra watchdog task, 30 s",
+        "DroppyCode/App/AppModel.swift:255-262 - the Hydra merge sweep task, 300 s",
         "DroppyCode/App/UpdateChecker.swift:134-140 - the update check loop, 8 s then 6 h",
         "DroppyCode/App/UpdateChecker.swift:141-149 - the activation observer, event-driven rather than a loop",
-        "DroppyCode/App/AppModel.swift:476-487 - one idle-session-stop task per deselected thread, 600 s"
+        "DroppyCode/App/AppModel.swift:485-496 - one idle-session-stop task per deselected thread, 600 s"
       ],
       "preconditions": "A normal launch has completed and bootstrap has run.",
       "action": "The app is idle.",
@@ -2110,10 +2110,10 @@
       "id": "PR-LAUNCH-081",
       "title": "A forwarded thread's title is the literal \"Continued: \" prefixed to the source title, and is marked as custom",
       "source_evidence": [
-        "DroppyCode/App/AppModel.swift:636 `thread.title = \"Continued: \" + resolved.title`",
-        "DroppyCode/App/AppModel.swift:637 `thread.hasCustomTitle = true`",
-        "DroppyCode/App/AppModel.swift:635 `var thread = makeThread(in: project, carrying: resolved)` - the new thread starts from the resolved source thread's provider, model and pair",
-        "DroppyCode/App/AppModel.swift:622-623 `/// Copies conversation context into an unsent thread with independent provider state.` on `func forwardThread(_ sourceID: UUID) async -> ChatThread?`"
+        "DroppyCode/App/AppModel.swift:645 `thread.title = \"Continued: \" + resolved.title`",
+        "DroppyCode/App/AppModel.swift:646 `thread.hasCustomTitle = true`",
+        "DroppyCode/App/AppModel.swift:644 `var thread = makeThread(in: project, carrying: resolved)` - the new thread starts from the resolved source thread's provider, model and pair",
+        "DroppyCode/App/AppModel.swift:631-632 `/// Copies conversation context into an unsent thread with independent provider state.` on `func forwardThread(_ sourceID: UUID) async -> ChatThread?`"
       ],
       "preconditions": "A thread is being forwarded into a new thread (PR-SIDEBAR-100 is the menu item that asks for it).",
       "action": "The new thread's title is set.",
@@ -2134,12 +2134,12 @@
       "id": "PR-LAUNCH-082",
       "title": "Forwarding aborts on a vanished source, expands and remembers the target project, and discards the new thread when the continuation will not install",
       "source_evidence": [
-        "DroppyCode/App/AppModel.swift:625 `guard let source = thread(sourceID), project(source.projectID) != nil else { return nil }`",
-        "DroppyCode/App/AppModel.swift:626-627 `let sourceRuntime = runtime(for: sourceID)` then `await sourceRuntime.ensureLoaded()`",
-        "DroppyCode/App/AppModel.swift:628-629 `// The source can be renamed or removed while its history loads.` with `guard let resolved = thread(sourceID), let project = project(resolved.projectID) else { return nil }`",
-        "DroppyCode/App/AppModel.swift:630-634 `let continuation = ThreadContinuation.capture(sourceID: sourceID, title: resolved.title, document: sourceRuntime.snapshotForPersistence())`",
-        "DroppyCode/App/AppModel.swift:638-640 `threads.append(thread)`, `updateProject(project.id) { $0.isExpanded = true }`, `rememberLastProject(project.id)`",
-        "DroppyCode/App/AppModel.swift:641-645 `let newRuntime = runtime(for: thread.id)`, `guard await newRuntime.installContinuation(continuation), self.thread(thread.id) != nil else { return nil }`, `selectedThreadID = thread.id`, `scheduleSave()`, `return thread`"
+        "DroppyCode/App/AppModel.swift:634 `guard let source = thread(sourceID), project(source.projectID) != nil else { return nil }`",
+        "DroppyCode/App/AppModel.swift:635-636 `let sourceRuntime = runtime(for: sourceID)` then `await sourceRuntime.ensureLoaded()`",
+        "DroppyCode/App/AppModel.swift:637-638 `// The source can be renamed or removed while its history loads.` with `guard let resolved = thread(sourceID), let project = project(resolved.projectID) else { return nil }`",
+        "DroppyCode/App/AppModel.swift:639-643 `let continuation = ThreadContinuation.capture(sourceID: sourceID, title: resolved.title, document: sourceRuntime.snapshotForPersistence())`",
+        "DroppyCode/App/AppModel.swift:647-649 `threads.append(thread)`, `updateProject(project.id) { $0.isExpanded = true }`, `rememberLastProject(project.id)`",
+        "DroppyCode/App/AppModel.swift:650-654 `let newRuntime = runtime(for: thread.id)`, `guard await newRuntime.installContinuation(continuation), self.thread(thread.id) != nil else { return nil }`, `selectedThreadID = thread.id`, `scheduleSave()`, `return thread`"
       ],
       "preconditions": "A forward has been asked for on some thread id.",
       "action": "forwardThread runs.",
@@ -2182,7 +2182,7 @@
         "The .showMainWindow action, titled \"Show Marrow\" (upstream \"Show Droppy Code\", Shortcuts.swift:185; OD-0012 F1), shows it again; upstream its default chord is Cmd+0 (Shortcuts.swift:233 KeyChord(keyCode: 29, modifiers: .command)), and under OD-0012 G6 it keeps no default chord in the port because Ctrl+0 is Actual Size; upstream it is also the Window menu item labelled with AppInfo.name (AppCommands.swift:21-25), which the port does not add (OD-0008 C3, no menu bar)"
       ],
       "source_evidence": [
-        "DroppyCode/App/AppDelegate.swift:16",
+        "DroppyCode/App/AppDelegate.swift:22",
         "DroppyCode/App/Window/WindowManager.swift:18-24",
         "DroppyCode/App/Window/WindowManager.swift:26-30",
         "DroppyCode/App/Window/WindowManager.swift:62-69",
@@ -2191,7 +2191,7 @@
       "notes": "The title is AppInfo.name, which reads CFBundleDisplayName and falls back to the literal \"Droppy Code\"; under OD-0002 and OD-0012 F1 the port's title is exactly \"Marrow\". The window is an AppKit window owned by WindowManager, not a SwiftUI WindowGroup, so no scene background draws a second corner. Its contents and chrome belong to the shell and chrome area; this record covers only what launch does to it. Window chrome follows ED-063: WindowDecorations.Full with ExtendClientAreaToDecorationsHint and the 44 px source title bar, leading-edge caption controls declared through SetNonClientHitTestResult, and a WndProc hook that performs minimise, maximise, restore and close and shows the system menu. Under OD-0013 the main window chrome is not accepted while live resize shows the one-frame edge strip measured by probe P4; if no remedy removes it, it returns to the owner and is not downgraded to a deviation.",
       "deviation": {
         "decision": "OD-0008 C1, C3; OD-0012 F1, G6",
-        "upstream": "DroppyCode/App/AppDelegate.swift:30-33 - closing the window leaves the app running and the Dock reopens it; DroppyCode/App/AppCommands.swift:21-25 - 'CommandGroup(before: .windowArrangement) { Button(AppInfo.name) { WindowManager.shared.showMain() }' with the .showMainWindow shortcut; DroppyCode/Core/Support/Text.swift:4 - AppInfo.name falls back to \"Droppy Code\", the window title (WindowManager.swift:62-69); DroppyCode/Core/Models/Shortcuts.swift:185 - 'case .showMainWindow: \"Show Droppy Code\"' and :233 - 'case .showMainWindow: KeyChord(keyCode: 29, modifiers: .command)' (Cmd+0)",
+        "upstream": "DroppyCode/App/AppDelegate.swift:36-39 - closing the window leaves the app running and the Dock reopens it; DroppyCode/App/AppCommands.swift:21-25 - 'CommandGroup(before: .windowArrangement) { Button(AppInfo.name) { WindowManager.shared.showMain() }' with the .showMainWindow shortcut; DroppyCode/Core/Support/Text.swift:4 - AppInfo.name falls back to \"Droppy Code\", the window title (WindowManager.swift:62-69); DroppyCode/Core/Models/Shortcuts.swift:185 - 'case .showMainWindow: \"Show Droppy Code\"' and :233 - 'case .showMainWindow: KeyChord(keyCode: 29, modifiers: .command)' (Cmd+0)",
         "port": "Closing the main window quits the app, keeping the upstream wait while a Hydra merge is running. No menu bar. Every command the source defines stays on its shortcut and in the command palette; text fields keep standard Ctrl+C/V/X/Z/A; OD-0012 F1: the window title is \"Marrow\" and the action is \"Show Marrow\"; OD-0012 G6: Ctrl+0 is Actual Size and \"Show Marrow\" keeps no default chord"
       }
     },
@@ -2213,15 +2213,15 @@
       "interactions": [
         "Appears automatically; no user action opens it at launch",
         "Upstream the Help menu item \"Welcome tour\" (AppCommands.swift:111-112) opens it again, outside this area; the port has no menu bar (OD-0008 C3), and the source gives this command no shortcut and no command-palette entry, so under OD-0012 G5 the port adds a \"Welcome tour\" entry to the command palette that opens it again",
-        "The Settings row \"Welcome tour\" with its \"Show\" button (SettingsView.swift:1008-1009) also opens it again, outside this area; this path is unchanged in the port"
+        "The Settings row \"Welcome tour\" with its \"Show\" button (SettingsView.swift:985-986) also opens it again, outside this area; this path is unchanged in the port"
       ],
       "source_evidence": [
-        "DroppyCode/App/AppDelegate.swift:18-20",
+        "DroppyCode/App/AppDelegate.swift:24-26",
         "DroppyCode/App/Views/Tour/TourPages.swift:26-28",
         "DroppyCode/App/AppSettings.swift:178",
-        "DroppyCode/App/AppSettings.swift:540-542",
-        "DroppyCode/App/AppSettings.swift:754",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:1008-1009"
+        "DroppyCode/App/AppSettings.swift:544-546",
+        "DroppyCode/App/AppSettings.swift:758",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:985-986"
       ],
       "notes": "The 700 ms delay is deliberate: the main window and the opened chat are already painted when the tour appears over them. A porter who presents the tour synchronously during launch will show it over an unpainted window. Both the finish and the close callbacks write the same setting, so dismissing counts as seeing it.",
       "deviation": {
@@ -2249,8 +2249,8 @@
         "Also opened by tapping the update notification, which skips showing the main window first"
       ],
       "source_evidence": [
-        "DroppyCode/App/AppDelegate.swift:23-27",
-        "DroppyCode/App/AppDelegate.swift:84",
+        "DroppyCode/App/AppDelegate.swift:29-33",
+        "DroppyCode/App/AppDelegate.swift:90",
         "DroppyCode/App/Window/WindowManager.swift:21",
         "DroppyCode/App/Window/WindowManager.swift:32-38",
         "DroppyCode/App/Window/WindowManager.swift:40-51",
@@ -2278,9 +2278,9 @@
         "Port: Windows has no Dock reopen; the same reopen path runs on a second launch of the single-instance app (engineering_decisions.md ED-002, see PR-LAUNCH-048), and because closing the main window quits the app (OD-0008 C1) the no-visible-window case is not reached by closing it"
       ],
       "source_evidence": [
-        "DroppyCode/App/AppModel.swift:1261-1264",
-        "DroppyCode/App/AppModel.swift:1236-1238",
-        "DroppyCode/App/AppDelegate.swift:30-33"
+        "DroppyCode/App/AppModel.swift:1270-1273",
+        "DroppyCode/App/AppModel.swift:1245-1247",
+        "DroppyCode/App/AppDelegate.swift:36-39"
       ],
       "notes": "The nil-at-zero rule matters: writing \"0\" would leave a permanent badge. The three predicates - hasUnread, not archived, not in a panel - must all be applied. On Windows the nearest surface is a taskbar overlay icon, which cannot render arbitrary text, so the visual result differs and must be recorded rather than faked.",
       "status": "IMPLEMENTED"
@@ -2303,9 +2303,9 @@
         "Tap on an update notification: activate the app, then open Settings on About; the main window is NOT shown"
       ],
       "source_evidence": [
-        "DroppyCode/App/AppDelegate.swift:57-69",
-        "DroppyCode/App/AppDelegate.swift:71-86",
-        "DroppyCode/App/AppModel.swift:1248-1259",
+        "DroppyCode/App/AppDelegate.swift:63-75",
+        "DroppyCode/App/AppDelegate.swift:77-92",
+        "DroppyCode/App/AppModel.swift:1257-1268",
         "DroppyCode/App/UpdateChecker.swift:249-252"
       ],
       "notes": "The presentation options are exactly [.banner, .sound] or []; there is no third case. The tap routing order is load-bearing: the window is shown BEFORE the selection changes, the app is activated after the selection, and the Settings window is opened last and only for update notifications."
@@ -2329,7 +2329,7 @@
       ],
       "source_evidence": [
         "DroppyCode/App/AppCommands.swift:11-114",
-        "DroppyCode/App/AppDelegate.swift:38-48"
+        "DroppyCode/App/AppDelegate.swift:44-54"
       ],
       "notes": "exact_text is null on purpose: AppCommands replaces the .appSettings and .saveItem groups but never the termination group, so the item's label and shortcut come from AppKit and the bundle name and appear nowhere in the source. Under OD-0008 C2 the port adds no quit or exit item and no label: the window close button and Alt+F4 are the quit. The silent deferral is the part a porter gets wrong: the user sees nothing at all during a wait that can last four minutes.",
       "deviation": {
@@ -2417,15 +2417,15 @@
       ],
       "source_evidence": [
         "DroppyCode/App/DroppyCodeApp.swift:7-19",
-        "DroppyCode/App/AppDelegate.swift:8-28",
+        "DroppyCode/App/AppDelegate.swift:9-34",
         "DroppyCode/App/LegacyMigration.swift:22-25",
-        "DroppyCode/Services/Store/Storage.swift:60-63",
+        "DroppyCode/Services/Store/Storage.swift:49-52",
         "DroppyCode/App/AppModel.swift:106"
       ],
       "notes": "Recorded as UI because the temptation to add a splash screen, a 'restoring your data' step or a friendly error dialog on Windows is strong and would be an invention. Launch shows the main window with a chat in it, and nothing else. The single exception is the failed-library-load error (an unreadable or undecodable library.json) ruled by OD-0008 A10, whose text is exactly \"Marrow could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\" (OD-0012 E4).",
       "deviation": {
         "decision": "OD-0008 A10; OD-0012 E4",
-        "upstream": "DroppyCode/Services/Store/Storage.swift:60-63 - a corrupt library opens empty with no message; upstream has no text for this error because it never shows one",
+        "upstream": "DroppyCode/Services/Store/Storage.swift:49-52 - a corrupt library opens empty with no message; upstream has no text for this error because it never shows one",
         "port": "Do not overwrite after a failed load; show the error. FIX: an undecodable library.json is surfaced to the user and never overwritten by the next save. OD-0012 E4: the error is shown in the main window at launch as \"Marrow could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\""
       },
       "status": "IMPLEMENTED"

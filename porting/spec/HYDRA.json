@@ -77,7 +77,7 @@
       "title": "HydraHeadProfile.matches accepts the trimmed case-insensitive name or an exact agentSlug match",
       "source_evidence": [
         "DroppyCode/Core/Models/Hydra.swift:46-50 func matches(_ name: String) -> Bool { let wanted = name.trimmed; return self.name.trimmed.caseInsensitiveCompare(wanted) == .orderedSame || agentSlug == wanted }",
-        "DroppyCode/Core/Support/Text.swift:132 var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }"
+        "DroppyCode/Core/Support/Text.swift:224 var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }"
       ],
       "preconditions": "A delegation entry carries a \"profile\" value, or a native spawn reports an agent name.",
       "action": "HydraLaunch.profile(named:) walks headProfiles and calls matches on each.",
@@ -94,7 +94,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation only: B1 Hydra.swift:46-50 -> B2 Hydra.swift:46-50; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:132 defines as that exact call, so behaviour is identical."
+      "b2_change": "Citation only: B1 Hydra.swift:46-50 -> B2 Hydra.swift:46-50; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:224 defines as that exact call, so behaviour is identical."
     },
     {
       "id": "PR-HYDRA-005",
@@ -147,7 +147,7 @@
       "title": "HydraPair.customName trims the stored name and treats blank as none",
       "source_evidence": [
         "DroppyCode/Core/Models/Hydra.swift:103-106 var customName: String? { let trimmed = (name ?? \"\").trimmed; return trimmed.isEmpty ? nil : trimmed }",
-        "DroppyCode/Core/Support/Text.swift:132 var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }"
+        "DroppyCode/Core/Support/Text.swift:224 var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }"
       ],
       "preconditions": "A pair has been given a name in Settings, or not.",
       "action": "Any place that titles a pair reads customName.",
@@ -162,7 +162,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation only: B1 Hydra.swift:103-106 -> B2 Hydra.swift:103-106; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:132 defines as that exact call, so behaviour is identical."
+      "b2_change": "Citation only: B1 Hydra.swift:103-106 -> B2 Hydra.swift:103-106; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:224 defines as that exact call, so behaviour is identical."
     },
     {
       "id": "PR-HYDRA-008",
@@ -440,7 +440,7 @@
       "title": "HydraRoster.index(named:) strips a trailing integer token and matches case-insensitively, returning nil for any off-roster name",
       "source_evidence": [
         "DroppyCode/Core/Models/Hydra.swift:273-280 static func index(named name: String) -> Int? { var bare = name.trimmed; if let space = bare.lastIndex(of: \" \"), Int(bare[bare.index(after: space)...]) != nil { bare = String(bare[..<space]).trimmed }; return personas.firstIndex { $0.name.compare(bare, options: .caseInsensitive) == .orderedSame } }",
-        "DroppyCode/Core/Support/Text.swift:132 var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }"
+        "DroppyCode/Core/Support/Text.swift:224 var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }"
       ],
       "preconditions": "A lead announced a head name in a delegation entry, or a report header is being classified.",
       "action": "The roster index for the announced name is resolved.",
@@ -457,14 +457,14 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation only: B1 Hydra.swift:273-280 -> B2 Hydra.swift:273-280; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:132 defines as that exact call, so behaviour is identical."
+      "b2_change": "Citation only: B1 Hydra.swift:273-280 -> B2 Hydra.swift:273-280; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:224 defines as that exact call, so behaviour is identical."
     },
     {
       "id": "PR-HYDRA-020",
       "title": "HydraRoster.persona(named:) keeps a round number above 1 by offsetting the index by whole roster lengths",
       "source_evidence": [
         "DroppyCode/Core/Models/Hydra.swift:284-292 static func persona(named name: String) -> HydraPersona? { guard let index = index(named: name) else { return nil }; let bare = name.trimmed; if let space = bare.lastIndex(of: \" \"), let round = Int(bare[bare.index(after: space)...]), round > 1 { return persona(at: index + (round - 1) * personas.count) }; return persona(at: index) }",
-        "DroppyCode/Core/Support/Text.swift:132 var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }"
+        "DroppyCode/Core/Support/Text.swift:224 var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }"
       ],
       "preconditions": "A report header or a mention carries a head name.",
       "action": "The persona for that name is resolved.",
@@ -481,7 +481,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation only: B1 Hydra.swift:284-292 -> B2 Hydra.swift:284-292; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:132 defines as that exact call, so behaviour is identical."
+      "b2_change": "Citation only: B1 Hydra.swift:284-292 -> B2 Hydra.swift:284-292; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:224 defines as that exact call, so behaviour is identical."
     },
     {
       "id": "PR-HYDRA-021",
@@ -661,8 +661,8 @@
       "title": "The 14 Hydra AppSettings keys have these exact names and these exact defaults, with Hydra on by default",
       "source_evidence": [
         "DroppyCode/App/AppSettings.swift:156-177 Key names - hydraEnabled, hydraDefaultEnabled (= ChatThread.hydraDefaultKey = \"hydraDefaultEnabled\"), hydraQueueHeads, hydraAlwaysHeads, hydraIsolateHeads, hydraAutoMerge, hydraReviewHeads, hydraAutoClearFinished, hydraAutoHidesIdleHeads, hydraShowsHeadDetails, hydraAutoPopsHeads, hydraTempersHeadEffort, hydraMaxHeads, hydraPairs",
-        "DroppyCode/App/AppSettings.swift:752-785 defaults - hydraEnabled true, hydraDefaultEnabled true, hydraQueueHeads true, hydraAlwaysHeads false, hydraIsolateHeads true, hydraMaxHeads = HydraPair.clampedCap(stored Int) so nil when absent, hydraAutoMerge false, hydraReviewHeads false, hydraAutoClearFinished false, hydraAutoHidesIdleHeads false, hydraShowsHeadDetails false, hydraAutoPopsHeads false, hydraTempersHeadEffort true, hydraPairs = Self.load([Lenient<HydraPair>].self)?.compactMap(\\.value) ?? []",
-        "DroppyCode/App/AppSettings.swift:571-581 hydraMaxHeads didSet removes the key entirely when set to nil"
+        "DroppyCode/App/AppSettings.swift:756-789 defaults - hydraEnabled true, hydraDefaultEnabled true, hydraQueueHeads true, hydraAlwaysHeads false, hydraIsolateHeads true, hydraMaxHeads = HydraPair.clampedCap(stored Int) so nil when absent, hydraAutoMerge false, hydraReviewHeads false, hydraAutoClearFinished false, hydraAutoHidesIdleHeads false, hydraShowsHeadDetails false, hydraAutoPopsHeads false, hydraTempersHeadEffort true, hydraPairs = Self.load([Lenient<HydraPair>].self)?.compactMap(\\.value) ?? []",
+        "DroppyCode/App/AppSettings.swift:575-585 hydraMaxHeads didSet removes the key entirely when set to nil"
       ],
       "preconditions": "The app starts with no stored settings, or with settings from an earlier build.",
       "action": "Settings are read.",
@@ -736,8 +736,8 @@
       "source_evidence": [
         "DroppyCode/Core/Models/Hydra.swift:682 private static let howToReport",
         "DroppyCode/Core/Models/Hydra.swift:796 workerPrompt appends it after a blank line",
-        "DroppyCode/Core/Models/Hydra.swift:1255 delegatedHeadPrompt puts it under \"## Your report\"",
-        "DroppyCode/Core/Models/Hydra.swift:1303 queuedHeadPrompt puts it under \"## Your report\""
+        "DroppyCode/Core/Models/Hydra.swift:1259 delegatedHeadPrompt puts it under \"## Your report\"",
+        "DroppyCode/Core/Models/Hydra.swift:1307 queuedHeadPrompt puts it under \"## Your report\""
       ],
       "preconditions": "A head prompt is being built.",
       "action": "howToReport is injected.",
@@ -858,7 +858,7 @@
         "DroppyCode/Core/Models/Hydra.swift:713 private static let reviewRule",
         "DroppyCode/Core/Models/Hydra.swift:787 native policy - \\(reviewsHeads ? \"- \" + reviewRule + \"\\n\" : \"\") immediately before the \"Then finish the job\" bullet",
         "DroppyCode/Core/Models/Hydra.swift:967 fallback policy - \\(reviewsHeads ? \" \" + reviewRule : \"\")",
-        "DroppyCode/Core/Models/Hydra.swift:1377 reportMessage closing appends it after the no-git sentence"
+        "DroppyCode/Core/Models/Hydra.swift:1381 reportMessage closing appends it after the no-git sentence"
       ],
       "preconditions": "AppSettings.hydraReviewHeads is on.",
       "action": "A lead policy or a report message is built.",
@@ -881,7 +881,7 @@
         "DroppyCode/Core/Models/Hydra.swift:718 private static let reportStyleRule",
         "DroppyCode/Core/Models/Hydra.swift:787 native policy - appended after \"Then finish the job: integrate, run one verification if it matters, and answer the user. \"",
         "DroppyCode/Core/Models/Hydra.swift:967 fallback policy - always preceded by exactly one space",
-        "DroppyCode/Core/Models/Hydra.swift:1381 reportMessage closing.append(reportStyleRule)"
+        "DroppyCode/Core/Models/Hydra.swift:1385 reportMessage closing.append(reportStyleRule)"
       ],
       "preconditions": "Any lead policy or report message is built.",
       "action": "The text is assembled.",
@@ -1399,7 +1399,7 @@
       "upstream_defect": "porting/extracts/hydra-prompt-corpus.md section 16 item 2",
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation only: B1 Hydra.swift:273-280 -> B2 Hydra.swift:273-280; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:132 defines as that exact call, so behaviour is identical."
+      "b2_change": "Citation only: B1 Hydra.swift:273-280 -> B2 Hydra.swift:273-280; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:224 defines as that exact call, so behaviour is identical."
     },
     {
       "id": "PR-HYDRA-059",
@@ -1450,7 +1450,7 @@
       "id": "PR-HYDRA-061",
       "title": "delegatedHeadPrompt is a five-section brief whose task line is a level-two heading carrying the task",
       "source_evidence": [
-        "DroppyCode/Core/Models/Hydra.swift:1241-1257 static func delegatedHeadPrompt(persona:delegation:workplace:)"
+        "DroppyCode/Core/Models/Hydra.swift:1245-1261 static func delegatedHeadPrompt(persona:delegation:workplace:)"
       ],
       "preconditions": "A Droppy-run head has been spawned from a delegation block entry and its workplace has been resolved.",
       "action": "The brief is built and handed to the head's runtime.",
@@ -1469,7 +1469,7 @@
       "depends_on_unknown": null,
       "deviation": {
         "decision": "OD-0012 F1",
-        "upstream": "DroppyCode/Core/Models/Hydra.swift:1243 \"You are \\(persona.name), a Hydra head in Droppy Code: one of several helpers working in parallel for a lead agent. The lead delegated this task to you.\"",
+        "upstream": "DroppyCode/Core/Models/Hydra.swift:1247 \"You are \\(persona.name), a Hydra head in Droppy Code: one of several helpers working in parallel for a lead agent. The lead delegated this task to you.\"",
         "port": "\"You are {persona.name}, a Hydra head in Marrow: one of several helpers working in parallel for a lead agent. The lead delegated this task to you.\"; the sections and headings are unchanged."
       }
     },
@@ -1477,11 +1477,11 @@
       "id": "PR-HYDRA-062",
       "title": "queuedHeadPrompt builds a context block of up to three lines and does NOT filter the task through withoutVerificationSteps",
       "source_evidence": [
-        "DroppyCode/Core/Models/Hydra.swift:1271-1305 static func queuedHeadPrompt(persona:task:context:workplace:leadIsWorking:) with leadIsWorking defaulting to true",
-        "DroppyCode/Core/Models/Hydra.swift:1273-1282 the three context lines",
-        "DroppyCode/Core/Models/Hydra.swift:1283 contextBlock fallback",
-        "DroppyCode/Core/Models/Hydra.swift:1284-1286 handoff",
-        "DroppyCode/Core/Models/Hydra.swift:1294 the task is interpolated raw"
+        "DroppyCode/Core/Models/Hydra.swift:1275-1309 static func queuedHeadPrompt(persona:task:context:workplace:leadIsWorking:) with leadIsWorking defaulting to true",
+        "DroppyCode/Core/Models/Hydra.swift:1277-1286 the three context lines",
+        "DroppyCode/Core/Models/Hydra.swift:1287 contextBlock fallback",
+        "DroppyCode/Core/Models/Hydra.swift:1288-1290 handoff",
+        "DroppyCode/Core/Models/Hydra.swift:1298 the task is interpolated raw"
       ],
       "preconditions": "The user queued a task for a head while the lead worked, or sent a task straight to a head.",
       "action": "The queued brief is built.",
@@ -1500,7 +1500,7 @@
       "depends_on_unknown": null,
       "deviation": {
         "decision": "OD-0012 F1",
-        "upstream": "DroppyCode/Core/Models/Hydra.swift:1288 \"You are \\(persona.name), a Hydra head in Droppy Code: a helper running in parallel with the lead agent. \\(handoff)\"",
+        "upstream": "DroppyCode/Core/Models/Hydra.swift:1292 \"You are \\(persona.name), a Hydra head in Droppy Code: a helper running in parallel with the lead agent. \\(handoff)\"",
         "port": "\"You are {persona.name}, a Hydra head in Marrow: a helper running in parallel with the lead agent. {handoff}\"; the context block, handoffs and sections are unchanged."
       }
     },
@@ -1508,8 +1508,8 @@
       "id": "PR-HYDRA-063",
       "title": "quoted() trims, truncates with U+2026 and wraps in curly quotes U+201C and U+201D",
       "source_evidence": [
-        "DroppyCode/Core/Models/Hydra.swift:1429-1433 private static func quoted(_ text: String, limit: Int) -> String { let trimmed = text.trimmed; let cut = trimmed.count > limit ? String(trimmed.prefix(limit)) + \"…\" : trimmed; return \"“\\(cut)”\" }",
-        "DroppyCode/Core/Support/Text.swift:132 var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }"
+        "DroppyCode/Core/Models/Hydra.swift:1433-1437 private static func quoted(_ text: String, limit: Int) -> String { let trimmed = text.trimmed; let cut = trimmed.count > limit ? String(trimmed.prefix(limit)) + \"…\" : trimmed; return \"“\\(cut)”\" }",
+        "DroppyCode/Core/Support/Text.swift:224 var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }"
       ],
       "preconditions": "A queued brief is quoting the user's prompt (limit 1200) or the lead's reply (limit 800).",
       "action": "quoted is applied.",
@@ -1526,14 +1526,14 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation only: B1 Hydra.swift:1340-1344 -> B2 Hydra.swift:1429-1433 (code inserted above it); the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:132 defines as that exact call, so behaviour is identical."
+      "b2_change": "Citation only: B1 Hydra.swift:1344-1348 -> B2 Hydra.swift:1433-1437 (code inserted above it); the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:224 defines as that exact call, so behaviour is identical."
     },
     {
       "id": "PR-HYDRA-064",
       "title": "withoutVerificationSteps drops whole lines matching any of 34 unanchored, case-insensitive markers and appends one exact sentence when anything was dropped",
       "source_evidence": [
-        "DroppyCode/Core/Models/Hydra.swift:1217-1228 private static let verificationMarkers - exactly 34 entries in this order: xcodebuild, swift build, swift test, swiftlint, npm test, npm run build, npm run test, yarn build, yarn test, pnpm test, cargo build, cargo test, go test, pytest, gradle, eslint, \"tsc \" (trailing space), build succeeded, run the build, run the tests, run the test suite, build and prove, prove it builds, prove it compiles, check that it builds, check it still builds, make sure it builds, make sure it compiles, confirm the build, verify the build, verify that it builds, make sure nothing else broke, run the suite, build verification",
-        "DroppyCode/Core/Models/Hydra.swift:1230-1238 the filter - split on \\n with omittingEmptySubsequences: false, lowercase each line, drop it when any marker is a substring; if nothing was dropped return the prompt unchanged; otherwise join the kept lines with \\n and append \"\\nMake the assigned edits and report; the lead handles all validation.\"",
+        "DroppyCode/Core/Models/Hydra.swift:1221-1232 private static let verificationMarkers - exactly 34 entries in this order: xcodebuild, swift build, swift test, swiftlint, npm test, npm run build, npm run test, yarn build, yarn test, pnpm test, cargo build, cargo test, go test, pytest, gradle, eslint, \"tsc \" (trailing space), build succeeded, run the build, run the tests, run the test suite, build and prove, prove it builds, prove it compiles, check that it builds, check it still builds, make sure it builds, make sure it compiles, confirm the build, verify the build, verify that it builds, make sure nothing else broke, run the suite, build verification",
+        "DroppyCode/Core/Models/Hydra.swift:1234-1242 the filter - split on \\n with omittingEmptySubsequences: false, lowercase each line, drop it when any marker is a substring; if nothing was dropped return the prompt unchanged; otherwise join the kept lines with \\n and append \"\\nMake the assigned edits and report; the lead handles all validation.\"",
         "porting/port_impacts.md:122 entry 57 - ship all 34 strings in this order, keep the trailing space in 'tsc ', keep substring matching"
       ],
       "preconditions": "A delegated brief is being built from a lead's prompt.",
@@ -1576,13 +1576,13 @@
       "id": "PR-HYDRA-066",
       "title": "mergeStatus renders eight shapes, and its failed branch omits the pending sentence",
       "source_evidence": [
-        "DroppyCode/Core/Models/Hydra.swift:979-1018 static func mergeStatus(merges:unmergedFiles:now:) - files(count) is \"1 file\" or \"N files\"; when(date) is date.formatted(date: .omitted, time: .shortened); merged(record) is \"the team's work already merged as {label url} {in PROJECT} at {time} ({files}).\"; pendingLine(prefix) is \"{prefix} is not merged yet; it goes out by itself once you finish this answer with every head back.\" for one file and \"{prefix} are not merged yet; they go out by themselves once you finish this answer with every head back.\" for several",
+        "DroppyCode/Core/Models/Hydra.swift:979-1022 static func mergeStatus(merges:unmergedFiles:now:) - files(count) is \"1 file\" or \"N files\"; when(date) is date.formatted(date: .omitted, time: .shortened); merged(record) is \"the team's work already merged as {label url} {in PROJECT} at {time} ({files}).\"; pendingLine(prefix) is \"{prefix} is not merged yet; it goes out by itself once you finish this answer with every head back.\" for one file and \"{prefix} are not merged yet; they go out by themselves once you finish this answer with every head back.\" for several",
         "DroppyCode/Core/Models/Hydra.swift:991-993 pending - pendingLine(\"N files changed since then\") when unmergedFiles > 0, else \"Nothing has changed since, so no merge is pending and none is coming.\"",
         "DroppyCode/Core/Models/Hydra.swift:994-997 no records - nil when unmergedFiles == 0, else \"Merge state: \" + pendingLine(\"N files changed in this chat\")",
-        "DroppyCode/Core/Models/Hydra.swift:998-1017 the five outcome branches: case .merged (:999-1000), case .failed (:1001-1002), case .held (:1003-1007), case .settled (:1008-1009), case .stray (:1010-1016)",
+        "DroppyCode/Core/Models/Hydra.swift:998-1021 the five outcome branches: case .merged (:999-1000), case .failed (:1001-1002), case .held (:1003-1007), case .settled (:1008-1009), case .stray (:1010-1016)",
         "DroppyCode/Core/Models/Hydra.swift:1003-1007 case .held: guard unmergedFiles > 0 else { return \"Merge state: the earlier wait has no recorded files left to merge. Do not claim a new merge or promise another one.\" }; return \"Merge state: the merge is waiting at \\(when(last.at)): \\(last.detail ?? \"another chat holds this job's files\") The work is still in the checkout. Explain the recorded dependency without assuming a completed chat needs more work: active work must finish, while completed jobs merge in order. Hydra retries automatically while this job remains eligible. Do not claim a successful merge.\"",
-        "DroppyCode/Core/Models/Hydra.swift:1008-1009 case .settled: return \"Merge state: at \\(when(last.at)), Hydra found no recorded files left to merge. \\(pending) Do not describe this as a new merge.\"",
-        "DroppyCode/Core/Models/Timeline.swift:270-273 struct HydraMergeRecord - enum Outcome: String, Codable, Sendable { case merged, failed, stray, held, settled }; records of outcome .settled and .held are written at DroppyCode/App/AppModel+HydraMerge.swift:831 and :839"
+        "DroppyCode/Core/Models/Hydra.swift:1012-1013 case .settled: return \"Merge state: at \\(when(last.at)), Hydra found no recorded files left to merge. \\(pending) Do not describe this as a new merge.\"",
+        "DroppyCode/Core/Models/Timeline.swift:270-273 struct HydraMergeRecord - enum Outcome: String, Codable, Sendable { case merged, failed, stray, held, settled }; records of outcome .settled and .held are written at DroppyCode/App/AppModel+HydraMerge.swift:904 and :839"
       ],
       "preconditions": "AppSettings.hydraAutoMerge is on, so the turn computes a merge status.",
       "action": "The merge note for the front of the lead's message is built.",
@@ -1600,13 +1600,13 @@
       "upstream_defect": "27",
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 Hydra.swift:914-946 switched over .merged, .failed and .stray only -> B2 Hydra.swift:979-1017 adds case .held (:1003-1007, two shapes) and case .settled (:1008-1009) for the outcomes HydraMergeRecord.Outcome now has (Timeline.swift:273). The original branches and helpers are byte-identical."
+      "b2_change": "B1 Hydra.swift:914-946 switched over .merged, .failed and .stray only -> B2 Hydra.swift:979-1021 adds case .held (:1003-1007, two shapes) and case .settled (:1008-1009) for the outcomes HydraMergeRecord.Outcome now has (Timeline.swift:273). The original branches and helpers are byte-identical."
     },
     {
       "id": "PR-HYDRA-067",
       "title": "delegationRequest is prepended only in front of an ordinary user message, never in front of an automatic report",
       "source_evidence": [
-        "DroppyCode/Core/Models/Hydra.swift:1023-1035 static func delegationRequest(_ launch:) - route is 'Use the configured Hydra agent tools and head profiles.' when runsNatively, otherwise 'Delegate through the final hydra block so Droppy Code runs the selected heads; do not use native agent tools.'",
+        "DroppyCode/Core/Models/Hydra.swift:1027-1039 static func delegationRequest(_ launch:) - route is 'Use the configured Hydra agent tools and head profiles.' when runsNatively, otherwise 'Delegate through the final hydra block so Droppy Code runs the selected heads; do not use native agent tools.'",
         "porting/extracts/hydra-prompt-corpus.md:1069-1088 prepended only when hydraHeads == nil, on both native and fallback routes"
       ],
       "preconditions": "Hydra is on and the user sends a message that is not an automatic report relay.",
@@ -1624,7 +1624,7 @@
       "depends_on_unknown": null,
       "deviation": {
         "decision": "OD-0012 F1",
-        "upstream": "DroppyCode/Core/Models/Hydra.swift:1026 \"Delegate through the final hydra block so Droppy Code runs the selected heads; do not use native agent tools.\"",
+        "upstream": "DroppyCode/Core/Models/Hydra.swift:1030 \"Delegate through the final hydra block so Droppy Code runs the selected heads; do not use native agent tools.\"",
         "port": "\"Delegate through the final hydra block so Marrow runs the selected heads; do not use native agent tools.\"; the native route and the rest of the request are unchanged."
       }
     },
@@ -1632,7 +1632,7 @@
       "id": "PR-HYDRA-068",
       "title": "fallbackTurnNote returns the empty string when there is nothing to say, else a [Hydra] line terminated by \\n\\n---\\n\\n",
       "source_evidence": [
-        "DroppyCode/Core/Models/Hydra.swift:1038-1042 static func fallbackTurnNote(team:merge:) - let parts = [team, merge].compactMap { $0 }; guard !parts.isEmpty else { return \"\" }; return \"[Hydra] \" + parts.joined(separator: \" \") + \"\\n\\n---\\n\\n\""
+        "DroppyCode/Core/Models/Hydra.swift:1042-1046 static func fallbackTurnNote(team:merge:) - let parts = [team, merge].compactMap { $0 }; guard !parts.isEmpty else { return \"\" }; return \"[Hydra] \" + parts.joined(separator: \" \") + \"\\n\\n---\\n\\n\""
       ],
       "preconditions": "A Droppy-run turn, or a native turn whose merge status is non-nil.",
       "action": "The turn note is built.",
@@ -1652,7 +1652,7 @@
       "id": "PR-HYDRA-069",
       "title": "fallbackReportNote always opens with the same sentence and carries a literal ```hydra inside running prose on its canDelegate branch",
       "source_evidence": [
-        "DroppyCode/Core/Models/Hydra.swift:1047-1052 static func fallbackReportNote(team:merge:canDelegate:) - more is either 'If the reports open up the next stage of the work, or a head failed, or a piece of the user's request is still undone, send heads out again for exactly that, with the same ```hydra block at the end of your reply; never for verifying, redoing or finishing what a head already did.' or 'Send out no more heads for this request; whatever is left, do yourself.'; return \"[Hydra] Your heads reported back below.\" + (team.map { \" \" + $0 } ?? \"\") + (merge.map { \" \" + $0 } ?? \"\") + \" \" + more + \"\\n\\n---\\n\\n\""
+        "DroppyCode/Core/Models/Hydra.swift:1051-1056 static func fallbackReportNote(team:merge:canDelegate:) - more is either 'If the reports open up the next stage of the work, or a head failed, or a piece of the user's request is still undone, send heads out again for exactly that, with the same ```hydra block at the end of your reply; never for verifying, redoing or finishing what a head already did.' or 'Send out no more heads for this request; whatever is left, do yourself.'; return \"[Hydra] Your heads reported back below.\" + (team.map { \" \" + $0 } ?? \"\") + (merge.map { \" \" + $0 } ?? \"\") + \" \" + more + \"\\n\\n---\\n\\n\""
       ],
       "preconditions": "A batch of heads has reported and the lead is being handed the report message.",
       "action": "The report note is built.",
@@ -1672,7 +1672,7 @@
       "id": "PR-HYDRA-070",
       "title": "fallbackPreamble substitutes a bare '---\\n\\n' when the turn note is empty, and evaluates the turn note twice",
       "source_evidence": [
-        "DroppyCode/Core/Models/Hydra.swift:1056-1062 static func fallbackPreamble(_ launch:team:merge:) - fallbackPolicy(launch) + \"\\n\\n\" + (fallbackTurnNote(team: team, merge: merge).isEmpty ? \"---\\n\\n\" : fallbackTurnNote(team: team, merge: merge)); static func fallbackReportPreamble(...) - fallbackPolicy(launch) + \"\\n\\n\" + fallbackReportNote(...)"
+        "DroppyCode/Core/Models/Hydra.swift:1060-1066 static func fallbackPreamble(_ launch:team:merge:) - fallbackPolicy(launch) + \"\\n\\n\" + (fallbackTurnNote(team: team, merge: merge).isEmpty ? \"---\\n\\n\" : fallbackTurnNote(team: team, merge: merge)); static func fallbackReportPreamble(...) - fallbackPolicy(launch) + \"\\n\\n\" + fallbackReportNote(...)"
       ],
       "preconditions": "The lead runs on a CLI provider that keeps no Hydra policy in its system prompt.",
       "action": "The preamble is prepended to the user message.",
@@ -1715,10 +1715,10 @@
       "title": "maxDelegationRounds is 3 and heldBackMessage is emitted verbatim when a fourth round is asked for",
       "source_evidence": [
         "DroppyCode/Core/Models/Hydra.swift:912 static let maxDelegationRounds = 3",
-        "DroppyCode/Core/Models/Hydra.swift:1066-1071 static func heldBackMessage(count: Int)",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:2859-2867 guard hydraBudget.canDelegate else { message.text = stripped.isEmpty ? \"Asking for more heads.\" : stripped; ...; return refuseBlock(HydraPrompts.heldBackMessage(count: delegations.count), dropped: \"This request has had all \\(HydraPrompts.maxDelegationRounds) of its rounds of heads, and the lead had been told so already.\") }",
+        "DroppyCode/Core/Models/Hydra.swift:1070-1075 static func heldBackMessage(count: Int)",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2901-2909 guard hydraBudget.canDelegate else { message.text = stripped.isEmpty ? \"Asking for more heads.\" : stripped; ...; return refuseBlock(HydraPrompts.heldBackMessage(count: delegations.count), dropped: \"This request has had all \\(HydraPrompts.maxDelegationRounds) of its rounds of heads, and the lead had been told so already.\") }",
         "DroppyCode/Core/Models/Hydra.swift:571 var canDelegate: Bool { rounds < HydraPrompts.maxDelegationRounds } (HydraDelegationBudget, :559-617)",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:2924-2931 refuseBlock - guard hydraBudget.refuse(message) else { appendHydraNote(\"No heads went out\\n\\(dropped) The block was dropped from the reply.\"); return .none }; Task { await ensureLoaded(); await startTurn(text: message, attachments: [], hydraHeads: []) }"
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2966-2973 refuseBlock - guard hydraBudget.refuse(message) else { appendHydraNote(\"No heads went out\\n\\(dropped) The block was dropped from the reply.\"); return .none }; Task { await ensureLoaded(); await startTurn(text: message, attachments: [], hydraHeads: []) }"
       ],
       "preconditions": "The lead has already had three rounds of heads for one user request and writes another delegation block.",
       "action": "The block is refused.",
@@ -1737,15 +1737,15 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 fired when ThreadRuntime's own counter hydraDelegationRounds >= maxDelegationRounds (porting/extracts/hydra-prompt-corpus.md:1260-1269, a B1 extract); B2 removes that variable and gates on hydraBudget.canDelegate (ThreadRuntime.swift:2861), which is rounds < HydraPrompts.maxDelegationRounds in HydraDelegationBudget (Hydra.swift:571), and delivers the message through refuseBlock (ThreadRuntime.swift:2924-2931), which is capped by maxRefusals (PR-HYDRA-249). maxDelegationRounds (B1 Hydra.swift:847 -> B2 :912) and heldBackMessage (B1 :994-999 -> B2 :1066-1071) are unchanged."
+      "b2_change": "B1 fired when ThreadRuntime's own counter hydraDelegationRounds >= maxDelegationRounds (porting/extracts/hydra-prompt-corpus.md:1260-1269, a B1 extract); B2 removes that variable and gates on hydraBudget.canDelegate (ThreadRuntime.swift:2903), which is rounds < HydraPrompts.maxDelegationRounds in HydraDelegationBudget (Hydra.swift:571), and delivers the message through refuseBlock (ThreadRuntime.swift:2966-2973), which is capped by maxRefusals (PR-HYDRA-249). maxDelegationRounds (B1 Hydra.swift:847 -> B2 :912) and heldBackMessage (B1 :994-999 -> B2 :1066-1071) are unchanged."
     },
     {
       "id": "PR-HYDRA-073",
       "title": "unreadableBlockMessage is emitted with its reason branch dead, so the shipped text is the base plus the tail only",
       "source_evidence": [
-        "DroppyCode/Core/Models/Hydra.swift:1207-1213 static func unreadableBlockMessage(reason: String?) -> String { var message = \"[Hydra] Your delegation block could not be read, so no heads went out.\"; if let reason = reason?.trimmed, !reason.isEmpty { message += \" \" + reason + (reason.last.map { \".!?\".contains($0) } == true ? \"\" : \".\") }; return message + \" Write the block again at the end of your reply: ... This does not count as a round of heads.\" }",
+        "DroppyCode/Core/Models/Hydra.swift:1211-1217 static func unreadableBlockMessage(reason: String?) -> String { var message = \"[Hydra] Your delegation block could not be read, so no heads went out.\"; if let reason = reason?.trimmed, !reason.isEmpty { message += \" \" + reason + (reason.last.map { \".!?\".contains($0) } == true ? \"\" : \".\") }; return message + \" Write the block again at the end of your reply: ... This does not count as a round of heads.\" }",
         "porting/extracts/hydra-prompt-corpus.md:1271-1293 the single call site passes nil; the reason branch including the \".!?\" terminal-punctuation set is unreachable in shipped code",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:2846 return refuseBlock(HydraPrompts.unreadableBlockMessage(reason: nil), dropped: ...) - still the only call site at B2, so the reason branch stays unreachable"
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2888 return refuseBlock(HydraPrompts.unreadableBlockMessage(reason: nil), dropped: ...) - still the only call site at B2, so the reason branch stays unreachable"
       ],
       "preconditions": "A delegation block was present in the reply but could not be parsed.",
       "action": "The lead is told.",
@@ -1762,13 +1762,13 @@
       "upstream_defect": "porting/extracts/hydra-prompt-corpus.md section 16 item 8",
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation only: B1 Hydra.swift:1118-1124 -> B2 Hydra.swift:1207-1213; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:132 defines as that exact call, so behaviour is identical. The text is unchanged. Past the refusal cap the same text now also reaches the lead as a drop notice (PR-HYDRA-250)."
+      "b2_change": "Citation only: B1 Hydra.swift:1122-1128 -> B2 Hydra.swift:1211-1217; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:224 defines as that exact call, so behaviour is identical. The text is unchanged. Past the refusal cap the same text now also reaches the lead as a drop notice (PR-HYDRA-250)."
     },
     {
       "id": "PR-HYDRA-074",
       "title": "reportMessage has three blocks separated by blank lines: the opening, the per-head sections, and the closing sentences joined by single spaces",
       "source_evidence": [
-        "DroppyCode/Core/Models/Hydra.swift:1310-1393 static func reportMessage(_ reports: [HydraReport], stillWorking: [String] = [], reviewsHeads: Bool = false) -> String - the final literal at :1386-1392 is opening, blank line, sections joined with \\n\\n, blank line, closing joined with a single space"
+        "DroppyCode/Core/Models/Hydra.swift:1314-1397 static func reportMessage(_ reports: [HydraReport], stillWorking: [String] = [], reviewsHeads: Bool = false) -> String - the final literal at :1386-1392 is opening, blank line, sections joined with \\n\\n, blank line, closing joined with a single space"
       ],
       "preconditions": "One or more Droppy-run heads of a batch have reported.",
       "action": "The report message for the lead is built.",
@@ -1785,14 +1785,14 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation only: B1 Hydra.swift:1221-1304 -> B2 Hydra.swift:1310-1393; the per-report body now reads report.text.trimmed (:1332), identical to B1's trimmingCharacters(in: .whitespacesAndNewlines) (Text.swift:132)."
+      "b2_change": "Citation only: B1 Hydra.swift:1225-1308 -> B2 Hydra.swift:1314-1397; the per-report body now reads report.text.trimmed (:1332), identical to B1's trimmingCharacters(in: .whitespacesAndNewlines) (Text.swift:224)."
     },
     {
       "id": "PR-HYDRA-075",
       "title": "reportMessage's opening names the finished heads and, when any remain, the ones still at work",
       "source_evidence": [
-        "DroppyCode/Core/Models/Hydra.swift:1311-1315 var opening = \"Hydra reports: \\(list(names)) finished.\"; if !stillWorking.isEmpty { opening += \" \\(list(stillWorking)) \\(stillWorking.count == 1 ? \"is\" : \"are\") still at work; \\(stillWorking.count == 1 ? \"its report comes\" : \"their reports come\") as a later message.\" }",
-        "DroppyCode/Core/Models/Hydra.swift:1421-1427 private static func list(_ names:) - 0 gives \"\", 1 gives the name, otherwise names.dropLast().joined(separator: \", \") + \" and \" + names.last"
+        "DroppyCode/Core/Models/Hydra.swift:1315-1319 var opening = \"Hydra reports: \\(list(names)) finished.\"; if !stillWorking.isEmpty { opening += \" \\(list(stillWorking)) \\(stillWorking.count == 1 ? \"is\" : \"are\") still at work; \\(stillWorking.count == 1 ? \"its report comes\" : \"their reports come\") as a later message.\" }",
+        "DroppyCode/Core/Models/Hydra.swift:1425-1431 private static func list(_ names:) - 0 gives \"\", 1 gives the name, otherwise names.dropLast().joined(separator: \", \") + \" and \" + names.last"
       ],
       "preconditions": "A report batch is being built.",
       "action": "The opening is assembled.",
@@ -1814,8 +1814,8 @@
       "id": "PR-HYDRA-076",
       "title": "Each head's section is a level-two heading carrying name, task, outcome and effort, then an optional landing line, then the report body",
       "source_evidence": [
-        "DroppyCode/Core/Models/Hydra.swift:1318-1335 the per-report loop - outcome is \"\" for completed and running, \" (failed)\" for failed, \" (stopped by the user before finishing)\" for stopped; effort collects duration(elapsed) when elapsed >= 1 then \"1 tool\" or \"N tools\" when toolCalls > 0; took is \"\" or \" (\" + effort.joined(separator: \", \") + \")\"; lines = [\"## \\(persona.name): \\(report.task)\\(outcome)\\(took)\"]; the landing line is appended when non-nil; let body = report.text.trimmed; lines.append(body.isEmpty ? \"No report.\" : body)",
-        "DroppyCode/Core/Models/Hydra.swift:1416-1419 private static func duration(_ seconds:) - let total = Int(seconds); return total < 60 ? \"\\(total)s\" : \"\\(total / 60)m \\(total % 60)s\""
+        "DroppyCode/Core/Models/Hydra.swift:1322-1339 the per-report loop - outcome is \"\" for completed and running, \" (failed)\" for failed, \" (stopped by the user before finishing)\" for stopped; effort collects duration(elapsed) when elapsed >= 1 then \"1 tool\" or \"N tools\" when toolCalls > 0; took is \"\" or \" (\" + effort.joined(separator: \", \") + \")\"; lines = [\"## \\(persona.name): \\(report.task)\\(outcome)\\(took)\"]; the landing line is appended when non-nil; let body = report.text.trimmed; lines.append(body.isEmpty ? \"No report.\" : body)",
+        "DroppyCode/Core/Models/Hydra.swift:1420-1423 private static func duration(_ seconds:) - let total = Int(seconds); return total < 60 ? \"\\(total)s\" : \"\\(total / 60)m \\(total % 60)s\""
       ],
       "preconditions": "A head has reported.",
       "action": "Its section is built.",
@@ -1832,13 +1832,13 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation only: B1 Hydra.swift:1229-1246 -> B2 Hydra.swift:1318-1335; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:132 defines as that exact call, so behaviour is identical."
+      "b2_change": "Citation only: B1 Hydra.swift:1233-1250 -> B2 Hydra.swift:1322-1339; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:224 defines as that exact call, so behaviour is identical."
     },
     {
       "id": "PR-HYDRA-077",
       "title": "landingLine renders seven shapes, caps the file list at 25, uses U+2212 for deletions, and checks patchPath before error",
       "source_evidence": [
-        "DroppyCode/Core/Models/Hydra.swift:1397-1414 private static func landingLine(for report:) - with no landing and no copyPath, nil; with no landing and a copyPath, \"Changed nothing.\" when completed, otherwise \"Nothing landed; its unfinished work is in its copy at {path}.\"; with a landing, isEmpty gives \"Changed nothing.\"; the file list is landing.files.prefix(25) mapped to \"{path} (+{additions} −{deletions})\" with \" with conflicts\" appended when the path is in conflicts, joined with \", \", then \", and N more\" when files.count > 25; omitted is \"\" or \"; 1 build-output file was left out\" / \"; N build-output files were left out\"; patchPath non-nil gives \"Did not land: {listed}{omitted}.\"; error non-nil gives \"Did not land ({error}): {listed}{omitted}.\"; otherwise \"Landed in your checkout: {listed}{omitted}.\""
+        "DroppyCode/Core/Models/Hydra.swift:1401-1418 private static func landingLine(for report:) - with no landing and no copyPath, nil; with no landing and a copyPath, \"Changed nothing.\" when completed, otherwise \"Nothing landed; its unfinished work is in its copy at {path}.\"; with a landing, isEmpty gives \"Changed nothing.\"; the file list is landing.files.prefix(25) mapped to \"{path} (+{additions} −{deletions})\" with \" with conflicts\" appended when the path is in conflicts, joined with \", \", then \", and N more\" when files.count > 25; omitted is \"\" or \"; 1 build-output file was left out\" / \"; N build-output files were left out\"; patchPath non-nil gives \"Did not land: {listed}{omitted}.\"; error non-nil gives \"Did not land ({error}): {listed}{omitted}.\"; otherwise \"Landed in your checkout: {listed}{omitted}.\""
       ],
       "preconditions": "A head's report is being rendered into the lead's report message.",
       "action": "The landing line is built.",
@@ -1860,7 +1860,7 @@
       "id": "PR-HYDRA-078",
       "title": "reportMessage's closing sentences are emitted in a fixed order with these exact conditions and strings",
       "source_evidence": [
-        "DroppyCode/Core/Models/Hydra.swift:1337-1384 the closing array, appended in this order: landed, worked-in-checkout, conflicts, shared-file (sorted by path), kept patches (in report order), failed, stopped, queued, sent, the review variant, reportStyleRule, stillWorking"
+        "DroppyCode/Core/Models/Hydra.swift:1341-1388 the closing array, appended in this order: landed, worked-in-checkout, conflicts, shared-file (sorted by path), kept patches (in report order), failed, stopped, queued, sent, the review variant, reportStyleRule, stillWorking"
       ],
       "preconditions": "A report batch is being built.",
       "action": "The closing paragraph is assembled.",
@@ -1882,7 +1882,7 @@
       "id": "PR-HYDRA-079",
       "title": "The closing carries exactly one of two no-git sentences, chosen by the reviewsHeads setting",
       "source_evidence": [
-        "DroppyCode/Core/Models/Hydra.swift:1376-1380 - reviewsHeads true appends 'Do not check any of this with git status or git diff: the checkout changes under you while heads work, and the user may be editing too. Do not reconcile or revert anything. ' + reviewRule; false appends 'Do not check any of this with git status or git diff: the checkout changes under you while heads work, and the user may be editing too. Do not reconcile, revert or redo anything. Build on the reports, read the files they name if something matters, run one verification if it matters, and finish the job.'"
+        "DroppyCode/Core/Models/Hydra.swift:1380-1384 - reviewsHeads true appends 'Do not check any of this with git status or git diff: the checkout changes under you while heads work, and the user may be editing too. Do not reconcile or revert anything. ' + reviewRule; false appends 'Do not check any of this with git status or git diff: the checkout changes under you while heads work, and the user may be editing too. Do not reconcile, revert or redo anything. Build on the reports, read the files they name if something matters, run one verification if it matters, and finish the job.'"
       ],
       "preconditions": "A report batch is being built.",
       "action": "The review variant is chosen from AppSettings.hydraReviewHeads, passed through as the reviewsHeads argument.",
@@ -1902,7 +1902,7 @@
       "id": "PR-HYDRA-080",
       "title": "The whole-message delegation opener regex accepts hydra, hydra-sent and hydra-leaving, case-insensitively",
       "source_evidence": [
-        "DroppyCode/Core/Models/Hydra.swift:1092-1094 private static func delegationOpener(in text:) - text.firstMatch(of: #/```[ \\t]*hydra(?:-sent|-leaving)?[ \\t]*\\r?\\n/#.ignoresCase())?.range"
+        "DroppyCode/Core/Models/Hydra.swift:1096-1098 private static func delegationOpener(in text:) - text.firstMatch(of: #/```[ \\t]*hydra(?:-sent|-leaving)?[ \\t]*\\r?\\n/#.ignoresCase())?.range"
       ],
       "preconditions": "A lead's reply is being scanned for a delegation block.",
       "action": "The opening fence is located.",
@@ -1946,7 +1946,7 @@
       "id": "PR-HYDRA-082",
       "title": "lineStartFences collects every three-backtick run that opens a line, info string or not",
       "source_evidence": [
-        "DroppyCode/Core/Models/Hydra.swift:1099-1109 private static func lineStartFences(in text:from:) - walks firstRange(of: \"```\") from the cursor, keeps a fence only when its lower bound is the text's start index or the character before it is a newline, then continues from the fence's upper bound"
+        "DroppyCode/Core/Models/Hydra.swift:1103-1113 private static func lineStartFences(in text:from:) - walks firstRange(of: \"```\") from the cursor, keeps a fence only when its lower bound is the text's start index or the character before it is a newline, then continues from the fence's upper bound"
       ],
       "preconditions": "A delegation block's opener has been found.",
       "action": "The candidate closing fences are collected.",
@@ -1966,7 +1966,7 @@
       "id": "PR-HYDRA-083",
       "title": "delegationBlockRange runs from the opener to the LAST line-start fence after it, or to the end of the text",
       "source_evidence": [
-        "DroppyCode/Core/Models/Hydra.swift:1117-1121 static func delegationBlockRange(in text:) - guard let opener = delegationOpener(in: text); let end = lineStartFences(in: text, from: opener.upperBound).last?.upperBound ?? text.endIndex; return opener.lowerBound..<end"
+        "DroppyCode/Core/Models/Hydra.swift:1121-1125 static func delegationBlockRange(in text:) - guard let opener = delegationOpener(in: text); let end = lineStartFences(in: text, from: opener.upperBound).last?.upperBound ?? text.endIndex; return opener.lowerBound..<end"
       ],
       "preconditions": "A reply holds a delegation opener.",
       "action": "The block's extent is computed.",
@@ -1986,7 +1986,7 @@
       "id": "PR-HYDRA-084",
       "title": "delegations(in:) walks candidate ends from the LAST fence backwards and finally the end of the text, taking the first body that parses",
       "source_evidence": [
-        "DroppyCode/Core/Models/Hydra.swift:1140-1149 static func delegations(in text:) - bodyStart is the opener's upper bound; ends = lineStartFences(in: text, from: bodyStart).reversed().map(\\.lowerBound) with text.endIndex appended; the first end whose body parses via delegations(fromBody:) wins"
+        "DroppyCode/Core/Models/Hydra.swift:1144-1153 static func delegations(in text:) - bodyStart is the opener's upper bound; ends = lineStartFences(in: text, from: bodyStart).reversed().map(\\.lowerBound) with text.endIndex appended; the first end whose body parses via delegations(fromBody:) wins"
       ],
       "preconditions": "A reply holds a delegation opener.",
       "action": "The block is parsed after the reply is complete.",
@@ -2008,7 +2008,7 @@
       "id": "PR-HYDRA-085",
       "title": "delegations(fromBody:) is tri-state: nil for unparseable or all-rejected, [] for an explicitly empty array, and a non-empty list otherwise",
       "source_evidence": [
-        "DroppyCode/Core/Models/Hydra.swift:1156-1162 private static func delegations(fromBody body:) - guard let json = JSONValue.parse(body) else { return nil }; if let array = json.array, array.isEmpty { return [] }; let entries: [JSONValue] = json.array ?? (json.object == nil ? [] : [json]); let parsed = entries.compactMap(delegation(fromEntry:)); return parsed.isEmpty ? nil : parsed",
+        "DroppyCode/Core/Models/Hydra.swift:1160-1166 private static func delegations(fromBody body:) - guard let json = JSONValue.parse(body) else { return nil }; if let array = json.array, array.isEmpty { return [] }; let entries: [JSONValue] = json.array ?? (json.object == nil ? [] : [json]); let parsed = entries.compactMap(delegation(fromEntry:)); return parsed.isEmpty ? nil : parsed",
         "porting/port_impacts.md:152 entry 72 - return a three-state result and drive the fence-walk retry off nil"
       ],
       "preconditions": "A candidate block body has been isolated.",
@@ -2033,7 +2033,7 @@
       "title": "delegation(fromEntry:) recognises exactly seven JSON field names and drops an entry with no usable prompt",
       "source_evidence": [
         "DroppyCode/Core/Models/HydraDelegationStream.swift:110-120 static func delegation(fromEntry entry: JSONValue) -> HydraDelegation? - guard let prompt = entry[\"prompt\"]?.string?.trimmed, !prompt.isEmpty else { return nil }; let task = entry[\"task\"]?.string?.trimmed ?? \"\"; let name = entry[\"name\"]?.string?.trimmed ?? entry[\"head\"]?.string?.trimmed; let project = entry[\"project\"]?.string?.trimmed ?? entry[\"repo\"]?.string?.trimmed; let profile = entry[\"profile\"]?.string?.trimmed; task becomes TextCleanup.singleLine(prompt, limit: 60) when empty; name, project and profile become nil when empty",
-        "DroppyCode/Core/Support/Text.swift:132 var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }"
+        "DroppyCode/Core/Support/Text.swift:224 var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }"
       ],
       "preconditions": "A block entry has been isolated as JSON.",
       "action": "The entry is read as a delegation.",
@@ -2050,7 +2050,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation only: B1 HydraDelegationStream.swift:110-120 -> B2 :110-120; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:132 defines as that exact call, so behaviour is identical.",
+      "b2_change": "Citation only: B1 HydraDelegationStream.swift:110-120 -> B2 :110-120; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:224 defines as that exact call, so behaviour is identical.",
       "open_question": "Not closed by OD-0012 to OD-0014 or ED-059 to ED-063. Missing: TextCleanup.singleLine's truncation, which at B2 (DroppyCode/Core/Support/Text.swift:26-31) drops leading newlines, keeps the first line trimmed of spaces and tabs, and past the limit keeps limit - 1 Characters and appends U+2026; the record must state it for limit 60 and how Swift Character counts map to the port's string length."
     },
     {
@@ -2073,14 +2073,14 @@
       "upstream_defect": "28",
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation only: B1 HydraDelegationStream.swift:113-117 -> B2 :113-117; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:132 defines as that exact call, so behaviour is identical; the shadowing is unchanged."
+      "b2_change": "Citation only: B1 HydraDelegationStream.swift:113-117 -> B2 :113-117; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:224 defines as that exact call, so behaviour is identical; the shadowing is unchanged."
     },
     {
       "id": "PR-HYDRA-088",
       "title": "withoutDelegationBlock removes the block's range and trims both ends",
       "source_evidence": [
-        "DroppyCode/Core/Models/Hydra.swift:1165-1169 static func withoutDelegationBlock(_ text: String) -> String { var kept = text; if let range = delegationBlockRange(in: text) { kept.removeSubrange(range) }; return kept.trimmed }",
-        "DroppyCode/Core/Support/Text.swift:132 var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }"
+        "DroppyCode/Core/Models/Hydra.swift:1169-1173 static func withoutDelegationBlock(_ text: String) -> String { var kept = text; if let range = delegationBlockRange(in: text) { kept.removeSubrange(range) }; return kept.trimmed }",
+        "DroppyCode/Core/Support/Text.swift:224 var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }"
       ],
       "preconditions": "A reply carrying a sent, fading delegation block is being cleaned up.",
       "action": "The block is stripped.",
@@ -2097,14 +2097,14 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation only: B1 Hydra.swift:1076-1080 -> B2 Hydra.swift:1165-1169; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:132 defines as that exact call, so behaviour is identical."
+      "b2_change": "Citation only: B1 Hydra.swift:1080-1084 -> B2 Hydra.swift:1169-1173; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:224 defines as that exact call, so behaviour is identical."
     },
     {
       "id": "PR-HYDRA-089",
       "title": "hasDelegationBlock and hasDelegationOpener are the two block-presence tests, the second over a streaming tail",
       "source_evidence": [
-        "DroppyCode/Core/Models/Hydra.swift:1124 static func hasDelegationBlock(in text:) -> Bool { delegationBlockRange(in: text) != nil }",
-        "DroppyCode/Core/Models/Hydra.swift:1129-1131 static func hasDelegationOpener(in tail: Substring) -> Bool - the same three-dialect regex over a substring"
+        "DroppyCode/Core/Models/Hydra.swift:1128 static func hasDelegationBlock(in text:) -> Bool { delegationBlockRange(in: text) != nil }",
+        "DroppyCode/Core/Models/Hydra.swift:1133-1135 static func hasDelegationOpener(in tail: Substring) -> Bool - the same three-dialect regex over a substring"
       ],
       "preconditions": "The Hydra button is deciding whether the lead is delegating.",
       "action": "Either test is called.",
@@ -2124,7 +2124,7 @@
       "id": "PR-HYDRA-090",
       "title": "markingDelegationBlockSent rewrites the opener to the literal ```hydra-sent, once",
       "source_evidence": [
-        "DroppyCode/Core/Models/Hydra.swift:1200-1203 static func markingDelegationBlockSent(_ text:) - guard let opener = delegationOpener(in: text), !hasSentDelegationBlock(in: text) else { return text }; return text.replacingCharacters(in: opener, with: \"```hydra-sent\\n\")"
+        "DroppyCode/Core/Models/Hydra.swift:1204-1207 static func markingDelegationBlockSent(_ text:) - guard let opener = delegationOpener(in: text), !hasSentDelegationBlock(in: text) else { return text }; return text.replacingCharacters(in: opener, with: \"```hydra-sent\\n\")"
       ],
       "preconditions": "A delegation block's heads have gone out.",
       "action": "The block is marked sent so the timeline draws the card in its done state.",
@@ -2146,7 +2146,7 @@
       "id": "PR-HYDRA-091",
       "title": "markingDelegationBlockLeaving rewrites a sent opener to ```hydra-leaving, once",
       "source_evidence": [
-        "DroppyCode/Core/Models/Hydra.swift:1193-1196 static func markingDelegationBlockLeaving(_ text:) - guard hasSentDelegationBlock(in: text), !hasLeavingDelegationBlock(in: text), let opener = delegationOpener(in: text) else { return text }; return text.replacingCharacters(in: opener, with: \"```hydra-leaving\\n\")"
+        "DroppyCode/Core/Models/Hydra.swift:1197-1200 static func markingDelegationBlockLeaving(_ text:) - guard hasSentDelegationBlock(in: text), !hasLeavingDelegationBlock(in: text), let opener = delegationOpener(in: text) else { return text }; return text.replacingCharacters(in: opener, with: \"```hydra-leaving\\n\")"
       ],
       "preconditions": "A sent block has held its done state for delegationSentHold.",
       "action": "The card begins to fade where it stands.",
@@ -2168,8 +2168,8 @@
       "id": "PR-HYDRA-092",
       "title": "hasSentDelegationBlock and hasLeavingDelegationBlock use their own narrower regexes",
       "source_evidence": [
-        "DroppyCode/Core/Models/Hydra.swift:1181-1183 static func hasSentDelegationBlock(in text:) - text.contains(#/```[ \\t]*hydra-(?:sent|leaving)[ \\t]*\\r?\\n/#.ignoresCase())",
-        "DroppyCode/Core/Models/Hydra.swift:1186-1188 static func hasLeavingDelegationBlock(in text:) - text.contains(#/```[ \\t]*hydra-leaving[ \\t]*\\r?\\n/#.ignoresCase())"
+        "DroppyCode/Core/Models/Hydra.swift:1185-1187 static func hasSentDelegationBlock(in text:) - text.contains(#/```[ \\t]*hydra-(?:sent|leaving)[ \\t]*\\r?\\n/#.ignoresCase())",
+        "DroppyCode/Core/Models/Hydra.swift:1190-1192 static func hasLeavingDelegationBlock(in text:) - text.contains(#/```[ \\t]*hydra-leaving[ \\t]*\\r?\\n/#.ignoresCase())"
       ],
       "preconditions": "A reply is being examined before a state rewrite.",
       "action": "Either predicate is evaluated.",
@@ -2189,8 +2189,8 @@
       "id": "PR-HYDRA-093",
       "title": "The delegation card holds its done state for 3.2 seconds, fades for 450 milliseconds, then the block is stripped, each step re-checking the block is still sent",
       "source_evidence": [
-        "DroppyCode/Core/Models/Hydra.swift:1173 static let delegationSentHold: Duration = .seconds(3.2)",
-        "DroppyCode/Core/Models/Hydra.swift:1177 static let delegationLeaveFade: Duration = .milliseconds(450)",
+        "DroppyCode/Core/Models/Hydra.swift:1177 static let delegationSentHold: Duration = .seconds(3.2)",
+        "DroppyCode/Core/Models/Hydra.swift:1181 static let delegationLeaveFade: Duration = .milliseconds(450)",
         "porting/extracts/hydra-prompt-corpus.md:638-640 the timing sequence and the re-checks"
       ],
       "preconditions": "A delegation block's heads have just gone out.",
@@ -2312,8 +2312,8 @@
       "id": "PR-HYDRA-098",
       "title": "An explicitly empty delegation array sends no heads and produces no refusal",
       "source_evidence": [
-        "DroppyCode/Core/Models/Hydra.swift:1158 if let array = json.array, array.isEmpty { return [] }",
-        "DroppyCode/Core/Models/Hydra.swift:1133-1139 doc comment - an empty array is a block that asks for no heads (the lead did the work itself) and comes back as an empty list, not as nil",
+        "DroppyCode/Core/Models/Hydra.swift:1162 if let array = json.array, array.isEmpty { return [] }",
+        "DroppyCode/Core/Models/Hydra.swift:1137-1143 doc comment - an empty array is a block that asks for no heads (the lead did the work itself) and comes back as an empty list, not as nil",
         "DroppyCode/Core/Models/Hydra.swift:967 the policy tells the lead 'an empty block sends no heads and is not needed'"
       ],
       "preconditions": "A lead ended its reply with ```hydra holding [].",
@@ -2416,7 +2416,7 @@
         "The pair's workerModel and workerEffort are silently dropped by the same fallback and the note never mentions it. Reproduce."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Keep both predicates as they are; do not unify them. The note is user-visible text (ThreadRuntime.swift:2990-2993 appends it to the lead's timeline as \"Hydra: \\(note)\"). OD-0012 G1 rules on this sixth \"this Mac\" string (B1 AppModel+Hydra.swift:126, B2 :167): it reads \"is not installed on this PC\", like the five OD-0008 B4 changed (PR-HYDRA-110); \"is switched off in Settings\" and the sentence frame are unchanged.",
+      "windows_path": "Keep both predicates as they are; do not unify them. The note is user-visible text (ThreadRuntime.swift:3032-3035 appends it to the lead's timeline as \"Hydra: \\(note)\"). OD-0012 G1 rules on this sixth \"this Mac\" string (B1 AppModel+Hydra.swift:126, B2 :167): it reads \"is not installed on this PC\", like the five OD-0008 B4 changed (PR-HYDRA-110); \"is switched off in Settings\" and the sentence frame are unchanged.",
       "verification_method": "contract fixture over both reasons plus a unit test proving the two predicates are distinct",
       "status": "IMPLEMENTED",
       "upstream_defect": "30, 33",
@@ -2569,7 +2569,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation only: B1 AppModel+Hydra.swift:278-300 -> B2 :319-341; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:132 defines as that exact call, so behaviour is identical. Resolution order unchanged."
+      "b2_change": "Citation only: B1 AppModel+Hydra.swift:278-300 -> B2 :319-341; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:224 defines as that exact call, so behaviour is identical. Resolution order unchanged."
     },
     {
       "id": "PR-HYDRA-109",
@@ -2622,7 +2622,7 @@
         "upstream": "DroppyCode/App/AppModel+Hydra.swift:440 appends \"Hydra: no project named \\(reference) is in the sidebar or on this Mac, so \\(persona.name) works in \\(fallback).\"",
         "port": "Marrow appends \"Hydra: no project named {reference} is in the sidebar or on this PC, so {persona name} works in {fallback}.\"; the condition, the fallback words 'this chat's project' and the head creation are unchanged."
       },
-      "b2_change": "Citation re-anchored: B1 AppModel+Hydra.swift:397-400 -> B2 :438-441; the guard reads !reference.trimmed.isEmpty (Text.swift:132, the same trim) and the upstream note text is unchanged at B2. Not a B2 change: this refresh also applies owner ruling OD-0008 B4, so expected_result, windows_path and verification_method now say 'this PC' and the deviation block records the difference from upstream's 'this Mac'."
+      "b2_change": "Citation re-anchored: B1 AppModel+Hydra.swift:397-400 -> B2 :438-441; the guard reads !reference.trimmed.isEmpty (Text.swift:224, the same trim) and the upstream note text is unchanged at B2. Not a B2 change: this refresh also applies owner ruling OD-0008 B4, so expected_result, windows_path and verification_method now say 'this PC' and the deviation block records the difference from upstream's 'this Mac'."
     },
     {
       "id": "PR-HYDRA-111",
@@ -2845,7 +2845,7 @@
       "title": "HydraTreeCache holds one capture per checkout for 3 seconds, reuses it only while the checkout's tree is unchanged, and coalesces concurrent requests",
       "source_evidence": [
         "DroppyCode/App/AppModel+Hydra.swift:28-107 @MainActor private enum HydraTreeCache - private static let lifetime: TimeInterval = 3 (:41); captures, generations and inFlight keyed by the checkout path (:43-50); capture(of:with:) loops: if let ready = captures[checkout], ready.generation == generation, Date.now.timeIntervalSince(ready.capturedAt) < lifetime { let current = try await git.currentTree(); ...; if current == ready.tree { return (ready.tree, ready.commit) } } (:56-61); if let running = inFlight[checkout], running.generation == generation { let made = try await running.task.value; ...; return made } (:62-67); otherwise a Task runs let tree = try await git.currentTree(); let commit = try await git.commitTree(tree, message: \"Droppy Code: a Hydra head's starting point\") (:68-80), and the result is stored with capturedAt: .now (:96)",
-        "DroppyCode/Services/Git/Git.swift:431-439 func currentTree() async throws -> String { guard let indexPath = await indexPath(), let watch = await watch() else { return try await captureTree() }; return try await watch.currentTree(indexPath: indexPath) { scratch, paths in guard let scratch else { return try await captureTree() }; return try await captureTree(scratch: scratch, paths: paths) } }",
+        "DroppyCode/Services/Git/Git.swift:536-544 func currentTree() async throws -> String { guard let indexPath = await indexPath(), let watch = await watch() else { return try await captureTree() }; return try await watch.currentTree(indexPath: indexPath) { scratch, paths in guard let scratch else { return try await captureTree() }; return try await captureTree(scratch: scratch, paths: paths) } }",
         "DroppyCode/App/AppModel+Hydra.swift:546-556 makeHydraCopy - let capture = try await HydraTreeCache.capture(of: checkout, with: git); try await git.addDetachedWorktree(at: path, commit: capture.commit); on any throw try? FileManager.default.removeItem(atPath: path); return nil"
       ],
       "preconditions": "Several heads of one delegation block start within milliseconds of each other.",
@@ -2968,7 +2968,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation only: B1 AppModel+Hydra.swift:668-673 -> B2 :721-726; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:132 defines as that exact call, so behaviour is identical."
+      "b2_change": "Citation only: B1 AppModel+Hydra.swift:668-673 -> B2 :721-726; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:224 defines as that exact call, so behaviour is identical."
     },
     {
       "id": "PR-HYDRA-123",
@@ -3069,7 +3069,7 @@
       "title": "waitForSettledCheckout polls every 250 ms for up to 30 minutes against the lead runtime's current-turn touched paths and lands anyway at the deadline",
       "source_evidence": [
         "DroppyCode/App/AppModel+Hydra.swift:816-833 private func waitForSettledCheckout(_ parentID: UUID, paths: [String]) async { guard let leadRuntime = existingRuntime(for: parentID) else { return }; let wanted = Set(paths); let deadline = Date.now.addingTimeInterval(30 * 60); while Date.now < deadline { let busy = leadRuntime.phase != .idle && !wanted.isEmpty && !wanted.isDisjoint(with: leadRuntime.hydraCurrentTurnTouchedPaths); guard busy || leadRuntime.isHydraMerging else { return }; guard (try? await Task.sleep(for: .milliseconds(250))) != nil else { return } } }",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:501-505 @ObservationIgnored private(set) var hydraCurrentTurnTouchedPaths: Set<String> = [] - the paths the current turn has touched so far; fed by recordCurrentTurnEdits (:3428-3431, TouchedPaths.relative to workingRoot), noteHydraEdits (:3435-3440), native-head shell-command writes (:3465-3467) and the finished turn's set (:2381); reset at :624, :1205 and :1925; set to the turn's touchedPaths at :3716"
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:500-504 @ObservationIgnored private(set) var hydraCurrentTurnTouchedPaths: Set<String> = [] - the paths the current turn has touched so far; fed by recordCurrentTurnEdits (:3428-3431, TouchedPaths.relative to workingRoot), noteHydraEdits (:3435-3440), native-head shell-command writes (:3465-3467) and the finished turn's set (:2381); reset at :624, :1205 and :1925; set to the turn's touchedPaths at :3716"
       ],
       "preconditions": "A head's patch touches files the lead may be editing.",
       "action": "The landing waits for a safe moment.",
@@ -3086,14 +3086,14 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 AppModel+Hydra.swift:769 !wanted.isDisjoint(with: hydraChatContext(for: parentID).touchedPaths) -> B2 AppModel+Hydra.swift:825 !wanted.isDisjoint(with: leadRuntime.hydraCurrentTurnTouchedPaths), a set the lead runtime keeps (ThreadRuntime.swift:505) that includes native heads' edits and shell-command writes. The comment at :818-820 gives the reason: a set intersection rather than a timeline walk on every look. Poll interval and deadline unchanged."
+      "b2_change": "B1 AppModel+Hydra.swift:769 !wanted.isDisjoint(with: hydraChatContext(for: parentID).touchedPaths) -> B2 AppModel+Hydra.swift:825 !wanted.isDisjoint(with: leadRuntime.hydraCurrentTurnTouchedPaths), a set the lead runtime keeps (ThreadRuntime.swift:504) that includes native heads' edits and shell-command writes. The comment at :818-820 gives the reason: a set intersection rather than a timeline walk on every look. Poll interval and deadline unchanged."
     },
     {
       "id": "PR-HYDRA-128",
       "title": "applyHydraHead stamps the landing interval, refuses to write during an operation in progress or with unreadable git state, applies three-way otherwise, and moves the base only on a clean apply",
       "source_evidence": [
         "DroppyCode/App/AppModel+Hydra.swift:835-872 private func applyHydraHead(_ id: UUID, landing: HydraLanding, patch: HydraPatch) async -> HydraLanding - after the head, lead and checkout guard: updateHydraHead(id) { $0.landingStartedAt = .now; $0.landingFinishedAt = nil }; defer { updateHydraHead(id) { $0.landingFinishedAt = .now } } (:843-844); guard !(await checkoutGit.hasOperationInProgress()) else { landing.patchPath = keepHydraPatch(patch.text, of: info, headID: head.id); landing.error = \"a rebase or merge is underway in the checkout, or its git state cannot be read\"; noteHydraLanding(landing, of: info, to: parentID); return landing } (:849-854); landing.conflicts = try await checkoutGit.apply(patch.text); if landing.conflicts.isEmpty { updateHydraHead(id) { $0.baseTree = patch.after } }; on throw the patch is kept and landing.error = error.localizedDescription; then HydraTreeCache.invalidate(checkout), existingRuntime(for: parentID)?.noteDiffChanged() and noteHydraLanding (:855-871)",
-        "DroppyCode/Services/Git/Git.swift:372-379 func hasOperationInProgress() async -> Bool - true when rev-parse --path-format=absolute --git-dir fails or is empty, or when rebase-merge, rebase-apply, MERGE_HEAD, CHERRY_PICK_HEAD, REVERT_HEAD or BISECT_LOG exists in the git directory"
+        "DroppyCode/Services/Git/Git.swift:477-484 func hasOperationInProgress() async -> Bool - true when rev-parse --path-format=absolute --git-dir fails or is empty, or when rebase-merge, rebase-apply, MERGE_HEAD, CHERRY_PICK_HEAD, REVERT_HEAD or BISECT_LOG exists in the git directory"
       ],
       "preconditions": "A head's patch is ready and the checkout has settled.",
       "action": "The patch is applied.",
@@ -3115,7 +3115,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 AppModel+Hydra.swift:789 landing.error = \"a rebase or merge is underway in the checkout\" -> B2 :851 \"a rebase or merge is underway in the checkout, or its git state cannot be read\". B2 also adds the landing stamps at :843-844. hasOperationInProgress (Git.swift:372-379) is unchanged; the three-way apply and the baseTree rule are unchanged."
+      "b2_change": "B1 AppModel+Hydra.swift:789 landing.error = \"a rebase or merge is underway in the checkout\" -> B2 :851 \"a rebase or merge is underway in the checkout, or its git state cannot be read\". B2 also adds the landing stamps at :843-844. hasOperationInProgress (Git.swift:477-484) is unchanged; the three-way apply and the baseTree rule are unchanged."
     },
     {
       "id": "PR-HYDRA-129",
@@ -3627,7 +3627,7 @@
       "id": "PR-HYDRA-151",
       "title": "AppSettings.hydraPair(for:model:) picks the exact-model pair, else an any-model pair, else the provider's first",
       "source_evidence": [
-        "DroppyCode/App/AppSettings.swift:814-823 func hydraPair(for provider: ProviderKind, model: String?) -> HydraPair? - candidates are the pairs on that provider; an exact orchestratorModel match wins; else the first with a nil orchestratorModel; else the first candidate"
+        "DroppyCode/App/AppSettings.swift:818-827 func hydraPair(for provider: ProviderKind, model: String?) -> HydraPair? - candidates are the pairs on that provider; an exact orchestratorModel match wins; else the first with a nil orchestratorModel; else the first candidate"
       ],
       "preconditions": "The per-chat Hydra switch is being turned on, or a new chat needs a pair.",
       "action": "The best-fit pair is chosen.",
@@ -3647,7 +3647,7 @@
       "id": "PR-HYDRA-152",
       "title": "HydraCookbook.recipes holds exactly 10 recipes, strongest first, with these ids, titles, sides and caps",
       "source_evidence": [
-        "DroppyCode/Core/Models/HydraCookbook.swift:29-40 static let recipes - claude-fable-opus, claude-opus-gemini-flash, claude-opus-deepseek, claude-opus-glm, claude-fable-composer, astra-spark, astra-terra, astra-astra, claude-opus-opus, claude-fable-fable",
+        "DroppyCode/Core/Models/HydraCookbook.swift:29-42 static let recipes - claude-fable-opus, claude-opus-gemini-flash, claude-opus-deepseek, claude-opus-glm, claude-fable-composer, astra-spark, astra-terra, astra-astra, claude-opus-opus, claude-fable-fable",
         "porting/extracts/hydra-prompt-corpus.md:1332-1358 the id, title, maxHeads and side tables"
       ],
       "preconditions": "The cookbook panel is being shown.",
@@ -3689,7 +3689,7 @@
       "id": "PR-HYDRA-154",
       "title": "HydraCookbook.effort keeps the asked-for effort only when the resolved model offers it",
       "source_evidence": [
-        "DroppyCode/Core/Models/HydraCookbook.swift:43-46 static func effort(_ wanted: String?, for option: ModelOption?) -> String? { guard let wanted, let option, option.efforts.contains(wanted) else { return nil }; return wanted }"
+        "DroppyCode/Core/Models/HydraCookbook.swift:45-48 static func effort(_ wanted: String?, for option: ModelOption?) -> String? { guard let wanted, let option, option.efforts.contains(wanted) else { return nil }; return wanted }"
       ],
       "preconditions": "A recipe is being resolved into a pair.",
       "action": "Each side's effort is resolved.",
@@ -3709,7 +3709,7 @@
       "id": "PR-HYDRA-155",
       "title": "HydraCookbook.isAdded compares exactly four fields and ignores efforts, cap, name and profiles",
       "source_evidence": [
-        "DroppyCode/Core/Models/HydraCookbook.swift:49-51 static func isAdded(_ pair:in pairs:) -> Bool { pairs.contains { $0.provider == pair.provider && $0.headsProvider == pair.headsProvider && $0.orchestratorModel == pair.orchestratorModel && $0.workerModel == pair.workerModel } }"
+        "DroppyCode/Core/Models/HydraCookbook.swift:51-53 static func isAdded(_ pair:in pairs:) -> Bool { pairs.contains { $0.provider == pair.provider && $0.headsProvider == pair.headsProvider && $0.orchestratorModel == pair.orchestratorModel && $0.workerModel == pair.workerModel } }"
       ],
       "preconditions": "The cookbook panel is deciding whether a recipe has already been added.",
       "action": "The recipe's resolved pair is compared against the user's pairs.",
@@ -4380,7 +4380,7 @@
       "id": "PR-HYDRA-179",
       "title": "HydraLiveInfo.shown overlays the live activity and step count onto a running head's stored record, deliberately NOT the token total",
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/HydraPanel.swift:480-489 enum HydraLiveInfo - guard the stored status is .running and a runtime exists, else return the stored record; the activity is replaced when the runtime has one; toolCalls becomes max(stored, live)",
+        "DroppyCode/App/Views/Chat/HydraPanel.swift:478-487 enum HydraLiveInfo - guard the stored status is .running and a runtime exists, else return the stored record; the activity is replaced when the runtime has one; toolCalls becomes max(stored, live)",
         "DroppyCode/App/Views/Chat/HydraPanel.swift:475-479 doc comment - deliberately not the runtime's own hydraLiveInfo, which also reads the live token total: no line in the panel shows tokens, and a provider reports them many times a second, so following them here would redraw the row and the footer on every token the head spends"
       ],
       "preconditions": "A head row or footer is being drawn.",
@@ -4401,10 +4401,10 @@
       "id": "PR-HYDRA-180",
       "title": "HydraStatusText has three registers with exact wording and exact truncation limits",
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/HydraPanel.swift:493-500 short - \"working\", \"done\", \"failed\", \"stopped\"",
-        "DroppyCode/App/Views/Chat/HydraPanel.swift:502-513 long - running gives \"· \" plus the activity cut to 40 characters, or \"· working\"; completed gives \"· done\" plus the elapsed clause plus the steps clause plus \" · \" and the landing words when there are any; failed gives \"· failed\"; stopped gives \"· stopped\"",
-        "DroppyCode/App/Views/Chat/HydraPanel.swift:515-526 footer - running gives the activity cut to 80 characters or \"Working\"; completed gives \"Done\" plus elapsed, steps, landing words and \" · \" plus the summary cut to 80; failed gives \"Failed\" plus \" · \" and the summary cut to 80; stopped gives \"Stopped\"",
-        "DroppyCode/App/Views/Chat/HydraPanel.swift:542-552 steps gives \" · 1 step\" or \" · N steps\" only when toolCalls > 0; elapsed gives \"\" without a finishedAt or when the whole seconds are not positive, else \" in Ns\" under a minute and \" in Mm Ss\" at or above"
+        "DroppyCode/App/Views/Chat/HydraPanel.swift:491-498 short - \"working\", \"done\", \"failed\", \"stopped\"",
+        "DroppyCode/App/Views/Chat/HydraPanel.swift:500-511 long - running gives \"· \" plus the activity cut to 40 characters, or \"· working\"; completed gives \"· done\" plus the elapsed clause plus the steps clause plus \" · \" and the landing words when there are any; failed gives \"· failed\"; stopped gives \"· stopped\"",
+        "DroppyCode/App/Views/Chat/HydraPanel.swift:513-524 footer - running gives the activity cut to 80 characters or \"Working\"; completed gives \"Done\" plus elapsed, steps, landing words and \" · \" plus the summary cut to 80; failed gives \"Failed\" plus \" · \" and the summary cut to 80; stopped gives \"Stopped\"",
+        "DroppyCode/App/Views/Chat/HydraPanel.swift:540-551 steps gives \" · 1 step\" or \" · N steps\" only when toolCalls > 0; elapsed gives \"\" without a finishedAt or when the whole seconds are not positive, else \" in Ns\" under a minute and \" in Mm Ss\" at or above"
       ],
       "preconditions": "A head's state is being described.",
       "action": "One of the three registers is called.",
@@ -4424,7 +4424,7 @@
       "id": "PR-HYDRA-181",
       "title": "HydraStatusText.landed puts a landing into five short phrases, tested in this order",
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/HydraPanel.swift:530-540 - nil without a landing; \"changed nothing\" when the landing is empty; then \"kept as a patch\" when a patch path exists; then \"did not land\" when an error exists; then \"landed {files}, 1 conflict\" or \"landed {files}, N conflicts\" when conflicts exist; else \"landed 1 file\" or \"landed N files\""
+        "DroppyCode/App/Views/Chat/HydraPanel.swift:528-538 - nil without a landing; \"changed nothing\" when the landing is empty; then \"kept as a patch\" when a patch path exists; then \"did not land\" when an error exists; then \"landed {files}, 1 conflict\" or \"landed {files}, N conflicts\" when conflicts exist; else \"landed 1 file\" or \"landed N files\""
       ],
       "preconditions": "A head's row or footer is describing where its work went.",
       "action": "The landing phrase is resolved.",
@@ -4648,7 +4648,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation only: B1 HydraProgressBar.swift:452-481 -> B2 :452-481; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:132 defines as that exact call, so behaviour is identical (:458)."
+      "b2_change": "Citation only: B1 HydraProgressBar.swift:452-481 -> B2 :452-481; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:224 defines as that exact call, so behaviour is identical (:458)."
     },
     {
       "id": "PR-HYDRA-191",
@@ -4834,7 +4834,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation only: B1 HydraReportsPopover.swift:44-76 -> B2 :44-76; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:132 defines as that exact call, so behaviour is identical."
+      "b2_change": "Citation only: B1 HydraReportsPopover.swift:44-76 -> B2 :44-76; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:224 defines as that exact call, so behaviour is identical."
     },
     {
       "id": "PR-HYDRA-199",
@@ -4880,7 +4880,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation only: B1 HydraReportsPopover.swift:131-155 -> B2 :131-155; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:132 defines as that exact call, so behaviour is identical (:135)."
+      "b2_change": "Citation only: B1 HydraReportsPopover.swift:131-155 -> B2 :131-155; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:224 defines as that exact call, so behaviour is identical (:135)."
     },
     {
       "id": "PR-HYDRA-201",
@@ -4906,7 +4906,7 @@
       "upstream_defect": "34",
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "MOVED. B1 HydraReportsPopover.swift:157-160 private static let filePattern = try! NSRegularExpression(pattern: #\"^(\\S+) \\(\\+(\\d+) [−\\-](\\d+)\\)( with conflicts)?$\"#), used by matchFile at :176-186 -> B2 :171-181 the same pattern as an inline Swift Regex, item.wholeMatch(of: #/(\\S+) \\(\\+(\\d+) [−\\-](\\d+)\\)( with conflicts)?/#) (:173), with the U+2212 comment moved to :172; parseFiles moved from :162-174 to :157-169 and trims with .trimmed (Text.swift:132). Groups, integer parsing and the conflict flag are unchanged."
+      "b2_change": "MOVED. B1 HydraReportsPopover.swift:157-160 private static let filePattern = try! NSRegularExpression(pattern: #\"^(\\S+) \\(\\+(\\d+) [−\\-](\\d+)\\)( with conflicts)?$\"#), used by matchFile at :176-186 -> B2 :171-181 the same pattern as an inline Swift Regex, item.wholeMatch(of: #/(\\S+) \\(\\+(\\d+) [−\\-](\\d+)\\)( with conflicts)?/#) (:173), with the U+2212 comment moved to :172; parseFiles moved from :162-174 to :157-169 and trims with .trimmed (Text.swift:224). Groups, integer parsing and the conflict flag are unchanged."
     },
     {
       "id": "PR-HYDRA-202",
@@ -4931,7 +4931,7 @@
       "upstream_defect": "26",
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation only: B1 HydraReportsPopover.swift:196-201 -> B2 :191-196; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:132 defines as that exact call, so behaviour is identical."
+      "b2_change": "Citation only: B1 HydraReportsPopover.swift:196-201 -> B2 :191-196; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:224 defines as that exact call, so behaviour is identical."
     },
     {
       "id": "PR-HYDRA-203",
@@ -5073,7 +5073,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation only: B1 HydraReportsPopover.swift:442-452 -> B2 :435-445; intro[start...].trimmingCharacters(in: .whitespacesAndNewlines) is now String(intro[start...]).trimmed (:443), the same trim (Text.swift:132)."
+      "b2_change": "Citation only: B1 HydraReportsPopover.swift:442-452 -> B2 :435-445; intro[start...].trimmingCharacters(in: .whitespacesAndNewlines) is now String(intro[start...]).trimmed (:443), the same trim (Text.swift:224)."
     },
     {
       "id": "PR-HYDRA-209",
@@ -5204,7 +5204,7 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/HydraHeadPopovers.swift:105-114 caption(for:) - the base is \"Finished\", \"Failed\", \"Stopped\" or \"Working\"; a finished head with a finish time appends \" · \" and the duration",
         "DroppyCode/App/Views/Chat/HydraHeadPopovers.swift:116-122 captionColor(for:) - Chrome.danger for failed, Chrome.warning for stopped, Chrome.secondaryText otherwise",
-        "DroppyCode/App/Views/Chat/HydraHeadPopovers.swift:124-129 duration(from:to:) - the seconds are clamped at zero; under 60 it is \"Ns\"; under 3600 it is \"M min\"; otherwise \"H h M min\""
+        "DroppyCode/App/Views/Chat/HydraHeadPopovers.swift:124-126 duration(from:to:) - the seconds are clamped at zero; under 60 it is \"Ns\"; under 3600 it is \"M min\"; otherwise \"H h M min\""
       ],
       "preconditions": "A head report popover is being drawn.",
       "action": "The caption is built.",
@@ -5224,7 +5224,7 @@
       "id": "PR-HYDRA-215",
       "title": "The brief popover is 520 points wide, captioned \"Brief\", and always carries a copy button",
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/HydraHeadPopovers.swift:133-173 HydraBriefPopover - private static let width: CGFloat = 520; blocks = MarkdownView.blocks(for: text) in the initialiser; HydraPopoverHeader(persona: persona, caption: \"Brief\", title: task, accessory: AnyView(CopyButton(text: text))); then a Divider; then PopoverScroll(maxHeight: 460, width: Self.width) holding every block in a VStack of spacing 10 with .font(.system(.callout)) (12 points), markdownPointSize 12, dimming off and selection on, padded 16 horizontally and 14 vertically; the whole is framed with .frame(width: Self.width) and sets no zoom environment",
+        "DroppyCode/App/Views/Chat/HydraHeadPopovers.swift:130-170 HydraBriefPopover - private static let width: CGFloat = 520; blocks = MarkdownView.blocks(for: text) in the initialiser; HydraPopoverHeader(persona: persona, caption: \"Brief\", title: task, accessory: AnyView(CopyButton(text: text))); then a Divider; then PopoverScroll(maxHeight: 460, width: Self.width) holding every block in a VStack of spacing 10 with .font(.system(.callout)) (12 points), markdownPointSize 12, dimming off and selection on, padded 16 horizontally and 14 vertically; the whole is framed with .frame(width: Self.width) and sets no zoom environment",
         "DroppyCode/App/Views/Chat/TimelineRows.swift:583-585 .badgePopover(isPresented: $isShowingBrief) { HydraBriefPopover(persona: persona, task: runtime.thread?.hydra?.task, text: message.text) }; DroppyCode/App/Views/Chat/ChatBadge.swift:88-111 badgePopover shows detail().presentedChrome() through BadgePopoverCoordinator, which calls popover.setFixedContent(content, size: size) (:147)",
         "DroppyCode/UI/Chrome/Popovers.swift:24-39 setFixedContent - \"The panel hosts a SwiftUI tree of its own, outside the window's, so it is given what the window root gives every view: capsule buttons and the theme's tint.\"; let root = content.frame(width: size.width, height: size.height, alignment: .top).clipped().presentedChrome(); let host = NSHostingController(rootView: root); presentedChrome() (:8-12) adds only .buttonBorderShape(.capsule) and .tint(ThemeManager.spec.accent), and AppZoomModifier is applied only inside HostedEnvironment (DroppyCode/App/Window/WindowManager.swift:165-178)",
         "B1:DroppyCode/UI/Common/ChatZoom.swift:44-57 Font.chatBaseSize, the table ED-059 takes text-style point sizes from (the file is deleted at B2): :52 callout 12"
@@ -5244,7 +5244,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 HydraHeadPopovers.swift:173 .environment(\\.chatZoom, 1) -> removed at B2 (the per-chat zoom no longer exists; dd2b86ef UI/Common/ChatZoom.swift is deleted). The body font .system(size: 12) is now .system(.callout) (:161), the same 12 points. Width 520, caption 'Brief', the copy button and the 460 scroll cap are unchanged. B1 :134-175 -> B2 :133-173."
+      "b2_change": "B1 HydraHeadPopovers.swift:170 .environment(\\.chatZoom, 1) -> removed at B2 (the per-chat zoom no longer exists; dd2b86ef UI/Common/ChatZoom.swift is deleted). The body font .system(size: 12) is now .system(.callout) (:161), the same 12 points. Width 520, caption 'Brief', the copy button and the 460 scroll cap are unchanged. B1 :134-175 -> B2 :133-173."
     },
     {
       "id": "PR-HYDRA-216",
@@ -5617,7 +5617,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation only: B1 SubagentPanel.swift:365-413 -> B2 :365-413; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:132 defines as that exact call, so behaviour is identical (:375), and fixed .system(size: N) fonts are now text styles of the same macOS point size (text-style point sizes per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (B1; the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom): title2 17, title3 15, body 13, callout 12, subheadline 11, footnote 10, caption2 10) (:385)."
+      "b2_change": "Citation only: B1 SubagentPanel.swift:365-413 -> B2 :365-413; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:224 defines as that exact call, so behaviour is identical (:375), and fixed .system(size: N) fonts are now text styles of the same macOS point size (text-style point sizes per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (B1; the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom): title2 17, title3 15, body 13, callout 12, subheadline 11, footnote 10, caption2 10) (:385)."
     },
     {
       "id": "PR-HYDRA-232",
@@ -5788,7 +5788,7 @@
         "DroppyCode/App/AppModel+Hydra.swift:634-638 func hydraHeadTurnFinished(_ head: ChatThread, status: TurnStatus) { guard let info = head.hydra, info.kind == .droppy else { return }; // The turn is over, whatever it did: the time its execution took is readable now, // apart from the wait in front of the landing that follows. updateHydraHead(head.id) { $0.executionFinishedAt = .now }",
         "DroppyCode/Core/Models/Hydra.swift:340-347 var executionStartedAt: Date? (/// When the head's brief was handed to its session, before its first turn ran. ... Nil for a native head); var executionFinishedAt: Date? (/// When that turn finished, however it ended. Nil while the head is at work, and for a native head.)",
         "DroppyCode/Core/Models/Hydra.swift:417-418 executionStartedAt = container.value(.executionStartedAt, default: nil); executionFinishedAt = container.value(.executionFinishedAt, default: nil)",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:1217-1227 at every startTurn of a Droppy-run head: if turns.count > 1 { startedAt = .now; queuedAt = nil; executionStartedAt = .now }; executionFinishedAt, landingStartedAt and landingFinishedAt = nil (turn start is the RUNTIME area's)"
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1216-1226 at every startTurn of a Droppy-run head: if turns.count > 1 { startedAt = .now; queuedAt = nil; executionStartedAt = .now }; executionFinishedAt, landingStartedAt and landingFinishedAt = nil (turn start is the RUNTIME area's)"
       ],
       "preconditions": "A Droppy-run head (HydraHeadInfo.kind == .droppy) is started with a brief, and later its turn ends.",
       "action": "The brief is sent; the turn finishes.",
@@ -5841,9 +5841,9 @@
       "source_evidence": [
         "DroppyCode/Core/Models/Hydra.swift:559-586 struct HydraDelegationBudget { private(set) var rounds = 0; private(set) var refusals = 0; private(set) var dropNotice: String?; var canDelegate: Bool { rounds < HydraPrompts.maxDelegationRounds }; mutating func beginTurn(userAuthored: Bool) { guard userAuthored else { return }; rounds = 0; refusals = 0 }; mutating func chargeRound() { rounds += 1 } ... }",
         "DroppyCode/Core/Models/Hydra.swift:912 static let maxDelegationRounds = 3",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:1206-1208 hydraBudget.beginTurn(userAuthored: hydraHeads == nil)",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:2861-2868 guard hydraBudget.canDelegate else { ... return refuseBlock(HydraPrompts.heldBackMessage(count: delegations.count), ...) }; hydraBudget.chargeRound()",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:2960-2966 guard hydraStream != nil || hydraBudget.canDelegate else { return }; when the stream is first opened, hydraBudget.chargeRound()"
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1205-1207 hydraBudget.beginTurn(userAuthored: hydraHeads == nil)",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2903-2910 guard hydraBudget.canDelegate else { ... return refuseBlock(HydraPrompts.heldBackMessage(count: delegations.count), ...) }; hydraBudget.chargeRound()",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:3002-3008 guard hydraStream != nil || hydraBudget.canDelegate else { return }; when the stream is first opened, hydraBudget.chargeRound()"
       ],
       "preconditions": "Hydra is on for a chat whose lead delegates through fenced hydra blocks.",
       "action": "Turns start and delegation blocks send heads out.",
@@ -5864,13 +5864,13 @@
       "title": "Past three refusals in one request a refused block gets no turn of its own, and its message waits as a one-shot drop notice for the lead's next turn",
       "source_evidence": [
         "DroppyCode/Core/Models/Hydra.swift:588-616 mutating func refuse(_ message: String) -> Bool { guard refusals < Self.maxRefusals else { noteDropped(message); return false }; refusals += 1; return true }; mutating func noteDropped(_ message: String) { dropNotice = HydraPrompts.droppedBlockNotice(message) }; mutating func takeDropNotice() -> String? { defer { dropNotice = nil }; return dropNotice }; static let maxRefusals = 3",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:2924-2931 private func refuseBlock(_ message: String, dropped: String) -> DelegationOutcome { guard hydraBudget.refuse(message) else { appendHydraNote(\"No heads went out\\n\\(dropped) The block was dropped from the reply.\"); return .none }; Task { await ensureLoaded(); await startTurn(text: message, attachments: [], hydraHeads: []) }; return .turnStarted }",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:1345-1350 // Taken here, with the send about to run, so a turn that aborts while starting keeps it waiting. if let notice = hydraBudget.takeDropNotice() { prompt = notice + prompt }",
-        "dd2b86ef DroppyCode/App/Runtime/ThreadRuntime.swift:2664 private static let maxRefusedBlocks = 3 and :2841 guard hydraRefusedBlocks < Self.maxRefusedBlocks (B1: past the cap the block was dropped with the timeline note only)"
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2966-2973 private func refuseBlock(_ message: String, dropped: String) -> DelegationOutcome { guard hydraBudget.refuse(message) else { appendHydraNote(\"No heads went out\\n\\(dropped) The block was dropped from the reply.\"); return .none }; Task { await ensureLoaded(); await startTurn(text: message, attachments: [], hydraHeads: []) }; return .turnStarted }",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1344-1349 // Taken here, with the send about to run, so a turn that aborts while starting keeps it waiting. if let notice = hydraBudget.takeDropNotice() { prompt = notice + prompt }",
+        "dd2b86ef DroppyCode/App/Runtime/ThreadRuntime.swift:2706 private static let maxRefusedBlocks = 3 and :2841 guard hydraRefusedBlocks < Self.maxRefusedBlocks (B1: past the cap the block was dropped with the timeline note only)"
       ],
       "preconditions": "A lead keeps ending replies in delegation blocks that are refused (unreadable, or past the round limit) within one user request.",
       "action": "The runtime refuses each block.",
-      "expected_result": "The first three refusals of a request each count and return true, so the lead is told in a turn of its own. From the fourth on, refuse counts nothing, returns false and stores the message as the drop notice ('[Hydra] ' + message + '\\n\\n---\\n\\n', see PR-HYDRA-250); the runtime then writes its 'No heads went out' timeline note and ends the turn as a plain reply. Only one notice waits at a time: a later drop replaces an earlier one. takeDropNotice returns it once and clears it. The runtime takes it only when a send is about to run and puts it in front of the whole prompt of the lead's next turn, whoever wrote that turn and even when its text is a slash command (ThreadRuntime.swift:1345-1350 has no slash-command check).",
+      "expected_result": "The first three refusals of a request each count and return true, so the lead is told in a turn of its own. From the fourth on, refuse counts nothing, returns false and stores the message as the drop notice ('[Hydra] ' + message + '\\n\\n---\\n\\n', see PR-HYDRA-250); the runtime then writes its 'No heads went out' timeline note and ends the turn as a plain reply. Only one notice waits at a time: a later drop replaces an earlier one. takeDropNotice returns it once and clears it. The runtime takes it only when a send is about to run and puts it in front of the whole prompt of the lead's next turn, whoever wrote that turn and even when its text is a slash command (ThreadRuntime.swift:1344-1349 has no slash-command check).",
       "side_effects": [
         "The lead's next sent prompt is prefixed with the notice"
       ],
@@ -5890,10 +5890,10 @@
       "id": "PR-HYDRA-250",
       "title": "A dropped block's notice is '[Hydra] ' plus the message plus a blank line, '---' and a blank line, prefixed to the lead's next prompt",
       "source_evidence": [
-        "DroppyCode/Core/Models/Hydra.swift:1082-1088 /// ... Opens with [Hydra], which the policy tells the lead is /// Droppy Code speaking, not the user. static func droppedBlockNotice(_ message: String) -> String { \"[Hydra] \" + message + \"\\n\\n---\\n\\n\" }",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:1345-1350 prompt = notice + prompt, after the Hydra, delegation-request, anti-slop and continuation prefixes were added (:1300-1344)",
-        "DroppyCode/Core/Models/Hydra.swift:1208 var message = \"[Hydra] Your delegation block could not be read, so no heads went out.\"",
-        "DroppyCode/Core/Models/Hydra.swift:1066-1071 heldBackMessage(count:) begins \"Hydra held back ...\""
+        "DroppyCode/Core/Models/Hydra.swift:1086-1092 /// ... Opens with [Hydra], which the policy tells the lead is /// Droppy Code speaking, not the user. static func droppedBlockNotice(_ message: String) -> String { \"[Hydra] \" + message + \"\\n\\n---\\n\\n\" }",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1344-1349 prompt = notice + prompt, after the Hydra, delegation-request, anti-slop and continuation prefixes were added (:1300-1344)",
+        "DroppyCode/Core/Models/Hydra.swift:1212 var message = \"[Hydra] Your delegation block could not be read, so no heads went out.\"",
+        "DroppyCode/Core/Models/Hydra.swift:1070-1075 heldBackMessage(count:) begins \"Hydra held back ...\""
       ],
       "preconditions": "A drop notice is waiting (PR-HYDRA-249 or PR-HYDRA-251) and the lead's next turn is sent.",
       "action": "The prompt is assembled.",
@@ -5915,8 +5915,8 @@
       "id": "PR-HYDRA-251",
       "title": "A reply whose turn is stopped or fails before its delegation block's heads go out tells the lead, on its next turn, that none of that work was delegated",
       "source_evidence": [
-        "DroppyCode/Core/Models/Hydra.swift:1073-1080 static func interruptedBlockMessage(stopped: Bool) -> String { \"\"\" No heads went out. / Your reply's delegation block was dropped: the turn \\(stopped ? \"was stopped\" : \"failed\") before the heads could go out, and none of that work was delegated. Do it yourself, or send the block again. \"\"\" }",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:2773-2783 when no head of the block went out: the block is removed from the reply (\"Asked for heads.\" when nothing is left), appendHydraNote(\"Hydra sent no heads: the turn \\(status == .interrupted ? \"was stopped\" : \"failed\") before they could go out. Ask again to send them.\"), then hydraBudget.noteDropped(HydraPrompts.interruptedBlockMessage(stopped: status == .interrupted))"
+        "DroppyCode/Core/Models/Hydra.swift:1077-1084 static func interruptedBlockMessage(stopped: Bool) -> String { \"\"\" No heads went out. / Your reply's delegation block was dropped: the turn \\(stopped ? \"was stopped\" : \"failed\") before the heads could go out, and none of that work was delegated. Do it yourself, or send the block again. \"\"\" }",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2815-2825 when no head of the block went out: the block is removed from the reply (\"Asked for heads.\" when nothing is left), appendHydraNote(\"Hydra sent no heads: the turn \\(status == .interrupted ? \"was stopped\" : \"failed\") before they could go out. Ask again to send them.\"), then hydraBudget.noteDropped(HydraPrompts.interruptedBlockMessage(stopped: status == .interrupted))"
       ],
       "preconditions": "The lead's reply ended in a delegation block, and its turn was stopped or failed before any of the block's heads went out.",
       "action": "The turn ends, and the lead's next turn is sent.",
@@ -6850,7 +6850,7 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:44-57 Font.chatBaseSize, the table ED-059 takes text-style point sizes from (the file is deleted at B2): :53 subheadline 11"
       ],
       "notes": "The sentence begins just after the last period before the match and runs to the END of the intro, not to the next period.",
-      "b2_change": "Citation re-anchored: B1 HydraReportsPopover.swift:310-315 -> B2 HydraReportsPopover.swift:303-308. Typography was \".system(size: 11).\"; fixed .system(size: N) fonts are now text styles of the same macOS point size (text-style point sizes per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (B1; the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom): title2 17, title3 15, body 13, callout 12, subheadline 11, footnote 10, caption2 10), so the rendered point sizes are unchanged. The stillAtWorkSentence citation moved from B1 :442-452 to B2 :435-445 and trims with .trimmed (Text.swift:132, the same trim).",
+      "b2_change": "Citation re-anchored: B1 HydraReportsPopover.swift:310-315 -> B2 HydraReportsPopover.swift:303-308. Typography was \".system(size: 11).\"; fixed .system(size: N) fonts are now text styles of the same macOS point size (text-style point sizes per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (B1; the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom): title2 17, title3 15, body 13, callout 12, subheadline 11, footnote 10, caption2 10), so the rendered point sizes are unchanged. The stillAtWorkSentence citation moved from B1 :442-452 to B2 :435-445 and trims with .trimmed (Text.swift:224, the same trim).",
       "status": "IMPLEMENTED"
     },
     {
@@ -7092,12 +7092,12 @@
       ],
       "interactions": [],
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/HydraHeadPopovers.swift:105-129",
+        "DroppyCode/App/Views/Chat/HydraHeadPopovers.swift:105-126",
         "DroppyCode/App/Views/Chat/HydraHeadPopovers.swift:21-27 HydraPopoverHeader draws the caption - Text(caption).font(.system(.subheadline, weight: .medium)).foregroundStyle(captionColor).monospacedDigit().lineLimit(1)",
         "B1:DroppyCode/UI/Common/ChatZoom.swift:44-57 Font.chatBaseSize, the table ED-059 takes text-style point sizes from (the file is deleted at B2): :53 subheadline 11"
       ],
       "notes": "The duration here is \"45s\" under a minute, \"7 min\" under an hour and \"2 h 14 min\" beyond, which is a DIFFERENT register from the report message's \"2m 7s\". Do not unify them.",
-      "b2_change": "Citation re-anchored: B1 HydraHeadPopovers.swift:106-130 -> B2 HydraHeadPopovers.swift:105-129. Typography was \".system(size: 11, weight: .medium) with monospaced digits.\"; the caption is drawn by HydraPopoverHeader, whose caption font is .system(.subheadline, weight: .medium) at B2 :23 (B1 .system(size: 11, weight: .medium)); body 13, callout 12 and subheadline 11 points per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:51-53 chatBaseSize (the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom), so the rendered size is unchanged."
+      "b2_change": "Citation re-anchored: B1 HydraHeadPopovers.swift:106-127 -> B2 HydraHeadPopovers.swift:105-126. Typography was \".system(size: 11, weight: .medium) with monospaced digits.\"; the caption is drawn by HydraPopoverHeader, whose caption font is .system(.subheadline, weight: .medium) at B2 :23 (B1 .system(size: 11, weight: .medium)); body 13, callout 12 and subheadline 11 points per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:51-53 chatBaseSize (the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom), so the rendered size is unchanged."
     },
     {
       "id": "UI-HYDRA-049",
@@ -7153,12 +7153,12 @@
       ],
       "interactions": [],
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/HydraHeadPopovers.swift:151",
+        "DroppyCode/App/Views/Chat/HydraHeadPopovers.swift:148",
         "DroppyCode/App/Views/Chat/HydraHeadPopovers.swift:21-27 HydraPopoverHeader draws the caption - Text(caption).font(.system(.subheadline, weight: .medium)).foregroundStyle(captionColor).monospacedDigit().lineLimit(1)",
         "B1:DroppyCode/UI/Common/ChatZoom.swift:44-57 Font.chatBaseSize, the table ED-059 takes text-style point sizes from (the file is deleted at B2): :53 subheadline 11"
       ],
       "notes": "The brief popover is 520 points wide, not 460 like the report popover, and its copy button is unconditional.",
-      "b2_change": "Citation re-anchored: B1 HydraHeadPopovers.swift:152 -> B2 HydraHeadPopovers.swift:151. Typography was \".system(size: 11, weight: .medium) with monospaced digits.\"; the caption is drawn by HydraPopoverHeader, whose caption font is .system(.subheadline, weight: .medium) at B2 :23 (B1 .system(size: 11, weight: .medium)); body 13, callout 12 and subheadline 11 points per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:51-53 chatBaseSize (the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom), so the rendered size is unchanged."
+      "b2_change": "Citation re-anchored: B1 HydraHeadPopovers.swift:149 -> B2 HydraHeadPopovers.swift:148. Typography was \".system(size: 11, weight: .medium) with monospaced digits.\"; the caption is drawn by HydraPopoverHeader, whose caption font is .system(.subheadline, weight: .medium) at B2 :23 (B1 .system(size: 11, weight: .medium)); body 13, callout 12 and subheadline 11 points per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:51-53 chatBaseSize (the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom), so the rendered size is unchanged."
     },
     {
       "id": "UI-HYDRA-052",
@@ -7625,7 +7625,7 @@
         "DroppyCode/App/Views/Chat/SubagentPanel.swift:271-291"
       ],
       "notes": "The panel's compact height is 280 points, which is room for the strip, a two-line task over the bar and the chat box under them. The elapsed time is NOT here; it sits in the strip's capsule.",
-      "b2_change": "Citation only: B1 HydraProgressBar.swift:452-481 -> B2 :452-481; the only change inside the range is the task trim, now .trimmed (:458), the same call (Text.swift:132).",
+      "b2_change": "Citation only: B1 HydraProgressBar.swift:452-481 -> B2 :452-481; the only change inside the range is the task trim, now .trimmed (:458), the same call (Text.swift:224).",
       "status": "IMPLEMENTED"
     }
   ]

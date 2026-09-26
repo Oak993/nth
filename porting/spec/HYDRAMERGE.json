@@ -7,10 +7,10 @@
       "source_evidence": [
         "DroppyCode/App/Views/Settings/HydraSettingsPage.swift:101-106 - ChromeSection(title: \"When the team is done\") holds toggleRow(\"Merge automatically\", detail: \"The team's changes go out as a merge request and are merged.\", isOn: $settings.hydraAutoMerge)",
         "DroppyCode/App/AppSettings.swift:162 - static let hydraAutoMerge = \"hydraAutoMerge\"",
-        "DroppyCode/App/AppSettings.swift:763 - hydraAutoMerge = defaults.object(forKey: Key.hydraAutoMerge) as? Bool ?? false",
-        "DroppyCode/App/AppSettings.swift:583-585 - var hydraAutoMerge: Bool { didSet { defaults.set(hydraAutoMerge, forKey: Key.hydraAutoMerge) } }",
-        "DroppyCode/App/AppModel+HydraMerge.swift:49 - guard settings.hydraAutoMerge else { return }",
-        "DroppyCode/App/AppModel+HydraMerge.swift:85 - guard settings.hydraAutoMerge, ..."
+        "DroppyCode/App/AppSettings.swift:767 - hydraAutoMerge = defaults.object(forKey: Key.hydraAutoMerge) as? Bool ?? false",
+        "DroppyCode/App/AppSettings.swift:587-589 - var hydraAutoMerge: Bool { didSet { defaults.set(hydraAutoMerge, forKey: Key.hydraAutoMerge) } }",
+        "DroppyCode/App/AppModel+HydraMerge.swift:50 - guard settings.hydraAutoMerge else { return }",
+        "DroppyCode/App/AppModel+HydraMerge.swift:98 - guard settings.hydraAutoMerge, ..."
       ],
       "preconditions": "Settings window open on the Hydra page.",
       "action": "User toggles \"Merge automatically\".",
@@ -34,7 +34,7 @@
       "id": "PR-HYDRAMERGE-002",
       "title": "A finished lead turn starts the auto-merge only when nothing of the team is still outstanding",
       "source_evidence": [
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:2456-2461 - if !continues, status == .completed, hydraPendingReports.isEmpty, hydraBatches.isEmpty, hydraWaiting.isEmpty, let app, let thread, app.hydraIsOn(thread), app.settings.hydraAutoMerge, app.runningHydraHeads(of: threadID) == 0 { Task { await app.autoMergeHydraWork(of: threadID) } }"
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2498-2503 - if !continues, status == .completed, hydraPendingReports.isEmpty, hydraBatches.isEmpty, hydraWaiting.isEmpty, let app, let thread, app.hydraIsOn(thread), app.settings.hydraAutoMerge, app.runningHydraHeads(of: threadID) == 0 { Task { await app.autoMergeHydraWork(of: threadID) } }"
       ],
       "preconditions": "A lead chat with Hydra on and hydraAutoMerge on.",
       "action": "The lead's turn finishes.",
@@ -58,8 +58,8 @@
       "id": "PR-HYDRAMERGE-003",
       "title": "Unfinished merges are resumed once at app start",
       "source_evidence": [
-        "DroppyCode/App/AppModel.swift:248-249 - // A merge the last run did not finish (the app was quit under it) goes out now.\\n        await resumeHydraMerges()",
-        "DroppyCode/App/AppModel.swift:245-247 - await LoginEnvironment.load() then sweepHydraCopies() run first, so git runs with the user's PATH"
+        "DroppyCode/App/AppModel.swift:249-250 - // A merge the last run did not finish (the app was quit under it) goes out now.\\n        await resumeHydraMerges()",
+        "DroppyCode/App/AppModel.swift:246-248 - await LoginEnvironment.load() then sweepHydraCopies() run first, so git runs with the user's PATH"
       ],
       "preconditions": "App launching; bootstrap() running.",
       "action": "bootstrap() reaches the resume call.",
@@ -83,7 +83,7 @@
       "id": "PR-HYDRAMERGE-004",
       "title": "A background task re-runs the resume sweep every 300 seconds for the life of the app",
       "source_evidence": [
-        "DroppyCode/App/AppModel.swift:254-261 - hydraMergeSweepTask?.cancel(); hydraMergeSweepTask = Task { [weak self] in while !Task.isCancelled { try? await Task.sleep(for: .seconds(300)); guard !Task.isCancelled, let self else { return }; await self.resumeHydraMerges() } }"
+        "DroppyCode/App/AppModel.swift:255-262 - hydraMergeSweepTask?.cancel(); hydraMergeSweepTask = Task { [weak self] in while !Task.isCancelled { try? await Task.sleep(for: .seconds(300)); guard !Task.isCancelled, let self else { return }; await self.resumeHydraMerges() } }"
       ],
       "preconditions": "bootstrap() has run.",
       "action": "Time passes.",
@@ -107,9 +107,9 @@
       "id": "PR-HYDRAMERGE-005",
       "title": "The resume sweep considers only unarchived Hydra leads touched within the last three days",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:41 - private static var hydraMergeWindow: TimeInterval { 3 * 24 * 3600 }",
-        "DroppyCode/App/AppModel+HydraMerge.swift:50 - let cutoff = Date.now.addingTimeInterval(-Self.hydraMergeWindow)",
-        "DroppyCode/App/AppModel+HydraMerge.swift:51 - let leads = threads.filter { !$0.isArchived && hydraIsOn($0) && $0.updatedAt > cutoff }"
+        "DroppyCode/App/AppModel+HydraMerge.swift:42 - private static var hydraMergeWindow: TimeInterval { 3 * 24 * 3600 }",
+        "DroppyCode/App/AppModel+HydraMerge.swift:51 - let cutoff = Date.now.addingTimeInterval(-Self.hydraMergeWindow)",
+        "DroppyCode/App/AppModel+HydraMerge.swift:52 - let leads = threads.filter { !$0.isArchived && hydraIsOn($0) && $0.updatedAt > cutoff }"
       ],
       "preconditions": "hydraAutoMerge on.",
       "action": "resumeHydraMerges() runs.",
@@ -126,16 +126,16 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation re-anchored, behaviour unchanged. B1 AppModel+HydraMerge.swift:38 `let cutoff = Date.now.addingTimeInterval(-3 * 24 * 3600)` -> B2 :50 `let cutoff = Date.now.addingTimeInterval(-Self.hydraMergeWindow)`, with the window defined at B2 :41 as `3 * 24 * 3600`. The same constant now also bounds canStillMerge (PR-HYDRAMERGE-121)."
+      "b2_change": "Citation re-anchored, behaviour unchanged. B1 AppModel+HydraMerge.swift:39 `let cutoff = Date.now.addingTimeInterval(-3 * 24 * 3600)` -> B2 :50 `let cutoff = Date.now.addingTimeInterval(-Self.hydraMergeWindow)`, with the window defined at B2 :41 as `3 * 24 * 3600`. The same constant now also bounds canStillMerge (PR-HYDRAMERGE-121)."
     },
     {
       "id": "PR-HYDRAMERGE-006",
       "title": "The resume sweep orders candidate leads by UUID, loads every runtime first, then skips any lead that is not ready to merge",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:51-52 - let leads = threads.filter { !$0.isArchived && hydraIsOn($0) && $0.updatedAt > cutoff } .sorted { $0.id.uuidString < $1.id.uuidString }",
-        "DroppyCode/App/AppModel+HydraMerge.swift:53-57 - // Load every competitor before choosing the first winner. A cold runtime // must not keep a completed job looking unfinished until the next sweep. for lead in leads { await runtime(for: lead.id).ensureLoaded() }",
-        "DroppyCode/App/AppModel+HydraMerge.swift:58-60 - for lead in leads { guard let runtime = existingRuntime(for: lead.id), runtime.isReadyForHydraMerge, !runtime.isHydraMerging else { continue }",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:2485-2490 - var isReadyForHydraMerge: Bool { phase == .idle && !isLoadingHistory && !isReverting && pendingSend == nil && turns.last?.status == .completed && !hasWorkingHeads && hydraPendingReports.isEmpty && hydraBatches.isEmpty && hydraWaiting.isEmpty && !hydraFlushScheduled }"
+        "DroppyCode/App/AppModel+HydraMerge.swift:52-53 - let leads = threads.filter { !$0.isArchived && hydraIsOn($0) && $0.updatedAt > cutoff } .sorted { $0.id.uuidString < $1.id.uuidString }",
+        "DroppyCode/App/AppModel+HydraMerge.swift:54-58 - // Load every competitor before choosing the first winner. A cold runtime // must not keep a completed job looking unfinished until the next sweep. for lead in leads { await runtime(for: lead.id).ensureLoaded() }",
+        "DroppyCode/App/AppModel+HydraMerge.swift:59-61 - for lead in leads { guard let runtime = existingRuntime(for: lead.id), runtime.isReadyForHydraMerge, !runtime.isHydraMerging else { continue }",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2527-2532 - var isReadyForHydraMerge: Bool { phase == .idle && !isLoadingHistory && !isReverting && pendingSend == nil && turns.last?.status == .completed && !hasWorkingHeads && hydraPendingReports.isEmpty && hydraBatches.isEmpty && hydraWaiting.isEmpty && !hydraFlushScheduled }"
       ],
       "preconditions": "A candidate set from PR-HYDRAMERGE-005.",
       "action": "The sweep orders, loads and screens the candidate leads.",
@@ -154,14 +154,14 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 AppModel+HydraMerge.swift:41-43 `let runtime = self.runtime(for: lead.id); await runtime.ensureLoaded(); guard runtime.phase == .idle, !runtime.isHydraMerging, runningHydraHeads(of: lead.id) == 0 else { continue }` (one loop, list order) -> B2 :51-60: leads sorted by `$0.id.uuidString`, every runtime loaded in a first loop, and a second loop guarded by `runtime.isReadyForHydraMerge, !runtime.isHydraMerging` (ThreadRuntime.swift:2485-2490)."
+      "b2_change": "B1 AppModel+HydraMerge.swift:42-44 `let runtime = self.runtime(for: lead.id); await runtime.ensureLoaded(); guard runtime.phase == .idle, !runtime.isHydraMerging, runningHydraHeads(of: lead.id) == 0 else { continue }` (one loop, list order) -> B2 :51-60: leads sorted by `$0.id.uuidString`, every runtime loaded in a first loop, and a second loop guarded by `runtime.isReadyForHydraMerge, !runtime.isHydraMerging` (ThreadRuntime.swift:2527-2532)."
     },
     {
       "id": "PR-HYDRAMERGE-007",
       "title": "The resume sweep does not require a completed unmerged turn; the completed-last-turn test is part of readiness",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:61-65 - // The job is finished, whatever its turns read: a lead whose report-review turn // was booked spent while its head's work never went out has no unmerged turn // left, and requiring one here stranded exactly that head. ... let finished = runtime.hydraUnmergedTurns.filter { $0.status == .completed }",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:2487 - && turns.last?.status == .completed && !hasWorkingHeads"
+        "DroppyCode/App/AppModel+HydraMerge.swift:62-66 - // The job is finished, whatever its turns read: a lead whose report-review turn // was booked spent while its head's work never went out has no unmerged turn // left, and requiring one here stranded exactly that head. ... let finished = runtime.hydraUnmergedTurns.filter { $0.status == .completed }",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2529 - && turns.last?.status == .completed && !hasWorkingHeads"
       ],
       "preconditions": "A lead that passed PR-HYDRAMERGE-006.",
       "action": "The sweep evaluates its turns.",
@@ -178,13 +178,13 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 AppModel+HydraMerge.swift:44-45 `guard !finished.isEmpty, runtime.turns.last?.status == .completed else { continue }` is deleted at B2 (diff hunk @@ -25,29 +25,49 @@); B2 :61-64 explains why, `finished` is still computed at :65, and the last-turn test survives in ThreadRuntime.swift:2487."
+      "b2_change": "B1 AppModel+HydraMerge.swift:45-46 `guard !finished.isEmpty, runtime.turns.last?.status == .completed else { continue }` is deleted at B2 (diff hunk @@ -25,29 +25,49 @@); B2 :61-64 explains why, `finished` is still computed at :65, and the last-turn test survives in ThreadRuntime.swift:2529."
     },
     {
       "id": "PR-HYDRAMERGE-008",
       "title": "The resume sweep refuses a lead with no work of its own, so Hydra being on never sweeps someone else's changes",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:66-72 - let hasOwnWork = finished.contains { !($0.touchedPaths ?? []).isEmpty } || hydraTeam(of: lead.id).contains { $0.hydra.map { $0.mergedAt == nil && ($0.landing?.landed ?? false) } ?? false }; guard hasOwnWork else { continue }; await autoMergeHydraWork(of: lead.id)",
+        "DroppyCode/App/AppModel+HydraMerge.swift:67-73 - let hasOwnWork = finished.contains { !($0.touchedPaths ?? []).isEmpty } || hydraTeam(of: lead.id).contains { $0.hydra.map { $0.mergedAt == nil && ($0.landing?.landed ?? false) } ?? false }; guard hasOwnWork else { continue }; await autoMergeHydraWork(of: lead.id)",
         "DroppyCode/Core/Models/Hydra.swift:475 - var landed: Bool { !files.isEmpty && patchPath == nil && error == nil }"
       ],
       "preconditions": "A lead that passed PR-HYDRAMERGE-006.",
@@ -203,13 +203,13 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 AppModel+HydraMerge.swift:50 `$0.mergedAt == nil && !($0.landing?.files ?? []).isEmpty` -> B2 :70 `$0.mergedAt == nil && ($0.landing?.landed ?? false)`, where landed is `!files.isEmpty && patchPath == nil && error == nil` (Hydra.swift:475). The turn criterion is unchanged (B2 :69)."
+      "b2_change": "B1 AppModel+HydraMerge.swift:51 `$0.mergedAt == nil && !($0.landing?.files ?? []).isEmpty` -> B2 :70 `$0.mergedAt == nil && ($0.landing?.landed ?? false)`, where landed is `!files.isEmpty && patchPath == nil && error == nil` (Hydra.swift:475). The turn criterion is unchanged (B2 :69)."
     },
     {
       "id": "PR-HYDRAMERGE-009",
       "title": "isAnyHydraMergeRunning reports whether any live runtime is merging",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:35 - var isAnyHydraMergeRunning: Bool { liveRuntimes.contains { $0.isHydraMerging } }"
+        "DroppyCode/App/AppModel+HydraMerge.swift:36 - var isAnyHydraMergeRunning: Bool { liveRuntimes.contains { $0.isHydraMerging } }"
       ],
       "preconditions": "Any number of live runtimes.",
       "action": "A consumer reads isAnyHydraMergeRunning.",
@@ -232,8 +232,8 @@
       "title": "autoMergeHydraWork re-checks eight preconditions before it starts, one of them that no merge runs anywhere in the app",
       "source_evidence": [
         "DroppyCode/App/AppModel+HydraMerge.swift:79-87 - // `isAnyHydraMergeRunning` holds the one merge flag: several jobs finishing in the // same moment would otherwise each pass their own `isHydraMerging` check ... guard settings.hydraAutoMerge, let lead = thread(leadID), hydraIsOn(lead), let project = project(lead.projectID), let runtime = existingRuntime(for: leadID), !runtime.isHydraMerging, !isAnyHydraMergeRunning, runtime.isReadyForHydraMerge else { return }",
-        "DroppyCode/App/AppModel+HydraMerge.swift:88 - runtime.isHydraMerging = true",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:2485-2490 - var isReadyForHydraMerge: Bool { phase == .idle && !isLoadingHistory && !isReverting && pendingSend == nil && turns.last?.status == .completed && !hasWorkingHeads && hydraPendingReports.isEmpty && hydraBatches.isEmpty && hydraWaiting.isEmpty && !hydraFlushScheduled }"
+        "DroppyCode/App/AppModel+HydraMerge.swift:101 - runtime.isHydraMerging = true",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2527-2532 - var isReadyForHydraMerge: Bool { phase == .idle && !isLoadingHistory && !isReverting && pendingSend == nil && turns.last?.status == .completed && !hasWorkingHeads && hydraPendingReports.isEmpty && hydraBatches.isEmpty && hydraWaiting.isEmpty && !hydraFlushScheduled }"
       ],
       "preconditions": "autoMergeHydraWork(of:) called from any trigger.",
       "action": "The function body starts.",
@@ -251,15 +251,15 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 AppModel+HydraMerge.swift:59-60 guard of six conditions ending `!runtime.isHydraMerging else { return }` -> B2 :85-87 adds `!isAnyHydraMergeRunning` and `runtime.isReadyForHydraMerge` (eight conditions), with the one-merge rationale at :79-84."
+      "b2_change": "B1 AppModel+HydraMerge.swift:60-61 guard of six conditions ending `!runtime.isHydraMerging else { return }` -> B2 :85-87 adds `!isAnyHydraMergeRunning` and `runtime.isReadyForHydraMerge` (eight conditions), with the one-merge rationale at :79-84."
     },
     {
       "id": "PR-HYDRAMERGE-011",
       "title": "Starting a merge sets five runtime fields, including the stage words of the first stage",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:88-92 - runtime.isHydraMerging = true; runtime.hydraMergeStartedAt = .now; runtime.hydraMergeNoteID = UUID().uuidString; runtime.hydraMergeStage = HydraMergeStage.gathering.words; runtime.hydraMergeStep = .gathering",
+        "DroppyCode/App/AppModel+HydraMerge.swift:101-105 - runtime.isHydraMerging = true; runtime.hydraMergeStartedAt = .now; runtime.hydraMergeNoteID = UUID().uuidString; runtime.hydraMergeStage = HydraMergeStage.gathering.words; runtime.hydraMergeStep = .gathering",
         "DroppyCode/Core/Models/Hydra.swift:521 - case .gathering: \"Gathering the team's files\"",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:312-325 - the five declarations"
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:312-330 - the five declarations"
       ],
       "preconditions": "Guards of PR-HYDRAMERGE-010 passed.",
       "action": "The merge begins.",
@@ -282,7 +282,7 @@
       "id": "PR-HYDRAMERGE-012",
       "title": "Every exit from a merge clears all five merge fields",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:93-99 - defer { runtime.isHydraMerging = false; runtime.hydraMergeStage = nil; runtime.hydraMergeStep = nil; runtime.hydraMergeStartedAt = nil; runtime.hydraMergeNoteID = nil }"
+        "DroppyCode/App/AppModel+HydraMerge.swift:106-112 - defer { runtime.isHydraMerging = false; runtime.hydraMergeStage = nil; runtime.hydraMergeStep = nil; runtime.hydraMergeStartedAt = nil; runtime.hydraMergeNoteID = nil }"
       ],
       "preconditions": "A merge under way.",
       "action": "The function returns by any path: success, early return, or a thrown error caught inside.",
@@ -306,7 +306,7 @@
       "id": "PR-HYDRAMERGE-013",
       "title": "The merge waits for a head's landing already in flight before it gathers files",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:100-103 - // A head's work still going into the checkout finishes first ... await runtime.hydraLanding?.value"
+        "DroppyCode/App/AppModel+HydraMerge.swift:113-116 - // A head's work still going into the checkout finishes first ... await runtime.hydraLanding?.value"
       ],
       "preconditions": "A merge has started; a head landing task may be running.",
       "action": "The merge reaches the await.",
@@ -328,8 +328,8 @@
       "id": "PR-HYDRAMERGE-014",
       "title": "The lead's own checkout is its worktree path when it has one, else the project path",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:112 - let ownCheckout = lead.worktreePath ?? project.path",
-        "DroppyCode/App/AppModel+HydraMerge.swift:113 - hydraWork(... checkout: ownCheckout, git: Git(ownCheckout), projectID: project.id, leadCheckout: ownCheckout, leadProjectID: project.id, sweepsCheckout: true)"
+        "DroppyCode/App/AppModel+HydraMerge.swift:125 - let ownCheckout = lead.worktreePath ?? project.path",
+        "DroppyCode/App/AppModel+HydraMerge.swift:126 - hydraWork(... checkout: ownCheckout, git: Git(ownCheckout), projectID: project.id, leadCheckout: ownCheckout, leadProjectID: project.id, sweepsCheckout: true)"
       ],
       "preconditions": "Guards passed.",
       "action": "The merge gathers the lead's own share.",
@@ -351,8 +351,8 @@
       "id": "PR-HYDRAMERGE-015",
       "title": "The lead's own checkout is always the first group; groups with no paths are removed only after the hold check",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:114 - var groups: [(project: Project, checkout: String, work: HydraWork)] = [(project, ownCheckout, own)]",
-        "DroppyCode/App/AppModel+HydraMerge.swift:147 - groups.removeAll { $0.work.paths.isEmpty }"
+        "DroppyCode/App/AppModel+HydraMerge.swift:127 - var groups: [(project: Project, checkout: String, work: HydraWork)] = [(project, ownCheckout, own)]",
+        "DroppyCode/App/AppModel+HydraMerge.swift:148 - groups.removeAll { $0.work.paths.isEmpty }"
       ],
       "preconditions": "hydraWork returned for the own checkout.",
       "action": "Groups are assembled.",
@@ -367,13 +367,13 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 AppModel+HydraMerge.swift:87 `= own.paths.isEmpty ? [] : [(project, ownCheckout, own)]` -> B2 :114 `= [(project, ownCheckout, own)]`, with empty groups pruned at B2 :147 after the hold check at :135-146."
+      "b2_change": "B1 AppModel+HydraMerge.swift:100 `= own.paths.isEmpty ? [] : [(project, ownCheckout, own)]` -> B2 :114 `= [(project, ownCheckout, own)]`, with empty groups pruned at B2 :147 after the hold check at :135-146."
     },
     {
       "id": "PR-HYDRAMERGE-016",
       "title": "An outside path is assigned to the sidebar project with the longest path that contains it",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:115-122 - for path in own.outside { if let holder = projects.filter({ $0.id != project.id && TouchedPaths.relative(path, root: $0.path) != nil }).max(by: { $0.path.count < $1.path.count }) { owners[path] = holder } }"
+        "DroppyCode/App/AppModel+HydraMerge.swift:128-135 - for path in own.outside { if let holder = projects.filter({ $0.id != project.id && TouchedPaths.relative(path, root: $0.path) != nil }).max(by: { $0.path.count < $1.path.count }) { owners[path] = holder } }"
       ],
       "preconditions": "own.outside is non-empty.",
       "action": "Ownership is resolved.",
@@ -395,8 +395,8 @@
       "id": "PR-HYDRAMERGE-017",
       "title": "Each other owning project gets its own merge pass with the checkout sweep off",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:123-126 - for other in projects where other.id != project.id && owners.values.contains(where: { $0.id == other.id }) { let work = await hydraWork(of: leadID, runtime: runtime, checkout: other.path, git: Git(other.path), projectID: other.id, leadCheckout: ownCheckout, leadProjectID: project.id, sweepsCheckout: false); groups.append((other, other.path, work)) }",
-        "DroppyCode/App/AppModel+HydraMerge.swift:109-111 - // under no sidebar project at all stay out. What the records do not hold in one // of those other checkouts cannot be told apart from a sibling's work there and // stays behind without a word: none of it was this merge's to take."
+        "DroppyCode/App/AppModel+HydraMerge.swift:136-139 - for other in projects where other.id != project.id && owners.values.contains(where: { $0.id == other.id }) { let work = await hydraWork(of: leadID, runtime: runtime, checkout: other.path, git: Git(other.path), projectID: other.id, leadCheckout: ownCheckout, leadProjectID: project.id, sweepsCheckout: false); groups.append((other, other.path, work)) }",
+        "DroppyCode/App/AppModel+HydraMerge.swift:122-124 - // under no sidebar project at all stay out. What the records do not hold in one // of those other checkouts cannot be told apart from a sibling's work there and // stays behind without a word: none of it was this merge's to take."
       ],
       "preconditions": "Owners resolved.",
       "action": "Other-project shares are gathered.",
@@ -415,14 +415,14 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 AppModel+HydraMerge.swift:96-99 `if !work.paths.isEmpty { groups.append((other, other.path, work)) }` -> B2 :123-126 `groups.append((other, other.path, work))`, pruned at :147. B1's comment (the note says so, with the count) became B2 :111 `stays behind without a word`."
+      "b2_change": "B1 AppModel+HydraMerge.swift:109-112 `if !work.paths.isEmpty { groups.append((other, other.path, work)) }` -> B2 :123-126 `groups.append((other, other.path, work))`, pruned at :147. B1's comment (the note says so, with the count) became B2 :111 `stays behind without a word`."
     },
     {
       "id": "PR-HYDRAMERGE-018",
       "title": "Scratch paths are excluded from the stray report",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:127-130 - let stray = own.outside.filter { path in !Self.isScratchPath(path) && !projects.contains { TouchedPaths.relative(path, root: $0.path) != nil } }",
-        "DroppyCode/App/AppModel+HydraMerge.swift:185-206 - isScratchPath"
+        "DroppyCode/App/AppModel+HydraMerge.swift:140-143 - let stray = own.outside.filter { path in !Self.isScratchPath(path) && !projects.contains { TouchedPaths.relative(path, root: $0.path) != nil } }",
+        "DroppyCode/App/AppModel+HydraMerge.swift:189-210 - isScratchPath"
       ],
       "preconditions": "own.outside computed.",
       "action": "The stray list is built.",
@@ -442,7 +442,7 @@
       "id": "PR-HYDRAMERGE-019",
       "title": "isScratchPath: worktrees folder, temp roots, ~/Library and any dot-folder directly under home",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:190-206 - let full = ((path as NSString).expandingTildeInPath as NSString).standardizingPath; let home = (LoginEnvironment.homeDirectory as NSString).standardizingPath; var roots = [Storage.worktreesDirectory.path, NSTemporaryDirectory(), \"/tmp\", \"/private/tmp\", \"/var/folders\", \"/private/var/folders\"]; roots.append((home as NSString).appendingPathComponent(\"Library\")); let underHome = home.hasSuffix(\"/\") ? home : home + \"/\"; if full.hasPrefix(underHome), full.dropFirst(underHome.count).first == \".\" { return true }; let spellings = full.hasPrefix(\"/private/\") ? [full, String(full.dropFirst(\"/private\".count))] : [full]; return roots.contains { root in let root = (root as NSString).standardizingPath; let prefix = root.hasSuffix(\"/\") ? root : root + \"/\"; return spellings.contains { $0.hasPrefix(prefix) } }"
+        "DroppyCode/App/AppModel+HydraMerge.swift:194-210 - let full = ((path as NSString).expandingTildeInPath as NSString).standardizingPath; let home = (LoginEnvironment.homeDirectory as NSString).standardizingPath; var roots = [Storage.worktreesDirectory.path, NSTemporaryDirectory(), \"/tmp\", \"/private/tmp\", \"/var/folders\", \"/private/var/folders\"]; roots.append((home as NSString).appendingPathComponent(\"Library\")); let underHome = home.hasSuffix(\"/\") ? home : home + \"/\"; if full.hasPrefix(underHome), full.dropFirst(underHome.count).first == \".\" { return true }; let spellings = full.hasPrefix(\"/private/\") ? [full, String(full.dropFirst(\"/private\".count))] : [full]; return roots.contains { root in let root = (root as NSString).standardizingPath; let prefix = root.hasSuffix(\"/\") ? root : root + \"/\"; return spellings.contains { $0.hasPrefix(prefix) } }"
       ],
       "preconditions": "A path from own.outside.",
       "action": "isScratchPath(path) is evaluated.",
@@ -465,7 +465,7 @@
       "id": "PR-HYDRAMERGE-020",
       "title": "The stray body names at most six paths and says how many more",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:131-134 - func strayBody(_ paths: [String]) -> String { let shown = paths.prefix(6).map { \"`\\($0)`\" }.joined(separator: \", \") + (paths.count > 6 ? \" and \\(paths.count - 6) more\" : \"\"); return \"\\(paths.count == 1 ? \"1 file was\" : \"\\(paths.count) files were\") changed outside every project: \\(shown). Add the folder that holds them to the sidebar and ask for the merge again.\" }"
+        "DroppyCode/App/AppModel+HydraMerge.swift:144-147 - func strayBody(_ paths: [String]) -> String { let shown = paths.prefix(6).map { \"`\\($0)`\" }.joined(separator: \", \") + (paths.count > 6 ? \" and \\(paths.count - 6) more\" : \"\"); return \"\\(paths.count == 1 ? \"1 file was\" : \"\\(paths.count) files were\") changed outside every project: \\(shown). Add the folder that holds them to the sidebar and ask for the merge again.\" }"
       ],
       "preconditions": "A non-empty stray list.",
       "action": "The body is built.",
@@ -485,8 +485,8 @@
       "id": "PR-HYDRAMERGE-021",
       "title": "No groups and no strays: the turns and heads are marked spent, and a settlement note follows only an earlier hold",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:148-159 - guard !groups.isEmpty else { guard !stray.isEmpty else { runtime.markHydraMerged(own.turnIDs); let spentAt = Date.now; for headID in own.headIDs { updateHydraHead(headID) { $0.mergedAt = spentAt } }; if runtime.hydraMerges.last?.outcome == .held { recordHydraSettlement(leadID: leadID, runtime: runtime) }; return } ... }",
-        "DroppyCode/App/AppModel+HydraMerge.swift:829-833 - private func recordHydraSettlement(leadID: UUID, runtime: ThreadRuntime) { guard hydraUnmergedFileCount(of: leadID) == 0 else { return }; ... }"
+        "DroppyCode/App/AppModel+HydraMerge.swift:149-160 - guard !groups.isEmpty else { guard !stray.isEmpty else { runtime.markHydraMerged(own.turnIDs); let spentAt = Date.now; for headID in own.headIDs { updateHydraHead(headID) { $0.mergedAt = spentAt } }; if runtime.hydraMerges.last?.outcome == .held { recordHydraSettlement(leadID: leadID, runtime: runtime) }; return } ... }",
+        "DroppyCode/App/AppModel+HydraMerge.swift:902-906 - private func recordHydraSettlement(leadID: UUID, runtime: ThreadRuntime) { guard hydraUnmergedFileCount(of: leadID) == 0 else { return }; ... }"
       ],
       "preconditions": "No file was held (PR-HYDRAMERGE-112), groups is empty after pruning and stray is empty.",
       "action": "The merge reaches the guard.",
@@ -504,13 +504,13 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 AppModel+HydraMerge.swift:113-116 marked the work spent and returned in silence. B2 :153-158 marks it the same way, then adds `if runtime.hydraMerges.last?.outcome == .held { recordHydraSettlement(leadID: leadID, runtime: runtime) }` (:156-158, recordHydraSettlement at :829-833). The branch is now reached only after the hold check at :135-146."
+      "b2_change": "B1 AppModel+HydraMerge.swift:126-129 marked the work spent and returned in silence. B2 :153-158 marks it the same way, then adds `if runtime.hydraMerges.last?.outcome == .held { recordHydraSettlement(leadID: leadID, runtime: runtime) }` (:156-158, recordHydraSettlement at :829-833). The branch is now reached only after the hold check at :135-146."
     },
     {
       "id": "PR-HYDRAMERGE-022",
       "title": "No groups but strays: a stray record and a stray note, and nothing is marked merged",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:161-163 - runtime.recordHydraMerge(HydraMergeRecord(at: .now, outcome: .stray, project: nil, label: nil, url: nil, files: stray.count, detail: strayBody(stray))); note(leadID, \"Hydra did not merge: the team's files are outside every project.\", strayBody(stray)); return"
+        "DroppyCode/App/AppModel+HydraMerge.swift:162-164 - runtime.recordHydraMerge(HydraMergeRecord(at: .now, outcome: .stray, project: nil, label: nil, url: nil, files: stray.count, detail: strayBody(stray))); note(leadID, \"Hydra did not merge: the team's files are outside every project.\", strayBody(stray)); return"
       ],
       "preconditions": "No file was held (PR-HYDRAMERGE-112), groups is empty after pruning and stray is non-empty.",
       "action": "The merge reaches the guard.",
@@ -527,14 +527,14 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "The stray record and note are unchanged (B1 AppModel+HydraMerge.swift:118-120 -> B2 :161-163). At B2 the branch is reached only after the cross-group hold check (:135-146) found no held file and empty groups were pruned (:147 `groups.removeAll { $0.work.paths.isEmpty }`)."
+      "b2_change": "The stray record and note are unchanged (B1 AppModel+HydraMerge.swift:131-133 -> B2 :161-163). At B2 the branch is reached only after the cross-group hold check (:135-146) found no held file and empty groups were pruned (:147 `groups.removeAll { $0.work.paths.isEmpty }`)."
     },
     {
       "id": "PR-HYDRAMERGE-023",
       "title": "Several projects in one run prefix every stage word, note title and record detail with the project name",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:165 - let several = groups.count > 1",
-        "DroppyCode/App/AppModel+HydraMerge.swift:213-216 - func stage(_ name: String) -> String { several ? \"\\(project.name): \\(name)\" : name }; func title(_ name: String) -> String { several ? \"\\(project.name): \\(name)\" : name }; func advance(_ step: HydraMergeStage) { runtime.hydraMergeStage = stage(step.words); runtime.hydraMergeStep = step }",
+        "DroppyCode/App/AppModel+HydraMerge.swift:166 - let several = groups.count > 1",
+        "DroppyCode/App/AppModel+HydraMerge.swift:222-225 - func stage(_ name: String) -> String { several ? \"\\(project.name): \\(name)\" : name }; func title(_ name: String) -> String { several ? \"\\(project.name): \\(name)\" : name }; func advance(_ step: HydraMergeStage) { runtime.hydraMergeStage = stage(step.words); runtime.hydraMergeStep = step }",
         "E:/Droppy/port/porting/dead_code.md:49 - entry 20 records stage(_:) and title(_:) as byte-identical and redundant, not dead",
         "E:/Droppy/port/porting/port_impacts.md:142 - entry 67"
       ],
@@ -559,7 +559,7 @@
       "title": "Projects merge one after another and a single failure aborts the whole marking step",
       "source_evidence": [
         "DroppyCode/App/AppModel+HydraMerge.swift:166-170 - var outcomes: [HydraProjectMerge] = []; for group in groups { outcomes.append(await mergeHydraProject(...)) }; guard !outcomes.contains(.failed) else { return }",
-        "DroppyCode/App/AppModel+HydraMerge.swift:21-25 - private enum HydraProjectMerge { case merged, alreadyOnMain, failed }"
+        "DroppyCode/App/AppModel+HydraMerge.swift:21-28 - private enum HydraProjectMerge { case merged, alreadyOnMain, failed }"
       ],
       "preconditions": "At least one group.",
       "action": "The merge runs each group in turn.",
@@ -583,7 +583,7 @@
       "id": "PR-HYDRAMERGE-025",
       "title": "A run with no failure marks every group's turns and heads merged under one timestamp",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:171-175 - runtime.markHydraMerged(groups.flatMap { $0.work.turnIDs }); let mergedAt = Date.now; for headID in groups.flatMap({ $0.work.headIDs }) { updateHydraHead(headID) { $0.mergedAt = mergedAt } }"
+        "DroppyCode/App/AppModel+HydraMerge.swift:175-179 - runtime.markHydraMerged(groups.flatMap { $0.work.turnIDs }); let mergedAt = Date.now; for headID in groups.flatMap({ $0.work.headIDs }) { updateHydraHead(headID) { $0.mergedAt = mergedAt } }"
       ],
       "preconditions": "No .failed outcome.",
       "action": "Marking runs.",
@@ -605,7 +605,7 @@
       "id": "PR-HYDRAMERGE-026",
       "title": "A successful run with strays posts a second note about what stayed behind",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:176-179 - // The projects' shares went out; only what no project holds stayed behind. if !stray.isEmpty { runtime.recordHydraMerge(HydraMergeRecord(at: .now, outcome: .stray, project: nil, label: nil, url: nil, files: stray.count, detail: strayBody(stray))); note(leadID, \"Hydra left \\(stray.count == 1 ? \"a file\" : \"\\(stray.count) files\") outside every project.\", strayBody(stray))"
+        "DroppyCode/App/AppModel+HydraMerge.swift:180-183 - // The projects' shares went out; only what no project holds stayed behind. if !stray.isEmpty { runtime.recordHydraMerge(HydraMergeRecord(at: .now, outcome: .stray, project: nil, label: nil, url: nil, files: stray.count, detail: strayBody(stray))); note(leadID, \"Hydra left \\(stray.count == 1 ? \"a file\" : \"\\(stray.count) files\") outside every project.\", strayBody(stray))"
       ],
       "preconditions": "Every group merged and stray is non-empty.",
       "action": "The merge finishes its groups.",
@@ -657,7 +657,7 @@
       "id": "PR-HYDRAMERGE-028",
       "title": "A non-repository or empty repository fails the project pass silently",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:218-219 - let git = Git(checkout); guard await git.isRepository(), await git.hasCommits() else { return .failed }"
+        "DroppyCode/App/AppModel+HydraMerge.swift:239-240 - let git = Git(checkout); guard await git.isRepository(), await git.hasCommits() else { return .failed }"
       ],
       "preconditions": "A group about to merge.",
       "action": "The project pass starts.",
@@ -681,7 +681,7 @@
       "id": "PR-HYDRAMERGE-029",
       "title": "A checkout with no remote fails with the \"no remote\" record and note",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:220-224 - guard await git.remoteURL() != nil else { runtime.recordHydraMerge(HydraMergeRecord(at: .now, outcome: .failed, project: project.name, label: nil, url: nil, files: 0, detail: title(\"Hydra did not merge: no remote.\") + \": The team's work is in the checkout; there is no origin to push it to.\")); note(leadID, title(\"Hydra did not merge: no remote.\"), \"The team's work is in the checkout; there is no origin to push it to.\"); return .failed }"
+        "DroppyCode/App/AppModel+HydraMerge.swift:241-243 - guard await git.remoteURL() != nil else { runtime.recordHydraMerge(HydraMergeRecord(at: .now, outcome: .failed, project: project.name, label: nil, url: nil, files: 0, detail: title(\"Hydra did not merge: no remote.\") + \": The team's work is in the checkout; there is no origin to push it to.\")); note(leadID, title(\"Hydra did not merge: no remote.\"), \"The team's work is in the checkout; there is no origin to push it to.\"); return .failed }"
       ],
       "preconditions": "A repository with commits.",
       "action": "remoteURL() returns nil.",
@@ -703,7 +703,7 @@
       "id": "PR-HYDRAMERGE-030",
       "title": "A rebase or merge already under way fails with its own record and note",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:225-229 - guard !(await git.hasOperationInProgress()) else { runtime.recordHydraMerge(HydraMergeRecord(at: .now, outcome: .failed, project: project.name, label: nil, url: nil, files: 0, detail: title(\"Hydra did not merge: a rebase or merge is underway.\") + \": The team's work is in the checkout; finish that first and merge by hand.\")); note(leadID, title(\"Hydra did not merge: a rebase or merge is underway.\"), \"The team's work is in the checkout; finish that first and merge by hand.\"); return .failed }",
+        "DroppyCode/App/AppModel+HydraMerge.swift:246-249 - guard !(await git.hasOperationInProgress()) else { runtime.recordHydraMerge(HydraMergeRecord(at: .now, outcome: .failed, project: project.name, label: nil, url: nil, files: 0, detail: title(\"Hydra did not merge: a rebase or merge is underway.\") + \": The team's work is in the checkout; finish that first and merge by hand.\")); note(leadID, title(\"Hydra did not merge: a rebase or merge is underway.\"), \"The team's work is in the checkout; finish that first and merge by hand.\"); return .failed }",
         "E:/Droppy/port/porting/extracts/git-command-vectors.md:246 - hasOperationInProgress runs [\"rev-parse\", \"--path-format=absolute\", \"--git-dir\"]; :611 - exactly six markers"
       ],
       "preconditions": "A repository with a remote.",
@@ -726,7 +726,7 @@
       "id": "PR-HYDRAMERGE-031",
       "title": "Conflict markers in any of the team's files stop the merge before anything is committed",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:231-241 - let sorted = work.paths; let conflicted = await Self.pathsWithConflictMarkers(sorted, in: checkout); guard conflicted.isEmpty else { let files = conflicted.map { \"`\\($0)`\" }.joined(separator: \", \"); runtime.recordHydraMerge(HydraMergeRecord(at: .now, outcome: .failed, project: project.name, label: nil, url: nil, files: 0, detail: title(\"Hydra did not merge: conflict markers in \\(conflicted.count == 1 ? \"a file\" : \"\\(conflicted.count) files\").\") + \": \\(files) still \\(conflicted.count == 1 ? \"holds\" : \"hold\") conflict markers from a head's landing.\")); note(leadID, title(\"Hydra did not merge: conflict markers in \\(conflicted.count == 1 ? \"a file\" : \"\\(conflicted.count) files\").\"), \"\\(files) still \\(conflicted.count == 1 ? \"holds\" : \"hold\") conflict markers from a head's landing. Resolve them, then ask for the merge again.\"); return .failed }"
+        "DroppyCode/App/AppModel+HydraMerge.swift:251-260 - let sorted = work.paths; let conflicted = await Self.pathsWithConflictMarkers(sorted, in: checkout); guard conflicted.isEmpty else { let files = conflicted.map { \"`\\($0)`\" }.joined(separator: \", \"); runtime.recordHydraMerge(HydraMergeRecord(at: .now, outcome: .failed, project: project.name, label: nil, url: nil, files: 0, detail: title(\"Hydra did not merge: conflict markers in \\(conflicted.count == 1 ? \"a file\" : \"\\(conflicted.count) files\").\") + \": \\(files) still \\(conflicted.count == 1 ? \"holds\" : \"hold\") conflict markers from a head's landing.\")); note(leadID, title(\"Hydra did not merge: conflict markers in \\(conflicted.count == 1 ? \"a file\" : \"\\(conflicted.count) files\").\"), \"\\(files) still \\(conflicted.count == 1 ? \"holds\" : \"hold\") conflict markers from a head's landing. Resolve them, then ask for the merge again.\"); return .failed }"
       ],
       "preconditions": "Guards passed; work.paths gathered.",
       "action": "Any of the team's files still holds conflict markers.",
@@ -751,7 +751,7 @@
       "id": "PR-HYDRAMERGE-032",
       "title": "A file counts as conflicted only when both a newline-prefixed opening and closing marker are present, it exists, and it is at most 4,000,000 bytes",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:814-827 - private nonisolated static func pathsWithConflictMarkers(_ paths: [String], in checkout: String) async -> [String] { await Task.detached(priority: .utility) { let root = URL(fileURLWithPath: checkout); let opening = Data(\"\\n<<<<<<< \".utf8); let closing = Data(\"\\n>>>>>>> \".utf8); return paths.filter { path in let url = root.appendingPathComponent(path); guard let size = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize, size <= 4_000_000, let data = try? Data(contentsOf: url) else { return false }; let body = Data([0x0A]) + data; return body.range(of: opening) != nil && body.range(of: closing) != nil } }.value }"
+        "DroppyCode/App/AppModel+HydraMerge.swift:887-900 - private nonisolated static func pathsWithConflictMarkers(_ paths: [String], in checkout: String) async -> [String] { await Task.detached(priority: .utility) { let root = URL(fileURLWithPath: checkout); let opening = Data(\"\\n<<<<<<< \".utf8); let closing = Data(\"\\n>>>>>>> \".utf8); return paths.filter { path in let url = root.appendingPathComponent(path); guard let size = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize, size <= 4_000_000, let data = try? Data(contentsOf: url) else { return false }; let body = Data([0x0A]) + data; return body.range(of: opening) != nil && body.range(of: closing) != nil } }.value }"
       ],
       "preconditions": "A list of checkout-relative paths.",
       "action": "The scan runs.",
@@ -799,7 +799,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 AppModel+HydraMerge.swift:212-218 went straight from `captureTree(paths: sorted)` to `guard try await tree != git.treeHash(of: \"HEAD\") else { return .alreadyOnMain }`. B2 inserts the readiness guard and the fresh blocking-claims check at :247-259 between them (HEAD comparison now at :263)."
+      "b2_change": "B1 AppModel+HydraMerge.swift:221-239 went straight from `captureTree(paths: sorted)` to `guard try await tree != git.treeHash(of: \"HEAD\") else { return .alreadyOnMain }`. B2 inserts the readiness guard and the fresh blocking-claims check at :247-259 between them (HEAD comparison now at :263)."
     },
     {
       "id": "PR-HYDRAMERGE-034",
@@ -852,7 +852,7 @@
       "id": "PR-HYDRAMERGE-036",
       "title": "The commit message comes from the text engine when one is available for the lead's provider",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:752-764 - if let engine = textEngine(preferring: lead.provider) { let summary = files.map { \"\\($0.change == .added ? \"A\" : ($0.change == .deleted ? \"D\" : \"M\")) \\($0.path)\" }.joined(separator: \"\\n\"); if let text = await TextGeneration.commitMessage(summary: summary, patch: patch, instructions: settings.commitInstructions, engine: engine, directory: URL(fileURLWithPath: directory)), !text.isEmpty { return text } }"
+        "DroppyCode/App/AppModel+HydraMerge.swift:822-834 - if let engine = textEngine(preferring: lead.provider) { let summary = files.map { \"\\($0.change == .added ? \"A\" : ($0.change == .deleted ? \"D\" : \"M\")) \\($0.path)\" }.joined(separator: \"\\n\"); if let text = await TextGeneration.commitMessage(summary: summary, patch: patch, instructions: settings.commitInstructions, engine: engine, directory: URL(fileURLWithPath: directory)), !text.isEmpty { return text } }"
       ],
       "preconditions": "A text engine exists for the lead's provider.",
       "action": "commitMessage runs.",
@@ -876,8 +876,8 @@
       "id": "PR-HYDRAMERGE-037",
       "title": "Without a text engine the commit message is the chat title over the heads' tasks",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:765-770 - var lines = [lead.title == ChatThread.untitled ? \"Hydra: the team's work\" : lead.title, \"\"]; for head in hydraTeam(of: lead.id) { guard let info = head.hydra, !info.task.isEmpty else { continue }; lines.append(\"- \\(info.persona.name): \\(TextCleanup.singleLine(info.task, limit: 100))\") }; return lines.joined(separator: \"\\n\").trimmed",
-        "DroppyCode/Core/Support/Text.swift:132 - var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }"
+        "DroppyCode/App/AppModel+HydraMerge.swift:835-840 - var lines = [lead.title == ChatThread.untitled ? \"Hydra: the team's work\" : lead.title, \"\"]; for head in hydraTeam(of: lead.id) { guard let info = head.hydra, !info.task.isEmpty else { continue }; lines.append(\"- \\(info.persona.name): \\(TextCleanup.singleLine(info.task, limit: 100))\") }; return lines.joined(separator: \"\\n\").trimmed",
+        "DroppyCode/Core/Support/Text.swift:224 - var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }"
       ],
       "preconditions": "No engine, or the engine returned nothing usable.",
       "action": "The fallback message is built.",
@@ -892,13 +892,13 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation re-anchored, behaviour unchanged. B1 AppModel+HydraMerge.swift:617-622 ended `.trimmingCharacters(in: .whitespacesAndNewlines)`; B2 :765-770 ends `.trimmed`, which DroppyCode/Core/Support/Text.swift:132 defines as `trimmingCharacters(in: .whitespacesAndNewlines)`."
+      "b2_change": "Citation re-anchored, behaviour unchanged. B1 AppModel+HydraMerge.swift:673-678 ended `.trimmingCharacters(in: .whitespacesAndNewlines)`; B2 :765-770 ends `.trimmed`, which DroppyCode/Core/Support/Text.swift:224 defines as `trimmingCharacters(in: .whitespacesAndNewlines)`."
     },
     {
       "id": "PR-HYDRAMERGE-038",
       "title": "The branch is a fresh hydra branch on the default branch, and the current branch otherwise",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:273-279 - let status = await git.status(); let target = await git.defaultBranch(); let current = status?.branch; let ownBranch = current == nil || current == target; let branch = ownBranch ? Self.hydraBranchName(for: lead) : current!",
+        "DroppyCode/App/AppModel+HydraMerge.swift:263-269 - let status = await git.status(); let target = await git.defaultBranch(); let current = status?.branch; let ownBranch = current == nil || current == target; let branch = ownBranch ? Self.hydraBranchName(for: lead) : current!",
         "E:/Droppy/port/porting/extracts/git-command-vectors.md:229-230 - defaultBranch() = symbolic-ref --short refs/remotes/origin/HEAD, else rev-parse --verify --quiet refs/remotes/origin/<candidate> for \"main\" then \"master\""
       ],
       "preconditions": "Tree captured.",
@@ -923,7 +923,7 @@
       "id": "PR-HYDRAMERGE-039",
       "title": "hydraBranchName slugs the chat title and appends six hex-ish characters of a fresh UUID",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:801-809 - let title = lead.title == ChatThread.untitled ? \"team\" : lead.title; var slug = title.lowercased().map { $0.isLetter || $0.isNumber ? String($0) : \"-\" }.joined(); while slug.contains(\"--\") { slug = slug.replacingOccurrences(of: \"--\", with: \"-\") }; slug = slug.trimmingCharacters(in: CharacterSet(charactersIn: \"-\")); if slug.count > 40 { slug = String(slug.prefix(40)).trimmingCharacters(in: CharacterSet(charactersIn: \"-\")) }; let suffix = String(UUID().uuidString.lowercased().prefix(6)); return \"hydra/\\(slug.isEmpty ? \"team\" : slug)-\\(suffix)\""
+        "DroppyCode/App/AppModel+HydraMerge.swift:874-882 - let title = lead.title == ChatThread.untitled ? \"team\" : lead.title; var slug = title.lowercased().map { $0.isLetter || $0.isNumber ? String($0) : \"-\" }.joined(); while slug.contains(\"--\") { slug = slug.replacingOccurrences(of: \"--\", with: \"-\") }; slug = slug.trimmingCharacters(in: CharacterSet(charactersIn: \"-\")); if slug.count > 40 { slug = String(slug.prefix(40)).trimmingCharacters(in: CharacterSet(charactersIn: \"-\")) }; let suffix = String(UUID().uuidString.lowercased().prefix(6)); return \"hydra/\\(slug.isEmpty ? \"team\" : slug)-\\(suffix)\""
       ],
       "preconditions": "ownBranch is true.",
       "action": "A branch name is generated.",
@@ -1069,7 +1069,7 @@
       "id": "PR-HYDRAMERGE-045",
       "title": "The merge request body is built before the opening stage",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:302-303 - let body = mergeRequestBody(for: lead, files: files, through: Set(work.turnIDs), runtime: runtime); advance(.opening)",
+        "DroppyCode/App/AppModel+HydraMerge.swift:350-351 - let body = mergeRequestBody(for: lead, files: files, through: Set(work.turnIDs), runtime: runtime); advance(.opening)",
         "DroppyCode/Core/Models/Hydra.swift:525 - case .opening: \"Opening the merge request\""
       ],
       "preconditions": "The branch is pushed.",
@@ -1090,7 +1090,7 @@
       "id": "PR-HYDRAMERGE-046",
       "title": "The merge request body has a fixed opening line, an optional Heads section, an optional lead summary and a Files list",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:775-798 - var lines = [\"Opened by Droppy Code once its Hydra team finished.\", \"\"]; let heads = hydraTeam(of: lead.id).compactMap(\\.hydra).filter { !$0.task.isEmpty }; if !heads.isEmpty { lines.append(\"## Heads\"); for info in heads { var line = \"- **\\(info.persona.name)**: \\(TextCleanup.singleLine(info.task, limit: 120))\"; if let landing = info.landing, !landing.files.isEmpty { line += \" (\\(landing.files.count == 1 ? \"1 file\" : \"\\(landing.files.count) files\"))\" }; lines.append(line) }; lines.append(\"\") }; if let reply = runtime.entries.last(where: { $0.kind == .assistant && $0.item.turnID.map(through.contains) == true }).flatMap({ entry -> String? in guard case .assistant(let message) = entry.item.content else { return nil }; return message.text.trimmed }), !reply.isEmpty { lines.append(\"## The lead's summary\"); lines.append(reply.count > 2_000 ? String(reply.prefix(2_000)) + \"…\" : reply); lines.append(\"\") }; lines.append(\"## Files\"); lines += files.map { \"- `\\($0.path)` (+\\($0.additions) −\\($0.deletions))\" }; return lines.joined(separator: \"\\n\")"
+        "DroppyCode/App/AppModel+HydraMerge.swift:845-868 - var lines = [\"Opened by Droppy Code once its Hydra team finished.\", \"\"]; let heads = hydraTeam(of: lead.id).compactMap(\\.hydra).filter { !$0.task.isEmpty }; if !heads.isEmpty { lines.append(\"## Heads\"); for info in heads { var line = \"- **\\(info.persona.name)**: \\(TextCleanup.singleLine(info.task, limit: 120))\"; if let landing = info.landing, !landing.files.isEmpty { line += \" (\\(landing.files.count == 1 ? \"1 file\" : \"\\(landing.files.count) files\"))\" }; lines.append(line) }; lines.append(\"\") }; if let reply = runtime.entries.last(where: { $0.kind == .assistant && $0.item.turnID.map(through.contains) == true }).flatMap({ entry -> String? in guard case .assistant(let message) = entry.item.content else { return nil }; return message.text.trimmed }), !reply.isEmpty { lines.append(\"## The lead's summary\"); lines.append(reply.count > 2_000 ? String(reply.prefix(2_000)) + \"…\" : reply); lines.append(\"\") }; lines.append(\"## Files\"); lines += files.map { \"- `\\($0.path)` (+\\($0.additions) −\\($0.deletions))\" }; return lines.joined(separator: \"\\n\")"
       ],
       "preconditions": "A merge request is about to be opened.",
       "action": "mergeRequestBody runs.",
@@ -1111,17 +1111,17 @@
       "depends_on_unknown": null,
       "deviation": {
         "decision": "OD-0008 B10",
-        "upstream": "The body opens with \"Opened by Droppy Code once its Hydra team finished.\" (DroppyCode/App/AppModel+HydraMerge.swift:775 `var lines = [\"Opened by Droppy Code once its Hydra team finished.\", \"\"]`).",
+        "upstream": "The body opens with \"Opened by Droppy Code once its Hydra team finished.\" (DroppyCode/App/AppModel+HydraMerge.swift:845 `var lines = [\"Opened by Droppy Code once its Hydra team finished.\", \"\"]`).",
         "port": "The body opens with \"Opened by Marrow once its Hydra team finished.\"; the rest of the body is as upstream."
       },
-      "b2_change": "Citation re-anchored, behaviour unchanged at B2: B1 AppModel+HydraMerge.swift:626-650 -> B2 :775-798; the summary trim changed from `.trimmingCharacters(in: .whitespacesAndNewlines)` to the equivalent `.trimmed` (Text.swift:132). Status DISCOVERED -> SPECIFIED because the owner question it waited on (OD-PENDING-18) is resolved by OD-0008 B10."
+      "b2_change": "Citation re-anchored, behaviour unchanged at B2: B1 AppModel+HydraMerge.swift:682-706 -> B2 :775-798; the summary trim changed from `.trimmingCharacters(in: .whitespacesAndNewlines)` to the equivalent `.trimmed` (Text.swift:224). Status DISCOVERED -> SPECIFIED because the owner question it waited on (OD-PENDING-18) is resolved by OD-0008 B10."
     },
     {
       "id": "PR-HYDRAMERGE-047",
       "title": "Opening the merge request goes through the GitLab glab path or Git.createPullRequest",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:304-311 - let requestURL: URL?; do { requestURL = try await hydraCreateMergeRequest(git: git, title: subject, body: body, source: branch, target: target) } catch { ... return .failed }",
-        "DroppyCode/App/AppModel+HydraMerge.swift:374-377 - guard await git.forge() == .gitlab, LoginEnvironment.which(\"glab\") != nil else { return try await git.createPullRequest(title: title, body: body, source: source, target: target) }"
+        "DroppyCode/App/AppModel+HydraMerge.swift:352-362 - let requestURL: URL?; do { requestURL = try await hydraCreateMergeRequest(git: git, title: subject, body: body, source: branch, target: target) } catch { ... return .failed }",
+        "DroppyCode/App/AppModel+HydraMerge.swift:433-436 - guard await git.forge() == .gitlab, LoginEnvironment.which(\"glab\") != nil else { return try await git.createPullRequest(title: title, body: body, source: source, target: target) }"
       ],
       "preconditions": "The branch is pushed and the body built.",
       "action": "The request is created.",
@@ -1145,9 +1145,9 @@
       "id": "PR-HYDRAMERGE-048",
       "title": "The glab merge request argv is fixed, with --yes and --squash-before-merge before the optional flags",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:382-391 - var arguments = [\"mr\", \"create\", \"--title\", title, \"--description\", body, \"--yes\", \"--squash-before-merge\"]; if var web = await git.remoteWebURL(), web.host != nil { ...strip credentials...; arguments += [\"--repo\", web.absoluteString] }; arguments += [\"--source-branch\", source, \"--target-branch\", target]",
-        "DroppyCode/App/AppModel+HydraMerge.swift:372-373 - /// retried once with `--recover` so its saved options are picked up. Squash and /// source-branch removal are explicit for GitLab team merges.",
-        "DroppyCode/App/AppModel+HydraMerge.swift:399 - var failure = try await Shell.run(tool: \"glab\", arguments, in: git.directory, timeout: 300)"
+        "DroppyCode/App/AppModel+HydraMerge.swift:441-450 - var arguments = [\"mr\", \"create\", \"--title\", title, \"--description\", body, \"--yes\", \"--squash-before-merge\"]; if var web = await git.remoteWebURL(), web.host != nil { ...strip credentials...; arguments += [\"--repo\", web.absoluteString] }; arguments += [\"--source-branch\", source, \"--target-branch\", target]",
+        "DroppyCode/App/AppModel+HydraMerge.swift:431-432 - /// retried once with `--recover` so its saved options are picked up. Squash and /// source-branch removal are explicit for GitLab team merges.",
+        "DroppyCode/App/AppModel+HydraMerge.swift:458 - var failure = try await Shell.run(tool: \"glab\", arguments, in: git.directory, timeout: 300)"
       ],
       "preconditions": "GitLab and glab present.",
       "action": "The request is created.",
@@ -1164,13 +1164,13 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 AppModel+HydraMerge.swift:337 `[\"mr\", \"create\", \"--title\", title, \"--description\", body, \"--yes\"]` -> B2 :382 `[..., \"--yes\", \"--squash-before-merge\"]`. The doc comment went from B1 :328 `Squash and remove-source-branch are left to the project's defaults, as before.` to B2 :372-373 `Squash and source-branch removal are explicit for GitLab team merges.`"
+      "b2_change": "B1 AppModel+HydraMerge.swift:384 `[\"mr\", \"create\", \"--title\", title, \"--description\", body, \"--yes\"]` -> B2 :382 `[..., \"--yes\", \"--squash-before-merge\"]`. The doc comment went from B1 :328 `Squash and remove-source-branch are left to the project's defaults, as before.` to B2 :372-373 `Squash and source-branch removal are explicit for GitLab team merges.`"
     },
     {
       "id": "PR-HYDRAMERGE-049",
       "title": "Credentials embedded in the remote URL are stripped before it is passed as --repo",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:380-390 - // origin remote glab would use on its own. Any credentials embedded in the remote // stay out of the arguments. var arguments = [...]; if var web = await git.remoteWebURL(), web.host != nil { if web.user != nil, var components = URLComponents(url: web, resolvingAgainstBaseURL: false) { components.user = nil; components.password = nil; if let stripped = components.url { web = stripped } }; arguments += [\"--repo\", web.absoluteString] }"
+        "DroppyCode/App/AppModel+HydraMerge.swift:439-449 - // origin remote glab would use on its own. Any credentials embedded in the remote // stay out of the arguments. var arguments = [...]; if var web = await git.remoteWebURL(), web.host != nil { if web.user != nil, var components = URLComponents(url: web, resolvingAgainstBaseURL: false) { components.user = nil; components.password = nil; if let stripped = components.url { web = stripped } }; arguments += [\"--repo\", web.absoluteString] }"
       ],
       "preconditions": "A remote web URL with a host.",
       "action": "The --repo argument is built.",
@@ -1193,9 +1193,9 @@
       "id": "PR-HYDRAMERGE-050",
       "title": "glab's sign-in is checked before the request is attempted",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:393-397 - // No token on file means `mr create` can only fail with a 401 ...\\n if let detail = await hydraGitLabAuthFailure(in: git.directory) { throw HydraMergeRequestError.gitLabAuth(host: host, branch: source, detail: detail) }",
-        "DroppyCode/App/AppModel+HydraMerge.swift:425-432 - guard let status = try? await Shell.run(tool: \"glab\", [\"auth\", \"status\"], in: directory, timeout: 30) else { return nil }; if status.succeeded { return nil }; let message = status.failureMessage; return message.isEmpty ? \"glab is not signed in to this GitLab host.\" : message",
-        "DroppyCode/App/AppModel+HydraMerge.swift:378 - let host = await git.remoteWebURL()?.host ?? \"your GitLab host\""
+        "DroppyCode/App/AppModel+HydraMerge.swift:452-456 - // No token on file means `mr create` can only fail with a 401 ...\\n if let detail = await hydraGitLabAuthFailure(in: git.directory) { throw HydraMergeRequestError.gitLabAuth(host: host, branch: source, detail: detail) }",
+        "DroppyCode/App/AppModel+HydraMerge.swift:487-494 - guard let status = try? await Shell.run(tool: \"glab\", [\"auth\", \"status\"], in: directory, timeout: 30) else { return nil }; if status.succeeded { return nil }; let message = status.failureMessage; return message.isEmpty ? \"glab is not signed in to this GitLab host.\" : message",
+        "DroppyCode/App/AppModel+HydraMerge.swift:437 - let host = await git.remoteWebURL()?.host ?? \"your GitLab host\""
       ],
       "preconditions": "GitLab and glab present.",
       "action": "The pre-check runs.",
@@ -1219,7 +1219,7 @@
       "id": "PR-HYDRAMERGE-051",
       "title": "A 401 from glab re-checks the token once and retries the same arguments",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:400-412 - if failure.succeeded { return Self.hydraMergeRequestURL(from: failure) }; if Self.isGitLabAuthFailure(failure) { if await hydraGitLabAuthFailure(in: git.directory) == nil { let retry = try await Shell.run(tool: \"glab\", arguments, in: git.directory, timeout: 300); if retry.succeeded { return Self.hydraMergeRequestURL(from: retry) }; failure = retry }; if Self.isGitLabAuthFailure(failure) { throw HydraMergeRequestError.gitLabAuth(host: host, branch: source, detail: failure.failureMessage) } }"
+        "DroppyCode/App/AppModel+HydraMerge.swift:459-474 - if failure.succeeded { return Self.hydraMergeRequestURL(from: failure) }; if Self.isGitLabAuthFailure(failure) { if await hydraGitLabAuthFailure(in: git.directory) == nil { let retry = try await Shell.run(tool: \"glab\", arguments, in: git.directory, timeout: 300); if retry.succeeded { return Self.hydraMergeRequestURL(from: retry) }; failure = retry }; if Self.isGitLabAuthFailure(failure) { throw HydraMergeRequestError.gitLabAuth(host: host, branch: source, detail: failure.failureMessage) } }"
       ],
       "preconditions": "The first glab mr create failed.",
       "action": "The failure looks like an authentication refusal.",
@@ -1243,12 +1243,12 @@
       "id": "PR-HYDRAMERGE-109",
       "title": "HydraMergeRequestError.gitLabAuth renders one exact four-paragraph message that names the host, the detail, the glab sign-in command and the pushed branch",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:879-892 private enum HydraMergeRequestError: LocalizedError, case gitLabAuth(host: String, branch: String, detail: String), var errorDescription: String?",
-        "DroppyCode/App/AppModel+HydraMerge.swift:887-888 - case .gitLabAuth(let host, let branch, let detail): return \"GitLab refused the login (401 Unauthorized) for \\(host): the token glab signs in with is missing or expired.\\n\\n\\(detail)\\n\\nSign back in with `glab auth login --hostname \\(host)` (or export a valid GITLAB_TOKEN), then ask for the merge again. The branch `\\(branch)` is already pushed, so the team's work is safe.\"",
-        "DroppyCode/App/AppModel+HydraMerge.swift:395-397 - the pre-check throw site, detail = glab auth status's failure message or \"glab is not signed in to this GitLab host.\"",
-        "DroppyCode/App/AppModel+HydraMerge.swift:409-411 - the post-failure throw site, detail = failure.failureMessage",
+        "DroppyCode/App/AppModel+HydraMerge.swift:934-947 private enum HydraMergeRequestError: LocalizedError, case gitLabAuth(host: String, branch: String, detail: String), var errorDescription: String?",
+        "DroppyCode/App/AppModel+HydraMerge.swift:942-943 - case .gitLabAuth(let host, let branch, let detail): return \"GitLab refused the login (401 Unauthorized) for \\(host): the token glab signs in with is missing or expired.\\n\\n\\(detail)\\n\\nSign back in with `glab auth login --hostname \\(host)` (or export a valid GITLAB_TOKEN), then ask for the merge again. The branch `\\(branch)` is already pushed, so the team's work is safe.\"",
+        "DroppyCode/App/AppModel+HydraMerge.swift:454-456 - the pre-check throw site, detail = glab auth status's failure message or \"glab is not signed in to this GitLab host.\"",
+        "DroppyCode/App/AppModel+HydraMerge.swift:471-473 - the post-failure throw site, detail = failure.failureMessage",
         "DroppyCode/App/AppModel+HydraMerge.swift:308-309 - the two places the rendered text reaches the user: the merge record's detail is title(\"Hydra pushed \\(branch) but could not open a merge request.\") + \": \\(error.localizedDescription)\" and the chat note's body is \"\\(error.localizedDescription)\\n\\nOpen one for `\\(branch)` into `\\(target)` and merge it from there. The work is still in the checkout.\"",
-        "DroppyCode/App/AppModel+HydraMerge.swift:378 - host is git.remoteWebURL()?.host ?? \"your GitLab host\""
+        "DroppyCode/App/AppModel+HydraMerge.swift:437 - host is git.remoteWebURL()?.host ?? \"your GitLab host\""
       ],
       "preconditions": "A Hydra merge request could not be opened on GitLab because glab is not signed in or GitLab answered 401.",
       "action": "The thrown error is rendered through errorDescription, which localizedDescription returns.",
@@ -1272,9 +1272,9 @@
       "id": "PR-HYDRAMERGE-110",
       "title": "HydraMergeRequestError.creationFailed renders glab's own message bare, with no prefix and no added guidance",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:882-883 - /// glab failed for any other reason, recovery retry included. case creationFailed(String)",
-        "DroppyCode/App/AppModel+HydraMerge.swift:889-890 - case .creationFailed(let message): return message",
-        "DroppyCode/App/AppModel+HydraMerge.swift:420 - throw HydraMergeRequestError.creationFailed(failure.failureMessage), the only throw site, reached after the auth branch and after the --recover retry",
+        "DroppyCode/App/AppModel+HydraMerge.swift:937-938 - /// glab failed for any other reason, recovery retry included. case creationFailed(String)",
+        "DroppyCode/App/AppModel+HydraMerge.swift:944-945 - case .creationFailed(let message): return message",
+        "DroppyCode/App/AppModel+HydraMerge.swift:482 - throw HydraMergeRequestError.creationFailed(failure.failureMessage), the only throw site, reached after the auth branch and after the --recover retry",
         "DroppyCode/App/AppModel+HydraMerge.swift:308-309 - where the rendered text lands"
       ],
       "preconditions": "glab mr create failed for a reason that is not an authentication refusal, and the --recover retry, when one was attempted, failed too.",
@@ -1299,7 +1299,7 @@
       "id": "PR-HYDRAMERGE-052",
       "title": "isGitLabAuthFailure matches 401, unauthorized, or authentication with a failure word",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:435-439 - let text = (result.output + \"\\n\" + result.errorOutput).lowercased(); return text.contains(\"401\") || text.contains(\"unauthorized\") || (text.contains(\"authentication\") && (text.contains(\"failed\") || text.contains(\"expired\") || text.contains(\"invalid\") || text.contains(\"required\")))"
+        "DroppyCode/App/AppModel+HydraMerge.swift:497-501 - let text = (result.output + \"\\n\" + result.errorOutput).lowercased(); return text.contains(\"401\") || text.contains(\"unauthorized\") || (text.contains(\"authentication\") && (text.contains(\"failed\") || text.contains(\"expired\") || text.contains(\"invalid\") || text.contains(\"required\")))"
       ],
       "preconditions": "A failed ShellResult.",
       "action": "The predicate is evaluated.",
@@ -1319,8 +1319,8 @@
       "id": "PR-HYDRAMERGE-053",
       "title": "A failure that mentions a recovery file is retried once with --recover",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:413-420 - if Self.mentionsRecoverFile(failure) { let retry = try await Shell.run(tool: \"glab\", arguments + [\"--recover\"], in: git.directory, timeout: 300); if retry.succeeded { return Self.hydraMergeRequestURL(from: retry) }; failure = retry }; throw HydraMergeRequestError.creationFailed(failure.failureMessage)",
-        "DroppyCode/App/AppModel+HydraMerge.swift:442-444 - (result.output + \"\\n\" + result.errorOutput).lowercased().contains(\"recover\")"
+        "DroppyCode/App/AppModel+HydraMerge.swift:475-482 - if Self.mentionsRecoverFile(failure) { let retry = try await Shell.run(tool: \"glab\", arguments + [\"--recover\"], in: git.directory, timeout: 300); if retry.succeeded { return Self.hydraMergeRequestURL(from: retry) }; failure = retry }; throw HydraMergeRequestError.creationFailed(failure.failureMessage)",
+        "DroppyCode/App/AppModel+HydraMerge.swift:504-506 - (result.output + \"\\n\" + result.errorOutput).lowercased().contains(\"recover\")"
       ],
       "preconditions": "The glab attempt failed and was not resolved as an auth failure.",
       "action": "The failure output mentions a recovery file.",
@@ -1344,7 +1344,7 @@
       "id": "PR-HYDRAMERGE-054",
       "title": "The merge request URL is the first https address anywhere in glab's output",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:447-451 - let text = result.output + \"\\n\" + result.errorOutput; let match = text.firstMatch(of: #/https:\\/\\/\\S+/#); return match.flatMap { URL(string: String($0.output)) }"
+        "DroppyCode/App/AppModel+HydraMerge.swift:509-513 - let text = result.output + \"\\n\" + result.errorOutput; let match = text.firstMatch(of: #/https:\\/\\/\\S+/#); return match.flatMap { URL(string: String($0.output)) }"
       ],
       "preconditions": "A successful glab run.",
       "action": "The URL is parsed.",
@@ -1367,7 +1367,7 @@
       "id": "PR-HYDRAMERGE-055",
       "title": "A thrown merge request error becomes the \"pushed but could not open\" record and note",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:307-311 - } catch { runtime.recordHydraMerge(HydraMergeRecord(at: .now, outcome: .failed, project: project.name, label: nil, url: nil, files: 0, detail: title(\"Hydra pushed \\(branch) but could not open a merge request.\") + \": \\(error.localizedDescription)\")); note(leadID, title(\"Hydra pushed \\(branch) but could not open a merge request.\"), \"\\(error.localizedDescription)\\n\\nOpen one for `\\(branch)` into `\\(target)` and merge it from there. The work is still in the checkout.\"); return .failed }"
+        "DroppyCode/App/AppModel+HydraMerge.swift:360-362 - } catch { runtime.recordHydraMerge(HydraMergeRecord(at: .now, outcome: .failed, project: project.name, label: nil, url: nil, files: 0, detail: title(\"Hydra pushed \\(branch) but could not open a merge request.\") + \": \\(error.localizedDescription)\")); note(leadID, title(\"Hydra pushed \\(branch) but could not open a merge request.\"), \"\\(error.localizedDescription)\\n\\nOpen one for `\\(branch)` into `\\(target)` and merge it from there. The work is still in the checkout.\"); return .failed }"
       ],
       "preconditions": "The branch is pushed; creation threw.",
       "action": "The error is reported.",
@@ -1389,7 +1389,7 @@
       "id": "PR-HYDRAMERGE-056",
       "title": "A nil URL or an unparseable request link gets a shorter \"pushed but could not open\" note",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:312-317 - guard let url = requestURL, let link = MergeRequestLink(url: url) else { runtime.recordHydraMerge(HydraMergeRecord(at: .now, outcome: .failed, project: project.name, label: nil, url: nil, files: 0, detail: title(\"Hydra pushed \\(branch) but could not open a merge request.\"))); note(leadID, title(\"Hydra pushed \\(branch) but could not open a merge request.\"), \"Open one for `\\(branch)` into `\\(target)` and merge it from there.\"); return .failed }",
+        "DroppyCode/App/AppModel+HydraMerge.swift:363-366 - guard let url = requestURL, let link = MergeRequestLink(url: url) else { runtime.recordHydraMerge(HydraMergeRecord(at: .now, outcome: .failed, project: project.name, label: nil, url: nil, files: 0, detail: title(\"Hydra pushed \\(branch) but could not open a merge request.\"))); note(leadID, title(\"Hydra pushed \\(branch) but could not open a merge request.\"), \"Open one for `\\(branch)` into `\\(target)` and merge it from there.\"); return .failed }",
         "DroppyCode/Core/Models/MergeRequestLink.swift:23-39 - the three path shapes"
       ],
       "preconditions": "Creation returned without throwing.",
@@ -1414,9 +1414,9 @@
       "id": "PR-HYDRAMERGE-057",
       "title": "The merging stage lands the request with the forge's own CLI",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:318-320 - advance(.merging); do { try await git.mergePullRequest(link) }",
+        "DroppyCode/App/AppModel+HydraMerge.swift:367-369 - advance(.merging); do { try await git.mergePullRequest(link) }",
         "DroppyCode/Core/Models/Hydra.swift:526 - case .merging: \"Merging\"",
-        "DroppyCode/Services/Git/Git.swift:210-227 - for attempt in 0..<6 { let result: ShellResult; switch link.forge { case .gitlab: result = try await Shell.run(tool: \"glab\", [\"mr\", \"merge\", number, \"--yes\", \"--squash\", \"--remove-source-branch\"], in: directory, timeout: 300); case .github: result = try await Shell.run(tool: \"gh\", [\"pr\", \"merge\", number, \"--merge\"], in: directory, timeout: 300); case .gitea: result = try await Shell.run(tool: \"tea\", [\"pulls\", \"merge\", number], in: directory, timeout: 300) }; if result.succeeded { return }; lastFailure = result.failureMessage; let text = (result.output + result.errorOutput).lowercased(); guard link.forge == .gitlab, text.contains(\"405\") || text.contains(\"not allowed\") || text.contains(\"checking\") else { break }; try? await Task.sleep(for: .seconds(3 + attempt * 2)) }; throw ShellError(lastFailure)",
+        "DroppyCode/Services/Git/Git.swift:231-248 - for attempt in 0..<6 { let result: ShellResult; switch link.forge { case .gitlab: result = try await Shell.run(tool: \"glab\", [\"mr\", \"merge\", number, \"--yes\", \"--squash\", \"--remove-source-branch\"], in: directory, timeout: 300); case .github: result = try await Shell.run(tool: \"gh\", [\"pr\", \"merge\", number, \"--merge\"], in: directory, timeout: 300); case .gitea: result = try await Shell.run(tool: \"tea\", [\"pulls\", \"merge\", number], in: directory, timeout: 300) }; if result.succeeded { return }; lastFailure = result.failureMessage; let text = (result.output + result.errorOutput).lowercased(); guard link.forge == .gitlab, text.contains(\"405\") || text.contains(\"not allowed\") || text.contains(\"checking\") else { break }; try? await Task.sleep(for: .seconds(3 + attempt * 2)) }; throw ShellError(lastFailure)",
         "DroppyCode/Core/Models/MergeRequestLink.swift:50 - \"Use glab from this directory: `glab mr merge \\(number) --yes`. If GitLab answers that the request is still being checked (a 405), wait a few seconds and try again; ...\""
       ],
       "preconditions": "A parsed MergeRequestLink.",
@@ -1427,7 +1427,7 @@
       ],
       "persistence": "The forge's state",
       "failure_cases": [
-        "On the sixth attempt a retryable GitLab failure still sleeps 13 seconds before the loop ends and the error is thrown, so a full retry sequence sleeps 48 seconds with the last 13 wasted. REPRODUCE, DO NOT FIX. NOTE: extracts/git-command-vectors.md:545 states the last sleep never runs; the source at Git.swift:223-224 shows the guard precedes the sleep, so the sleep does run. The source wins.",
+        "On the sixth attempt a retryable GitLab failure still sleeps 13 seconds before the loop ends and the error is thrown, so a full retry sequence sleeps 48 seconds with the last 13 wasted. REPRODUCE, DO NOT FIX. NOTE: extracts/git-command-vectors.md:545 states the last sleep never runs; the source at Git.swift:244-245 shows the guard precedes the sleep, so the sleep does run. The source wins.",
         "The helper-agent prompt at MergeRequestLink.swift:50 still tells an agent to run `glab mr merge <number> --yes` without --squash or --remove-source-branch, so the in-app merge and the agent-prompt merge use different GitLab vectors. Upstream behaviour; reproduce both."
       ],
       "cancellation": "not cancellable",
@@ -1437,13 +1437,13 @@
       "upstream_defect": "76",
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 Git.swift:216 `[\"mr\", \"merge\", number, \"--yes\"]` -> B2 Git.swift:216 `[\"mr\", \"merge\", number, \"--yes\", \"--squash\", \"--remove-source-branch\"]`. The retry loop (B2 :213-225, guard before sleep at :223-224) and the GitHub and Gitea vectors are unchanged."
+      "b2_change": "B1 Git.swift:237 `[\"mr\", \"merge\", number, \"--yes\"]` -> B2 Git.swift:237 `[\"mr\", \"merge\", number, \"--yes\", \"--squash\", \"--remove-source-branch\"]`. The retry loop (B2 :213-225, guard before sleep at :223-224) and the GitHub and Gitea vectors are unchanged."
     },
     {
       "id": "PR-HYDRAMERGE-058",
       "title": "A failed merge of an opened request names the request and the branch",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:321-325 - } catch { runtime.recordHydraMerge(HydraMergeRecord(at: .now, outcome: .failed, project: project.name, label: link.label, url: url, files: 0, detail: title(\"Hydra opened \\(link.label) but could not merge it.\") + \": \\(error.localizedDescription)\")); note(leadID, title(\"Hydra opened \\(link.label) but could not merge it.\"), \"\\(url.absoluteString)\\n\\n\\(error.localizedDescription)\\n\\nMerge it from the link once it is ready; the branch `\\(branch)` has the team's work.\"); return .failed }",
+        "DroppyCode/App/AppModel+HydraMerge.swift:370-372 - } catch { runtime.recordHydraMerge(HydraMergeRecord(at: .now, outcome: .failed, project: project.name, label: link.label, url: url, files: 0, detail: title(\"Hydra opened \\(link.label) but could not merge it.\") + \": \\(error.localizedDescription)\")); note(leadID, title(\"Hydra opened \\(link.label) but could not merge it.\"), \"\\(url.absoluteString)\\n\\n\\(error.localizedDescription)\\n\\nMerge it from the link once it is ready; the branch `\\(branch)` has the team's work.\"); return .failed }",
         "DroppyCode/Core/Models/MergeRequestLink.swift:18 - var label: String { forge == .gitlab ? \"!\\(number)\" : \"#\\(number)\" }"
       ],
       "preconditions": "The request was created but mergePullRequest threw.",
@@ -1466,8 +1466,8 @@
       "id": "PR-HYDRAMERGE-059",
       "title": "The success note body leads with the URL, a blank line and the files line",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:327 - var lines = [\"\\(url.absoluteString)\", \"\", Self.filesLine(files) + \" landed on `\\(target)` from `\\(branch)`.\"]",
-        "DroppyCode/App/AppModel+HydraMerge.swift:853-857 - let additions = files.reduce(0) { $0 + $1.additions }; let deletions = files.reduce(0) { $0 + $1.deletions }; return \"\\(files.count == 1 ? \"1 file\" : \"\\(files.count) files\") (+\\(additions) −\\(deletions))\""
+        "DroppyCode/App/AppModel+HydraMerge.swift:374 - var lines = [\"\\(url.absoluteString)\", \"\", Self.filesLine(files) + \" landed on `\\(target)` from `\\(branch)`.\"]",
+        "DroppyCode/App/AppModel+HydraMerge.swift:908-912 - let additions = files.reduce(0) { $0 + $1.additions }; let deletions = files.reduce(0) { $0 + $1.deletions }; return \"\\(files.count == 1 ? \"1 file\" : \"\\(files.count) files\") (+\\(additions) −\\(deletions))\""
       ],
       "preconditions": "The request merged.",
       "action": "The success body is built.",
@@ -1489,7 +1489,7 @@
       "id": "PR-HYDRAMERGE-060",
       "title": "The success note lists every head with its files under a \"Heads\" line",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:328-338 - if !work.heads.isEmpty { lines.append(\"\"); lines.append(\"Heads\"); for head in work.heads { if head.files.isEmpty { lines.append(\"- \\(head.name) (\\(head.index)): \\(head.task) — no files\") } else { lines.append(\"- \\(head.name) (\\(head.index)): \\(head.task) — \\(head.files.count == 1 ? \"1 file\" : \"\\(head.files.count) files\"): \\(head.files.joined(separator: \", \"))\") } } }",
+        "DroppyCode/App/AppModel+HydraMerge.swift:375-385 - if !work.heads.isEmpty { lines.append(\"\"); lines.append(\"Heads\"); for head in work.heads { if head.files.isEmpty { lines.append(\"- \\(head.name) (\\(head.index)): \\(head.task) — no files\") } else { lines.append(\"- \\(head.name) (\\(head.index)): \\(head.task) — \\(head.files.count == 1 ? \"1 file\" : \"\\(head.files.count) files\"): \\(head.files.joined(separator: \", \"))\") } } }",
         "DroppyCode/App/AppModel+HydraMerge.swift:12-18 - struct HydraMergeHead { var name: String; var index: Int; var task: String; var files: [String] }"
       ],
       "preconditions": "work.heads is non-empty.",
@@ -1512,9 +1512,9 @@
       "id": "PR-HYDRAMERGE-061",
       "title": "The success note deliberately says nothing about what the merge left out",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:339-342 - // What the merge left out (files written outside the checkout, build output, ignored or missing paths, a sibling chat's files) is not said: none of it was this merge's to take, and every line about it read as if something had gone wrong.",
-        "DroppyCode/App/AppModel+HydraMerge.swift:109-111 - // of those other checkouts cannot be told apart from a sibling's work there and // stays behind without a word: none of it was this merge's to take.",
-        "DroppyCode/App/AppModel+HydraMerge.swift:832 - note(leadID, \"Hydra has no files left to merge.\", \"The checkout has no remaining changes from this job to send. No new merge request was needed.\")",
+        "DroppyCode/App/AppModel+HydraMerge.swift:386-389 - // What the merge left out (files written outside the checkout, build output, ignored or missing paths, a sibling chat's files) is not said: none of it was this merge's to take, and every line about it read as if something had gone wrong.",
+        "DroppyCode/App/AppModel+HydraMerge.swift:122-124 - // of those other checkouts cannot be told apart from a sibling's work there and // stays behind without a word: none of it was this merge's to take.",
+        "DroppyCode/App/AppModel+HydraMerge.swift:905 - note(leadID, \"Hydra has no files left to merge.\", \"The checkout has no remaining changes from this job to send. No new merge request was needed.\")",
         "DroppyCode/App/AppModel+HydraMerge.swift:840 - note(leadID, \"Hydra is waiting for another chat's files.\", detail + \" The work stays in the checkout. Hydra retries after the other chat finishes or its queued merge completes.\")"
       ],
       "preconditions": "A successful merge.",
@@ -1538,7 +1538,7 @@
       "id": "PR-HYDRAMERGE-062",
       "title": "On an own branch the syncing stage brings the checkout up to date and says whether it worked",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:343-346 - if ownBranch { advance(.syncing); let synced = await syncDefaultBranch(git, from: head, target: target, ownPaths: sorted); lines.append(synced ? \"The checkout is up to date.\" : \"The checkout was left as it was: `\\(target)` moved on in other ways meanwhile, or the team's files changed again; `git pull` when it suits you.\") }",
+        "DroppyCode/App/AppModel+HydraMerge.swift:390-393 - if ownBranch { advance(.syncing); let synced = await syncDefaultBranch(git, from: head, target: target, ownPaths: sorted); lines.append(synced ? \"The checkout is up to date.\" : \"The checkout was left as it was: `\\(target)` moved on in other ways meanwhile, or the team's files changed again; `git pull` when it suits you.\") }",
         "DroppyCode/Core/Models/Hydra.swift:527 - case .syncing: \"Bringing the checkout up to date\""
       ],
       "preconditions": "ownBranch is true and the request merged.",
@@ -1589,7 +1589,7 @@
       "id": "PR-HYDRAMERGE-064",
       "title": "A lead working in a worktree on a non-default branch pulls the project's own checkout when it is safe",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:347-354 - } else if lead.worktreePath != nil { advance(.syncing); let main = Git(project.path); if await main.status()?.branch == target, await main.dirtyPaths().isEmpty, !(await main.hasOperationInProgress()) { if (try? await main.pullFastForward()) != nil { lines.append(\"The project checkout is up to date.\") } } }",
+        "DroppyCode/App/AppModel+HydraMerge.swift:394-401 - } else if lead.worktreePath != nil { advance(.syncing); let main = Git(project.path); if await main.status()?.branch == target, await main.dirtyPaths().isEmpty, !(await main.hasOperationInProgress()) { if (try? await main.pullFastForward()) != nil { lines.append(\"The project checkout is up to date.\") } } }",
         "E:/Droppy/port/porting/extracts/git-command-vectors.md:251 - pullFastForward() = [\"pull\", \"--ff-only\", \"--quiet\"], 300 s"
       ],
       "preconditions": "ownBranch is false and the lead has a worktree path.",
@@ -1614,7 +1614,7 @@
       "id": "PR-HYDRAMERGE-065",
       "title": "A successful project pass records the merge, posts the note and refreshes the diff view",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:355-358 - runtime.recordHydraMerge(HydraMergeRecord(at: .now, outcome: .merged, project: project.name, label: link.label, url: url, files: files.count, detail: nil)); note(leadID, title(\"Hydra merged \\(link.label)\"), lines.joined(separator: \"\\n\")); existingRuntime(for: leadID)?.noteDiffChanged(); return .merged"
+        "DroppyCode/App/AppModel+HydraMerge.swift:402-405 - runtime.recordHydraMerge(HydraMergeRecord(at: .now, outcome: .merged, project: project.name, label: link.label, url: url, files: files.count, detail: nil)); note(leadID, title(\"Hydra merged \\(link.label)\"), lines.joined(separator: \"\\n\")); existingRuntime(for: leadID)?.noteDiffChanged(); return .merged"
       ],
       "preconditions": "Everything above succeeded.",
       "action": "The pass finishes.",
@@ -1636,7 +1636,7 @@
       "id": "PR-HYDRAMERGE-066",
       "title": "The generic catch reports any other error, and its record detail omits the project prefix",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:359-363 - } catch { runtime.recordHydraMerge(HydraMergeRecord(at: .now, outcome: .failed, project: project.name, label: nil, url: nil, files: 0, detail: \"Hydra could not merge the team's work: \\(error.localizedDescription)\")); note(leadID, title(\"Hydra could not merge the team's work.\"), \"\\(error.localizedDescription)\\n\\nThe work is still in the checkout.\"); return .failed }",
+        "DroppyCode/App/AppModel+HydraMerge.swift:406-422 - } catch { runtime.recordHydraMerge(HydraMergeRecord(at: .now, outcome: .failed, project: project.name, label: nil, url: nil, files: 0, detail: \"Hydra could not merge the team's work: \\(error.localizedDescription)\")); note(leadID, title(\"Hydra could not merge the team's work.\"), \"\\(error.localizedDescription)\\n\\nThe work is still in the checkout.\"); return .failed }",
         "E:/Droppy/port/porting/upstream_defects.md:85 - entry 36"
       ],
       "preconditions": "Any throw inside the do block (commitHash, captureTree, treeHash, commitWork, updateRef, resetIndex, pushBranch).",
@@ -1661,8 +1661,8 @@
       "id": "PR-HYDRAMERGE-067",
       "title": "hydraWork starts from the unmerged turns' recorded paths",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:471-473 - let turns = runtime.hydraUnmergedTurns; var reported: [String] = turns.flatMap { $0.touchedPaths ?? [] }",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:2507-2509 - var hydraUnmergedTurns: [TurnRecord] { turns.filter { !$0.hydraMerged } }"
+        "DroppyCode/App/AppModel+HydraMerge.swift:533-535 - let turns = runtime.hydraUnmergedTurns; var reported: [String] = turns.flatMap { $0.touchedPaths ?? [] }",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2549-2551 - var hydraUnmergedTurns: [TurnRecord] { turns.filter { !$0.hydraMerged } }"
       ],
       "preconditions": "A merge pass for one checkout.",
       "action": "Gathering begins.",
@@ -1682,7 +1682,7 @@
       "id": "PR-HYDRAMERGE-068",
       "title": "A head counts as unmerged only while it has no mergedAt and its landing is neither a patch nor an error",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:474-483 - // A head counts until a merge has taken its work (see `HydraHeadInfo.mergedAt`), // and only that explicit mark proves a merge took it: a lead turn's `hydraMerged` // flag is bookkeeping ... for head in hydraTeam(of: leadID) { guard let info = head.hydra, info.mergedAt == nil, info.landing?.patchPath == nil, info.landing?.error == nil else { continue }",
+        "DroppyCode/App/AppModel+HydraMerge.swift:540-549 - // A head counts until a merge has taken its work (see `HydraHeadInfo.mergedAt`), // and only that explicit mark proves a merge took it: a lead turn's `hydraMerged` // flag is bookkeeping ... for head in hydraTeam(of: leadID) { guard let info = head.hydra, info.mergedAt == nil, info.landing?.patchPath == nil, info.landing?.error == nil else { continue }",
         "DroppyCode/App/AppModel+HydraMerge.swift:609 - let headIDs = headPaths.filter { Set($0.paths).isDisjoint(with: claimed) }.map(\\.id)"
       ],
       "preconditions": "A team of heads.",
@@ -1701,14 +1701,14 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 AppModel+HydraMerge.swift:429-438 `let lastMergedTurnStart = runtime.turns.last { $0.hydraMerged }?.startedAt` and `if let lastMergedTurnStart, let finished = info.finishedAt, finished < lastMergedTurnStart { continue }; headIDs.append(head.id)` -> B2 :474-483 `guard let info = head.hydra, info.mergedAt == nil, info.landing?.patchPath == nil, info.landing?.error == nil else { continue }`. The timestamp shortcut is gone, patch and error landings are excluded, and headIDs are derived at B2 :609."
+      "b2_change": "B1 AppModel+HydraMerge.swift:491-500 `let lastMergedTurnStart = runtime.turns.last { $0.hydraMerged }?.startedAt` and `if let lastMergedTurnStart, let finished = info.finishedAt, finished < lastMergedTurnStart { continue }; headIDs.append(head.id)` -> B2 :474-483 `guard let info = head.hydra, info.mergedAt == nil, info.landing?.patchPath == nil, info.landing?.error == nil else { continue }`. The timestamp shortcut is gone, patch and error landings are excluded, and headIDs are derived at B2 :609."
     },
     {
       "id": "PR-HYDRAMERGE-069",
       "title": "A head's paths are anchored to the checkout of the project it worked in",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:484-500 - let headRoot = head.projectID == leadProjectID ? leadCheckout : (project(head.projectID)?.path ?? leadCheckout); func anchored(_ path: String) -> String { let trimmed = path.trimmed; guard !trimmed.isEmpty else { return \"\" }; if let copy = head.worktreePath, let inCopy = TouchedPaths.relative(trimmed, root: copy) { return (headRoot as NSString).appendingPathComponent(inCopy) }; if trimmed.hasPrefix(\"/\") || trimmed.hasPrefix(\"~\") || trimmed.contains(\"://\") { return trimmed }; return (headRoot as NSString).appendingPathComponent(trimmed) }",
-        "DroppyCode/Core/Support/Text.swift:132 - var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }"
+        "DroppyCode/App/AppModel+HydraMerge.swift:550-566 - let headRoot = head.projectID == leadProjectID ? leadCheckout : (project(head.projectID)?.path ?? leadCheckout); func anchored(_ path: String) -> String { let trimmed = path.trimmed; guard !trimmed.isEmpty else { return \"\" }; if let copy = head.worktreePath, let inCopy = TouchedPaths.relative(trimmed, root: copy) { return (headRoot as NSString).appendingPathComponent(inCopy) }; if trimmed.hasPrefix(\"/\") || trimmed.hasPrefix(\"~\") || trimmed.contains(\"://\") { return trimmed }; return (headRoot as NSString).appendingPathComponent(trimmed) }",
+        "DroppyCode/Core/Support/Text.swift:224 - var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }"
       ],
       "preconditions": "An eligible head.",
       "action": "Each of its reported paths is anchored.",
@@ -1725,14 +1725,14 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation re-anchored, behaviour unchanged. B1 AppModel+HydraMerge.swift:440-456 -> B2 :484-500; `path.trimmingCharacters(in: .whitespacesAndNewlines)` became the equivalent `path.trimmed` (Text.swift:132).",
+      "b2_change": "Citation re-anchored, behaviour unchanged. B1 AppModel+HydraMerge.swift:502-518 -> B2 :484-500; `path.trimmingCharacters(in: .whitespacesAndNewlines)` became the equivalent `path.trimmed` (Text.swift:224).",
       "open_question": "The Windows absoluteness predicate is not written into this record. engineering_decisions.md ED-038 (Q100, shared with ED-036 and ED-039) decides it: \"contains \"://\" (unchanged, still rejected outright), OR begins \"~\", OR matches /^[A-Za-z]:[\\\\/]/, OR matches /^\\\\\\\\[^\\\\/]+[\\\\/][^\\\\/]+/, OR begins \\\\?\\\", and a bare leading \"\\\" is joined onto the root. ED-038 is outside this pass's rulings (OD-0012 to OD-0014, ED-059 to ED-063), so the record is not promoted here. Missing: the ED-038 predicate applied to windows_path."
     },
     {
       "id": "PR-HYDRAMERGE-070",
       "title": "A head's landing files count both as this checkout's own and as reported paths",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:501-508 - var own: [String] = []; var seen = Set<String>(); func collect(_ path: String) { guard !path.isEmpty, let relative = TouchedPaths.relative(anchored(path), root: checkout), seen.insert(relative).inserted else { return }; own.append(relative) }; for file in info.landing?.files ?? [] { collect(file.path) }; reported += (info.landing?.files ?? []).map { anchored($0.path) }"
+        "DroppyCode/App/AppModel+HydraMerge.swift:567-574 - var own: [String] = []; var seen = Set<String>(); func collect(_ path: String) { guard !path.isEmpty, let relative = TouchedPaths.relative(anchored(path), root: checkout), seen.insert(relative).inserted else { return }; own.append(relative) }; for file in info.landing?.files ?? [] { collect(file.path) }; reported += (info.landing?.files ?? []).map { anchored($0.path) }"
       ],
       "preconditions": "A head with a landing.",
       "action": "Its landing files are gathered.",
@@ -1752,7 +1752,7 @@
       "id": "PR-HYDRAMERGE-071",
       "title": "A head's own timeline is read for tool edits, decoded off the main actor when the head is cold",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:509-524 - let items: [TimelineItem]; if let live = existingRuntime(for: head.id) { items = live.entries.map(\\\\.item) } else { let headID = head.id; items = await Task.detached(priority: .utility) { Storage.decodeDocument(headID)?.items ?? [] }.value }; for item in items { guard case .tool(let call) = item.content else { continue }; reported += call.edits.map { anchored($0.path) }; for edit in call.edits { collect(edit.path) } }"
+        "DroppyCode/App/AppModel+HydraMerge.swift:576-592 - let items: [TimelineItem]; if let live = existingRuntime(for: head.id) { items = live.entries.map(\\\\.item) } else { let headID = head.id; items = await Task.detached(priority: .utility) { Storage.decodeDocument(headID)?.items ?? [] }.value }; for item in items { guard case .tool(let call) = item.content else { continue }; reported += call.edits.map { anchored($0.path) }; for edit in call.edits { collect(edit.path) } }"
       ],
       "preconditions": "An eligible head.",
       "action": "Its timeline is scanned.",
@@ -1776,7 +1776,7 @@
       "id": "PR-HYDRAMERGE-072",
       "title": "Each head's note entry carries the roster persona name, the index and a 120-character task",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:525 - headPaths.append((head.id, HydraRoster.persona(at: info.index).name, info.index, TextCleanup.singleLine(info.task, limit: 120), own))",
+        "DroppyCode/App/AppModel+HydraMerge.swift:593 - headPaths.append((head.id, HydraRoster.persona(at: info.index).name, info.index, TextCleanup.singleLine(info.task, limit: 120), own))",
         "DroppyCode/Core/Models/Hydra.swift:259-265 - persona(at:) wraps the roster modulo its count and appends \" <round + 1>\" past the first round"
       ],
       "preconditions": "A head has been scanned.",
@@ -1792,13 +1792,13 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 AppModel+HydraMerge.swift:481 `headPaths.append((HydraRoster.persona(at: info.index).name, info.index, ...` -> B2 :525 `headPaths.append((head.id, HydraRoster.persona(at: info.index).name, info.index, ...`: the entry gains the head id; name, index, task and files are unchanged."
+      "b2_change": "B1 AppModel+HydraMerge.swift:547 `headPaths.append((HydraRoster.persona(at: info.index).name, info.index, ...` -> B2 :525 `headPaths.append((head.id, HydraRoster.persona(at: info.index).name, info.index, ...`: the entry gains the head id; name, index, task and files are unchanged."
     },
     {
       "id": "PR-HYDRAMERGE-073",
       "title": "The lead's own tool edits are gathered from its timeline and anchored to its checkout",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:531-543 - let unmerged = Set(turns.map(\\.id)); for entry in runtime.entries where entry.item.turnID.map(unmerged.contains) == true { guard case .tool(let call) = entry.item.content else { continue }; for edit in call.edits { let trimmed = edit.path.trimmed; guard !trimmed.isEmpty else { continue }; if trimmed.hasPrefix(\"/\") || trimmed.hasPrefix(\"~\") || trimmed.contains(\"://\") { reported.append(trimmed) } else { reported.append((leadCheckout as NSString).appendingPathComponent(trimmed)) } } }"
+        "DroppyCode/App/AppModel+HydraMerge.swift:599-611 - let unmerged = Set(turns.map(\\.id)); for entry in runtime.entries where entry.item.turnID.map(unmerged.contains) == true { guard case .tool(let call) = entry.item.content else { continue }; for edit in call.edits { let trimmed = edit.path.trimmed; guard !trimmed.isEmpty else { continue }; if trimmed.hasPrefix(\"/\") || trimmed.hasPrefix(\"~\") || trimmed.contains(\"://\") { reported.append(trimmed) } else { reported.append((leadCheckout as NSString).appendingPathComponent(trimmed)) } } }"
       ],
       "preconditions": "The lead's runtime entries are loaded.",
       "action": "The lead's own edits are gathered.",
@@ -1815,14 +1815,14 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation re-anchored, behaviour unchanged. B1 AppModel+HydraMerge.swift:484-499 -> B2 :531-543; `edit.path.trimmingCharacters(in: .whitespacesAndNewlines)` became the equivalent `edit.path.trimmed` (Text.swift:132).",
+      "b2_change": "Citation re-anchored, behaviour unchanged. B1 AppModel+HydraMerge.swift:550-565 -> B2 :531-543; `edit.path.trimmingCharacters(in: .whitespacesAndNewlines)` became the equivalent `edit.path.trimmed` (Text.swift:224).",
       "open_question": "Same gap as PR-HYDRAMERGE-069: engineering_decisions.md ED-038 (Q100) decides the one shared Windows absoluteness predicate used here and at PR-HYDRAMERGE-069, but it is outside this pass's rulings (OD-0012 to OD-0014, ED-059 to ED-063), so the record is not promoted here. Missing: the ED-038 predicate applied to windows_path."
     },
     {
       "id": "PR-HYDRAMERGE-074",
       "title": "Reported paths are split into inside and outside the checkout, dropping empties and build output",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:545-553 - var paths = Set<String>(); var outside = Set<String>(); for path in reported where !path.isEmpty && !TouchedPaths.isBuildOutput(path) { if let relative = TouchedPaths.relative(path, root: checkout) { paths.insert(relative) } else { outside.insert(path) } }"
+        "DroppyCode/App/AppModel+HydraMerge.swift:613-621 - var paths = Set<String>(); var outside = Set<String>(); for path in reported where !path.isEmpty && !TouchedPaths.isBuildOutput(path) { if let relative = TouchedPaths.relative(path, root: checkout) { paths.insert(relative) } else { outside.insert(path) } }"
       ],
       "preconditions": "The reported list is complete.",
       "action": "The split runs.",
@@ -1842,8 +1842,8 @@
       "id": "PR-HYDRAMERGE-075",
       "title": "Another chat's unmerged files in the same checkout are reserved under that chat's title while it can still merge them",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:634-672 - private func siblingOwnedPaths(in checkout: String, projectID: UUID, excluding leadID: UUID) -> (reserved: [String: String], blocking: [String: String]) { let team = Set(hydraTeam(of: leadID).map(\\.id)); ...; func reserve(_ path: String, owner: String, blocks: Bool) { guard let relative = TouchedPaths.relative(path, root: checkout) else { return }; reserved[relative] = owner; if blocks { blocking[relative] = owner } }; for other in threads where other.id != leadID && other.projectID == projectID && !team.contains(other.id) { if other.isHydraHead { guard let info = other.hydra, info.mergedAt == nil else { continue }; let parent = other.parentThreadID.flatMap { thread($0) }; guard info.status == .running || parent.map(canStillMerge) == true else { continue }; ...; for file in info.landing?.files ?? [] { reserve(file.path, owner: parent?.title ?? other.title, blocks: !rankedOut) } } else if let live = existingRuntime(for: other.id) { ...; for turn in live.hydraUnmergedTurns where canStillMerge(other) || turn.status != .completed { for path in turn.touchedPaths ?? [] { reserve(path, owner: other.title, blocks: !rankedOut) } } } }; return (reserved, blocking) }",
-        "DroppyCode/App/AppModel+HydraMerge.swift:565-567 - let siblingFiles = siblingOwnedPaths(in: checkout, projectID: projectID, excluding: leadID); let siblingClaims = Set(siblingFiles.reserved.keys); let blockingClaims = siblingFiles.blocking",
+        "DroppyCode/App/AppModel+HydraMerge.swift:690-728 - private func siblingOwnedPaths(in checkout: String, projectID: UUID, excluding leadID: UUID) -> (reserved: [String: String], blocking: [String: String]) { let team = Set(hydraTeam(of: leadID).map(\\.id)); ...; func reserve(_ path: String, owner: String, blocks: Bool) { guard let relative = TouchedPaths.relative(path, root: checkout) else { return }; reserved[relative] = owner; if blocks { blocking[relative] = owner } }; for other in threads where other.id != leadID && other.projectID == projectID && !team.contains(other.id) { if other.isHydraHead { guard let info = other.hydra, info.mergedAt == nil else { continue }; let parent = other.parentThreadID.flatMap { thread($0) }; guard info.status == .running || parent.map(canStillMerge) == true else { continue }; ...; for file in info.landing?.files ?? [] { reserve(file.path, owner: parent?.title ?? other.title, blocks: !rankedOut) } } else if let live = existingRuntime(for: other.id) { ...; for turn in live.hydraUnmergedTurns where canStillMerge(other) || turn.status != .completed { for path in turn.touchedPaths ?? [] { reserve(path, owner: other.title, blocks: !rankedOut) } } } }; return (reserved, blocking) }",
+        "DroppyCode/App/AppModel+HydraMerge.swift:633-635 - let siblingFiles = siblingOwnedPaths(in: checkout, projectID: projectID, excluding: leadID); let siblingClaims = Set(siblingFiles.reserved.keys); let blockingClaims = siblingFiles.blocking",
         "DroppyCode/App/AppModel+HydraMerge.swift:586-587 - let claimed = paths.intersection(blockingClaims.keys); paths.subtract(blockingClaims.keys)"
       ],
       "preconditions": "Other threads exist in the same project.",
@@ -1862,13 +1862,13 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 AppModel+HydraMerge.swift:549-567 returned `Set<String>` of every unmerged head landing file and live chat turn path, and hydraWork subtracted it whole (B1 :515, :529 `paths.subtract(siblingPaths)`). B2 :634-672 returns `(reserved: [String: String], blocking: [String: String])` keyed to owner titles, a head reserves only when running or its lead canStillMerge (:649), a chat's completed turns only while canStillMerge (:664), and hydraWork subtracts only the blocking claims (:586-587)."
+      "b2_change": "B1 AppModel+HydraMerge.swift:617-635 returned `Set<String>` of every unmerged head landing file and live chat turn path, and hydraWork subtracted it whole (B1 :515, :529 `paths.subtract(siblingPaths)`). B2 :634-672 returns `(reserved: [String: String], blocking: [String: String])` keyed to owner titles, a head reserves only when running or its lead canStillMerge (:649), a chat's completed turns only while canStillMerge (:664), and hydraWork subtracts only the blocking claims (:586-587)."
     },
     {
       "id": "PR-HYDRAMERGE-076",
       "title": "Only the lead's own checkout is swept for changes since the job's first checkpoint",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:565-576 - let siblingFiles = siblingOwnedPaths(...); let siblingClaims = Set(siblingFiles.reserved.keys); let blockingClaims = siblingFiles.blocking; if sweepsCheckout, let base = turns.first?.baseCheckpoint, let alreadyDirty = try? await git.changedPaths(from: \"HEAD\", to: base), let now = try? await git.captureTree(), let changedSince = try? await git.changedPaths(from: base, to: now) { let theirs = Set(alreadyDirty); let fresh = changedSince.filter { !theirs.contains($0) }; paths.formUnion(fresh.filter { !siblingClaims.contains($0) }) }"
+        "DroppyCode/App/AppModel+HydraMerge.swift:633-644 - let siblingFiles = siblingOwnedPaths(...); let siblingClaims = Set(siblingFiles.reserved.keys); let blockingClaims = siblingFiles.blocking; if sweepsCheckout, let base = turns.first?.baseCheckpoint, let alreadyDirty = try? await git.changedPaths(from: \"HEAD\", to: base), let now = try? await git.captureTree(), let changedSince = try? await git.changedPaths(from: base, to: now) { let theirs = Set(alreadyDirty); let fresh = changedSince.filter { !theirs.contains($0) }; paths.formUnion(fresh.filter { !siblingClaims.contains($0) }) }"
       ],
       "preconditions": "sweepsCheckout is true (the lead's own checkout only) and the first unmerged turn has a baseCheckpoint.",
       "action": "The sweep runs.",
@@ -1887,7 +1887,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 AppModel+HydraMerge.swift:516-524 filtered with `fresh.filter { !siblingPaths.contains($0) }` (every sibling path). B2 :568-576 filters with `fresh.filter { !siblingClaims.contains($0) }`, siblingClaims being `Set(siblingFiles.reserved.keys)` (:566)."
+      "b2_change": "B1 AppModel+HydraMerge.swift:583-592 filtered with `fresh.filter { !siblingPaths.contains($0) }` (every sibling path). B2 :568-576 filters with `fresh.filter { !siblingClaims.contains($0) }`, siblingClaims being `Set(siblingFiles.reserved.keys)` (:566)."
     },
     {
       "id": "PR-HYDRAMERGE-077",
@@ -1913,7 +1913,7 @@
       "upstream_defect": "80",
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 AppModel+HydraMerge.swift:529 `paths.subtract(siblingPaths)` (every sibling path) -> B2 :586-587 `let claimed = paths.intersection(blockingClaims.keys); paths.subtract(blockingClaims.keys)`: only blocking claims are removed, and they are remembered as claimed. The rest of the order is unchanged (B2 :588-596)."
+      "b2_change": "B1 AppModel+HydraMerge.swift:597 `paths.subtract(siblingPaths)` (every sibling path) -> B2 :586-587 `let claimed = paths.intersection(blockingClaims.keys); paths.subtract(blockingClaims.keys)`: only blocking claims are removed, and they are remembered as claimed. The rest of the order is unchanged (B2 :588-596)."
     },
     {
       "id": "PR-HYDRAMERGE-078",
@@ -1943,8 +1943,8 @@
       "id": "PR-HYDRAMERGE-079",
       "title": "markHydraMerged flips the flag only on turns that are not already marked and saves at once",
       "source_evidence": [
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:2494-2504 - func markHydraMerged(_ turnIDs: [UUID]) { let ids = Set(turnIDs); var changed = false; for index in turns.indices where ids.contains(turns[index].id) && !turns[index].hydraMerged { turns[index].hydraMerged = true; changed = true }; guard changed else { return }; saveRevision += 1; saveNow() }",
-        "DroppyCode/Core/Models/Timeline.swift:304-306 - var hydraMerged = false"
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2536-2546 - func markHydraMerged(_ turnIDs: [UUID]) { let ids = Set(turnIDs); var changed = false; for index in turns.indices where ids.contains(turns[index].id) && !turns[index].hydraMerged { turns[index].hydraMerged = true; changed = true }; guard changed else { return }; saveRevision += 1; saveNow() }",
+        "DroppyCode/Core/Models/Timeline.swift:307-309 - var hydraMerged = false"
       ],
       "preconditions": "A merge is marking work spent.",
       "action": "markHydraMerged runs.",
@@ -1966,10 +1966,10 @@
       "id": "PR-HYDRAMERGE-080",
       "title": "recordHydraMerge appends a record, keeps the newest twenty and saves at once",
       "source_evidence": [
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:2512-2517 - func recordHydraMerge(_ record: HydraMergeRecord) { hydraMerges.append(record); if hydraMerges.count > 20 { hydraMerges.removeFirst(hydraMerges.count - 20) }; saveRevision += 1; saveNow() }",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2554-2559 - func recordHydraMerge(_ record: HydraMergeRecord) { hydraMerges.append(record); if hydraMerges.count > 20 { hydraMerges.removeFirst(hydraMerges.count - 20) }; saveRevision += 1; saveNow() }",
         "DroppyCode/App/Runtime/ThreadRuntime.swift:212 - private(set) var hydraMerges: [HydraMergeRecord] = []",
-        "DroppyCode/Core/Models/Timeline.swift:347 - var hydraMerges: [HydraMergeRecord] = []",
-        "DroppyCode/Core/Models/Timeline.swift:363 - hydraMerges = container.value(.hydraMerges, default: [Lenient<HydraMergeRecord>]()).compactMap(\\\\.value)"
+        "DroppyCode/Core/Models/Timeline.swift:350 - var hydraMerges: [HydraMergeRecord] = []",
+        "DroppyCode/Core/Models/Timeline.swift:366 - hydraMerges = container.value(.hydraMerges, default: [Lenient<HydraMergeRecord>]()).compactMap(\\\\.value)"
       ],
       "preconditions": "A merge outcome to record.",
       "action": "recordHydraMerge runs.",
@@ -1991,8 +1991,8 @@
       "id": "PR-HYDRAMERGE-081",
       "title": "HydraMergeRecord is a Codable record of seven fields with a five-case outcome",
       "source_evidence": [
-        "DroppyCode/Core/Models/Timeline.swift:269-281 - struct HydraMergeRecord: Codable, Hashable, Sendable { /// `held`: some job files are claimed by another chat's unfinished work, so this /// merge took nothing and nothing was spent; it goes out once that claim clears. enum Outcome: String, Codable, Sendable { case merged, failed, stray, held, settled }; var at: Date; var outcome: Outcome; var project: String?; var label: String?; var url: URL?; var files: Int; var detail: String? }",
-        "DroppyCode/App/AppModel+HydraMerge.swift:831 - runtime.recordHydraMerge(HydraMergeRecord(at: .now, outcome: .settled, project: nil, label: nil, url: nil, files: 0, detail: nil))",
+        "DroppyCode/Core/Models/Timeline.swift:269-284 - struct HydraMergeRecord: Codable, Hashable, Sendable { /// `held`: some job files are claimed by another chat's unfinished work, so this /// merge took nothing and nothing was spent; it goes out once that claim clears. enum Outcome: String, Codable, Sendable { case merged, failed, stray, held, settled }; var at: Date; var outcome: Outcome; var project: String?; var label: String?; var url: URL?; var files: Int; var detail: String? }",
+        "DroppyCode/App/AppModel+HydraMerge.swift:904 - runtime.recordHydraMerge(HydraMergeRecord(at: .now, outcome: .settled, project: nil, label: nil, url: nil, files: 0, detail: nil))",
         "DroppyCode/App/AppModel+HydraMerge.swift:839 - runtime.recordHydraMerge(HydraMergeRecord(at: .now, outcome: .held, project: nil, label: nil, url: nil, files: held.count, detail: detail))"
       ],
       "preconditions": "n/a",
@@ -2016,15 +2016,15 @@
       "id": "PR-HYDRAMERGE-082",
       "title": "The lead's merge-state line and the settlement gate read AppModel.hydraUnmergedFileCount(of:); the ThreadRuntime property of the same name has no reader",
       "source_evidence": [
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:1302 - let merge = launch.autoMerges ? HydraPrompts.mergeStatus(merges: hydraMerges, unmergedFiles: app.hydraUnmergedFileCount(of: threadID)) : nil",
-        "DroppyCode/App/AppModel+HydraMerge.swift:830 - guard hydraUnmergedFileCount(of: leadID) == 0 else { return }",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1301 - let merge = launch.autoMerges ? HydraPrompts.mergeStatus(merges: hydraMerges, unmergedFiles: app.hydraUnmergedFileCount(of: threadID)) : nil",
+        "DroppyCode/App/AppModel+HydraMerge.swift:903 - guard hydraUnmergedFileCount(of: leadID) == 0 else { return }",
         "DroppyCode/App/AppModel+Hydra.swift:283-294 - func hydraUnmergedFileCount(of leadID: UUID) -> Int { guard let runtime = existingRuntime(for: leadID) else { return 0 }; var paths = Set(runtime.hydraUnmergedTurns.filter { $0.status != .running }.flatMap { $0.touchedPaths ?? [] }); for head in hydraTeam(of: leadID) { // Only the head's own `mergedAt` says a merge took its work; a lead turn's // `hydraMerged` flag is not evidence of one, so no timestamp shortcut here. guard let info = head.hydra, info.mergedAt == nil, !(info.landing?.patchPath != nil || info.landing?.error != nil) else { continue }; for file in info.landing?.files ?? [] { paths.insert(file.path) } }; paths = paths.filter { path in !TouchedPaths.isBuildOutput(path) && projects.contains { TouchedPaths.relative(path, root: $0.path) != nil } }; return paths.count }",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:2519-2522 - /// How many distinct files the finished, unmerged turns of this thread touched. var hydraUnmergedFileCount: Int { Set(hydraUnmergedTurns.filter { $0.status != .running }.flatMap { $0.touchedPaths ?? [] }).count }",
-        "git -C E:/Droppy/reference/droppy-code-v1.6.2 grep -n hydraUnmergedFileCount 1fbf81e6 - four hits: AppModel+Hydra.swift:283 (definition), AppModel+HydraMerge.swift:830 and ThreadRuntime.swift:1302 (both call the AppModel function), ThreadRuntime.swift:2520 (the property's definition, no reader)"
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2561-2564 - /// How many distinct files the finished, unmerged turns of this thread touched. var hydraUnmergedFileCount: Int { Set(hydraUnmergedTurns.filter { $0.status != .running }.flatMap { $0.touchedPaths ?? [] }).count }",
+        "git -C E:/Droppy/reference/droppy-code-v1.6.2 grep -n hydraUnmergedFileCount 1fbf81e6 - four hits: AppModel+Hydra.swift:283 (definition), AppModel+HydraMerge.swift:903 and ThreadRuntime.swift:1301 (both call the AppModel function), ThreadRuntime.swift:2562 (the property's definition, no reader)"
       ],
       "preconditions": "A lead whose Hydra launch auto-merges is being briefed for its next message, or recordHydraSettlement runs.",
       "action": "The lead's unmerged file count is read.",
-      "expected_result": "Both readers call AppModel.hydraUnmergedFileCount(of: leadID), specified in full by PR-HYDRA-107. ThreadRuntime.swift:1302 passes it as unmergedFiles to HydraPrompts.mergeStatus for the lead's merge-state line when launch.autoMerges is true; recordHydraSettlement (AppModel+HydraMerge.swift:830) goes on only when it is 0 (PR-HYDRAMERGE-113). The count is a Set of paths: the touchedPaths of the lead's unmerged turns whose status is not .running, plus the landing files of every team head with mergedAt nil whose landing has no patchPath and no error, with no timestamp shortcut, then with build output and paths under no sidebar project removed; a path reached by several turns or heads counts once. Without a live runtime for the lead it is 0. The ThreadRuntime computed property hydraUnmergedFileCount (ThreadRuntime.swift:2519-2522, the finished unmerged turns' touchedPaths only) is never read: nothing in this area or elsewhere depends on it.",
+      "expected_result": "Both readers call AppModel.hydraUnmergedFileCount(of: leadID), specified in full by PR-HYDRA-107. ThreadRuntime.swift:1301 passes it as unmergedFiles to HydraPrompts.mergeStatus for the lead's merge-state line when launch.autoMerges is true; recordHydraSettlement (AppModel+HydraMerge.swift:903) goes on only when it is 0 (PR-HYDRAMERGE-113). The count is a Set of paths: the touchedPaths of the lead's unmerged turns whose status is not .running, plus the landing files of every team head with mergedAt nil whose landing has no patchPath and no error, with no timestamp shortcut, then with build output and paths under no sidebar project removed; a path reached by several turns or heads counts once. Without a live runtime for the lead it is 0. The ThreadRuntime computed property hydraUnmergedFileCount (ThreadRuntime.swift:2561-2564, the finished unmerged turns' touchedPaths only) is never read: nothing in this area or elsewhere depends on it.",
       "side_effects": [],
       "persistence": "reads TurnRecord.touchedPaths and HydraHeadInfo.mergedAt and .landing",
       "failure_cases": [
@@ -2037,14 +2037,14 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "The record described the ThreadRuntime property, which has no reader at B1 either (git grep at dd2b86ef: ThreadRuntime.swift:2436 definition only; :1272 already called app.hydraUnmergedFileCount(of: threadID)). At B2 the AppModel function lost its timestamp shortcut (B1 AppModel+Hydra.swift:245 `let lastMergedTurnStart = runtime.turns.last { $0.hydraMerged }?.startedAt` and :248 `if let lastMergedTurnStart, let finished = info.finishedAt, finished < lastMergedTurnStart { continue }`, gone at B2 :283-294) and gained a second reader, recordHydraSettlement (B2 AppModel+HydraMerge.swift:830)."
+      "b2_change": "The record described the ThreadRuntime property, which has no reader at B1 either (git grep at dd2b86ef: ThreadRuntime.swift:2478 definition only; :1272 already called app.hydraUnmergedFileCount(of: threadID)). At B2 the AppModel function lost its timestamp shortcut (B1 AppModel+Hydra.swift:245 `let lastMergedTurnStart = runtime.turns.last { $0.hydraMerged }?.startedAt` and :248 `if let lastMergedTurnStart, let finished = info.finishedAt, finished < lastMergedTurnStart { continue }`, gone at B2 :283-294) and gained a second reader, recordHydraSettlement (B2 AppModel+HydraMerge.swift:903)."
     },
     {
       "id": "PR-HYDRAMERGE-083",
       "title": "The merge-state line tells the lead what already merged and what is still pending",
       "source_evidence": [
-        "DroppyCode/Core/Models/Hydra.swift:978-1018 - static func mergeStatus(merges: [HydraMergeRecord], unmergedFiles: Int, now: Date = .now) -> String?",
-        "DroppyCode/Core/Models/Hydra.swift:1003-1009 - case .held: guard unmergedFiles > 0 else { return \"Merge state: the earlier wait has no recorded files left to merge. Do not claim a new merge or promise another one.\" }; return \"Merge state: the merge is waiting at \\(when(last.at)): \\(last.detail ?? \"another chat holds this job's files\") The work is still in the checkout. Explain the recorded dependency without assuming a completed chat needs more work: active work must finish, while completed jobs merge in order. Hydra retries automatically while this job remains eligible. Do not claim a successful merge.\" case .settled: return \"Merge state: at \\(when(last.at)), Hydra found no recorded files left to merge. \\(pending) Do not describe this as a new merge.\""
+        "DroppyCode/Core/Models/Hydra.swift:978-1022 - static func mergeStatus(merges: [HydraMergeRecord], unmergedFiles: Int, now: Date = .now) -> String?",
+        "DroppyCode/Core/Models/Hydra.swift:1006-1013 - case .held: guard unmergedFiles > 0 else { return \"Merge state: the earlier wait has no recorded files left to merge. Do not claim a new merge or promise another one.\" }; return \"Merge state: the merge is waiting at \\(when(last.at)): \\(last.detail ?? \"another chat holds this job's files\") The work is still in the checkout. Explain the recorded dependency without assuming a completed chat needs more work: active work must finish, while completed jobs merge in order. Hydra retries automatically while this job remains eligible. Do not claim a successful merge.\" case .settled: return \"Merge state: at \\(when(last.at)), Hydra found no recorded files left to merge. \\(pending) Do not describe this as a new merge.\""
       ],
       "preconditions": "A lead about to send a message with Hydra on.",
       "action": "mergeStatus is built.",
@@ -2063,14 +2063,14 @@
       "upstream_defect": "27",
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 Hydra.swift mergeStatus had four branches (no records, .merged, .failed, .stray). B2 Hydra.swift:1003-1009 adds .held (two forms, keyed on unmergedFiles) and .settled; the other branches are byte-identical (B2 :994-1002, :1010-1016)."
+      "b2_change": "B1 Hydra.swift mergeStatus had four branches (no records, .merged, .failed, .stray). B2 Hydra.swift:1006-1013 adds .held (two forms, keyed on unmergedFiles) and .settled; the other branches are byte-identical (B2 :994-1002, :1010-1016)."
     },
     {
       "id": "PR-HYDRAMERGE-084",
       "title": "A merge note is a Hydra user message whose first line is its title, landing under the pill's id",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:860-867 - private func note(_ leadID: UUID, _ title: String, _ body: String) { let runtime = existingRuntime(for: leadID); let id = runtime?.hydraMergeNoteID; runtime?.hydraMergeNoteID = nil; runtime?.appendHydraNote(title + \"\\n\" + body, id: id) ...",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:3014-3018 - func appendHydraNote(_ text: String, id: String? = nil) { append(TimelineItem(id: id ?? UUID().uuidString, turnID: nil, content: .user(UserMessage(text: text, hydraHeads: [])))); app?.updateThread(threadID) { $0.updatedAt = .now }; scheduleSave() }"
+        "DroppyCode/App/AppModel+HydraMerge.swift:915-922 - private func note(_ leadID: UUID, _ title: String, _ body: String) { let runtime = existingRuntime(for: leadID); let id = runtime?.hydraMergeNoteID; runtime?.hydraMergeNoteID = nil; runtime?.appendHydraNote(title + \"\\n\" + body, id: id) ...",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:3056-3060 - func appendHydraNote(_ text: String, id: String? = nil) { append(TimelineItem(id: id ?? UUID().uuidString, turnID: nil, content: .user(UserMessage(text: text, hydraHeads: [])))); app?.updateThread(threadID) { $0.updatedAt = .now }; scheduleSave() }"
       ],
       "preconditions": "A merge is posting an outcome.",
       "action": "note() runs.",
@@ -2094,7 +2094,7 @@
       "id": "PR-HYDRAMERGE-085",
       "title": "A merge note marks the chat unread, badges the Dock and notifies only when the user is not looking at it",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:868-874 - let onScreen = selectedThreadID == leadID; guard !(NSApp.isActive && onScreen) else { return }; updateThread(leadID) { $0.hasUnread = true }; updateDockBadge(); if settings.notifyWhenFinished, let lead = thread(leadID) { notify(threadID: leadID, title: lead.title, body: title) }"
+        "DroppyCode/App/AppModel+HydraMerge.swift:923-929 - let onScreen = selectedThreadID == leadID; guard !(NSApp.isActive && onScreen) else { return }; updateThread(leadID) { $0.hasUnread = true }; updateDockBadge(); if settings.notifyWhenFinished, let lead = thread(leadID) { notify(threadID: leadID, title: lead.title, body: title) }"
       ],
       "preconditions": "A note has been appended.",
       "action": "The alerting step runs.",
@@ -2117,9 +2117,9 @@
       "title": "The timeline draws a merging block while a merge runs, under the outcome note's id",
       "source_evidence": [
         "DroppyCode/App/Views/Chat/ThreadTimeline.swift:114 - hydraMergeID: runtime.isHydraMerging ? (runtime.hydraMergeNoteID ?? \"hydra-merging\") : nil",
-        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:1478-1484 - case merging(id: String)",
-        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:1495 - case .merging(let id): id",
-        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:1626-1634 - endsWithMergeOutcome: the pill is not appended once the outcome note is the last entry"
+        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:1487-1493 - case merging(id: String)",
+        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:1504 - case .merging(let id): id",
+        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:1635-1643 - endsWithMergeOutcome: the pill is not appended once the outcome note is the last entry"
       ],
       "preconditions": "A merge is running.",
       "action": "The timeline builds its blocks.",
@@ -2139,12 +2139,12 @@
       "id": "PR-HYDRAMERGE-087",
       "title": "A note is a merge outcome when it is Hydra's own, has no heads and its title starts \"Hydra \"",
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:1636-1643 - static func isMergeOutcome(_ message: UserMessage) -> Bool { guard message.isFromHydra, (message.hydraHeads ?? []).isEmpty else { return false }; let title = message.text.split(separator: \"\\n\", maxSplits: 1, omittingEmptySubsequences: true).first.map(String.init) ?? \"\"; return title.hasPrefix(\"Hydra \") }",
-        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:1524-1532 - hydraMergePhase returns .outcome(message) for such a single-entry group",
-        "DroppyCode/App/AppModel+HydraMerge.swift:213-214 - func stage(_ name: String) -> String { several ? \"\\(project.name): \\(name)\" : name }; func title(_ name: String) -> String { several ? \"\\(project.name): \\(name)\" : name }",
-        "DroppyCode/App/AppModel+HydraMerge.swift:162 - note(leadID, \"Hydra did not merge: the team's files are outside every project.\", strayBody(stray))",
-        "DroppyCode/App/AppModel+HydraMerge.swift:179 - note(leadID, \"Hydra left \\(stray.count == 1 ? \"a file\" : \"\\(stray.count) files\") outside every project.\", strayBody(stray))",
-        "DroppyCode/App/AppModel+HydraMerge.swift:832 - note(leadID, \"Hydra has no files left to merge.\", \"The checkout has no remaining changes from this job to send. No new merge request was needed.\")",
+        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:1645-1652 - static func isMergeOutcome(_ message: UserMessage) -> Bool { guard message.isFromHydra, (message.hydraHeads ?? []).isEmpty else { return false }; let title = message.text.split(separator: \"\\n\", maxSplits: 1, omittingEmptySubsequences: true).first.map(String.init) ?? \"\"; return title.hasPrefix(\"Hydra \") }",
+        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:1533-1541 - hydraMergePhase returns .outcome(message) for such a single-entry group",
+        "DroppyCode/App/AppModel+HydraMerge.swift:222-223 - func stage(_ name: String) -> String { several ? \"\\(project.name): \\(name)\" : name }; func title(_ name: String) -> String { several ? \"\\(project.name): \\(name)\" : name }",
+        "DroppyCode/App/AppModel+HydraMerge.swift:163 - note(leadID, \"Hydra did not merge: the team's files are outside every project.\", strayBody(stray))",
+        "DroppyCode/App/AppModel+HydraMerge.swift:183 - note(leadID, \"Hydra left \\(stray.count == 1 ? \"a file\" : \"\\(stray.count) files\") outside every project.\", strayBody(stray))",
+        "DroppyCode/App/AppModel+HydraMerge.swift:905 - note(leadID, \"Hydra has no files left to merge.\", \"The checkout has no remaining changes from this job to send. No new merge request was needed.\")",
         "DroppyCode/App/AppModel+HydraMerge.swift:840 - note(leadID, \"Hydra is waiting for another chat's files.\", detail + \" The work stays in the checkout. Hydra retries after the other chat finishes or its queued merge completes.\")"
       ],
       "preconditions": "A user-message timeline entry.",
@@ -2162,7 +2162,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B2 adds two unprefixed merge titles, \"Hydra has no files left to merge.\" (AppModel+HydraMerge.swift:832) and \"Hydra is waiting for another chat's files.\" (:840). The stray note \"Hydra left ... outside every project.\" was already posted without title() at B1 (:136, B2 :179), so the earlier blanket rule that every multi-project merge note loses the pill was untrue at B1 too."
+      "b2_change": "B2 adds two unprefixed merge titles, \"Hydra has no files left to merge.\" (AppModel+HydraMerge.swift:905) and \"Hydra is waiting for another chat's files.\" (:840). The stray note \"Hydra left ... outside every project.\" was already posted without title() at B1 (:136, B2 :179), so the earlier blanket rule that every multi-project merge note loses the pill was untrue at B1 too."
     },
     {
       "id": "PR-HYDRAMERGE-088",
@@ -2172,7 +2172,7 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:332-334 - nonisolated static func withoutTrailingStop(_ title: String) -> String { title.hasSuffix(\".\") ? String(title.dropLast()) : title }: drops exactly one trailing \".\"",
         "DroppyCode/App/Views/Chat/TimelineRows.swift:376-381 - leadingURL requires the first line, trimmed of spaces, to start http:// or https:// case-insensitively and to contain no whitespace",
         "DroppyCode/App/Views/Chat/TimelineRows.swift:384-387 - withoutFirstLine returns everything from the first newline, `.trimmed`",
-        "DroppyCode/Core/Support/Text.swift:132 - var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }"
+        "DroppyCode/Core/Support/Text.swift:224 - var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }"
       ],
       "preconditions": "A merge outcome message.",
       "action": "The pill reads it.",
@@ -2189,7 +2189,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citations re-anchored, behaviour unchanged: B1 TimelineRows.swift:798-813 -> B2 :802-808, :333-335 -> :332-334, :377-382 -> :376-381, :385-388 -> :384-387. The helpers became `nonisolated static`, and the body and withoutFirstLine trims changed from `.trimmingCharacters(in: .whitespacesAndNewlines)` to the equivalent `.trimmed` (Text.swift:132)."
+      "b2_change": "Citations re-anchored, behaviour unchanged: B1 TimelineRows.swift:798-813 -> B2 :802-808, :333-335 -> :332-334, :377-382 -> :376-381, :385-388 -> :384-387. The helpers became `nonisolated static`, and the body and withoutFirstLine trims changed from `.trimmingCharacters(in: .whitespacesAndNewlines)` to the equivalent `.trimmed` (Text.swift:224)."
     },
     {
       "id": "PR-HYDRAMERGE-089",
@@ -2293,7 +2293,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "MOVED. B1 HydraMergePopover.swift:31 `static let headPattern = try! NSRegularExpression(pattern: \"^- (.+?) \\\\((\\\\d+)\\\\): (.*?) — (?:no files|(\\\\d+) files?: (.*))$\")` is deleted; B2 :44 matches the same pattern inline with `line.wholeMatch(of: #/- (.+?) \\((\\d+)\\): (.*?) — (?:no files|(\\d+) files?: (.*))/#)`. The state machine (B1 :38-66 -> B2 :30-57) and the files rule (B1 :57-61 -> B2 :45-51, now `found.output.4 != nil && !filesText.isEmpty`) are unchanged; the line trim is `rawLine.trimmed` (Text.swift:132). Whether the Swift Regex engine (which matches by grapheme) and NSRegularExpression (which matches UTF-16) agree on every input was not tested: UNKNOWN for exotic input."
+      "b2_change": "MOVED. B1 HydraMergePopover.swift:31 `static let headPattern = try! NSRegularExpression(pattern: \"^- (.+?) \\\\((\\\\d+)\\\\): (.*?) — (?:no files|(\\\\d+) files?: (.*))$\")` is deleted; B2 :44 matches the same pattern inline with `line.wholeMatch(of: #/- (.+?) \\((\\d+)\\): (.*?) — (?:no files|(\\d+) files?: (.*))/#)`. The state machine (B1 :38-66 -> B2 :30-57) and the files rule (B1 :57-61 -> B2 :45-51, now `found.output.4 != nil && !filesText.isEmpty`) are unchanged; the line trim is `rawLine.trimmed` (Text.swift:224). Whether the Swift Regex engine (which matches by grapheme) and NSRegularExpression (which matches UTF-16) agree on every input was not tested: UNKNOWN for exotic input."
     },
     {
       "id": "PR-HYDRAMERGE-093",
@@ -2473,8 +2473,8 @@
       "id": "PR-HYDRAMERGE-100",
       "title": "The sidebar shows the merge's stage words with an ellipsis while it runs",
       "source_evidence": [
-        "DroppyCode/App/Views/Sidebar/SidebarView.swift:1981-1985 - static func mergeStage(of runtime: ThreadRuntime?) -> String? { guard let runtime, runtime.isHydraMerging else { return nil }; return (runtime.hydraMergeStage ?? \"Merging\") + \"\\u{2026}\" }",
-        "DroppyCode/App/Views/Sidebar/SidebarView.swift:1575, :2092, :2419 - a merging runtime counts as running for the row's spinner and state"
+        "DroppyCode/App/Views/Sidebar/SidebarView.swift:1980-1984 - static func mergeStage(of runtime: ThreadRuntime?) -> String? { guard let runtime, runtime.isHydraMerging else { return nil }; return (runtime.hydraMergeStage ?? \"Merging\") + \"\\u{2026}\" }",
+        "DroppyCode/App/Views/Sidebar/SidebarView.swift:1574, :2092, :2419 - a merging runtime counts as running for the row's spinner and state"
       ],
       "preconditions": "A merge is running on a thread with a sidebar row.",
       "action": "The row renders.",
@@ -2683,9 +2683,9 @@
       "id": "PR-HYDRAMERGE-111",
       "title": "After an in-flight landing, the merge re-checks readiness and ends silently when the lead is no longer ready",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:100-104 - // A head's work still going into the checkout finishes first ... await runtime.hydraLanding?.value; guard runtime.isReadyForHydraMerge else { return }",
-        "DroppyCode/App/AppModel+HydraMerge.swift:93-99 - defer { runtime.isHydraMerging = false; runtime.hydraMergeStage = nil; runtime.hydraMergeStep = nil; runtime.hydraMergeStartedAt = nil; runtime.hydraMergeNoteID = nil }",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:2485-2490 - var isReadyForHydraMerge: Bool { phase == .idle && !isLoadingHistory && !isReverting && pendingSend == nil && turns.last?.status == .completed && !hasWorkingHeads && hydraPendingReports.isEmpty && hydraBatches.isEmpty && hydraWaiting.isEmpty && !hydraFlushScheduled }"
+        "DroppyCode/App/AppModel+HydraMerge.swift:113-117 - // A head's work still going into the checkout finishes first ... await runtime.hydraLanding?.value; guard runtime.isReadyForHydraMerge else { return }",
+        "DroppyCode/App/AppModel+HydraMerge.swift:106-112 - defer { runtime.isHydraMerging = false; runtime.hydraMergeStage = nil; runtime.hydraMergeStep = nil; runtime.hydraMergeStartedAt = nil; runtime.hydraMergeNoteID = nil }",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2527-2532 - var isReadyForHydraMerge: Bool { phase == .idle && !isLoadingHistory && !isReverting && pendingSend == nil && turns.last?.status == .completed && !hasWorkingHeads && hydraPendingReports.isEmpty && hydraBatches.isEmpty && hydraWaiting.isEmpty && !hydraFlushScheduled }"
       ],
       "preconditions": "autoMergeHydraWork passed its guard (PR-HYDRAMERGE-010) and set the merge fields (PR-HYDRAMERGE-011).",
       "action": "The awaited head landing completes, or there was none to await.",
@@ -2710,7 +2710,7 @@
       "title": "A file held by another chat in any project holds the whole job: nothing is merged, marked or spent",
       "source_evidence": [
         "DroppyCode/App/AppModel+HydraMerge.swift:135-146 - // A hold in any project keeps the whole job pending; otherwise a shared turn // could be marked merged by its unblocked project's share. var held: [String: String] = [:]; for group in groups { for (path, owner) in group.work.held { held[(group.checkout as NSString).appendingPathComponent(path)] = owner } }; if !held.isEmpty { recordHydraHold(held, leadID: leadID, runtime: runtime); return }",
-        "DroppyCode/App/AppModel+HydraMerge.swift:147 - groups.removeAll { $0.work.paths.isEmpty }"
+        "DroppyCode/App/AppModel+HydraMerge.swift:148 - groups.removeAll { $0.work.paths.isEmpty }"
       ],
       "preconditions": "Every group's hydraWork has run (PR-HYDRAMERGE-015, PR-HYDRAMERGE-017) and the strays are known.",
       "action": "The merge joins the groups' held files.",
@@ -2734,9 +2734,9 @@
       "id": "PR-HYDRAMERGE-113",
       "title": "recordHydraSettlement records .settled and says so only when nothing is left to merge",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:829-833 - private func recordHydraSettlement(leadID: UUID, runtime: ThreadRuntime) { guard hydraUnmergedFileCount(of: leadID) == 0 else { return }; runtime.recordHydraMerge(HydraMergeRecord(at: .now, outcome: .settled, project: nil, label: nil, url: nil, files: 0, detail: nil)); note(leadID, \"Hydra has no files left to merge.\", \"The checkout has no remaining changes from this job to send. No new merge request was needed.\") }",
-        "DroppyCode/App/AppModel+HydraMerge.swift:156-158 - if runtime.hydraMerges.last?.outcome == .held { recordHydraSettlement(leadID: leadID, runtime: runtime) }",
-        "DroppyCode/App/AppModel+HydraMerge.swift:177-182 - if !stray.isEmpty { ... } else if outcomes.allSatisfy({ $0 == .alreadyOnMain }) { recordHydraSettlement(leadID: leadID, runtime: runtime) }",
+        "DroppyCode/App/AppModel+HydraMerge.swift:902-906 - private func recordHydraSettlement(leadID: UUID, runtime: ThreadRuntime) { guard hydraUnmergedFileCount(of: leadID) == 0 else { return }; runtime.recordHydraMerge(HydraMergeRecord(at: .now, outcome: .settled, project: nil, label: nil, url: nil, files: 0, detail: nil)); note(leadID, \"Hydra has no files left to merge.\", \"The checkout has no remaining changes from this job to send. No new merge request was needed.\") }",
+        "DroppyCode/App/AppModel+HydraMerge.swift:157-159 - if runtime.hydraMerges.last?.outcome == .held { recordHydraSettlement(leadID: leadID, runtime: runtime) }",
+        "DroppyCode/App/AppModel+HydraMerge.swift:181-186 - if !stray.isEmpty { ... } else if outcomes.allSatisfy({ $0 == .alreadyOnMain }) { recordHydraSettlement(leadID: leadID, runtime: runtime) }",
         "DroppyCode/App/AppModel+Hydra.swift:283-294 - func hydraUnmergedFileCount(of leadID: UUID) -> Int"
       ],
       "preconditions": "Either the no-groups, no-strays branch ran after a .held last record (PR-HYDRAMERGE-021), or every group returned .alreadyOnMain, none failed, there are no strays, and the work was marked spent (PR-HYDRAMERGE-025).",
@@ -2832,9 +2832,9 @@
       "id": "PR-HYDRAMERGE-117",
       "title": "A claim holds the job unless its owner is a finished, idle, eligible job that ranks after this one",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:650-657 - // A running head is active work and a stopped or failed one left partial // work behind ... let rankedOut = info.status == .completed && parent.map { hydraRanksAfter($0, leadID) && hydraIsFinishedIdleEligible($0) } == true; for file in info.landing?.files ?? [] { reserve(file.path, owner: parent?.title ?? other.title, blocks: !rankedOut) }",
-        "DroppyCode/App/AppModel+HydraMerge.swift:660-667 - // A later completed turn finishes the resumed job ... let rankedOut = hydraRanksAfter(other, leadID) && hydraIsFinishedIdleEligible(other); for turn in live.hydraUnmergedTurns where canStillMerge(other) || turn.status != .completed { for path in turn.touchedPaths ?? [] { reserve(path, owner: other.title, blocks: !rankedOut) } }",
-        "DroppyCode/App/AppModel+HydraMerge.swift:622-628 - /// A claim holds - `blocking` - unless it is a file only a finished, idle, eligible /// competing job ranks behind this one owns ... Active work, a job that has not completed after an /// interruption, a failed head's partial work, and a pending landing keep their hold."
+        "DroppyCode/App/AppModel+HydraMerge.swift:706-713 - // A running head is active work and a stopped or failed one left partial // work behind ... let rankedOut = info.status == .completed && parent.map { hydraRanksAfter($0, leadID) && hydraIsFinishedIdleEligible($0) } == true; for file in info.landing?.files ?? [] { reserve(file.path, owner: parent?.title ?? other.title, blocks: !rankedOut) }",
+        "DroppyCode/App/AppModel+HydraMerge.swift:716-723 - // A later completed turn finishes the resumed job ... let rankedOut = hydraRanksAfter(other, leadID) && hydraIsFinishedIdleEligible(other); for turn in live.hydraUnmergedTurns where canStillMerge(other) || turn.status != .completed { for path in turn.touchedPaths ?? [] { reserve(path, owner: other.title, blocks: !rankedOut) } }",
+        "DroppyCode/App/AppModel+HydraMerge.swift:678-684 - /// A claim holds - `blocking` - unless it is a file only a finished, idle, eligible /// competing job ranks behind this one owns ... Active work, a job that has not completed after an /// interruption, a failed head's partial work, and a pending landing keep their hold."
       ],
       "preconditions": "A reservation from PR-HYDRAMERGE-075.",
       "action": "siblingOwnedPaths decides whether it blocks.",
@@ -2856,7 +2856,7 @@
       "id": "PR-HYDRAMERGE-118",
       "title": "hydraIsFinishedIdleEligible: Hydra on, live, ready, not merging, no pending landing, and still able to merge",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:674-684 - private func hydraIsFinishedIdleEligible(_ lead: ChatThread) -> Bool { guard hydraIsOn(lead), let live = existingRuntime(for: lead.id) else { return false }; guard live.isReadyForHydraMerge, !live.isHydraMerging, !hydraHasPendingLanding(lead.id) else { return false }; return canStillMerge(lead) }"
+        "DroppyCode/App/AppModel+HydraMerge.swift:730-740 - private func hydraIsFinishedIdleEligible(_ lead: ChatThread) -> Bool { guard hydraIsOn(lead), let live = existingRuntime(for: lead.id) else { return false }; guard live.isReadyForHydraMerge, !live.isHydraMerging, !hydraHasPendingLanding(lead.id) else { return false }; return canStillMerge(lead) }"
       ],
       "preconditions": "A competing lead or chat.",
       "action": "The predicate is evaluated.",
@@ -2876,7 +2876,7 @@
       "id": "PR-HYDRAMERGE-119",
       "title": "hydraHasPendingLanding: a head's files are recorded but did not land",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:686-694 - private func hydraHasPendingLanding(_ leadID: UUID) -> Bool { hydraTeam(of: leadID).contains { head in guard let info = head.hydra, info.mergedAt == nil, let landing = info.landing else { return false }; return !landing.files.isEmpty && !landing.landed } }",
+        "DroppyCode/App/AppModel+HydraMerge.swift:742-750 - private func hydraHasPendingLanding(_ leadID: UUID) -> Bool { hydraTeam(of: leadID).contains { head in guard let info = head.hydra, info.mergedAt == nil, let landing = info.landing else { return false }; return !landing.files.isEmpty && !landing.landed } }",
         "DroppyCode/Core/Models/Hydra.swift:475 - var landed: Bool { !files.isEmpty && patchPath == nil && error == nil }"
       ],
       "preconditions": "A lead with a team.",
@@ -2897,8 +2897,8 @@
       "id": "PR-HYDRAMERGE-120",
       "title": "hydraRanksAfter orders competing jobs by the lead id's string form",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:696-701 - /// One stable total ordering across every project, by lead UUID: the earliest job /// keeps priority and every job reads the same order ... private func hydraRanksAfter(_ lead: ChatThread, _ other: UUID) -> Bool { lead.id.uuidString > other.uuidString }",
-        "DroppyCode/App/AppModel+HydraMerge.swift:52 - .sorted { $0.id.uuidString < $1.id.uuidString }"
+        "DroppyCode/App/AppModel+HydraMerge.swift:752-757 - /// One stable total ordering across every project, by lead UUID: the earliest job /// keeps priority and every job reads the same order ... private func hydraRanksAfter(_ lead: ChatThread, _ other: UUID) -> Bool { lead.id.uuidString > other.uuidString }",
+        "DroppyCode/App/AppModel+HydraMerge.swift:53 - .sorted { $0.id.uuidString < $1.id.uuidString }"
       ],
       "preconditions": "Two lead ids.",
       "action": "The predicate is evaluated.",
@@ -2918,8 +2918,8 @@
       "id": "PR-HYDRAMERGE-121",
       "title": "canStillMerge: a claim lives while its owner is active, or quiet but still able to land its work within the merge window",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:37-41 - /// How long after its last message a lead is still one the auto-merge visits. It is /// the window `resumeHydraMerges` sweeps, and so also how long a head's claim on its /// files lives once the lead has gone quiet ... private static var hydraMergeWindow: TimeInterval { 3 * 24 * 3600 }",
-        "DroppyCode/App/AppModel+HydraMerge.swift:703-715 - private func canStillMerge(_ lead: ChatThread) -> Bool { let live = existingRuntime(for: lead.id); if let live, live.phase != .idle || live.isHydraMerging { return true }; guard !lead.isArchived, hydraIsOn(lead), lead.updatedAt > Date.now.addingTimeInterval(-Self.hydraMergeWindow) else { return false }; let landedHeadWork = hydraTeam(of: lead.id).contains { $0.hydra.map { $0.mergedAt == nil && ($0.landing?.landed ?? false) } ?? false }; guard let live else { return lead.lastStatus == .completed }; return live.turns.last?.status == .completed && (!live.hydraUnmergedTurns.isEmpty || landedHeadWork) }"
+        "DroppyCode/App/AppModel+HydraMerge.swift:38-42 - /// How long after its last message a lead is still one the auto-merge visits. It is /// the window `resumeHydraMerges` sweeps, and so also how long a head's claim on its /// files lives once the lead has gone quiet ... private static var hydraMergeWindow: TimeInterval { 3 * 24 * 3600 }",
+        "DroppyCode/App/AppModel+HydraMerge.swift:759-771 - private func canStillMerge(_ lead: ChatThread) -> Bool { let live = existingRuntime(for: lead.id); if let live, live.phase != .idle || live.isHydraMerging { return true }; guard !lead.isArchived, hydraIsOn(lead), lead.updatedAt > Date.now.addingTimeInterval(-Self.hydraMergeWindow) else { return false }; let landedHeadWork = hydraTeam(of: lead.id).contains { $0.hydra.map { $0.mergedAt == nil && ($0.landing?.landed ?? false) } ?? false }; guard let live else { return lead.lastStatus == .completed }; return live.turns.last?.status == .completed && (!live.hydraUnmergedTurns.isEmpty || landedHeadWork) }"
       ],
       "preconditions": "A thread whose claims are being weighed (PR-HYDRAMERGE-075, PR-HYDRAMERGE-118).",
       "action": "The predicate is evaluated.",
@@ -3067,11 +3067,11 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:1099-1120",
         "DroppyCode/App/Views/Chat/TimelineRows.swift:1142-1155",
         "DroppyCode/App/Views/Chat/TimelineRows.swift:802-808",
-        "DroppyCode/App/AppModel+HydraMerge.swift:832",
+        "DroppyCode/App/AppModel+HydraMerge.swift:905",
         "DroppyCode/App/AppModel+HydraMerge.swift:840"
       ],
       "notes": "The displayed title is the note's first line with exactly one trailing full stop removed, which is why the failure titles lose the stop they were written with. The tooltip is exactly \"Show the message\".",
-      "b2_change": "Fonts drop the zoom factor (B1 TimelineRows.swift:1151,1157 -> B2 :1145,1151) and the chevron colour went `.foregroundStyle(.tertiary)` -> `.foregroundStyle(Chrome.secondaryText)` (B2 :1152). The title list loses \"Hydra merged <project>, but left a changed file no turn or head recorded\" (B1 AppModel+HydraMerge.swift:149, deleted) and gains \"Hydra is waiting for another chat's files\" (B2 :840) and \"Hydra has no files left to merge\" (B2 :832). Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table.",
+      "b2_change": "Fonts drop the zoom factor (B1 TimelineRows.swift:1151,1157 -> B2 :1145,1151) and the chevron colour went `.foregroundStyle(.tertiary)` -> `.foregroundStyle(Chrome.secondaryText)` (B2 :1152). The title list loses \"Hydra merged <project>, but left a changed file no turn or head recorded\" (B1 AppModel+HydraMerge.swift:150, deleted) and gains \"Hydra is waiting for another chat's files\" (B2 :840) and \"Hydra has no files left to merge\" (B2 :832). Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table.",
       "engineering_decisions": [
         "ED-059: each text style is drawn at the size in upstream's B1 chatBaseSize table: callout 12 points (B1:DroppyCode/UI/Common/ChatZoom.swift:52), caption2 10 points (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Set in Inter (OD-0009); the size is fixed per style and scales only through the app zoom (DroppyCode/UI/Common/AppZoom.swift), with no hook for a system text-size preference. Visual size parity stays UNVERIFIED under OD-0001.",
         "ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 states (DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, primaryText = labelColor at :76); ED-051's secondaryLabelColor literal is superseded for this token."
@@ -3450,10 +3450,10 @@
       ],
       "source_evidence": [
         "DroppyCode/App/Views/Chat/HydraMergePopover.swift:234-238",
-        "DroppyCode/App/AppModel+HydraMerge.swift:525"
+        "DroppyCode/App/AppModel+HydraMerge.swift:593"
       ],
       "notes": "The head-line regex is non-greedy on the task, so a task containing an em dash is cut at the first one.",
-      "b2_change": "Citation re-anchored, size unchanged. B1 HydraMergePopover.swift:246-250 `.font(.system(size: 12))` -> B2 :234-238 `.font(.system(.callout))`; B1 AppModel+HydraMerge.swift:481 -> B2 :525 (the 120-character task limit is unchanged). Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table.",
+      "b2_change": "Citation re-anchored, size unchanged. B1 HydraMergePopover.swift:246-250 `.font(.system(size: 12))` -> B2 :234-238 `.font(.system(.callout))`; B1 AppModel+HydraMerge.swift:547 -> B2 :525 (the 120-character task limit is unchanged). Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table.",
       "engineering_decisions": [
         "ED-059: each text style is drawn at the size in upstream's B1 chatBaseSize table: callout 12 points (B1:DroppyCode/UI/Common/ChatZoom.swift:52). Set in Inter (OD-0009); the size is fixed per style and scales only through the app zoom (DroppyCode/UI/Common/AppZoom.swift), with no hook for a system text-size preference. Visual size parity stays UNVERIFIED under OD-0001.",
         "ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 states (DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, primaryText = labelColor at :76); ED-051's secondaryLabelColor literal is superseded for this token."
@@ -3696,14 +3696,14 @@
       "colors": "sidebar row styles",
       "states": [
         "shown only while isHydraMerging; nil otherwise",
-        "a merging runtime also counts as running for the row's spinner and state at SidebarView.swift:1575, :2092 and :2419"
+        "a merging runtime also counts as running for the row's spinner and state at SidebarView.swift:1574, :2092 and :2419"
       ],
       "interactions": [
         "none of its own; the row is selectable as usual"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Sidebar/SidebarView.swift:1981-1985",
-        "DroppyCode/App/Views/Sidebar/SidebarView.swift:1575, :2092, :2419"
+        "DroppyCode/App/Views/Sidebar/SidebarView.swift:1980-1984",
+        "DroppyCode/App/Views/Sidebar/SidebarView.swift:1574, :2092, :2419"
       ],
       "notes": "The same words as the pill, including the multi-project \"<project>: \" prefix, and the same single U+2026."
     },
@@ -3723,11 +3723,11 @@
         "as for any timeline note"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:1636-1643",
-        "DroppyCode/App/AppModel+HydraMerge.swift:213-214",
-        "DroppyCode/App/AppModel+HydraMerge.swift:162",
-        "DroppyCode/App/AppModel+HydraMerge.swift:179",
-        "DroppyCode/App/AppModel+HydraMerge.swift:832",
+        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:1645-1652",
+        "DroppyCode/App/AppModel+HydraMerge.swift:222-223",
+        "DroppyCode/App/AppModel+HydraMerge.swift:163",
+        "DroppyCode/App/AppModel+HydraMerge.swift:183",
+        "DroppyCode/App/AppModel+HydraMerge.swift:905",
         "DroppyCode/App/AppModel+HydraMerge.swift:840"
       ],
       "notes": "This follows from the sources and is reproduced, not fixed. A porter who normalizes the prefix would change which notes get the rich card.",
@@ -3749,7 +3749,7 @@
         "clicking it targets the lead thread (notify(threadID:...))"
       ],
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:868-874"
+        "DroppyCode/App/AppModel+HydraMerge.swift:923-929"
       ],
       "notes": "The title and body are swapped relative to what a reader expects: the CHAT title is the notification title and the NOTE title is the body.",
       "status": "IMPLEMENTED"
@@ -3770,7 +3770,7 @@
         "cleared by the app's normal unread handling, outside this area"
       ],
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:870-871"
+        "DroppyCode/App/AppModel+HydraMerge.swift:925-926"
       ],
       "notes": "On Windows this is the taskbar overlay badge; the count comes from the same unread bookkeeping.",
       "status": "IMPLEMENTED"
@@ -3795,15 +3795,15 @@
       ],
       "source_evidence": [
         "DroppyCode/App/AppModel+HydraMerge.swift:271",
-        "DroppyCode/App/AppModel+HydraMerge.swift:775-798"
+        "DroppyCode/App/AppModel+HydraMerge.swift:845-868"
       ],
-      "notes": "The description is user-visible outside the app. Its opening line is \"Opened by Marrow once its Hydra team finished.\" by owner ruling OD-0008 B10 (upstream names \"Droppy Code\", AppModel+HydraMerge.swift:775). The file lines use U+2212 before the deletion count. Head lines are \"- **<Name>**: <task>\" with an optional \" (N files)\" suffix.",
+      "notes": "The description is user-visible outside the app. Its opening line is \"Opened by Marrow once its Hydra team finished.\" by owner ruling OD-0008 B10 (upstream names \"Droppy Code\", AppModel+HydraMerge.swift:845). The file lines use U+2212 before the deletion count. Head lines are \"- **<Name>**: <task>\" with an optional \" (N files)\" suffix.",
       "deviation": {
         "decision": "OD-0008 B10",
-        "upstream": "The description begins \"Opened by Droppy Code once its Hydra team finished.\" (DroppyCode/App/AppModel+HydraMerge.swift:775).",
+        "upstream": "The description begins \"Opened by Droppy Code once its Hydra team finished.\" (DroppyCode/App/AppModel+HydraMerge.swift:845).",
         "port": "The description begins \"Opened by Marrow once its Hydra team finished.\""
       },
-      "b2_change": "Citation re-anchored, behaviour unchanged at B2: B1 AppModel+HydraMerge.swift:626-650 -> B2 :775-798.",
+      "b2_change": "Citation re-anchored, behaviour unchanged at B2: B1 AppModel+HydraMerge.swift:682-706 -> B2 :775-798.",
       "status": "IMPLEMENTED"
     },
     {
@@ -3851,7 +3851,7 @@
         "tooltip on the title: \"Show the message\""
       ],
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:829-833",
+        "DroppyCode/App/AppModel+HydraMerge.swift:902-906",
         "DroppyCode/App/Views/Chat/TimelineRows.swift:802-808",
         "DroppyCode/App/Views/Chat/TimelineRows.swift:1099-1120"
       ],
