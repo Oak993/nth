@@ -21,7 +21,7 @@ using AvaloniaWindow = Avalonia.Controls.Window;
 namespace Marrow.App.Tests.Window;
 
 // Source: DroppyCode/App/Window/WindowManager.swift (B3 52bc792), :1-222. The file is unchanged from B2 1fbf81e, so
-// the B2 and B3 line numbers are the same. Part 1 of 2 (work packet part1.md).
+// the B2 and B3 line numbers are the same. Parts 1 and 2 of 2 (work packets part1.md, part2.md).
 // Every expectation is transcribed from the cited Swift lines (or, where the record says so, from its windows_path):
 //   :19 main 1320 x 860; :20 main minimum 860 x 560; :21 settings 780 x 580; :24 frame name "DroppyCodeMainWindow"
 //   :26-30 showMain: `mainWindow ?? makeMainWindow()`, cached, then present
@@ -887,6 +887,155 @@ public sealed class WindowManagerTests(HeadlessSession headless)
         Assert.Equal(attachedBefore, attached);
         Assert.Equal(0, detached);
     });
+
+    // ---- Part 2 (work packet part2.md): UI-SETTINGS-001, the settings window itself ----
+    // The record's evidence in this file is :21, :80-84 and :92-99 (with :32-55 for how it opens, :98 for how it
+    // closes and :101 for its clear window, WindowChrome.swift:111-117). Its evidence in SettingsView.swift:118-122
+    // (the 26 pt clip, the backdrop at settings.backdropOpacity), the sidebar drag (SettingsView.swift:193), the page
+    // hand-over (SettingsView.swift:123-127) and the openers (AppCommands.swift:12-14, CommandPalette.swift:176-178)
+    // belong to other units: STOP App.Window.WindowManager #4 below. The Acrylic material OD-0014 names for the clear
+    // window over the desktop is set nowhere yet: STOP App.Window.WindowManager #5 below.
+
+    [Fact]
+    [Trait("Req", "UI-SETTINGS-001")] // App/Window/WindowManager.swift:21, :80-84, :93-97
+    public void The_Settings_window_is_a_fixed_780_by_580_window_titled_Settings_that_can_be_minimised_but_not_resized() => WithManager((harness, manager) =>
+    {
+        var window = ShowSettings(harness, manager, new Border());
+        Assert.Equal("Settings", window.Title); // :81, :97
+        Assert.Equal(new Size(780, 580), window.ClientSize); // :21, :95-96 the content rect
+        Assert.False(window.CanResize); // :94 .resizable is inserted only when asked, and :81 passes false
+        Assert.False(window.CanMaximize); // so the zoom control is inert (PR-WIN-007)
+        Assert.True(window.CanMinimize); // :93 .miniaturizable
+
+        // Fixed: a close and a reopen bring back the same size and the same style.
+        harness.Main.OnMain(() =>
+        {
+            window.Close();
+            Settle(window);
+            manager.ShowSettings();
+            Settle(window);
+        });
+        Assert.True(window.IsVisible);
+        Assert.Equal(new Size(780, 580), window.ClientSize);
+        Assert.False(window.CanResize);
+        Assert.True(window.CanMinimize);
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SETTINGS-001")] // App/Window/WindowManager.swift:93, :101, :104-108; UI/Chrome/WindowChrome.swift:111-117
+    public void The_Settings_window_draws_its_content_from_the_top_left_corner_under_a_transparent_title_bar_over_a_clear_window() => WithManager((harness, manager) =>
+    {
+        var content = new Border();
+        var window = ShowSettings(harness, manager, content);
+        Assert.Equal(WindowDecorations.Full, window.WindowDecorations); // the title bar is the system's (ED-063)
+        Assert.True(window.ExtendClientAreaToDecorationsHint); // :93 .fullSizeContentView; WindowChrome.swift:111-113
+        // WindowChrome.swift:116-117 isOpaque = false, backgroundColor = .clear
+        Assert.Equal(Colors.Transparent, Assert.IsAssignableFrom<ISolidColorBrush>(window.Background).Color);
+        // Nothing between the window and the hosted view paints (:104-108: a plain container and the hosting view),
+        // so what shows is the content itself, from the window's top-left corner under the title bar, at 780 x 580.
+        var container = Assert.IsAssignableFrom<Panel>(window.Content);
+        Assert.Null(container.Background);
+        Assert.Equal(new Point(0, 0), content.TranslatePoint(new Point(0, 0), window));
+        Assert.Equal(new Size(780, 580), content.Bounds.Size);
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SETTINGS-001")] // App/Window/WindowManager.swift:36, :40-55, :80-84
+    public void Every_open_centres_the_Settings_window_over_the_main_window_clamped_into_its_screen_and_nothing_remembers_where_it_was() => WithManager((harness, manager) =>
+    {
+        var main = ShowMain(harness, manager, new Border());
+        harness.Main.OnMain(() =>
+        {
+            main.Position = new PixelPoint(1000, 100);
+            Settle(main);
+        });
+        var settings = ShowSettings(harness, manager, new Border());
+        // parent (1000, 100, 1320, 860): mid (1660, 530); origin (1270, 240); :51 min(max(1270, 0), 1920 - 780) = 1140;
+        // :52 the top edge stays at 240, inside the working area.
+        Assert.Equal(new PixelPoint(1140, 240), settings.Position);
+
+        harness.Defaults.Writes.Clear();
+        harness.Main.OnMain(() =>
+        {
+            settings.Position = new PixelPoint(40, 30); // moved away by its sidebar
+            Settle(settings);
+            settings.Close();
+            Settle(settings);
+        });
+        Assert.Empty(harness.Defaults.Writes); // no frame autosave (:80-84; only the main window has one, :70)
+
+        harness.Main.OnMain(() => manager.ShowSettings());
+        Assert.Equal(new PixelPoint(1140, 240), settings.Position); // :36 centred again, not where it was left
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SETTINGS-001")] // App/Window/WindowManager.swift:16, :34-35, :98
+    public void Closing_the_Settings_window_hides_it_and_its_view_state_survives_so_the_next_open_shows_the_same_page_and_search_text() => WithManager((harness, manager) =>
+    {
+        // Stand-ins for SettingsView's @State page and search (SettingsView.swift:93-94), held by the hosted view.
+        var search = new TextBox { Text = "zoom" };
+        var page = new Border { Tag = SettingsPage.Appearance };
+        var content = new StackPanel { Children = { search, page } };
+        var built = 0;
+        manager.SettingsContent = () =>
+        {
+            built++;
+            return content;
+        };
+        harness.Main.OnMain(() => manager.ShowSettings());
+        var window = WindowOf(content);
+
+        // The close button asks the window to close (performClose); :98 keeps it.
+        harness.Main.OnMain(() =>
+        {
+            window.Close();
+            Settle(window);
+        });
+        Assert.False(window.IsVisible);
+        Assert.Same(window, WindowOf(content));
+
+        harness.Main.OnMain(() =>
+        {
+            manager.ShowSettings();
+            Settle(window);
+        });
+        Assert.True(window.IsVisible);
+        Assert.Equal(1, built); // :34 the kept window, not a new one
+        Assert.Same(window, WindowOf(content));
+        Assert.Equal("zoom", search.Text);
+        Assert.Equal(SettingsPage.Appearance, page.Tag);
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SETTINGS-001")] // App/Window/WindowManager.swift:32-37
+    public void Reopening_the_Settings_window_with_a_page_requests_that_page_before_the_same_kept_view_is_shown_again() => WithManager((harness, manager) =>
+    {
+        var search = new TextBox { Text = "zoom" };
+        var content = new StackPanel { Children = { search } };
+        var window = ShowSettings(harness, manager, content);
+        harness.Main.OnMain(() =>
+        {
+            window.Close();
+            Settle(window);
+            SettingsNavigation.Shared.RequestedPage = null;
+        });
+
+        SettingsPage? requestedWhenShown = null;
+        var shown = 0;
+        window.PropertyChanged += (_, e) =>
+        {
+            if (e.Property != Visual.IsVisibleProperty || !e.GetNewValue<bool>()) return;
+            shown++;
+            requestedWhenShown = SettingsNavigation.Shared.RequestedPage;
+        };
+        harness.Main.OnMain(() => manager.ShowSettings(SettingsPage.Mcp));
+
+        Assert.Equal(1, shown);
+        Assert.Equal(SettingsPage.Mcp, requestedWhenShown); // :33 before :37: the view finds the page as it appears
+        Assert.Equal(SettingsPage.Mcp, harness.Main.OnMain(() => SettingsNavigation.Shared.RequestedPage));
+        Assert.Same(window, WindowOf(content)); // the same view state, which the requested page then overrides
+        Assert.Equal("zoom", search.Text);
+    });
 }
 
 // STOP App.Window.WindowManager #1 (build agent, 2026-09-26)
@@ -937,3 +1086,45 @@ public sealed class WindowManagerTests(HeadlessSession headless)
 // The hook must leave the Settings window's zoom control inert (PR-WIN-007: no .resizable; CanMaximize is false).
 // Done so far: WindowChrome.Configure runs for every window (:101); the caption hook is not written; the live-resize
 // hook is registered through Win32Properties.AddWndProcHookCallback and its message handling is tested.
+
+// STOP App.Window.WindowManager #4 (build agent, 2026-09-26)
+// Kind: missing dependency
+// Swift: DroppyCode/App/Views/Settings/SettingsView.swift:118-122, :123-127, :193; App/AppCommands.swift:12-14;
+// App/Views/Palette/CommandPalette.swift:176-178 (B3 52bc792)
+// Requirements: UI-SETTINGS-001
+// What is unclear or missing: this file builds, places, opens and keeps the Settings window (tested above with
+// stand-in content). The rest of the record is drawn or done by the view the window hosts and by the commands that
+// open it: the content clipped to Chrome.windowCornerRadius (26) continuous (SettingsView.swift:120), WindowBackdrop
+// at model.settings.backdropOpacity behind the whole content (:118) and WindowChromeConfigurator (:119), the frame of
+// 780 x 580 on the view itself (:122), the requested page taking over the kept view's page and being cleared
+// (:123-127), the drag by the sidebar's WindowDragArea (:193), and the openers: the openSettings chord (Ctrl+, in
+// Windows notation, OD-0008 B7; AppCommands.swift:12-14 without its menu, OD-0008 C3) and the palette's Settings item
+// (CommandPalette.swift:176-178). SettingsView's body is still MARROW_STUB (STOP #1), App/AppCommands.cs does not
+// exist yet, and the palette's items are still MARROW_STUB.
+// Readings or options: (a) test this file's half of the record with stand-in content and leave the rest to the units
+// that own those lines -> above; (b) draw any of it here -> another Swift file's view in this file (R-FILE-1).
+// Needed to proceed: units App.Views.Settings.SettingsView (body), App.AppCommands and App.Views.Palette.CommandPalette;
+// then one end-to-end test of UI-SETTINGS-001 with the real SettingsView and the real chord.
+// Done so far: the five UI-SETTINGS-001 tests above (style and fixed size, clear window under a transparent title
+// bar, placement without autosave, kept view state, the page requested on reopen); nothing is written for these sites.
+
+// STOP App.Window.WindowManager #5 (build agent, 2026-09-26)
+// Kind: missing dependency
+// Swift: DroppyCode/UI/Chrome/WindowChrome.swift:116-117 `window.isOpaque = false` / `window.backgroundColor = .clear`,
+// reached from DroppyCode/App/Window/WindowManager.swift:101 (B3 52bc792)
+// Requirements: UI-SETTINGS-001 (colors, and its OD-0014 note); PR-WIN-058 and PR-WIN-059 draw over it
+// What is unclear or missing: OD-0014 keeps the window clear, so until a wallpaper is set the glass sits over the
+// desktop "drawn as Acrylic plus the app-drawn scrim" (OD-0005, probe P3), and ADR-0002 names the means:
+// Window.TransparencyLevelHint = AcrylicBlur, per window. Nothing sets it on the main or the Settings window:
+// UI/Chrome/WindowChrome.cs (Configure, the twin of :116-117) sets a transparent Background only, and probe P3's
+// control `ctl_none_opaque` (hint None) captured such a window as solid black (porting/probes/p3/RESULT.md). The
+// twin site is WindowChrome.Configure (unit UI.Chrome.WindowChrome), not this file: WindowManager.swift sets no
+// background. One fact is also unsettled: AppKit's clear window shows nothing outside the 26 pt continuous shape the
+// content draws (SettingsView.swift:120, Chrome.swift:218), while an AcrylicBlur window paints the material over its
+// whole client area, corners included, and no probe or decision says how the area outside that shape looks.
+// Readings or options: (a) set AcrylicBlur in WindowChrome.Configure beside the transparent Background -> the desktop
+// shows through as Acrylic, and the corners outside the 26 pt shape show Acrylic too; (b) (a) plus a corner treatment
+// that clears them -> needs a probe; (c) leave it -> a black window where upstream shows the desktop.
+// Needed to proceed: a decision (ED or owner) naming the unit that sets the windows' Acrylic hint and ruling on the
+// corners outside the 26 pt shape; a capture check by probe P3's method.
+// Done so far: the clear window background (:116-117 through :101) is tested above; nothing is written for the hint.

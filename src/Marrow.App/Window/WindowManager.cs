@@ -28,7 +28,9 @@ using AvaloniaWindow = Avalonia.Controls.Window;
 // ED-001), so it is not declared.
 // Not written here (STOP App.Window.WindowManager #2 and #3 in the tests): the OD-0008 C1 quit on the main window's
 // close (App.AppDelegate, PR-LAUNCH-074) and the ED-063 caption WndProc hook that sits beside WindowChrome.configure
-// (:101).
+// (:101). UI-SETTINGS-001 (the Settings window, :21, :80-84, :92-99) is this file's as far as building, placing,
+// opening and keeping the window go; its SettingsView.swift half and its openers are STOP #4, and the Acrylic hint
+// OD-0014 names for the clear window (WindowChrome.swift:116-117, reached from :101) is STOP #5.
 
 namespace Marrow.App.Window;
 
