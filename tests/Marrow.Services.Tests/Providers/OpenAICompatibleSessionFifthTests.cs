@@ -9,7 +9,7 @@ using Xunit;
 
 namespace Marrow.Services.Tests.Providers;
 
-// Source: DroppyCode/Services/Providers/OpenAICompatibleSession.swift (B2 1fbf81e), :425-429, :457-468,
+// Source: DroppyCode/Services/Providers/OpenAICompatibleSession.swift (B3 52bc792), :425-429, :457-468,
 // :547-549, :898-917, :1027-1032.
 //
 // Part 5 of 5 (UI-PROVAPI-021 to 025): the timeline-row and notice records for MCP/unknown tool rows,
@@ -100,7 +100,7 @@ public sealed class OpenAICompatibleSessionFifthTests
             var expectedRowOutput = OpenAICompatibleSession.SummaryForTests(bigResult, 12_000);
             Assert.True(bigResult.Length > 12_000);
             Assert.NotEqual(bigResult, expectedRowOutput); // truncation actually happened
-            Assert.EndsWith("\n\U00002026(truncated)", expectedRowOutput, StringComparison.Ordinal); // U+2026 HORIZONTAL ELLIPSIS, :1329
+            Assert.EndsWith("\n\U00002026(truncated)", expectedRowOutput, StringComparison.Ordinal); // U+2026 HORIZONTAL ELLIPSIS, :1327
             var updated = events.OfType<ProviderEvent.ToolUpdated>().Single().Update;
             Assert.Equal(expectedRowOutput, updated.Output);
             Assert.Equal(ToolCall.Status.Completed, updated.Status);

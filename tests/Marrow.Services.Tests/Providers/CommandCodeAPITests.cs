@@ -8,7 +8,7 @@ using Marrow.Testing;
 
 namespace Marrow.Services.Tests.Providers;
 
-// Source: DroppyCode/Services/Providers/CommandCodeAPI.swift (B2 1fbf81e), :1-458.
+// Source: DroppyCode/Services/Providers/CommandCodeAPI.swift (B3 52bc7926), :1-460.
 //
 // Every expectation below is derived from the pinned Swift and the records PR-PROVCLI-250 to 265, UI-PROVCLI-019 and
 // UI-PROVCLI-024, never from running the port (R-TEST-4). Network tests run against LoopbackHttpServer on 127.0.0.1
@@ -874,7 +874,7 @@ public sealed class CommandCodeAPITests
         var table = new Dictionary<string, string[]>(StringComparer.Ordinal)
         {
             ["claude-sonnet-5"] = Full, ["claude-sonnet-4-6"] = Full, ["claude-fable-5-1"] = Full, ["claude-fable-5"] = Full,
-            ["claude-opus-5"] = Full, ["claude-opus-4-8"] = Full, ["claude-opus-4-7"] = Full,
+            ["claude-opus-5-5"] = Full, ["claude-opus-5"] = Full, ["claude-opus-4-8"] = Full, ["claude-opus-4-7"] = Full,
             ["gpt-6-astra"] = Full, ["gpt-5.6-sol"] = Full, ["gpt-5.6-terra"] = Full, ["gpt-5.6-luna"] = Full,
             ["gpt-5.5"] = ToXHigh, ["gpt-5.4"] = ToXHigh, ["gpt-5.3-codex"] = ToXHigh, ["gpt-5.4-mini"] = ToHigh,
             ["deepseek/deepseek-v4-pro"] = HighMax, ["deepseek/deepseek-v4-flash"] = HighMax,
@@ -892,12 +892,13 @@ public sealed class CommandCodeAPITests
             ["meta/muse-spark-1.3"] = Full, ["meta/muse-spark-1.3-contributor"] = ToXHigh,
             ["minimaxai/minimax-m3"] = ToHigh, ["minimax/minimax-m3-free"] = ToHigh,
         };
-        Assert.Equal(45, table.Count);
+        Assert.Equal(46, table.Count);
 
         foreach (var (id, efforts) in table)
         {
             Assert.Equal(efforts, CommandCodeAPI.Efforts(id));
         }
+        Assert.Equal(Full, CommandCodeAPI.Efforts("CLAUDE-OPUS-5-5"));
         Assert.Equal(Full, CommandCodeAPI.Efforts("CLAUDE-SONNET-5"));
         Assert.Equal(LowHighMax, CommandCodeAPI.Efforts("MoonshotAI/Kimi-K3"));
         Assert.Empty(CommandCodeAPI.Efforts("claude-haiku-4-5"));
@@ -914,7 +915,7 @@ public sealed class CommandCodeAPITests
         var table = new Dictionary<string, long>(StringComparer.Ordinal)
         {
             ["claude-sonnet-5"] = 1_000_000, ["claude-sonnet-4-6"] = 1_000_000, ["claude-fable-5-1"] = 1_000_000, ["claude-fable-5"] = 1_000_000,
-            ["claude-opus-5"] = 1_000_000, ["claude-opus-4-8"] = 1_000_000, ["claude-opus-4-7"] = 1_000_000, ["claude-haiku-4-5"] = 200_000,
+            ["claude-opus-5-5"] = 1_000_000, ["claude-opus-5"] = 1_000_000, ["claude-opus-4-8"] = 1_000_000, ["claude-opus-4-7"] = 1_000_000, ["claude-haiku-4-5"] = 200_000,
             ["claude-haiku-4-5-20251001"] = 200_000,
             ["gpt-6-astra"] = 1_050_000, ["gpt-5.6-sol"] = 1_050_000, ["gpt-5.6-terra"] = 1_050_000, ["gpt-5.6-luna"] = 1_050_000,
             ["gpt-5.5"] = 400_000, ["gpt-5.4"] = 400_000, ["gpt-5.3-codex"] = 400_000, ["gpt-5.4-mini"] = 400_000,
@@ -939,12 +940,13 @@ public sealed class CommandCodeAPITests
             ["meta/muse-spark-1.3"] = 1_048_576, ["meta/muse-spark-1.3-contributor"] = 1_048_576,
             ["nvidia/nemotron-3-ultra-550b-a55b"] = 1_000_000,
         };
-        Assert.Equal(69, table.Count);
+        Assert.Equal(70, table.Count);
 
         foreach (var (id, window) in table)
         {
             Assert.Equal(window, CommandCodeAPI.ContextWindow(id));
         }
+        Assert.Equal(1_000_000, CommandCodeAPI.ContextWindow("Claude-Opus-5-5"));
         Assert.Equal(200_000, CommandCodeAPI.ContextWindow("Claude-Haiku-4-5"));
         Assert.Equal(262_144, CommandCodeAPI.ContextWindow("TENCENT/HY3-PAID"));
     }
@@ -967,17 +969,19 @@ public sealed class CommandCodeAPITests
     // ---- PR-PROVCLI-265, UI-PROVCLI-019: seed -----------------------------------------------------------------
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-265")] // Services/Providers/CommandCodeAPI.swift:349-359
-    [Trait("Req", "UI-PROVCLI-019")] // Services/Providers/CommandCodeAPI.swift:349-359
-    public void Seed_is_the_nine_rows_in_order_byte_for_byte_with_only_the_first_default()
+    [Trait("Req", "PR-PROVCLI-265")] // Services/Providers/CommandCodeAPI.swift:349-361
+    [Trait("Req", "UI-PROVCLI-019")] // Services/Providers/CommandCodeAPI.swift:349-361
+    public void Seed_is_the_eleven_rows_in_order_byte_for_byte_with_only_the_first_default()
     {
         var expected = new ValueList<ModelOption>(
         [
             new ModelOption("claude-sonnet-5", "Claude Sonnet 5", detail: "Anthropic" + Dot + "best combo of speed & intelligence", efforts: Full, isDefault: true),
             new ModelOption("claude-fable-5-1", "Claude Fable 5.1", detail: "Anthropic" + Dot + "most capable for demanding reasoning & long-horizon agents", efforts: Full),
+            new ModelOption("claude-opus-5-5", "Claude Opus 5.5", detail: "Anthropic" + Dot + "the newest Opus, for everyday complex work and coding", efforts: Full),
             new ModelOption("claude-opus-5", "Claude Opus 5", detail: "Anthropic" + Dot + "most intelligent Opus for agents and coding", efforts: Full),
             new ModelOption("gpt-6-astra", "GPT-6 Astra", detail: "OpenAI" + Dot + "most capable OpenAI model for demanding reasoning & agents", efforts: Full),
             new ModelOption("gpt-5.6-sol", "GPT-5.6 Sol", detail: "OpenAI" + Dot + "latest frontier model for general complex work", efforts: Full),
+            new ModelOption("gpt-5.6-luna", "GPT-5.6 Luna", detail: "OpenAI" + Dot + "fast and efficient model", efforts: Full),
             new ModelOption("google/gemini-3.8-flash", "Gemini 3.8 Flash", detail: "Google" + Dot + "newest Gemini Flash, improved core reasoning", efforts: ToHigh),
             new ModelOption("deepseek/deepseek-v4-flash", "DeepSeek V4 Flash", detail: "Open Source" + Dot + "fast hybrid-attention reasoning", efforts: HighMax),
             new ModelOption("moonshotai/kimi-k3", "Kimi K3", detail: "Open Source" + Dot + "long-horizon coding & knowledge work with 1M context", efforts: LowHighMax),
@@ -986,13 +990,13 @@ public sealed class CommandCodeAPITests
 
         Assert.Equal(expected, CommandCodeAPI.Seed);
         Assert.Equal(new byte[] { 0x20, 0xC2, 0xB7, 0x20 }, Utf8(CommandCodeAPI.Seed[0].Detail!)[9..13]);
-        Assert.Equal([true, false, false, false, false, false, false, false, false], CommandCodeAPI.Seed.Select(m => m.IsDefault));
+        Assert.Equal([true, false, false, false, false, false, false, false, false, false, false], CommandCodeAPI.Seed.Select(m => m.IsDefault));
     }
 
     // ---- PR-PROVCLI-250 to 254: the approval mod --------------------------------------------------------------
 
-    // The Swift literal :373-436 as it evaluates (the four-space indentation of the closing delimiter stripped, no final
-    // newline), with the two OD-0012 F1 wordings of PR-PROVCLI-253 and 254, cut around the orphan predicate at :428
+    // The Swift literal :375-438 as it evaluates (the four-space indentation of the closing delimiter stripped, no final
+    // newline), with the two OD-0012 F1 wordings of PR-PROVCLI-253 and 254, cut around the orphan predicate at :430
     // whose Windows form is not specified (PR-PROVCLI-254 open_question; STOP #1 in this unit's report).
     private const string ModBeforeOrphanPredicate = """
         import fs from 'node:fs'
@@ -1066,10 +1070,10 @@ public sealed class CommandCodeAPITests
         """;
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-251")] // Services/Providers/CommandCodeAPI.swift:376-383, :406
-    [Trait("Req", "PR-PROVCLI-252")] // Services/Providers/CommandCodeAPI.swift:388-401
-    [Trait("Req", "PR-PROVCLI-253")] // Services/Providers/CommandCodeAPI.swift:402-423
-    [Trait("Req", "PR-PROVCLI-254")] // Services/Providers/CommandCodeAPI.swift:424-436
+    [Trait("Req", "PR-PROVCLI-251")] // Services/Providers/CommandCodeAPI.swift:378-385, :408
+    [Trait("Req", "PR-PROVCLI-252")] // Services/Providers/CommandCodeAPI.swift:390-403
+    [Trait("Req", "PR-PROVCLI-253")] // Services/Providers/CommandCodeAPI.swift:404-425
+    [Trait("Req", "PR-PROVCLI-254")] // Services/Providers/CommandCodeAPI.swift:426-438
     public void ApprovalMod_is_the_Swift_literal_byte_for_byte_with_the_two_Marrow_wordings_around_the_orphan_predicate()
     {
         var mod = Utf8(CommandCodeAPI.ApprovalMod);
@@ -1100,7 +1104,7 @@ public sealed class CommandCodeAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-251")] // Services/Providers/CommandCodeAPI.swift:377-383
+    [Trait("Req", "PR-PROVCLI-251")] // Services/Providers/CommandCodeAPI.swift:379-385
     public void ApprovalMod_read_only_set_is_the_twenty_five_shipped_tool_names_run_command_included()
     {
         var mod = CommandCodeAPI.ApprovalMod;
@@ -1121,8 +1125,8 @@ public sealed class CommandCodeAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-253")] // Services/Providers/CommandCodeAPI.swift:422
-    [Trait("Req", "PR-PROVCLI-254")] // Services/Providers/CommandCodeAPI.swift:426, :430
+    [Trait("Req", "PR-PROVCLI-253")] // Services/Providers/CommandCodeAPI.swift:424
+    [Trait("Req", "PR-PROVCLI-254")] // Services/Providers/CommandCodeAPI.swift:428, :432
     public void ApprovalMod_decline_texts_are_the_OD_0012_wordings_and_the_stop_text_is_unchanged()
     {
         var mod = CommandCodeAPI.ApprovalMod;
@@ -1138,7 +1142,7 @@ public sealed class CommandCodeAPITests
     // ---- PR-PROVCLI-250: supportDirectory and installMod ------------------------------------------------------
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-250")] // Services/Providers/CommandCodeAPI.swift:440-444
+    [Trait("Req", "PR-PROVCLI-250")] // Services/Providers/CommandCodeAPI.swift:442-446
     [Trait("Decision", "ED-023")]
     public void SupportDirectory_is_LocalAppData_Marrow_Code_CommandCode_as_a_directory_URL()
     {
@@ -1154,7 +1158,7 @@ public sealed class CommandCodeAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-250")] // Services/Providers/CommandCodeAPI.swift:448-456
+    [Trait("Req", "PR-PROVCLI-250")] // Services/Providers/CommandCodeAPI.swift:450-458
     public void InstallMod_creates_the_directory_and_writes_marrow_approvals_ts_as_UTF8()
     {
         var localAppData = CommandCodeScratch.NewFolder("install");
@@ -1169,7 +1173,7 @@ public sealed class CommandCodeAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-250")] // Services/Providers/CommandCodeAPI.swift:453
+    [Trait("Req", "PR-PROVCLI-250")] // Services/Providers/CommandCodeAPI.swift:455
     public void InstallMod_leaves_an_identical_file_untouched()
     {
         var localAppData = CommandCodeScratch.NewFolder("unchanged");
@@ -1184,7 +1188,7 @@ public sealed class CommandCodeAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-250")] // Services/Providers/CommandCodeAPI.swift:453-455
+    [Trait("Req", "PR-PROVCLI-250")] // Services/Providers/CommandCodeAPI.swift:455-457
     public void InstallMod_rewrites_a_file_whose_bytes_differ()
     {
         var localAppData = CommandCodeScratch.NewFolder("changed");
@@ -1199,7 +1203,7 @@ public sealed class CommandCodeAPITests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-250")] // Services/Providers/CommandCodeAPI.swift:450, :454
+    [Trait("Req", "PR-PROVCLI-250")] // Services/Providers/CommandCodeAPI.swift:452, :456
     public void InstallMod_propagates_a_write_failure()
     {
         var localAppData = CommandCodeScratch.NewFolder("fails");

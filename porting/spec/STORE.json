@@ -2717,7 +2717,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Byte-identical output: the exact difference(from:), the 7-op grouping threshold, 3 lines of context on each side, independent old/new starts (0 when a side has no op in the slice), the always-printed \",count\", and hunks joined by a bare \"\\n\" with no --- / +++ headers. .NET's LCS-based diff will not automatically match Swift's CollectionDifference tie-breaking when several minimal scripts exist; that case needs its own fixtures before this can be marked VERIFIED.",
       "verification_method": "contract fixture comparing produced hunk text against macOS output for: identical inputs (nil diff), a single-line insert into an empty text, a single-line delete to empty, a multi-hunk edit with two change runs more than 7 ops apart, and a multi-hunk edit with two change runs within 7 ops that must merge into one hunk",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3193,7 +3193,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static data, reproduced byte for byte including the colons, semicolons and the apostrophe in any possessive. The model and provider names are literals, not computed.",
       "verification_method": "contract fixture over the table plus a capture comparison of the pair list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3216,7 +3216,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static data, reproduced byte for byte including the colons, semicolons and the apostrophe in any possessive. The model and provider names are literals, not computed.",
       "verification_method": "contract fixture over the table plus a capture comparison of the pair list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3239,7 +3239,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static data, reproduced byte for byte including the colons, semicolons and the apostrophe in any possessive. The model and provider names are literals, not computed.",
       "verification_method": "contract fixture over the table plus a capture comparison of the pair list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3262,7 +3262,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static data, reproduced byte for byte including the colons, semicolons and the apostrophe in any possessive. The model and provider names are literals, not computed.",
       "verification_method": "contract fixture over the table plus a capture comparison of the pair list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3285,7 +3285,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static data, reproduced byte for byte including the colons, semicolons and the apostrophe in any possessive. The model and provider names are literals, not computed.",
       "verification_method": "contract fixture over the table plus a capture comparison of the pair list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3308,7 +3308,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static data, reproduced byte for byte including the colons, semicolons and the apostrophe in any possessive. The model and provider names are literals, not computed.",
       "verification_method": "contract fixture over the table plus a capture comparison of the pair list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3331,7 +3331,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static data, reproduced byte for byte including the colons, semicolons and the apostrophe in any possessive. The model and provider names are literals, not computed.",
       "verification_method": "contract fixture over the table plus a capture comparison of the pair list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3354,7 +3354,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static data, reproduced byte for byte including the colons, semicolons and the apostrophe in any possessive. The model and provider names are literals, not computed.",
       "verification_method": "contract fixture over the table plus a capture comparison of the pair list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3377,7 +3377,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static data, reproduced byte for byte including the colons, semicolons and the apostrophe in any possessive. The model and provider names are literals, not computed.",
       "verification_method": "contract fixture over the table plus a capture comparison of the pair list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3400,7 +3400,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static data, reproduced byte for byte including the colons, semicolons and the apostrophe in any possessive. The model and provider names are literals, not computed.",
       "verification_method": "contract fixture over the table plus a capture comparison of the pair list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4147,7 +4147,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static data, reproduced byte for byte including the colons, semicolons and the apostrophe in any possessive. The model and provider names are literals, not computed.",
       "verification_method": "contract fixture over the table plus a capture comparison of the pair list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4170,7 +4170,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static data, reproduced byte for byte including the colons, semicolons and the apostrophe in any possessive. The model and provider names are literals, not computed.",
       "verification_method": "contract fixture over the table plus a capture comparison of the pair list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4222,7 +4222,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the short-circuit and its two downstream effects: a nil diff must render no diff block at all (not an empty one), and must not stop the git-snapshot edits from replacing the report.",
       "verification_method": "unit: two identical multi-line texts and two empty texts both give diff nil, additions 0, deletions 0; integration test that a tool row carrying such an edit shows no diff block and that DiffInspector shows none",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4485,7 +4485,7 @@
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 1 of 12",
       "role": "row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "The table grows from 10 to 12 rows (see PR-STORE-132's b3_note). This row's text changes from \"Opus 5\" to \"Opus 5.5\"; its position (1) and cite line (:30) are unchanged."
     },
     {
@@ -4509,7 +4509,7 @@
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 2 of 12",
       "role": "row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "The table grows from 10 to 12 rows (see PR-STORE-132's b3_note). This row's text changes from \"Opus 5\" to \"Opus 5.5\"; its position (2) and cite line (:31) are unchanged."
     },
     {
@@ -4533,7 +4533,7 @@
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 3 of 12",
       "role": "row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "The table grows from 10 to 12 rows (see PR-STORE-132's b3_note). This row's text changes from \"Opus 5\" to \"Opus 5.5\"; its position (3) and cite line (:32) are unchanged."
     },
     {
@@ -4557,7 +4557,7 @@
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 4 of 12",
       "role": "row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "The table grows from 10 to 12 rows (see PR-STORE-132's b3_note). This row's text changes from \"Opus 5\" to \"Opus 5.5\"; its position (4) and cite line (:33) are unchanged."
     },
     {
@@ -4581,7 +4581,7 @@
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 5 of 12",
       "role": "row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "The table grows from 10 to 12 rows (see PR-STORE-132's b3_note). This row's text is unchanged; only the stated count changes."
     },
     {
@@ -4605,7 +4605,7 @@
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 6 of 12",
       "role": "row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "The table grows from 10 to 12 rows (see PR-STORE-132's b3_note). This row's text is unchanged; only the stated count changes."
     },
     {
@@ -4629,7 +4629,7 @@
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 7 of 12",
       "role": "row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "The table grows from 10 to 12 rows (see PR-STORE-132's b3_note). This row's text is unchanged; only the stated count changes."
     },
     {
@@ -4653,7 +4653,7 @@
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 10 of 12",
       "role": "row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "Two new rows (astra-sol, sol-luna) are inserted at positions 8 and 9, pushing this row from position 8 to position 10. Cite line moves :37 -> :39 (already re-cited)."
     },
     {
@@ -4677,7 +4677,7 @@
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 11 of 12",
       "role": "row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "Two new rows (astra-sol, sol-luna) are inserted at positions 8 and 9, pushing this row from position 9 to position 11. Its text also changes from \"Opus 5\" to \"Opus 5.5\". Cite line moves :38 -> :40."
     },
     {
@@ -4701,7 +4701,7 @@
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 12 of 12",
       "role": "row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "Two new rows (astra-sol, sol-luna) are inserted at positions 8 and 9, pushing this row from position 10 to position 12. Cite line moves :39 -> :41 (already re-cited)."
     },
     {
@@ -4725,7 +4725,7 @@
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 8 of 12",
       "role": "row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "New row added in B3; see PR-STORE-172."
     },
     {
@@ -4749,7 +4749,7 @@
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 9 of 12",
       "role": "row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "New row added in B3; see PR-STORE-173."
     }
   ]

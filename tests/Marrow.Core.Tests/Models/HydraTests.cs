@@ -6,7 +6,7 @@ using Marrow.Testing;
 
 namespace Marrow.Core.Tests.Models;
 
-// Source-derived tests for DroppyCode/Core/Models/Hydra.swift (B2 1fbf81e), unit Core.Models.Hydra, parts 1-4
+// Source-derived tests for DroppyCode/Core/Models/Hydra.swift (B3 52bc792), unit Core.Models.Hydra, parts 1-4
 // of 4. Every expected value is transcribed from the cited Swift lines or the record itself, never from the C#
 // under test (R-TEST-4). Records proved: part 1, PR-HYDRA-001 to PR-HYDRA-024; part 2, PR-HYDRA-025 to
 // PR-HYDRA-052 (excluding 029, 030, 041, 042, not named by this part's records); part 4, PR-HYDRA-080, 082,
@@ -1050,12 +1050,13 @@ public sealed class HydraTests
 
     // ---- PR-HYDRA-036: HydraPrompts.AutoMergeRule is one exact paragraph ----
 
-    [Trait("Req", "PR-HYDRA-036")] // DroppyCode/Core/Models/Hydra.swift:708
+    [Trait("Req", "PR-HYDRA-036")] // DroppyCode/Core/Models/Hydra.swift:708 (B3 52bc792)
     [Fact]
     public void AutoMergeRule_is_the_exact_text_with_Marrow_in_place_of_Droppy_Code() // DEVIATION OD-0012 F1
     {
+        // B3 adds "if it says Marrow retries by itself..." and "A merge never waits on another chat or session...".
         Assert.Equal(
-            "Marrow handles branches, commits and merge requests after all heads return and you finish. Never run or delegate those operations. For merge/status questions, use only the current [Hydra] note: if merged, give its link; if files remain, say they land when your answer ends; if merging failed or files are outside every project, give the stated reason and required user action. If nothing is pending, promise no merge. Never claim a merge without the note confirming it.",
+            "Marrow handles branches, commits and merge requests after all heads return and you finish. Never run or delegate those operations. For merge/status questions, use only the current [Hydra] note: if merged, give its link; if files remain, say they land when your answer ends; if it says Marrow retries by itself, say the work lands by itself and ask nothing; if merging failed or files are outside every project, give the stated reason and required user action. A merge never waits on another chat or session: never say it does, and never ask the user to merge. If nothing is pending, promise no merge. Never claim a merge without the note confirming it.",
             HydraPrompts.AutoMergeRule);
     }
 
@@ -1668,7 +1669,7 @@ public sealed class HydraTests
 
     // ---- PR-HYDRA-061: delegatedHeadPrompt is the five-section brief, task on the heading line, filtered prompt ----
 
-    [Trait("Req", "PR-HYDRA-061")] // DroppyCode/Core/Models/Hydra.swift:1241-1257
+    [Trait("Req", "PR-HYDRA-061")] // DroppyCode/Core/Models/Hydra.swift:1245-1261
     [Fact]
     public void DelegatedHeadPrompt_is_the_exact_five_section_brief_with_the_task_on_the_heading_line()
     {
@@ -1693,7 +1694,7 @@ public sealed class HydraTests
 
     // ---- PR-HYDRA-062: queuedHeadPrompt builds a context block and passes the task through raw ----
 
-    [Trait("Req", "PR-HYDRA-062")] // DroppyCode/Core/Models/Hydra.swift:1271-1305
+    [Trait("Req", "PR-HYDRA-062")] // DroppyCode/Core/Models/Hydra.swift:1275-1309
     [Fact]
     public void QueuedHeadPrompt_with_no_context_says_the_lead_has_not_said_anything_yet_and_keeps_the_task_raw()
     {
@@ -1709,7 +1710,7 @@ public sealed class HydraTests
         Assert.Contains($"You are {persona.Name}, a Hydra head in Marrow: a helper running in parallel with the lead agent. The user queued this task for you while the lead works on something else.\n\n", text, StringComparison.Ordinal);
     }
 
-    [Trait("Req", "PR-HYDRA-062")] // DroppyCode/Core/Models/Hydra.swift:1273-1282 the three context lines, in order
+    [Trait("Req", "PR-HYDRA-062")] // DroppyCode/Core/Models/Hydra.swift:1277-1286 the three context lines, in order
     [Fact]
     public void QueuedHeadPrompt_context_block_has_up_to_three_lines_in_order_and_the_leadIsWorking_wording()
     {
@@ -1736,7 +1737,7 @@ public sealed class HydraTests
         Assert.Contains("The user sent this task straight to you; the lead is idle and will hear your report.", idle, StringComparison.Ordinal);
     }
 
-    [Trait("Req", "PR-HYDRA-062")] // DroppyCode/Core/Models/Hydra.swift:1280 prefix(20) and ", " join
+    [Trait("Req", "PR-HYDRA-062")] // DroppyCode/Core/Models/Hydra.swift:1284 prefix(20) and ", " join
     [Fact]
     public void QueuedHeadPrompt_caps_touched_paths_at_twenty_joined_by_comma_space()
     {
@@ -1752,7 +1753,7 @@ public sealed class HydraTests
 
     // ---- PR-HYDRA-063: quoted() trims, truncates with U+2026 and wraps in curly quotes U+201C/U+201D ----
 
-    [Trait("Req", "PR-HYDRA-063")] // DroppyCode/Core/Models/Hydra.swift:1429-1433
+    [Trait("Req", "PR-HYDRA-063")] // DroppyCode/Core/Models/Hydra.swift:1433-1437
     [Fact]
     public void QueuedHeadPrompt_quotes_the_last_user_prompt_trimmed_and_untruncated_when_under_the_limit()
     {
@@ -1762,7 +1763,7 @@ public sealed class HydraTests
         Assert.Contains("- The user last asked the lead: \u201Chello world\u201D\n", text, StringComparison.Ordinal);
     }
 
-    [Trait("Req", "PR-HYDRA-063")] // DroppyCode/Core/Models/Hydra.swift:1431 truncation appends U+2026 beyond the limit
+    [Trait("Req", "PR-HYDRA-063")] // DroppyCode/Core/Models/Hydra.swift:1435 truncation appends U+2026 beyond the limit
     [Fact]
     public void QueuedHeadPrompt_truncates_a_long_user_prompt_at_1200_characters_and_appends_the_ellipsis()
     {
@@ -1776,7 +1777,7 @@ public sealed class HydraTests
 
     // ---- PR-HYDRA-064: withoutVerificationSteps drops lines matching any of 34 markers, unanchored substring ----
 
-    [Trait("Req", "PR-HYDRA-064")] // DroppyCode/Core/Models/Hydra.swift:1230-1238
+    [Trait("Req", "PR-HYDRA-064")] // DroppyCode/Core/Models/Hydra.swift:1234-1242
     [Fact]
     public void WithoutVerificationSteps_returns_the_prompt_unchanged_when_no_line_matches_a_marker()
     {
@@ -1784,7 +1785,7 @@ public sealed class HydraTests
         Assert.Same(prompt, HydraPrompts.WithoutVerificationSteps(prompt));
     }
 
-    [Trait("Req", "PR-HYDRA-064")] // DroppyCode/Core/Models/Hydra.swift:1231-1237 drop, then append the closing sentence
+    [Trait("Req", "PR-HYDRA-064")] // DroppyCode/Core/Models/Hydra.swift:1235-1241 drop, then append the closing sentence
     [Fact]
     public void WithoutVerificationSteps_drops_a_matching_line_and_appends_the_closing_sentence()
     {
@@ -1795,7 +1796,7 @@ public sealed class HydraTests
         Assert.Equal("Edit Foo.cs\nAdd a null check\nMake the assigned edits and report; the lead handles all validation.", result);
     }
 
-    [Trait("Req", "PR-HYDRA-064")] // DroppyCode/Core/Models/Hydra.swift:1225 "pytest" matches unanchored, even inside a path
+    [Trait("Req", "PR-HYDRA-064")] // DroppyCode/Core/Models/Hydra.swift:1229 "pytest" matches unanchored, even inside a path
     [Fact]
     public void WithoutVerificationSteps_matches_unanchored_so_a_marker_inside_a_file_path_drops_the_whole_line()
     {
@@ -1806,7 +1807,7 @@ public sealed class HydraTests
         Assert.Equal("Add a null check\nMake the assigned edits and report; the lead handles all validation.", result);
     }
 
-    [Trait("Req", "PR-HYDRA-064")] // DroppyCode/Core/Models/Hydra.swift:1219 "tsc " keeps its trailing space
+    [Trait("Req", "PR-HYDRA-064")] // DroppyCode/Core/Models/Hydra.swift:1223 "tsc " keeps its trailing space
     [Fact]
     public void WithoutVerificationSteps_tsc_marker_keeps_its_trailing_space_so_a_bare_tsc_word_is_not_dropped()
     {
@@ -1817,7 +1818,7 @@ public sealed class HydraTests
         Assert.Same(prompt, result); // "tsconfig" does not contain "tsc " (with the space)
     }
 
-    [Trait("Req", "PR-HYDRA-064")] // DroppyCode/Core/Models/Hydra.swift:1231 omittingEmptySubsequences: false preserves blank lines
+    [Trait("Req", "PR-HYDRA-064")] // DroppyCode/Core/Models/Hydra.swift:1235 omittingEmptySubsequences: false preserves blank lines
     [Fact]
     public void WithoutVerificationSteps_preserves_blank_lines_when_nothing_is_dropped()
     {
@@ -1879,7 +1880,7 @@ public sealed class HydraTests
     // ---- PR-HYDRA-066: mergeStatus renders eight shapes; the failed branch omits the pending sentence ----
 
     private static HydraMergeRecord Merge(HydraMergeRecord.Outcome outcome, DateTimeOffset at, long files = 0,
-        string? label = null, SwiftURL? url = null, string? project = null, string? detail = null) => new()
+        string? label = null, SwiftURL? url = null, string? project = null, string? detail = null, bool? retryable = null) => new()
     {
         At = at,
         HydraMergeRecordOutcome = outcome,
@@ -1888,6 +1889,7 @@ public sealed class HydraTests
         Url = url,
         Project = project,
         Detail = detail,
+        Retryable = retryable,
     };
 
     [Trait("Req", "PR-HYDRA-066")] // DroppyCode/Core/Models/Hydra.swift:994-997 no records
@@ -1917,7 +1919,8 @@ public sealed class HydraTests
         Assert.EndsWith(" (3 files). Nothing has changed since, so no merge is pending and none is coming.", text, StringComparison.Ordinal);
     }
 
-    [Trait("Req", "PR-HYDRA-066")] // DroppyCode/Core/Models/Hydra.swift:1001-1002 failed omits the pending sentence
+    [Trait("Req", "PR-HYDRA-066")] // DroppyCode/Core/Models/Hydra.swift:1001-1005 (B3) failed, non-retryable, omits the pending sentence
+    [Trait("Req", "PR-HYDRAMERGE-083")] // DroppyCode/Core/Models/Hydra.swift:1001-1005 (B3) the .failed branch, non-retryable half
     [Fact]
     public void MergeStatus_failed_outcome_never_appends_the_pending_sentence()
     {
@@ -1926,12 +1929,14 @@ public sealed class HydraTests
 
         var text = HydraPrompts.MergeStatus([record], 5, now);
 
-        Assert.Contains("sign-in required. The work is still in the checkout and is retried once you finish this answer; if the reason needs the user (a sign-in, a conflict), say exactly that.", text, StringComparison.Ordinal);
+        Assert.Contains(
+            "sign-in required. The work is still in the checkout and goes out by itself once that is settled; if the reason needs the user (a sign-in, conflict markers, a real conflict with the remote), say exactly that.",
+            text, StringComparison.Ordinal);
         Assert.DoesNotContain("not merged yet", text, StringComparison.Ordinal);
         Assert.DoesNotContain("Nothing has changed since", text, StringComparison.Ordinal);
     }
 
-    [Trait("Req", "PR-HYDRA-066")] // DroppyCode/Core/Models/Hydra.swift:1001-1002 no reason recorded fallback
+    [Trait("Req", "PR-HYDRA-066")] // DroppyCode/Core/Models/Hydra.swift:1001-1005 (B3) no reason recorded fallback
     [Fact]
     public void MergeStatus_failed_outcome_with_no_detail_says_no_reason_recorded()
     {
@@ -1943,26 +1948,84 @@ public sealed class HydraTests
         Assert.Contains(": no reason recorded. The work is still", text, StringComparison.Ordinal);
     }
 
-    [Trait("Req", "PR-HYDRA-066")] // DroppyCode/Core/Models/Hydra.swift:1003-1007 held, no files left vs waiting with the run-on fallback
-    [Trait("Req", "PR-HYDRAMERGE-083")] // DroppyCode/Core/Models/Hydra.swift:1003-1007 the .held branch B2 adds
+    [Trait("Req", "PR-HYDRA-253")] // DroppyCode/Core/Models/Hydra.swift:1001-1004 NEW at B3: retryable true
+    [Trait("Req", "PR-HYDRAMERGE-132")] // DroppyCode/Core/Models/Timeline.swift:281-283
+    [Trait("Req", "PR-HYDRAMERGE-083")] // DroppyCode/Core/Models/Hydra.swift:1001-1004 (B3) the .failed branch, retryable half
     [Fact]
-    public void MergeStatus_held_outcome_has_two_shapes_and_the_nil_fallback_run_on_sentence()
+    public void MergeStatus_failed_outcome_with_retryable_true_says_it_retries_by_itself_and_appends_no_pending_sentence() // DEVIATION OD-0012 F1
+    {
+        var now = SwiftDate.Now;
+        var record = Merge(HydraMergeRecord.Outcome.Failed, now, detail: "still checking the forge", retryable: true);
+
+        var text = HydraPrompts.MergeStatus([record], 5, now);
+
+        Assert.Equal(
+            "Merge state: the last try at " + FormattedShortTime(now) + " did not land yet (still checking the forge). Marrow retries it by itself within a minute; nothing is needed from the user, so do not ask for anything or describe it as a problem. Do not claim a successful merge.",
+            text);
+        Assert.DoesNotContain("not merged yet", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Nothing has changed since", text, StringComparison.Ordinal);
+    }
+
+    [Trait("Req", "PR-HYDRA-253")] // DroppyCode/Core/Models/Hydra.swift:1001-1004 no reason recorded fallback
+    [Fact]
+    public void MergeStatus_failed_outcome_with_retryable_true_and_no_detail_says_no_reason_recorded()
+    {
+        var now = SwiftDate.Now;
+        var record = Merge(HydraMergeRecord.Outcome.Failed, now, retryable: true);
+
+        var text = HydraPrompts.MergeStatus([record], 0, now);
+
+        Assert.Contains("did not land yet (no reason recorded). Marrow retries it by itself within a minute", text, StringComparison.Ordinal);
+    }
+
+    // PR-HYDRAMERGE-132's failure_cases: "A record carrying false, which this build never writes, is treated
+    // like nil by both readers." Retryable is compared with `== true` (:1002), so false and nil both fall through
+    // to the non-retryable text; false is never distinguished from nil here, only from true. The record model's
+    // own decode/encode fidelity for an explicit false (it is not squashed to null) is covered separately by
+    // TimelineTests.cs's An_explicit_false_retryable_key_decodes_as_false_and_round_trips_as_false_not_null. The
+    // other reader the record names, AppModel+HydraMerge.swift:233's fail() "saysIt" check (`$0.retryable ==
+    // true`, the same comparison), is App-layer runtime behaviour outside Core.Models.Hydra and is left for the
+    // unit that owns AppModel+HydraMerge.swift.
+    [Trait("Req", "PR-HYDRA-253")] // DroppyCode/Core/Models/Hydra.swift:1002 `if last.retryable == true`
+    [Trait("Req", "PR-HYDRAMERGE-132")] // DroppyCode/Core/Models/Timeline.swift:281-283: false treated like nil
+    [Fact]
+    public void MergeStatus_failed_outcome_with_retryable_false_matches_retryable_null_not_retryable_true()
+    {
+        var now = SwiftDate.Now;
+        var falseRecord = Merge(HydraMergeRecord.Outcome.Failed, now, detail: "sign-in required", retryable: false);
+        var nilRecord = Merge(HydraMergeRecord.Outcome.Failed, now, detail: "sign-in required", retryable: null);
+
+        var falseText = HydraPrompts.MergeStatus([falseRecord], 5, now);
+        var nilText = HydraPrompts.MergeStatus([nilRecord], 5, now);
+
+        Assert.Equal(nilText, falseText); // false reads exactly like nil: the non-retryable sentence, not the retryable one
+        Assert.DoesNotContain("retries it by itself", falseText, StringComparison.Ordinal);
+        Assert.Contains("The work is still in the checkout and goes out by itself once that is settled", falseText, StringComparison.Ordinal);
+    }
+
+    [Trait("Req", "PR-HYDRA-066")] // DroppyCode/Core/Models/Hydra.swift:1006-1011 (B3) held, legacy-only: no files left vs N files, using pendingLine
+    [Trait("Req", "PR-HYDRAMERGE-083")] // DroppyCode/Core/Models/Hydra.swift:1006-1013 (B3)
+    [Fact]
+    public void MergeStatus_held_outcome_is_legacy_only_with_two_shapes_keyed_on_unmerged_files()
     {
         var now = SwiftDate.Now;
         var record = Merge(HydraMergeRecord.Outcome.Held, now);
 
         Assert.Equal(
-            "Merge state: the earlier wait has no recorded files left to merge. Do not claim a new merge or promise another one.",
+            "Merge state: nothing from this job is left to merge. Do not claim a new merge or promise another one.",
             HydraPrompts.MergeStatus([record], 0, now));
 
-        var text = HydraPrompts.MergeStatus([record], 4, now);
-        Assert.Contains(
-            "another chat holds this job's files The work is still in the checkout. Explain the recorded dependency without assuming a completed chat needs more work: active work must finish, while completed jobs merge in order. Hydra retries automatically while this job remains eligible. Do not claim a successful merge.",
-            text, StringComparison.Ordinal);
+        Assert.Equal(
+            "Merge state: 4 files from this job are not merged yet; they go out by themselves once you finish this answer with every head back.",
+            HydraPrompts.MergeStatus([record], 4, now));
+
+        Assert.Equal(
+            "Merge state: 1 file from this job is not merged yet; it goes out by itself once you finish this answer with every head back.",
+            HydraPrompts.MergeStatus([record], 1, now));
     }
 
-    [Trait("Req", "PR-HYDRA-066")] // DroppyCode/Core/Models/Hydra.swift:1008-1009 settled, exact assembly
-    [Trait("Req", "PR-HYDRAMERGE-083")] // DroppyCode/Core/Models/Hydra.swift:1008-1009 the .settled branch B2 adds
+    [Trait("Req", "PR-HYDRA-066")] // DroppyCode/Core/Models/Hydra.swift:1012-1013 (B3) settled, exact assembly
+    [Trait("Req", "PR-HYDRAMERGE-083")] // DroppyCode/Core/Models/Hydra.swift:1012-1013 (B3) the .settled branch
     [Fact]
     public void MergeStatus_settled_outcome_exact_text_with_pending_and_do_not_describe_sentence()
     {
@@ -1976,7 +2039,7 @@ public sealed class HydraTests
             text);
     }
 
-    [Trait("Req", "PR-HYDRA-066")] // DroppyCode/Core/Models/Hydra.swift:1010-1016 stray: footnote to the last merged record, then the stray detail, then pending
+    [Trait("Req", "PR-HYDRA-066")] // DroppyCode/Core/Models/Hydra.swift:1014-1020 stray: footnote to the last merged record, then the stray detail, then pending
     [Fact]
     public void MergeStatus_stray_outcome_footnotes_the_last_merged_record_then_its_own_detail_then_pending()
     {
@@ -1996,7 +2059,7 @@ public sealed class HydraTests
 
     // ---- PR-HYDRA-067: delegationRequest is prepended only in front of an ordinary user message ----
 
-    [Trait("Req", "PR-HYDRA-067")] // DroppyCode/Core/Models/Hydra.swift:1023-1035
+    [Trait("Req", "PR-HYDRA-067")] // DroppyCode/Core/Models/Hydra.swift:1027-1039
     [Fact]
     public void DelegationRequest_native_route_says_use_the_configured_agent_tools()
     {
@@ -2011,7 +2074,7 @@ public sealed class HydraTests
             text);
     }
 
-    [Trait("Req", "PR-HYDRA-067")] // DroppyCode/Core/Models/Hydra.swift:1026 fallback route, DEVIATION OD-0012 F1
+    [Trait("Req", "PR-HYDRA-067")] // DroppyCode/Core/Models/Hydra.swift:1030 fallback route, DEVIATION OD-0012 F1
     [Fact]
     public void DelegationRequest_fallback_route_says_Marrow_runs_the_selected_heads()
     {
@@ -2025,7 +2088,7 @@ public sealed class HydraTests
 
     // ---- PR-HYDRA-068: fallbackTurnNote is empty with nothing to say, else a [Hydra] line ----
 
-    [Trait("Req", "PR-HYDRA-068")] // DroppyCode/Core/Models/Hydra.swift:1038-1042
+    [Trait("Req", "PR-HYDRA-068")] // DroppyCode/Core/Models/Hydra.swift:1042-1046
     [Fact]
     public void FallbackTurnNote_is_empty_with_neither_team_nor_merge_else_joins_them_with_the_trailer()
     {
@@ -2037,7 +2100,7 @@ public sealed class HydraTests
 
     // ---- PR-HYDRA-069: fallbackReportNote always opens the same way and carries a literal ```hydra when it can delegate ----
 
-    [Trait("Req", "PR-HYDRA-069")] // DroppyCode/Core/Models/Hydra.swift:1047-1052
+    [Trait("Req", "PR-HYDRA-069")] // DroppyCode/Core/Models/Hydra.swift:1051-1056
     [Fact]
     public void FallbackReportNote_opens_the_same_way_and_the_more_clause_has_an_unconditional_leading_space()
     {
@@ -2049,7 +2112,7 @@ public sealed class HydraTests
         Assert.Contains("with the same ```hydra block at the end of your reply; never for verifying, redoing or finishing what a head already did.", withBoth, StringComparison.Ordinal);
     }
 
-    [Trait("Req", "PR-HYDRA-069")] // DroppyCode/Core/Models/Hydra.swift:1051 team.map/merge.map contribute a literal space even for an empty (non-nil) string
+    [Trait("Req", "PR-HYDRA-069")] // DroppyCode/Core/Models/Hydra.swift:1055 team.map/merge.map contribute a literal space even for an empty (non-nil) string
     [Fact]
     public void FallbackReportNote_never_collapses_the_space_a_present_but_empty_team_or_merge_string_contributes()
     {
@@ -2062,7 +2125,7 @@ public sealed class HydraTests
 
     // ---- PR-HYDRA-070: fallbackPreamble substitutes a bare separator when the turn note is empty ----
 
-    [Trait("Req", "PR-HYDRA-070")] // DroppyCode/Core/Models/Hydra.swift:1056-1062
+    [Trait("Req", "PR-HYDRA-070")] // DroppyCode/Core/Models/Hydra.swift:1060-1066
     [Fact]
     public void FallbackPreamble_substitutes_a_bare_separator_when_the_turn_note_is_empty()
     {
@@ -2073,7 +2136,7 @@ public sealed class HydraTests
         Assert.Equal(HydraPrompts.FallbackPolicy(launch) + "\n\n---\n\n", text);
     }
 
-    [Trait("Req", "PR-HYDRA-070")] // DroppyCode/Core/Models/Hydra.swift:1058
+    [Trait("Req", "PR-HYDRA-070")] // DroppyCode/Core/Models/Hydra.swift:1062
     [Fact]
     public void FallbackPreamble_uses_the_turn_note_when_it_is_not_empty()
     {
@@ -2084,7 +2147,7 @@ public sealed class HydraTests
         Assert.Equal(HydraPrompts.FallbackPolicy(launch) + "\n\n" + HydraPrompts.FallbackTurnNote("team-line"), text);
     }
 
-    [Trait("Req", "PR-HYDRA-070")] // DroppyCode/Core/Models/Hydra.swift:1060-1062 fallbackReportPreamble is never empty
+    [Trait("Req", "PR-HYDRA-070")] // DroppyCode/Core/Models/Hydra.swift:1064-1066 fallbackReportPreamble is never empty
     [Fact]
     public void FallbackReportPreamble_is_the_policy_then_the_report_note()
     {
@@ -2104,7 +2167,7 @@ public sealed class HydraTests
         Assert.Equal(3, HydraPrompts.MaxDelegationRounds);
     }
 
-    [Trait("Req", "PR-HYDRA-072")] // DroppyCode/Core/Models/Hydra.swift:1066-1071
+    [Trait("Req", "PR-HYDRA-072")] // DroppyCode/Core/Models/Hydra.swift:1070-1075
     [Fact]
     public void HeldBackMessage_singular_and_plural_head_wording()
     {
@@ -2117,7 +2180,7 @@ public sealed class HydraTests
 
     // ---- PR-HYDRA-073: unreadableBlockMessage with its reason branch structurally present but unreachable ----
 
-    [Trait("Req", "PR-HYDRA-073")] // DroppyCode/Core/Models/Hydra.swift:1207-1213, the single call site passes nil
+    [Trait("Req", "PR-HYDRA-073")] // DroppyCode/Core/Models/Hydra.swift:1211-1217, the single call site passes nil
     [Fact]
     public void UnreadableBlockMessage_with_no_reason_is_the_exact_base_plus_tail()
     {
@@ -2126,7 +2189,7 @@ public sealed class HydraTests
             HydraPrompts.UnreadableBlockMessage(null));
     }
 
-    [Trait("Req", "PR-HYDRA-073")] // DroppyCode/Core/Models/Hydra.swift:1210 the reason clause and its terminal-punctuation set
+    [Trait("Req", "PR-HYDRA-073")] // DroppyCode/Core/Models/Hydra.swift:1214 the reason clause and its terminal-punctuation set
     [Fact]
     public void UnreadableBlockMessage_reason_branch_adds_a_period_unless_the_reason_already_ends_in_terminal_punctuation()
     {
@@ -2151,7 +2214,7 @@ public sealed class HydraTests
         ToolCalls = toolCalls,
     };
 
-    [Trait("Req", "PR-HYDRA-074")] // DroppyCode/Core/Models/Hydra.swift:1386-1392
+    [Trait("Req", "PR-HYDRA-074")] // DroppyCode/Core/Models/Hydra.swift:1390-1396
     [Fact]
     public void ReportMessage_has_three_blocks_separated_by_blank_lines()
     {
@@ -2166,7 +2229,7 @@ public sealed class HydraTests
         Assert.Contains("Build on the reports", blocks[2], StringComparison.Ordinal);
     }
 
-    [Trait("Req", "PR-HYDRA-075")] // DroppyCode/Core/Models/Hydra.swift:1311-1315, :1421-1427 list() with no Oxford comma
+    [Trait("Req", "PR-HYDRA-075")] // DroppyCode/Core/Models/Hydra.swift:1315-1319, :1425-1431 list() with no Oxford comma
     [Fact]
     public void ReportMessage_opening_lists_finished_names_with_no_oxford_comma_and_names_the_still_working_heads()
     {
@@ -2187,7 +2250,7 @@ public sealed class HydraTests
         Assert.StartsWith("Hydra reports: Hank finished. Otto and Nova are still at work; their reports come as a later message.\n\n", twoStillWorking, StringComparison.Ordinal);
     }
 
-    [Trait("Req", "PR-HYDRA-076")] // DroppyCode/Core/Models/Hydra.swift:1318-1335, :1416-1419 duration()
+    [Trait("Req", "PR-HYDRA-076")] // DroppyCode/Core/Models/Hydra.swift:1326-1343, :1420-1423 (B3) duration()
     [Fact]
     public void ReportMessage_per_head_section_header_has_outcome_and_effort_and_falls_back_to_No_report()
     {
@@ -2202,7 +2265,26 @@ public sealed class HydraTests
         Assert.Contains("## Ada: the task (stopped by the user before finishing) (1 tool)\npartial", text, StringComparison.Ordinal);
     }
 
-    [Trait("Req", "PR-HYDRA-077")] // DroppyCode/Core/Models/Hydra.swift:1397-1414 landingLine's seven shapes
+    // ---- PR-HYDRA-254: duration() is SwiftFormatters.DurationUnits({seconds, minutes}, narrow, max 2 units) ----
+
+    [Theory]
+    [Trait("Req", "PR-HYDRA-254")] // DroppyCode/Core/Models/Hydra.swift:1420-1423 (B3): Duration.UnitsFormatStyle, not the hand-built "Ns"/"Mm Ss"
+    [InlineData(1.0, "1s")]
+    [InlineData(45.0, "45s")]
+    [InlineData(60.0, "1m")]   // B2 hand-built gave "1m 0s"; B3's ICU-backed formatter drops the zero-valued unit
+    [InlineData(61.0, "1m 1s")]
+    [InlineData(127.0, "2m 7s")]
+    [InlineData(3599.0, "59m 59s")]
+    [InlineData(3600.0, "60m")] // B2 hand-built gave "60m 0s"; minutes is not an allowed unit here, so never "1h"
+    [InlineData(3725.0, "62m 5s")]
+    public void Duration_matches_SwiftFormatters_DurationUnits_for_seconds_and_minutes(double elapsed, string expected)
+    {
+        var report = Report(0, HydraHeadInfo.Origin.Delegated, HydraHeadInfo.Status.Completed, "", elapsed: elapsed);
+        var text = HydraPrompts.ReportMessage([report]);
+        Assert.Contains($"## Hank: the task ({expected})\nNo report.", text, StringComparison.Ordinal);
+    }
+
+    [Trait("Req", "PR-HYDRA-077")] // DroppyCode/Core/Models/Hydra.swift:1401-1418 landingLine's seven shapes
     [Fact]
     public void ReportMessage_landing_line_shapes_for_no_landing_empty_landed_conflicts_patch_and_error()
     {
@@ -2247,7 +2329,7 @@ public sealed class HydraTests
         Assert.Contains("Did not land (disk full): a.cs (+1 \u22120).", HydraPrompts.ReportMessage([errored]), StringComparison.Ordinal);
     }
 
-    [Trait("Req", "PR-HYDRA-077")] // DroppyCode/Core/Models/Hydra.swift:1403-1410 the 25-file cap and dropped build outputs
+    [Trait("Req", "PR-HYDRA-077")] // DroppyCode/Core/Models/Hydra.swift:1407-1414 the 25-file cap and dropped build outputs
     [Fact]
     public void ReportMessage_landing_line_caps_at_25_files_and_reports_dropped_build_output_files()
     {
@@ -2261,7 +2343,7 @@ public sealed class HydraTests
         Assert.DoesNotContain("f25.cs", text, StringComparison.Ordinal);
     }
 
-    [Trait("Req", "PR-HYDRA-078")] // DroppyCode/Core/Models/Hydra.swift:1337-1384 the closing sentences, fixed order and conditions
+    [Trait("Req", "PR-HYDRA-078")] // DroppyCode/Core/Models/Hydra.swift:1341-1388 the closing sentences, fixed order and conditions
     [Fact]
     public void ReportMessage_closing_emits_landed_and_worked_in_checkout_sentences_when_both_apply()
     {
@@ -2276,7 +2358,7 @@ public sealed class HydraTests
             closing, StringComparison.Ordinal);
     }
 
-    [Trait("Req", "PR-HYDRA-078")] // DroppyCode/Core/Models/Hydra.swift:1349-1357 shared-file sentence uses "both" and is sorted by path
+    [Trait("Req", "PR-HYDRA-078")] // DroppyCode/Core/Models/Hydra.swift:1353-1361 shared-file sentence uses "both" and is sorted by path
     [Fact]
     public void ReportMessage_closing_names_two_heads_that_changed_the_same_file_sorted_by_path()
     {
@@ -2291,7 +2373,7 @@ public sealed class HydraTests
         Assert.DoesNotContain("changed b.cs", closing, StringComparison.Ordinal); // b.cs was touched by only one head
     }
 
-    [Trait("Req", "PR-HYDRA-078")] // DroppyCode/Core/Models/Hydra.swift:1358-1361 the kept-patch sentence, in report order
+    [Trait("Req", "PR-HYDRA-078")] // DroppyCode/Core/Models/Hydra.swift:1362-1365 the kept-patch sentence, in report order
     [Fact]
     public void ReportMessage_closing_names_a_kept_patch_with_the_git_apply_command()
     {
@@ -2307,7 +2389,7 @@ public sealed class HydraTests
         Assert.Contains("Hank's changes would not apply on their own; the patch is at C:\\p.patch. Apply it with `git apply --3way C:\\p.patch` and settle what conflicts.", closing, StringComparison.Ordinal);
     }
 
-    [Trait("Req", "PR-HYDRA-078")] // DroppyCode/Core/Models/Hydra.swift:1362-1373 failed, stopped, queued, sent sentences
+    [Trait("Req", "PR-HYDRA-078")] // DroppyCode/Core/Models/Hydra.swift:1366-1377 failed, stopped, queued, sent sentences
     [Fact]
     public void ReportMessage_closing_names_failed_stopped_queued_and_sent_conditions()
     {
@@ -2324,7 +2406,7 @@ public sealed class HydraTests
         Assert.Contains("The user sent that work straight to the heads instead of to you; take it into account, and reply to the user on it as if they had asked you.", closing, StringComparison.Ordinal);
     }
 
-    [Trait("Req", "PR-HYDRA-078")] // DroppyCode/Core/Models/Hydra.swift:1382-1384 the still-working closing sentence, singular and plural
+    [Trait("Req", "PR-HYDRA-078")] // DroppyCode/Core/Models/Hydra.swift:1386-1388 the still-working closing sentence, singular and plural
     [Fact]
     public void ReportMessage_closing_names_still_working_heads_it_or_them_singular_and_plural()
     {
@@ -2337,7 +2419,7 @@ public sealed class HydraTests
         Assert.Contains("Do not wait for Otto and Nova and do not take over their tasks; tell the user they are still at work and that you will hear from them.", twoStillWorking, StringComparison.Ordinal);
     }
 
-    [Trait("Req", "PR-HYDRA-078")] // DroppyCode/Core/Models/Hydra.swift:1344-1346 the conflicts sentence
+    [Trait("Req", "PR-HYDRA-078")] // DroppyCode/Core/Models/Hydra.swift:1348-1350 the conflicts sentence
     [Fact]
     public void ReportMessage_closing_adds_the_conflicts_sentence_when_any_landing_has_a_conflict()
     {
@@ -2355,7 +2437,7 @@ public sealed class HydraTests
 
     // ---- PR-HYDRA-079: the closing carries exactly one of two review/no-review sentences ----
 
-    [Trait("Req", "PR-HYDRA-079")] // DroppyCode/Core/Models/Hydra.swift:1376-1380
+    [Trait("Req", "PR-HYDRA-079")] // DroppyCode/Core/Models/Hydra.swift:1380-1384
     [Fact]
     public void ReportMessage_closing_picks_the_review_variant_by_reviewsHeads()
     {
@@ -2375,9 +2457,9 @@ public sealed class HydraTests
 
     // ---- PR-HYDRA-080: delegationOpener accepts hydra, hydra-sent, hydra-leaving, case-insensitively ----
     // Exercised through the public surface (DelegationBlockRange/HasDelegationBlock/HasDelegationOpener),
-    // since delegationOpener itself is private (Hydra.swift:1092-1094).
+    // since delegationOpener itself is private (Hydra.swift:1096-1098).
 
-    [Trait("Req", "PR-HYDRA-080")] // DroppyCode/Core/Models/Hydra.swift:1092-1094
+    [Trait("Req", "PR-HYDRA-080")] // DroppyCode/Core/Models/Hydra.swift:1096-1098
     [Fact]
     public void DelegationBlockRange_opener_accepts_the_three_dialects_case_insensitively()
     {
@@ -2388,7 +2470,7 @@ public sealed class HydraTests
         Assert.NotNull(HydraPrompts.DelegationBlockRange("```HYDRA-LEAVING\n[]\n```"));
     }
 
-    [Trait("Req", "PR-HYDRA-080")] // DroppyCode/Core/Models/Hydra.swift:1092-1094
+    [Trait("Req", "PR-HYDRA-080")] // DroppyCode/Core/Models/Hydra.swift:1096-1098
     [Fact]
     public void DelegationBlockRange_opener_allows_spaces_or_tabs_and_an_optional_CR_before_the_LF()
     {
@@ -2396,7 +2478,7 @@ public sealed class HydraTests
         Assert.NotNull(HydraPrompts.DelegationBlockRange("```hydra\r\n[]\n```"));
     }
 
-    [Trait("Req", "PR-HYDRA-080")] // DroppyCode/Core/Models/Hydra.swift:1092-1094
+    [Trait("Req", "PR-HYDRA-080")] // DroppyCode/Core/Models/Hydra.swift:1096-1098
     [Fact]
     public void DelegationBlockRange_opener_rejects_other_info_strings_and_other_whitespace_classes()
     {
@@ -2406,7 +2488,7 @@ public sealed class HydraTests
         Assert.Null(HydraPrompts.DelegationBlockRange("```hydra\u000B\n[]\n```"));
     }
 
-    [Trait("Req", "PR-HYDRA-080")] // DroppyCode/Core/Models/Hydra.swift:1092-1094
+    [Trait("Req", "PR-HYDRA-080")] // DroppyCode/Core/Models/Hydra.swift:1096-1098
     [Fact]
     public void DelegationBlockRange_opener_uses_the_first_match_in_the_text()
     {
@@ -2419,7 +2501,7 @@ public sealed class HydraTests
     // DelegationBlockRange, which is delegationOpener.lowerBound .. the LAST line-start fence's upperBound,
     // or the end of the text) ----
 
-    [Trait("Req", "PR-HYDRA-082")] // DroppyCode/Core/Models/Hydra.swift:1099-1109
+    [Trait("Req", "PR-HYDRA-082")] // DroppyCode/Core/Models/Hydra.swift:1103-1113
     [Fact]
     public void DelegationBlockRange_keeps_a_fence_only_when_it_opens_a_line()
     {
@@ -2430,7 +2512,7 @@ public sealed class HydraTests
         Assert.Equal(text.Length, range!.Value.UpperBound);
     }
 
-    [Trait("Req", "PR-HYDRA-082")] // DroppyCode/Core/Models/Hydra.swift:1099-1109
+    [Trait("Req", "PR-HYDRA-082")] // DroppyCode/Core/Models/Hydra.swift:1103-1113
     [Fact]
     public void DelegationBlockRange_counts_a_line_start_fence_that_carries_an_info_string()
     {
@@ -2441,7 +2523,7 @@ public sealed class HydraTests
         Assert.Equal(text.Length, range!.Value.UpperBound);
     }
 
-    [Trait("Req", "PR-HYDRA-082")] // DroppyCode/Core/Models/Hydra.swift:1099-1109
+    [Trait("Req", "PR-HYDRA-082")] // DroppyCode/Core/Models/Hydra.swift:1103-1113
     [Fact]
     public void DelegationBlockRange_six_consecutive_backticks_yield_only_one_fence_after_the_opener()
     {
@@ -2454,7 +2536,7 @@ public sealed class HydraTests
         Assert.Equal(openerLen + 3, range!.Value.UpperBound);
     }
 
-    [Trait("Req", "PR-HYDRA-082")] // DroppyCode/Core/Models/Hydra.swift:1099-1109
+    [Trait("Req", "PR-HYDRA-082")] // DroppyCode/Core/Models/Hydra.swift:1103-1113
     [Theory]
     [InlineData("\n")]
     [InlineData("\r")]
@@ -2470,7 +2552,7 @@ public sealed class HydraTests
         Assert.Equal(text.Length, range!.Value.UpperBound);
     }
 
-    [Trait("Req", "PR-HYDRA-083")] // DroppyCode/Core/Models/Hydra.swift:1117-1121
+    [Trait("Req", "PR-HYDRA-083")] // DroppyCode/Core/Models/Hydra.swift:1121-1125
     [Fact]
     public void DelegationBlockRange_ends_at_the_LAST_line_start_fence_not_the_first()
     {
@@ -2480,7 +2562,7 @@ public sealed class HydraTests
         Assert.Equal(text.Length, range!.Value.UpperBound);
     }
 
-    [Trait("Req", "PR-HYDRA-083")] // DroppyCode/Core/Models/Hydra.swift:1117-1121
+    [Trait("Req", "PR-HYDRA-083")] // DroppyCode/Core/Models/Hydra.swift:1121-1125
     [Fact]
     public void DelegationBlockRange_runs_to_the_end_of_the_text_with_no_closing_fence_at_all()
     {
@@ -2491,7 +2573,7 @@ public sealed class HydraTests
         Assert.Equal(text.Length, range!.Value.UpperBound);
     }
 
-    [Trait("Req", "PR-HYDRA-083")] // DroppyCode/Core/Models/Hydra.swift:1117-1121
+    [Trait("Req", "PR-HYDRA-083")] // DroppyCode/Core/Models/Hydra.swift:1121-1125
     [Fact]
     public void DelegationBlockRange_is_null_with_no_opener_at_all()
     {
@@ -2500,8 +2582,8 @@ public sealed class HydraTests
 
     // ---- PR-HYDRA-084/085/098: Delegations walks candidate ends backwards; the body parser is tri-state ----
 
-    [Trait("Req", "PR-HYDRA-084")] // DroppyCode/Core/Models/Hydra.swift:1140-1149
-    [Trait("Req", "PR-HYDRA-085")] // DroppyCode/Core/Models/Hydra.swift:1156-1162
+    [Trait("Req", "PR-HYDRA-084")] // DroppyCode/Core/Models/Hydra.swift:1144-1153
+    [Trait("Req", "PR-HYDRA-085")] // DroppyCode/Core/Models/Hydra.swift:1160-1166
     [Fact]
     public void Delegations_parses_a_single_bare_object_body_as_one_entry()
     {
@@ -2513,7 +2595,7 @@ public sealed class HydraTests
         Assert.Equal("p", one.Prompt);
     }
 
-    [Trait("Req", "PR-HYDRA-084")] // DroppyCode/Core/Models/Hydra.swift:1140-1149
+    [Trait("Req", "PR-HYDRA-084")] // DroppyCode/Core/Models/Hydra.swift:1144-1153
     [Fact]
     public void Delegations_parses_an_array_of_entries_in_order()
     {
@@ -2525,7 +2607,7 @@ public sealed class HydraTests
         Assert.Equal("b", result[1].Task);
     }
 
-    [Trait("Req", "PR-HYDRA-098")] // DroppyCode/Core/Models/Hydra.swift:1158, 1133-1139, 967
+    [Trait("Req", "PR-HYDRA-098")] // DroppyCode/Core/Models/Hydra.swift:1162, 1137-1143, 967
     [Fact]
     public void Delegations_returns_an_empty_list_not_null_for_an_explicitly_empty_array()
     {
@@ -2535,7 +2617,7 @@ public sealed class HydraTests
         Assert.Empty(result!);
     }
 
-    [Trait("Req", "PR-HYDRA-084")] // DroppyCode/Core/Models/Hydra.swift:1140-1149
+    [Trait("Req", "PR-HYDRA-084")] // DroppyCode/Core/Models/Hydra.swift:1144-1153
     [Fact]
     public void Delegations_walks_line_start_fences_backwards_skipping_candidates_that_fail_to_parse()
     {
@@ -2552,7 +2634,7 @@ public sealed class HydraTests
         Assert.Equal("pa", one.Prompt);
     }
 
-    [Trait("Req", "PR-HYDRA-085")] // DroppyCode/Core/Models/Hydra.swift:1156-1162
+    [Trait("Req", "PR-HYDRA-085")] // DroppyCode/Core/Models/Hydra.swift:1160-1166
     [Fact]
     public void Delegations_with_an_entry_missing_a_prompt_falls_back_to_the_whole_tail_and_still_fails()
     {
@@ -2564,14 +2646,14 @@ public sealed class HydraTests
         Assert.Null(HydraPrompts.Delegations(text));
     }
 
-    [Trait("Req", "PR-HYDRA-084")] // DroppyCode/Core/Models/Hydra.swift:1140-1149
+    [Trait("Req", "PR-HYDRA-084")] // DroppyCode/Core/Models/Hydra.swift:1144-1153
     [Fact]
     public void Delegations_is_null_when_no_candidate_body_parses()
     {
         Assert.Null(HydraPrompts.Delegations("```hydra\nnot json at all\n```"));
     }
 
-    [Trait("Req", "PR-HYDRA-084")] // DroppyCode/Core/Models/Hydra.swift:1140-1149
+    [Trait("Req", "PR-HYDRA-084")] // DroppyCode/Core/Models/Hydra.swift:1144-1153
     [Fact]
     public void Delegations_is_null_with_no_opener_at_all()
     {
@@ -2619,7 +2701,7 @@ public sealed class HydraTests
         Assert.Equal("app", one.Project);
     }
 
-    [Trait("Req", "PR-HYDRA-098")] // DroppyCode/Core/Models/Hydra.swift:1158
+    [Trait("Req", "PR-HYDRA-098")] // DroppyCode/Core/Models/Hydra.swift:1162
     [Fact]
     public void Delegations_with_a_blank_prompt_rejects_the_entry_and_the_others_all_blank_yields_null()
     {
@@ -2629,7 +2711,7 @@ public sealed class HydraTests
 
     // ---- PR-HYDRA-088: withoutDelegationBlock removes the block's range and trims both ends ----
 
-    [Trait("Req", "PR-HYDRA-088")] // DroppyCode/Core/Models/Hydra.swift:1165-1169
+    [Trait("Req", "PR-HYDRA-088")] // DroppyCode/Core/Models/Hydra.swift:1169-1173
     [Fact]
     public void WithoutDelegationBlock_removes_the_whole_range_and_trims_leading_and_trailing_whitespace()
     {
@@ -2638,7 +2720,7 @@ public sealed class HydraTests
         Assert.Equal("Here is my answer.", kept);
     }
 
-    [Trait("Req", "PR-HYDRA-088")] // DroppyCode/Core/Models/Hydra.swift:1165-1169
+    [Trait("Req", "PR-HYDRA-088")] // DroppyCode/Core/Models/Hydra.swift:1169-1173
     [Fact]
     public void WithoutDelegationBlock_with_no_block_present_returns_the_text_trimmed()
     {
@@ -2647,7 +2729,7 @@ public sealed class HydraTests
 
     // ---- PR-HYDRA-089: hasDelegationBlock and hasDelegationOpener are the two block-presence tests ----
 
-    [Trait("Req", "PR-HYDRA-089")] // DroppyCode/Core/Models/Hydra.swift:1124
+    [Trait("Req", "PR-HYDRA-089")] // DroppyCode/Core/Models/Hydra.swift:1128
     [Fact]
     public void HasDelegationBlock_is_true_whenever_a_block_range_exists_readable_or_not()
     {
@@ -2656,7 +2738,7 @@ public sealed class HydraTests
         Assert.False(HydraPrompts.HasDelegationBlock("no block here"));
     }
 
-    [Trait("Req", "PR-HYDRA-089")] // DroppyCode/Core/Models/Hydra.swift:1129-1131
+    [Trait("Req", "PR-HYDRA-089")] // DroppyCode/Core/Models/Hydra.swift:1133-1135
     [Fact]
     public void HasDelegationOpener_applies_the_same_three_dialect_regex_over_a_streaming_tail()
     {
@@ -2667,7 +2749,7 @@ public sealed class HydraTests
 
     // ---- PR-HYDRA-090: markingDelegationBlockSent rewrites the opener to ```hydra-sent, once ----
 
-    [Trait("Req", "PR-HYDRA-090")] // DroppyCode/Core/Models/Hydra.swift:1200-1203
+    [Trait("Req", "PR-HYDRA-090")] // DroppyCode/Core/Models/Hydra.swift:1204-1207
     [Fact]
     public void MarkingDelegationBlockSent_rewrites_the_opener_to_exactly_hydra_sent_with_a_single_LF()
     {
@@ -2675,7 +2757,7 @@ public sealed class HydraTests
         Assert.Equal("before\n```hydra-sent\n[]\n```\nafter", result);
     }
 
-    [Trait("Req", "PR-HYDRA-090")] // DroppyCode/Core/Models/Hydra.swift:1200-1203
+    [Trait("Req", "PR-HYDRA-090")] // DroppyCode/Core/Models/Hydra.swift:1204-1207
     [Fact]
     public void MarkingDelegationBlockSent_replaces_the_whole_matched_range_CRLF_included_with_plain_LF()
     {
@@ -2683,7 +2765,7 @@ public sealed class HydraTests
         Assert.Equal("```hydra-sent\n[]\n```", result);
     }
 
-    [Trait("Req", "PR-HYDRA-090")] // DroppyCode/Core/Models/Hydra.swift:1200-1203
+    [Trait("Req", "PR-HYDRA-090")] // DroppyCode/Core/Models/Hydra.swift:1204-1207
     [Fact]
     public void MarkingDelegationBlockSent_is_idempotent_and_does_nothing_with_no_opener()
     {
@@ -2695,7 +2777,7 @@ public sealed class HydraTests
 
     // ---- PR-HYDRA-091: markingDelegationBlockLeaving rewrites a sent opener to ```hydra-leaving, once ----
 
-    [Trait("Req", "PR-HYDRA-091")] // DroppyCode/Core/Models/Hydra.swift:1193-1196
+    [Trait("Req", "PR-HYDRA-091")] // DroppyCode/Core/Models/Hydra.swift:1197-1200
     [Fact]
     public void MarkingDelegationBlockLeaving_rewrites_a_sent_opener_to_exactly_hydra_leaving()
     {
@@ -2703,7 +2785,7 @@ public sealed class HydraTests
         Assert.Equal("```hydra-leaving\n[]\n```", result);
     }
 
-    [Trait("Req", "PR-HYDRA-091")] // DroppyCode/Core/Models/Hydra.swift:1193-1196
+    [Trait("Req", "PR-HYDRA-091")] // DroppyCode/Core/Models/Hydra.swift:1197-1200
     [Fact]
     public void MarkingDelegationBlockLeaving_does_nothing_without_a_sent_block_or_when_already_leaving()
     {
@@ -2715,7 +2797,7 @@ public sealed class HydraTests
 
     // ---- PR-HYDRA-092: hasSentDelegationBlock and hasLeavingDelegationBlock use narrower regexes ----
 
-    [Trait("Req", "PR-HYDRA-092")] // DroppyCode/Core/Models/Hydra.swift:1181-1188
+    [Trait("Req", "PR-HYDRA-092")] // DroppyCode/Core/Models/Hydra.swift:1185-1192
     [Fact]
     public void HasSentDelegationBlock_matches_sent_or_leaving_but_not_the_plain_hydra_opener()
     {
@@ -2724,7 +2806,7 @@ public sealed class HydraTests
         Assert.False(HydraPrompts.HasSentDelegationBlock("```hydra\n"));
     }
 
-    [Trait("Req", "PR-HYDRA-092")] // DroppyCode/Core/Models/Hydra.swift:1181-1188
+    [Trait("Req", "PR-HYDRA-092")] // DroppyCode/Core/Models/Hydra.swift:1185-1192
     [Fact]
     public void HasLeavingDelegationBlock_matches_only_leaving_and_not_sent()
     {
@@ -2732,7 +2814,7 @@ public sealed class HydraTests
         Assert.False(HydraPrompts.HasLeavingDelegationBlock("```hydra-sent\n"));
     }
 
-    [Trait("Req", "PR-HYDRA-092")] // DroppyCode/Core/Models/Hydra.swift:1181-1188
+    [Trait("Req", "PR-HYDRA-092")] // DroppyCode/Core/Models/Hydra.swift:1185-1192
     [Fact]
     public void HasSentDelegationBlock_uses_contains_so_the_match_may_sit_anywhere_in_the_text()
     {
@@ -2741,14 +2823,14 @@ public sealed class HydraTests
 
     // ---- PR-HYDRA-093: the delegation card's hold and fade durations ----
 
-    [Trait("Req", "PR-HYDRA-093")] // DroppyCode/Core/Models/Hydra.swift:1173
+    [Trait("Req", "PR-HYDRA-093")] // DroppyCode/Core/Models/Hydra.swift:1177
     [Fact]
     public void DelegationSentHold_is_exactly_3_point_2_seconds()
     {
         Assert.Equal(TimeSpan.FromSeconds(3.2), HydraPrompts.DelegationSentHold);
     }
 
-    [Trait("Req", "PR-HYDRA-093")] // DroppyCode/Core/Models/Hydra.swift:1177
+    [Trait("Req", "PR-HYDRA-093")] // DroppyCode/Core/Models/Hydra.swift:1181
     [Fact]
     public void DelegationLeaveFade_is_exactly_450_milliseconds()
     {
@@ -2889,14 +2971,14 @@ public sealed class HydraTests
 
     // ---- PR-HYDRA-250: a dropped block's notice is '[Hydra] ' + message + blank line, '---', blank line ----
 
-    [Trait("Req", "PR-HYDRA-250")] // DroppyCode/Core/Models/Hydra.swift:1086-1088
+    [Trait("Req", "PR-HYDRA-250")] // DroppyCode/Core/Models/Hydra.swift:1090-1092
     [Fact]
     public void DroppedBlockNotice_is_exactly_Hydra_prefix_message_then_a_separator()
     {
         Assert.Equal("[Hydra] a message\n\n---\n\n", HydraPrompts.DroppedBlockNotice("a message"));
     }
 
-    [Trait("Req", "PR-HYDRA-250")] // DroppyCode/Core/Models/Hydra.swift:1086-1088
+    [Trait("Req", "PR-HYDRA-250")] // DroppyCode/Core/Models/Hydra.swift:1090-1092
     [Fact]
     public void DroppedBlockNotice_of_an_already_prefixed_unreadable_message_doubles_the_Hydra_prefix()
     {
@@ -2907,7 +2989,7 @@ public sealed class HydraTests
 
     // ---- PR-HYDRA-251: interruptedBlockMessage tells the lead its block's heads never went out ----
 
-    [Trait("Req", "PR-HYDRA-251")] // DroppyCode/Core/Models/Hydra.swift:1073-1080
+    [Trait("Req", "PR-HYDRA-251")] // DroppyCode/Core/Models/Hydra.swift:1077-1084
     [Fact]
     public void InterruptedBlockMessage_stopped_says_was_stopped()
     {
@@ -2916,7 +2998,7 @@ public sealed class HydraTests
             HydraPrompts.InterruptedBlockMessage(stopped: true));
     }
 
-    [Trait("Req", "PR-HYDRA-251")] // DroppyCode/Core/Models/Hydra.swift:1073-1080
+    [Trait("Req", "PR-HYDRA-251")] // DroppyCode/Core/Models/Hydra.swift:1077-1084
     [Fact]
     public void InterruptedBlockMessage_not_stopped_says_failed()
     {

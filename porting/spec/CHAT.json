@@ -403,7 +403,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same five raw outcome strings, spelled exactly merged, failed, stray, held and settled, all accepted on decode; never write held. The retryable key is spelled exactly retryable.",
       "verification_method": "contract fixture with one record per outcome, a retryable failure, and a record without the retryable key",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,

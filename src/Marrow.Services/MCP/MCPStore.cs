@@ -5,9 +5,12 @@ using Marrow.Core.Support;
 using Marrow.Services.Models;
 using Marrow.Services.Port;
 
-// Source: DroppyCode/Services/MCP/MCPStore.swift (B2 1fbf81e), :1-357. Records PR-MCP-049 to PR-MCP-072 (this
+// Source: DroppyCode/Services/MCP/MCPStore.swift (B3 52bc792), :1-351. Records PR-MCP-049 to PR-MCP-072 (this
 // part) and PR-MCP-073 and up (load/save/deleteCustom/storedValue/saveCustomValues, part 2 of this unit); this
 // file implements the whole class so it compiles and the part-1 records behave correctly end to end.
+//
+// B3 delta (lane A17, R3-47): allEntries (B2 lines 51-56) is deleted, having had no caller (PR-MCP-050
+// retired); every citation at or after B2 line 57 shifts -6.
 namespace Marrow.Services.MCP;
 
 // :8-10 @MainActor @Observable final class MCPStore (R-OBS-6)
@@ -65,360 +68,355 @@ public sealed class MCPStore : MainActorModel
         .OrderBy(resolved => resolved.Id, SwiftStringComparer.Instance) // :48, R-COLL-1
         .ToList());
 
-    /// :51-55 Every server the page can show: the catalog's and the user's own, customs first on a name
-    /// collision (theirs are the ones to edit).
-    public IReadOnlyList<MCPCatalogEntry> AllEntries => Computed(() =>
-        Customs.Select(custom => custom.CatalogEntry()).Concat(MCPCatalog.Entries).ToList()); // :54
-
-    /// :57-60 The entry an id names: a custom first, then the catalog.
-    public MCPCatalogEntry? Entry(string id) => // :58-60
+    /// :51-54 The entry an id names: a custom first, then the catalog.
+    public MCPCatalogEntry? Entry(string id) => // :52-54
         customsField.FirstOrDefault(custom => SwiftString.Equal(custom.Id, id))?.CatalogEntry() ?? MCPCatalog.Entry(id);
 
-    /// :62-63 The value the card shows for a field: the draft, else the stored value (secrets from the store).
-    public string Value(MCPField field, MCPCatalogEntry entry) // :63-71
+    /// :56-57 The value the card shows for a field: the draft, else the stored value (secrets from the store).
+    public string Value(MCPField field, MCPCatalogEntry entry) // :57-65
     {
         if (Drafts.TryGetValue(entry.Id, out var entryDrafts) && entryDrafts.TryGetValue(field.Key, out var draft))
-            return draft; // :64
-        if (field.FieldKind == MCPField.Kind.Secret) // :65
+            return draft; // :58
+        if (field.FieldKind == MCPField.Kind.Secret) // :59
         {
-            if (MCPKeychain.Value(entry.Id, field.Key) is { } secret) return secret; // :66
+            if (MCPKeychain.Value(entry.Id, field.Key) is { } secret) return secret; // :60
         }
-        else if (Connection(entry.Id)?.Values is { } values && values.TryGetValue(field.Key, out var stored)) // :67
+        else if (Connection(entry.Id)?.Values is { } values && values.TryGetValue(field.Key, out var stored)) // :61
         {
-            return stored; // :68
+            return stored; // :62
         }
-        return field.DefaultValue ?? ""; // :70
+        return field.DefaultValue ?? ""; // :64
     }
 
-    // :73-75
+    // :67-69
     public void SetDraft(string value, MCPField field, MCPCatalogEntry entry)
     {
         if (!Drafts.TryGetValue(entry.Id, out var entryDrafts))
-            Drafts[entry.Id] = entryDrafts = new Dictionary<string, string>(StringComparer.Ordinal); // :74, default: [:]
+            Drafts[entry.Id] = entryDrafts = new Dictionary<string, string>(StringComparer.Ordinal); // :68, default: [:]
         entryDrafts[field.Key] = value;
     }
 
-    /// :77-80 Whether every required field of the entry has a value (draft or stored).
-    public bool CanConnect(MCPCatalogEntry entry) => // :78-80
+    /// :71-74 Whether every required field of the entry has a value (draft or stored).
+    public bool CanConnect(MCPCatalogEntry entry) => // :72-74
         entry.Fields.Where(field => field.IsRequired).All(field => Value(field, entry).Length > 0);
 
-    // MARK: Connecting (:82)
+    // MARK: Connecting (:76)
 
-    /// :84-118 Stores the drafts (secrets to protected storage), probes the server, and on success marks it
+    /// :78-112 Stores the drafts (secrets to protected storage), probes the server, and on success marks it
     /// connected with its tools; on failure keeps the values and records the message.
-    public void Connect(MCPCatalogEntry entry) // :86
+    public void Connect(MCPCatalogEntry entry) // :80
     {
-        if (probes.Remove(entry.Id, out var existing)) existing.Cancel(); // :87
+        if (probes.Remove(entry.Id, out var existing)) existing.Cancel(); // :81
 
-        var connection = Connection(entry.Id) ?? new MCPConnection(entry.Id); // :88
-        connection = connection with { IsEnabled = true }; // :89
+        var connection = Connection(entry.Id) ?? new MCPConnection(entry.Id); // :82
+        connection = connection with { IsEnabled = true }; // :83
 
-        // :90-96 A sign-in belongs to one address: pointing the server elsewhere (another GitLab instance)
+        // :84-90 A sign-in belongs to one address: pointing the server elsewhere (another GitLab instance)
         // drops the old token so the browser flow runs against the new one.
-        if (entry.IsOAuth && Drafts.TryGetValue(entry.Id, out var addressDraft)) // :92
+        if (entry.IsOAuth && Drafts.TryGetValue(entry.Id, out var addressDraft)) // :86
         {
-            var before = entry.OauthURL(connection.Values)!; // :93
-            var merged = connection.Values.Mutating(map => { foreach (var pair in addressDraft) map[pair.Key] = pair.Value; }); // :93 merging(draft) { $1 }
-            var after = entry.OauthURL(merged)!; // :93
-            if (!SwiftString.Equal(before, after)) // :93
+            var before = entry.OauthURL(connection.Values)!; // :87
+            var merged = connection.Values.Mutating(map => { foreach (var pair in addressDraft) map[pair.Key] = pair.Value; }); // :87 merging(draft) { $1 }
+            var after = entry.OauthURL(merged)!; // :87
+            if (!SwiftString.Equal(before, after)) // :87
             {
-                MCPOAuth.SignOut(entry.Id); // :94
-                MCPProxy.Shared.Current.Unregister(entry.Id); // :95
+                MCPOAuth.SignOut(entry.Id); // :88
+                MCPProxy.Shared.Current.Unregister(entry.Id); // :89
             }
         }
 
-        // :97-102 A Try again after a rejection must not reuse the rejected token: a failed OAuth entry
+        // :91-96 A Try again after a rejection must not reuse the rejected token: a failed OAuth entry
         // starts signed out so the browser flow runs afresh.
-        if (entry.IsOAuth && State(entry.Id) is MCPConnectionState.Failed) // :99
+        if (entry.IsOAuth && State(entry.Id) is MCPConnectionState.Failed) // :93
         {
-            MCPOAuth.SignOut(entry.Id); // :100
-            MCPProxy.Shared.Current.Unregister(entry.Id); // :101
+            MCPOAuth.SignOut(entry.Id); // :94
+            MCPProxy.Shared.Current.Unregister(entry.Id); // :95
         }
 
-        if (Drafts.TryGetValue(entry.Id, out var draft)) // :103
+        if (Drafts.TryGetValue(entry.Id, out var draft)) // :97
         {
-            foreach (var field in entry.Fields) // :104
+            foreach (var field in entry.Fields) // :98
             {
-                if (!draft.TryGetValue(field.Key, out var text)) continue; // :105
-                if (field.FieldKind == MCPField.Kind.Secret) // :106
-                    MCPKeychain.Set(text, entry.Id, field.Key); // :107
+                if (!draft.TryGetValue(field.Key, out var text)) continue; // :99
+                if (field.FieldKind == MCPField.Kind.Secret) // :100
+                    MCPKeychain.Set(text, entry.Id, field.Key); // :101
                 else
-                    connection = connection with { Values = connection.Values.Mutating(map => map[field.Key] = text) }; // :109
+                    connection = connection with { Values = connection.Values.Mutating(map => map[field.Key] = text) }; // :103
             }
         }
 
-        connectionsField[entry.Id] = connection; // :113
-        Drafts.Remove(entry.Id); // :114
-        Save(); // :115
-        statesField[entry.Id] = new MCPConnectionState.Connecting(); // :116
-        StartProbe(entry); // :117
+        connectionsField[entry.Id] = connection; // :107
+        Drafts.Remove(entry.Id); // :108
+        Save(); // :109
+        statesField[entry.Id] = new MCPConnectionState.Connecting(); // :110
+        StartProbe(entry); // :111
     }
 
-    /// :120-134 Forgets the connection, its values and its secrets, and removes it from every provider config.
-    public void Disconnect(MCPCatalogEntry entry) // :121
+    /// :114-128 Forgets the connection, its values and its secrets, and removes it from every provider config.
+    public void Disconnect(MCPCatalogEntry entry) // :115
     {
-        if (probes.Remove(entry.Id, out var existing)) existing.Cancel(); // :122-123
-        MCPKeychain.DeleteAll(entry); // :124
-        if (entry.IsOAuth) // :125
+        if (probes.Remove(entry.Id, out var existing)) existing.Cancel(); // :116-117
+        MCPKeychain.DeleteAll(entry); // :118
+        if (entry.IsOAuth) // :119
         {
-            MCPOAuth.SignOut(entry.Id); // :126
-            MCPProxy.Shared.Current.Unregister(entry.Id); // :127
+            MCPOAuth.SignOut(entry.Id); // :120
+            MCPProxy.Shared.Current.Unregister(entry.Id); // :121
         }
-        connectionsField.Remove(entry.Id); // :129
-        statesField.Remove(entry.Id); // :130
-        Drafts.Remove(entry.Id); // :131
-        Save(); // :132
-        ExportAll(); // :133
+        connectionsField.Remove(entry.Id); // :123
+        statesField.Remove(entry.Id); // :124
+        Drafts.Remove(entry.Id); // :125
+        Save(); // :126
+        ExportAll(); // :127
     }
 
-    /// :136-141 Re-probes a connected server without changing its values.
-    public void Refresh(MCPCatalogEntry entry) // :137
+    /// :130-135 Re-probes a connected server without changing its values.
+    public void Refresh(MCPCatalogEntry entry) // :131
     {
-        if (probes.Remove(entry.Id, out var existing)) existing.Cancel(); // :138
-        statesField[entry.Id] = new MCPConnectionState.Connecting(); // :139
-        StartProbe(entry); // :140
+        if (probes.Remove(entry.Id, out var existing)) existing.Cancel(); // :132
+        statesField[entry.Id] = new MCPConnectionState.Connecting(); // :133
+        StartProbe(entry); // :134
     }
 
-    // :143-149
+    // :137-143
     public void SetEnabled(bool enabled, MCPCatalogEntry entry)
     {
-        if (Connection(entry.Id) is not { } connection) return; // :144
-        connection = connection with { IsEnabled = enabled }; // :145
-        connectionsField[entry.Id] = connection; // :146
-        Save(); // :147
-        ExportAll(); // :148
+        if (Connection(entry.Id) is not { } connection) return; // :138
+        connection = connection with { IsEnabled = enabled }; // :139
+        connectionsField[entry.Id] = connection; // :140
+        Save(); // :141
+        ExportAll(); // :142
     }
 
-    // MARK: Custom servers (:151)
+    // MARK: Custom servers (:145)
 
-    /// :153-190 Adds or replaces a custom server. Validates first; the error, when there is one, is for the
+    /// :147-184 Adds or replaces a custom server. Validates first; the error, when there is one, is for the
     /// editor to show and nothing is written.
-    public MCPCustomError? SaveCustom(MCPCustomServer server, string? replacing = null) // :156
+    public MCPCustomError? SaveCustom(MCPCustomServer server, string? replacing = null) // :150
     {
-        var old = replacing is { } oldID ? customsField.FirstOrDefault(custom => SwiftString.Equal(custom.Id, oldID)) : null; // :157
-        var taken = new HashSet<string>(MCPCatalog.Entries.Select(entry => entry.Id), SwiftStringComparer.Instance); // :158
-        foreach (var custom in customsField) taken.Add(custom.Id); // :159
-        if (old is not null) taken.Remove(old.Id); // :160
-        server = server with { Name = server.Name.Trimmed() }; // :161-162
-        // :163-165 The id is made once, at creation, from the first name; a rename never moves it, so the
+        var old = replacing is { } oldID ? customsField.FirstOrDefault(custom => SwiftString.Equal(custom.Id, oldID)) : null; // :151
+        var taken = new HashSet<string>(MCPCatalog.Entries.Select(entry => entry.Id), SwiftStringComparer.Instance); // :152
+        foreach (var custom in customsField) taken.Add(custom.Id); // :153
+        if (old is not null) taken.Remove(old.Id); // :154
+        server = server with { Name = server.Name.Trimmed() }; // :155-156
+        // :157-159 The id is made once, at creation, from the first name; a rename never moves it, so the
         // connection and the store's secrets stay where they are.
-        server = server with { Id = old?.Id ?? MCPCustomServer.MakeID(server.Name) }; // :165
-        if (MCPCustomError.Validate(server, taken) is { } error) return error; // :166
+        server = server with { Id = old?.Id ?? MCPCustomServer.MakeID(server.Name) }; // :159
+        if (MCPCustomError.Validate(server, taken) is { } error) return error; // :160
 
-        if (probes.Remove(server.Id, out var existing)) existing.Cancel(); // :167-168
-        Drafts.Remove(server.Id); // :169
-        var index = customsField.FindIndex(custom => SwiftString.Equal(custom.Id, server.Id)); // :170
-        if (index >= 0) customsField[index] = server; // :170-171
-        else customsField.Add(server); // :173
-        SaveCustoms(); // :175
+        if (probes.Remove(server.Id, out var existing)) existing.Cancel(); // :161-162
+        Drafts.Remove(server.Id); // :163
+        var index = customsField.FindIndex(custom => SwiftString.Equal(custom.Id, server.Id)); // :164
+        if (index >= 0) customsField[index] = server; // :164-165
+        else customsField.Add(server); // :167
+        SaveCustoms(); // :169
 
-        // :176-179 The definition changed under any connection it had: the tools and the provider configs
+        // :170-173 The definition changed under any connection it had: the tools and the provider configs
         // still describe the old command, address or variables, so both go now. The server leaves the
         // providers' configs (it is no longer connected) until the editor's re-probe succeeds, and the probe
         // runs after the values are saved.
-        if (Connection(server.Id) is { } connection) // :180
+        if (Connection(server.Id) is { } connection) // :174
         {
-            connection = connection with { ConnectedAt = null, ServerVersion = null, Tools = ValueList<MCPToolSummary>.Empty }; // :181-183
-            connectionsField[server.Id] = connection; // :184
-            statesField[server.Id] = new MCPConnectionState.NotConnected(); // :185
-            Save(); // :186
-            ExportAll(); // :187
+            connection = connection with { ConnectedAt = null, ServerVersion = null, Tools = ValueList<MCPToolSummary>.Empty }; // :175-177
+            connectionsField[server.Id] = connection; // :178
+            statesField[server.Id] = new MCPConnectionState.NotConnected(); // :179
+            Save(); // :180
+            ExportAll(); // :181
         }
-        return null; // :189
+        return null; // :183
     }
 
-    /// :192-199 Removes a custom server: its connection and secrets go with it.
+    /// :186-193 Removes a custom server: its connection and secrets go with it.
     public void DeleteCustom(MCPCustomServer server)
     {
-        if (customsField.FirstOrDefault(custom => SwiftString.Equal(custom.Id, server.Id)) is { } entry) // :194
-            Disconnect(entry.CatalogEntry()); // :195
-        customsField.RemoveAll(custom => SwiftString.Equal(custom.Id, server.Id)); // :197
-        SaveCustoms(); // :198
+        if (customsField.FirstOrDefault(custom => SwiftString.Equal(custom.Id, server.Id)) is { } entry) // :188
+            Disconnect(entry.CatalogEntry()); // :189
+        customsField.RemoveAll(custom => SwiftString.Equal(custom.Id, server.Id)); // :191
+        SaveCustoms(); // :192
     }
 
-    /// :201-206 A variable's stored value, for the editor to prefill: the store's when the variable is
+    /// :195-200 A variable's stored value, for the editor to prefill: the store's when the variable is
     /// secret, the connection's otherwise.
     public string? StoredValue(string id, string field, bool secret) =>
-        secret ? MCPKeychain.Value(id, field) : Connection(id)?.Values.GetValueOrDefault(field); // :204-205
+        secret ? MCPKeychain.Value(id, field) : Connection(id)?.Values.GetValueOrDefault(field); // :198-199
 
-    /// :208-241 Saves a custom's variable values where connect would put them: plain ones in the connection
+    /// :202-235 Saves a custom's variable values where connect would put them: plain ones in the connection
     /// (mcp.json), secret ones in protected storage. A variable that moved between the two keeps its saved
     /// value and the stale copy in the other store is removed. Empty values clear the field; the editor
     /// supplies the stored value for fields the user has not changed.
-    public bool SaveCustomValues(IReadOnlyList<(string Key, string Value, bool IsSecret)> values, string id, MCPCatalogEntry? replacingFieldsOf) // :215
+    public bool SaveCustomValues(IReadOnlyList<(string Key, string Value, bool IsSecret)> values, string id, MCPCatalogEntry? replacingFieldsOf) // :209
     {
-        foreach (var item in values.Where(item => item.IsSecret)) // :216
-            if (!MCPKeychain.Set(item.Value, id, item.Key)) return false; // :217
+        foreach (var item in values.Where(item => item.IsSecret)) // :210
+            if (!MCPKeychain.Set(item.Value, id, item.Key)) return false; // :211
 
-        var kept = new HashSet<string>(values.Select(item => item.Key), SwiftStringComparer.Instance); // :219
-        var connection = Connection(id) ?? new MCPConnection(id); // :220
+        var kept = new HashSet<string>(values.Select(item => item.Key), SwiftStringComparer.Instance); // :213
+        var connection = Connection(id) ?? new MCPConnection(id); // :214
 
-        // :222-224 Fields the edit no longer declares: their plain values go, their secrets too.
+        // :216-218 Fields the edit no longer declares: their plain values go, their secrets too.
         foreach (var field in (replacingFieldsOf?.Fields ?? ValueList<MCPField>.Empty).Where(field => !kept.Contains(field.Key)))
-            MCPKeychain.Delete(id, field.Key); // :223
+            MCPKeychain.Delete(id, field.Key); // :217
 
-        connection = connection with { Values = new ValueMap<string, string>(connection.Values.Where(pair => kept.Contains(pair.Key)), SwiftStringComparer.Instance) }; // :225
+        connection = connection with { Values = new ValueMap<string, string>(connection.Values.Where(pair => kept.Contains(pair.Key)), SwiftStringComparer.Instance) }; // :219
 
-        foreach (var item in values) // :226
+        foreach (var item in values) // :220
         {
-            var resolved = item.Value; // :227
-            if (item.IsSecret) // :228
+            var resolved = item.Value; // :221
+            if (item.IsSecret) // :222
             {
-                connection = connection with { Values = connection.Values.Mutating(map => map.Remove(item.Key)) }; // :229
+                connection = connection with { Values = connection.Values.Mutating(map => map.Remove(item.Key)) }; // :223
             }
             else
             {
                 connection = connection with
                 {
                     Values = resolved.Length == 0
-                        ? connection.Values.Mutating(map => map.Remove(item.Key)) // :231 nil clears it
+                        ? connection.Values.Mutating(map => map.Remove(item.Key)) // :225 nil clears it
                         : connection.Values.Mutating(map => map[item.Key] = resolved),
                 };
-                MCPKeychain.Delete(id, item.Key); // :232
+                MCPKeychain.Delete(id, item.Key); // :226
             }
         }
 
-        // :235-236 A server whose values are all empty needs no connection yet: it gets one on connect.
-        if (Connection(id) is not null || connection.Values.Count > 0) // :236
+        // :229-230 A server whose values are all empty needs no connection yet: it gets one on connect.
+        if (Connection(id) is not null || connection.Values.Count > 0) // :230
         {
-            connectionsField[id] = connection; // :237
-            Save(); // :238
+            connectionsField[id] = connection; // :231
+            Save(); // :232
         }
-        return true; // :240
+        return true; // :234
     }
 
-    // MARK: Persistence (:243)
+    // MARK: Persistence (:237)
 
-    private void Load() // :245-260
+    private void Load() // :239-254
     {
-        if (SwiftTry.Optional(() => File.ReadAllBytes(MCPPaths.CustomsURL)) is { } customData && // :246
-            SwiftTry.Optional(() => JsonSerializer.Deserialize<List<MCPCustomServer>>(customData, CustomOptions)) is { } list) // :247
+        if (SwiftTry.Optional(() => File.ReadAllBytes(MCPPaths.CustomsURL)) is { } customData && // :240
+            SwiftTry.Optional(() => JsonSerializer.Deserialize<List<MCPCustomServer>>(customData, CustomOptions)) is { } list) // :241
         {
-            customsField = list; // :248
+            customsField = list; // :242
         }
-        var data = SwiftTry.Optional(() => File.ReadAllBytes(MCPPaths.ConnectionsURL)); // :250
+        var data = SwiftTry.Optional(() => File.ReadAllBytes(MCPPaths.ConnectionsURL)); // :244
         if (data is null) return;
-        var connections = SwiftTry.Optional(() => JsonSerializer.Deserialize<List<MCPConnection>>(data, ConnectionOptions)); // :253
+        var connections = SwiftTry.Optional(() => JsonSerializer.Deserialize<List<MCPConnection>>(data, ConnectionOptions)); // :247
         if (connections is null) return;
-        foreach (var connection in connections) // :254
+        foreach (var connection in connections) // :248
         {
-            connectionsField[connection.CatalogID] = connection; // :255
-            if (connection.ConnectedAt is not null) // :256
-                statesField[connection.CatalogID] = new MCPConnectionState.Connected(connection.Tools.Count); // :257
+            connectionsField[connection.CatalogID] = connection; // :249
+            if (connection.ConnectedAt is not null) // :250
+                statesField[connection.CatalogID] = new MCPConnectionState.Connected(connection.Tools.Count); // :251
         }
     }
 
-    private void Save() // :262-269
+    private void Save() // :256-263
     {
-        var list = connectionsField.Values.OrderBy(connection => connection.CatalogID, SwiftStringComparer.Instance).ToList(); // :266
-        var data = SwiftTry.Optional(() => SwiftJson.Encode(list, ConnectionOptions, SwiftJsonStyle.PrettySorted)); // :263-267
+        var list = connectionsField.Values.OrderBy(connection => connection.CatalogID, SwiftStringComparer.Instance).ToList(); // :260
+        var data = SwiftTry.Optional(() => SwiftJson.Encode(list, ConnectionOptions, SwiftJsonStyle.PrettySorted)); // :257-261
         if (data is null) return;
-        SwiftTry.Ignore(() => FileOps.WriteAtomic(MCPPaths.ConnectionsURL, data)); // :268
+        SwiftTry.Ignore(() => FileOps.WriteAtomic(MCPPaths.ConnectionsURL, data)); // :262
     }
 
-    private void SaveCustoms() // :271-276
+    private void SaveCustoms() // :265-270
     {
-        var data = SwiftTry.Optional(() => SwiftJson.Encode(customsField, CustomOptions, SwiftJsonStyle.PrettySorted)); // :273-274
+        var data = SwiftTry.Optional(() => SwiftJson.Encode(customsField, CustomOptions, SwiftJsonStyle.PrettySorted)); // :267-268
         if (data is null) return;
-        SwiftTry.Ignore(() => FileOps.WriteAtomic(MCPPaths.CustomsURL, data)); // :275
+        SwiftTry.Ignore(() => FileOps.WriteAtomic(MCPPaths.CustomsURL, data)); // :269
     }
 
     private static readonly JsonSerializerOptions ConnectionOptions = new() { Converters = { new MCPConnectionConverter() } };
     private static readonly JsonSerializerOptions CustomOptions = new() { Converters = { new MCPCustomServerConverter() } };
 
-    /// :278-290 Rewrites every provider's config from enabledServers and runs the one-time external-CLI cleanup.
-    private void ExportAll() // :279
+    /// :272-284 Rewrites every provider's config from enabledServers and runs the one-time external-CLI cleanup.
+    private void ExportAll() // :273
     {
-        var servers = EnabledServers; // :280
-        // :281-282 The proxy's routes follow the enabled list: one per signed-in server.
-        MCPProxy.Shared.Current.ReplaceAll(servers // :282-285
+        var servers = EnabledServers; // :274
+        // :275-276 The proxy's routes follow the enabled list: one per signed-in server.
+        MCPProxy.Shared.Current.ReplaceAll(servers // :276-279
             .Where(server => server.OauthUpstream is not null)
             .Select(server => (ServerID: server.Id, Upstream: server.OauthUpstream!, Headers: (IReadOnlyDictionary<string, string>)ValueMap<string, string>.Empty, UsesOAuth: true))
             .ToList());
-        MCPProviderConfig.WriteAll(servers); // :286
-        MCPExternalSync.Sync(servers); // :287
-        // :288-289 The in-app clients (API providers) pick the new list up on their next use.
+        MCPProviderConfig.WriteAll(servers); // :280
+        MCPExternalSync.Sync(servers); // :281
+        // :282-283 The in-app clients (API providers) pick the new list up on their next use.
         MainActor.Spawn(async () => await MCPHub.Shared.Reload());
     }
 
-    /// :292-301 Non-secret values from the connection, overlaid with the store's secrets.
-    private ValueMap<string, string> StoredValues(MCPCatalogEntry entry) // :293
+    /// :286-295 Non-secret values from the connection, overlaid with the store's secrets.
+    private ValueMap<string, string> StoredValues(MCPCatalogEntry entry) // :287
     {
-        var values = Connection(entry.Id)?.Values ?? ValueMap<string, string>.Empty; // :294
-        foreach (var field in entry.Fields.Where(field => field.FieldKind == MCPField.Kind.Secret)) // :295
-            if (MCPKeychain.Value(entry.Id, field.Key) is { } secret) // :296
-                values = values.Mutating(map => map[field.Key] = secret); // :297
-        return values; // :300
+        var values = Connection(entry.Id)?.Values ?? ValueMap<string, string>.Empty; // :288
+        foreach (var field in entry.Fields.Where(field => field.FieldKind == MCPField.Kind.Secret)) // :289
+            if (MCPKeychain.Value(entry.Id, field.Key) is { } secret) // :290
+                values = values.Mutating(map => map[field.Key] = secret); // :291
+        return values; // :294
     }
 
-    /// :303-314 A server that signs in: the browser flow first (Marrow's own, with its branded page), then
+    /// :297-308 A server that signs in: the browser flow first (Marrow's own, with its branded page), then
     /// its route on the proxy, and only then the probe, which goes through that route like every provider will.
-    private static async Task<MCPProbeResult> ProbeOnce(MCPCatalogEntry entry, MCPResolvedServer resolved) // :303
+    private static async Task<MCPProbeResult> ProbeOnce(MCPCatalogEntry entry, MCPResolvedServer resolved) // :297
     {
-        if (resolved.OauthUpstream is { } remote) // :307
+        if (resolved.OauthUpstream is { } remote) // :301
         {
-            if (!MCPOAuth.IsSignedIn(entry.Id)) // :308
-                await MCPOAuth.SignIn(entry.Id, entry.Name, remote); // :309
-            MCPProxy.Shared.Current.Register(entry.Id, remote, ValueMap<string, string>.Empty, usesOAuth: true); // :311
+            if (!MCPOAuth.IsSignedIn(entry.Id)) // :302
+                await MCPOAuth.SignIn(entry.Id, entry.Name, remote); // :303
+            MCPProxy.Shared.Current.Register(entry.Id, remote, ValueMap<string, string>.Empty, usesOAuth: true); // :305
         }
-        return await MCPProbe.Probe(resolved); // :313
+        return await MCPProbe.Probe(resolved); // :307
     }
 
-    private void StartProbe(MCPCatalogEntry entry) // :316-355
+    private void StartProbe(MCPCatalogEntry entry) // :310-349
     {
         probes[entry.Id] = MainActor.Spawn(async () =>
         {
             try
             {
-                var resolved = MCPResolver.Resolve(entry, StoredValues(entry), MCPProxy.Url); // :319
-                MCPProbeResult result; // :320
+                var resolved = MCPResolver.Resolve(entry, StoredValues(entry), MCPProxy.Url); // :313
+                MCPProbeResult result; // :314
                 try
                 {
-                    result = await ProbeOnce(entry, resolved); // :322
+                    result = await ProbeOnce(entry, resolved); // :316
                 }
-                catch (MCPProbeError e) when (e.ErrorCase is MCPProbeError.Case.UnauthorizedOAuth && resolved.OauthUpstream is not null) // :323
+                catch (MCPProbeError e) when (e.ErrorCase is MCPProbeError.Case.UnauthorizedOAuth && resolved.OauthUpstream is not null) // :317
                 {
-                    SwiftTask.CheckCancellation(); // :324
-                    MCPOAuth.SignOut(entry.Id); // :325
-                    MCPProxy.Shared.Current.Unregister(entry.Id); // :326
-                    result = await ProbeOnce(entry, resolved); // :327
+                    SwiftTask.CheckCancellation(); // :318
+                    MCPOAuth.SignOut(entry.Id); // :319
+                    MCPProxy.Shared.Current.Unregister(entry.Id); // :320
+                    result = await ProbeOnce(entry, resolved); // :321
                 }
-                catch (MCPProbeError e) when (e.ErrorCase is MCPProbeError.Case.Http(401 or 403, _) && resolved.OauthUpstream is not null) // :328
+                catch (MCPProbeError e) when (e.ErrorCase is MCPProbeError.Case.Http(401 or 403, _) && resolved.OauthUpstream is not null) // :322
                 {
-                    SwiftTask.CheckCancellation(); // :329
-                    MCPOAuth.SignOut(entry.Id); // :330
-                    MCPProxy.Shared.Current.Unregister(entry.Id); // :331
-                    result = await ProbeOnce(entry, resolved); // :332
+                    SwiftTask.CheckCancellation(); // :323
+                    MCPOAuth.SignOut(entry.Id); // :324
+                    MCPProxy.Shared.Current.Unregister(entry.Id); // :325
+                    result = await ProbeOnce(entry, resolved); // :326
                 }
-                SwiftTask.CheckCancellation(); // :334
-                if (Connection(entry.Id) is { } connection) // :335
+                SwiftTask.CheckCancellation(); // :328
+                if (Connection(entry.Id) is { } connection) // :329
                 {
                     connection = connection with
                     {
-                        ConnectedAt = SwiftDate.Now, // :336
-                        ServerVersion = result.ServerVersion, // :337
-                        Tools = result.Tools, // :338
+                        ConnectedAt = SwiftDate.Now, // :330
+                        ServerVersion = result.ServerVersion, // :331
+                        Tools = result.Tools, // :332
                     };
-                    connectionsField[entry.Id] = connection; // :339
+                    connectionsField[entry.Id] = connection; // :333
                 }
-                statesField[entry.Id] = new MCPConnectionState.Connected(result.Tools.Count); // :341
-                Save(); // :342
-                ExportAll(); // :343
+                statesField[entry.Id] = new MCPConnectionState.Connected(result.Tools.Count); // :335
+                Save(); // :336
+                ExportAll(); // :337
             }
-            catch (CancellationError) // :344
+            catch (CancellationError) // :338
             {
             }
-            catch (MCPProbeError e) when (e.ErrorCase is MCPProbeError.Case.NeedsSetup(var guide)) // :345
+            catch (MCPProbeError e) when (e.ErrorCase is MCPProbeError.Case.NeedsSetup(var guide)) // :339
             {
-                if (SwiftTask.IsCancelled) return; // :346
-                // :347-348 The token is good; the server needs a step on its side. Keep the sign-in so Check
+                if (SwiftTask.IsCancelled) return; // :340
+                // :341-342 The token is good; the server needs a step on its side. Keep the sign-in so Check
                 // again re-probes without another browser round trip.
-                statesField[entry.Id] = new MCPConnectionState.NeedsSetup(guide); // :349
+                statesField[entry.Id] = new MCPConnectionState.NeedsSetup(guide); // :343
             }
-            catch (Exception error) when (SwiftTry.IsThrownError(error)) // :350
+            catch (Exception error) when (SwiftTry.IsThrownError(error)) // :344
             {
-                if (SwiftTask.IsCancelled) return; // :351
-                statesField[entry.Id] = new MCPConnectionState.Failed(SwiftErrors.LocalizedDescription(error)); // :352
+                if (SwiftTask.IsCancelled) return; // :345
+                statesField[entry.Id] = new MCPConnectionState.Failed(SwiftErrors.LocalizedDescription(error)); // :346
             }
         });
     }

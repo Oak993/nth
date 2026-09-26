@@ -9,7 +9,9 @@ using Marrow.Core.Port;
 using Marrow.Core.Support;
 using Marrow.Services.Port;
 
-// Source: DroppyCode/Services/MCP/MCPOAuth.swift (B2 1fbf81e), :1-930.
+// Source: DroppyCode/Services/MCP/MCPOAuth.swift (B3 52bc792), :1-933. Changed from B2 1fbf81e (A12): postForm's body
+// is now the fields joined by the file's own formEncode (only A-Za-z0-9-._~ left unescaped, ED-201 uppercase hex)
+// instead of URLComponents' percentEncodedQuery; :768-930 shift -2 then +3 from B2's :768-930 (PR-MCP-159 b3_note).
 // Keychain items are Windows Credential Manager items through MCPKeychain (OD-0008 B3). NWListener and NWConnection
 // are the loopback sockets in Port/Network.cs (R-NET-2); NSWorkspace.shared.open is Port/Workspace.cs; URLSession is
 // F.HTTP (ED-168), whose URLRequest takes the System.Uri Port/HttpAddress.cs makes from the parsed URL.
@@ -147,7 +149,7 @@ internal sealed class CallbackWait(CheckedContinuation<CallbackResult> continuat
     });
 }
 
-// :128-930
+// :128-933
 public static class MCPOAuth
 {
     private static readonly OAuthRefreshGate refreshGate = new(); // :129
@@ -922,26 +924,24 @@ public static class MCPOAuth
         }
     }
 
-    // :768-790
+    // :768-788. B3 (A12, PR-MCP-159 b3_note): the body is fields.map { formEncode($0.0)=formEncode($0.1) } joined by
+    // "&", replacing B2's URLComponents(percentEncodedQuery ?? "") (B2 :771-772, :778).
     private static async Task<(byte[] Data, HTTPURLResponse Response)> PostForm(string url, IReadOnlyList<(string, string)> fields)
     {
         if (SwiftURL.Create(url) is not { } requestURL) // :769-771
         {
             throw new MCPOAuthError(new MCPOAuthError.Case.Network("That address isn't valid."));
         }
-        var components = new URLComponents() with // :772-773
+        try // :777-787
         {
-            QueryItems = new ValueList<URLQueryItem>(fields.Select(field => new URLQueryItem(name: field.Item1, value: field.Item2))),
-        };
-        try // :779-789
-        {
-            var request = new URLRequest(HttpAddress.For(requestURL), timeoutInterval: 30) // :774-775
+            var request = new URLRequest(HttpAddress.For(requestURL), timeoutInterval: 30) // :772
             {
-                HttpMethod = "POST",
-                HttpBody = Encoding.UTF8.GetBytes(components.PercentEncodedQuery ?? ""), // :778
+                HttpMethod = "POST", // :773
+                // :776 fields.map { "\(formEncode($0.0))=\(formEncode($0.1))" }.joined(separator: "&").utf8
+                HttpBody = Encoding.UTF8.GetBytes(string.Join("&", fields.Select(field => FormEncode(field.Item1) + "=" + FormEncode(field.Item2)))),
             }
-                .SetValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type") // :776
-                .SetValue("application/json", forHTTPHeaderField: "Accept"); // :777
+                .SetValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type") // :774
+                .SetValue("application/json", forHTTPHeaderField: "Accept"); // :775
             var (data, urlResponse) = await URLSession.Shared.Data(request);
             if (urlResponse is not HTTPURLResponse http)
             {
@@ -959,7 +959,40 @@ public static class MCPOAuth
         }
     }
 
-    // :792-798
+    // :790-793 (NEW at B3, A12, PR-MCP-159 b3_note). addingPercentEncoding(withAllowedCharacters:) percent-encodes the
+    // UTF-8 bytes not in the given CharacterSet and returns nil only when the string cannot be represented as valid
+    // Unicode, which is unreachable for a .NET string, so the "?? value" fallback (:792) has no reachable path here,
+    // exactly as on the reference runtime.
+    private static string FormEncode(string value)
+    {
+        var bytes = Encoding.UTF8.GetBytes(value);
+        var output = new byte[bytes.Length * 3];
+        var i = 0;
+        foreach (var b in bytes)
+        {
+            if (IsFormUnreserved(b))
+            {
+                output[i++] = b;
+            }
+            else
+            {
+                output[i++] = (byte)'%';
+                output[i++] = HexDigitUppercase(b >> 4); // ED-201: uppercase hex escapes.
+                output[i++] = HexDigitUppercase(b & 0xF);
+            }
+        }
+        return SwiftText.DecodeUtf8Repairing(output.AsSpan(0, i));
+    }
+
+    // :791 CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~"): only
+    // these are left unescaped, so ":", "/", "+", "=", "&" and a space are all escaped (PR-MCP-159 expected_result).
+    private static bool IsFormUnreserved(byte b) =>
+        (b >= (byte)'A' && b <= (byte)'Z') || (b >= (byte)'a' && b <= (byte)'z') || (b >= (byte)'0' && b <= (byte)'9')
+        || b == (byte)'-' || b == (byte)'.' || b == (byte)'_' || b == (byte)'~';
+
+    private static byte HexDigitUppercase(int nibble) => (byte)"0123456789ABCDEF"[nibble];
+
+    // :795-801
     private static string? OauthErrorMessage(byte[] data)
     {
         if (JSONValue.Parse(data) is not { } json) return null;
@@ -970,7 +1003,7 @@ public static class MCPOAuth
         return json["error"]?.JSONValueString;
     }
 
-    // :800-812
+    // :803-815
     private static string Origin(string of)
     {
         if (URLComponents.Create(of) is not { } components
@@ -1004,7 +1037,7 @@ public static class MCPOAuth
 
     // ---- PKCE + randomness ----
 
-    // :816-822. ENGINEERING DECISION (PR-MCP-161 windows_path; upstream_defects.md entry 22 as corrected): Swift's
+    // :819-825. ENGINEERING DECISION (PR-MCP-161 windows_path; upstream_defects.md entry 22 as corrected): Swift's
     // UInt8.random(in:) draws from SystemRandomNumberGenerator, the platform CSPRNG, so the port draws the same byte
     // count from the Windows CSPRNG. The byte counts and the encoding are unchanged.
     private static string RandomToken(int byteCount)
@@ -1014,10 +1047,10 @@ public static class MCPOAuth
         return Base64url(bytes);
     }
 
-    // :824-827
+    // :827-830
     private static string PkceChallenge(string @for) => Base64url(SHA256.HashData(Encoding.UTF8.GetBytes(@for)));
 
-    // :829-834
+    // :832-837
     private static string Base64url(byte[] data) =>
         Convert.ToBase64String(data)
             .Replace("+", "-", StringComparison.Ordinal)
@@ -1026,24 +1059,24 @@ public static class MCPOAuth
 
     // ---- Branded callback pages ----
 
-    // :838-844
+    // :841-847
     public static string SuccessPage(string serverName) =>
         Page(
             headTitle: "Signed in to " + EscapeHTML(serverName),
             heading: "Signed in to " + EscapeHTML(serverName),
-            message: "You can close this tab and head back to Marrow."); // DEVIATION OD-0012 F1: upstream "head back to Droppy Code." (:842)
+            message: "You can close this tab and head back to Marrow."); // DEVIATION OD-0012 F1: upstream "head back to Droppy Code." (:845)
 
-    // :846-852
+    // :849-855
     public static string FailurePage(string serverName, string message) =>
         Page(
             headTitle: "Sign-in didn't finish \U00002014 " + EscapeHTML(serverName), // U+2014 EM DASH
             heading: "Sign-in didn't finish",
             message: EscapeHTML(message));
 
-    // :854-913. The document is PR-MCP-163's. Its logo (:904) is Droppy's mark; PR-MCP-163 records an open question on
+    // :857-916. The document is PR-MCP-163's. Its logo (:907) is Droppy's mark; PR-MCP-163 records an open question on
     // what, if anything, replaces it, and the line stays as the source has it until that is answered.
-    // DEVIATION OD-0012 F1: the wordmark (:907) reads "Marrow" where upstream reads "Droppy Code".
-    // The raw literal below is the Swift literal (:855-912) line for line: this file is stored with LF line endings
+    // DEVIATION OD-0012 F1: the wordmark (:910) reads "Marrow" where upstream reads "Droppy Code".
+    // The raw literal below is the Swift literal (:858-915) line for line: this file is stored with LF line endings
     // (.gitattributes "* -text"), so the lines join with a line feed as in Swift, and the string ends at "</html>" with no
     // newline after it.
     private static string Page(string headTitle, string heading, string message) =>
@@ -1106,7 +1139,7 @@ public static class MCPOAuth
         </html>
         """;
 
-    // :915-929 (PR-MCP-164). Swift iterates Characters (extended grapheme clusters) and compares each with the five
+    // :918-932 (PR-MCP-164). Swift iterates Characters (extended grapheme clusters) and compares each with the five
     // one-scalar Characters, so a cluster such as "<" plus a combining mark is copied unchanged; SwiftString.Characters
     // and SwiftString.Equal keep that.
     private static string EscapeHTML(string @string)
