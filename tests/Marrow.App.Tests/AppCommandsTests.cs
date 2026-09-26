@@ -10,6 +10,7 @@ using Marrow.App.Views.Tour;
 using Marrow.App.Window;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
+using Marrow.Core.Support;
 using Marrow.Services.Providers;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
@@ -98,6 +99,7 @@ public sealed class AppCommandsTests(HeadlessSession headless)
     public void The_app_name_command_follows_Settings_has_no_default_chord_and_a_recorded_chord_shows_the_cached_main_window() => headless.OnUiThread(() =>
     {
         using var launch = new LaunchHarness();
+        using var info = AppInfo.Running.Override(AppInfo.Read(new Dictionary<string, object?> { ["CFBundleDisplayName"] = "Marrow" }, isDevelopment: false));
         using var store = ShortcutStore.Shared.Override(FreshStore());
         launch.Harness.Main.OnMain(() =>
         {
@@ -1438,6 +1440,9 @@ public sealed class AppCommandsTests(HeadlessSession headless)
             Assert.Null(store.Refusal(ctrlZero, AppShortcut.NewThread));
             store.Set(ctrlZero, AppShortcut.ShowMainWindow);
             Assert.Equal("Show Marrow already uses this chord.", store.Refusal(ctrlZero, AppShortcut.NewThread));
+            // The show-main entry now exists. Restore the fixture's default before testing the fixed zoom chords;
+            // its recorded chord is exercised separately above, rather than assuming that entry is absent.
+            store.Reset(AppShortcut.ShowMainWindow);
 
             // Recorded anyway, the command takes the chord and the zoom items keep their own, which the store never sees.
             store.Set(ctrlMinus, AppShortcut.StopTurn);
@@ -2406,26 +2411,11 @@ public sealed class AppCommandsTests(HeadlessSession headless)
     }
 }
 
-// STOP App.AppCommands #1 (build agent, 2026-09-26)
-// Kind: missing dependency
-// Swift: DroppyCode/App/AppCommands.swift:12-15 (B3 52bc792)
-//   Button("Settings" + U+2026) { WindowManager.shared.showSettings() }
-//       .keyboardShortcut(shortcuts.keyboardShortcut(for: .openSettings))
-// and DroppyCode/App/AppCommands.swift:21-25 (B3 52bc792)
-//   Button(AppInfo.name) { WindowManager.shared.showMain() }
-//       .keyboardShortcut(shortcuts.keyboardShortcut(for: .showMainWindow))
-// Requirements: PR-WIN-090, PR-WIN-092; part 2 adds the menu-item records of the same two sites: UI-LAUNCH-007,
-// UI-WIN-006 (the Settings item) and UI-WIN-007 (the item titled with the app's name)
-// What is unclear or missing: both actions call App.Window.WindowManager, whose Shared, ShowSettings() and ShowMain()
-// are still MARROW_STUB (src/Marrow.App/Window/WindowManager.cs:29-30, :51-56: each throws NotImplementedException).
-// Nothing about the two commands is unclear: the Settings command (openSettings chord, Ctrl+, by default, never
-// disabled) and the show-main command (showMainWindow chord, no default under OD-0012 G6, never disabled) go into the
-// table exactly where the source puts them, first and third of the groups (:12-15, :21-25), once the callee exists.
-// Readings or options: (a) add the two entries now, calling the throwing stub -> the Settings chord would throw out of
-// the window's key handler; (b) leave both sites unwritten until WindowManager is ported -> Ctrl+, does nothing yet.
-// Needed to proceed: unit App.Window.WindowManager (Shared, ShowSettings(page:), ShowMain()).
-// Done so far: no test written for these two records (any test would exercise only the throwing stub); both entries
-// are absent from AppCommands.Body; everything else in part 1 is implemented and tested above.
+// STOP App.AppCommands #1 — RESOLVED by sweep B (2026-09-27).
+// Swift: App/AppCommands.swift:12-15,21-25 (B3 52bc792).
+// Records: PR-WIN-090, PR-WIN-092, UI-LAUNCH-007, UI-WIN-006, UI-WIN-007.
+// WindowManager.Shared, ShowSettings and ShowMain landed before sweep base d62329d42.
+// Both entries now appear first, in source order, never disabled; tests above prove their actions and rebinding.
 
 // STOP App.AppCommands #2 (build agent, part 2, 2026-09-26)
 // Kind: ambiguity
@@ -2540,19 +2530,10 @@ public sealed class AppCommandsTests(HeadlessSession headless)
 // Requirements: PR-WIN-089 (windows_path: "every chord works with no menu present"), PR-WIN-110 (Ctrl+1 to Ctrl+9
 // select a thread while another window, such as Settings, is key, "through the port's own dispatch of the chord");
 // through them, the chord of every item of this file in the running app.
-// What is unclear or missing: the port's replacement for :24 is MenuKeyEquivalents.Attach(window,
-// new AppCommands(model).PerformKeyEquivalent) on each window of the app, with model the one AppModel
-// (WindowManager.shared.model, WindowManager.swift:13). Nothing in src/ calls it: src/Marrow.App/DroppyCodeApp.cs
-// :13-16 gives the scene body no port target, the windows it would go on are built by WindowManager (main window
-// :62-72, Settings window :80-84, both through makeWindow :86-110), whose Shared, constructor, MakeMainWindow,
-// MakeSettingsWindow and MakeWindow are still MARROW_STUB (src/Marrow.App/Window/WindowManager.cs:29-30, :47-48,
-// :67-76), PA-0002 (porting/platform_adaptations.md) leaves the Windows replacement of the scene undecided, and no
-// packet (App.Window.WindowManager, App.Window.ThreadWindow, App.DroppyCodeApp) assigns the install. As merged, only
-// the tests attach the dispatch, to their own windows; in the running app no chord of this file would fire. Other
-// windows the app shows can also be key upstream and so get the menu's key equivalents: the tour window
-// (TourWindowController.swift:8-11 canBecomeKey true, made at :76-81) and the floating guide panel, a
-// .nonactivatingPanel (FloatingGuidePanel.swift:33-56); which of them the port's install covers is part of the same
-// decision.
+// What is unclear or missing: WindowManager.Shared, Model and MakeWindow are now implemented, and Port/AppShell.cs
+// hosts them. No production caller attaches MenuKeyEquivalents.Attach to any window (search of src at d62329d42).
+// The remaining blocker is the ED naming the replacement for DroppyCodeApp.swift:24, its owning unit and coverage
+// (main, Settings, tour, floating guide). WindowManager.cs is outside this sweep's write scope.
 // Readings or options: (a) makeWindow's port (WindowManager.swift:86-110), the one factory of the main and Settings
 // windows, attaches the dispatch to each window it makes -> every chord works in both; the tour window and the guide
 // panel need their own attach; (b) one port-only hook attaches it to every window the app opens -> every window of
@@ -2597,3 +2578,9 @@ public sealed class AppCommandsTests(HeadlessSession headless)
 // PerformKeyEquivalent, and a Ctrl+Alt key-down reaches the dispatch through a window, both tested above, green);
 // nothing is written to tell AltGr from Ctrl+Alt, and no test is written for it: the headless platform carries no
 // AltGr, and the expectation rests on the reading this item asks for.
+
+// Sweep B recheck (2026-09-27, base d62329d42): STOP #2 and #7 still lack character-key / AltGr decisions.
+// STOP #3 still needs AppModel.FinishActionTitle's helper branch repaired, delayed finish/reopen and archive fallback,
+// and empty loaded-thread deletion (AppModel.swift:855-921). AppModel.cs:850-899 still has all four divergences.
+// STOP #5 still needs ThreadRuntime.CanQueue and QueueDraftAsFollowUp repaired: :1020-1025 still reject an idle draft
+// instead of sending it (Swift ThreadRuntime.swift:771-788). No AppModel or ThreadRuntime file is changed by this sweep.
