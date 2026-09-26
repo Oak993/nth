@@ -7,9 +7,9 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "IMPLEMENTED": 3131,
+      "IMPLEMENTED": 3132,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
-      "SPECIFIED": 770,
+      "SPECIFIED": 769,
       "RETIRED": 6,
       "DISCOVERED": 6
     },
@@ -8844,7 +8844,7 @@
       "cancellation": "Cancel discards.",
       "windows_path": "Verbatim labels; Cancel carries the cancel role, so Escape maps to it.",
       "verification_method": "interaction test saving and cancelling",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

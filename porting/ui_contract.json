@@ -3516,7 +3516,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Composer/FollowUpEditor.swift:19-20"
       ],
-      "notes": null
+      "notes": null,
+      "status": "IMPLEMENTED"
     },
     {
       "area": "COMPOSER",
@@ -3537,7 +3538,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Composer/FollowUpEditor.swift:21-23"
       ],
-      "notes": "Return in the field does the same thing."
+      "notes": "Return in the field does the same thing.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "COMPOSER",

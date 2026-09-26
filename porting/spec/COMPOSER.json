@@ -4016,7 +4016,7 @@
       "cancellation": "Cancel discards.",
       "windows_path": "Verbatim labels; Cancel carries the cancel role, so Escape maps to it.",
       "verification_method": "interaction test saving and cancelling",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -6263,7 +6263,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Composer/FollowUpEditor.swift:19-20"
       ],
-      "notes": null
+      "notes": null,
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-062",
@@ -6283,7 +6284,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Composer/FollowUpEditor.swift:21-23"
       ],
-      "notes": "Return in the field does the same thing."
+      "notes": "Return in the field does the same thing.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-063",
