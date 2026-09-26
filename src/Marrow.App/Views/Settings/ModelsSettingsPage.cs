@@ -15,7 +15,7 @@ using Marrow.UI.Chrome;
 using Marrow.UI.Common;
 using Marrow.UI.Port;
 
-// Source: DroppyCode/App/Views/Settings/ModelsSettingsPage.swift (B2 1fbf81e), :1-452.
+// Source: DroppyCode/App/Views/Settings/ModelsSettingsPage.swift (B3 52bc7926), :1-448.
 // R-VIEW-2: Swift's `@State private var query` is read by body and (via a chrome search field elsewhere) written
 // from outside the page; ported as a mutable field with a public SetQuery(string) the search field's host calls,
 // since this port's Decorator-based views are constructed once rather than re-evaluated per keystroke like SwiftUI
@@ -23,7 +23,7 @@ using Marrow.UI.Port;
 
 namespace Marrow.App.Views.Settings;
 
-/// <summary>:4-160 <c>struct ModelsSettingsPage: View</c>: the models the composer's picker offers.</summary>
+/// <summary>:4-158 <c>struct ModelsSettingsPage: View</c>: the models the composer's picker offers.</summary>
 public sealed class ModelsSettingsPage : Decorator
 {
     private string query;
@@ -136,7 +136,7 @@ public sealed class ModelsSettingsPage : Decorator
                 row.SizeChanged += (_, args) =>
                 {
                     if (args.NewSize.Height <= 0) return;
-                    rowHeights = rowHeights.Mutating(map => map[pin] = args.NewSize.Height); // :143-152 PinnedRowHeightReporter
+                    rowHeights = rowHeights.Mutating(map => map[pin] = args.NewSize.Height); // :141-150 PinnedRowHeightReporter
                     if (rowHeights.Count > pins.Count) // :93-99
                         rowHeights = new ValueMap<ModelPin, double>(rowHeights.Where(entry => pins.Contains(entry.Key)));
                 };
@@ -161,7 +161,7 @@ public sealed class ModelsSettingsPage : Decorator
         return stack;
     }
 
-    // :112-135 dragChanged(_:translation:)
+    // :112-134 dragChanged(_:translation:)
     private void DragChanged(ModelPin pin, double translation, ProviderRegistry registry, AppSettings settings, ValueList<ModelPin> visiblePinsAtStart)
     {
         if (drag.Id != pin) drag = new RowDrag<ModelPin> { Id = pin };
@@ -176,7 +176,7 @@ public sealed class ModelsSettingsPage : Decorator
         if (moved) Rebuild();
     }
 
-    // :137-141 dragEnded()
+    // :136-139 dragEnded()
     private void DragEnded(AppSettings settings)
     {
         if (drag.Id is null) return;
@@ -184,7 +184,7 @@ public sealed class ModelsSettingsPage : Decorator
         Rebuild();
     }
 
-    // :155-159 static func matches(_:id:provider:query:) -> Bool
+    // :152-157 static func matches(_:id:provider:query:) -> Bool
     public static bool Matches(ModelOption? option, string id, ProviderKind provider, string query)
     {
         if (query.Length == 0) return true;
@@ -202,23 +202,23 @@ public sealed class ModelsSettingsPage : Decorator
         return false;
     }
 
-    /// <summary>:143-152 <c>private struct PinnedRowHeightReporter: ViewModifier</c>: real height reporting is
+    /// <summary>:141-150 <c>private struct PinnedRowHeightReporter: ViewModifier</c>: real height reporting is
     /// wired directly at the row's SizeChanged in YourModels, matching FollowUpQueueTab's RowHeightReporter, which
     /// is also a pass-through Body.</summary>
     private sealed record PinnedRowHeightReporter(ModelPin Pin, Binding<ValueMap<ModelPin, double>> Heights)
     {
-        // :147-151 func body(content:)
+        // :145-149 func body(content:)
         public Control Body(Control content) => content;
     }
 }
 
-/// <summary>:162-289 <c>private struct PinnedModelRow: View</c>: one chosen model, with its reorder grip.</summary>
+/// <summary>:160-274 <c>private struct PinnedModelRow: View</c>: one chosen model, with its reorder grip.</summary>
 internal sealed class PinnedModelRow : Decorator
 {
     private Point? dragOrigin;
     private TopLevel? dragRoot;
 
-    // :164-168 let pin, isDragged, onDragChanged, onDragEnded; :175-279 body
+    // :162,164-166 let pin, isDragged, onDragChanged, onDragEnded; :173-264 body
     // AppModel is passed directly rather than re-read via AppEnvironment.GetAppModel(this): this row is
     // constructed and parented in the same call as ModelsSettingsPage.Rebuild(), which already has it in scope,
     // and reading the environment here would need the same not-yet-attached deferral HydraCookbookRow required.
@@ -235,12 +235,13 @@ internal sealed class PinnedModelRow : Decorator
             HorizontalAlignment = HorizontalAlignment.Stretch,
         };
 
-        // :180-206 the reorder grip
+        // :178-191 the reorder grip
         var grip = SwiftImage.SystemName("line.3.horizontal")
-            .Font(SwiftFont.System(SwiftFont.TextStyle.Footnote, weight: SwiftFont.Weight.Medium));
+            .Font(SwiftFont.System(11, SwiftFont.Weight.Medium)); // :179 literal size 11, not a text style
         grip.ForegroundStyle(Chrome.SecondaryText);
         grip.Opacity = 0.7;
-        var gripHost = new Border { Width = 24, Height = 24, Child = grip, Cursor = new Cursor(StandardCursorType.Hand) };
+        var gripHost = new Border { Width = 24, Height = 24, Child = grip };
+        gripHost.PointerStyle(isDragged ? PointerStyle.GrabActive : PointerStyle.GrabIdle); // :184
         ToolTip.SetTip(gripHost, "Drag to reorder");
         AutomationProperties.SetName(gripHost, "Drag to reorder");
         gripHost.PointerEntered += (_, _) => grip.Opacity = 1;
@@ -268,14 +269,14 @@ internal sealed class PinnedModelRow : Decorator
         Grid.SetColumn(gripHost, 0);
         row.Children.Add(gripHost);
 
-        // :207-259 the block: provider icon, title, summary; click opens the effort popover.
+        // :192-244 the block: provider icon, title, summary; click opens the effort popover.
         var icon = new ProviderIcon { Provider = pin.Provider, Size = 16 };
         var iconHost = new Border { Width = 22, Child = icon, HorizontalAlignment = HorizontalAlignment.Center };
         Grid.SetColumn(iconHost, 1);
         row.Children.Add(iconHost);
 
         var texts = new StackPanel { Spacing = 2, Margin = new Thickness(8, 0, 8, 0) };
-        var title = new TextBlock { Text = option?.ShortName ?? pin.ModelID, Foreground = Chrome.PrimaryText.Brush(texts) }; // :215
+        var title = new TextBlock { Text = option?.ShortName ?? pin.ModelID, Foreground = Chrome.PrimaryText.Brush(texts) }; // :200
         SwiftFont.System(13).Apply(title);
         texts.Children.Add(title);
         var summary = new TextBlock { Text = Summary(pin, option, preference), Foreground = Chrome.SecondaryText.Brush(texts) };
@@ -305,7 +306,7 @@ internal sealed class PinnedModelRow : Decorator
         Grid.SetColumn(hint, 3);
         row.Children.Add(hint);
 
-        var remove = new RowControl("minus.circle", "Remove from the picker", true, // :261-263
+        var remove = new RowControl("minus.circle", "Remove from the picker", true, // :246-248
             () => Transaction.WithAnimation(Chrome.PanelSlide, () => settings.RemoveFromModelList(pin)));
         Grid.SetColumn(remove, 4);
         row.Children.Add(remove);
@@ -313,9 +314,9 @@ internal sealed class PinnedModelRow : Decorator
         var surface = new Border
         {
             Child = row,
-            Padding = new Thickness(10, 9, Chrome.RowControlTrailingPadding, 9), // :175 padding leading 10
+            Padding = new Thickness(10, 9, Chrome.RowControlTrailingPadding, 9), // :250 padding leading 10
         };
-        if (isDragged) // :268-278
+        if (isDragged) // :255-263
         {
             surface.Background = Chrome.Overlay(0.12).Brush(surface);
             surface.CornerRadius = new CornerRadius(10);
@@ -326,7 +327,7 @@ internal sealed class PinnedModelRow : Decorator
         Child = surface;
     }
 
-    // :281-288 summary(option:preference:)
+    // :266-273 summary(option:preference:)
     private static string Summary(ModelPin pin, ModelOption? option, ModelPreference preference)
     {
         var parts = new List<string> { pin.Provider.DisplayName };
@@ -338,10 +339,10 @@ internal sealed class PinnedModelRow : Decorator
     }
 }
 
-/// <summary>:291-311 <c>private struct RowControl: View</c>.</summary>
+/// <summary>:276-296 <c>private struct RowControl: View</c>.</summary>
 internal sealed class RowControl : Decorator
 {
-    // :292-295 let symbol, help, isEnabled, action; :297-310 body
+    // :277-280 let symbol, help, isEnabled, action; :282-295 body
     public RowControl(string symbol, string help, bool isEnabled, Action action)
     {
         var icon = SwiftImage.SystemName(symbol).Font(SwiftFont.System(12, SwiftFont.Weight.Medium));
@@ -364,57 +365,22 @@ internal sealed class RowControl : Decorator
     }
 }
 
-/// <summary>:313-451 <c>private struct ProviderModelsSection: View</c>: one provider's catalogue.</summary>
+/// <summary>:298-413 <c>private struct ProviderModelsSection: View</c>: one provider's catalogue.</summary>
 internal sealed class ProviderModelsSection : Decorator
 {
-    // :315-320 let provider, var query = "", @Binding var isExpanded; :322-450 body
+    // :299-305 let provider, var query = "", @Binding var isExpanded; :307-412 body
     // AppModel is passed directly for the same reason as PinnedModelRow's (see its comment).
     public ProviderModelsSection(AppModel model, ProviderKind provider, Binding<bool> isExpanded, string query = "")
     {
         var registry = model.Providers;
         var settings = model.Settings;
 
-        var stack = new StackPanel { Spacing = Chrome.SectionHeaderSpacing, HorizontalAlignment = HorizontalAlignment.Stretch }; // :317
+        var stack = new StackPanel { Spacing = Chrome.SectionHeaderSpacing, HorizontalAlignment = HorizontalAlignment.Stretch }; // :325
 
-        // :340-364 the collapsible header
-        var headerContent = new Grid
-        {
-            ColumnDefinitions = { new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) },
-            Height = 22,
-        };
-        var headerIcon = new ProviderIcon { Provider = provider, Size = 16 };
-        Grid.SetColumn(headerIcon, 0);
-        headerContent.Children.Add(headerIcon);
-        var headerName = new TextBlock { Text = provider.DisplayName, Foreground = Chrome.SecondaryText.Brush(headerContent), Margin = new Thickness(8, 0, 0, 0) };
-        SwiftFont.System(13, SwiftFont.Weight.Semibold).Apply(headerName);
-        Grid.SetColumn(headerName, 1);
-        headerContent.Children.Add(headerName);
-        var chevron = SwiftImage.SystemName("chevron.right").Font(SwiftFont.System(SwiftFont.TextStyle.Footnote, weight: SwiftFont.Weight.Semibold));
-        chevron.ForegroundStyle(Chrome.SecondaryText);
-        Grid.SetColumn(chevron, 3);
-        headerContent.Children.Add(chevron);
+        // :326 CollapsibleProviderHeader(provider:isExpanded:subject:)
+        stack.Children.Add(new CollapsibleProviderHeader(provider, isExpanded, "model list"));
 
-        var header = new Button
-        {
-            Content = headerContent,
-            Background = Brushes.Transparent,
-            BorderThickness = new Thickness(0),
-            Padding = new Thickness(0),
-            HorizontalContentAlignment = HorizontalAlignment.Stretch,
-        };
-        void UpdateHeader()
-        {
-            var expanded = isExpanded.Value;
-            chevron.RenderTransform = new RotateTransform(expanded ? 90 : 0);
-            var help = expanded ? "Hide the model list" : "Show the model list"; // :356
-            ToolTip.SetTip(header, help);
-            AutomationProperties.SetName(header, provider.DisplayName);
-            AutomationProperties.SetHelpText(header, "Shows or hides the model list");
-        }
-        header.Click += (_, _) => Transaction.WithAnimation(Chrome.PanelSlide, () => isExpanded.Value = !isExpanded.Value);
-        stack.Children.Add(header);
-
-        // :365-447 the eager card
+        // :329-410 the eager card
         var cardContent = new StackPanel { Spacing = 0, HorizontalAlignment = HorizontalAlignment.Stretch };
         var card = new Border
         {
@@ -429,14 +395,13 @@ internal sealed class ProviderModelsSection : Decorator
 
         void RebuildCard()
         {
-            UpdateHeader();
             cardContent.Children.Clear();
             var expanded = isExpanded.Value;
-            var catalogue = registry.Models(provider); // :327
-            var isFull = settings.ModelList.Count >= AppSettings.ModelListLimit; // :328
-            var isFiltering = query.Length > 0; // :330
+            var catalogue = registry.Models(provider); // :312
+            var isFull = settings.ModelList.Count >= AppSettings.ModelListLimit; // :313
+            var isFiltering = query.Length > 0; // :314
 
-            if (catalogue.Count == 0) // :368-382
+            if (catalogue.Count == 0) // :330-344
             {
                 var loading = registry.LoadingCatalogs.Contains(provider);
                 var content = new ChromeRow(loading ? "Loading models…" : "No models loaded", () => // U+2026 HORIZONTAL ELLIPSIS
@@ -455,10 +420,10 @@ internal sealed class ProviderModelsSection : Decorator
                     .Where(option => isFiltering
                         ? ModelsSettingsPage.Matches(option, option.Id, provider, query)
                         : expanded || settings.IsInModelList(new ModelPin(provider, option.Id)))
-                    .Select(option => option.Id)); // :331-336
-                var firstVisibleID = catalogue.FirstOrDefault(option => visibleIDs.Contains(option.Id))?.Id; // :337
+                    .Select(option => option.Id)); // :317-321
+                var firstVisibleID = catalogue.FirstOrDefault(option => visibleIDs.Contains(option.Id))?.Id; // :322
 
-                foreach (var option in catalogue) // :384-425
+                foreach (var option in catalogue) // :346-395
                 {
                     var isVisible = visibleIDs.Contains(option.Id);
                     var dividerReveal = new ChromeRevealLayout(isVisible && option.Id != firstVisibleID ? 1 : 0) { ClipToBounds = true };
@@ -517,13 +482,78 @@ internal sealed class ProviderModelsSection : Decorator
                 ? catalogue.Any(option => isFiltering
                     ? ModelsSettingsPage.Matches(option, option.Id, provider, query)
                     : expanded || settings.IsInModelList(new ModelPin(provider, option.Id)))
-                : false); // :338-339
+                : false); // :323-324
             card.IsHitTestVisible = cardVisible;
             AutomationProperties.SetAccessibilityView(card, cardVisible ? AccessibilityView.Content : AccessibilityView.Raw);
         }
 
         RebuildCard();
         this.Track(() => (isExpanded.Value, settings.ModelList, registry.Statuses), _ => RebuildCard());
-        this.Task(() => provider, async _ => await registry.LoadCatalog(provider)); // :449, not forced
+        this.Task(() => provider, async _ => await registry.LoadCatalog(provider)); // :411, not forced
+    }
+}
+
+/// <summary>:416-448 <c>struct CollapsibleProviderHeader: View</c>: the disclosure header over one provider's
+/// settings or model card. New at B3, out of ModelsSettingsPage's own inline header (used again by
+/// App.Views.Settings.SettingsView).</summary>
+public sealed class CollapsibleProviderHeader : Decorator
+{
+    // :417-420 let provider, @Binding var isExpanded, let subject; :422-447 body
+    public CollapsibleProviderHeader(ProviderKind provider, Binding<bool> isExpanded, string subject)
+    {
+        var headerContent = new Grid
+        {
+            ColumnDefinitions = { new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) },
+        };
+        // :427-428. Marrow.UI.Common.ProviderIcon has no foreground property to carry :428's
+        // .foregroundStyle(Chrome.primaryText): it renders each provider's own colored logo, which
+        // .foregroundStyle has no visible effect on for a full-color (non-template) SwiftUI Image either.
+        var headerIcon = new ProviderIcon { Provider = provider, Size = 16 };
+        Grid.SetColumn(headerIcon, 0);
+        headerContent.Children.Add(headerIcon);
+
+        var headerName = new TextBlock { Text = provider.DisplayName, Margin = new Thickness(8, 0, 0, 0) }; // :429
+        SwiftFont.System(13, SwiftFont.Weight.Semibold).Apply(headerName); // :430
+        headerName.Foreground = SwiftColor.Secondary.Brush(headerName); // :431 .foregroundStyle(.secondary), ED-062
+        Grid.SetColumn(headerName, 1);
+        headerContent.Children.Add(headerName);
+
+        var chevron = SwiftImage.SystemName("chevron.right").Font(SwiftFont.System(11, SwiftFont.Weight.Semibold)); // :433-434 literal size 11, not a text style
+        chevron.ForegroundStyle(Chrome.SecondaryText); // :435
+        Grid.SetColumn(chevron, 3);
+        headerContent.Children.Add(chevron);
+
+        var header = new Button
+        {
+            Content = headerContent,
+            Background = Brushes.Transparent,
+            BorderThickness = new Thickness(0),
+            Padding = new Thickness(0),
+            HorizontalContentAlignment = HorizontalAlignment.Stretch,
+            Height = 22, // :441
+        };
+        header.Click += (_, _) => Transaction.WithAnimation(Chrome.PanelSlide, () => isExpanded.Value = !isExpanded.Value); // :423-424
+
+        void UpdateHeader()
+        {
+            var expanded = isExpanded.Value;
+            chevron.RenderTransform = new RotateTransform(expanded ? 90 : 0); // :436
+            ToolTip.SetTip(header, expanded ? "Hide the " + subject : "Show the " + subject); // :442
+            AutomationProperties.SetName(header, provider.DisplayName); // :443 .accessibilityLabel
+            // :444 .accessibilityValue(Text(isExpanded ? "Expanded" : "Collapsed")): Avalonia's AutomationProperties
+            // has no separate value reader either, but ChatBadge.cs's own header carries its accessibilityValue
+            // through SetItemStatus rather than folding it into Name, so this follows that (more recent) precedent.
+            AutomationProperties.SetItemStatus(header, expanded ? "Expanded" : "Collapsed");
+            AutomationProperties.SetHelpText(header, "Shows or hides the " + subject); // :445 .accessibilityHint
+        }
+        UpdateHeader();
+        this.Track(() => isExpanded.Value, _ => UpdateHeader());
+
+        // :446 .accessibilityAddTraits(.isHeader): Avalonia's nearest match is a heading level (SetHeadingLevel),
+        // read by screen readers as a heading; the source names no level, so this is level 1 (ENGINEERING DECISION,
+        // UNVERIFIED under OD-0001: no reference-runtime capture of the level VoiceOver reports for .isHeader alone).
+        AutomationProperties.SetHeadingLevel(header, 1);
+
+        Child = header;
     }
 }
