@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Linq;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
@@ -6,9 +5,14 @@ using Marrow.Core.Support;
 using Marrow.Services.MCP;
 using Marrow.Services.Models;
 
-// Source: DroppyCode/Services/Providers/PiSession.swift (B2 1fbf81e), :1-654. The whole file: the lifecycle,
+// Source: DroppyCode/Services/Providers/PiSession.swift (B3 52bc7926), :1-610. The whole file: the lifecycle,
 // argv/environment building, the get_state/get_commands handshake, send/interrupt/compact/stop, approvals and
 // question answers, the request/response wire, the gate file, the message/tool event stream and its helpers.
+// B3 delta (lane L3f, B3_PLAN.md N1/N7): the request/response wire now goes through the shared PendingReplies
+// (Core/Support/PendingReplies.cs), and the streamed-text/edit-snapshot bookkeeping now goes through the shared
+// SessionSupport types (StreamedTextTracker, EditSnapshots); the content-block joiner and the approve-for-session
+// key both moved to ProviderSession.cs (ToolText.Blocks, ApprovalRequest.Kind.GrantKey), shared with Claude and
+// Command Code.
 namespace Marrow.Services.Providers;
 
 // :19-20. @MainActor final class -> sealed class used only on main (R-ISO-1).
@@ -32,66 +36,72 @@ public sealed class PiSession : ProviderSession
     private bool turnActive; // :35
     private bool interruptRequested; // :36
     /// <summary>Namespaces ids per launch, so a resumed thread never streams into an old entry.</summary>
-    private readonly string launchID = SwiftString.Prefix(SwiftUUID.UuidString(Guid.NewGuid()), 8); // :38
-    private int messageCounter; // :39
-    private int thinkingCounter; // :40
-    private string? currentMessageID; // :41
-    private string? currentThinkingID; // :42
-    private string messageText = ""; // :43
-    private string thinkingText = ""; // :44
+    private readonly string launchID; // :38
+    // :39. B3: the message/thinking id and buffer bookkeeping moved to the shared SessionSupport type
+    // (unit N7), replacing this file's own messageCounter/thinkingCounter/currentMessageID/currentThinkingID/
+    // messageText/thinkingText fields.
+    private readonly StreamedTextTracker stream; // :39
     /// <summary>The model's context ceiling, from the session state's model.</summary>
-    private long? contextWindow; // :46
-    private string? gateURL; // :47
-    private readonly Dictionary<string, ApprovalRequest> pendingApprovals = new(SwiftStringComparer.Instance); // :48
+    private long? contextWindow; // :41
+    private string? gateURL; // :42
+    private readonly Dictionary<string, ApprovalRequest> pendingApprovals = new(SwiftStringComparer.Instance); // :43
     /// <summary><c>extension_ui_request</c> ids by method, for the app's questions.</summary>
-    private readonly Dictionary<string, string> pendingQuestions = new(SwiftStringComparer.Instance); // :49-50
+    private readonly Dictionary<string, string> pendingQuestions = new(SwiftStringComparer.Instance); // :44-45
     /// <summary>Gate kinds approved for the rest of the session ("Allow for session").</summary>
-    private readonly HashSet<string> sessionGrants = new(SwiftStringComparer.Instance); // :51-52
-    private readonly Dictionary<string, string> toolNames = new(SwiftStringComparer.Instance); // :53
-    private readonly Dictionary<string, JSONValue> toolInputs = new(SwiftStringComparer.Instance); // :54
+    private readonly HashSet<string> sessionGrants = new(SwiftStringComparer.Instance); // :46-47
+    private readonly Dictionary<string, string> toolNames = new(SwiftStringComparer.Instance); // :48
+    private readonly Dictionary<string, JSONValue> toolInputs = new(SwiftStringComparer.Instance); // :49
     /// <summary>Files a <c>write</c> is about to replace, read as the call starts, so the row's diff is the file
-    /// before against the content written.</summary>
-    private readonly Dictionary<string, string> editSnapshots = new(SwiftStringComparer.Instance); // :55-57
-    private string? turnError; // :58
+    /// before against the content written. B3 (N7): the shared SessionSupport type, replacing this file's own
+    /// dictionary-of-strings copy.</summary>
+    private readonly EditSnapshots editSnapshots = new(); // :50-52
+    private string? turnError; // :53
     /// <summary>The turn's last reply, which plan mode hands over as the plan.</summary>
-    private string lastReplyText = ""; // :59-60
-    private int turnCounter; // :61
-    private readonly Dictionary<string, CheckedContinuation<JSONValue>> pendingResponses = new(SwiftStringComparer.Instance); // :62
-    private int requestCounter; // :63
+    private string lastReplyText = ""; // :54-55
+    private int turnCounter; // :56
+    // :57. B3 (N1): the shared PendingReplies<JSONValue>, replacing this file's own
+    // Dictionary<string, CheckedContinuation<JSONValue>>; see Request() and DidClose() below.
+    private readonly PendingReplies<JSONValue> pendingResponses = new(); // :57
+    private int requestCounter; // :58
 
-    public PiSession(SessionConfiguration configuration) : this(configuration, localApplicationData: null) // :65-72
+    public PiSession(SessionConfiguration configuration) : this(configuration, localApplicationData: null) // :60-73
     {
     }
 
     /// <summary>PORT-ONLY test seam: keeps the extension, gate and bridge under a throwaway app-data root.</summary>
     internal PiSession(SessionConfiguration configuration, string? localApplicationData)
     {
-        this.configuration = configuration;
+        var launchID = SwiftString.Prefix(SwiftUUID.UuidString(Guid.NewGuid()), 8); // :61
+        this.launchID = launchID; // :62
+        stream = new StreamedTextTracker( // :63-66
+            messageID: count => $"{launchID}-m-{count}",
+            thinkingID: count => $"{launchID}-t-{count}");
+        this.configuration = configuration; // :67
         this.localApplicationData = localApplicationData;
-        runtimeMode = configuration.RuntimeMode;
-        interactionMode = configuration.InteractionMode;
-        model = configuration.Model;
-        effort = configuration.Effort;
-        sessionID = configuration.ResumeID is { Length: > 0 } resumeID ? resumeID : null; // :71
+        runtimeMode = configuration.RuntimeMode; // :68
+        interactionMode = configuration.InteractionMode; // :69
+        model = configuration.Model; // :70
+        effort = configuration.Effort; // :71
+        sessionID = configuration.ResumeID is { Length: > 0 } resumeID ? resumeID : null; // :72
     }
 
-    public bool IsRunning => started && !stopped && process?.IsRunning == true; // :74
+    public bool IsRunning => started && !stopped && process?.IsRunning == true; // :75
 
-    private string WorkingDirectory => configuration.WorkingDirectory.Path; // :76
+    private string WorkingDirectory => configuration.WorkingDirectory.Path; // :77
 
     // MARK: - Lifecycle
 
-    public async Task<string> Start() // :80-157
+    public async Task<string> Start() // :81-158
     {
-        if (configuration.Executable is not { } executable) // :81
+        if (configuration.Executable is not { } executable) // :82
             throw new ProviderError(new ProviderError.Case.NotInstalled(configuration.Provider));
 
-        // :82-84. R-FS-1: fileExists -> File.Exists || Directory.Exists. A plain existence test on the path,
+        // :83-85. R-FS-1: fileExists -> File.Exists || Directory.Exists. A plain existence test on the path,
         // not a directory scan, in contrast to Command Code (PR-PROVCLI-267).
         if (sessionID is { } existingSessionID && !(File.Exists(existingSessionID) || Directory.Exists(existingSessionID)))
             throw new ProviderError(new ProviderError.Case.Failed("Pi no longer has this conversation; starting a new one."));
 
-        // :85-90
+        // :86-91
         var supportDirectory = localApplicationData is { } appData
             ? PiCLI.SupportDirectoryUnder(appData)
             : PiCLI.SupportDirectory;
@@ -104,10 +114,10 @@ public sealed class PiSession : ProviderSession
         gateURL = WindowsPath(gateFileURL);
         WriteGate(finalReport: false);
 
-        // :92-93
+        // :93-94
         var arguments = new List<string> { "--mode", "rpc", "-e", WindowsPath(extensionURL) };
         arguments.Add(runtimeMode is RuntimeMode.Auto or RuntimeMode.FullAccess ? "--approve" : "--no-approve");
-        // :94-96. The split is on the FIRST slash; a slashless id or the literal "default" adds neither flag.
+        // :95-97. The split is on the FIRST slash; a slashless id or the literal "default" adds neither flag.
         if (model is { Length: > 0 } selectedModel && selectedModel != "default" && selectedModel.IndexOf('/', StringComparison.Ordinal) is var modelSlash && modelSlash >= 0)
         {
             arguments.Add("--provider");
@@ -115,20 +125,20 @@ public sealed class PiSession : ProviderSession
             arguments.Add("--model");
             arguments.Add(selectedModel[(modelSlash + 1)..]);
         }
-        // :97-99
+        // :98-100
         if (effort is { Length: > 0 } selectedEffort && PiCLI.ThinkingLevels.Contains(selectedEffort))
         {
             arguments.Add("--thinking");
             arguments.Add(selectedEffort);
         }
-        // :100. No emptiness check here: init already normalized an empty id to null.
+        // :101. No emptiness check here: init already normalized an empty id to null.
         if (sessionID is { } resumeID)
         {
             arguments.Add("--session");
             arguments.Add(resumeID);
         }
 
-        // :102-110. ED-128: environment dictionaries are case-insensitive.
+        // :103-111. ED-128: environment dictionaries are case-insensitive.
         var environment = new Dictionary<string, string>(configuration.Environment, StringComparer.OrdinalIgnoreCase);
         environment["DROPPY_CODE_PI_GATE"] = gateURL;
         environment["PI_SKIP_VERSION_CHECK"] = "1";
@@ -142,11 +152,11 @@ public sealed class PiSession : ProviderSession
         if (File.Exists(MCPPaths.ClaudeConfigURL))
             environment["DROPPY_CODE_MCP_CONFIG"] = MCPPaths.ClaudeConfigURL;
 
-        // :112-133
+        // :113-134
         var child = new StdioProcess(executable.Path, arguments, configuration.WorkingDirectory.Path, environment, StdioFramer.Framing.Lines);
         try
         {
-            child.Start(); // :120
+            child.Start(); // :121
         }
         catch (Exception error)
         {
@@ -157,9 +167,9 @@ public sealed class PiSession : ProviderSession
             var description = error is ILocalizedError or ISwiftErrorIdentity ? SwiftErrors.LocalizedDescription(error) : error.Message;
             throw new ProviderError(new ProviderError.Case.Failed($"Pi could not start: {description}"));
         }
-        process = child; // :124
-        var messages = child.Messages; // :125
-        readTask = MainActor.Spawn(async () => // :126-133
+        process = child; // :125
+        var messages = child.Messages; // :126
+        readTask = MainActor.Spawn(async () => // :127-134
         {
             await foreach (var message in messages)
                 Handle(message);
@@ -167,7 +177,7 @@ public sealed class PiSession : ProviderSession
             DidClose(status);
         });
 
-        // :135-143
+        // :136-144
         var state = await Request(Obj(("type", "get_state")));
         var data = state["data"] ?? state;
         if (data["sessionFile"]?.JSONValueString is { Length: > 0 } sessionFile)
@@ -177,7 +187,7 @@ public sealed class PiSession : ProviderSession
         contextWindow = data["model"]?["contextWindow"]?.JSONValueInt;
         OnEvent?.Invoke(new ProviderEvent.SessionReady(sessionID ?? ""));
 
-        // :145-153
+        // :146-154
         var commandsResponse = await Request(Obj(("type", "get_commands")));
         var commandsData = commandsResponse["data"] ?? commandsResponse;
         if (commandsData["commands"]?.JSONValueArray is { } entries)
@@ -192,19 +202,19 @@ public sealed class PiSession : ProviderSession
                 OnEvent?.Invoke(new ProviderEvent.Commands(new ValueList<SlashCommand>(commands)));
         }
 
-        started = true; // :154
-        stopped = false; // :155
-        return sessionID ?? ""; // :156
+        started = true; // :155
+        stopped = false; // :156
+        return sessionID ?? ""; // :157
     }
 
-    public async Task Send(TurnInput input) // :159-200
+    public async Task Send(TurnInput input) // :160-201
     {
-        if (!IsRunning || process is not { } child) throw new ProviderError(new ProviderError.Case.NotRunning()); // :160
-        if (turnActive) throw new ProviderError(new ProviderError.Case.Failed("Pi is still on the last turn.")); // :161
-        runtimeMode = input.RuntimeMode; // :162
-        interactionMode = input.InteractionMode; // :163
-        WriteGate(input.IsFinalReport); // :164
-        // :165-174
+        if (!IsRunning || process is not { } child) throw new ProviderError(new ProviderError.Case.NotRunning()); // :161
+        if (turnActive) throw new ProviderError(new ProviderError.Case.Failed("Pi is still on the last turn.")); // :162
+        runtimeMode = input.RuntimeMode; // :163
+        interactionMode = input.InteractionMode; // :164
+        WriteGate(input.IsFinalReport); // :165
+        // :166-175
         if (input.Model is { Length: > 0 } wantedModel && wantedModel != model && wantedModel.IndexOf('/', StringComparison.Ordinal) is var modelSlash && modelSlash >= 0)
         {
             child.Send(Obj(("type", "set_model"), ("provider", wantedModel[..modelSlash]), ("modelId", wantedModel[(modelSlash + 1)..])));
@@ -215,13 +225,13 @@ public sealed class PiSession : ProviderSession
             if ((state["data"] ?? state)["model"]?["contextWindow"]?.JSONValueInt is { } window)
                 contextWindow = window;
         }
-        // :175-178
+        // :176-179
         if (input.Effort is { Length: > 0 } wantedEffort && wantedEffort != effort && PiCLI.ThinkingLevels.Contains(wantedEffort))
         {
             child.Send(Obj(("type", "set_thinking_level"), ("level", wantedEffort)));
             effort = wantedEffort;
         }
-        // :179-186
+        // :180-187
         turnActive = true;
         interruptRequested = false;
         turnError = null;
@@ -229,11 +239,11 @@ public sealed class PiSession : ProviderSession
         lastReplyText = "";
         toolNames.Clear();
         toolInputs.Clear();
-        editSnapshots.Clear();
+        editSnapshots.RemoveAll();
 
-        // :187
+        // :188
         var fields = new Dictionary<string, JSONValue> { ["type"] = new JSONValue.String("prompt"), ["message"] = new JSONValue.String(input.Text) };
-        // :188-191
+        // :189-192
         var images = new List<JSONValue>();
         foreach (var image in input.Images)
         {
@@ -243,29 +253,29 @@ public sealed class PiSession : ProviderSession
             if (SwiftTry.Optional(() => File.ReadAllBytes(image.Path)) is not { } data) continue;
             images.Add(Obj(("type", "image"), ("data", Convert.ToBase64String(data)), ("mimeType", image.MimeType)));
         }
-        // :192-197
+        // :193-198
         if (images.Count != 0)
             fields["images"] = new JSONValue.Array(new ValueList<JSONValue>(images));
         var prompt = new JSONValue.Object(new ValueMap<string, JSONValue>(fields, SwiftStringComparer.Instance));
-        child.Send(prompt); // :198
-        OnEvent?.Invoke(new ProviderEvent.TurnStarted(null)); // :199. After the write, unlike Claude and Command Code.
+        child.Send(prompt); // :199
+        OnEvent?.Invoke(new ProviderEvent.TurnStarted(null)); // :200. After the write, unlike Claude and Command Code.
     }
 
-    public async Task Interrupt() // :202-205
+    public async Task Interrupt() // :203-206
     {
         interruptRequested = true;
         process?.Send(Obj(("type", "abort")));
         await Task.CompletedTask;
     }
 
-    public async Task Compact() // :207-210
+    public async Task Compact() // :208-211
     {
         if (!IsRunning || process is not { } child) throw new ProviderError(new ProviderError.Case.NotRunning());
         child.Send(Obj(("type", "compact")));
         await Task.CompletedTask;
     }
 
-    public void Stop() // :212-222
+    public void Stop() // :213-223
     {
         stopped = true;
         process?.Terminate();
@@ -279,9 +289,9 @@ public sealed class PiSession : ProviderSession
         }
     }
 
-    public Task<bool> StopAgent(string id) => Task.FromResult(false); // :224
+    public Task<bool> StopAgent(string id) => Task.FromResult(false); // :225
 
-    public void ResolveApproval(string requestID, string optionID) // :226-240
+    public void ResolveApproval(string requestID, string optionID) // :227-241
     {
         if (!pendingApprovals.Remove(requestID, out var request)) return;
         var option = request.Options.FirstOrDefault(candidate => candidate.Id == optionID);
@@ -289,7 +299,7 @@ public sealed class PiSession : ProviderSession
         if (option?.OptionRole == ApprovalRequest.Option.Role.ApproveAlways)
         {
             value = "Allow for session";
-            sessionGrants.Add(GrantKey(request.RequestKind));
+            sessionGrants.Add(request.RequestKind.GrantKey()); // :233. B3: the shared extension (ProviderSession.cs), not this file's own private GrantKey.
         }
         else if (option?.OptionRole == ApprovalRequest.Option.Role.Approve)
         {
@@ -303,7 +313,7 @@ public sealed class PiSession : ProviderSession
         OnEvent?.Invoke(new ProviderEvent.RequestResolved(requestID));
     }
 
-    public void AnswerQuestion(string requestID, ValueMap<string, ValueList<string>> answers) // :242-253
+    public void AnswerQuestion(string requestID, ValueMap<string, ValueList<string>> answers) // :243-254
     {
         if (!pendingQuestions.Remove(requestID, out var method)) return;
         var texts = answers.Values.SelectMany(value => value).ToList();
@@ -319,32 +329,34 @@ public sealed class PiSession : ProviderSession
     // MARK: - Requests
 
     /// <summary>Writes a request line with a fresh id and resumes with the <c>response</c> that carries it, or
-    /// <c>.null</c> after 30 seconds. Swift `private`; kept internal so this part's own tests can drive it
-    /// without a live child process for the no-process case (see the file header note).</summary>
-    internal async Task<JSONValue> Request(JSONValue fields) // :257-276
+    /// <c>.null</c> after 30 seconds, when pi exits, or when the caller is cancelled (PR-PROVCLI-275,
+    /// PR-PROVCLI-276, PR-PROVCLI-299; B3 N1: through the shared PendingReplies, never throwing). Swift
+    /// `private`; kept internal so this part's own tests can drive it without a live child process for the
+    /// no-process case (see the file header note).</summary>
+    internal async Task<JSONValue> Request(JSONValue fields) // :258-270
     {
-        if (process is not { } child) return new JSONValue.Null(); // :260
-        requestCounter++; // :261
-        var id = $"droppy-{requestCounter}"; // :262. DEVIATION OD-0012 F1: "droppy-", not "marrow-" (kept, PR-PROVCLI-276).
+        if (process is not { } child) return new JSONValue.Null(); // :261
+        requestCounter++; // :262
+        var id = $"droppy-{requestCounter}"; // :263. DEVIATION OD-0012 F1: "droppy-", not "marrow-" (kept, PR-PROVCLI-276).
         var line = new Dictionary<string, JSONValue>(fields.JSONValueObject ?? new Dictionary<string, JSONValue>(), SwiftStringComparer.Instance)
         {
             ["id"] = new JSONValue.String(id),
         };
-        return await CheckedContinuation<JSONValue>.With(continuation => // :265-273
-        {
-            pendingResponses[id] = continuation;
-            child.Send(new JSONValue.Object(new ValueMap<string, JSONValue>(line, SwiftStringComparer.Instance)));
-            MainActor.Spawn(async () =>
-            {
-                await SwiftTask.TrySleep(TimeSpan.FromSeconds(30));
-                if (pendingResponses.Remove(id, out var pending))
-                    pending.Resume(new JSONValue.Null());
-            });
-        });
+        // :266-269. `try? await pendingResponses.register(...)`: PendingReplies.Register only ever throws
+        // CancellationError (a hung timer resolves with the JSON null timeoutValue instead of throwing, and
+        // DidClose's ResolveAll below also resolves rather than fails), so SwiftTry.OptionalAsync's `try?`
+        // exists here for exactly the caller-cancellation path PR-PROVCLI-276 describes: an already-cancelled
+        // caller writes no line at all (PendingReplies.Register checks cancellation before sending).
+        var value = await SwiftTry.OptionalAsync(async () => (JSONValue?)await pendingResponses.Register(
+            id,
+            () => child.Send(new JSONValue.Object(new ValueMap<string, JSONValue>(line, SwiftStringComparer.Instance))),
+            TimeSpan.FromSeconds(30),
+            new JSONValue.Null()));
+        return value ?? new JSONValue.Null(); // :269
     }
 
     /// <summary>The gate the extension reads before every tool call.</summary>
-    private void WriteGate(bool finalReport) // :278-288
+    private void WriteGate(bool finalReport) // :272-282
     {
         if (gateURL is not { } path) return;
         var gate = Obj(
@@ -355,112 +367,89 @@ public sealed class PiSession : ProviderSession
         SwiftTry.Ignore(() => FileOps.WriteAtomic(path, gate.Data()));
     }
 
-    private static string GrantKey(ApprovalRequest.Kind kind) => kind switch // :290-296
-    {
-        ApprovalRequest.Kind.Command => "command",
-        ApprovalRequest.Kind.FileChange => "fileChange",
-        ApprovalRequest.Kind.Tool or ApprovalRequest.Kind.Permissions or ApprovalRequest.Kind.Plan => "tool",
-        _ => throw new UnreachableException(),
-    };
-
     // MARK: - Stream
 
     /// <summary>Swift `private`; kept internal so this part's own tests can drive dispatch without a live child
     /// process (see the file header note).</summary>
-    internal void Handle(JSONValue message) // :300-344
+    internal void Handle(JSONValue message) // :286-326
     {
         switch (message["type"]?.JSONValueString)
         {
-            case "response": // :302-309
+            case "response": // :288-294
                 if (message["id"]?.JSONValueString is not { } responseID) return;
-                if (pendingResponses.Remove(responseID, out var continuation))
-                    continuation.Resume(message);
-                else if (message["command"]?.JSONValueString == "prompt" && message["success"]?.JSONValueBool == false)
+                if (!pendingResponses.Resolve(responseID, message) &&
+                    message["command"]?.JSONValueString == "prompt" && message["success"]?.JSONValueBool == false)
                 {
                     turnError = message["error"]?.JSONValueString ?? message["message"]?.JSONValueString ?? "Pi reported an error.";
                     FinishTurn();
                 }
                 break;
-            case "message_start": // :310-316
+            case "message_start": // :295-298
                 if (message["message"]?["role"]?.JSONValueString != "assistant") return;
-                messageCounter++;
-                currentMessageID = $"{launchID}-m-{messageCounter}";
-                messageText = "";
-                thinkingText = "";
-                currentThinkingID = null;
+                stream.StartMessage();
+                stream.ResetThinking();
                 break;
-            case "message_update": // :317-318
+            case "message_update": // :299-300
                 HandleUpdate(message);
                 break;
-            case "message_end": // :319-320
+            case "message_end": // :301-302
                 HandleMessageEnd(message["message"] ?? message);
                 break;
-            case "tool_execution_start": // :321-322
+            case "tool_execution_start": // :303-304
                 HandleToolStart(message);
                 break;
-            case "tool_execution_update": // :323-326
+            case "tool_execution_update": // :305-308
                 if (message["toolCallId"]?.JSONValueString is { } toolID)
                 {
-                    var text = TextIn(message["partialResult"]?["content"]);
+                    var text = ToolText.Blocks(message["partialResult"]?["content"]);
                     if (text.Length != 0) OnEvent?.Invoke(new ProviderEvent.ToolOutput(toolID, text));
                 }
                 break;
-            case "tool_execution_end": // :327-328
+            case "tool_execution_end": // :309-310
                 HandleToolEnd(message);
                 break;
-            case "agent_end": // :329-330
+            case "agent_end": // :311-312
                 FinishTurn();
                 break;
-            case "compaction_start": // :331-332
+            case "compaction_start": // :313-314
                 OnEvent?.Invoke(new ProviderEvent.Notice(new Notice { NoticeLevel = Notice.Level.Info, Message = "Compacting the conversation\u2026" })); // U+2026 HORIZONTAL ELLIPSIS
                 break;
-            case "compaction_end": // :333-334
+            case "compaction_end": // :315-316
                 OnEvent?.Invoke(new ProviderEvent.Notice(new Notice { NoticeLevel = Notice.Level.Info, Message = "Conversation compacted" }));
                 break;
-            case "auto_retry_start": // :335-336
+            case "auto_retry_start": // :317-318
                 OnEvent?.Invoke(new ProviderEvent.Notice(new Notice { NoticeLevel = Notice.Level.Warning, Message = message["error"]?.JSONValueString ?? "Pi is retrying." }));
                 break;
-            case "extension_error": // :337-338
+            case "extension_error": // :319-320
                 OnEvent?.Invoke(new ProviderEvent.Notice(new Notice { NoticeLevel = Notice.Level.Error, Message = message["error"]?.JSONValueString ?? "Pi reported an extension error." }));
                 break;
-            case "extension_ui_request": // :339-340
+            case "extension_ui_request": // :321-322
                 HandleExtensionUI(message);
                 break;
-            default: // :341-343
+            default: // :323-324
                 break;
         }
     }
 
-    internal void HandleUpdate(JSONValue message) // :346-381
+    internal void HandleUpdate(JSONValue message) // :328-352
     {
         var eventValue = message["assistantMessageEvent"] ?? message["event"] ?? new JSONValue.Null();
         switch (eventValue["type"]?.JSONValueString)
         {
-            case "text_delta": // :349-356
+            case "text_delta": // :331-333. B3 (N7): stream.AppendMessage mints the id (a null current id gets a
+                                // fresh one) and appends the delta, replacing this file's own counter/id/buffer.
                 if (eventValue["delta"]?.JSONValueString is not { Length: > 0 } delta) break;
-                if (currentMessageID is null)
-                {
-                    messageCounter++;
-                    currentMessageID = $"{launchID}-m-{messageCounter}";
-                }
-                messageText += delta;
-                OnEvent?.Invoke(new ProviderEvent.MessageDelta(currentMessageID, delta));
+                OnEvent?.Invoke(new ProviderEvent.MessageDelta(stream.AppendMessage(delta), delta));
                 break;
-            case "thinking_delta": // :357-365
+            case "thinking_delta": // :334-336. stream.AppendThinking's resetsText defaults to true, matching Pi's
+                                    // buffer-emptying fallback (SessionSupport.cs :104-106).
                 if (eventValue["delta"]?.JSONValueString is not { Length: > 0 } thinkingDelta) break;
-                if (currentThinkingID is null)
-                {
-                    thinkingCounter++;
-                    currentThinkingID = $"{launchID}-t-{thinkingCounter}";
-                    thinkingText = "";
-                }
-                thinkingText += thinkingDelta;
-                OnEvent?.Invoke(new ProviderEvent.ReasoningDelta(currentThinkingID, thinkingDelta));
+                OnEvent?.Invoke(new ProviderEvent.ReasoningDelta(stream.AppendThinking(thinkingDelta), thinkingDelta));
                 break;
-            default: // :366-368
+            default: // :337-338
                 break;
         }
-        // :369-380. One sum of four fallback pairs, named separately: the swiftc type checker gives up on the
+        // :340-351. One sum of four fallback pairs, named separately: the swiftc type checker gives up on the
         // single-expression form ("unable to type-check this expression in reasonable time"); the arithmetic is
         // unchanged.
         var usage = message["usage"] ?? eventValue["usage"] ?? new JSONValue.Null();
@@ -474,10 +463,10 @@ public sealed class PiSession : ProviderSession
             OnEvent?.Invoke(new ProviderEvent.Usage(new ContextUsage { UsedTokens = used, WindowTokens = contextWindow }));
     }
 
-    internal void HandleMessageEnd(JSONValue message) // :383-405
+    internal void HandleMessageEnd(JSONValue message) // :354-376
     {
         if (message["role"]?.JSONValueString != "assistant") return;
-        var finalText = messageText;
+        var finalText = stream.MessageText; // :356
         if (message["content"]?.JSONValueArray is { } blocks)
         {
             var joined = string.Concat(blocks
@@ -486,29 +475,32 @@ public sealed class PiSession : ProviderSession
                 .Where(text => text is not null));
             if (joined.Length != 0) finalText = joined;
         }
-        if (currentThinkingID is { } thinkingID && thinkingText.Trimmed().Length != 0)
-            OnEvent?.Invoke(new ProviderEvent.ReasoningCompleted(thinkingID, thinkingText));
-        currentThinkingID = null;
-        if (currentMessageID is { } messageID)
+        if (stream.CurrentThinkingID is { } thinkingID && stream.ThinkingText.Trimmed().Length != 0) // :364-365
+            OnEvent?.Invoke(new ProviderEvent.ReasoningCompleted(thinkingID, stream.ThinkingText));
+        stream.EndThinking(); // :367
+        if (stream.CurrentMessageID is { } messageID) // :368-370
         {
             OnEvent?.Invoke(new ProviderEvent.MessageCompleted(messageID, finalText));
             lastReplyText = finalText;
         }
-        currentMessageID = null;
-        if (message["stopReason"]?.JSONValueString == "error")
+        stream.EndMessage(); // :372
+        if (message["stopReason"]?.JSONValueString == "error") // :373-374
             turnError = message["errorMessage"]?.JSONValueString ?? "Pi reported an error.";
     }
 
-    internal void HandleToolStart(JSONValue message) // :407-449
+    internal void HandleToolStart(JSONValue message) // :378-420
     {
         if (message["toolCallId"]?.JSONValueString is not { } id || message["toolName"]?.JSONValueString is not { } name) return;
         var args = message["args"] ?? message["input"] ?? new JSONValue.Null();
         toolNames[id] = name;
         toolInputs[id] = args;
-        if (name == "write" && args["path"]?.JSONValueString is { } writePath)
-            editSnapshots[id] = Snapshot(writePath) ?? "";
+        if (name == "write" && args["path"]?.JSONValueString is { } writePath) // :383-385. B3 (N7): the shared
+                                                                                // EditSnapshots.Capture (its own
+                                                                                // 1 MB text-file read), replacing
+                                                                                // this file's own Snapshot helper.
+            editSnapshots.Capture(id, writePath);
 
-        var kind = name switch // :415-422
+        var kind = name switch // :386-393
         {
             "bash" => ToolCall.Kind.Command,
             "read" => ToolCall.Kind.Read,
@@ -519,27 +511,27 @@ public sealed class PiSession : ProviderSession
         };
         string title;
         string? detail;
-        if (name == "bash") // :426-428
+        if (name == "bash") // :397-399
         {
             title = ToolTitles.UnwrapShell(args["command"]?.JSONValueString ?? "bash");
             detail = null;
         }
-        else if (name is "read" or "edit" or "write") // :429-431
+        else if (name is "read" or "edit" or "write") // :400-402
         {
             title = ToolTitles.RelativePath(args["path"]?.JSONValueString ?? name, WorkingDirectory);
             detail = null;
         }
-        else if (name is "grep" or "find") // :432-434
+        else if (name is "grep" or "find") // :403-405
         {
             title = args["pattern"]?.JSONValueString ?? name;
             detail = null;
         }
-        else if (name == "ls") // :435-437
+        else if (name == "ls") // :406-408
         {
             title = args["path"]?.JSONValueString ?? ".";
             detail = null;
         }
-        else if (name.StartsWith("mcp__", StringComparison.Ordinal)) // :438-443
+        else if (name.StartsWith("mcp__", StringComparison.Ordinal)) // :409-414
         {
             // SwiftString.Split takes a single Character separator; "__" is two, so Swift's
             // split(separator: "__", omittingEmptySubsequences: true) ports as a plain multi-char split (O-13).
@@ -549,19 +541,20 @@ public sealed class PiSession : ProviderSession
             title = $"{server} \u00B7 {tool}"; // U+00B7 MIDDLE DOT
             detail = args.IsNull || args.CompactString == "{}" ? null : args.PrettyString;
         }
-        else // :444-446
+        else // :415-417
         {
             title = name;
             detail = args.IsNull || args.CompactString == "{}" ? null : args.PrettyString;
         }
-        OnEvent?.Invoke(new ProviderEvent.ToolStarted(id, new ToolCall { ToolCallKind = kind, Title = title, Detail = detail })); // :448
+        OnEvent?.Invoke(new ProviderEvent.ToolStarted(id, new ToolCall { ToolCallKind = kind, Title = title, Detail = detail })); // :419
     }
 
-    internal void HandleToolEnd(JSONValue message) // :451-466
+    internal void HandleToolEnd(JSONValue message) // :422-437
     {
         if (message["toolCallId"]?.JSONValueString is not { } id) return;
         var result = message["result"] ?? new JSONValue.Null();
-        var output = TextIn(result["content"]);
+        var output = ToolText.Blocks(result["content"]); // :425. B3: the shared ToolText.Blocks (ProviderSession.cs),
+                                                           // replacing this file's own private TextIn helper.
         var isError = message["isError"]?.JSONValueBool == true || result["isError"]?.JSONValueBool == true;
         // A call the gate blocked on the user's word comes back as an error whose text is the gate's reason;
         // the row reads as declined rather than failed.
@@ -583,7 +576,7 @@ public sealed class PiSession : ProviderSession
 
     /// <summary>A minimal unified diff of the old text against the new: a `---`/`+++` header, then the old lines
     /// prefixed with `-` and the new lines prefixed with `+`.</summary>
-    private ValueList<FileEdit>? EditDiff(string name, JSONValue args, string id) // :468-483
+    private ValueList<FileEdit>? EditDiff(string name, JSONValue args, string id) // :441-456
     {
         switch (name)
         {
@@ -594,14 +587,15 @@ public sealed class PiSession : ProviderSession
                 return new ValueList<FileEdit>([UnifiedDiff(editPath, oldText, newText)]);
             case "write":
                 if (args["path"]?.JSONValueString is not { } writePath || args["content"]?.JSONValueString is not { } content) return null;
-                var before = editSnapshots.Remove(id, out var snapshot) ? snapshot : "";
+                var before = editSnapshots.Text(id); // :450. B3 (N7): EditSnapshots.Text then Discard, replacing
+                editSnapshots.Discard(id);            // :451. this file's own single Dictionary.Remove.
                 return new ValueList<FileEdit>([UnifiedDiff(writePath, before, content)]);
             default:
                 return null;
         }
     }
 
-    private static FileEdit UnifiedDiff(string path, string old, string @new) // :486-494
+    private static FileEdit UnifiedDiff(string path, string old, string @new) // :458-466
     {
         // path.hasPrefix("/") ? path : path: both branches are identical, so this is a no-op and the path is
         // NEVER made relative (upstream defect, reproduced: PR-PROVCLI-293).
@@ -614,26 +608,7 @@ public sealed class PiSession : ProviderSession
         return new FileEdit(relative, diff, stats.Additions, stats.Deletions);
     }
 
-    private static string? Snapshot(string path) // :496-500
-    {
-        if (SwiftTry.Optional(() =>
-            {
-                var info = new FileInfo(path);
-                return info.Length <= 1_000_000 ? File.ReadAllBytes(path) : null;
-            }) is not { } bytes) return null;
-        return SwiftText.DecodeUtf8OrNil(bytes);
-    }
-
-    /// <summary>The text of a content-block array, as tool results carry it.</summary>
-    private static string TextIn(JSONValue? value) // :502-511
-    {
-        if (value is null || value.IsNull) return "";
-        if (value.JSONValueString is { } text) return text;
-        if (value.JSONValueArray is not { } blocks) return "";
-        return string.Join("\n", blocks.Select(block => block["text"]?.JSONValueString).Where(text => text is not null));
-    }
-
-    private void FinishTurn() // :513-531
+    private void FinishTurn() // :468-486
     {
         if (!turnActive) return;
         turnActive = false;
@@ -653,34 +628,34 @@ public sealed class PiSession : ProviderSession
 
     // MARK: - Extension UI
 
-    private void HandleExtensionUI(JSONValue message) // :535-582
+    private void HandleExtensionUI(JSONValue message) // :490-537
     {
         if ((message["id"]?.JSONValueString ?? message["requestId"]?.JSONValueString) is not { } id) return;
         if (message["method"]?.JSONValueString is not { } method) return;
         var parameters = message["params"] ?? message;
         switch (method)
         {
-            case "select": // :540-541
+            case "select": // :495-496
                 HandleSelect(id, parameters);
                 break;
-            case "confirm": // :542-556
+            case "confirm": // :497-511
                 var title = parameters["title"]?.JSONValueString ?? "Pi";
                 var prompt = string.Join("\n", new[] { title, parameters["message"]?.JSONValueString }.Where(part => !string.IsNullOrEmpty(part)));
                 pendingQuestions[id] = "confirm";
                 OnEvent?.Invoke(new ProviderEvent.Question(new QuestionRequest(id, new ValueList<QuestionRequest.Question>([
-                    new QuestionRequest.Question(id, "Pi", prompt, new ValueList<QuestionRequest.Choice>([
-                        new QuestionRequest.Choice("Yes"), new QuestionRequest.Choice("No"),
+                    new QuestionRequest.Question(id, "Pi", prompt, new ValueList<QuestionRequest.Choice>([ // :504 header "Pi" (UI-PROVCLI-012)
+                        new QuestionRequest.Choice("Yes"), new QuestionRequest.Choice("No"), // :506 "Yes"/"No" choices (UI-PROVCLI-010, UI-PROVCLI-011)
                     ]), AllowsMultiple: false, AllowsOther: false, IsSecret: false),
                 ]))));
                 break;
-            case "input" or "editor": // :557-569
+            case "input" or "editor": // :512-524
                 pendingQuestions[id] = method;
                 OnEvent?.Invoke(new ProviderEvent.Question(new QuestionRequest(id, new ValueList<QuestionRequest.Question>([
-                    new QuestionRequest.Question(id, "Pi", parameters["title"]?.JSONValueString ?? "Pi", ValueList<QuestionRequest.Choice>.Empty,
+                    new QuestionRequest.Question(id, "Pi", parameters["title"]?.JSONValueString ?? "Pi", ValueList<QuestionRequest.Choice>.Empty, // :517-518 header/prompt default "Pi" (UI-PROVCLI-012)
                         AllowsMultiple: false, AllowsOther: true, IsSecret: false),
                 ]))));
                 break;
-            case "notify": // :570-576
+            case "notify": // :525-531
                 var level = parameters["notifyType"]?.JSONValueString switch
                 {
                     "warning" => Notice.Level.Warning,
@@ -689,14 +664,14 @@ public sealed class PiSession : ProviderSession
                 };
                 OnEvent?.Invoke(new ProviderEvent.Notice(new Notice { NoticeLevel = level, Message = parameters["message"]?.JSONValueString ?? "Pi sent a notification." }));
                 break;
-            case "setStatus" or "setWidget" or "setTitle" or "set_editor_text": // :577-578
+            case "setStatus" or "setWidget" or "setTitle" or "set_editor_text": // :532-533
                 break;
-            default: // :579-580
+            default: // :534-535
                 break;
         }
     }
 
-    private void HandleSelect(string id, JSONValue parameters) // :584-636
+    private void HandleSelect(string id, JSONValue parameters) // :539-591
     {
         var title = parameters["title"]?.JSONValueString ?? "";
         var options = (parameters["options"]?.JSONValueArray ?? []).Select(item => item.JSONValueString).Where(item => item is not null).Select(item => item!).ToList();
@@ -705,7 +680,7 @@ public sealed class PiSession : ProviderSession
         {
             pendingQuestions[id] = "select";
             OnEvent?.Invoke(new ProviderEvent.Question(new QuestionRequest(id, new ValueList<QuestionRequest.Question>([
-                new QuestionRequest.Question(id, "Pi", title, new ValueList<QuestionRequest.Choice>(options.Select(option => new QuestionRequest.Choice(option))),
+                new QuestionRequest.Question(id, "Pi", title, new ValueList<QuestionRequest.Choice>(options.Select(option => new QuestionRequest.Choice(option))), // :547 header "Pi" (UI-PROVCLI-012)
                     AllowsMultiple: false, AllowsOther: false, IsSecret: false),
             ]))));
             return;
@@ -721,17 +696,17 @@ public sealed class PiSession : ProviderSession
         var kind = kindString == "command" ? ApprovalRequest.Kind.Command : kindString == "fileChange" ? ApprovalRequest.Kind.FileChange : ApprovalRequest.Kind.Tool;
         string callTitle;
         string? callDetail;
-        if (kind == ApprovalRequest.Kind.Command) // :613-615
+        if (kind == ApprovalRequest.Kind.Command) // :568-570
         {
             callTitle = ToolTitles.UnwrapShell(input["command"]?.JSONValueString ?? toolName);
             callDetail = input["command"]?.JSONValueString;
         }
-        else if (kind == ApprovalRequest.Kind.FileChange) // :616-618
+        else if (kind == ApprovalRequest.Kind.FileChange) // :571-573
         {
             callTitle = ToolTitles.RelativePath(input["path"]?.JSONValueString ?? toolName, WorkingDirectory);
             callDetail = input["path"]?.JSONValueString;
         }
-        else // :619-621
+        else // :574-576
         {
             callTitle = toolName;
             callDetail = input.IsNull || input.CompactString == "{}" ? null : input.PrettyString;
@@ -742,10 +717,10 @@ public sealed class PiSession : ProviderSession
             new ApprovalRequest.Option("deny", "Decline", ApprovalRequest.Option.Role.Decline),
         ]), Detail: callDetail, ToolItemID: payload["toolCallId"]?.JSONValueString);
         pendingApprovals[id] = approval;
-        OnEvent?.Invoke(new ProviderEvent.Approval(approval)); // :635
+        OnEvent?.Invoke(new ProviderEvent.Approval(approval)); // :590
     }
 
-    /// <summary>Test seam for this part's own tests: the turn-active state <c>Send()</c> sets at :179-186,
+    /// <summary>Test seam for this part's own tests: the turn-active state <c>Send()</c> sets at :180-187,
     /// without a live process (Send() itself requires IsRunning). No Swift twin.</summary>
     internal void TestBeginTurn(InteractionMode mode, RuntimeMode runtimeModeValue = RuntimeMode.Supervised)
     {
@@ -763,8 +738,12 @@ public sealed class PiSession : ProviderSession
 
     // Swift `private`; kept internal so this part's own tests can drive it without tearing down a live process
     // (per the file's established seam pattern, e.g. Handle, HandleToolEnd).
-    internal void DidClose(int status) // :638-653
+    internal void DidClose(int status) // :593-609
     {
+        // :594. B3 (N1, PR-PROVCLI-299): every waiting request is released with JSON null FIRST, so a handshake
+        // or model-switch get_state still waiting when pi exits returns at once (PR-PROVCLI-276) instead of
+        // hanging for the rest of its 30 second timeout.
+        pendingResponses.ResolveAll(new JSONValue.Null());
         var tail = TextCleanup.LastLines(process?.ErrorTail ?? "");
         process = null;
         if (turnActive)
