@@ -3718,7 +3718,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "New at 1.7.0 (impact R3-13 #1): Core/Support/PendingReplies.swift is a new file, extracted from the continuation maps ClaudeSession and PiSession each kept at B2."
     },
     {
@@ -3745,7 +3745,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "New at 1.7.0 (impact R3-13 #2): part of the new Core/Support/PendingReplies.swift."
     }
   ],

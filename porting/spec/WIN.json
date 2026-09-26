@@ -1969,13 +1969,11 @@
       }
     },
     {
-      "side_effects": [
-        "Writes the system clipboard"
-      ],
+      "side_effects": [],
       "persistence": "nothing persisted",
       "failure_cases": [],
-      "cancellation": "A second click restarts the revert timer; the source does not cancel the first task, so two clicks 1 second apart revert at 1.4 s after the FIRST click. Reproduce this.",
-      "status": "IMPLEMENTED",
+      "cancellation": "not cancellable",
+      "status": "RETIRED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1989,14 +1987,6 @@
       "expected_result": "RETIRED at B3: this component no longer exists in the pinned source.",
       "windows_path": "RETIRED; no port behaviour to reproduce.",
       "verification_method": "RETIRED",
-      "status": "RETIRED",
-      "side_effects": [],
-      "persistence": "nothing persisted",
-      "failure_cases": [],
-      "cancellation": "not cancellable",
-      "upstream_defect": null,
-      "blocked_by": null,
-      "depends_on_unknown": null,
       "retired": {
         "reason": "B3 deletes `struct CopyCommandButton: View` (B2 RootView.swift:424-451) along with the blank line after it. It had no call site at B2 or B1 either (git grep at the B2 pin finds only its own declaration), so removing it changes nothing the user could see; NoThreadView and everything after it in the file moves up 29 lines (B2 :453-479 -> B3 :424-450).",
         "evidence": "DroppyCode/App/Views/RootView.swift (B3 pin 52bc7926): grep for CopyCommandButton returns nothing; impacts.json bundle R3-39"
@@ -4565,7 +4555,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4766,7 +4756,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5486,7 +5476,7 @@
       "cancellation": "not cancellable",
       "windows_path": "On attach (control loaded into a visual tree, or moved between windows), hit-test the pointer's current position against the handle's bounds and set the grip's shown state accordingly, unanimated. This matters most for a drawer or panel that can appear already under a resting pointer.",
       "verification_method": "interaction test: rest the pointer over where a hidden drawer's strip will appear, show the drawer, assert the grip is shown at once with no animation",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5513,7 +5503,7 @@
       "cancellation": "not applicable; this IS the cancellation-like path",
       "windows_path": "When a drag handle's control is detached from its visual tree or moved to a different window mid-drag, clear the drag state and release any captured pointer/pushed cursor, but do not invoke the completion callback. Record this as a pre-existing port gap where the current implementation calls end() on capture loss instead (6.2): TerminalPanel's capture-lost path must be corrected to match this record, not the other way around.",
       "verification_method": "interaction test: start a drag, then remove the handle's window (or dismiss the panel) while still holding the mouse button; assert onEnd was never called and isDragging is false afterward",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5539,7 +5529,7 @@
       "cancellation": "not applicable; this is a static contract",
       "windows_path": "Port this as the shared DragHandleView/DragHandle component's own contract, independent of any one caller: the axis travel signs (free's y-inversion is easy to get backwards, and SubagentPanel.cs:908-913 already has this exact sign bug pre-existing at B2, per 6.2), the grip/glow defaults, the 0.18 s/4 pt metrics, slop as a configurable threshold even though no current caller sets it above 0, cursor-identity-based invalidation (not value equality), and animation continuity across re-renders.",
       "verification_method": "unit: travel signs for each axis, including a regression test for the free-axis y-inversion; the default field values; slop 0 versus slop > 0 gating; setting the same cursor instance twice does not re-invalidate; reconfiguring mid-animation does not reset it",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5677,7 +5667,7 @@
         "DroppyCode/UI/Chrome/WindowChrome.swift:139-150"
       ],
       "b3_note": "B3 replaces WindowDragView's mouseDown/performDrag/empty-mouseUp (B2 :1085-1102) with `Color.clear.contentShape(.rect).gesture(WindowDragGesture()).allowsWindowActivationEvents(true)` (B3 :1091-1099); NoWindowDragView (the no-drag marker) is unchanged apart from its citation moving from B2 :1104-1140 to B3 :1101-1137. The former 'press begins a move, release is swallowed' states are no longer backed by any Swift code the port can point to; they were an implementation detail of the deleted NSView, not a documented property of WindowDragGesture.",
-      "status": "SPECIFIED"
+      "status": "IMPLEMENTED"
     },
     {
       "exact_text": "Settings…",
@@ -7330,7 +7320,7 @@
     },
     {
       "exact_text": "Copied",
-      "notes": "The 16-point label clamp exists so a monospaced command does not draw a taller capsule than a plain \"Sign in\" beside it. A second click within 1.4 s does not restart the timer, so the label reverts 1.4 s after the FIRST click. The tooltip's \"in Terminal\" stays verbatim in the port (OD-0008 B6). Glass follows OD-0005, an owner-approved deviation, not parity (see deviation): where the window shows the desktop, a Windows system material of the Acrylic class, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material is reproduced: shape, corner radius, tint colour and opacity, .interactive() and container spacing. This site is `.buttonStyle(.glass)` (DroppyCode/App/Views/RootView.swift:448), so the glass button style is kept, with its label held to 16 points. UNK-0004 is closed by that ruling.",
+      "notes": "RETIRED at B3: this component no longer exists in the pinned source. See PR-WIN-087.",
       "id": "UI-WIN-069",
       "screen": "Provider sign-in rows",
       "element": "Copy command button",
@@ -7343,7 +7333,6 @@
       "source_evidence": [
         "DroppyCode/App/Views/RootView.swift:423-424 (B3 pin 52bc7926) - CopyCommandButton is gone; grep over RootView.swift finds no declaration and no reference anywhere in the pinned tree"
       ],
-      "notes": "RETIRED at B3: this component no longer exists in the pinned source. See PR-WIN-087.",
       "status": "RETIRED",
       "retired": {
         "reason": "B3 deletes `struct CopyCommandButton: View` (B2 RootView.swift:424-451); it had no call site at B1 or B2 either, so the user never saw it. See PR-WIN-087.",
