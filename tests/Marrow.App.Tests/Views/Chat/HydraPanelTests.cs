@@ -1,5 +1,7 @@
 using System;
+using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Marrow.App.Tests.Fixtures;
@@ -193,4 +195,27 @@ public sealed class HydraPanelTests
     {
         Assert.Equal(22.0, HydraPanel.CornerRadius);
     }
+
+    // Review fix (b3/SubagentPanel): WireDragHandle's doc comment used to assert, in the present tense, that
+    // Marrow.App.Views.Chat.SubagentPanel was "still pinned to B2" and so still carried its own pre-refactor
+    // PanelDragHandle/PanelDragHandleView pair rather than the shared Marrow.UI.Chrome.DragHandle. That unit's
+    // own B3 re-pin (SubagentPanel.cs:796-849) falsified the claim: PanelDragHandle there now wraps the shared
+    // DragHandleView. This reads HydraPanel.cs's own source and pins the corrected wording, the same
+    // source-scan technique ProgramStartupBindingTests.cs uses, so the comment cannot silently regress to the
+    // stale claim again.
+    [Fact]
+    public void WireDragHandle_doc_no_longer_claims_SubagentPanel_is_still_unrefactored()
+    {
+        var source = File.ReadAllText(HydraPanelCsPath());
+
+        Assert.DoesNotContain("is still pinned to B2", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("has not yet been re-verified against B3", source, StringComparison.Ordinal);
+        Assert.Contains("has since been", source, StringComparison.Ordinal);
+        Assert.Contains("re-pinned against B3", source, StringComparison.Ordinal);
+        Assert.Contains("Marrow.App.Views.Chat.SubagentPanel.PanelDragHandle", source, StringComparison.Ordinal);
+    }
+
+    private static string HydraPanelCsPath([CallerFilePath] string path = "") =>
+        Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path)!, "..", "..", "..", "..",
+            "src", "Marrow.App", "Views", "Chat", "HydraPanel.cs"));
 }
