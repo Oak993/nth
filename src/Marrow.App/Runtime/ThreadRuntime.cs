@@ -734,7 +734,7 @@ public sealed class ThreadRuntime : MainActorModel
         if (Thread?.Hydra?.HydraHeadInfoKind == HydraHeadInfo.Kind.Droppy)
             HydraTokens = Turns.SelectMany(turn => turn.TokenSpends ?? ValueList<TokenSpend>.Empty).Sum(spend => spend.TotalTokens); // :559-561
         Usage = Usage ?? document.Usage; // :562
-        Continuation = Continuation ?? document.Continuation; // :563
+        Continuation = document.Continuation ?? Continuation; // :563
         FollowUps = new ValueList<FollowUpPrompt>(document.FollowUps.Where(prompt => !prompt.IsEmpty).Concat(FollowUps)); // :564
         HydraMerges = new ValueList<HydraMergeRecord>(document.HydraMerges.Concat(HydraMerges)); // :565
 
@@ -2547,11 +2547,15 @@ public sealed class ThreadRuntime : MainActorModel
         {
             await Resend(turnID, user.Value.Text, user.Value.Attachments, restoreFiles: false);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (SwiftTry.IsThrownError(ex))
         {
-            // UI-RUNTIME-042.
+            // UI-RUNTIME-042. Foundation localizes process-launch errors; Win32Exception.Message is the
+            // Windows equivalent (same per-site decision as the StartTurn catch at :1689).
+            var description = ex is System.ComponentModel.Win32Exception nativeError
+                ? nativeError.Message
+                : SwiftErrors.LocalizedDescription(ex);
             AppendNotice(Notice.Level.Error,
-                $"{provider.DisplayName} is up to date now ({version}), but the message could not be sent again: {SwiftErrors.LocalizedDescription(ex)} Send it again.");
+                $"{provider.DisplayName} is up to date now ({version}), but the message could not be sent again: {description} Send it again.");
         }
     }
 
@@ -3880,11 +3884,20 @@ public sealed class ThreadRuntime : MainActorModel
     private void HydraAgentFinished(string agentID, TurnStatus status, string? summary) { }
     private void HydraToolFinished(Guid headID, ToolCall.Status status, string? output) { }
 
-    // The provider event routes call this teardown on release and exit. Its native-Hydra
-    // implementation is blocked until AppModel exposes its native-head completion surface.
+    // The provider event routes call this teardown on release and exit. :2680-2690. Review fix
+    // (PR-RUNTIME-103): this was previously a no-op pending AppModel.FinishHydraHead/ExistingRuntime, which
+    // are now present; ported line for line.
     private void StopNativeHeads()
     {
-        // Intentionally empty for this slice; see the p5 report for the missing AppModel API.
+        if (App is not { } app) return;
+        foreach (var headID in hydraNativeHeads.Values.ToArray())
+        {
+            if (app.Thread(headID) is not { } head || head.Hydra is not { IsFinished: false }) continue;
+            app.FinishHydraHead(headID, TurnStatus.Interrupted, summary: null);
+            if (app.ExistingRuntime(headID) is { IsRunning: true } headRuntime)
+                headRuntime.Rehearse(new ProviderEvent.TurnCompleted(TurnStatus.Interrupted, null));
+        }
+        hydraNativeHeads.Clear();
     }
 
     // :2253-2266. Token reports with the same provider/model/agent identity are coalesced.

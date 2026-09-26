@@ -56,6 +56,7 @@ public sealed class ThreadRuntimeCLIUpdateTests
 
         h.Main.Loop.Run(() => (Task)InvokePrivate(runtime, "StartTurn", "Start request.",
             Array.Empty<Attachment>(), null, false), AppModelHarness.Bound);
+        var turnID = h.Main.OnMain(() => runtime.Turns.Single().Id);
         // FinishTurnUpdatingCLI's own follow-up (finishTurn, then resendAfterCLIUpdate) is an un-awaited
         // MainActor.Spawn: wait for its terminal notice instead of assuming RunUntilIdle drains it.
         h.Main.Loop.RunUntil(() => NoticeCount(runtime) >= 2, AppModelHarness.Bound);
@@ -71,6 +72,11 @@ public sealed class ThreadRuntimeCLIUpdateTests
             Assert.Equal(error + "\n\nMarrow could not bring Claude up to date. Run `claude update` in Terminal, then send the message again.",
                 failure.Message);
             Assert.Equal(RuntimePhase.Idle, runtime.Phase);
+            // The info notice is part of the failing turn (:2263 comment: "so the resend's rewind takes it
+            // away with the failed attempt"), which requires its Item.TurnID to be the failing turn's id.
+            var infoEntry = Assert.Single(runtime.Entries, entry =>
+                entry.Item.TimelineItemContent is TimelineItem.Content.Notice n && n.Value.NoticeLevel == Notice.Level.Info);
+            Assert.Equal(turnID, infoEntry.Item.TurnID);
         });
     }
 
@@ -185,6 +191,31 @@ public sealed class ThreadRuntimeCLIUpdateTests
     }
 
     [Fact]
+    [Trait("Req", "PR-RUNTIME-266")] // ThreadRuntime.swift:2275: updateCLIIfDue(provider, force: true).
+    // ProviderRegistry.UpdateCLIIfDue's own 12-hour freshness gate (:506-507; proven at
+    // ProviderRegistryCLIUpdateTests.update_cli_if_due_skips_an_unforced_call_whose_last_attempt_was_under_12_hours_ago)
+    // would skip an unforced call outright, with no --version and no update call at all. Only force: true
+    // reaches the stand-in here, so a call recorded on it proves ThreadRuntime passes force, not just that
+    // an update happened to be due.
+    public void ResendAfterCLIUpdate_forces_the_update_past_the_stored_dates_12_hour_gate()
+    {
+        var script = ProviderProbeStandIns.CopyFor("force-flag").SetStdout("4.0.0\n").SetExitCode(0);
+        using var seam = ExecutableSeam(ProviderKind.Codex, script);
+        using var h = new AppModelHarness();
+        var (_, _, _, runtime) = CreateRuntime(h, ProviderKind.Codex);
+        var turnID = Guid.NewGuid();
+        h.Main.OnMain(() => h.Defaults.Set("providerCLIUpdateDates", new Dictionary<string, object>
+        {
+            [SwiftEnum<ProviderKind>.RawValue(ProviderKind.Codex)] = SwiftDate.Seconds1970(SwiftDate.Now) - 3600d, // 1 hour ago
+        }));
+
+        h.Main.Loop.Run(() => (Task)InvokePrivate(runtime, "ResendAfterCLIUpdate", turnID, ProviderKind.Codex, "boom-force"),
+            AppModelHarness.Bound);
+
+        Assert.Contains(script.RecordedCalls(), call => call.SequenceEqual(["update"]));
+    }
+
+    [Fact]
     [Trait("Req", "PR-RUNTIME-266")]
     [Trait("Req", "UI-RUNTIME-040")] // ThreadRuntime.swift:2276-2278: at most one resend per CLI version.
     public void ResendAfterCLIUpdate_reports_it_could_not_bring_the_CLI_up_to_date_when_that_version_was_already_resent_at()
@@ -294,6 +325,45 @@ public sealed class ThreadRuntimeCLIUpdateTests
                 entry => entry.TimelineEntryKind == TimelineEntry.Kind.Notice).Item.TimelineItemContent).Value;
             Assert.Equal(Notice.Level.Error, notice.NoticeLevel);
             Assert.Equal("boom5\n\nClaude is up to date now (3.2.0). Send the message again.", notice.Message);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-RUNTIME-266")]
+    [Trait("Req", "UI-RUNTIME-042")] // ThreadRuntime.swift:2288-2292: resend(...) itself throws.
+    // Review fix: this branch previously had no test, and its catch had no R-ERR-1 filter and passed any
+    // exception straight to SwiftErrors.LocalizedDescription, which throws NotSupportedException for a type
+    // with no recorded per-site decision. A ProviderError (a SwiftError, ILocalizedError) is the exact
+    // exception Revert throws for this case, so it also proves the catch's ordinary (non-Win32Exception) arm.
+    public void ResendAfterCLIUpdate_reports_the_resend_failure_when_resend_itself_throws()
+    {
+        var script = ProviderProbeStandIns.CopyFor("resend-throws").SetStdout("5.0.0\n").SetExitCode(0);
+        using var seam = ExecutableSeam(ProviderKind.Codex, script);
+        using var h = new AppModelHarness();
+        var (_, _, _, runtime) = CreateRuntime(h, ProviderKind.Codex);
+        Guid turnID = default;
+
+        h.Main.OnMain(() =>
+        {
+            runtime.RehearseTurn("Message to resend.");
+            turnID = runtime.Turns.Single().Id;
+            // ResendAfterCLIUpdate expects the runtime idle (FinishTurn normally reaches that first).
+            SetPrivateField(runtime, "phase", RuntimePhase.Idle);
+        });
+
+        h.Main.Loop.Run(() => (Task)InvokePrivate(runtime, "ResendAfterCLIUpdate", turnID, ProviderKind.Codex, "boom6"),
+            AppModelHarness.Bound);
+
+        h.Main.OnMain(() =>
+        {
+            var notice = Assert.IsType<TimelineItem.Content.Notice>(Assert.Single(runtime.Entries,
+                entry => entry.TimelineEntryKind == TimelineEntry.Kind.Notice).Item.TimelineItemContent).Value;
+            Assert.Equal(Notice.Level.Error, notice.NoticeLevel);
+            // Resend -> Revert throws because the turn has no providerTurnID and is not Failed
+            // (ThreadRuntime.swift:1866-1867's "no Codex turn ID" case), caught by the :2288-2292 catch.
+            Assert.Equal("Codex is up to date now (5.0.0), but the message could not be sent again: " +
+                "The selected message has no Codex turn ID, so its history cannot be safely reverted. Send it again.",
+                notice.Message);
         });
     }
 

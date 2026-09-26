@@ -1,3 +1,4 @@
+using System.Reflection;
 using Marrow.App.Runtime;
 using Marrow.App.Tests.Fixtures;
 using Marrow.Core.Models;
@@ -203,5 +204,64 @@ public sealed class ThreadRuntimePart12Tests
             h.Runtime.Entries.Single(entry => entry.TimelineEntryKind == TimelineEntry.Kind.Notice).Item.TimelineItemContent).Value);
         Assert.Equal(Notice.Level.Error, notice.NoticeLevel);
         Assert.Equal(h.Thread.Provider.DisplayName + " stopped unexpectedly.", notice.Message);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-RUNTIME-103")] // ThreadRuntime.swift:2212-2229 (B3) and stopNativeHeads, :2680-2690.
+    // Review fix: stopNativeHeads was a no-op ("Intentionally empty for this slice"), so this never proved
+    // PR-RUNTIME-103's "native heads are finished as interrupted". hydraNativeHeads is populated via
+    // reflection because its production populator, HydraAgentStarted, is itself a separate, already-blocked
+    // stub not covered by this fix. The head's Phase is set via reflection rather than RehearseTurn, with no
+    // turn record, so its own FinishTurn (reached through the rehearsed turnCompleted) takes the early-return
+    // arm (:2104-2111, no matching turn) straight to Idle, instead of running its real-git ParsedDiff/
+    // checkpoint pipeline (:2223, :2183) that a bare test folder cannot answer meaningfully: this test's
+    // subject is stopNativeHeads' own dispatch, not FinishTurn's, which has its own coverage elsewhere.
+    public void Exited_finishes_a_running_native_head_as_interrupted_and_clears_the_registry()
+    {
+        using var h = new AppModelHarness();
+        var project = AppModelSamples.Project("Native head exit", h.NewFolder("native-head-exit"));
+        var lead = AppModelSamples.Thread(project) with { Provider = ProviderKind.Claude };
+        var native = new ChatThread(project.Id, ProviderKind.Codex, null, null, RuntimeMode.Supervised)
+        {
+            ParentThreadID = lead.Id,
+            IsInPanel = true,
+            Hydra = AppModelSamples.Head(HydraHeadInfo.Status.Running) with
+            {
+                HydraHeadInfoKind = HydraHeadInfo.Kind.Native,
+                HydraHeadInfoStatus = HydraHeadInfo.Status.Running,
+            },
+        };
+        h.WriteLibrary([project], [lead, native]);
+        var model = h.MakeModel();
+        var leadRuntime = h.Main.OnMain(() => model.Runtime(lead.Id));
+        var nativeRuntime = h.Main.OnMain(() => model.Runtime(native.Id));
+        var registryField = typeof(ThreadRuntime).GetField("hydraNativeHeads", BindingFlags.Instance | BindingFlags.NonPublic);
+        var phaseField = typeof(ThreadRuntime).GetField("phase", BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.NotNull(registryField);
+        Assert.NotNull(phaseField);
+
+        h.Main.OnMain(() =>
+        {
+            // AppModel's constructor already swept a thread's own Hydra.status from Running to Stopped at
+            // load (AppModel.cs:196-204, matching AppModel.swift:132-136: a head "running" when the app last
+            // quit could not really still be running). Restore Running after construction, as
+            // Finishing_a_head_maps_the_turn_status_and_keeps_a_parentless_report_on_the_head
+            // (AppModelHydraTests.cs) already does for the same reason.
+            model.UpdateThread(native.Id, thread => thread with
+            {
+                Hydra = thread.Hydra! with { HydraHeadInfoStatus = HydraHeadInfo.Status.Running },
+            });
+            phaseField.SetValue(nativeRuntime, RuntimePhase.Running); // IsRunning is now true; no turn record.
+            registryField.SetValue(leadRuntime, new Dictionary<string, Guid> { ["native-agent"] = native.Id });
+            leadRuntime.Rehearse(new ProviderEvent.Exited(null));
+        });
+
+        h.Main.OnMain(() =>
+        {
+            var registry = (Dictionary<string, Guid>)registryField.GetValue(leadRuntime)!;
+            Assert.Empty(registry);
+            Assert.Equal(HydraHeadInfo.Status.Stopped, model.Thread(native.Id)!.Hydra!.HydraHeadInfoStatus);
+            Assert.Equal(RuntimePhase.Idle, nativeRuntime.Phase); // Rehearse(turnCompleted) reached the head.
+        });
     }
 }

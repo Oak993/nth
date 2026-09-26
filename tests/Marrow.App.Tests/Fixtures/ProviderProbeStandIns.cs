@@ -78,4 +78,38 @@ public sealed class ProviderProbeScript(string executablePath, string folder)
         File.WriteAllText(Path.Combine(Folder, "exit.txt"), code.ToString(System.Globalization.CultureInfo.InvariantCulture));
         return this;
     }
+
+    /// <summary>What a later "--version" call reports once this stand-in has been called with exactly
+    /// ["update"] (ProviderProbeStandIn.cs's post-update-stdout.txt): simulates the CLI's own updater having
+    /// installed a newer build, for ResendAfterCLIUpdate's before/after version comparison.</summary>
+    public ProviderProbeScript SetPostUpdateStdout(string text)
+    {
+        File.WriteAllBytes(Path.Combine(Folder, "post-update-stdout.txt"), new UTF8Encoding(false).GetBytes(text));
+        return this;
+    }
+
+    /// <summary>The argv (NUL-decoded) of every call so far, in call order (0-based, ClaudeStandIn.cs's shape;
+    /// matches Marrow.Services.Tests.Fixtures.ProviderProbeStandIns.RecordedCalls).</summary>
+    public IReadOnlyList<IReadOnlyList<string>> RecordedCalls()
+    {
+        var calls = new List<IReadOnlyList<string>>();
+        var call = 0;
+        while (true)
+        {
+            var path = Path.Combine(Folder, "call-" + call + ".args");
+            if (!File.Exists(path)) break;
+            var bytes = File.ReadAllBytes(path);
+            var parts = new List<string>();
+            var start = 0;
+            for (var i = 0; i < bytes.Length; i++)
+            {
+                if (bytes[i] != 0) continue;
+                parts.Add(Encoding.UTF8.GetString(bytes, start, i - start));
+                start = i + 1;
+            }
+            calls.Add(parts);
+            call++;
+        }
+        return calls;
+    }
 }
