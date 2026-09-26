@@ -532,6 +532,7 @@ public sealed class AppSettingsTests
     }
 
     [Fact]
+    [Trait("Req", "PR-PROVAPI-005")] // Services/Providers/APIKeychain.swift:28 (unit plus restart test: the deleted DeepSeekKeychain's own coverage)
     [Trait("Req", "PR-PROVAPI-008")] // App/AppSettings.swift:367-373, :152, :485-494
     [Trait("Req", "PR-PROVREG-239")] // App/AppSettings.swift:367-373
     [Trait("Req", "PR-SETTINGS-088")] // App/AppSettings.swift:363-373, :415-423, :485-494 (protected store only, no plaintext fallback)
@@ -547,6 +548,7 @@ public sealed class AppSettingsTests
         AssertRefusedKeyIsReportedAndStoredNowhere(ProviderKind.Deepseek, (s, v) => s.DeepseekAPIKeyInput = v);
 
     [Fact]
+    [Trait("Req", "PR-PROVAPI-006")] // Services/Providers/APIKeychain.swift:29 (unit plus restart test: the deleted MetaKeychain's own coverage)
     [Trait("Req", "PR-PROVAPI-009")] // App/AppSettings.swift:378-384, :153, :485-494
     [Trait("Req", "PR-PROVREG-239")] // App/AppSettings.swift:378-384
     [Trait("Req", "PR-SETTINGS-088")] // App/AppSettings.swift:375-408, :415-423, :485-494
@@ -562,6 +564,7 @@ public sealed class AppSettingsTests
         AssertRefusedKeyIsReportedAndStoredNowhere(ProviderKind.Meta, (s, v) => s.MetaAPIKeyInput = v);
 
     [Fact]
+    [Trait("Req", "PR-PROVAPI-007")] // Services/Providers/APIKeychain.swift:30 (unit plus restart test: the deleted ZaiKeychain's own coverage)
     [Trait("Req", "PR-PROVAPI-010")] // App/AppSettings.swift:391-397, :154, :485-494
     [Trait("Req", "PR-PROVREG-239")] // App/AppSettings.swift:391-397
     [Trait("Req", "PR-SETTINGS-088")] // App/AppSettings.swift:375-408, :415-423, :485-494
@@ -577,12 +580,14 @@ public sealed class AppSettingsTests
         AssertRefusedKeyIsReportedAndStoredNowhere(ProviderKind.Zai, (s, v) => s.ZaiAPIKeyInput = v);
 
     [Fact]
+    [Trait("Req", "PR-SETTINGS-272")] // Services/Providers/APIKeychain.swift:31 (write trimmed under "Command Code API Key", read returns it, restart test)
     [Trait("Req", "PR-PROVREG-239")] // App/AppSettings.swift:402-408, :155, :485-494
     [Trait("Req", "PR-SETTINGS-088")] // App/AppSettings.swift:375-408, :415-423, :485-494
     public void A_Command_Code_key_the_store_accepts_is_kept_there_and_its_legacy_plaintext_entry_is_removed() =>
         AssertAcceptedKeyIsStoredAndItsLegacyEntryRemoved(ProviderKind.Commandcode, (s, v) => s.CommandcodeAPIKeyInput = v);
 
     [Fact]
+    [Trait("Req", "PR-SETTINGS-272")] // Services/Providers/APIKeychain.swift:31 (refused write stores nothing and shows the refusal line)
     [Trait("Req", "PR-PROVREG-239")] // App/AppSettings.swift:402-408, :485-494
     [Trait("Req", "PR-PROVAPI-011")] // App/AppSettings.swift:406, :487-494
     [Trait("Req", "PR-SETTINGS-088")] // App/AppSettings.swift:375-408, :485-494
@@ -624,6 +629,7 @@ public sealed class AppSettingsTests
     [InlineData(ProviderKind.Commandcode)]
     [Trait("Req", "PR-PROVAPI-011")] // App/AppSettings.swift:491-494; Services/Providers/APIKeychain.swift:39-43
     [Trait("Req", "PR-PROVREG-239")] // App/AppSettings.swift:367-408; Services/Providers/APIKeychain.swift:39-43
+    [Trait("Req", "PR-SETTINGS-272")] // Services/Providers/APIKeychain.swift:31, :39-43 (an empty write deletes the Command Code credential and counts as stored)
     public void Emptying_a_key_field_deletes_the_credential_and_removes_the_legacy_entry(ProviderKind provider)
     {
         var (_, account, legacyKey, stored) = KeyProvider(provider);
@@ -664,6 +670,34 @@ public sealed class AppSettingsTests
             var relaunched = new AppSettings();
             Assert.Equal("", relaunched.ApiKeyInput(ProviderKind.Zai));
             Assert.Null(relaunched.APIKeyRefusal(ProviderKind.Zai));
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVREG-239")] // App/AppSettings.swift:407-415, :483-487; Services/Providers/APIKeychain.swift:50-52
+    // (a refused update keeps the previously stored key; after relaunch the previously stored key, if there was one,
+    // is read back).
+    [Trait("Req", "PR-SETTINGS-088")]
+    public void A_refused_edit_of_an_existing_key_leaves_the_old_key_in_place_and_it_survives_a_relaunch()
+    {
+        using var scope = AppSettingsScope.Create();
+        scope.OnMain(() =>
+        {
+            var settings = new AppSettings();
+            settings.DeepseekAPIKeyInput = "sk-old-kept"; // the store accepts this one
+            Assert.Equal("sk-old-kept", APIKeychain.Key(ProviderKind.Deepseek, ""));
+
+            scope.Credentials.RefuseWrites = true;
+            settings.DeepseekAPIKeyInput = "sk-new-refused";
+
+            Assert.Equal(RefusalLine, settings.APIKeyRefusal(ProviderKind.Deepseek));
+            Assert.Equal("sk-old-kept", APIKeychain.Key(ProviderKind.Deepseek, "")); // the old credential is untouched
+            Assert.False(scope.Credentials.AnyBlobContains("sk-new-refused"));
+            Assert.False(scope.AnyFileContains("sk-new-refused"));
+
+            scope.Relaunch();
+            var relaunched = new AppSettings();
+            Assert.Equal("sk-old-kept", relaunched.ApiKeyInput(ProviderKind.Deepseek));
         });
     }
 

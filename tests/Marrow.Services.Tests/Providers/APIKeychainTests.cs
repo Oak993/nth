@@ -128,6 +128,70 @@ public sealed class APIKeychainTests
         Assert.Equal("sk-mapped-" + account, APIKeychain.Key(provider, fallback: ""));
     }
 
+    // The four deleted per-provider wrapper types' own tests (DeepSeekKeychainTests, MetaKeychainTests,
+    // ZaiKeychainTests, CommandCodeKeychainTests) carried these account-string records; B3 deletes the wrappers
+    // (:25-34), so the assertions move here, re-derived against the ProviderKind-keyed APIKeychain.
+
+    [Fact]
+    [Trait("Req", "PR-PROVAPI-005")] // Services/Providers/APIKeychain.swift:28 (was DeepSeekKeychain.swift:6)
+    public void DeepSeek_stores_its_key_under_the_account_DeepSeek_API_Key()
+    {
+        using var app = UseApp();
+        using var store = UseStore();
+
+        Assert.True(APIKeychain.SetKey("sk-deepseek-mapped", ProviderKind.Deepseek));
+
+        var held = backend.Peek(Target(DeepSeekAccount));
+        Assert.NotNull(held);
+        Assert.Equal(DeepSeekAccount, held.UserName);
+        Assert.Equal("sk-deepseek-mapped", APIKeychain.Key(ProviderKind.Deepseek, fallback: ""));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVAPI-006")] // Services/Providers/APIKeychain.swift:29 (was MetaKeychain.swift:6)
+    public void Meta_stores_its_key_under_the_account_Meta_API_Key()
+    {
+        using var app = UseApp();
+        using var store = UseStore();
+
+        Assert.True(APIKeychain.SetKey("sk-meta-mapped", ProviderKind.Meta));
+
+        var held = backend.Peek(Target(MetaAccount));
+        Assert.NotNull(held);
+        Assert.Equal(MetaAccount, held.UserName);
+        Assert.Equal("sk-meta-mapped", APIKeychain.Key(ProviderKind.Meta, fallback: ""));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVAPI-007")] // Services/Providers/APIKeychain.swift:30 (was ZaiKeychain.swift:6)
+    public void Zai_stores_its_key_under_the_account_Z_ai_API_Key()
+    {
+        using var app = UseApp();
+        using var store = UseStore();
+
+        Assert.True(APIKeychain.SetKey("sk-zai-mapped", ProviderKind.Zai));
+
+        var held = backend.Peek(Target(ZaiAccount));
+        Assert.NotNull(held);
+        Assert.Equal(ZaiAccount, held.UserName);
+        Assert.Equal("sk-zai-mapped", APIKeychain.Key(ProviderKind.Zai, fallback: ""));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-272")] // Services/Providers/APIKeychain.swift:31 (was CommandCodeKeychain.swift:8)
+    public void CommandCode_stores_its_key_under_the_account_Command_Code_API_Key()
+    {
+        using var app = UseApp();
+        using var store = UseStore();
+
+        Assert.True(APIKeychain.SetKey("sk-commandcode-mapped", ProviderKind.Commandcode));
+
+        var held = backend.Peek(Target(CommandCodeAccount));
+        Assert.NotNull(held);
+        Assert.Equal(CommandCodeAccount, held.UserName);
+        Assert.Equal("sk-commandcode-mapped", APIKeychain.Key(ProviderKind.Commandcode, fallback: ""));
+    }
+
     [Fact]
     [Trait("Req", "PR-PROVAPI-192")] // Services/Providers/APIKeychain.swift:11, :21, :26-33
     public void An_unmapped_provider_reads_the_fallback_without_touching_the_store()
@@ -170,6 +234,8 @@ public sealed class APIKeychainTests
 
         Assert.Null(backend.Peek(Target(DeepSeekAccount)));
         Assert.Empty(backend.TargetNames);
+        Assert.Contains("delete " + Target(DeepSeekAccount), backend.Operations);
+        Assert.DoesNotContain(backend.Operations, op => op.StartsWith("write ", StringComparison.Ordinal));
         Assert.Equal("sk-fallback", APIKeychain.Key(ProviderKind.Deepseek, fallback: "sk-fallback"));
     }
 
@@ -184,6 +250,7 @@ public sealed class APIKeychainTests
         Assert.True(APIKeychain.SetKey("", ProviderKind.Meta));
 
         Assert.Empty(backend.TargetNames);
+        Assert.Contains("delete " + Target(MetaAccount), backend.Operations);
         Assert.DoesNotContain(backend.Operations, op => op.StartsWith("write ", StringComparison.Ordinal));
     }
 
@@ -220,6 +287,7 @@ public sealed class APIKeychainTests
         Assert.Equal(new byte[] { 0x73, 0x6B, 0x2D, 0x63, 0x61, 0x66, 0xC3, 0xA9, 0x2D, 0x37 }, held.Blob);
         Assert.Equal(1, held.Type);
         Assert.Equal(2, held.Persist);
+        Assert.Empty(held.Attributes);
         Assert.Equal([Target(DeepSeekAccount)], backend.TargetNames);
     }
 
@@ -237,7 +305,7 @@ public sealed class APIKeychainTests
         var target = Target(MetaAccount);
         // B3 (PR-PROVAPI-003): SecItemUpdate first, no SecItemDelete; B2 deleted then re-added.
         Assert.DoesNotContain(backend.Operations, op => op == "delete " + target);
-        Assert.Contains("write " + target, backend.Operations);
+        Assert.Single(backend.Operations, op => op == "write " + target);
         Assert.Equal("sk-new-8", APIKeychain.Key(ProviderKind.Meta, fallback: "sk-fallback"));
     }
 
