@@ -22,6 +22,7 @@ using Avalonia.VisualTree;
 using Avalonia.Controls.Presenters;
 using Marrow.Services.Port;
 using Marrow.UI.Common;
+using Avalonia.Automation.Provider;
 
 namespace Marrow.App.Tests.Views.Settings;
 
@@ -54,6 +55,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
             using var actor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
             using var wallpaper = WallpaperStore.Shared.Override((WallpaperStore)Activator.CreateInstance(typeof(WallpaperStore), nonPublic: true)!);
             using var frames = FrameClock.Source.Override(new ManualFrameSource());
+            using var updates = UpdateChecker.OverrideShared(new UpdateChecker(AppInfo.Current, [], ""));
             beforeModel?.Invoke(h);
                 var model = new AppModel();
                 seed?.Invoke(model);
@@ -82,10 +84,110 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     }
 
     // STOP App.Views.Settings.SettingsView #6
-    // Kind: dependency / adaptation. Swift: SettingsView.swift:705,735. Records: UI-PROVAPI-005, UI-PROVREG-009.
+    // Kind: dependency / adaptation. Swift: SettingsView.swift:705,735. Records: UI-PROVAPI-005, UI-PROVREG-038, UI-PROVREG-041.
     // Missing: the shared plain-field primitive does not implement the native roundedBorder style.
     // Needed: a Windows rounded-border field form with its platform styling defined. Masking is implemented
     // locally; guessed border radii, padding and colours are not substituted for an OS-defined source style.
+    // STOP App.Views.Settings.SettingsView #7
+    // Kind: dependency. Swift: SettingsView.swift:647; ModelsSettingsPage.swift:436. Records: UI-PROVREG-045 (motion only).
+    // Missing: CollapsibleProviderHeader assigns a RotateTransform immediately, not an animated rotation.
+    // Needed: the ModelsSettingsPage unit to animate its shared header's chevron. Do not change another unit.
+
+    [Fact]
+    [Trait("Req", "UI-PROVREG-009")] // App/Views/Settings/SettingsView.swift:677,690,720,731,739,748
+    [Trait("Req", "UI-PROVREG-037")] // App/Views/Settings/SettingsView.swift:689-696
+    [Trait("Req", "UI-PROVREG-038")] // App/Views/Settings/SettingsView.swift:697-707
+    [Trait("Req", "UI-PROVREG-039")] // App/Views/Settings/SettingsView.swift:708-717
+    [Trait("Req", "UI-PROVREG-040")] // App/Views/Settings/SettingsView.swift:719-728
+    [Trait("Req", "UI-PROVREG-041")] // App/Views/Settings/SettingsView.swift:730-737,780-783
+    [Trait("Req", "UI-PROVREG-042")] // App/Views/Settings/SettingsView.swift:738-746
+    public void All_provider_cards_apply_the_exact_key_binary_and_install_row_gates_and_divider_insets()
+    {
+        foreach (var provider in SwiftEnum<ProviderKind>.AllCases) WithView(() => new ProviderSettingsSection(provider, Binding<bool>.Constant(true)), (view, _, _) =>
+        {
+            var titles = Nodes<ChromeRow>(view).Select(row => Text(row).First()).ToArray();
+            Assert.Equal(provider.AcceptsAPIKey, titles.Contains(provider.IsAPIKeyBased ? "API key" : "API key (optional)")); Assert.Equal(!provider.IsAPIKeyBased, titles.Contains("Binary path")); Assert.Equal(provider.IsAPIKeyBased, titles.Contains("Get a key")); Assert.Equal(!provider.IsAPIKeyBased, titles.Contains("Install"));
+            Assert.Equal(titles.Length, Nodes<ChromeRowDivider>(view).Length);
+            foreach (var divider in Nodes<ChromeRowDivider>(view)) Assert.Equal(new Thickness(16, 0, 0, 0), divider.Margin);
+            foreach (var field in Nodes<TextBox>(view)) { Assert.Equal(200, field.Width); Assert.Equal(12, field.FontSize); Assert.Equal(SwiftFont.System(12, design: SwiftFont.Design.Monospaced).Resolve().FontFamily, field.FontFamily); }
+            if (!provider.IsAPIKeyBased) { Assert.Equal(provider.ExecutableName, Nodes<TextBox>(Row(view, "Binary path")).Single().PlaceholderText); Assert.Contains(provider.DisplayName + " was not found on your PATH.", Text(Row(view, "Install"))); }
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "UI-PROVREG-010")] // App/Views/Settings/SettingsView.swift:629-634,676-688,772-779
+    public void Unknown_auth_still_shows_usage_for_an_installed_provider_but_signed_out_hides_it() => WithView(() => new ProviderSettingsSection(ProviderKind.Zai, Binding<bool>.Constant(true)), (view, model, _) =>
+    {
+        Seed(model, ProviderKind.Zai, new ProviderStatus { ApiKeyConfigured = true, ProviderStatusAuth = new ProviderStatus.Auth.Unknown() }); Sync(); Assert.Single(Nodes<Marrow.App.Views.Usage.PlanLimitsView>(view)); Assert.Empty(Nodes<Marrow.App.Views.Usage.CreditsView>(view));
+        Seed(model, ProviderKind.Zai, model.Providers.Status(ProviderKind.Zai) with { ProviderStatusAuth = new ProviderStatus.Auth.SignedOut() }); Sync(); Assert.Empty(Nodes<Marrow.App.Views.Usage.PlanLimitsView>(view));
+    });
+
+    [Fact]
+    [Trait("Req", "UI-PROVREG-043")] // App/Views/Settings/SettingsView.swift:636-642,747-757
+    [Trait("Req", "UI-PROVREG-044")] // App/Views/Settings/SettingsView.swift:750-755
+    [Trait("Req", "UI-PROVREG-045")] // App/Views/Settings/SettingsView.swift:647; App/Views/Settings/ModelsSettingsPage.swift:423-446
+    public void CLI_sign_in_is_hidden_during_check_and_disclosure_keeps_accessibility_labels_and_final_rotation() => WithView(() => new ProviderSettingsSection(ProviderKind.Commandcode, Binding<bool>.Constant(true)), (view, model, _) =>
+    {
+        var header = Assert.Single(Nodes<CollapsibleProviderHeader>(view)); var disclosure = Assert.Single(Nodes<Button>(header)); Assert.Equal(22, disclosure.Height); Assert.Equal("Hide the provider settings", ToolTip.GetTip(disclosure)); Assert.Equal("Expanded", AutomationProperties.GetItemStatus(disclosure)); Assert.Equal("Shows or hides the provider settings", AutomationProperties.GetHelpText(disclosure)); Assert.Equal("Command Code", AutomationProperties.GetName(disclosure));
+        Seed(model, ProviderKind.Commandcode, new ProviderStatus { Executable = SwiftURL.FileURLWithPath("/fixture/command-code"), ProviderStatusAuth = new ProviderStatus.Auth.SignedOut(), IsChecking = true }); Sync(); Assert.DoesNotContain("Sign in", Text(view)); Assert.DoesNotContain("Install", Text(view));
+        Seed(model, ProviderKind.Commandcode, model.Providers.Status(ProviderKind.Commandcode) with { IsChecking = false }); Sync(); var login = Row(view, "Sign in"); Assert.Contains("Click here to login again.", Text(login)); Assert.Equal(16, Nodes<TextBlock>(Button(login, "Login")).Single().Height); Assert.True(Button(login, "Login").IsEffectivelyEnabled);
+        // STOP #2: do not invoke the unported terminal launcher.
+        Seed(model, ProviderKind.Commandcode, model.Providers.Status(ProviderKind.Commandcode) with { ProviderStatusAuth = new ProviderStatus.Auth.SignedIn(null) }); Sync(); Assert.DoesNotContain("Sign in", Text(view));
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SETTINGS-002")] // App/Views/Settings/SettingsView.swift:138-140
+    [Trait("Req", "UI-SETTINGS-003")] // App/Views/Settings/SettingsView.swift:141-145
+    [Trait("Req", "UI-SETTINGS-004")] // App/Views/Settings/SettingsView.swift:148-164,179-182
+    [Trait("Req", "UI-SETTINGS-006")] // App/Views/Settings/SettingsView.swift:166-177
+    [Trait("Req", "UI-SETTINGS-007")] // App/Views/Settings/SettingsView.swift:198-204
+    public void Sidebar_search_and_no_results_keep_source_insets_fonts_and_empty_archive_replaces_all_chrome() => WithSettings((view, _, _) =>
+    {
+        var search = Assert.Single(Nodes<SidebarSearchField>(view)); Assert.Equal(new Thickness(10, 14, 10, 0), search.Margin); var field = Assert.Single(Nodes<TextBox>(search)); Assert.Equal("Search", field.PlaceholderText); Assert.Equal(13, field.FontSize);
+        var rows = Field<StackPanel>(view, "rows"); Assert.Equal(new Thickness(10, 12, 10, 8), rows.Margin); Assert.Equal(1, rows.Spacing); Assert.Equal(10, Nodes<SidebarRow>(view).Length);
+        var empty = Field<Control>(view, "detail"); Assert.Empty(Nodes<ScrollViewer>(empty)); Assert.Empty(Nodes<ChromeCompactTitle>(empty)); Assert.Empty(Nodes<ArchiveDeleteAllButton>(empty)); Assert.Equal(SwiftFont.System(44, SwiftFont.Weight.Light), SwiftImage.GetFont(Nodes<SwiftImage>(empty).Single()));
+        field.Text = "no-such-settings-page"; Sync(); Assert.Empty(Nodes<SidebarRow>(view)); var heading = Nodes<TextBlock>(rows).Single(text => text.Text == "No results"); Assert.Equal(13, heading.FontSize); Assert.Equal(Avalonia.Media.FontWeight.SemiBold, heading.FontWeight); var note = Nodes<TextBlock>(rows).Single(text => text.Text == "Try a setting or a provider name."); Assert.Equal(11, note.FontSize);
+        var block = Assert.Single(Nodes<StackPanel>(rows), panel => panel.Spacing == 6); Assert.Equal(new Thickness(8, 14, 8, 0), block.Margin);
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SETTINGS-005")] // App/Views/Settings/SettingsView.swift:159-163; App/Views/Settings/AboutUpdateViews.swift:527-535
+    public void About_update_dot_is_conditionally_attached_to_the_icon_with_the_source_circle_and_offset() => WithSettings((view, _, _) =>
+    {
+        Assert.Empty(Nodes<UpdateAvailableDot>(view)); var checker = UpdateChecker.Shared; typeof(UpdateChecker).GetProperty("Update")!.SetValue(checker, new AvailableUpdate { Version = "999.0.0", Tag = "v999.0.0", DownloadURL = SwiftURL.Create("https://fixture.invalid/download")!, PageURL = SwiftURL.Create("https://fixture.invalid/release")!, Notes = "" }); Sync();
+        var dot = Assert.Single(Nodes<UpdateAvailableDot>(view)); var circle = Assert.IsType<Avalonia.Controls.Shapes.Ellipse>(dot.Child); Assert.Equal(7, circle.Width); Assert.Equal(7, circle.Height); var offset = Assert.IsType<Avalonia.Media.TranslateTransform>(circle.RenderTransform); Assert.Equal(2.5, offset.X); Assert.Equal(-2.5, offset.Y);
+        typeof(UpdateChecker).GetProperty("Update")!.SetValue(checker, null); Sync(); Assert.Empty(Nodes<UpdateAvailableDot>(view));
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SETTINGS-008")] // App/Views/Settings/SettingsView.swift:246-267
+    [Trait("Req", "UI-SETTINGS-009")] // App/Views/Settings/SettingsView.swift:248-250
+    public void Sticky_title_fills_width_left_by_search_and_fades_with_geometry_without_taking_hits() => WithSettings((view, _, _) =>
+    {
+        SettingsNavigation.Shared.RequestedPage = SettingsPage.Models; Sync(); var chrome = Nodes<StackPanel>(view).Single(stack => stack.MinHeight == 32); var title = Assert.Single(Nodes<ChromeCompactTitle>(view)); var search = Assert.Single(Nodes<ChromeSearchField>(view));
+        var window = Assert.IsType<Avalonia.Controls.Window>(TopLevel.GetTopLevel(view)); Drain(window); Assert.Equal(chrome.Bounds.Width - search.DesiredSize.Width - 10, title.Bounds.Width, 1); Assert.False(title.IsHitTestVisible);
+        Assert.Equal(200, search.Bounds.Width); var input = Nodes<TextBox>(search).Single(); Assert.Equal("Search models", input.PlaceholderText); Assert.Equal(12.5, input.FontSize);
+        Field<ChromeScrollModel>(view, "scrollChrome").Update(44); Sync(); Assert.Equal(1, title.Opacity); Assert.Equal(AccessibilityView.Content, AutomationProperties.GetAccessibilityView(title));
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SETTINGS-011")] // App/Views/Settings/SettingsView.swift:566-580
+    [Trait("Req", "UI-SETTINGS-012")] // App/Views/Settings/SettingsView.swift:296-305
+    public void Refresh_symbol_uses_chrome_font_and_small_switch_exposes_keyboard_and_toggle_automation()
+    {
+        WithView(() => new ProvidersRefreshButton(), (view, _, _) => { var symbol = Nodes<SwiftImage>(view).Single(image => image.SymbolName == "arrow.clockwise"); Assert.Equal(SwiftFont.System(SwiftFont.TextStyle.Callout, weight: SwiftFont.Weight.Semibold), SwiftImage.GetFont(symbol)); Assert.Empty(Nodes<TextBlock>(view)); });
+        var value = false; WithView(() => new SettingsSwitch(new Binding<bool>(() => value, on => value = on)), (view, _, _) => { var toggle = Assert.Single(Nodes<SmallSwitch>(view)); var peer = Avalonia.Automation.Peers.ControlAutomationPeer.CreatePeerForElement(toggle); var provider = Assert.IsAssignableFrom<Avalonia.Automation.Provider.IToggleProvider>(peer); Assert.Equal(ToggleState.Off, provider.ToggleState); provider.Toggle(); Assert.True(value); Assert.Equal(ToggleState.On, provider.ToggleState); toggle.IsEnabled = false; provider.Toggle(); Assert.True(value); });
+    }
+
+    [Fact]
+    [Trait("Req", "UI-SETTINGS-013")] // App/Views/Settings/SettingsView.swift:323-325
+    [Trait("Req", "UI-SETTINGS-014")] // App/Views/Settings/SettingsView.swift:327-331
+    public void Permission_menu_and_workspace_tiles_keep_the_source_options_symbols_and_dimensions() => WithView(() => new GeneralSettingsPage(), (view, model, _) =>
+    {
+        var presenter = new RecordingPresenter(); using var presentation = Presentation.Presenter.Override(presenter); var permissions = Row(view, "Permissions"); Click(Assert.Single(Nodes<Button>(permissions))); Sync(); var menu = Opened(presenter.Calls.Last(x => x.Presented).Popup); Assert.Equal(new[] { "Supervised", "Auto-accept edits", "Auto", "Full access" }, Nodes<PopoverItem>(menu).Select(item => Text(item).First())); Click(Button(menu, "Full access")); Sync(); Assert.Equal(RuntimeMode.FullAccess, model.Settings.DefaultRuntimeMode); Assert.Contains("Runs commands and edits without asking", Text(Row(view, "Permissions")));
+        var workspace = Row(view, "Workspace"); Assert.Equal(new[] { "Local", "New worktree" }, Nodes<ChromeVisualTile>(workspace).Select(tile => Text(tile).Single())); foreach (var tile in Nodes<ChromeVisualTile>(workspace)) { var stage = Nodes<Border>(tile).Single(border => border.Width == 76 && border.Height == 48); Assert.Equal(76, stage.Width); Assert.Equal(48, stage.Height); Assert.Equal(11, Nodes<TextBlock>(tile).Single().FontSize); }
+        Assert.Equal(new[] { "folder", "arrow.triangle.branch" }, Nodes<SwiftImage>(workspace).Select(image => image.SymbolName));
+    });
 
     [Theory]
     [InlineData(ProviderKind.Deepseek, "platform.deepseek.com", "api.deepseek.com", "https://platform.deepseek.com/api_keys")]
