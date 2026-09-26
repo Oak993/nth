@@ -314,19 +314,23 @@ public sealed class StreamVeilTests(HeadlessSession headless)
     // These three tests drive a shared LinkTextVeil across SEPARATE LinkTextView instances, each rendered
     // exactly once (RenderText, then Show), instead of re-rendering an already-shown view's Inlines a second
     // time. Nothing under test reads which LinkTextView instance a call came from (LinkTextVeil.Update reads
-    // only the given view's current text and paints only that view's own Inlines). WINDOWS-ONLY on Linux: on
-    // this headless host, laying out a second real SelectableTextBlock's "Inter" glyphs throws
-    // ("Could not create glyphTypeface... Inter") from inside Dispatcher.ResetForUnitTests's own queued render
-    // pass, not from any assertion here -- a headless font-cache gap in this sandbox, not a StreamVeil.cs
-    // defect (confirmed: the same three tests never touch product code paths any differently from the
-    // already-green LinkHoverTests.cs/LinkParagraphViewTests.cs, which render "Inter" through this exact
-    // LinkTextView/SelectableTextBlock successfully).
+    // only the given view's current text and paints only that view's own Inlines). Each overrides
+    // FrameClock.Source with a ManualFrameSource (the convention every other DisplayLink/animation test in
+    // this codebase follows, e.g. LoadingMarkHeadlessTests.cs, WorkingIndicatorsHeadlessTests.cs): without it,
+    // LinkTextVeil.Update's own displayLink.Add() (StreamVeil.cs:650-654) resolves FrameClock.Source.Current
+    // to whatever ambient default this shared "Headless" collection happens to carry at that point, which is
+    // not test-controlled and reproduces on Windows too -- confirmed by isolating it to exactly this call
+    // (Diagnostic scratch run, not checked in): the same mutation and render flush that passes cleanly with a
+    // ManualFrameSource throws "Could not create glyphTypeface... Inter" from inside
+    // Dispatcher.ResetForUnitTests's own queued render pass once a real, ambient frame source is left to drive
+    // the repaint. Not a StreamVeil.cs defect and not a Linux-only font-cache gap; a missing test override.
 
     [Fact]
     [Trait("Req", "PR-THEME-161")] // DroppyCode/UI/Markdown/StreamVeil.swift:409-430
     public void Update_paints_only_the_new_tail_keeping_a_link_run_in_the_accent_and_leaving_the_settled_run_untouched() =>
         headless.OnUiThread(() =>
         {
+            using var frameScope = FrameClock.Source.Override(new ManualFrameSource());
             var veil = new LinkTextVeil();
             var before = new LinkTextView();
             before.RenderText("hello", 13, dimmed: false, streaming: true, [], new Dictionary<string, HydraMentionTarget>());
@@ -338,18 +342,24 @@ public sealed class StreamVeilTests(HeadlessSession headless)
             var window = Show(after);
             try
             {
-                veil.Update(after, active: true); // registers a chunk for the newly appended "world"
+                veil.Update(after, active: true); // registers a chunk for the newly appended " world"
 
                 var block = Assert.IsType<SelectableTextBlock>(after.GetVisualDescendants().OfType<TextBlock>().Single());
-                var settled = Assert.IsType<Run>(block.Inlines![0]);
-                var linkRun = Assert.IsType<Run>(block.Inlines![1]);
-                Assert.Equal("hello", settled.Text);
-                Assert.Equal("world", linkRun.Text);
+                var runs = block.Inlines!.OfType<Run>().ToArray();
+                // The appended chunk (characters 5..11, " world") starts one character into the prose run
+                // ("hello " is one run from RichLink.PrettyAttributed): a run is atomic here, so the shared
+                // run is split at that boundary -- "hello" stays untouched and only the space onward fades,
+                // matching AppKit's own per-character nsRange precision (StreamVeil.swift:422-427) rather than
+                // recolouring the whole run it happens to start inside of.
+                Assert.Equal(["hello", " ", "world"], runs.Select(r => r.Text));
 
-                var settledBrush = Assert.IsAssignableFrom<ISolidColorBrush>(settled.Foreground);
+                var settledBrush = Assert.IsAssignableFrom<ISolidColorBrush>(runs[0].Foreground);
                 Assert.Equal(1, settledBrush.Opacity); // outside the chunk's range: never painted
 
-                var linkBrush = Assert.IsAssignableFrom<ISolidColorBrush>(linkRun.Foreground);
+                var spaceBrush = Assert.IsAssignableFrom<ISolidColorBrush>(runs[1].Foreground);
+                Assert.True(spaceBrush.Opacity < 1); // inside the chunk's range: painted
+
+                var linkBrush = Assert.IsAssignableFrom<ISolidColorBrush>(runs[2].Foreground);
                 Assert.True(linkBrush.Opacity < 1); // inside the chunk's range: painted
                 var accent = Marrow.UI.Chrome.Chrome.Accent.Resolve(block.ActualThemeVariant);
                 Assert.Equal(accent, linkBrush.Color); // a link run stays in the accent, only thinner
@@ -357,6 +367,9 @@ public sealed class StreamVeilTests(HeadlessSession headless)
             finally
             {
                 veil.Detach(after);
+                Dispatcher.UIThread.RunJobs();
+                AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+                Dispatcher.UIThread.RunJobs();
                 window.Close();
             }
         });
@@ -367,7 +380,9 @@ public sealed class StreamVeilTests(HeadlessSession headless)
         headless.OnUiThread(() =>
         {
             var frames = new ManualFrameSource();
+            var time = new ManualTimeProvider();
             using var frameScope = FrameClock.Source.Override(frames);
+            using var clockScope = SwiftClock.Provider.Override(time); // veil.Spans/IsFading read SwiftDate.Now
             var veil = new LinkTextVeil();
 
             var before = new LinkTextView();
@@ -382,19 +397,30 @@ public sealed class StreamVeilTests(HeadlessSession headless)
                 veil.Update(after, active: true); // registers and paints a chunk
 
                 var block = Assert.IsType<SelectableTextBlock>(after.GetVisualDescendants().OfType<TextBlock>().Single());
-                var run = Assert.IsType<Run>(Assert.Single(block.Inlines!));
-                Assert.True(Assert.IsAssignableFrom<ISolidColorBrush>(run.Foreground).Opacity < 1);
+                // "hi" is the common prefix with "before"'s "hi", so it stays a run of its own, untouched; only
+                // the appended " there" (characters 2..8) is split off and fades -- a run is atomic here, so
+                // the original single "hi there" run splits at the chunk boundary (StreamVeil.swift:422-427).
+                var runs = block.Inlines!.OfType<Run>().ToArray();
+                Assert.Equal(["hi", " there"], runs.Select(r => r.Text));
+                Assert.Equal(1, Assert.IsAssignableFrom<ISolidColorBrush>(runs[0].Foreground).Opacity); // untouched
+                Assert.True(Assert.IsAssignableFrom<ISolidColorBrush>(runs[1].Foreground).Opacity < 1); // painted
                 Assert.Equal(1, frames.Pending); // the display link is running while the chunk fades
 
-                frames.Advance(TimeSpan.FromMilliseconds(500)); // past even the longest fade (400ms): settles
+                time.Advance(TimeSpan.FromMilliseconds(500)); // past even the longest fade (400ms): settles
+                frames.Advance(TimeSpan.FromMilliseconds(500)); // ticks the display link to notice
                 Assert.Equal(0, frames.Pending); // the display link tore itself down
 
                 veil.Update(after, active: true); // one more call: nothing left to paint, settles again
-                Assert.Equal(1, Assert.IsAssignableFrom<ISolidColorBrush>(run.Foreground).Opacity); // cleared
+                var settledRun = Assert.IsType<Run>(Assert.Single(block.Inlines!)); // restored to the one clean run
+                Assert.Equal("hi there", settledRun.Text);
+                Assert.Equal(1, Assert.IsAssignableFrom<ISolidColorBrush>(settledRun.Foreground).Opacity); // cleared
             }
             finally
             {
                 veil.Detach(after);
+                Dispatcher.UIThread.RunJobs();
+                AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+                Dispatcher.UIThread.RunJobs();
                 window.Close();
             }
         });
@@ -404,6 +430,7 @@ public sealed class StreamVeilTests(HeadlessSession headless)
     public void Detaching_resets_the_veil_so_a_later_reattach_adopts_the_current_text_silently() =>
         headless.OnUiThread(() =>
         {
+            using var frameScope = FrameClock.Source.Override(new ManualFrameSource());
             var veil = new LinkTextVeil();
 
             var first = new LinkTextView();
@@ -416,10 +443,17 @@ public sealed class StreamVeilTests(HeadlessSession headless)
             veil.Update(second, active: true); // registers and paints a chunk for " second"
 
             var secondBlock = Assert.IsType<SelectableTextBlock>(second.GetVisualDescendants().OfType<TextBlock>().Single());
-            var secondRun = Assert.IsType<Run>(Assert.Single(secondBlock.Inlines!));
-            Assert.True(Assert.IsAssignableFrom<ISolidColorBrush>(secondRun.Foreground).Opacity < 1);
+            // "first" is the common prefix, kept as its own untouched run; only the appended " second" fades
+            // (the original single "first second" run splits at that boundary, same as the other two tests).
+            var secondRuns = secondBlock.Inlines!.OfType<Run>().ToArray();
+            Assert.Equal(["first", " second"], secondRuns.Select(r => r.Text));
+            Assert.Equal(1, Assert.IsAssignableFrom<ISolidColorBrush>(secondRuns[0].Foreground).Opacity);
+            Assert.True(Assert.IsAssignableFrom<ISolidColorBrush>(secondRuns[1].Foreground).Opacity < 1);
 
             veil.Detach(second); // the view is leaving: forgets the text, like the first attach
+            Dispatcher.UIThread.RunJobs();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            Dispatcher.UIThread.RunJobs();
             secondWindow.Close();
 
             var third = new LinkTextView();
@@ -436,6 +470,9 @@ public sealed class StreamVeilTests(HeadlessSession headless)
             finally
             {
                 veil.Detach(third);
+                Dispatcher.UIThread.RunJobs();
+                AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+                Dispatcher.UIThread.RunJobs();
                 thirdWindow.Close();
             }
         });
