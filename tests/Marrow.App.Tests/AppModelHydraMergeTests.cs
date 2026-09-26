@@ -153,8 +153,8 @@ public sealed class AppModelHydraMergeTests
         return await task;
     }
     [Fact]
-    [Trait("Req", "PR-HYDRAMERGE-039")] // AppModel+HydraMerge.swift:801-809
-    public void Hydra_branch_name_uses_a_normalized_title_slug_and_six_lowercase_hex_characters()
+    [Trait("Req", "PR-HYDRAMERGE-039")] // AppModel+HydraMerge.swift:874-882 (B3)
+    public void Hydra_branch_name_uses_a_normalized_title_slug_and_six_lowercase_hex_characters_from_the_leads_own_id()
     {
         using var h = new AppModelHarness();
         var project = AppModelSamples.Project("Project", @"C:\repo");
@@ -169,12 +169,16 @@ public sealed class AppModelHydraMergeTests
         foreach (var (title, expectedSlug) in cases)
         {
             var lead = AppModelSamples.Thread(project) with { Title = title };
+            var expectedSuffix = lead.Id.ToString("D").ToLowerInvariant()[..6]; // :880
+
             var branch = InvokeHydraBranchName(lead);
 
             Assert.StartsWith("hydra/", branch, StringComparison.Ordinal);
             var suffixSeparator = branch.LastIndexOf('-');
             Assert.Equal(expectedSlug, branch["hydra/".Length..suffixSeparator]);
             Assert.Matches("^[0-9a-f]{6}$", branch[(suffixSeparator + 1)..]);
+            Assert.Equal(expectedSuffix, branch[(suffixSeparator + 1)..]); // suffix comes from lead.id, not a fresh id
+            Assert.Equal(branch, InvokeHydraBranchName(lead)); // same on every try for the same chat (:875-877)
         }
     }
 
