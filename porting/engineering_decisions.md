@@ -1051,3 +1051,20 @@ than a raw, unchecked string. Tests: WorkspaceTests/ShellWorkspaceTests assert a
 a scheme-less two-slash host string ("//host/share") are both refused before reaching ShellExecuteW. ENGINEERING
 DECISION; parity, not a deviation.
 
+ED-204 [WIN] Which chat-link targets are revealed instead of opened, and how (OD-0026; PA-0020, UNK-0027). SOURCE
+FACT: B3 `UI/Markdown/LinkParagraphView.swift:226-245` opens a local-file link with `NSWorkspace.shared.open(URL(fileURLWithPath:))`
+(:243), which on the Mac launches an app bundle or a `.command` file. OWNER RULING OD-0026: on Windows a local target
+of a type Windows runs directly is shown selected in File Explorer instead. DECISION: the local-file branch reveals
+rather than opens when EITHER (a) shlwapi `AssocIsDangerous(<extension>)` returns TRUE (Windows' own "potentially
+dangerous file type" test, the one its attachment handling uses, so the list follows the user's machine) OR (b) the
+extension, compared case-insensitively, is in the fixed floor list .exe .com .bat .cmd .ps1 .psm1 .vbs .vbe .js .jse
+.wsf .wsh .hta .msi .msp .mst .scr .lnk .url .cpl .pif .reg .msc .scf .inf .appref-ms (the floor holds whatever
+(a) returns on a stock Windows 11, even if a machine's registry says otherwise; .ps1 is included because a user may
+have associated it with PowerShell). A directory is not a program: it opens, as Finder opens a folder. The reveal
+uses the port's existing seam for `NSWorkspace.shared.activateFileViewerSelecting` (`src/Marrow.UI/Port/ShellWorkspace.cs:15-17`,
+`explorer.exe /select,"<path>"`). UNC targets (`\host\...`, `file://host/...`, and a drive-letter path that maps to
+a network share is NOT inspected: only the literal UNC forms are refused) are never opened or revealed from a chat
+link. Tests (lane A29): AssocIsDangerous(".exe") is TRUE and (".txt") FALSE on the test machine (pins the API
+binding); each floor extension reveals; ".txt"/".cs"/".md" open; "C:/x/a.cs:12" opens "C:/x/a.cs" when only it
+exists; a UNC link does nothing. ENGINEERING DECISION implementing OD-0026's named safety deviation.
+

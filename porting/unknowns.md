@@ -453,7 +453,8 @@ Both remain open options for the owner alone.
 
 ## UNK-0026 CLI self-update on Windows: whether `claude update` and `codex update` can run headless
 
-- **Status:** OPEN. Owner question asked 2026-09-26 (B3 decision O1, `E:/Droppy/work/b3/decisions_draft.md`;
+- **Status:** RESOLVED 2026-09-26 by OD-0025 (owner: "Test once, then match Mac (Recommended)").
+  Owner question asked 2026-09-26 (B3 decision O1, `E:/Droppy/work/b3/decisions_draft.md`;
   full source citations and options in `porting/platform_adaptations.md` PA-0018, the wording decision in
   `porting/engineering_decisions.md` ED-193).
 - **What is new at B3, in one line:** `Services/Providers/ProviderRegistry.swift:467-537` adds a background
@@ -470,7 +471,8 @@ Both remain open options for the owner alone.
 
 ## UNK-0027 Chat links on Windows: drive-letter paths, UNC paths, and what a link may launch
 
-- **Status:** OPEN. Owner question asked 2026-09-26 (B3 decision O4, `E:/Droppy/work/b3/decisions_draft.md`;
+- **Status:** RESOLVED 2026-09-26 by OD-0026 (owner: "Safe parity (Recommended)"; rule and mechanism ED-204).
+  Owner question asked 2026-09-26 (B3 decision O4, `E:/Droppy/work/b3/decisions_draft.md`;
   full source citations and options in `porting/platform_adaptations.md` PA-0020; the parity-independent opener
   hardening is already recorded as ENGINEERING in `porting/engineering_decisions.md` ED-203).
 - **What is new at B3, in one line:** `UI/Markdown/LinkParagraphView.swift:226-245` adds `MarkdownLinkOpener`,

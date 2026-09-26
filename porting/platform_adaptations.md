@@ -504,9 +504,10 @@ nor repaired until the owner rules.
 
 ## PA-0018 CLI self-update on Windows (`claude update` / `codex update`)
 
-- **Status:** IDENTIFIED. The policy itself is **UNRESOLVED pending owner decision O1**
-  (`E:/Droppy/work/b3/decisions_draft.md`, section O1); nothing below may be implemented until the
-  owner rules.
+- **Status:** DECIDED 2026-09-26 by owner ruling **OD-0025** ("Test once, then match Mac
+  (Recommended)", option 1 below): parity with B3, after one supervised trial run recorded as evidence
+  before lanes A23, A32 and A33 merge. (Was: UNRESOLVED pending owner decision O1,
+  `E:/Droppy/work/b3/decisions_draft.md` section O1.)
 - **Original (SOURCE FACT, B3 52bc792):** `Services/Providers/ProviderRegistry.swift:467-537`,
   `updateCLIIfDue`. Claude and Codex only (`updatesOwnCLI`); skipped when the user set a binary path
   by hand. Runs every 12 hours per provider, gated by the `providerCLIUpdateDates` UserDefaults key,
@@ -585,9 +586,10 @@ nor repaired until the owner rules.
 
 ## PA-0020 Local-file link opening in chat (`MarkdownLinkOpener`)
 
-- **Status:** IDENTIFIED. The safety-relevant part of the policy is **UNRESOLVED pending owner
-  decision O4** (`decisions_draft.md`, section O4); the generic-opener hardening below is ENGINEERING
-  and applies under every option.
+- **Status:** DECIDED 2026-09-26 by owner ruling **OD-0026** ("Safe parity (Recommended)", option B
+  below: Windows absolute paths take the local-file branch; UNC never opened; directly-runnable types
+  revealed in File Explorer; rule and mechanism ED-204). The generic-opener hardening below (ED-203)
+  is ENGINEERING and applies as well. (Was: UNRESOLVED pending owner decision O4.)
 - **Original (SOURCE FACT, B3 52bc792, new at B3 - R3-52):** `UI/Markdown/LinkParagraphView.swift:226-245`,
   `enum MarkdownLinkOpener { static func open(_ url: URL) }`. A URL with no scheme, host, query or
   fragment, whose path starts with `"/"`, opens as a local file: if the full path does not exist but
