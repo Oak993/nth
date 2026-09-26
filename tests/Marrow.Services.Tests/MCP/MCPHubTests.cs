@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using System.Text;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
 using Marrow.Services.MCP;
@@ -7,21 +8,31 @@ using Marrow.Testing;
 
 namespace Marrow.Services.Tests.MCP;
 
-// Tests for src/Marrow.Services/MCP/MCPHub.cs, the port of DroppyCode/Services/MCP/MCPHub.swift (B2 1fbf81e),
-// :1-558, and the records PR-MCP-177 to PR-MCP-192 and PR-MCP-225 to PR-MCP-227. Every expectation is
-// transcribed from the Swift source and the records, never from the C# implementation.
+// Tests for src/Marrow.Services/MCP/MCPHub.cs, the port of DroppyCode/Services/MCP/MCPHub.swift (B3 52bc7926),
+// :1-377, and the records PR-MCP-177 to PR-MCP-192, PR-MCP-225 to PR-MCP-227 and PR-MCP-237 (new at B3). Every
+// expectation is transcribed from the Swift source and the records, never from the C# implementation.
+//
+// Lane A15 (work/b3/lanes/A15.md) moved the stdio and HTTP transports onto MCPWire's shared pieces
+// (MCPStdioConnection, MCPWire.Post) and deleted the hub's own WaitStdio polling loop, HubConversation and
+// pipe fields; MCPWireTests.cs (lane N5) already covers MCPStdioConnection's and MCPWire.Post's own mechanics
+// end to end (id matching, buffered replies, the exit and timeout races, the stop ladder, SSE framing, the
+// notification's un-read event stream). The tests below re-derive only what is observable through MCPHub
+// itself and specific to this lane: the initialize id restarting at 1 on every relaunch (PR-MCP-237, new at
+// B3, since MCPClient.nextID no longer touches the stdio path at all), a string-typed reply id never
+// satisfying an int-keyed request (PR-MCP-186 b3_note), the literal "quit (exit N)" message reaching the
+// hub's caller, and Track/MCPLiveProcesses now carrying a StdioProcess (ED-194).
 //
 // The stdio path is exercised against a real child process, powershell.exe running
 // Fixtures/mcp-stdio-fixture.ps1 (R-TEST-10: a system binary and a scripted stand-in, never a real AI CLI).
 // The http path is exercised against tests/Marrow.Testing's LoopbackHttpServer, never the internet.
 //
-// UNTESTABLE, by design: MCPHub.tools()/call()'s own MCPPaths.claudeConfigURL resolution (:127) is not
-// exercised end to end, because MCPPaths (Services/Models/MCP.cs) still throws MARROW_STUB pending
-// Services/Store/Storage.swift (work/packets4/Services.Store.Storage, not yet built). MCPHub carries an
-// internal test seam, Seed(...), that sets the actor's private specs map directly, the same shape as
-// LoginEnvironment.Which's tested seam (Shell.cs:701); production code never calls it, only ReadSpecs()
-// (the parameterless overload, which does call MCPPaths.ClaudeConfigURL) does. ReadSpecs(string) itself, the
-// file-reading and parsing logic PR-MCP-181 actually describes, is tested directly below against real files.
+// NOT exercised end to end here, out of this lane's scope: MCPHub.tools()/call()'s own MCPPaths.claudeConfigURL
+// resolution (:127) through the real Storage.Root ambient (Services.Store.Storage is implemented now, ED-177,
+// unlike when this note was first written). MCPHub carries an internal test seam, Seed(...), that sets the
+// actor's private specs map directly, the same shape as LoginEnvironment.Which's tested seam (Shell.cs:701);
+// production code never calls it, only ReadSpecs() (the parameterless overload, which does call
+// MCPPaths.ClaudeConfigURL) does. ReadSpecs(string) itself, the file-reading and parsing logic PR-MCP-181
+// actually describes, is tested directly below against real files.
 public sealed class MCPHubTests
 {
     private static string FixtureScript([CallerFilePath] string path = "") =>
@@ -329,7 +340,7 @@ public sealed class MCPHubTests
     // ---- PR-MCP-184: a stdio client restarts once, then is permanently dead ----
 
     [Fact]
-    [Trait("Req", "PR-MCP-184")] // Services/MCP/MCPHub.swift:312-323
+    [Trait("Req", "PR-MCP-184")] // Services/MCP/MCPHub.swift:266-277 ensureStdio (B3)
     public async Task A_stdio_client_restarts_once_after_the_process_quits_then_stays_dead()
     {
         var hub = new MCPHub();
@@ -339,23 +350,47 @@ public sealed class MCPHubTests
         var first = await hub.Call("mcp__s__anything", new JSONValue.Null());
         Assert.Contains("echo:", first.Text, StringComparison.Ordinal);
 
-        // Kill the child; the next call (:314 proc.isRunning is now false) uses the one allowed restart
-        // (:316-321 didRestart) and succeeds again against a freshly launched process.
-        await Assert.ThrowsAsync<MCPHubError>(() => hub.Call("mcp__s__exit-server", new JSONValue.Null()));
+        // Kill the child; the next call (:268 connection.process.isRunning is now false) uses the one allowed
+        // restart (:269-274 didRestart) and succeeds again against a freshly launched process. PR-MCP-186's
+        // b3_note: the exit is always reported with a code by MCPStdioConnection, so the literal message is
+        // the "exit (N)" form, never the bare "The server quit." fallback (:258-259).
+        var firstExit = await Assert.ThrowsAsync<MCPHubError>(() => hub.Call("mcp__s__exit-server", new JSONValue.Null()));
+        Assert.Equal("The server quit (exit 7).", firstExit.ErrorDescription);
         var second = await hub.Call("mcp__s__anything", new JSONValue.Null());
         Assert.Contains("echo:", second.Text, StringComparison.Ordinal);
 
         // Kill it again; the restart was already spent, so ensureStdio marks the client dead and every
-        // further call fails at once with the literal message, no relaunch attempted (:317-319).
+        // further call fails at once with the literal message, no relaunch attempted (:270-273).
         await Assert.ThrowsAsync<MCPHubError>(() => hub.Call("mcp__s__exit-server", new JSONValue.Null()));
         var error = await Assert.ThrowsAsync<MCPHubError>(() => hub.Call("mcp__s__anything", new JSONValue.Null()));
         Assert.Equal("The server quit.", error.ErrorDescription);
     }
 
+    // ---- PR-MCP-237 (new at B3): a relaunched connection's ids restart at 1 ----
+
+    [Fact]
+    [Trait("Req", "PR-MCP-237")] // Services/MCP/MCPHub.swift:279-295; MCPWire.swift:126,164-168 (B3)
+    public async Task A_relaunched_stdio_connections_initialize_carries_id_1_again()
+    {
+        var hub = new MCPHub();
+        await hub.Seed(OneServer("s", StdioFixture()));
+
+        // First launch: initialize is id 1, so the first tools/call ("which-id") is id 2.
+        var firstId = await hub.Call("mcp__s__which-id", new JSONValue.Null());
+        Assert.Equal("id:2", firstId.Text);
+
+        // Kill the child (id 3) and use the one allowed restart. A NEW MCPStdioConnection is created, whose
+        // own counter starts at 1 again (:164-168 in MCPWire.swift): the relaunch's initialize is id 1 and
+        // its first tools/call is id 2 again, exactly like the first launch, never continuing at 4/5.
+        await Assert.ThrowsAsync<MCPHubError>(() => hub.Call("mcp__s__exit-server", new JSONValue.Null()));
+        var secondId = await hub.Call("mcp__s__which-id", new JSONValue.Null());
+        Assert.Equal("id:2", secondId.Text);
+    }
+
     // ---- PR-MCP-192, PR-MCP-185: the literal launch-failure and exit messages ----
 
     [Fact]
-    [Trait("Req", "PR-MCP-185")] // Services/MCP/MCPHub.swift:326-328
+    [Trait("Req", "PR-MCP-185")] // Services/MCP/MCPHub.swift:280-281 (B3)
     public async Task An_unresolvable_command_throws_the_isnt_installed_message()
     {
         var hub = new MCPHub();
@@ -370,7 +405,7 @@ public sealed class MCPHubTests
     // ---- PR-MCP-186: replies for other ids are kept, so two concurrent calls each get their own answer ----
 
     [Fact]
-    [Trait("Req", "PR-MCP-186")] // Services/MCP/MCPHub.swift:393-418, :169-172
+    [Trait("Req", "PR-MCP-186")] // Services/MCP/MCPHub.swift:243-264 (B3); MCPWire.swift:198-228,329-344 (B3)
     public async Task Two_concurrent_calls_on_one_server_each_receive_their_own_reply()
     {
         var hub = new MCPHub();
@@ -385,6 +420,25 @@ public sealed class MCPHubTests
         // matched which request.
         Assert.Contains("\"a\"", results[0].Text, StringComparison.Ordinal);
         Assert.Contains("\"b\"", results[1].Text, StringComparison.Ordinal);
+    }
+
+    // ---- PR-MCP-186 b3_note: a string-typed reply id no longer matches an int-keyed request ----
+
+    [Fact]
+    [Trait("Req", "PR-MCP-186")] // MCPWire.swift:219-228,334 RPCID.Create/Handle distinguish String from Int (B3)
+    public async Task A_reply_whose_id_is_a_JSON_string_never_satisfies_the_waiting_request()
+    {
+        var hub = new MCPHub();
+        await hub.Seed(OneServer("s", StdioFixture()));
+
+        // The fixture answers this request twice for the same id: first with the digits as a JSON string
+        // (which RPCID.Create parses as RPCID.String, never equal to the RPCID.Int the request is keyed
+        // under), then, after a short delay, with the real numeric-id reply. If the string-id reply had
+        // wrongly satisfied the wait, the result would be "WRONG-STRING-ID" instead of the echoed arguments.
+        var result = await hub.Call("mcp__s__string-id-then-real", Json("k", "real"));
+
+        Assert.Contains("\"real\"", result.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("WRONG-STRING-ID", result.Text, StringComparison.Ordinal);
     }
 
     // ---- PR-MCP-187, PR-MCP-188, PR-MCP-189, PR-MCP-225, PR-MCP-226: the http transport ----
@@ -498,7 +552,7 @@ public sealed class MCPHubTests
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-188")] // Services/MCP/MCPHub.swift:474-476
+    [Trait("Req", "PR-MCP-188")] // Services/MCP/MCPWire.swift:85-101 (B3), reached through MCPHub.post (:343-352)
     public async Task Http_client_reads_the_first_usable_SSE_message()
     {
         await using var server = new LoopbackHttpServer();
@@ -515,7 +569,10 @@ public sealed class MCPHubTests
             await notified.Respond(202, "Accepted", []);
 
             var call = await server.NextExchange();
-            var reply = "data: {\"jsonrpc\":\"2.0\",\"id\":3,\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"sse-ok\"}]}}\n\n"u8.ToArray();
+            // The real call's own id is 2: initialize consumed 1 and the notification consumes none (it posts
+            // with id: nil), so the next request nextID hands out is 2, not 3 (PR-MCP-237's http-side sibling:
+            // MCPHub.swift:315-316,333-334 is the only place nextID still counts, unchanged by this lane).
+            var reply = "data: {\"jsonrpc\":\"2.0\",\"id\":2,\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"sse-ok\"}]}}\n\n"u8.ToArray();
             await call.Respond(200, "OK", reply, ("Content-Type", "text/event-stream"));
         });
 
@@ -523,6 +580,76 @@ public sealed class MCPHubTests
 
         await serverTask;
         Assert.Equal("sse-ok", result.Text);
+    }
+
+    // ---- PR-MCP-188: SSE replies are matched by id, so a frame for another id in the stream is skipped ----
+
+    [Fact]
+    [Trait("Req", "PR-MCP-188")] // Services/MCP/MCPWire.swift:93-101 (B3): the loop skips a frame whose id mismatches
+    public async Task Http_client_skips_an_SSE_frame_for_another_id_and_returns_the_matching_one()
+    {
+        await using var server = new LoopbackHttpServer();
+        var hub = new MCPHub();
+        await hub.Seed(OneServer("s", new MCPServerSpec.Http(server.Url("/mcp").ToString(), ValueMap<string, string>.Empty)));
+
+        var serverTask = Task.Run(async () =>
+        {
+            var init = await server.NextExchange();
+            var sse = "data: {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{}}\n\n"u8.ToArray();
+            await init.Respond(200, "OK", sse, ("Content-Type", "text/event-stream"));
+
+            var notified = await server.NextExchange();
+            await notified.Respond(202, "Accepted", []);
+
+            var call = await server.NextExchange();
+            // The real call's own id is 2 (see the sibling test above). A decoy frame for a foreign id (99, no
+            // request of ours ever carries it) precedes it: MCPWire.Post's line loop must skip the decoy rather
+            // than returning it or stopping at it.
+            var replyBytes = Encoding.UTF8.GetBytes(
+                "data: {\"jsonrpc\":\"2.0\",\"id\":99,\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"decoy\"}]}}\n\n" +
+                "data: {\"jsonrpc\":\"2.0\",\"id\":2,\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"real\"}]}}\n\n");
+            await call.Respond(200, "OK", replyBytes, ("Content-Type", "text/event-stream"));
+        });
+
+        var result = await hub.Call("mcp__s__anything", new JSONValue.Null());
+
+        await serverTask;
+        Assert.Equal("real", result.Text);
+    }
+
+    // ---- PR-MCP-188 (OD-0022 note): a notification post never reads a stream the server holds open ----
+
+    [Fact]
+    [Trait("Req", "PR-MCP-188")] // Services/MCP/MCPWire.swift:92 (B3): "guard let id else { return ... }" - no read
+    public async Task Http_client_does_not_hang_when_the_notification_reply_is_a_held_open_event_stream()
+    {
+        await using var server = new LoopbackHttpServer();
+        var hub = new MCPHub();
+        await hub.Seed(OneServer("s", new MCPServerSpec.Http(server.Url("/mcp").ToString(), ValueMap<string, string>.Empty)));
+
+        var serverTask = Task.Run(async () =>
+        {
+            var init = await server.NextExchange();
+            await init.Respond(200, "OK", """{"jsonrpc":"2.0","id":1,"result":{}}"""u8.ToArray(),
+                ("Content-Type", "application/json"));
+
+            // The notification's reply announces an event stream and never sends a terminating chunk: a
+            // caller that tried to read this body (the way a normal request's SSE reply is read) would hang
+            // forever. MCPWire.Post's notification branch (id is null) must release the stream instead.
+            var notified = await server.NextExchange();
+            await notified.WriteChunkedHead(200, "OK", ("Content-Type", "text/event-stream"));
+            // Deliberately never call EndChunks/Finish: the stream stays open until the test disposes the server.
+
+            var call = await server.NextExchange();
+            await call.Respond(200, "OK",
+                """{"jsonrpc":"2.0","id":3,"result":{"content":[{"type":"text","text":"ok"}]}}"""u8.ToArray(),
+                ("Content-Type", "application/json"));
+        });
+
+        var result = await hub.Call("mcp__s__anything", new JSONValue.Null()).WaitAsync(LoopbackHttpServer.Guard);
+
+        await serverTask.WaitAsync(LoopbackHttpServer.Guard);
+        Assert.Equal("ok", result.Text);
     }
 
     private static string Single(LoopbackExchange exchange, string header) => Assert.Single(exchange.HeaderValues(header));
@@ -563,14 +690,30 @@ public sealed class MCPHubTests
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-191")] // Services/MCP/MCPHub.swift:26, :30
-    public void Track_and_TerminateAll_delegate_to_the_shared_live_process_list()
+    [Trait("Req", "PR-MCP-191")] // Services/MCP/MCPHub.swift:26, :30 (B3: Track now takes a StdioProcess, ED-194)
+    public async Task Track_and_TerminateAll_delegate_to_the_shared_live_process_list()
     {
-        var process = new FakeProcessControl("tracked");
+        // PORT-ONLY (ED-194): Track's own parameter type changed from IProcessControl to StdioProcess, so this
+        // coverage moves from a FakeProcessControl to a real child (R-TEST-10: powershell.exe, never a real AI
+        // CLI) that only exits when told to. MCPLiveProcesses' own pruning/termination-order logic is still
+        // covered directly above against FakeProcessControl, decoupled from any StdioProcess.
+        var process = new StdioProcess(ACPSessionFixtures.PowerShell,
+            ACPSessionFixtures.PowerShellEncoded("$i=[Console]::In; while(($l=$i.ReadLine()) -ne $null){}"),
+            LoginEnvironment.HomeDirectory, LoginEnvironment.Current);
+        process.Start();
+        try
+        {
+            MCPHub.Track(process);
 
-        MCPHub.Track(process);
-        MCPHub.TerminateAll();
+            MCPHub.TerminateAll();
 
-        Assert.Contains("terminate", process.Calls);
+            var status = await process.WaitForExit().WaitAsync(TimeSpan.FromSeconds(30));
+            Assert.False(process.IsRunning);
+            _ = status;
+        }
+        finally
+        {
+            if (process.IsRunning) process.Terminate();
+        }
     }
 }
