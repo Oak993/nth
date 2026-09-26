@@ -1,9 +1,25 @@
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
 using Marrow.Services.Models;
 
-// Source: DroppyCode/Services/MCP/MCPHub.swift (B2 1fbf81e), :1-558.
+// Test-only seam (InternalsVisibleTo, this lane): App.AppDelegate's quit-order tests (tests/Marrow.App.Tests/
+// AppDelegateTests.cs, a different assembly, predates this lane) inject deterministic IProcessControl doubles
+// (RecordingServerProcess) into MCPHub's live-process list to assert exact termination call order without
+// spinning up real child processes (R-TEST-5/R-TEST-10). ED-194 narrowed the PUBLIC Track(StdioProcess) to
+// match the B3 Swift signature, so those doubles now go through the internal Track(IProcessControl) overload
+// below instead. Marrow.Services.Tests already had this access (MetaAPI.cs, PlanLimits.cs, WorkingTreeWatch.cs).
+[assembly: InternalsVisibleTo("Marrow.App.Tests")]
+
+// Source: DroppyCode/Services/MCP/MCPHub.swift (B3 52bc7926), :1-377. Lane A15 (B3_PLAN.md row A15, depends on
+// N5/Services.MCP.MCPWire and A2/Core.Support.StdioProcess): the hub's stdio and HTTP transports move onto
+// MCPWire's shared pieces (MCPStdioConnection, MCPWire.Post/Request/Notification/InitializeParams/ErrorMessage/
+// ListTools). B2's own copies of those helpers, WaitStdio's 10 ms polling loop, HubConversation and the raw
+// Process/Pipe fields are deleted (:377-400, :531-561, :657-693, :605-645 at the B2 baseline; see
+// work/b3/lanes/A15.md's 1.6.2 -> 1.7.0 diff). ED-194 (B3 amendment of ED-047 (b)/ED-126): StdioProcess (A2)
+// spawns every child inside a Job Object with no limits, so MCPLiveProcesses can KillTree() it at quit; Track
+// now takes the StdioProcess itself and reaches that handle through its port-only ProcessControl property.
 
 namespace Marrow.Services.MCP;
 
@@ -44,12 +60,20 @@ public sealed class MCPHub : Actor
     // :19
     public static readonly MCPHub Shared = new();
 
-    // :21-24. Every server process started this run, so the app can end them as it quits: a Process child
-    // outlives its parent, and an npx server left behind would keep running until the machine restarts.
+    // :21-24. Every server process started this run, so the app can end them as it quits: a child outlives its
+    // parent, and an npx server left behind would keep running until the machine restarts.
     private static readonly MCPLiveProcesses liveProcesses = new();
 
-    // :26
-    public static void Track(IProcessControl process) => liveProcesses.Add(process);
+    // :26. PORT-ONLY signature (ED-194): the Swift member takes the StdioProcess (formerly Process) directly;
+    // this port reaches MCPLiveProcesses through StdioProcess.ProcessControl, the Job-Object-backed handle A2
+    // exposes for exactly this caller. MCPLiveProcesses itself is unchanged (IProcessControl, R-PROC-1..3).
+    public static void Track(StdioProcess process) => liveProcesses.Add(process.ProcessControl);
+
+    // Test-only seam (InternalsVisibleTo Marrow.Services.Tests and, this lane, Marrow.App.Tests): the same
+    // shape as B2's Track(IProcessControl), for a caller that wants a deterministic double (FakeProcessControl,
+    // AppDelegateTests' RecordingServerProcess) in the live-process list without launching a real child.
+    // Production code never calls this overload, only the StdioProcess one above.
+    internal static void Track(IProcessControl process) => liveProcesses.Add(process);
 
     // :28-30. Ends every running server at once. Called from the app-quit path, where nothing asynchronous
     // would get to run.
@@ -237,7 +261,7 @@ internal abstract record MCPServerSpec
     public sealed record Http(string Url, ValueMap<string, string> Headers) : MCPServerSpec;
 }
 
-// :157-493
+// :157-353
 internal sealed class MCPClient : Actor
 {
     // :158
@@ -246,89 +270,58 @@ internal sealed class MCPClient : Actor
     // :159
     private readonly MCPServerSpec spec;
 
-    private ProcessLauncher? process;
-    private HubConversation? conversation;
-    private ProcessPipe? stdinHandle;
+    // :161. Replaces process/conversation/stdinHandle/stdoutPipe/stderrPipe/replies (B2): one MCPStdioConnection
+    // holds the child, the message reader and the id-matched reply map (MCPWire.cs, N5).
+    private MCPStdioConnection? stdio;
 
-    // PORT-ONLY: Swift reads (process.standardOutput as? Pipe) fresh in stop(); the port keeps the pipes it
-    // created so their readability handlers can be detached the same way.
-    private ProcessPipe? stdoutPipe;
-    private ProcessPipe? stderrPipe;
-
+    // :162. PR-MCP-237: this counter numbers only the http path's requests (:315-316, :333-334); the stdio path
+    // never reads or advances it, because each MCPStdioConnection carries its own counter that restarts at 1 on
+    // every launch, including a relaunch (:164-168 in MCPWire.swift; MCPStdioConnection.Request above).
     private int nextID = 1;
     private bool initialized;
     private bool didRestart;
     private bool dead;
     private string? sessionID;
 
-    // :169-172. Replies read off stdout for a request other than the one being waited on: two calls in
-    // flight on one server each get their own, rather than the first reader dropping the other's.
-    private readonly Dictionary<int, JSONValue> replies = [];
-
-    // :174-177
+    // :168-171
     public MCPClient(string id, MCPServerSpec spec)
     {
         Id = id;
         this.spec = spec;
     }
 
-    // :179-191
+    // :173-178. Nothing else is cleared: didRestart and dead stay set, so a client that exhausted its restart
+    // stays dead until reload replaces it, and the http id counter keeps counting (PR-MCP-190).
     public Task Stop() => Isolated(() =>
     {
-        if (process is { } proc)
-        {
-            if (stdoutPipe is { } stdout) stdout.ReadabilityHandler = null;
-            if (stderrPipe is { } stderr) stderr.ReadabilityHandler = null;
-            TerminationLadder.Shell(proc);
-        }
-        process = null;
-        conversation = null;
-        stdinHandle = null;
-        stdoutPipe = null;
-        stderrPipe = null;
+        stdio?.Stop();
+        stdio = null;
         initialized = false;
         sessionID = null;
-        replies.Clear();
     });
 
-    // :193-221
+    // :180-200
     public Task<IReadOnlyList<MCPHub.Tool>> ListTools() => Isolated(async () =>
     {
+        var items = await MCPWire.ListTools(parameters => Rpc("tools/list", parameters, TimeSpan.FromSeconds(60)));
         var output = new List<MCPHub.Tool>();
-        string? cursor = null;
-        for (var page = 0; page < 10; page++)
+        foreach (var item in items)
         {
-            var parameters = new Dictionary<string, JSONValue>();
-            if (cursor is { } current) parameters["cursor"] = new JSONValue.String(current);
-            var reply = await Rpc("tools/list",
-                new JSONValue.Object(new ValueMap<string, JSONValue>(parameters, SwiftStringComparer.Instance)),
-                TimeSpan.FromSeconds(60));
-            var list = reply["result"];
-            if (list?["tools"] is JSONValue.Array toolsArray)
-            {
-                foreach (var item in toolsArray.Value)
+            if (item["name"] is not JSONValue.String { Value: { } name }) continue;
+            var rawDescription = item["description"] is JSONValue.String { Value: { } description } ? description : "";
+            JSONValue schema = item["inputSchema"] is JSONValue.Object found
+                ? found
+                : new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>
                 {
-                    if (item["name"] is not JSONValue.String { Value: { } name }) continue;
-                    var rawDescription = item["description"] is JSONValue.String { Value: { } description }
-                        ? description
-                        : "";
-                    JSONValue schema = item["inputSchema"] is JSONValue.Object found
-                        ? found
-                        : new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>
-                        {
-                            ["type"] = new JSONValue.String("object"),
-                            ["properties"] = new JSONValue.Object(ValueMap<string, JSONValue>.Empty),
-                        }, SwiftStringComparer.Instance));
-                    output.Add(new MCPHub.Tool(Id, name, SwiftString.Prefix(rawDescription, 400), schema));
-                }
-            }
-            if (list?["nextCursor"] is not JSONValue.String { Value.Length: > 0, Value: { } next }) break;
-            cursor = next;
+                    ["type"] = new JSONValue.String("object"),
+                    ["properties"] = new JSONValue.Object(ValueMap<string, JSONValue>.Empty),
+                }, SwiftStringComparer.Instance));
+            output.Add(new MCPHub.Tool(Id, name, SwiftString.Prefix(rawDescription, 400), schema));
         }
         return (IReadOnlyList<MCPHub.Tool>)output;
     });
 
-    // :223-245
+    // :202-224
     public Task<MCPHub.Result> CallTool(string name, JSONValue arguments) => Isolated(async () =>
     {
         var args = arguments.IsNull ? new JSONValue.Object(ValueMap<string, JSONValue>.Empty) : arguments;
@@ -366,78 +359,58 @@ internal sealed class MCPClient : Actor
         return new MCPHub.Result(string.Join("\n", lines), isError);
     });
 
-    // :247-254
+    // :226-233
     private Task<JSONValue> Rpc(string method, JSONValue? parameters, TimeSpan timeout) => spec switch
     {
-        MCPServerSpec.Stdio stdio => StdioRpc(stdio.Command, stdio.Args, stdio.Env, method, parameters, timeout),
+        MCPServerSpec.Stdio stdioSpec => StdioRpc(stdioSpec.Command, stdioSpec.Args, stdioSpec.Env, method, parameters, timeout),
         MCPServerSpec.Http http => HttpRpc(http.Url, http.Headers, method, parameters, timeout),
         _ => throw new UnreachableException(),
     };
 
-    // :258-264
-    private static JSONValue InitializeParams() => new JSONValue.Object(new ValueMap<string, JSONValue>(
-        new Dictionary<string, JSONValue>
-        {
-            ["protocolVersion"] = new JSONValue.String("2025-06-18"),
-            ["capabilities"] = new JSONValue.Object(ValueMap<string, JSONValue>.Empty),
-            ["clientInfo"] = new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>
-            {
-                // DEVIATION OD-0012 F1: MCPHub.swift:262 sends "Droppy Code"; every remaining occurrence the
-                // app sends out becomes "Marrow".
-                ["name"] = new JSONValue.String("Marrow"),
-                ["version"] = new JSONValue.String("1.0"),
-            }, SwiftStringComparer.Instance)),
-        }, SwiftStringComparer.Instance));
-
-    // :266-274
-    private static JSONValue Request(int id, string method, JSONValue? parameters)
-    {
-        var fields = new Dictionary<string, JSONValue>
-        {
-            ["jsonrpc"] = new JSONValue.String("2.0"),
-            ["id"] = new JSONValue.Int(id),
-            ["method"] = new JSONValue.String(method),
-        };
-        if (parameters is { } value) fields["params"] = value;
-        return new JSONValue.Object(new ValueMap<string, JSONValue>(fields, SwiftStringComparer.Instance));
-    }
-
-    // :276-278
-    private static JSONValue Notification(string method) => new JSONValue.Object(new ValueMap<string, JSONValue>(
-        new Dictionary<string, JSONValue>
-        {
-            ["jsonrpc"] = new JSONValue.String("2.0"),
-            ["method"] = new JSONValue.String(method),
-        }, SwiftStringComparer.Instance));
-
-    // :280-284
+    // :235-239
     private static void CheckReply(JSONValue value)
     {
-        if (value["error"] is not JSONValue.Object errorValue) return;
-        var message = errorValue["message"] is JSONValue.String { Value: { } text } ? text : "unknown error";
-        throw MCPHubError.Server(message);
+        if (MCPWire.ErrorMessage(value) is { } message) throw MCPHubError.Server(message);
     }
 
-    // :299-310
+    // MARK: - Local servers over stdio (:241-306)
+
+    // :243-249
     private async Task<JSONValue> StdioRpc(string command, ValueList<string> args, ValueMap<string, string> env,
         string method, JSONValue? parameters, TimeSpan timeout)
     {
         await EnsureStdio(command, args, env);
-        if (process is not { } proc || stdinHandle is not { } stdin)
-            throw MCPHubError.Server("The server quit.");
-        var id = nextID;
-        nextID += 1;
-        var line = AppendNewline(Request(id, method, parameters).Data());
-        SwiftTry.Ignore(() => stdin.Write(line));
-        return await WaitStdio(proc, id, timeout);
+        if (stdio is not { } connection) throw MCPHubError.Server("The server quit.");
+        return await StdioReply(connection, method, parameters, timeout);
     }
 
-    // :312-323
+    // :251-264
+    private static async Task<JSONValue> StdioReply(MCPStdioConnection connection, string method, JSONValue? parameters, TimeSpan timeout)
+    {
+        try
+        {
+            var reply = await connection.Request(method, parameters, timeout.TotalSeconds);
+            CheckReply(reply);
+            return reply;
+        }
+        catch (MCPWireError error)
+        {
+            throw error.ErrorCase switch
+            {
+                MCPWireError.Case.Exited exited => MCPHubError.Server(
+                    exited.Status is { } code ? $"The server quit (exit {code})." : "The server quit."),
+                MCPWireError.Case.TimedOut => MCPHubError.Server("The server didn't answer in time."),
+                _ => throw new UnreachableException(),
+            };
+        }
+    }
+
+    // :266-277
     private async Task EnsureStdio(string command, ValueList<string> args, ValueMap<string, string> env)
     {
         if (dead) throw MCPHubError.Server("The server quit.");
-        if (process is { IsRunning: true } && initialized) return;
-        if (process is not null)
+        if (stdio is { } connection && connection.Process.IsRunning && initialized) return;
+        if (stdio is not null)
         {
             if (didRestart)
             {
@@ -449,7 +422,7 @@ internal sealed class MCPClient : Actor
         await StartStdio(command, args, env);
     }
 
-    // :325-391
+    // :279-306
     private async Task StartStdio(string command, ValueList<string> args, ValueMap<string, string> env)
     {
         var loginEnvironment = LoginEnvironment.Current;
@@ -460,63 +433,27 @@ internal sealed class MCPClient : Actor
         var environment = new Dictionary<string, string>(loginEnvironment, StringComparer.OrdinalIgnoreCase);
         foreach (var (key, value) in env) environment[key] = value;
 
-        var proc = new ProcessLauncher
-        {
-            ExecutableURL = executable,
-            Arguments = args,
-            Environment = environment,
-            CurrentDirectoryURL = LoginEnvironment.HomeDirectory,
-        };
-        var stdinPipe = new ProcessPipe();
-        var stdoutPipeLocal = new ProcessPipe();
-        var stderrPipeLocal = new ProcessPipe();
-        proc.StandardInput = stdinPipe;
-        proc.StandardOutput = stdoutPipeLocal;
-        proc.StandardError = stderrPipeLocal;
-
-        var conv = new HubConversation();
-        stdoutPipeLocal.ReadabilityHandler = data =>
-        {
-            if (data.Length == 0) stdoutPipeLocal.ReadabilityHandler = null;
-            else conv.AppendStdout(data);
-        };
-        stderrPipeLocal.ReadabilityHandler = data =>
-        {
-            // :355 stderr is drained and discarded, unlike the probe, which keeps it for error messages.
-            if (data.Length == 0) stderrPipeLocal.ReadabilityHandler = null;
-        };
-        proc.TerminationHandler = finished => conv.SetExit(finished.TerminationStatus);
-
+        MCPStdioConnection connection;
         try
         {
-            proc.Run();
+            connection = MCPStdioConnection.Launch(executable, args, environment);
         }
         catch (Exception error) when (SwiftTry.IsThrownError(error))
         {
-            stdoutPipeLocal.ReadabilityHandler = null;
-            stderrPipeLocal.ReadabilityHandler = null;
-            TerminationLadder.Shell(proc);
             // ENGINEERING DECISION: the record (PR-MCP-185) asks for "the system error's description"; on
             // Windows that is the launch exception's own message, since there is no NSError text to reproduce.
+            // :290: no terminate call on a launch failure (StdioProcess.Start already detached both handlers
+            // and finished the message stream before rethrowing; there is nothing for the hub to clean up).
             throw MCPHubError.Server(error.Message);
         }
-        process = proc;
-        conversation = conv;
-        stdinHandle = stdinPipe;
-        stdoutPipe = stdoutPipeLocal;
-        stderrPipe = stderrPipeLocal;
-        MCPHub.Track(proc);
+        stdio = connection;
+        MCPHub.Track(connection.Process);
         try
         {
-            var id = nextID;
-            nextID += 1;
-            var line = AppendNewline(Request(id, "initialize", InitializeParams()).Data());
-            SwiftTry.Ignore(() => stdinPipe.Write(line));
-            var reply = await WaitStdio(proc, id, TimeSpan.FromSeconds(60));
+            var reply = await StdioReply(connection, "initialize", MCPWire.InitializeParams(), TimeSpan.FromSeconds(60));
             if (reply["result"] is not JSONValue.Object)
                 throw MCPHubError.Server("The server sent something unexpected: missing result.");
-            var initializedLine = AppendNewline(Notification("notifications/initialized").Data());
-            SwiftTry.Ignore(() => stdinPipe.Write(initializedLine));
+            connection.Notify("notifications/initialized");
             initialized = true;
         }
         catch (Exception error) when (SwiftTry.IsThrownError(error))
@@ -527,40 +464,9 @@ internal sealed class MCPClient : Actor
         }
     }
 
-    // :393-418
-    private async Task<JSONValue> WaitStdio(ProcessLauncher proc, int id, TimeSpan timeout)
-    {
-        var deadline = SwiftDate.AddingTimeInterval(SwiftDate.Now, timeout.TotalSeconds);
-        while (true)
-        {
-            if (conversation is { } conv)
-            {
-                foreach (var line in conv.TakeLines())
-                {
-                    if (JSONValue.Parse(line) is not JSONValue.Object value) continue;
-                    if (value["id"]?.JSONValueInt is not { } replyId) continue;
-                    replies[(int)replyId] = value;
-                }
-                if (replies.Remove(id, out var found))
-                {
-                    CheckReply(found);
-                    return found;
-                }
-                if (conv.ExitCode() is { } code)
-                    throw MCPHubError.Server($"The server quit (exit {code}).");
-            }
-            if (!proc.IsRunning)
-                throw MCPHubError.Server("The server quit.");
-            if (SwiftDate.Now >= deadline)
-            {
-                replies.Remove(id);
-                throw MCPHubError.Server("The server didn't answer in time.");
-            }
-            await SwiftTask.Sleep(TimeSpan.FromMilliseconds(10));
-        }
-    }
+    // MARK: - Remote servers over streamable HTTP (:310-352)
 
-    // :422-453
+    // :310-341
     private async Task<JSONValue> HttpRpc(string urlString, ValueMap<string, string> headers, string method,
         JSONValue? parameters, TimeSpan timeout)
     {
@@ -570,8 +476,8 @@ internal sealed class MCPClient : Actor
         {
             var initID = nextID;
             nextID += 1;
-            var posted = await Post(url, headers, Request(initID, "initialize", InitializeParams()),
-                TimeSpan.FromSeconds(60));
+            var posted = await Post(url, headers, MCPWire.Request(initID, "initialize", MCPWire.InitializeParams()),
+                initID, TimeSpan.FromSeconds(60));
             if (posted.Body is not { } body)
                 throw MCPHubError.Server("The server sent something unexpected: empty reply.");
             CheckReply(body);
@@ -581,7 +487,7 @@ internal sealed class MCPClient : Actor
             initialized = true;
             try
             {
-                _ = await Post(url, headers, Notification("notifications/initialized"), TimeSpan.FromSeconds(30));
+                _ = await Post(url, headers, MCPWire.Notification("notifications/initialized"), null, TimeSpan.FromSeconds(30));
             }
             catch (CancellationError)
             {
@@ -594,105 +500,32 @@ internal sealed class MCPClient : Actor
         }
         var id = nextID;
         nextID += 1;
-        var posted2 = await Post(url, headers, Request(id, method, parameters), timeout);
+        var posted2 = await Post(url, headers, MCPWire.Request(id, method, parameters), id, timeout);
         if (posted2.Body is not { } replyBody)
             throw MCPHubError.Server("The server sent something unexpected: empty reply.");
         CheckReply(replyBody);
         return replyBody;
     }
 
-    // :455-479
-    private async Task<(string? SessionID, JSONValue? Body)> Post(Uri url, ValueMap<string, string> headers,
-        JSONValue payload, TimeSpan timeout)
+    // :343-352
+    private async Task<MCPHTTPReply> Post(Uri url, ValueMap<string, string> headers, JSONValue payload, int? id, TimeSpan timeout)
     {
-        var request = new URLRequest(url, timeout.TotalSeconds) { HttpMethod = "POST", HttpBody = payload.Data() };
-        foreach (var (field, value) in headers) request = request.SetValue(value, field);
-        request = request
-            .SetValue("application/json", "Content-Type")
-            .SetValue("application/json, text/event-stream", "Accept")
-            .SetValue("2025-06-18", "MCP-Protocol-Version");
-        if (sessionID is { } sid) request = request.SetValue(sid, "Mcp-Session-Id");
-
-        var (data, response) = await URLSession.Shared.Data(request);
-        if (response is not HTTPURLResponse http)
-            throw MCPHubError.Server("The server sent something unexpected: invalid reply.");
-        var session = http.Value("Mcp-Session-Id");
-        if (http.StatusCode is < 200 or >= 300)
-            throw MCPHubError.Server($"The server answered {http.StatusCode}.");
-        var contentType = http.Value("Content-Type") ?? "";
-        if (contentType.Contains("text/event-stream", StringComparison.Ordinal))
-            return (session, FirstSSEMessage(data));
-        if (data.Length == 0) return (session, null);
-        return (session, JSONValue.Parse(data));
-    }
-
-    // :481-493
-    private static JSONValue? FirstSSEMessage(byte[] data)
-    {
-        var text = SwiftText.DecodeUtf8Repairing(data);
-        foreach (var line in SwiftString.ComponentsSeparatedByNewlines(text))
+        try
         {
-            var trimmed = FoundationText.Trim(line);
-            if (!SwiftString.HasPrefix(trimmed, "data:")) continue;
-            var payload = FoundationText.Trim(SwiftString.DropFirst(trimmed, 5));
-            if (JSONValue.Parse(payload) is not { } value) continue;
-            if (value is not JSONValue.Object || value["id"] is null) continue;
-            return value;
+            return await MCPWire.Post(url, headers, sessionID, payload, id, timeout.TotalSeconds);
         }
-        return null;
-    }
-
-    private static byte[] AppendNewline(byte[] data)
-    {
-        var result = new byte[data.Length + 1];
-        data.CopyTo(result, 0);
-        result[^1] = 0x0A;
-        return result;
-    }
-}
-
-// :496-533. Lock-guarded buffer fed by the stdio readability handler: stdout bytes are split on newlines into
-// complete lines, and the exit status is kept so a reply loop can tell the process went away. Stderr is
-// drained and discarded.
-internal sealed class HubConversation
-{
-    private struct State
-    {
-        public List<byte> Buffer;
-        public List<byte[]> Pending;
-        public int? ExitStatus;
-    }
-
-    private readonly Mutex<State> state = new(new State { Buffer = [], Pending = [] });
-
-    public void AppendStdout(byte[] data)
-    {
-        state.WithLock((ref State current) =>
+        catch (MCPHTTPError error)
         {
-            current.Buffer.AddRange(data);
-            int newline;
-            while ((newline = current.Buffer.IndexOf((byte)0x0A)) >= 0)
-            {
-                current.Pending.Add(current.Buffer.GetRange(0, newline).ToArray());
-                current.Buffer.RemoveRange(0, newline + 1);
-            }
-        });
+            if (error.Status is not { } status)
+                throw MCPHubError.Server("The server sent something unexpected: invalid reply.");
+            throw MCPHubError.Server($"The server answered {status}.");
+        }
     }
-
-    public void SetExit(int status) => state.WithLock((ref State current) => current.ExitStatus = status);
-
-    public List<byte[]> TakeLines() => state.WithLock((ref State current) =>
-    {
-        var lines = current.Pending;
-        current.Pending = [];
-        return lines;
-    });
-
-    public int? ExitCode() => state.WithLock((ref State current) => current.ExitStatus);
 }
 
-// :535-557. The server processes alive this run, behind a lock so the quit path can reach them from any
-// thread without an actor hop.
+// :355-376. The server processes alive this run, behind a lock so the quit path can reach them from any thread
+// without an actor hop. Unchanged by this lane: it still holds IProcessControl handles (R-PROC-1..3); only the
+// caller (MCPHub.Track, above) now hands it a StdioProcess's ProcessControl instead of a ProcessLauncher.
 internal sealed class MCPLiveProcesses
 {
     private readonly Mutex<List<IProcessControl>> state = new([]);
