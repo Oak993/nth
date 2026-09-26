@@ -1570,7 +1570,7 @@ internal sealed class SidebarThreadRow : Decorator
             BoxShadow = new BoxShadows(new BoxShadow { Color = Color.FromArgb((byte)(0.28 * 255), 0, 0, 0), Blur = 10, OffsetY = 4 }), // :1843
             Opacity = 0,
             IsHitTestVisible = false,
-        };
+        }.RoundedRectangle(Chrome.RowCornerRadius, RoundedCornerStyle.Continuous); // :1735 shape, followed by both the row's own background and this lift
         var host = new Panel { Children = { lift, content } };
         var spring = Animation.Spring(response: 0.25, dampingFraction: 0.8); // :1847, a fixed animation (R-VIEW-4):
         // .animation(_, value:) ignores whatever ambient transaction changed isDragged.
@@ -1844,11 +1844,20 @@ internal sealed class ThreadBadge : Decorator
     // :2147-2174 body. PR-SIDEBAR-068, PR-SIDEBAR-069.
     public ThreadBadge(ChatThread thread)
     {
-        this.Track(() => Model.ExistingRuntime(thread.Id), runtime => // :2148
+        // Every field the body reads off the runtime is packed into the tracked tuple, not read inside apply: only
+        // reads performed inside the Track selector are recorded as dependencies (ViewLifetime.Track, Observation.Track),
+        // matching how SwiftUI's own body observes every property this closure touches (:2148-2151), and the pattern
+        // this file's own other Track calls already use (:640, :1965).
+        this.Track(() =>
         {
+            var runtime = Model.ExistingRuntime(thread.Id); // :2148
             var needsInput = runtime is { Approvals.Count: > 0 } || runtime is { Questions.Count: > 0 }; // :2149
             var mergeStage = SidebarThreadRow.MergeStage(runtime); // :2150
             var isRunning = runtime?.IsRunning == true || mergeStage is not null || runtime?.HasWorkingHelpers == true; // :2151
+            return (NeedsInput: needsInput, MergeStage: mergeStage, IsRunning: isRunning);
+        }, value =>
+        {
+            var (needsInput, mergeStage, isRunning) = value;
 
             SwiftColor? tint = null;
             Control glyph;
@@ -2015,19 +2024,30 @@ internal sealed class ActivityStatus : Decorator
     // :2412-2427 body. PR-SIDEBAR-073.
     public ActivityStatus(ChatThread thread)
     {
-        this.Track(() => Model.ExistingRuntime(thread.Id), runtime => // :2413
+        // As in ThreadBadge above: everything the apply lambda reads off the runtime is read inside the Track
+        // selector (packed into the tuple), so a later change to any of it re-fires this Track, not just the first
+        // mount (:2413-2421 reads runtime once per body evaluation in SwiftUI's own tracking).
+        this.Track(() =>
         {
+            var runtime = Model.ExistingRuntime(thread.Id); // :2413
+            var needsInput = runtime is { Approvals.Count: > 0 } || runtime is { Questions.Count: > 0 }; // :2414
+            var isRunning = runtime?.IsRunning == true || runtime?.IsHydraMerging == true || runtime?.HasWorkingHelpers == true; // :2418
+            var mergeStage = SidebarThreadRow.MergeStage(runtime); // :2420
+            return (NeedsInput: needsInput, IsRunning: isRunning, MergeStage: mergeStage);
+        }, value =>
+        {
+            var (needsInput, isRunning, mergeStage) = value;
             Control? content;
-            if (runtime is { Approvals.Count: > 0 } || runtime is { Questions.Count: > 0 }) // :2414
+            if (needsInput) // :2414
             {
                 var hand = SwiftImage.SystemName("hand.raised.fill").Font(SwiftFont.Subheadline); // :2415-2416
                 hand.ForegroundStyle(Chrome.Warning); // :2417
                 content = hand;
             }
-            else if (runtime?.IsRunning == true || runtime?.IsHydraMerging == true || runtime?.HasWorkingHelpers == true) // :2418
+            else if (isRunning) // :2418
             {
                 var spinner = new MiniSpinner(cellSize: 2.4); // :2419
-                ToolTip.SetTip(spinner, SidebarThreadRow.MergeStage(runtime) ?? ""); // :2420
+                ToolTip.SetTip(spinner, mergeStage ?? ""); // :2420
                 content = spinner;
             }
             else if (thread.HasUnread) // :2421

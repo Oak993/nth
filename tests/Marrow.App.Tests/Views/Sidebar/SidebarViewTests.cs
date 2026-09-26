@@ -2724,6 +2724,29 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         });
     }
 
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-054")] // App/Views/Sidebar/SidebarView.swift:1735, :1838-1843
+    public void The_lifted_rows_fill_and_shadow_follow_the_rows_own_continuous_row_corner_radius()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var model = harness.MakeModel();
+            harness.Main.OnMain(() =>
+            {
+                var view = Detached(model);
+                var content = new Border { Height = 20 };
+                var host = (Control)CallStatic(Private("SidebarThreadRow"), "ApplyDraggedLift", content, (Func<bool>)(() => false))!;
+                var lift = (Border)((Panel)host).Children[0];
+                // :1735 let shape = RoundedRectangle(cornerRadius: Chrome.rowCornerRadius, style: .continuous), the
+                // same shape the row's own background/contentShape use (SidebarThreadRow.body, not yet ported) and
+                // the lift's fill and shadow follow at :1838-1843. Chrome.RowCornerRadius is 7 (Chrome.cs:104).
+                Assert.Equal(new CornerRadius(Chrome.RowCornerRadius), lift.CornerRadius);
+                Assert.Equal(RoundedCornerStyle.Continuous, SwiftShapes.GetCornerStyle(lift));
+            });
+        });
+    }
+
     // ---- PR-SIDEBAR-061, -062: click selects, hover pre-decodes ----
 
     [Fact]
@@ -3005,6 +3028,60 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         });
     }
 
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-068")] // App/Views/Sidebar/SidebarView.swift:1717-1721, :2147-2151
+    [Trait("Req", "PR-SIDEBAR-069")] // App/Views/Sidebar/SidebarView.swift:1717-1721, :2166-2173
+    public void The_badge_updates_in_place_when_its_runtime_changes_after_mount()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            using var frames = FrameClock.Source.Override(new ManualFrameSource()); // the running spinner animates
+            var alpha = NewProject(harness, "Alpha");
+            var pinned = NewThread(alpha, "Pinned", 1) with { IsPinned = true };
+            var model = Model(harness, [alpha], [pinned]);
+            Border host = null!;
+            ThreadRuntime runtime = null!;
+            harness.Main.OnMain(() =>
+            {
+                // The runtime exists (and is empty) before the badge ever mounts, exactly as the row's own body
+                // would find it already sitting in AppModel; the fix under test is the already-attached badge
+                // picking up a LATER change to that same runtime instance, not a fresh one being created.
+                runtime = model.Runtime(pinned.Id);
+                host = Hosted(model, (Control)Activator.CreateInstance(Private("ThreadBadge"), pinned)!);
+                var pin = LogicalQuery.SelfAndDescendants<SwiftImage>(host).Single(); // :2159-2161, nothing running yet
+                Assert.Equal("pin.fill", pin.SymbolName);
+            });
+            harness.Main.OnMain(() =>
+            {
+                // Mutate the SAME runtime the already-mounted badge is showing; no ThreadBadge is reconstructed.
+                // :1717-1721 (SidebarThreadRow.body comment): "the runtime's fields are observed per runtime."
+                runtime.IsHydraMerging = true;
+                runtime.HydraMergeStage = "Reviewing";
+            });
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs(); // the badge's own re-layout, posted by Track's apply
+            harness.Main.OnMain(() =>
+            {
+                Assert.Empty(LogicalQuery.SelfAndDescendants<SwiftImage>(host)); // the pin is gone
+                var spinner = LogicalQuery.SelfAndDescendants<MiniSpinner>(host).Single(); // :2156-2158
+                Assert.Equal("Reviewing\U00002026", ToolTip.GetTip(spinner));
+            });
+            harness.Main.OnMain(() =>
+            {
+                typeof(ThreadRuntime).GetProperty("Approvals")!.SetValue(runtime,
+                    new ValueList<ApprovalRequest>([new ApprovalRequest("a1", ApprovalRequest.Kind.Tool, "Allow?", ValueList<ApprovalRequest.Option>.Empty)]));
+            });
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            harness.Main.OnMain(() =>
+            {
+                Assert.Empty(LogicalQuery.SelfAndDescendants<MiniSpinner>(host)); // the hand wins over the spinner
+                var hand = LogicalQuery.SelfAndDescendants<SwiftImage>(host).Single(); // :2153-2155
+                Assert.Equal("hand.raised.fill", hand.SymbolName);
+                Assert.Equal(Chrome.Orange.Resolve(hand.ActualThemeVariant), ((ISolidColorBrush)hand.Foreground!).Color);
+            });
+        });
+    }
+
     // ---- PR-SIDEBAR-073: the trailing activity status ----
 
     [Fact]
@@ -3042,6 +3119,55 @@ public sealed class SidebarViewTests(HeadlessSession headless)
                 var hand = LogicalQuery.SelfAndDescendants<SwiftImage>(handing).Single();
                 Assert.Equal("hand.raised.fill", hand.SymbolName);
                 Assert.Equal(Chrome.Warning.Resolve(hand.ActualThemeVariant), ((ISolidColorBrush)hand.Foreground!).Color); // :2417 warning, not orange
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-073")] // App/Views/Sidebar/SidebarView.swift:1717-1721, :2412-2427
+    public void The_trailing_status_updates_in_place_when_its_runtime_changes_after_mount()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            using var frames = FrameClock.Source.Override(new ManualFrameSource()); // the running spinner animates
+            var alpha = NewProject(harness, "Alpha");
+            var quiet = NewThread(alpha, "Quiet", 1);
+            var model = Model(harness, [alpha], [quiet]);
+            Border host = null!;
+            ThreadRuntime runtime = null!;
+            harness.Main.OnMain(() =>
+            {
+                // Same shape as the ThreadBadge regression above: the runtime exists, empty, before mount, and the
+                // already-attached ActivityStatus must pick up a later change to that very instance (no rebuild).
+                // :1717-1721 (SidebarThreadRow.body comment): "the runtime's fields are observed per runtime."
+                runtime = model.Runtime(quiet.Id);
+                host = Hosted(model, (Control)Activator.CreateInstance(Private("ActivityStatus"), quiet)!);
+                Assert.Null(((Decorator)host.Child!).Child); // :2426 nothing drawn: no unread, nothing running
+            });
+            harness.Main.OnMain(() =>
+            {
+                runtime.IsHydraMerging = true;
+                runtime.HydraMergeStage = "Stage";
+            });
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs(); // the status's own re-layout, posted by Track's apply
+            harness.Main.OnMain(() =>
+            {
+                var spinner = LogicalQuery.SelfAndDescendants<MiniSpinner>(host).Single(); // :2418-2420
+                Assert.Equal("Stage\U00002026", ToolTip.GetTip(spinner));
+            });
+            harness.Main.OnMain(() =>
+            {
+                typeof(ThreadRuntime).GetProperty("Approvals")!.SetValue(runtime,
+                    new ValueList<ApprovalRequest>([new ApprovalRequest("a1", ApprovalRequest.Kind.Tool, "Allow?", ValueList<ApprovalRequest.Option>.Empty)]));
+            });
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            harness.Main.OnMain(() =>
+            {
+                Assert.Empty(LogicalQuery.SelfAndDescendants<MiniSpinner>(host)); // the hand wins over the spinner
+                var hand = LogicalQuery.SelfAndDescendants<SwiftImage>(host).Single(); // :2415-2417
+                Assert.Equal("hand.raised.fill", hand.SymbolName);
+                Assert.Equal(Chrome.Warning.Resolve(hand.ActualThemeVariant), ((ISolidColorBrush)hand.Foreground!).Color);
             });
         });
     }
