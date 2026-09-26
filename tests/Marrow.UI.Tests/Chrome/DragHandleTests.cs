@@ -196,23 +196,29 @@ public sealed class DragHandleTests(HeadlessSession headless)
     [Fact]
     public void Setting_a_different_cursor_while_active_updates_the_shown_cursor_immediately()
     {
-        var view = new DragHandleView();
-        var cursor = new Cursor(StandardCursorType.Hand);
-        view.HandleCursor = cursor;
-        Assert.Same(cursor, view.Cursor);
+        headless.OnUiThread(() =>
+        {
+            var view = new DragHandleView();
+            var cursor = new Cursor(StandardCursorType.Hand);
+            view.HandleCursor = cursor;
+            Assert.Same(cursor, view.Cursor);
+        });
     }
 
     [Trait("Req", "PR-WIN-234")] // DragHandle.swift:49-56, :188-192
     [Fact]
     public void An_inactive_handle_shows_no_cursor_and_reactivating_restores_the_configured_one()
     {
-        var view = new DragHandleView();
-        var cursor = new Cursor(StandardCursorType.Hand);
-        view.HandleCursor = cursor;
-        view.IsActive = false;
-        Assert.Null(view.Cursor);
-        view.IsActive = true;
-        Assert.Same(cursor, view.Cursor);
+        headless.OnUiThread(() =>
+        {
+            var view = new DragHandleView();
+            var cursor = new Cursor(StandardCursorType.Hand);
+            view.HandleCursor = cursor;
+            view.IsActive = false;
+            Assert.Null(view.Cursor);
+            view.IsActive = true;
+            Assert.Same(cursor, view.Cursor);
+        });
     }
 
     [Trait("Req", "PR-WIN-234")] // DragHandle.swift:104-114, the first configuration always snaps unanimated
@@ -292,6 +298,10 @@ public sealed class DragHandleTests(HeadlessSession headless)
             Down(window, new Point(150, 150), cursor);
             Up(window, new Point(390, 290), cursor); // released well off the strip's bounds, still inside the window
             Assert.False(view.IsHoveringForTest);
+            // :231 releases with animated: true; force the same target through the unanimated snap path (see the
+            // hover test above for why) rather than reading a transition mid-flight.
+            view.IsActive = false;
+            view.IsActive = true;
             Assert.Equal(12, view.GripLayerForTest.Width); // back to rest, not left stuck shown
         });
     }
@@ -327,9 +337,16 @@ public sealed class DragHandleTests(HeadlessSession headless)
             using var _ = DragHandleView.CursorPlatform.Override(cursor);
             Move(window, new Point(150, 150), cursor);
             Assert.True(view.IsHoveringForTest);
+            // A real 0.18s transition is now in flight (:249's animated: true); force the same target through the
+            // unanimated snap path by flipping IsActive, matching WindowChromeThirdTests' own established trick
+            // for reading a settled value without waiting out or faking the animation clock.
+            view.IsActive = false;
+            view.IsActive = true;
             Assert.Equal(28, view.GripLayerForTest.Width); // .vertical's grip bar grows in width
             Move(window, new Point(390, 290), cursor); // leaves the strip, still inside the window
             Assert.False(view.IsHoveringForTest);
+            view.IsActive = false;
+            view.IsActive = true;
             Assert.Equal(12, view.GripLayerForTest.Width);
         });
     }
@@ -424,13 +441,20 @@ public sealed class DragHandleTests(HeadlessSession headless)
     {
         headless.OnUiThread(() =>
         {
-            var (window, view) = NewAttachedHandle(axis: DragHandleView.Axis.Vertical, width: 300);
+            // Slop > 0: the drag starts inside mouseDragged (:210-220), the only place dragCursor?.push() runs
+            // (:215). At slop 0 (Sidebar's and Terminal's own configurations today), mouseDown already sets
+            // isDragging true (:205), so mouseDragged's "if !isDragging" branch - and its push - never runs
+            // either at B3's own source; neither current caller passes a dragCursor, matching PR-TERM-015's own
+            // evidence ("pops dragCursor if one is set (Terminal passes none)"). This test exercises the one path
+            // where the mechanism the component contract (PR-WIN-234) describes actually fires.
+            var (window, view) = NewAttachedHandle(axis: DragHandleView.Axis.Vertical, slop: 3, width: 300);
             var configured = new Cursor(StandardCursorType.SizeNorthSouth);
             var drag = new Cursor(StandardCursorType.Hand);
             view.HandleCursor = configured;
             view.DragCursor = drag;
             Down(window, new Point(150, 150));
-            Move(window, new Point(150, 100));
+            Move(window, new Point(150, 145)); // 5px, over the 3px slop: the drag starts here, in mouseDragged
+            Assert.True(view.IsDraggingForTest);
             Assert.Same(drag, view.Cursor);
             window.Content = null;
             Assert.Same(configured, view.Cursor);
@@ -444,11 +468,10 @@ public sealed class DragHandleTests(HeadlessSession headless)
         headless.OnUiThread(() =>
         {
             var (window, view) = NewAttachedHandle(axis: DragHandleView.Axis.Vertical, width: 300);
-            IPointer? pointer = null;
-            view.PointerPressed += (_, e) => pointer = e.Pointer;
             Down(window, new Point(150, 150));
             Move(window, new Point(150, 100));
             Assert.True(view.IsDraggingForTest);
+            var pointer = view.CapturedPointerForTest;
             Assert.NotNull(pointer);
             var ended = false;
             view.OnEnd = () => ended = true;
