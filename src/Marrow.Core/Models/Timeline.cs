@@ -779,7 +779,7 @@ internal sealed class HydraMergeRecordConverter : JsonConverter<HydraMergeRecord
         Url = SwiftDecoding.DecodeIfPresent(element, "url", SwiftURL.JsonConverter.Decode),
         Files = SwiftDecoding.Decode(element, "files", SwiftDecoding.ReadInt),
         Detail = SwiftDecoding.DecodeIfPresent(element, "detail", SwiftDecoding.ReadString),
-        // Retryable (:281-283): RED, not yet decoded (L1h tests-first commit).
+        Retryable = SwiftDecoding.DecodeIfPresentValue(element, "retryable", SwiftDecoding.ReadBool), // :281-283, absent decodes as null
     };
 
     public override void Write(Utf8JsonWriter writer, HydraMergeRecord value, JsonSerializerOptions options) => WriteMembers(writer, value);
@@ -798,7 +798,7 @@ internal sealed class HydraMergeRecordConverter : JsonConverter<HydraMergeRecord
         }
         writer.WriteNumber("files", value.Files);
         if (value.Detail is { } detail) writer.WriteString("detail", detail);
-        // Retryable (:281-283): RED, not yet written (L1h tests-first commit).
+        if (value.Retryable is { } retryable) writer.WriteBoolean("retryable", retryable); // :281-283, omitted when null
         writer.WriteEndObject();
     }
 }

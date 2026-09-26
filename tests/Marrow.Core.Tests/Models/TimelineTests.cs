@@ -704,7 +704,7 @@ public sealed class TimelineTests
     }
 
     [Fact]
-    [Trait("Req", "PR-HYDRAMERGE-132")] // Core/Models/Timeline.swift:281-283: absent on a record written before 1.7.0
+    [Trait("Req", "PR-HYDRAMERGE-132")] // Core/Models/Timeline.swift:281-283: absent on one saved before 1.7.0
     public void A_record_written_before_1_7_0_with_no_retryable_key_decodes_as_null()
     {
         var legacy = "{\"at\":\"2026-01-01T00:00:00Z\",\"outcome\":\"failed\",\"files\":1,\"detail\":\"a conflict\"}";
