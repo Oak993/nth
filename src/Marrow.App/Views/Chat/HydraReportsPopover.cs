@@ -18,7 +18,7 @@ using Marrow.UI.Port;
 
 namespace Marrow.App.Views.Chat;
 
-// Source: DroppyCode/App/Views/Chat/HydraReportsPopover.swift (B2 1fbf81e), :1-655.
+// Source: DroppyCode/App/Views/Chat/HydraReportsPopover.swift (B3 52bc7926), :1-655.
 
 /// <summary>:3-197 <c>struct HydraReportDigest</c>: a heads' report batch read as a digest.</summary>
 public sealed record HydraReportDigest
@@ -144,7 +144,7 @@ public sealed record HydraReportDigest
 
             var group = rest[(open + 1)..^1];
             var lower = SwiftString.Lowercased(group);
-            var isEffortWord = lower is "low" or "medium" or "high" or "xhigh" or "max" or "minimal" or "fast" or "default";
+            var isEffortWord = lower is "low" or "medium" or "high" or "xhigh" or "max" or "ultra" or "minimal" or "fast" or "default"; // :101
             var isMeta = lower == "failed"
                 || SwiftString.HasPrefix(lower, "stopped")
                 || Regex.IsMatch(group, @"\p{Nd}", RegexOptions.CultureInvariant)
