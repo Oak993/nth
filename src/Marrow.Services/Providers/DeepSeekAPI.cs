@@ -2,11 +2,11 @@ using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
 
-// Source: DroppyCode/Services/Providers/DeepSeekAPI.swift (B2 1fbf81e), :1-99.
+// Source: DroppyCode/Services/Providers/DeepSeekAPI.swift (B3 52bc7926), :1-79.
 
 namespace Marrow.Services.Providers;
 
-// :6-99
+// :6-79
 public static class DeepSeekAPI
 {
     // :7
@@ -21,75 +21,32 @@ public static class DeepSeekAPI
     // :10
     public static readonly Uri BalanceURL = new("https://api.deepseek.com/user/balance");
 
-    // :13-22
-    public static async Task<bool> Validate(string apiKey)
-    {
-        var key = apiKey.Trimmed();
-        if (key.Length == 0) return false;
+    // :13-15
+    public static async Task<bool> Validate(string apiKey) =>
+        // :14
+        await OpenAICompatibleAPI.Validate(ModelsURL, apiKey);
 
-        var request = new URLRequest(ModelsURL, 15)
-            .SetValue("Bearer " + key, "Authorization")
-            .SetValue("application/json", "Accept");
+    // :17-19
+    public static async Task<ValueList<ModelOption>> ListModels(string apiKey) =>
+        // :18
+        await OpenAICompatibleAPI.ListModels(ModelsURL, apiKey, Option);
 
-        try
-        {
-            var (_, response) = await URLSession.Shared.Data(request);
-            return response is HTTPURLResponse http && http.StatusCode == 200;
-        }
-        catch (Exception error) when (SwiftTry.IsThrownError(error))
-        {
-            return false;
-        }
-    }
-
-    // :24-38
-    public static async Task<ValueList<ModelOption>> ListModels(string apiKey)
-    {
-        var key = apiKey.Trimmed();
-        if (key.Length == 0) return ValueList<ModelOption>.Empty;
-
-        var request = new URLRequest(ModelsURL, 15)
-            .SetValue("Bearer " + key, "Authorization")
-            .SetValue("application/json", "Accept");
-        var (data, response) = await URLSession.Shared.Data(request);
-
-        if (response is not HTTPURLResponse http || http.StatusCode != 200 ||
-            JSONValue.Parse(data) is not { } json)
-            return ValueList<ModelOption>.Empty;
-
-        var ids = (json["data"]?.JSONValueArray ?? [])
-            .Select(item => item["id"]?.JSONValueString)
-            .Where(id => id is not null)
-            .Select(id => id!);
-
-        var options = ids
-            .Select(Option)
-            .Where(option => option is not null)
-            .Select(option => option!)
-            .OrderBy(option => option.IsDefault ? 0 : 1)
-            .ThenBy(option => option.Id, SwiftStringComparer.Instance);
-
-        return new ValueList<ModelOption>(options);
-    }
-
-    // :43-53
+    // :24-32
     public static async Task<ProviderCredits?> Balance(string apiKey)
     {
-        var key = apiKey.Trimmed();
-        if (key.Length == 0) return null;
+        var key = apiKey.Trimmed(); // :25
+        if (key.Length == 0) return null; // :26
 
-        var request = new URLRequest(BalanceURL, 15)
-            .SetValue("Bearer " + key, "Authorization")
-            .SetValue("application/json", "Accept");
+        var request = OpenAICompatibleAPI.BearerRequest(BalanceURL, key); // :27
 
         try
         {
-            var (data, response) = await URLSession.Shared.Data(request);
-            if (response is not HTTPURLResponse http || http.StatusCode != 200 ||
-                JSONValue.Parse(data) is not { } json)
+            var (data, response) = await URLSession.Shared.Data(request); // :28
+            if (response is not HTTPURLResponse http || http.StatusCode != 200 || // :29
+                JSONValue.Parse(data) is not { } json) // :30
                 return null;
 
-            return Credits(json);
+            return Credits(json); // :31
         }
         catch (Exception error) when (SwiftTry.IsThrownError(error))
         {
@@ -97,7 +54,7 @@ public static class DeepSeekAPI
         }
     }
 
-    // :58-68
+    // :37-47
     public static ProviderCredits? Credits(JSONValue json)
     {
         var infos = json["balance_infos"]?.JSONValueArray;
@@ -123,13 +80,13 @@ public static class DeepSeekAPI
         };
     }
 
-    // :70
+    // :49
     public static readonly ValueList<string> DeepseekEfforts = new(new[] { "low", "high", "max" });
 
-    // :72-73
+    // :51-52
     public const int ContextWindow = 1_048_576;
 
-    // :79-92
+    // :58-71
     public static ModelOption? Option(string id) => id switch
     {
         "deepseek-v4-pro" => new ModelOption(
@@ -153,7 +110,7 @@ public static class DeepSeekAPI
             defaultEffort: "high"),
     };
 
-    // :96-98
+    // :75-77
     public static bool IsVisionModel(string? id) =>
         id is "deepseek-flash" or "deepseek-v4-flash" or "deepseek-v4-flash-vision-exp";
 }
