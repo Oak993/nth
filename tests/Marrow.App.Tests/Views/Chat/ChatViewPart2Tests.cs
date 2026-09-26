@@ -91,10 +91,12 @@ public sealed class ChatViewPart2Tests(HeadlessSession headless)
             var addItem = LogicalQuery.SelfAndDescendants<PopoverItem>(emptyMenu).Single();
             Click(LogicalQuery.SelfAndDescendants<Button>(addItem).Single());
             harness.Main.RunUntilIdle();
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
 
             var editItem = LogicalQuery.SelfAndDescendants<PopoverItem>(filledMenu).Last();
             Click(LogicalQuery.SelfAndDescendants<Button>(editItem).Single());
             harness.Main.RunUntilIdle();
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
         });
     }
 
@@ -128,6 +130,7 @@ public sealed class ChatViewPart2Tests(HeadlessSession headless)
             // running it inline (only ObservationTracker.Fire itself is synchronous, at the write): drain once,
             // as a separate top-level call, before a freshly-built button can show the new isActive state.
             harness.Main.RunUntilIdle();
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
 
             var rebuilt = ButtonWithTip(row, "Terminal" + ShortcutStore.Hint(AppShortcut.ToggleTerminal));
             Assert.True(HasActiveCircle(rebuilt));

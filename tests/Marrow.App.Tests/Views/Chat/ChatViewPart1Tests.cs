@@ -74,7 +74,7 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
         var directory = InitRepository(Path.Combine(Path.GetTempPath(), "chatview-git-" + Guid.NewGuid().ToString("N")));
         RunGit(directory, "commit --allow-empty -m init");
         var first = new GitStatusModel();
-        await runtime.OnMain(() => first.Refresh(directory));
+        runtime.Loop.Run(() => first.Refresh(directory));
         Assert.True(first.IsRepository);
 
         // A second model reading the same directory sees the shared static snapshot at once.
@@ -93,7 +93,8 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
         Directory.CreateDirectory(directory);
         var model = new GitStatusModel();
 
-        await runtime.OnMain(() => model.Refresh(directory));
+        runtime.Loop.Run(() => model.Refresh(directory));
+        await Task.CompletedTask;
 
         Assert.False(model.IsRepository);
         Assert.Null(model.Status);
@@ -197,6 +198,7 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
             var fullAccess = LogicalQuery.SelfAndDescendants<PopoverItem>(menu).Last();
             Click(LogicalQuery.SelfAndDescendants<Button>(fullAccess).Single());
             harness.Main.RunUntilIdle();
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
 
             Assert.Equal(RuntimeMode.FullAccess, model.Thread(threadId)!.RuntimeMode);
         });
@@ -402,6 +404,7 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
             var renameItem = LogicalQuery.SelfAndDescendants<PopoverItem>(menu).Last();
             Click(LogicalQuery.SelfAndDescendants<Button>(renameItem).Single());
             harness.Main.RunUntilIdle();
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
 
             var shown = Assert.Single(recorder.Shown);
             Assert.Equal("Rename thread", shown.Title);
@@ -440,6 +443,7 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
             var renameItem = LogicalQuery.SelfAndDescendants<PopoverItem>(menu).Last();
             Click(LogicalQuery.SelfAndDescendants<Button>(renameItem).Single());
             harness.Main.RunUntilIdle();
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
 
             recorder.Dismiss(0, 1, "typed but cancelled");
             Assert.Equal("Kept", model.Thread(threadId)!.Title);
@@ -507,6 +511,8 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
     [Trait("Req", "PR-CHAT-158")] // ChatView.swift:751-752,760-767
     public void A_reserve_change_snaps_the_padding_in_one_step_and_starts_the_glide_from_the_shift()
     {
+        using var runtime = new TestRuntime();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
         var slide = new ReserveSlide(new PanelReserve { Leading = 0, Trailing = 0 }, Slides: true);
         var content = new Border();
         slide.Body(content);
@@ -671,6 +677,7 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
                 Click(changesButton);
                 Assert.True(runtime.IsDiffVisible); // :1170 through toggleDiff, not a direct flip
             });
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
         });
     }
 }

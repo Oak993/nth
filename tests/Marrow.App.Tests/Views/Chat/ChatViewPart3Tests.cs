@@ -92,6 +92,7 @@ public sealed class ChatViewPart3Tests(HeadlessSession headless)
             // Tracked<T>.Schedule (ViewSupport.cs) posts the rebuild through MainActor.Post rather than running it
             // inline: drain once, as a separate top-level call, before a freshly-built button can show isActive.
             harness.Main.RunUntilIdle();
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
 
             var rebuilt = ButtonWithTip(row, "Changes" + ShortcutStore.Hint(AppShortcut.ToggleChanges));
             Assert.True(HasActiveCircle(rebuilt));
@@ -309,7 +310,7 @@ public sealed class ChatViewPart3Tests(HeadlessSession headless)
             // WINDOWS-ONLY on this Linux container per part 1's own PR-GIT-126 precedent; the repository setup
             // above uses the system git directly and is not what is expected to fail here. A separate top-level
             // OnMain call (not nested) so RunUntilIdle fully drains Refresh's own continuations before proceeding.
-            harness.Main.OnMain(() => git.Refresh(directory));
+            harness.Main.Loop.Run(() => git.Refresh(directory));
 
             harness.Main.OnMain(() =>
             {
@@ -342,6 +343,7 @@ public sealed class ChatViewPart3Tests(HeadlessSession headless)
             var newBranchItem = ItemNamed(menu, "New branch…");
             Click(LogicalQuery.SelfAndDescendants<Button>(newBranchItem).Single());
             harness.Main.RunUntilIdle();
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
 
             var shown = Assert.Single(recorder.Shown);
             Assert.Equal("New branch", shown.Title);
