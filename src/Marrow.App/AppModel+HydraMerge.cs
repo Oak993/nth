@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 using Marrow.App.Runtime;
@@ -243,7 +242,7 @@ public sealed partial class AppModel
             if (retryable) ScheduleHydraMergeRetry(leadID); // :228
             // The same failure again (the sweep retries every job it can) is not news.
             if (runtime.HydraMerges.LastOrDefault() is { } last && last.HydraMergeRecordOutcome == HydraMergeRecord.Outcome.Failed &&
-                last.Detail == detail) return HydraProjectMerge.Failed; // :230
+                last.Detail is { } lastDetail && SwiftString.Equal(lastDetail, detail)) return HydraProjectMerge.Failed; // :230
             // A failure that clears by itself is said once it has kept failing, never on the first try: the
             // retry a minute from now normally just lands.
             var saysIt = !retryable || runtime.HydraMerges.TakeLast(2).Count(record =>
@@ -289,7 +288,7 @@ public sealed partial class AppModel
             var current = status?.Branch; // :265
             // On the default branch the commit goes to a branch of its own, made and pushed without ever
             // being checked out; on any other branch it is that branch's.
-            var ownBranch = current is null || current == target; // :268
+            var ownBranch = current is null || SwiftString.Equal(current, target); // :268
             var branch = ownBranch ? HydraBranchName(lead) : current!; // :269
 
             // A commit landing while the work is prepared (the user's, in a terminal) moves HEAD under it.
@@ -340,7 +339,7 @@ public sealed partial class AppModel
                 var files = await Task.Run(() => DiffParser.Parse(patch)); // :313
                 Advance(HydraMergeStage.Describing); // :314
                 string message; // :315
-                if (described is { } describedValue && describedValue.Patch == patch)
+                if (described is { } describedValue && SwiftString.Equal(describedValue.Patch, patch))
                 {
                     message = describedValue.Message; // :316-317
                 }
@@ -442,7 +441,8 @@ public sealed partial class AppModel
                 // The lead worked in a worktree: the project's own checkout follows when it can.
                 Advance(HydraMergeStage.Syncing); // :396
                 var main = new Git(project.Path); // :397
-                if ((await main.Status())?.Branch == target && (await main.DirtyPaths()).Count == 0 && !await main.HasOperationInProgress()) // :398
+                if ((await main.Status())?.Branch is { } mainBranch && SwiftString.Equal(mainBranch, target) &&
+                    (await main.DirtyPaths()).Count == 0 && !await main.HasOperationInProgress()) // :398
                 {
                     // :399 (try? await main.pullFastForward()) != nil
                     try { await main.PullFastForward(); lines.Add("The project checkout is up to date."); }
@@ -850,13 +850,12 @@ public sealed partial class AppModel
     {
         var title = lead.Title == ChatThread.Untitled ? "team" : lead.Title;
         var slugBuilder = new StringBuilder();
-        var characters = StringInfo.GetTextElementEnumerator(title.ToLowerInvariant());
-        while (characters.MoveNext())
-        {
-            var character = (string)characters.Current!;
-            var first = character.EnumerateRunes().First();
-            slugBuilder.Append(Rune.IsLetterOrDigit(first) ? character : "-"); // :876
-        }
+        // R-STR-4/R-STR-5: Swift's `title.lowercased().map { $0.isLetter || $0.isNumber ? String($0) : "-" }`
+        // is SwiftString.Lowercased (full ICU case mapping, e.g. U+0130 -> "i" + U+0307) over
+        // SwiftCharacter.IsLetter (Alphabetic) / IsNumber (Numeric_Type is not None: U+00B2, U+00BD, Roman and
+        // CJK numerals too), never .ToLowerInvariant()/Rune.IsLetterOrDigit (L*/Nd only).
+        foreach (var character in SwiftString.Characters(SwiftString.Lowercased(title)))
+            slugBuilder.Append(SwiftCharacter.IsLetter(character) || SwiftCharacter.IsNumber(character) ? character : "-"); // :876
         var slug = slugBuilder.ToString();
         while (slug.Contains("--", StringComparison.Ordinal)) slug = slug.Replace("--", "-", StringComparison.Ordinal); // :877
         slug = slug.Trim('-'); // :878
