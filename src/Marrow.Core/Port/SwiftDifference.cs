@@ -9,15 +9,15 @@ namespace Marrow.Core.Port;
 /// <c>SOURCES.tsv</c> and <c>SHA256SUMS.txt</c>; 6.2-RELEASE and 6.3-RELEASE copies sit beside it). Citations
 /// below read "// Diffing.swift (swift-6.4.0-RELEASE) :a-b".
 ///
-/// ENGINEERING DECISION (decisions_draft.md E3, proposed ED-193, not yet recorded in the ledger as of this
-/// writing): <c>BidirectionalCollection.difference(from:by:)</c> is not <c>@inlinable</c>, so an app calls the
-/// copy in the OS's <c>libswiftCore</c>; behaviour follows the Mac's OS version, not the toolchain that built
-/// 1.7.0. macOS 26.0-26.3 run swift-6.2-RELEASE's greedy <c>_myers</c>; macOS 26.4 and later, and macOS 27, run
-/// the swift-6.3-RELEASE/6.4.0-RELEASE linear-space, divide-and-conquer <c>_linearSpaceMyers</c> ported here (6.3
-/// and 6.4.0 differ by one <c>unsafe</c> keyword only). Both give edit scripts of the same, minimal size; about a
-/// third of small tie cases choose different offsets. This file ports the 6.3+/6.4 algorithm because it is what
-/// current macOS runs and is swift <c>main</c>. Tests whose expected offsets depend on the tie carry
-/// <c>[Trait("Oracle", "O-67")]</c>; version-independent fixtures carry none.
+/// ENGINEERING DECISION ED-199 ("E3 CollectionDifference tie-break / SwiftDifference port", decisions_draft.md
+/// E3, recorded on branch docs/b3, oracle O-67): <c>BidirectionalCollection.difference(from:by:)</c> is not
+/// <c>@inlinable</c>, so an app calls the copy in the OS's <c>libswiftCore</c>; behaviour follows the Mac's OS
+/// version, not the toolchain that built 1.7.0. macOS 26.0-26.3 run swift-6.2-RELEASE's greedy <c>_myers</c>;
+/// macOS 26.4 and later, and macOS 27, run the swift-6.3-RELEASE/6.4.0-RELEASE linear-space, divide-and-conquer
+/// <c>_linearSpaceMyers</c> ported here (6.3 and 6.4.0 differ by one <c>unsafe</c> keyword only). Both give edit
+/// scripts of the same, minimal size; about a third of small tie cases choose different offsets. This file ports
+/// the 6.3+/6.4 algorithm because it is what current macOS runs and is swift <c>main</c>. Tests whose expected
+/// offsets depend on the tie carry <c>[Trait("Oracle", "O-67")]</c>; version-independent fixtures carry none.
 ///
 /// The element comparer is supplied by the caller: <c>Core/Support/Text.swift:105-112</c> (B3,
 /// droppy-code-v1.7.0) calls <c>newLines.difference(from: oldLines)</c>, whose default <c>by:</c> is String's
