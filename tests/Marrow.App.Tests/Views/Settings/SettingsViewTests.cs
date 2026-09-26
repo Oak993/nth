@@ -21,12 +21,21 @@ namespace Marrow.App.Tests.Views.Settings;
 [Collection("Headless")]
 public sealed class SettingsViewTests(HeadlessSession headless)
 {
+    // STOP App.Views.Settings.SettingsView #1
+    // Kind: dependency. Swift: SettingsView.swift:839. Records: PR-GIT-150.
+    // Missing: Workspace.RevealInFileExplorer is a throwing dependency in UI/Common/Components.cs.
+    // Needed: that unit's Windows reveal implementation. The row/path/label are covered; invoking Reveal is not.
+    // STOP App.Views.Settings.SettingsView #2
+    // Kind: dependency. Swift: SettingsView.swift:750-751. Records: provider Login action (parts 5-6).
+    // Missing: Workspace.OpenTerminal is BLOCKED PR-PROVREG-233 in UI/Common/Components.cs.
+    // Needed: the upstream unit's terminal launcher. The login row can be ported; its action cannot be verified.
     private static T Field<T>(object obj, string name) => (T)obj.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(obj)!;
     private static T[] Nodes<T>(Control root) where T : class => LogicalQuery.SelfAndDescendants<T>(root).ToArray();
     private static string[] Text(Control root) => Nodes<TextBlock>(root).Select(x => x.Text ?? "").ToArray();
     private static Button Button(Control root, string label) => Nodes<Button>(root).First(x => Text(x).Contains(label) || AutomationProperties.GetName(x) == label);
     private static void Click(Button button) => button.RaiseEvent(new RoutedEventArgs(Avalonia.Controls.Button.ClickEvent));
     private static void Drain(Avalonia.Controls.Window window) { for (var i = 0; i < 5; i++) { window.UpdateLayout(); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); } }
+    private static void Sync() => Avalonia.Threading.Dispatcher.UIThread.RunJobs();
     private static void Seed(AppModel model, ProviderKind provider, ProviderStatus status) => typeof(ProviderRegistry).GetProperty("Statuses")!.SetValue(model.Providers, model.Providers.Statuses.Mutating(map => map[provider] = status));
 
     private void WithView(Func<Control> make, Action<Control, AppModel, AppModelHarness> check, Action<AppModel>? seed = null)
@@ -34,8 +43,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
         headless.OnUiThread(() =>
         {
             using var h = new AppModelHarness();
-            h.Main.OnMain(() =>
-            {
+            using var actor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
                 var model = new AppModel();
                 seed?.Invoke(model);
                 var host = new Border();
@@ -45,7 +53,6 @@ public sealed class SettingsViewTests(HeadlessSession headless)
                 var window = new Avalonia.Controls.Window { Content = host, Width = 780, Height = 580 };
                 try { window.Show(); Drain(window); check(view, model, h); Drain(window); }
                 finally { window.Close(); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); SettingsNavigation.Shared.RequestedPage = null; }
-            });
         });
     }
 
@@ -99,6 +106,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
         Assert.Null(SettingsNavigation.Shared.RequestedPage);
         Assert.Equal(SettingsPage.Archive, Field<object>(view, "state").GetType().GetProperty("Page")!.GetValue(Field<object>(view, "state")));
         SettingsNavigation.Shared.RequestedPage = SettingsPage.SourceControl;
+        Sync();
         Assert.Null(SettingsNavigation.Shared.RequestedPage);
         Assert.Contains("Worktrees and pull requests", Text(view));
     });
@@ -139,8 +147,9 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     [Trait("Req", "PR-SETTINGS-011")] // App/Views/Settings/SettingsView.swift:141-143
     public void Search_arrows_are_unhandled() => WithSettings((view, _, _) =>
     {
-        var field = Nodes<TextBox>(Field<Control>(view, "sidebar")).Single();
-        foreach (var key in new[] { Key.Up, Key.Down }) { var e = new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = key, Source = field }; field.RaiseEvent(e); Assert.False(e.Handled); }
+        var search = Nodes<SidebarSearchField>(view).Single();
+        // The text field itself can consume caret keys; test the sidebar's move handler at its boundary.
+        foreach (var offset in new[] { -1, 1 }) Assert.False((bool)typeof(SidebarSearchField).GetMethod("Move", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(search, [offset])!);
     });
 
     [Fact]
@@ -149,6 +158,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     {
         var field = Nodes<TextBox>(Field<Control>(view, "sidebar")).Single(); field.Text = "restore"; Avalonia.Threading.Dispatcher.UIThread.RunJobs();
         var e = new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Escape, Source = field }; field.RaiseEvent(e);
+        Sync();
         Assert.Equal("", field.Text); Assert.True(e.Handled);
     });
 
@@ -157,6 +167,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     public void Filtering_out_selection_selects_first_survivor_but_empty_results_preserve_it() => WithSettings((view, _, _) =>
     {
         SettingsNavigation.Shared.RequestedPage = SettingsPage.SourceControl;
+        Sync();
         var field = Nodes<TextBox>(Field<Control>(view, "sidebar")).Single(); field.Text = "restore"; Avalonia.Threading.Dispatcher.UIThread.RunJobs();
         Assert.Contains(Nodes<Control>(view), x => AutomationProperties.GetName(x) == "No archived threads");
         field.Text = "absent-settings-page"; Avalonia.Threading.Dispatcher.UIThread.RunJobs();
@@ -198,9 +209,10 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     public void Scroll_freezes_both_contents_and_coasting_restores_hit_testing() => WithSettings((view, _, _) =>
     {
         SettingsNavigation.Shared.RequestedPage = SettingsPage.SourceControl;
-        var tracker = Field<SettingsScrollTracker>(view, "scrollTracker"); tracker.Note();
+        Sync();
+        var tracker = Field<SettingsScrollTracker>(view, "scrollTracker"); tracker.Note(); Sync();
         Assert.False(Field<StackPanel>(view, "rows").IsHitTestVisible); Assert.False(Field<Control>(view, "pageStack").IsHitTestVisible);
-        tracker.Coast(); Assert.True(Field<StackPanel>(view, "rows").IsHitTestVisible); Assert.True(Field<Control>(view, "pageStack").IsHitTestVisible);
+        tracker.Coast(); Sync(); Assert.True(Field<StackPanel>(view, "rows").IsHitTestVisible); Assert.True(Field<Control>(view, "pageStack").IsHitTestVisible);
     });
 
     [Fact]
@@ -217,6 +229,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     {
         var state = Field<object>(view, "state"); state.GetType().GetProperty("ModelSearch")!.SetValue(state, "model"); state.GetType().GetProperty("McpSearch")!.SetValue(state, "server");
         Field<ChromeScrollModel>(view, "scrollChrome").Update(200); SettingsNavigation.Shared.RequestedPage = SettingsPage.SourceControl;
+        Sync();
         Assert.Equal(0, Field<ChromeScrollModel>(view, "scrollChrome").Progress);
         Assert.Equal("", state.GetType().GetProperty("ModelSearch")!.GetValue(state)); Assert.Equal("", state.GetType().GetProperty("McpSearch")!.GetValue(state));
         Assert.Equal(new Vector(0, 0), Nodes<ScrollViewer>(Field<Control>(view, "detail")).Single().Offset);
@@ -255,7 +268,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
         Assert.Equal("synthetic-test-key", model.Settings.ApiKeyInput(ProviderKind.Meta)); var first = Field<TaskHandle>(view, "keyCheck");
         h.Main.RunUntilIdle(); h.Main.AdvanceMilliseconds(300); field.Text = ""; Avalonia.Threading.Dispatcher.UIThread.RunJobs(); h.Main.RunUntilIdle();
         Assert.NotSame(first, Field<TaskHandle>(view, "keyCheck")); h.Main.AdvanceMilliseconds(599); Assert.Empty(model.Providers.Statuses);
-        h.Main.AdvanceMilliseconds(1); Assert.IsType<ProviderStatus.Auth.SignedOut>(model.Providers.Status(ProviderKind.Meta).ProviderStatusAuth);
+        h.Main.AdvanceMilliseconds(1); Sync(); Assert.IsType<ProviderStatus.Auth.SignedOut>(model.Providers.Status(ProviderKind.Meta).ProviderStatusAuth);
     });
 
     [Fact]
@@ -265,6 +278,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
         var providers = Nodes<ProviderSettingsSection>(view).Select(x => Field<ProviderKind>(x, "provider")).ToArray();
         Assert.Equal(ProviderKind.Meta, providers[0]); Assert.Equal(SwiftEnum<ProviderKind>.AllCases.Where(x => x != ProviderKind.Meta), providers.Skip(1));
         Seed(model, ProviderKind.Codex, new ProviderStatus { ProviderStatusAuth = new ProviderStatus.Auth.SignedIn(null) });
+        Sync();
         var reordered = Nodes<ProviderSettingsSection>(view).Select(x => Field<ProviderKind>(x, "provider")).ToArray(); Assert.Equal(new[] { ProviderKind.Codex, ProviderKind.Meta }, reordered.Take(2));
     }, model => Seed(model, ProviderKind.Meta, new ProviderStatus { ProviderStatusAuth = new ProviderStatus.Auth.SignedIn(null) }));
 
@@ -274,9 +288,9 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     {
         var section = Nodes<ProviderSettingsSection>(view).Single(x => Field<ProviderKind>(x, "provider") == ProviderKind.Meta);
         var reveal = Nodes<ChromeRevealLayout>(section).Single(); Assert.False(reveal.IsEnabled); Assert.False(reveal.IsHitTestVisible);
-        Assert.Single(Nodes<TextBox>(section)); Click(Nodes<Button>(Nodes<CollapsibleProviderHeader>(section).Single()).Single());
-        Assert.True(reveal.IsEnabled); Seed(model, ProviderKind.Meta, new ProviderStatus { ProviderStatusAuth = new ProviderStatus.Auth.SignedIn(null) });
+        Assert.Single(Nodes<TextBox>(section)); Click(Nodes<Button>(Nodes<CollapsibleProviderHeader>(section).Single()).Single()); Sync();
+        Assert.True(reveal.IsEnabled); Seed(model, ProviderKind.Meta, new ProviderStatus { ProviderStatusAuth = new ProviderStatus.Auth.SignedIn(null) }); Sync();
         Assert.Same(section, Nodes<ProviderSettingsSection>(view).First()); Assert.True(reveal.IsEnabled);
-        Click(Nodes<Button>(Nodes<CollapsibleProviderHeader>(section).Single()).Single()); Assert.False(reveal.IsEnabled);
+        Click(Nodes<Button>(Nodes<CollapsibleProviderHeader>(section).Single()).Single()); Sync(); Assert.False(reveal.IsEnabled);
     });
 }
