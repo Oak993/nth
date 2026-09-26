@@ -563,9 +563,9 @@ public sealed partial record Git
                 var current = SwiftPath.AppendingPathComponent(scratch, "current");
                 var common = SwiftPath.AppendingPathComponent(scratch, "common");
                 var other = SwiftPath.AppendingPathComponent(scratch, "other");
-                File.WriteAllBytes(current, working!);
-                File.WriteAllBytes(common, ancestor);
-                File.WriteAllBytes(other, remote);
+                FileOps.WriteAtomic(current, working!);
+                FileOps.WriteAtomic(common, ancestor);
+                FileOps.WriteAtomic(other, remote);
                 // :331-333. Exit 0 is a clean merge written into `current`; above 0 counts conflicts. No GIT_INDEX_FILE
                 // override for this call (per source): merge-file works on the scratch files alone.
                 var mergeFile = await Run(["merge-file", "--quiet", "--", current, common, other]);
