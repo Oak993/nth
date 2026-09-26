@@ -57,6 +57,111 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     }
 
     private void WithSettings(Action<Control, AppModel, AppModelHarness> check) => WithView(() => new SettingsView(), check, _ => SettingsNavigation.Shared.RequestedPage = SettingsPage.Archive);
+    private static ChromeRow Row(Control view, string title) => Nodes<ChromeRow>(view).Single(row => Text(row).FirstOrDefault() == title);
+
+    // STOP App.Views.Settings.SettingsView #3
+    // Kind: dependency. Swift: SettingsView.swift:280,251-253. Records: PR-SETTINGS-027; PR-SETTINGS-028 (MCP branch).
+    // Missing: MCPSettingsPage(query) is MARROW_STUB in the assigned base. Needed: MCP unit implementation.
+    // The constructor call and query binding are retained; a live MCP page cannot be tested until it is ported.
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-022")] // App/Views/Settings/SettingsView.swift:218-229,270-272
+    [Trait("Req", "PR-SETTINGS-023")] // App/Views/Settings/SettingsView.swift:231-234,291-293
+    [Trait("Req", "PR-SETTINGS-024")] // App/Views/Settings/SettingsView.swift:242-267
+    [Trait("Req", "PR-SETTINGS-028")] // App/Views/Settings/SettingsView.swift:275-287
+    public void Models_page_has_60_top_inset_and_sticky_chrome_and_search_changes_preserve_page_identity() => WithSettings((view, _, _) =>
+    {
+        SettingsNavigation.Shared.RequestedPage = SettingsPage.Models; Sync();
+        var page = Assert.Single(Nodes<ModelsSettingsPage>(view));
+        var stack = Assert.IsType<StackPanel>(Field<Control>(view, "pageStack")); Assert.Equal(20, stack.Spacing); Assert.Equal(new Thickness(24, 60, 24, 24), stack.Margin);
+        var chrome = Nodes<StackPanel>(view).Single(x => x.MinHeight == 32); Assert.Equal(10, chrome.Spacing); Assert.Equal(new Thickness(14, 12, 14, 0), chrome.Margin);
+        var title = Assert.Single(Nodes<ChromeCompactTitle>(view)); Assert.Equal(15, Nodes<TextBlock>(title).Single().FontSize); Assert.Single(Nodes<PaneTopVeil>(view));
+        var query = Nodes<TextBox>(Field<Control>(view, "detail")).Single(x => x.PlaceholderText == "Search models"); query.Text = "nonexistent-model"; Sync(); Assert.Same(page, Assert.Single(Nodes<ModelsSettingsPage>(view)));
+        Field<ChromeScrollModel>(view, "scrollChrome").Update(27); Sync(); Assert.Equal(0.52, Field<ChromeScrollModel>(view, "scrollChrome").Progress, 10);
+        SettingsNavigation.Shared.RequestedPage = SettingsPage.SourceControl; Sync(); Assert.Empty(Nodes<ModelsSettingsPage>(view)); Assert.Equal(new Thickness(24, 22, 24, 24), Field<Control>(view, "pageStack").Margin);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-025")] // App/Views/Settings/SettingsView.swift:566-580
+    public void Provider_refresh_capsule_changes_enablement_and_exact_tooltip_with_registry_state() => WithView(() => new ProvidersRefreshButton(), (view, model, _) =>
+    {
+        Assert.Single(Nodes<ChromeCapsule>(view)); var button = Assert.Single(Nodes<Button>(view)); Assert.True(button.IsEnabled); Assert.Equal("Check providers again", ToolTip.GetTip(button));
+        typeof(ProviderRegistry).GetProperty("IsRefreshing")!.SetValue(model.Providers, true); Sync();
+        button = Assert.Single(Nodes<Button>(view)); Assert.False(button.IsEnabled); Assert.Equal("Checking providers\u2026", ToolTip.GetTip(button));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-026")] // App/Views/Settings/SettingsView.swift:296-305
+    public void Small_switch_has_no_label_and_reads_and_writes_its_binding() => WithView(() => new SettingsSwitch(Binding<bool>.Constant(false)), (view, _, _) => Assert.Empty(Text(view)));
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-102")] // App/Views/Settings/SettingsView.swift:431-435; UI/Chrome/WindowChrome.swift:255-257,368-371
+    public void Sidebar_starts_open_is_false_and_its_toggle_persists_the_width_too() => WithView(() => new Border(), (_, _, h) =>
+    {
+        var layout = new SidebarLayout(); Assert.False(layout.StartsOpen); h.Defaults.Writes.Clear(); layout.StartsOpen = true;
+        Assert.Equal(new[] { "sidebarWidth", "sidebarStartsOpen" }, h.Defaults.Writes);
+        Assert.True(h.Defaults.Bool("sidebarStartsOpen"));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-107")] // App/Views/Settings/SettingsView.swift:314-411
+    [Trait("Req", "PR-SETTINGS-108")] // App/Views/Settings/SettingsView.swift:319-321
+    [Trait("Req", "PR-SETTINGS-109")] // App/Views/Settings/SettingsView.swift:323-325
+    [Trait("Req", "PR-SETTINGS-110")] // App/Views/Settings/SettingsView.swift:327-331
+    [Trait("Req", "PR-SETTINGS-111")] // App/Views/Settings/SettingsView.swift:336-338
+    [Trait("Req", "PR-SETTINGS-112")] // App/Views/Settings/SettingsView.swift:340-342
+    [Trait("Req", "PR-SETTINGS-113")] // App/Views/Settings/SettingsView.swift:344-348
+    [Trait("Req", "PR-SETTINGS-114")] // App/Views/Settings/SettingsView.swift:350-352
+    [Trait("Req", "PR-SETTINGS-115")] // App/Views/Settings/SettingsView.swift:354-356
+    [Trait("Req", "PR-SETTINGS-116")] // App/Views/Settings/SettingsView.swift:358-364
+    [Trait("Req", "PR-SETTINGS-117")] // App/Views/Settings/SettingsView.swift:366-368
+    [Trait("Req", "PR-SETTINGS-118")] // App/Views/Settings/SettingsView.swift:370-372
+    [Trait("Req", "PR-SETTINGS-119")] // App/Views/Settings/SettingsView.swift:374-379
+    [Trait("Req", "PR-SETTINGS-120")] // App/Views/Settings/SettingsView.swift:382-392
+    [Trait("Req", "PR-SETTINGS-122")] // App/Views/Settings/SettingsView.swift:393-399
+    public void General_sections_and_all_rows_keep_source_order_labels_details_controls_and_defaults() => WithView(() => new GeneralSettingsPage(), (view, model, _) =>
+    {
+        var sections = Nodes<ChromeSection>(view).Where(section => Text(section).First() is "New threads" or "Conversation" or "Projects" or "Finished threads").ToArray();
+        Assert.Equal(new[] { "New threads", "Conversation", "Projects", "Finished threads" }, sections.Select(x => Text(x).First())); Assert.Single(Nodes<TokenActivitySection>(view));
+        Assert.Equal(new[] { "Provider and model", "Permissions", "Workspace" }, Nodes<ChromeRow>(sections[0]).Select(x => Text(x).First()));
+        Assert.Equal(new[] { "Show thinking", "Concise AI replies", "Working line", "Recent downloads", "Notify when a turn finishes", "Chime when a turn finishes", "Confirm before deleting threads", "Continue after a usage limit", "Show a usage panel" }, Nodes<ChromeRow>(sections[1]).Select(x => Text(x).First()));
+        Assert.Equal(new[] { "Projects", "Marks" }, Nodes<ChromeRow>(sections[2]).Select(x => Text(x).First())); Assert.Single(Nodes<ChromeRowDivider>(sections[2]));
+        foreach (var (title, detail) in new[] {
+            ("Provider and model", "A new thread follows the one you are in: its provider, model, effort and Hydra pair. With no thread open it starts on the provider you last chose."),
+            ("Workspace", "Where a new thread makes its changes"), ("Show thinking", "The working line opens to the agent's thinking"),
+            ("Concise AI replies", "Built-in guidance for shorter replies, useful code comments, and focused work, including Hydra heads. Changes apply on the next message."),
+            ("Working line", "A card with the turn's progress bar, or a plain line"), ("Recent downloads", "The attach button offers recent downloads first"),
+            ("Chime when a turn finishes", "A soft chime, whether or not the thread is in view"),
+            ("Continue after a usage limit", "When the provider's limit is spent, the chat waits for the reset and then tells the agent to carry on"),
+            ("Show a usage panel", "The plan's limits and credits in a floating panel beside every chat, for the model in use or a pair's two; the usage popover's pop-out button switches it on as well, and it keeps the corner it was last dragged to"),
+            ("Projects", "Activates every project at once unless explicitly overridden"), ("Marks", "An emoji or symbol for each project, drawn before the thread's name in the activity list and on the project's own row") }) Assert.Contains(detail, Text(Row(view, title)));
+        Assert.Empty(Nodes<Button>(Row(view, "Provider and model"))); Assert.Equal(new[] { "Notify when a turn finishes" }, Text(Row(view, "Notify when a turn finishes"))); Assert.Equal(new[] { "Confirm before deleting threads" }, Text(Row(view, "Confirm before deleting threads")));
+        Assert.Equal(new[] { "Card", "Line" }, Nodes<ChromeVisualTile>(Row(view, "Working line")).Select(x => Text(x).Last()));
+        Assert.False(model.Settings.ShowReasoning); Assert.True(model.Settings.AntiSlopEnabled); Assert.True(model.Settings.ShowsWorkingCard); Assert.True(model.Settings.RecentDownloadsPicker); Assert.True(model.Settings.NotifyWhenFinished); Assert.True(model.Settings.ConfirmBeforeDeleting); Assert.False(model.Settings.AutoContinueAfterLimit); Assert.False(model.Settings.ShowsUsagePanel); Assert.True(model.Settings.ProjectsEnabled);
+        foreach (var mode in SwiftEnum<RuntimeMode>.AllCases) { model.Settings.DefaultRuntimeMode = mode; Sync(); Assert.Contains(mode.Summary, Text(Row(view, "Permissions"))); }
+        model.Settings.ThreadFinishAction = ThreadFinishAction.Archive; Sync(); Assert.Contains("An archived thread leaves the sidebar for the Archive page", Text(Row(view, "Done with a thread")));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-121")] // App/Views/Settings/SettingsView.swift:1130-1154
+    public void Marks_edit_is_disabled_without_projects_and_opens_the_400_wide_list_in_library_order() => WithView(() => new ProjectMarksRow(), (view, model, h) =>
+    {
+        var presenter = new RecordingPresenter(); using var presentation = Presentation.Presenter.Override(presenter);
+        var edit = Button(view, "Edit"); Assert.False(edit.IsEnabled); Assert.Equal("Choose a mark for each project", ToolTip.GetTip(edit));
+        model.AddProject(SwiftURL.FileURLWithPath(h.NewFolder("One"))); model.AddProject(SwiftURL.FileURLWithPath(h.NewFolder("Two"))); Sync(); Assert.True(edit.IsEnabled); Click(edit); Sync();
+        var popup = presenter.Calls.Last(x => x.Presented).Popup; var list = Assert.IsType<StackPanel>(popup.Child); Assert.Equal(400, list.Width);
+        Assert.Equal(model.Projects.Select(x => x.Name), Nodes<ChromeRow>(list).Select(x => Text(x).First())); Assert.Single(Nodes<ChromeRowDivider>(list)); Assert.Equal(2, Nodes<ProjectIconButton>(list).Length);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-116")] // App/Views/Settings/SettingsView.swift:361-364
+    public void Finish_chime_previews_only_off_to_on_including_external_changes() => WithView(() => new GeneralSettingsPage(), (_, model, _) =>
+    {
+        var sound = new SettingsViewSoundRecorder(); using var output = SoundOutput.Current.Override(sound);
+        model.Settings.ChimeWhenFinished = false; Sync(); Assert.Equal(0, sound.Starts);
+        model.Settings.ChimeWhenFinished = true; Sync(); Assert.Equal(1, sound.Starts);
+        model.Settings.ChimeWhenFinished = false; Sync(); Assert.Equal(1, sound.Starts);
+    });
 
     [Fact]
     [Trait("Req", "PR-SETTINGS-005")] // App/Views/Settings/SettingsView.swift:4-32
