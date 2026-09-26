@@ -7,9 +7,9 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "IMPLEMENTED": 3107,
+      "IMPLEMENTED": 3113,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
-      "SPECIFIED": 794,
+      "SPECIFIED": 788,
       "RETIRED": 6,
       "DISCOVERED": 6
     },
@@ -31610,7 +31610,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep the asymmetry: the setup panel is idempotent per entry and only refocuses, while the key panel reopens the external page and rebuilds its content on every present.",
       "verification_method": "interaction test pressing Connect twice and asserting the browser page opens twice",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "69",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -31636,7 +31636,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A frameless, always-on-top, non-activating utility window on all virtual desktops with no window controls, sized to content with a 100-point floor and placed at the working area's top right with a 24-point inset. Windows will not shape the window shadow to the content's alpha, so the rounded card needs its own shadow. Non-activation per ED-063: WS_EX_NOACTIVATE with MA_NOACTIVATE is not enough because Avalonia calls SetFocus on the panel, so a thread-local WH_CBT hook refuses activation for the panel HWND; the host keeps activation and keyboard input reaches the panel's focused field (MCPKeyPanel.swift:41, MCPSetupPanel.swift:66 styleMask includes .nonactivatingPanel).",
       "verification_method": "capture comparison of both panels at a known screen size",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -31662,7 +31662,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same Escape-to-close on both panels. If the port gives the panels a native close affordance, it must route through the same close path or the key handler leaks.",
       "verification_method": "interaction test pressing Escape with each panel open",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -31687,7 +31687,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Verbatim strings and the same lowercasing of the first field's label.",
       "verification_method": "interaction test on github (three steps), gitlab (two, OAuth wording) and a custom server",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -31714,7 +31714,7 @@
       "cancellation": "the picker is cancellable and then does nothing",
       "windows_path": "Same per-kind controls and the same id-specific folders-versus-files rule, which is keyed on the literal \"filesystem\".",
       "verification_method": "interaction test on filesystem and on sqlite",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -31741,7 +31741,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two labels, the same disabled rule and the same close-immediately behavior.",
       "verification_method": "interaction test asserting the panel closes before the probe finishes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
