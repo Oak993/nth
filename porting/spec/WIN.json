@@ -54,8 +54,9 @@
       "preconditions": "Process launch.",
       "action": "The application initializer runs.",
       "expected_result": "In this exact order: the notification guard is installed, SIGPIPE is ignored, the capture run prepares, the legacy migration runs, the hang watchdog starts, and the switch-latency log starts. The ordering is load-bearing: the migration must run before anything reads settings or the library.",
-      "windows_path": "Three of the six steps are NOT ported: DCInstallNotificationGuard (an AppKit NSNotificationCenter exception net, dead_code.md entry 41) and signal(SIGPIPE, SIG_IGN) (Windows reports a broken pipe on the write call itself, platform_adaptations.md PA-0004) are macOS-only, and WebsiteCaptures.prepare() returns at once unless the process was launched with a capture flag (DroppyCode/App/Captures/WebsiteCaptures.swift:84-85; porting/dead_code.md:65 entry 28, :85 entry 38, :97 entry 44), so it is NOT_APPLICABLE_WITH_EVIDENCE under ED-061 and ED-001 decides the capture subsystem is not ported. The ordering constraint for the remaining steps stands: migration before any settings or library read.",
-      "verification_method": "unit: startup order assertion; the three dropped steps are recorded as NOT_APPLICABLE_WITH_EVIDENCE"
+      "windows_path": "Three of the six steps are NOT ported: DCInstallNotificationGuard (an AppKit NSNotificationCenter exception net, dead_code.md entry 41) and signal(SIGPIPE, SIG_IGN) (Windows reports a broken pipe on the write call itself, platform_adaptations.md PA-0004) are macOS-only, and WebsiteCaptures.prepare() returns at once unless the process was launched with a capture flag (DroppyCode/App/Captures/WebsiteCaptures.swift:76-77; porting/dead_code.md entries 28, 38 and 44, renumbered for the B3 shift), so it is NOT_APPLICABLE_WITH_EVIDENCE under ED-061 and ED-001 decides the capture subsystem is not ported. The ordering constraint for the remaining steps stands: migration before any settings or library read.",
+      "verification_method": "unit: startup order assertion; the three dropped steps are recorded as NOT_APPLICABLE_WITH_EVIDENCE",
+      "b3_note": "Citation only: WebsiteCaptures.swift deletes its five CaptureRun-forwarding properties and calls CaptureRun.* directly; the prepare() guard this record cites moves from B2 :84-85 to B3 :76-77 with the same shape and truth condition."
     },
     {
       "side_effects": [],
@@ -1077,14 +1078,16 @@
       "title": "The sidebar resize strip is 9 points wide and shows a column-resize cursor while it is active",
       "source_evidence": [
         "DroppyCode/UI/Chrome/WindowChrome.swift:376-377 `static let hitWidth: CGFloat = 9` and the doc comment 'The grab strip on the sidebar edge. AppKit gives it a real resize cursor and first-click tracking.'",
-        "DroppyCode/UI/Chrome/WindowChrome.swift:524-528 resetCursorRects: `guard isActive else { return }; addCursorRect(bounds, cursor: .columnResize)`",
+        "DroppyCode/UI/Chrome/WindowChrome.swift:394-395 `cursor: .columnResize, isActive: isActive` - the SidebarResizeHandle's own DragHandle configuration",
+        "DroppyCode/UI/Chrome/DragHandle.swift:188-192 resetCursorRects: `guard isActive else { return }; addCursorRect(bounds, cursor: cursor)`",
         "DroppyCode/App/Views/RootView.swift:29 and :61 `.frame(width: SidebarResizeHandle.hitWidth)`"
       ],
       "preconditions": "The strip is active.",
       "action": "The pointer moves over the strip.",
       "expected_result": "A 9-point wide grab region shows the horizontal column-resize cursor. An inactive strip registers no cursor rect at all.",
       "windows_path": "A 9-logical-pixel hit region with IDC_SIZEWE. The region overlaps the caption band, so its WM_NCHITTEST/WM_SETCURSOR handling must win over the caption (PR-WIN-053).",
-      "verification_method": "interaction test: cursor shape over the strip in both active and inactive states"
+      "verification_method": "interaction test: cursor shape over the strip in both active and inactive states",
+      "b3_note": "Citation only: resetCursorRects moves from WindowChrome.swift (B2 :524-528) into the shared UI.Chrome.DragHandle (N8) at DragHandle.swift:188-192. WindowChrome.swift keeps only hitWidth (:377) and the SidebarResizeHandle configuration (cursor: .columnResize, :394); the mechanism, cursor value and hitWidth are unchanged."
     },
     {
       "side_effects": [],
@@ -1098,16 +1101,18 @@
       "id": "PR-WIN-050",
       "title": "The strip's grip bar is 2.5 by 10 points at rest and 2.5 by 22 while hovered or dragged, at 0.6 opacity",
       "source_evidence": [
-        "DroppyCode/UI/Chrome/WindowChrome.swift:416-425 Grip: width = 2.5, restHeight = 10, shownHeight = 22, alpha = 0.6, hoverGlow = 0.05, dragGlow = 0.10, duration = 0.18, verticalInset = Chrome.trafficLightTop + Chrome.trafficLightDiameter",
-        "DroppyCode/UI/Chrome/WindowChrome.swift:446-447 gripLayer.cornerRadius = Grip.width / 2; gripLayer.opacity = 0",
-        "DroppyCode/UI/Chrome/WindowChrome.swift:497-507 updateGrip: `let height = showsGrip ? Grip.shownHeight : Grip.restHeight`; gripLayer.frame = CGRect(x: (bounds.width - Grip.width) / 2, y: (bounds.height - height) / 2, width: Grip.width, height: height); gripLayer.opacity = showsGrip ? Grip.alpha : 0",
-        "DroppyCode/UI/Chrome/WindowChrome.swift:484 `private var showsGrip: Bool { isActive && (isHovering || isDragging) }`"
+        "DroppyCode/UI/Chrome/WindowChrome.swift:387-393 SidebarResizeHandle's grip configuration: `DragHandleView.Grip(restLength: 10, shownLength: 22, thickness: 2.5, glowInset: ..., refreshesHoverOnLayout: true)` - alpha, hoverGlow and dragGlow are left at the Grip struct's own defaults (0.6, 0.05, 0.10)",
+        "DroppyCode/UI/Chrome/DragHandle.swift:18-30 Grip struct - restLength, shownLength, thickness, alpha default 0.6, glowInset, refreshesHoverOnLayout, hoverGlow default 0.05, dragGlow default 0.10",
+        "DroppyCode/UI/Chrome/DragHandle.swift:58-61 Metrics - glowRadius 4, duration 0.18",
+        "DroppyCode/UI/Chrome/DragHandle.swift:153-181 updateGrip(animated:): `let length = showsGrip ? grip.shownLength : grip.restLength`; `gripLayer.cornerRadius = grip.thickness / 2`; for `.horizontal` axis, `gripLayer.frame = CGRect(x: (bounds.width - thickness) / 2, y: (bounds.height - length) / 2, width: thickness, height: length)`; `gripLayer.opacity = showsGrip ? grip.alpha : 0`",
+        "DroppyCode/UI/Chrome/DragHandle.swift:140 `private var showsGrip: Bool { isActive && (isHovering || isDragging) }`"
       ],
       "preconditions": "The strip is in a window.",
       "action": "The pointer enters or leaves the strip, or a drag starts or ends.",
       "expected_result": "The grip is a rounded bar 2.5 points wide with a corner radius of 1.25, horizontally centred in the strip and vertically centred in its full height. It is 10 points tall and fully transparent at rest, and 22 points tall at 0.6 opacity while the strip is active and either hovered or dragged. It is drawn in the system label color resolved in the view's effective appearance.",
       "windows_path": "Same literals. The label color maps to the port's chosen primary text color (port_impacts.md entry 189, X7: every fill in this family derives from the label color by opacity).",
-      "verification_method": "capture comparison at rest and hovered"
+      "verification_method": "capture comparison at rest and hovered",
+      "b3_note": "Citation only: the Grip struct, showsGrip and updateGrip move from WindowChrome.swift (B2 :416-425, :446-447, :484, :497-507) into the shared UI.Chrome.DragHandle (N8) at DragHandle.swift:18-30, :58-61, :140, :153-181; alpha/hoverGlow/dragGlow become overridable defaults that happen to equal Sidebar's own B2 literals exactly, so nothing observable changes for Sidebar. WindowChrome.swift keeps only the 10/22/2.5 dimensions at :387-393."
     },
     {
       "side_effects": [],
@@ -1121,16 +1126,17 @@
       "id": "PR-WIN-051",
       "title": "The strip's glow panel starts 30 points down and is 0.05 opaque on hover, 0.10 while dragging",
       "source_evidence": [
-        "DroppyCode/UI/Chrome/WindowChrome.swift:424 `static let verticalInset = Chrome.trafficLightTop + Chrome.trafficLightDiameter`",
-        "DroppyCode/UI/Chrome/WindowChrome.swift:448-449 glowLayer.cornerRadius = 4; glowLayer.opacity = 0",
-        "DroppyCode/UI/Chrome/WindowChrome.swift:508-514 glowLayer.frame = CGRect(x: bounds.minX + 0.5, y: Grip.verticalInset, width: max(0, bounds.width - 1), height: max(0, bounds.height - Grip.verticalInset)); glowLayer.opacity = showsGrip ? (isDragging ? Grip.dragGlow : Grip.hoverGlow) : 0",
+        "DroppyCode/UI/Chrome/WindowChrome.swift:391 `glowInset: Chrome.trafficLightTop + Chrome.trafficLightDiameter` - SidebarResizeHandle's own grip configuration",
+        "DroppyCode/UI/Chrome/DragHandle.swift:84-85 configureLayers: `glowLayer.cornerRadius = Metrics.glowRadius; glowLayer.opacity = 0`",
+        "DroppyCode/UI/Chrome/DragHandle.swift:174-179 updateGrip(animated:), the `if let inset = grip.glowInset` branch: `glowLayer.frame = CGRect(x: bounds.minX + 0.5, y: inset, width: max(0, bounds.width - 1), height: max(0, bounds.height - inset)); glowLayer.opacity = showsGrip ? (isDragging ? grip.dragGlow : grip.hoverGlow) : 0`",
         "DroppyCode/UI/Chrome/Chrome.swift:18-19 trafficLightTop 16 + trafficLightDiameter 14 = 30"
       ],
       "preconditions": "The strip is active.",
       "action": "The pointer hovers the strip, then presses and drags.",
-      "expected_result": "A rounded panel with a 4-point radius, inset half a point from the leading edge and a whole point narrower than the strip, starting exactly 30 points below the strip's top and running to its bottom. It is invisible at rest, 0.05 opaque while hovered, and 0.10 opaque while dragged. Both width and height are floored at zero so a degenerate bounds never produces a negative size.",
+      "expected_result": "A rounded panel with a 4-point radius, inset half a point from the leading edge and a whole point narrower than the strip, starting exactly 30 points below the strip's top and running to its bottom. It is invisible at rest, 0.05 opaque while hovered, and 0.10 opaque while dragged. Both width and height are floored at zero so a degenerate bounds never produces a negative size. Terminal's own DragHandle passes no glowInset, so it never shows this glow at all (TERM area).",
       "windows_path": "Same literals, same 30-point top inset derived from the window-button metrics so the glow never runs up behind the buttons.",
-      "verification_method": "capture comparison in all three states"
+      "verification_method": "capture comparison in all three states",
+      "b3_note": "Citation only: the glow layer's geometry and opacity move from WindowChrome.swift (B2 :424, :448-449, :508-514) into the shared UI.Chrome.DragHandle (N8) at DragHandle.swift:84-85, :174-179, gated on an optional `glowInset` only Sidebar's configuration sets. Metrics.glowRadius (4) lives at DragHandle.swift:59."
     },
     {
       "side_effects": [],
@@ -1144,15 +1150,16 @@
       "id": "PR-WIN-052",
       "title": "The grip and glow animate over 0.18 seconds ease-out, or snap when the change is not a hover change",
       "source_evidence": [
-        "DroppyCode/UI/Chrome/WindowChrome.swift:497-516 updateGrip(animated:): `CATransaction.begin(); if animated { CATransaction.setAnimationDuration(Grip.duration); CATransaction.setAnimationTimingFunction(CAMediaTimingFunction(name: .easeOut)) } else { CATransaction.setDisableActions(true) }` ... `CATransaction.commit()`",
-        "DroppyCode/UI/Chrome/WindowChrome.swift:468-476 layout(): `let hovered = isHovering; refreshHover(); updateGrip(animated: hovered != isHovering)`",
-        "DroppyCode/UI/Chrome/WindowChrome.swift:478-482 viewDidMoveToWindow uses animated: false; :407-414 the isActive didSet uses animated: false; :534-551 mouseDown and mouseUp use animated: true"
+        "DroppyCode/UI/Chrome/DragHandle.swift:153-166 updateGrip(animated:): `CATransaction.begin(); if animated { CATransaction.setAnimationDuration(Metrics.duration); CATransaction.setAnimationTimingFunction(CAMediaTimingFunction(name: .easeOut)) } else { CATransaction.setDisableActions(true) }` ... (commit at :180)",
+        "DroppyCode/UI/Chrome/DragHandle.swift:116-125 layout(): for a grip with refreshesHoverOnLayout true (Sidebar's own), `let hovered = isHovering; refreshHover(); updateGrip(animated: hovered != isHovering)`; otherwise (Terminal's own) `updateGrip(animated: false)` unconditionally",
+        "DroppyCode/UI/Chrome/DragHandle.swift:127-138 viewDidMoveToWindow uses animated: false; :49-56 the isActive didSet uses animated: false; :198-232 mouseDown, the isDragging-starting branch of mouseDragged, and mouseUp all use animated: true; :247-255 mouseEntered and mouseExited also use animated: true"
       ],
       "preconditions": "The strip is in a window.",
       "action": "Any of: a layout pass, entering a window, the active flag flipping, a mouse enter or exit, a press, or a release.",
-      "expected_result": "The grip and glow animate over exactly 0.18 seconds on an ease-out curve when the change came from a hover change, a press or a release, and snap with animations disabled when it came from a layout pass that did not change the hover state, from entering a window, or from the active flag flipping. This duration has no Reduce Motion branch.",
-      "windows_path": "Same duration, same curve, same six trigger sites with the same animated/unanimated split.",
-      "verification_method": "unit: the animated flag per trigger site"
+      "expected_result": "The grip and glow animate over exactly 0.18 seconds on an ease-out curve when the change came from a hover change, a press or a release, and snap with animations disabled when it came from a layout pass that did not change the hover state (or, for a grip like Terminal's whose refreshesHoverOnLayout is false, from any layout pass at all), from entering a window, or from the active flag flipping. This duration has no Reduce Motion branch.",
+      "windows_path": "Same duration, same curve, same trigger sites with the same animated/unanimated split.",
+      "verification_method": "unit: the animated flag per trigger site, for a refreshesHoverOnLayout-true grip (Sidebar) and a refreshesHoverOnLayout-false one (Terminal)",
+      "b3_note": "Citation only: updateGrip, layout(), viewDidMoveToWindow, the isActive didSet, and the mouse handlers move from WindowChrome.swift (B2 :497-516, :468-476, :478-482, :407-414, :534-551) into the shared UI.Chrome.DragHandle (N8), which also generalises layout()'s behaviour behind the new refreshesHoverOnLayout flag (true for Sidebar, matching B2 exactly; false for Terminal, which never had this layout-driven re-check at B2 either)."
     },
     {
       "side_effects": [],
@@ -1166,14 +1173,15 @@
       "id": "PR-WIN-053",
       "title": "Pressing the resize strip never moves the window, even though the strip runs through the title bar",
       "source_evidence": [
-        "DroppyCode/UI/Chrome/WindowChrome.swift:518-522 `override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }` and, with the comment 'The strip's top runs through the title bar, where AppKit moves the window for any view that lets it; a press on the grip resizes the sidebar and nothing else.', `override var mouseDownCanMoveWindow: Bool { false }`",
+        "DroppyCode/UI/Chrome/DragHandle.swift:183 `override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }` and :186 `override var mouseDownCanMoveWindow: Bool { false }` - 'The drag owns the press, so the window never moves with it.'",
         "DroppyCode/App/Views/RootView.swift:30 and :62 `.padding(.top, Chrome.trafficLightTop + Chrome.trafficLightDiameter)` - the strip starts 30 points down but still overlaps the 44-point title bar band"
       ],
       "preconditions": "The window may be inactive.",
       "action": "The user presses the strip, including as the click that activates the window.",
       "expected_result": "The press begins a sidebar resize. It never moves the window, even in the 30-to-44 point band where the strip overlaps the title bar. A first click on an inactive window both activates the window and starts the resize; it is not swallowed by the activation.",
       "windows_path": "The strip's hit region must return a client hit rather than HTCAPTION inside the caption band, and must act on the activating click rather than swallowing it (the opposite of the default, which eats the activating click).",
-      "verification_method": "interaction test: from an inactive window, one click-drag on the strip resizes the sidebar"
+      "verification_method": "interaction test: from an inactive window, one click-drag on the strip resizes the sidebar",
+      "b3_note": "Citation only: acceptsFirstMouse and mouseDownCanMoveWindow move from WindowChrome.swift (B2 :518-522) into the shared UI.Chrome.DragHandle (N8) at DragHandle.swift:183, :186; both return the same fixed values for every DragHandle, including Sidebar's."
     },
     {
       "side_effects": [],
@@ -1187,16 +1195,17 @@
       "id": "PR-WIN-054",
       "title": "The strip is fully inert when inactive: no cursor, no hover, no hit",
       "source_evidence": [
-        "DroppyCode/UI/Chrome/WindowChrome.swift:407-414 the isActive didSet: invalidates cursor rects, refreshes hover, updates the grip unanimated",
-        "DroppyCode/UI/Chrome/WindowChrome.swift:488-495 refreshHover: `guard isActive, let window, !isHiddenOrHasHiddenAncestor else { isHovering = false; return }`",
-        "DroppyCode/UI/Chrome/WindowChrome.swift:526 resetCursorRects guards on isActive; :530-532 `override func hitTest(_ point: NSPoint) -> NSView? { isActive ? super.hitTest(point) : nil }`",
+        "DroppyCode/UI/Chrome/DragHandle.swift:49-56 the isActive didSet: invalidates cursor rects, refreshes hover, updates the grip unanimated",
+        "DroppyCode/UI/Chrome/DragHandle.swift:144-151 refreshHover: `guard isActive, let window, !isHiddenOrHasHiddenAncestor else { isHovering = false; return }`",
+        "DroppyCode/UI/Chrome/DragHandle.swift:188-192 resetCursorRects guards on isActive; :194-196 `override func hitTest(_ point: NSPoint) -> NSView? { isActive ? super.hitTest(point) : nil }`",
         "DroppyCode/App/Views/RootView.swift:24 trailing strip isActive: `!onlyFloats && sidebar.isVisible`; :58 leading strip isActive: `!onlyFloats && !sidebar.isVisible`"
       ],
       "preconditions": "Exactly one of the two strips is active at a time, and neither is active when the sidebar only floats.",
       "action": "The pointer moves over or presses an inactive strip.",
       "expected_result": "Nothing happens: no cursor change, no hover state, and the press reaches whatever is behind the strip. The trailing strip (on the sidebar's own edge) is active only while the sidebar is visible; the leading strip (on the window's leading edge, which pulls the sidebar back out) is active only while it is hidden; with the sidebar set to float only, neither is active.",
       "windows_path": "Two mutually exclusive hit regions with the same three-way activation rule; an inactive region is excluded from hit testing entirely rather than merely ignoring events.",
-      "verification_method": "interaction test across all three sidebar modes"
+      "verification_method": "interaction test across all three sidebar modes",
+      "b3_note": "Citation only: the isActive didSet, refreshHover, resetCursorRects and hitTest move from WindowChrome.swift (B2 :407-414, :488-495, :526, :530-532) into the shared UI.Chrome.DragHandle (N8, DragHandle.swift). Sidebar's own isActive wiring at RootView.swift is unchanged."
     },
     {
       "side_effects": [],
@@ -1210,15 +1219,18 @@
       "id": "PR-WIN-055",
       "title": "Sidebar drag deltas are measured from the press point, and the release sends one final delta before ending",
       "source_evidence": [
-        "DroppyCode/UI/Chrome/WindowChrome.swift:534-539 mouseDown: `pressOriginX = event.locationInWindow.x; isDragging = true; updateGrip(animated: true); onBegin?()`",
-        "DroppyCode/UI/Chrome/WindowChrome.swift:541-543 mouseDragged: `onChange?(event.locationInWindow.x - pressOriginX)`",
-        "DroppyCode/UI/Chrome/WindowChrome.swift:545-552 mouseUp: `onChange?(event.locationInWindow.x - pressOriginX)` first, then isDragging = false, then onEnd?(), then refreshHover() and updateGrip(animated: true), with the comment 'No exit arrives while the button is held; the release decides from the cursor.'"
+        "DroppyCode/UI/Chrome/DragHandle.swift:198-208 mouseDown: `pressOrigin = event.locationInWindow`; Sidebar's slop is the default 0, so `isDragging = true; updateGrip(animated: true); onBegin?()` run unconditionally on press",
+        "DroppyCode/UI/Chrome/DragHandle.swift:210-220 mouseDragged: once dragging, `onChange?(travel)` on every move",
+        "DroppyCode/UI/Chrome/DragHandle.swift:222-232 mouseUp: `isDragging = false`; pop dragCursor if set (Sidebar passes none); `onChange?(travel)`, THEN `onEnd?()`, then `refreshHover()` and `updateGrip(animated: true)`",
+        "DroppyCode/UI/Chrome/DragHandle.swift:259-266 travel(to:) for `.horizontal` - `CGSize(width: point.x - pressOrigin.x, height: 0)`",
+        "DroppyCode/UI/Chrome/WindowChrome.swift:397 `onChange: { onChange($0.width) }` - Sidebar's wrapper takes only the width component"
       ],
       "preconditions": "The strip is active.",
       "action": "The user presses, drags and releases.",
       "expected_result": "The press records the x coordinate in window space and begins the drag. Every move reports the signed difference from that origin. The release reports the final difference BEFORE ending the drag, so the settle decision in endDrag sees the true release position, then ends the drag, then re-reads the real cursor position and animates the grip accordingly.",
       "windows_path": "Same order on button-up: report the final delta, then end. Ending first loses the last few pixels of the gesture. Capture the mouse for the duration so moves outside the strip still report.",
-      "verification_method": "unit: the ordering of the final onChange and onEnd; interaction test with a fast release"
+      "verification_method": "unit: the ordering of the final onChange and onEnd; interaction test with a fast release",
+      "b3_note": "Citation only: mouseDown/mouseDragged/mouseUp move from WindowChrome.swift (B2 :534-539, :541-543, :545-552) into the shared UI.Chrome.DragHandle (N8), with the axis-aware travel(to:) helper computing the same point.x - pressOrigin.x for a .horizontal handle. Same order and semantics as TERM's PR-TERM-013/-014/-015 for the .vertical case."
     },
     {
       "side_effects": [],
@@ -1232,15 +1244,16 @@
       "id": "PR-WIN-056",
       "title": "The strip re-reads the real cursor position rather than trusting enter and exit events",
       "source_evidence": [
-        "DroppyCode/UI/Chrome/WindowChrome.swift:486-495 refreshHover: `let point = convert(window.mouseLocationOutsideOfEventStream, from: nil); isHovering = bounds.contains(point)` with the comment 'Reads the cursor's actual place, so isHovering never outlives the cursor being over the strip; the entered/exited pair only keeps it true while the mouse itself moves.'",
-        "DroppyCode/UI/Chrome/WindowChrome.swift:468-476 layout() comment 'The strip moves with the sidebar's edge: a toggle, or a release that springs the width back, carries it out from under a resting cursor, and AppKit only reports enter and exit for the mouse moving. Each new frame asks where the cursor is now.'",
-        "DroppyCode/UI/Chrome/WindowChrome.swift:554-560 updateTrackingAreas: `NSTrackingArea(rect: .zero, options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect], owner: self, userInfo: nil)`, replacing any previous area"
+        "DroppyCode/UI/Chrome/DragHandle.swift:142-151 refreshHover: `let point = convert(window.mouseLocationOutsideOfEventStream, from: nil); isHovering = bounds.contains(point)` with the comment 'Reads the cursor's actual place, so isHovering never outlives the cursor being over the strip; the entered/exited pair only keeps it true while the mouse itself moves.'",
+        "DroppyCode/UI/Chrome/DragHandle.swift:116-125 layout(): re-reads hover only for a grip whose refreshesHoverOnLayout is true (Sidebar's own is), because the strip moves with the sidebar's edge and AppKit only reports enter and exit for the mouse itself moving",
+        "DroppyCode/UI/Chrome/DragHandle.swift:234-245 updateTrackingAreas: `NSTrackingArea(rect: .zero, options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect], owner: self, userInfo: nil)`, replacing any previous area"
       ],
       "preconditions": "The strip is active and in a window.",
       "action": "The sidebar is toggled, or a release springs the width back, so the strip moves out from under a stationary cursor.",
       "expected_result": "On each layout pass, on entering a window and on mouse-up, the hover state is recomputed from the cursor's actual position rather than left as the last enter/exit event said. The tracking region always follows the visible bounds and is always active, whether or not the app is frontmost.",
       "windows_path": "Poll the cursor position on layout rather than relying on WM_MOUSELEAVE, which does not fire when the element moves out from under a stationary pointer. Track hover while the app is in the background too.",
-      "verification_method": "interaction test: rest the pointer on the strip, toggle the sidebar with the keyboard, assert the grip retracts"
+      "verification_method": "interaction test: rest the pointer on the strip, toggle the sidebar with the keyboard, assert the grip retracts",
+      "b3_note": "Citation only: refreshHover, layout()'s re-check and updateTrackingAreas move from WindowChrome.swift (B2 :486-495, :468-476, :554-560) into the shared UI.Chrome.DragHandle (N8), gated for the layout case behind the new refreshesHoverOnLayout flag (true for Sidebar, matching B2's always-on behaviour)."
     },
     {
       "side_effects": [],
@@ -1254,15 +1267,16 @@
       "id": "PR-WIN-057",
       "title": "The strip's grip and glow follow the light and dark appearance",
       "source_evidence": [
-        "DroppyCode/UI/Chrome/WindowChrome.swift:455-461 applyColors: `effectiveAppearance.performAsCurrentDrawingAppearance { let color = NSColor.labelColor.cgColor; gripLayer.backgroundColor = color; glowLayer.backgroundColor = color }`",
-        "DroppyCode/UI/Chrome/WindowChrome.swift:463-466 viewDidChangeEffectiveAppearance calls applyColors again",
-        "DroppyCode/UI/Chrome/WindowChrome.swift:450-452 the glow layer is added first and the grip second, so the grip draws on top"
+        "DroppyCode/UI/Chrome/DragHandle.swift:91-97 applyColors: `effectiveAppearance.performAsCurrentDrawingAppearance { let color = NSColor.labelColor.cgColor; gripLayer.backgroundColor = color; glowLayer.backgroundColor = color }`",
+        "DroppyCode/UI/Chrome/DragHandle.swift:99-102 viewDidChangeEffectiveAppearance calls applyColors again",
+        "DroppyCode/UI/Chrome/DragHandle.swift:87-88 the glow layer is added first and the grip second, so the grip draws on top"
       ],
       "preconditions": "The strip exists.",
       "action": "The appearance changes, from a theme change or from the system.",
       "expected_result": "Both layers are repainted in the label color resolved for the new appearance. The layers hold resolved colors rather than dynamic ones, which is why the explicit re-resolve on appearance change is required. The glow is beneath the grip.",
       "windows_path": "Layer-backed fills must be re-resolved on a theme or system light/dark change; a cached brush that is not invalidated reproduces the bug this override prevents.",
-      "verification_method": "interaction test: switch theme with the pointer hovering the strip"
+      "verification_method": "interaction test: switch theme with the pointer hovering the strip",
+      "b3_note": "Citation only: applyColors, viewDidChangeEffectiveAppearance and the layer-add order move from WindowChrome.swift (B2 :455-461, :463-466, :450-452) into the shared UI.Chrome.DragHandle (N8) at DragHandle.swift:91-97, :99-102, :87-88, now also used by Terminal's grip (whose glow stays invisible, having no glowInset)."
     },
     {
       "side_effects": [],
@@ -1520,7 +1534,8 @@
       "action": "Launch finishes.",
       "expected_result": "In this order: the user-notification delegate is installed, the main window is shown, the launch thread is opened, the first-run tour gate is evaluated, the model bootstrap starts asynchronously, background update checks start, and finally the relaunch-after-install branch runs. The window is shown before the bootstrap, so the first frame does not wait on it.",
       "windows_path": "Same order. The user-notification delegate maps to the Windows toast activation callback, which must be registered before the window is shown so an activation that launched the process is not lost.",
-      "verification_method": "interaction test: cold launch shows a window before any network call completes"
+      "verification_method": "interaction test: cold launch shows a window before any network call completes",
+      "b3_note": "B3 adds two new steps ahead of this sequence, inside the same :9-33 range: a memory-only URLCache reconfiguration and MarkdownDelegationCard.render's registration (LAUNCH area, AppDelegate.swift:14; see PR-THEME-108). Neither changes the relative order of the steps this record already describes."
     },
     {
       "side_effects": [],
@@ -1534,7 +1549,7 @@
       "id": "PR-WIN-069",
       "title": "A capture run shows no window and returns early from launch",
       "source_evidence": [
-        "DroppyCode/App/AppDelegate.swift:12-15 `if WebsiteCaptures.isEnabled { Task { await WebsiteCaptures.run(model: windows.model) }; return }`",
+        "DroppyCode/App/AppDelegate.swift:18-21 `if CaptureRun.isEnabled { Task { await WebsiteCaptures.run(model: windows.model) }; return }`",
         "porting/dead_code.md entries 28, 38 and 42: the capture subsystem is shipped but reachable only with the launch arguments --website-captures <folder> or --tour-captures <folder>, which nothing in the app writes"
       ],
       "preconditions": "The process was launched with a capture flag, which no user launch does.",
@@ -1542,7 +1557,8 @@
       "expected_result": "The capture run starts and launch returns immediately: no main window, no launch thread, no tour, no bootstrap, no update checks.",
       "windows_path": "Not ported: NOT_APPLICABLE_WITH_EVIDENCE under ED-061 (porting/dead_code.md entries 28, 33, 38 and 42); ED-001 decides the capture subsystem and the CaptureRun indirection are not ported, so the port's launch has no capture branch and always takes the normal path (PR-WIN-068).",
       "verification_method": "code review and Gate C scan: the Windows tree contains no capture-run code (no --website-captures or --tour-captures handling, no CaptureRun, WebsiteCaptures or TourCaptures identifier)",
-      "not_applicable": "ED-061: this behaviour runs only in a capture run, which needs the launch argument '--website-captures <folder>' or '--tour-captures <folder>' that nothing in a user launch supplies (porting/dead_code.md:65 entry 28, :75 entry 33, :85 entry 38, :93 entry 42; DroppyCode/Core/Support/CaptureRun.swift:10-19, :27; DroppyCode/App/AppDelegate.swift:12-15). ED-001 decides the port does not port the capture subsystem or the CaptureRun indirection. Dead code is neither implemented nor counted as missing."
+      "not_applicable": "ED-061: this behaviour runs only in a capture run, which needs the launch argument '--website-captures <folder>' or '--tour-captures <folder>' that nothing in a user launch supplies (porting/dead_code.md:65 entry 28, :75 entry 33, :85 entry 38, :93 entry 42; DroppyCode/Core/Support/CaptureRun.swift:10-19, :27; DroppyCode/App/AppDelegate.swift:18-21). ED-001 decides the port does not port the capture subsystem or the CaptureRun indirection. Dead code is neither implemented nor counted as missing.",
+      "b3_note": "Citation only: AppDelegate.swift gains 6 lines ahead of this check (an import and the two new steps PR-WIN-068's b3_note and PR-THEME-108 describe), and the checked identifier renames from WebsiteCaptures.isEnabled (already `{ CaptureRun.isEnabled }` at B2) to CaptureRun.isEnabled directly, proven behaviourally identical. B2 :12-15 -> B3 :18-21."
     },
     {
       "side_effects": [],
@@ -1964,21 +1980,26 @@
       "blocked_by": null,
       "depends_on_unknown": null,
       "id": "PR-WIN-087",
-      "title": "The copy-command button shows the command in monospace and flips to \"Copied\" for 1.4 seconds",
+      "title": "RETIRED: the copy-command button showed the command in monospace and flipped to \"Copied\" for 1.4 seconds",
       "source_evidence": [
-        "DroppyCode/App/Views/RootView.swift:424-451 CopyCommandButton: `NSPasteboard.general.clearContents(); NSPasteboard.general.setString(command, forType: .string); didCopy = true`, then, with the comment 'Back to the command after a beat, the way the transcript's copy button goes back to its mark; it used to read \"Copied\" for the rest of the launch.', `Task { try? await Task.sleep(for: .seconds(1.4)); didCopy = false }`; the label is `Image(systemName: didCopy ? \"checkmark\" : \"terminal\").font(.system(.footnote))` and `Text(verbatim: didCopy ? \"Copied\" : command).font(.system(.subheadline, design: .monospaced))` in an HStack(spacing: 4) held to `.frame(height: Chrome.rowButtonLabelHeight)`, `.buttonStyle(.glass)`, `.help(\"Copy the sign-in command, then run it in Terminal\")`",
-        "DroppyCode/UI/Chrome/Chrome.swift:67 rowButtonLabelHeight = 16"
+        "DroppyCode/App/Views/RootView.swift:423-424 (B3 pin 52bc7926) - CopyCommandButton is gone; grep over RootView.swift finds no declaration and no reference anywhere in the pinned tree"
       ],
       "preconditions": "A copy-command button is shown.",
       "action": "The user clicks it.",
-      "expected_result": "The clipboard is cleared and set to the command as plain text. The label immediately becomes a checkmark glyph plus the literal text \"Copied\", and reverts to the terminal glyph plus the command exactly 1.4 seconds later. The glyph is the .footnote text style (10 points at the default size), the text is the .subheadline text style in the monospaced design (11 points at the default size), the two are 4 points apart, and the whole label is held to exactly 16 points tall so it matches the plain buttons beside it. The tooltip is exactly \"Copy the sign-in command, then run it in Terminal\".",
-      "windows_path": "Clear then set CF_UNICODETEXT. Same 1.4 s revert and the same un-cancelled-timer behavior on a repeated click. The tooltip's \"in Terminal\" stays verbatim (OD-0008 B6: Windows 11's terminal app is also called Terminal). Glass follows OD-0005, an owner-approved deviation, not parity (see deviation): where the window shows the desktop, a Windows system material of the Acrylic class, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material is reproduced: shape, corner radius, tint colour and opacity, .interactive() and container spacing. This site is `.buttonStyle(.glass)` (DroppyCode/App/Views/RootView.swift:448), so the glass button style is kept, with its label held to 16 points. UNK-0004 is closed by that ruling.",
-      "verification_method": "interaction test including the double-click timing case",
-      "b2_change": "Glyph font B1 RootView.swift:442 `.font(.system(size: 10))` -> B2 :442 `.font(.system(.footnote))`; text font B1 :444 `.font(.system(size: 11, design: .monospaced))` -> B2 :444 `.font(.system(.subheadline, design: .monospaced))`; text styles are sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`, B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Clipboard write, the 1.4 s revert, the 16-point label height and the tooltip are unchanged.",
-      "deviation": {
-        "decision": "OD-0005",
-        "upstream": "CopyCommandButton `.buttonStyle(.glass)` (DroppyCode/App/Views/RootView.swift:448), the macOS Liquid Glass button style",
-        "port": "Where the window shows the desktop, a Windows system material of the Acrylic class, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material is reproduced: shape, corner radius, tint colour and opacity, .interactive() and container spacing. This site is `.buttonStyle(.glass)` (DroppyCode/App/Views/RootView.swift:448), so the glass button style is kept, with its label held to 16 points."
+      "expected_result": "RETIRED at B3: this component no longer exists in the pinned source.",
+      "windows_path": "RETIRED; no port behaviour to reproduce.",
+      "verification_method": "RETIRED",
+      "status": "RETIRED",
+      "side_effects": [],
+      "persistence": "nothing persisted",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null,
+      "retired": {
+        "reason": "B3 deletes `struct CopyCommandButton: View` (B2 RootView.swift:424-451) along with the blank line after it. It had no call site at B2 or B1 either (git grep at the B2 pin finds only its own declaration), so removing it changes nothing the user could see; NoThreadView and everything after it in the file moves up 29 lines (B2 :453-479 -> B3 :424-450).",
+        "evidence": "DroppyCode/App/Views/RootView.swift (B3 pin 52bc7926): grep for CopyCommandButton returns nothing; impacts.json bundle R3-39"
       }
     },
     {
@@ -2002,7 +2023,7 @@
       "expected_result": "A centred 16-point stack: the bubble.left.and.text.bubble.right symbol at 46 points in a light weight in Chrome.secondaryText (the label color at 0.7, ED-062); the exact text \"Pick a thread or start a new one\" at the .title2 text style, medium (17 points at the default size); a prominent glass button at the large control size labelled exactly \"New thread\" with the square.and.pencil symbol, which creates a thread; and beneath it the current chord for New thread at the .subheadline text style (11 points at the default size) in Chrome.secondaryText. If the New thread chord has been cleared, the chord line is omitted entirely rather than rendered empty. Upstream the chord reads \"⌘N\" by default; in the port it reads \"Ctrl+N\" (OD-0008 B7).",
       "windows_path": "Same layout. The chord line reads live from the shortcut store, so a remap updates it; an unbound command omits the line (port_impacts.md entry 172, G14). Chords render in Windows notation (Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl); key labels stay the US-position table (OD-0008 B9). Glass follows OD-0005, an owner-approved deviation, not parity (see deviation): where the window shows the desktop, a Windows system material of the Acrylic class, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material is reproduced: shape, corner radius, tint colour and opacity, .interactive() and container spacing. This site is `.buttonStyle(.glassProminent)` at `.controlSize(.large)` (DroppyCode/App/Views/RootView.swift:439-440), so the prominent style and the control size are kept. UNK-0004 is closed by that ruling.",
       "verification_method": "interaction test after remapping and after clearing the New thread chord",
-      "b2_change": "Heading font B1 RootView.swift:433 `.font(.system(size: 17, weight: .medium))` -> B2 :462 `.font(.system(.title2, weight: .medium))`; chord font B1 :473 `.font(.system(size: 11))` -> B2 :473 `.font(.system(.subheadline))`; text styles are sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`, B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Chrome.secondaryText redefined: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, i.e. the label colour at 0.7, which ED-062 adopts (B2 :77-78: 'Primary at 70% clears the 4.5:1 floor on both grounds; `secondaryLabelColor`'s 50% alpha does not.'). The 46-point light symbol, the strings and the button are unchanged.",
+      "b2_change": "Heading font B1 RootView.swift:462 `.font(.system(size: 17, weight: .medium))` -> B2 :462 `.font(.system(.title2, weight: .medium))`; chord font B1 :473 `.font(.system(size: 11))` -> B2 :473 `.font(.system(.subheadline))`; text styles are sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`, B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Chrome.secondaryText redefined: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, i.e. the label colour at 0.7, which ED-062 adopts (B2 :77-78: 'Primary at 70% clears the 4.5:1 floor on both grounds; `secondaryLabelColor`'s 50% alpha does not.'). The 46-point light symbol, the strings and the button are unchanged.",
       "deviation": {
         "decision": "OD-0008 B7; OD-0005",
         "upstream": "DroppyCode/Core/Models/Shortcuts.swift:32-34 `var description: String { KeyNames.modifierSymbols(modifierFlags) + KeyNames.label(for: keyCode) }` and :43-50 modifierSymbols appends \"⌃\", \"⌥\", \"⇧\", \"⌘\" in that order with no separator; the New thread default reads \"⌘N\"; glass: NoThreadView's New thread button `.buttonStyle(.glassProminent).controlSize(.large)` (DroppyCode/App/Views/RootView.swift:439-440), the macOS Liquid Glass prominent button style",
@@ -4544,21 +4565,22 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
+      "b3_note": "B3 deletes WindowDragView (the NSView with acceptsFirstMouse/mouseDown/performDrag/an empty mouseUp) and WindowDragArea's NSViewRepresentable wrapper, replacing both with `Color.clear.contentShape(.rect).gesture(WindowDragGesture()).allowsWindowActivationEvents(true)` (Chrome.swift:1091-1099). WindowDragGesture is a SwiftUI-native, Apple-documented gesture (macOS 15.0+); its press-start and click/double-click semantics are UNDOCUMENTED (6.1 E6, O-68), unlike B2's fully-specified NSView methods. Cite moves from B2 :1085-1102 to B3 :1091-1099.",
       "id": "PR-WIN-193",
-      "title": "A window drag region moves the window on press and swallows the release",
+      "title": "A window drag region is a transparent, full-rect SwiftUI gesture that moves the window and allows the activating click",
       "source_evidence": [
-        "DroppyCode/UI/Chrome/Chrome.swift:1091-1099 the doc comment 'Lets a stretch of chrome move the window, the way the sidebar does in Droppy.' and WindowDragView: `override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }`, `override func mouseDown(with event: NSEvent) { window?.performDrag(with: event) }`, `override func mouseUp(with event: NSEvent) {}`",
-        "porting/port_impacts.md entry 165 (G7): 'Drag strip: accept the window-activating click, start a window move on button-down, and swallow button-up so the release never reaches the UI behind it.'"
+        "DroppyCode/UI/Chrome/Chrome.swift:1089-1099 the doc comment 'Lets a stretch of chrome move the window, the way the sidebar does in Droppy.' and `struct WindowDragArea: View { var body: some View { Color.clear.contentShape(.rect).gesture(WindowDragGesture()).allowsWindowActivationEvents(true) } }`",
+        "porting/port_impacts.md entry 165 (G7): 'Drag strip: accept the window-activating click, start a window move on button-down, and swallow button-up so the release never reaches the UI behind it.' (the B2-era mechanism this record now supersedes; B3's WindowDragGesture is Apple's own gesture, whose press/release semantics are not documented, per 6.1 E6)"
       ],
       "preconditions": "A drag region is drawn over a stretch of chrome.",
       "action": "The user presses and releases on it.",
-      "expected_result": "The press immediately begins a window move, including when it is the click that activates an inactive window. The release is swallowed and never reaches anything behind the region.",
-      "windows_path": "Return HTCAPTION for the region, or forward a caption-drag message on button-down, and consume the button-up. ED-063: the main window's drag regions are declared through Win32Properties.SetNonClientHitTestResult, which probe P7 measured working for drag and double-click on Avalonia 12.1.2.",
-      "verification_method": "interaction test from an inactive window"
+      "expected_result": "SwiftUI's WindowDragGesture drags the window; allowsWindowActivationEvents(true) means the gesture recognises even the click that activates an inactive window, so dragging still works from an inactive state. Apple's own documentation does not say whether the move starts on press or only after a movement threshold, nor whether a bare click or a double-click does anything (6.1 E6, oracle O-68); this is UNRESOLVED and cannot be settled without a Mac (OD-0001). Do not assume 'press immediately begins a move' or 'release is swallowed' as fixed facts any more; both are now WindowDragGesture's own behaviour, not this app's.",
+      "windows_path": "ED-063's parked choice: collapse the whole drag region into one transparent, full-rect control that keeps the ED-063 WM_NCHITTEST/HTCAPTION caption region, with the system move loop giving: press-and-move drags; the activating click on an inactive window drags (matching allowsWindowActivationEvents' stated intent); the release goes to the system; double-click maximizes or restores and right-click shows the system menu, both already measured and accepted by ED-063. Keep a BeginMoveDrag fallback for windows where the caption result does not apply. If O-68 later shows macOS does not zoom on double-click, swallow WM_NCLBUTTONDBLCLK for these regions in the ED-063 hook.",
+      "verification_method": "interaction test from an inactive window, and a double-click test once O-68 is settled; carries [Trait(\"Oracle\",\"O-68\")] on the press-start and double-click assertions"
     },
     {
       "side_effects": [],
@@ -4744,21 +4766,23 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
+      "b3_note": "B3 adds a `lazy: Bool = false` parameter (:1009). By default ChromeCard is now an eager VStack (:1018), matching every B2 call site's actual visual result except that B2's rows were literally always built lazily; B3 opts specific call sites into LazyVStack instead (:1016) with `ChromeCard(lazy: true)` at MCPSettingsPage.swift:40, :395 and SettingsView.swift:898. Cite moves from B2 :1006-1021 (no lazy parameter existed) to B3 :1006-1027.",
       "id": "PR-WIN-202",
-      "title": "A chrome card is a lazily built stack on a 16-point rounded fill at 0.03",
+      "title": "A chrome card is an eager stack by default, lazy only where the caller opts in, on a 16-point rounded fill at 0.03",
       "source_evidence": [
-        "DroppyCode/UI/Chrome/Chrome.swift:1006-1027 ChromeCard, including the comment 'Rows are built as they scroll into view, and the card is a filled shape rather than a clip, so a long page costs neither every row up front nor a mask per card while scrolling.' and `LazyVStack(alignment: .leading, spacing: 0) { content }.frame(maxWidth: .infinity, alignment: .leading).background(RoundedRectangle(cornerRadius: Chrome.cardCornerRadius, style: .continuous).fill(Chrome.overlay(0.03)))`",
-        "DroppyCode/UI/Chrome/Chrome.swift:58 cardCornerRadius = 16"
+        "DroppyCode/UI/Chrome/Chrome.swift:1006-1027 ChromeCard: `var lazy = false`; the comment 'Use lazy only for cards that list a long, uniform, growing collection. Variable-height rows at the visible bottom edge can rebuild without end.'; `if lazy { LazyVStack(alignment: .leading, spacing: 0) { content } } else { VStack(alignment: .leading, spacing: 0) { content } }`, then `.frame(maxWidth: .infinity, alignment: .leading).background(RoundedRectangle(cornerRadius: Chrome.cardCornerRadius, style: .continuous).fill(Chrome.overlay(0.03)))`",
+        "DroppyCode/UI/Chrome/Chrome.swift:58 cardCornerRadius = 16",
+        "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:40, :395 and DroppyCode/App/Views/Settings/SettingsView.swift:898 - the only three call sites passing `lazy: true`"
       ],
       "preconditions": "A settings or welcome page draws a card.",
       "action": "The card draws and the page scrolls.",
-      "expected_result": "Rows stacked with no spacing, leading-aligned, filling the width, on a continuous rounded rectangle of radius 16 filled with the primary label color at exactly 0.03. Rows are built lazily as they scroll into view, and the card is a FILL rather than a clip, so it costs no offscreen mask pass while scrolling.",
-      "windows_path": "Same radius and fill, and the same two performance properties: lazy rows and no clipping mask.",
-      "verification_method": "capture comparison; performance assertion that no mask layer is created per card"
+      "expected_result": "Rows stacked with no spacing, leading-aligned, filling the width, on a continuous rounded rectangle of radius 16 filled with the primary label color at exactly 0.03. By default (lazy false, every call site not named above) the stack is an eager VStack: every row builds up front, whatever is on screen. Only the three named MCPSettingsPage and SettingsView call sites pass lazy: true and get a LazyVStack, building rows as they scroll into view. Either way the card is a FILL rather than a clip, so it costs no offscreen mask pass while scrolling.",
+      "windows_path": "A bool that picks a virtualizing host (lazy true) or a recorded eager fallback (lazy false, the new default); same radius and fill either way, and no clipping mask in either case.",
+      "verification_method": "capture comparison; unit test that lazy defaults to false and that the three named call sites pass true; performance assertion that no mask layer is created per card"
     },
     {
       "side_effects": [],
@@ -4781,7 +4805,7 @@
       "expected_result": "A heading at the .body text style, semibold (13 points at the default size), in Chrome.secondaryText (the label color at 0.7, ED-062), the same colour as row details, with an optional accessory 4 points after it, and an optional trailing control pushed to the far right with at least 8 points of space before it. The content sits exactly 10 points below the heading. Everything is leading-aligned and fills the width.",
       "windows_path": "Same metrics and the same two optional slots with their different placements.",
       "verification_method": "capture comparison with and without both slots",
-      "b2_change": "Citation B1 Chrome.swift:990-1020 -> B2 :1023-1047. Heading font B1 :1002 `.font(.system(size: 13, weight: .semibold))` -> B2 :1035 `.font(.system(.body, weight: .semibold))`; text styles are sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`, B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Colour B1 :1003 `.foregroundStyle(.secondary)` (SwiftUI's hierarchical secondary style) -> B2 :1036 `.foregroundStyle(Chrome.secondaryText)`; Chrome.secondaryText redefined: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, i.e. the label colour at 0.7, which ED-062 adopts (B2 :77-78: 'Primary at 70% clears the 4.5:1 floor on both grounds; `secondaryLabelColor`'s 50% alpha does not.'). Spacing 10 and the accessory and trailing layout are unchanged."
+      "b2_change": "Citation B1 Chrome.swift:990-1014 -> B2 :1023-1047. Heading font B1 :1002 `.font(.system(size: 13, weight: .semibold))` -> B2 :1035 `.font(.system(.body, weight: .semibold))`; text styles are sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`, B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Colour B1 :1003 `.foregroundStyle(.secondary)` (SwiftUI's hierarchical secondary style) -> B2 :1036 `.foregroundStyle(Chrome.secondaryText)`; Chrome.secondaryText redefined: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, i.e. the label colour at 0.7, which ED-062 adopts (B2 :77-78: 'Primary at 70% clears the 4.5:1 floor on both grounds; `secondaryLabelColor`'s 50% alpha does not.'). Spacing 10 and the accessory and trailing layout are unchanged."
     },
     {
       "side_effects": [],
@@ -4804,7 +4828,7 @@
       "expected_result": "Title at the .body text style (13 points at the default size) in the primary label color; a detail line 2 points below it at the .subheadline text style (11 points at the default size) in Chrome.secondaryText (the label color at 0.7, ED-062), wrapping to as many lines as it needs, shown only when the detail is non-nil AND non-empty. The control sits at the trailing edge with at least 12 points of space before it and 16 points between the text block and the control in the row's own spacing. The row is inset 16 points on the leading side, 10 on the trailing side, and 11 points top and bottom.",
       "windows_path": "Same metrics, and the same empty-string check: an empty detail must not reserve a line.",
       "verification_method": "capture comparison with a nil, an empty and a wrapping detail",
-      "b2_change": "Citation B1 Chrome.swift:1022-1047 -> B2 :1049-1074. Title B1 :1025 `.font(.system(size: 13))` -> B2 :1058 `.font(.system(.body))`; detail B1 :1029 `.font(.system(size: 11))` -> B2 :1062 `.font(.system(.subheadline))`; text styles are sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`, B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Detail colour: Chrome.secondaryText redefined: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, i.e. the label colour at 0.7, which ED-062 adopts (B2 :77-78: 'Primary at 70% clears the 4.5:1 floor on both grounds; `secondaryLabelColor`'s 50% alpha does not.'). Paddings, spacing and the non-nil-and-non-empty detail rule are unchanged."
+      "b2_change": "Citation B1 Chrome.swift:1016-1041 -> B2 :1049-1074. Title B1 :1025 `.font(.system(size: 13))` -> B2 :1058 `.font(.system(.body))`; detail B1 :1029 `.font(.system(size: 11))` -> B2 :1062 `.font(.system(.subheadline))`; text styles are sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`, B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Detail colour: Chrome.secondaryText redefined: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, i.e. the label colour at 0.7, which ED-062 adopts (B2 :77-78: 'Primary at 70% clears the 4.5:1 floor on both grounds; `secondaryLabelColor`'s 50% alpha does not.'). Paddings, spacing and the non-nil-and-non-empty detail rule are unchanged."
     },
     {
       "side_effects": [],
@@ -5347,13 +5371,15 @@
       "title": "The quiet button style draws its label unchanged, so the button gives no pressed feedback but stays a button for keyboard and accessibility",
       "source_evidence": [
         "DroppyCode/UI/Chrome/Chrome.swift:275-280 the comment 'No pressed feedback, while retaining Button semantics for keyboard and accessibility.' and `struct ChromeQuietButtonStyle: ButtonStyle { func makeBody(configuration: Configuration) -> some View { configuration.label } }`",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:664 and DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:358 `.buttonStyle(ChromeQuietButtonStyle())`, its two uses at 1fbf81e"
+        "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:440 `.buttonStyle(ChromeQuietButtonStyle())`, inside the shared CollapsibleProviderHeader (:416-448)",
+        "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:326 and DroppyCode/App/Views/Settings/SettingsView.swift:647 - `CollapsibleProviderHeader(provider:isExpanded:subject:)`, the header's only two call sites"
       ],
       "preconditions": "A button uses ChromeQuietButtonStyle.",
       "action": "The user presses and releases it, or activates it from the keyboard.",
       "expected_result": "The style returns the button's label as it is: pressing shows no dimming, highlight, scale or opacity change, because the style ignores the pressed state entirely. The control is still a Button, so it keeps keyboard activation and is exposed to assistive technology as a button, and the button's action runs as usual.",
       "windows_path": "A button template whose pressed visual is identical to its rest visual, keeping the Button automation peer and keyboard invocation. Hover or other feedback, where the uses have any, comes from the label itself, not from this style.",
-      "verification_method": "capture comparison pressed against rest (identical); UIA assertion that the element is an invokable Button"
+      "verification_method": "capture comparison pressed against rest (identical); UIA assertion that the element is an invokable Button",
+      "b3_note": "B3 extracts the collapsible provider-header chevron button (B2 SettingsView.swift:664, ModelsSettingsPage.swift:358, each building its own DisclosureGroup-style row inline) into one shared `CollapsibleProviderHeader` (ModelsSettingsPage.swift:416-448), called from both ModelsSettingsPage.swift:326 (subject: \"model list\") and SettingsView.swift:647 (subject: \"provider settings\"). The literal `.buttonStyle(ChromeQuietButtonStyle())` call now appears once in source instead of twice, but still backs two on-screen collapsible headers."
     },
     {
       "side_effects": [],
@@ -5440,6 +5466,84 @@
       "expected_result": "Chrome.iconFont is the .callout style, semibold; Chrome.inlineIconFont the .subheadline style, semibold; Chrome.chevronFont stays a literal 8 points bold. The compact title is .title3 semibold; the sidebar row title .body; the sidebar search field's magnifier .callout medium, text .body and clear glyph .callout; the chrome search field's magnifier .callout semibold and clear glyph .callout; the glass picker's symbol .callout medium; the section heading .body semibold; the row title .body and the row detail .subheadline. The ChromeTextMenu, ChromeTextButton and GlassPickerButton titles stay a literal 12.5 points medium and the chrome search field's text a literal 12.5 points. At the macOS default text size the styles resolve as upstream's own table gives them (title3 15, body 13, callout 12, subheadline 11), so the default rendering matches B1. Whether macOS scales these styles with a system text-size setting is not expressed in source (nothing was run on a Mac; UNK-0003); ED-059 decides the port follows no system text-size setting (see windows_path).",
       "windows_path": "ENGINEERING DECISION ED-059: one text-style table taken from upstream's own B1 table (title2 17, B1:DroppyCode/UI/Common/ChatZoom.swift:49; title3 15, B1:DroppyCode/UI/Common/ChatZoom.swift:50; headline and body 13, B1:DroppyCode/UI/Common/ChatZoom.swift:51; callout 12, B1:DroppyCode/UI/Common/ChatZoom.swift:52; subheadline 11, B1:DroppyCode/UI/Common/ChatZoom.swift:53; footnote, caption and caption2 10, B1:DroppyCode/UI/Common/ChatZoom.swift:54), set in Inter (OD-0009) and used by every site that names a style, kept apart from the literal 12.5 and 8 sizes. The sizes are fixed per style and scale only through the app's own zoom (UI/Common/AppZoom.swift), not with the Windows text-size setting, because the source gives no hook for a system text-size preference. Visual size parity stays UNVERIFIED under OD-0001.",
       "verification_method": "contract fixture over the token table and each listed site; capture comparison at the default text size"
+    },
+    {
+      "id": "PR-WIN-232",
+      "title": "A drag handle re-reads the real pointer position when it attaches to a window, so a handle that appears already under the pointer shows its grip at once",
+      "source_evidence": [
+        "DroppyCode/UI/Chrome/DragHandle.swift:127-138 viewDidMoveToWindow: `if window == nil, isDragging { isDragging = false; if dragCursor != nil { NSCursor.pop() } }`; then, `if grip != nil { refreshHover(); updateGrip(animated: false) }`",
+        "DroppyCode/UI/Chrome/DragHandle.swift:142-151 refreshHover - reads `window.mouseLocationOutsideOfEventStream`, converted into the view, and sets isHovering from bounds.contains(point)",
+        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:121-130 - the terminal drawer's strip attaches when the drawer first appears or when it is shown again; if the pointer already sits over the top 8-point strip at that moment, the grip must be shown"
+      ],
+      "preconditions": "A DragHandleView (or a view that owns one) is added to, or moved between, windows.",
+      "action": "The handle attaches to a window.",
+      "expected_result": "When the handle has a grip configured, attaching to a window immediately re-reads the pointer's actual current position and, if it falls inside the handle's bounds, shows the grip at its shown length and 0.6 opacity with animations disabled (a snap, not a transition). This is not gated by refreshesHoverOnLayout: it always runs on attach, for every DragHandle (Sidebar's strip and Terminal's alike). If the handle was mid-drag when it left its previous window, that drag state is cleared first (PR-WIN-233) before the hover re-read runs.",
+      "side_effects": [],
+      "persistence": "None.",
+      "failure_cases": [
+        "No window (window is nil): the drag-state clear still runs, but refreshHover and updateGrip are skipped since there is no window's mouse location to read"
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "On attach (control loaded into a visual tree, or moved between windows), hit-test the pointer's current position against the handle's bounds and set the grip's shown state accordingly, unanimated. This matters most for a drawer or panel that can appear already under a resting pointer.",
+      "verification_method": "interaction test: rest the pointer over where a hidden drawer's strip will appear, show the drawer, assert the grip is shown at once with no animation",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null,
+      "b3_note": "New shared behaviour at B3 (DragHandle.swift:127-138), part of the UI.Chrome.DragHandle unit (N8) neither TERM's TerminalPanel nor WIN's WindowChrome had inline at B2. TERM's PR-TERM-019 already records this for the terminal strip specifically; this record states the same fact once, generically, for every DragHandle. From impacts.json R3-28's new_records_needed #1."
+    },
+    {
+      "id": "PR-WIN-233",
+      "title": "A drag handle taken out of its window mid-drag clears its drag state and pops a pushed drag cursor, but does NOT call onEnd",
+      "source_evidence": [
+        "DroppyCode/UI/Chrome/DragHandle.swift:127-133 viewDidMoveToWindow: `if window == nil, isDragging { isDragging = false; if dragCursor != nil { NSCursor.pop() } }` - no call to onEnd or onChange",
+        "DroppyCode/App/Views/Chat/SubagentPanel.swift:724-731 (B2) - the only place this state was previously covered, in the panel's own PanelDragHandleView, before N8 shares it"
+      ],
+      "preconditions": "A drag handle is mid-drag (isDragging true) when its view is removed from its window - for example the drawer or panel it belongs to is dismissed or toggled closed while the mouse button is still held.",
+      "action": "The handle's view leaves its window.",
+      "expected_result": "isDragging is cleared to false and, if a dragCursor was pushed for this drag, it is popped. Critically, onEnd is NOT called and onChange is not called with a final delta: whatever the caller does in onEnd (Terminal commits terminalHeight and clears isTerminalResizing; the sidebar strip commits its width) does not run. A caller that only commits state in onEnd can therefore be left in a stuck intermediate state after this happens.",
+      "side_effects": [
+        "A pushed cursor is popped",
+        "The caller's onEnd/onChange side effects (a settings commit, a flag reset) do NOT run"
+      ],
+      "persistence": "Whatever onEnd would have written is NOT written.",
+      "failure_cases": [
+        "A caller relying on onEnd for cleanup (clearing a busy flag, committing a value) must handle this path separately, since it will not fire here"
+      ],
+      "cancellation": "not applicable; this IS the cancellation-like path",
+      "windows_path": "When a drag handle's control is detached from its visual tree or moved to a different window mid-drag, clear the drag state and release any captured pointer/pushed cursor, but do not invoke the completion callback. Record this as a pre-existing port gap where the current implementation calls end() on capture loss instead (6.2): TerminalPanel's capture-lost path must be corrected to match this record, not the other way around.",
+      "verification_method": "interaction test: start a drag, then remove the handle's window (or dismiss the panel) while still holding the mouse button; assert onEnd was never called and isDragging is false afterward",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null,
+      "b3_note": "New shared behaviour at B3 (DragHandle.swift:127-133), part of N8. At B2 only PanelDragHandleView (SubagentPanel.swift:724-731) had this; TERM's TerminalPanel never did, and its own new-record proposal for this (R3-12 #2) explicitly says it belongs with DragHandle.swift's records, folded here. Fixes a pre-existing port gap (6.2): the current TerminalPanel capture-lost path incorrectly calls end()."
+    },
+    {
+      "id": "PR-WIN-234",
+      "title": "DragHandleView's component contract: axis travel signs, grip and glow defaults, the 0.18 s/4 pt metrics, slop gating, and cursor-identity invalidation",
+      "source_evidence": [
+        "DroppyCode/UI/Chrome/DragHandle.swift:257-266 travel(to:) - `.horizontal`: `CGSize(width: point.x - pressOrigin.x, height: 0)`; `.vertical`: `CGSize(width: 0, height: point.y - pressOrigin.y)`; `.free`: `CGSize(width: point.x - pressOrigin.x, height: pressOrigin.y - point.y)` (y inverted, running down like a panel offset, unlike the other two axes which run up)",
+        "DroppyCode/UI/Chrome/DragHandle.swift:18-30 Grip defaults: alpha 0.6, hoverGlow 0.05, dragGlow 0.10, glowInset nil, refreshesHoverOnLayout false",
+        "DroppyCode/UI/Chrome/DragHandle.swift:58-61 Metrics: glowRadius 4, duration 0.18",
+        "DroppyCode/UI/Chrome/DragHandle.swift:198-220 slop gating in mouseDown/mouseDragged: with slop 0, isDragging becomes true and onBegin fires on mouseDown itself; with slop > 0, mouseDown leaves isDragging false, and mouseDragged waits until `abs(travel.width) >= slop || abs(travel.height) >= slop` before setting isDragging true and firing onBegin",
+        "DroppyCode/UI/Chrome/DragHandle.swift:39-44 `var cursor: NSCursor = .arrow { didSet { guard cursor !== oldValue else { return }; window?.invalidateCursorRects(for: self) } }` - identity comparison, not equality, and a cursor rect invalidation only on an actual change",
+        "DroppyCode/UI/Chrome/DragHandle.swift:104-114 configure(grip:): `if !hasConfigured || hadGrip != (grip != nil) { hasConfigured = true; updateGrip(animated: false) }` - a re-render (SwiftUI re-applying the same or a changed configuration) does not itself call updateGrip unless this is the first configuration or the grip's presence toggled, so a running hover or drag animation is never snapped mid-flight by an unrelated re-render"
+      ],
+      "preconditions": "None; a component-level contract every DragHandle instance follows regardless of its caller.",
+      "action": "Any DragHandle is configured, dragged, or re-rendered.",
+      "expected_result": "Travel is reported in the axis's own terms: horizontal reports x only, vertical reports y only (positive means up, i.e. AppKit's native sense), and free reports both with y inverted to run down, matching a panel's own offset convention. Grip defaults (usable without setting every field) are alpha 0.6, hoverGlow 0.05, dragGlow 0.10, no glow (glowInset nil) and no layout-driven hover re-read (refreshesHoverOnLayout false); Sidebar overrides glowInset and refreshesHoverOnLayout, Terminal overrides neither. Every grip's animation, when animated, runs 0.18 s ease-out; a glow's corner radius is always 4. A handle with slop 0 (Sidebar, Terminal) starts dragging on press; a handle with slop > 0 (none exist yet, but the mechanism supports it) waits for that much combined travel first. Setting `cursor` to the same NSCursor instance is a no-op (identity check); an actual change invalidates the window's cursor rects so the new cursor takes effect without waiting for the next mouse move. Reconfiguring a handle with the same or a compatibly-present grip never interrupts a hover or drag animation already in flight.",
+      "side_effects": [],
+      "persistence": "None.",
+      "failure_cases": [],
+      "cancellation": "not applicable; this is a static contract",
+      "windows_path": "Port this as the shared DragHandleView/DragHandle component's own contract, independent of any one caller: the axis travel signs (free's y-inversion is easy to get backwards, and SubagentPanel.cs:908-913 already has this exact sign bug pre-existing at B2, per 6.2), the grip/glow defaults, the 0.18 s/4 pt metrics, slop as a configurable threshold even though no current caller sets it above 0, cursor-identity-based invalidation (not value equality), and animation continuity across re-renders.",
+      "verification_method": "unit: travel signs for each axis, including a regression test for the free-axis y-inversion; the default field values; slop 0 versus slop > 0 gating; setting the same cursor instance twice does not re-invalidate; reconfiguring mid-animation does not reset it",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null,
+      "b3_note": "New component-level record for the new shared unit UI.Chrome.DragHandle (N8), which did not exist as a separate, independently specified component at B2 (its behaviour was duplicated inline in WindowChrome.swift's SidebarResizeHandleView and TerminalPanel.swift's TerminalResizeHandleView). From impacts.json R3-28's new_records_needed #3."
     }
   ],
   "ui": [
@@ -5543,9 +5647,11 @@
         "never moves the window, even where it overlaps the title bar band"
       ],
       "source_evidence": [
-        "DroppyCode/UI/Chrome/WindowChrome.swift:376-570",
+        "DroppyCode/UI/Chrome/WindowChrome.swift:373-401 SidebarResizeHandle - the horizontal/10-22-2.5/glowInset-30/refreshesHoverOnLayout-true/.columnResize DragHandle configuration",
+        "DroppyCode/UI/Chrome/DragHandle.swift:1-267 DragHandleView - the shared cursor rect, press/drag/release, hover and grip/glow mechanism",
         "DroppyCode/App/Views/RootView.swift:22-31 and :54-63"
       ],
+      "b3_note": "Citation only: the mechanism (:376-570 at B2) moves out of WindowChrome.swift into the shared UI.Chrome.DragHandle (N8), the same component TERM's TerminalPanel now configures. WindowChrome.swift keeps only the 29-line configuration at :373-401. See PR-WIN-049 through -057 for the per-behaviour citations into DragHandle.swift.",
       "status": "IMPLEMENTED"
     },
     {
@@ -5562,15 +5668,16 @@
         "no visual state at all"
       ],
       "interactions": [
-        "press begins a window move, including the click that activates an inactive window",
-        "release is swallowed and never reaches anything behind the region"
+        "SwiftUI's WindowDragGesture moves the window; allowsWindowActivationEvents(true) lets even the click that activates an inactive window drag it",
+        "whether the move starts on press or after a threshold, and whether a bare click or double-click does anything, is UNDOCUMENTED and UNRESOLVED (6.1 E6, oracle O-68)"
       ],
       "source_evidence": [
         "DroppyCode/UI/Chrome/Chrome.swift:1091-1099",
         "DroppyCode/UI/Chrome/Chrome.swift:1101-1137",
         "DroppyCode/UI/Chrome/WindowChrome.swift:139-150"
       ],
-      "status": "IMPLEMENTED"
+      "b3_note": "B3 replaces WindowDragView's mouseDown/performDrag/empty-mouseUp (B2 :1085-1102) with `Color.clear.contentShape(.rect).gesture(WindowDragGesture()).allowsWindowActivationEvents(true)` (B3 :1091-1099); NoWindowDragView (the no-drag marker) is unchanged apart from its citation moving from B2 :1104-1140 to B3 :1101-1137. The former 'press begins a move, release is swallowed' states are no longer backed by any Swift code the port can point to; they were an implementation detail of the deleted NSView, not a documented property of WindowDragGesture.",
+      "status": "SPECIFIED"
     },
     {
       "exact_text": "Settings…",
@@ -6844,11 +6951,13 @@
       "typography": "Set by its rows.",
       "colors": "Primary label color at exactly 0.03.",
       "states": [
-        "rows are built lazily as they scroll into view"
+        "eager by default: every row builds up front",
+        "lazy (only where the caller passes lazy: true - MCPSettingsPage.swift:40, :395; SettingsView.swift:898): rows build as they scroll into view"
       ],
       "interactions": [
         "none of its own"
       ],
+      "b3_note": "B3 makes eager the default (a plain VStack); only the three named call sites pass lazy: true for a LazyVStack. Before B3 every card built lazily. See PR-WIN-202.",
       "source_evidence": [
         "DroppyCode/UI/Chrome/Chrome.swift:1006-1027"
       ],
@@ -6874,7 +6983,7 @@
       "source_evidence": [
         "DroppyCode/UI/Chrome/Chrome.swift:1029-1053"
       ],
-      "b2_change": "Citation B1 Chrome.swift:990-1020 -> B2 :1023-1047. Font B1 :1002 `.font(.system(size: 13, weight: .semibold))` -> B2 :1035 `.font(.system(.body, weight: .semibold))`; text styles are sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`, B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Colour B1 :1003 `.foregroundStyle(.secondary)` -> B2 :1036 `.foregroundStyle(Chrome.secondaryText)`; Chrome.secondaryText redefined: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, i.e. the label colour at 0.7, which ED-062 adopts (B2 :77-78: 'Primary at 70% clears the 4.5:1 floor on both grounds; `secondaryLabelColor`'s 50% alpha does not.').",
+      "b2_change": "Citation B1 Chrome.swift:990-1014 -> B2 :1023-1047. Font B1 :1002 `.font(.system(size: 13, weight: .semibold))` -> B2 :1035 `.font(.system(.body, weight: .semibold))`; text styles are sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`, B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Colour B1 :1003 `.foregroundStyle(.secondary)` -> B2 :1036 `.foregroundStyle(Chrome.secondaryText)`; Chrome.secondaryText redefined: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, i.e. the label colour at 0.7, which ED-062 adopts (B2 :77-78: 'Primary at 70% clears the 4.5:1 floor on both grounds; `secondaryLabelColor`'s 50% alpha does not.').",
       "status": "IMPLEMENTED"
     },
     {
@@ -6896,7 +7005,7 @@
       "source_evidence": [
         "DroppyCode/UI/Chrome/Chrome.swift:1055-1080"
       ],
-      "b2_change": "Citation B1 Chrome.swift:1022-1047 -> B2 :1049-1074. Title B1 :1025 `.font(.system(size: 13))` -> B2 :1058 `.font(.system(.body))`; detail B1 :1029 `.font(.system(size: 11))` -> B2 :1062 `.font(.system(.subheadline))`; text styles are sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`, B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Chrome.secondaryText redefined: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, i.e. the label colour at 0.7, which ED-062 adopts (B2 :77-78: 'Primary at 70% clears the 4.5:1 floor on both grounds; `secondaryLabelColor`'s 50% alpha does not.').",
+      "b2_change": "Citation B1 Chrome.swift:1016-1041 -> B2 :1049-1074. Title B1 :1025 `.font(.system(size: 13))` -> B2 :1058 `.font(.system(.body))`; detail B1 :1029 `.font(.system(size: 11))` -> B2 :1062 `.font(.system(.subheadline))`; text styles are sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`, B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Chrome.secondaryText redefined: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, i.e. the label colour at 0.7, which ED-062 adopts (B2 :77-78: 'Primary at 70% clears the 4.5:1 floor on both grounds; `secondaryLabelColor`'s 50% alpha does not.').",
       "status": "IMPLEMENTED"
     },
     {
@@ -7082,7 +7191,7 @@
         "DroppyCode/App/Views/RootView.swift:331-336",
         "DroppyCode/UI/Chrome/Chrome.swift:1063-1069 ChromeRow title `.font(.system(.body)).foregroundStyle(Chrome.primaryText)` and detail `.font(.system(.subheadline)).foregroundStyle(Chrome.secondaryText)`"
       ],
-      "b2_change": "The row is ChromeRow: title B1 Chrome.swift:1031 `.font(.system(size: 13))` -> B2 :1058 `.font(.system(.body))`; detail B1 :1029 `.font(.system(size: 11))` -> B2 :1062 `.font(.system(.subheadline))`; text styles are sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`, B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Chrome.secondaryText redefined: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, i.e. the label colour at 0.7, which ED-062 adopts (B2 :77-78: 'Primary at 70% clears the 4.5:1 floor on both grounds; `secondaryLabelColor`'s 50% alpha does not.'). The drift map listed this record as unaffected because RootView.swift did not change; the row it draws did.",
+      "b2_change": "The row is ChromeRow: title B1 Chrome.swift:1025 `.font(.system(size: 13))` -> B2 :1058 `.font(.system(.body))`; detail B1 :1029 `.font(.system(size: 11))` -> B2 :1062 `.font(.system(.subheadline))`; text styles are sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`, B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Chrome.secondaryText redefined: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, i.e. the label colour at 0.7, which ED-062 adopts (B2 :77-78: 'Primary at 70% clears the 4.5:1 floor on both grounds; `secondaryLabelColor`'s 50% alpha does not.'). The drift map listed this record as unaffected because RootView.swift did not change; the row it draws did.",
       "status": "IMPLEMENTED"
     },
     {
@@ -7226,27 +7335,20 @@
       "screen": "Provider sign-in rows",
       "element": "Copy command button",
       "role": "button",
-      "geometry": "Glass button whose label is held to exactly 16 points tall, with 4 points between glyph and text.",
-      "typography": "Glyph at the .footnote text style (10 points at the default size); text at the .subheadline text style in the monospaced design (11 points at the default size).",
-      "colors": "Glass.",
-      "states": [
-        "rest: a terminal glyph and the command itself in monospace",
-        "copied: a checkmark glyph and the literal text \"Copied\", reverting after exactly 1.4 seconds"
-      ],
-      "interactions": [
-        "click clears the clipboard and writes the command as plain text",
-        "tooltip is exactly \"Copy the sign-in command, then run it in Terminal\""
-      ],
+      "geometry": "RETIRED",
+      "typography": "RETIRED",
+      "colors": "RETIRED",
+      "states": [],
+      "interactions": [],
       "source_evidence": [
-        "DroppyCode/App/Views/RootView.swift:424-451"
+        "DroppyCode/App/Views/RootView.swift:423-424 (B3 pin 52bc7926) - CopyCommandButton is gone; grep over RootView.swift finds no declaration and no reference anywhere in the pinned tree"
       ],
-      "b2_change": "Glyph B1 RootView.swift:442 `.font(.system(size: 10))` -> B2 :442 `.font(.system(.footnote))`; text B1 :444 `.font(.system(size: 11, design: .monospaced))` -> B2 :444 `.font(.system(.subheadline, design: .monospaced))`; text styles are sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`, B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Citation :424-451 is at the same lines at B2.",
-      "deviation": {
-        "decision": "OD-0005",
-        "upstream": "CopyCommandButton `.buttonStyle(.glass)` (DroppyCode/App/Views/RootView.swift:448), the macOS Liquid Glass button style",
-        "port": "Where the window shows the desktop, a Windows system material of the Acrylic class, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material is reproduced: shape, corner radius, tint colour and opacity, .interactive() and container spacing. This site is `.buttonStyle(.glass)` (DroppyCode/App/Views/RootView.swift:448), so the glass button style is kept, with its label held to 16 points."
-      },
-      "status": "IMPLEMENTED"
+      "notes": "RETIRED at B3: this component no longer exists in the pinned source. See PR-WIN-087.",
+      "status": "RETIRED",
+      "retired": {
+        "reason": "B3 deletes `struct CopyCommandButton: View` (B2 RootView.swift:424-451); it had no call site at B1 or B2 either, so the user never saw it. See PR-WIN-087.",
+        "evidence": "DroppyCode/App/Views/RootView.swift (B3 pin 52bc7926); impacts.json bundle R3-39"
+      }
     },
     {
       "exact_text": "Pick a thread or start a new one",
@@ -7267,7 +7369,7 @@
       "source_evidence": [
         "DroppyCode/App/Views/RootView.swift:424-433"
       ],
-      "b2_change": "Heading B1 RootView.swift:433 `.font(.system(size: 17, weight: .medium))` -> B2 :462 `.font(.system(.title2, weight: .medium))`; text styles are sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`, B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Symbol colour: Chrome.secondaryText redefined: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, i.e. the label colour at 0.7, which ED-062 adopts (B2 :77-78: 'Primary at 70% clears the 4.5:1 floor on both grounds; `secondaryLabelColor`'s 50% alpha does not.'). The 46-point light symbol is unchanged; citation :453-462 is at the same lines at B2.",
+      "b2_change": "Heading B1 RootView.swift:462 `.font(.system(size: 17, weight: .medium))` -> B2 :462 `.font(.system(.title2, weight: .medium))`; text styles are sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`, B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Symbol colour: Chrome.secondaryText redefined: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, i.e. the label colour at 0.7, which ED-062 adopts (B2 :77-78: 'Primary at 70% clears the 4.5:1 floor on both grounds; `secondaryLabelColor`'s 50% alpha does not.'). The 46-point light symbol is unchanged; citation :453-462 is at the same lines at B2.",
       "status": "IMPLEMENTED"
     },
     {
@@ -7313,7 +7415,7 @@
       "source_evidence": [
         "DroppyCode/App/Views/RootView.swift:441-446"
       ],
-      "b2_change": "Font B1 RootView.swift:444 `.font(.system(size: 11))` -> B2 :473 `.font(.system(.subheadline))`; text styles are sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`, B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Chrome.secondaryText redefined: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, i.e. the label colour at 0.7, which ED-062 adopts (B2 :77-78: 'Primary at 70% clears the 4.5:1 floor on both grounds; `secondaryLabelColor`'s 50% alpha does not.'). Citation :470-475 is at the same lines at B2.",
+      "b2_change": "Font B1 RootView.swift:473 `.font(.system(size: 11))` -> B2 :473 `.font(.system(.subheadline))`; text styles are sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`, B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Chrome.secondaryText redefined: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, i.e. the label colour at 0.7, which ED-062 adopts (B2 :77-78: 'Primary at 70% clears the 4.5:1 floor on both grounds; `secondaryLabelColor`'s 50% alpha does not.'). Citation :470-475 is at the same lines at B2.",
       "deviation": {
         "decision": "OD-0008 B7",
         "upstream": "DroppyCode/Core/Models/Shortcuts.swift:32-34 `var description: String { KeyNames.modifierSymbols(modifierFlags) + KeyNames.label(for: keyCode) }` and :43-50 modifierSymbols appends \"⌃\", \"⌥\", \"⇧\", \"⌘\" in that order with no separator; the New thread default reads \"⌘N\"",

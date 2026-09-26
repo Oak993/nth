@@ -216,7 +216,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Re-cited: dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:95-102 `search.trimmingCharacters(in: .whitespacesAndNewlines)` -> 1fbf81e6 :101 `search.trimmed`, the same trim set (Text.swift:224). The page count an empty query shows is now ten (PR-SETTINGS-005)."
+      "b2_change": "Re-cited: dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:95-102 `search.trimmingCharacters(in: .whitespacesAndNewlines)` -> 1fbf81e6 :101 `search.trimmed`, the same trim set (Text.swift:132). The page count an empty query shows is now ten (PR-SETTINGS-005)."
     },
     {
       "id": "PR-SETTINGS-010",
@@ -1223,7 +1223,7 @@
       "upstream_defect": 70,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "The comparison setting chatZoom no longer exists at 1fbf81e6 (PR-SETTINGS-041 retired); the sentence now names appZoom (DroppyCode/App/AppSettings.swift:722 `appZoom = AppZoom.normalized(defaults.object(forKey: Key.appZoom) as? Int ?? 100)`). terminalHeight itself is unchanged."
+      "b2_change": "The comparison setting chatZoom no longer exists at 1fbf81e6 (PR-SETTINGS-041 retired); the sentence now names appZoom (DroppyCode/App/AppSettings.swift:718 `appZoom = AppZoom.normalized(defaults.object(forKey: Key.appZoom) as? Int ?? 100)`). terminalHeight itself is unchanged."
     },
     {
       "id": "PR-SETTINGS-051",
@@ -2153,12 +2153,14 @@
       "id": "PR-SETTINGS-088",
       "title": "API keys are stored only in protected storage; a refused key is reported and stored nowhere (deviation from upstream's plaintext fallback)",
       "source_evidence": [
-        "DroppyCode/App/AppSettings.swift:363-371 deepseekAPIKeyInput - `let kept = DeepSeekKeychain.setAPIKey(deepseekAPIKeyInput); storeAPIKeyFallback(kept ? \"\" : deepseekAPIKeyInput, forKey: Key.deepseekAPIKey)`",
-        "DroppyCode/App/AppSettings.swift:373-400 - the same shape for metaAPIKeyInput (MetaKeychain), zaiAPIKeyInput (ZaiKeychain), commandcodeAPIKeyInput (CommandCodeKeychain)",
+        "DroppyCode/App/AppSettings.swift:367-371 deepseekAPIKeyInput - `didSet { storeAPIKeyChange(deepseekAPIKeyInput, from: oldValue, provider: .deepseek, fallbackKey: Key.deepseekAPIKey) }`",
+        "DroppyCode/App/AppSettings.swift:376-400 - the same one-line shape for metaAPIKeyInput, zaiAPIKeyInput, commandcodeAPIKeyInput, each naming its own ProviderKind and fallback key",
+        "DroppyCode/App/AppSettings.swift:483-487 storeAPIKeyChange(_:from:provider:fallbackKey:) - `guard !isReadingKeychain, value != oldValue else { return }; let kept = APIKeychain.setKey(value, for: provider); storeAPIKeyFallback(kept ? \"\" : value, forKey: fallbackKey)`",
         "DroppyCode/App/AppSettings.swift:407-415 StoredKey - `inKeychain = !keychain.isEmpty; value = inKeychain ? keychain : fallback`",
-        "DroppyCode/App/AppSettings.swift:489-498 storeAPIKeyFallback - trims whitespace and newlines; an empty trimmed value removes the key, otherwise the trimmed value is written",
-        "DroppyCode/App/AppSettings.swift:473-478 fillKeys - removes the plaintext default for every key the Keychain holds",
-        "DroppyCode/Services/Providers/APIKeychain.swift:17-58 setKey - `let trimmed = key.trimmed`; an empty trimmed key runs `delete(account)` and returns true; otherwise `return SecItemAdd(attributes as CFDictionary, nil) == errSecSuccess`",
+        "DroppyCode/App/AppSettings.swift:491-498 storeAPIKeyFallback - trims whitespace and newlines; an empty trimmed value removes the key, otherwise the trimmed value is written",
+        "DroppyCode/App/AppSettings.swift:464-479 fillKeys - removes the plaintext default for every key the Keychain holds",
+        "DroppyCode/Services/Providers/APIKeychain.swift:19-23 setKey(_:for:) - `guard let account = account(for: provider) else { return false }; return set(key, account: account)`",
+        "DroppyCode/Services/Providers/APIKeychain.swift:37-58 set(_:account:service:) - `let trimmed = key.trimmed`; an empty trimmed key runs `delete(account, service:)` and returns true; otherwise SecItemUpdate is tried first, and only on errSecItemNotFound does SecItemAdd run (PR-PROVAPI-001, PROVAPI area)",
         "E:/Droppy/port/porting/blocked_requirements.json BLK-0006 owner_ruling - OD-0008: \"FIX: when protected storage refuses an API key the failure is shown and nothing is stored; the key is never written in plain text. Named deviation.\"",
         "porting/port_impacts.md:512 entry 252 and :532 entry 262 - one credential container named by the app display name, four API-key accounts, kSecAttrAccessibleWhenUnlocked"
       ],
@@ -2184,9 +2186,10 @@
       "blocked_by": null,
       "deviation": {
         "decision": "OD-0008 A6; OD-0008 B3; OD-0012 E5",
-        "upstream": "Each API key input's didSet stores the key with setAPIKey and, when the Keychain refuses it, storeAPIKeyFallback writes the trimmed key in plain text to UserDefaults under deepseekAPIKey, metaAPIKey, zaiAPIKey or commandcodeAPIKey, telling the user nothing (AppSettings.swift:367-400, :485-494; APIKeychain.swift:17-58). APIKeychain.swift:45-57 stores each key as a macOS Keychain generic password under the service AppInfo.name.",
+        "upstream": "Each API key input's didSet calls storeAPIKeyChange, which stores the key with APIKeychain.setKey and, when the Keychain refuses it, storeAPIKeyFallback writes the trimmed key in plain text to UserDefaults under deepseekAPIKey, metaAPIKey, zaiAPIKey or commandcodeAPIKey, telling the user nothing (AppSettings.swift:367-400, :483-487, :491-498; APIKeychain.swift:19-23, :37-56). APIKeychain.swift stores each key as a macOS Keychain generic password under the service AppInfo.name.",
         "port": "The key is written only to Windows Credential Manager; a refused write stores nothing anywhere and shows the failure; a successful write or a cleared key removes any legacy plaintext value. Secrets are stored in Windows Credential Manager under the same account strings. The failure is shown under the key field as \"Credential Manager did not accept this key, so it was not saved.\" (OD-0012 E5); upstream shows nothing on this path."
-      }
+      },
+      "b3_note": "Citation only: at B3 all four key observers call one shared AppSettings.storeAPIKeyChange helper (:483-487), which in turn calls the new Services.Providers.APIKeychain (replacing the four separate DeepSeek/Meta/Zai/CommandCodeKeychain wrapper types, all deleted). The trim, fallback-write and legacy-removal behaviour this record describes is unchanged; APIKeychain.set additionally tries SecItemUpdate before SecItemAdd (PR-PROVAPI-001, PROVAPI area), which is not user-observable here."
     },
     {
       "id": "PR-SETTINGS-089",
@@ -2198,7 +2201,7 @@
         "DroppyCode/App/AppSettings.swift:450-453 readKeychainIfNeeded - guards on didReadKeychain and fills synchronously",
         "DroppyCode/App/AppSettings.swift:455-462 loadKeychainInBackground - `await Task.detached(priority: .userInitiated) { Self.readKeys(fallbacks: fallbacks) }.value` then fillKeys",
         "DroppyCode/App/AppSettings.swift:464-479 fillKeys - sets didReadKeychain, raises isReadingKeychain around the four assignments, lowers it, then removes the plaintext defaults for keys the Keychain holds",
-        "DroppyCode/App/AppSettings.swift:369, :380, :393, :404 - every key observer starts `guard !isReadingKeychain, <key> != oldValue else { return }`",
+        "DroppyCode/App/AppSettings.swift:484 storeAPIKeyChange - `guard !isReadingKeychain, value != oldValue else { return }`, the one shared guard every key observer now runs through (B2 had this guard inline in each of the four observers, at B2 :369, :380, :393, :404)",
         "DroppyCode/App/AppSettings.swift:447-449 comment - \"the fallback must never receive a key it did not already hold\"",
         "DroppyCode/App/AppSettings.swift:745-748 init() - the four key inputs start as the empty string; the Keychain is read later"
       ],
@@ -2221,9 +2224,10 @@
       "depends_on_unknown": null,
       "deviation": {
         "decision": "OD-0008 B3",
-        "upstream": "AppSettings.swift:433-441 readKeys reads each key from the macOS Keychain through the per-provider helpers.",
+        "upstream": "AppSettings.swift readKeys (:434-441) reads each key from the macOS Keychain through the shared APIKeychain.key(for:fallback:), via the new storedKey(for:fallback:) helper (:443-445; B2 called four separate per-provider helpers directly).",
         "port": "The four keys are read from Windows Credential Manager under the same account strings."
-      }
+      },
+      "b3_note": "Citation only: readKeys calls the new storedKey(for:fallback:) helper (AppSettings.swift:443-445), which wraps APIKeychain.key(for:fallback:) (Services/Providers/APIKeychain.swift:10-14) once per provider, replacing four separate calls into the deleted DeepSeek/Meta/Zai/CommandCodeKeychain wrapper types. The one-round-trip-per-key behaviour and the guard consolidation into storeAPIKeyChange (:483-487) do not change what a user observes."
     },
     {
       "id": "PR-SETTINGS-090",
@@ -2433,7 +2437,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Re-cited only: dd2b86ef DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:116-123 -> 1fbf81e6 :126-134 (ten lines added above for the expansion state); `query.trimmingCharacters(in: .whitespacesAndNewlines)` became `query.trimmed`, the same trim."
+      "b2_change": "Re-cited only: dd2b86ef DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:116-124 -> 1fbf81e6 :126-134 (ten lines added above for the expansion state); `query.trimmingCharacters(in: .whitespacesAndNewlines)` became `query.trimmed`, the same trim."
     },
     {
       "id": "PR-SETTINGS-098",
@@ -2571,7 +2575,7 @@
       "title": "Wallpaper state persists under two keys owned by the wallpaper store, not by AppSettings",
       "source_evidence": [
         "DroppyCode/UI/Theme/Wallpaper.swift:19-22 - private enum Key { static let softness = \"wallpaperSoftness\"; static let file = \"wallpaperFile\" }",
-        "DroppyCode/UI/Theme/Wallpaper.swift:85-93 init - `let stored = defaults.object(forKey: Key.softness) as? Double ?? 0; softness = min(1, max(0, stored))`; then, if `defaults.string(forKey: Key.file)` is non-empty and the file exists inside Storage.wallpaperDirectory, that file becomes the wallpaper and is rendered",
+        "DroppyCode/UI/Theme/Wallpaper.swift:85-93 init - `let stored = defaults.object(forKey: Key.softness) as? Double ?? 0; softness = min(1, max(0, stored))`; then, if `defaults.string(forKey: Key.file)` is non-empty and the file exists inside StoragePaths.wallpaperDirectory, that file becomes the wallpaper and is rendered",
         "DroppyCode/UI/Theme/Wallpaper.swift:219-227 finishInstall - `defaults.set(file.lastPathComponent, forKey: Key.file)`; the previous file is deleted first",
         "DroppyCode/UI/Theme/Wallpaper.swift:146-156 remove() - deletes the file and `defaults.removeObject(forKey: Key.file)`",
         "DroppyCode/UI/Theme/Wallpaper.swift:39-54 softness didSet - clamps only when genuinely out of range (an unconditional clamp recursed and crashed the app while dragging), then `defaults.set(softness, forKey: Key.softness)` and schedules a re-render"
@@ -2594,7 +2598,8 @@
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "Citation only: Storage.wallpaperDirectory is renamed StoragePaths.wallpaperDirectory at B3 (Core.Support.StoragePaths, THEME area PR-THEME-053); the same folder, at the same line (:89), holds the file."
     },
     {
       "id": "PR-SETTINGS-104",
@@ -4381,18 +4386,18 @@
     },
     {
       "id": "PR-SETTINGS-177",
-      "title": "The cookbook lists ten recipes, resolvable ones first and unresolvable ones dimmed under \"Needs a provider\"",
+      "title": "The cookbook lists twelve recipes, resolvable ones first and unresolvable ones dimmed under \"Needs a provider\"",
       "source_evidence": [
         "DroppyCode/App/Views/Settings/HydraCookbookPanel.swift:11-16 - `ready` is every recipe HydraCookbook.resolve returns a pair for; `waiting` is every recipe HydraCookbook.missingProvider returns a provider for",
         "DroppyCode/App/Views/Settings/HydraCookbookPanel.swift:31-57 - ready rows first, each followed by a Divider at 0.35 opacity inset 16 leading; then, when waiting is non-empty, the verbatim heading \"Needs a provider\" at `.system(.subheadline, weight: .semibold)` in the secondary colour, inset 16 horizontally with 14 above and 4 below, then the waiting rows at 0.55 opacity with the same dividers; the list is padded 8 at the bottom",
         "DroppyCode/App/Views/Settings/HydraCookbookPanel.swift:33-38 - when `ready` is empty, the verbatim sentence \"Set up a provider in Settings › Providers, and its models bring their pairs here.\" at `.system(.callout)` in the secondary colour, padded 16",
-        "DroppyCode/Core/Models/HydraCookbook.swift:29-42 - the ten recipes with their ids, titles and taglines, strongest first",
+        "DroppyCode/Core/Models/HydraCookbook.swift:29-42 - the twelve recipes with their ids, titles and taglines, strongest first; five titles now read \"Opus 5.5\" (:30-33, :40) and two recipes are new, astra-sol \"Astra 6 leads Sol 5.6\" (:37) and sol-luna \"Sol 5.6 leads Luna 5.6\" (:38), inserted between astra-terra and astra-astra",
         "DroppyCode/App/HydraCookbook+Resolve.swift:8-45 - isReady is enabled and installed; a side's provider is the first of its listed providers that is ready and whose catalog lists one of the side's model names; missingProvider returns the first unready side's first provider; resolve builds the pair, keeping an asked-for effort only when the resolved model offers it, setting workerProvider only when the two sides differ, and carrying the recipe's cap",
         "B1:DroppyCode/UI/Common/ChatZoom.swift:52-53 chatBaseSize - .callout 12, .subheadline 11 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "preconditions": "The cookbook panel is open.",
       "action": "The panel renders.",
-      "expected_result": "Ten recipes are considered, in the declared order, which is strongest first: \"Fable 5.1 leads Opus 5\", \"Opus 5 leads Gemini 3.8 Flash\", \"Opus 5 leads DeepSeek V4.1\", \"Opus 5 leads GLM-5.3 Flash\", \"Fable 5.1 leads Composer 2.5\", \"Astra 6 leads Spark 1.3 Contributor\", \"Astra 6 leads Terra 5.6\", \"Astra 6 high, Astra 6 medium\", \"Opus 5 max, Opus 5 medium\", \"Fable 5.1 high, Fable 5.1 medium\". A recipe resolves when both its sides find a ready provider (enabled and installed) whose catalog lists one of that side's model names; those are listed first with an Add button. A recipe with an unready side is listed after the verbatim heading \"Needs a provider\", drawn at 55% opacity, with no Add button. Rows are separated by dividers at 35% opacity inset 16 points on the leading side. When no recipe resolves at all, the list is the single verbatim sentence \"Set up a provider in Settings › Providers, and its models bring their pairs here.\" at 12pt in the secondary colour, padded 16 points; the waiting section is still shown under it.",
+      "expected_result": "Twelve recipes are considered, in the declared order, which is strongest first: \"Fable 5.1 leads Opus 5.5\", \"Opus 5.5 leads Gemini 3.8 Flash\", \"Opus 5.5 leads DeepSeek V4.1\", \"Opus 5.5 leads GLM-5.3 Flash\", \"Fable 5.1 leads Composer 2.5\", \"Astra 6 leads Spark 1.3 Contributor\", \"Astra 6 leads Terra 5.6\", \"Astra 6 leads Sol 5.6\", \"Sol 5.6 leads Luna 5.6\", \"Astra 6 high, Astra 6 medium\", \"Opus 5.5 max, Opus 5.5 medium\", \"Fable 5.1 high, Fable 5.1 medium\". A recipe resolves when both its sides find a ready provider (enabled and installed) whose catalog lists one of that side's model names; those are listed first with an Add button. A recipe with an unready side is listed after the verbatim heading \"Needs a provider\", drawn at 55% opacity, with no Add button. Rows are separated by dividers at 35% opacity inset 16 points on the leading side. When no recipe resolves at all, the list is the single verbatim sentence \"Set up a provider in Settings › Providers, and its models bring their pairs here.\" at 12pt in the secondary colour, padded 16 points; the waiting section is still shown under it.",
       "side_effects": [
         "Loads the catalog of every provider that is enabled and installed"
       ],
@@ -4401,13 +4406,14 @@
         "A recipe whose model names find nothing in an otherwise ready provider's catalog: it is neither ready nor waiting, because missingProvider only reports a side with no ready provider at all, so the recipe is simply absent from both lists."
       ],
       "cancellation": "Closing the panel cancels the catalog loads.",
-      "windows_path": "Same ten recipes verbatim, including their titles, taglines, provider preference orders, model name fragments, efforts and caps, and the same resolution rules.",
-      "verification_method": "unit test on resolve and missingProvider over several registry states; interaction test for the empty-state sentence",
-      "status": "IMPLEMENTED",
+      "windows_path": "Same twelve recipes verbatim, including their titles, taglines, provider preference orders, model name fragments, efforts and caps, and the same resolution rules.",
+      "verification_method": "unit test on resolve and missingProvider over several registry states, including the two new astra-sol and sol-luna recipes; interaction test for the empty-state sentence",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Re-cited: DroppyCode/App/Views/Settings/HydraCookbookPanel.swift:31-57, DroppyCode/App/Views/Settings/HydraCookbookPanel.swift:33-38 keep their line numbers at 1fbf81e6; the literal font sizes in these ranges became text styles of the same default size (.footnote 10pt, .subheadline 11pt, .callout 12pt, .body 13pt, .title3 15pt, .title2 17pt, .title 22pt), so the stated point sizes hold at the default text size and the behaviour is unchanged."
+      "b2_change": "Re-cited: DroppyCode/App/Views/Settings/HydraCookbookPanel.swift:31-57, DroppyCode/App/Views/Settings/HydraCookbookPanel.swift:33-38 keep their line numbers at 1fbf81e6; the literal font sizes in these ranges became text styles of the same default size (.footnote 10pt, .subheadline 11pt, .callout 12pt, .body 13pt, .title3 15pt, .title2 17pt, .title 22pt), so the stated point sizes hold at the default text size and the behaviour is unchanged.",
+      "b3_note": "B3 renames \"Opus 5\" to \"Opus 5.5\" in five titles (HydraCookbook.swift:30-33, :40) and inserts two new recipes between astra-terra and astra-astra: astra-sol (\"Astra 6 leads Sol 5.6\", lead Astra high, heads Sol medium) and sol-luna (\"Sol 5.6 leads Luna 5.6\", lead Sol high, heads Luna medium), taking the cookbook from 10 to 12 recipes. HydraCookbookPanel.swift's own line ranges (31-57, 33-38) are unaffected since it iterates the recipes array rather than hardcoding a count."
     },
     {
       "id": "PR-SETTINGS-178",
@@ -4599,32 +4605,32 @@
     },
     {
       "id": "PR-SETTINGS-186",
-      "title": "The reorder grip swaps a row past every visible neighbour whose centre it crosses, with a haptic on each swap",
+      "title": "The reorder grip swaps a row past every visible neighbour whose centre it crosses, with a haptic on each swap, and shows a grab-idle or grab-active pointer style",
       "source_evidence": [
-        "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:178-191 - the grip is a \"line.3.horizontal\" at 11pt medium in the secondary colour at opacity 1 while hovered and 0.7 otherwise, in a 24 x 24 hit area, with a DragGesture(minimumDistance: 1, coordinateSpace: .global) and both its tooltip and accessibility label the verbatim \"Drag to reorder\"",
-        "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:112-134 dragChanged - comment \"The grabbed row follows the pointer and swaps past every visible neighbour whose centre it has crossed. While a search filters the list the swaps still happen against the visible neighbour, so hidden models keep their place relative to it. The order is read fresh on every move rather than captured by the row's gesture.\"; on a new drag it pushes NSCursor.closedHand; the translation is written inside a transaction with animations disabled; the visible order is re-read on every move with `visiblePins(query: query.trimmed)`; the settle runs inside withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) with a fallbackHeight of 54; a true result performs an alignment haptic",
-        "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:136-139 dragEnded - pops the cursor and clears the drag inside withAnimation(.spring(response: 0.32, dampingFraction: 0.8))",
+        "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:178-191 - the grip is a \"line.3.horizontal\" at 11pt medium in the secondary colour at opacity 1 while hovered and 0.7 otherwise, in a 24 x 24 hit area, with `.pointerStyle(isDragged ? .grabActive : .grabIdle)`, a DragGesture(minimumDistance: 1, coordinateSpace: .global), and both its tooltip and accessibility label the verbatim \"Drag to reorder\"",
+        "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:112-134 dragChanged - comment \"The grabbed row follows the pointer and swaps past every visible neighbour whose centre it has crossed. While a search filters the list the swaps still happen against the visible neighbour, so hidden models keep their place relative to it. The order is read fresh on every move rather than captured by the row's gesture.\"; no cursor call any more; the translation is written inside a transaction with animations disabled; the visible order is re-read on every move with `visiblePins(query: query.trimmed)`; the settle runs inside withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) with a fallbackHeight of 54; a true result performs an alignment haptic",
+        "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:136-138 dragEnded - clears the drag inside withAnimation(.spring(response: 0.32, dampingFraction: 0.8)); no cursor pop, since the pointer style reverts on its own once isDragged becomes false",
         "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:141-150 PinnedRowHeightReporter - each row reports its own measured height, including its divider, into a dictionary keyed by pin",
-        "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:184-199 - the grip pushes NSCursor.openHand on hover and pops it on leave, on disappear while hovered, and when a drag released away from the grip leaves an unmatched push"
+        "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:180, :183 - `.onHover { hovering in isHoveringGrip = hovering }` (brightness only, no cursor call)"
       ],
       "preconditions": "At least two models are chosen.",
       "action": "The user presses the grip and drags.",
-      "expected_result": "The grip is a \"line.3.horizontal\" glyph that brightens from 70% to full opacity on hover, with the tooltip and accessibility label the verbatim \"Drag to reorder\". Hovering it shows an open-hand cursor; starting a drag shows a closed hand. A drag begins after 1 point of movement, measured in global coordinates. The grabbed row follows the pointer with animations explicitly disabled for the offset, so it tracks exactly. On every move the visible order is read fresh, not captured at the start, and the row swaps past every visible neighbour whose centre it has crossed, using each neighbour's measured height including its divider, falling back to 54 points for a row that has not reported a height yet; the neighbours slide with a spring of response 0.28 and damping 0.82. Each swap that actually changes the list fires an alignment haptic. While a search filters the list, swaps still happen against the visible neighbour, so hidden models keep their place relative to it. Releasing pops the cursor and settles the row with a spring of response 0.32 and damping 0.8. The open-hand cursor push is balanced on leave, on the row disappearing while hovered, and when a drag is released away from the grip.",
+      "expected_result": "The grip is a \"line.3.horizontal\" glyph that brightens from 70% to full opacity on hover, with the tooltip and accessibility label the verbatim \"Drag to reorder\". It shows the grab-idle pointer style whenever this row is not the one being dragged, and the grab-active pointer style while it is; SwiftUI applies and clears this cursor for the grip's own hit area, so there is no push/pop pair to balance. A drag begins after 1 point of movement, measured in global coordinates. The grabbed row follows the pointer with animations explicitly disabled for the offset, so it tracks exactly. On every move the visible order is read fresh, not captured at the start, and the row swaps past every visible neighbour whose centre it has crossed, using each neighbour's measured height including its divider, falling back to 54 points for a row that has not reported a height yet; the neighbours slide with a spring of response 0.28 and damping 0.82. Each swap that actually changes the list fires an alignment haptic. While a search filters the list, swaps still happen against the visible neighbour, so hidden models keep their place relative to it. Releasing settles the row with a spring of response 0.32 and damping 0.8; the grip's pointer style falls back to grab-idle because isDragged becomes false.",
       "side_effects": [
         "Persists the model list on each swap",
-        "One alignment haptic per swap",
-        "Changes the mouse cursor"
+        "One alignment haptic per swap"
       ],
       "persistence": "UserDefaults key \"modelList\".",
       "failure_cases": [],
       "cancellation": "Releasing ends the drag; there is no cancel that restores the original order.",
-      "windows_path": "Same swap-on-crossing behaviour with measured row heights and the same 54-point fallback. Windows has no haptic engine, so the haptic becomes a no-op shim called from the same place. Cursors map to grab and grabbing; balance every push with a pop the same way, because a stranded cursor is the failure mode the source guards against three times.",
-      "verification_method": "interaction test dragging through several neighbours, including with a filter applied; unit test on the cursor push and pop balance",
-      "status": "IMPLEMENTED",
+      "windows_path": "Same swap-on-crossing behaviour with measured row heights and the same 54-point fallback. Windows has no haptic engine, so the haptic becomes a no-op shim called from the same place. A grab-idle/grab-active cursor bound to isDragged on the grip's own hit area, following the DragHandleView pointerStyle pattern (WIN area) rather than a manual push/pop pair.",
+      "verification_method": "interaction test dragging through several neighbours, including with a filter applied; unit test asserting the cursor over the grip in each of the idle and dragged states",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Re-cited only: dd2b86ef DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:102-124 -> 1fbf81e6 :112-135; the order is still re-read on every move, now through `query.trimmed`."
+      "b2_change": "Re-cited only: dd2b86ef DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:102-125 -> 1fbf81e6 :112-135; the order is still re-read on every move, now through `query.trimmed`.",
+      "b3_note": "B3 deletes the NSCursor.openHand/closedHand push/pop calls in dragChanged, dragEnded and the grip's onHover, replacing them with `.pointerStyle(isDragged ? .grabActive : .grabIdle)` (:184), a state-driven SwiftUI pointer style that needs no push/pop balancing and cannot leak (per decisions_draft.md O6's reasoning for the matching FollowUpQueueTab case, COMPOSER area). The grip cursor today is a constant Hand, a pre-existing gap (6.2) that must be closed with real grab-idle/grab-active cursors."
     },
     {
       "id": "PR-SETTINGS-187",
@@ -4697,10 +4703,10 @@
       "id": "PR-SETTINGS-190",
       "title": "Each provider section is a collapsible header of icon, name and chevron over an eager card of that provider's catalog models",
       "source_evidence": [
-        "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:313-364 ProviderModelsSection - `@Binding var isExpanded: Bool` (:320); VStack(alignment: .leading, spacing: Chrome.sectionHeaderSpacing) whose header is `Button { withAnimation(Chrome.panelSlide) { isExpanded.toggle() } } label: { HStack(spacing: 8) { ProviderIcon(provider: provider, size: 16).foregroundStyle(Chrome.primaryText); Text(verbatim: provider.displayName).font(.system(size: 13, weight: .semibold)).foregroundStyle(.secondary); Spacer(minLength: 0); Image(systemName: \"chevron.right\").font(.system(size: 11, weight: .semibold)).foregroundStyle(Chrome.secondaryText).rotationEffect(.degrees(isExpanded ? 90 : 0)) }.contentShape(.rect) }` with `.buttonStyle(ChromeQuietButtonStyle())`, `.frame(height: 22)` (:340-364)",
+        "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:298-329 ProviderModelsSection - `@Binding var isExpanded: Bool` (:305); VStack(alignment: .leading, spacing: Chrome.sectionHeaderSpacing) whose header is one call, `CollapsibleProviderHeader(provider: provider, isExpanded: $isExpanded, subject: \"model list\")` (:326), the shared component defined at :416-448 (PR-SETTINGS-270)",
         "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:312-313 - `let catalogue = registry.models(for: provider)` and `let isFull = settings.modelList.count >= AppSettings.modelListLimit`",
-        "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:327-409 - \"An eager surface instead of ChromeCard: its LazyVStack rebuilds rows that stay mounted while their reveal animates. Same fill and shape.\" then VStack(spacing: 0) { ... }.frame(maxWidth: .infinity, alignment: .leading).background(RoundedRectangle(cornerRadius: Chrome.cardCornerRadius, style: .continuous).fill(Chrome.overlay(0.03))).clipShape(RoundedRectangle(cornerRadius: Chrome.cardCornerRadius, style: .continuous)).animation(nil, value: query).allowsHitTesting(cardVisible).accessibilityHidden(!cardVisible)",
-        "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:411 - `.task { await registry.loadCatalog(provider) }`"
+        "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:327-329 onward - \"An eager surface instead of ChromeCard: its LazyVStack rebuilds rows that stay mounted while their reveal animates. Same fill and shape.\" then VStack(spacing: 0) { ... }.frame(maxWidth: .infinity, alignment: .leading).background(RoundedRectangle(cornerRadius: Chrome.cardCornerRadius, style: .continuous).fill(Chrome.overlay(0.03))).clipShape(RoundedRectangle(cornerRadius: Chrome.cardCornerRadius, style: .continuous)).animation(nil, value: query).allowsHitTesting(cardVisible).accessibilityHidden(!cardVisible)",
+        "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift - `.task { await registry.loadCatalog(provider) }` at the end of the card"
       ],
       "preconditions": "The Models page is showing.",
       "action": "A provider section renders.",
@@ -4717,7 +4723,8 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "dd2b86ef DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:288-334: a static header (icon and name) over a ChromeCard of the filtered options. 1fbf81e6 :313-449: the header is a toggle button with a chevron (:341-364), expansion comes from the page (:320, :75-84, default expanded), and the card is an eager VStack with the same fill walking the whole catalogue with per-row reveals (:365-447)."
+      "b2_change": "dd2b86ef DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:303-372: a static header (icon and name) over a ChromeCard of the filtered options. 1fbf81e6 :313-449: the header is a toggle button with a chevron (:341-364), expansion comes from the page (:320, :75-84, default expanded), and the card is an eager VStack with the same fill walking the whole catalogue with per-row reveals (:365-447).",
+      "b3_note": "Citation only: the header button (B2 :341-364) is extracted into the shared CollapsibleProviderHeader (:416-448), called at :326; ProviderModelsSection itself moves to :298-329 (a cumulative shift from the grip's cursor-to-pointerStyle change earlier in the file, PR-SETTINGS-186). The header's appearance and behaviour are unchanged."
     },
     {
       "id": "PR-SETTINGS-191",
@@ -4743,7 +4750,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "dd2b86ef DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:310-317 showed the row when the FILTERED options were empty, including a populated catalogue filtered to nothing. 1fbf81e6 :368-382 shows it only for an empty unfiltered catalogue, inside a ChromeRevealLayout keyed on cardVisible."
+      "b2_change": "dd2b86ef DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:325-332 showed the row when the FILTERED options were empty, including a populated catalogue filtered to nothing. 1fbf81e6 :368-382 shows it only for an empty unfiltered catalogue, inside a ChromeRevealLayout keyed on cardVisible."
     },
     {
       "id": "PR-SETTINGS-192",
@@ -4771,7 +4778,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "dd2b86ef DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:319-328 drew a divider above every filtered row but index 0 and always toggled inside withAnimation(Chrome.panelSlide) (:347-350). 1fbf81e6 :384-432: each divider and row has its own reveal (:390-394), a divider shows only above a visible row that is not the first visible one, the toggle is unanimated while filtering (:403-412), and hidden rows are inert (:429-432). The bolt, the 17-point symbol, 0.35, the tooltips and the labels are unchanged (:397-425)."
+      "b2_change": "dd2b86ef DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:334-366 drew a divider above every filtered row but index 0 and always toggled inside withAnimation(Chrome.panelSlide) (:347-350). 1fbf81e6 :384-432: each divider and row has its own reveal (:390-394), a divider shows only above a visible row that is not the first visible one, the toggle is unanimated while filtering (:403-412), and hidden rows are inert (:429-432). The bolt, the 17-point symbol, 0.35, the tooltips and the labels are unchanged (:397-425)."
     },
     {
       "id": "PR-SETTINGS-193",
@@ -5768,7 +5775,8 @@
       "id": "PR-SETTINGS-225",
       "title": "A provider section is a collapsible header over a card whose first row is its mark, its status, an optional second line and its enable switch",
       "source_evidence": [
-        "DroppyCode/App/Views/Settings/SettingsView.swift:646-670 - the section is `VStack(alignment: .leading, spacing: Chrome.sectionHeaderSpacing)` whose header is a Button in ChromeQuietButtonStyle toggling isExpanded inside withAnimation(Chrome.panelSlide), labelled `ProviderIcon(provider: provider, size: 16)`, `Text(verbatim: provider.displayName).font(.system(size: 13, weight: .semibold)).foregroundStyle(.secondary)`, `Spacer(minLength: 0)` and a \"chevron.right\" rotated 90 degrees when expanded; `.help(isExpanded ? \"Hide the provider settings\" : \"Show the provider settings\")`",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:646-647 - the section is `VStack(alignment: .leading, spacing: Chrome.sectionHeaderSpacing)` whose header is one call, `CollapsibleProviderHeader(provider: provider, isExpanded: $isExpanded, subject: \"provider settings\")`",
+        "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:416-448 CollapsibleProviderHeader - the shared header button in ChromeQuietButtonStyle toggling isExpanded inside withAnimation(Chrome.panelSlide), labelled `ProviderIcon(provider: provider, size: 16)`, `Text(verbatim: provider.displayName).font(.system(size: 13, weight: .semibold)).foregroundStyle(.secondary)`, `Spacer(minLength: 0)` and a \"chevron.right\" rotated 90 degrees when expanded; `.help(isExpanded ? \"Hide the \\(subject)\" : \"Show the \\(subject)\")`, called here with subject \"provider settings\"",
         "DroppyCode/App/Views/Settings/SettingsView.swift:648-675 - `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) { ChromeCard { HStack(spacing: 12) { ProviderIcon(provider: provider, size: 18).foregroundStyle(Chrome.primaryText).frame(width: 22); VStack(alignment: .leading, spacing: 2) { Text(verbatim: status.isChecking ? \"Checking…\" : status.summary).font(.system(size: 13)); if let version = status.version, !provider.isAPIKeyBased { Text(verbatim: \"Version \\(version)\").font(.system(size: 11)).foregroundStyle(Chrome.secondaryText) } else if provider.isAPIKeyBased, status.apiKeyConfigured, let host = provider.apiHost { Text(verbatim: \"Native API · \\(host)\").font(.system(size: 11)).foregroundStyle(Chrome.secondaryText) } }; Spacer(); SettingsSwitch(isOn: Binding(get: { model.settings.isEnabled(provider) }, set: { model.settings.setEnabled($0, for: provider) })) }.padding(.leading, 16).padding(.trailing, Chrome.rowControlTrailingPadding).padding(.vertical, 11)`",
         "DroppyCode/App/Views/Settings/SettingsView.swift:761-766 - `.clipped()`, `.disabled(!isExpanded)`, `.allowsHitTesting(isExpanded)`, `.accessibilityHidden(!isExpanded)` on the reveal",
         "DroppyCode/Core/Models/Provider.swift:21-38 displayName - the fourteen names, including \"Z.ai\", \"Command Code\", \"OpenCode Zen\" (:26) and \"OpenCode Go\" (:27)",
@@ -5791,7 +5799,8 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:639-666 wrapped the card in `ChromeSection(title: provider.displayName)`; 1fbf81e6 :646-670 replaces the section title with a collapsible header button and :671-698 wraps the card in ChromeRevealLayout. The first row itself is unchanged. The OpenCode display name changed from \"OpenCode\" to \"OpenCode Zen\" and \"OpenCode Go\" was added (DroppyCode/Core/Models/Provider.swift:26-27 at 1fbf81e6; :24 at dd2b86ef)."
+      "b2_change": "dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:639-666 wrapped the card in `ChromeSection(title: provider.displayName)`; 1fbf81e6 :646-670 replaces the section title with a collapsible header button and :671-698 wraps the card in ChromeRevealLayout. The first row itself is unchanged. The OpenCode display name changed from \"OpenCode\" to \"OpenCode Zen\" and \"OpenCode Go\" was added (DroppyCode/Core/Models/Provider.swift:26-27 at 1fbf81e6; :24 at dd2b86ef).",
+      "b3_note": "Citation only: the inline header button (B2 :646-670) is extracted into the shared CollapsibleProviderHeader (ModelsSettingsPage.swift:416-448, PR-SETTINGS-270), called at SettingsView.swift:647 with subject \"provider settings\"; the section's VStack now holds just that one call at :646-647. The card content that follows is unchanged and keeps its B2 position (:648-675)."
     },
     {
       "id": "PR-SETTINGS-226",
@@ -5846,10 +5855,10 @@
       "status": "SPECIFIED",
       "upstream_defect": null,
       "depends_on_unknown": null,
-      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:657-686 -> 1fbf81e6 :712-741 and :688-708 -> :720-740; the row is now inside the collapsible card (PR-SETTINGS-225). Strings, field and eye button unchanged.",
+      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:680-709 -> 1fbf81e6 :712-741 and :688-708 -> :720-740; the row is now inside the collapsible card (PR-SETTINGS-225). Strings, field and eye button unchanged.",
       "deviation": {
         "decision": "OD-0012 G2; OD-0012 E5",
-        "upstream": "DroppyCode/App/Views/Settings/SettingsView.swift:689-718 details \"Stored in your Keychain. Get one at <source>.\" and \"Instead of `<login command>`: a Studio key from <source>, stored in your Keychain and handed to the CLI.\"; a key the Keychain refuses is kept in plain text and nothing is shown (AppSettings.swift:367-400, :485-494).",
+        "upstream": "DroppyCode/App/Views/Settings/SettingsView.swift:689-718 details \"Stored in your Keychain. Get one at <source>.\" and \"Instead of `<login command>`: a Studio key from <source>, stored in your Keychain and handed to the CLI.\"; a key the Keychain refuses is kept in plain text and nothing is shown (AppSettings.swift:367-400, :491-498).",
         "port": "\"Stored in your Credential Manager. Get one at <source>.\" and \"Instead of `<login command>`: a Studio key from <source>, stored in your Credential Manager and handed to the CLI.\"; a refused key shows \"Credential Manager did not accept this key, so it was not saved.\" under the key field and is stored nowhere."
       }
     },
@@ -5903,7 +5912,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Re-cited only: dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:687-696 -> 1fbf81e6 :742-751 inside the collapsible card; DroppyCode/Core/Models/Provider.swift installURL moved to :81-98."
+      "b2_change": "Re-cited only: dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:710-719 -> 1fbf81e6 :742-751 inside the collapsible card; DroppyCode/Core/Models/Provider.swift installURL moved to :81-98."
     },
     {
       "id": "PR-SETTINGS-230",
@@ -5929,7 +5938,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:698-705 -> 1fbf81e6 :753-760; OpenCode Go is a new CLI provider whose executable name is also \"opencode\" (DroppyCode/Core/Models/Provider.swift:46 at 1fbf81e6)."
+      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:721-728 -> 1fbf81e6 :753-760; OpenCode Go is a new CLI provider whose executable name is also \"opencode\" (DroppyCode/Core/Models/Provider.swift:46 at 1fbf81e6)."
     },
     {
       "id": "PR-SETTINGS-231",
@@ -5958,7 +5967,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:706-725 -> 1fbf81e6 :761-780 inside the collapsible card; OpenCode Go shares \"opencode auth login\" (DroppyCode/Core/Models/Provider.swift:68 at 1fbf81e6)."
+      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:729-748 -> 1fbf81e6 :761-780 inside the collapsible card; OpenCode Go shares \"opencode auth login\" (DroppyCode/Core/Models/Provider.swift:68 at 1fbf81e6)."
     },
     {
       "id": "PR-SETTINGS-232",
@@ -6004,7 +6013,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:779-796 -> 1fbf81e6 :841-858; `.system(size: 13)` -> `.system(.body)` for the editor and the placeholder, 13pt at the default text size."
+      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:802-819 -> 1fbf81e6 :841-858; `.system(size: 13)` -> `.system(.body)` for the editor and the placeholder, 13pt at the default text size."
     },
     {
       "id": "PR-SETTINGS-234",
@@ -6139,7 +6148,7 @@
       "upstream_defect": "99",
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:929-965 -> 1fbf81e6 :991-1027; the literal sizes 15 semibold, 12, 13 and 12 became `.title3` semibold, `.callout`, `.body` and `.callout`, the same sizes at the default text size. Strings unchanged.",
+      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:952-988 -> 1fbf81e6 :991-1027; the literal sizes 15 semibold, 12, 13 and 12 became `.title3` semibold, `.callout`, `.body` and `.callout`, the same sizes at the default text size. Strings unchanged.",
       "deviation": {
         "decision": "OD-0008 B15; OD-0012 F1; OD-0012 H",
         "upstream": "DroppyCode/App/Views/Settings/SettingsView.swift:991 \"The coding app by Droppy: a native home for your coding agents, built in Swift with Liquid Glass.\" and :1020 \"Droppy Code is licensed under the GNU AGPL v3.0 with attribution terms; SwiftTerm is MIT licensed.\" The header is Text(\"Droppy Code\") (:998).",
@@ -6454,7 +6463,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:1020-1063 -> 1fbf81e6 :1083-1125 and :1088-1105 -> :1127-1144; the literal sizes 13 semibold, 11, 12 medium and 10 semibold became `.body` semibold, `.subheadline`, `.callout` medium and `.footnote` semibold. Strings and links unchanged.",
+      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:1043-1086 -> 1fbf81e6 :1083-1125 and :1088-1105 -> :1127-1144; the literal sizes 13 semibold, 11, 12 medium and 10 semibold became `.body` semibold, `.subheadline`, `.callout` medium and `.footnote` semibold. Strings and links unchanged.",
       "deviation": {
         "decision": "OD-0008 B15; OD-0012 F3; OD-0012 H",
         "upstream": "DroppyCode/App/Views/Settings/SettingsView.swift:1076 \"Droppy Code is a coding app by Droppy for Mac.\" and :977-978 ChromeRow(title: \"Terminal\", detail: \"SwiftTerm by Miguel de Icaza, MIT License.\") with CreditLink(title: \"SwiftTerm\", url: https://github.com/migueldeicaza/SwiftTerm)",
@@ -6488,7 +6497,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:968-1018 -> 1fbf81e6 :1030-1080; the title font `.system(size: 13, weight: .semibold)` became `.system(.body, weight: .semibold)`, 13pt at the default text size. Unchanged otherwise.",
+      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:991-1041 -> 1fbf81e6 :1030-1080; the title font `.system(size: 13, weight: .semibold)` became `.system(.body, weight: .semibold)`, 13pt at the default text size. Unchanged otherwise.",
       "deviation": {
         "decision": "OD-0012 F1",
         "upstream": "DroppyCode/App/Views/Settings/SettingsView.swift:1013 `(\"Droppy Code\", \"LICENSE\")`",
@@ -6500,7 +6509,7 @@
       "title": "Settings controls never batch, never confirm and never revert: closing the window commits nothing and cancels nothing",
       "source_evidence": [
         "DroppyCode/App/Views/Settings/SettingsView.swift:109-134 - the settings view has no OK, Apply, Cancel or Done control anywhere in its body",
-        "DroppyCode/App/AppSettings.swift:189-705 - every stored property persists inside its own didSet, from `var defaultProvider: ProviderKind { didSet { defaults.set(defaultProvider.rawValue, forKey: Key.defaultProvider) } }` (:189-191) to `private(set) var hydraPairs: [HydraPair] { didSet { store(hydraPairs, forKey: Key.hydraPairs) } }` (:699-701)",
+        "DroppyCode/App/AppSettings.swift:189-705 - every stored property persists inside its own didSet, from `var defaultProvider: ProviderKind { didSet { defaults.set(defaultProvider.rawValue, forKey: Key.defaultProvider) } }` (:189-191) to `private(set) var hydraPairs: [HydraPair] { didSet { store(hydraPairs, forKey: Key.hydraPairs) } }` (:703-705)",
         "DroppyCode/App/Window/WindowManager.swift:95 - the settings window is closable and isReleasedWhenClosed is false, so closing it runs no completion handler"
       ],
       "preconditions": "The settings window is open and the user has changed something.",
@@ -6516,7 +6525,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Re-cited only: the stored-property block grew from dd2b86ef DroppyCode/App/AppSettings.swift:188-697 to 1fbf81e6 :189-701 (chronologicalTimeline added at :237-239, chatZoom replaced by appZoom at :253-255); every property still persists in its didSet.",
+      "b2_change": "Re-cited only: the stored-property block grew from dd2b86ef DroppyCode/App/AppSettings.swift:188-693 to 1fbf81e6 :189-701 (chronologicalTimeline added at :237-239, chatZoom replaced by appZoom at :253-255); every property still persists in its didSet.",
       "deviation": {
         "decision": "OD-0008 A1; OD-0012 E1",
         "upstream": "MCPSettingsPage.swift:565 calls model.mcp.deleteCustom(server) on one click, ignoring confirmBeforeDeleting.",
@@ -6999,7 +7008,8 @@
       "id": "PR-SETTINGS-270",
       "title": "A Models page provider header toggles its section with a chevron, a two-state tooltip and header accessibility",
       "source_evidence": [
-        "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:341-364 - `Button { withAnimation(Chrome.panelSlide) { isExpanded.toggle() } } label: { HStack(spacing: 8) { ProviderIcon(provider: provider, size: 16).foregroundStyle(Chrome.primaryText); Text(verbatim: provider.displayName).font(.system(size: 13, weight: .semibold)).foregroundStyle(.secondary); Spacer(minLength: 0); Image(systemName: \"chevron.right\").font(.system(size: 11, weight: .semibold)).foregroundStyle(Chrome.secondaryText).rotationEffect(.degrees(isExpanded ? 90 : 0)) }.contentShape(.rect) }.buttonStyle(ChromeQuietButtonStyle()).frame(height: 22).help(isExpanded ? \"Hide the model list\" : \"Show the model list\").accessibilityLabel(Text(provider.displayName)).accessibilityValue(Text(isExpanded ? \"Expanded\" : \"Collapsed\")).accessibilityHint(Text(\"Shows or hides the model list\")).accessibilityAddTraits(.isHeader)`",
+        "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:326 - `CollapsibleProviderHeader(provider: provider, isExpanded: $isExpanded, subject: \"model list\")`",
+        "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:416-448 CollapsibleProviderHeader - `Button { withAnimation(Chrome.panelSlide) { isExpanded.toggle() } } label: { HStack(spacing: 8) { ProviderIcon(provider: provider, size: 16).foregroundStyle(Chrome.primaryText); Text(verbatim: provider.displayName).font(.system(size: 13, weight: .semibold)).foregroundStyle(.secondary); Spacer(minLength: 0); Image(systemName: \"chevron.right\").font(.system(size: 11, weight: .semibold)).foregroundStyle(Chrome.secondaryText).rotationEffect(.degrees(isExpanded ? 90 : 0)) }.contentShape(.rect) }.buttonStyle(ChromeQuietButtonStyle()).frame(height: 22).help(isExpanded ? \"Hide the \\(subject)\" : \"Show the \\(subject)\").accessibilityLabel(Text(provider.displayName)).accessibilityValue(Text(isExpanded ? \"Expanded\" : \"Collapsed\")).accessibilityHint(Text(\"Shows or hides the \\(subject)\")).accessibilityAddTraits(.isHeader)`, called with subject \"model list\" from this page",
         "DroppyCode/UI/Chrome/Chrome.swift:275-280 ChromeQuietButtonStyle - `configuration.label` only, \"No pressed feedback, while retaining Button semantics for keyboard and accessibility.\"",
         "DroppyCode/UI/Chrome/Chrome.swift:100-104 panelSlide - `NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? .easeOut(duration: 0.18) : .spring(response: 0.32, dampingFraction: 0.9)`"
       ],
@@ -7019,7 +7029,8 @@
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "B3 extracts this header into the new shared `CollapsibleProviderHeader` (ModelsSettingsPage.swift:416-448), parameterized by a `subject` string (\"model list\" here, \"provider settings\" for SettingsView's own header, PR-SETTINGS-225). The Models page now just calls it at :326. Every literal this record states (22pt height, the two tooltips, the a11y label/value/hint, the chevron rotation) is unchanged; only the source location and the templated subject wording differ from B2's separate inline copy."
     },
     {
       "id": "PR-SETTINGS-271",
@@ -7051,19 +7062,17 @@
       "id": "PR-SETTINGS-272",
       "title": "Command Code's optional Studio API key is kept under the account \"Command Code API Key\" through the shared key store",
       "source_evidence": [
-        "DroppyCode/Services/Providers/CommandCodeKeychain.swift:3-6 doc - \"Stores an optional Command Code Studio API key in the macOS Keychain, so it never sits in plaintext. The CLI's own `cmd login` keeps its key in `~/.commandcode/auth.json`; this one is for a Mac where the user would rather paste a key than sign in through the browser. UserDefaults keeps a copy only where the Keychain refuses it.\"",
-        "DroppyCode/Services/Providers/CommandCodeKeychain.swift:7-8 - `enum CommandCodeKeychain {` `private static let account = \"Command Code API Key\"`",
-        "DroppyCode/Services/Providers/CommandCodeKeychain.swift:10-12 - `static func apiKey(fallback: String) -> String { APIKeychain.key(for: account, fallback: fallback) }`",
-        "DroppyCode/Services/Providers/CommandCodeKeychain.swift:14-17 - `@discardableResult static func setAPIKey(_ key: String) -> Bool { APIKeychain.setKey(key, account: account) }`",
-        "DroppyCode/Services/Providers/APIKeychain.swift:13-17 - `guard !CaptureRun.isEnabled else { return \"\" }`; `if let keychain = read(account), !keychain.isEmpty { return keychain }`; `return fallback`",
-        "DroppyCode/Services/Providers/APIKeychain.swift:22-40 - the key is trimmed; an empty key deletes the item and returns true; otherwise the item (service AppInfo.name, the account) is deleted and re-added with kSecAttrAccessibleWhenUnlocked, returning whether the add succeeded",
-        "DroppyCode/App/AppSettings.swift:393-400 commandcodeAPIKeyInput - `let kept = CommandCodeKeychain.setAPIKey(commandcodeAPIKeyInput)`; `storeAPIKeyFallback(kept ? \"\" : commandcodeAPIKeyInput, forKey: Key.commandcodeAPIKey)`",
-        "DroppyCode/App/AppSettings.swift:447 - `commandcode: StoredKey(keychain: CommandCodeKeychain.apiKey(fallback: \"\"), fallback: fallbacks.commandcode)`",
+        "DroppyCode/Services/Providers/APIKeychain.swift:26-33 account(for:) - `case .commandcode: \"Command Code API Key\"`, one of the four provider accounts in one shared switch (the per-provider CommandCodeKeychain wrapper, and its DeepSeek/Meta/Zai siblings, are all deleted at B3)",
+        "DroppyCode/Services/Providers/APIKeychain.swift:10-14 key(for:fallback:) - `guard let account = account(for: provider) else { return fallback }; guard !CaptureRun.isEnabled else { return \"\" }; if let keychain = read(account), !keychain.isEmpty { return keychain }; return fallback`",
+        "DroppyCode/Services/Providers/APIKeychain.swift:19-23 setKey(_:for:) - `guard let account = account(for: provider) else { return false }; return set(key, account: account)`",
+        "DroppyCode/Services/Providers/APIKeychain.swift:37-58 set(_:account:service:) - the key is trimmed; an empty key deletes the item and returns true; otherwise SecItemUpdate is tried first, and only on errSecItemNotFound does the item get added with kSecAttrAccessibleWhenUnlocked (PR-PROVAPI-001)",
+        "DroppyCode/App/AppSettings.swift:396-399 commandcodeAPIKeyInput's didSet - `storeAPIKeyChange(commandcodeAPIKeyInput, from: oldValue, provider: .commandcode, fallbackKey: Key.commandcodeAPIKey)`",
+        "DroppyCode/App/AppSettings.swift:439 - `commandcode: storedKey(for: .commandcode, fallback: fallbacks.commandcode)`, calling `storedKey(for:fallback:)` (:443-445) which calls `APIKeychain.key(for: provider, fallback: \"\")`",
         "E:/Droppy/port/porting/blocked_requirements.json BLK-0006 owner_ruling - OD-0008: \"FIX: when protected storage refuses an API key the failure is shown and nothing is stored; the key is never written in plain text. Named deviation.\""
       ],
       "preconditions": "The Providers page's Command Code \"API key (optional)\" field is edited, or the stored keys are read for the first time.",
-      "action": "The key is written through setAPIKey or read through apiKey(fallback:).",
-      "expected_result": "Marrow: the Command Code key lives in Windows Credential Manager (OD-0008 B3) as one credential in the app's single container under the account string, verbatim, \"Command Code API Key\", beside the three other API-key accounts. A write trims the key of whitespace and newlines; an empty key deletes the credential and counts as stored; otherwise the credential is replaced. A read returns the stored trimmed key, or the given fallback (the empty string from the settings read) when nothing is stored. Upstream's capture-run short circuit, which returns the empty string without reading (APIKeychain.swift:12), is user-unreachable (porting/dead_code.md entry 44) and is not ported (ED-061). When the store refuses a key, nothing is stored anywhere and the verbatim \"Credential Manager did not accept this key, so it was not saved.\" is shown under the key field (OD-0008 A6; OD-0012 E5), where upstream keeps a plaintext copy under the defaults key \"commandcodeAPIKey\". The key is handed to the CLI as COMMAND_CODE_API_KEY (PR-SETTINGS-090).",
+      "action": "The key is written through storeAPIKeyChange or read through storedKey(for:fallback:).",
+      "expected_result": "Marrow: the Command Code key lives in Windows Credential Manager (OD-0008 B3) as one credential in the app's single container under the account string, verbatim, \"Command Code API Key\", beside the three other API-key accounts, resolved from ProviderKind.commandcode by the same shared account(for:) switch every provider uses. A write trims the key of whitespace and newlines; an empty key deletes the credential and counts as stored; otherwise the credential is replaced (updated in place when one already exists, added only when none does). A read returns the stored trimmed key, or the given fallback (the empty string from the settings read) when nothing is stored. Upstream's capture-run short circuit, which returns the empty string without reading (APIKeychain.swift:12), is user-unreachable (porting/dead_code.md entry 44) and is not ported (ED-061). When the store refuses a key, nothing is stored anywhere and the verbatim \"Credential Manager did not accept this key, so it was not saved.\" is shown under the key field (OD-0008 A6; OD-0012 E5), where upstream keeps a plaintext copy under the defaults key \"commandcodeAPIKey\". The key is handed to the CLI as COMMAND_CODE_API_KEY (PR-SETTINGS-090).",
       "side_effects": [
         "A Credential Manager delete and write per changed key, or a delete for an emptied key"
       ],
@@ -7074,6 +7083,7 @@
       ],
       "cancellation": "not cancellable",
       "windows_path": "A thin wrapper over the port's one Credential Manager store with the account string \"Command Code API Key\" carried verbatim (OD-0008 B3); no plaintext fallback (OD-0008 A6). The capture-run guard (APIKeychain.swift:12) is a capture-mode short circuit listed in porting/dead_code.md entry 44 and is not ported (ED-061).",
+      "b3_note": "B3 deletes Services/Providers/CommandCodeKeychain.swift (and its DeepSeek/Meta/Zai siblings) outright; its `apiKey(fallback:)`/`setAPIKey(_:)` wrapper is replaced by the shared APIKeychain.key(for:fallback:)/setKey(_:for:), keyed by ProviderKind.commandcode rather than a private per-file account constant. AppSettings.swift now calls the shared storeAPIKeyChange/storedKey helpers (PR-SETTINGS-088/-089) instead of CommandCodeKeychain directly. The account string, the trim, the delete-for-empty rule and the Credential Manager failure message are all unchanged; APIKeychain.set additionally tries SecItemUpdate before SecItemAdd (PR-PROVAPI-001), which changes nothing observable here.",
       "verification_method": "unit test with a stubbed store: a write stores the trimmed key under \"Command Code API Key\", an empty write deletes it, a read returns it, a refused write stores nothing and shows the verbatim \"Credential Manager did not accept this key, so it was not saved.\" under the key field; restart test for a stored key",
       "status": "IMPLEMENTED",
       "upstream_defect": null,
@@ -7081,7 +7091,7 @@
       "depends_on_unknown": null,
       "deviation": {
         "decision": "OD-0008 B3; OD-0008 A6; OD-0012 E5",
-        "upstream": "CommandCodeKeychain.swift:7-17 keeps the key as a macOS Keychain generic password (APIKeychain.swift:22-40), and AppSettings.swift:405-406 writes it in plain text to UserDefaults under \"commandcodeAPIKey\" when the Keychain refuses it.",
+        "upstream": "APIKeychain.swift's account(for:) case .commandcode (:26-33) keeps the key as a macOS Keychain generic password (:37-58), and AppSettings.swift:398 (storeAPIKeyChange) writes it in plain text to UserDefaults under \"commandcodeAPIKey\" when the Keychain refuses it.",
         "port": "The key is a Windows Credential Manager credential under the same account string; a refused write stores nothing anywhere and shows the failure. The failure is shown under the key field as \"Credential Manager did not accept this key, so it was not saved.\" (OD-0012 E5)."
       }
     }
@@ -7600,7 +7610,7 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:50-51 chatBaseSize - .title3 15, .body 13 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "Carries the header accessibility trait. Note it is 15pt semibold in primaryText, unlike a ChromeSection header which is .system(.body, weight: .semibold) in Chrome.secondaryText at B2.",
-      "b2_change": "DroppyCode/App/Views/Settings/TokenActivitySection.swift:56 `.system(size: 15, weight: .semibold)` -> `.system(.title3, weight: .semibold)` at 1fbf81e6; the ChromeSection comparison is updated for DroppyCode/UI/Chrome/Chrome.swift:1041-1042 (`.system(.body, weight: .semibold)`, `Chrome.secondaryText`).",
+      "b2_change": "DroppyCode/App/Views/Settings/TokenActivitySection.swift:56 `.system(size: 15, weight: .semibold)` -> `.system(.title3, weight: .semibold)` at 1fbf81e6; the ChromeSection comparison is updated for DroppyCode/UI/Chrome/Chrome.swift:1035-1036 (`.system(.body, weight: .semibold)`, `Chrome.secondaryText`).",
       "status": "IMPLEMENTED"
     },
     {
@@ -8070,7 +8080,7 @@
         "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:391-394"
       ],
       "notes": "Accessibility label names the model but does not reflect the disabled state, so a full picker still reads \"Add <model> to the picker\". Reproduce that.",
-      "b2_change": "dd2b86ef DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:319-327 always toggled inside Chrome.panelSlide; 1fbf81e6 :403-412 toggles without animation while filtering, and :429-432 hides the control with its row.",
+      "b2_change": "dd2b86ef DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:334-365 always toggled inside Chrome.panelSlide; 1fbf81e6 :403-412 toggles without animation while filtering, and :429-432 hides the control with its row.",
       "status": "IMPLEMENTED"
     },
     {
@@ -8362,10 +8372,10 @@
         "DroppyCode/App/Views/Settings/SettingsView.swift:784-795"
       ],
       "notes": "Placeholder is \"sk-…\" with one horizontal ellipsis character, used for all four providers even though only some issue sk- prefixed keys.",
-      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:657-686 -> 1fbf81e6 :712-741; unchanged.",
+      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:680-709 -> 1fbf81e6 :712-741; unchanged.",
       "deviation": {
         "decision": "OD-0008 A6; OD-0012 E5",
-        "upstream": "A key the Keychain refuses is kept in plain text under the defaults and nothing is shown (AppSettings.swift:367-400, :485-494).",
+        "upstream": "A key the Keychain refuses is kept in plain text under the defaults and nothing is shown (AppSettings.swift:367-400, :491-498).",
         "port": "The refused key is stored nowhere and \"Credential Manager did not accept this key, so it was not saved.\" is shown under the key field."
       }
     },
@@ -8392,7 +8402,7 @@
         "DroppyCode/UI/Common/Components.swift:117-133"
       ],
       "notes": "The 16-point label clamp exists so a monospaced label does not draw a taller capsule than a plain one beside it. The Sign in row is hidden while a check runs so it never flashes in before the answer.",
-      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:687-725 -> 1fbf81e6 :742-780; unchanged."
+      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:710-748 -> 1fbf81e6 :742-780; unchanged."
     },
     {
       "id": "UI-SETTINGS-052",
@@ -8415,7 +8425,7 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:51 chatBaseSize - .body 13 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "This is the only multi-line text input in the settings window.",
-      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:779-796 -> 1fbf81e6 :841-858; `.system(size: 13)` -> `.system(.body)`."
+      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:802-819 -> 1fbf81e6 :841-858; `.system(size: 13)` -> `.system(.body)`."
     },
     {
       "id": "UI-SETTINGS-053",
@@ -8591,7 +8601,7 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:51-54 chatBaseSize - .body 13, .callout 12, .subheadline 11, .footnote 10 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "Tooltip \"Open getdroppy.app\"; accessibility label \"Made by Droppy. Open getdroppy.app\". The trailing padding is rowControlTrailingPadding + 4, which is 14, not the usual 10. The attribution is a licence obligation and must remain.",
-      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:1020-1063 -> 1fbf81e6 :1083-1125; literal sizes became text styles of the same default size.",
+      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:1043-1086 -> 1fbf81e6 :1083-1125; literal sizes became text styles of the same default size.",
       "deviation": {
         "decision": "OD-0008 B15; OD-0012 F3",
         "upstream": "DroppyCode/App/Views/Settings/SettingsView.swift:1076 \"Droppy Code is a coding app by Droppy for Mac.\"",
@@ -8620,7 +8630,7 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:51 chatBaseSize - .body 13 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "The three resources are LICENSE (no extension), THIRD_PARTY_NOTICES.md and TRADEMARK.md. Texts are read once into a static cache because the popover's body re-runs on every hover and scroll.",
-      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:968-1018 -> 1fbf81e6 :1030-1080.",
+      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:991-1041 -> 1fbf81e6 :1030-1080.",
       "deviation": {
         "decision": "OD-0012 F1",
         "upstream": "DroppyCode/App/Views/Settings/SettingsView.swift:1013 `(\"Droppy Code\", \"LICENSE\")`",
@@ -8799,7 +8809,7 @@
         "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:330-344"
       ],
       "notes": "Its row's title is \"Loading models…\" or \"No models loaded\". It no longer appears when the catalogue is populated but the search filters every model out.",
-      "b2_change": "dd2b86ef DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:310-317 showed it for an empty filtered list; 1fbf81e6 :368-382 only for an empty unfiltered catalogue, inside a ChromeRevealLayout.",
+      "b2_change": "dd2b86ef DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:325-332 showed it for an empty filtered list; 1fbf81e6 :368-382 only for an empty unfiltered catalogue, inside a ChromeRevealLayout.",
       "status": "IMPLEMENTED"
     },
     {
@@ -8913,7 +8923,7 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:52, :54 chatBaseSize - .callout 12, .footnote 10 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "Unlike the Made by Droppy row, these do not change opacity on hover. Their tooltip is the absolute URL string, not a sentence.",
-      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:1065-1082 -> 1fbf81e6 :1127-1144; literal sizes became text styles of the same default size.",
+      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:1088-1105 -> 1fbf81e6 :1127-1144; literal sizes became text styles of the same default size.",
       "deviation": {
         "decision": "OD-0008 B15; OD-0012 H",
         "upstream": "DroppyCode/App/Views/Settings/SettingsView.swift:955 CreditLink(title: \"SwiftTerm\", url: URL(string: \"https://github.com/migueldeicaza/SwiftTerm\")!) in the \"Terminal\" row",
@@ -9132,10 +9142,12 @@
         "Click or keyboard activation toggles the section inside withAnimation(Chrome.panelSlide)"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:341-364",
+        "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:326 - `CollapsibleProviderHeader(provider: provider, isExpanded: $isExpanded, subject: \"model list\")`",
+        "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:416-448 CollapsibleProviderHeader",
         "DroppyCode/UI/Chrome/Chrome.swift:275-280"
       ],
-      "notes": "Accessibility label is the display name, hint \"Shows or hides the model list\", with the header trait. The same pattern on the Providers page says \"provider settings\" instead of \"model list\" (UI-PROVREG-045).",
+      "notes": "Accessibility label is the display name, hint \"Shows or hides the model list\", with the header trait. The same shared CollapsibleProviderHeader, called with subject \"provider settings\" instead of \"model list\", is SettingsView's own header (PR-SETTINGS-225; the same pattern is also on the Providers page, UI-PROVREG-045).",
+      "b3_note": "Citation only: this header moves from an inline copy (B2 :341-364) into the shared CollapsibleProviderHeader (:416-448), called at :326. Every literal is unchanged.",
       "status": "IMPLEMENTED"
     }
   ]
