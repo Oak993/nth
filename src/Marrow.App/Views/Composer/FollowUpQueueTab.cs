@@ -371,6 +371,9 @@ public sealed class FollowUpRow : Decorator
     private bool isPairTarget;
     private bool isPairing;
     private bool showsRule;
+    // :324 whether the pointer is over the reorder grip, which brightens its icon (no cursor call - that is
+    // .pointerStyle(isDragged ? .grabActive : .grabIdle) alone).
+    private bool isHoveringGrip;
     private Point? dragOrigin;
     private Control? dragRoot;
     private readonly Border rowSurface;
@@ -449,10 +452,8 @@ public sealed class FollowUpRow : Decorator
         this.Track(() => runtime.HasWorkingNativeHeads, _ => UpdateSendHelp());
         this.Track(() => runtime.FollowUpEdit, _ => SyncEditor());
 
-        PointerPressed += OnPointerPressed;
-        PointerMoved += OnPointerMoved;
-        PointerReleased += OnPointerReleased;
-        PointerCaptureLost += (_, _) => EndPointerDrag();
+        // :386 the DragGesture is chained directly onto the grip Image (28x22), not the row - PointerPressed/
+        // Moved/Released are wired onto the grip itself inside BuildRow(), not here.
         SizeChanged += (_, _) => UpdateSurface();
         DetachedFromVisualTree += (_, _) =>
         {
@@ -517,12 +518,26 @@ public sealed class FollowUpRow : Decorator
 
         var grip = SwiftImage.SystemName("line.3.horizontal");
         grip.Font(SwiftFont.System(SwiftFont.TextStyle.Subheadline, weight: SwiftFont.Weight.Medium));
-        grip.ForegroundStyle(isBundledWithNext ? Chrome.Accent.Opacity(0.85) : Chrome.SecondaryText.Opacity(0.7));
+        UpdateGripForeground(grip); // :380
         grip.Width = 28;
         grip.Height = 22;
         grip.PointerStyle(isDragged ? PointerStyle.GrabActive : PointerStyle.GrabIdle); // :384
+        // :48 (Marrow.UI.Port.PointerStyleControl) resolves RenderScaling as 1 until the control has a TopLevel;
+        // BuildRow() runs before the caller attaches the row (FollowUpQueueTab.RefreshRows adds it to the tree only
+        // after `new FollowUpRow(...)` returns), so the cursor above is always baked at scale 1. Re-apply once the
+        // grip is actually attached, so a real monitor's RenderScaling gets picked up.
+        grip.AttachedToVisualTree += (_, _) => grip.PointerStyle(isDragged ? PointerStyle.GrabActive : PointerStyle.GrabIdle);
         ToolTip.SetTip(grip, "Drag above or below to reorder \U000000B7 drop onto the middle of another to send them together"); // U+00B7 MIDDLE DOT
         AutomationProperties.SetName(grip, "Drag to reorder");
+        // :383 .onHover { hovering in isHoveringGrip = hovering } - brightness only, no cursor call.
+        grip.PointerEntered += (_, _) => { isHoveringGrip = true; UpdateGripForeground(grip); };
+        grip.PointerExited += (_, _) => { isHoveringGrip = false; UpdateGripForeground(grip); };
+        // :386-389 the DragGesture (minimumDistance 1, .global) is chained onto the grip Image itself, so SwiftUI
+        // only recognizes the reorder drag inside this 28x22 hit rect - not anywhere else in the row.
+        grip.PointerPressed += OnPointerPressed;
+        grip.PointerMoved += OnPointerMoved;
+        grip.PointerReleased += OnPointerReleased;
+        grip.PointerCaptureLost += (_, _) => EndPointerDrag();
         rowLine.Children.Add(grip);
 
         if (prompt.Attachments.Count > 0)
@@ -571,6 +586,11 @@ public sealed class FollowUpRow : Decorator
 
         rowLine.SizeChanged += (_, _) => UpdateSurface();
     }
+
+    // :380 `isBundledWithNext ? Color.accentColor.opacity(isHoveringGrip ? 1 : 0.85) : Chrome.secondaryText.opacity(isHoveringGrip ? 1 : 0.7)`
+    private void UpdateGripForeground(SwiftImage grip) => grip.ForegroundStyle(isBundledWithNext
+        ? Chrome.Accent.Opacity(isHoveringGrip ? 1 : 0.85)
+        : Chrome.SecondaryText.Opacity(isHoveringGrip ? 1 : 0.7));
 
     private string GetSendHelp() =>
         runtime.HasWorkingNativeHeads && runtime.IsRunning
@@ -641,7 +661,10 @@ public sealed class FollowUpRow : Decorator
         if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed == false) return;
         dragRoot = TopLevel.GetTopLevel(this);
         dragOrigin = e.GetPosition(dragRoot);
-        e.Pointer.Capture(this);
+        // Captured on the grip itself (the event's source - see the grip.PointerPressed wiring in BuildRow()), not
+        // the whole row, so the drag that follows stays scoped to :386's 28x22 hit rect regardless of where the
+        // pointer travels afterward.
+        e.Pointer.Capture(sender as IInputElement);
     }
 
     private void OnPointerMoved(object? sender, PointerEventArgs e)
