@@ -1068,3 +1068,32 @@ link. Tests (lane A29): AssocIsDangerous(".exe") is TRUE and (".txt") FALSE on t
 binding); each floor extension reveals; ".txt"/".cs"/".md" open; "C:/x/a.cs:12" opens "C:/x/a.cs" when only it
 exists; a UNC link does nothing. ENGINEERING DECISION implementing OD-0026's named safety deviation.
 
+ED-205 [UI] The grab-idle, grab-active and link pointer styles (PA-0019; lane 1f, `src/Marrow.UI/Port/PointerStyle.cs`).
+SOURCE FACT: at B3 (52bc792) `pointerStyle` occurs exactly four times in DroppyCode: `App/Views/Composer/FollowUpQueueTab.swift:384`
+and `App/Views/Settings/ModelsSettingsPage.swift:184` (`.pointerStyle(isDragged ? .grabActive : .grabIdle)`),
+`App/Views/Sidebar/SidebarView.swift:124` (`.pointerStyle(drag.id != nil ? .grabActive : nil)`) and
+`App/Views/Chat/TimelineMinimap.swift:211` (`.pointerStyle(.link)`). DECISION: `enum PointerStyle { GrabIdle, GrabActive,
+Link }` (exactly those values) and `control.PointerStyle(PointerStyle?)`, which sets the control's Cursor or clears it
+for null; callers re-apply it when their state changes, as SwiftUI re-evaluates the modifier. Link is Avalonia's
+StandardCursorType.Hand. GrabIdle and GrabActive are rendered at run time from the bundled Lucide `hand.svg` and
+`hand-fist.svg` (ISC, `src/Marrow.UI/Assets/Icons/lucide/`) through SvgIcon: a white halo stroke (stroke width + 3
+units) under the icon's black stroke, the 24-unit icon inset 2 units in a 32 x 32 DIP square, rasterized by a
+RenderTargetBitmap at 96 x render scaling (32 px at 100 %, 64 px at 200 %), hotspot at the centre (AppKit's
+openHand/closedHand hotspot is the centre of their image), cached per (style, scale). UNVERIFIED (PA-0019, ED-086):
+the pixel art of macOS's system open/closed-hand cursors is not extractable from source and no Mac capture exists
+(OD-0001); this is a tracked visual approximation. Tests: PointerStyleTests (value set, distinct renders, null clears,
+Link = Hand, centre hotspot, cache identity, and the whole glyph inside the square with a margin and the same
+proportions at 100/125/150/200 %). ENGINEERING DECISION refining PA-0019 (run-time art from existing SVGs rather than
+new .cur files); not a deviation.
+
+ED-206 [APP] `NSApp.isActive` has one port reading: any window of the app is the active window
+(`NSApplication.IsActive`, `src/Marrow.App/Port/ApplicationLifecycle.cs`). SOURCE FACT: B3 reads `NSApp.isActive` at
+`App/AppModel.swift:1172`, `:1186`, `:1259`, `App/AppModel+HydraMerge.swift:924`, `App/Runtime/AutoContinue.swift:152` and
+`App/AppDelegate.swift:70`; on macOS it is true while any window of the application is key or main (the app is
+frontmost), including the Settings window and panels, not only the main window. DECISION: every one of those sites reads
+the single port property, true when any Avalonia window owned by the app's desktop lifetime is active, false with no
+desktop lifetime (headless tests supply the answer). Before the AppDelegate review repair (ed84f4541) AppModel and
+AutoContinue read only the main window, which would have treated "Settings in front" as the app being inactive and posted
+notifications the Mac would suppress. Tests: AppDelegateSecondTests (a non-main window active, only the main window
+active, no lifetime) and the presentation gate agreeing with AppModel.threadNeedsAttention. ENGINEERING DECISION; parity.
+
