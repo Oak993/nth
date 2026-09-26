@@ -136,7 +136,8 @@
         "DroppyCode/App/Views/Chat/TimelineMinimap.swift:272-296",
         "DroppyCode/App/Views/Chat/TimelineMinimap.swift:387-424"
       ],
-      "notes": "The ticks themselves never hit-test; the rail's own hit area takes the pointer, so a scrub never drops between ticks. Each tick's accessibility label is the message title. OD-0013: the live-resize edge strip measured by probe P4 (while the pointer moves, the growing edges show the window's own backdrop without the app layer for about a frame and the shrinking edges clip) must be fixed; the main window chrome is not accepted until it is gone, and it is not downgraded to a deviation without the owner."
+      "notes": "The ticks themselves never hit-test; the rail's own hit area takes the pointer, so a scrub never drops between ticks. Each tick's accessibility label is the message title. OD-0013: the live-resize edge strip measured by probe P4 (while the pointer moves, the growing edges show the window's own backdrop without the app layer for about a frame and the shrinking edges clip) must be fixed; the main window chrome is not accepted until it is gone, and it is not downgraded to a deviation without the owner.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "CHAT",
@@ -160,7 +161,8 @@
         "DroppyCode/App/Views/Chat/TimelineMinimap.swift:303-356"
       ],
       "notes": "Title is one line with tail truncation; snippet up to three lines with tail truncation. The height is estimated at 17 + 3 + lines*15 + 20, or 37 with no snippet, using 7 points per glyph; measuring instead would re-lay-out on every hover change.",
-      "b2_change": "Fonts respelled as text styles of the same macOS size: B1 TimelineMinimap.swift:320 `.font(.system(size: 13, weight: .semibold))` -> B2 :320 `.font(.system(.body, weight: .semibold))`; B1 :327 `.font(.system(size: 12))` -> B2 :327 `.font(.system(.callout))`. Line numbers are unchanged."
+      "b2_change": "Fonts respelled as text styles of the same macOS size: B1 TimelineMinimap.swift:320 `.font(.system(size: 13, weight: .semibold))` -> B2 :320 `.font(.system(.body, weight: .semibold))`; B1 :327 `.font(.system(size: 12))` -> B2 :327 `.font(.system(.callout))`. Line numbers are unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "CHAT",

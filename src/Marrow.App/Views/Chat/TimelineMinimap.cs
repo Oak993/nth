@@ -1,22 +1,22 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 using Avalonia;
+using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Layout;
 using Avalonia.Media;
+using Marrow.Core.Models;
 using Marrow.Core.Port;
+using Marrow.Core.Support;
+using Marrow.App.Runtime;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
 
 namespace Marrow.App.Views.Chat;
 
 // Source: DroppyCode/App/Views/Chat/TimelineMinimap.swift (B2 1fbf81e), :1-449.
-// Skeleton (c100 group 2): every type the file declares and the members the other cycle files use. The data shapes
-// are complete; every member with behaviour, and every view body, is a MARROW_STUB left to the implementing unit, as
-// are the views' private members (not declared here).
-// Forms (ED-095): a SwiftUI View is a Decorator whose constructor builds `body`; a caseless enum used as a namespace
-// is a static class; a custom Shape is a sealed record whose `Path(Rect)` is the shape's `path(in:)`. A view's
-// `static func ==` (the Equatable a parent's `.equatable()` reads) is the static `InputsEqual`: a Control keeps
-// reference identity, so its own Equals is not overridden. Swift `private` top-level types are `internal` here.
 
 /// <summary>:4-13 <c>struct TimelineMinimapEntry: Identifiable, Hashable</c>.</summary>
 public sealed record TimelineMinimapEntry
@@ -24,31 +24,199 @@ public sealed record TimelineMinimapEntry
     public required string Id { get; init; } // :8
     public required string Title { get; init; } // :9
     public required string Snippet { get; init; } // :10
+    /// <summary>0...1, drives the tick width. Long replies read wide, short notices narrow.</summary>
     public required double Weight { get; init; } // :12
 }
 
 /// <summary>:15-87 <c>enum TimelineMinimap</c>, a caseless enum used as a namespace.</summary>
 public static class TimelineMinimap
 {
-    // :16-19 static func entries(for:) -> [TimelineMinimapEntry]
-    public static ValueList<TimelineMinimapEntry> Entries(IReadOnlyList<DisplayBlock> @for) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineMinimap.swift:16");
+    // :16-19
+    public static ValueList<TimelineMinimapEntry> Entries(IReadOnlyList<DisplayBlock> @for)
+    {
+        var result = new List<TimelineMinimapEntry>();
+        foreach (var block in @for)
+        {
+            var entry = Entry(block);
+            if (entry is not null) result.Add(entry);
+        }
+        return new ValueList<TimelineMinimapEntry>(result);
+    }
+
+    // :21-35
+    private static TimelineMinimapEntry? Entry(DisplayBlock block)
+    {
+        UserMessage? message = null;
+        string? id = null;
+
+        switch (block)
+        {
+            case DisplayBlock.Turn turn:
+                id = turn.Id;
+                foreach (var timelineEntry in turn.Entries)
+                {
+                    if (timelineEntry.Item.TimelineItemContent is not TimelineItem.Content.User user) continue;
+                    message = user.Value;
+                    break;
+                }
+                break;
+            case DisplayBlock.Group { Value: TimelineGroup.Single single }:
+                if (single.Value.Item.TimelineItemContent is TimelineItem.Content.User singleUser)
+                {
+                    id = single.Value.Id;
+                    message = singleUser.Value;
+                }
+                break;
+            case DisplayBlock.Group:
+            case DisplayBlock.Working:
+            case DisplayBlock.Merging:
+            case DisplayBlock.HeadsWorking:
+                break;
+            default:
+                throw new System.Diagnostics.UnreachableException();
+        }
+
+        return message is null || id is null ? null : UserEntry(id, message);
+    }
+
+    // :37-54
+    private static readonly RecentCache<string, TimelineMinimapEntry> EntryCache = new(400);
+
+    // :42-54
+    private static TimelineMinimapEntry UserEntry(string id, UserMessage message)
+    {
+        if (EntryCache.TryGetValue(id, out var cached)) return cached;
+
+        var title = UserTitle(message);
+        var snippet = Preview(message.Text);
+        var entry = new TimelineMinimapEntry
+        {
+            Id = id,
+            Title = title,
+            Snippet = snippet.Length == 0 || SwiftString.Equal(snippet, title) ? "" : snippet,
+            Weight = Weight(message.Text),
+        };
+        EntryCache.Insert(entry, id);
+        return entry;
+    }
+
+    // :56-63
+    private static string UserTitle(UserMessage message)
+    {
+        var title = FirstWords(message.Text, 8);
+        if (title.Length != 0) return title;
+
+        var images = 0;
+        foreach (var attachment in message.Attachments)
+            if (attachment.IsImage) images++;
+
+        if (images == 1) return "1 image";
+        if (images > 1) return images.ToString(System.Globalization.CultureInfo.InvariantCulture) + " images";
+        return message.Attachments.Count > 0 ? message.Attachments[0].Name : "Message";
+    }
+
+    // :71-76
+    private static string FirstWords(string text, int limit)
+    {
+        var words = Words(text);
+        if (words.Count == 0) return "";
+        var count = Math.Min(limit, words.Count);
+        var result = string.Join(" ", words.GetRange(0, count));
+        return words.Count > limit ? result + "\U00002026" : result; // U+2026 HORIZONTAL ELLIPSIS
+    }
+
+    // :78-82
+    private static string Preview(string text)
+    {
+        var flat = string.Join(" ", Words(text));
+        return SwiftString.Count(flat) > 160
+            ? SwiftString.Prefix(flat, 160) + "\U00002026" // U+2026 HORIZONTAL ELLIPSIS
+            : flat;
+    }
+
+    // :71-82. Swift String.split(whereSeparator: \.isWhitespace), preserving each non-whitespace Character.
+    private static List<string> Words(string text)
+    {
+        var words = new List<string>();
+        var word = new StringBuilder();
+        foreach (var character in SwiftString.Characters(text))
+        {
+            if (SwiftCharacter.IsWhitespace(character))
+            {
+                if (word.Length == 0) continue;
+                words.Add(word.ToString());
+                word.Clear();
+            }
+            else
+            {
+                word.Append(character);
+            }
+        }
+        if (word.Length > 0) words.Add(word.ToString());
+        return words;
+    }
+
+    // :84-86
+    private static double Weight(string text) =>
+        Math.Min(1, Math.Max(0.15, (double)SwiftString.Count(text) / 420));
 }
 
 /// <summary>:89-131 <c>struct TimelineMinimapColumn: View, Equatable</c>.</summary>
 public sealed class TimelineMinimapColumn : Decorator
 {
-    // :94-101 the view's inputs; :112-130 body
+    private readonly IReadOnlyList<DisplayBlock> blocks;
+    private readonly TimelineScrollTracking tracking;
+    private readonly double centerHeight;
+    private readonly Action<string, bool> onNavigate;
+    private readonly IReadOnlyList<MinimapOutlineBlock> outline;
+    private ValueList<TimelineMinimapEntry> lastEntries = ValueList<TimelineMinimapEntry>.Empty;
+
+    // :94-101, :112-130
     public TimelineMinimapColumn(
         IReadOnlyList<DisplayBlock> blocks,
         TimelineScrollTracking tracking,
         double centerHeight,
-        Action<string, bool> onNavigate) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineMinimap.swift:112");
+        Action<string, bool> onNavigate)
+    {
+        this.blocks = blocks;
+        this.tracking = tracking;
+        this.centerHeight = centerHeight;
+        this.onNavigate = onNavigate;
 
-    // :103-105 nonisolated static func == (lhs:rhs:)
+        lastEntries = TimelineMinimap.Entries(blocks);
+        var outlineBlocks = new List<MinimapOutlineBlock>();
+        foreach (var entry in lastEntries)
+            outlineBlocks.Add(new MinimapOutlineBlock { Id = entry.Id, HasUserMessage = true });
+        outline = outlineBlocks;
+
+        Child = MakeSelection(lastEntries);
+
+        AttachedToVisualTree += (_, _) =>
+        {
+            lastEntries = TimelineMinimap.Entries(this.blocks);
+            Child = MakeSelection(lastEntries);
+        };
+    }
+
+    // :112-130
+    private MinimapSelection MakeSelection(IReadOnlyList<TimelineMinimapEntry> entries) =>
+        new(entries, outline, tracking, centerHeight, onNavigate);
+
+    // :103-105
     public static bool InputsEqual(TimelineMinimapColumn lhs, TimelineMinimapColumn rhs) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineMinimap.swift:103");
+        BlocksEqual(lhs.blocks, rhs.blocks) &&
+        ReferenceEquals(lhs.tracking, rhs.tracking) &&
+        lhs.centerHeight == rhs.centerHeight;
+
+    // :103-105
+    private static bool BlocksEqual(IReadOnlyList<DisplayBlock> lhs, IReadOnlyList<DisplayBlock> rhs)
+    {
+        if (ReferenceEquals(lhs, rhs)) return true;
+        if (lhs.Count != rhs.Count) return false;
+        for (var i = 0; i < lhs.Count; i++)
+            if (!EqualityComparer<DisplayBlock>.Default.Equals(lhs[i], rhs[i])) return false;
+        return true;
+    }
 }
 
 /// <summary>:133-137 <c>private struct MinimapOutlineBlock: Equatable</c>.</summary>
@@ -61,14 +229,27 @@ internal sealed record MinimapOutlineBlock
 /// <summary>:139-162 <c>private struct MinimapSelection: View</c>.</summary>
 internal sealed class MinimapSelection : Decorator
 {
-    // :142-146 the view's inputs; :148-156 body
+    // :142-146, :148-156
     public MinimapSelection(
         IReadOnlyList<TimelineMinimapEntry> entries,
         IReadOnlyList<MinimapOutlineBlock> outline,
         TimelineScrollTracking tracking,
         double centerHeight,
-        Action<string, bool> onNavigate) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineMinimap.swift:148");
+        Action<string, bool> onNavigate)
+    {
+        string? activeID = tracking.ActiveBlockID;
+        if (activeID is null)
+        {
+            for (var i = outline.Count - 1; i >= 0; i--)
+            {
+                if (!outline[i].HasUserMessage) continue;
+                activeID = outline[i].Id;
+                break;
+            }
+        }
+
+        Child = new TimelineMinimapRail(entries, centerHeight, activeID, onNavigate);
+    }
 }
 
 /// <summary>:164-380 <c>struct TimelineMinimapRail: View, Equatable</c>.</summary>
@@ -76,17 +257,363 @@ public sealed class TimelineMinimapRail : Decorator
 {
     private const double CardWidth = 300; // :356
 
-    // :169-177 the view's inputs; :204-248 body
+    private readonly IReadOnlyList<TimelineMinimapEntry> entries;
+    private readonly double centerHeight;
+    private readonly string? selectedID;
+    private readonly Action<string, bool> onNavigate;
+    private string? hoveredID;
+    private bool isPressing;
+    private bool ownsCursorPush;
+    private Border? hitArea;
+    private Grid? root;
+    private MinimapRailMetrics? metrics;
+
+    private sealed class CursorOwner(TimelineMinimapRail rail, Border area)
+    {
+        public TimelineMinimapRail Rail { get; } = rail;
+        public Border Area { get; } = area;
+        public bool Active { get; set; } = true;
+    }
+
+    private static readonly List<CursorOwner> CursorOwners = [];
+
+    // :169-177, :204-248
     public TimelineMinimapRail(
         IReadOnlyList<TimelineMinimapEntry> entries,
         double centerHeight,
         string? selectedID,
-        Action<string, bool> onNavigate) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineMinimap.swift:204");
+        Action<string, bool> onNavigate)
+    {
+        this.entries = entries;
+        this.centerHeight = centerHeight;
+        this.selectedID = selectedID;
+        this.onNavigate = onNavigate;
 
-    // :181-183 nonisolated static func == (lhs:rhs:)
+        AutomationProperties.SetName(this, "Conversation outline");
+        BuildBody();
+
+        DetachedFromVisualTree += (_, _) =>
+        {
+            ReleaseCursor();
+            hoveredID = null;
+            isPressing = false;
+            RefreshVisuals();
+        };
+    }
+
+    // :181-183
     public static bool InputsEqual(TimelineMinimapRail lhs, TimelineMinimapRail rhs) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineMinimap.swift:181");
+        EntriesEqual(lhs.entries, rhs.entries) &&
+        lhs.centerHeight == rhs.centerHeight &&
+        OptionalStringEqual(lhs.selectedID, rhs.selectedID);
+
+    // :181-183
+    private static bool OptionalStringEqual(string? lhs, string? rhs) =>
+        lhs is null ? rhs is null : rhs is not null && SwiftString.Equal(lhs, rhs);
+
+    // :181-183
+    private static bool EntriesEqual(IReadOnlyList<TimelineMinimapEntry> lhs, IReadOnlyList<TimelineMinimapEntry> rhs)
+    {
+        if (ReferenceEquals(lhs, rhs)) return true;
+        if (lhs.Count != rhs.Count) return false;
+        for (var i = 0; i < lhs.Count; i++)
+        {
+            var left = lhs[i];
+            var right = rhs[i];
+            if (!SwiftString.Equal(left.Id, right.Id) ||
+                !SwiftString.Equal(left.Title, right.Title) ||
+                !SwiftString.Equal(left.Snippet, right.Snippet) ||
+                left.Weight != right.Weight)
+                return false;
+        }
+        return true;
+    }
+
+    // :204-248
+    private void BuildBody()
+    {
+        var localMetrics = new MinimapRailMetrics(centerHeight, entries.Count);
+        var localRoot = new Grid();
+        metrics = localMetrics;
+        root = localRoot;
+
+        var hitRect = localMetrics.HitRect(entries.Count, new Size(0, 0));
+        var localHitArea = new Border
+        {
+            Background = Brushes.Transparent,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            VerticalAlignment = VerticalAlignment.Top,
+            Height = hitRect.Height,
+            Margin = new Thickness(0, hitRect.Y, 0, 0),
+        };
+        hitArea = localHitArea;
+
+        localHitArea.PointerEntered += (_, e) =>
+        {
+            PushCursor();
+            SetHovered(localMetrics.EntryID(e.GetPosition(localRoot).Y, entries));
+        };
+        localHitArea.PointerMoved += (_, e) =>
+        {
+            PushCursor();
+            var point = e.GetPosition(localRoot).Y;
+            if (isPressing) UpdateScrub(point, ended: false);
+            else SetHovered(localMetrics.EntryID(point, entries));
+        };
+        localHitArea.PointerExited += (_, _) =>
+        {
+            ReleaseCursor();
+            if (!isPressing) SetHovered(null);
+        };
+        localHitArea.PointerPressed += (_, e) =>
+        {
+            if (e.GetCurrentPoint(localHitArea).Properties.PointerUpdateKind != PointerUpdateKind.LeftButtonPressed) return;
+            isPressing = true;
+            RefreshVisuals();
+            e.Pointer.Capture(localHitArea);
+            UpdateScrub(e.GetPosition(localRoot).Y, ended: false);
+            e.Handled = true;
+        };
+        localHitArea.PointerReleased += (_, e) =>
+        {
+            if (!isPressing || e.GetCurrentPoint(localHitArea).Properties.PointerUpdateKind != PointerUpdateKind.LeftButtonReleased) return;
+            isPressing = false;
+            UpdateScrub(e.GetPosition(localRoot).Y, ended: true);
+            e.Pointer.Capture(null);
+            e.Handled = true;
+            RefreshVisuals();
+        };
+        localHitArea.PointerCaptureLost += (_, _) =>
+        {
+            if (!isPressing) return;
+            isPressing = false;
+            RefreshVisuals();
+        };
+
+        localRoot.Children.Add(localHitArea);
+        Child = localRoot;
+
+        localRoot.SizeChanged += (_, e) => UpdateHitArea(e.NewSize);
+        RefreshVisuals();
+    }
+
+    // :426-438
+    private void UpdateHitArea(Size size)
+    {
+        if (hitArea is null || metrics is null) return;
+        var updated = metrics.HitRect(entries.Count, size);
+        hitArea.Height = updated.Height;
+        hitArea.Margin = new Thickness(0, updated.Y, 0, 0);
+        RefreshVisuals();
+    }
+
+    // :259-268,303-344
+    private void RefreshVisuals()
+    {
+        if (root is null || metrics is null) return;
+
+        while (root.Children.Count > 1)
+            root.Children.RemoveAt(root.Children.Count - 1);
+
+        var stack = new StackPanel
+        {
+            Orientation = Orientation.Vertical,
+            Spacing = metrics.Spacing,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Top,
+            Margin = new Thickness(0, metrics.TopInset, 0, 0),
+            IsHitTestVisible = false,
+        };
+        foreach (var entry in entries) stack.Children.Add(CreateTick(entry));
+        root.Children.Add(stack);
+
+        if (hoveredID is { } current && FindEntry(current) is { } hovered)
+            root.Children.Add(CreatePreviewCard(hovered, metrics));
+
+        IsHitTestVisible = true;
+    }
+
+    // :214-229, :250-254
+    private void PushCursor()
+    {
+        if (ownsCursorPush || hitArea is null) return;
+        ownsCursorPush = true;
+        CursorOwners.Add(new CursorOwner(this, hitArea));
+        ApplyCursorOwners();
+    }
+
+    // :250-254
+    private void ReleaseCursor()
+    {
+        if (!ownsCursorPush) return;
+        ownsCursorPush = false;
+
+        for (var i = CursorOwners.Count - 1; i >= 0; i--)
+        {
+            if (!ReferenceEquals(CursorOwners[i].Rail, this)) continue;
+            CursorOwners[i].Active = false;
+            break;
+        }
+        while (CursorOwners.Count > 0 && !CursorOwners[^1].Active)
+            CursorOwners.RemoveAt(CursorOwners.Count - 1);
+        ApplyCursorOwners();
+    }
+
+    // :214-227. Windows cursor ownership mirrors each push and pop through this explicit LIFO stack.
+    private static void ApplyCursorOwners()
+    {
+        foreach (var owner in CursorOwners)
+            owner.Area.Cursor = null;
+
+        for (var i = CursorOwners.Count - 1; i >= 0; i--)
+        {
+            if (!CursorOwners[i].Active) continue;
+            CursorOwners[i].Area.Cursor = new Cursor(StandardCursorType.Hand);
+            break;
+        }
+    }
+
+    // :221-223, :298-301
+    private void SetHovered(string? id)
+    {
+        if (OptionalStringEqual(hoveredID, id)) return;
+        hoveredID = id;
+        RefreshVisuals();
+    }
+
+    // :259-288. PR-CHAT-073's static per-state colours/opacities (accent when selected, 0.95 when hovered,
+    // 0.25/0.4 baseOpacity) are implemented below; the 0.22s smooth-curve ANIMATION between those states
+    // (:198-202 hoverAnimation, nil during a live resize or reduced motion) is not - every property snaps
+    // instantly on every RefreshVisuals() rebuild, which happens to match only the "instant" fallback case.
+    private Control CreateTick(TimelineMinimapEntry entry)
+    {
+        var isSelected = selectedID is { } selected && SwiftString.Equal(entry.Id, selected);
+        var isHovered = hoveredID is { } hovered && SwiftString.Equal(entry.Id, hovered);
+
+        var tick = new Button
+        {
+            Width = TickWidth(entry, isHovered, isSelected),
+            MinWidth = 0,
+            Height = MinimapRailMetrics.TickHeight,
+            MinHeight = 0,
+            Margin = new Thickness(8, 0, 0, 0),
+            Padding = new Thickness(0),
+            CornerRadius = new CornerRadius(1),
+            BorderThickness = new Thickness(0),
+            Background = (isSelected && !isHovered ? Chrome.Accent : Chrome.PrimaryText).Brush(this),
+            Opacity = isHovered ? 0.95 : isSelected && !isHovered ? 1 : (hoveredID is not null || isPressing) ? 0.4 : 0.25,
+            IsHitTestVisible = false,
+            Focusable = false,
+        };
+        tick.Click += (_, _) => onNavigate(entry.Id, true);
+        AutomationProperties.SetName(tick, entry.Title);
+        AutomationProperties.SetAccessibilityView(tick, AccessibilityView.Content);
+        return tick;
+    }
+
+    // :290-296
+    private double TickWidth(TimelineMinimapEntry entry, bool isHovered, bool isSelected)
+    {
+        // 10 pt narrowest, 26 pt widest. Hovered and selected ticks punch
+        // out to full width so the eye finds them while scrubbing.
+        var baseWidth = 10 + entry.Weight * 12;
+        if (isHovered || isSelected) return 26;
+        return hoveredID is not null || isPressing ? Math.Min(26, baseWidth + 2) : baseWidth;
+    }
+
+    // :298-301
+    private TimelineMinimapEntry? FindEntry(string id)
+    {
+        foreach (var entry in entries)
+            if (SwiftString.Equal(entry.Id, id)) return entry;
+        return null;
+    }
+
+    // :303-344
+    private Control CreatePreviewCard(TimelineMinimapEntry entry, MinimapRailMetrics metrics)
+    {
+        var tickCenterY = metrics.CenterY(IndexOf(entry));
+        var half = EstimatedCardHeight(entry) / 2;
+        var top = half + 2;
+        var bottom = Math.Max(top, Bounds.Height - half - 2);
+        var y = Math.Min(Math.Max(tickCenterY, top), bottom) - Bounds.Height / 2;
+
+        var content = new StackPanel { Orientation = Orientation.Vertical, Spacing = 3 };
+        var title = new TextBlock
+        {
+            Text = entry.Title,
+            MaxLines = 1,
+            TextWrapping = TextWrapping.NoWrap,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+        };
+        SwiftFont.System(SwiftFont.TextStyle.Body, weight: SwiftFont.Weight.Semibold).Apply(title);
+        title.Foreground = Chrome.PrimaryText.Brush(title);
+        content.Children.Add(title);
+
+        if (entry.Snippet.Length != 0)
+        {
+            var snippet = new TextBlock
+            {
+                Text = entry.Snippet,
+                MaxLines = 3,
+                TextWrapping = TextWrapping.Wrap,
+                TextTrimming = TextTrimming.CharacterEllipsis,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+            };
+            SwiftFont.System(SwiftFont.TextStyle.Callout).Apply(snippet);
+            snippet.Foreground = Chrome.SecondaryText.Brush(snippet);
+            content.Children.Add(snippet);
+        }
+
+        var card = new ChromeCard(() => new Border
+        {
+            Width = CardWidth,
+            Padding = new Thickness(12, 10),
+            Child = content,
+        });
+        card.Width = CardWidth;
+        card.Margin = new Thickness(34, 0, 0, 0);
+        card.HorizontalAlignment = HorizontalAlignment.Left;
+        card.VerticalAlignment = VerticalAlignment.Center;
+        card.IsHitTestVisible = false;
+        card.RenderTransform = new TranslateTransform(0, y);
+        AutomationProperties.SetAccessibilityView(card, AccessibilityView.Raw);
+        return card;
+    }
+
+    // :347-354
+    private double EstimatedCardHeight(TimelineMinimapEntry entry)
+    {
+        const double title = 17;
+        const double padding = 20;
+        if (entry.Snippet.Length == 0) return title + padding;
+
+        var glyphsPerLine = Math.Max(1, ((int)CardWidth - 24) / 7);
+        var count = SwiftString.Count(entry.Snippet);
+        var lines = Math.Min(3, Math.Max(1, (count + glyphsPerLine - 1) / glyphsPerLine));
+        return title + 3 + lines * 15 + padding;
+    }
+
+    // :358-360
+    private int IndexOf(TimelineMinimapEntry entry)
+    {
+        for (var i = 0; i < entries.Count; i++)
+            if (EqualityComparer<TimelineMinimapEntry>.Default.Equals(entries[i], entry)) return i;
+        return 0;
+    }
+
+    // :362-379
+    private void UpdateScrub(double y, bool ended)
+    {
+        var id = new MinimapRailMetrics(centerHeight, entries.Count).EntryID(y, entries);
+        if (id is null) return;
+        if (!SwiftString.Equal(hoveredID ?? "", id))
+        {
+            SetHovered(id);
+            if (!ended) onNavigate(id, false);
+        }
+        if (ended) onNavigate(id, true);
+    }
 }
 
 /// <summary>:382-439 <c>private struct MinimapRailMetrics</c>: pure rail geometry.</summary>
@@ -95,31 +622,59 @@ internal sealed record MinimapRailMetrics
     public const double TickHeight = 2; // :388
     private const double RoomySpacing = 8; // :389
     private const double TightestSpacing = 2; // :390
+    private double Pitch => TickHeight + Spacing; // :413
 
     public double Spacing { get; init; } // :392
     public double TopInset { get; init; } // :394
 
-    // :396-411 init(centeringHeight:count:)
-    public MinimapRailMetrics(double centeringHeight, long count) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineMinimap.swift:396");
+    // :396-411
+    public MinimapRailMetrics(double centeringHeight, long count)
+    {
+        if (count <= 0 || centeringHeight <= 0)
+        {
+            Spacing = RoomySpacing;
+            TopInset = 0;
+            return;
+        }
 
-    // :415-417 func centerY(for:) -> CGFloat
-    public double CenterY(long @for) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineMinimap.swift:415");
+        var ticks = count * TickHeight;
+        var gaps = Math.Max(0, count - 1);
+        Spacing = ticks + gaps * RoomySpacing <= centeringHeight
+            ? RoomySpacing
+            : Math.Max(TightestSpacing, (centeringHeight - ticks) / Math.Max(1, gaps));
+        TopInset = (centeringHeight - (ticks + gaps * Spacing)) / 2;
+    }
 
-    // :419-424 func entryID(at:entries:) -> String?
-    public string? EntryID(double at, IReadOnlyList<TimelineMinimapEntry> entries) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineMinimap.swift:419");
+    // :415-417
+    public double CenterY(long @for) => TopInset + @for * Pitch + TickHeight / 2;
 
-    // :432-438 func hitRect(count:railSize:) -> CGRect
-    public Rect HitRect(long count, Size railSize) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineMinimap.swift:432");
+    // :419-424
+    public string? EntryID(double at, IReadOnlyList<TimelineMinimapEntry> entries)
+    {
+        if (entries.Count == 0) return null;
+        var raw = (at - TopInset - TickHeight / 2 + Pitch / 2) / Pitch;
+        var index = (int)Math.Floor(raw);
+        index = Math.Clamp(index, 0, entries.Count - 1);
+        return entries[index].Id;
+    }
+
+    // :426-438
+    private static double ChromeClearance => Chrome.ChromeTopPadding + Chrome.CapsuleHeight;
+
+    public Rect HitRect(long count, Size railSize)
+    {
+        if (count <= 0) return new Rect(0, 0, 0, 0);
+        var top = Math.Max(CenterY(0) - Pitch / 2, ChromeClearance);
+        var bottom = Math.Min(CenterY(count - 1) + Pitch / 2, railSize.Height);
+        return bottom > top
+            ? new Rect(0, top, railSize.Width, bottom - top)
+            : new Rect(0, 0, 0, 0);
+    }
 }
 
 /// <summary>:441-449 <c>private struct RailHitArea: Shape</c>.</summary>
 internal sealed record RailHitArea(Rect Rect)
 {
-    // :446-448 func path(in:) -> Path
-    public Geometry Path(Rect @in) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineMinimap.swift:446");
+    // :446-448
+    public Geometry Path(Rect @in) => new RectangleGeometry(Rect);
 }

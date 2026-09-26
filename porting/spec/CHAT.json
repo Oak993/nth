@@ -1436,7 +1436,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Split on the Unicode whitespace property, not on the ASCII space, and join with a single U+0020 regardless of the original separators.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1457,7 +1457,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Count in Characters (grapheme clusters), matching the source.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1478,7 +1478,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same limit; these caches are tuned against each other (port_impacts.md 312).",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1500,7 +1500,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Character count means grapheme clusters, matching Swift's String.count.",
       "verification_method": "capture comparison plus unit over the width function",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1521,7 +1521,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Centre in the column height passed in, and re-centre without animation when the height is what changed (PR-CHAT-072).",
       "verification_method": "unit over the metrics plus capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1543,7 +1543,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The clearance must be computed from the two chrome tokens, not hard-coded to 44.",
       "verification_method": "interaction test clicking at the top of the rail column",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1568,7 +1568,7 @@
       "cancellation": "A disappear while hovering pops the pushed cursor exactly once, guarded by an ownership flag.",
       "windows_path": "Windows has no NSCursor push/pop stack: model it as an explicit LIFO cursor-owner stack and mirror each push and pop site one for one (port_impacts.md 310).",
       "verification_method": "interaction test for hover, scrub and release; unit for entryID",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1589,7 +1589,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Chrome.accent resolves to the theme's accent or the system control accent for System, Light and Dark (chrome-design-tokens section 6.1). Primary is the label colour, which is appearance-dependent.",
       "verification_method": "capture comparison in both themes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1612,7 +1612,7 @@
       "cancellation": "The card unmounts as soon as the hover ends.",
       "windows_path": "Reproduce the estimate rather than measuring, including the deliberately crude 7-points-per-glyph assumption, so the clamping matches. The card's glassEffect(.regular) surface is a named deviation under owner decision OD-0005, which resolves UNK-0004: Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content; visual parity stays UNVERIFIED without macOS (OD-0001). Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "capture comparison at the top, middle and bottom of a long rail",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1635,7 +1635,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep the outline build out of the timeline's own render path: the titles read message text, and building them in the timeline made the whole conversation re-render on every streamed token. OD-0013: the live-resize edge strip measured by probe P4 (while the pointer moves, the growing edges show the window's own backdrop without the app layer for about a frame and the shrinking edges clip) must be fixed; the main window chrome is not accepted until it is gone, and it is not downgraded to a deviation without the owner.",
       "verification_method": "unit counting outline builds during a simulated resize",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1656,7 +1656,7 @@
       "cancellation": "not cancellable",
       "windows_path": "UI Automation: a group named Conversation outline containing invoke-patterned items named by the message title.",
       "verification_method": "interaction test through the accessibility tree",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4529,7 +4529,8 @@
         "DroppyCode/App/Views/Chat/TimelineMinimap.swift:272-296",
         "DroppyCode/App/Views/Chat/TimelineMinimap.swift:387-424"
       ],
-      "notes": "The ticks themselves never hit-test; the rail's own hit area takes the pointer, so a scrub never drops between ticks. Each tick's accessibility label is the message title. OD-0013: the live-resize edge strip measured by probe P4 (while the pointer moves, the growing edges show the window's own backdrop without the app layer for about a frame and the shrinking edges clip) must be fixed; the main window chrome is not accepted until it is gone, and it is not downgraded to a deviation without the owner."
+      "notes": "The ticks themselves never hit-test; the rail's own hit area takes the pointer, so a scrub never drops between ticks. Each tick's accessibility label is the message title. OD-0013: the live-resize edge strip measured by probe P4 (while the pointer moves, the growing edges show the window's own backdrop without the app layer for about a frame and the shrinking edges clip) must be fixed; the main window chrome is not accepted until it is gone, and it is not downgraded to a deviation without the owner.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-005",
@@ -4552,7 +4553,8 @@
         "DroppyCode/App/Views/Chat/TimelineMinimap.swift:303-356"
       ],
       "notes": "Title is one line with tail truncation; snippet up to three lines with tail truncation. The height is estimated at 17 + 3 + lines*15 + 20, or 37 with no snippet, using 7 points per glyph; measuring instead would re-lay-out on every hover change.",
-      "b2_change": "Fonts respelled as text styles of the same macOS size: B1 TimelineMinimap.swift:320 `.font(.system(size: 13, weight: .semibold))` -> B2 :320 `.font(.system(.body, weight: .semibold))`; B1 :327 `.font(.system(size: 12))` -> B2 :327 `.font(.system(.callout))`. Line numbers are unchanged."
+      "b2_change": "Fonts respelled as text styles of the same macOS size: B1 TimelineMinimap.swift:320 `.font(.system(size: 13, weight: .semibold))` -> B2 :320 `.font(.system(.body, weight: .semibold))`; B1 :327 `.font(.system(size: 12))` -> B2 :327 `.font(.system(.callout))`. Line numbers are unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-006",
