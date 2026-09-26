@@ -19,6 +19,10 @@ using Marrow.UI.Port;
 //   still MARROW_STUB (App/Window/WindowManager.cs): STOP App.AppCommands #1 in tests/Marrow.App.Tests/AppCommandsTests.cs.
 // - :17-19 replaces the save placement with nothing, so it has no entry; Ctrl+W stays free for the archive command and
 //   a secondary window closes itself (ThreadWindow.cs SecondaryWindow).
+// Outside this file, the install is not written either: DroppyCodeApp.swift:24 puts these commands in front of every
+// window of the app, and the port's replacement, MenuKeyEquivalents.Attach(window, new AppCommands(model)
+// .PerformKeyEquivalent) on each window, has no caller until the windows are built (WindowManager.cs, still a stub):
+// STOP App.AppCommands #6. How a key typed with AltGr, which Windows reports as Ctrl+Alt, is read: STOP #7.
 // The zoom items (:53-62) carry literal key equivalents, "+", "-", "0" and "=". Port/MenuKeyEquivalents.cs reads a key
 // event as a US key position (ED-099), which gives "=", "-" and "0" but never "+": how a key press reaches the "+" key
 // equivalent, and whether these four match by character rather than position, is STOP App.AppCommands #2.

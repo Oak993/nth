@@ -18,7 +18,11 @@ namespace Marrow.App.Port;
 //   and a tunnel handler at the window runs before any control inside it, as a menu key equivalent is taken before the
 //   first responder's keyDown ("a menu command always wins over a button's shortcut", AppCommands.swift:69-73).
 // - A key event becomes a SwiftUI KeyboardShortcut by ED-099: the physical key's Set-1 scan code (1), the menu key
-//   equivalent Shortcuts.swift:80-101 gives that code (6), and the modifiers held, Win masked out (3).
+//   equivalent Shortcuts.swift:80-101 gives that code (6), and the modifiers held, Win masked out (3). AltGr reaches
+//   Avalonia as Ctrl+Alt and reads as those two here; no decision says otherwise yet: STOP App.AppCommands #7 in
+//   tests/Marrow.App.Tests/AppCommandsTests.cs.
+// - Nothing in the app calls Attach yet. Its call site replaces DroppyCodeApp.swift:24, the menu bar's install, on each
+//   window WindowManager builds (WindowManager.cs, still a stub): STOP App.AppCommands #6.
 
 /// <summary>
 /// One item of a SwiftUI <c>Commands</c> body: <c>Button(Title) { Action() }.keyboardShortcut(Shortcut)

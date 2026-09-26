@@ -2464,3 +2464,71 @@ public sealed class AppCommandsTests(HeadlessSession headless)
 // in part 1 (green). Not written, because it would fail on the dependency rather than on this unit: Ctrl+Return with
 // a draft such as "/plan" on a selected idle thread (Swift: send() handles it locally, ThreadRuntime.swift:743-750,
 // :1157-1162, so the thread flips to plan and the draft is emptied; no follow-up is queued).
+
+// STOP App.AppCommands #6 (repair agent, 2026-09-26)
+// Kind: missing dependency
+// Swift: DroppyCode/App/DroppyCodeApp.swift:21-25 (B3 52bc792), the one install site of AppCommands.swift:11-114:
+//   Settings { EmptyView() }
+//       .commands { AppCommands(model: WindowManager.shared.model) }
+// with the comment (:22) "The windows themselves are AppKit windows owned by WindowManager. This scene only carries
+// the menus." The menu bar :24 installs answers every key equivalent pressed while any window of the app is key.
+// Requirements: PR-WIN-089 (windows_path: "every chord works with no menu present"), PR-WIN-110 (Ctrl+1 to Ctrl+9
+// select a thread while another window, such as Settings, is key, "through the port's own dispatch of the chord");
+// through them, the chord of every item of this file in the running app.
+// What is unclear or missing: the port's replacement for :24 is MenuKeyEquivalents.Attach(window,
+// new AppCommands(model).PerformKeyEquivalent) on each window of the app, with model the one AppModel
+// (WindowManager.shared.model, WindowManager.swift:13). Nothing in src/ calls it: src/Marrow.App/DroppyCodeApp.cs
+// :13-16 gives the scene body no port target, the windows it would go on are built by WindowManager (main window
+// :62-72, Settings window :80-84, both through makeWindow :86-110), whose Shared, constructor, MakeMainWindow,
+// MakeSettingsWindow and MakeWindow are still MARROW_STUB (src/Marrow.App/Window/WindowManager.cs:29-30, :47-48,
+// :67-76), PA-0002 (porting/platform_adaptations.md) leaves the Windows replacement of the scene undecided, and no
+// packet (App.Window.WindowManager, App.Window.ThreadWindow, App.DroppyCodeApp) assigns the install. As merged, only
+// the tests attach the dispatch, to their own windows; in the running app no chord of this file would fire. Other
+// windows the app shows can also be key upstream and so get the menu's key equivalents: the tour window
+// (TourWindowController.swift:8-11 canBecomeKey true, made at :76-81) and the floating guide panel, a
+// .nonactivatingPanel (FloatingGuidePanel.swift:33-56); which of them the port's install covers is part of the same
+// decision.
+// Readings or options: (a) makeWindow's port (WindowManager.swift:86-110), the one factory of the main and Settings
+// windows, attaches the dispatch to each window it makes -> every chord works in both; the tour window and the guide
+// panel need their own attach; (b) one port-only hook attaches it to every window the app opens -> every window of
+// the app, the tour window and the guide panel included, answers the chords.
+// Needed to proceed: unit App.Window.WindowManager (Shared with its Model, MakeWindow), and a decision (ED) naming the
+// install site in place of DroppyCodeApp.swift:24 and the windows it covers.
+// Done so far: MenuKeyEquivalents.Attach and AppCommands.PerformKeyEquivalent are implemented and tested on the
+// tests' own windows (green); nothing attaches them to a window of the running app.
+
+// STOP App.AppCommands #7 (repair agent, 2026-09-26)
+// Kind: platform gap
+// Swift: DroppyCode/Core/Models/Shortcuts.swift:232 (B3 52bc792)
+//   case .toggleActivityView: KeyChord(keyCode: 32, modifiers: [.option, .command])
+// and DroppyCode/App/AppCommands.swift:48-51 (B3 52bc792), the item that carries it. Every other item a user may
+// rebind takes its chord from the same store (AppCommands.swift:14-107, shortcuts.keyboardShortcut(for:)).
+// Requirements: PR-WIN-101 and UI-WIN-015 (the "Toggle activity view" item, its default chord Ctrl+Alt+U), PR-WIN-089
+// (every chord of the table, a Ctrl+Alt chord the user records included)
+// What is unclear or missing: upstream this item's default chord holds Command (Shortcuts.swift:232), which never
+// types a character on a Mac, so typing U with Option (the Mac's character modifier) never runs it; only a chord a
+// user records with Option and no Command can meet typing there (the recorder refuses only a typing key with no
+// modifier but Shift, Shortcuts.swift:325-326). The port reads a key-down's modifiers as ED-099 (3) says, Control |
+// Alt | Shift with Win masked out
+// (Port/MenuKeyEquivalents.cs Shortcut), and Avalonia.Win32 12.1.2 fills them from the keyboard state: Alt from
+// VK_LMENU or VK_RMENU, Control from VK_LCONTROL or VK_RCONTROL (Avalonia.Win32.Input.WindowsKeyboardDevice.Modifiers,
+// decompiled). AltGr, the Windows character modifier, raises LCtrl and RAlt together, so AltGr with the U key reaches
+// the dispatch as ("u", Ctrl+Alt), toggleActivityView's default (ED-050 (a), ED-099 (3)). The dispatch runs the item
+// and consumes the event in the window's tunnel stage, and Avalonia.Win32 then drops the WM_CHAR of a handled
+// WM_KEYDOWN (WindowImpl: _ignoreWmChar = e.Handled), so on a layout where AltGr with U types a character (the review
+// names Polish programmers and Hungarian, where it is the euro sign; not checked here) typing that character flips the
+// sidebar's activity view and the character is lost. Any Ctrl+Alt chord a user records collides the same way with the
+// character AltGr gives that key in the user's layout. No decision covers AltGr: ED-050 and ED-099 map Option to Alt
+// and say nothing of it, and STOP #2 names it only for the zoom chords' reading (b).
+// Readings or options: (a) ED-099 (3) as written, the port as it stands: every key-down with Ctrl and Alt held is a
+// chord, AltGr included -> AltGr characters on the chord keys are swallowed and run the command; (b) a key-down with
+// AltGr held (right Alt on a layout that has AltGr) is never a chord -> AltGr always types; on such layouts a Ctrl+Alt
+// chord works with the left Alt only; needs a port-only read of which Alt is down and whether the layout has AltGr,
+// which Avalonia's KeyModifiers does not carry; (c) an AltGr key-down is a chord only when AltGr with that key types
+// nothing in the active layout -> AltGr characters type, AltGr with a key that types nothing still runs the command;
+// needs a port-only ToUnicodeEx over the key state, with the dead-key rules STOP #2 (b) also needs.
+// Needed to proceed: a decision (ED or owner) choosing the reading, and for (b) or (c) the port-only keyboard read.
+// Done so far: the dispatch follows ED-099 (3) as recorded (Ctrl+Alt+U runs "Toggle activity view" through
+// PerformKeyEquivalent, and a Ctrl+Alt key-down reaches the dispatch through a window, both tested above, green);
+// nothing is written to tell AltGr from Ctrl+Alt, and no test is written for it: the headless platform carries no
+// AltGr, and the expectation rests on the reading this item asks for.
