@@ -22,6 +22,10 @@ using Marrow.UI.Markdown;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using System.IO;
+using Avalonia.Controls.Presenters;
+using Avalonia.Controls.Templates;
+using Avalonia.Automation.Peers;
+using Avalonia.Automation.Provider;
 
 namespace Marrow.App.Views.Settings;
 
@@ -280,13 +284,26 @@ internal sealed class SmallSwitch : Control
         this.isOn = isOn;
         Width = TrackWidth;
         Height = TrackHeight;
+        Focusable = true;
         Cursor = new Cursor(StandardCursorType.Hand);
+        this.Track(() => isOn.Value, _ => InvalidateVisual());
+        KeyDown += (_, e) => { if (e.Key == Key.Space && IsEffectivelyEnabled) { isOn.Value = !isOn.Value; e.Handled = true; InvalidateVisual(); } };
         PointerPressed += (_, e) =>
         {
+            if (!IsEffectivelyEnabled) return;
+            Focus();
             isOn.Value = !isOn.Value;
             e.Handled = true;
             InvalidateVisual();
         };
+    }
+
+    protected override AutomationPeer OnCreateAutomationPeer() => new SwitchPeer(this);
+    private sealed class SwitchPeer(SmallSwitch owner) : ControlAutomationPeer(owner), IToggleProvider
+    {
+        protected override AutomationControlType GetAutomationControlTypeCore() => AutomationControlType.CheckBox;
+        public ToggleState ToggleState => owner.isOn.Value ? ToggleState.On : ToggleState.Off;
+        public void Toggle() { if (owner.IsEffectivelyEnabled) owner.isOn.Value = !owner.isOn.Value; }
     }
 
     public override void Render(DrawingContext context)
@@ -491,7 +508,7 @@ internal sealed class ProvidersSettingsPage : Decorator
         var state = new ViewState();
         var stack = new StackPanel { Spacing = Chrome.SectionSpacing }; Child = stack; // :598-600
         var sections = new ForEach<ProviderKind, ProviderKind>(stack, provider => provider, provider => new ProviderSettingsSection(provider,
-            new Binding<bool>(() => state.Expansion.TryGetValue(provider, out var value) ? value : AppEnvironment.GetAppModel(this).Providers.Status(provider).ProviderStatusAuth is ProviderStatus.Auth.SignedIn,
+            new Binding<bool>(() => { if (state.Expansion.TryGetValue(provider, out var value)) return value; var registry = AppEnvironment.GetAppModel(this).Providers; _ = registry.Statuses; return registry.Status(provider).ProviderStatusAuth is ProviderStatus.Auth.SignedIn; },
                 value => state.Expansion = state.Expansion.Mutating(map => map[provider] = value))), (_, _) => { }); // :605-610
         this.Track(() => AppEnvironment.GetAppModel(this).Providers.Statuses, _ =>
         {
@@ -523,10 +540,11 @@ internal sealed class ProviderSettingsSection : Decorator
         var state = new ViewState();
         var cardRows = new StackPanel();
         var reveal = new ChromeRevealLayout(0) { ClipToBounds = true, Children = { new ChromeCard(() => cardRows) } }; // :648-649,763
+        var motion = new SettingsScalarAnimation(reveal, 0, value => reveal.Fraction = value);
         Child = new StackPanel { Spacing = Chrome.SectionHeaderSpacing, Children = { new CollapsibleProviderHeader(provider, isExpanded, "provider settings"), reveal } }; // :646-647
         this.Track(() => isExpanded.Value, expanded => // :764-766
         {
-            reveal.Fraction = expanded ? 1 : 0; reveal.IsEnabled = expanded; reveal.IsHitTestVisible = expanded;
+            motion.Set(expanded ? 1 : 0, Transaction.Current); reveal.IsEnabled = expanded; reveal.IsHitTestVisible = expanded;
             AutomationProperties.SetAccessibilityView(reveal, expanded ? AccessibilityView.Content : AccessibilityView.Raw);
         });
         this.Track(() => AppEnvironment.GetAppModel(this), model =>
@@ -567,11 +585,18 @@ internal sealed class ProviderSettingsSection : Decorator
                     keyCheck = MainActor.Spawn(async () => { await SwiftTask.TrySleep(TimeSpan.FromMilliseconds(600)); if (SwiftTask.IsCancelled) return; await model.Providers.Refresh(provider); await model.Providers.LoadCatalog(provider, force: true); }); // :789-794
                 }));
                 keyField.PasswordChar = '\u2022'; keyField.Width = 200; SwiftFont.System(12, design: SwiftFont.Design.Monospaced).Apply(keyField); // :700-707
+                MaskedPresenter(keyField); // SecureField must mask its actual text presenter, not just the box property.
                 var eye = PlainControls.Button(SwiftImage.SystemName("eye").Font(SwiftFont.System(12)).ForegroundStyle(Chrome.SecondaryText), () => state.ShowsAPIKey = !state.ShowsAPIKey); // :708-715
                 eye.Track(() => state.ShowsAPIKey, shown => { keyField.PasswordChar = shown ? '\0' : '\u2022'; eye.Content = SwiftImage.SystemName(shown ? "eye.slash" : "eye").Font(SwiftFont.System(12)).ForegroundStyle(Chrome.SecondaryText); ToolTip.SetTip(eye, shown ? "Hide the API key" : "Show the API key"); }); // :711,716
                 // DEVIATION OD-0012 G2: Credential Manager replaces Keychain.
                 var keyDetail = provider.IsAPIKeyBased ? "Stored in your Credential Manager. Get one at " + (provider.ApiKeySource ?? "the provider dashboard") + "." : "Instead of `" + provider.LoginCommand + "`: a Studio key from " + (provider.ApiKeySource ?? "the provider dashboard") + ", stored in your Credential Manager and handed to the CLI."; // :693-695
-                cardRows.Children.Add(new ChromeRow(provider.IsAPIKeyBased ? "API key" : "API key (optional)", () => new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { keyField, eye } }, keyDetail)); // :691-717
+                var keyControls = new StackPanel { Children = { new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { keyField, eye } } } };
+                keyControls.Track(() => { _ = StoredKey(model.Settings); return model.Settings.APIKeyRefusal(provider); }, refusal =>
+                {
+                    if (keyControls.Children.Count > 1) keyControls.Children.RemoveAt(1);
+                    if (refusal is not null) keyControls.Children.Add(new TextBlock { Text = refusal, TextWrapping = TextWrapping.Wrap }); // DEVIATION OD-0012 E5: exact line beneath the field; no unspecified type/colour tokens invented.
+                });
+                cardRows.Children.Add(new ChromeRow(provider.IsAPIKeyBased ? "API key" : "API key (optional)", () => keyControls, keyDetail)); // :691-717
                 keyField.Track(() => StoredKey(model.Settings), value => { if (!SwiftString.Equal(state.ApiKey, value)) state.ApiKey = value; }); // :796-799
             }
             if (!provider.IsAPIKeyBased)
@@ -593,6 +618,26 @@ internal sealed class ProviderSettingsSection : Decorator
         });
     }
 
+    // SecureField's native masking and editing presenter, retaining the shared field's binding and prompt.
+    // The source's OS-defined roundedBorder appearance remains STOP #6 rather than guessed geometry.
+    private static void MaskedPresenter(TextBox box)
+    {
+        box.Template = new FuncControlTemplate<TextBox>((owner, scope) =>
+        {
+            var prompt = new TextBlock { IsHitTestVisible = false, [!TextBlock.TextProperty] = owner[!TextBox.PlaceholderTextProperty], [!TextBlock.ForegroundProperty] = owner[!TextBox.PlaceholderForegroundProperty] };
+            var presenter = new TextPresenter
+            {
+                Name = "PART_TextPresenter", [!TextPresenter.TextProperty] = owner[!TextBox.TextProperty],
+                [!TextPresenter.PasswordCharProperty] = owner[!TextBox.PasswordCharProperty],
+                [!TextPresenter.SelectionStartProperty] = owner[!TextBox.SelectionStartProperty], [!TextPresenter.SelectionEndProperty] = owner[!TextBox.SelectionEndProperty],
+                [!TextPresenter.CaretIndexProperty] = owner[!TextBox.CaretIndexProperty],
+            }.RegisterInNameScope(scope);
+            void ShowPrompt() => prompt.IsVisible = string.IsNullOrEmpty(owner.Text);
+            owner.PropertyChanged += (_, change) => { if (change.Property == TextBox.TextProperty) ShowPrompt(); }; ShowPrompt();
+            return new Panel { Children = { prompt, presenter } };
+        });
+    }
+
     // :796-799. ApiKeyInput currently reads backing fields; observe the corresponding stored properties too.
     private string StoredKey(AppSettings settings)
     {
@@ -606,7 +651,7 @@ internal sealed class ProviderSettingsSection : Decorator
     }
 
     // :722-726,741-745
-    private static Control Link(string title, SwiftURL url) => PlainControls.Button(new TextBlock { Text = title, Height = Chrome.RowButtonLabelHeight }, () => Marrow.Services.Port.Workspace.Open.Current(url));
+    private static Control Link(string title, SwiftURL url) => PlainControls.Button(new TextBlock { Text = title, Height = Chrome.RowButtonLabelHeight }, () => Marrow.Services.Port.Workspace.Open.Current(url)).ChromeGlassCapsule();
 }
 
 /// <summary>:826-872 <c>private struct SourceControlSettingsPage: View</c>.</summary>
