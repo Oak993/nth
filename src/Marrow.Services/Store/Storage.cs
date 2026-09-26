@@ -55,75 +55,66 @@ public interface IStorageLocations
 }
 
 /// <summary>
-/// The production shape of Storage.swift's seven roots (:19-48). Each of <see cref="Root"/>,
+/// The production shape of Storage.swift's five remaining roots (:19-39; two more, root and wallpaperDirectory,
+/// moved to Core.Support.StoragePaths in B3 - see <see cref="paths"/>). Each of <see cref="Root"/>,
 /// <see cref="ThreadsDirectory"/>, <see cref="AttachmentsDirectory"/>, <see cref="WallpaperDirectory"/>,
 /// <see cref="WorktreesDirectory"/> and <see cref="PatchesDirectory"/> is created with intermediates on first
 /// access and cached for the life of the instance (PR-STORE-001, -003, -004, -005, -006, -007); a creation
 /// failure is swallowed (<c>try?</c>) exactly as the source swallows it, and the resolved path is still returned
-/// and cached. <see cref="LibraryURL"/> (:27) is a pure derivation with no side effect.
+/// and cached. <see cref="LibraryURL"/> (:21) is a pure derivation with no side effect.
 /// </summary>
 public sealed class StorageLocations : IStorageLocations
 {
-    private readonly Lazy<string> root;
-    private readonly Lazy<string> threadsDirectory;
-    private readonly Lazy<string> attachmentsDirectory;
-    private readonly Lazy<string> wallpaperDirectory;
+    // N2 (porting/work/b3/B3_PLAN.md section 3): root, wallpaperDirectory and directory(_:) moved out of this
+    // file into Core/Support/StoragePaths.cs. This instance is constructed directly from the same `root`
+    // factory this type already receives (never through the StoragePaths.Locations Ambient), so
+    // StorageLocations.Create/.CreateProduction and every existing test fixture that calls them keep their
+    // exact signature; ENGINEERING DECISION, reported for the ledger to record.
+    private readonly StoragePathsLocations paths;
     private readonly Lazy<string> worktreesDirectory;
     private readonly Lazy<string> patchesDirectory;
 
     private StorageLocations(Func<string> root, Func<string> homeDirectory, bool isDevelopment)
     {
-        this.root = CreateOnce(() =>
-        {
-            var url = root(); // :20-22
-            SwiftTry.Ignore(() => Directory.CreateDirectory(url)); // :23 try? createDirectory(withIntermediateDirectories: true)
-            return url;
-        });
-        threadsDirectory = SubDirectory("threads"); // :31, :54-58 directory(_:)
-        attachmentsDirectory = SubDirectory("attachments"); // :33
-        wallpaperDirectory = SubDirectory("wallpaper"); // :36
+        paths = StoragePathsLocations.Create(root); // :19 static let root: URL = StoragePaths.root
 
-        // :43-48 stateDirectory(_:). DEVIATION OD-0012 F1: the folder name shown in Settings and handed to git is
+        // :34-39 stateDirectory(_:). DEVIATION OD-0012 F1: the folder name shown in Settings and handed to git is
         // ".marrow" / ".marrow-dev", not upstream AppInfo.stateDirectoryName (".droppy-code" / ".droppy-code-dev",
         // Text.swift:6): this path is a named exception to keeping AppInfo's own literal.
         var stateDirectoryName = isDevelopment ? ".marrow-dev" : ".marrow"; // DEVIATION OD-0012 F1
-        worktreesDirectory = StateSubDirectory(homeDirectory, stateDirectoryName, "worktrees"); // :38
-        patchesDirectory = StateSubDirectory(homeDirectory, stateDirectoryName, "patches"); // :41
-
-        Lazy<string> SubDirectory(string name) => CreateOnce(() =>
-        {
-            var url = SwiftPath.AppendingPathComponent(this.root.Value, name); // :55
-            SwiftTry.Ignore(() => Directory.CreateDirectory(url)); // :56
-            return url;
-        });
+        worktreesDirectory = StateSubDirectory(homeDirectory, stateDirectoryName, "worktrees"); // :29
+        patchesDirectory = StateSubDirectory(homeDirectory, stateDirectoryName, "patches"); // :32
     }
 
     private static Lazy<string> StateSubDirectory(Func<string> homeDirectory, string stateDirectoryName, string name) =>
         CreateOnce(() =>
         {
-            // :44-45: one appendingPathComponent call handed "name/subname" creates both levels at once.
+            // :35-36: one appendingPathComponent call handed "name/subname" creates both levels at once.
             var url = SwiftPath.AppendingPathComponent(
                 SwiftPath.AppendingPathComponent(homeDirectory(), stateDirectoryName), name);
-            SwiftTry.Ignore(() => Directory.CreateDirectory(url)); // :46
+            SwiftTry.Ignore(() => Directory.CreateDirectory(url)); // :36
             return url;
         });
 
     private static Lazy<string> CreateOnce(Func<string> factory) => new(factory, LazyThreadSafetyMode.ExecutionAndPublication);
 
-    public string Root => root.Value; // :19-25
-    public string LibraryURL => SwiftPath.AppendingPathComponent(Root, "library.json"); // :27, no side effect
-    public string ThreadsDirectory => threadsDirectory.Value; // :31
-    public string AttachmentsDirectory => attachmentsDirectory.Value; // :33
-    public string WallpaperDirectory => wallpaperDirectory.Value; // :36
-    public string WorktreesDirectory => worktreesDirectory.Value; // :38
-    public string PatchesDirectory => patchesDirectory.Value; // :41
+    public string Root => paths.Root; // :19
+    public string LibraryURL => SwiftPath.AppendingPathComponent(Root, "library.json"); // :21, no side effect
+    public string ThreadsDirectory => paths.Directory("threads"); // :25, via directory(_:) (now Core.Support.StoragePaths)
+    public string AttachmentsDirectory => paths.Directory("attachments"); // :27
+    // Removed from Storage.swift in B3 (moved to StoragePaths.swift :15); kept here until lane A10 (ED-195/O5)
+    // updates UI.Theme.Wallpaper to read Core.Support.StoragePaths.WallpaperDirectory directly and retires this.
+    public string WallpaperDirectory => paths.WallpaperDirectory;
+    public string WorktreesDirectory => worktreesDirectory.Value; // :29
+    public string PatchesDirectory => patchesDirectory.Value; // :32
 
     /// <summary>
     /// DEVIATION OD-0008 C7: %LOCALAPPDATA%\Marrow Code, a fixed literal rather than AppInfo.Name (upstream
     /// appends the display name, falling back to "Droppy Code", Text.swift:4), so the port never shares a folder
     /// with the owner's separate Electron "Marrow" (%LOCALAPPDATA%\Marrow). dead_code.md #44: CaptureRun.storageRoot
-    /// (:20) is reachable only via --website-captures / --tour-captures, never a normal launch, so the redirect is
-    /// not reproduced here.
+    /// (now StoragePaths.swift:7, moved from this file's B2 :20) is reachable only via --website-captures /
+    /// --tour-captures, never a normal launch, so the redirect is not reproduced here, matching
+    /// Core.Support.StoragePathsLocations.CreateProduction.
     /// </summary>
     public static StorageLocations CreateProduction() => new(
         root: () => SwiftPath.AppendingPathComponent(
