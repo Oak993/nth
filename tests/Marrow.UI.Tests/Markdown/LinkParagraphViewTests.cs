@@ -190,14 +190,14 @@ public sealed class LinkParagraphViewTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Decision", "OD-0026")] // a forward-slash Windows drive-letter path takes the local-file branch too
+    [Trait("Decision", "ED-204")] // OD-0026: a forward-slash Windows drive-letter path takes the local-file branch too
     public void A_forward_slash_drive_letter_path_qualifies_as_a_local_file()
     {
         Assert.Equal("C:/Users/x/a.cs:12", MarkdownLinkOpener.LocalFilePath(SwiftURL.Create("C:/Users/x/a.cs:12")!));
     }
 
     [Fact]
-    [Trait("Decision", "OD-0026")] // a backslash Windows drive-letter path takes the local-file branch too
+    [Trait("Decision", "ED-204")] // OD-0026: a backslash Windows drive-letter path takes the local-file branch too
     public void A_backslash_drive_letter_path_qualifies_as_a_local_file()
     {
         var url = SwiftURL.Create(@"C:\Users\x\a.cs:12")!;
@@ -205,7 +205,7 @@ public sealed class LinkParagraphViewTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Decision", "OD-0026")] // WINDOWS-ONLY: url.Path reads IsFileURL, which asks ICU whenever Scheme is set
+    [Trait("Decision", "ED-204")] // OD-0026: WINDOWS-ONLY: url.Path reads IsFileURL, which asks ICU whenever Scheme is set
     public void The_file_url_form_of_a_drive_letter_path_qualifies_as_a_local_file()
     {
         var url = SwiftURL.Create("file:///C:/Users/x/a.cs:12")!;

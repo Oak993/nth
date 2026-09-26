@@ -84,7 +84,7 @@ public sealed class MentionScannerTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-N10-1")] // an empty candidate name is skipped: the Swift loop never advances past one
+    [Trait("Req", "PR-THEME-143")] // an empty candidate name is skipped: the Swift loop never advances past one (b3_note, PR-THEME-143; see MentionScanner.cs's own citation)
     public void An_empty_candidate_name_is_skipped_and_never_hangs()
     {
         var matches = Matches("Hank is here", ["", "Hank"]);
