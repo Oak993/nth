@@ -238,12 +238,14 @@ public sealed class SettingsView : Decorator
         pageStack.Track(() => scrollTracker.IsFrozen, value => pageStack.IsHitTestVisible = !value);
         var scroll = new ScrollViewer { Content = pageStack, VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Hidden, HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled }; // :228-230
         WireScroll(scroll, page: true);
-        var chrome = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, MinHeight = Chrome.CapsuleHeight, Margin = new Thickness(Chrome.ChromeHorizontalPadding, Chrome.ChromeTopPadding, Chrome.ChromeHorizontalPadding, 0), VerticalAlignment = VerticalAlignment.Top, Children = { new ChromeCompactTitle(state.Page.Title, scrollChrome) } }; // :246-267
-        if (state.Page == SettingsPage.Models) chrome.Children.Add(new ChromeSearchField(new Binding<string>(() => state.ModelSearch, value => { state.ModelSearch = value; ((ModelsSettingsPage)content).SetQuery(value); }), "Search models")); // :248-250
-        if (state.Page == SettingsPage.Mcp) chrome.Children.Add(new ChromeSearchField(new Binding<string>(() => state.McpSearch, value => state.McpSearch = value), "Search servers")); // :251-253
-        if (state.Page == SettingsPage.Providers) chrome.Children.Add(new ProvidersRefreshButton()); // :254-256
-        if (state.Page == SettingsPage.Archive) chrome.Children.Add(new ArchiveDeleteAllButton()); // :257-259
-        if (state.Page == SettingsPage.About) chrome.Children.Add(new AboutUpdateChromeAccessory()); // :260-262
+        var accessories = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
+        var chromeRow = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), ColumnSpacing = 10, MinHeight = Chrome.CapsuleHeight, Children = { new ChromeCompactTitle(state.Page.Title, scrollChrome), accessories } }; Grid.SetColumn(accessories, 1);
+        var chrome = new StackPanel { Spacing = 10, MinHeight = Chrome.CapsuleHeight, Margin = new Thickness(Chrome.ChromeHorizontalPadding, Chrome.ChromeTopPadding, Chrome.ChromeHorizontalPadding, 0), VerticalAlignment = VerticalAlignment.Top, Children = { chromeRow } }; // :246-267. Grid's star track is Swift's flexible title frame.
+        if (state.Page == SettingsPage.Models) accessories.Children.Add(new ChromeSearchField(new Binding<string>(() => state.ModelSearch, value => { state.ModelSearch = value; ((ModelsSettingsPage)content).SetQuery(value); }), "Search models")); // :248-250
+        if (state.Page == SettingsPage.Mcp) accessories.Children.Add(new ChromeSearchField(new Binding<string>(() => state.McpSearch, value => state.McpSearch = value), "Search servers")); // :251-253
+        if (state.Page == SettingsPage.Providers) accessories.Children.Add(new ProvidersRefreshButton()); // :254-256
+        if (state.Page == SettingsPage.Archive) accessories.Children.Add(new ArchiveDeleteAllButton()); // :257-259
+        if (state.Page == SettingsPage.About) accessories.Children.Add(new AboutUpdateChromeAccessory()); // :260-262
         detail.Child = new Panel { Children = { scroll, new PaneTopVeil(scrollChrome) { VerticalAlignment = VerticalAlignment.Top }, chrome } }.DetailSheet();
     }
 
