@@ -532,7 +532,19 @@ public sealed class CollapsibleProviderHeader : Decorator
             HorizontalContentAlignment = HorizontalAlignment.Stretch,
             Height = 22, // :441
         };
-        header.Click += (_, _) => Transaction.WithAnimation(Chrome.PanelSlide, () => isExpanded.Value = !isExpanded.Value); // :423-424
+        header.Click += (_, _) =>
+        {
+            Transaction.WithAnimation(Chrome.PanelSlide, () => isExpanded.Value = !isExpanded.Value); // :423-424
+            // isExpanded is a Binding<bool> whose source (ModelsSettingsPage.providerExpansion, a plain
+            // Dictionary field, or SettingsView's own equivalent) is not an ObservableModel property, so
+            // this.Track(() => isExpanded.Value, ...) below never observes this write (ObservationTracking only
+            // records reads that go through ObservableModel.Read - R-VIEW-2 calls for @State to be a ViewState:
+            // MainActorModel property precisely so a Binding over it is trackable; providerExpansion predates this
+            // unit's B3 change and violates that rule, which is out of this lane's own file scope to redesign).
+            // Calling UpdateHeader() here directly, from the one place this control itself writes isExpanded,
+            // keeps the header's own chevron/tooltip/accessibility state correct regardless of that gap.
+            UpdateHeader();
+        };
 
         void UpdateHeader()
         {
@@ -547,6 +559,8 @@ public sealed class CollapsibleProviderHeader : Decorator
             AutomationProperties.SetHelpText(header, "Shows or hides the " + subject); // :445 .accessibilityHint
         }
         UpdateHeader();
+        // Kept for the case isExpanded's source becomes a real ObservableModel property (SettingsView or a future
+        // fix to providerExpansion): a change made from outside this control's own Click would then refresh it too.
         this.Track(() => isExpanded.Value, _ => UpdateHeader());
 
         // :446 .accessibilityAddTraits(.isHeader): Avalonia's nearest match is a heading level (SetHeadingLevel),

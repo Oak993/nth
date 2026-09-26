@@ -203,11 +203,17 @@ public sealed class ModelsSettingsPageTests(HeadlessSession headless)
             var header = new CollapsibleProviderHeader(ProviderKind.Claude, binding, "model list");
             var button = HeaderButton(header);
 
+            // isExpanded.Value flips synchronously inside the click handler's Transaction.WithAnimation body, but
+            // this.Track's reaction (UpdateHeader, which sets ItemStatus/ToolTip) runs on a MainActor.Post that the
+            // headless dispatcher only drains on an explicit pump - same idiom as FollowUpQueueTabTests.Settle().
+            // Without this, the assertions below see the pre-click ItemStatus even though `value` already flipped.
             button.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
             Assert.True(value);
             Assert.Equal("Expanded", AutomationProperties.GetItemStatus(button));
 
             button.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
             Assert.False(value);
             Assert.Equal("Collapsed", AutomationProperties.GetItemStatus(button));
         });
