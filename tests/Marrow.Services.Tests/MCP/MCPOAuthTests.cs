@@ -54,6 +54,22 @@ public sealed class MCPOAuthTests
 
     private static string Slashed(string text) => text.Replace("/", "\\/", StringComparison.Ordinal);
 
+    /// <summary>PR-MCP-159 b3_note oracle, transcribed independently from the record rather than from formEncode
+    /// (MCPOAuth.swift:790-793): percent-encodes every UTF-8 byte not in "A-Za-z0-9-._~" as %XX with uppercase hex
+    /// digits (ED-201), so ":", "/", "+", "=", "&" and a space are all escaped and nothing is turned into "+".</summary>
+    private static string FormEncoded(string value)
+    {
+        var sb = new StringBuilder();
+        foreach (var b in Encoding.UTF8.GetBytes(value))
+        {
+            var unreserved = (b >= (byte)'A' && b <= (byte)'Z') || (b >= (byte)'a' && b <= (byte)'z')
+                || (b >= (byte)'0' && b <= (byte)'9') || b == (byte)'-' || b == (byte)'.' || b == (byte)'_' || b == (byte)'~';
+            if (unreserved) sb.Append((char)b);
+            else sb.Append('%').Append(b.ToString("X2", System.Globalization.CultureInfo.InvariantCulture));
+        }
+        return sb.ToString();
+    }
+
     private static Task StartSignIn(LoopbackHttpServer server, string path = "/mcp") =>
         Task.Run(() => MCPOAuth.SignIn(ServerID, ServerName, Base(server) + path));
 
@@ -178,20 +194,20 @@ public sealed class MCPOAuthTests
     // ---- PR-MCP-162: the success and failure pages ----
 
     [Fact]
-    [Trait("Req", "PR-MCP-162")] // Services/MCP/MCPOAuth.swift:838-844
+    [Trait("Req", "PR-MCP-162")] // Services/MCP/MCPOAuth.swift:841-847
     public void SuccessPage_titles_and_heads_the_page_with_the_escaped_server_name_and_sends_the_user_back_to_Marrow()
     {
         var page = MCPOAuth.SuccessPage("A & B <\"c\"> 'd'");
         const string name = "A &amp; B &lt;&quot;c&quot;&gt; &#39;d&#39;";
         Assert.Contains("\n<title>Signed in to " + name + "</title>\n", page, StringComparison.Ordinal);
         Assert.Contains("\n<h1>Signed in to " + name + "</h1>\n", page, StringComparison.Ordinal);
-        // DEVIATION OD-0012 F1: upstream says "head back to Droppy Code." (:842).
+        // DEVIATION OD-0012 F1: upstream says "head back to Droppy Code." (:845).
         Assert.Contains("\n<p>You can close this tab and head back to Marrow.</p>\n", page, StringComparison.Ordinal);
         Assert.DoesNotContain("Droppy", page, StringComparison.Ordinal);
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-162")] // Services/MCP/MCPOAuth.swift:846-852
+    [Trait("Req", "PR-MCP-162")] // Services/MCP/MCPOAuth.swift:849-855
     public void FailurePage_titles_the_page_with_an_em_dash_and_the_escaped_name_and_shows_the_escaped_message_under_a_fixed_heading()
     {
         var page = MCPOAuth.FailurePage("A & B", "Code <expired> & \"gone\"");
@@ -353,7 +369,7 @@ public sealed class MCPOAuthTests
 
     [Fact]
     [Trait("Req", "PR-MCP-153")] // Services/MCP/MCPOAuth.swift:650-661
-    [Trait("Req", "PR-MCP-159")] // Services/MCP/MCPOAuth.swift:768-778
+    [Trait("Req", "PR-MCP-159")] // Services/MCP/MCPOAuth.swift:768-776
     public async Task A_refresh_posts_grant_refresh_token_client_id_secret_and_resource_in_order_as_a_form()
     {
         using var h = new OAuthHarness();
@@ -429,7 +445,7 @@ public sealed class MCPOAuthTests
 
     [Theory]
     [Trait("Req", "PR-MCP-153")] // Services/MCP/MCPOAuth.swift:661-668
-    [Trait("Req", "PR-MCP-159")] // Services/MCP/MCPOAuth.swift:792-798
+    [Trait("Req", "PR-MCP-159")] // Services/MCP/MCPOAuth.swift:795-801
     [InlineData(400, """{"error":"invalid_grant","error_description":"Refresh token revoked"}""", "Couldn't finish signing in. Refresh token revoked")]
     [InlineData(400, """{"error":"invalid_grant","error_description":""}""", "Couldn't finish signing in. invalid_grant")]
     [InlineData(401, "", "Couldn't finish signing in. The sign-in expired.")]
@@ -1016,7 +1032,7 @@ public sealed class MCPOAuthTests
 
     [Theory]
     [Trait("Req", "PR-MCP-144")] // Services/MCP/MCPOAuth.swift:378-388
-    [Trait("Req", "PR-MCP-159")] // Services/MCP/MCPOAuth.swift:792-798
+    [Trait("Req", "PR-MCP-159")] // Services/MCP/MCPOAuth.swift:795-801
     [InlineData(403, "", "Sign-in setup failed. The server only signs in apps it has approved (403), so this one can't yet.")]
     [InlineData(403, """{"error":"access_denied"}""", "Sign-in setup failed. access_denied")]
     [InlineData(400, """{"error":"invalid_redirect_uri","error_description":"Loopback is not allowed"}""", "Sign-in setup failed. Loopback is not allowed")]
@@ -1334,7 +1350,7 @@ public sealed class MCPOAuthTests
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-161")] // Services/MCP/MCPOAuth.swift:816-834
+    [Trait("Req", "PR-MCP-161")] // Services/MCP/MCPOAuth.swift:819-837
     public async Task The_verifier_is_32_bytes_and_the_state_24_bytes_base64url_unpadded_and_the_challenge_is_their_S256_digest()
     {
         using var h = new OAuthHarness();
@@ -1362,7 +1378,7 @@ public sealed class MCPOAuthTests
 
     [Fact]
     [Trait("Req", "PR-MCP-152")] // Services/MCP/MCPOAuth.swift:601-622
-    [Trait("Req", "PR-MCP-159")] // Services/MCP/MCPOAuth.swift:768-778
+    [Trait("Req", "PR-MCP-159")] // Services/MCP/MCPOAuth.swift:768-776
     public async Task The_code_exchange_posts_seven_form_fields_in_order()
     {
         using var h = new OAuthHarness();
@@ -1389,7 +1405,7 @@ public sealed class MCPOAuthTests
 
     [Theory]
     [Trait("Req", "PR-MCP-152")] // Services/MCP/MCPOAuth.swift:622-629
-    [Trait("Req", "PR-MCP-159")] // Services/MCP/MCPOAuth.swift:792-798
+    [Trait("Req", "PR-MCP-159")] // Services/MCP/MCPOAuth.swift:795-801
     [InlineData(400, """{"error":"invalid_grant","error_description":"Code expired"}""", "Couldn't finish signing in. Code expired")]
     [InlineData(400, """{"error":"invalid_grant"}""", "Couldn't finish signing in. invalid_grant")]
     [InlineData(400, """{"error":"invalid_grant","error_description":""}""", "Couldn't finish signing in. invalid_grant")]
@@ -1461,13 +1477,55 @@ public sealed class MCPOAuthTests
         Assert.Equal("The server's sign-in details didn't make sense. The server's sign-in details didn't make sense. The server answered 404.", error.ErrorDescription);
     }
 
+    // B3 (A12, PR-MCP-159 b3_note): postForm's raw body bytes, not just the decoded pairs the tests above compare
+    // (:768-778, :790-793). A code exchange's redirect_uri always has ":" and "/" (it is "http://127.0.0.1:<port>/callback"),
+    // and this seeds a due refresh whose stored refresh_token has a "+", so both reserved characters are exercised.
+    [Fact]
+    [Trait("Req", "PR-MCP-159")] // Services/MCP/MCPOAuth.swift:768-793
+    public async Task PostForm_percent_encodes_colon_slash_and_plus_and_leaves_the_verifier_bare()
+    {
+        using var h = new OAuthHarness();
+        await using var server = new LoopbackHttpServer();
+        var b = Base(server);
+        var flow = StartSignIn(server);
+        await Discover(server, flow);
+        await Register(server, flow);
+        var url = h.AwaitBrowser(flow);
+        var redirect = OAuthHarness.Value(OAuthHarness.QueryPairs(url), "redirect_uri"); // e.g. http://127.0.0.1:PORT/callback
+        Assert.Contains(':', redirect);
+        Assert.Contains('/', redirect);
+        var token = await Finish(server, flow, url);
+        var rawExchange = Encoding.UTF8.GetString(token.Body);
+        var beforeVerifier = "grant_type=authorization_code&code=code-1&redirect_uri=" + FormEncoded(redirect) + "&client_id=cid-1&code_verifier=";
+        var afterVerifierAt = rawExchange.IndexOf("&client_secret=", StringComparison.Ordinal);
+        Assert.True(afterVerifierAt > 0 && rawExchange.StartsWith(beforeVerifier, StringComparison.Ordinal));
+        var verifier = rawExchange[beforeVerifier.Length..afterVerifierAt];
+        Assert.Matches("^[A-Za-z0-9_-]{43}$", verifier); // base64url(32 random bytes), all unreserved: formEncode leaves it untouched
+        Assert.Equal(beforeVerifier + verifier + "&client_secret=sec-1&resource=" + FormEncoded(b + "/mcp"), rawExchange);
+        // ":" and "/" never survive unescaped, and nothing was turned into "+".
+        Assert.DoesNotContain(":", rawExchange.Replace("%3A", "", StringComparison.Ordinal), StringComparison.Ordinal);
+        Assert.DoesNotContain("/", rawExchange.Replace("%2F", "", StringComparison.Ordinal), StringComparison.Ordinal);
+
+        Assert.True(MCPOAuth.SignOut(ServerID)); // clears the session the exchange above just stored, so Seed below is not a duplicate
+        h.Seed(SessionAccount, $$"""{"access_token":"old","client_id":"cid-1","client_secret":"sec-1","expires_at":{{h.NowUnixSeconds - 10}},"refresh_token":"rt+1","token_endpoint":"{{b}}/token","resource":"{{b}}/res"}""");
+        var refreshFlow = Task.Run(() => MCPOAuth.AccessToken(ServerID));
+        var post = await Next(server, refreshFlow);
+        var rawRefresh = Encoding.UTF8.GetString(post.Body);
+        Assert.Equal(
+            "grant_type=refresh_token&refresh_token=rt%2B1&client_id=cid-1&client_secret=sec-1&resource=" + FormEncoded(b + "/res"),
+            rawRefresh);
+        Assert.Contains("rt%2B1", rawRefresh, StringComparison.Ordinal); // "+" becomes %2B (uppercase, ED-201), never left bare and never turned into a literal "+" query "+"
+        await Json(post, 200, """{"access_token":"new","expires_in":60}""");
+        Assert.Equal("new", await refreshFlow.WaitAsync(Guard));
+    }
+
     // ---- Part 2, PR-MCP-163: the callback page document ----
     //
-    // The expected document is transcribed from the multi-line literal at MCPOAuth.swift:855-912: Swift strips the
+    // The expected document is transcribed from the multi-line literal at MCPOAuth.swift:858-915: Swift strips the
     // closing delimiter's eight-space indentation from every line, joins the lines with "\n" and ends the string at
     // "</html>" with no newline after it. Each line below cites the Swift line it copies.
 
-    // MCPOAuth.swift:904, verbatim: the logo, one line. Its UTF-8 bytes (1,448) hash to the SHA-256 of that Swift line
+    // MCPOAuth.swift:907, verbatim: the logo, one line. Its UTF-8 bytes (1,448) hash to the SHA-256 of that Swift line
     // with its eight-space indentation removed, f6a4a2f8b88336526475f9d59dedb1c73c515ced89456e2485514bbac303272d.
     private const string Logo = "<svg width=\"56\" height=\"56\" viewBox=\"0 0 100 100\" opacity=\"0.9\" xmlns=\"http://www.w3.org/2000/svg\"><path fill=\"#FFFFFF\" fill-rule=\"nonzero\" d=\"M16.00 94.00 C16.00 94.00 16.17 80.33 17.00 74.00 C17.83 67.67 19.50 61.00 21.00 56.00 C22.50 51.00 25.50 47.33 26.00 44.00 C26.50 40.67 26.17 38.83 24.00 36.00 C21.83 33.17 15.83 30.17 13.00 27.00 C10.17 23.83 7.00 17.00 7.00 17.00 C7.00 17.00 16.50 24.50 20.00 27.00 C23.50 29.50 27.50 33.17 28.00 32.00 C28.50 30.83 24.33 24.50 23.00 20.00 C21.67 15.50 20.00 5.00 20.00 5.00 C20.00 5.00 27.50 12.67 31.00 16.00 C34.50 19.33 37.17 23.67 41.00 25.00 C44.83 26.33 50.17 23.33 54.00 24.00 C57.83 24.67 61.00 26.67 64.00 29.00 C67.00 31.33 68.67 34.50 72.00 38.00 C75.33 41.50 80.33 46.33 84.00 50.00 C87.67 53.67 92.17 57.33 94.00 60.00 C95.83 62.67 95.33 64.33 95.00 66.00 C94.67 67.67 93.83 69.00 92.00 70.00 C90.17 71.00 87.33 71.67 84.00 72.00 C80.67 72.33 75.33 71.50 72.00 72.00 C68.67 72.50 67.33 72.67 64.00 75.00 C60.67 77.33 55.33 83.17 52.00 86.00 C48.67 88.83 46.00 90.67 44.00 92.00 C42.00 93.33 40.00 94.00 40.00 94.00 C40.00 94.00 16.00 94.00 16.00 94.00 Z M63.00 38.00 C60.24 38.00 58.00 40.24 58.00 43.00 C58.00 45.76 60.24 48.00 63.00 48.00 C65.76 48.00 68.00 45.76 68.00 43.00 C68.00 40.24 65.76 38.00 63.00 38.00 Z M86.00 61.20 C85.01 61.20 84.20 62.01 84.20 63.00 C84.20 63.99 85.01 64.80 86.00 64.80 C86.99 64.80 87.80 63.99 87.80 63.00 C87.80 62.01 86.99 61.20 86.00 61.20 Z\"/></svg>";
 
@@ -1475,66 +1533,66 @@ public sealed class MCPOAuthTests
 
     private static string Document(string headTitle, string heading, string message) => string.Join("\n",
     [
-        "<!DOCTYPE html>", // :856
-        "<html lang=\"en\">", // :857
-        "<head>", // :858
-        "<meta charset=\"utf-8\">", // :859
-        "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">", // :860
-        "<meta name=\"color-scheme\" content=\"dark\">", // :861
-        "<title>" + headTitle + "</title>", // :862
-        "<style>", // :863
-        "* { box-sizing: border-box; }", // :864
-        "html, body { margin: 0; padding: 0; }", // :865
-        "body {", // :866
-        "  background: #0B0B0F;", // :867
-        "  color: #F5F5F7;", // :868
-        "  font-family: -apple-system, \"SF Pro Text\", \"Helvetica Neue\", Helvetica, sans-serif;", // :869
-        "  min-height: 100vh;", // :870
-        "  display: flex;", // :871
-        "  align-items: center;", // :872
-        "  justify-content: center;", // :873
-        "}", // :874
-        ".card {", // :875
-        "  width: 420px;", // :876
-        "  max-width: calc(100vw - 48px);", // :877
-        "  padding: 40px;", // :878
-        "  border-radius: 22px;", // :879
-        "  background: rgba(255, 255, 255, 0.06);", // :880
-        "  text-align: center;", // :881
-        "}", // :882
-        "h1 {", // :883
-        "  font-size: 22px;", // :884
-        "  font-weight: 600;", // :885
-        "  color: #F5F5F7;", // :886
-        "  margin: 20px 0 8px;", // :887
-        "}", // :888
-        "p {", // :889
-        "  font-size: 14px;", // :890
-        "  color: rgba(255, 255, 255, 0.62);", // :891
-        "  line-height: 1.5;", // :892
-        "  margin: 0 0 24px;", // :893
-        "}", // :894
-        ".wordmark {", // :895
-        "  font-size: 12px;", // :896
-        "  color: rgba(255, 255, 255, 0.4);", // :897
-        "  letter-spacing: 0.04em;", // :898
-        "}", // :899
-        "</style>", // :900
-        "</head>", // :901
-        "<body>", // :902
-        "<div class=\"card\">", // :903
-        Logo, // :904
-        "<h1>" + heading + "</h1>", // :905
-        "<p>" + message + "</p>", // :906
-        "<div class=\"wordmark\">Marrow</div>", // :907 DEVIATION OD-0012 F1: upstream reads "Droppy Code"
-        "</div>", // :908
-        "<script>setTimeout(() => window.close(), 1500);</script>", // :909
-        "</body>", // :910
-        "</html>", // :911
+        "<!DOCTYPE html>", // :859
+        "<html lang=\"en\">", // :860
+        "<head>", // :861
+        "<meta charset=\"utf-8\">", // :862
+        "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">", // :863
+        "<meta name=\"color-scheme\" content=\"dark\">", // :864
+        "<title>" + headTitle + "</title>", // :865
+        "<style>", // :866
+        "* { box-sizing: border-box; }", // :867
+        "html, body { margin: 0; padding: 0; }", // :868
+        "body {", // :869
+        "  background: #0B0B0F;", // :870
+        "  color: #F5F5F7;", // :871
+        "  font-family: -apple-system, \"SF Pro Text\", \"Helvetica Neue\", Helvetica, sans-serif;", // :872
+        "  min-height: 100vh;", // :873
+        "  display: flex;", // :874
+        "  align-items: center;", // :875
+        "  justify-content: center;", // :876
+        "}", // :877
+        ".card {", // :878
+        "  width: 420px;", // :879
+        "  max-width: calc(100vw - 48px);", // :880
+        "  padding: 40px;", // :881
+        "  border-radius: 22px;", // :882
+        "  background: rgba(255, 255, 255, 0.06);", // :883
+        "  text-align: center;", // :884
+        "}", // :885
+        "h1 {", // :886
+        "  font-size: 22px;", // :887
+        "  font-weight: 600;", // :888
+        "  color: #F5F5F7;", // :889
+        "  margin: 20px 0 8px;", // :890
+        "}", // :891
+        "p {", // :892
+        "  font-size: 14px;", // :893
+        "  color: rgba(255, 255, 255, 0.62);", // :894
+        "  line-height: 1.5;", // :895
+        "  margin: 0 0 24px;", // :896
+        "}", // :897
+        ".wordmark {", // :898
+        "  font-size: 12px;", // :899
+        "  color: rgba(255, 255, 255, 0.4);", // :900
+        "  letter-spacing: 0.04em;", // :901
+        "}", // :902
+        "</style>", // :903
+        "</head>", // :904
+        "<body>", // :905
+        "<div class=\"card\">", // :906
+        Logo, // :907
+        "<h1>" + heading + "</h1>", // :908
+        "<p>" + message + "</p>", // :909
+        "<div class=\"wordmark\">Marrow</div>", // :910 DEVIATION OD-0012 F1: upstream reads "Droppy Code"
+        "</div>", // :911
+        "<script>setTimeout(() => window.close(), 1500);</script>", // :912
+        "</body>", // :913
+        "</html>", // :914
     ]);
 
     [Fact]
-    [Trait("Req", "PR-MCP-163")] // Services/MCP/MCPOAuth.swift:838-844, :854-913
+    [Trait("Req", "PR-MCP-163")] // Services/MCP/MCPOAuth.swift:841-847, :857-916
     public void SuccessPage_is_the_whole_fixed_document_with_the_Marrow_wordmark()
     {
         Assert.Equal(
@@ -1543,7 +1601,7 @@ public sealed class MCPOAuthTests
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-163")] // Services/MCP/MCPOAuth.swift:846-852, :854-913
+    [Trait("Req", "PR-MCP-163")] // Services/MCP/MCPOAuth.swift:849-855, :857-916
     public void FailurePage_is_the_whole_fixed_document_with_the_Marrow_wordmark()
     {
         Assert.Equal(
@@ -1552,7 +1610,7 @@ public sealed class MCPOAuthTests
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-163")] // Services/MCP/MCPOAuth.swift:855-912
+    [Trait("Req", "PR-MCP-163")] // Services/MCP/MCPOAuth.swift:858-915
     public void The_page_starts_at_the_doctype_ends_at_the_closing_html_tag_and_uses_bare_line_feeds()
     {
         foreach (var page in new[] { MCPOAuth.SuccessPage("Linear"), MCPOAuth.FailurePage("Linear", "Why") })
@@ -1561,9 +1619,9 @@ public sealed class MCPOAuthTests
             Assert.EndsWith("\n</div>\n<script>setTimeout(() => window.close(), 1500);</script>\n</body>\n</html>", page, StringComparison.Ordinal);
             Assert.DoesNotContain("\r", page, StringComparison.Ordinal);
             Assert.DoesNotContain("\t", page, StringComparison.Ordinal);
-            // Only the CSS declarations are indented, by exactly two spaces (:867-898).
+            // Only the CSS declarations are indented, by exactly two spaces (:870-901).
             Assert.DoesNotContain("\n ", page.Replace("\n  ", "\n", StringComparison.Ordinal), StringComparison.Ordinal);
-            Assert.Equal(56, page.Split('\n').Length); // :856-911
+            Assert.Equal(56, page.Split('\n').Length); // :859-914
             Assert.Contains("\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<meta name=\"color-scheme\" content=\"dark\">\n", page, StringComparison.Ordinal);
             Assert.Contains("\n<div class=\"wordmark\">Marrow</div>\n", page, StringComparison.Ordinal); // DEVIATION OD-0012 F1
             Assert.DoesNotContain("Droppy", page, StringComparison.Ordinal);
@@ -1573,7 +1631,7 @@ public sealed class MCPOAuthTests
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-163")] // Services/MCP/MCPOAuth.swift:863-903
+    [Trait("Req", "PR-MCP-163")] // Services/MCP/MCPOAuth.swift:866-906
     public void The_stylesheet_is_the_exact_dark_card_rules()
     {
         var page = MCPOAuth.SuccessPage("Linear");
@@ -1594,7 +1652,7 @@ public sealed class MCPOAuthTests
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-163")] // Services/MCP/MCPOAuth.swift:903-908
+    [Trait("Req", "PR-MCP-163")] // Services/MCP/MCPOAuth.swift:906-911
     public void The_card_holds_the_logo_line_then_the_heading_then_the_message_then_the_wordmark()
     {
         var lines = MCPOAuth.FailurePage("Linear", "Why").Split('\n');
@@ -1607,7 +1665,7 @@ public sealed class MCPOAuthTests
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-163")] // Services/MCP/MCPOAuth.swift:904
+    [Trait("Req", "PR-MCP-163")] // Services/MCP/MCPOAuth.swift:907
     public void The_logo_is_one_svg_with_a_single_white_path_of_three_closed_two_decimal_subpaths()
     {
         var logo = MCPOAuth.SuccessPage("Linear").Split('\n')[48];
@@ -1633,7 +1691,7 @@ public sealed class MCPOAuthTests
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-163")] // Services/MCP/MCPOAuth.swift:546-551, :854-913
+    [Trait("Req", "PR-MCP-163")] // Services/MCP/MCPOAuth.swift:546-551, :857-916
     public async Task The_page_the_callback_listener_serves_is_the_document()
     {
         using var h = new OAuthHarness();
@@ -1652,7 +1710,7 @@ public sealed class MCPOAuthTests
     // ---- Part 2, PR-MCP-164: escapeHTML ----
 
     [Theory]
-    [Trait("Req", "PR-MCP-164")] // Services/MCP/MCPOAuth.swift:915-929
+    [Trait("Req", "PR-MCP-164")] // Services/MCP/MCPOAuth.swift:918-932
     [InlineData("&", "&amp;")]
     [InlineData("<", "&lt;")]
     [InlineData(">", "&gt;")]
@@ -1667,7 +1725,7 @@ public sealed class MCPOAuthTests
     }
 
     [Theory]
-    [Trait("Req", "PR-MCP-164")] // Services/MCP/MCPOAuth.swift:918-926
+    [Trait("Req", "PR-MCP-164")] // Services/MCP/MCPOAuth.swift:921-929
     [InlineData("")]
     [InlineData("Linear")]
     [InlineData("a/b=c;d#e`f%g")]
@@ -1681,7 +1739,7 @@ public sealed class MCPOAuthTests
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-164")] // Services/MCP/MCPOAuth.swift:915-929
+    [Trait("Req", "PR-MCP-164")] // Services/MCP/MCPOAuth.swift:918-932
     public void Escaping_is_one_pass_so_an_existing_entity_is_escaped_again()
     {
         Assert.Equal(
@@ -1690,7 +1748,7 @@ public sealed class MCPOAuthTests
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-164")] // Services/MCP/MCPOAuth.swift:846-852, :915-929
+    [Trait("Req", "PR-MCP-164")] // Services/MCP/MCPOAuth.swift:849-855, :918-932
     public void A_hostile_message_cannot_add_markup_to_the_failure_page()
     {
         var page = MCPOAuth.FailurePage("x\"><script>", "<script>alert('x')</script><img src=\"y\" onerror=\"z\">");
@@ -1700,12 +1758,12 @@ public sealed class MCPOAuthTests
                 "Sign-in didn't finish",
                 "&lt;script&gt;alert(&#39;x&#39;)&lt;/script&gt;&lt;img src=&quot;y&quot; onerror=&quot;z&quot;&gt;"),
             page);
-        Assert.Equal(2, page.Split("<script>").Length); // only the page's own close script (:909)
+        Assert.Equal(2, page.Split("<script>").Length); // only the page's own close script (:912)
         Assert.DoesNotContain("<img", page, StringComparison.Ordinal);
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-164")] // Services/MCP/MCPOAuth.swift:530-545, :915-929
+    [Trait("Req", "PR-MCP-164")] // Services/MCP/MCPOAuth.swift:530-545, :918-932
     public async Task A_hostile_error_description_from_the_browser_is_escaped_on_the_served_page()
     {
         using var h = new OAuthHarness();

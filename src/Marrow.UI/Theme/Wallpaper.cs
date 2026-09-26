@@ -6,14 +6,18 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Marrow.Core.Port;
-using Marrow.Services.Store;
+using Marrow.Core.Support;
 using Marrow.UI.Port;
 
-// Source: DroppyCode/UI/Theme/Wallpaper.swift (B2 1fbf81e), :1-270. Moved up from UI to App (IMPLEMENTING 2.1,
-// HANDOFF section 9: WallpaperStore moves to App because it reads the Services storage location.
-// WallpaperCard.swift and RootView.swift are App readers.
+// Source: DroppyCode/UI/Theme/Wallpaper.swift (B3 52bc7926), :1-270. B2 moved this file up to App (IMPLEMENTING
+// 2.1, HANDOFF section 9) because it read Services.Store.Storage.wallpaperDirectory. B3 moves wallpaperDirectory
+// itself out of Services into Core.Support.StoragePaths (upstream commit d70cff8fe, "layer rules restored";
+// StoragePaths.swift:14-15; Wallpaper.swift:89, :128, :130 read StoragePaths.wallpaperDirectory, renames only,
+// R3-53), so nothing here needs Marrow.Services any more: ED-195 (lane A10) supersedes ED-189 and moves the file
+// back down to Marrow.UI, matching what units.json already named as its target. WallpaperCard.swift (Marrow.App)
+// and RootView.swift (Marrow.App, once implemented) remain its readers.
 
-namespace Marrow.App.Theme;
+namespace Marrow.UI.Theme;
 
 /// <summary>:9-11 <c>private struct DecodedPicture: @unchecked Sendable</c>: a decoded picture crossing back to the
 /// main actor.</summary>
@@ -138,7 +142,7 @@ public sealed class WallpaperStore : MainActorModel
         });
     }
 
-    // Wallpaper.swift:85-95
+    // Wallpaper.swift:85-95 (B3 :89 reads StoragePaths.wallpaperDirectory, a rename only, R3-53)
     private WallpaperStore()
     {
         var stored = Plist.AsDouble(UserDefaults.Standard.Current.Object(Key.Softness)) ?? 0;
@@ -147,7 +151,7 @@ public sealed class WallpaperStore : MainActorModel
         var name = UserDefaults.Standard.Current.String(Key.File);
         if (name is null || name.Length == 0) return;
 
-        var url = SwiftPath.AppendingPathComponent(Storage.WallpaperDirectory, name);
+        var url = SwiftPath.AppendingPathComponent(StoragePaths.WallpaperDirectory, name); // B3 :89
         if (!File.Exists(url) && !Directory.Exists(url)) return;
 
         fileURL = url;
@@ -180,11 +184,11 @@ public sealed class WallpaperStore : MainActorModel
             var extension = SwiftPath.FileURLPathExtension(from);
             extension = extension.Length == 0 ? "jpg" : SwiftString.Lowercased(extension);
             var destination = SwiftPath.AppendingPathComponent(
-                Storage.WallpaperDirectory,
+                StoragePaths.WallpaperDirectory, // B3 :128
                 $"wallpaper-{SwiftUUID.UuidString(Guid.NewGuid())}.{extension}");
             try
             {
-                Directory.CreateDirectory(Storage.WallpaperDirectory);
+                Directory.CreateDirectory(StoragePaths.WallpaperDirectory); // B3 :130
                 File.Copy(from, destination);
             }
             catch (Exception e) when (SwiftTry.IsThrownError(e))
@@ -194,15 +198,23 @@ public sealed class WallpaperStore : MainActorModel
                 return;
             }
 
-            var decoded = Decode(destination, capturedSoftness);
-            if (decoded is null)
+            // DEVIATION (platform adaptation, not a Swift behaviour change): decode the pixels off-main exactly as
+            // Wallpaper.swift:137 does (Task.detached), but defer ToImage's Avalonia WriteableBitmap allocation to
+            // the MainActor.Run hop just below, as Render() and RenderLive() already do (:236, :276). NSImage
+            // construction needs no main-thread binding in Swift, so :262-269 (Decode) builds the AppKit image
+            // off-main too; Avalonia's platform render interface is not reliably resolvable from an arbitrary
+            // ThreadPool thread under contention (observed: "Unable to locate IPlatformRenderInterface" from this
+            // exact call site under the parallel suite), so the port keeps every ToImage call on the main hop.
+            // Timing and IsInstalling's observable flip are unchanged: FinishInstall still runs only after decode.
+            var decodedBitmap = DecodeBitmap(destination, capturedSoftness);
+            if (decodedBitmap is null)
             {
                 SwiftTry.Ignore(() => FileOps.RemoveItem(destination));
                 await MainActor.Run(FailInstall);
                 return;
             }
 
-            await MainActor.Run(() => FinishInstall(destination, new DecodedPicture(decoded)));
+            await MainActor.Run(() => FinishInstall(destination, new DecodedPicture(ToImage(decodedBitmap))));
         });
     }
 
@@ -376,10 +388,17 @@ public sealed class WallpaperStore : MainActorModel
     // Wallpaper.swift:262-269
     public static IImage? Decode(string url, double softness)
     {
+        var rendered = DecodeBitmap(url, softness);
+        return rendered is null ? null : ToImage(rendered);
+    }
+
+    // The pixel part of Decode (:262-269), with no Avalonia call in it: safe to run on any thread, unlike ToImage
+    // (see the Install() call site above).
+    private static DecodedBitmap? DecodeBitmap(string url, double softness)
+    {
         var bitmap = Thumbnail(url, 3200);
         if (bitmap is null) return null;
-        var rendered = softness > 0 ? Blurred(bitmap, softness) : bitmap;
-        return rendered is null ? null : ToImage(rendered);
+        return softness > 0 ? Blurred(bitmap, softness) : bitmap;
     }
 
     // Wallpaper.swift:98-108

@@ -1,12 +1,15 @@
 using System.Linq;
+using System.Reflection;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Transformation;
+using Marrow.App.Runtime;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Diff;
+using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Services.Git;
 using Marrow.Testing;
@@ -418,5 +421,81 @@ public sealed class DiffInspectorTests(HeadlessSession headless)
                 .Count(block => block.Text is { } text && text.StartsWith("line ", System.StringComparison.Ordinal)));
             Assert.Null(Text(view, "Show all 201 lines"));
         });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-STORE-175")] // App/Views/Diff/DiffInspector.swift:162-173, :165
+    public void A_focused_edit_with_no_diff_adds_no_file_and_one_with_a_patch_adds_its_file()
+    {
+        var unchanged = UnchangedEdit("Sources/App/Same.swift");
+
+        // :165 skips a nil diff and an empty one alike.
+        Assert.Empty(DiffInspector.FocusedFiles([unchanged], ValueList<DiffFile>.Empty));
+        Assert.Empty(DiffInspector.FocusedFiles([new FileEdit("Sources/App/Same.swift", "")], ValueList<DiffFile>.Empty));
+
+        // The negative control: a patch on the same kind of edit does add its file (:169-170).
+        const string text = "first line\nsecond line\n";
+        var changed = new FileEdit("Sources/App/Changed.swift", text, "first line\nchanged line\n");
+        Assert.NotNull(changed.Diff);
+        var file = Assert.Single(DiffInspector.FocusedFiles([unchanged, changed], ValueList<DiffFile>.Empty));
+        Assert.Equal("Sources/App/Changed.swift", file.Path);
+        Assert.NotEmpty(file.Hunks);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-STORE-175")] // App/Views/Diff/DiffInspector.swift:71-83, :110-146, :165, :215-226; App/Runtime/ThreadRuntime.swift:378-385, :393-398, :2020
+    public void Opening_the_changes_on_an_edit_with_no_diff_shows_no_file_while_a_patch_opens_its_card()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var store = new AppModelHarness();
+            var project = AppModelSamples.Project("Diff inspector", store.NewFolder("diff-inspector"));
+            var thread = AppModelSamples.Thread(project);
+            store.WriteLibrary([project], [thread]);
+            AppModelHarness.WriteDocument(thread.Id);
+            var app = store.MakeModel();
+            var runtime = store.Main.OnMain(() => new ThreadRuntime(thread.Id, app));
+            store.Main.Loop.Run(() => runtime.EnsureLoaded(), AppModelHarness.Bound);
+            // The thread has no turn, so the diff the inspector parses is empty (ThreadRuntime.swift:2020) and the
+            // focused edit is the only thing that could put a file in it (DiffInspector.swift:136-138).
+            Assert.Empty(runtime.Turns);
+
+            var inspector = store.Main.OnMain(() => new DiffInspector(runtime));
+
+            OpenChanges(store, runtime, inspector, UnchangedEdit("Sources/App/Same.swift"));
+            Assert.Empty(Descendants<DiffFileCard>(inspector));
+            Assert.Empty(Descendants<DiffLinesView>(inspector));
+            Assert.NotNull(Text(inspector, "No changes yet"));
+
+            // The negative control: the same path with a patch opens its card, expanded because it is focused
+            // (:143-146), with its lines (:222-225), so the empty result above is the nil diff's doing and not an
+            // inspector that never loaded.
+            var changed = new FileEdit("Sources/App/Same.swift", "first line\nsecond line\n", "first line\nchanged line\n");
+            OpenChanges(store, runtime, inspector, changed);
+            var card = Assert.Single(Descendants<DiffFileCard>(inspector));
+            Assert.Equal("Sources/App/Same.swift", card.Tag);
+            Assert.Single(Descendants<DiffLinesView>(card));
+            Assert.Null(Text(inspector, "No changes yet"));
+            // The runtime holds its model weakly (ThreadRuntime.swift:409); the parsed diff reads it (:2015).
+            System.GC.KeepAlive(app);
+        });
+    }
+
+    // The edit SimpleDiff.unified makes of two identical texts: FileEdit.Stats(diff: nil, additions: 0, deletions: 0)
+    // (Core/Support/Text.swift:105-115). Built as that value, not through the port's SimpleDiff, so these tests pin the
+    // consumers of a nil diff on their own; SimpleDiffTests pins the producer.
+    private static FileEdit UnchangedEdit(string path) => new(path, Diff: null, Additions: 0, Deletions: 0);
+
+    // A tool row's tap (TimelineRows.swift:1692) is runtime.showDiff with the row's edits as the focus; the inspector
+    // reloads on the new focus revision after its 180 ms wait (DiffInspector.swift:110-119). The load is the private
+    // loadTask, read by reflection so the test waits for it rather than for a text that is on screen before it too.
+    private static void OpenChanges(AppModelHarness store, ThreadRuntime runtime, DiffInspector inspector, FileEdit edit)
+    {
+        store.Main.OnMain(() => runtime.ShowDiff(new Border(), turn: null, focusEdits: [edit]));
+        var load = Assert.IsAssignableFrom<TaskHandle>(typeof(DiffInspector)
+            .GetField("loadTask", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .GetValue(inspector));
+        store.Main.Advance(System.TimeSpan.FromMilliseconds(180));
+        store.Main.Loop.RunUntil(() => load.Completion.IsCompleted, AppModelHarness.Bound);
     }
 }

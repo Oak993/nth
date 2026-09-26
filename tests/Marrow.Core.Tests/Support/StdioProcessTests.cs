@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
@@ -24,8 +25,8 @@ public sealed class StdioProcessTests
 
     [Fact]
     [Trait("Req", "PR-TERM-107")] // Core/Support/StdioProcess.swift:13-45
-    [Trait("Req", "PR-TERM-108")] // Core/Support/StdioProcess.swift:54-86
-    [Trait("Req", "PR-PROVACP-162")] // Core/Support/StdioProcess.swift:79-86
+    [Trait("Req", "PR-TERM-108")] // Core/Support/StdioProcess.swift:55-87 (B3)
+    [Trait("Req", "PR-PROVACP-162")] // Core/Support/StdioProcess.swift:80-87 (B3)
     public async Task Spawn_failure_finishes_messages_and_rethrows()
     {
         using var runtime = new TestRuntime();
@@ -36,16 +37,16 @@ public sealed class StdioProcessTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVACP-155")] // Core/Support/StdioProcess.swift:146-151
-    [Trait("Req", "PR-PROVACP-156")] // Core/Support/StdioProcess.swift:49-52,158-165
-    [Trait("Req", "PR-PROVACP-158")] // Core/Support/StdioProcess.swift:153-156
-    [Trait("Req", "PR-PROVACP-159")] // Core/Support/StdioProcess.swift:167-182
-    [Trait("Req", "PR-PROVACP-160")] // Core/Support/StdioProcess.swift:55-77,89-103,141-151
-    [Trait("Req", "PR-PROVACP-163")] // Core/Support/StdioProcess.swift:68-75
-    [Trait("Req", "PR-TERM-112")] // Core/Support/StdioProcess.swift:131-139,167-174
-    [Trait("Req", "PR-TERM-113")] // Core/Support/StdioProcess.swift:146-151
-    [Trait("Req", "PR-TERM-114")] // Core/Support/StdioProcess.swift:153-156,176-181
-    [Trait("Req", "PR-TERM-115")] // Core/Support/StdioProcess.swift:49-52,158-165
+    [Trait("Req", "PR-PROVACP-155")] // Core/Support/StdioProcess.swift:147-152 (B3)
+    [Trait("Req", "PR-PROVACP-156")] // Core/Support/StdioProcess.swift:50-53,159-166 (B3)
+    [Trait("Req", "PR-PROVACP-158")] // Core/Support/StdioProcess.swift:154-157 (B3)
+    [Trait("Req", "PR-PROVACP-159")] // Core/Support/StdioProcess.swift:168-183 (B3)
+    [Trait("Req", "PR-PROVACP-160")] // Core/Support/StdioProcess.swift:56-78,90-104,142-152 (B3)
+    [Trait("Req", "PR-PROVACP-163")] // Core/Support/StdioProcess.swift:69-76 (B3)
+    [Trait("Req", "PR-TERM-112")] // Core/Support/StdioProcess.swift:132-140,168-175 (B3)
+    [Trait("Req", "PR-TERM-113")] // Core/Support/StdioProcess.swift:147-152 (B3)
+    [Trait("Req", "PR-TERM-114")] // Core/Support/StdioProcess.swift:154-157,177-182 (B3)
+    [Trait("Req", "PR-TERM-115")] // Core/Support/StdioProcess.swift:50-53,159-166 (B3)
     public async Task Stdout_drops_noise_and_flushes_a_final_json_frame_while_stderr_stays_raw()
     {
         using var runtime = new TestRuntime();
@@ -65,10 +66,10 @@ public sealed class StdioProcessTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVACP-154")] // Core/Support/StdioProcess.swift:89-103
-    [Trait("Req", "PR-PROVACP-161")] // Core/Support/StdioProcess.swift:105-139
-    [Trait("Req", "PR-TERM-109")] // Core/Support/StdioProcess.swift:89-103
-    [Trait("Req", "PR-TERM-110")] // Core/Support/StdioProcess.swift:105-117
+    [Trait("Req", "PR-PROVACP-154")] // Core/Support/StdioProcess.swift:90-104 (B3)
+    [Trait("Req", "PR-PROVACP-161")] // Core/Support/StdioProcess.swift:106-140 (B3)
+    [Trait("Req", "PR-TERM-109")] // Core/Support/StdioProcess.swift:90-104 (B3)
+    [Trait("Req", "PR-TERM-110")] // Core/Support/StdioProcess.swift:106-118 (B3)
     public async Task Send_and_raw_write_keep_order_and_close_input_after_the_bytes()
     {
         using var runtime = new TestRuntime();
@@ -84,8 +85,8 @@ public sealed class StdioProcessTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVACP-160")] // Core/Support/StdioProcess.swift:55-77,89-103,141-151
-    [Trait("Req", "PR-TERM-109")] // Core/Support/StdioProcess.swift:89-103
+    [Trait("Req", "PR-PROVACP-160")] // Core/Support/StdioProcess.swift:56-78,90-104,142-152 (B3)
+    [Trait("Req", "PR-TERM-109")] // Core/Support/StdioProcess.swift:90-104 (B3)
     public async Task Back_to_back_sends_each_get_their_reply_in_order_over_fifty_rounds()
     {
         // ClaudeSession.Interrupt's wire shape (ClaudeSession.swift:238-247): a line that gets no reply (the tool
@@ -112,8 +113,8 @@ public sealed class StdioProcessTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVACP-157")] // Core/Support/StdioProcess.swift:119-128
-    [Trait("Req", "PR-TERM-111")] // Core/Support/StdioProcess.swift:119-128
+    [Trait("Req", "PR-PROVACP-157")] // Core/Support/StdioProcess.swift:120-129 (B3)
+    [Trait("Req", "PR-TERM-111")] // Core/Support/StdioProcess.swift:120-129 (B3)
     public async Task Terminate_closes_input_and_stops_the_child()
     {
         using var runtime = new TestRuntime();
@@ -124,11 +125,56 @@ public sealed class StdioProcessTests
         Assert.False(child.IsRunning);
     }
 
+    [Fact]
+    [Trait("Decision", "ED-194")] // Core/Support/StdioProcess.swift:48 (B3): the new processIdentifier member
+    public async Task ProcessIdentifier_is_the_pid_the_child_itself_reports()
+    {
+        using var runtime = new TestRuntime();
+        var child = Child("[Console]::Out.WriteLine('{\"pid\":' + $PID + '}'); [Console]::Out.Flush(); [Console]::In.ReadToEnd() | Out-Null");
+        child.Start();
+        await using var reader = child.Messages.GetAsyncEnumerator();
+        Assert.True(await reader.MoveNextAsync().AsTask().WaitAsync(Bound));
+        Assert.True(child.ProcessIdentifier > 0);
+        Assert.Equal((long)child.ProcessIdentifier, reader.Current["pid"]?.JSONValueInt);
+        child.Terminate();
+        _ = await child.WaitForExit().WaitAsync(Bound);
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-194")] // Core/Support/StdioProcess.swift:48 (B3): the job object at spawn, no limits, no
+                                  // KILL_ON_JOB_CLOSE (ProcessLauncher.cs); stop keeps the ED-126 ladder unchanged.
+    public async Task ProcessControl_KillTree_reaches_a_grandchild_that_the_ED_126_ladder_would_spare()
+    {
+        using var runtime = new TestRuntime();
+        var child = Child(
+            "$p = Start-Process -FilePath powershell.exe -ArgumentList " +
+            "'-NoProfile','-NonInteractive','-Command','Start-Sleep 60' -NoNewWindow -PassThru; " +
+            "[Console]::Out.WriteLine('{\"grandchild\":' + $p.Id + '}'); [Console]::Out.Flush(); Start-Sleep 60");
+        child.Start();
+        await using var reader = child.Messages.GetAsyncEnumerator();
+        Assert.True(await reader.MoveNextAsync().AsTask().WaitAsync(Bound));
+        var grandchildPid = checked((int)(reader.Current["grandchild"]?.JSONValueInt ?? 0));
+        Assert.True(grandchildPid > 0);
+        var grandchild = Process.GetProcessById(grandchildPid);
+        _ = grandchild.SafeHandle; // retain the native handle before exit, as ProcessLauncherSpawnTests does
+        try
+        {
+            child.ProcessControl.KillTree();
+            _ = await child.WaitForExit().WaitAsync(Bound);
+            Assert.True(grandchild.WaitForExit(2_000), "the grandchild survived the job's tree kill");
+        }
+        finally
+        {
+            grandchild.Refresh();
+            if (!grandchild.HasExited) grandchild.Kill();
+        }
+    }
+
     [Theory]
     [InlineData(StdioFramer.Framing.Lines)]
     [InlineData(StdioFramer.Framing.ContentLength)]
-    [Trait("Req", "PR-PROVACP-154")] // Core/Support/StdioProcess.swift:89-103
-    [Trait("Req", "PR-TERM-109")] // Core/Support/StdioProcess.swift:89-103
+    [Trait("Req", "PR-PROVACP-154")] // Core/Support/StdioProcess.swift:90-104 (B3)
+    [Trait("Req", "PR-TERM-109")] // Core/Support/StdioProcess.swift:90-104 (B3)
     public async Task Send_emits_the_exact_frame_bytes(StdioFramer.Framing framing)
     {
         using var runtime = new TestRuntime();
@@ -152,8 +198,8 @@ public sealed class StdioProcessTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVACP-156")] // Core/Support/StdioProcess.swift:49-52,158-165
-    [Trait("Req", "PR-TERM-115")] // Core/Support/StdioProcess.swift:49-52,158-165
+    [Trait("Req", "PR-PROVACP-156")] // Core/Support/StdioProcess.swift:50-53,159-166 (B3)
+    [Trait("Req", "PR-TERM-115")] // Core/Support/StdioProcess.swift:50-53,159-166 (B3)
     public async Task Stderr_tail_is_last_4000_bytes_after_64000_byte_buffer_trims_to_16000()
     {
         using var runtime = new TestRuntime();
@@ -168,9 +214,9 @@ public sealed class StdioProcessTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVACP-159")] // Core/Support/StdioProcess.swift:167-182
-    [Trait("Req", "PR-TERM-112")] // Core/Support/StdioProcess.swift:131-139,167-174
-    [Trait("Req", "PR-TERM-114")] // Core/Support/StdioProcess.swift:176-181
+    [Trait("Req", "PR-PROVACP-159")] // Core/Support/StdioProcess.swift:168-183 (B3)
+    [Trait("Req", "PR-TERM-112")] // Core/Support/StdioProcess.swift:132-140,168-175 (B3)
+    [Trait("Req", "PR-TERM-114")] // Core/Support/StdioProcess.swift:177-182 (B3)
     public async Task Exit_resumes_waiters_before_the_one_second_forced_stream_finish()
     {
         using var runtime = new TestRuntime();

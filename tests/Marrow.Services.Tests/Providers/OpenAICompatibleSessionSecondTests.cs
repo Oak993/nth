@@ -10,7 +10,7 @@ using Xunit;
 
 namespace Marrow.Services.Tests.Providers;
 
-// Source: DroppyCode/Services/Providers/OpenAICompatibleSession.swift (B2 1fbf81e), :61-65, :86-97,
+// Source: DroppyCode/Services/Providers/OpenAICompatibleSession.swift (B3 52bc792), :61-65, :86-97,
 // :114-148, :152-227, :506-800.
 //
 // Part 2 of 5 (PR-PROVAPI-113 to 136): Stop/ResolveApproval/AnswerQuestion/Compact/ReportUsage
@@ -385,7 +385,7 @@ public sealed class OpenAICompatibleSessionSecondTests
 
     [Fact]
     [Trait("Req", "PR-PROVAPI-132")] // OpenAICompatibleSession.swift:152-227 - text and reasoning delta ordering is preserved
-    [Trait("Req", "PR-PROVAPI-135")] // OpenAICompatibleSession.swift:610-611, :718-723, :1332-1335
+    [Trait("Req", "PR-PROVAPI-135")] // OpenAICompatibleSession.swift:610-611, :718-723, :1330-1333
     public async Task Each_round_mints_its_own_message_and_thought_ids_and_completion_carries_the_whole_text()
     {
         await using var server = new FakeUpstreamServer

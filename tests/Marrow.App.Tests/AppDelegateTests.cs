@@ -713,10 +713,10 @@ public sealed class AppDelegateTests
 // before it: :13 `URLCache.shared = URLCache(memoryCapacity: 8 * 1024 * 1024, diskCapacity: 0)` is new in B3; the
 // port's shared cache (src/Marrow.Core/Port/Http.cs URLCache.Shared, ED-118 (4)-(5)) already keeps nothing on disk
 // but has no memory capacity, and ED-118 parks any size cut-off under O-33, so the 8 MiB cap has no port form yet.
-// :14 `MarkdownDelegationCard.render = { AnyView(HydraDelegationBlock(json: $0, sent: $1)) }` (new in B3) is the
-// hook the port already has as MarkdownBlockView.HydraDelegationBlock (src/Marrow.UI/Markdown/MarkdownView.cs, the
-// B2 name of the same App-set renderer): `MarkdownBlockView.HydraDelegationBlock = (json, sent) => new
-// HydraDelegationBlock(json, sent);`. :15 `UNUserNotificationCenter.current().delegate = self` needs the Windows toast
+// :14 `MarkdownDelegationCard.render = { AnyView(HydraDelegationBlock(json: $0, sent: $1)) }` (B3 renames the hook
+// from its B2 name, MarkdownBlockView.HydraDelegationBlock, to its own enum, src/Marrow.UI/Markdown/MarkdownView.cs,
+// lane A30): `MarkdownDelegationCard.Render = (json, sent) => new HydraDelegationBlock(json, sent);`. :15
+// `UNUserNotificationCenter.current().delegate = self` needs the Windows toast
 // activation handler (PR-LAUNCH-025 windows_path); no unit has built one (Port/UpdateNotificationCenter.cs binds a
 // no-op, AppModel.Notify delivers nothing). :18-21, the capture-run branch (B3 reads CaptureRun.isEnabled where B2
 // read WebsiteCaptures.isEnabled), is not ported (ED-001). The boot sequence that replaces the plain show at :22

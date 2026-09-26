@@ -6,6 +6,7 @@ using Marrow.App.Views.Settings;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Testing;
+using Marrow.UI.Chrome;
 using Marrow.App.Tests.Fixtures;
 
 namespace Marrow.App.Tests.Views.Settings;
@@ -56,7 +57,7 @@ public sealed class MCPSetupPanelTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-220")] // App/Views/Settings/MCPSetupPanel.swift:18-20
+    [Trait("Req", "PR-MCP-220")] // App/Views/Settings/MCPSetupPanel.swift:16-18
     public void IsPresenting_is_false_when_the_panel_is_not_visible()
     {
         headless.OnUiThread(() =>
@@ -68,7 +69,7 @@ public sealed class MCPSetupPanelTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-220")] // App/Views/Settings/MCPSetupPanel.swift:45-49
+    [Trait("Req", "PR-MCP-220")] // App/Views/Settings/MCPSetupPanel.swift:35-38
     public void Close_clears_the_recorded_entry_id_so_a_later_present_reopens_the_guide_page()
     {
         headless.OnUiThread(() =>
@@ -85,7 +86,7 @@ public sealed class MCPSetupPanelTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-221")] // App/Views/Settings/MCPSetupPanel.swift:53-61
+    [Trait("Req", "PR-MCP-221")] // App/Views/Settings/MCPSetupPanel.swift:42-50
     public void Fit_does_nothing_when_the_panel_is_not_visible()
     {
         headless.OnUiThread(() =>
@@ -102,7 +103,7 @@ public sealed class MCPSetupPanelTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-222")] // App/Views/Settings/MCPSetupPanel.swift:117-166
+    [Trait("Req", "PR-MCP-222")] // App/Views/Settings/MCPSetupPanel.swift:72-104
     public void The_view_shows_the_reason_the_numbered_steps_and_the_open_page_button_before_any_check()
     {
         headless.OnUiThread(() =>
@@ -124,7 +125,7 @@ public sealed class MCPSetupPanelTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-222")] // App/Views/Settings/MCPSetupPanel.swift:155-160
+    [Trait("Req", "PR-MCP-222")] // App/Views/Settings/MCPSetupPanel.swift:106-110
     public void Once_checked_a_repeat_needs_setup_state_shows_the_still_off_status_line_with_the_guides_note()
     {
         headless.OnUiThread(() =>
@@ -146,7 +147,7 @@ public sealed class MCPSetupPanelTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-222")] // App/Views/Settings/MCPSetupPanel.swift:155-160
+    [Trait("Req", "PR-MCP-222")] // App/Views/Settings/MCPSetupPanel.swift:106-110
     public void Before_any_check_a_needs_setup_state_does_not_show_the_still_off_status_line()
     {
         headless.OnUiThread(() =>
@@ -163,7 +164,7 @@ public sealed class MCPSetupPanelTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-222")] // App/Views/Settings/MCPSetupPanel.swift:161-166
+    [Trait("Req", "PR-MCP-222")] // App/Views/Settings/MCPSetupPanel.swift:111-115
     public void A_failed_state_after_a_check_shows_its_message_verbatim()
     {
         headless.OnUiThread(() =>
@@ -184,7 +185,7 @@ public sealed class MCPSetupPanelTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-223")] // App/Views/Settings/MCPSetupPanel.swift:239-251
+    [Trait("Req", "PR-MCP-223")] // App/Views/Settings/MCPSetupPanel.swift:189-211
     public void A_connected_state_replaces_the_body_with_the_success_view_reading_the_tool_count()
     {
         headless.OnUiThread(() =>
@@ -199,6 +200,38 @@ public sealed class MCPSetupPanelTests(HeadlessSession headless)
             var text = AllText(view);
             Assert.Contains("Connected · 3 tools", text, StringComparison.Ordinal);
             Assert.DoesNotContain(Guide().Reason, text, StringComparison.Ordinal);
+        });
+    }
+
+    // App/Views/Settings/MCPSetupPanel.swift:124-130 (unchanged B2->B3): `.background { WindowDragArea() }
+    // .background { WindowBackdrop(opacity: 0.5) }` - SwiftUI's background modifier stacks its content behind the
+    // view it modifies, in call order, so content sits above WindowDragArea, which sits above WindowBackdrop.
+    // PaddingHost (this file) reproduces that with a Grid, the same idiom MCPKeyPanel.cs's PaddingHost already
+    // uses for the identical Swift pattern (ED-200: WindowDragArea is a leaf Control in B3, not a Decorator a
+    // caller can wrap content in, so the nested-Decorator composition this used in B2 no longer compiles).
+    [Fact]
+    [Trait("Req", "PR-MCP-220")]
+    [Trait("Decision", "ED-200")]
+    public void PaddingHost_grid_stacks_content_over_drag_area_over_backdrop()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var runtime = new TestRuntime();
+            using var harness = new AppModelHarness();
+            var model = harness.MakeModel();
+
+            var view = new MCPSetupPanelView(Entry("gitlab"), Guide(), model, () => { });
+
+            var border = Assert.IsType<Border>(view.Child);
+            var layers = Assert.IsType<Grid>(border.Child);
+            Assert.Equal(3, layers.Children.Count);
+            // Grid children are added bottom-to-top: index 0 renders furthest back, the last index topmost -
+            // and, in Avalonia, receives pointer hit-tests first - matching Swift's content-over-drag-over-backdrop.
+            Assert.IsType<WindowBackdrop>(layers.Children[0]);
+            Assert.IsType<WindowDragArea>(layers.Children[1]);
+
+            var bodyField = typeof(MCPSetupPanelView).GetField("body", BindingFlags.Instance | BindingFlags.NonPublic)!;
+            Assert.Same(bodyField.GetValue(view), layers.Children[2]);
         });
     }
 }

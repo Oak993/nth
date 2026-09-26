@@ -12,9 +12,21 @@ namespace Marrow.Services.Tests.Store;
 public sealed class StorageTests
 {
     // ---- PR-LAUNCH-070 / PR-STORE-001 / PR-STORE-002 ----
+    // PR-STORE-001 and -005's own creation behaviour is proved directly against Core.Support.StoragePaths
+    // (Marrow.Core.Tests/Support/StoragePathsTests.cs, N2 in porting/work/b3/B3_PLAN.md section 3: root,
+    // wallpaperDirectory and directory(_:) moved out of this file's B2 :19-25, :35-36 and :54-58) - but that
+    // helper's own directory(_:) (StoragePaths.swift :18-22 / StoragePaths.cs Directory) is deliberately never
+    // cached there (StoragePathsTests.Directory_CreatesTheNamedFolderUnderRootAndIsNeverCached proves it).
+    // PR-STORE-003/-004's caching comes from Storage.swift's own `static let threadsDirectory` / `static let
+    // attachmentsDirectory` (:23-27) wrapping that uncached call exactly once for the process's life ("a stat
+    // plus mkdir per call was pure waste"), so StorageLocations.ThreadsDirectory/.AttachmentsDirectory must
+    // cache it themselves (mirroring WorktreesDirectory/PatchesDirectory below) - proved by
+    // ThreadsDirectory_IsCachedAndNotRecreatedOnSubsequentAccess and its Attachments twin further down.
+    // These properties stay here proving Storage's own public properties still resolve correctly once the
+    // move routes them through Core.Support.StoragePaths.
 
     [Fact]
-    [Trait("Req", "PR-STORE-001")] // Services/Store/Storage.swift:19-25
+    [Trait("Req", "PR-STORE-001")] // Storage.swift:19 (B3, delegates to StoragePaths.root); moved implementation StoragePaths.swift:6-12
     public void Root_IsCreatedWithIntermediatesAndCachedForTheScope()
     {
         using var scratch = new StorageScratchFolder();
@@ -29,7 +41,7 @@ public sealed class StorageTests
     }
 
     [Fact]
-    [Trait("Req", "PR-STORE-002")] // Services/Store/Storage.swift:27
+    [Trait("Req", "PR-STORE-002")] // Services/Store/Storage.swift:21 (B3)
     public void LibraryURL_IsLibraryJsonAtTheRoot()
     {
         using var scratch = new StorageScratchFolder();
@@ -37,7 +49,7 @@ public sealed class StorageTests
     }
 
     [Fact]
-    [Trait("Req", "PR-STORE-003")] // Services/Store/Storage.swift:29-31
+    [Trait("Req", "PR-STORE-003")] // Storage.swift:25 (B3); moved implementation StoragePaths.swift:18-22
     public void ThreadsDirectory_IsCreatedUnderTheRoot()
     {
         using var scratch = new StorageScratchFolder();
@@ -47,7 +59,20 @@ public sealed class StorageTests
     }
 
     [Fact]
-    [Trait("Req", "PR-STORE-004")] // Services/Store/Storage.swift:33
+    [Trait("Req", "PR-STORE-003")] // Storage.swift:23-25 comment: "a stat plus mkdir per call was pure waste".
+    public void ThreadsDirectory_IsCachedAndNotRecreatedOnSubsequentAccess()
+    {
+        using var scratch = new StorageScratchFolder();
+        var first = Storage.ThreadsDirectory;
+        Assert.True(Directory.Exists(first));
+
+        Directory.Delete(first); // prove the second access returns the cached value, not a fresh stat/mkdir
+        Assert.Equal(first, Storage.ThreadsDirectory);
+        Assert.False(Directory.Exists(first));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-STORE-004")] // Storage.swift:27 (B3); moved implementation StoragePaths.swift:18-22
     public void AttachmentsDirectory_IsCreatedUnderTheRoot()
     {
         using var scratch = new StorageScratchFolder();
@@ -57,17 +82,25 @@ public sealed class StorageTests
     }
 
     [Fact]
-    [Trait("Req", "PR-STORE-005")] // Services/Store/Storage.swift:35-36
-    public void WallpaperDirectory_IsCreatedUnderTheRoot()
+    [Trait("Req", "PR-STORE-004")] // Storage.swift:27 static let: cached the same way as threadsDirectory (:25).
+    public void AttachmentsDirectory_IsCachedAndNotRecreatedOnSubsequentAccess()
     {
         using var scratch = new StorageScratchFolder();
-        var directory = Storage.WallpaperDirectory;
-        Assert.Equal(Path.Combine(scratch.Root, "wallpaper"), directory);
-        Assert.True(Directory.Exists(directory));
+        var first = Storage.AttachmentsDirectory;
+        Assert.True(Directory.Exists(first));
+
+        Directory.Delete(first); // prove the second access returns the cached value, not a fresh stat/mkdir
+        Assert.Equal(first, Storage.AttachmentsDirectory);
+        Assert.False(Directory.Exists(first));
     }
 
+    // PR-STORE-005 (wallpaperDirectory) left Storage.cs entirely at lane A10/ED-195: Storage no longer has a
+    // WallpaperDirectory member (UI.Theme.Wallpaper reads Core.Support.StoragePaths.WallpaperDirectory directly).
+    // Its test now lives on StoragePaths (Marrow.Core.Tests/Support/StoragePathsTests.cs,
+    // WallpaperDirectory_IsCreatedUnderTheRootAndCached).
+
     [Fact]
-    [Trait("Req", "PR-STORE-006")] // Services/Store/Storage.swift:38, :43-48; DEVIATION OD-0012 F1
+    [Trait("Req", "PR-STORE-006")] // Services/Store/Storage.swift:29, :34-39 (B3); DEVIATION OD-0012 F1
     public void WorktreesDirectory_LivesUnderTheHomeStateDirectory_NotUnderTheRoot()
     {
         using var scratch = new StorageScratchFolder();
@@ -78,7 +111,7 @@ public sealed class StorageTests
     }
 
     [Fact]
-    [Trait("Req", "PR-STORE-006")] // Services/Store/Storage.swift:43-48; DEVIATION OD-0012 F1 (development suffix)
+    [Trait("Req", "PR-STORE-006")] // Services/Store/Storage.swift:34-39 (B3); DEVIATION OD-0012 F1 (development suffix)
     public void WorktreesDirectory_UsesTheDevelopmentSuffixInADevelopmentBuild()
     {
         using var scratch = new StorageScratchFolder(isDevelopment: true);
@@ -86,7 +119,7 @@ public sealed class StorageTests
     }
 
     [Fact]
-    [Trait("Req", "PR-STORE-007")] // Services/Store/Storage.swift:40-41
+    [Trait("Req", "PR-STORE-007")] // Services/Store/Storage.swift:32 (B3)
     public void PatchesDirectory_LivesUnderTheHomeStateDirectory()
     {
         using var scratch = new StorageScratchFolder();
@@ -98,7 +131,7 @@ public sealed class StorageTests
     // ---- PR-STORE-010 ----
 
     [Fact]
-    [Trait("Req", "PR-STORE-010")] // Services/Store/Storage.swift:50-52
+    [Trait("Req", "PR-STORE-010")] // Services/Store/Storage.swift:41-43 (B3)
     public void ThreadURL_IsTheUppercaseUuidWithDashesPlusJson()
     {
         using var scratch = new StorageScratchFolder();
@@ -119,7 +152,15 @@ public sealed class StorageTests
         Assert.Equal(Path.Combine(root, "library.json"), Storage.LibraryURL);
         Assert.Equal(Path.Combine(root, "threads"), Storage.ThreadsDirectory);
         Assert.Equal(Path.Combine(root, "attachments"), Storage.AttachmentsDirectory);
-        Assert.Equal(Path.Combine(root, "wallpaper"), Storage.WallpaperDirectory);
+        // wallpaper/ moved to Core.Support.StoragePaths at B3 (ED-195): StorageLocations builds its own private
+        // StoragePathsLocations field directly from this very same root factory (Storage.cs's StorageLocations
+        // constructor), never through the StoragePaths.Locations Ambient, so *that private field* hangs off
+        // Storage.Root regardless of whether the Ambient is bound. It says nothing about whether
+        // Marrow.Core.Support.StoragePaths.WallpaperDirectory (the Ambient UI.Theme.Wallpaper actually reads,
+        // Wallpaper.cs:154, :187, :191) is wired anywhere: that is proven by
+        // ProgramStartupBindingTests.Main_binds_every_Ambient_a_production_caller_reads_before_any_window_opens
+        // (Marrow.App.Tests), not by this assertion.
+        Assert.Equal(Path.Combine(root, "wallpaper"), StoragePathsLocations.Create(root).WallpaperDirectory);
         Assert.Equal(Path.Combine(root, "mcp.json"), Marrow.Services.Models.MCPPaths.ConnectionsURL);
         Assert.Equal(Path.Combine(root, "custom-mcp.json"), Marrow.Services.Models.MCPPaths.CustomsURL);
         Assert.Equal(Path.Combine(root, "mcp"), Marrow.Services.Models.MCPPaths.Directory);

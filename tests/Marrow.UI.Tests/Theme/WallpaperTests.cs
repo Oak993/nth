@@ -1,9 +1,10 @@
-using Marrow.App.Theme;
 using Marrow.Testing;
+using Marrow.UI.Theme;
 
-namespace Marrow.App.Tests.Theme;
+namespace Marrow.UI.Tests.Theme;
 
-// Source: DroppyCode/UI/Theme/Wallpaper.swift (B2 1fbf81e), :97-109,234-245,262-269.
+// Source: DroppyCode/UI/Theme/Wallpaper.swift (B3 52bc7926), :97-109,234-245,262-269. Moved from
+// Marrow.App.Tests/Theme to Marrow.UI.Tests/Theme at lane A10/ED-195, alongside src/Marrow.UI/Theme/Wallpaper.cs.
 public sealed class WallpaperTests
 {
     [Fact]

@@ -1097,3 +1097,51 @@ AutoContinue read only the main window, which would have treated "Settings in fr
 notifications the Mac would suppress. Tests: AppDelegateSecondTests (a non-main window active, only the main window
 active, no lifetime) and the presentation gate agreeing with AppModel.threadNeedsAttention. ENGINEERING DECISION; parity.
 
+ED-207 [TEST] A per-flow observer of Shell.Run, so a test can assert a call site's literal argv and timeout budget
+(lane A9/L2d stop at 4a38922f; PR-GIT-003, PR-GIT-031). SOURCE FACT: every git invocation goes through
+`run(_:environment:input:timeout:)` into `Shell.run` with the site's own budget, 120 s by default
+(`Services/Git/Git.swift:30-49`, B3 52bc792). PR-GIT-003 asks for "a table test asserting the timeout constant of every
+one of the 82 invocation sites" and PR-GIT-031 for "a contract fixture asserting the argv". MEASURED (4a38922f): the stall
+probes in `tests/Marrow.Services.Tests/Fixtures/GitProbeFixtures.cs` (clean filter, diff textconv, post-checkout hook,
+reference-transaction hook) cannot hold open read-tree, diff --name-only, rm --cached, merge-file, hash-object,
+update-index, write-tree, cat-file or ls-tree (captureTree(paths:onto:from:) and its helpers, :294-359), and
+`LoginEnvironment.Git` is resolved once per process, so no test could see a git site's argv. Rejected: (a) a git wrapper
+first on PATH: that once-per-process resolution puts it in front of every git spawn in the whole test process (one more
+process per spawn; TerminationLadder's CTRL_BREAK and TerminateJobObject reach the wrapper first), and it still cannot
+see the budget, so every site would need its own manual-clock stall; (b) GIT_TRACE or trace2: GIT_TRACE is environment
+only, and Git.Run builds its environment from LoginEnvironment.Current, so it needs a process-wide change; trace2 targets
+are read only from the system and global config, never the repository's (git-config(1), Git for Windows 2.54.0);
+neither records the budget. DECISION: `ShellObserver` (`src/Marrow.Core/Port/ShellObserver.cs`, PORT-ONLY). `Shell.Run`
+reports a `ShellInvocation` (executable, a copy of the argv, directory, environment, input, timeout, outputLimit) to the
+observer the calling async flow installed, on entry, before the process starts; the real process runs unchanged, and
+with no observer (the app, every other test) nothing is reported. Tests call `ShellRecording.Start()`
+(`tests/Marrow.Testing/ShellRecording.cs`), which records only its own flow, so test classes still run in parallel
+(R-TEST-5). A site's budget is verified by its recorded constant together with the end-to-end proof that a budget
+passed to Shell.Run becomes the process deadline (GitTests.Run_passes_a_call_sites_own_budget_through_to_the_process,
+ShellTests); the existing stall tests stay. Nothing is replaced, so this is not a stub or a mock. Tests:
+ShellObserverTests (reported on entry with every argument; only the observing flow and the flows it starts; dispose
+restores the previous observer); GitFifthTests.CaptureTreeOnto_runs_its_clean_add_at_300_seconds_and_every_other_git_site_at_the_120_second_default
+(the 13 calls one captureTree(paths:onto:from:) makes, covering all 10 of its sites, blobData's cat-file and fileMode's
+ls-tree included: literal argv, budget, GIT_INDEX_FILE per site, stdin) and PushBranch_without_force_... / PushBranch_with_force_puts_force_after_u_and_before_origin_...
+(PR-GIT-031). Mutation check (b3/shell-recorder): moving "--force" after "origin" and giving write-tree 300 s fails exactly
+those two new tests, while the behavioural PushBranch_with_force_overwrites_a_branch_the_remote_moved_on_without still
+passes. FOLLOW-UP: the rest of PR-GIT-003's table; before this decision the Git test classes held 12 per-site budget tests
+(10 git sites, 2 forge-CLI sites), against 82 git sites and 6 forge-CLI sites. ENGINEERING DECISION (test infrastructure); no product change, not a deviation.
+
+ED-208 [UI] MentionScanner skips an empty candidate name before scanning (B3_PLAN.md section 3, row N10; PR-THEME-143).
+SOURCE FACT: `UI/Markdown/MentionScanner.swift` (B3 52bc792) :7-32's `matches(in:candidates:name:)` advances
+`i = text.index(i, offsetBy: candidateName.count)` on every hit (:16, :24, :26); with an empty `candidateName` that
+advance is zero, and an empty string is a prefix of anything at :15, so a real empty candidate name would leave `i`
+unmoved and the `while i < text.endIndex` loop (:11) would never terminate. B3_PLAN.md's N10 row names this exact
+risk and asks for the ED: "Record an ED that empty names are skipped (the Swift would loop forever on one; roster
+names are never empty)". No roster name this app ever renders is empty. DECISION:
+`src/Marrow.UI/Markdown/MentionScanner.cs`'s `Matches<T>` filters candidates to those whose projected name has
+non-zero length before ordering or scanning (`.Where(candidate => name(candidate).Length > 0)`), so the port cannot
+hang even on an input the B3 Swift source itself has no guard against, because this app's own roster never supplies
+one. Tests: `tests/Marrow.UI.Tests/Markdown/MentionScannerTests.cs`'s
+`An_empty_candidate_name_is_skipped_and_never_hangs` pins it, tagged `[Trait("Decision", "ED-208")]` in place of the
+stand-in `[Trait("Req", "PR-THEME-143")]` the verifying cloud run used for it, since the empty-name guard is not
+itself part of PR-THEME-143 (the mention-scan-extraction record) but a port-only addition this decision records.
+ENGINEERING DECISION; not a deviation (no real input's output changes; the guard only forecloses a hang on an input
+this port never produces).
+
