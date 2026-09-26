@@ -74,10 +74,18 @@ public sealed class AppModelSecondTests
         h.Main.OnMain(() => Assert.Equal(panel.Id, model.Subagent(parent.Id)?.Id));
     }
 
+    // Review fix (finding #1, HIGH): this test used to encode the B2 cancel-and-restart 400 ms debounce
+    // (App/AppModel.swift:1289-1306 at 1fbf81e), where the second change at t=250 would cancel the pending
+    // task and restart the wait, landing the write at t=650. B3's scheduleSave (App/AppModel.swift:1304-1314)
+    // is a throttle, not a debounce: `guard persistenceEnabled, saveTask == nil else { return }` means a
+    // change while a save is already pending is a complete no-op, so the burst writes once, 400 ms after the
+    // FIRST change of the burst, carrying whatever value is current in memory at that moment (the second
+    // change's, since it already landed on `projects` even though it scheduled nothing). Re-derived from B3,
+    // not weakened: this is the same 400 ms literal and the same two-change burst shape as the retired B2
+    // test, with the timing and the resulting value corrected to match scheduleSave's actual B3 behavior.
     [Fact]
-    [Trait("Req", "PR-LAUNCH-060")] // App/AppModel.swift:1289-1306; Services/Store/Storage.swift:345-356
-    [Trait("Req", "PR-STORE-015")] // App/AppModel.swift:1289-1306; Services/Store/Storage.swift:345-356
-    public void Library_save_restarts_the_exact_400_millisecond_debounce_after_the_last_change()
+    [Trait("Req", "PR-STORE-015")] // App/AppModel.swift:1304-1314; Services/Store/Storage.swift:345-356
+    public void Library_save_throttle_writes_once_400ms_after_the_first_change_of_a_burst_carrying_the_last_value()
     {
         using var h = new AppModelHarness();
         var project = AppModelSamples.Project("P", h.NewFolder("p"));
@@ -87,13 +95,16 @@ public sealed class AppModelSecondTests
 
         h.Main.OnMain(() => model.UpdateProject(project.Id, value => value with { Name = "First" }));
         h.Main.AdvanceMilliseconds(250);
+        // The change at t=250 lands on `projects` immediately but schedules nothing new: saveTask is already
+        // non-null from the t=0 change, so scheduleSave's guard returns early (:1305), unlike the B2
+        // cancel-and-restart debounce this test used to encode.
         h.Main.OnMain(() => model.UpdateProject(project.Id, value => value with { Name = "Last" }));
-        h.Main.AdvanceMilliseconds(399);
+        h.Main.AdvanceMilliseconds(149); // t=399: one ms short of 400 ms since the FIRST change
         DiskWriter.Shared.WaitForQueuedWrites();
 
         Assert.Equal(original, AppModelHarness.LibraryBytes());
 
-        h.Main.AdvanceMilliseconds(1);
+        h.Main.AdvanceMilliseconds(1); // t=400: the task scheduled at t=0 fires and saves the current state
         DiskWriter.Shared.WaitForQueuedWrites();
         Assert.Equal("Last", Assert.Single(AppModelHarness.LoadedLibrary().Projects).Name);
     }

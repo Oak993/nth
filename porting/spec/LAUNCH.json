@@ -1576,29 +1576,30 @@
     },
     {
       "id": "PR-LAUNCH-060",
-      "title": "Library changes are saved on a 400 ms debounce during the session",
+      "title": "Library changes are saved on a 400 ms throttle during the session",
       "source_evidence": [
-        "DroppyCode/App/AppModel.swift:1304-1314 scheduleSave() - 'guard persistenceEnabled else { return }', 'saveTask?.cancel()', then a task that sleeps 400 milliseconds, checks cancellation and calls saveLibrary()",
-        "DroppyCode/App/AppModel.swift:1316-1324 saveLibrary() - builds a Library from projects and threads and calls DiskWriter.shared.encodeAndWrite(library, to: Storage.libraryURL)",
+        "DroppyCode/App/AppModel.swift:1304-1314 scheduleSave() - 'guard persistenceEnabled, saveTask == nil else { return }', 'let sinceLast = lastLibrarySave.map { ContinuousClock.now - $0 } ?? .seconds(60)', 'let wait = max(.milliseconds(400), .seconds(4) - sinceLast)', then a task that sleeps `wait`, checks cancellation and calls saveLibrary()",
+        "DroppyCode/App/AppModel.swift:1316-1324 saveLibrary() - guard persistenceEnabled else { return }; lastLibrarySave = .now; builds a Library from projects and threads and calls DiskWriter.shared.encodeAndWrite(library, to: Storage.libraryURL)",
         "DroppyCode/Services/Store/Storage.swift:340-351 encodeAndWrite - coalesces by URL: a second value for the same URL replaces the pending one and enqueues no second job"
       ],
       "preconditions": "The app is running and persistence has not been latched off.",
       "action": "Anything mutates projects or threads and calls scheduleSave().",
-      "expected_result": "Each call cancels the previous pending save and restarts the 400 ms timer, so a burst of changes produces one write 400 ms after the last change. The write itself is asynchronous and coalesced per file, so a second value queued for library.json before the writer runs simply replaces the first.",
+      "expected_result": "A call while no save is pending schedules one, waiting max(400 ms, 4 s minus the time since the last save), or 400 ms when there has been none (the 60 s fallback used for 'time since the last save' always loses to the 400 ms floor in that max). A call while a save is already pending does nothing extra - it neither cancels nor restarts the wait - so a burst of changes produces exactly one write, 400 ms after the FIRST change of the burst, carrying whatever is current in projects/threads when the wait ends. The write itself is asynchronous and coalesced per file, so a second value queued for library.json before the writer runs simply replaces the first.",
       "side_effects": [
-        "One asynchronous atomic write per quiet period"
+        "One asynchronous atomic write per throttle window"
       ],
       "persistence": "<store root>/library.json.",
       "failure_cases": [
         "Write failure behaves as in PR-LAUNCH-054."
       ],
-      "cancellation": "Cancelled by the next scheduleSave and by saveBeforeQuit.",
-      "windows_path": "Direct port: the literal 400 ms, the cancel-and-restart debounce and the per-URL coalescing.",
-      "verification_method": "unit test with an injected clock: ten mutations in 100 ms produce one write",
-      "status": "IMPLEMENTED",
+      "cancellation": "The pending task is cancelled only by saveBeforeQuit; a later scheduleSave call while one is pending neither cancels nor restarts it.",
+      "windows_path": "Direct port: the literal 400 ms floor, the literal 4 s minimum spacing, the throttle (not cancel-and-restart debounce) semantics, and the per-URL coalescing.",
+      "verification_method": "unit test with an injected clock: ten mutations in 100 ms produce exactly one write, landing 400 ms after the first of them",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "Review fix (finding #2, HIGH): this record was carried over from B2 IMPLEMENTED, quoting B2's cancel-and-restart debounce ('guard persistenceEnabled else { return }', 'saveTask?.cancel()') at B3 line numbers where neither statement exists - B3's scheduleSave (AppModel.swift:1304-1314) is a throttle: a call while a save is pending is a complete no-op, not a cancel-and-restart. Rewritten in place to match B3 and the record's overlapping twin PR-STORE-015 (Services/Store area), which documents the same scheduleSave/saveLibrary pair in full including the direct-save (settle/reopen/delete) stamping behavior this record does not restate. Status moved off IMPLEMENTED per read_status governance (porting/CLAUDE.md, porting/tools/ledger_apply.mjs): only a reader report accepted by ledger_apply may re-promote it, even though AppModelTests.cs now carries passing B3-derived throttle tests for this behavior."
     },
     {
       "id": "PR-LAUNCH-061",
@@ -1994,15 +1995,15 @@
     },
     {
       "id": "PR-LAUNCH-076",
-      "title": "A force kill or crash loses at most about 4 seconds of changes, or up to 60 seconds after a long quiet spell",
+      "title": "A force kill or crash loses at most about 4 seconds of library changes",
       "source_evidence": [
-        "DroppyCode/App/AppModel.swift:1304-1314 scheduleSave() - waits max(400 ms, 4 s minus time since lastLibrarySave), or 60 s when there has been none; a mutation while a save is pending changes nothing",
+        "DroppyCode/App/AppModel.swift:1304-1314 scheduleSave() - waits max(400 ms, 4 s minus time since lastLibrarySave); when lastLibrarySave is nil, sinceLast reads as a 60 s fallback, and 4 s - 60 s always loses to the 400 ms floor in that max, so the wait is 400 ms, never up to 60 s; a mutation while a save is pending changes nothing",
         "DroppyCode/App/AppModel.swift:130-137 init() - the running-to-interrupted and running-head-to-stopped repairs exist precisely because a previous run may not have terminated cleanly",
         "DroppyCode/Core/Support/HangWatchdog.swift:5-7 - 'A freeze that ends in a force quit leaves nothing behind'"
       ],
       "preconditions": "The process is killed without running applicationWillTerminate.",
       "action": "The app is relaunched.",
-      "expected_result": "library.json holds everything written by the last save before the kill. Because a pending save is never restarted by later mutations (only the direct saveLibrary() calls and saveBeforeQuit stamp lastLibrarySave and reset the throttle), a steady stream of changes always gets its first write out within 400 ms and is never starved; what can be lost is up to about 4 seconds of changes made after the last save (or up to 60 seconds if the process is killed shortly after a long idle period, before the first scheduled save 400 ms later has landed). Thread documents hold whatever their own persistence had written. On relaunch, running turns read as interrupted and running heads read as stopped with a launch-time finishedAt. No recovery prompt, no crash report dialog and no restore-session step is offered.",
+      "expected_result": "library.json holds everything written by the last save before the kill. Because a pending save is never restarted by later mutations, a steady stream of changes always gets its first write out within 400 ms and is never starved. Every saveLibrary() call stamps lastLibrarySave, whether it is reached through the scheduled wait or called directly (settle, reopen, thread delete); saveBeforeQuit does NOT call saveLibrary or stamp lastLibrarySave - it writes library.json synchronously by its own separate path. What can be lost is up to about 4 seconds of changes made after the last save; the 60 s value in scheduleSave is only the assumed 'time since the last save' used when there has been none in this run, and it always loses to the 400 ms floor in that max, so the very first save after launch still goes out within 400 ms, not up to 60 s. Thread documents hold whatever their own persistence had written. On relaunch, running turns read as interrupted and running heads read as stopped with a launch-time finishedAt. No recovery prompt, no crash report dialog and no restore-session step is offered.",
       "side_effects": [
         "MCP server and terminal children are NOT terminated and may be orphaned, because the termination step never ran"
       ],
@@ -2017,7 +2018,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b3_note": "B2's cancel-and-restart 400 ms debounce could starve a steady stream of changes entirely (never quiet long enough to fire) and lost only 'the last 400 ms' when it did fire. B3's scheduler (PR-STORE-015 / PR-LAUNCH-060) always fires the first write 400 ms after the first change of a burst and re-arms at most every 4 s thereafter, so the worst-case loss window is about 4 s of changes (or up to 60 s after a long idle period), and a steady stream is no longer starved."
+      "b3_note": "B2's cancel-and-restart 400 ms debounce could starve a steady stream of changes entirely (never quiet long enough to fire) and lost only 'the last 400 ms' when it did fire. B3's scheduler (PR-STORE-015 / PR-LAUNCH-060) always fires the first write 400 ms after the first change of a burst and re-arms at most every 4 s thereafter, so the worst-case loss window is about 4 s of changes, and a steady stream is no longer starved. Review fix (finding #5, MEDIUM): this record's expected_result previously said 'only the direct saveLibrary() calls and saveBeforeQuit stamp lastLibrarySave', and its title/expected_result framed the 60 s scheduleSave fallback as an actual 'up to 60 seconds' loss window. Both were wrong: saveBeforeQuit writes library.json synchronously through its own path and never calls saveLibrary or stamps lastLibrarySave (AppModel.swift:1327-1345); every saveLibrary() call, scheduled or direct, does the stamping (:1318); and the 60 s value is only the assumed 'time since the last save' fed into the max() when there has been none, which always loses to the 400 ms floor, so the wait after a long idle period is still 400 ms, not up to 60 s. Corrected in place; same correction made to E:/Droppy/work/b3/B3_PLAN.md section A32 and the L4b lane packet."
     },
     {
       "id": "PR-LAUNCH-077",
