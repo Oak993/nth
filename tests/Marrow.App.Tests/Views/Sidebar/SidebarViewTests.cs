@@ -3403,6 +3403,33 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         Assert.True(folded); // :1648 Button(action: action)
     });
 
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-110")] // App/Views/Sidebar/SidebarView.swift:1653 .contentShape(.rect)
+    public void The_connectors_whole_rectangle_is_clickable_not_just_the_drawn_dash() => headless.OnUiThread(() =>
+    {
+        // RaiseEvent(ClickEvent) above bypasses hit-testing entirely; this exercises a real pointer click at a point
+        // that is nowhere near the drawn dash (REVIEW FIX, part 4: IsHitTestVisible alone did not make the empty
+        // space clickable; only Background = Transparent does). A real pointer move onto the button also fires its
+        // .onHover (:1656), which animates through the frame clock (WallpaperCardFixtures.cs's own pattern), so this
+        // binds a manual frame source the way that suite does.
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var folded = false;
+        var control = (Control)Activator.CreateInstance(Private("HelperConnector"), false, (Action)(() => folded = true))!;
+        control.Width = ThreadRowMetrics.ConnectorWidth; // :1291, 28
+        control.Height = ThreadRowMetrics.HelperHeight; // :1277, 24
+        Shown(control);
+        var window = WindowOf(control);
+        window.UpdateLayout();
+
+        // The stroke sits at x = ConnectorLineX (18): a vertical line down the middle-right and a horizontal tick at
+        // midY (12) from x=18 to the right edge. (2, 2) is near the top-left corner, clear of both dash segments.
+        var point = At(control, 2, 2, window);
+        window.MouseDown(point, MouseButton.Left);
+        window.MouseUp(point, MouseButton.Left);
+        Assert.True(folded);
+        window.Close();
+    });
+
     // ---- PR-SIDEBAR-088: DeleteThreadPopover's content ----
 
     private static string? TextOf(Button button) =>
@@ -3460,6 +3487,24 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     // ---- PR-SIDEBAR-095, PR-SIDEBAR-096: ArchiveThreadPopover ----
 
+    // ArchiveThreadPopover now takes the anchor it resolves its window-scoped key handler from (REVIEW FIX, part 4:
+    // see the constructor's own comment). These two helpers host a throwaway anchor alongside the popover in one
+    // window -- a degenerate stand-in for ArchivePopover's real `Panel { row, popup }`, adequate for every test below
+    // except Through_a_real_popup_..., which deliberately keeps the anchor and the popover in separate top-levels.
+    private static Control ShownArchivePopover(ChatThread thread, Action onArchive, Action onDelete, Action onDismiss)
+    {
+        var anchor = new Border();
+        var popover = (Control)Activator.CreateInstance(Private("ArchiveThreadPopover"), thread, anchor, onArchive, onDelete, onDismiss)!;
+        new AvaloniaWindow { Content = new Panel { Children = { anchor, popover } }, Width = 200, Height = 100 }.Show();
+        return popover;
+    }
+
+    private static Control ShownWithAnchor(Control anchor, Control content)
+    {
+        new AvaloniaWindow { Content = new Panel { Children = { anchor, content } }, Width = 200, Height = 100 }.Show();
+        return content;
+    }
+
     [Fact]
     [Trait("Req", "PR-SIDEBAR-095")] // App/Views/Sidebar/SidebarView.swift:905-943
     public void The_archive_popover_is_272_wide_asks_Archive_title_and_offers_Delete_and_Archive() => headless.OnUiThread(() =>
@@ -3469,9 +3514,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         var thread = AppModelSamples.Thread(project) with { Title = "Fix the bug" };
         var archived = 0;
         var deleted = 0;
-        var popover = (Control)Activator.CreateInstance(Private("ArchiveThreadPopover"), thread,
-            (Action)(() => archived++), (Action)(() => deleted++), (Action)(() => { }))!;
-        Shown(popover);
+        var popover = ShownArchivePopover(thread, (Action)(() => archived++), (Action)(() => deleted++), (Action)(() => { }));
 
         var menu = Assert.IsType<PopoverMenu>(Get(popover, "Child"));
         Assert.Equal(272d, menu.Width); // :943
@@ -3498,8 +3541,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         using var harness = new AppModelHarness();
         var project = AppModelSamples.Project("Alpha", harness.NewFolder("Alpha"));
         var thread = AppModelSamples.Thread(project) with { Title = "Fix the bug" };
-        var popover = (Control)Activator.CreateInstance(Private("ArchiveThreadPopover"), thread, (Action)(() => { }), (Action)(() => { }), (Action)(() => { }))!;
-        Shown(popover);
+        var popover = ShownArchivePopover(thread, (Action)(() => { }), (Action)(() => { }), (Action)(() => { }));
         var delete = LogicalQuery.SelfAndDescendants<TextBlock>(popover).Single(t => t.Text == "Delete");
         Assert.Equal(Chrome.Danger.Resolve(delete.ActualThemeVariant), ((ISolidColorBrush)delete.Foreground!).Color);
         WindowOf(popover).Close();
@@ -3514,9 +3556,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         var thread = AppModelSamples.Thread(project);
         var archived = 0;
         var dismissed = 0;
-        var popover = (Control)Activator.CreateInstance(Private("ArchiveThreadPopover"), thread,
-            (Action)(() => archived++), (Action)(() => { }), (Action)(() => dismissed++))!;
-        Shown(popover);
+        var popover = ShownArchivePopover(thread, (Action)(() => archived++), (Action)(() => { }), (Action)(() => dismissed++));
         var window = WindowOf(popover);
         var composerSawKey = false;
         window.AddHandler(InputElement.KeyDownEvent, (_, e) => { if (e.PhysicalKey == PhysicalKey.Enter) composerSawKey = true; });
@@ -3543,8 +3583,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         var project = AppModelSamples.Project("Alpha", harness.NewFolder("Alpha"));
         var thread = AppModelSamples.Thread(project);
         var dismissed = 0;
-        var popover = (Control)Activator.CreateInstance(Private("ArchiveThreadPopover"), thread, (Action)(() => { }), (Action)(() => { }), (Action)(() => dismissed++))!;
-        Shown(popover);
+        var popover = ShownArchivePopover(thread, (Action)(() => { }), (Action)(() => { }), (Action)(() => dismissed++));
         var window = WindowOf(popover);
 
         window.KeyPress(Key.Escape, RawInputModifiers.Control, PhysicalKey.Escape, null); // :949
@@ -3560,13 +3599,53 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         var project = AppModelSamples.Project("Alpha", harness.NewFolder("Alpha"));
         var thread = AppModelSamples.Thread(project);
         var archived = 0;
-        var popover = (Control)Activator.CreateInstance(Private("ArchiveThreadPopover"), thread, (Action)(() => archived++), (Action)(() => { }), (Action)(() => { }))!;
-        var window = new AvaloniaWindow { Content = popover, Width = 200, Height = 100 };
+        var anchor = new Border();
+        var popover = (Control)Activator.CreateInstance(Private("ArchiveThreadPopover"), thread, anchor, (Action)(() => archived++), (Action)(() => { }), (Action)(() => { }))!;
+        var panel = new Panel { Children = { anchor, popover } };
+        var window = new AvaloniaWindow { Content = panel, Width = 200, Height = 100 };
         window.Show();
-        window.Content = null; // detaches the popover
+        panel.Children.Remove(popover); // detaches the popover; the anchor (and its window) stay
         window.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null);
         Assert.Equal(0, archived); // the handler was removed, so nothing archives
         window.Close();
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-096")] // App/Views/Sidebar/SidebarView.swift:944-955, the doc comment at :900-904: "even
+    // when the keys land on the chat window behind it"
+    public void A_key_landing_on_the_anchors_window_still_archives_and_dismisses_when_the_popover_lives_in_its_own_top_level() => headless.OnUiThread(() =>
+    {
+        // Avalonia headless cannot open a real Popup at all (ViewLifetime.cs's own comment on IPopoverPresenter:
+        // "headless tests record instead ... Avalonia 12.1.2 headless cannot open a Popup in a theme-less window"),
+        // so a real Popup can't be exercised here either. This reproduces the shape a real Popup's separate PopupRoot
+        // gives it instead: the anchor and the popover content sit in two distinct top-levels (two real Windows), and
+        // only the anchor's window receives the key -- exactly AttachmentPreviewPanel.cs:162-172's "the popup's own
+        // content is a separate top-level" scenario. Before the REVIEW FIX (resolving TopLevel.GetTopLevel(this)
+        // instead of the anchor), the handler would attach to the popover's own window and this key would never
+        // reach it.
+        using var harness = new AppModelHarness();
+        var project = AppModelSamples.Project("Alpha", harness.NewFolder("Alpha"));
+        var thread = AppModelSamples.Thread(project);
+        var archived = 0;
+        var dismissed = 0;
+
+        var anchor = new Border();
+        var anchorWindow = new AvaloniaWindow { Content = anchor, Width = 200, Height = 100 };
+        anchorWindow.Show();
+
+        var popover = (Control)Activator.CreateInstance(Private("ArchiveThreadPopover"), thread, anchor,
+            (Action)(() => archived++), (Action)(() => { }), (Action)(() => dismissed++))!;
+        var popoverWindow = new AvaloniaWindow { Content = popover, Width = 272, Height = 100 };
+        popoverWindow.Show(); // a distinct top-level, standing in for the real PopupRoot
+
+        anchorWindow.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null); // :951 keyCode 36
+        Assert.Equal(1, archived); // the handler was resolved from the anchor's window, not the popover's own
+
+        anchorWindow.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null); // :952 keyCode 53
+        Assert.Equal(1, dismissed);
+
+        popoverWindow.Close();
+        anchorWindow.Close();
     });
 
     // ---- PR-SIDEBAR-086, PR-SIDEBAR-087, PR-SIDEBAR-089: the delete popover's coordinator on SidebarView ----
@@ -3796,8 +3875,9 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         {
             var view = Detached(model);
             SetProp(Field(view, "state")!, "PendingArchiveID", thread.Id);
-            var content = (Control)Call(view, "BuildArchivePopoverContent", thread)!;
-            Shown(content);
+            var anchor = new Border();
+            var content = (Control)Call(view, "BuildArchivePopoverContent", thread, anchor)!;
+            ShownWithAnchor(anchor, content);
             var archive = LogicalQuery.SelfAndDescendants<Button>(content).Single(b => TextOf(b) == "Archive");
             archive.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
 
@@ -3819,8 +3899,9 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             var view = Detached(model);
             var state = Field(view, "state")!;
             SetProp(state, "IsDeletePopoverShown", true); // :285, as the wrapping archivePopover sets on appear
-            var content = (Control)Call(view, "BuildArchivePopoverContent", thread)!;
-            Shown(content);
+            var anchor = new Border();
+            var content = (Control)Call(view, "BuildArchivePopoverContent", thread, anchor)!;
+            ShownWithAnchor(anchor, content);
             var delete = LogicalQuery.SelfAndDescendants<Button>(content).Single(b => TextOf(b) == "Delete");
             delete.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
 
@@ -3842,8 +3923,9 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             var view = Detached(model);
             var state = Field(view, "state")!;
             SetProp(state, "PendingArchiveID", thread.Id);
-            var content = (Control)Call(view, "BuildArchivePopoverContent", thread)!;
-            Shown(content);
+            var anchor = new Border();
+            var content = (Control)Call(view, "BuildArchivePopoverContent", thread, anchor)!;
+            ShownWithAnchor(anchor, content);
             var window = WindowOf(content);
 
             window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null); // :952 onDismiss()
@@ -4087,6 +4169,11 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             Assert.DoesNotContain("Reopen", titles);
             var archive = Assert.Single(actions, a => a.Title == "Archive"); // :2224-2225, only in the settle/archive group
             Assert.True(archive.StartsGroup); // :2221 startsGroup: !settleFirst, and settleFirst is always false for a helper
+            // REVIEW FIX (part 4): a helper's list is Rename, Forward, Archive, Delete… = 4, never 5. :2204's Pin
+            // guard and :2225-2226's helper branch both gate solely on isHelper, so a helper's count does not depend
+            // on isSettled or worktreePath either; this is the list's true minimum (isHelper is the only branch that
+            // ever drops the list below 2 items in the settle/archive group).
+            Assert.Equal(4, actions.Count);
         });
     });
 
@@ -4151,6 +4238,11 @@ public sealed class SidebarViewTests(HeadlessSession headless)
                 ["Rename", "Pin", "Forward to new thread", "Reveal worktree in File Explorer"],
                 popoverTitles.Take(4).ToList()); // :2200-2218 the fixed order up to the settle/archive group
             Assert.Equal("Delete\u2026", popoverTitles[^1]); // :2244 Delete… always last
+            // REVIEW FIX (part 4): this non-helper, unsettled, worktree-carrying thread's list is Rename, Pin,
+            // Forward, Reveal, [Archive, Settle] (both, :2242, since !isHelper), Delete… = 7 items, counted
+            // straight off :2201-2244 (and the identical :2259-2311) -- not 8: nothing in the builder appends an
+            // 8th item.
+            Assert.Equal(7, popoverTitles.Count);
         });
     });
 

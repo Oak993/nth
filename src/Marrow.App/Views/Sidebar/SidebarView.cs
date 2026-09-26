@@ -1345,7 +1345,7 @@ public sealed class SidebarView : Decorator
         var popup = PlainControls.Popover(row, isPresented, () =>
         {
             state.IsDeletePopoverShown = true; // :285, shared with the delete popover so the two can never race
-            return BuildArchivePopoverContent(thread);
+            return BuildArchivePopoverContent(thread, row);
         }, PlacementMode.Right); // :270 arrowEdge: .trailing
         popup.Closed += (_, _) =>
         {
@@ -1356,12 +1356,16 @@ public sealed class SidebarView : Decorator
     }
 
     /// <summary>:275-284 the archive popover's content, extracted so it is directly testable (see
-    /// BuildDeletePopoverContent above for why). PR-SIDEBAR-094, PR-SIDEBAR-095, PR-SIDEBAR-096, PR-SIDEBAR-097.</summary>
-    private ArchiveThreadPopover BuildArchivePopoverContent(ChatThread thread)
+    /// BuildDeletePopoverContent above for why). <paramref name="anchor"/> is the row (ArchivePopover's own
+    /// <c>row</c>), passed through so ArchiveThreadPopover's window-scoped key handler resolves the ThreadWindow
+    /// behind the popup rather than the popup's own PopupRoot (REVIEW FIX, part 4: see ArchiveThreadPopover's
+    /// constructor comment). PR-SIDEBAR-094, PR-SIDEBAR-095, PR-SIDEBAR-096, PR-SIDEBAR-097.</summary>
+    private ArchiveThreadPopover BuildArchivePopoverContent(ChatThread thread, Control anchor)
     {
         var threadID = thread.Id;
         return new ArchiveThreadPopover(
             Model.Thread(threadID) ?? thread,
+            anchor,
             onArchive: () =>
             {
                 state.PendingArchiveID = null; // :278
@@ -1427,19 +1431,29 @@ public sealed class SidebarView : Decorator
 internal sealed class ArchiveThreadPopover : Decorator
 {
     // :912 @State private var keyMonitor: Any?, ported as the window-scoped handler pair (ENGINEERING DECISION, the
-    // same substitution AttachmentPreviewPanel.cs:160-195 already makes for a local NSEvent monitor).
+    // same substitution AttachmentPreviewPanel.cs:160-195 already makes for a local NSEvent monitor). REVIEW FIX
+    // (part 4): the window must be resolved from the anchor row, not from this popover's own content -- once this
+    // is actually hosted through a real Popup (PlainControls.Popover), its content is a separate top-level
+    // (PopupRoot), exactly as AttachmentPreviewPanel.cs:162-172's own comment states for the identical shape, so
+    // TopLevel.GetTopLevel(this) would resolve the popup's own window rather than the ThreadWindow the doc comment
+    // above names ("even when the keys land on the chat window behind it").
     private Avalonia.Controls.Window? monitorWindow;
     private Button? archiveButton;
+    private readonly Control anchor;
     private readonly Action onArchive;
     private readonly Action onDismiss;
 
     /// <param name="thread">:906 <c>let thread: ChatThread</c>.</param>
+    /// <param name="anchor">The row this popover is anchored to (ArchivePopover's <c>row</c>): resolving the
+    /// window-scoped handler's window from here, not from this popover's own content, matches
+    /// AttachmentPreviewPanel.cs:168-172's StartMonitors(resolvedAnchor).</param>
     /// <param name="onArchive">:907 <c>let onArchive: () -> Void</c>.</param>
     /// <param name="onDelete">:908 <c>let onDelete: () -> Void</c>.</param>
     /// <param name="onDismiss">:909 <c>let onDismiss: () -> Void</c>.</param>
     // :914-962 body
-    public ArchiveThreadPopover(ChatThread thread, Action onArchive, Action onDelete, Action onDismiss)
+    public ArchiveThreadPopover(ChatThread thread, Control anchor, Action onArchive, Action onDelete, Action onDismiss)
     {
+        this.anchor = anchor;
         this.onArchive = onArchive;
         this.onDismiss = onDismiss;
 
@@ -1514,11 +1528,12 @@ internal sealed class ArchiveThreadPopover : Decorator
         return PlainControls.Button(framed, action);
     }
 
-    // :944-956 onAppear: focus the Archive button, then install the window-scoped key handler.
+    // :944-956 onAppear: focus the Archive button, then install the window-scoped key handler. REVIEW FIX (part 4):
+    // resolved from the anchor row (see the constructor's comment), not from `this`.
     private void Appear()
     {
         archiveButton?.Focus(); // :945 isFocused = true
-        if (TopLevel.GetTopLevel(this) is not Avalonia.Controls.Window window) return;
+        if (TopLevel.GetTopLevel(anchor) is not Avalonia.Controls.Window window) return;
         monitorWindow = window;
         window.AddHandler(InputElement.KeyDownEvent, OnWindowKeyDown, RoutingStrategies.Tunnel, handledEventsToo: true); // :946-955
     }
@@ -1819,7 +1834,11 @@ internal sealed class HelperConnector : Decorator
         stroke.Stroke = fill.Brush;
         stroke.SizeChanged += (_, e) => stroke.Data = new HelperConnectorShape(endsHere).Path(new Rect(e.NewSize)); // :1649-1651
         stroke.Track(() => state.IsHovering, hovering => fill.Set(Color(hovering), Transaction.Current)); // :1650 .animation(Chrome.hover, value:)
-        var label = new Border { Child = stroke, IsHitTestVisible = true }; // :1651 .contentShape(.rect): the whole rect is the hit area
+        // :1651 .contentShape(.rect): the whole rect is the hit area, not just the sparse dashed stroke. REVIEW FIX
+        // (part 4): IsHitTestVisible alone does not expand hit-testing past whatever paints; Background =
+        // Transparent is what actually makes the empty space hit-testable, the established pattern this same file
+        // already uses for its own check glyph (glyphHost, below) and Chrome.cs (e.g. :577, :812, :875, :1195, :1448).
+        var label = new Border { Child = stroke, IsHitTestVisible = true, Background = Brushes.Transparent };
         var button = PlainControls.Button(label, action); // :1648 Button(action:)
         button.OnHover(hovering => Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = hovering)); // :1656 .onHover
         ToolTip.SetTip(button, "Hide helpers"); // :1657 .help("Hide helpers")
