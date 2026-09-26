@@ -631,8 +631,8 @@ public sealed class ChromeFifthTests(HeadlessSession headless)
     // ---- PR-WIN-203, PR-WIN-231 (partial): ChromeSection ----
 
     [Fact]
-    [Trait("Req", "PR-WIN-203")] // Chrome.swift:1034-1036: semibold body heading in secondaryText
-    [Trait("Req", "UI-WIN-053")] // UI/Chrome/Chrome.swift:1023-1047 chrome section header semibold body, secondaryText
+    [Trait("Req", "PR-WIN-203")] // Chrome.swift:1040-1042: semibold body heading in secondaryText
+    [Trait("Req", "UI-WIN-053")] // UI/Chrome/Chrome.swift:1029-1053 chrome section header semibold body, secondaryText
     [Trait("Req", "PR-WIN-231")]
     public void ChromeSection_heading_is_semibold_body_in_secondaryText() => headless.OnUiThread(() =>
     {
@@ -645,8 +645,8 @@ public sealed class ChromeFifthTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-WIN-203")] // Chrome.swift:1037-1041: accessory after the title, trailing pushed to the far right with 8pt before it
-    [Trait("Req", "UI-WIN-053")] // UI/Chrome/Chrome.swift:1023-1047 accessory and trailing control layout
+    [Trait("Req", "PR-WIN-203")] // Chrome.swift:1043-1047: accessory after the title, trailing pushed to the far right with 8pt before it
+    [Trait("Req", "UI-WIN-053")] // UI/Chrome/Chrome.swift:1029-1053 accessory and trailing control layout
     public void ChromeSection_places_an_accessory_and_a_trailing_control() => headless.OnUiThread(() =>
     {
         var accessory = new TextBlock { Text = "info" };
@@ -662,8 +662,8 @@ public sealed class ChromeFifthTests(HeadlessSession headless)
     // ---- PR-WIN-204, PR-WIN-231 (partial): ChromeRow ----
 
     [Fact]
-    [Trait("Req", "PR-WIN-204")] // Chrome.swift:1058-1064: body title, subheadline detail only when non-nil and non-empty
-    [Trait("Req", "UI-WIN-054")] // UI/Chrome/Chrome.swift:1049-1074 chrome row title and detail typography/colors
+    [Trait("Req", "PR-WIN-204")] // Chrome.swift:1064-1070: body title, subheadline detail only when non-nil and non-empty
+    [Trait("Req", "UI-WIN-054")] // UI/Chrome/Chrome.swift:1055-1080 chrome row title and detail typography/colors
     [Trait("Req", "PR-WIN-231")]
     public void ChromeRow_shows_the_detail_only_when_present_and_non_empty() => headless.OnUiThread(() =>
     {
@@ -685,7 +685,7 @@ public sealed class ChromeFifthTests(HeadlessSession headless)
     // ---- PR-WIN-205: ChromeRowDivider ----
 
     [Fact]
-    [Trait("Req", "PR-WIN-205")] // Chrome.swift:1077-1080: a hairline inset 16pt from the leading edge only
+    [Trait("Req", "PR-WIN-205")] // Chrome.swift:1083-1086: a hairline inset 16pt from the leading edge only
     public void ChromeRowDivider_is_inset_16_points_leading_only() => headless.OnUiThread(() =>
     {
         var divider = new ChromeRowDivider();
