@@ -52,7 +52,11 @@ namespace Marrow.Core.Tests.Port;
 //   abstract class URLResponse; sealed class HTTPURLResponse : URLResponse
 //                                       int StatusCode; string? Value(string forHTTPHeaderField);
 //                                       IReadOnlyDictionary<string, string> AllHeaderFields; long ExpectedContentLength
-//   sealed class URLCache               no member is used: nil is the only value the source gives it (UpdateChecker.swift:104)
+//   sealed class URLCache                static URLCache Shared { get; set; }               URLCache.shared (AppDelegate.swift:13, B3 52bc792)
+//                                       URLCache(long memoryCapacity, long diskCapacity)   URLCache(memoryCapacity:diskCapacity:)
+//                                       long MemoryCapacity { get; } long DiskCapacity { get; } (recorded, not enforced: ED-118 item 4 parks "no size cut-off")
+//                                       Before B3 the source's only value was nil (UpdateChecker.swift:104); AppDelegate.swift:13 now
+//                                       constructs one and replaces the shared instance at launch (App.AppDelegate's launch call, not yet wired: STOP note there)
 //   sealed class URLSessionConfiguration
 //                                       static URLSessionConfiguration Ephemeral { get; } (a new configuration per read);
 //                                       URLRequest.CachePolicy RequestCachePolicy; URLCache? UrlCache;

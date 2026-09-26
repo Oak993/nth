@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Reflection;
 using Xunit;
 
@@ -89,6 +90,22 @@ public sealed class DroppyCodeAppTests
         Assert.Equal(
             "Copyright © 2026 Jordy Spruit (Droppy). Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app. GNU AGPL v3.0 with additional attribution terms.",
             copyright);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-UPDATE-112")] // project.yml:13-14 (B3 52bc792): MARKETING_VERSION "1.7.0", CURRENT_PROJECT_VERSION "21"
+    public void The_assembly_carries_the_pinned_version_and_build_numbers()
+    {
+        // The source of truth every AppInfo/version-display record cites (PR-UPDATE-112's own source_evidence);
+        // this only proves AssemblyInfo.cs matches it. The About card, the identity pill, the updater's comparison
+        // baseline and the hang-report header each read AppInfo.Current or the bundle directly, and are covered by
+        // their own units, not here.
+        var metadata = typeof(DroppyCodeApp).Assembly
+            .GetCustomAttributes<AssemblyMetadataAttribute>()
+            .ToDictionary(attribute => attribute.Key, attribute => attribute.Value);
+
+        Assert.Equal("1.7.0", metadata["CFBundleShortVersionString"]);
+        Assert.Equal("21", metadata["CFBundleVersion"]);
     }
 
     // No dedicated test for RunPrologue() itself: it is exactly `HangWatchdog.Start()`, and Start() spawns a real,
