@@ -508,6 +508,231 @@ public sealed class AppModelHydraMergeTests
         Assert.True(result.Runtime.HasHydraMergeRetryPending);
     }
 
+    /// <summary>A checkout with one commit and a remote, shared by the PR-HYDRAMERGE-122/123 tests below: a
+    /// remote so a merge can reach the tree comparison at :308 instead of failing at the unconditional :242
+    /// remote check first.</summary>
+    private static (AppModelGitRepo Repository, Project Project) QueuedMergeProject(AppModelHarness h, string label)
+    {
+        var repository = AppModelGitRepo.WithCommit(h.NewFolder(label));
+        repository.Git("remote", "add", "origin", "https://example.invalid/group/project.git");
+        return (repository, AppModelSamples.Project("Project", repository.Root));
+    }
+
+    /// <summary>A ready-to-merge lead: HydraEnabled, one completed turn touching <paramref name="path"/>.</summary>
+    private static ChatThread ReadyLead(Project project, string path, out TurnRecord turn)
+    {
+        var lead = AppModelSamples.Thread(project) with { HydraEnabled = true, UpdatedAt = SwiftDate.Now };
+        turn = new TurnRecord
+        {
+            Id = Guid.NewGuid(),
+            Index = 1,
+            Status = TurnStatus.Completed,
+            CompletedAt = SwiftDate.Now,
+            TouchedPaths = new ValueList<string>([path]),
+        };
+        return lead;
+    }
+
+    [Fact]
+    [Trait("Req", "PR-HYDRAMERGE-122")] // AppModel+HydraMerge.swift:80-101 (B3, new): a job that finishes while
+    // another chat's merge is running sets isHydraMergeQueued, polls isAnyHydraMergeRunning every 400 ms, and
+    // goes the moment that merge ends -- every precondition read again with no suspension before isHydraMerging
+    // is set, so of several waiters exactly one goes.
+    public void A_job_that_finishes_while_another_merge_runs_waits_and_goes_within_one_poll_of_it_ending()
+    {
+        using var h = new AppModelHarness();
+        var (_, project) = QueuedMergeProject(h, "queued-project");
+        var busy = AppModelSamples.Thread(project) with { HydraEnabled = true, UpdatedAt = SwiftDate.Now };
+        // a.txt is reported but unchanged from HEAD, so once `waiting` goes its pass returns AlreadyOnMain
+        // (:308) without ever touching the network.
+        var waiting = ReadyLead(project, "a.txt", out var turn);
+        h.WriteLibrary([project], [busy, waiting]);
+        AppModelHarness.WriteDocument(busy.Id);
+        DiskWriter.Shared.WriteSynchronously(
+            new ThreadDocument(waiting.Id) { Turns = new ValueList<TurnRecord>([turn]) },
+            Storage.ThreadURL(waiting.Id));
+
+        var model = h.MakeModel();
+        var waitingRuntime = h.Main.OnMain(() =>
+        {
+            model.Settings.HydraEnabled = true;
+            model.Settings.HydraAutoMerge = true;
+            model.Runtime(busy.Id).IsHydraMerging = true; // another chat's merge is already running
+            return model.Runtime(waiting.Id);
+        });
+        h.Main.Loop.Run(() => waitingRuntime.EnsureLoaded(), AppModelHarness.Bound); // loads its turn (:2916)
+
+        Task task = null!;
+        h.Main.OnMain(() => task = model.AutoMergeHydraWork(waiting.Id));
+
+        // Set before the first sleep, with no suspension after the isAnyHydraMergeRunning check (:88-89).
+        Assert.True(h.Main.OnMain(() => waitingRuntime.IsHydraMergeQueued));
+        Assert.False(task.IsCompleted);
+
+        h.Main.Advance(TimeSpan.FromSeconds(1)); // polls at 0.4 and 0.8 s find the other merge still running
+        Assert.True(h.Main.OnMain(() => waitingRuntime.IsHydraMergeQueued));
+        Assert.False(task.IsCompleted);
+
+        h.Main.OnMain(() => model.ExistingRuntime(busy.Id)!.IsHydraMerging = false); // ends between two polls
+        h.Main.AdvanceMilliseconds(199); // to 1.199 s: still short of the poll sleeping since 0.8 s wakes at 1.2 s
+        Assert.True(h.Main.OnMain(() => waitingRuntime.IsHydraMergeQueued));
+        h.Main.AdvanceMilliseconds(1); // the poll at 1.2 s finds no merge running; the wait ends
+        Assert.False(h.Main.OnMain(() => waitingRuntime.IsHydraMergeQueued)); // cleared on every exit (:90 defer)
+
+        // The rest of the merge is real git IO, pumped the same way every other test in this file drives it.
+        h.Main.Loop.RunUntil(() => task.IsCompleted, AppModelHarness.Bound);
+
+        Assert.False(h.Main.OnMain(() => waitingRuntime.IsHydraMergeQueued));
+        Assert.False(h.Main.OnMain(() => waitingRuntime.IsHydraMerging));
+        // AlreadyOnMain on the only group with no stray files settles the job (PR-CHAT-189, :184-186).
+        var record = Assert.Single(h.Main.OnMain(() => waitingRuntime.HydraMerges.ToArray()));
+        Assert.Equal(HydraMergeRecord.Outcome.Settled, record.HydraMergeRecordOutcome);
+        Assert.Contains(h.Main.OnMain(() => waitingRuntime.Turns.ToArray()), candidate => candidate.Id == turn.Id && candidate.HydraMerged);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-HYDRAMERGE-122")] // AppModel+HydraMerge.swift:89-95 (B3, new): isHydraMergeQueued is
+    // cleared on every exit from the wait, including cancellation, and a cancelled wait leaves no record or note.
+    public void Cancelling_the_wait_clears_the_queued_flag_and_leaves_no_record_or_note()
+    {
+        using var h = new AppModelHarness();
+        var (_, project) = QueuedMergeProject(h, "queued-cancel-project");
+        var busy = AppModelSamples.Thread(project) with { HydraEnabled = true, UpdatedAt = SwiftDate.Now };
+        var waiting = ReadyLead(project, "a.txt", out var turn);
+        h.WriteLibrary([project], [busy, waiting]);
+        AppModelHarness.WriteDocument(busy.Id);
+        DiskWriter.Shared.WriteSynchronously(
+            new ThreadDocument(waiting.Id) { Turns = new ValueList<TurnRecord>([turn]) },
+            Storage.ThreadURL(waiting.Id));
+
+        var model = h.MakeModel();
+        var waitingRuntime = h.Main.OnMain(() =>
+        {
+            model.Settings.HydraEnabled = true;
+            model.Settings.HydraAutoMerge = true;
+            model.Runtime(busy.Id).IsHydraMerging = true;
+            return model.Runtime(waiting.Id);
+        });
+        h.Main.Loop.Run(() => waitingRuntime.EnsureLoaded(), AppModelHarness.Bound); // loads its turn (:2916)
+
+        // A plain call has no ambient Swift task to cancel (SwiftTask.IsCancelled is false outside any task, as
+        // in Swift): MainActor.Spawn gives the waiting job the task identity a real trigger site would.
+        var handle = h.Main.OnMain(() => MainActor.Spawn(() => model.AutoMergeHydraWork(waiting.Id)));
+
+        Assert.True(h.Main.OnMain(() => waitingRuntime.IsHydraMergeQueued));
+        h.Main.Advance(TimeSpan.FromMilliseconds(800)); // two polls; the other merge is still running
+        Assert.True(h.Main.OnMain(() => waitingRuntime.IsHydraMergeQueued));
+
+        h.Main.OnMain(() => handle.Cancel());
+
+        Assert.True(handle.Completion.IsCompleted); // :93 returns at once; no suspension needed for that check
+        Assert.False(h.Main.OnMain(() => waitingRuntime.IsHydraMergeQueued)); // cleared on this exit too (:90 defer)
+        Assert.False(h.Main.OnMain(() => waitingRuntime.IsHydraMerging));
+        Assert.Empty(h.Main.OnMain(() => waitingRuntime.HydraMerges.ToArray()));
+        Assert.DoesNotContain(h.Main.OnMain(() => waitingRuntime.Turns.ToArray()), candidate => candidate.Id == turn.Id && candidate.HydraMerged);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-HYDRAMERGE-123")] // AppModel+HydraMerge.swift:171-174 (B3, new): after a run with no failed
+    // or deferred project, a task is scheduled -- fire-and-forget, before the turns and heads are marked merged
+    // -- that awaits resumeHydraMerges(), so a lead this run put off or that was waiting goes now.
+    public void A_clean_run_schedules_the_resume_sweep_which_picks_up_a_waiting_lead_before_the_next_periodic_sweep()
+    {
+        using var h = new AppModelHarness();
+        var (_, moverProject) = QueuedMergeProject(h, "resume-sweep-mover-project");
+        // `mover`'s pass returns AlreadyOnMain (:308) with no network: it is the clean run that must schedule the
+        // sweep. `other`'s project has no remote (PR-HYDRAMERGE-010's missing-remote fail, real and fast, no
+        // network), so its only path into a record is that scheduled sweep -- never mover's own call, which only
+        // ever touches mover's own lead and project.
+        var otherRepository = AppModelGitRepo.WithCommit(h.NewFolder("resume-sweep-other-project"));
+        var otherProject = AppModelSamples.Project("Other project", otherRepository.Root);
+        var mover = ReadyLead(moverProject, "a.txt", out var moverTurn);
+        var other = ReadyLead(otherProject, "a.txt", out var otherTurn);
+        h.WriteLibrary([moverProject, otherProject], [mover, other]);
+        DiskWriter.Shared.WriteSynchronously(
+            new ThreadDocument(mover.Id) { Turns = new ValueList<TurnRecord>([moverTurn]) },
+            Storage.ThreadURL(mover.Id));
+        DiskWriter.Shared.WriteSynchronously(
+            new ThreadDocument(other.Id) { Turns = new ValueList<TurnRecord>([otherTurn]) },
+            Storage.ThreadURL(other.Id));
+
+        var model = h.MakeModel();
+        h.Main.OnMain(() =>
+        {
+            model.Settings.HydraEnabled = true;
+            model.Settings.HydraAutoMerge = true;
+        });
+        h.Main.Loop.Run(() => model.Runtime(mover.Id).EnsureLoaded(), AppModelHarness.Bound); // loads its turn (:2916)
+
+        // Only mover's own pass is invoked directly; `other` is reachable only through the scheduled sweep.
+        h.Main.Loop.Run(() => model.AutoMergeHydraWork(mover.Id), AppModelHarness.Bound);
+        h.Main.Loop.RunUntil(() => model.ExistingRuntime(other.Id) is { } o && o.HydraMerges.Count > 0, AppModelHarness.Bound);
+
+        var state = h.Main.OnMain(() =>
+        {
+            var moverRuntime = model.ExistingRuntime(mover.Id);
+            var otherRuntime = model.ExistingRuntime(other.Id);
+            Assert.NotNull(moverRuntime);
+            Assert.NotNull(otherRuntime);
+            return (Mover: moverRuntime!, Other: otherRuntime!);
+        });
+
+        // AlreadyOnMain on mover's only group with no stray files settles the job (PR-CHAT-189, :184-186).
+        var moverRecord = Assert.Single(state.Mover.HydraMerges);
+        Assert.Equal(HydraMergeRecord.Outcome.Settled, moverRecord.HydraMergeRecordOutcome);
+        var otherRecord = Assert.Single(state.Other.HydraMerges);
+        Assert.Equal(HydraMergeRecord.Outcome.Failed, otherRecord.HydraMergeRecordOutcome); // no remote (:242)
+        Assert.Equal("Hydra did not merge: no remote.: The team's work is in the checkout; there is no origin to push it to.", otherRecord.Detail);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-HYDRAMERGE-123")] // AppModel+HydraMerge.swift:171 (B3, new): `guard !outcomes.contains(.failed),
+    // !outcomes.contains(.deferred) else { return }` -- a deferred run schedules nothing, so a lead that would
+    // otherwise be picked up by the sweep is left untouched.
+    public void A_deferred_run_schedules_no_resume_sweep()
+    {
+        using var h = new AppModelHarness();
+        var repository = AppModelGitRepo.WithCommit(h.NewFolder("no-sweep-project"));
+        repository.Git("remote", "add", "origin", "https://example.invalid/group/project.git");
+        // A rebase left in progress: MergeHydraProject returns .deferred at :248 before ever reaching the
+        // outcome guard's caller-side effects.
+        repository.Git("checkout", "-q", "-b", "side");
+        File.WriteAllBytes(Path.Combine(repository.Root, "a.txt"), Encoding.UTF8.GetBytes("side\n"));
+        repository.Git("add", "a.txt");
+        repository.Git("commit", "-q", "-m", "side");
+        repository.Git("checkout", "-q", "main");
+        File.WriteAllBytes(Path.Combine(repository.Root, "a.txt"), Encoding.UTF8.GetBytes("main\n"));
+        repository.Git("add", "a.txt");
+        repository.Git("commit", "-q", "-m", "main");
+        Assert.False(repository.Raw("merge", "side").Succeeded);
+
+        var project = AppModelSamples.Project("Project", repository.Root);
+        var deferring = ReadyLead(project, "a.txt", out var deferringTurn);
+        var other = ReadyLead(project, "b.txt", out var otherTurn); // has its own work; no remote of its own
+        h.WriteLibrary([project], [deferring, other]);
+        DiskWriter.Shared.WriteSynchronously(
+            new ThreadDocument(deferring.Id) { Turns = new ValueList<TurnRecord>([deferringTurn]) },
+            Storage.ThreadURL(deferring.Id));
+        DiskWriter.Shared.WriteSynchronously(
+            new ThreadDocument(other.Id) { Turns = new ValueList<TurnRecord>([otherTurn]) },
+            Storage.ThreadURL(other.Id));
+
+        var model = h.MakeModel();
+        h.Main.OnMain(() =>
+        {
+            model.Settings.HydraEnabled = true;
+            model.Settings.HydraAutoMerge = true;
+        });
+        h.Main.Loop.Run(() => model.Runtime(deferring.Id).EnsureLoaded(), AppModelHarness.Bound); // loads its turn
+
+        h.Main.Loop.Run(() => model.AutoMergeHydraWork(deferring.Id), AppModelHarness.Bound);
+        h.Main.Loop.RunUntilIdle(); // drains anything already queued; nothing was scheduled to drain
+
+        // A sweep that ran would have created and loaded `other`'s runtime (resumeHydraMerges :54-58); a sweep
+        // that was never scheduled never touches it, so it stays entirely absent.
+        Assert.Null(h.Main.OnMain(() => model.ExistingRuntime(other.Id)));
+    }
+
     [Fact]
     [Trait("Req", "PR-HYDRAMERGE-031")] // AppModel+HydraMerge.swift:231-241
     public void Conflict_markers_stop_the_merge_and_the_record_omits_the_note_resolution_sentence()
