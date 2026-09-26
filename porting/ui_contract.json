@@ -1125,7 +1125,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/NewThreadPrompt.swift:536-576"
       ],
-      "notes": "The sentence is assembled from three literals: What should we build in , the project name, and ?. There is a space before the name and none before the question mark. Tooltip on the name is exactly Choose another project."
+      "notes": "The sentence is assembled from three literals: What should we build in , the project name, and ?. There is a space before the name and none before the question mark. Tooltip on the name is exactly Choose another project.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "CHAT",
@@ -1146,7 +1147,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/NewThreadPrompt.swift:578-601"
       ],
-      "notes": "Each item shows the project's icon mark at size 12."
+      "notes": "Each item shows the project's icon mark at size 12.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "CHAT",
@@ -1167,7 +1169,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/NewThreadPrompt.swift:588-591"
       ],
-      "notes": "The ellipsis is the single character U+2026, not three full stops. Symbol plus."
+      "notes": "The ellipsis is the single character U+2026, not three full stops. Symbol plus.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "CHAT",

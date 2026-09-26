@@ -7,9 +7,9 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "IMPLEMENTED": 3130,
+      "IMPLEMENTED": 3131,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
-      "SPECIFIED": 771,
+      "SPECIFIED": 770,
       "RETIRED": 6,
       "DISCOVERED": 6
     },
@@ -3299,7 +3299,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The application icon is the app's own icon at 72 points. Add project… uses the horizontal ellipsis U+2026, not three full stops. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "capture comparison plus interaction test moving a thread",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

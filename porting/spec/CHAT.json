@@ -3123,7 +3123,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The application icon is the app's own icon at 72 points. Add project… uses the horizontal ellipsis U+2026, not three full stops. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "capture comparison plus interaction test moving a thread",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5477,7 +5477,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/NewThreadPrompt.swift:536-576"
       ],
-      "notes": "The sentence is assembled from three literals: What should we build in , the project name, and ?. There is a space before the name and none before the question mark. Tooltip on the name is exactly Choose another project."
+      "notes": "The sentence is assembled from three literals: What should we build in , the project name, and ?. There is a space before the name and none before the question mark. Tooltip on the name is exactly Choose another project.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-046",
@@ -5497,7 +5498,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/NewThreadPrompt.swift:578-601"
       ],
-      "notes": "Each item shows the project's icon mark at size 12."
+      "notes": "Each item shows the project's icon mark at size 12.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-047",
@@ -5517,7 +5519,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/NewThreadPrompt.swift:588-591"
       ],
-      "notes": "The ellipsis is the single character U+2026, not three full stops. Symbol plus."
+      "notes": "The ellipsis is the single character U+2026, not three full stops. Symbol plus.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-048",
