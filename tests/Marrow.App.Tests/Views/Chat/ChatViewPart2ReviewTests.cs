@@ -12,6 +12,32 @@ namespace Marrow.App.Tests.Views.Chat;
 [Collection("Headless")]
 public sealed class ChatViewPart2ReviewTests(HeadlessSession headless)
 {
+    [Fact]
+    [Trait("Req", "UI-CHAT-076")] // App/Views/Chat/ChatView.swift:1203-1214,1238
+    public void The_title_has_the_source_font_single_line_tail_truncation_and_six_point_hit_padding()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var model = harness.MakeModel();
+            harness.Main.OnMain(() =>
+            {
+                var project = model.AddProject(new Project("P", harness.NewFolder("project")).Url);
+                var thread = model.NewThread(project)!;
+                var title = new ChatChromeTitle(model, model.Runtime(thread.Id), "Title");
+                var text = Assert.Single(LogicalQuery.SelfAndDescendants<TextBlock>(title));
+                Assert.Equal(15, text.FontSize); // ED-059, B1:AppZoom table title3 :50.
+                Assert.Equal(Avalonia.Media.FontWeight.SemiBold, text.FontWeight);
+                Assert.Equal(1, text.MaxLines);
+                Assert.Equal(Avalonia.Media.TextTrimming.CharacterEllipsis, text.TextTrimming);
+                var button = Assert.Single(LogicalQuery.SelfAndDescendants<Button>(title));
+                Assert.Equal(new Thickness(0, 6), Assert.IsType<Border>(button.Content).Padding);
+                Assert.Equal(Avalonia.Layout.HorizontalAlignment.Stretch, title.HorizontalAlignment);
+                Assert.Equal("Thread title", Avalonia.Automation.AutomationProperties.GetName(button));
+            });
+        });
+    }
+
     // STOP App.Views.Chat.ChatView #4
     // Kind: conflict
     // Swift: DroppyCode/App/Views/Chat/ChatView.swift:1726-1729 (1.7.0).

@@ -139,6 +139,7 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-CHAT-179")] // ChatView.swift:1334
+    [Trait("Req", "UI-CHAT-079")] // App/Views/Chat/ChatView.swift:1334
     public void The_circle_menu_symbol_and_tooltip_come_from_the_threads_own_mode()
     {
         headless.OnUiThread(() =>
@@ -157,6 +158,7 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-CHAT-179")] // ChatView.swift:1335-1338
+    [Trait("Req", "UI-CHAT-079")] // App/Views/Chat/ChatView.swift:1335-1338
     public void The_menu_lists_every_RuntimeMode_in_declaration_order_under_a_Permissions_header()
     {
         headless.OnUiThread(() =>
@@ -176,6 +178,7 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-CHAT-179")] // ChatView.swift:1339-1340
+    [Trait("Req", "UI-CHAT-079")] // App/Views/Chat/ChatView.swift:1339-1340
     public void Picking_a_mode_writes_it_onto_the_thread_through_the_model()
     {
         headless.OnUiThread(() =>
@@ -249,6 +252,7 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-CHAT-180")] // ChatView.swift:1416,1425-1429
+    [Trait("Req", "UI-CHAT-080")] // App/Views/Chat/ChatView.swift:1416,1425-1429
     public void The_menu_opens_with_File_Explorer_then_a_divider_then_Copy_path()
     {
         headless.OnUiThread(() =>
@@ -326,6 +330,7 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-CHAT-176")] // ChatView.swift:1203,1212-1213
+    [Trait("Req", "UI-CHAT-076")] // App/Views/Chat/ChatView.swift:1203,1212-1213
     public void An_empty_title_reads_New_thread_and_the_tooltip_and_accessibility_label_are_exact()
     {
         headless.OnUiThread(() =>
@@ -346,6 +351,7 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-CHAT-176")] // ChatView.swift:1203
+    [Trait("Req", "UI-CHAT-076")] // App/Views/Chat/ChatView.swift:1203
     public void A_non_empty_title_is_shown_verbatim()
     {
         headless.OnUiThread(() =>
@@ -364,6 +370,7 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-CHAT-177")] // ChatView.swift:1220-1228
+    [Trait("Req", "UI-CHAT-077")] // App/Views/Chat/ChatView.swift:1220-1228
     public void The_title_popover_offers_Copy_title_and_Rename_under_a_Thread_title_header()
     {
         headless.OnUiThread(() =>
@@ -382,6 +389,7 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-CHAT-178")] // ChatView.swift:1231-1236
+    [Trait("Req", "UI-CHAT-078")] // App/Views/Chat/ChatView.swift:1231-1236
     public void Rename_shows_the_exact_alert_and_renames_through_the_model_on_Rename()
     {
         headless.OnUiThread(() =>
@@ -422,6 +430,7 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-CHAT-178")] // ChatView.swift:1236
+    [Trait("Req", "UI-CHAT-078")] // App/Views/Chat/ChatView.swift:1236
     public void Cancel_renames_nothing()
     {
         headless.OnUiThread(() =>
@@ -455,6 +464,7 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-CHAT-173")] // ChatView.swift:1252
+    [Trait("Req", "UI-CHAT-074")] // App/Views/Chat/ChatView.swift:1252
     public void The_tooltip_is_Show_the_sidebar_when_floating_and_Threads_otherwise()
     {
         headless.OnUiThread(() =>
@@ -476,6 +486,7 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-CHAT-173")] // ChatView.swift:1253
+    [Trait("Req", "UI-CHAT-074")] // App/Views/Chat/ChatView.swift:1253
     public void Clicking_toggles_the_sidebar_when_it_floats_instead_of_opening_a_popover()
     {
         headless.OnUiThread(() =>
@@ -610,6 +621,7 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-CHAT-175")] // ChatView.swift:1132-1134
+    [Trait("Req", "UI-CHAT-075")] // App/Views/Chat/ChatView.swift:1132-1134
     public void The_New_thread_button_is_unconditional_and_creates_a_thread_in_the_rows_project()
     {
         headless.OnUiThread(() =>
