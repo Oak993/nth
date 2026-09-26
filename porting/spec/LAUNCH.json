@@ -1141,7 +1141,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Resume criteria changed. B1 AppModel+HydraMerge.swift:36-52 loaded and judged each lead in filter order, skipped it unless 'runtime.phase == .idle, !runtime.isHydraMerging, runningHydraHeads(of: lead.id) == 0', then required '!finished.isEmpty, runtime.turns.last?.status == .completed', and counted a head as work when '!($0.landing?.files ?? []).isEmpty'. B2 AppModel+HydraMerge.swift:48-74 sorts leads by id.uuidString, loads them all first, gates on 'runtime.isReadyForHydraMerge, !runtime.isHydraMerging' (ThreadRuntime.swift:2527-2532), drops the at-least-one-completed-unmerged-turn requirement, and counts a head only when '$0.landing?.landed' (Hydra.swift:475). The 3-day window is unchanged (now hydraMergeWindow, :41); AppModel.swift:249-250 is unchanged."
+      "b2_change": "Resume criteria changed. B1 AppModel+HydraMerge.swift:36-52 loaded and judged each lead in filter order, skipped it unless 'runtime.phase == .idle, !runtime.isHydraMerging, runningHydraHeads(of: lead.id) == 0', then required '!finished.isEmpty, runtime.turns.last?.status == .completed', and counted a head as work when '!($0.landing?.files ?? []).isEmpty'. B2 AppModel+HydraMerge.swift:48-74 sorts leads by id.uuidString, loads them all first, gates on 'runtime.isReadyForHydraMerge, !runtime.isHydraMerging' (ThreadRuntime.swift:2485-2490), drops the at-least-one-completed-unmerged-turn requirement, and counts a head only when '$0.landing?.landed' (Hydra.swift:475). The 3-day window is unchanged (now hydraMergeWindow, :41); AppModel.swift:248-249 is unchanged."
     },
     {
       "id": "PR-LAUNCH-044",

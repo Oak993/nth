@@ -2726,7 +2726,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "No behaviour change. Flagged citation re-checked at B2: DroppyCode/App/Views/Settings/TokenActivitySection.swift:61-85 still renders one chip per TokenActivityMode case with Text(verbatim: option.title), and TokenLedger.swift:580-593 still declares daily, weekly and cumulative with the titles Daily, Weekly and Cumulative. The only B2 edit inside the range is :77 `.font(.system(size: 13, weight: mode == option ? .medium : .regular))` -> `.font(.system(.body, weight: mode == option ? .medium : .regular))`, which UI-USAGE-045 specifies."
+      "b2_change": "No behaviour change. Flagged citation re-checked at B2: DroppyCode/App/Views/Settings/TokenActivitySection.swift:61-85 still renders one chip per TokenActivityMode case with Text(verbatim: option.title), and TokenLedger.swift:589-602 still declares daily, weekly and cumulative with the titles Daily, Weekly and Cumulative. The only B2 edit inside the range is :77 `.font(.system(size: 13, weight: mode == option ? .medium : .regular))` -> `.font(.system(.body, weight: mode == option ? .medium : .regular))`, which UI-USAGE-045 specifies."
     },
     {
       "id": "PR-USAGE-108",

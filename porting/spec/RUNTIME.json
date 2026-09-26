@@ -27,7 +27,7 @@
       "blocked_by": null,
       "depends_on_unknown": null,
       "open_question": null,
-      "b2_change": "B1 ProviderSession.swift:82-118 declared 30 cases with no tokenSpend while AntigravitySession.swift:297, CommandCodeSession.swift:334, CopilotSession.swift:554 and OpenAICompatibleSession.swift:494 already emitted .tokenSpend (at B2 the Antigravity and Copilot emitters sit at :311 and :551), so the pinned checkout did not compile (the old upstream_defect and open_question). B2 ProviderSession.swift:99-104 adds case tokenSpend(TokenSpend) after usage, giving 31 cases; ClaudeSession.swift:583 and CodexSession.swift:676 now emit it too, and ThreadRuntime.swift:2172 and :2230 consume it. The source settles the open question, so status DISCOVERED -> SPECIFIED and upstream_defect and open_question are cleared."
+      "b2_change": "B1 ProviderSession.swift:82-118 declared 30 cases with no tokenSpend while AntigravitySession.swift:308, CommandCodeSession.swift:350, CopilotSession.swift:554 and OpenAICompatibleSession.swift:494 already emitted .tokenSpend (at B2 the Antigravity and Copilot emitters sit at :311 and :551), so the pinned checkout did not compile (the old upstream_defect and open_question). B2 ProviderSession.swift:99-104 adds case tokenSpend(TokenSpend) after usage, giving 31 cases; ClaudeSession.swift:585 and CodexSession.swift:673 now emit it too, and ThreadRuntime.swift:2172 and :2228 consume it. The source settles the open question, so status DISCOVERED -> SPECIFIED and upstream_defect and open_question are cleared."
     },
     {
       "id": "PR-RUNTIME-002",
@@ -1837,7 +1837,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 completeMessage (ThreadRuntime.swift:3138-3156) called scanStreamedDelegations(entryID: id, turnID: turnID) at B1 :3111. B2 :3206-3224 passes text: message.text (:3263) with isDelta false, so the completed text is read by a fresh parser (PR-RUNTIME-226). The finalize rules this record states are unchanged; re-cited."
+      "b2_change": "B1 completeMessage (ThreadRuntime.swift:3096-3114) called scanStreamedDelegations(entryID: id, turnID: turnID) at B1 :3111. B2 :3206-3224 passes text: message.text (:3221) with isDelta false, so the completed text is read by a fresh parser (PR-RUNTIME-226). The finalize rules this record states are unchanged; re-cited."
     },
     {
       "id": "PR-RUNTIME-083",
@@ -4011,7 +4011,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "The flagged range ThreadContinuation.swift:40-116 keeps its lines at B2. The one changed line, :46, went from `message.text.trimmingCharacters(in: .whitespacesAndNewlines)` to `message.text.trimmed`, and String.trimmed is defined as `trimmingCharacters(in: .whitespacesAndNewlines)` (Core/Support/Text.swift:224). Behaviour unchanged; re-cited."
+      "b2_change": "The flagged range ThreadContinuation.swift:40-116 keeps its lines at B2. The one changed line, :46, went from `message.text.trimmingCharacters(in: .whitespacesAndNewlines)` to `message.text.trimmed`, and String.trimmed is defined as `trimmingCharacters(in: .whitespacesAndNewlines)` (Core/Support/Text.swift:132). Behaviour unchanged; re-cited."
     },
     {
       "id": "PR-RUNTIME-178",
@@ -4386,7 +4386,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 settleHydraCommand (ThreadRuntime.swift:3378-3391) ended with `hydraTouched.formUnion(paths.filter { !$0.isEmpty && !TouchedPaths.isBuildOutput($0) })` (B1 :3347). B2 :3465-3467 binds `let writes = ...` and adds it to both hydraTouched and hydraCurrentTurnTouchedPaths."
+      "b2_change": "B1 settleHydraCommand (ThreadRuntime.swift:3336-3349) ended with `hydraTouched.formUnion(paths.filter { !$0.isEmpty && !TouchedPaths.isBuildOutput($0) })` (B1 :3347). B2 :3465-3467 binds `let writes = ...` and adds it to both hydraTouched and hydraCurrentTurnTouchedPaths."
     },
     {
       "id": "PR-RUNTIME-194",
@@ -5060,7 +5060,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "The round-cap test moved: B1 ThreadRuntime.swift:2778 `guard hydraDelegationRounds < HydraPrompts.maxDelegationRounds else {` is B2 :2861 `guard hydraBudget.canDelegate else {` (Hydra.swift:571). heldBackMessage (Hydra.swift:1070-1075) and the dropped-note string (B2 :2866) are unchanged."
+      "b2_change": "The round-cap test moved: B1 ThreadRuntime.swift:2778 `guard hydraDelegationRounds < HydraPrompts.maxDelegationRounds else {` is B2 :2861 `guard hydraBudget.canDelegate else {` (Hydra.swift:571). heldBackMessage (Hydra.swift:1066-1071) and the dropped-note string (B2 :2866) are unchanged."
     },
     {
       "id": "PR-RUNTIME-223",
@@ -5292,7 +5292,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Under the cap the behaviour is unchanged; the counter moved. B1 ThreadRuntime.swift:2841 and :2845 used `hydraRefusedBlocks < Self.maxRefusedBlocks` and `hydraRefusedBlocks += 1`. B2 :2925 calls hydraBudget.refuse(message) (Hydra.swift:591-598, refusals at :563, maxRefusals = 3 at :616). The message texts are unchanged (unreadableBlockMessage moved from Hydra.swift:1122-1132 to :1211-1217; heldBackMessage at :1070-1075)."
+      "b2_change": "Under the cap the behaviour is unchanged; the counter moved. B1 ThreadRuntime.swift:2841 and :2845 used `hydraRefusedBlocks < Self.maxRefusedBlocks` and `hydraRefusedBlocks += 1`. B2 :2925 calls hydraBudget.refuse(message) (Hydra.swift:591-598, refusals at :563, maxRefusals = 3 at :616). The message texts are unchanged (unreadableBlockMessage moved from Hydra.swift:1118-1128 to :1207-1213; heldBackMessage at :1066-1071)."
     },
     {
       "id": "PR-RUNTIME-232",
