@@ -21,6 +21,7 @@ public sealed class SimpleDiffTests
     [InlineData("", "a", "@@ -0,0 +1,1 @@\n+a", 1, 0)]
     [InlineData("a", "", "@@ -1,1 +0,0 @@\n-a", 0, 1)]
     [InlineData("same", "same", null, 0, 0)]
+    [InlineData("a\nb\nc", "a\nb\nc", null, 0, 0)]
     [InlineData("a\n", "b\n", "@@ -1,2 +1,2 @@\n-a\n+b\n ", 1, 1)]
     [InlineData("a\r\nb\r\n", "a\r\nc\r\n", "@@ -1,3 +1,3 @@\n a\r\n-b\r\n+c\r\n ", 1, 1)]
     public void Empty_identical_and_CRLF_inputs_give_the_B3_exact_diff(string oldText, string newText,
@@ -59,7 +60,8 @@ public sealed class SimpleDiffTests
     }
 
     [Fact] // Swift String equality uses canonical equivalence.
-    [Trait("Req", "PR-STORE-112")] // Text.swift:105-112, :196-198 (SwiftString.Equal)
+    [Trait("Req", "PR-STORE-112")] // Text.swift:105-112 (difference(from:) relies on String's own
+    // canonical-equivalence ==; there is no separate call site to cite in Text.swift for it)
     public void Canonically_equivalent_lines_are_context_in_their_original_old_spelling()
     {
         var stats = SimpleDiff.Unified("\U000000E9\nold", "e\U00000301\nnew"); // U+00E9 precomposed old side; e + U+0301 combining acute new side
@@ -134,7 +136,7 @@ public sealed class SimpleDiffTests
         Assert.Equal(2, stats.Deletions);
     }
 
-    [Theory] // Text.swift:92 (over the 200000-byte cap only) bounds suffix against BOTH sides' remaining
+    [Theory] // Text.swift:98-99 (over the 200000-byte cap only) bounds suffix against BOTH sides' remaining
     // length so prefix and suffix cannot overlap; a shared oversized trailing line pushes both texts over
     // the cap without changing which lines are common. This exercises the over-cap head/tail-trim branch
     // specifically, not the exact-diff path (contrast Tie_break_fixture_keeps_the_first_of_two_identical_lines_as_context).
