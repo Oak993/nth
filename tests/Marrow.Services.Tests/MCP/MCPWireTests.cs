@@ -1,7 +1,9 @@
+using System.Diagnostics;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
 using Marrow.Services.MCP;
 using Marrow.Services.Tests.Fixtures;
+using Marrow.Testing;
 
 namespace Marrow.Services.Tests.MCP;
 
@@ -515,10 +517,85 @@ public sealed class MCPWireTests
     [Trait("Req", "PR-MCP-111")] // Services/MCP/MCPWire.swift:152-154 (B3)
     public async Task Stop_terminates_a_running_child()
     {
+        // A cooperating child that exits on stdin EOF alone: this proves Stop closes stdin, but not that it runs
+        // the rest of ED-126's ladder (graceful signal, then a 3 s pid-only kill) - see the test right below,
+        // which uses a child that ignores everything but the forced kill (review finding L3a-2).
         var connection = LaunchPowerShell("$i=[Console]::In; while(($l=$i.ReadLine()) -ne $null){}");
         connection.Stop();
         var status = await connection.Process.WaitForExit().WaitAsync(Bound);
         Assert.False(connection.Process.IsRunning);
         _ = status;
+    }
+
+    [Fact]
+    [Trait("Req", "PR-MCP-190")] // Services/MCP/MCPHub.swift:173-178 stop(), through MCPWire.swift:152-154 (B3)
+    [Trait("Decision", "ED-126")]
+    [Trait("Decision", "ED-194")]
+    public async Task Stop_ignores_the_graceful_step_then_kills_the_pid_alone_at_3_seconds_leaving_a_grandchild_alive()
+    {
+        // Review finding L3a-2: MCPClient.Stop routes to this exact method (MCPStdioConnection.Stop ->
+        // StdioProcess.Terminate -> TerminationLadder.Stdio), so a hub Stop wired to the wrong ladder shape (for
+        // example B2's 1 s TerminateAll/KillTree) would still pass every other MCPHubTests/MCPWireTests test.
+        // This drives the real ladder end to end: a child that swallows every console control event (so the
+        // graceful step never ends it) and holds a grandchild of its own. Under the manual clock: no kill before
+        // 3 s, a pid-only kill exactly at 3 s (TerminationLadder.Stdio, not Shell's 1 s/KillTree), and the
+        // grandchild - never touched by KillProcess - is still alive afterward (ED-194: the job the child now
+        // sits in is never used by this ladder, only by MCPLiveProcesses.terminateAll at quit).
+        using var runtime = new TestRuntime();
+        var connection = LaunchPowerShell(
+            """
+            Add-Type -TypeDefinition @'
+            using System;
+            using System.Runtime.InteropServices;
+            public static
+            class
+            MarrowIgnoreBreakFixture
+            {
+                public delegate bool Handler(uint type);
+                [DllImport("kernel32.dll")] private static extern bool SetConsoleCtrlHandler(Handler handler, bool add);
+                private static Handler keep;
+                public static void Arm()
+                {
+                    keep = OnSignal;
+                    SetConsoleCtrlHandler(keep, true);
+                }
+                private static bool OnSignal(uint type) { return true; }
+            }
+            '@
+            [MarrowIgnoreBreakFixture]::Arm()
+            $line = [Console]::In.ReadLine()
+            $msg = $line | ConvertFrom-Json
+            $p = Start-Process -FilePath powershell.exe -ArgumentList '-NoProfile','-NonInteractive','-Command','Start-Sleep 60' -NoNewWindow -PassThru
+            $out = [Console]::Out
+            $out.Write('{"jsonrpc":"2.0","id":' + $msg.id + ',"result":{"grandchild":' + $p.Id + '}}')
+            $out.Write("`n")
+            $out.Flush()
+            Start-Sleep 60
+            """);
+        var reply = await connection.Request("test/spawn-grandchild", null, timeout: 30).WaitAsync(Bound);
+        var grandchildPid = checked((int)(reply["result"]?["grandchild"]?.JSONValueInt ?? 0));
+        Assert.True(grandchildPid > 0);
+        var grandchild = Process.GetProcessById(grandchildPid);
+        _ = grandchild.SafeHandle; // retain the native handle before it exits, as StdioProcessJobTests does
+        try
+        {
+            connection.Stop();
+            Assert.True(connection.Process.IsRunning, "the graceful step alone ended the child (it should ignore CTRL_BREAK)");
+
+            runtime.Advance(TimeSpan.FromMilliseconds(2_999));
+            Assert.True(connection.Process.IsRunning, "killed before the 3 s mark: not the Stdio ladder (ED-126/ED-194)");
+
+            runtime.Advance(TimeSpan.FromMilliseconds(1));
+            _ = await connection.Process.WaitForExit().WaitAsync(Bound);
+            Assert.False(connection.Process.IsRunning);
+
+            grandchild.Refresh();
+            Assert.False(grandchild.HasExited, "the grandchild died too: Stop used a tree/job kill, not the pid alone");
+        }
+        finally
+        {
+            grandchild.Refresh();
+            if (!grandchild.HasExited) grandchild.Kill();
+        }
     }
 }

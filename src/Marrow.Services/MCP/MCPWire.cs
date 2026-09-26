@@ -4,8 +4,8 @@ using Marrow.Core.Support;
 
 // Source: DroppyCode/Services/MCP/MCPWire.swift (B3 52bc7926), :1-246. New at 1.7.0 (B3_PLAN.md N5): the wire
 // pieces MCPHub and MCPProbe share, extracted from B2 MCPHub.swift:161-172,193-221,256-310,393-418,455-533 and
-// MCPProbe.swift:64-107,134-236,287-348,381-430. MCPHub and MCPProbe do not yet call this type here (lanes
-// A15/A16 switch them over without otherwise changing their behaviour, B3_PLAN.md row N5).
+// MCPProbe.swift:64-107,134-236,287-348,381-430. MCPProbe now calls this type (A16, this lane); MCPHub does
+// not yet (A15 switches it over without otherwise changing its behaviour, B3_PLAN.md row N5).
 
 namespace Marrow.Services.MCP;
 
@@ -74,20 +74,21 @@ public static class MCPWire
 
     // MARK: - Streamable HTTP (:53-103)
 
-    // :55-103. DEVIATION OD-0022/ED-152: F.HTTP (Marrow.Core.Port.Http.cs) currently drops only the
-    // Authorization header across an origin-changing redirect (ED-152, Http.cs:707-784); it has no per-request
-    // mechanism to drop an arbitrary named header, such as this call's caller-supplied `headers` (a server's
-    // custom headers, e.g. X-Api-Key), the same way. Extending it is out of this unit's scope (Marrow.Services
-    // only; see MCPProbe.cs:246-266, which carries the identical note for its own call into this same Post).
-    // The headers below are therefore forwarded to a same-server redirect target exactly as OD-0022 requires,
-    // but are NOT yet withheld from a cross-server redirect target. Tracked, not silently dropped: see this
-    // unit's report (review finding L2f-1, ED needed to extend F.HTTP with a per-header origin-bound marker).
+    // :55-103. DEVIATION OD-0022/ED-152, now enforced by ED-209: F.HTTP (Marrow.Core.Port.Http.cs) drops the
+    // Authorization header across an origin-changing redirect (ED-152, Http.cs:Redirected); ED-209 extends it
+    // with a per-request marking (URLRequest.MarkOriginBound) for an arbitrary named header. Each of this call's
+    // caller-supplied `headers` (a server's own custom headers, e.g. X-Api-Key) is marked below, so a redirect
+    // that changes scheme, host or port drops it the same way Authorization is dropped, and a same-server
+    // redirect keeps it, exactly as OD-0022 requires. MCPProbe.cs's own Post (:150-174 as of A16, this batch)
+    // now calls this same MCPWire.Post rather than carrying an inline copy, so it is covered by this same
+    // marking with no separate fix needed there; its comment is updated alongside this merge (B3 batch 4) to
+    // stop describing the gap as still open.
     public static async Task<MCPHTTPReply> Post(
         Uri to, IReadOnlyDictionary<string, string> headers, string? sessionID, JSONValue payload, int? id, double timeout)
     {
         // :63-70
         var request = new URLRequest(to, timeout) with { HttpMethod = "POST", HttpBody = payload.Data() };
-        foreach (var (field, value) in headers) request = request.SetValue(value, field);
+        foreach (var (field, value) in headers) request = request.SetValue(value, field).MarkOriginBound(field);
         request = request.SetValue("application/json", "Content-Type");
         request = request.SetValue("application/json, text/event-stream", "Accept");
         request = request.SetValue(ProtocolVersion, "MCP-Protocol-Version");

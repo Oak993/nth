@@ -9,35 +9,43 @@ using Marrow.Services.Store;
 
 namespace Marrow.Services.Providers;
 
-// Source: DroppyCode/Services/Providers/ClaudeSession.swift (B2 1fbf81e), :1-693.
+// Source: DroppyCode/Services/Providers/ClaudeSession.swift (B3 52bc7926), :1-829.
+//
+// B3 (1.7.0) delta from B2 (R3-48, ClaudeSession #1 folded with R3-13 #3; PR-PROVCLI-442 new): pendingControl
+// (:37) becomes a PendingReplies<JSONValue>, so Control (:301-309) registers through it instead of a bare
+// continuation dictionary, is now cancellable (a caller already cancelled throws before anything is sent, and
+// one cancelled while waiting throws with the late reply dropped), and Handle's control_response case
+// (:334-341) and DidClose (:678-692) resolve/fail/failAll through it. TodoWrite parsing (:534-535) now goes
+// through the shared ACPSession.ParseTodoItems instead of this file's own todos(from:), which is deleted along
+// with resultText(_:), replaced by the shared ToolText.blocks (already ported at lane A7).
 //
 // Unit Services.Providers.ClaudeSession part 1 of 4 (PR-PROVCLI-001 to 024) implemented the
 // launch path: the executable guard, the session id, the fixed and conditional argument
 // vector, the --help option probe, the Hydra argument blocks, the always-present
 // --append-system-prompt, the resume/session-id tail, spawning the process and attaching its
-// reader, the initialize handshake (and the control-request wire it rides: :299-310, :331-343
+// reader, the initialize handshake (and the control-request wire it rides: :299-309, :330-341
 // so far as control_response resolves it), and the static command-discovery probe (:183-212).
 //
 // Part 2 (PR-PROVCLI-025 to 048) adds: Send (:214-236), Interrupt (:238-247), Compact
-// (:249-252), ResolveApproval (:254-275) with sessionScoped (:838-842), AnswerQuestion
-// (:277-287), Stop (:289-292), StopAgent (:294-297), writeUserMessage (:312-322),
-// sendToolResponse (:324-329), the rest of Handle's dispatch switch (:331-385, control_request,
+// (:249-252), ResolveApproval (:254-275) with sessionScoped (:814-818), AnswerQuestion
+// (:277-287), Stop (:289-292), StopAgent (:294-297), writeUserMessage (:311-321),
+// sendToolResponse (:323-328), the rest of Handle's dispatch switch (:330-383, control_request,
 // control_cancel_request, system, stream_event, assistant, user, result, rate_limit_event) and
 // handleSystem's init/compact_boundary/task_started/task_progress/task_notification cases
-// (:388-425, handleTaskStarted :427-447).
+// (:386-423, handleTaskStarted :425-445).
 //
-// handleControlRequest's own body (:611-680ish: building an ApprovalRequest/QuestionRequest
+// handleControlRequest's own body (:609-678ish: building an ApprovalRequest/QuestionRequest
 // from a live can_use_tool request) and the four per-event-type transcript handlers
-// (handleStreamEvent :457-497, handleAssistant :505-546, handleToolResults :548-562, handleResult
-// :564-609) are later parts of this unit: Handle's switch (this part) routes to them by name, but
+// (handleStreamEvent :455-495, handleAssistant :503-544, handleToolResults :546-560, handleResult
+// :562-607) are later parts of this unit: Handle's switch (this part) routes to them by name, but
 // their bodies are no-op placeholders here, never invoked by this part's own tests, so the type
 // keeps compiling while those parts are pending. Because handleControlRequest does not populate
 // pendingTools yet, this part's own tests seed it directly through SeedPendingTool (Swift
 // `private`, kept internal for tests only, see the seam note on it below).
 //
-// DidClose (:680-696) is self-contained (process.ErrorTail, TextCleanup.LastLines,
+// DidClose (:678-690) is self-contained (process.ErrorTail, TextCleanup.LastLines,
 // pendingControl, pendingTools, OnEvent, turnActive, isStopping, isStarted only) and was ported
-// in part 1 because Control (:301-310, needed by PR-PROVCLI-019) and the readTask
+// in part 1 because Control (:301-309, needed by PR-PROVCLI-019) and the readTask
 // (PR-PROVCLI-017) both depend on it; PR-PROVCLI-061, which fully exercises it, belongs to a
 // later part.
 public sealed class ClaudeSession : ProviderSession
@@ -51,7 +59,7 @@ public sealed class ClaudeSession : ProviderSession
     }
 
     // :22-27. The open blocks of one streamed transcript: the lead's, or one head's. A mutable value-type
-    // struct, so Handle's "copy out of the dict, mutate by ref, write back" (:352-370, PR-PROVCLI-049)
+    // struct, so Handle's "copy out of the dict, mutate by ref, write back" (:350-368, PR-PROVCLI-049)
     // reproduces the Swift inout discipline exactly: no reference into the map is held open across a sink
     // callback that can re-enter this session.
     internal struct StreamState
@@ -72,7 +80,10 @@ public sealed class ClaudeSession : ProviderSession
     private RuntimeMode runtimeMode;                        // :34
     private string? model;                                  // :35
     private long controlCounter;                            // :36
-    private readonly Dictionary<string, CheckedContinuation<JSONValue>> pendingControl = new(SwiftStringComparer.Instance); // :37
+    // DEVIATION OD-0012 F1: request ids are "marrow-<n>" (see Control below), matching PendingReplies' own
+    // TValue : class constraint (JSONValue is a reference-typed record, ENGINEERING DECISION recorded on
+    // PendingReplies<TValue> itself). :37
+    private readonly PendingReplies<JSONValue> pendingControl = new();
     private readonly Dictionary<string, PendingTool> pendingTools = new(SwiftStringComparer.Instance); // :38
     private readonly Dictionary<string, string> toolNames = new(SwiftStringComparer.Instance); // :39
     // The lead's own stream state and each head's, by the tool call that spawned it. Their inner block
@@ -84,8 +95,8 @@ public sealed class ClaudeSession : ProviderSession
     // Heads by their task id, for progress and completion, and their task ids by head, for stopping. :44-45
     private readonly Dictionary<string, string> agentsByTask = new(SwiftStringComparer.Instance); // :44
     private readonly Dictionary<string, string> tasksByAgent = new(SwiftStringComparer.Instance); // :45
-    private bool turnActive;                                // :46, read by Interrupt (:239) and written by writeUserMessage (:313) and DidClose
-    private bool interruptRequested;                        // :47, written by Interrupt (:240)/writeUserMessage (:314), read by HandleResult (:597)
+    private bool turnActive;                                // :46, read by Interrupt (:239) and written by writeUserMessage (:312) and DidClose
+    private bool interruptRequested;                        // :47, written by Interrupt (:240)/writeUserMessage (:313), read by HandleResult (:595)
     private bool isStopping;                                // :48, written by Stop (:290); DidClose (ported in part 1) reads it.
     private bool isStarted;                                 // :51
     private bool hasClosed;                                 // :52
@@ -108,7 +119,7 @@ public sealed class ClaudeSession : ProviderSession
 
     /// <summary>PR-PROVCLI-004: plan is tested first, overriding the runtime mode. Swift `private`; kept
     /// internal for this part's own tests (see the file header note).</summary>
-    internal static string ModeName(RuntimeMode runtime, InteractionMode interaction) // :844-852
+    internal static string ModeName(RuntimeMode runtime, InteractionMode interaction) // :820-828
     {
         if (interaction == InteractionMode.Plan) return "plan";
         return runtime switch
@@ -316,16 +327,23 @@ public sealed class ClaudeSession : ProviderSession
     // Swift `private`; kept internal for this part's own tests (see the file header note): PR-PROVCLI-019's
     // "no process" half is proven by calling this directly on a fresh session, since start() itself cannot
     // reach the guard without first passing the executable check (PR-PROVCLI-001).
-    internal async Task<JSONValue> Control(JSONValue request) // :301-310
+    //
+    // PR-PROVCLI-442 (B3, new): the process/hasClosed guards run first, then controlCounter always advances and
+    // the id is built, whether or not the caller ends up cancelled - so a cancelled-before-send caller still
+    // uses up that id number (PendingReplies<JSONValue>.Register checks cancellation, :17 in the Swift source,
+    // before storing the waiter or running send()). A caller cancelled while waiting has its entry removed and
+    // is resumed with CancellationError; a control_response that arrives later for that id then finds nothing
+    // waiting (Handle's control_response case, PR-PROVCLI-042) and is silently dropped, exactly like any other
+    // unmatched id.
+    internal async Task<JSONValue> Control(JSONValue request) // :301-309
     {
         if (process is not { } activeProcess) throw new ProviderError(new ProviderError.Case.NotRunning());
         if (hasClosed) throw new ProviderError(new ProviderError.Case.Failed(launchError ?? "Claude exited."));
         controlCounter += 1;
         // DEVIATION OD-0012 F1: upstream "droppy-code-<n>"; the port sends "marrow-<n>".
         var requestID = $"marrow-{controlCounter}";
-        return await CheckedContinuation<JSONValue>.With(continuation =>
+        return await pendingControl.Register(requestID, () =>
         {
-            pendingControl[requestID] = continuation;
             activeProcess.Send(new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>
             {
                 ["type"] = "control_request",
@@ -337,31 +355,31 @@ public sealed class ClaudeSession : ProviderSession
 
     /// <summary>Swift `private`; kept internal so this part's own tests can drive dispatch (and, for
     /// HandleSystem below, its subtypes) without a live child process (see the file header note).</summary>
-    internal void Handle(JSONValue message) // :331-386
+    internal void Handle(JSONValue message) // :330-384
     {
-        // A head's message names the tool call that spawned it; the lead's carries null. :333
+        // A head's message names the tool call that spawned it; the lead's carries null. :332
         var parent = message["parent_tool_use_id"]?.JSONValueString;
         switch (message["type"]?.JSONValueString)
         {
-            case "control_response": // :335-343
+            case "control_response": // :334-341
                 var response = message["response"] ?? new JSONValue.Null();
-                if (response["request_id"]?.JSONValueString is not { } requestID || !pendingControl.Remove(requestID, out var continuation)) return;
+                if (response["request_id"]?.JSONValueString is not { } requestID) return;
                 if (SwiftString.Equal(response["subtype"]?.JSONValueString ?? "", "error"))
-                    continuation.Resume(new ProviderError(new ProviderError.Case.Failed(response["error"]?.JSONValueString ?? "Claude rejected the request.")));
+                    pendingControl.Fail(requestID, new ProviderError(new ProviderError.Case.Failed(response["error"]?.JSONValueString ?? "Claude rejected the request.")));
                 else
-                    continuation.Resume(response["response"] ?? new JSONValue.Null());
+                    pendingControl.Resolve(requestID, response["response"] ?? new JSONValue.Null());
                 break;
-            case "control_request": // :344-345
+            case "control_request": // :342-343
                 HandleControlRequest(message);
                 break;
-            case "control_cancel_request": // :346-349
+            case "control_cancel_request": // :344-347
                 if (message["request_id"]?.JSONValueString is { } cancelID && pendingTools.Remove(cancelID))
                     OnEvent?.Invoke(new ProviderEvent.RequestResolved(cancelID));
                 break;
-            case "system": // :350-351
+            case "system": // :348-349
                 HandleSystem(message);
                 break;
-            case "stream_event": // :352-362
+            case "stream_event": // :350-360
                 if (parent is { } streamParent)
                 {
                     var stream = agentStreams.TryGetValue(streamParent, out var headStream) ? headStream : new StreamState();
@@ -375,7 +393,7 @@ public sealed class ClaudeSession : ProviderSession
                     mainStream = stream;
                 }
                 break;
-            case "assistant": // :363-370
+            case "assistant": // :361-368
                 if (parent is { } assistantParent)
                 {
                     var stream = agentStreams.TryGetValue(assistantParent, out var headStream) ? headStream : new StreamState();
@@ -389,13 +407,13 @@ public sealed class ClaudeSession : ProviderSession
                     mainStream = stream;
                 }
                 break;
-            case "user": // :371-372
+            case "user": // :369-370
                 HandleToolResults(message, parent is { } toolResultParent ? AgentSink(toolResultParent) : LeadSink);
                 break;
-            case "result": // :373-374
+            case "result": // :371-372
                 HandleResult(message);
                 break;
-            case "rate_limit_event": // :375-382
+            case "rate_limit_event": // :373-380
                 var info = message["rate_limit_info"] ?? new JSONValue.Null();
                 if (SwiftString.Equal(info["status"]?.JSONValueString ?? "", "rejected"))
                 {
@@ -413,16 +431,16 @@ public sealed class ClaudeSession : ProviderSession
     }
 
     /// <summary>Where a stream's events go: straight out for the lead, wrapped for a head. Swift's lazily
-    /// created leadSink (:451) is a single delegate invoke here; no laziness is needed.</summary>
+    /// created leadSink (:449) is a single delegate invoke here; no laziness is needed.</summary>
     private void LeadSink(ProviderEvent providerEvent) => OnEvent?.Invoke(providerEvent);
 
-    private Action<ProviderEvent> AgentSink(string agentID) => providerEvent => OnEvent?.Invoke(new ProviderEvent.AgentEvent(agentID, providerEvent)); // :453-455
+    private Action<ProviderEvent> AgentSink(string agentID) => providerEvent => OnEvent?.Invoke(new ProviderEvent.AgentEvent(agentID, providerEvent)); // :451-453
 
     /// <summary>Swift `private`; kept internal for this part's own tests (see the file header note).</summary>
-    internal void HandleControlRequest(JSONValue message) // :611-677
+    internal void HandleControlRequest(JSONValue message) // :609-675
     {
-        if (message["request_id"]?.JSONValueString is not { } requestID || message["request"] is not { } request) return; // :612
-        if (!SwiftString.Equal(request["subtype"]?.JSONValueString ?? "", "can_use_tool")) // :613-618
+        if (message["request_id"]?.JSONValueString is not { } requestID || message["request"] is not { } request) return; // :610
+        if (!SwiftString.Equal(request["subtype"]?.JSONValueString ?? "", "can_use_tool")) // :611-616
         {
             process?.Send(JSONValue.FromDictionaryLiteral(
                 ("type", "control_response"),
@@ -434,14 +452,14 @@ public sealed class ClaudeSession : ProviderSession
                     ("error", "Marrow does not support this request.")))));
             return;
         }
-        var name = request["tool_name"]?.JSONValueString ?? "Tool"; // :620
-        var input = request["input"] ?? JSONValue.FromDictionaryLiteral(); // :621
-        var toolUseID = request["tool_use_id"]?.JSONValueString; // :622
-        pendingTools[requestID] = new PendingTool { Name = name, Input = input, Suggestions = request["permission_suggestions"] }; // :623
+        var name = request["tool_name"]?.JSONValueString ?? "Tool"; // :618
+        var input = request["input"] ?? JSONValue.FromDictionaryLiteral(); // :619
+        var toolUseID = request["tool_use_id"]?.JSONValueString; // :620
+        pendingTools[requestID] = new PendingTool { Name = name, Input = input, Suggestions = request["permission_suggestions"] }; // :621
 
         switch (name)
         {
-            case "AskUserQuestion": // :626-641
+            case "AskUserQuestion": // :624-639
             {
                 var questions = new List<QuestionRequest.Question>();
                 foreach (var question in input["questions"]?.JSONValueArray ?? [])
@@ -465,7 +483,7 @@ public sealed class ClaudeSession : ProviderSession
                 OnEvent?.Invoke(new ProviderEvent.Question(new QuestionRequest(requestID, new ValueList<QuestionRequest.Question>(questions))));
                 break;
             }
-            case "ExitPlanMode": // :642-653
+            case "ExitPlanMode": // :640-651
                 OnEvent?.Invoke(new ProviderEvent.PlanCompleted(toolUseID ?? requestID, input["plan"]?.JSONValueString ?? ""));
                 OnEvent?.Invoke(new ProviderEvent.Approval(new ApprovalRequest(
                     requestID,
@@ -478,7 +496,7 @@ public sealed class ClaudeSession : ProviderSession
                     ]),
                     ToolItemID: toolUseID)));
                 break;
-            default: // :654-677 - the card shows the kind, title and detail; the edits' diffs are built once,
+            default: // :652-675 - the card shows the kind, title and detail; the edits' diffs are built once,
                      // when the assistant message lands, so withEdits is false here.
             {
                 var call = ToolCall(name, input, withEdits: false) ?? new global::Marrow.Core.Models.ToolCall { ToolCallKind = global::Marrow.Core.Models.ToolCall.Kind.Other, Title = name };
@@ -506,15 +524,15 @@ public sealed class ClaudeSession : ProviderSession
     }
 
     /// <summary>Swift `private`; kept internal for this part's own tests (see the file header note).</summary>
-    internal void HandleStreamEvent(JSONValue @event, ref StreamState stream, Action<ProviderEvent> sink) // :457-497
+    internal void HandleStreamEvent(JSONValue @event, ref StreamState stream, Action<ProviderEvent> sink) // :455-495
     {
         switch (@event["type"]?.JSONValueString)
         {
-            case "message_start": // :459-461
+            case "message_start": // :457-459
                 stream.CurrentMessageID = @event["message"]?["id"]?.JSONValueString ?? SwiftUUID.UuidString(Guid.NewGuid());
                 stream.BlockIDs.Clear();
                 break;
-            case "content_block_start": // :462-483
+            case "content_block_start": // :460-481
             {
                 if (@event["index"]?.JSONValueInt is not { } indexLong || @event["content_block"] is not { } block) return;
                 var index = (int)indexLong;
@@ -522,19 +540,19 @@ public sealed class ClaudeSession : ProviderSession
                 var id = $"{messageID}-{index}";
                 switch (block["type"]?.JSONValueString)
                 {
-                    case "text": // :467-470
+                    case "text": // :465-468
                         stream.BlockIDs[index] = id;
                         if (!stream.OpenText.TryGetValue(messageID, out var openTextList)) { openTextList = []; stream.OpenText[messageID] = openTextList; }
                         openTextList.Add(id);
                         sink(new ProviderEvent.MessageDelta(id, block["text"]?.JSONValueString ?? ""));
                         break;
-                    case "thinking": // :471-474
+                    case "thinking": // :469-472
                         stream.BlockIDs[index] = id;
                         if (!stream.OpenThinking.TryGetValue(messageID, out var openThinkingList)) { openThinkingList = []; stream.OpenThinking[messageID] = openThinkingList; }
                         openThinkingList.Add(id);
                         sink(new ProviderEvent.ReasoningDelta(id, block["thinking"]?.JSONValueString ?? ""));
                         break;
-                    case "tool_use": // :475-480
+                    case "tool_use": // :473-478
                         if (block["id"]?.JSONValueString is not { } toolID || block["name"]?.JSONValueString is not { } name) return;
                         toolNames[toolID] = name;
                         if (ToolCall(name, JSONValue.FromDictionaryLiteral()) is { } call)
@@ -545,7 +563,7 @@ public sealed class ClaudeSession : ProviderSession
                 }
                 break;
             }
-            case "content_block_delta": // :484-493
+            case "content_block_delta": // :482-491
             {
                 if (@event["index"]?.JSONValueInt is not { } deltaIndexLong || !stream.BlockIDs.TryGetValue((int)deltaIndexLong, out var deltaID) || @event["delta"] is not { } delta) return;
                 switch (delta["type"]?.JSONValueString)
@@ -567,34 +585,34 @@ public sealed class ClaudeSession : ProviderSession
     }
 
     // Text Claude Code puts in the transcript itself, under the model name "<synthetic>", where the model said
-    // nothing. :499-503
+    // nothing. :497-501
     private const string SyntheticModel = "<synthetic>";
-    private static readonly HashSet<string> SyntheticPlaceholders = new(SwiftStringComparer.Instance) { "No response requested.", "(no content)" }; // :503
+    private static readonly HashSet<string> SyntheticPlaceholders = new(SwiftStringComparer.Instance) { "No response requested.", "(no content)" }; // :501
 
     /// <summary>Swift `private`; kept internal for this part's own tests (see the file header note).</summary>
-    internal void HandleAssistant(JSONValue message, ref StreamState stream, Action<ProviderEvent> sink) // :505-546
+    internal void HandleAssistant(JSONValue message, ref StreamState stream, Action<ProviderEvent> sink) // :503-544
     {
-        if (message["message"] is not { } body || body["content"]?.JSONValueArray is not { } content) return; // :506
+        if (message["message"] is not { } body || body["content"]?.JSONValueArray is not { } content) return; // :504
         // Claude Code's own bookkeeping is never the model's words: a resumed session's synthetic
-        // "No response requested." reply, or a synthetic API error, never becomes a chat message. :507-519
+        // "No response requested." reply, or a synthetic API error, never becomes a chat message. :505-517
         if (body["model"]?.JSONValueString is { } modelName && SwiftString.Equal(modelName, SyntheticModel))
         {
             var texts = content
                 .Where(item => SwiftString.Equal(item["type"]?.JSONValueString ?? "", "text"))
                 .Select(item => item["text"]?.JSONValueString)
                 .OfType<string>();
-            var text = string.Join("\n", texts).Trimmed(); // :513-514
-            if (message["isApiErrorMessage"]?.JSONValueBool == true && text.Length != 0 && !SyntheticPlaceholders.Contains(text)) // :515
-                sink(new ProviderEvent.Notice(new Notice { NoticeLevel = Notice.Level.Warning, Message = text })); // :516
-            return; // :518
+            var text = string.Join("\n", texts).Trimmed(); // :511-512
+            if (message["isApiErrorMessage"]?.JSONValueBool == true && text.Length != 0 && !SyntheticPlaceholders.Contains(text)) // :513
+                sink(new ProviderEvent.Notice(new Notice { NoticeLevel = Notice.Level.Warning, Message = text })); // :514
+            return; // :516
         }
-        var messageID = body["id"]?.JSONValueString ?? SwiftUUID.UuidString(Guid.NewGuid()); // :520
-        if (message["uuid"]?.JSONValueString is { } uuid) sink(new ProviderEvent.AssistantMessageID(uuid)); // :521
-        foreach (var block in content) // :522-545
+        var messageID = body["id"]?.JSONValueString ?? SwiftUUID.UuidString(Guid.NewGuid()); // :518
+        if (message["uuid"]?.JSONValueString is { } uuid) sink(new ProviderEvent.AssistantMessageID(uuid)); // :519
+        foreach (var block in content) // :520-543
         {
             switch (block["type"]?.JSONValueString)
             {
-                case "text": // :524-527
+                case "text": // :522-525
                 {
                     var text = block["text"]?.JSONValueString ?? "";
                     string id;
@@ -610,7 +628,7 @@ public sealed class ClaudeSession : ProviderSession
                     sink(new ProviderEvent.MessageCompleted(id, text));
                     break;
                 }
-                case "thinking": // :528-531
+                case "thinking": // :526-529
                 {
                     var text = block["thinking"]?.JSONValueString ?? "";
                     string id;
@@ -626,14 +644,15 @@ public sealed class ClaudeSession : ProviderSession
                     sink(new ProviderEvent.ReasoningCompleted(id, text));
                     break;
                 }
-                case "tool_use": // :532-541
+                case "tool_use": // :530-539
                 {
                     if (block["id"]?.JSONValueString is not { } toolID || block["name"]?.JSONValueString is not { } name) continue;
                     var input = block["input"] ?? JSONValue.FromDictionaryLiteral();
                     toolNames[toolID] = name;
                     if (SwiftString.Equal(name, "TodoWrite"))
                     {
-                        sink(new ProviderEvent.Todos(Todos(input)));
+                        // PR-PROVCLI-063 (B3): the shared ACPSession.ParseTodoItems parser, not this file's own.
+                        sink(new ProviderEvent.Todos(ACPSession.ParseTodoItems(input["todos"])));
                     }
                     else if (ToolCall(name, input) is { } call)
                     {
@@ -649,7 +668,7 @@ public sealed class ClaudeSession : ProviderSession
     }
 
     /// <summary>Swift `private`; kept internal for this part's own tests (see the file header note).</summary>
-    internal void HandleToolResults(JSONValue message, Action<ProviderEvent> sink) // :548-562
+    internal void HandleToolResults(JSONValue message, Action<ProviderEvent> sink) // :546-560
     {
         foreach (var block in message["message"]?["content"]?.JSONValueArray ?? [])
         {
@@ -659,7 +678,7 @@ public sealed class ClaudeSession : ProviderSession
             var name = toolNames.Remove(toolID, out var removedName) ? removedName : "";
             if (HiddenResultTools.Contains(name)) continue;
             var isError = block["is_error"]?.JSONValueBool ?? false;
-            var output = ResultText(block["content"]);
+            var output = ToolText.Blocks(block["content"]); // PR-PROVCLI-053 (re-cited): the shared helper, not this file's own resultText(_:) (deleted at B3)
             var status = isError ? global::Marrow.Core.Models.ToolCall.Status.Failed : global::Marrow.Core.Models.ToolCall.Status.Completed;
             if (isError && (SwiftString.LocalizedCaseInsensitiveContains(output, "declined") || SwiftString.LocalizedCaseInsensitiveContains(output, "doesn't want")))
                 status = global::Marrow.Core.Models.ToolCall.Status.Declined;
@@ -668,47 +687,47 @@ public sealed class ClaudeSession : ProviderSession
     }
 
     /// <summary>Swift `private`; kept internal for this part's own tests (see the file header note).</summary>
-    internal void HandleResult(JSONValue message) // :564-609
+    internal void HandleResult(JSONValue message) // :562-607
     {
-        // Before the initialize is answered, a result is the launch's failure, not a turn's. :565-573
+        // Before the initialize is answered, a result is the launch's failure, not a turn's. :563-571
         if (!isStarted)
         {
             var launchErrors = string.Join("\n", (message["errors"]?.JSONValueArray ?? []).Select(item => item.JSONValueString).OfType<string>());
             if (launchErrors.Length != 0) launchError = launchErrors;
             return;
         }
-        turnActive = false; // :574
-        if (ContextUsageOf(message) is { } usage) // :575-587
+        turnActive = false; // :572
+        if (ContextUsageOf(message) is { } usage) // :573-585
         {
-            OnEvent?.Invoke(new ProviderEvent.Usage(usage)); // :576
-            // No head usage is added to it (:577-582): a head's own account stays on its panel.
-            if (TurnSpendEvent(message, model) is { } spend) // :583-586
+            OnEvent?.Invoke(new ProviderEvent.Usage(usage)); // :574
+            // No head usage is added to it (:575-580): a head's own account stays on its panel.
+            if (TurnSpendEvent(message, model) is { } spend) // :581-584
             {
                 TokenLedger.Shared.Current.Record(spend.TotalTokens);
                 OnEvent?.Invoke(new ProviderEvent.TokenSpend(spend));
             }
         }
-        foreach (var requestID in pendingTools.Keys.ToList()) OnEvent?.Invoke(new ProviderEvent.RequestResolved(requestID)); // :588
-        pendingTools.Clear(); // :589
-        toolNames.Clear(); // :591
-        mainStream = new StreamState(); // :592 - the heads' streams stay; each goes with its own task_notification.
-        var isError = message["is_error"]?.JSONValueBool ?? !SwiftString.Equal(message["subtype"]?.JSONValueString ?? "", "success"); // :596
-        if (interruptRequested) // :597-598
+        foreach (var requestID in pendingTools.Keys.ToList()) OnEvent?.Invoke(new ProviderEvent.RequestResolved(requestID)); // :586
+        pendingTools.Clear(); // :587
+        toolNames.Clear(); // :589
+        mainStream = new StreamState(); // :590 - the heads' streams stay; each goes with its own task_notification.
+        var isError = message["is_error"]?.JSONValueBool ?? !SwiftString.Equal(message["subtype"]?.JSONValueString ?? "", "success"); // :594
+        if (interruptRequested) // :595-596
         {
             OnEvent?.Invoke(new ProviderEvent.TurnCompleted(TurnStatus.Interrupted, null));
         }
-        else if (isError) // :599-604
+        else if (isError) // :597-602
         {
             var errors = string.Join("\n", (message["errors"]?.JSONValueArray ?? []).Select(item => item.JSONValueString).OfType<string>());
             var text = message["result"]?.JSONValueString ?? errors;
             if (UsageLimitSignal.Matches(text)) OnEvent?.Invoke(new ProviderEvent.UsageLimit(UsageLimitSignal.ResetTime(text)));
             OnEvent?.Invoke(new ProviderEvent.TurnCompleted(TurnStatus.Failed, text.Length == 0 ? "Claude stopped before finishing." : text));
         }
-        else // :605-606
+        else // :603-604
         {
             OnEvent?.Invoke(new ProviderEvent.TurnCompleted(TurnStatus.Completed, null));
         }
-        interruptRequested = false; // :608
+        interruptRequested = false; // :606
     }
 
     /// <summary>Swift `private`; kept internal for this part's own tests. handleControlRequest, which would
@@ -717,22 +736,22 @@ public sealed class ClaudeSession : ProviderSession
     internal void SeedPendingTool(string requestID, string name, JSONValue input, JSONValue? suggestions = null) =>
         pendingTools[requestID] = new PendingTool { Name = name, Input = input, Suggestions = suggestions };
 
-    /// <summary>Test seam for PR-PROVCLI-054/055's isStarted guard (:569, :49-51): Start() itself spawns a real
+    /// <summary>Test seam for PR-PROVCLI-054/055's isStarted guard (:567, :49-51): Start() itself spawns a real
     /// child process, so HandleResult's own tests flip this flag directly instead.</summary>
     internal void MarkStarted() => isStarted = true;
 
-    /// <summary>Test seam for PR-PROVCLI-055's interrupted branch (:597-598): turnActive (:46) is otherwise set
+    /// <summary>Test seam for PR-PROVCLI-055's interrupted branch (:595-596): turnActive (:46) is otherwise set
     /// only by writeUserMessage, which needs a live process.</summary>
     internal void MarkTurnActive() => turnActive = true;
 
     /// <summary>Test seam: launchError (:55) read back by PR-PROVCLI-054/061's own tests.</summary>
     internal string? LaunchError => launchError;
 
-    internal void HandleSystem(JSONValue message) // :388-425
+    internal void HandleSystem(JSONValue message) // :386-423
     {
         switch (message["subtype"]?.JSONValueString)
         {
-            case "init": // :390-394
+            case "init": // :388-392
                 if (message["session_id"]?.JSONValueString is { } newSessionID &&
                     (sessionID is not { } currentSessionID || !SwiftString.Equal(newSessionID, currentSessionID)))
                 {
@@ -740,13 +759,13 @@ public sealed class ClaudeSession : ProviderSession
                     OnEvent?.Invoke(new ProviderEvent.SessionReady(newSessionID));
                 }
                 break;
-            case "compact_boundary": // :395-396
+            case "compact_boundary": // :393-394
                 OnEvent?.Invoke(new ProviderEvent.Notice(new Notice { NoticeLevel = Notice.Level.Info, Message = "Context compacted." }));
                 break;
-            case "task_started": // :397-398
+            case "task_started": // :395-396
                 HandleTaskStarted(message);
                 break;
-            case "task_progress": // :399-412
+            case "task_progress": // :397-410
                 if (message["task_id"]?.JSONValueString is not { } progressTaskID || !agentsByTask.TryGetValue(progressTaskID, out var progressAgentID)) return;
                 var usage = message["usage"];
                 // The head's own running total, for its panel. It is not added to the ledger: this total and
@@ -759,7 +778,7 @@ public sealed class ClaudeSession : ProviderSession
                     usage?["total_tokens"]?.JSONValueInt,
                     usage?["tool_uses"]?.JSONValueInt));
                 break;
-            case "task_notification": // :413-421
+            case "task_notification": // :411-419
                 if (message["task_id"]?.JSONValueString is not { } notificationTaskID || !agentsByTask.TryGetValue(notificationTaskID, out var notificationAgentID)) return;
                 var status = message["status"]?.JSONValueString switch
                 {
@@ -778,7 +797,7 @@ public sealed class ClaudeSession : ProviderSession
 
     /// <summary>A subagent task: the head it stands for is keyed by the spawning tool call, which its
     /// transcript messages carry. Background shell commands are tasks too and pass.</summary>
-    private void HandleTaskStarted(JSONValue message) // :427-447
+    private void HandleTaskStarted(JSONValue message) // :425-445
     {
         if (message["task_id"]?.JSONValueString is not { } taskID || message["skip_transcript"]?.JSONValueBool == true) return;
         var isAgent = message["subagent_type"]?.JSONValueString is not null ||
@@ -801,19 +820,19 @@ public sealed class ClaudeSession : ProviderSession
         }));
     }
 
-    private void WriteUserMessage(JSONValue content) // :312-322
+    private void WriteUserMessage(JSONValue content) // :311-321
     {
-        turnActive = true; // :313
-        interruptRequested = false; // :314
-        OnEvent?.Invoke(new ProviderEvent.TurnStarted(null)); // :315
-        process?.Send(JSONValue.FromDictionaryLiteral( // :316-321
+        turnActive = true; // :312
+        interruptRequested = false; // :313
+        OnEvent?.Invoke(new ProviderEvent.TurnStarted(null)); // :314
+        process?.Send(JSONValue.FromDictionaryLiteral( // :315-320
             ("type", "user"),
             ("session_id", ""),
             ("message", JSONValue.FromDictionaryLiteral(("role", "user"), ("content", content))),
             ("parent_tool_use_id", JSONValue.FromNilLiteral())));
     }
 
-    private void SendToolResponse(string requestID, JSONValue response) // :324-329
+    private void SendToolResponse(string requestID, JSONValue response) // :323-328
     {
         process?.Send(JSONValue.FromDictionaryLiteral(
             ("type", "control_response"),
@@ -826,23 +845,20 @@ public sealed class ClaudeSession : ProviderSession
     private static bool NullableModelEqual(string? left, string? right) =>
         left is null ? right is null : right is not null && SwiftString.Equal(left, right);
 
-    private static JSONValue SessionScoped(JSONValue suggestion) // :838-842
+    private static JSONValue SessionScoped(JSONValue suggestion) // :814-818
     {
         if (suggestion is not JSONValue.Object suggestionObject) return suggestion;
         return new JSONValue.Object(suggestionObject.Value.Mutating(map => map["destination"] = "session"));
     }
 
-    private void DidClose() // :680-696
+    private void DidClose() // :678-690
     {
         hasClosed = true;
         var tail = process?.ErrorTail ?? "";
         // The result's own error names the failure better than the stderr tail can.
         var reason = launchError ?? TextCleanup.LastLines(tail);
         launchError = reason;
-        var waiting = pendingControl.Values.ToList();
-        pendingControl.Clear();
-        foreach (var continuation in waiting)
-            continuation.Resume(new ProviderError(new ProviderError.Case.Failed(reason ?? "Claude exited.")));
+        pendingControl.FailAll(new ProviderError(new ProviderError.Case.Failed(reason ?? "Claude exited.")));
         foreach (var requestID in pendingTools.Keys.ToList()) OnEvent?.Invoke(new ProviderEvent.RequestResolved(requestID));
         pendingTools.Clear();
         turnActive = false;
@@ -951,40 +967,40 @@ public sealed class ClaudeSession : ProviderSession
 
     // MARK: - Mapping
 
-    /// <summary>Tools whose results are shown by the app itself, never as a tool row. :702-703</summary>
+    /// <summary>Tools whose results are shown by the app itself, never as a tool row. :696-697</summary>
     private static readonly HashSet<string> HiddenResultTools = new(SwiftStringComparer.Instance)
         { "AskUserQuestion", "ExitPlanMode", "EnterPlanMode", "TodoWrite", "ToolSearch" };
 
     /// <summary>Swift `private`; kept internal for this part's own tests (see the file header note).</summary>
-    internal global::Marrow.Core.Models.ToolCall? ToolCall(string name, JSONValue input, bool withEdits = true) // :705-763
+    internal global::Marrow.Core.Models.ToolCall? ToolCall(string name, JSONValue input, bool withEdits = true) // :699-757
     {
-        string? Path(string key) => input[key]?.JSONValueString is { } value ? ToolTitles.RelativePath(value, WorkingDirectory) : null; // :706-708
+        string? Path(string key) => input[key]?.JSONValueString is { } value ? ToolTitles.RelativePath(value, WorkingDirectory) : null; // :700-702
 
         switch (name)
         {
-            case "TodoWrite": case "AskUserQuestion": case "ExitPlanMode": case "EnterPlanMode": case "ToolSearch": // :710-711 (PR-PROVCLI-354)
+            case "TodoWrite": case "AskUserQuestion": case "ExitPlanMode": case "EnterPlanMode": case "ToolSearch": // :704-705 (PR-PROVCLI-354)
                 return null;
-            case "Bash": // :712-713 (PR-PROVCLI-355)
+            case "Bash": // :706-707 (PR-PROVCLI-355)
                 return new global::Marrow.Core.Models.ToolCall { ToolCallKind = global::Marrow.Core.Models.ToolCall.Kind.Command, Title = input["command"]?.JSONValueString ?? "Shell command", Detail = input["description"]?.JSONValueString };
-            case "BashOutput": case "KillShell": case "KillBash": case "Monitor": case "TaskOutput": case "TaskStop": // :714-715 (PR-PROVCLI-356)
+            case "BashOutput": case "KillShell": case "KillBash": case "Monitor": case "TaskOutput": case "TaskStop": // :708-709 (PR-PROVCLI-356)
                 return new global::Marrow.Core.Models.ToolCall { ToolCallKind = global::Marrow.Core.Models.ToolCall.Kind.Command, Title = name };
-            case "Read": // :716-717 (PR-PROVCLI-357)
+            case "Read": // :710-711 (PR-PROVCLI-357)
                 return new global::Marrow.Core.Models.ToolCall { ToolCallKind = global::Marrow.Core.Models.ToolCall.Kind.Read, Title = Path("file_path") ?? "Read file" };
-            case "Write": // :718-723 (PR-PROVCLI-358)
+            case "Write": // :712-717 (PR-PROVCLI-358)
             {
                 var call = new global::Marrow.Core.Models.ToolCall { ToolCallKind = global::Marrow.Core.Models.ToolCall.Kind.Edit, Title = Path("file_path") ?? "Write file" };
                 if (withEdits && Path("file_path") is { } writeFile && input["content"]?.JSONValueString is { } writeContent)
                     call = call with { Edits = new ValueList<FileEdit>([new FileEdit(writeFile, "", writeContent)]) };
                 return call;
             }
-            case "Edit": // :724-729 (PR-PROVCLI-359)
+            case "Edit": // :718-723 (PR-PROVCLI-359)
             {
                 var call = new global::Marrow.Core.Models.ToolCall { ToolCallKind = global::Marrow.Core.Models.ToolCall.Kind.Edit, Title = Path("file_path") ?? "Edit file" };
                 if (withEdits && Path("file_path") is { } editFile)
                     call = call with { Edits = new ValueList<FileEdit>([new FileEdit(editFile, input["old_string"]?.JSONValueString ?? "", input["new_string"]?.JSONValueString ?? "")]) };
                 return call;
             }
-            case "MultiEdit": // :730-737 (PR-PROVCLI-360)
+            case "MultiEdit": // :724-731 (PR-PROVCLI-360)
             {
                 var call = new global::Marrow.Core.Models.ToolCall { ToolCallKind = global::Marrow.Core.Models.ToolCall.Kind.Edit, Title = Path("file_path") ?? "Edit file" };
                 if (withEdits && Path("file_path") is { } multiEditFile)
@@ -995,24 +1011,24 @@ public sealed class ClaudeSession : ProviderSession
                 }
                 return call;
             }
-            case "NotebookEdit": // :738-739 (PR-PROVCLI-361)
+            case "NotebookEdit": // :732-733 (PR-PROVCLI-361)
                 return new global::Marrow.Core.Models.ToolCall { ToolCallKind = global::Marrow.Core.Models.ToolCall.Kind.Edit, Title = Path("notebook_path") ?? "Edit notebook" };
-            case "Glob": // :740-741
+            case "Glob": // :734-735
                 return new global::Marrow.Core.Models.ToolCall { ToolCallKind = global::Marrow.Core.Models.ToolCall.Kind.Search, Title = input["pattern"]?.JSONValueString ?? "Find files", Detail = Path("path") };
-            case "Grep": // :742-743
+            case "Grep": // :736-737
                 return new global::Marrow.Core.Models.ToolCall { ToolCallKind = global::Marrow.Core.Models.ToolCall.Kind.Search, Title = input["pattern"]?.JSONValueString ?? "Search", Detail = Path("path") };
-            case "LS": // :744-745
+            case "LS": // :738-739
                 return new global::Marrow.Core.Models.ToolCall { ToolCallKind = global::Marrow.Core.Models.ToolCall.Kind.Search, Title = Path("path") ?? "List files" };
-            case "WebFetch": // :746-747
+            case "WebFetch": // :740-741
                 return new global::Marrow.Core.Models.ToolCall { ToolCallKind = global::Marrow.Core.Models.ToolCall.Kind.Web, Title = input["url"]?.JSONValueString ?? "Fetch page" };
-            case "WebSearch": // :748-749
+            case "WebSearch": // :742-743
                 return new global::Marrow.Core.Models.ToolCall { ToolCallKind = global::Marrow.Core.Models.ToolCall.Kind.Web, Title = input["query"]?.JSONValueString ?? "Search the web" };
-            case "Task": case "Agent": // :750-751
+            case "Task": case "Agent": // :744-745
                 return new global::Marrow.Core.Models.ToolCall { ToolCallKind = global::Marrow.Core.Models.ToolCall.Kind.Agent, Title = input["description"]?.JSONValueString ?? "Subagent", Detail = input["subagent_type"]?.JSONValueString };
-            case "Skill": // :752-753
+            case "Skill": // :746-747
                 return new global::Marrow.Core.Models.ToolCall { ToolCallKind = global::Marrow.Core.Models.ToolCall.Kind.Other, Title = $"Skill · {input["skill"]?.JSONValueString ?? input["command"]?.JSONValueString ?? ""}" }; // U+00B7 MIDDLE DOT
-            default: // :754-761
-                if (name.StartsWith("mcp__", StringComparison.Ordinal)) // :755
+            default: // :748-755
+                if (name.StartsWith("mcp__", StringComparison.Ordinal)) // :749
                 {
                     // "__" is a two-character literal separator, outside SwiftString.Split's one-Character
                     // contract; string.Split on the literal substring is Swift's split(separator:) over a
@@ -1020,43 +1036,22 @@ public sealed class ClaudeSession : ProviderSession
                     // components(separatedBy:) mapping. UNVERIFIED O-13-style: no settled oracle item names
                     // this exact call, but no server or tool name in the fixtures needs a Unicode grapheme
                     // split here.
-                    var parts = name.Split("__", StringSplitOptions.RemoveEmptyEntries); // :756
-                    var server = parts.Length > 1 ? parts[1] : "MCP"; // :757
-                    var tool = parts.Length > 2 ? string.Join("__", parts.Skip(2)) : name; // :758
-                    return new global::Marrow.Core.Models.ToolCall { ToolCallKind = global::Marrow.Core.Models.ToolCall.Kind.Mcp, Title = $"{server} · {tool}", Detail = input.IsNull ? null : input.CompactString }; // :759, U+00B7 MIDDLE DOT
+                    var parts = name.Split("__", StringSplitOptions.RemoveEmptyEntries); // :750
+                    var server = parts.Length > 1 ? parts[1] : "MCP"; // :751
+                    var tool = parts.Length > 2 ? string.Join("__", parts.Skip(2)) : name; // :752
+                    return new global::Marrow.Core.Models.ToolCall { ToolCallKind = global::Marrow.Core.Models.ToolCall.Kind.Mcp, Title = $"{server} · {tool}", Detail = input.IsNull ? null : input.CompactString }; // :753, U+00B7 MIDDLE DOT
                 }
-                return new global::Marrow.Core.Models.ToolCall { ToolCallKind = global::Marrow.Core.Models.ToolCall.Kind.Other, Title = name }; // :761
+                return new global::Marrow.Core.Models.ToolCall { ToolCallKind = global::Marrow.Core.Models.ToolCall.Kind.Other, Title = name }; // :755
         }
     }
 
-    /// <summary>Swift `private`; kept internal for this part's own tests (see the file header note).</summary>
-    internal static ValueList<TodoStep> Todos(JSONValue input) // :765-775
-    {
-        var steps = new List<TodoStep>();
-        foreach (var todo in input["todos"]?.JSONValueArray ?? [])
-        {
-            if (todo["content"]?.JSONValueString is not { } text) continue;
-            var status = todo["status"]?.JSONValueString switch
-            {
-                "completed" => TodoStep.Status.Done,
-                "in_progress" => TodoStep.Status.Active,
-                _ => TodoStep.Status.Pending,
-            };
-            steps.Add(new TodoStep { Text = text, TodoStepStatus = status });
-        }
-        return new ValueList<TodoStep>(steps);
-    }
-
-    private static string ResultText(JSONValue? content) // :777-781
-    {
-        if (content is null) return "";
-        if (content.JSONValueString is { } text) return text;
-        return string.Join("\n", (content.JSONValueArray ?? []).Select(item => item["text"]?.JSONValueString).OfType<string>());
-    }
+    // Todos(JSONValue) and ResultText(JSONValue?) deleted at B3: todos(from:) and resultText(_:) left the Swift
+    // source (old :765-775, :777-781) for the shared ACPSession.parseTodoItems and ToolText.blocks respectively
+    // (PR-PROVCLI-063, PR-PROVCLI-053 re-cited); see the TodoWrite and HandleToolResults call sites above.
 
     /// <summary>The tokens the turn sent and received across its API calls, cache reads included, which is
     /// what Claude Code itself reports. Swift `private`; kept internal for this part's own tests.</summary>
-    internal static long TurnSpend(JSONValue message) // :783-797
+    internal static long TurnSpend(JSONValue message) // :759-773
     {
         if (message["usage"] is not { } usage) return 0;
         static long Tokens(JSONValue? value) =>
@@ -1070,7 +1065,7 @@ public sealed class ClaudeSession : ProviderSession
     }
 
     /// <summary>The turn's usage as spend. Swift `private`; kept internal for this part's own tests.</summary>
-    internal static TokenSpend? TurnSpendEvent(JSONValue message, string? model) // :804-824
+    internal static TokenSpend? TurnSpendEvent(JSONValue message, string? model) // :780-800
     {
         if (message["usage"] is not { } usage) return null;
         var total = TurnSpend(message);
@@ -1085,7 +1080,7 @@ public sealed class ClaudeSession : ProviderSession
     }
 
     /// <summary>Swift `private`; kept internal for this part's own tests.</summary>
-    internal static ContextUsage? ContextUsageOf(JSONValue message) // :826-836
+    internal static ContextUsage? ContextUsageOf(JSONValue message) // :802-812
     {
         if (message["usage"] is not { } usage) return null;
         var last = usage["iterations"]?.JSONValueArray is { Count: > 0 } iterations ? iterations[^1] : usage;
