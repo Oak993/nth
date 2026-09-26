@@ -10,6 +10,7 @@ using Marrow.Core.Port;
 using Marrow.Testing;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
+using Marrow.Services.Store;
 
 namespace Marrow.App.Tests.Views.Chat;
 
@@ -31,7 +32,8 @@ public sealed class ThreadTimelineTests(HeadlessSession headless)
 
     private void WithTimeline(Action<ThreadTimeline, ThreadRuntime, ChromeScrollModel, TimelineScrollState, AppModelHarness> check) => headless.OnUiThread(() =>
     {
-        using var h = new AppModelHarness(); using var actor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance); var model = new Marrow.App.AppModel(); var runtime = new ThreadRuntime(Guid.NewGuid(), model); var chrome = new ChromeScrollModel(); var state = new TimelineScrollState(); var view = new ThreadTimeline(runtime, chrome, state, "Project", null, false, 480); var host = new Border(); AppEnvironment.SetAppModel(host, model); host.Child = view; var window = new Avalonia.Controls.Window { Content = host, Width = 960, Height = 480 };
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var h = new AppModelHarness(); using var actor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance); var model = new Marrow.App.AppModel(); var id = Guid.NewGuid(); DiskWriter.Shared.WriteSynchronously(new ThreadDocument(id), Storage.ThreadURL(id)); DocumentPrefetch.Shared.Warm([id], urgent: true)!.Completion.GetAwaiter().GetResult(); var runtime = new ThreadRuntime(id, model); var chrome = new ChromeScrollModel(); var state = new TimelineScrollState(); var view = new ThreadTimeline(runtime, chrome, state, "Project", null, false, 480); var host = new Border(); AppEnvironment.SetAppModel(host, model); host.Child = view; var window = new Avalonia.Controls.Window { Content = host, Width = 960, Height = 480 };
         try { window.Show(); window.UpdateLayout(); check(view, runtime, chrome, state, h); } finally { window.Close(); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); }
     });
 
@@ -65,7 +67,7 @@ public sealed class ThreadTimelineTests(HeadlessSession headless)
     [Trait("Req", "PR-CHAT-046")] // App/Views/Chat/ThreadTimeline.swift:366-382
     public void History_window_starts_at_three_moves_back_twenty_four_and_anchors_on_identity() => WithTimeline((view, _, _, _, _) =>
     {
-        Assert.Equal(3, TimelineWindow.FirstPaint); Assert.Equal(24, TimelineWindow.Initial); Assert.Equal(24, TimelineWindow.Page); Assert.Equal(96, typeof(TimelineWindow).GetField("EagerLimit")!.GetRawConstantValue()); var blocks = Enumerable.Range(0, 60).Select(i => (DisplayBlock)new DisplayBlock.Working(null, new([])) { }).ToArray(); blocks = Enumerable.Range(0, 60).Select(i => (DisplayBlock)new DisplayBlock.Merging("b" + i)).ToArray(); Assert.Equal(57, Invoke<int>(view, "WindowStartIndex", blocks)); Invoke<object?>(view, "LoadEarlier", blocks, 24); Assert.Equal(36, Invoke<int>(view, "WindowStartIndex", blocks)); Assert.Equal(36, Invoke<int>(view, "WindowStartIndex", blocks.Append(new DisplayBlock.Merging("append")).ToArray()));
+        Assert.Equal(3, TimelineWindow.FirstPaint); Assert.Equal(24, TimelineWindow.Initial); Assert.Equal(24, TimelineWindow.Page); Assert.Equal(96, typeof(TimelineWindow).GetField("EagerLimit")!.GetRawConstantValue()); var blocks = Enumerable.Range(0, 60).Select(i => (DisplayBlock)new DisplayBlock.Merging("b" + i)).ToArray(); Assert.Equal(57, Invoke<int>(view, "WindowStartIndex", (object)blocks)); Invoke<object?>(view, "LoadEarlier", blocks, 24); Assert.Equal(36, Invoke<int>(view, "WindowStartIndex", (object)blocks)); Assert.Equal(36, Invoke<int>(view, "WindowStartIndex", (object)blocks.Append(new DisplayBlock.Merging("append")).ToArray()));
         var pill = Invoke<Button>(view, "EarlierPill", 36, (Action)(() => { })); Assert.Contains("Show 36 earlier messages", LogicalQuery.SelfAndDescendants<TextBlock>(pill).Select(text => text.Text)); Assert.Equal("chevron.up", LogicalQuery.SelfAndDescendants<SwiftImage>(pill).Single().SymbolName);
     });
 
