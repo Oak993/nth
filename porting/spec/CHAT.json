@@ -3110,10 +3110,11 @@
       "blocked_by": null,
       "depends_on_unknown": null,
       "retired": {
-        "reason": "The per-conversation chat zoom does not exist at B2: the chatZoom environment on the timeline, ChatZoom.swift with its seven steps and base-size table, and the zoom parameter of Font.chat were all removed, and conversation fonts are always the plain system text styles (PR-CHAT-193). Scaling moved to an app-wide window zoom (DroppyCode/UI/Common/AppZoom.swift:5-27, levels 75, 90, 100, 110, 125, 150, 175 and 200, stored under appZoom at AppSettings.swift:131, :253-254 and :718), which scales the whole window content and is a different behaviour outside the chat area.",
+        "reason": "The per-conversation chat zoom does not exist at B2: the chatZoom environment on the timeline, ChatZoom.swift with its seven steps and base-size table, and the zoom parameter of Font.chat were all removed, and conversation fonts are always the plain system text styles (PR-CHAT-193). Scaling moved to an app-wide window zoom (DroppyCode/UI/Common/AppZoom.swift:5-27, levels 75, 90, 100, 110, 125, 150, 175 and 200, stored under appZoom at AppSettings.swift:131, :253-254 and :722), which scales the whole window content and is a different behaviour outside the chat area.",
         "evidence": "git diff dd2b86ef..1fbf81e6: the ChatView.swift hunk @@ -117,10 +117,6 @@ deletes B1 :120-123 (`.environment(\\.chatZoom, ChatZoom.scale(at: model.settings.chatZoom))` and its comment), so B2 ChatView.swift:119 `.id(runtime.threadID)` is followed directly by :123 `.modifier(ReserveSlide(...))`; DroppyCode/UI/Common/ChatZoom.swift is `deleted file mode 100644`; B2 DroppyCode/UI/Common/ChatFont.swift:6 `static func chat(_ style: Font.TextStyle, weight: Font.Weight? = nil, design: Font.Design = .default) -> Font` has no zoom parameter."
       },
-      "b2_change": "B1 ChatView.swift:123 applied `.environment(\\.chatZoom, ChatZoom.scale(at: model.settings.chatZoom))` and B1 ChatZoom.swift:6-27, :43-70 defined the steps and the zoom-aware Font.chat -> removed at B2; see retired."
+      "b2_change": "B1 ChatView.swift:123 applied `.environment(\\.chatZoom, ChatZoom.scale(at: model.settings.chatZoom))` and B1 ChatZoom.swift:6-27, :43-70 defined the steps and the zoom-aware Font.chat -> removed at B2; see retired.",
+      "b3_note": "Citation only: the appZoom load moved from B2 AppSettings.swift:718 to B3 :722; still absent, still retired (PR-CHAT-193)."
     },
     {
       "id": "PR-CHAT-139",
