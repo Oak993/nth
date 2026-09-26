@@ -1,9 +1,14 @@
+using System.Collections.Generic;
+using System.Linq;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Media;
+using Marrow.App;
+using Marrow.App.Runtime;
 using Marrow.App.Views.Composer;
 using Marrow.App.Tests.Fixtures;
+using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.UI.Port;
 using Xunit;
@@ -13,6 +18,96 @@ namespace Marrow.App.Tests.Views.Composer;
 [Collection("Headless")]
 public sealed class FollowUpQueueTabTests(HeadlessSession headless)
 {
+    // Same fixture shape as TerminalPanelTests.MakeFixture: AppModelHarness + store.Main.OnMain(() => new
+    // ThreadRuntime(...)), nested INSIDE headless.OnUiThread (never the other way around, and never
+    // ThreadRuntimePart12Harness's PrepareBootstrap alongside Avalonia control construction - see this file's own
+    // STOP note below on why that combination corrupted the headless platform for later tests).
+    private static (AppModel App, ThreadRuntime Runtime, AppModelHarness Store) MakeRuntimeFixture()
+    {
+        var store = new AppModelHarness();
+        var project = AppModelSamples.Project("Follow-ups", store.NewFolder("follow-ups"));
+        var thread = AppModelSamples.Thread(project);
+        store.WriteLibrary([project], [thread]);
+        AppModelHarness.WriteDocument(thread.Id);
+        var app = store.MakeModel();
+        var runtime = store.Main.OnMain(() => new ThreadRuntime(thread.Id, app));
+        return (app, runtime, store);
+    }
+
+    // EnqueueFollowUp's own IsEmpty guard calls SwiftCharacter.IsWhitespace, which needs the ICU native library
+    // (unavailable on this Linux host - WINDOWS-ONLY, not this lane's concern); a prompt built directly and
+    // written straight into FollowUps's private setter never reaches that check.
+    private static FollowUpPrompt SeedFollowUp(ThreadRuntime runtime, string text)
+    {
+        var prompt = new FollowUpPrompt { Text = text };
+        var property = typeof(ThreadRuntime).GetProperty(nameof(ThreadRuntime.FollowUps))!;
+        property.SetValue(runtime, new ValueList<FollowUpPrompt>([prompt]));
+        return prompt;
+    }
+
+    private static FollowUpRow MakeRow(FollowUpPrompt prompt, ThreadRuntime runtime, bool isDragged) => new(
+        position: 1,
+        prompt: prompt,
+        runtime: runtime,
+        isDragged: isDragged,
+        showsRule: false,
+        isBundledWithPrevious: false,
+        isBundledWithNext: false,
+        isPairTarget: false,
+        isPairing: false,
+        onDragChanged: _ => { },
+        onDragEnded: () => { });
+
+    private static SwiftImage FindGrip(FollowUpRow row) =>
+        LogicalQuery.SelfAndDescendants<SwiftImage>(row).First(icon => icon.SymbolName == "line.3.horizontal");
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-159")] // App/Views/Composer/FollowUpQueueTab.swift:378-384
+    [Trait("Decision", "ED-205")]
+    public void The_grip_shows_grabidle_when_idle_and_grabactive_while_this_row_is_the_dragged_one()
+    {
+        headless.OnUiThread(() =>
+        {
+            var (app, runtime, store) = MakeRuntimeFixture();
+            using var storeDisposable = store;
+            store.Main.OnMain(() =>
+            {
+                var prompt = SeedFollowUp(runtime, "Do the thing");
+
+                var idle = FindGrip(MakeRow(prompt, runtime, isDragged: false));
+                Assert.Same(PointerStyleCursors.Get(PointerStyle.GrabIdle, 1), idle.Cursor);
+
+                var dragged = FindGrip(MakeRow(prompt, runtime, isDragged: true));
+                Assert.Same(PointerStyleCursors.Get(PointerStyle.GrabActive, 1), dragged.Cursor);
+            });
+            _ = app;
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-163")] // App/Views/Composer/FollowUpQueueTab.swift:284-296
+    [Trait("Decision", "ED-196")]
+    public void UpdateState_reverts_the_grip_to_grabidle_once_isDragged_becomes_false_with_no_explicit_pop()
+    {
+        headless.OnUiThread(() =>
+        {
+            var (app, runtime, store) = MakeRuntimeFixture();
+            using var storeDisposable = store;
+            store.Main.OnMain(() =>
+            {
+                var prompt = SeedFollowUp(runtime, "Do the thing");
+
+                var row = MakeRow(prompt, runtime, isDragged: true);
+                Assert.Same(PointerStyleCursors.Get(PointerStyle.GrabActive, 1), FindGrip(row).Cursor);
+
+                row.UpdateState(dragged: false, pairTarget: false, pairing: false,
+                    bundledWithPrevious: false, bundledWithNext: false, rule: false);
+                Assert.Same(PointerStyleCursors.Get(PointerStyle.GrabIdle, 1), FindGrip(row).Cursor);
+            });
+            _ = app;
+        });
+    }
+
     [Fact]
     [Trait("Req", "PR-COMPOSER-154")] // App/Views/Composer/FollowUpQueueTab.swift:13-25,128-136
     public void Capped_height_passes_through_below_the_row_cap_or_before_any_row_is_measured_and_caps_at_seven_mean_rows()
@@ -32,7 +127,7 @@ public sealed class FollowUpQueueTabTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "UI-COMPOSER-054")] // App/Views/Composer/FollowUpQueueTab.swift:449-454,527-547
+    [Trait("Req", "UI-COMPOSER-054")] // App/Views/Composer/FollowUpQueueTab.swift:434-439,512-532
     [Trait("Decision", "ED-059")]
     [Trait("Decision", "ED-062")]
     public void Send_button_uses_the_run_state_help_label_and_is_never_focusable()
@@ -71,7 +166,7 @@ public sealed class FollowUpQueueTabTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "UI-COMPOSER-055")] // App/Views/Composer/FollowUpQueueTab.swift:455-464,527-547
+    [Trait("Req", "UI-COMPOSER-055")] // App/Views/Composer/FollowUpQueueTab.swift:440-449,512-532
     [Trait("Decision", "ED-059")]
     [Trait("Decision", "ED-062")]
     public void Edit_button_uses_the_shared_help_and_accessibility_label_and_is_never_focusable()
@@ -100,7 +195,7 @@ public sealed class FollowUpQueueTabTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "UI-COMPOSER-056")] // App/Views/Composer/FollowUpQueueTab.swift:465-467,527-547
+    [Trait("Req", "UI-COMPOSER-056")] // App/Views/Composer/FollowUpQueueTab.swift:450-452,512-532
     [Trait("Decision", "ED-059")]
     [Trait("Decision", "ED-062")]
     public void Delete_button_uses_the_shared_help_and_accessibility_label_and_is_never_focusable()
