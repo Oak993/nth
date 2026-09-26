@@ -116,13 +116,14 @@ public sealed class AppModelHydraMergeTests
     // compiler-generated async state machine's AsyncTaskMethodBuilder, not even a boxed Task<bool>, but either way
     // a bare bool was never going to come back from an async method through reflection.
     private static async Task<bool> InvokeSyncDefaultBranch(
-        Marrow.Services.Git.Git git, string head, string target, IReadOnlyList<string> ownPaths)
+        Marrow.Services.Git.Git git, string head, string target, IReadOnlyList<string> ownPaths,
+        IReadOnlyDictionary<string, byte[]>? merged = null)
     {
         var method = typeof(AppModel).GetMethod("SyncDefaultBranch", BindingFlags.Static | BindingFlags.NonPublic);
         Assert.NotNull(method);
         // :778 merged defaults to [:] in Swift; SyncDefaultBranch's `merged` C# parameter is optional too, but
         // reflection's Invoke does not apply parameter defaults on its own, so it is passed explicitly here.
-        var result = method!.Invoke(null, [git, head, target, ownPaths, null]);
+        var result = method!.Invoke(null, [git, head, target, ownPaths, merged]);
         var task = Assert.IsAssignableFrom<Task<bool>>(result);
         return await task;
     }
@@ -887,6 +888,56 @@ public async Task Sync_default_branch_fast_forwards_and_checks_out_remote_change
     Assert.Equal(remote.Git("rev-parse", "HEAD").Trim(), repository.Git("rev-parse", "HEAD").Trim());
     Assert.Equal("remote\n", Encoding.UTF8.GetString(File.ReadAllBytes(
         SwiftPath.AppendingPathComponent(repository.Root, "remote.txt"))));
+}
+
+[Fact]
+[Trait("Req", "PR-HYDRAMERGE-131")] // AppModel+HydraMerge.swift:781-789, :809-813 (B3, new): syncDefaultBranch
+// writes a three-way-merged file's new content back to the checkout only while the working copy still holds
+// what mergedFrom captured at the top of the call. written.txt is never part of the remote's changed set, so
+// checkoutPaths never touches it and the write-back proceeds. shared.txt IS part of it (the remote also
+// changed it) and is not one of this job's own paths, so checkoutPaths(remote, kept) overwrites its working
+// copy with the remote's own content before the write-back loop runs; that second read no longer matches
+// mergedFrom, so the write is skipped and the file is left holding what checkoutPaths put there, not the
+// three-way merge result.
+public async Task Sync_default_branch_writes_back_merged_content_and_leaves_a_remote_changed_path_alone()
+{
+    using var h = new AppModelHarness();
+    var repository = AppModelGitRepo.WithCommit(h.NewFolder("sync-merged-project"));
+    File.WriteAllBytes(Path.Combine(repository.Root, "written.txt"), Encoding.UTF8.GetBytes("captured before the sync\n"));
+    File.WriteAllBytes(Path.Combine(repository.Root, "shared.txt"), Encoding.UTF8.GetBytes("captured before the sync\n"));
+    repository.Git("add", "-A");
+    repository.Git("commit", "-q", "-m", "team files");
+    var bare = h.NewFolder("sync-merged-remote.git");
+    repository.Git("init", "--bare", "-b", "main", bare);
+    repository.Git("remote", "add", "origin", bare);
+    repository.Git("push", "-u", "origin", "main");
+    var head = repository.Git("rev-parse", "HEAD").Trim();
+
+    var clone = h.NewFolder("sync-merged-clone");
+    repository.Git("clone", bare, clone);
+    var remote = AppModelGitRepo.At(clone);
+    remote.Git("config", "user.name", "Port Test");
+    remote.Git("config", "user.email", "port-test@localhost");
+    File.WriteAllBytes(Path.Combine(clone, "shared.txt"), Encoding.UTF8.GetBytes("the remote's own change\n"));
+    remote.Git("add", "-A");
+    remote.Git("commit", "-q", "-m", "remote changes shared.txt");
+    remote.Git("push", "origin", "main");
+
+    var merged = new Dictionary<string, byte[]>(StringComparer.Ordinal)
+    {
+        ["written.txt"] = Encoding.UTF8.GetBytes("the three-way merge's own result\n"),
+        ["shared.txt"] = Encoding.UTF8.GetBytes("would-be three-way merge result\n"),
+    };
+
+    var synced = await InvokeSyncDefaultBranch(
+        new Marrow.Services.Git.Git(repository.Root), head, "main", Array.Empty<string>(), merged);
+
+    Assert.True(synced);
+    Assert.Equal(remote.Git("rev-parse", "HEAD").Trim(), repository.Git("rev-parse", "HEAD").Trim());
+    Assert.Equal("the three-way merge's own result\n", Encoding.UTF8.GetString(
+        File.ReadAllBytes(Path.Combine(repository.Root, "written.txt"))));
+    Assert.Equal("the remote's own change\n", Encoding.UTF8.GetString(
+        File.ReadAllBytes(Path.Combine(repository.Root, "shared.txt"))));
 }
 
 [Fact]
@@ -1658,11 +1709,121 @@ public void Reported_paths_drop_empty_and_build_output_and_keep_inside_paths_rel
         }
     }
 
+    [Fact]
+    [Trait("Req", "PR-HYDRAMERGE-075")] // AppModel+HydraMerge.swift:690-728: a failed head whose parent lead can
+    // still merge (canStillMerge true, because that lead's other head landed work, PR-HYDRAMERGE-121) reserves
+    // and blocks its landing file under the PARENT's title, not its own (:704, :712-713); a completed head whose
+    // parent lead is archived (canStillMerge false) reserves nothing (:705, failure_cases #2); a live sibling
+    // chat's not-completed ("interrupted") unmerged turn reserves and blocks its touched path under the chat's
+    // own title (:715-716, :719-722). Both heads use a non-Running status: AppModel's own constructor
+    // (AppModel.cs:200-205, AppModel.swift:132-136) resets any head loaded from disk with status running to
+    // stopped (a truly running head cannot have survived an app restart), so a fresh Running fixture never
+    // reaches this method's guard at all -- this is app behavior, not a fixture bug. The sibling's id sorts
+    // before the lead's, so hydraRanksAfter(sibling, lead) is false and its claim blocks regardless of
+    // hydraIsFinishedIdleEligible (:719).
+    public void Sibling_owned_paths_reserves_a_failed_heads_landing_under_its_parents_title_a_live_chats_interrupted_turn_and_skips_an_unmergeable_finished_head()
+    {
+        using var h = new AppModelHarness();
+        var project = AppModelSamples.Project("Project", h.NewFolder("sibling-owned-project"));
+        var lead = AppModelSamples.Thread(project) with
+        {
+            Id = new Guid("00000000-0000-0000-0000-00000000000a"),
+            HydraEnabled = true,
+        };
+        // Not archived, HydraEnabled, and recently updated: canStillMerge's own preconditions (:764-765). It has
+        // no live runtime, so canStillMerge's cold branch runs: lastStatus == .completed (:769), with no
+        // landedHeadWork check in the cold case at all (that only applies to a LIVE, idle lead at :770).
+        var activeParentLead = AppModelSamples.Thread(project) with
+        {
+            Id = new Guid("00000000-0000-0000-0000-00000000000c"),
+            Title = "Active Parent Lead",
+            HydraEnabled = true,
+            UpdatedAt = SwiftDate.Now,
+            LastStatus = TurnStatus.Completed,
+        };
+        // Failed, not Running: unaffected by AppModel's cold-load reset above, so its status survives. Its
+        // parent can still merge, so the guard at :705 does not skip it; not Completed, so rankedOut (:710) is
+        // false regardless, and the claim blocks (:712-713).
+        var failedHeadWithActiveParent = new ChatThread(project.Id, ProviderKind.Codex, null, null, RuntimeMode.Supervised)
+        {
+            Title = "Failed Head",
+            ParentThreadID = activeParentLead.Id,
+            Hydra = new HydraHeadInfo(1, "task", HydraHeadInfo.Kind.Droppy, HydraHeadInfo.Origin.Delegated) with
+            {
+                HydraHeadInfoStatus = HydraHeadInfo.Status.Failed,
+                Landing = new HydraLanding
+                {
+                    Files = new ValueList<HydraLanding.File>([
+                        new HydraLanding.File { Path = "failed.txt", Additions = 1, Deletions = 0 },
+                    ]),
+                },
+            },
+        };
+        var archivedLead = AppModelSamples.Thread(project) with
+        {
+            Id = new Guid("00000000-0000-0000-0000-00000000000b"),
+            IsArchived = true,
+            HydraEnabled = true,
+        };
+        // Completed, parent archived: canStillMerge(parent) is false (IsArchived, :764), so this contributes
+        // nothing to either map (failure_cases #2).
+        var unmergeableFinishedHead = new ChatThread(project.Id, ProviderKind.Codex, null, null, RuntimeMode.Supervised)
+        {
+            Title = "Unmergeable Head",
+            ParentThreadID = archivedLead.Id,
+            Hydra = new HydraHeadInfo(1, "task", HydraHeadInfo.Kind.Droppy, HydraHeadInfo.Origin.Delegated) with
+            {
+                HydraHeadInfoStatus = HydraHeadInfo.Status.Completed,
+                Landing = new HydraLanding
+                {
+                    Files = new ValueList<HydraLanding.File>([
+                        new HydraLanding.File { Path = "orphaned.txt", Additions = 1, Deletions = 0 },
+                    ]),
+                },
+            },
+        };
+        var liveSibling = AppModelSamples.Thread(project) with
+        {
+            Id = new Guid("00000000-0000-0000-0000-000000000001"),
+            Title = "Live Sibling",
+        };
+        var interruptedTurn = new TurnRecord
+        {
+            Id = Guid.NewGuid(),
+            Index = 1,
+            Status = TurnStatus.Interrupted,
+            TouchedPaths = new ValueList<string>(["interrupted.txt"]),
+        };
+        h.WriteLibrary([project],
+            [lead, activeParentLead, archivedLead, failedHeadWithActiveParent, unmergeableFinishedHead, liveSibling]);
+        DiskWriter.Shared.WriteSynchronously(
+            new ThreadDocument(liveSibling.Id) { Turns = new ValueList<TurnRecord>([interruptedTurn]) },
+            Storage.ThreadURL(liveSibling.Id));
+
+        var model = h.MakeModel();
+        h.Main.OnMain(() => model.Settings.HydraEnabled = true); // HydraIsOn (:33) also gates on the global setting.
+        var siblingRuntime = h.Main.OnMain(() => model.Runtime(liveSibling.Id));
+        h.Main.Loop.Run(() => siblingRuntime.EnsureLoaded(), AppModelHarness.Bound); // loads its turn (:2916)
+
+        var method = typeof(AppModel).GetMethod("SiblingOwnedPaths", BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.NotNull(method);
+        var result = h.Main.OnMain(() => method!.Invoke(model, new object[] { project.Path, project.Id, lead.Id }));
+        var (reserved, blocking) = ((Dictionary<string, string>, Dictionary<string, string>))result!;
+
+        Assert.Equal(activeParentLead.Title, reserved["failed.txt"]);
+        Assert.Equal(activeParentLead.Title, blocking["failed.txt"]);
+        Assert.Equal(liveSibling.Title, reserved["interrupted.txt"]);
+        Assert.Equal(liveSibling.Title, blocking["interrupted.txt"]);
+        Assert.False(reserved.ContainsKey("orphaned.txt"));
+        Assert.False(blocking.ContainsKey("orphaned.txt"));
+    }
+
     // UNRESOLVED: PR-HYDRAMERGE-077 and PR-HYDRAMERGE-078 need a controlled sibling-claim fixture, including tracked/deleted paths and an injected git cat-file stream failure. The supplied fixtures do not expose the required git-command seam.
     // UNRESOLVED: PR-HYDRAMERGE-085 needs a safe, controllable application-foreground/notification seam; the supplied material does not identify one.
     // UNRESOLVED: PR-HYDRAMERGE-111 needs a controllable in-flight Hydra landing and a way to change readiness while it is awaited; the supplied fixtures do not expose either.
     // UNRESOLVED: PR-HYDRAMERGE-117 needs representative competing leads, head landing records, and controllable runtime readiness to exercise ranked-out claims. The packet does not provide enough model construction details to build those states safely.
     // (PR-HYDRAMERGE-112, the cross-group hold join this comment used to pair -117 with, is RETIRED at B3: AppModel+HydraMerge.swift no longer joins or checks a held map at all, so it needs no fixture and is not listed here -- A34 S4.)
+    // UNRESOLVED: PR-HYDRAMERGE-130 needs a HydraWorkFor fixture with a live sibling's blocking claim plus this job's OWN tool edit (a TimelineItem.Content.Tool entry with a matching Edits[].Path) on the same path, to show it still goes out; no existing fixture in this test file builds a Tool timeline entry, and inventing its exact shape without reading Core/Models/Timeline.swift's tool-edit record first risks a wrong fixture, which PR-HYDRAMERGE-075 above (in-memory, no git needed) shows is worth doing carefully rather than guessing here.
     // UNRESOLVED: PR-HYDRAMERGE-116 needs a controlled tree-capture/claim-change seam to verify the post-snapshot checks without relying on timing or external processes.
     // UNRESOLVED: UI-CHAT-084 and UI-HYDRAMERGE-036 need the actual timeline View/Control test harness to verify pill rendering and interactions.
     // (UI-CHAT-083 and UI-HYDRAMERGE-035, the hold-note and hold-pill entries this comment used to include, are RETIRED at B3: recordHydraHold and heldDetail are deleted, so no hold note or pill is ever produced and neither needs a fixture -- A34 S4.)
