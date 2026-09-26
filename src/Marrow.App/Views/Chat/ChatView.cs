@@ -155,8 +155,30 @@ internal sealed record PanelMembers
     public PanelUsage? Usage { get; init; } // :785
 
     // :787-807 init(runtime:model:)
-    public PanelMembers(ThreadRuntime runtime, AppModel model) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ChatView.swift:787");
+    public PanelMembers(ThreadRuntime runtime, AppModel model)
+    {
+        Subagent = model.PanelSubagent(runtime.ThreadID); // :790
+        IsDocked = Subagent is not null; // :791
+        IsHydraHidden = runtime.IsHydraPanelHidden; // :792
+        var team = IsHydraHidden ? ValueList<ChatThread>.Empty : model.PanelHeads(runtime.ThreadID); // :793
+        var poppedHead = team.Count > 1 ? team.FirstOrDefault(t => t.Id == runtime.HydraPoppedHeadID) : null; // :794
+        Popped = poppedHead; // :795
+        Heads = new ValueList<ChatThread>(team.Where(t => t.Id != poppedHead?.Id)); // :796
+        if (model.Thread(runtime.ThreadID) is { } thread && model.Settings.ShowsUsagePanel) // :797
+        {
+            ProviderKind? headsProvider = null;
+            if (model.HydraIsOn(thread) && model.HydraPair(thread) is { } pair) // :799
+            {
+                var provider = model.HydraHeadsProvider(pair); // :800
+                headsProvider = provider == thread.Provider ? null : provider; // :801
+            }
+            Usage = new PanelUsage { Provider = thread.Provider, HeadsProvider = headsProvider }; // :803
+        }
+        else
+        {
+            Usage = null; // :805
+        }
+    }
 }
 
 /// <summary>:810-815 <c>struct PanelUsage: Equatable</c>: whose limits the usage panel shows.</summary>
@@ -188,8 +210,17 @@ internal sealed record PanelScene
     public ValueMap<PanelDockSide, long> SlotsOnSide { get; init; } // :843
 
     // :849-857 func lockedSide(excluding:) -> PanelDockSide?
-    public PanelDockSide? LockedSide(FloatingPanelID excluding) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ChatView.swift:849");
+    public PanelDockSide? LockedSide(FloatingPanelID excluding)
+    {
+        if (Layout.FitsBothSides) return null; // :850
+        var others = Slots.Where(kv => !Equals(kv.Key, excluding)).ToList(); // :851
+        if (others.Count == 0) return null; // :852
+        var hydraSlot = others.Where(kv => kv.Key is FloatingPanelID.Hydra).Select(kv => kv.Value).FirstOrDefault();
+        if (hydraSlot is { } hydra) return hydra.Corner.Side; // :853
+        var leading = others.Count(kv => kv.Value.Corner.Side == PanelDockSide.Leading); // :854
+        var trailing = others.Count - leading; // :855
+        return leading >= trailing ? PanelDockSide.Leading : PanelDockSide.Trailing; // :856
+    }
 
     public double? UsageHeight { get; init; } // :861
     public PanelUsage? Usage { get; init; } // :863
@@ -203,8 +234,7 @@ internal sealed record PanelScene
     public PanelDocks Docks { get; init; } // :873
 
     // :875 var hasHeads: Bool
-    public bool HasHeads =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ChatView.swift:875");
+    public bool HasHeads => Heads.Count > 0;
 
     // :879-899 init(members:runtime:model:paneSize:composerAreaHeight:usageContentHeight:holdsHydra:preferredSize:usageHeightOverride:)
     public PanelScene(
@@ -216,8 +246,28 @@ internal sealed record PanelScene
         double? usageContentHeight,
         bool holdsHydra = false,
         Size? preferredSize = null,
-        double? usageHeightOverride = null) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ChatView.swift:879");
+        double? usageHeightOverride = null)
+    {
+        var geometry = PanelSceneGeometry(members, runtime, model, paneSize, composerAreaHeight, usageContentHeight, holdsHydra, preferredSize, usageHeightOverride); // :880
+        Subagent = members.Subagent; // :881
+        IsDocked = members.IsDocked; // :882
+        AutoPopped = geometry.AutoPopped; // :883
+        Slots = geometry.Slots; // :884
+        SlotsOnSide = geometry.SlotsOnSide; // :885
+        UsageHeight = geometry.UsageHeight; // :886
+        Heads = new ValueList<ChatThread>(members.Heads.Where(head => !geometry.AutoPopped.Any(a => a.Id == head.Id))); // :887
+        Popped = members.Popped; // :888
+        Usage = members.Usage; // :889
+        IsMeasured = geometry.IsMeasured; // :890
+        ShowsHydra = geometry.ShowsHydra; // :891
+        ShowsPopped = geometry.ShowsPopped; // :892
+        ShowsUsage = geometry.ShowsUsage; // :893
+        IsHydraDocked = geometry.IsHydraDocked; // :894
+        DockedSides = geometry.DockedSides; // :895
+        Layout = geometry.Layout; // :896
+        Reserve = geometry.Reserve; // :897
+        Docks = geometry.Docks; // :898
+    }
 
     /// <summary>:901-917 <c>struct Geometry</c>: the geometry alone, from the members and the measured pane.</summary>
     public sealed record Geometry
@@ -250,14 +300,163 @@ internal sealed record PanelScene
         double? usageContentHeight,
         bool holdsHydra = false,
         Size? preferredSize = null,
-        double? usageHeightOverride = null) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ChatView.swift:925");
+        double? usageHeightOverride = null)
+    {
+        var isMeasured = paneSize != default; // :926 paneSize != .zero
+        var preferred = preferredSize ?? model.Settings.PanelSize; // :927
+        var showsHydra = (members.Heads.Count > 0 || holdsHydra) && isMeasured; // :928
+        var showsPopped = members.Popped is not null && showsHydra; // :929
+        var showsUsage = members.Usage is not null && isMeasured; // :930
+        var isHydraDocked = showsHydra; // :931
+        var helperShowsProgress = members.Subagent?.IsHydraHead ?? true; // :932
+        var compact = !model.Settings.HydraShowsHeadDetails && helperShowsProgress && (showsHydra || members.Subagent is not null); // :933
+        var single = new SubagentPanelLayout { Pane = paneSize, ComposerAreaHeight = composerAreaHeight, StackDepth = 1, Preferred = preferred, Compact = compact }; // :936
+        var slotHeight = single.PanelHeight; // :937
+        var gap = SubagentPanelLayout.Gap; // :938
+        var placed = new List<(FloatingPanelID Id, PanelDockCorner Corner)>();
+        if (members.IsDocked) placed.Add((new FloatingPanelID.Subagent(), runtime.SubagentPanelDock)); // :940
+        if (isHydraDocked) placed.Add((new FloatingPanelID.Hydra(), runtime.HydraPanelDock)); // :941
+        if (showsPopped) placed.Add((new FloatingPanelID.Popped(), runtime.HydraPoppedPanelDock)); // :942
+        if (showsUsage) placed.Add((new FloatingPanelID.Usage(), model.Settings.UsagePanelDock)); // :943
+        var usageCorner = model.Settings.UsagePanelDock; // :944
+        double? usageHeight = null;
+        if (showsUsage) // :946
+        {
+            var under = Order(placed, runtime.PanelStackOrder).TryGetValue(new FloatingPanelID.Usage(), out var u) ? u.Below : 0; // :947
+            var room = single.VerticalRoom - under * (slotHeight + gap); // :948
+            var wanted = usageHeightOverride ?? model.Settings.UsagePanelHeight ?? usageContentHeight ?? slotHeight; // :949
+            usageHeight = Math.Min(Math.Max(UsageMinimumHeight, room), Math.Max(UsageMinimumHeight, wanted)); // :950
+        }
+        var usageLift = Math.Max(0, (usageHeight ?? 0) - slotHeight); // :954
+        var autoPopped = new List<ChatThread>(); // :955
+        var layoutFitsBothSides = single.FitsBothSides; // :956
+        var smallest = compact ? SubagentPanelLayout.CompactHeight : SubagentPanelLayout.MinHeight; // :960
+        var natural = Math.Min(3, Math.Max(1, (long)((single.VerticalRoom + gap) / (smallest + gap)))); // :961
+        if (model.Settings.HydraAutoPopsHeads && showsHydra && members.Heads.Count > 1) // :962
+        {
+            var candidates = members.Heads.Skip(1).Where(h => !runtime.HydraAutoPopHeld.Contains(h.Id)).ToList(); // :963
+            foreach (var candidate in candidates.Where(c => runtime.HydraAutoPanelDocks.ContainsKey(c.Id)).ToList()) // :964
+            {
+                var corner = runtime.HydraAutoPanelDocks[candidate.Id]; // :965
+                placed.Add((new FloatingPanelID.Auto(candidate.Id), corner)); // :966
+                autoPopped.Add(candidate); // :967
+            }
+            candidates.RemoveAll(c => runtime.HydraAutoPanelDocks.ContainsKey(c.Id)); // :969
+            var usageExtra = usageLift > 0 ? (long)Math.Ceiling(usageLift / (slotHeight + gap)) : 0; // :971
+            var corners = layoutFitsBothSides
+                ? [runtime.HydraPanelDock.AcrossTheColumn, runtime.HydraPanelDock]
+                : new[] { runtime.HydraPanelDock }; // :973
+            foreach (var corner in corners)
+            {
+                var other = FlippedVertically(corner); // :974
+                var usageOnSide = showsUsage && (usageCorner == corner || usageCorner == other); // :975
+                var used = placed.Count(p => p.Corner == corner) + placed.Count(p => p.Corner == other) + (usageOnSide ? usageExtra : 0); // :976
+                var free = Math.Max(0, natural - used); // :977
+                for (var i = 0; i < Math.Min(free, candidates.Count); i++) // :978
+                {
+                    var head = candidates[0];
+                    candidates.RemoveAt(0); // :979
+                    placed.Add((new FloatingPanelID.Auto(head.Id), corner)); // :980
+                    autoPopped.Add(head); // :981
+                }
+            }
+        }
+        if (!layoutFitsBothSides) // :987
+        {
+            var sidesSeen = placed.Select(p => p.Corner.Side).Distinct().ToList(); // :988
+            if (sidesSeen.Count > 1) // :989
+            {
+                var hydraEntry = placed.FirstOrDefault(p => p.Id is FloatingPanelID.Hydra);
+                var home = hydraEntry.Id is FloatingPanelID.Hydra ? hydraEntry.Corner.Side
+                    : placed.Count(p => p.Corner.Side == PanelDockSide.Leading) >= placed.Count(p => p.Corner.Side == PanelDockSide.Trailing) ? PanelDockSide.Leading : PanelDockSide.Trailing; // :990-991
+                placed = [.. placed.Select(p => (p.Id, PanelDockCorner.Make(home, p.Corner.IsTop)))]; // :992
+            }
+        }
+        var slotsByID = new Dictionary<FloatingPanelID, PanelSlot>(); // :995
+        var ordered = Order(placed, runtime.PanelStackOrder); // :996
+        var usageBelow = ordered.TryGetValue(new FloatingPanelID.Usage(), out var ub) ? ub.Below : (long?)null; // :997
+        foreach (var (id, entry) in ordered) // :998
+        {
+            var lift = usageBelow is { } ubv && entry.Corner == usageCorner && showsUsage && id is not FloatingPanelID.Usage && entry.Below > ubv
+                ? usageLift // :1000-1001
+                : 0; // :1003
+            slotsByID[id] = new PanelSlot { Corner = entry.Corner, Below = entry.Below, Lift = lift }; // :1005
+        }
+        var placedCorners = placed.Select(p => p.Corner).ToList(); // :1007
+        var sides = placedCorners.Select(c => c.Side).Distinct().ToHashSet(); // :1008
+        var dockedSides = new[] { PanelDockSide.Leading, PanelDockSide.Trailing }.Where(sides.Contains).ToList(); // :1009
+        var slotsOnSide = new Dictionary<PanelDockSide, long>();
+        foreach (var side in new[] { PanelDockSide.Leading, PanelDockSide.Trailing }) // :1011
+            slotsOnSide[side] = Math.Max(natural, placed.Count(p => p.Corner.Side == side)); // :1012
+        var stackDepth = 1L; // :1019
+        foreach (var side in new[] { PanelDockSide.Leading, PanelDockSide.Trailing }) // :1020
+        {
+            var n = slotsOnSide.GetValueOrDefault(side, 1); // :1021
+            var indices = slotsByID.Values.Where(s => s.Corner.Side == side)
+                .Select(s => s.Corner.IsTop ? s.Below : n - 1 - s.Below).OrderBy(x => x).ToList(); // :1022-1025
+            if (indices.Count <= 1) continue; // :1026
+            var closest = indices.Zip(indices.Skip(1), (a, b) => b - a).DefaultIfEmpty(1).Min(); // :1027
+            var depth = (long)Math.Ceiling((double)(n - 1) / Math.Max(1, closest)) + 1; // :1028
+            stackDepth = Math.Max(stackDepth, depth); // :1029
+        }
+        var layout = new SubagentPanelLayout { Pane = paneSize, ComposerAreaHeight = composerAreaHeight, StackDepth = stackDepth, Preferred = preferred, Compact = compact }; // :1031
+        var reserve = new PanelReserve
+        {
+            Leading = sides.Contains(PanelDockSide.Leading) ? layout.ComposerReserve : 0, // :1033
+            Trailing = sides.Contains(PanelDockSide.Trailing) ? layout.ComposerReserve : 0, // :1034
+        };
+        return new Geometry
+        {
+            Layout = layout,
+            AutoPopped = new ValueList<ChatThread>(autoPopped),
+            Slots = new ValueMap<FloatingPanelID, PanelSlot>(slotsByID),
+            SlotsOnSide = new ValueMap<PanelDockSide, long>(slotsOnSide),
+            UsageHeight = usageHeight,
+            IsMeasured = isMeasured,
+            ShowsHydra = showsHydra,
+            ShowsPopped = showsPopped,
+            ShowsUsage = showsUsage,
+            IsHydraDocked = isHydraDocked,
+            DockedSides = new ValueList<PanelDockSide>(dockedSides),
+            Reserve = reserve,
+            Docks = new PanelDocks(layout, reserve), // :1049
+        };
+    }
 
     // :1053-1073 static func order(_:by:) -> [FloatingPanelID: (corner: PanelDockCorner, below: Int)]
     public static ValueMap<FloatingPanelID, (PanelDockCorner Corner, long Below)> Order(
         IReadOnlyList<(FloatingPanelID Id, PanelDockCorner Corner)> placed,
-        IReadOnlyList<FloatingPanelID> by) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ChatView.swift:1053");
+        IReadOnlyList<FloatingPanelID> by)
+    {
+        var rank = new Dictionary<FloatingPanelID, long>();
+        foreach (var id in by) // :1055
+            if (!rank.ContainsKey(id)) rank[id] = rank.Count;
+        var result = new Dictionary<FloatingPanelID, (PanelDockCorner Corner, long Below)>();
+        var corners = placed.Select(p => p.Corner).Distinct().ToList(); // :1059
+        foreach (var corner in corners)
+        {
+            var inCorner = placed
+                .Select((entry, offset) => (entry, offset))
+                .Where(x => x.entry.Corner == corner) // :1061
+                .OrderBy(x => rank.TryGetValue(x.entry.Id, out var r) ? r : long.MaxValue) // :1063-1065
+                .ThenBy(x => x.offset)
+                .Select(x => x.entry)
+                .ToList(); // :1067
+            for (var below = 0; below < inCorner.Count; below++)
+                result[inCorner[below].Id] = (inCorner[below].Corner, below); // :1068-1069
+        }
+        return new ValueMap<FloatingPanelID, (PanelDockCorner Corner, long Below)>(result);
+    }
+
+    // :1075-1082 private static func flippedVertically(_:) -> PanelDockCorner
+    private static PanelDockCorner FlippedVertically(PanelDockCorner corner) => corner switch
+    {
+        PanelDockCorner.TopLeading => PanelDockCorner.BottomLeading, // :1077
+        PanelDockCorner.BottomLeading => PanelDockCorner.TopLeading, // :1078
+        PanelDockCorner.TopTrailing => PanelDockCorner.BottomTrailing, // :1079
+        PanelDockCorner.BottomTrailing => PanelDockCorner.TopTrailing, // :1080
+        _ => throw new System.Diagnostics.UnreachableException(),
+    };
 }
 
 /// <summary>:1085-1104 <c>struct JumpToLatestButton: View</c>.</summary>
@@ -381,7 +580,10 @@ internal sealed class ChatChromeRow : Decorator
             host.Children.Add(container);
         }
 
-        this.Track(() => (model.Sidebar.HoldsTrafficLights, model.Thread(runtime.ThreadID), git.IsRepository, git.Activity, git.Status, git.Branches, git.RemoteURL), _ => Build());
+        // :1165-1170 the terminal and changes buttons read runtime.isTerminalVisible/isDiffVisible directly inside
+        // the SwiftUI body, so a toggle re-renders the whole row there; tracked here too so isActive (PR-TERM-072)
+        // stays live rather than frozen at the value captured when this row was last built.
+        this.Track(() => (model.Sidebar.HoldsTrafficLights, model.Thread(runtime.ThreadID), git.IsRepository, git.Activity, git.Status, git.Branches, git.RemoteURL, runtime.IsTerminalVisible, runtime.IsDiffVisible), _ => Build());
         Build();
     }
 }
@@ -774,14 +976,28 @@ internal sealed class ScriptsMenu : Decorator
             }
             stack.Children.Add(new PopoverDivider()); // :1450
         }
-        // :1452-1454 the editor sheet itself (ScriptsEditor) is not part of this job's records; opening it
-        // still needs that unit's own body, so this only reaches the still-stubbed ScriptsEditor.
+        // :1452-1454, :1456-1463 PR-TERM-064: presents the scripts editor sheet. No generic `.sheet` primitive
+        // exists yet (see GitActionsMenu.ShowCommitSheet's own note); this opens the same kind of plain modal
+        // window AlertPresenter/PromptPresenter/CommitSheet already use.
         stack.Children.Add(new PopoverItem(
             project.Scripts.Count == 0 ? "Add a script…" : "Edit scripts…",
-            () => { },
+            () => ShowScriptsEditor(model, project.Id),
             symbol: project.Scripts.Count == 0 ? "plus" : "pencil"));
         return stack;
     }
+
+    private static void ShowScriptsEditor(AppModel model, Guid projectID) => MainActor.Post(() =>
+    {
+        var window = new Avalonia.Controls.Window
+        {
+            SizeToContent = Avalonia.Controls.SizeToContent.WidthAndHeight,
+            CanResize = false,
+            WindowStartupLocation = Avalonia.Controls.WindowStartupLocation.CenterOwner,
+        };
+        var editor = new ScriptsEditor(model, projectID, window.Close);
+        window.Content = editor.PresentedChrome();
+        window.Show();
+    });
 }
 
 /// <summary>:1468-1528 <c>private struct GitActionsMenu: View</c>.</summary>
@@ -979,7 +1195,141 @@ internal sealed class CommitSheet : Decorator
 /// <summary>:1652-1730 <c>private struct ScriptsEditor: View</c>.</summary>
 internal sealed class ScriptsEditor : Decorator
 {
-    // :1655 let projectID; :1659-1724 body
-    public ScriptsEditor(Guid projectID) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ChatView.swift:1659");
+    private readonly AppModel model;
+    private readonly Guid projectID;
+    private readonly Action dismiss;
+    private readonly StackPanel rows = new() { Orientation = Orientation.Vertical, Spacing = 10 }; // :1667
+    private readonly Button saveButton;
+    private List<ProjectScript> scripts = [];
+
+    // :1655 let projectID, plus AppModel and dismiss explicitly (no Avalonia @Environment or `.dismiss`);
+    // :1659-1724 body
+    public ScriptsEditor(AppModel model, Guid projectID, Action dismiss)
+    {
+        this.model = model;
+        this.projectID = projectID;
+        this.dismiss = dismiss;
+
+        var heading = new TextBlock { Text = "Project scripts" }; // :1661
+        SwiftFont.System(SwiftFont.TextStyle.Title2, weight: SwiftFont.Weight.Semibold).Apply(heading); // :1662
+        var explanation = new TextBlock
+        {
+            // :1663 DEVIATION OD-0012 F1: "Droppy Code" -> "Marrow"; "droppy-code.json" kept verbatim (OD-0008 B13).
+            Text = "Scripts run in a terminal at the project root. Marrow also picks up scripts from droppy-code.json.",
+        };
+        SwiftFont.Callout.Apply(explanation); // :1664
+        explanation.Foreground = Chrome.SecondaryText.Brush(explanation); // :1665
+
+        var scroll = new ScrollViewer { Content = rows, MinHeight = 220 }; // :1666,1700
+
+        var addButton = new Button { Content = "Add script" }; // :1701-1707
+        addButton.Click += (_, _) =>
+        {
+            scripts = [.. scripts, new ProjectScript("New script", "")]; // :1703
+            Rebuild();
+        };
+        var cancelButton = new Button { Content = "Cancel" }; // :1709
+        cancelButton.Click += (_, _) => dismiss();
+        saveButton = new Button { Content = "Save" }; // :1712-1717
+        saveButton.Click += (_, _) =>
+        {
+            model.UpdateProject(projectID, p => p with { Scripts = new ValueList<ProjectScript>(scripts) }); // :1713
+            dismiss(); // :1714
+        };
+        var footer = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Children = { addButton, new Control { HorizontalAlignment = HorizontalAlignment.Stretch }, cancelButton, saveButton }, // :1708 Spacer()
+        };
+
+        Child = new StackPanel
+        {
+            HorizontalAlignment = HorizontalAlignment.Left, // :1660 .leading
+            Spacing = 14, // :1660
+            Children = { heading, explanation, scroll, footer },
+        };
+        Width = 580; // :1722
+        Height = 460;
+
+        Load(); // :1723 .onAppear
+    }
+
+    /// <summary>For tests: the editor's current local copy (never the project's own array).</summary>
+    internal IReadOnlyList<ProjectScript> Scripts => scripts;
+
+    internal Button SaveButton => saveButton;
+
+    // :1723 .onAppear { scripts = model.project(projectID)?.scripts ?? [] }
+    private void Load()
+    {
+        scripts = model.Project(projectID) is { } project ? [.. project.Scripts] : [];
+        Rebuild();
+    }
+
+    private void Rebuild()
+    {
+        rows.Children.Clear();
+        foreach (var script in scripts) rows.Children.Add(BuildCard(script));
+        UpdateSaveState();
+    }
+
+    // :1726-1729. Literally trimmingCharacters(in: .whitespaces), the already-verified FoundationText.Trim with
+    // includeNewlines: false (T-M2-023): tabs and Unicode space separators are stripped, newlines are not.
+    private static bool IsIncomplete(ProjectScript script) => FoundationText.Trim(script.Command).Length == 0;
+
+    private void UpdateSaveState()
+    {
+        var incomplete = scripts.Any(IsIncomplete); // :1711
+        saveButton.IsEnabled = !incomplete; // :1717
+        ToolTip.SetTip(saveButton, incomplete ? "Every script needs a command." : "Save these scripts"); // :1718
+    }
+
+    // :1669-1696
+    private Control BuildCard(ProjectScript script)
+    {
+        var nameField = new TextBox { Text = script.Name, PlaceholderText = "Name" }; // :1672-1673
+        nameField.PropertyChanged += (_, e) =>
+        {
+            if (e.Property == TextBox.TextProperty) Update(script.Id, s => s with { Name = nameField.Text ?? "" });
+        };
+        var trash = new Button { Content = SwiftImage.SystemName("trash") }; // :1674-1679 .buttonStyle(.borderless)
+        trash.Click += (_, _) =>
+        {
+            scripts = [.. scripts.Where(s => s.Id != script.Id)]; // :1675
+            Rebuild();
+        };
+        var top = new StackPanel { Orientation = Orientation.Horizontal, Children = { nameField, trash } }; // :1671
+
+        var commandField = new TextBox { Text = script.Command, PlaceholderText = "Command" }; // :1681-1682
+        SwiftFont.System(SwiftFont.TextStyle.Callout, design: SwiftFont.Design.Monospaced).Apply(commandField); // :1683 (Cascadia Mono, OD-0009)
+        // :1686-1691 the outline overlay, as a Border wrapping the field (no adorner layer needed for this shape).
+        var commandFrame = new Border { Child = commandField }.RoundedRectangle(6, RoundedCornerStyle.Continuous); // :1688
+        void UpdateOutline() =>
+            commandFrame.BorderBrush = IsIncomplete(script) ? Chrome.Danger.Opacity(0.65).Brush(commandFrame) : null; // :1687,1689
+        UpdateOutline();
+        commandFrame.BorderThickness = new Thickness(1);
+        commandField.PropertyChanged += (_, e) =>
+        {
+            if (e.Property != TextBox.TextProperty) return;
+            script = script with { Command = commandField.Text ?? "" };
+            Update(script.Id, _ => script);
+            UpdateOutline();
+            UpdateSaveState();
+        };
+
+        var worktreeToggle = new CheckBox { Content = "Run when a worktree is created", IsChecked = script.RunOnWorktreeCreate }; // :1692-1693
+        worktreeToggle.IsCheckedChanged += (_, _) => Update(script.Id, s => s with { RunOnWorktreeCreate = worktreeToggle.IsChecked == true });
+
+        var body = new StackPanel
+        {
+            HorizontalAlignment = HorizontalAlignment.Left, // :1670 .leading
+            Spacing = 8, // :1670
+            Children = { top, commandFrame, worktreeToggle },
+            Margin = new Thickness(14), // :1695
+        };
+        return new ChromeCard(() => body); // :1669
+    }
+
+    private void Update(Guid id, Func<ProjectScript, ProjectScript> change) =>
+        scripts = [.. scripts.Select(s => s.Id == id ? change(s) : s)];
 }
