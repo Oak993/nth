@@ -1994,7 +1994,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two placements, same size, offset and accent colour. Both read the same computed flag, so they can never disagree.",
       "verification_method": "capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

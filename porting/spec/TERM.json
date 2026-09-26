@@ -1788,7 +1788,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same row, same id, same guard. The shortcut column shows the chord in Windows notation, \"Ctrl+J\" by default (OD-0008 B7).",
       "verification_method": "interaction test on the palette list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,

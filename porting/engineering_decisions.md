@@ -1300,3 +1300,17 @@ cover:
 ENGINEERING DECISION: the representation is a port mechanism, not a deviation. The UNVERIFIED items above wait on a
 macOS capture (OD-0001): the default tab stops, the edges of paragraph spacing, a tab with no stop, and NSTextView's
 word, paragraph and key selection.
+ED-211 [TEST] Test processes can never resolve a real installed provider CLI (R-TEST-10; incident 2026-09-27). SOURCE FACT:
+ProviderRegistry.ResolveExecutable (ProviderRegistry.swift:219-226) finds a provider CLI by searching PATH and the fallback
+locations; AppModel reaches it for commit messages (TextEngine), sessions and the B3 self-updater. Several test harnesses override it
+(AppModelHarness.PrepareBootstrap's missing.exe, the AsyncLocal SetCLIUpdaterExecutableForTesting seam), but a test that forgets its
+override resolves the real CLI: AppModelHydraMergeTests (about 40 tests without PrepareBootstrap) generated commit messages through
+the owner's real signed-in CLI, and a ProviderRegistry test once ran a real `claude update` (followups.md). DECISION: a port-only,
+process-wide `ProviderRegistry.ExecutableRootsForTesting` (null in production, so production is unchanged). When set, an executable
+that resolves outside the listed folders is treated as not installed (fails closed). Every test assembly that can reach
+ProviderRegistry (Marrow.Services.Tests, Marrow.App.Tests) sets it from a module initializer (Fixtures/ProviderCliGuard.cs) to
+Marrow.Testing.ProviderCliRoots.Compute(): the repository root (stand-ins under tests/fixtures), the temp folder and
+MARROW_PORT_DATA_DIR. Real installs (%USERPROFILE%\.local\bin, %LOCALAPPDATA%\Programs, %APPDATA%\npm) are outside every root.
+Tests: ProviderCliGuardTests (guard installed and excludes the real install folders; a binary outside the roots resolves to
+nothing; a stand-in in the temp folder still resolves). ENGINEERING DECISION; test safety, not a behaviour change.
+

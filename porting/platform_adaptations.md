@@ -544,6 +544,18 @@ nor repaired until the owner rules.
   prompt, and the version before and after all recorded as evidence before lanes A23
   (`Services.Providers.ProviderRegistry`), A32 (`App.AppModel`) and A33
   (`App.Runtime.ThreadRuntime`) merge.
+- **Trial result (SOURCE FACT, this workstation, 2026-09-26 22:29:36 to 22:29:53 +03:00; evidence
+  `E:/Droppy/work/b3/evidence_od0025/` — `trial.ps1`, `TRIAL_REPORT.txt`, `OWNER_OBSERVATION.txt`, and each
+  CLI's `*.stdout.txt`/`*.stderr.txt`/version-before/version-after pair):** codex-cli went 0.154.0 to 0.157.1
+  in 8.6 s (binary sha256 changed) while a codex process (PID 44504) was running; its updater spawns
+  `powershell -ExecutionPolicy Bypass -c '$env:CODEX_NON_INTERACTIVE=1; irm https://chatgpt.com/codex/install.ps1
+  | iex'`. Claude Code reported "Claude Code is up to date (2.1.283)" in 7.2 s (binary unchanged; it had
+  already moved 2.1.281 to 2.1.283 during the L3g test incident, which the owner accepted). Both ran from
+  `%TEMP%` with empty stdin. Owner present and watching the screen, verbatim on whether any console window,
+  prompt or UAC dialog appeared: "On the question, nothing appeared." Exit codes were not captured (a
+  PowerShell `Start-Process -PassThru` quirk with redirected streams); stdout and the version change stand for
+  success instead. Conclusion: the self-update completes headless on Windows, matching B3; lanes A23
+  (`b3/L3g`), A33 (`b3/L4a`) and A32 (`b3/L4b`) merged on this evidence (B3 merge batch 6, OD-0025).
 
 ## PA-0019 Grab and grabbing cursors for draggable grips (SwiftUI `.pointerStyle(.grabIdle`/`.grabActive)`)
 

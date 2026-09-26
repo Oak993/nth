@@ -20,6 +20,7 @@ public sealed class AppModelHydraTests
 {
     [Fact]
     [Trait("Req", "PR-HYDRA-042")] // AppModel+Hydra.swift:141-143
+    [Trait("Req", "PR-HYDRA-060")] // AppModel+Hydra.swift:141-143; this file's half of the native-or-API-key union (the other half, ThreadRuntime.KeepsHydraPolicyInSystemPrompt, is proven in Marrow.App.Tests/Runtime/ThreadRuntimeSecondTests.cs)
     public void Hydra_is_native_for_exactly_Claude_Codex_and_Copilot()
     {
         Assert.Equal(

@@ -132,6 +132,31 @@ public static class SwiftString
         return true;
     }
 
+    /// <summary>
+    /// Swift's plain (non-localized) <c>text.contains(needle)</c>: true when some contiguous run of the
+    /// receiver's Characters matches the needle's, each compared canonically (R-STR-2), the same rule
+    /// <see cref="HasPrefix"/>/<see cref="HasSuffix"/> already follow. An ordinal <c>string.Contains</c> is only
+    /// safe when both operands are the port's own raw values (R-STR-2); this is for haystack/needle pairs that
+    /// can be outside text on either side (typed search text against a thread title or project name, R-STR-2's
+    /// own "even an ASCII literal is not safe" case), where an NFC/NFD difference must still match.
+    /// </summary>
+    public static bool Contains(string text, string needle)
+    {
+        if (needle.Length == 0) return true;
+        var haystack = Characters(text).ToArray();
+        var pattern = Characters(needle).ToArray();
+        for (var start = 0; start <= haystack.Length - pattern.Length; start++)
+        {
+            var matched = true;
+            for (var i = 0; i < pattern.Length; i++)
+            {
+                if (!Equal(haystack[start + i], pattern[i])) { matched = false; break; }
+            }
+            if (matched) return true;
+        }
+        return false;
+    }
+
     // ---- Splitting ----
 
     /// <summary>

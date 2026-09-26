@@ -2557,7 +2557,7 @@
       "cancellation": "n/a",
       "windows_path": "Same fallback and the same single ellipsis character, not three dots.",
       "verification_method": "capture comparison of the sidebar row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
