@@ -164,6 +164,38 @@ public sealed class ChatBadgeTests(HeadlessSession headless)
     }
 
     [Fact]
+    [Trait("Req", "PR-CHAT-142")] // App/Views/Chat/ChatBadge.swift:189-194
+    public void A_click_inside_the_badges_rect_leaves_the_popover_open_and_a_click_outside_it_closes_the_popover()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var runtime = new TestRuntime();
+            var presenter = new RecordingPresenter();
+            using var presenterScope = Presentation.Presenter.Override(presenter);
+            var window = new AvaloniaWindow { Content = new Border(), Width = 400, Height = 300 };
+            window.Show();
+            _ = AppCurrentEvent.CurrentWindow;
+            window.KeyPress(Key.F13, RawInputModifiers.None, PhysicalKey.F13, null);
+
+            var coordinator = new BadgePopoverCoordinator();
+            coordinator.SetAnchor(new Rect(10, 20, 30, 40)); // window coordinates, matching the badge's own rect
+            coordinator.Show(new Border { Width = 100, Height = 50 });
+            Assert.True(coordinator.IsShown);
+
+            // :191 a click inside the badge's recorded rect passes through: the popover stays open.
+            window.MouseDown(new Point(20, 30), MouseButton.Left, RawInputModifiers.None);
+            window.MouseUp(new Point(20, 30), MouseButton.Left, RawInputModifiers.None);
+            Assert.True(coordinator.IsShown);
+
+            // :192 anything else in that window closes the popover and still passes the event on.
+            window.MouseDown(new Point(200, 200), MouseButton.Left, RawInputModifiers.None);
+            Assert.False(coordinator.IsShown);
+            window.MouseUp(new Point(200, 200), MouseButton.Left, RawInputModifiers.None);
+            window.Close();
+        });
+    }
+
+    [Fact]
     [Trait("Req", "PR-CHAT-142")] // App/Views/Chat/ChatBadge.swift:169-194
     public void Escape_in_the_chat_window_closes_the_popover_but_escape_in_another_window_does_not()
     {
