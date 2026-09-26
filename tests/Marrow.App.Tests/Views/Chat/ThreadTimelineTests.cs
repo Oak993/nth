@@ -375,6 +375,44 @@ public sealed class ThreadTimelineTests(HeadlessSession headless)
         var model = AppEnvironment.GetAppModel(view); ((Decorator)view.Parent!).Child = null; model.Settings.ShowReasoning = true; var entry = Reason("thinking", Turn); typeof(ThreadRuntime).GetProperty("Entries")!.SetValue(runtime, new ValueList<TimelineEntry>(new[] { entry })); var work = new WorkingBlockView(runtime, new([]), null); var host = new Border { Child = work }; AppEnvironment.SetAppModel(host, model); var window = new Avalonia.Controls.Window { Content = host, Width = 600, Height = 400 }; try { window.Show(); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); var indicator = Assert.IsType<WorkingIndicator>(work.Child); LogicalQuery.SelfAndDescendants<Button>(indicator).Single().RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent)); Assert.Single(LogicalQuery.SelfAndDescendants<Marrow.UI.Markdown.MarkdownView>(indicator)); entry.Item = entry.Item with { TimelineItemContent = new TimelineItem.Content.Reasoning(new ReasoningBlock { Text = "more thinking", IsStreaming = true }) }; Avalonia.Threading.Dispatcher.UIThread.RunJobs(); Assert.Same(indicator, work.Child); Assert.Single(LogicalQuery.SelfAndDescendants<Marrow.UI.Markdown.MarkdownView>(indicator)); } finally { window.Close(); }
     });
 
+    [Fact]
+    [Trait("Req", "PR-CHAT-054")] // App/Views/Chat/ThreadTimeline.swift:439-441,578-593
+    [Trait("Req", "PR-CHAT-055")] // App/Views/Chat/ThreadTimeline.swift:510-517
+    public void Mounted_content_growth_moves_the_bottom_anchor_but_not_an_older_reader() => WithTimeline((view, runtime, _, _, _) =>
+    {
+        typeof(ThreadRuntime).GetProperty("Entries")!.SetValue(runtime, new ValueList<TimelineEntry>(new[] { Reply("reply", Turn) }));
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        var window = (Avalonia.Controls.Window)TopLevel.GetTopLevel(view)!;
+        var scroll = Field<ScrollViewer>(view, "currentScroll"); var column = Assert.IsType<Grid>(scroll.Content);
+        column.Height = 1200; window.UpdateLayout(); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
+        Invoke<object?>(view, "SnapEnd"); window.UpdateLayout(); Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        var tracking = Field<TimelineScrollTracking>(view, "tracking"); tracking.EndActivity(); Put(tracking, "arrivingUntil", 0.0);
+        var oldOffset = scroll.Offset.Y;
+        column.Height = 1500; window.UpdateLayout(); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
+        Assert.Equal(oldOffset + 300, scroll.Offset.Y, 4); Assert.True(tracking.IsPinnedToBottom); Assert.False(tracking.IsReaderScrolling);
+        tracking.IsPinnedToBottom = false; Put(view, "anchorsBottomOnGrowth", false); scroll.Offset = new Vector(0, 100);
+        window.UpdateLayout(); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); tracking.EndActivity();
+        column.Height = 1700; window.UpdateLayout(); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
+        Assert.Equal(100, scroll.Offset.Y, 4); Assert.False(tracking.IsPinnedToBottom);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-050")] // App/Views/Chat/ThreadTimeline.swift:317-321; UI/Chrome/Chrome.swift:940-944
+    [Trait("Req", "UI-CHAT-060")] // App/Views/Chat/ThreadTimeline.swift:393-397
+    public void A_new_question_visibly_soft_appears_and_keeps_its_identity_across_an_unrelated_redraw() => WithTimeline((view, runtime, _, _, h) =>
+    {
+        var frames = new ManualFrameSource(); using var clock = FrameClock.Source.Override(frames);
+        typeof(ThreadRuntime).GetProperty("Entries")!.SetValue(runtime, new ValueList<TimelineEntry>(new[] { Reply("reply", Turn) }));
+        var request = new QuestionRequest("q", new([new QuestionRequest.Question("choice", "Header", "Choose", new([]), false, false, false)]));
+        typeof(ThreadRuntime).GetProperty("Questions")!.SetValue(runtime, new ValueList<QuestionRequest>(new[] { request })); Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        var badge = LogicalQuery.SelfAndDescendants<Marrow.App.Views.Composer.QuestionBadgeRow>(view).Single();
+        Assert.Equal(0, badge.Opacity); Assert.Equal(4, Assert.IsType<Avalonia.Media.TranslateTransform>(badge.RenderTransform).Y);
+        h.Main.AdvanceMilliseconds(160); frames.Advance(TimeSpan.FromMilliseconds(160)); Assert.InRange(badge.Opacity, 0.001, 0.999);
+        h.Main.AdvanceMilliseconds(160); frames.Advance(TimeSpan.FromMilliseconds(160)); Assert.Equal(1, badge.Opacity); Assert.Equal(0, Assert.IsType<Avalonia.Media.TranslateTransform>(badge.RenderTransform).Y);
+        Field<Action>(view, "redraw")(); Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        Assert.Same(badge, LogicalQuery.SelfAndDescendants<Marrow.App.Views.Composer.QuestionBadgeRow>(view).Single()); Assert.Equal(1, badge.Opacity);
+    });
+
     // STOP App.Views.Chat.ThreadTimeline #1
     // Kind: dependency. Swift: ThreadTimeline.swift:104-107,186-197,1886-1934,2049-2065.
     // Records: PR-CHAT-021/022/026/027/034/035/039/045/046 (rendering/integration only).
