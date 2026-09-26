@@ -879,7 +879,11 @@ public sealed partial class ProviderRegistry : MainActorModel
     // test that does not call Observe, which changes nothing.
     private static readonly AsyncLocal<Func<ProviderKind, SwiftURL?>?> testCLIUpdaterExecutable = new();
 
-    internal static IDisposable SetCLIUpdaterExecutableForTesting(Func<ProviderKind, SwiftURL?> resolver)
+    // public per R-NAME-6, not internal, matching UpdatesOwnCLI/NeedsNewerCLI above (finding #4): the B3
+    // App.Runtime.ThreadRuntime unit (A33) tests ThreadRuntime.FinishTurnUpdatingCLI/ResendAfterCLIUpdate's own
+    // orchestration from Marrow.App.Tests, a different assembly Marrow.Services grants no InternalsVisibleTo
+    // to (only Marrow.Services.Tests); those tests need this same R-TEST-10 seam to reach it safely.
+    public static IDisposable SetCLIUpdaterExecutableForTesting(Func<ProviderKind, SwiftURL?> resolver)
     {
         var previous = testCLIUpdaterExecutable.Value;
         testCLIUpdaterExecutable.Value = resolver;
