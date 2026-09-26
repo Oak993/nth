@@ -165,6 +165,18 @@ public sealed record SwiftFont
     public double PointSize => Size ?? StyleSize(Style!.Value);
 
     /// <summary>
+    /// <c>fontDescriptor.symbolicTraits.contains(.bold)</c> (ProseRunView.swift:150-151, B3 52bc792): the bold weight
+    /// or heavier. The fonts that reach that check are regular, bold, italic and monospaced regular faces
+    /// (LinkParagraphView.swift:113-118, :219), so whether AppKit also marks semibold bold is never asked; it is
+    /// not modelled.
+    /// </summary>
+    public bool HasBoldTrait => ResolvedWeight is Weight.Bold or Weight.Heavy or Weight.Black;
+
+    /// <summary><c>fontDescriptor.symbolicTraits.contains(.monoSpace)</c> (ProseRunView.swift:151): the monospaced
+    /// design (<c>NSFont.monospacedSystemFont</c>).</summary>
+    public bool HasMonoSpaceTrait => FontDesign == Design.Monospaced;
+
+    /// <summary>
     /// NSFont.coveredCharacterSet.contains(_:) (TerminalFont.swift hasNerdGlyphs, :94-101; ED-175 (1)): whether
     /// this font's regular (400, upright) face has a glyph for the codepoint, through Avalonia's glyph map rather
     /// than the boolean TryGetGlyphTypeface alone (ED-107 finding 1: that returns true even for a silently

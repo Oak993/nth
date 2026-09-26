@@ -100,16 +100,17 @@ public static class PlainControls
     }
 
     /// <summary>
-    /// <c>.popover(isPresented:arrowEdge: .bottom) { content }</c> anchored on <paramref name="anchor"/>: a
-    /// light-dismiss popup hanging below it, presented through <see cref="Presentation.Presenter"/> whenever the
-    /// binding changes. The content is built each time the popover shows and dropped when it closes, as SwiftUI builds
-    /// a popover's content only while it is presented. A dismissal from outside writes false back to the binding.
+    /// <c>.popover(isPresented:arrowEdge:) { content }</c> anchored on <paramref name="anchor"/>: a light-dismiss
+    /// popup by it (<paramref name="placement"/> default Bottom, for arrowEdge .bottom; Right for arrowEdge .trailing,
+    /// App.Views.Sidebar.SidebarView.cs), presented through <see cref="Presentation.Presenter"/> whenever the binding
+    /// changes. The content is built each time the popover shows and dropped when it closes, as SwiftUI builds a
+    /// popover's content only while it is presented. A dismissal from outside writes false back to the binding.
     /// </summary>
-    public static Popup Popover(Control anchor, Binding<bool> isPresented, Func<Control> content)
+    public static Popup Popover(Control anchor, Binding<bool> isPresented, Func<Control> content, PlacementMode placement = PlacementMode.Bottom)
     {
         var popup = new Popup
         {
-            Placement = PlacementMode.Bottom,
+            Placement = placement,
             PlacementTarget = anchor,
             IsLightDismissEnabled = true,
         };

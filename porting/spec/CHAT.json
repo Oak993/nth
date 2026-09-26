@@ -3160,7 +3160,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One replicated dot-field control with the nine literals, used in three places, drawing nothing under reduced motion (port_impacts.md 310). Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "capture comparison plus interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3185,7 +3185,7 @@
       "cancellation": "Closing runs the popover's own animation and the close callback fires once afterwards, whichever way it was closed.",
       "windows_path": "A fixed-content popover primitive that pre-measures once, clips top-aligned and never republishes its size, shared by the badge, link, head-hover, attachment and diff popovers (port_impacts.md 308).",
       "verification_method": "interaction test that the popover's size does not change after opening",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3207,7 +3207,7 @@
       "cancellation": "Monitors are removed when the popover closes and when the view disappears.",
       "windows_path": "Substitute the local event monitors with an app-scoped message filter: they never see other applications' events (port_impacts.md 308).",
       "verification_method": "interaction test for Escape in both windows and for a click-through outside the badge",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5891,7 +5891,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/ChatBadge.swift:54-65"
       ],
-      "notes": "The badge's accessibility value becomes exactly Needs your attention while it is showing, and the empty string otherwise."
+      "notes": "The badge's accessibility value becomes exactly Needs your attention while it is showing, and the empty string otherwise.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-063",

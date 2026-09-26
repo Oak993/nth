@@ -1829,7 +1829,7 @@
       "cancellation": "The scan is cancelled with the task, and cancellation is propagated to the detached scan.",
       "windows_path": "SHGetKnownFolderPath(FOLDERID_Downloads). Same limit, sort, extension set and thumbnail size. The size text needs the same ported ByteCountFormatStyle helper as PR-COMPOSER-076 (6.1 E2), not the existing ByteCountFormatter-shaped FileByteCount helper, whose \"KB\" (uppercase) and 1000-byte threshold no longer match this site.",
       "verification_method": "interaction test against a fixture Downloads folder, plus exact-string size assertions shared with PR-COMPOSER-076's table",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2678,7 +2678,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Both strings byte for byte. Note the published tour capture shows the second branch and an owner field capture shows the first; the source resolves the selector, and the lowercasing is unconditional, so any capture appearing to show a capitalised effort is a rendering artefact and the source wins.",
       "verification_method": "unit test of EffortPairLook.caption over a pair with and without a worker effort, plus capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2763,7 +2763,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Verbatim strings; icons follow OD-0010 (SF Symbols map to Lucide through the published symbol-by-symbol table); the bounce becomes a short scale pulse. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "verification_method": "interaction test toggling fast mode and reopening the card",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2785,7 +2785,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Verbatim string; icons follow OD-0010 (SF Symbols map to Lucide through the published symbol-by-symbol table). Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "verification_method": "capture comparison and an interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4221,7 +4221,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same radius, padding and tint fraction. Glass: OD-0005 applies (Acrylic where the window shows the desktop, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing); an owner-approved deviation, not parity. OD-0014: the window stays clear by default, as upstream, so over the desktop the Acrylic branch with the app-drawn scrim applies until the user sets a wallpaper. Text style per ED-059: .headline is 13 point, upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2), set in Inter (OD-0009) and scaled only by the app zoom; visual size parity stays UNVERIFIED under OD-0001.",
       "verification_method": "capture comparison in both themes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4241,7 +4241,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same limit and plate. The monospaced face is Cascadia Mono (OD-0009). Text style per ED-059: the monospaced .callout is 12 point, upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2), set in Cascadia Mono (OD-0009) and scaled only by the app zoom; visual size parity stays UNVERIFIED under OD-0001.",
       "verification_method": "capture comparison with a twelve-line command",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4262,7 +4262,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Verbatim string. Text style per ED-059: .callout is 12 point, upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2), set in Inter (OD-0009) and scaled only by the app zoom; visual size parity stays UNVERIFIED under OD-0001.",
       "verification_method": "capture comparison of a plan approval",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4283,7 +4283,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same line caps and the same empty-string guards. Text styles per ED-059: the detail's .caption is 10 point and the reason's .callout 12 point, upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`, :52 `case .callout: 12` (file deleted at B2), set in Inter (OD-0009) and scaled only by the app zoom; visual size parity stays UNVERIFIED under OD-0001.",
       "verification_method": "capture comparison with a long detail and reason",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4306,7 +4306,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same reversal, styling and single-claimant chord rule. Glass: OD-0005 applies (Acrylic where the window shows the desktop, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing); an owner-approved deviation, not parity. OD-0014: the window stays clear by default, as upstream, so over the desktop the Acrylic branch with the app-drawn scrim applies until the user sets a wallpaper.",
       "verification_method": "interaction test with two stacked approvals",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -6318,7 +6318,8 @@
         "DroppyCode/App/Views/Composer/RequestCards.swift:3-65 `struct ApprovalCard: View` - `VStack(alignment: .leading, spacing: 10)` (8), the plan sentence, detail and reason in `.foregroundStyle(Chrome.secondaryText)` (28, 37, 43), `.padding(16)` (62), `.glassEffect(.regular.tint(Chrome.warning.opacity(0.1)), in: .rect(cornerRadius: 20, style: .continuous))` (64)"
       ],
       "notes": "The card's symbol and tint share one hue so a theme recolours the whole card together.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/RequestCards.swift:28, :37 and :43 `.foregroundStyle(.secondary)` -> B2 :28, :37 and :43 `.foregroundStyle(Chrome.secondaryText)`. Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`); ED-062 pins the B2 definition for the port, superseding ED-051's secondaryLabelColor literal. Headline, symbol and glass tint unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/RequestCards.swift:28, :37 and :43 `.foregroundStyle(.secondary)` -> B2 :28, :37 and :43 `.foregroundStyle(Chrome.secondaryText)`. Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`); ED-062 pins the B2 definition for the port, superseding ED-051's secondaryLabelColor literal. Headline, symbol and glass tint unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-064",
@@ -6339,7 +6340,8 @@
         "DroppyCode/App/Views/Composer/RequestCards.swift:25-28 `case .plan: Text(\"Approve the plan above to let the agent start building.\").font(.callout).foregroundStyle(Chrome.secondaryText)`"
       ],
       "notes": null,
-      "b2_change": "B1 DroppyCode/App/Views/Composer/RequestCards.swift:28 `.foregroundStyle(.secondary)` -> B2 :28 `.foregroundStyle(Chrome.secondaryText)`. Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`); ED-062 pins the B2 definition for the port, superseding ED-051's secondaryLabelColor literal."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/RequestCards.swift:28 `.foregroundStyle(.secondary)` -> B2 :28 `.foregroundStyle(Chrome.secondaryText)`. Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`); ED-062 pins the B2 definition for the port, superseding ED-051's secondaryLabelColor literal.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-065",
@@ -6360,7 +6362,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Composer/RequestCards.swift:45-60"
       ],
-      "notes": "Option titles come from the provider's request, so they are data rather than fixed strings; the reversal and the single-claimant chord rule are the specified behavior."
+      "notes": "Option titles come from the provider's request, so they are data rather than fixed strings; the reversal and the single-claimant chord rule are the specified behavior.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-066",

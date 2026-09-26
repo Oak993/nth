@@ -5210,7 +5210,7 @@
       "cancellation": "not cancellable",
       "windows_path": "460 px width and 460 px scroll cap; eager layout. Host it outside the zoomed window tree: the app-wide zoom does not scale it. ED-059: each text style is set at the point size in upstream's B1 table (callout 12; B1:DroppyCode/UI/Common/ChatZoom.swift:44-57), in Inter (OD-0009), and scales only with the app's own zoom (UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 DroppyCode/UI/Chrome/Chrome.swift:79 defines it.",
       "verification_method": "capture comparison with and without a report",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5234,7 +5234,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Use the shared relative-time duration, not a popover-specific format. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 DroppyCode/UI/Chrome/Chrome.swift:79 defines it.",
       "verification_method": "unit over 0 s, 45 s, 7 min and 2 h 14 min with the expected strings taken from reference-runtime fixtures of RelativeTime.duration",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5261,7 +5261,7 @@
       "cancellation": "not cancellable",
       "windows_path": "520 px, distinct from the report popover's 460 px. Host it outside the zoomed window tree: the app-wide zoom does not scale it. ED-059: each text style is set at the point size in upstream's B1 table (callout 12; B1:DroppyCode/UI/Common/ChatZoom.swift:44-57), in Inter (OD-0009), and scales only with the app's own zoom (UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001.",
       "verification_method": "capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5283,7 +5283,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exact sizes and the 3.5 percent overlay shade, which resolves per theme. ED-059: each text style is set at the point size in upstream's B1 table (callout 12, subheadline 11; B1:DroppyCode/UI/Common/ChatZoom.swift:44-57), in Inter (OD-0009), and scales only with the app's own zoom (UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001.",
       "verification_method": "capture comparison in light and dark",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5360,7 +5360,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Ten literal pixel values shared by the helper panel, the team panel, the popped-out panel and the usage panel.",
       "verification_method": "unit asserting each constant",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5385,7 +5385,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exact arithmetic; the compact flag overrides a dragged height but not a dragged width.",
       "verification_method": "unit over a range of pane sizes, stack depths and dragged sizes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5408,7 +5408,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Three independent predicates; do not derive one from another.",
       "verification_method": "unit at pane widths straddling each threshold",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5428,7 +5428,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exact arithmetic, so the panel lines up with the chat box on both sides.",
       "verification_method": "capture comparison at a wide pane, a medium pane and a narrow pane",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5450,7 +5450,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exact slot arithmetic including the integer split.",
       "verification_method": "unit over 1, 2, 3 and 4 slots on both sides",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5472,7 +5472,7 @@
       "cancellation": "not cancellable",
       "windows_path": "56-point hysteresis and an 8-point inset.",
       "verification_method": "unit over a centre exactly on the middle, 55 points past and 57 points past",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5495,7 +5495,7 @@
       "cancellation": "Taking the handle's view out of its window mid-drag ends the drag and pops the cursor.",
       "windows_path": "120 ms carry, 80 ms rest, 4 ms minimum sample interval, 0.4/0.6 smoothing. OD-0013: the window live resize this record reacts to is the main window's, whose one-frame edge strip (probe P4) must be fixed before the window chrome is accepted; the behaviour specified here is unchanged.",
       "verification_method": "unit over a flick and a rested release with a synthetic pointer track",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5543,7 +5543,7 @@
       "cancellation": "Losing the window cancels the drag.",
       "windows_path": "2-point slop, first-click-through, and a real cursor region. A DOM port must use pointer capture so the transcript's scroller cannot steal the drag.",
       "verification_method": "interaction test pressing without moving, moving 1 point, moving 3 points, and double-clicking a grip",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5568,7 +5568,7 @@
       "cancellation": "Releasing outside the pane still commits the clamped size.",
       "windows_path": "6-point edges, 16-point corner, exact tooltip.",
       "verification_method": "interaction test over each grip and the double-click reset",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5636,7 +5636,7 @@
       "cancellation": "The 0.9 s task restarts whenever the sending state changes.",
       "windows_path": "900 ms, a 24-character name cut, and exactly these two strings. Glass: OD-0005 applies (where the window shows the desktop, a Windows system material of the Acrylic class, with no lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing, drawn by the SKSL shader over app content per OD-0008's restatement in owner_decisions_pending.md:51); an owner-approved deviation, not parity. OD-0014: the window stays clear by default, as upstream, so until the user sets a wallpaper the desktop shows through as Acrylic plus the app-drawn scrim (OD-0005). OD-0013: the window live resize this record reacts to is the main window's, whose one-frame edge strip (probe P4) must be fixed before the window chrome is accepted; the behaviour specified here is unchanged. ED-059: each text style is set at the point size in upstream's B1 table (callout 12; B1:DroppyCode/UI/Common/ChatZoom.swift:44-57), in Inter (OD-0009), and scales only with the app's own zoom (UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 DroppyCode/UI/Chrome/Chrome.swift:79 defines it.",
       "verification_method": "interaction test with a fake clock plus a capture comparison of both states",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5659,7 +5659,7 @@
       "cancellation": "Clicking away, or choosing 'Keep it working', cancels.",
       "windows_path": "300 px, exact strings with curly quotes, and the destructive styling on the stop row.",
       "verification_method": "capture comparison plus an interaction test over both rows and a click away",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -6668,7 +6668,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:44-57 Font.chatBaseSize, the table ED-059 takes text-style point sizes from (the file is deleted at B2): :53 subheadline 11"
       ],
       "notes": "At most three bars sweep at once app-wide; with twenty heads out, the canvas redraws and render passes alone saturated the main thread and the GPU queue and froze the app. Staves are filled one path per colour, not one per stave.",
-      "b2_change": "Citation only: B1 HydraProgressBar.swift:122-209 -> B2 :122-209; the only change inside the range is the counts line font, .system(size: 11) -> .system(.subheadline) (:180), the same 11 points, which this record does not state."
+      "b2_change": "Citation only: B1 HydraProgressBar.swift:122-209 -> B2 :122-209; the only change inside the range is the counts line font, .system(size: 11) -> .system(.subheadline) (:180), the same 11 points, which this record does not state.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRA-028",
@@ -6717,7 +6718,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:44-57 Font.chatBaseSize, the table ED-059 takes text-style point sizes from (the file is deleted at B2): :53 subheadline 11"
       ],
       "notes": "Reads \"3 edits · 2 commands · 5 reads\" in that fixed order with the zero parts left out; singular forms are \"edit\", \"command\", \"read\". The accessibility sentence uses commas instead and is exactly \"Nothing done yet\" when empty.",
-      "b2_change": "Citation re-anchored: B1 HydraProgressBar.swift:178-183 -> B2 HydraProgressBar.swift:178-183. Typography was \".system(size: 11).\"; fixed .system(size: N) fonts are now text styles of the same macOS point size (text-style point sizes per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (B1; the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom): title2 17, title3 15, body 13, callout 12, subheadline 11, footnote 10, caption2 10), so the rendered point sizes are unchanged."
+      "b2_change": "Citation re-anchored: B1 HydraProgressBar.swift:178-183 -> B2 HydraProgressBar.swift:178-183. Typography was \".system(size: 11).\"; fixed .system(size: N) fonts are now text styles of the same macOS point size (text-style point sizes per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (B1; the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom): title2 17, title3 15, body 13, callout 12, subheadline 11, footnote 10, caption2 10), so the rendered point sizes are unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRA-030",
@@ -7157,7 +7159,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:44-57 Font.chatBaseSize, the table ED-059 takes text-style point sizes from (the file is deleted at B2): :52 callout 12 | :53 subheadline 11"
       ],
       "notes": "The faint shade is what makes the header read as the panel's top and the report as its page.",
-      "b2_change": "Citation re-anchored: B1 HydraHeadPopovers.swift:4-48 -> B2 HydraHeadPopovers.swift:4-48. Typography was \"Name .system(size: 14, weight: .semibold); caption .system(size: 11, weight: .medium) with monospaced digits on one line; title .system(size: 12) on at most three lines.\"; fixed .system(size: N) fonts are now text styles of the same macOS point size (text-style point sizes per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (B1; the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom): title2 17, title3 15, body 13, callout 12, subheadline 11, footnote 10, caption2 10), so the rendered point sizes are unchanged."
+      "b2_change": "Citation re-anchored: B1 HydraHeadPopovers.swift:4-48 -> B2 HydraHeadPopovers.swift:4-48. Typography was \"Name .system(size: 14, weight: .semibold); caption .system(size: 11, weight: .medium) with monospaced digits on one line; title .system(size: 12) on at most three lines.\"; fixed .system(size: N) fonts are now text styles of the same macOS point size (text-style point sizes per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (B1; the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom): title2 17, title3 15, body 13, callout 12, subheadline 11, footnote 10, caption2 10), so the rendered point sizes are unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRA-048",
@@ -7184,7 +7187,7 @@
       ],
       "notes": "The duration is RelativeTime.duration (PR-HYDRA-214, PR-CHAT-116): rounded to whole seconds, clamped at zero, and formatted by Foundation's Duration.UnitsFormatStyle with seconds, minutes and hours allowed, narrow width and at most two units, the same register as the turn-duration line. Its exact strings are UNRESOLVED until captured on the reference runtime (B3_PLAN.md 6.1 E1).",
       "b2_change": "Citation re-anchored: B1 HydraHeadPopovers.swift:106-130 -> B2 HydraHeadPopovers.swift:105-129. Typography was \".system(size: 11, weight: .medium) with monospaced digits.\"; the caption is drawn by HydraPopoverHeader, whose caption font is .system(.subheadline, weight: .medium) at B2 :23 (B1 .system(size: 11, weight: .medium)); body 13, callout 12 and subheadline 11 points per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:51-53 chatBaseSize (the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom), so the rendered size is unchanged.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "1.7.0 replaces the popover's own '45s' / '7 min' / '2 h 14 min' register with RelativeTime.duration (B3 HydraHeadPopovers.swift:124-126)."
     },
     {
@@ -7205,7 +7208,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/HydraHeadPopovers.swift:72"
       ],
-      "notes": null
+      "notes": null,
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRA-050",
@@ -7225,7 +7229,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:44-57 Font.chatBaseSize, the table ED-059 takes text-style point sizes from (the file is deleted at B2): :52 callout 12"
       ],
       "notes": "Distinct from the reports popover's \"No report.\"; both strings exist and differ.",
-      "b2_change": "Citation re-anchored: B1 HydraHeadPopovers.swift:80-83 -> B2 HydraHeadPopovers.swift:80-83. Typography was \".system(size: 12).\"; fixed .system(size: N) fonts are now text styles of the same macOS point size (text-style point sizes per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (B1; the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom): title2 17, title3 15, body 13, callout 12, subheadline 11, footnote 10, caption2 10), so the rendered point sizes are unchanged."
+      "b2_change": "Citation re-anchored: B1 HydraHeadPopovers.swift:80-83 -> B2 HydraHeadPopovers.swift:80-83. Typography was \".system(size: 12).\"; fixed .system(size: N) fonts are now text styles of the same macOS point size (text-style point sizes per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (B1; the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom): title2 17, title3 15, body 13, callout 12, subheadline 11, footnote 10, caption2 10), so the rendered point sizes are unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRA-051",
@@ -7246,7 +7251,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:44-57 Font.chatBaseSize, the table ED-059 takes text-style point sizes from (the file is deleted at B2): :53 subheadline 11"
       ],
       "notes": "The brief popover is 520 points wide, not 460 like the report popover, and its copy button is unconditional.",
-      "b2_change": "Citation re-anchored: B1 HydraHeadPopovers.swift:152 -> B2 HydraHeadPopovers.swift:151. Typography was \".system(size: 11, weight: .medium) with monospaced digits.\"; the caption is drawn by HydraPopoverHeader, whose caption font is .system(.subheadline, weight: .medium) at B2 :23 (B1 .system(size: 11, weight: .medium)); body 13, callout 12 and subheadline 11 points per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:51-53 chatBaseSize (the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom), so the rendered size is unchanged."
+      "b2_change": "Citation re-anchored: B1 HydraHeadPopovers.swift:152 -> B2 HydraHeadPopovers.swift:151. Typography was \".system(size: 11, weight: .medium) with monospaced digits.\"; the caption is drawn by HydraPopoverHeader, whose caption font is .system(.subheadline, weight: .medium) at B2 :23 (B1 .system(size: 11, weight: .medium)); body 13, callout 12 and subheadline 11 points per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:51-53 chatBaseSize (the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom), so the rendered size is unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRA-052",
@@ -7552,7 +7558,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:44-57 Font.chatBaseSize, the table ED-059 takes text-style point sizes from (the file is deleted at B2): :52 callout 12"
       ],
       "notes": "The name is the chat's title reduced to a single line of at most 24 characters and trimmed, falling back to exactly \"Helper\". One capsule, one anchor, one size and one corner radius across both states, so the send morphs into the working box with no jump. The sending state clears after 0.9 seconds. The ellipsis is U+2026. Glass: OD-0005 applies (where the window shows the desktop, a Windows system material of the Acrylic class, with no lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing, drawn by the SKSL shader over app content per OD-0008's restatement in owner_decisions_pending.md:51); an owner-approved deviation, not parity. OD-0014: the window stays clear by default, as upstream, so until the user sets a wallpaper the desktop shows through as Acrylic plus the app-drawn scrim (OD-0005). OD-0013: the window live resize this record reacts to is the main window's, whose one-frame edge strip (probe P4) must be fixed before the window chrome is accepted; the behaviour specified here is unchanged.",
-      "b2_change": "Citation re-anchored: B1 SubagentPanel.swift:365-413 -> B2 SubagentPanel.swift:365-413. Typography was \".system(size: 12) on one line, with an opacity content transition between the two texts.\"; fixed .system(size: N) fonts are now text styles of the same macOS point size (text-style point sizes per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (B1; the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom): title2 17, title3 15, body 13, callout 12, subheadline 11, footnote 10, caption2 10), so the rendered point sizes are unchanged."
+      "b2_change": "Citation re-anchored: B1 SubagentPanel.swift:365-413 -> B2 SubagentPanel.swift:365-413. Typography was \".system(size: 12) on one line, with an opacity content transition between the two texts.\"; fixed .system(size: N) fonts are now text styles of the same macOS point size (text-style point sizes per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (B1; the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom): title2 17, title3 15, body 13, callout 12, subheadline 11, footnote 10, caption2 10), so the rendered point sizes are unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRA-067",
@@ -7591,7 +7598,8 @@
         "DroppyCode/App/Views/Chat/SubagentPanel.swift:424",
         "DroppyCode/App/Views/Chat/SubagentPanel.swift:430"
       ],
-      "notes": null
+      "notes": null,
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRA-069",
@@ -7607,7 +7615,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/SubagentPanel.swift:425"
       ],
-      "notes": "Reads exactly: “{chat title}” is still working. Closing the panel stops its turn. What it has done so far stays, and its chat moves to the sidebar under this one. The title is wrapped in U+201C and U+201D."
+      "notes": "Reads exactly: “{chat title}” is still working. Closing the panel stops its turn. What it has done so far stays, and its chat moves to the sidebar under this one. The title is wrapped in U+201C and U+201D.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRA-070",
@@ -7627,7 +7636,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/SubagentPanel.swift:427"
       ],
-      "notes": "Symbol stop.circle."
+      "notes": "Symbol stop.circle.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRA-071",
@@ -7645,7 +7655,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/SubagentPanel.swift:428"
       ],
-      "notes": "Symbol arrow.uturn.backward. Its action body is empty in source; clicking away has the same effect."
+      "notes": "Symbol arrow.uturn.backward. Its action body is empty in source; clicking away has the same effect.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRA-072",
@@ -7668,7 +7679,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/SubagentPanel.swift:593-638"
       ],
-      "notes": "Invisible, like a window's edges; the cursor says what they do. The size is written to AppSettings.panelSize once the grip lets go, not during the drag."
+      "notes": "Invisible, like a window's edges; the cursor says what they do. The size is written to AppSettings.panelSize once the grip lets go, not during the drag.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRA-073",
