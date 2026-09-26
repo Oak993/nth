@@ -1980,6 +1980,7 @@ public sealed class ComposerViewTests(HeadlessSession headless)
     [Fact]
     [Trait("Req", "PR-COMPOSER-050")] // App/Views/Composer/ComposerView.swift:245-248
     [Trait("Req", "UI-COMPOSER-021")] // App/Views/Composer/ComposerView.swift:245-246
+    [Trait("Req", "UI-COMPOSER-022")] // App/Views/Composer/ComposerView.swift:247
     public void A_failed_command_load_shows_its_description_then_a_Retry_loading_commands_row_with_the_arrow_clockwise_symbol()
     {
         headless.OnUiThread(() =>
@@ -2687,6 +2688,7 @@ public sealed class ComposerViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-063")] // App/Views/Composer/ComposerView.swift:526-533
+    [Trait("Req", "UI-COMPOSER-029")] // App/Views/Composer/ComposerView.swift:526-533
     public void B3_file_chooser_is_multiple_files_only_with_Attach_as_accept_label_and_cancel_leaves_the_draft()
     {
         headless.OnUiThread(() =>
@@ -2844,6 +2846,7 @@ public sealed class ComposerViewTests(HeadlessSession headless)
     [Fact]
     [Trait("Req", "PR-COMPOSER-091")] // App/Views/Composer/ComposerView.swift:704-713
     [Trait("Req", "PR-USAGE-001")] // App/Views/Composer/ComposerView.swift:704-713
+    [Trait("Req", "UI-USAGE-001")] // App/Views/Composer/ComposerView.swift:704-713
     public void B3_context_ring_uses_fraction_limits_or_key_and_is_absent_while_popped_out()
     {
         headless.OnUiThread(() =>
@@ -2859,6 +2862,7 @@ public sealed class ComposerViewTests(HeadlessSession headless)
     [Trait("Req", "PR-COMPOSER-092")] // App/Views/Composer/ComposerView.swift:718-731
     [Trait("Req", "PR-USAGE-002")] // App/Views/Composer/ComposerView.swift:718-731
     [Trait("Req", "UI-COMPOSER-013")] // App/Views/Composer/ComposerView.swift:718-731
+    [Trait("Req", "UI-USAGE-001")] // App/Views/Composer/ComposerView.swift:718-731
     public void B3_context_ring_is_15_square_with_25_strokes_round_cap_and_6_5_hit_padding()
     {
         headless.OnUiThread(() =>
@@ -2884,6 +2888,7 @@ public sealed class ComposerViewTests(HeadlessSession headless)
     [Trait("Req", "PR-COMPOSER-094")] // App/Views/Composer/ComposerView.swift:737-759
     [Trait("Req", "PR-USAGE-008")] // App/Views/Composer/ComposerView.swift:748-753
     [Trait("Req", "UI-COMPOSER-015")] // App/Views/Composer/ComposerView.swift:748-753
+    [Trait("Req", "UI-USAGE-004")] // App/Views/Composer/ComposerView.swift:748-753
     public void B3_ring_popover_header_popout_hides_ring_and_enables_floating_usage()
     {
         headless.OnUiThread(() =>
@@ -2968,6 +2973,7 @@ public sealed class ComposerViewTests(HeadlessSession headless)
     [InlineData(850, false)]
     [InlineData(851, true)]
     [Trait("Req", "PR-USAGE-003")] // App/Views/Composer/ComposerView.swift:721-722
+    [Trait("Req", "UI-USAGE-001")] // App/Views/Composer/ComposerView.swift:721-722
     public void B3_context_warning_threshold_is_strict_and_uses_the_ambient_tint(int used, bool warns)
     {
         headless.OnUiThread(() =>
@@ -2987,6 +2993,7 @@ public sealed class ComposerViewTests(HeadlessSession headless)
     [InlineData(ProviderKind.Deepseek,-1,true,"Remaining credits","Remaining credits","")]
     [Trait("Req", "PR-USAGE-004")] // App/Views/Composer/ComposerView.swift:732,764-767
     [Trait("Req", "PR-USAGE-005")] // App/Views/Composer/ComposerView.swift:733-736,769-772
+    [Trait("Req", "UI-USAGE-002")] // App/Views/Composer/ComposerView.swift:732-736,764-772
     public void B3_context_accessibility_keeps_label_and_read_only_value_separate(ProviderKind provider,int used,bool credits,string label,string tip,string value)
     {
         headless.OnUiThread(() =>
@@ -3003,6 +3010,7 @@ public sealed class ComposerViewTests(HeadlessSession headless)
     [Trait("Req", "PR-USAGE-007")] // App/Views/Composer/ComposerView.swift:738-756
     [Trait("Req", "PR-USAGE-009")] // App/Views/Composer/ComposerView.swift:757; App/Views/Usage/UsagePanel.swift:19-24,68-70
     [Trait("Req", "UI-COMPOSER-014")] // App/Views/Composer/ComposerView.swift:743-757
+    [Trait("Req", "UI-USAGE-003")] // App/Views/Composer/ComposerView.swift:743-746,755-756
     public void B3_usage_popover_toggles_and_preserves_header_geometry_and_fixed_panel_width()
     {
         headless.OnUiThread(() =>
@@ -3051,6 +3059,128 @@ public sealed class ComposerViewTests(HeadlessSession headless)
             var strip=h.Main.OnMain(()=>new DraftAttachments(h.Runtime)); var window=h.Main.OnMain(()=>Show(strip,h.App,300)); Pump(h,window); var arrival=One<AttachmentArrival>(strip); var reader=One<ScreenFrameReader>(arrival);
             h.Main.OnMain(()=>h.Runtime.Draft=h.Runtime.Draft with { Attachments=new ValueList<Attachment>([file with {Name="renamed.txt"}]) }); Pump(h,window);
             Assert.Same(arrival,One<AttachmentArrival>(strip)); Assert.Same(reader,One<ScreenFrameReader>(arrival)); Assert.Equal("Remove renamed.txt",AutomationProperties.GetName(Named(strip,"Remove renamed.txt"))); Close(h,window);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "UI-USAGE-001")] // App/Views/Composer/ComposerView.swift:717-728
+    public void B3_ring_padded_hit_rectangle_measures_27_by_25_and_retains_a_15_point_ring()
+    {
+        headless.OnUiThread(()=>
+        {
+            using var h=RuntimeHarness(); var meter=h.Main.OnMain(()=>new ContextMeter(h.Runtime,ProviderKind.Codex,null)); var window=h.Main.OnMain(()=>Show(meter,h.App,200)); Pump(h,window);
+            h.Main.OnMain(()=>{ var button=One<Button>(meter); Assert.Equal(new Size(27,25),button.DesiredSize); var ring=Assert.IsType<Grid>(button.Content); Assert.Equal(new Size(15,15),ring.Bounds.Size); Assert.Equal(new Point(6,5),Frame(ring,button).Position); }); Close(h,window);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "UI-COMPOSER-010")] // App/Views/Composer/ComposerView.swift:1008-1015
+    public void B3_attachment_badge_reserves_4_point_padding_around_the_glyph_and_offsets_6_minus6()
+    {
+        headless.OnUiThread(()=>
+        {
+            using var h=RuntimeHarness(); var file=Fake(1); h.Main.OnMain(()=>h.Runtime.Draft=new ComposerDraft { Attachments=new ValueList<Attachment>([file]) }); var strip=h.Main.OnMain(()=>new DraftAttachments(h.Runtime)); var window=h.Main.OnMain(()=>Show(strip,h.App,300)); Pump(h,window);
+            h.Main.OnMain(()=>{ var remove=Named(strip,"Remove "+file.Name); var image=One<SwiftImage>(remove); Assert.Equal(image.DesiredSize.Width+8,remove.DesiredSize.Width); Assert.Equal(image.DesiredSize.Height+8,remove.DesiredSize.Height); var offset=Assert.IsType<TranslateTransform>(remove.RenderTransform); Assert.Equal(6,offset.X); Assert.Equal(-6,offset.Y); }); Close(h,window);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "UI-USAGE-004")] // App/Views/Composer/ComposerView.swift:748-753; UI/Chrome/Chrome.swift:413-436
+    public void B3_popout_uses_32_point_interactive_glass_and_12_semibold_arrow_with_092_to1_hover()
+    {
+        headless.OnUiThread(()=>
+        {
+            var frames=new ManualFrameSource(); using var fs=FrameClock.Source.Override(frames); using var h=RuntimeHarness(); var presenter=new RecordingPresenter(); using var ps=Presentation.Presenter.Override(presenter);
+            var meter=h.Main.OnMain(()=>new ContextMeter(h.Runtime,ProviderKind.Codex,null)); var window=h.Main.OnMain(()=>Show(meter,h.App,200)); Pump(h,window); h.Main.OnMain(()=>Click(One<Button>(meter))); Pump(h,window); var content=presenter.Calls[^1].Popup.Child!;
+            var surface=One<ChromeCircleButton>(content); var other=h.Main.OnMain(()=>{ Assert.IsType<Grid>(surface.GetLogicalParent()).Children.Remove(surface); return Show(surface,h.App,200); }); Pump(h,other);
+            h.Main.OnMain(()=>
+            {
+                var button=Named(surface,"Open as a floating panel beside the chat"); Assert.Equal("Open as a floating panel beside the chat",ToolTip.GetTip(button)); var label=Assert.IsType<Panel>(button.Content); Assert.Equal(new Size(32,32),label.Bounds.Size); var image=One<SwiftImage>(surface); Assert.Equal("arrow.up.right",image.SymbolName); var font=image.GetValue(SwiftImage.FontProperty)!.Resolve(); Assert.Equal(12,font.FontSize); Assert.Equal(FontWeight.SemiBold,font.FontWeight);
+                Assert.Equal(Chrome.PrimaryText.Opacity(0.92).Resolve(image.ActualThemeVariant),Assert.IsAssignableFrom<ISolidColorBrush>(image.Foreground).Color);
+                var glass=LogicalQuery.SelfAndDescendants<Control>(surface).Select(SwiftGlass.GetEffect).Single(effect=>effect is not null)!; Assert.Equal(GlassShape.Circle,glass.Shape); Assert.Equal(0.3,glass.TintOpacity); Assert.True(glass.IsInteractive);
+                var hover=button.GetLogicalParent() as Control ?? throw new Exception("Missing glass wrapper"); hover.RaiseEvent(new PointerEventArgs(InputElement.PointerEnteredEvent,hover,null!,hover,default,0,new PointerPointProperties(),KeyModifiers.None));
+            }); Pump(h,other); h.Main.Advance(TimeSpan.FromSeconds(0.1)); h.Main.OnMain(()=>frames.Advance(TimeSpan.FromSeconds(0.1))); Pump(h,other);
+            h.Main.OnMain(()=>{ var image=One<SwiftImage>(surface); Assert.Equal(Chrome.PrimaryText.Resolve(image.ActualThemeVariant),Assert.IsAssignableFrom<ISolidColorBrush>(image.Foreground).Color); }); Close(h,other); Close(h,window);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "UI-COMPOSER-022")] // App/Views/Composer/ComposerView.swift:247; Services/Providers/ProviderRegistry.swift:762-784
+    public void B3_retry_enters_a_new_command_load_even_when_the_cached_commands_are_fresh()
+    {
+        headless.OnUiThread(()=>
+        {
+            System.Threading.Tasks.Task.Run(()=>Marrow.Core.Support.LoginEnvironment.Load()).GetAwaiter().GetResult(); using var h=new ThreadRuntimePart12Harness(ProviderKind.Claude); Loaded(h,h.Runtime); var directory=h.Store.NewFolder("fresh-retry");
+            h.Main.OnMain(()=>{ h.App.Settings.SetBinaryPath(Whoami(),ProviderKind.Claude); h.App.Providers.UpdateCommands(new ValueList<SlashCommand>([new(){Name="cached",Detail="Cached command"}]),ProviderKind.Claude,directory); }); var view=Pill(h,h.Runtime,directory);
+            h.Main.Loop.Run(()=>view.LoadCommands(force:true),AppModelHarness.Bound); Assert.NotEmpty(h.App.Providers.CommandErrors); h.Main.OnMain(()=>Type(view,"/")); Until(h,null,()=>view.Suggestions.IsVisible); var menu=h.Main.OnMain(()=>view.SuggestionMenu());
+            var loads=typeof(ProviderRegistry).GetField("commandLoads",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic)!;
+            h.Main.OnMain(()=>Click(One<Button>(One<PopoverItem>(menu)))); Until(h,null,()=>((System.Collections.IDictionary)loads.GetValue(h.App.Providers)!).Count>0); Until(h,null,()=>((System.Collections.IDictionary)loads.GetValue(h.App.Providers)!).Count==0);
+            Assert.NotEmpty(h.App.Providers.CommandErrors); Assert.Equal("cached",h.App.Providers.Commands[ProviderRegistry.CommandKey(ProviderKind.Claude,directory)][0].Name);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-052")] // App/Views/Composer/ComposerView.swift:205-207
+    public void B3_commands_landing_refresh_the_focused_on_screen_composer()
+    {
+        headless.OnUiThread(()=>
+        {
+            using var h=RuntimeHarness(); var presenter=new RecordingPresenter(); using var ps=Presentation.Presenter.Override(presenter); var directory=h.Store.NewFolder("landing-commands"); var (view,window,_,_)=OnScreen(h,h.Runtime,directory); h.Main.OnMain(()=>Type(view,"/")); Until(h,window,()=>view.Suggestions.IsVisible); Assert.True(h.Main.OnMain(()=>view.Controller.HasFocus));
+            h.Main.OnMain(()=>h.App.Providers.UpdateCommands(new ValueList<SlashCommand>([new(){Name="review",Detail="Review diff"}]),ProviderKind.Codex,directory)); h.Main.Loop.RunUntil(()=> { Settle(window); return view.Suggestions.Items.Any(item=>item.Title=="/review"); },TimeSpan.FromSeconds(20)); Assert.True(h.Main.OnMain(()=>view.Controller.HasFocus)); Close(h,window);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "UI-COMPOSER-019")] // App/Views/Composer/ComposerView.swift:244; UI/Chrome/Popovers.swift:117-133
+    [Trait("Req", "UI-COMPOSER-021")] // App/Views/Composer/ComposerView.swift:245-246; UI/Chrome/Popovers.swift:135-150
+    public void B3_suggestion_header_and_error_note_use_the_source_fonts_margins_and_secondary_colour()
+    {
+        headless.OnUiThread(()=>
+        {
+            using var h=RuntimeHarness(); h.Main.OnMain(()=>
+            {
+                var header=Assert.IsType<TextBlock>(new PopoverSectionHeader("Commands · Recently used first").Child); Assert.Equal(11,header.FontSize); Assert.Equal(FontWeight.SemiBold,header.FontWeight); Assert.Equal(new Thickness(8,6,8,3),header.Margin);
+                var note=Assert.IsType<TextBlock>(new PopoverNote("Failed load").Child); Assert.Equal(12,note.FontSize); Assert.Equal(FontWeight.Normal,note.FontWeight); Assert.Equal(new Thickness(8,5),note.Margin); foreach(var text in new[]{header,note}) Assert.Equal(Chrome.SecondaryText.Resolve(text.ActualThemeVariant),Assert.IsAssignableFrom<ISolidColorBrush>(text.Foreground).Color);
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "UI-COMPOSER-020")] // App/Views/Composer/ComposerView.swift:1069-1095
+    public void B3_suggestion_row_preserves_26_height_8_insets_16_symbol_16_spacer_and_middle_title()
+    {
+        headless.OnUiThread(()=>
+        {
+            using var h=RuntimeHarness(); var row=h.Main.OnMain(()=>new SuggestionPopoverRow(new(){Value="@foo ",Title="foo",Detail="long/path/foo",Symbol="doc"},false,()=>{},()=>{})); var window=h.Main.OnMain(()=>Show(row,h.App,300)); Pump(h,window);
+            h.Main.OnMain(()=>
+            {
+                var button=One<Button>(row); Assert.False(button.Focusable); var plate=Assert.IsType<Border>(button.Content); Assert.Equal(26,plate.Height); Assert.Equal(new Thickness(8,0),plate.Padding); Assert.Equal(new CornerRadius(6),plate.CornerRadius); Assert.Equal(RoundedCornerStyle.Continuous,SwiftShapes.GetCornerStyle(plate)); var grid=Assert.IsType<Grid>(plate.Child); Assert.Equal(8,grid.ColumnSpacing); Assert.Equal(16,grid.ColumnDefinitions[0].Width.Value); Assert.Equal(16,grid.ColumnDefinitions[2].Width.Value); Assert.Equal(13,One<MiddleTruncatingText>(grid).FontSize); var detail=LogicalQuery.SelfAndDescendants<TextBlock>(grid).Single(t=>t.Text=="long/path/foo"); Assert.Equal(12,detail.FontSize); Assert.Equal(1,detail.MaxLines); Assert.Equal(12,One<SwiftImage>(grid).GetValue(SwiftImage.FontProperty)!.Resolve().FontSize);
+            }); Close(h,window);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "UI-COMPOSER-029")] // App/Views/Composer/ComposerView.swift:526-533
+    [Trait("Req", "PR-COMPOSER-063")] // App/Views/Composer/ComposerView.swift:526-533
+    public void B3_accepting_the_chooser_attaches_both_selected_files_and_preserves_text()
+    {
+        headless.OnUiThread(()=>
+        {
+            using var h=RuntimeHarness(); var directory=h.Store.NewFolder("chosen-files"); Touch(directory,"a.txt","b.txt"); var dialog=new ComposerDialogProbe { Result=new ValueList<string>([Path.Combine(directory,"a.txt"),Path.Combine(directory,"b.txt")]) }; using var ds=ComposerFileDialog.Current.Override(dialog); var view=Pill(h,h.Runtime);
+            h.Main.OnMain(()=>{ h.Runtime.Draft=new ComposerDraft { Text="keep" }; InvokePrivate(view,"ChooseFiles"); }); Until(h,null,()=>h.Runtime.Draft.Attachments.Count==2); Assert.Equal("keep",h.Runtime.Draft.Text); Assert.Equal(["a.txt","b.txt"],h.Runtime.Draft.Attachments.Select(file=>file.Name)); Assert.All(h.Runtime.Draft.Attachments,file=>Assert.True(File.Exists(file.Path)));
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "UI-COMPOSER-004")] // App/Views/Composer/ComposerView.swift:576-582
+    public void B3_attachment_notice_is_an_11_point_one_line_warning_with_6_bottom_margin()
+    {
+        headless.OnUiThread(()=>
+        {
+            using var h=RuntimeHarness(); var view=Pill(h,h.Runtime); h.Main.OnMain(()=>
+            {
+                var column=One<ComposerTextColumn>(view); column.Update("","One file was left out: a message holds 8 attachments"); var text=LogicalQuery.SelfAndDescendants<TextBlock>(column).Single(t=>t.Text=="One file was left out: a message holds 8 attachments"); Assert.Equal(11,text.FontSize); Assert.Equal(1,text.MaxLines); Assert.Equal(new Thickness(0,0,0,6),text.Margin); Assert.Equal(Chrome.Warning.Resolve(text.ActualThemeVariant),Assert.IsAssignableFrom<ISolidColorBrush>(text.Foreground).Color);
+            });
         });
     }
 }
@@ -3143,3 +3273,13 @@ public sealed class ComposerViewTests(HeadlessSession headless)
 // Missing: foundation ForEach applies topology immediately and carries no animated re-layout of surviving rows.
 // Needed: geometric layout animation in its owning foundation unit. Arrival/departure clip and fade are implemented;
 // adding/removing/reordering chips while the row remains nonempty has immediate layout, explicitly unverified.
+
+// STOP App.Views.Composer.ComposerView #8
+// Kind: missing dependency
+// Swift: DroppyCode/App/Views/Composer/ComposerView.swift:205-212 (B3 52bc792)
+// Records: PR-COMPOSER-052 (command/error observers).
+// Missing: ProviderRegistry.UpdateCommands and LoadCommands assign commands/commandErrors backing fields directly
+// without Set/Notify, so OnChange cannot observe delivered commands or errors. Reproduced on a focused mounted pill.
+// Needed: owning Services.Providers.ProviderRegistry unit must notify these observable properties as Swift @Observable
+// does. The source-correct observer wiring is present; its executable regression test remains failing, not skipped.
+// Historical STOP #4's ComposerControls mount obstruction is resolved; this separate dependency now blocks proof.
