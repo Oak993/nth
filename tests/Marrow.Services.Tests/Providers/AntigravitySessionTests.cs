@@ -649,7 +649,7 @@ public sealed class AntigravitySessionTests
     // ---- PR-PROVCLI-331 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-331")] // Services/Providers/AntigravitySession.swift:40,213-220,286-291
+    [Trait("Req", "PR-PROVCLI-331")] // Services/Providers/AntigravitySession.swift:40,213-220,275-280 (B3)
     public void An_agent_response_emits_its_context_usage_first_then_the_delta_under_a_launch_scoped_id()
     {
         using var runtime = new TestRuntime();
@@ -667,7 +667,7 @@ public sealed class AntigravitySessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-331")] // Services/Providers/AntigravitySession.swift:214,217-218,287-289
+    [Trait("Req", "PR-PROVCLI-331")] // Services/Providers/AntigravitySession.swift:214,217-218,276-278 (B3)
     public void An_agent_response_without_usage_or_text_emits_nothing_and_a_missing_index_is_zero()
     {
         using var runtime = new TestRuntime();
@@ -886,7 +886,7 @@ public sealed class AntigravitySessionTests
     private static string Result(string members) => "{\"event\":\"result\",\"result\":{" + members + "}}";
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-334")] // Services/Providers/AntigravitySession.swift:293-322
+    [Trait("Req", "PR-PROVCLI-334")] // Services/Providers/AntigravitySession.swift:282-311 (B3)
     public void A_known_baseline_turns_cumulative_totals_into_per_turn_spend()
     {
         using var runtime = new TestRuntime();
@@ -906,7 +906,7 @@ public sealed class AntigravitySessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-334")] // Services/Providers/AntigravitySession.swift:32-36,317-320
+    [Trait("Req", "PR-PROVCLI-334")] // Services/Providers/AntigravitySession.swift:32-36,306-309 (B3)
     public void A_resumed_conversation_seeds_its_baseline_from_the_first_total_without_charging_it()
     {
         using var runtime = new TestRuntime();
@@ -941,7 +941,7 @@ public sealed class AntigravitySessionTests
     // ---- PR-PROVCLI-335 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-335")] // Services/Providers/AntigravitySession.swift:325-329
+    [Trait("Req", "PR-PROVCLI-335")] // Services/Providers/AntigravitySession.swift:314-318 (B3)
     public void A_reply_that_never_streamed_is_shown_from_the_result_response()
     {
         using var runtime = new TestRuntime();
@@ -959,7 +959,7 @@ public sealed class AntigravitySessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-335")] // Services/Providers/AntigravitySession.swift:325-329
+    [Trait("Req", "PR-PROVCLI-335")] // Services/Providers/AntigravitySession.swift:314-318 (B3)
     public void A_streamed_reply_is_not_repeated_from_the_result_and_the_flag_resets()
     {
         using var runtime = new TestRuntime();
@@ -971,7 +971,7 @@ public sealed class AntigravitySessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-335")] // Services/Providers/AntigravitySession.swift:330-341
+    [Trait("Req", "PR-PROVCLI-335")] // Services/Providers/AntigravitySession.swift:319-330 (B3)
     public void Denied_actions_raise_one_warning_and_a_conversation_id_is_adopted()
     {
         using var runtime = new TestRuntime();
@@ -1001,7 +1001,7 @@ public sealed class AntigravitySessionTests
     // ---- PR-PROVCLI-336 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-336")] // Services/Providers/AntigravitySession.swift:342-362
+    [Trait("Req", "PR-PROVCLI-336")] // Services/Providers/AntigravitySession.swift:331-351 (B3)
     public void The_result_status_picks_one_of_five_turn_endings()
     {
         using var runtime = new TestRuntime();
@@ -1028,7 +1028,7 @@ public sealed class AntigravitySessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-336")] // Services/Providers/AntigravitySession.swift:342-343,362
+    [Trait("Req", "PR-PROVCLI-336")] // Services/Providers/AntigravitySession.swift:331-332,351 (B3)
     public void An_interrupt_request_ends_the_turn_interrupted_whatever_the_status_and_is_reset()
     {
         using var runtime = new TestRuntime();
@@ -1042,7 +1042,7 @@ public sealed class AntigravitySessionTests
     // ---- PR-PROVCLI-337 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-337")] // Services/Providers/AntigravitySession.swift:365-383
+    [Trait("Req", "PR-PROVCLI-337")] // Services/Providers/AntigravitySession.swift:354-372 (B3)
     public void The_close_path_fails_an_active_turn_then_reports_the_exit_when_not_stopping()
     {
         using var runtime = new TestRuntime();
@@ -1066,7 +1066,7 @@ public sealed class AntigravitySessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-337")] // Services/Providers/AntigravitySession.swift:365-370,385-390
+    [Trait("Req", "PR-PROVCLI-337")] // Services/Providers/AntigravitySession.swift:354-359,374-379 (B3)
     public void A_start_that_closes_first_fails_with_the_auth_hint_when_stderr_says_so()
     {
         using var runtime = new TestRuntime();
@@ -1082,7 +1082,7 @@ public sealed class AntigravitySessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-337")] // Services/Providers/AntigravitySession.swift:365-370
+    [Trait("Req", "PR-PROVCLI-337")] // Services/Providers/AntigravitySession.swift:354-359 (B3)
     public void A_start_that_closes_first_fails_with_the_stderr_tail_or_that_Antigravity_exited()
     {
         using var runtime = new TestRuntime();
@@ -1102,7 +1102,7 @@ public sealed class AntigravitySessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-337")] // Services/Providers/AntigravitySession.swift:371-382
+    [Trait("Req", "PR-PROVCLI-337")] // Services/Providers/AntigravitySession.swift:360-371 (B3)
     public void A_turn_cut_off_by_an_exit_fails_with_the_auth_hint_then_reports_the_exit_with_the_tail()
     {
         using var runtime = new TestRuntime();
@@ -1126,7 +1126,7 @@ public sealed class AntigravitySessionTests
     // ---- PR-PROVCLI-338 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-338")] // Services/Providers/AntigravitySession.swift:452-517
+    [Trait("Req", "PR-PROVCLI-338")] // Services/Providers/AntigravitySession.swift:441-506 (B3)
     public void ListModels_collapses_effort_variants_into_one_row_per_base_slug_in_first_seen_order()
     {
         using var runtime = new TestRuntime();
@@ -1164,7 +1164,7 @@ public sealed class AntigravitySessionTests
         runtime.Loop.Run(() => AntigravitySession.AuthStatus(FileUrl(script.ExecutablePath), new ValueMap<string, string>([script.EnvironmentEntry])), Bound);
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-339")] // Services/Providers/AntigravitySession.swift:527-533
+    [Trait("Req", "PR-PROVCLI-339")] // Services/Providers/AntigravitySession.swift:516-522 (B3)
     public void AuthStatus_runs_agy_models_and_is_signed_in_without_an_account_when_it_lists_a_row()
     {
         using var runtime = new TestRuntime();
@@ -1176,7 +1176,7 @@ public sealed class AntigravitySessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-339")] // Services/Providers/AntigravitySession.swift:531-539
+    [Trait("Req", "PR-PROVCLI-339")] // Services/Providers/AntigravitySession.swift:520-528 (B3)
     public void AuthStatus_reads_five_sign_in_phrases_before_falling_back_to_the_exit_status()
     {
         using var runtime = new TestRuntime();
@@ -1202,7 +1202,7 @@ public sealed class AntigravitySessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-339")] // Services/Providers/AntigravitySession.swift:528-530
+    [Trait("Req", "PR-PROVCLI-339")] // Services/Providers/AntigravitySession.swift:517-519 (B3)
     public void AuthStatus_is_unknown_when_agy_cannot_run()
     {
         using var runtime = new TestRuntime();
@@ -1214,7 +1214,7 @@ public sealed class AntigravitySessionTests
     // ---- PR-PROVCLI-340 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-340")] // Services/Providers/AntigravitySession.swift:547-562
+    [Trait("Req", "PR-PROVCLI-340")] // Services/Providers/AntigravitySession.swift:536-551 (B3)
     public void ReadPlanLimits_runs_usage_and_credits_concurrently_and_appends_the_credit_window_last_with_no_plan_name()
     {
         using var runtime = new TestRuntime();
@@ -1237,7 +1237,7 @@ public sealed class AntigravitySessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-340")] // Services/Providers/AntigravitySession.swift:550-561
+    [Trait("Req", "PR-PROVCLI-340")] // Services/Providers/AntigravitySession.swift:539-550 (B3)
     public void ReadPlanLimits_is_nil_without_any_window_and_keeps_one_side_when_the_other_fails()
     {
         using var runtime = new TestRuntime();
@@ -1258,7 +1258,7 @@ public sealed class AntigravitySessionTests
     // ---- PR-PROVCLI-341 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-341")] // Services/Providers/AntigravitySession.swift:567-583
+    [Trait("Req", "PR-PROVCLI-341")] // Services/Providers/AntigravitySession.swift:556-572 (B3)
     public void ParseUsage_titles_each_bucket_by_group_and_name_and_takes_the_complement_of_the_remaining_fraction()
     {
         var data = Json(
@@ -1280,7 +1280,7 @@ public sealed class AntigravitySessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-341")] // Services/Providers/AntigravitySession.swift:581,587-603
+    [Trait("Req", "PR-PROVCLI-341")] // Services/Providers/AntigravitySession.swift:570,576-592 (B3)
     public void ParseUsage_falls_back_to_tab_separated_rows_where_the_percent_is_what_remains()
     {
         var text =
@@ -1303,7 +1303,7 @@ public sealed class AntigravitySessionTests
     // ---- PR-PROVCLI-342 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-342")] // Services/Providers/AntigravitySession.swift:605-613
+    [Trait("Req", "PR-PROVCLI-342")] // Services/Providers/AntigravitySession.swift:594-602 (B3)
     public void ParseCredits_is_binary_zero_percent_while_credits_remain_and_the_structured_value_wins()
     {
         Assert.Equal(W("ai-credits", "AI credits " + MiddleDot + " 5 remaining", 0), ParseCredits(Json("{\"remaining_credits\":5}"), "AI credits\t9"));
@@ -1312,7 +1312,7 @@ public sealed class AntigravitySessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-342")] // Services/Providers/AntigravitySession.swift:614-626
+    [Trait("Req", "PR-PROVCLI-342")] // Services/Providers/AntigravitySession.swift:603-615 (B3)
     public void ParseCredits_falls_back_to_the_first_tab_separated_credit_line_with_an_integer()
     {
         const string text = "Plan\t3\nAI Credits\tmany\nremaining CREDITS\t 42 \nCredits\t7\n";
