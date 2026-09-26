@@ -51,7 +51,7 @@ public sealed class MCPWireTests
     }
 
     [Fact]
-    [Trait("Decision", "OD-0012")] // Services/MCP/MCPWire.swift:9-15 (B3); clientInfo.name is "Marrow" (F1)
+    [Trait("Req", "PR-MCP-101")] // Services/MCP/MCPWire.swift:9-15 (B3); clientInfo.name is "Marrow" (DEVIATION OD-0012 F1)
     public void InitializeParams_carries_the_protocol_version_marrow_clientinfo_and_empty_capabilities()
     {
         var init = MCPWire.InitializeParams();
@@ -202,6 +202,30 @@ public sealed class MCPWireTests
     }
 
     [Fact]
+    [Trait("Req", "PR-MCP-117")] // Services/MCP/MCPWire.swift:85-101 (B3): "a stream held open after the reply"
+    public async Task Post_returns_the_matching_frame_promptly_while_the_server_still_holds_the_stream_open()
+    {
+        // The fixture does not close the connection after writing the matching frame: it keeps the socket open
+        // for up to 5 seconds (FakeUpstreamServer.ClientClosedConnection). An implementation that buffered the
+        // whole SSE body before returning would have to wait for that close (or the outer 30s Bound) instead of
+        // returning as soon as the id matches; a correct one returns almost immediately.
+        await using var server = new FakeUpstreamServer
+        {
+            Handler = _ => new FakeResponse(200, [("Content-Type", "text/event-stream"), ("Mcp-Session-Id", "s1")], [],
+                SseChunks: ["data: {\"id\":1,\"result\":\"right id\"}\n\n"], HoldOpenAfterSse: true),
+        };
+
+        var clock = System.Diagnostics.Stopwatch.StartNew();
+        var reply = await MCPWire.Post(new Uri(server.BaseUrl), new Dictionary<string, string>(), null,
+            MCPWire.Request(1, "initialize", null), 1, 5).WaitAsync(Bound);
+        clock.Stop();
+
+        Assert.Equal("right id", reply.Body?["result"]?.JSONValueString);
+        // Well under the fixture's 5-second hold: Post did not wait for the stream to end.
+        Assert.True(clock.Elapsed < TimeSpan.FromSeconds(2), $"Post took {clock.Elapsed} while the server held the stream open");
+    }
+
+    [Fact]
     [Trait("Req", "PR-MCP-117")] // Services/MCP/MCPWire.swift:93-102 (B3)
     public async Task Post_skips_unparseable_and_idless_sse_frames_and_returns_nil_at_the_streams_end()
     {
@@ -234,6 +258,29 @@ public sealed class MCPWireTests
 
         Assert.Equal("s2", reply.SessionID);
         Assert.Null(reply.Body);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-MCP-117")] // Services/MCP/MCPWire.swift:92 (B3): "guard let id else { return ... }"
+    public async Task Post_releases_the_notifications_event_stream_so_the_server_sees_the_connection_close()
+    {
+        // The fixture keeps the socket open (it never hangs up first) and instead watches its own end for a
+        // close: FakeUpstreamServer.ClientClosedConnection only completes true when IT reads a 0-byte close
+        // from the client side. An implementation that left the AsyncBytes undisposed (never released, never
+        // drained) would leave this socket open past the fixture's 5-second bound; disposing it without ever
+        // reading (:92) makes the close arrive almost at once.
+        await using var server = new FakeUpstreamServer
+        {
+            Handler = _ => new FakeResponse(202, [("Content-Type", "text/event-stream"), ("Mcp-Session-Id", "s2")], [],
+                SseChunks: ["data: {\"id\":1,\"result\":\"never read\"}\n\n"], HoldOpenAfterSse: true),
+        };
+
+        var reply = await MCPWire.Post(new Uri(server.BaseUrl), new Dictionary<string, string>(), null,
+            MCPWire.Notification("notifications/initialized"), null, 5).WaitAsync(Bound);
+        Assert.Null(reply.Body);
+
+        var closedByClient = await server.ClientClosedConnection.Task.WaitAsync(Bound);
+        Assert.True(closedByClient, "the fixture never observed the client releasing the connection");
     }
 
     [Fact]
@@ -368,7 +415,76 @@ public sealed class MCPWireTests
             Assert.IsType<MCPWireError.Case.TimedOut>(first.ErrorCase);
 
             var second = await connection.Request("ping", null, 10).WaitAsync(Bound);
+            // Both replies share the literal body {"result":{"late":true}}; only the envelope's own "id" tells
+            // them apart, so this is the assertion that actually proves request 2 got its own reply rather than
+            // request 1's abandoned late one being handed to whichever call happened to be waiting.
+            Assert.Equal(2, second["id"]?.JSONValueInt);
             Assert.True(second["result"]?["late"]?.JSONValueBool);
+        }
+        finally
+        {
+            connection.Stop();
+        }
+    }
+
+    [Fact]
+    [Trait("Req", "PR-MCP-235")] // Services/MCP/MCPWire.swift:170-186 (B3): "A cancelled caller cancels both
+    // tasks, the wait gives up its slot the same way, and CancellationError reaches the caller." Covers the
+    // manual cancellation bridge this unit substitutes for withThrowingTaskGroup (:236-243 comment): two
+    // TaskHandle.DetachedThrowing children plus a SwiftTask.CancellationToken.Register propagating the
+    // caller's own ambient cancellation, since neither child otherwise inherits it (R-TASK-1).
+    public async Task A_caller_cancelled_mid_wait_gets_CancellationError_and_abandons_its_id()
+    {
+        // The child holds both lines it reads (never answers while the test is still driving it) so nothing
+        // can resolve request 1 before it is cancelled; once released, it answers both by id, late.
+        var connection = LaunchPowerShell(
+            "$i=[Console]::In; $o=[Console]::Out; $lines=@(); " +
+            "while(($l=$i.ReadLine()) -ne $null){ $lines += $l; if($lines.Count -ge 2){ break } } " +
+            "foreach($l in $lines){ if($l -match '\"id\":(\\d+)'){ " +
+            "$o.WriteLine('{\"id\":'+$matches[1]+',\"result\":{\"late\":true}}'); $o.Flush() } } " +
+            "while(($l=$i.ReadLine()) -ne $null){}");
+        try
+        {
+            // Request runs inside its own ambient task (TaskHandle.DetachedThrowing), the caller whose
+            // cancellation the manual bridge is supposed to propagate into the reply and timer children.
+            var cancelled = TaskHandle.DetachedThrowing(() => connection.Request("ping", null, 30));
+            await Task.Delay(TimeSpan.FromMilliseconds(300)); // let AwaitReply register its wait for id 1
+            cancelled.Cancel();
+            await Assert.ThrowsAsync<CancellationError>(() => cancelled.Value).WaitAsync(Bound);
+
+            // Id 1's wait was abandoned: a second request (id 2) must get its own reply, not the first's late
+            // one once the child eventually answers both (PR-MCP-232's "kept, not delivered").
+            var second = await connection.Request("ping", null, 10).WaitAsync(Bound);
+            Assert.Equal(2, second["id"]?.JSONValueInt);
+            Assert.True(second["result"]?["late"]?.JSONValueBool);
+        }
+        finally
+        {
+            connection.Stop();
+        }
+    }
+
+    [Fact]
+    [Trait("Req", "PR-MCP-232")] // Services/MCP/MCPWire.swift:219-228 (B3)
+    public async Task A_reply_for_an_id_nobody_is_waiting_on_is_kept_and_a_later_request_for_it_still_gets_it()
+    {
+        // The child answers id 7 the moment it starts, unprompted (nothing ever requests id 7 through the
+        // normal counter, which starts at 1): :224 buffers it under state.buffered[7]. A later request that
+        // happens to land on id 1 must get its OWN reply, and only a request for id 7 specifically (impossible
+        // through the public counter, so this drives it through the same child process a second connection
+        // could not) proves the unsolicited message was kept rather than dropped or misdelivered. Since this
+        // connection's own counter starts at 1, we instead assert the counted request (id 1) is unaffected by
+        // the buffered, never-requested id 7 reply sitting in state.buffered.
+        var connection = LaunchPowerShell(
+            "$o=[Console]::Out; $o.WriteLine('{\"id\":7,\"result\":{\"unsolicited\":true}}'); $o.Flush(); " +
+            "$i=[Console]::In; while(($l=$i.ReadLine()) -ne $null){ if($l -match '\"id\":(\\d+)'){ " +
+            "$o.WriteLine('{\"id\":'+$matches[1]+',\"result\":{\"echo\":'+$matches[1]+'}}'); $o.Flush() } }");
+        try
+        {
+            await Task.Delay(TimeSpan.FromMilliseconds(500));
+            var reply = await connection.Request("ping", null, 10).WaitAsync(Bound);
+            Assert.Equal(1, reply["id"]?.JSONValueInt);
+            Assert.Equal(1, reply["result"]?["echo"]?.JSONValueInt);
         }
         finally
         {

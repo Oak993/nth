@@ -74,10 +74,14 @@ public static class MCPWire
 
     // MARK: - Streamable HTTP (:53-103)
 
-    // :55-103. DEVIATION OD-0022/ED-152 note: the redirect behind URLSession.Shared.Bytes already drops a
-    // configuration or request header named Authorization once the chain leaves the request's origin (scheme,
-    // host or port), per Core/Port/Http.cs:707-784 (F.HTTP, ED-118); this call sends no other custom headers a
-    // redirect could carry across servers, so nothing further is needed here.
+    // :55-103. DEVIATION OD-0022/ED-152: F.HTTP (Marrow.Core.Port.Http.cs) currently drops only the
+    // Authorization header across an origin-changing redirect (ED-152, Http.cs:707-784); it has no per-request
+    // mechanism to drop an arbitrary named header, such as this call's caller-supplied `headers` (a server's
+    // custom headers, e.g. X-Api-Key), the same way. Extending it is out of this unit's scope (Marrow.Services
+    // only; see MCPProbe.cs:246-266, which carries the identical note for its own call into this same Post).
+    // The headers below are therefore forwarded to a same-server redirect target exactly as OD-0022 requires,
+    // but are NOT yet withheld from a cross-server redirect target. Tracked, not silently dropped: see this
+    // unit's report (review finding L2f-1, ED needed to extend F.HTTP with a per-header origin-bound marker).
     public static async Task<MCPHTTPReply> Post(
         Uri to, IReadOnlyDictionary<string, string> headers, string? sessionID, JSONValue payload, int? id, double timeout)
     {

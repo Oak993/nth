@@ -13,7 +13,13 @@ internal sealed record FakeResponse(
     int Status,
     (string Name, string Value)[] Headers,
     byte[] Body,
-    string[]? SseChunks = null);
+    string[]? SseChunks = null,
+    // When true and SseChunks is set, the wire-level connection is not closed by this server right after the
+    // chunks are flushed: HandleAsync instead attempts a bounded read on the same socket (see
+    // FakeUpstreamServer.ClientClosedConnection) so a test can tell whether ITS OWN client released the
+    // connection (a graceful close arrives as a 0-byte read) rather than the exchange only ever ending because
+    // this fixture hung up first.
+    bool HoldOpenAfterSse = false);
 
 internal sealed class FakeUpstreamServer : IAsyncDisposable
 {
@@ -23,6 +29,14 @@ internal sealed class FakeUpstreamServer : IAsyncDisposable
 
     public Func<FakeRequest, FakeResponse> Handler { get; set; } = _ => new FakeResponse(200, [], []);
     public List<FakeRequest> Received { get; } = [];
+
+    /// <summary>
+    /// Set only when a handled response has HoldOpenAfterSse: true is a 0-byte read on the still-open socket (the
+    /// client side closed gracefully after this fixture kept the connection open); false is the 5-second bound
+    /// expiring first with nothing read (the client never closed it); an exception while reading also completes
+    /// this as true. Not set at all means the response never asked to hold the connection open.
+    /// </summary>
+    public TaskCompletionSource<bool> ClientClosedConnection { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     public FakeUpstreamServer()
     {
@@ -108,6 +122,24 @@ internal sealed class FakeUpstreamServer : IAsyncDisposable
             {
                 await stream.WriteAsync(Encoding.UTF8.GetBytes(text));
                 await stream.FlushAsync();
+            }
+            if (response.HoldOpenAfterSse)
+            {
+                var probe = new byte[1];
+                try
+                {
+                    using var boundedWait = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                    var n = await stream.ReadAsync(probe, boundedWait.Token);
+                    ClientClosedConnection.TrySetResult(n == 0);
+                }
+                catch (OperationCanceledException)
+                {
+                    ClientClosedConnection.TrySetResult(false);
+                }
+                catch
+                {
+                    ClientClosedConnection.TrySetResult(true);
+                }
             }
         }
         else
