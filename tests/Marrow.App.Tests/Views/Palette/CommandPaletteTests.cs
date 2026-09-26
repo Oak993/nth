@@ -37,9 +37,14 @@ public sealed class CommandPaletteTests(HeadlessSession headless)
 
     private static void Settle(AvaloniaWindow window)
     {
-        for (var pass = 0; pass < 3; pass++)
+        for (var pass = 0; pass < 5; pass++)
         {
             window.UpdateLayout();
+            Dispatcher.UIThread.RunJobs();
+            // Forces any pending render (and so any pending text/glyph measurement) to complete now, inside
+            // this OnMain call, rather than staying queued on the real Avalonia dispatcher until the headless
+            // session's own next-dispatch reset flushes it later, attributed to whichever test runs next.
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
             Dispatcher.UIThread.RunJobs();
         }
     }
@@ -162,10 +167,17 @@ public sealed class CommandPaletteTests(HeadlessSession headless)
 
                 var (_, _, palette) = Build(model);
                 var titles = Titles(palette);
-                Assert.Equal("Toggle terminal", titles[3]);
-                Assert.Equal("Toggle changes", titles[4]);
-                Assert.Equal(model.FinishActionTitle, titles[5]);
-                Assert.Equal("Settings", titles[6]);
+                // The new thread itself is also a recent-thread row (:181-189), so its own position among the
+                // four base actions moves with the fixture; find the three inserted rows and Settings by name
+                // rather than assume a fixed index (PR-WIN-172's own point is their RELATIVE order).
+                var terminalIndex = Array.IndexOf(titles, "Toggle terminal");
+                var changesIndex = Array.IndexOf(titles, "Toggle changes");
+                var finishIndex = Array.IndexOf(titles, model.FinishActionTitle);
+                var settingsIndex = Array.IndexOf(titles, "Settings");
+                Assert.True(terminalIndex >= 0 && changesIndex >= 0 && finishIndex >= 0 && settingsIndex >= 0);
+                Assert.Equal(terminalIndex + 1, changesIndex);
+                Assert.Equal(changesIndex + 1, finishIndex);
+                Assert.Equal(finishIndex + 1, settingsIndex);
             });
         });
     }
@@ -216,13 +228,15 @@ public sealed class CommandPaletteTests(HeadlessSession headless)
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
             CommandPalette palette = null!;
+            AvaloniaWindow window = null!;
             harness.Main.OnMain(() =>
             {
-                (_, _, palette) = Build(model);
+                (_, window, palette) = Build(model);
                 palette.QueryField.Text = "  ADD  "; // padded, upper-cased, still matches "Add project"
             });
             harness.Main.OnMain(() =>
             {
+                Settle(window);
                 var titles = Titles(palette);
                 Assert.Contains("Add project", titles);
                 Assert.DoesNotContain("New thread", titles); // "new thread" does not contain "add"
@@ -239,15 +253,17 @@ public sealed class CommandPaletteTests(HeadlessSession headless)
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
             CommandPalette palette = null!;
+            AvaloniaWindow window = null!;
             string[] emptyQueryTitles = [];
             harness.Main.OnMain(() =>
             {
-                (_, _, palette) = Build(model);
+                (_, window, palette) = Build(model);
                 emptyQueryTitles = Titles(palette);
                 palette.QueryField.Text = "   ";
             });
             harness.Main.OnMain(() =>
             {
+                Settle(window);
                 Assert.Equal(emptyQueryTitles, Titles(palette));
             });
         });
@@ -294,6 +310,8 @@ public sealed class CommandPaletteTests(HeadlessSession headless)
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
             var directory = harness.NewFolder("p");
+            AvaloniaWindow window = null!;
+            CommandPalette palette = null!;
             harness.Main.OnMain(() =>
             {
                 var project = model.AddProject(new Project("P", directory).Url);
@@ -301,13 +319,14 @@ public sealed class CommandPaletteTests(HeadlessSession headless)
                 for (var i = 0; i < 12; i++)
                     model.InsertThread(AppModelSamples.Thread(project) with { Title = "Match" + i, UpdatedAt = baseTime.AddMinutes(i) });
 
-                var (_, _, palette) = Build(model);
+                (_, window, palette) = Build(model);
                 palette.QueryField.Text = "match";
-                harness.Main.OnMain(() =>
-                {
-                    var matches = Titles(palette).Count(title => title.StartsWith("Match", StringComparison.Ordinal));
-                    Assert.Equal(10, matches);
-                });
+            });
+            harness.Main.OnMain(() =>
+            {
+                Settle(window);
+                var matches = Titles(palette).Count(title => title.StartsWith("Match", StringComparison.Ordinal));
+                Assert.Equal(10, matches);
             });
         });
     }
@@ -323,6 +342,8 @@ public sealed class CommandPaletteTests(HeadlessSession headless)
             var directory = harness.NewFolder("p");
             harness.Main.OnMain(() =>
             {
+                // AppModel.AddProject derives Name from the folder's own basename (NewThreadPromptTests's own
+                // documented convention): read it back rather than assume the throwaway Project's name survives.
                 var project = model.AddProject(new Project("Alpha", directory).Url);
                 var thread = AppModelSamples.Thread(project) with { Title = "My thread" };
                 model.InsertThread(thread);
@@ -332,7 +353,7 @@ public sealed class CommandPaletteTests(HeadlessSession headless)
                 Assert.True(index >= 0);
                 var parts = RowParts(palette.RowsPanel.Children[index]);
                 Assert.True(parts.Subtitle.IsVisible);
-                Assert.Equal("Alpha", parts.Subtitle.FullText);
+                Assert.Equal(project.Name, parts.Subtitle.FullText);
                 var symbol = Assert.IsType<SwiftImage>(Assert.Single(parts.Icon.Children));
                 Assert.Equal("bubble.left", symbol.SymbolName);
             });
@@ -350,20 +371,27 @@ public sealed class CommandPaletteTests(HeadlessSession headless)
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
             var directory = harness.NewFolder("marrow");
+            AvaloniaWindow window = null!;
+            CommandPalette palette = null!;
+            string projectName = "";
+            string projectPath = "";
             harness.Main.OnMain(() =>
             {
-                model.AddProject(new Project("Marrow", directory).Url);
-                var (_, _, palette) = Build(model);
-                Assert.DoesNotContain("New thread in Marrow", Titles(palette)); // :190 empty query: no project rows
+                var project = model.AddProject(new Project("Marrow", directory).Url);
+                projectName = project.Name;
+                projectPath = project.Path; // read back what AddProject actually stored, not the raw input
+                (_, window, palette) = Build(model);
+                Assert.DoesNotContain("New thread in " + projectName, Titles(palette)); // :190 empty query: no project rows
 
-                palette.QueryField.Text = "marrow";
-                harness.Main.OnMain(() =>
-                {
-                    var index = Array.IndexOf(Titles(palette), "New thread in Marrow");
-                    Assert.True(index >= 0);
-                    var parts = RowParts(palette.RowsPanel.Children[index]);
-                    Assert.Equal(directory, parts.Subtitle.FullText); // :193 subtitle: project.path
-                });
+                palette.QueryField.Text = projectName.ToUpperInvariant(); // still matches: case-insensitive
+            });
+            harness.Main.OnMain(() =>
+            {
+                Settle(window);
+                var index = Array.IndexOf(Titles(palette), "New thread in " + projectName);
+                Assert.True(index >= 0);
+                var parts = RowParts(palette.RowsPanel.Children[index]);
+                Assert.Equal(projectPath, parts.Subtitle.FullText); // :193 subtitle: project.path
             });
         });
     }
@@ -401,23 +429,28 @@ public sealed class CommandPaletteTests(HeadlessSession headless)
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
             var directory = harness.NewFolder("addison");
+            AvaloniaWindow window = null!;
+            CommandPalette palette = null!;
+            string projectName = "";
             harness.Main.OnMain(() =>
             {
                 var project = model.AddProject(new Project("Addison", directory).Url);
+                projectName = project.Name;
                 model.InsertThread(AppModelSamples.Thread(project) with { Title = "Add feature" });
 
-                var (_, _, palette) = Build(model);
+                (_, window, palette) = Build(model);
                 palette.QueryField.Text = "add";
-                harness.Main.OnMain(() =>
-                {
-                    var titles = Titles(palette);
-                    var actionIndex = Array.IndexOf(titles, "Add project");
-                    var threadIndex = Array.IndexOf(titles, "Add feature");
-                    var projectIndex = Array.IndexOf(titles, "New thread in Addison");
-                    Assert.True(actionIndex >= 0 && threadIndex >= 0 && projectIndex >= 0);
-                    Assert.True(actionIndex < threadIndex);
-                    Assert.True(threadIndex < projectIndex);
-                });
+            });
+            harness.Main.OnMain(() =>
+            {
+                Settle(window);
+                var titles = Titles(palette);
+                var actionIndex = Array.IndexOf(titles, "Add project");
+                var threadIndex = Array.IndexOf(titles, "Add feature");
+                var projectIndex = Array.IndexOf(titles, "New thread in " + projectName);
+                Assert.True(actionIndex >= 0 && threadIndex >= 0 && projectIndex >= 0);
+                Assert.True(actionIndex < threadIndex);
+                Assert.True(threadIndex < projectIndex);
             });
         });
     }
@@ -431,20 +464,29 @@ public sealed class CommandPaletteTests(HeadlessSession headless)
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
             var directory = harness.NewFolder("p");
+            AvaloniaWindow window = null!;
+            CommandPalette palette = null!;
             harness.Main.OnMain(() =>
             {
                 var project = model.AddProject(new Project("P", directory).Url);
                 var baseTime = DateTimeOffset.UtcNow;
-                for (var i = 0; i < 12; i++)
-                    model.InsertThread(AppModelSamples.Thread(project) with { Title = "Match" + i, UpdatedAt = baseTime.AddMinutes(i) });
-
-                var (_, _, palette) = Build(model);
-                palette.QueryField.Text = "match";
-                harness.Main.OnMain(() =>
+                ChatThread? first = null;
+                // Empty query: at most 6 recent threads (:184) plus, with a thread selected, seven actions
+                // (:154-178) = 13 candidate rows, one more than the cap (:198).
+                for (var i = 0; i < 7; i++)
                 {
-                    Assert.Equal(12, palette.ResultCount);
-                    Assert.Equal(12, palette.RowsPanel.Children.Count);
-                });
+                    var thread = AppModelSamples.Thread(project) with { Title = "T" + i, UpdatedAt = baseTime.AddMinutes(i) };
+                    model.InsertThread(thread);
+                    first ??= thread;
+                }
+                model.SelectedThreadID = first!.Id;
+                (_, window, palette) = Build(model);
+            });
+            harness.Main.OnMain(() =>
+            {
+                Settle(window);
+                Assert.Equal(12, palette.ResultCount);
+                Assert.Equal(12, palette.RowsPanel.Children.Count);
             });
         });
     }
@@ -542,9 +584,11 @@ public sealed class CommandPaletteTests(HeadlessSession headless)
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
+            var directory = harness.NewFolder("p");
             AvaloniaWindow window = null!;
             harness.Main.OnMain(() =>
             {
+                model.AddProject(new Project("P", directory).Url); // NewThread() needs a current project to land in
                 (_, window, _) = Build(model);
                 model.IsCommandPalettePresented = true;
             });
@@ -555,6 +599,7 @@ public sealed class CommandPaletteTests(HeadlessSession headless)
                 window.KeyRelease(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, "\r");
                 Assert.Equal(before + 1, model.Threads.Count); // row 0 is "New thread" with no thread selected
             });
+            harness.Main.OnMain(() => Settle(window)); // the new thread is itself a fresh row now (:181-189)
             harness.Main.OnMain(() => Assert.False(model.IsCommandPalettePresented));
         });
     }
@@ -567,14 +612,20 @@ public sealed class CommandPaletteTests(HeadlessSession headless)
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
+            var directory = harness.NewFolder("p");
             AvaloniaWindow window = null!;
             CommandPalette palette = null!;
             harness.Main.OnMain(() =>
             {
+                var project = model.AddProject(new Project("P", directory).Url);
+                var thread = model.NewThread(project)!;
+                model.SelectedThreadID = thread.Id;
                 (_, window, palette) = Build(model);
                 model.IsCommandPalettePresented = true;
-                // Force the selection out of range: there is no row at index 999 in the fixture's small result set.
-                for (var i = 0; i < 999; i++)
+
+                // With a thread selected the row list has three more rows than without one (:164-175); walk to
+                // the last one (Settings, still in range here), matching PR-WIN-172's own fixture shape.
+                for (var i = 0; i < palette.ResultCount; i++)
                 {
                     window.KeyPress(Key.Down, RawInputModifiers.None, PhysicalKey.ArrowDown, "");
                     window.KeyRelease(Key.Down, RawInputModifiers.None, PhysicalKey.ArrowDown, "");
@@ -582,10 +633,18 @@ public sealed class CommandPaletteTests(HeadlessSession headless)
             });
             harness.Main.OnMain(() =>
             {
+                Assert.Equal(palette.ResultCount - 1, palette.Selection); // sanity: really did land on the last row
+                // Deselecting the thread drops the three thread-only rows (:164-175) without touching the query,
+                // so the cached selection index is now stale: PR-WIN-178 never resets it for this kind of change.
+                model.SelectedThreadID = null;
+            });
+            harness.Main.OnMain(() =>
+            {
+                Assert.True(palette.Selection >= palette.ResultCount); // now genuinely out of range
                 var before = model.Threads.Count;
                 window.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, "\r");
                 window.KeyRelease(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, "\r");
-                Assert.Equal(before, model.Threads.Count); // clamped selection is always in range, so this proves the clamp, not a gap
+                Assert.Equal(before, model.Threads.Count); // the guard caught it: no action ran
             });
             harness.Main.OnMain(() => Assert.True(model.IsCommandPalettePresented));
         });
@@ -730,14 +789,17 @@ public sealed class CommandPaletteTests(HeadlessSession headless)
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
+            CommandPalette palette = null!;
+            AvaloniaWindow window = null!;
             harness.Main.OnMain(() =>
             {
-                var (_, _, palette) = Build(model);
+                (_, window, palette) = Build(model);
                 Assert.Equal("Search threads, projects and actions", palette.QueryField.PlaceholderText);
                 palette.QueryField.Text = "anything";
             });
             harness.Main.OnMain(() =>
             {
+                Settle(window);
                 // No clear-button chrome exists in the palette's own field template (unlike the sidebar/chrome fields).
                 Assert.DoesNotContain("Clear search", LogicalQuery.SelfAndDescendants<Button>(palette.QueryField)
                     .Select(Avalonia.Automation.AutomationProperties.GetName));
@@ -756,13 +818,16 @@ public sealed class CommandPaletteTests(HeadlessSession headless)
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
+            CommandPalette palette = null!;
+            AvaloniaWindow window = null!;
             harness.Main.OnMain(() =>
             {
-                var (_, _, palette) = Build(model);
+                (_, window, palette) = Build(model);
                 palette.QueryField.Text = "zzzznomatch";
             });
             harness.Main.OnMain(() =>
             {
+                Settle(window);
                 Assert.Equal(0, palette.ResultCount);
                 Assert.Same(palette.NoMatchesText, palette.ResultsSlot.Children[0]);
                 var expected = "Nothing matches " + (char)0x201C + "zzzznomatch" + (char)0x201D;
