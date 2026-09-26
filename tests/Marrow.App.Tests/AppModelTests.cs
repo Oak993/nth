@@ -734,6 +734,16 @@ public sealed class AppModelTests
         h.Main.Advance(TimeSpan.FromSeconds(299));
         h.Main.OnMain(() => Assert.Null(model.ExistingRuntime(first.Id))); // it sleeps first
         h.Main.Advance(TimeSpan.FromSeconds(1));
+        // The fired sweep round calls ResumeHydraMerges, which awaits Runtime(lead.Id).EnsureLoaded() for every
+        // eligible lead (AppModel+HydraMerge.cs:57) before it can create/finish the runtime this test checks for.
+        // EnsureLoaded's own load is a real TaskHandle.Detached hop (ThreadRuntime.cs:864-871, R-ISO-2's
+        // @concurrent boundary): genuine ThreadPool scheduling, not something the manual clock drives, so
+        // Advance's RunUntilIdle (which only drains what is already queued) can return before that hop has
+        // posted its MainActor.Run continuation back. Asserting immediately after Advance races that hop and
+        // loses it almost every time (observed: 8 of 9 solo runs failing here before this fix); RunUntil polls
+        // and pumps for the real elapsed time the hop needs, exactly as AppModelHydraTests does throughout for
+        // the same reason.
+        h.Main.Loop.RunUntil(() => model.ExistingRuntime(first.Id) is not null, AppModelHarness.Bound);
         h.Main.OnMain(() =>
         {
             Assert.NotNull(model.ExistingRuntime(first.Id));
@@ -745,6 +755,7 @@ public sealed class AppModelTests
         h.Main.Advance(TimeSpan.FromSeconds(299));
         h.Main.OnMain(() => Assert.Null(model.ExistingRuntime(later.Id)));
         h.Main.Advance(TimeSpan.FromSeconds(1));
+        h.Main.Loop.RunUntil(() => model.ExistingRuntime(later.Id) is not null, AppModelHarness.Bound);
         h.Main.OnMain(() => Assert.NotNull(model.ExistingRuntime(later.Id)));
     }
 
