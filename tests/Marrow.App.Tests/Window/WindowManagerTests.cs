@@ -159,14 +159,8 @@ public sealed class WindowManagerTests(HeadlessSession headless)
     });
 
     // ---- PR-WIN-006: the frame autosave name ----
-
-    [Fact]
-    [Trait("Req", "PR-WIN-006")] // App/Window/WindowManager.swift:67-69
-    public void With_no_saved_frame_the_main_window_is_centred_on_the_screen() => WithManager((harness, manager) =>
-    {
-        var window = ShowMain(harness, manager, new Border());
-        Assert.Equal(new PixelPoint((ScreenWidth - 1320) / 2, (ScreenHeight - 860) / 2), window.Position);
-    });
+    // With no saved frame the main window is centred by window.center() (:68), whose placement is AppKit's and not
+    // settled: STOP App.Window.WindowManager #6 below.
 
     [Fact]
     [Trait("Req", "PR-WIN-006")] // App/Window/WindowManager.swift:24, :67
@@ -349,20 +343,14 @@ public sealed class WindowManagerTests(HeadlessSession headless)
     });
 
     // ---- PR-WIN-011, PR-SETTINGS-002: centred over the main window ----
+    // With no main window, or a hidden or minimised one, the Settings window is centred by window.center() (:43), and a
+    // new one is centred by it first (:82): AppKit's placement, not settled (STOP App.Window.WindowManager #6 below).
+    // What the source does fix there is that the window is not centred over the main window.
 
     [Fact]
-    [Trait("Req", "PR-WIN-011")] // App/Window/WindowManager.swift:42-44, :82
-    [Trait("Req", "PR-SETTINGS-002")] // App/Window/WindowManager.swift:40-44
-    public void With_no_main_window_the_Settings_window_is_centred_on_the_screen() => WithManager((harness, manager) =>
-    {
-        var window = ShowSettings(harness, manager, new Border());
-        Assert.Equal(new PixelPoint((ScreenWidth - 780) / 2, (ScreenHeight - 580) / 2), window.Position);
-    });
-
-    [Fact]
-    [Trait("Req", "PR-WIN-011")] // App/Window/WindowManager.swift:42-44
-    [Trait("Req", "PR-SETTINGS-002")] // App/Window/WindowManager.swift:42-44
-    public void With_the_main_window_hidden_or_minimised_the_Settings_window_is_centred_on_the_screen() => WithManager((harness, manager) =>
+    [Trait("Req", "PR-WIN-011")] // App/Window/WindowManager.swift:42-45
+    [Trait("Req", "PR-SETTINGS-002")] // App/Window/WindowManager.swift:42-45
+    public void With_the_main_window_hidden_or_minimised_the_Settings_window_is_not_centred_over_it() => WithManager((harness, manager) =>
     {
         var main = ShowMain(harness, manager, new Border());
         harness.Main.OnMain(() =>
@@ -372,7 +360,9 @@ public sealed class WindowManagerTests(HeadlessSession headless)
             Settle(main);
         });
         var settings = ShowSettings(harness, manager, new Border());
-        Assert.Equal(new PixelPoint((ScreenWidth - 780) / 2, (ScreenHeight - 580) / 2), settings.Position);
+        // Centred over the main window at (0, 0, 1320, 860), :46-52 would put it at (270, 140).
+        var overMain = new PixelPoint(270, 140);
+        Assert.NotEqual(overMain, settings.Position); // :42 `main.isVisible` fails: :43-44 instead
 
         harness.Main.OnMain(() =>
         {
@@ -382,7 +372,7 @@ public sealed class WindowManagerTests(HeadlessSession headless)
             Settle(main);
             manager.ShowSettings();
         });
-        Assert.Equal(new PixelPoint((ScreenWidth - 780) / 2, (ScreenHeight - 580) / 2), settings.Position);
+        Assert.NotEqual(overMain, settings.Position); // :42 `!main.isMiniaturized` fails: :43-44 instead
     });
 
     [Fact]
@@ -403,7 +393,7 @@ public sealed class WindowManagerTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-WIN-011")] // App/Window/WindowManager.swift:48-49
+    [Trait("Req", "PR-WIN-011")] // App/Window/WindowManager.swift:46-49, :54
     public void Each_centred_coordinate_is_rounded_to_a_whole_point_half_away_from_zero_before_the_clamp() => WithManager((harness, manager) =>
     {
         var main = ShowMain(harness, manager, new Border());
@@ -416,7 +406,20 @@ public sealed class WindowManagerTests(HeadlessSession headless)
             Settle(main);
         });
         var settings = ShowSettings(harness, manager, new Border());
-        // mid (660.5, 430.5): (660.5 - 390).rounded() = 271, (430.5 - 290).rounded() = 141 (.toNearestOrAwayFromZero).
+        // An AppKit frame's origin is its bottom-left corner, with y growing upward from the bottom edge of the primary
+        // screen (here 1280 high). :46 the main window's frame is (0, 1280 - 861 = 419, 1321, 861): midX 660.5, midY
+        // 849.5. :48 (660.5 - 390).rounded() = 271; :49 (849.5 - 290).rounded() = 559.5.rounded() = 560
+        // (.toNearestOrAwayFromZero), so the top edge is 560 + 580 = 1140 up, 1280 - 1140 = 140 down from the top.
+        Assert.Equal(new PixelPoint(271, 140), settings.Position);
+
+        harness.Main.OnMain(() =>
+        {
+            main.Position = new PixelPoint(0, 1);
+            Settle(main);
+            manager.ShowSettings();
+        });
+        // :46 (0, 1280 - 1 - 861 = 418, 1321, 861): midY 848.5. :49 (848.5 - 290).rounded() = 558.5.rounded() = 559, a
+        // top edge 559 + 580 = 1139 up, 141 down.
         Assert.Equal(new PixelPoint(271, 141), settings.Position);
     });
 
@@ -562,31 +565,114 @@ public sealed class WindowManagerTests(HeadlessSession headless)
         Assert.True(new FrameHostingView(new TextBlock()).Focusable);
     });
 
-    [Fact]
-    [Trait("Req", "PR-WIN-016")] // App/Window/WindowManager.swift:216-221
-    public void A_hidden_hosting_view_keeps_its_default_button_chord_to_itself() => headless.OnUiThread(() =>
+    // The detail pane as ThreadColumns keeps it (App/Views/RootView.swift:224-243, :254-274): every chat column is a
+    // FrameHostingView added to the same pane, the ones built first standing first.
+    private static AvaloniaWindow Pane(params FrameHostingView[] columns)
     {
-        // Two chat columns, as RootView.swift:224-243 keeps them: one shown, the previous one hidden. Each holds a
-        // Return button (.keyboardShortcut(.defaultAction) is Button.IsDefault in the port).
-        var shownClicks = 0;
-        var hiddenClicks = 0;
-        var shownButton = new Button { IsDefault = true, Content = "Approve" };
-        var hiddenButton = new Button { IsDefault = true, Content = "Approve" };
-        shownButton.Click += (_, _) => shownClicks++;
-        hiddenButton.Click += (_, _) => hiddenClicks++;
-        var shown = new FrameHostingView(shownButton);
-        var hidden = new FrameHostingView(hiddenButton) { IsVisible = false };
-        var window = new AvaloniaWindow { Width = 400, Height = 300, Content = new Panel { Children = { hidden, shown } } };
+        var pane = new Panel();
+        foreach (var column in columns) pane.Children.Add(column);
+        var window = new AvaloniaWindow { Width = 400, Height = 300, Content = pane };
         window.Show();
         Settle(window);
-        window.KeyPress(Key.Return, RawInputModifiers.None, PhysicalKey.Enter, null);
-        window.KeyRelease(Key.Return, RawInputModifiers.None, PhysicalKey.Enter, null);
+        return window;
+    }
+
+    private static void Press(AvaloniaWindow window, Key key, RawInputModifiers modifiers)
+    {
+        window.KeyPress(key, modifiers, PhysicalKey.Enter, null);
+        window.KeyRelease(key, modifiers, PhysicalKey.Enter, null);
         Dispatcher.UIThread.RunJobs();
-        Assert.Equal(1, shownClicks);
-        Assert.Equal(0, hiddenClicks);
-        Assert.True(hiddenButton.IsVisible); // the hidden column's own controls are live; only the host is hidden
+    }
+
+    private static void Close(AvaloniaWindow window)
+    {
         window.Close();
         Dispatcher.UIThread.RunJobs();
+    }
+
+    // A button that counts its clicks.
+    private static Button Counted(Button button, Action clicked)
+    {
+        button.Click += (_, _) => clicked();
+        return button;
+    }
+
+    // The approval card's approve button, trimmed (App/Views/Composer/RequestCards.swift:49-54): the card at the top of
+    // its runtime's stack (`request.id == runtime.approvals.first?.id`, :49) carries
+    // KeyboardShortcut(.return, modifiers: .command) (:54), which is the key gesture Ctrl+Enter in the port (ED-099 (3)
+    // Command as Control, (6) a KeyboardShortcut as an Avalonia key gesture). A button's key gesture is Button.HotKey,
+    // which Avalonia 12.1.2 answers from the window's own key bindings (HotKeyManager), asking only whether the button
+    // is enabled. Each chat column has its own runtime, so every column whose thread waits on an approval holds it.
+    private static Button ApproveButton(Action clicked) =>
+        Counted(new Button { HotKey = new KeyGesture(Key.Enter, KeyModifiers.Control) }, clicked);
+
+    [Fact]
+    [Trait("Req", "PR-WIN-016")] // App/Window/WindowManager.swift:216-221; App/Views/Composer/RequestCards.swift:49-54
+    public void A_hidden_hosting_view_keeps_the_approval_card_chord_to_itself() => headless.OnUiThread(() =>
+    {
+        // (1) Only a hidden column holds the chord: a column built ahead of a click, hidden from the start
+        // (RootView.swift:254-269, `column.isHidden = !isShown` at :269), whose thread waits on an approval, beside the
+        // shown column of a thread that does not. :219-220 a hidden host answers no without asking its subtree.
+        var prebuiltClicks = 0;
+        var prebuiltButton = ApproveButton(() => prebuiltClicks++);
+        var prebuilt = new FrameHostingView(prebuiltButton) { IsVisible = false };
+        var window = Pane(prebuilt, new FrameHostingView(new Border()));
+        Press(window, Key.Enter, RawInputModifiers.Control);
+        Assert.Equal(0, prebuiltClicks);
+        Assert.True(prebuiltButton.IsVisible); // the column's own controls are untouched: only the host is hidden
+        Assert.True(prebuiltButton.IsEnabled);
+        Close(window);
+
+        // (2) Both columns hold it. The earlier column was shown and is hidden by the switch to the later one
+        // (RootView.swift:224-235: `previous.isHidden = true` at :227, then `kept.isHidden = false` at :235); only the
+        // shown one answers.
+        var earlierClicks = 0;
+        var laterClicks = 0;
+        var earlier = new FrameHostingView(ApproveButton(() => earlierClicks++));
+        var later = new FrameHostingView(ApproveButton(() => laterClicks++)) { IsVisible = false };
+        window = Pane(earlier, later);
+        earlier.IsVisible = false;
+        later.IsVisible = true;
+        Settle(window);
+        Press(window, Key.Enter, RawInputModifiers.Control);
+        Assert.Equal(0, earlierClicks);
+        Assert.Equal(1, laterClicks);
+
+        // (3) Back to the earlier thread: its column, shown again, answers again, and the later one, now hidden, does not.
+        later.IsVisible = false;
+        earlier.IsVisible = true;
+        Settle(window);
+        Press(window, Key.Enter, RawInputModifiers.Control);
+        Assert.Equal(1, earlierClicks);
+        Assert.Equal(1, laterClicks);
+        Close(window);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-016")] // App/Window/WindowManager.swift:216-221; App/Views/Composer/QuestionTab.swift:156-158
+    public void A_hidden_hosting_view_keeps_its_default_button_chord_to_itself() => headless.OnUiThread(() =>
+    {
+        // The question tab's Send button, trimmed (QuestionTab.swift:156-158 `.keyboardShortcut(.defaultAction)`, Return
+        // with no modifiers), in a hidden column beside a shown one that holds no chord. No decision yet fixes which
+        // Avalonia form that chord takes (ED-099 (6) says a key gesture), so both forms are checked: Button.HotKey
+        // Return, answered from the window's key bindings, and Button.IsDefault, answered from the window's KeyDown.
+        foreach (var form in new Func<Button>[] { () => new Button { HotKey = new KeyGesture(Key.Enter) }, () => new Button { IsDefault = true } })
+        {
+            var hiddenClicks = 0;
+            var hidden = new FrameHostingView(Counted(form(), () => hiddenClicks++)) { IsVisible = false };
+            var shown = new FrameHostingView(new Border());
+            var window = Pane(hidden, shown);
+            Press(window, Key.Return, RawInputModifiers.None);
+            Assert.Equal(0, hiddenClicks);
+
+            // Shown in its turn (RootView.swift:224-235), the column's Return is its own again.
+            shown.IsVisible = false;
+            hidden.IsVisible = true;
+            Settle(window);
+            Press(window, Key.Return, RawInputModifiers.None);
+            Assert.Equal(1, hiddenClicks);
+            Close(window);
+        }
     });
 
     // ---- PR-WIN-017, PR-WIN-018: live resize ----
@@ -1128,3 +1214,24 @@ public sealed class WindowManagerTests(HeadlessSession headless)
 // Needed to proceed: a decision (ED or owner) naming the unit that sets the windows' Acrylic hint and ruling on the
 // corners outside the 26 pt shape; a capture check by probe P3's method.
 // Done so far: the clear window background (:116-117 through :101) is tested above; nothing is written for the hint.
+
+// STOP App.Window.WindowManager #6 (repair agent, 2026-09-26)
+// Kind: unverified
+// Swift: DroppyCode/App/Window/WindowManager.swift:43, :68, :82 `window.center()` (B3 52bc792)
+// Requirements: PR-WIN-006, PR-WIN-010, PR-WIN-011, PR-SETTINGS-002 (and UI-SETTINGS-001's placement)
+// What is unclear or missing: the source says only `window.center()`; where it puts the window is AppKit's
+// NSWindow.center(), which the pinned tree does not state and no decision, oracle item or reference capture fixes:
+// which screen it uses, whether it centres in the whole or the visible frame, and how far above the middle it sits
+// (porting/critiques/critiques.json flags the vertical bias as needing an explicit Windows decision; ED-006 says only
+// "centered"). The first build had centred exactly in the working area, which no record or decision backs, and its
+// tests asserted that invented placement.
+// Readings or options: (a) exact centre of the working area of the window's screen (Windows' own centre-screen
+// placement) -> the first-run main window, a new Settings window, and a Settings window opened with no visible main
+// window sit lower than upstream's; (b) AppKit's placement measured on the reference runtime (screen, frame and
+// vertical offset) and reproduced -> needs a capture; (c) leave the platform's initial position -> not upstream's
+// either.
+// Needed to proceed: a decision (ED or owner), or an oracle item with a reference capture of NSWindow.center()
+// placement for a 1320 x 860 and a 780 x 580 window.
+// Done so far: the three call sites are unwritten (the window keeps the position the platform gives it); the tests
+// that asserted exact centring are withdrawn; the guard at :42-45 (no centring over a hidden or minimised main window)
+// is tested above and green; nothing implemented at these sites.

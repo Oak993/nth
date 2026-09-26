@@ -30,7 +30,8 @@ using AvaloniaWindow = Avalonia.Controls.Window;
 // close (App.AppDelegate, PR-LAUNCH-074) and the ED-063 caption WndProc hook that sits beside WindowChrome.configure
 // (:101). UI-SETTINGS-001 (the Settings window, :21, :80-84, :92-99) is this file's as far as building, placing,
 // opening and keeping the window go; its SettingsView.swift half and its openers are STOP #4, and the Acrylic hint
-// OD-0014 names for the clear window (WindowChrome.swift:116-117, reached from :101) is STOP #5.
+// OD-0014 names for the clear window (WindowChrome.swift:116-117, reached from :101) is STOP #5. The three
+// window.center() calls (:43, :68, :82) are not written: AppKit's placement is unsettled (STOP #6).
 
 namespace Marrow.App.Window;
 
@@ -97,34 +98,40 @@ public sealed class WindowManager
         // :42-45
         if (mainWindow is not { } main || !main.IsVisible || main.WindowState == WindowState.Minimized)
         {
-            Center(window); // :43
+            // :43 window.center(): not written. Where AppKit's center() puts a window is not in the source and no
+            // decision or oracle item settles it (STOP App.Window.WindowManager #6).
             return; // :44
         }
         // In points: the main window's position (pixels) over its own scale, as NSWindow.frame is in points.
         var scale = main.DesktopScaling;
+        // An NSWindow frame's origin is its bottom-left corner, in one global space whose y grows upward from the
+        // bottom edge of the primary screen (NSScreen.screens[0]). Windows' primary monitor has its top-left corner at
+        // the virtual screen's origin and y grows downward, so AppKit's y is `up - y` for a point `y` down, where `up`
+        // is the primary screen's bottom edge; :49 rounds, and :52 clamps, in AppKit's y, then :54 converts back. With
+        // no screen at all (nothing a window could be shown on) there is no primary screen to measure from, and the
+        // virtual screen's origin line stands in for its bottom edge.
+        var up = main.Screens.Primary is { } primary ? primary.Bounds.ToRect(scale).Bottom : 0;
         var parentSize = FrameSizeOf(main);
-        var parent = new Rect(main.Position.X / scale, main.Position.Y / scale, parentSize.Width, parentSize.Height); // :46
+        var parent = new Rect(main.Position.X / scale, up - (main.Position.Y / scale + parentSize.Height), parentSize.Width, parentSize.Height); // :46
         var frame = FrameSizeOf(window); // :47
         var x = SwiftNumber.Rounded(parent.Center.X - frame.Width / 2); // :48
-        // :49, on Windows' downward y axis (the top edge, where AppKit rounds the bottom edge on its upward one): the
-        // same whole point, except that an exact half point rounds the window half a point down where AppKit's
-        // rounding takes it half a point up.
-        var y = SwiftNumber.Rounded(parent.Center.Y - frame.Height / 2);
+        var y = SwiftNumber.Rounded(parent.Center.Y - frame.Height / 2); // :49, the bottom edge, measured upward
         // :50 (main.screen ?? NSScreen.main)?.visibleFrame: the working area (the taskbar and app bars left out) of the
         // screen the main window is on, else the primary screen; with no screen at all the clamp is skipped.
         if ((main.Screens.ScreenFromWindow(main) ?? main.Screens.Primary) is { } screen)
         {
-            var visible = screen.WorkingArea.ToRect(scale);
-            x = SwiftMin(SwiftMax(x, visible.Left), visible.Right - frame.Width); // :51
-            // :52 in AppKit's upward y: min(max(y, visible.minY), visible.maxY - height), whose last term keeps the
-            // window's top edge on the visible frame's top when the window is the taller. Windows' y grows downward,
-            // so the same clamp reads max(min(y, bottom - height), top): identical while the window fits, and a window
-            // taller than the working area still keeps its top edge on the working area's top.
-            y = SwiftMax(SwiftMin(y, visible.Bottom - frame.Height), visible.Top);
+            var working = screen.WorkingArea.ToRect(scale);
+            // visibleFrame in AppKit's y: minY is the working area's bottom edge, maxY its top edge.
+            var visibleMinY = up - working.Bottom;
+            var visibleMaxY = up - working.Top;
+            x = SwiftMin(SwiftMax(x, working.Left), working.Right - frame.Width); // :51
+            y = SwiftMin(SwiftMax(y, visibleMinY), visibleMaxY - frame.Height); // :52
         }
-        // :54 window.setFrame(frame, display: false): only the origin moves (the size is the window's own). A position
-        // is whole pixels, so the whole points go back to pixels at the main window's scale.
-        window.Position = new PixelPoint(checked((int)SwiftNumber.Rounded(x * scale)), checked((int)SwiftNumber.Rounded(y * scale)));
+        // :54 window.setFrame(frame, display: false): only the origin moves (the size is the window's own). Back to
+        // Windows' downward y (the top edge is `up` less the bottom edge and the height), and, a position being whole
+        // pixels, to pixels at the main window's scale.
+        var top = up - (y + frame.Height);
+        window.Position = new PixelPoint(checked((int)SwiftNumber.Rounded(x * scale)), checked((int)SwiftNumber.Rounded(top * scale)));
     }
 
     // :57-60 private func present(_ window: NSWindow)
@@ -154,10 +161,9 @@ public sealed class WindowManager
         // :66 window.contentMinSize: Avalonia reports it to Windows as the minimum tracking size (WM_GETMINMAXINFO).
         window.MinWidth = Size.MainMinimum.Width;
         window.MinHeight = Size.MainMinimum.Height;
-        if (!SetFrameUsingName(window, MainFrameName)) // :67
-        {
-            Center(window); // :68
-        }
+        // :67-69 if !window.setFrameUsingName(Self.mainFrameName) { window.center() }: the saved frame is applied when
+        // there is one. The fallback, :68 window.center(), is not written (STOP App.Window.WindowManager #6).
+        _ = SetFrameUsingName(window, MainFrameName);
         SetFrameAutosaveName(window, MainFrameName); // :70
         return window; // :71
     }
@@ -166,7 +172,7 @@ public sealed class WindowManager
     private AvaloniaWindow MakeSettingsWindow()
     {
         var window = MakeWindow("Settings", Size.Settings, resizable: false, SettingsContent, windowClass: () => new SecondaryWindow()); // :81
-        Center(window); // :82
+        // :82 window.center(): not written (STOP App.Window.WindowManager #6).
         return window; // :83
     }
 
@@ -209,16 +215,6 @@ public sealed class WindowManager
         container.Children.Add(hosting); // :107
         window.Content = container; // :108
         return window; // :109
-    }
-
-    // NSWindow.center() (:43, :68, :82): the window placed in the middle of the working area of its screen, the primary
-    // screen when it is on none. AppKit's own placement sits "somewhat above center vertically" by an amount the source
-    // does not state; the port centres exactly, as Windows' own centre-screen placement does.
-    private static void Center(AvaloniaWindow window)
-    {
-        if ((window.Screens.ScreenFromWindow(window) ?? window.Screens.Primary) is not { } screen) return;
-        var frame = new PixelRect(PixelSize.FromSize(FrameSizeOf(window), screen.Scaling));
-        window.Position = screen.WorkingArea.CenterRect(frame).Position;
     }
 
     // NSWindow.frame's size, in points: the content size plus the decorations around it, which the platform reports
@@ -444,11 +440,24 @@ public sealed class FrameHostingView : Decorator
         // :210-214 acceptsFirstResponder { true }: every window here holds focusable text (the composer, a search
         // field), so the answer is always yes, as a stored value rather than a search of the view tree.
         Focusable = true;
-        // :216-221 performKeyEquivalent: a hidden column keeps its buttons' shortcuts to itself. The port's chords on
-        // controls (.keyboardShortcut(.defaultAction) and (.cancelAction) as Button.IsDefault and IsCancel) are answered
-        // by Avalonia 12.1.2 only while the button IsEffectivelyVisible (Button.RootDefaultKeyDown and RootCancelKeyDown),
-        // which is false for everything inside a hidden host: hiding the host takes its whole subtree out at once,
-        // without consulting it, and nothing more is written here.
+    }
+
+    // :216-221 override func performKeyEquivalent(with event: NSEvent) -> Bool { !isHidden && super... }: a hidden chat
+    // column keeps its buttons' shortcuts to itself, answering no before its subtree is asked. Avalonia 12.1.2 has no
+    // per-view chord pass to override: a button's key gesture (Button.HotKey, ED-099 (6)) is a key binding on the
+    // window itself (HotKeyManager), matched before any view sees the key and asking only whether the button
+    // IsEffectivelyEnabled, whatever its visibility (KeyboardDevice.ProcessRawEvent, HotkeyCommandWrapper.CanExecute).
+    // So the host is the gate for its whole subtree: while the host itself is hidden (its own flag, as isHidden) it is
+    // not enabled, which makes every control under it not IsEffectivelyEnabled, and no chord reaches one, however it is
+    // bound (a key binding on the window or in the subtree, Button.IsDefault or IsCancel). The subtree's own IsEnabled
+    // values are untouched; a hidden host already draws nothing, takes no pointer and holds no focus.
+    protected override bool IsEnabledCore => IsVisible && base.IsEnabledCore;
+
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+        // Hidden or shown again (RootView.swift:224-235, B3 52bc792): the gate follows at once.
+        if (change.Property == IsVisibleProperty) UpdateIsEffectivelyEnabled();
     }
 
     // :200 sizingOptions = []: the content never sizes the host. It is laid out in the space the host is offered, and
