@@ -6,6 +6,7 @@ using Marrow.App.Views.Settings;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Testing;
+using Marrow.UI.Chrome;
 using Marrow.App.Tests.Fixtures;
 
 namespace Marrow.App.Tests.Views.Settings;
@@ -199,6 +200,38 @@ public sealed class MCPSetupPanelTests(HeadlessSession headless)
             var text = AllText(view);
             Assert.Contains("Connected · 3 tools", text, StringComparison.Ordinal);
             Assert.DoesNotContain(Guide().Reason, text, StringComparison.Ordinal);
+        });
+    }
+
+    // App/Views/Settings/MCPSetupPanel.swift:124-130 (unchanged B2->B3): `.background { WindowDragArea() }
+    // .background { WindowBackdrop(opacity: 0.5) }` - SwiftUI's background modifier stacks its content behind the
+    // view it modifies, in call order, so content sits above WindowDragArea, which sits above WindowBackdrop.
+    // PaddingHost (this file) reproduces that with a Grid, the same idiom MCPKeyPanel.cs's PaddingHost already
+    // uses for the identical Swift pattern (ED-200: WindowDragArea is a leaf Control in B3, not a Decorator a
+    // caller can wrap content in, so the nested-Decorator composition this used in B2 no longer compiles).
+    [Fact]
+    [Trait("Req", "PR-MCP-220")]
+    [Trait("Decision", "ED-200")]
+    public void PaddingHost_grid_stacks_content_over_drag_area_over_backdrop()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var runtime = new TestRuntime();
+            using var harness = new AppModelHarness();
+            var model = harness.MakeModel();
+
+            var view = new MCPSetupPanelView(Entry("gitlab"), Guide(), model, () => { });
+
+            var border = Assert.IsType<Border>(view.Child);
+            var layers = Assert.IsType<Grid>(border.Child);
+            Assert.Equal(3, layers.Children.Count);
+            // Grid children are added bottom-to-top: index 0 renders furthest back, the last index topmost -
+            // and, in Avalonia, receives pointer hit-tests first - matching Swift's content-over-drag-over-backdrop.
+            Assert.IsType<WindowBackdrop>(layers.Children[0]);
+            Assert.IsType<WindowDragArea>(layers.Children[1]);
+
+            var bodyField = typeof(MCPSetupPanelView).GetField("body", BindingFlags.Instance | BindingFlags.NonPublic)!;
+            Assert.Same(bodyField.GetValue(view), layers.Children[2]);
         });
     }
 }

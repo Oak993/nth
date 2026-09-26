@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Reflection;
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Automation.Peers;
@@ -38,7 +39,8 @@ using Chrome = Marrow.UI.Chrome.Chrome; // ED-095: the Swift type Chrome, not th
 //   :98 hover = .easeOut(duration: 0.1); :187-199 the detail sheet; :209-215 the scrim; :226-240 the wallpaper;
 //   :308-322 ChromeCapsule; :324-331 ChromeDivider; :333-358 ChromeIconLabel; :361-383 ChromeIconButton;
 //   :385-410 ChromeMenuButton; :412-437 ChromeCircleButton; :439-470 ChromeCircleMenu; :564-577 ChromeScrollModel;
-//   :1085-1140 the drag regions.
+//   the drag regions (B3 52bc792 :1091-1137, ED-200: WindowDragArea/WindowDragView collapse into one View at
+//   :1091-1099; NoWindowDragArea/NoWindowDragView unchanged apart from the citation move to :1101-1137).
 // Help strings are real call sites: ChatView.swift:1091 "Jump to latest", :1415 "Open in another app",
 // :1165 "Terminal", :1334 the runtime mode menu, DiffInspector.swift:61 "Hide changes".
 // Port shape these tests read (R-VIEW-1, R-VIEW-9, ED-095): a SwiftUI Button is found through UI Automation as a control
@@ -67,6 +69,13 @@ public sealed class ChromeTests(HeadlessSession headless)
         Dispatcher.UIThread.RunJobs();
         return window;
     }
+
+    /// Fires WindowBase's own Deactivated event and clears IsActive, standing in for AppKit's
+    /// didResignKeyNotification: headless activates every shown window and has no real platform deactivation to
+    /// drive this from outside (see AttachmentPreviewPanelTests.SimulateDeactivate, the same technique).
+    private static void SimulateDeactivate(Window window) =>
+        typeof(WindowBase).GetMethod("HandleDeactivated", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .Invoke(window, null);
 
     private static Control TopLeft(Control control)
     {
@@ -413,24 +422,28 @@ public sealed class ChromeTests(HeadlessSession headless)
         });
     }
 
-    // ---- The drag regions, :1085-1140 ----
+    // ---- The drag regions. WindowDragArea :1091-1099 (B3, ED-200: collapsed from B2's WindowDragArea/WindowDragView
+    // NSViewRepresentable/NSView pair); NoWindowDragArea/NoWindowDragView :1101-1137 (B3, unchanged from B2 apart
+    // from the citation move). ----
 
     [Fact]
-    [Trait("Req", "PR-WIN-193")] // UI/Chrome/Chrome.swift:1095 acceptsFirstMouse true; port_impacts entry 165 and ED-063: the region is a caption to the hit test
-    [Trait("Req", "UI-WIN-005")] // UI/Chrome/Chrome.swift:1085-1102 window drag region: press begins caption move
-    public void A_window_drag_region_takes_the_activating_click_and_is_a_caption_to_the_hit_test() => headless.OnUiThread(() =>
+    [Trait("Req", "PR-WIN-193")] // UI/Chrome/Chrome.swift:1091-1099 (B3): the collapsed View is a caption to the hit test and takes the hit over its whole frame
+    [Trait("Req", "UI-WIN-005")] // UI/Chrome/Chrome.swift:1091-1099 (B3)
+    public void A_window_drag_region_is_a_single_control_that_is_a_caption_to_the_hit_test() => headless.OnUiThread(() =>
     {
         var area = new WindowDragArea();
-        var view = Assert.IsType<WindowDragView>(area.Child);
 
-        Assert.True(view.AcceptsFirstMouse(null));
-        Assert.Equal(Win32Properties.Win32HitTestValue.Caption, Win32Properties.GetNonClientHitTestResult(view));
-        Assert.IsType<WindowDragView>(area.MakeNSView());
+        Assert.True(area.AcceptsFirstMouse(null));
+        Assert.Equal(Win32Properties.Win32HitTestValue.Caption, Win32Properties.GetNonClientHitTestResult(area));
     });
 
+    // R-TEST-6 (Traceability.AssertEveryTestNamesWhatItProves): an Oracle test cannot also carry a Req trait, since
+    // whether Windows should begin the move exactly on press is contingent on O-68 (6.1 E6) - if it settles to show
+    // WindowDragGesture waits for a threshold or ignores a bare click, this is the assertion that changes. It
+    // carries ED-200 (the DECISION that chose this behaviour under ED-063) instead of a Req trait.
     [Fact]
-    [Trait("Req", "PR-WIN-193")] // UI/Chrome/Chrome.swift:1097-1101: mouseDown performs the drag and mouseUp is empty, so neither travels on
-    [Trait("Req", "UI-WIN-005")] // UI/Chrome/Chrome.swift:1097-1101 release swallowed, never reaches behind
+    [Trait("Decision", "ED-200")] // UI/Chrome/Chrome.swift:1091-1099 (B3): ED-200's BeginMoveDrag fallback starts on press; mouseUp's B2 emptiness is now the release simply going to the system
+    [Trait("Oracle", "O-68")] // press-start timing is ED-063's own measured behaviour, not a documented WindowDragGesture semantic (6.1 E6)
     public void Neither_the_press_nor_the_release_on_a_window_drag_region_reaches_what_is_behind_it() => headless.OnUiThread(() =>
     {
         var reached = new List<string>();
@@ -445,8 +458,29 @@ public sealed class ChromeTests(HeadlessSession headless)
         window.Close();
     });
 
+    // Apple's WindowDragGesture documentation states this rationale for allowsWindowActivationEvents(true) - "so
+    // that dragging the containing window works even when it's inactive" (ED-200) - so unlike the press-start test
+    // above, this is a documented intent, not an open oracle question; it carries ordinary Req traits.
     [Fact]
-    [Trait("Req", "PR-WIN-194")] // UI/Chrome/Chrome.swift:1123 acceptsFirstMouse true, :1126 mouseDownCanMoveWindow false; ED-063: a client hit
+    [Trait("Req", "PR-WIN-193")] // UI/Chrome/Chrome.swift:1091-1099 (B3): allowsWindowActivationEvents(true) - dragging works even from an inactive window
+    [Trait("Req", "UI-WIN-005")] // UI/Chrome/Chrome.swift:1091-1099 (B3)
+    public void An_inactive_window_s_activating_click_still_drags_through_the_region() => headless.OnUiThread(() =>
+    {
+        var reached = new List<string>();
+        var behind = new Border { Width = 200, Height = 44, Child = new WindowDragArea() };
+        behind.AddHandler(InputElement.PointerPressedEvent, (_, _) => reached.Add("pressed"), RoutingStrategies.Bubble);
+        var window = Show(TopLeft(behind));
+        SimulateDeactivate(window);
+        Assert.False(window.IsActive);
+
+        Click(window, new Point(100, 22));
+
+        Assert.Empty(reached); // the press is handled (and BeginMoveDrag reached) the same as from an active window
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-194")] // UI/Chrome/Chrome.swift:1120 acceptsFirstMouse true, :1123 mouseDownCanMoveWindow false (B3, was B2 :1123/:1126); ED-063: a client hit
     public void A_no_drag_region_takes_the_activating_click_refuses_the_window_drag_and_is_client_to_the_hit_test() => headless.OnUiThread(() =>
     {
         var area = new NoWindowDragArea();
@@ -459,7 +493,7 @@ public sealed class ChromeTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-WIN-194")] // UI/Chrome/Chrome.swift:1131-1139: mouseDown, mouseDragged, mouseUp, rightMouseDown, rightMouseUp each go to the superview
+    [Trait("Req", "PR-WIN-194")] // UI/Chrome/Chrome.swift:1128-1136 (B3, was B2 :1131-1139): mouseDown, mouseDragged, mouseUp, rightMouseDown, rightMouseUp each go to the superview
     public void A_no_drag_region_takes_the_hit_and_passes_all_five_mouse_events_on_to_its_parent() => headless.OnUiThread(() =>
     {
         var reached = new List<string>();
