@@ -51,7 +51,7 @@ public sealed class SimpleDiffTests
     [Trait("Req", "PR-STORE-110")] // Text.swift:91-103
     public void Limit_is_bytes_and_over_limit_counts_still_trim_common_prefix_and_suffix()
     {
-        var oldText = "head\n" + new string('é', 100000) + "\ntail";
+        var oldText = "head\n" + new string('\U000000E9', 100000) + "\ntail"; // U+00E9 LATIN SMALL LETTER E WITH ACUTE
         var stats = SimpleDiff.Unified(oldText, "head\nreplacement\ntail");
         Assert.Null(stats.Diff);
         Assert.Equal(1, stats.Additions);
@@ -62,19 +62,20 @@ public sealed class SimpleDiffTests
     [Trait("Req", "PR-STORE-112")] // Text.swift:105-112, :196-198 (SwiftString.Equal)
     public void Canonically_equivalent_lines_are_context_in_their_original_old_spelling()
     {
-        var stats = SimpleDiff.Unified("é\nold", "é\nnew");
-        Assert.Equal("@@ -1,2 +1,2 @@\n é\n-old\n+new", stats.Diff);
+        var stats = SimpleDiff.Unified("\U000000E9\nold", "e\U00000301\nnew"); // U+00E9 precomposed old side; e + U+0301 combining acute new side
+        Assert.Equal("@@ -1,2 +1,2 @@\n \U000000E9\n-old\n+new", stats.Diff);
         Assert.Equal(1, stats.Additions);
         Assert.Equal(1, stats.Deletions);
     }
 
     [Fact] // Context lines are rendered from OLD lines (the op walk prefers oldLines[i]); the trailing
-    // context in this fixture keeps "é", never the canonically equivalent "new" side's spelling.
+    // context in this fixture keeps the old side's precomposed U+00E9 (e with acute), never the
+    // canonically equivalent new side's spelling (U+0065 + U+0301 combining acute accent).
     [Trait("Req", "PR-STORE-112")] // Text.swift:117-136
     public void Trailing_context_is_taken_from_the_old_texts_spelling()
     {
-        var stats = SimpleDiff.Unified("old\né", "new\né");
-        Assert.Equal("@@ -1,2 +1,2 @@\n-old\n+new\n é", stats.Diff);
+        var stats = SimpleDiff.Unified("old\n\U000000E9", "new\ne\U00000301");
+        Assert.Equal("@@ -1,2 +1,2 @@\n-old\n+new\n \U000000E9", stats.Diff);
         Assert.Equal(1, stats.Additions);
         Assert.Equal(1, stats.Deletions);
     }
