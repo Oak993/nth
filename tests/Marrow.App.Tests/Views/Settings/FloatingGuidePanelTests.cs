@@ -63,6 +63,9 @@ public sealed class FloatingGuidePanelTests(HeadlessSession headless)
             Assert.Equal(WindowDecorations.None, keyWindow.WindowDecorations);
             Assert.Equal(100, keyWindow.MinHeight);
             Assert.Equal(380, keyWindow.Width);
+            // :46-48 panel.isOpaque = false / backgroundColor = .clear, over a WindowBackdrop(0.5) with no
+            // wallpaper (OD-0005/OD-0014): the window itself must supply the Acrylic material.
+            Assert.Contains(WindowTransparencyLevel.AcrylicBlur, keyWindow.TransparencyLevelHint);
             MCPKeyPanel.Shared.Close();
 
             MCPSetupPanel.Shared.Present(SetupEntry(), Guide(), model);
@@ -75,6 +78,7 @@ public sealed class FloatingGuidePanelTests(HeadlessSession headless)
             Assert.Equal(WindowDecorations.None, setupWindow.WindowDecorations);
             Assert.Equal(100, setupWindow.MinHeight);
             Assert.Equal(400, setupWindow.Width);
+            Assert.Contains(WindowTransparencyLevel.AcrylicBlur, setupWindow.TransparencyLevelHint);
             MCPSetupPanel.Shared.Close();
         });
     }

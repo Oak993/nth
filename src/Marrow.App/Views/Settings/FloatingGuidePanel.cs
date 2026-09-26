@@ -92,7 +92,12 @@ public class FloatingGuidePanel
             Topmost = true,
             WindowDecorations = WindowDecorations.None,
             WindowStartupLocation = WindowStartupLocation.Manual,
-            TransparencyLevelHint = [WindowTransparencyLevel.Transparent],
+            // :46-48 `panel.isOpaque = false / panel.backgroundColor = .clear`. Both subclasses lay a
+            // WindowBackdrop(0.5) (no wallpaper) over this panel's content, and WindowBackdrop.GlassBase()
+            // relies on the window itself compositing the Acrylic material where it shows the desktop
+            // (OD-0005, OD-0014; Marrow.UI.Chrome.Chrome.WindowBackdrop.GlassBase()) - a plain Transparent
+            // hint would leave the scrim over raw, unblurred desktop content instead of that material.
+            TransparencyLevelHint = [WindowTransparencyLevel.AcrylicBlur],
             Background = Brushes.Transparent,
         };
         panel = window;
