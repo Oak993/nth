@@ -332,6 +332,11 @@ public sealed class RootViewTests(HeadlessSession headless)
                 Assert.NotNull(model.SelectedThreadID);
                 var thread = model.Thread(model.SelectedThreadID!.Value)!;
                 Assert.Equal(model.Projects[1].Id, thread.ProjectID);
+                // :103-105 `for folder in folders { lastProject = ... }` only reassigns lastProject; newThread(in:)
+                // is called exactly ONCE, after the loop, not once per folder. Guards against a regression that
+                // moves the newThread call inside the loop, which would still leave SelectedThreadID pointing at a
+                // Projects[1] thread (newThread always overwrites it) and so would still pass the assertions above.
+                Assert.Single(model.Threads);
             });
         });
     }
@@ -443,6 +448,51 @@ public sealed class RootViewTests(HeadlessSession headless)
             harness.Main.OnMain(() =>
             {
                 Assert.Single(model.Runtime(createdThreadID).Draft.Attachments);
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-WIN-065")] // RootView.swift:103-108; AppModel.swift newThread(in:) sets selectedThreadID = thread.id
+    // A thread already selected before the drop, in a project unrelated to the folder half, does NOT keep its
+    // selection when the drop ALSO contains a folder: newThread(in: lastProject) (called once, after the folder
+    // loop, :105) overwrites model.selectedThreadID with the thread it just created in the newly dropped project,
+    // and HandleDropCore's file-attach step (:106-108) reads that overwritten value, not the pre-existing one.
+    public void A_mixed_drop_overrides_an_unrelated_pre_existing_selection_and_attaches_the_file_to_the_new_threads_draft()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var model = harness.MakeModel();
+            var existingDirectory = harness.NewFolder("existing");
+            var droppedFolder = harness.NewFolder("dropped");
+            var filePath = Path.Combine(harness.Scratch, "dropped.txt");
+            File.WriteAllText(filePath, "hello");
+
+            Guid existingThreadID = default;
+            harness.Main.OnMain(() =>
+            {
+                var existingProject = model.AddProject(DroppedUrl(existingDirectory));
+                existingThreadID = model.NewThread(existingProject)!.Id; // selects it, unrelated to the drop below
+                Assert.Equal(existingThreadID, model.SelectedThreadID);
+            });
+
+            Guid newThreadID = default;
+            harness.Main.OnMain(() =>
+            {
+                var accepted = RootView.HandleDropCore(model, [DroppedUrl(droppedFolder), DroppedUrl(filePath)]);
+                Assert.True(accepted);
+                // :105 newThread(in: lastProject) overwrote the pre-existing, unrelated selection.
+                Assert.NotEqual(existingThreadID, model.SelectedThreadID);
+                newThreadID = model.SelectedThreadID!.Value;
+            });
+            harness.Main.Loop.RunUntil(() => model.Runtime(newThreadID).Draft.Attachments.Count > 0);
+
+            harness.Main.OnMain(() =>
+            {
+                Assert.Single(model.Runtime(newThreadID).Draft.Attachments);
+                // The file attaches to the newly created/selected thread, never to the old, unrelated selection.
+                Assert.Empty(model.Runtime(existingThreadID).Draft.Attachments);
             });
         });
     }
