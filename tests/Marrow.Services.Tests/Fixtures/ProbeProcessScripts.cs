@@ -95,4 +95,52 @@ public static class ProbeProcessScripts
         return "$filler = 'x' * 70000\n" +
                $"[Console]::Error.Write($filler + \"`n\" + '{escapedFinal}' + \"`n\"); [Console]::Error.Flush(); exit {code}";
     }
+
+    /// <summary>Writes "Unauthorized" to stderr, then more than 4,000 bytes of filler generated inside the script
+    /// itself, then exits with the given code: proves errorTail's last-4,000-byte window (PR-MCP-110, PR-MCP-236)
+    /// no longer carries a marker written before it, even though the full stderr buffer still does.</summary>
+    public static string ExitsWithStaleUnauthorizedMarker(int code)
+    {
+        return "[Console]::Error.Write('Unauthorized' + \"`n\"); [Console]::Error.Flush()\n" +
+               "$filler = 'y' * 4500\n" +
+               $"[Console]::Error.Write($filler); [Console]::Error.Flush(); exit {code}";
+    }
+
+    /// <summary>Answers initialize with a stray reply for id 999 (an id nobody is waiting on) immediately before
+    /// the real reply for the request's own id, both on the same read: proves MCPStdioConnection.Handle buffers a
+    /// reply nobody is waiting on rather than discarding it, and the awaited reply still arrives (PR-MCP-109).
+    /// serverInfo.name is "real" and .version is "v1" so the test can tell the real reply from the stray one.</summary>
+    public static string EchoWithBufferedExtraReply()
+    {
+        var body = new StringBuilder();
+        body.Append("  if ($msg.method -eq 'initialize') {\n");
+        WriteLine(body, "'{\"jsonrpc\":\"2.0\",\"id\":999,\"result\":{\"serverInfo\":{\"name\":\"stray\",\"version\":\"stray\"}}}'");
+        WriteLine(body, "'{\"jsonrpc\":\"2.0\",\"id\":' + $msg.id + ',\"result\":{\"serverInfo\":{\"name\":\"real\",\"version\":\"v1\"}}}'");
+        body.Append("  } elseif ($msg.method -eq 'tools/list') {\n");
+        WriteLine(body, "'{\"jsonrpc\":\"2.0\",\"id\":' + $msg.id + ',\"result\":{\"tools\":[]}}'");
+        body.Append("  }\n");
+        return ReadLoop.Replace("__BODY__", body.ToString(), StringComparison.Ordinal);
+    }
+
+    /// <summary>Answers initialize normally (LF-terminated), then writes the tools/list reply with NO trailing
+    /// newline before the process exits: the reply can only reach the probe through the child's end-of-stream
+    /// flush (StdioProcess.swift Deliver/FinishOutput), not a 0x0A. Does not use the shared ReadLoop/WriteLine
+    /// helpers, which always append a newline.</summary>
+    public static string EchoThenOmitFinalNewlineBeforeExit() => """
+        $ErrorActionPreference = 'Stop'
+        while ($true) {
+          $line = [Console]::In.ReadLine()
+          if ($null -eq $line) { break }
+          if ($line.Length -eq 0) { continue }
+          $msg = $line | ConvertFrom-Json
+          if ($msg.method -eq 'initialize') {
+            [Console]::Out.Write('{"jsonrpc":"2.0","id":' + $msg.id + ',"result":{"serverInfo":{"name":"n","version":"v"}}}' + "`n")
+            [Console]::Out.Flush()
+          } elseif ($msg.method -eq 'tools/list') {
+            [Console]::Out.Write('{"jsonrpc":"2.0","id":' + $msg.id + ',"result":{"tools":[]}}')
+            [Console]::Out.Flush()
+            exit 0
+          }
+        }
+        """;
 }
