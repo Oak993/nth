@@ -194,15 +194,23 @@ public sealed class WallpaperStore : MainActorModel
                 return;
             }
 
-            var decoded = Decode(destination, capturedSoftness);
-            if (decoded is null)
+            // DEVIATION (platform adaptation, not a Swift behaviour change): decode the pixels off-main exactly as
+            // Wallpaper.swift:137 does (Task.detached), but defer ToImage's Avalonia WriteableBitmap allocation to
+            // the MainActor.Run hop just below, as Render() and RenderLive() already do (:236, :276). NSImage
+            // construction needs no main-thread binding in Swift, so :262-269 (Decode) builds the AppKit image
+            // off-main too; Avalonia's platform render interface is not reliably resolvable from an arbitrary
+            // ThreadPool thread under contention (observed: "Unable to locate IPlatformRenderInterface" from this
+            // exact call site under the parallel suite), so the port keeps every ToImage call on the main hop.
+            // Timing and IsInstalling's observable flip are unchanged: FinishInstall still runs only after decode.
+            var decodedBitmap = DecodeBitmap(destination, capturedSoftness);
+            if (decodedBitmap is null)
             {
                 SwiftTry.Ignore(() => FileOps.RemoveItem(destination));
                 await MainActor.Run(FailInstall);
                 return;
             }
 
-            await MainActor.Run(() => FinishInstall(destination, new DecodedPicture(decoded)));
+            await MainActor.Run(() => FinishInstall(destination, new DecodedPicture(ToImage(decodedBitmap))));
         });
     }
 
@@ -376,10 +384,17 @@ public sealed class WallpaperStore : MainActorModel
     // Wallpaper.swift:262-269
     public static IImage? Decode(string url, double softness)
     {
+        var rendered = DecodeBitmap(url, softness);
+        return rendered is null ? null : ToImage(rendered);
+    }
+
+    // The pixel part of Decode (:262-269), with no Avalonia call in it: safe to run on any thread, unlike ToImage
+    // (see the Install() call site above).
+    private static DecodedBitmap? DecodeBitmap(string url, double softness)
+    {
         var bitmap = Thumbnail(url, 3200);
         if (bitmap is null) return null;
-        var rendered = softness > 0 ? Blurred(bitmap, softness) : bitmap;
-        return rendered is null ? null : ToImage(rendered);
+        return softness > 0 ? Blurred(bitmap, softness) : bitmap;
     }
 
     // Wallpaper.swift:98-108
